@@ -1,0 +1,191 @@
+[
+  {
+    "id": "CR7-9-1 `and` never sets require_all",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "        if joined == \"and\":\n            cond[\"require_all\"] = True\n",
+    "new": "        if False:\n            cond[\"require_all\"] = True\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-2 a bare second clause needs its own until",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "_LEAD = r\"(?:\" + UNTIL + r\"|and|or)\"\n",
+    "new": "_LEAD = UNTIL\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-3 the dangling connector reaches the target",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "    text = re.sub(r\"\\s+(?:and|or)\\s*$\", \"\", text)\n",
+    "new": "    text = text\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-4 any-of loses its suffix",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "    return \" or \".join(t for _k, t in entries) + \" \u2014 whichever comes first\"\n",
+    "new": "    return \", \".join(t for _k, t in entries)\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-5 a met arm is not ticked off",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "        texts = [t + (\" (met)\" if k in met and not only_unmet else \"\")\n",
+    "new": "        texts = [t + (\"\")\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-6 the already-here note is silent",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "            read.notes.append(f\"{who.name} is already at {who.location} with him \u2014 that arm is met at the turn's end\")\n",
+    "new": "            pass\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-7 a HOLD does not count the turn it was given",
+    "file": "backend/commands/strategic.py",
+    "old": "        counted = current - int(order.started_turn) + 1      # issuing turn included\n",
+    "new": "        counted = current - int(order.started_turn)\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-8 a SUPPORT counts its arrival turn",
+    "file": "backend/commands/strategic.py",
+    "old": "        counted = current - int(order.arrived_turn)          # arrival turn excluded\n",
+    "new": "        counted = current - int(order.arrived_turn) + 1\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py tests/test_strategic_bugfixes.py"
+  },
+  {
+    "id": "CR7-9-9 the issuing turn's tick does not read the condition",
+    "file": "backend/commands/strategic.py",
+    "old": "                progress_note = \"\"\n                if order.condition:\n                    met, reason = self._check_condition(marshal, order.condition, world)\n                    if met:\n                        reports.append(self._complete_order(marshal, world, reason))\n                        continue\n",
+    "new": "                progress_note = \"\"\n                if False:\n                    met, reason = self._check_condition(marshal, order.condition, world)\n                    if met:\n                        reports.append(self._complete_order(marshal, world, reason))\n                        continue\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-10 the latch never extends",
+    "file": "backend/commands/strategic.py",
+    "old": "        progress.extend(key for key, _l, _f in newly)\n",
+    "new": "        pass\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-11 all-of completes on any arm",
+    "file": "backend/commands/strategic.py",
+    "old": "        if all(key in progress for key, _m, _l, _f in arms):\n",
+    "new": "        if any(key in progress for key, _m, _l, _f in arms):\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-12 the hold handler expires an all-of alone",
+    "file": "backend/commands/strategic.py",
+    "old": "        if (order.condition and order.condition.max_turns\n                and not getattr(order.condition, \"require_all\", False)):\n",
+    "new": "        if (order.condition and order.condition.max_turns\n                and True):\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-13 the hold handler's own timer disagrees",
+    "file": "backend/commands/strategic.py",
+    "old": "            turns_elapsed = world.current_turn - issued_turn + 1\n",
+    "new": "            turns_elapsed = world.current_turn - issued_turn\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-14 the progress beat is dropped from the handler report",
+    "file": "backend/commands/strategic.py",
+    "old": "            if progress_note and isinstance(result, dict) and result.get(\"message\"):\n                result[\"message\"] = f\"{progress_note} {result['message']}\"\n",
+    "new": "            if False:\n                result[\"message\"] = f\"{progress_note} {result['message']}\"\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-15 the progress beat is dropped from the skip-branch report",
+    "file": "backend/commands/strategic.py",
+    "old": "                if progress_note:\n                    msg = f\"{progress_note} {msg}\"\n",
+    "new": "                if False:\n                    msg = f\"{progress_note} {msg}\"\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-16 the beat names met arms too",
+    "file": "backend/commands/strategic.py",
+    "old": "            waiting = describe_condition(condition, progress=progress, only_unmet=True)\n",
+    "new": "            waiting = describe_condition(condition, progress=progress, only_unmet=False)\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-17 the Ledger counts the turn it is read on",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        counted = count_order_turns(order, int(world.current_turn), including_current=False)\n",
+    "new": "        counted = count_order_turns(order, int(world.current_turn), including_current=True)\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-18 the Ledger never ticks off progress",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    progress = list(getattr(order, \"condition_progress\", None) or [])\n    return describe_condition(cond, remaining=remaining, progress=progress) or \"active\"\n",
+    "new": "    progress = []\n    return describe_condition(cond, remaining=remaining, progress=progress) or \"active\"\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-19 the pop never marks the stash as let go",
+    "file": "backend/main.py",
+    "old": "        if _tail_l and _tail_l not in _typed_l:\n            world._relay_let_go = _carried_relay\n",
+    "new": "        if False:\n            world._relay_let_go = _carried_relay\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-20 the re-typed tail is announced as let go",
+    "file": "backend/main.py",
+    "old": "        if _tail_l and _tail_l not in _typed_l:\n            world._relay_let_go = _carried_relay\n",
+    "new": "        if _tail_l:\n            world._relay_let_go = _carried_relay\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-21 the base builder never speaks the let-go",
+    "file": "backend/main.py",
+    "old": "    _let_go = getattr(world, \"_relay_let_go\", None)\n    if _let_go:\n        world._relay_let_go = None\n",
+    "new": "    _let_go = getattr(world, \"_relay_let_go\", None)\n    if False:\n        world._relay_let_go = None\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-22 the answered relay is still announced as let go",
+    "file": "backend/main.py",
+    "old": "    if getattr(world, \"_relay_let_go\", None) is pending:\n        world._relay_let_go = None   # CR-7-9: answered, so never \"let go\"\n",
+    "new": "    if False:\n        world._relay_let_go = None   # CR-7-9: answered, so never \"let go\"\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-23 the turn boundary drops the stash mute",
+    "file": "backend/models/world_state.py",
+    "old": "        if getattr(self, \"_pending_relay\", None) is not None:\n            self._relay_let_go = self._pending_relay\n",
+    "new": "        if False:\n            self._relay_let_go = self._pending_relay\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-24 the question note does not say how long it waits",
+    "file": "backend/commands/relay.py",
+    "old": "                    f\"Answer, and it returns to the line; another order, or \"\n                    f\"the turn's end, lets it go.\")\n",
+    "new": "                    f\"Answer, and it returns to the line.\")\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-25 the executor drops require_all on the way to the order",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                require_all=bool(cond_dict.get(\"require_all\", False)),  # CR-7-9\n",
+    "new": "                require_all=False,  # CR-7-9\n",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py"
+  },
+  {
+    "id": "CR7-9-26 condition_progress is not serialized",
+    "file": "backend/models/marshal.py",
+    "old": "            \"condition_progress\": list(self.condition_progress or []),\n",
+    "new": "",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py tests/test_serialization_enforcement.py"
+  },
+  {
+    "id": "CR7-9-27 require_all is not serialized",
+    "file": "backend/models/marshal.py",
+    "old": "            \"require_all\": bool(self.require_all),\n",
+    "new": "",
+    "tests": "tests/test_cr7_9_the_conditions_say_what_they_mean.py tests/test_serialization_enforcement.py"
+  }
+]

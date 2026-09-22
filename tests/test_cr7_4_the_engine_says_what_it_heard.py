@@ -217,7 +217,8 @@ class TestTheEcho:
         assert cond.max_turns == 3 and cond.until_marshal_arrives == "Ney"
         row = next(r for r in build_strategic_ledger(M.world)["orders"]
                    if r["marshal"] == "Davout")
-        assert row["condition"] == "3 turn(s) remaining, until Ney arrives"
+        # CR-7-9: two arms name the word that joins them — none typed = any-of.
+        assert row["condition"] == "3 turn(s) remaining or until Ney arrives — whichever comes first"
         assert row["condition"] == grammar.describe_condition(cond, remaining=3)
 
 
@@ -377,4 +378,7 @@ class TestTheSweepIsUnmoved:
         assert importers == {
             "backend/ai/strategic_parser.py", "backend/commands/strategic_executor.py",
             "backend/game_logic/ledger.py", "backend/main.py",
+            # CR-7-9: the all-of progress beat names the arms still waited
+            # for from the ONE sentence (`describe_condition(only_unmet=True)`).
+            "backend/commands/strategic.py",
         }, sorted(importers)

@@ -42,6 +42,27 @@
 > CR-7-3: *"fortify and attack is a contradiction"* — a contradictory pair's drop
 > note must not invite the tail to be re-sent as-is.
 >
+> **✅ SLICE CR-7-9 — "The conditions say what they mean" — LANDED September 22, 2026**
+> (the user's follow-up on the landed row: *"what if multiple conditions arise in x turns hows
+> it look or work"* → *"make fixes continue with and finish work assure ux is good for this
+> process and it adds to dynamism and fun"*; landing record = `COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md`
+> §CR-7-9 LANDING RECORD; rules = `SYSTEMS_REFERENCE.md` §4 Stage 2f). **`and` between
+> clauses means every arm** (`StrategicCondition.require_all`, latched on
+> `StrategicOrder.condition_progress` with a progress beat — *"Davout has arrived. Ney holds
+> on — until the battle is won as well."* — and the Ledger ticking each arm off), **`or` or
+> nothing means whichever comes first, and the echo and the Ledger SAY which**; a bare second
+> clause reads without its own `until`; **the timer counts the turn it was given** (ONE rule
+> `strategic.count_order_turns` for the checker, the hold handler's expiry, the skip branch and
+> the Ledger — `hold for 1 turn` ends with the turn it was given; the Ledger never reads
+> "0 turn(s) remaining" on a live order; SUPPORT counts from the turn after arrival because the
+> enemy phase precedes the tick); **a stashed tail is let go with a word** (`relay_let_go`, on
+> the reply that dropped it — another order or the turn's end — and the typed interrupt answer
+> now brings the tail back like the popup did). CQ-14 / CQ-15 / CQ-16 found and closed;
+> `test_cr7_9_the_conditions_say_what_they_mean.py` (37); corpus 709/709; M1–M7 + `BASELINE_SERIES`
+> byte-identical; zero `.gd`. ⚠ Open for the next play session: the beat, the `(met)` tick
+> and the let-go line on screen (backend strings on existing surfaces; the eyes-on half is the
+> user's).
+>
 > **✅ SLICES CR-7-2 … CR-7-8 — "The Second Clause", the rest of row CR-7 — LANDED
 > September 22, 2026, in one session under the user's direction** (*"continue work on
 > multi step commands make sure costs and contradictions are smoothes out make all
@@ -145,6 +166,7 @@
 > | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
+| ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
 > | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". |
 > | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. |
 >

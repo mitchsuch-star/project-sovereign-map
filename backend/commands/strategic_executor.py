@@ -1307,6 +1307,7 @@ class StrategicExecutor:
                 until_marshal_destroyed=cond_dict.get("until_marshal_destroyed"),
                 until_relieved=cond_dict.get("until_relieved", False),
                 until_battle_won=cond_dict.get("until_battle_won", False),
+                require_all=bool(cond_dict.get("require_all", False)),  # CR-7-9
             )
 
         # ── Create StrategicOrder ─────────────────────────────────────

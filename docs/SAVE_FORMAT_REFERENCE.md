@@ -740,7 +740,8 @@ Reserved future `event_log` payloads:
   "last_combat_result": null,
   "last_contact_enemy": null,
   "last_contact_turn": null,
-  "arrival_target": null
+  "arrival_target": null,
+  "condition_progress": []
 }
 ```
 
@@ -767,6 +768,7 @@ Reserved future `event_log` payloads:
 | `arrived_turn` | int\|null | (SUPPORT) Turn when marshal first reached ally. Timed SUPPORT counts from this, not started_turn. |
 | `last_contact_enemy` | string\|null | (PURSUE) Last enemy contacted during pursuit (fog-of-war tracking) |
 | `last_contact_turn` | int\|null | (PURSUE) Turn of last enemy contact |
+| `condition_progress` | list[string] | CR-7-9 (Sept 22, 2026): the arms of an ALL-OF condition already met, in the order they landed (`max_turns`, `until_marshal_arrives`, …) — the latch that keeps an arm counted after it has passed. Empty on every any-of order; absent in older saves → `[]`. |
 | `arrival_target` | string\|null | CR-7-6 (Sept 22, 2026): the enemy marshal an arrival tail NAMED (`march to Swabia then attack Archduke Charles`); read by `strategic.pick_contact_enemy` at the first-step / mid-path / arrival seams, which prefer him among the enemies met and fall back to the first otherwise. Absent in older saves → `None` → the pre-CR-7-6 pick. |
 
 ---
@@ -779,6 +781,7 @@ Reserved future `event_log` payloads:
   "until_marshal_arrives": "Davout",
   "until_marshal_destroyed": null,
   "until_battle_won": true,
+  "require_all": false,
   "until_relieved": false
 }
 ```
@@ -791,6 +794,7 @@ Reserved future `event_log` payloads:
 | `until_marshal_arrives` | string\|null | End when marshal arrives |
 | `until_marshal_destroyed` | string\|null | End when enemy destroyed |
 | `until_battle_won` | bool | End when battle won (or stalemate) |
+| `require_all` | bool | CR-7-9 (Sept 22, 2026): `and` between clauses — EVERY arm must be met (all-of, latched on the order's `condition_progress`); `False` (the default, and every older save) = whichever comes first. |
 | `until_relieved` | bool | End when relieved by ally |
 
 ---

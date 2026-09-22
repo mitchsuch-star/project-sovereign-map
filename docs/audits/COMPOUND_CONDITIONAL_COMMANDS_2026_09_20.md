@@ -629,3 +629,94 @@ the bare form recorded as design and the AP price on the record (above).
 - **CQ-8** (naming a second marshal is inert; `parse_multiple` has zero callers) stays CR-7 backlog — the multi-marshal string is where §3 now says it is.
 - **The relay fill on screen** — the `.gd` half is parse-clean and boot-clean; the eyes-on half is the next play session's (the standing visual sign-off convention).
 - **A `relayed` census over a played campaign** (re-open condition 1) — needs a human playing; instrument in place.
+
+## CR-7-9 — "THE CONDITIONS SAY WHAT THEY MEAN" — LANDING RECORD (September 22, 2026)
+
+**Opened by the user asking how several conditions behave** (*"what if multiple conditions
+arise in x turns hows it look or work"*) and then *"make fixes continue with and finish work
+assure ux is good for this process and it adds to dynamism and fun etc commit and push when
+done"*. The answer was measured on the landed CR-7 before a line was written
+(`tools`-free probes at the real `/command`, mock mode): a condition could carry several
+arms and the engine read them as **whichever comes first** — but `and` was stored exactly
+like `or`, the echo listed the arms with a comma that said nothing, a `hold for 1 turn` ran
+one turn longer than the Ledger's "0 turn(s) remaining" admitted, and a tail stashed behind
+a question was dropped mute by the next order or the turn's end after a note that said it
+would wait. Three findings, all built, filed as **CQ-14 / CQ-15 / CQ-16** and closed.
+
+### What shipped
+
+- **`and` means both; `or` means whichever comes first; the sentence says so.**
+  `condition_grammar.read_connector` reads the word between clauses (a clause may OPEN with
+  it — `until Davout arrives or the battle is won` — the second `until` being what a player
+  says, not types); `and` sets `StrategicCondition.require_all` (serialized); a dangling
+  connector is cut before the target (`hold Lorraine for 2 turns and until Davout arrives`
+  held `Lorraine and`); both words in one order read as any-of and the echo says so; a man
+  already at the holder's side is noted (`Davout is already at Rhineland with him — that arm
+  is met at the turn's end`). `describe_condition` — the one sentence the echo AND the Ledger
+  read — renders `… or … — whichever comes first`, `… and … — both` / `— all 3`, `(met)`,
+  and names the unmet arms for the beat. Single-arm strings are byte-identical.
+- **The all-of latch and the progress beat (the dynamism).** ONE per-arm reader
+  (`_condition_arms`; the voiced completion labels unchanged); an all-of arm that lands is
+  latched on `StrategicOrder.condition_progress` (serialized) and reported on that tick's
+  own report line — *"Davout has arrived. Ney holds on — until the battle is won as well."*
+  — the Ledger ticks it off, and the order ends on the last arm: *"Victory achieved! With
+  that, every condition of Ney's order is met."* A timer that lands early in an all-of says
+  *the agreed turns have passed*, never *abandons*; the hold handler's own expiry never fires
+  an all-of alone.
+- **The timer counts the turn it was given.** ONE rule, `strategic.count_order_turns`,
+  read by the checker, the hold handler's expiry, the skip branch (the issuing turn's tick
+  now READS the condition; the first step stays un-repeated) and the Ledger. Measured before:
+  `hold for 1 turn` given on turn 1 → Ledger "0 turn(s) remaining" for the whole of turn 2
+  while he held on, completing at turn 2's end; after: it ends with turn 1, the Ledger says
+  "1 turn(s) remaining" on the turn it stands and never 0 on a live order, `for 2 turns`
+  reads "1 turn(s) remaining" after one end turn and completes on the second, `until turn 3`
+  is over as turn 3 begins. **SUPPORT is the exception and the reason is measured:** in
+  `end_turn` the enemy phase runs BEFORE the strategic tick, so the turn a supporter arrives
+  gave the ally no enemy phase at his side — a SUPPORT counts from the turn after arrival
+  (the two `TestTimedSupportArrivalTimer` pins were right and hold; the Ledger now agrees
+  with them instead of reading 0 on turn 5).
+- **The tail is let go with a word.** The question note now says how long it waits
+  (*"Answer, and it returns to the line; another order, or the turn's end, lets it go."*);
+  a command that neither answers nor re-types the tail, and the turn boundary, mark the
+  stash `world._relay_let_go` (transient) and `build_base_response` speaks it once on the
+  reply that dropped it — `relay_let_go` + *"The order that waited behind the question —
+  "fortify" — is let go with it. Give it again when you mean it."*; re-typing the tail is
+  not a drop; the consuming routes clear it only when the SAME stash is consumed (a
+  boundary's word survives an unrelated answer). **Found in passing:** the typed interrupt
+  answer (`press on`) never brought the tail back — the popup route did — and now does.
+- **The help teaches it** (`or / and` line; `'for 2 turns' counts the turn you give it`).
+
+### Decisions taken under the grant
+
+- All-of is a LATCH, not a snapshot: an arm that was true and passed stays met (Davout
+  arrived and marched on; a battle won and then another lost). The alternative — all arms
+  true at one tick — makes "until Davout arrives and until the battle is won" unwinnable
+  the moment he leaves, which no player means.
+- The HOLD/SUPPORT asymmetry follows the engine's own turn order, not symmetry for its own
+  sake; the rule is one function with the reason in its docstring.
+- Mixed connectors (`and … or …`) read as any-of and SAY so rather than refuse — the
+  order is still a coherent one, and a refusal would cost the player the whole line.
+
+### Measured
+
+- Probes at the real `/command` (mock): `or` → *(until Davout arrives or until the battle
+  is won — whichever comes first)*; `for 2 turns and until Davout arrives` → *— both*,
+  target `Rhineland`; `for 1 turn` completes on the first end turn, `for 2 turns` reads
+  1 remaining then completes; the all-of latch beat then the completion line; the let-go
+  line on another order, on `end turn`, and NOT on a re-type; the already-here note.
+- Pins: `tests/test_cr7_9_the_conditions_say_what_they_mean.py` (37). Flipped
+  consciously: the CR-7-4 two-armed Ledger literal (`, ` → ` or … — whichever comes first`)
+  and its grammar import census (`strategic.py` now reads the one sentence for the beat).
+  Mutation sweep `tools/_sweep_cr7_9.json`: **27 of 27 killed, 0 INERT, first pass** (the grammar, the latch, both timers, the Ledger, the pop, the builder, the boundary, the note, the executor hand-off and both serializations).
+- Corpus: three `cr7-9-*` rows (`and` / bare-`or` / `for … and until`); `parser_eval`
+  709/709. M1–M7 byte-identical; `BASELINE_SERIES` control arm green without re-record (no
+  AI-issued order carries a condition). Zero `.gd` — the Ledger renders the same string
+  field, the reports the same shape.
+
+### Filed, not built
+
+- **The typed interrupt route's relay consumption has no end-to-end pin** (a deterministic
+  bad-odds interrupt is a two-marshal staging the popup tests already own); the clearing
+  is pinned directly on `_attach_answered_relay`.
+- **Three or more arms** render `— all 3` and evaluate correctly, but no golden row types
+  one; the grammar's clause spans are what bound it.

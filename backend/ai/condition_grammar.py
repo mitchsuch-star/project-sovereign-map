@@ -57,22 +57,26 @@ _NUMBER = r"(?:\d+|" + "|".join(WORD_NUMBERS) + r")"
 # Every way the game accepts "until". `till` and `'til` were the phantom-
 # province forms; "until such time as" is the period's own phrasing.
 UNTIL = r"(?:until\s+such\s+time\s+as|until|till|['’]til)"
+# CR-7-9: a clause may also open with the CONNECTOR that joins it to the
+# clause before it ("until Davout arrives OR the battle is won") — the
+# second `until` is what a player says, not what a player types.
+_LEAD = r"(?:" + UNTIL + r"|and|or)"
 _NAME = r"[a-z][a-z'’-]*"
 
 # ── The clauses the engine READS ──────────────────────────────────────────
 # Every regex here is ALSO a strip: `strip_condition_text` removes exactly
 # these spans (plus the generic until-tail below) from the target text.
 ARRIVES_RE = re.compile(
-    r"\b" + UNTIL + r"\s+(?:" + HONORIFIC + r")?(?!relief\b|reinforcements?\b|help\b)"
+    r"\b" + _LEAD + r"\s+(?:" + HONORIFIC + r")?(?!relief\b|reinforcements?\b|help\b)"
     r"(?P<name>" + _NAME + r")\s+arrives?\b")
 RELIEVED_RE = re.compile(
-    r"\b" + UNTIL + r"\s+(?:relieved|(?:the\s+)?(?:relief|reinforcements?|help)"
+    r"\b" + _LEAD + r"\s+(?:relieved|(?:the\s+)?(?:relief|reinforcements?|help)"
     r"\s+(?:arrives?|comes?|reaches\s+(?:him|us|them)))\b")
 BATTLE_WON_RE = re.compile(
-    r"\b" + UNTIL + r"\s+(?:(?:the\s+)?battle\s+(?:is\s+)?won|victory|victorious"
+    r"\b" + _LEAD + r"\s+(?:(?:the\s+)?battle\s+(?:is\s+)?won|victory|victorious"
     r"|(?:the\s+)?battle\s+is\s+(?:decided|over))\b")
 DESTROYED_RE = re.compile(
-    r"\b(?:" + UNTIL + r"\s+(?:(?P<who>" + _NAME + r")\s+(?:is\s+|are\s+)?)?destroyed"
+    r"\b(?:" + _LEAD + r"\s+(?:(?P<who>" + _NAME + r")\s+(?:is\s+|are\s+)?)?destroyed"
     r"|to\s+destruction)\b")
 TURNS_RE = re.compile(r"\bfor\s+(?P<n>" + _NUMBER + r")\s+(?:more\s+)?turns?\b")
 UNTIL_TURN_RE = re.compile(r"\b" + UNTIL + r"\s+turn\s+(?P<t>\d+)\b")
@@ -101,6 +105,9 @@ def strip_condition_text(text: str) -> str:
         text = pattern.sub("", text)
     text = UNTIL_TAIL_RE.sub("", text)
     text = ARRIVAL_TAIL_RE.sub("", text)
+    # CR-7-9: "for 2 turns and until Davout arrives" leaves "… and" behind
+    # once both clauses are cut — a connector is never a destination.
+    text = re.sub(r"\s+(?:and|or)\s*$", "", text)
     return re.sub(r"\s{2,}", " ", text).strip()
 
 
@@ -222,10 +229,62 @@ def parse_condition(command_lower: str, target: str, *, world=None,
     if BATTLE_WON_RE.search(command_lower):
         cond["until_battle_won"] = True
 
+    # CR-7-9: the connector decides how several arms combine. `and` = every
+    # arm must be met (all-of, latched on the order); `or`, a comma, or no
+    # word at all = whichever comes first — the engine's own reading since
+    # conditions existed, now SAID in the echo and on the Ledger.
+    if len(cond) >= 2:
+        joined, seen = read_connector(command_lower)
+        if joined == "and":
+            cond["require_all"] = True
+        elif joined == "mixed" and world is not None:
+            read.notes.append("'and' and 'or' both used — read as whichever comes first")
+    if world is not None and cond.get("until_marshal_arrives") and issuing_marshal:
+        me = world.get_marshal(issuing_marshal)
+        who = world.get_marshal(cond["until_marshal_arrives"])
+        if (me is not None and who is not None
+                and getattr(me, "location", None) == getattr(who, "location", None)):
+            read.notes.append(f"{who.name} is already at {who.location} with him — that arm is met at the turn's end")
+
     read.condition = cond if cond else None
     if world is not None:
         read.unread = unread_condition_clauses(command_lower)
     return read
+
+
+_CONNECTOR_LEAD_RE = re.compile(r"(and|or)\b")
+_CONNECTOR_GAP_RE = re.compile(r"\b(and|or)\b")
+
+
+def read_connector(command_lower: str) -> Tuple[Optional[str], List[str]]:
+    """The word joining the condition clauses: ``"and"`` (all-of), ``"or"``
+    (any-of), ``"mixed"`` (both typed — read as any-of, and said), or
+    ``None`` (nothing typed — any-of). A clause that opens with the
+    connector (`or the battle is won`) carries it; otherwise the gap
+    between two clauses is read (`for 2 turns, and until …`)."""
+    spans = []
+    for _key, pattern in _READ_CLAUSES:
+        for m in pattern.finditer(command_lower):
+            spans.append((m.start(), m.end(), m.group(0)))
+    spans = sorted(set(spans))
+    seen: List[str] = []
+    for i in range(1, len(spans)):
+        prev_end = spans[i - 1][1]
+        start, _end, text = spans[i]
+        if start < prev_end:
+            continue
+        lead = _CONNECTOR_LEAD_RE.match(text)
+        if lead:
+            seen.append(lead.group(1))
+            continue
+        gap = _CONNECTOR_GAP_RE.search(command_lower[prev_end:start])
+        if gap:
+            seen.append(gap.group(1))
+    if not seen:
+        return None, seen
+    if "and" in seen and "or" in seen:
+        return "mixed", seen
+    return seen[0], seen
 
 
 _CLAUSE_END_RE = re.compile(r"[,;.!?]|\s+then\s+|\s+but\s+", re.IGNORECASE)
@@ -257,32 +316,54 @@ def unread_condition_clauses(command_lower: str) -> List[str]:
     return out
 
 
-def describe_condition(cond, *, remaining: Optional[int] = None) -> str:
+def describe_condition(cond, *, remaining: Optional[int] = None,
+                       progress=None, only_unmet: bool = False) -> str:
     """The ONE sentence for a condition — the confirmation echo AND the
     Strategic Ledger read it, so shown == applied by construction.
 
     ``cond`` is a StrategicCondition or its dict. ``remaining`` (the ledger)
     renders a timed hold as turns left; the confirmation renders the term.
+    CR-7-9: several arms are joined by the word that combines them —
+    ``or … — whichever comes first`` (any-of, the default) or ``and … — both``
+    (all-of), and ``progress`` (the arms already met on an all-of order)
+    ticks them off; ``only_unmet`` names what is still waited for.
     """
     if cond is None:
         return ""
     get = (cond.get if isinstance(cond, dict)
            else lambda k, d=None: getattr(cond, k, d))
-    parts: List[str] = []
+    met = set(progress or [])
+    entries: List[Tuple[str, str]] = []
     if get("max_turns") is not None:
-        if remaining is not None:
-            parts.append(f"{int(remaining)} turn(s) remaining")
+        n = int(get("max_turns"))
+        if "max_turns" in met:
+            entries.append(("max_turns", f"{n} turn(s) passed"))
+        elif remaining is not None:
+            entries.append(("max_turns", f"{int(remaining)} turn(s) remaining"))
         else:
-            parts.append(f"for {int(get('max_turns'))} turn(s)")
+            entries.append(("max_turns", f"for {n} turn(s)"))
     if get("until_marshal_arrives"):
-        parts.append(f"until {get('until_marshal_arrives')} arrives")
+        entries.append(("until_marshal_arrives", f"until {get('until_marshal_arrives')} arrives"))
     if get("until_relieved"):
-        parts.append("until relieved")
+        entries.append(("until_relieved", "until relieved"))
     if get("until_battle_won"):
-        parts.append("until the battle is won")
+        entries.append(("until_battle_won", "until the battle is won"))
     if get("until_marshal_destroyed"):
-        parts.append(f"until {get('until_marshal_destroyed')} is destroyed")
-    return ", ".join(parts)
+        entries.append(("until_marshal_destroyed", f"until {get('until_marshal_destroyed')} is destroyed"))
+    if only_unmet:
+        entries = [(k, t) for k, t in entries if k not in met]
+    if not entries:
+        return ""
+    if len(entries) == 1:
+        return entries[0][1]
+    if bool(get("require_all")):
+        texts = [t + (" (met)" if k in met and not only_unmet else "")
+                 for k, t in entries]
+        if only_unmet:
+            return " and ".join(texts)
+        tail = " — both" if len(texts) == 2 else f" — all {len(texts)}"
+        return " and ".join(texts) + tail
+    return " or ".join(t for _k, t in entries) + " — whichever comes first"
 
 
 def refusal_copy(detail: Dict, marshal_name: Optional[str], world=None,

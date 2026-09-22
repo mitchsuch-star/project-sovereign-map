@@ -1095,10 +1095,14 @@ def _derive_condition_text(order, world) -> str:
     from backend.ai.condition_grammar import describe_condition
     remaining = None
     if cond.max_turns is not None:
-        ref_turn = order.arrived_turn if order.arrived_turn is not None else order.started_turn
-        elapsed = world.current_turn - ref_turn
-        remaining = max(0, cond.max_turns - elapsed)
-    return describe_condition(cond, remaining=remaining) or "active"
+        # CR-7-9: the checker's own rule, read at the START of a turn — the
+        # end-turns still to play, never 0 on a live order (a SUPPORT still
+        # marching shows the whole term; its clock starts after arrival).
+        from backend.commands.strategic import count_order_turns
+        counted = count_order_turns(order, int(world.current_turn), including_current=False)
+        remaining = max(0, int(cond.max_turns) - counted)
+    progress = list(getattr(order, "condition_progress", None) or [])
+    return describe_condition(cond, remaining=remaining, progress=progress) or "active"
 
 
 def _build_orders(world, player: str) -> list:

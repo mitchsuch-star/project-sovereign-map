@@ -615,6 +615,16 @@ def build_base_response(world, success: bool = True, message: str = "",
     _school = tutorial_step_for(world)
     if _school:
         response["tutorial_step"] = _school
+    # CR-7-9: a relayed tail this request let go is SAID, never dropped mute
+    # (set at the /command pop or at the turn boundary; read once, here).
+    _let_go = getattr(world, "_relay_let_go", None)
+    if _let_go:
+        world._relay_let_go = None
+        from backend.commands import relay as _relay_mod
+        _line = _relay_mod.let_go_line(_let_go)
+        _msg = str(response.get("message") or "").rstrip()
+        response["message"] = f"{_msg}\n\n{_line}" if _msg else _line
+        response["relay_let_go"] = _let_go.get("tail")
     return response
 
 
@@ -2691,6 +2701,14 @@ def execute_command(request: CommandRequest):
     # supersedes it.
     from backend.commands import relay as _relay
     _carried_relay = _relay.pop(world)
+    # CR-7-9: a stash this command neither answers nor re-types is LET GO
+    # with a word — the consuming routes below clear this, and
+    # `build_base_response` speaks it on whatever reply goes out.
+    if _carried_relay:
+        _tail_l = str(_carried_relay.get("tail") or "").strip().lower()
+        _typed_l = str(getattr(request, "command", "") or "").strip().lower()
+        if _tail_l and _tail_l not in _typed_l:
+            world._relay_let_go = _carried_relay
 
     def _relay_question(question_dict, source_parsed):
         """CR-7-3 rule 5 for a question raised OUTSIDE the executor result —
@@ -2865,7 +2883,14 @@ def execute_command(request: CommandRequest):
                     strategic_exec = StrategicOrderProcessor(executor)
                     result = strategic_exec.handle_response(
                         m.name, interrupt_type, choice, world, game_state)
-                    return _build_result_response(result, world)
+                    # CR-7-9: the tail that waited behind THIS interrupt comes
+                    # back re-judged on the typed answer too — the popup route
+                    # always did; the typed road had let it go in silence.
+                    if getattr(world, "_relay_let_go", None) is _carried_relay:
+                        world._relay_let_go = None
+                    _resp = _build_result_response(result, world)
+                    _attach_answered_relay(_resp, result, _carried_relay)
+                    return _resp
 
         # ════════════════════════════════════════════════════════════
         # W6-0 (BUG-CA-1): PENDING-QUESTION ROUTER — when the game itself
@@ -4105,6 +4130,8 @@ def _attach_answered_relay(response: dict, result: dict, pending: Optional[dict]
     contradiction / refused head)."""
     if not pending:
         return
+    if getattr(world, "_relay_let_go", None) is pending:
+        world._relay_let_go = None   # CR-7-9: answered, so never "let go"
     from backend.commands import relay as _relay
     _question = (_result_carries_question(result)
                  or bool((result or {}).get("pending_objection"))
@@ -4125,6 +4152,8 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
     the objection popup's Trust button."""
     from backend.commands import relay as _relay
     _pending_relay = carried_relay if carried_relay is not None else _relay.pop(world)
+    if _pending_relay is not None and getattr(world, "_relay_let_go", None) is _pending_relay:
+        world._relay_let_go = None   # CR-7-9: consumed here, not let go
     try:
         # Handle the objection response through executor
         result = executor.handle_objection_response(choice, game_state)

@@ -1070,6 +1070,35 @@ def _carry_combat_fields(out: dict, inner: dict) -> dict:
     return out
 
 
+def count_order_turns(order, current_turn: int, *, including_current: bool = True) -> int:
+    """CR-7-9 — THE timer rule, read by the checker AND the Strategic Ledger.
+
+    A HOLD (or any non-SUPPORT order) counts the turn it was given: the
+    enemy phase of that turn is fought with him already holding, and the
+    strategic tick that reads the timer runs at that turn's end, before the
+    counter advances — so `hold for 1 turn` ends with the turn it was given,
+    exactly as the Ledger's "1 turn(s) remaining" promised.
+
+    A SUPPORT counts from the turn AFTER he reaches the ally: the enemy phase
+    precedes the strategic tick that lands him, so the arrival turn gave no
+    support — `support Davout for 3 turns` is three enemy phases at his side.
+
+    ``including_current`` True = the tick (the turn being closed counts);
+    False = the Ledger at the start of a turn (that turn is still to play), so
+    ``max_turns − count`` is the end-turns left and is ≥ 1 on every live order.
+    """
+    current = int(current_turn)
+    if order.command_type == "SUPPORT":
+        if order.arrived_turn is None:
+            return 0
+        counted = current - int(order.arrived_turn)          # arrival turn excluded
+    else:
+        counted = current - int(order.started_turn) + 1      # issuing turn included
+    if not including_current:
+        counted -= 1
+    return max(0, counted)
+
+
 class StrategicOrderProcessor:
     """
     Executes strategic orders during turn processing.
@@ -1178,13 +1207,33 @@ class StrategicOrderProcessor:
             issued = getattr(order, 'issued_turn', None)
             if issued is not None and issued == world.current_turn:
                 print(f"[STRATEGIC] {marshal.name}: SKIP - order issued this turn")
+                # CR-7-9: the issuing turn's tick COUNTS — a `hold for 1
+                # turn` given this turn ends with it, as the Ledger's
+                # "1 turn(s) remaining" promised; the first step stays
+                # un-repeated (the skip below), the condition is read.
+                progress_note = ""
+                if order.condition:
+                    met, reason = self._check_condition(marshal, order.condition, world)
+                    if met:
+                        reports.append(self._complete_order(marshal, world, reason))
+                        continue
+                    progress_note = reason or ""
                 # Emit a status report so the player knows the order is active
                 remaining = len(order.path) if order.path else 0
+                timed = (order.condition is not None
+                         and order.condition.max_turns is not None
+                         and not getattr(order.condition, "require_all", False))
+                if timed:
+                    remaining = max(0, int(order.condition.max_turns)
+                                    - self._turns_active(order, world))
 
                 # Context-appropriate message based on order type and position
                 if order.command_type == "HOLD":
                     if marshal.location == order.target or not order.target:
                         msg = f"{marshal.name} is holding position at {marshal.location}."
+                        if timed:
+                            msg = (f"{marshal.name} is holding position at {marshal.location} "
+                                   f"({remaining} turn(s) remaining).")
                     else:
                         msg = f"{marshal.name} is marching to hold {order.target} ({remaining} turn(s) remaining)."
                 elif order.command_type == "PURSUE":
@@ -1201,6 +1250,8 @@ class StrategicOrderProcessor:
                 else:  # MOVE_TO
                     msg = f"{marshal.name} is marching to {order.target} ({remaining} turn(s) remaining)."
 
+                if progress_note:
+                    msg = f"{progress_note} {msg}"
                 reports.append({
                     "marshal": marshal.name,
                     "command": order.command_type,
@@ -2138,10 +2189,12 @@ class StrategicOrderProcessor:
         # and in _execute_hold(). The _execute_hold handler handles all personalities.
 
         # 1b. Check conditions first (until_arrives, until_relieved, etc.)
+        progress_note = ""
         if order.condition:
             met, reason = self._check_condition(marshal, order.condition, world)
             if met:
                 return self._complete_order(marshal, world, reason)
+            progress_note = reason or ""   # CR-7-9: an all-of arm that landed
 
         # 2. Check for interrupts (cannon fire — LITERAL NEVER INTERRUPTS)
         interrupt = self._check_interrupts(marshal, world)
@@ -2165,6 +2218,8 @@ class StrategicOrderProcessor:
         handler = handlers.get(order.command_type)
         if handler:
             result = handler(marshal, world, game_state)
+            if progress_note and isinstance(result, dict) and result.get("message"):
+                result["message"] = f"{progress_note} {result['message']}"
             # Store pending interrupt if handler result requires player input
             # Only set if handler didn't already set it (e.g., _handle_combat_result sets it directly)
             if result and result.get("requires_input") and not getattr(marshal, 'pending_interrupt', None):
@@ -2946,9 +3001,12 @@ class StrategicOrderProcessor:
         # PHASE M: Timed HOLD expiry check
         # Auto-expire after max_turns (compromise from objection)
         # ═══════════════════════════════════════════════════════════
-        if order.condition and order.condition.max_turns:
+        if (order.condition and order.condition.max_turns
+                and not getattr(order.condition, "require_all", False)):
+            # CR-7-9: counts the turn being closed, like `_turns_active`; an
+            # all-of timer is one arm of several and never expires alone.
             issued_turn = order.issued_turn or order.started_turn
-            turns_elapsed = world.current_turn - issued_turn
+            turns_elapsed = world.current_turn - issued_turn + 1
             if turns_elapsed >= order.condition.max_turns:
                 marshal.strategic_order = None
                 marshal.holding_position = False
@@ -3859,85 +3917,92 @@ class StrategicOrderProcessor:
     # CONDITION CHECKING
     # ══════════════════════════════════════════════════════════════════════════
 
-    def _check_condition(self, marshal, condition, world) -> Tuple[bool, str]:
-        """Check if strategic condition is met."""
-        order = marshal.strategic_order
+    # CR-7-9: the arms of a condition, read by ONE function. The labels are the
+    # personality-voiced completion lines the game has always spoken; the
+    # `fact` is the plain clause the all-of progress beat uses ("Davout has
+    # arrived") — a timer that lands early must not say "abandons".
+    _ARM_KEYS = ("max_turns", "until_marshal_arrives", "until_marshal_destroyed",
+                 "until_relieved", "until_battle_won")
 
+    def _turns_active(self, order, world) -> int:
+        """Turns the order has been in force INCLUDING the turn being closed
+        (`count_order_turns`, the one rule the Ledger reads too)."""
+        return count_order_turns(order, int(world.current_turn), including_current=True)
+
+    def _condition_arms(self, marshal, condition, world):
+        """[(key, met, label, fact)] for every arm the condition carries, in the
+        fixed evaluation order (timer, arrival, destruction, relief, battle)."""
+        order = marshal.strategic_order
+        personality = getattr(marshal, 'personality', 'balanced')
+        arms = []
         if condition.max_turns is not None:
-            # SUPPORT: count from arrival at ally, not from issuance
-            # (travel time shouldn't eat into the "3 turns of support" the player agreed to)
-            if order.command_type == "SUPPORT":
-                if order.arrived_turn is None:
-                    # Haven't reached ally yet — timer hasn't started
-                    turns_active = 0
-                else:
-                    turns_active = world.current_turn - order.arrived_turn
-            else:
-                turns_active = world.current_turn - order.started_turn
-            if turns_active >= condition.max_turns:
-                # Personality-appropriate completion message for HOLD
+            turns_active = self._turns_active(order, world)
+            met = turns_active >= condition.max_turns
+            label = ""
+            if met:
                 if order.command_type == "HOLD":
-                    personality = getattr(marshal, 'personality', 'balanced')
                     location = order.target or marshal.location
                     if personality == "aggressive":
-                        msg = f"{marshal.name} grows restless and abandons {location}."
+                        label = f"{marshal.name} grows restless and abandons {location}."
                     elif personality == "cautious":
-                        msg = f"{marshal.name} has held {location} for the agreed duration. Awaiting new orders."
+                        label = f"{marshal.name} has held {location} for the agreed duration. Awaiting new orders."
                     elif personality == "literal":
-                        msg = f"{marshal.name} reports: Hold order complete. {condition.max_turns} turns elapsed at {location}."
+                        label = f"{marshal.name} reports: Hold order complete. {condition.max_turns} turns elapsed at {location}."
                     else:
-                        msg = f"{marshal.name} completes the timed hold at {location}."
-                    return (True, msg)
-                return (True,
-                        f"Order complete after {condition.max_turns} turn(s)")
-
+                        label = f"{marshal.name} completes the timed hold at {location}."
+                else:
+                    label = f"Order complete after {condition.max_turns} turn(s)"
+            arms.append(("max_turns", met, label,
+                         f"The agreed {int(condition.max_turns)} turn(s) have passed."))
         if condition.until_marshal_arrives:
             target = world.get_marshal(condition.until_marshal_arrives)
-            if target and target.location == marshal.location:
-                personality = getattr(marshal, 'personality', 'balanced')
-                ally_name = condition.until_marshal_arrives
+            met = bool(target and target.location == marshal.location)
+            ally_name = condition.until_marshal_arrives
+            label = ""
+            if met:
                 if personality == "aggressive":
-                    msg = f"Finally! {ally_name} has arrived. Now we can take the fight to them!"
+                    label = f"Finally! {ally_name} has arrived. Now we can take the fight to them!"
                 elif personality == "cautious":
-                    msg = f"{ally_name} has arrived. Position secured, Sire."
+                    label = f"{ally_name} has arrived. Position secured, Sire."
                 elif personality == "literal":
-                    msg = f"{marshal.name} reports: {ally_name} arrived as specified. Hold order complete."
+                    label = f"{marshal.name} reports: {ally_name} arrived as specified. Hold order complete."
                 else:
-                    msg = f"{ally_name} has arrived. {marshal.name} awaits new orders."
-                return (True, msg)
-
+                    label = f"{ally_name} has arrived. {marshal.name} awaits new orders."
+            arms.append(("until_marshal_arrives", met, label, f"{ally_name} has arrived."))
         if condition.until_marshal_destroyed:
             target = world.get_marshal(condition.until_marshal_destroyed)
-            if not target or target.strength <= 0:
-                personality = getattr(marshal, 'personality', 'balanced')
-                enemy_name = condition.until_marshal_destroyed
+            met = (not target) or target.strength <= 0
+            enemy_name = condition.until_marshal_destroyed
+            label = ""
+            if met:
                 if personality == "aggressive":
-                    msg = f"{enemy_name} is finished! The hunt was glorious!"
+                    label = f"{enemy_name} is finished! The hunt was glorious!"
                 elif personality == "cautious":
-                    msg = f"{enemy_name} has been eliminated. Threat neutralized."
+                    label = f"{enemy_name} has been eliminated. Threat neutralized."
                 elif personality == "literal":
-                    msg = f"{marshal.name} reports: Target ({enemy_name}) destroyed. Order complete."
+                    label = f"{marshal.name} reports: Target ({enemy_name}) destroyed. Order complete."
                 else:
-                    msg = f"{enemy_name} destroyed. {marshal.name} awaits new orders."
-                return (True, msg)
-
+                    label = f"{enemy_name} destroyed. {marshal.name} awaits new orders."
+            arms.append(("until_marshal_destroyed", met, label, f"{enemy_name} is destroyed."))
         if condition.until_relieved:
             marshals_here = world.get_marshals_in_region(marshal.location)
             allies = [m for m in marshals_here
                       if m.nation == marshal.nation and m.name != marshal.name]
-            if allies:
-                personality = getattr(marshal, 'personality', 'balanced')
+            met = bool(allies)
+            label = ""
+            fact = "He is relieved."
+            if met:
                 relief_name = allies[0].name
+                fact = f"{relief_name} has relieved him."
                 if personality == "aggressive":
-                    msg = f"About time! {relief_name} takes over. Free to hunt!"
+                    label = f"About time! {relief_name} takes over. Free to hunt!"
                 elif personality == "cautious":
-                    msg = f"Relieved by {relief_name}. Orderly handover complete."
+                    label = f"Relieved by {relief_name}. Orderly handover complete."
                 elif personality == "literal":
-                    msg = f"{marshal.name} reports: Relieved by {relief_name}. Awaiting new orders."
+                    label = f"{marshal.name} reports: Relieved by {relief_name}. Awaiting new orders."
                 else:
-                    msg = f"Relieved by {relief_name}. {marshal.name} ready for new orders."
-                return (True, msg)
-
+                    label = f"Relieved by {relief_name}. {marshal.name} ready for new orders."
+            arms.append(("until_relieved", met, label, fact))
         if condition.until_battle_won:
             battle_ending_results = ("victory", "stalemate")
             # CR-7-4 item 5: a battle fought BEFORE the order was issued is not
@@ -3952,21 +4017,58 @@ class StrategicOrderProcessor:
                 turn = getattr(m, "last_combat_turn", None)
                 return since is None or (turn is not None and turn >= since)
 
+            met = False
+            label = ""
+            fact = "The battle is decided."
             combat_result = getattr(order, "last_combat_result", None)
             if combat_result not in battle_ending_results and _fought_since(marshal):
                 combat_result = getattr(marshal, 'last_combat_result', None)
             if combat_result in battle_ending_results:
+                met = True
                 label = "Victory achieved!" if combat_result == "victory" else "Battle concluded (stalemate)."
-                return (True, label)
-            # For SUPPORT, also check ally's combat
-            if order.command_type == "SUPPORT":
+                fact = "The battle is won." if combat_result == "victory" else "The battle is concluded."
+            elif order.command_type == "SUPPORT":
+                # For SUPPORT, also check ally's combat
                 ally = world.get_marshal(order.target)
                 if ally and _fought_since(ally):
                     ally_result = getattr(ally, 'last_combat_result', None)
                     if ally_result in battle_ending_results:
+                        met = True
                         label = f"{ally.name} won the battle!" if ally_result == "victory" else f"Battle at {ally.location} concluded."
-                        return (True, label)
+                        fact = label
+            arms.append(("until_battle_won", met, label, fact))
+        return arms
 
+    def _check_condition(self, marshal, condition, world) -> Tuple[bool, str]:
+        """(met, line). Any-of (the default): the first met arm ends the order
+        on its own line. All-of (`require_all`, CR-7-9): a newly met arm is
+        LATCHED on `order.condition_progress` and reported as progress —
+        `(False, note)` — and the order ends when every arm has landed, on the
+        line of the arm that closed the set."""
+        arms = self._condition_arms(marshal, condition, world)
+        if not arms:
+            return (False, "")
+        if not getattr(condition, "require_all", False):
+            for _key, met, label, _fact in arms:
+                if met:
+                    return (True, label)
+            return (False, "")
+        order = marshal.strategic_order
+        progress = list(getattr(order, "condition_progress", None) or [])
+        newly = [(key, label, fact) for key, met, label, fact in arms
+                 if met and key not in progress]
+        progress.extend(key for key, _l, _f in newly)
+        if order is not None:
+            order.condition_progress = progress
+        if all(key in progress for key, _m, _l, _f in arms):
+            closing = newly[-1][1] if newly else ""
+            return (True, (f"{closing} " if closing else "")
+                    + f"With that, every condition of {marshal.name}'s order is met.")
+        if newly:
+            from backend.ai.condition_grammar import describe_condition
+            waiting = describe_condition(condition, progress=progress, only_unmet=True)
+            facts = " ".join(fact for _k, _l, fact in newly)
+            return (False, f"{facts} {marshal.name} holds on — {waiting} as well.")
         return (False, "")
 
     # ══════════════════════════════════════════════════════════════════════════

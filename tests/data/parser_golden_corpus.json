@@ -5759,6 +5759,53 @@
       },
       "source": "CR-7-6",
       "notes": "The arrival order carries its object (arrival_target=ArchdukeCharles, read by strategic.pick_contact_enemy), asserted in pytest; the corpus can pin only the arrival flag."
+    },
+    {
+      "id": "cr7-9-and-means-both",
+      "utterance": "Ney, hold Lorraine until Davout arrives and until the battle is won",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "until_marshal_arrives": "Davout",
+          "until_battle_won": true,
+          "require_all": true
+        }
+      },
+      "source": "CR-7-9 (COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md)",
+      "notes": "`and` between clauses = every arm must be met (require_all, latched on the order). Before CR-7-9 it was stored exactly like `or`."
+    },
+    {
+      "id": "cr7-9-or-means-whichever-first",
+      "utterance": "Ney, hold Lorraine until Davout arrives or the battle is won",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "until_marshal_arrives": "Davout",
+          "until_battle_won": true
+        }
+      },
+      "source": "CR-7-9 (COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md)",
+      "notes": "A bare second clause after the connector reads without its own `until`; `or` = whichever comes first (no require_all key)."
+    },
+    {
+      "id": "cr7-9-for-turns-and-until",
+      "utterance": "Ney, hold Lorraine for 2 turns and until Davout arrives",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "max_turns": 2,
+          "until_marshal_arrives": "Davout",
+          "require_all": true
+        }
+      },
+      "source": "CR-7-9 (COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md)",
+      "notes": "The dangling `and` left when both clauses are cut never reaches the target (was `Lorraine and`)."
     }
   ]
 }

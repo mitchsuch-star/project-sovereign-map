@@ -1546,6 +1546,9 @@ class WorldState:
         # turn order queue wearing a disguise, and CR-7-8 retires that queue);
         # cleared at the turn boundary and by the next /command.
         self._pending_relay: Optional[Dict] = None
+        # CR-7-9: the stash the last boundary / command let go, spoken once by
+        # `build_base_response` (transient, never serialized).
+        self._relay_let_go: Optional[Dict] = None
 
         # Active treaties keyed by diplo pair key
         self.active_treaties: Dict[str, Dict] = {}
@@ -9736,7 +9739,10 @@ class WorldState:
         if self._last_advanced_turn >= self.current_turn:
             debug_print(f"[WARNING] advance_turn already ran for turn {self.current_turn}, skipping")
             return
-        # CR-7-3 rule 5: a relayed tail never crosses a turn boundary.
+        # CR-7-3 rule 5: a relayed tail never crosses a turn boundary — and
+        # CR-7-9: it is let go WITH A WORD (the next reply speaks it).
+        if getattr(self, "_pending_relay", None) is not None:
+            self._relay_let_go = self._pending_relay
         self._pending_relay = None
         self._last_advanced_turn = self.current_turn
 

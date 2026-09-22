@@ -812,6 +812,10 @@ TWO ORDERS IN ONE LINE:
                says so. A hold that waits for a man not on the
                board, for no turns, or for a turn behind us is
                refused, free.
+  or / and    - "Davout, hold Lorraine until Ney arrives or the battle
+               is won" ends on whichever comes first; 'and' means
+               BOTH must land, and the Ledger ticks each off as it
+               does. 'for 2 turns' counts the turn you give it.
   NOTE: orders are never held for a later turn - there is no queue.
         'hold until ...' is the standing order; everything else you
         give on the morning you want it carried.

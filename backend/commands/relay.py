@@ -168,7 +168,9 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
     if question and not answered:
         asker = marshal_name or "Berthier"
         return done("question",
-                    f"It waits behind the question {asker} has put to you.")
+                    f"It waits behind the question {asker} has put to you. "
+                    f"Answer, and it returns to the line; another order, or "
+                    f"the turn's end, lets it go.")
 
     # Rule 4 — the head did not go out.
     if not (isinstance(result, dict) and result.get("success")):
@@ -221,6 +223,16 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
     return done("ready",
                 f"{lead}It is on the line — send it when you are ready.",
                 command)
+
+
+def let_go_line(pending: Dict) -> str:
+    """CR-7-9: the word said when a stashed tail is let go — by a command
+    that neither answered the question nor re-typed the tail, or by the
+    turn's end. Rule 5 promised it would WAIT; it now says for how long,
+    and the drop is never mute."""
+    tail = str((pending or {}).get("tail") or "").strip()
+    return (f'Berthier: "The order that waited behind the question — "{tail}" — '
+            f'is let go with it. Give it again when you mean it."')
 
 
 def attach(response: Dict, relay: Optional[Dict]) -> None:

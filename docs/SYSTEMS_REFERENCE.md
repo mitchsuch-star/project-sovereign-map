@@ -1367,6 +1367,47 @@ Orders are never held for a later turn — `COMMAND_ROBUSTNESS_SPEC.md` §11.1 c
 the ruling, its measured reasons and two instrumented re-open conditions; the census
 is `tests/test_cr7_8_the_queue_is_retired.py`.
 
+### Stage 2f: The conditions say what they mean (CR-7-9, September 22, 2026)
+
+**The connector.** Several condition arms on one order combine by the word that joins
+them, read by `condition_grammar.read_connector`: `and` = **all-of** (`StrategicCondition
+.require_all`, serialized), `or` / a comma / no word = **any-of**, whichever comes first —
+the engine's own reading since conditions existed, now SAID. A bare second clause reads
+without its own `until` (`until Davout arrives or the battle is won`); a dangling connector
+never reaches the target; both `and` and `or` in one order read as any-of and the echo says
+so; an arrival referent already at the marshal's side is noted. The ONE sentence
+(`describe_condition`) renders `… or … — whichever comes first` / `… and … — both` (`— all
+3`), ticks off a met arm `(met)` and, with `only_unmet`, names what is still waited for.
+
+**The latch.** `StrategicOrderProcessor._condition_arms` is the one per-arm reader (the
+personality-voiced completion labels unchanged, plus a plain `fact` per arm). Any-of: the
+first met arm ends the order on its own line. All-of: a newly met arm is LATCHED on
+`StrategicOrder.condition_progress` (serialized) — an arm that was true and passed stays
+counted — and reported as a **progress beat** on that tick's own report line (`Davout has
+arrived. Ney holds on — until the battle is won as well.`); the order ends when every arm
+has landed, on the line of the arm that closed the set (`Victory achieved! With that, every
+condition of Ney's order is met.`). The hold handler's own expiry never fires an all-of.
+
+**The timer.** ONE rule, `strategic.count_order_turns`, read by the checker, the hold
+handler's expiry, the skip branch and the Ledger: a HOLD (or any non-SUPPORT order)
+**counts the turn it was given** — its enemy phase is fought with him holding, and the tick
+that reads the timer runs at that turn's end before the counter advances, so the issuing
+turn's tick now reads the condition and `hold for 1 turn` ends with the turn it was given;
+a SUPPORT **counts from the turn after arrival** — the enemy phase precedes the strategic
+tick that lands him, so `support Davout for 3 turns` is three enemy phases at his side. The
+Ledger reads the same function with `including_current=False`, so "N turn(s) remaining" is
+the end-turns still to play and is never 0 on a live order (it was, for a whole turn).
+`until turn N` therefore ends the hold as turn N begins.
+
+**The let-go.** Rule 5's stash (Stage 2c) still lives for one command, but it is never
+dropped mute: the question note says for how long it waits, and a command that neither
+answers the question nor re-types the tail — or the turn's end — is SAID on the reply
+that dropped it (`relay_let_go` + Berthier's line, from `relay.let_go_line`, spoken once by
+`build_base_response` off the transient `world._relay_let_go`); the consuming routes
+(the typed objection answer, the popup routes, and now the typed interrupt answer, which
+had dropped the tail in silence) clear it. Tests:
+`tests/test_cr7_9_the_conditions_say_what_they_mean.py`; sweep `tools/_sweep_cr7_9.json`.
+
 ### Stage 3: Validation
 
 **File:** `backend/ai/validation.py`

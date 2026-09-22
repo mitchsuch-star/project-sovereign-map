@@ -56,6 +56,10 @@ class StrategicCondition:
     # Phase M: Cautious PURSUE auto-cancel
     auto_cancel_below_ratio: Optional[float] = None
 
+    # CR-7-9: `and` between clauses — EVERY arm must be met (latched on
+    # `StrategicOrder.condition_progress`); False = whichever comes first.
+    require_all: bool = False
+
     def to_dict(self) -> Dict:
         return {
             "max_turns": self.max_turns,
@@ -63,7 +67,8 @@ class StrategicCondition:
             "until_marshal_destroyed": self.until_marshal_destroyed,
             "until_battle_won": self.until_battle_won,
             "until_relieved": self.until_relieved,
-            "auto_cancel_below_ratio": self.auto_cancel_below_ratio
+            "auto_cancel_below_ratio": self.auto_cancel_below_ratio,
+            "require_all": bool(self.require_all),
         }
 
     @classmethod
@@ -74,7 +79,8 @@ class StrategicCondition:
             until_marshal_destroyed=data.get("until_marshal_destroyed"),
             until_battle_won=data.get("until_battle_won", False),
             until_relieved=data.get("until_relieved", False),
-            auto_cancel_below_ratio=data.get("auto_cancel_below_ratio")
+            auto_cancel_below_ratio=data.get("auto_cancel_below_ratio"),
+            require_all=bool(data.get("require_all", False)),
         )
 
 
@@ -118,6 +124,10 @@ class StrategicOrder:
 
     # Condition (optional)
     condition: Optional[StrategicCondition] = None
+    # CR-7-9: the arms of an all-of condition already met, in the order they
+    # landed — an arm that was true and passed (a man who arrived and marched
+    # on) stays counted. Empty on every any-of order.
+    condition_progress: List[str] = field(default_factory=list)
 
     # Turn tracking — skip processing on the turn the order was issued
     # (first step already executed by executor.py)
@@ -180,6 +190,7 @@ class StrategicOrder:
             "last_contact_enemy": self.last_contact_enemy,
             "last_contact_turn": self.last_contact_turn,
             "arrival_target": self.arrival_target,
+            "condition_progress": list(self.condition_progress or []),
         }
 
     @classmethod
@@ -212,6 +223,7 @@ class StrategicOrder:
             last_contact_enemy=data.get("last_contact_enemy"),
             last_contact_turn=data.get("last_contact_turn"),
             arrival_target=data.get("arrival_target"),
+            condition_progress=list(data.get("condition_progress") or []),
         )
 
 
