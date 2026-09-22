@@ -42,6 +42,64 @@
 > CR-7-3: *"fortify and attack is a contradiction"* — a contradictory pair's drop
 > note must not invite the tail to be re-sent as-is.
 >
+> **✅ SLICES CR-7-2 … CR-7-8 — "The Second Clause", the rest of row CR-7 — LANDED
+> September 22, 2026, in one session under the user's direction** (*"continue work on
+> multi step commands make sure costs and contradictions are smoothes out make all
+> decisions"* — **the user re-sequenced the queue: CR-7-2..8 were pulled AHEAD of
+> CX-R1 / CN / CX-R2**, so the numbered order below is amended in place and CX-R1 is
+> next). **Landing record = `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md`
+> §CR-7-2..8 LANDING RECORD (authoritative); rules = `SYSTEMS_REFERENCE.md` §4 Stages
+> 2b–2e; the queue ruling = `COMMAND_ROBUSTNESS_SPEC.md` §11.1.** Every figure re-measured
+> on this HEAD before a line was written. In one line each: **CR-7-2** the harness
+> evaluates `dropped_sequel` / `warning_contains` / `strategic_condition` /
+> `attack_on_arrival` and refuses an unknown key (a wrong `dropped_sequel` used to PASS
+> the CLI); corpus **706/706** (467 rows) · **CR-7-3 the relay** — the tail rides EVERY
+> arm as `dropped_sequel` + `relay_kind` + `relay_note`, handed back to the command line
+> for the player's seal (`relay_command`, the client fills and never sends) only when
+> coherent; a **contradictory** tail (the user's note: *"fortify and attack is a
+> contradiction"*) is NAMED, not filled — judged from the marshal's LIVE state; a tail
+> behind a live march is held for its **moment** (destination + ETA named); a refused
+> head cancels its tail; behind a question it waits on a transient `world._pending_relay`
+> and comes back re-judged after `insist` / `trust` / `compromise` / the interrupt answer
+> (measured: 0 of 3 before, 3 of 3 now); the bare comma is the fifth boundary (CQ-10)
+> with seven negative controls; the third clause behind an arrival tail is reported ·
+> **CR-7-4** one condition vocabulary — 15 of 15 phrasings honest (0 phantom provinces,
+> 0 unmeetable orders, `for 0 turns` / `until turn 1` / Godot / Mack / himself refused
+> free by cause, `until relief arrives` = relieved, `until turn 5` = 4 turns and said so),
+> the echo names every accepted condition from the Ledger's own sentence and names an
+> unread clause, `until the battle is won` reads THIS order's battle · **CR-7-5** the
+> third verdict — `when|if|once|as soon as <friendly marshal> arrives, hold …` (and a
+> leading `until … ,`) becomes the engine's own `until` (8 of 8), fails closed on every
+> other shape, 0 of the 7 pinned refusals flip, the negated twin refuses like its twin ·
+> **CR-7-6** the kill gate was RUN FIRST and the arrival attack fires deterministically at
+> the first-step seam — and engaged `enemies[0]` (Mack) when Charles was named; now
+> `StrategicOrder.arrival_target` + `strategic.pick_contact_enemy` at all three seams ·
+> **CR-7-7** the completer's `_CONTINUATIONS`, the help block, the School's sentence, and
+> the repaired verb-table pin (`garrison` exempted by name to CX-R2/CN and proved red) ·
+> **CR-7-8 the cross-turn order queue is RETIRED BY CONTRACT** — re-measured on the
+> commanded 40-turn arm: **0 completions, 0 breaks**; two instrumented re-open conditions
+> (`command_history[].relayed` + `tools/cr7_8_order_completions.py`). **Costs decided:**
+> a standing order pays once at issuance, steps free, the one two-step order is that one
+> price; a relayed tail pays its own AP when sent; a tail not relayed costs nothing; a
+> refused condition costs 0. Tests `test_cr7_2..8_*.py`; **sweep `tools/_sweep_cr7.json`
+> 33/33, 0 INERT at close** (a first sweep found 8 INERT — two redundant guards deleted,
+> six pins repaired; record in the memo); corpus 706/706; parse harness
+> EXIT=0 (47 scripts); boot smoke 0 SCRIPT ERROR; M1–M7 + `BASELINE_SERIES` byte-identical
+> without re-record. **Found and closed in the build: CQ-11** (the objection roll made
+> CR-7-1's own pin — and WO-6's — order-dependent) and **CQ-12** (`dropped_sequel` never reached the wire
+> on the ordinary success arm — the response whitelist); the full suite then caught the
+> comma arm's first cut splitting FA-R3's `Ney, wait, march to Lorraine` (fixed: a filler
+> span is never a boundary), and a probe caught the CR-2 clarification arm silent (fixed:
+> `_relay_question` at both builders). **The hook's first full run then blocked on seven more** —
+> four legacy `until_battle_won` fixtures that hand-set a victory without its turn (stamped, assertions
+> unchanged) and **three CR-7-6 spy pins blinded by a suite-wide hazard**: an instance-level
+> `monkeypatch.setattr(m.executor, "execute", …)` in `test_command_robustness_cr5b` leaves the bound
+> method behind as an instance attribute after undo, shadowing every later class-level patch on the
+> singleton; ten such patches across five files converted to `type(obj)`, a static census + a
+> session-end guard in `conftest.py` pin the rule (memo landing record, "The hook's full run"). ⚠ Open, for the next play
+> session: the relay FILL on screen (a `.gd` half; the parse harness + boot smoke are
+> clean, the eyes-on half is the user's).
+>
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
 > 1. **What is next** = slice **2** of the numbered queue below, **CX-R1 "The
@@ -86,8 +144,8 @@
 > | **3** | **CN-1 … CN-4 "The Chip Names the Man"** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). |
 > | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
-> | **5** | **CR-7-2 … CR-7-8** | CR-7 | 4.5 | The rest of compound + conditional, in spec order, with the kill gates. Honest stopping points after CR-7-3 and CR-7-4. |
-> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8.** Not "someday". |
+> | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
+> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". |
 > | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. |
 >
 > **Recorded dissent on the order:** a build in a tester's hands surfaces defects a

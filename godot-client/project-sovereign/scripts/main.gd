@@ -310,6 +310,17 @@ var _current_decision_names: Array = []
 # arrival, raised at control return behind the report (the NA-6b discipline).
 var pending_deferred_dialogue = null
 var pending_petition_data = null  # FA slice 6 (FA-5): the end-turn petition, stashed
+# CR-7-3 — THE RELAY. A compound order's dropped tail comes back on the wire
+# as `relay_command` (only when sending it now is coherent: relay_kind
+# "ready"); the client FILLS the command line with it at the control-return
+# chokepoint and NEVER sends — the tutor-chip philosophy (muscle memory for a
+# typed-command game). Stashed here on arrival like the petition and the
+# Proclamation, because the response that carries it may be an objection or
+# an interrupt whose modal returns control from its own handler.
+var pending_relay_command := ""
+# The line the last fill put on the command line, so `_execute_command` can
+# tell the backend the tail was sent UNCHANGED (the CR-7-8 re-open instrument).
+var _last_relay_fill := ""
 var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
@@ -1781,8 +1792,14 @@ func _execute_command():
 	# every response path already passes through).
 	AudioManager.start_scribble()
 
+	# CR-7-3 / CR-7-8: a relayed tail sent UNCHANGED is flagged, and any send
+	# retires whatever relay was pending — the player has moved on.
+	var relayed: bool = (_last_relay_fill != "" and command == _last_relay_fill)
+	_last_relay_fill = ""
+	pending_relay_command = ""
+
 	# Send to backend
-	api_client.send_command(command, _on_command_result)
+	api_client.send_command(command, _on_command_result, relayed)
 
 # ════════════════════════════════════════════════════════════
 # WO-D2 "THE CABINET IS THE ONLY DOOR" (G1 — WEIRD_OUTCOMES_SPEC §3
@@ -2666,6 +2683,36 @@ func _return_control_to_player() -> void:
 #
 # So it is STASHED on arrival and raised only where the player would
 # otherwise regain control, behind the Proclamation.
+func _stash_relay(response: Dictionary) -> void:
+	"""CR-7-3: remember the relayed tail (if the backend handed one back).
+	A response that carries `dropped_sequel` ALWAYS resets the stash — a
+	tail the backend refused, held for its moment or named a contradiction
+	arrives with no `relay_command`, and must never be filled from an older
+	one."""
+	if typeof(response) != TYPE_DICTIONARY or not response.has("dropped_sequel"):
+		return
+	var relay = response.get("relay_command")
+	pending_relay_command = str(relay) if relay is String and relay != "" else ""
+
+
+func _fill_pending_relay() -> void:
+	"""CR-7-3: put the relayed tail on the command line, once, when control
+	returns. Fills only an EMPTY line (never over something the player is
+	typing), never while a chip command is mid-flight, and never sends."""
+	if pending_relay_command == "":
+		return
+	if _chip_command_in_flight or command_input == null or not command_input.editable:
+		return
+	if command_input.text.strip_edges() != "":
+		return
+	var cmd := pending_relay_command
+	pending_relay_command = ""
+	command_input.text = cmd
+	command_input.caret_column = cmd.length()
+	_last_relay_fill = cmd
+	_refresh_suggestions()
+
+
 func _stash_petition(response: Dictionary) -> void:
 	"""FA slice 6 (FA-5): the marshal petition riding an END-TURN response.
 	The backend defers every choice popup beside `enemy_phase` on purpose
@@ -2887,6 +2934,7 @@ func _on_command_result(response):
 		_stash_redemption(response)  # PT-B1: same discipline, same reason
 		_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline
 		_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition
+		_stash_relay(response)  # CR-7-3: the relayed tail, filled at control return
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry
@@ -4500,6 +4548,10 @@ func set_input_enabled(enabled: bool):
 		# re-enables input, so this is the scribble loop's single stop seam.)
 		AudioManager.stop_scribble()
 		command_input.grab_focus()
+		# CR-7-3: the same chokepoint hands a relayed tail back to the line —
+		# every control-return arm (success, objection answer, interrupt
+		# answer, clarification reissue) passes through here.
+		_fill_pending_relay()
 
 func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
@@ -4576,6 +4628,8 @@ func _on_objection_response(response):
 	# outside the lesson.
 	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
 		tutorial_overlay.observe(response)
+	if typeof(response) == TYPE_DICTIONARY:
+		_stash_relay(response)  # CR-7-3: the tail that waited behind the objection
 
 	if DEBUG_VERBOSE:
 		print("OBJECTION RESPONSE: success=%s disobeyed=%s defiance=%s" % [
@@ -5611,6 +5665,7 @@ func _on_interrupt_response(response):
 	# answer gave two different outcomes.
 	if typeof(response) == TYPE_DICTIONARY:
 		_stash_diorama(response)
+		_stash_relay(response)  # CR-7-3: the tail that waited behind the interrupt
 		# POSITION 7: this route BYPASSES _on_command_result — without this
 		# observe, a muster "Attack Anyway" battle would never advance an
 		# attack step of the School of War.
@@ -6979,6 +7034,23 @@ const _MARSHAL_VERBS := [
 	["support", "M", "move"],
 	["garrison", "R", "garrison"],
 ]
+# CR-7-7 — THE CONTINUATIONS. Once the line holds a complete `<verb> <target>`
+# the table knows, the two compound forms the manual teaches are offered:
+# the engine's one two-step order (`march to <R> then attack <E>`) and the
+# standing hold's conditions (`hold [<R>] until <M> arrives` / `for 3 turns`
+# / `until relieved`). Columns: [head verb, continuation text, slot] where
+# the slot is "E" (a visible enemy), "M" (another of our marshals — the line
+# ends " arrives") or "" (the text stands alone).
+# ⚠ PINNED FROM PYTHON like `_MARSHAL_VERBS` (`tests/test_cr7_7_*.py`): every
+# line this table can compose is filled with real names from the shipped
+# 1805 board and run through the REAL parser AND the REAL executor.
+const _CONTINUATIONS := [
+	["march to", "then attack", "E"],
+	["move to", "then attack", "E"],
+	["hold", "until", "M"],
+	["hold", "for 3 turns", ""],
+	["hold", "until relieved", ""],
+]
 # Whole commands with no addressee.
 const _BARE_COMMANDS := [
 	["status", "status"],
@@ -7133,8 +7205,77 @@ func _add_addressee_or_bare(prefix: String, out: Array, seen: Dictionary) -> voi
 				return
 
 
+func _is_region_name(name: String) -> bool:
+	return _canonical_region(name) != ""
+
+
+func _canonical_region(name: String) -> String:
+	"""The province's own spelling for a case-insensitive match, or ""."""
+	var wanted := name.strip_edges().to_lower()
+	if wanted == "":
+		return ""
+	for region in _region_names():
+		if str(region).to_lower() == wanted:
+			return str(region)
+	return ""
+
+
+func _add_continuations(marshal: String, rest: String, out: Array,
+		seen: Dictionary) -> void:
+	"""CR-7-7: offer `then attack <E>` after a complete march, and the
+	hold's `until <M> arrives` / `for 3 turns` / `until relieved` after a
+	complete hold. Only when the head's own target is a real province name
+	(or the hold names none), so nothing is offered on a half-typed target."""
+	var typed := marshal + ", " + rest
+	for entry in _CONTINUATIONS:
+		var verb := str(entry[0])
+		var cont := str(entry[1])
+		var slot := str(entry[2])
+		if not (_starts_with_ci(rest, verb + " ") or rest.to_lower() == verb):
+			continue
+		var after := rest.substr(verb.length()).strip_edges()
+		var head_target := after
+		for token in [" then", " until", " for "]:
+			var cut := head_target.to_lower().find(token)
+			if cut >= 0:
+				head_target = head_target.substr(0, cut).strip_edges()
+		var base := ""
+		if verb == "hold":
+			if head_target != "" and not _is_region_name(head_target):
+				continue
+			base = marshal + ", hold" + ("" if head_target == "" else " " + _canonical_region(head_target))
+		else:
+			if not _is_region_name(head_target):
+				continue
+			base = marshal + ", " + verb + " " + _canonical_region(head_target)
+		var lines := []
+		if slot == "E":
+			for enemy in _visible_enemy_names():
+				lines.append(base + " " + cont + " " + str(enemy))
+		elif slot == "M":
+			for name in _own_marshal_names():
+				if str(name) == marshal:
+					continue
+				lines.append(base + " " + cont + " " + str(name) + " arrives")
+		else:
+			lines.append(base + " " + cont)
+		for line in lines:
+			var full := str(line)
+			if not _starts_with_ci(full, typed):
+				continue
+			if seen.has(full.to_lower()):
+				continue
+			seen[full.to_lower()] = true
+			out.append(full)
+			if out.size() >= MAX_SUGGESTIONS:
+				return
+
+
 func _add_verb_or_target(marshal: String, rest: String, prefix: String,
 		out: Array, seen: Dictionary) -> void:
+	_add_continuations(marshal, rest, out, seen)
+	if out.size() >= MAX_SUGGESTIONS:
+		return
 	for entry in _MARSHAL_VERBS:
 		var verb := str(entry[0])
 		var slot := str(entry[1])

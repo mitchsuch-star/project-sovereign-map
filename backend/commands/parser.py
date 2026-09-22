@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 from backend.ai.llm_client import (
     STAND_STILL_ALTERNATION,
     repair_leading_verb_typo,
+    strip_leading_filler,
     LLMClient,
     ADDRESS_TOKEN_RE,
     ADDRESS_NON_NAME_WORDS,
@@ -146,7 +147,7 @@ def _head_can_carry_arrival(first: str) -> bool:
 # and detect_strategic_command then agree by construction. A head that is
 # already a standing order ("move to reinforce Ney" = SUPPORT) is left alone.
 _ARRIVAL_TAIL_RE = re.compile(
-    r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|;\s*)(?:attack|engage|assault)\b',
+    r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|[;,]\s*)(?:attack|engage|assault)\b',
     re.IGNORECASE)
 _TACTICAL_MOVE_HEAD_RE = re.compile(r'\b(?:move|go)\s+to\b', re.IGNORECASE)
 
@@ -187,12 +188,40 @@ _AND_MARSHAL_SPLIT_RE_TEMPLATE = r'\s+and\s+(?={names}\b)'
 # hold position" are all LEGITIMATE single orders, pinned in the corpus and
 # in test_systems_audit_v2_session5. The discriminator is measurable, not
 # stylistic — see `_and_clause_is_a_second_order`.
-_AND_VERB_SPLIT_RE = re.compile(
-    r'\s+and\s+(?=(?:attack|assault|engage|storm|charge|bombard|retreat'
+_SECOND_ORDER_VERBS = (
+    r'attack|assault|engage|storm|charge|bombard|retreat'
     r'|withdraw|move|march|advance|scout|hold|defend|fortify|entrench'
     r'|drill|wait|garrison|recruit|build|repair|support|reinforce'
-    r'|pursue|chase|blockade)\b)',
+    r'|pursue|chase|blockade')
+_AND_VERB_SPLIT_RE = re.compile(
+    r'\s+and\s+(?=(?:' + _SECOND_ORDER_VERBS + r')\b)',
     re.IGNORECASE)
+# CR-7-3 (CQ-10): the BARE COMMA before an order verb is the fifth boundary.
+# `Ney, fortify, attack Mack` had no boundary at all, so the swallow CR-7-1
+# closed on four tail forms survived on this one, and `march to Swabia,
+# attack Mack` lost its arrival. A comma is ALSO the address separator
+# ("Ney, attack Mack"), so this pattern is only ever a candidate: the
+# caller's `fast_parse(head)` gate (FA-50's own) refuses a bare name as a
+# head, which is what keeps every address form whole.
+_COMMA_VERB_SPLIT_RE = re.compile(
+    r',\s*(?=(?:' + _SECOND_ORDER_VERBS + r')\b)', re.IGNORECASE)
+# A head must OPEN with an order verb once its address is stripped —
+# "the Guard, attack Mack" (a unit whose name is a verb) and "should Mack
+# advance, fortify" (an inversion the guards refuse) are not heads. The
+# comma arm is conservative by design: a head it does not recognise is
+# simply not split, which is the pre-CR-7-3 behaviour.
+_HEAD_VERB_ALTERNATION = (
+    _SECOND_ORDER_VERBS
+    + r'|unfortify|form|stand|stay|rest|dig|secure|cancel|halt|go|wait|take'
+    + r'|fall|pull|retire|press|proceed|head|make|deploy|relocate|journey|travel'
+    + r'|hunt|track|follow|give|link|come|rally|shore|combine|assist|aid|bolster'
+    + r'|join|cover|screen|shield|protect|guard|lay|land|set|order|propose|declare'
+    + r'|offer|sponsor|invest|release|cede|assess|gather|grant|revoke|endow|buy'
+    + r'|purchase|hire')
+_HEAD_OPENS_WITH_A_VERB_RE = re.compile(
+    r"^\s*(?:(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*"
+    r"(?:\s+and\s+(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*)?\s*,\s*)?"
+    r"(?:" + _HEAD_VERB_ALTERNATION + r")\b", re.IGNORECASE)
 # The hold IDIOMS. These are one order, not two, and `llm_client`'s own hold
 # branch enumerates them verbatim — "defend and hold", "fortify and hold",
 # "secure and hold". `defend and hold belgium` and `Ney, fortify and hold
@@ -202,6 +231,18 @@ _AND_VERB_SPLIT_RE = re.compile(
 # A drift pin holds this list against `llm_client`'s.
 _HOLD_IDIOM_RE = re.compile(r'\b(?:defend|fortify|secure)\s+and\s+hold\b',
                             re.IGNORECASE)
+
+
+def sequel_note(tail: str) -> str:
+    """CR-7-3: the ONE sentence the parser attaches for a dropped tail. It
+    states the rule and names the tail; what happens to the tail next — on
+    the line for the player's seal, held back for its moment, or refused as
+    a contradiction — is `backend.commands.relay`'s sentence, appended by
+    main.py once the head has executed. (Before CR-7-3 this read "must
+    follow as its own command", which invited a contradictory tail to be
+    re-sent as-is — the user's note of September 22, 2026.)"""
+    return (f'One order at a time, Sire — I have relayed the first. '
+            f'"{tail}" waits behind it.')
 
 
 def _player_marshal_names(game_state) -> list:
@@ -238,6 +279,19 @@ def _split_sequential_orders(command_text: str, game_state=None):
     # CR-7-1: an attack tail fuses onto a head that can carry an arrival,
     # and onto nothing else (`_head_can_carry_arrival`, the positive rule).
     if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):
+        # CR-7-3: a THIRD clause behind the arrival tail was lost in silence
+        # ("march to Swabia then attack Mack then fortify" → the fortify
+        # vanished). Re-scan the tail for the next boundary: the arrival
+        # idiom keeps its two clauses and whatever lies past them is the
+        # sequel that is reported.
+        rest = _SEQUEL_SPLIT_RE.search(tail)
+        if not rest:
+            rest = _SEMICOLON_SPLIT_RE.search(tail)
+        if not rest:
+            rest = _COMMA_VERB_SPLIT_RE.search(tail)
+        if rest and tail[:rest.start()].strip() and tail[rest.end():].strip():
+            head = command_text[:match.end()] + tail[:rest.start()]
+            return (head.strip().rstrip(',;'), tail[rest.end():].strip())
         return None
     return (first, tail)
 
@@ -1680,6 +1734,86 @@ class CommandParser:
             return None
         return (first, tail)
 
+    # The verb FAMILIES a bare second verb repeats rather than adds to:
+    # "attack Mack, charge!" is one order said with emphasis, not an attack
+    # followed by a cavalry charge for the player's seal.
+    _SAME_FAMILY = (
+        frozenset({"attack", "charge", "bombard"}),
+        frozenset({"move", "retreat"}),
+        frozenset({"defend", "fortify", "hold", "wait"}),
+    )
+
+    def _comma_clause_is_a_second_order(self, command_text: str, game_state):
+        """CR-7-3 (CQ-10): the BARE-COMMA arm, decided by evidence.
+
+        `Ney, fortify, attack Mack` was the fifth tail form on which the
+        swallow CR-7-1 closed survived — a comma is the address separator,
+        so `_SEMICOLON_SPLIT_RE` deliberately never matched it. The rule is
+        FA-50's shape: try each comma that precedes an order verb, LEFT to
+        RIGHT, and split at the first whose head fast-parses to a real
+        action on its own (a bare name — "Ney" — parses to `unknown`, which
+        is what keeps every address form whole) and whose tail parses to a
+        real action too. A tail that names no object and merely repeats the
+        head's verb family ("attack Mack, charge!") is emphasis, not a
+        second order, and stays one order.
+
+        An attack tail behind a head that can carry an arrival is the
+        arrival idiom and is not split here either (`_head_can_carry_
+        arrival`); its third clause, if any, is found by the sequel scan.
+        """
+        if not _COMMA_VERB_SPLIT_RE.search(command_text):
+            return None
+        # WO-6's leading FILLER ("Ney, wait, march to Lorraine" — the `wait,`
+        # is an interjection, and FA-R3 pins the sentence as a 2-AP march):
+        # a comma inside the filler span is never a boundary. `strip_
+        # leading_filler` blanks the filler same-length, so its span is the
+        # run of blanks after the address.
+        filler_end = 0
+        _addr = ADDRESS_TOKEN_RE.match(command_text)
+        _after = _addr.end() if _addr else 0
+        _blanked = strip_leading_filler(command_text[_after:].lower())
+        if _blanked != command_text[_after:].lower():
+            filler_end = _after + (len(_blanked) - len(_blanked.lstrip(" ")))
+        for match in _COMMA_VERB_SPLIT_RE.finditer(command_text):
+            if match.start() < filler_end:
+                continue
+            first = command_text[:match.start()].strip().rstrip(',;')
+            tail = command_text[match.end():].strip()
+            if not first or not tail:
+                continue
+            # The ADDRESS comma and every other non-head: the head must OPEN
+            # with an order verb once its address is stripped. A bare name
+            # ("Talleyrand" alone opens the Cabinet's nation picker, so
+            # `fast_parse` is not `unknown` for him — the FA-50 gate alone
+            # would have split "Talleyrand, build rapport with Saxony" into
+            # a picker and a dropped mission, measured on the corpus), a
+            # unit named like a verb ("the Guard"), an inversion ("should
+            # Mack advance") are all refused here. The mutation sweep found a
+            # separate bare-address guard and a whole-sentence refusal guard
+            # INERT beside this one — both were deleted rather than kept as
+            # unpinnable belt (September 22, 2026).
+            if not _HEAD_OPENS_WITH_A_VERB_RE.match(first):
+                continue
+            head_parse = self.llm.fast_parse(first, game_state)
+            if (head_parse.action == "unknown" or head_parse.action in NON_ORDER_ACTIONS
+                    or getattr(head_parse, "refusal", None)):
+                continue
+            if _ATTACK_ON_ARRIVAL_TAIL_RE.match(tail) and _head_can_carry_arrival(first):
+                return None
+            tail_parse = self.llm.fast_parse(tail, game_state)
+            if tail_parse.action == "unknown":
+                return None
+            if not tail_parse.target and any(
+                    head_parse.action in fam and tail_parse.action in fam
+                    for fam in self._SAME_FAMILY):
+                return None
+            if (head_parse.target and tail_parse.target
+                    and str(tail_parse.target).strip().lower()
+                    == str(head_parse.target).strip().lower()):
+                return None
+            return (first, tail)
+        return None
+
     def parse(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:
         """FA slice 7 review round (R1-1): the verb-typo repair is applied
         HERE, before any reader sees the sentence — the first cut rewrote
@@ -1790,6 +1924,9 @@ class CommandParser:
             if sequel_split is None:
                 sequel_split = self._and_clause_is_a_second_order(
                     command_text, game_state)
+            if sequel_split is None:
+                sequel_split = self._comma_clause_is_a_second_order(
+                    command_text, game_state)
             if sequel_split is not None:
                 first_clause, sequel_tail = sequel_split
                 # FA-50: this gate is what stops the ADDRESS form
@@ -1872,10 +2009,7 @@ class CommandParser:
                 # "Talleyrand, propose peace with Austria, then attack
                 # Bern" silently discarded the second order.
                 if dropped_sequel:
-                    diplomatic_result["warning"] = (
-                        f'One order at a time, Sire — I have relayed the '
-                        f'first. "{dropped_sequel}" must follow as its own '
-                        f'command.')
+                    diplomatic_result["warning"] = sequel_note(dropped_sequel)
                     diplomatic_result["dropped_sequel"] = dropped_sequel
                 return diplomatic_result
 
@@ -1924,6 +2058,12 @@ class CommandParser:
                 for key in ("kind", "unknown_name", "candidates"):
                     if fuzzy_error.get(key) is not None:
                         failure[key] = fuzzy_error[key]
+                # CR-7-3: the did-you-mean question this failure becomes
+                # must still name the tail it carried ("Grouchy, scout
+                # Swabia, then fortify" asked "Whom did you intend?" with
+                # the fortify lost in silence).
+                if dropped_sequel:
+                    failure["dropped_sequel"] = dropped_sequel
                 return failure
 
             # Step 3: Validate the parsed command
@@ -2072,7 +2212,42 @@ class CommandParser:
                     # is safe here in a way `strip_condition_clauses` is not.
                     strategic_text, _ = strip_negated_clauses(effective_text)
                     strategic_text, _ = strip_deferred_clauses(strategic_text)
-                    strategic = detect_strategic_command(strategic_text, marshal_name, world)
+                    # CR-7-5: the clause guard's HAND-OFF. The handed-off
+                    # span is blanked SAME-LENGTH for the strategic layer
+                    # (so "when Ney arrives" is never read as a province)
+                    # and its condition is applied in place of the
+                    # sentence's own `until` read.
+                    _handoff = llm_result.get("condition_handoff")
+                    _condition_override = None
+                    if isinstance(_handoff, dict) and _handoff.get("until_marshal_arrives"):
+                        _s, _e = _handoff.get("span") or (0, 0)
+                        if 0 <= _s < _e <= len(strategic_text):
+                            strategic_text = (strategic_text[:_s]
+                                              + " " * (_e - _s)
+                                              + strategic_text[_e:])
+                        _condition_override = {
+                            "until_marshal_arrives": _handoff["until_marshal_arrives"],
+                            "_clause": _handoff.get("clause", ""),
+                        }
+                    strategic = detect_strategic_command(
+                        strategic_text, marshal_name, world,
+                        condition_override=_condition_override)
+                    # CR-7-4: a condition the engine READ and must REFUSE — an
+                    # unmet referent ("until Godot arrives"), `for 0 turns`, a
+                    # turn behind us — is answered at 0 AP with its cause,
+                    # never minted into an order that can never complete.
+                    if strategic and strategic.get("condition_refusal"):
+                        return {
+                            "success": False,
+                            "error": "That condition is not one I can hold, Sire.",
+                            "raw_input": command_text,
+                            "refusal": "condition",
+                            "refusal_phrase": "a condition the engine cannot meet",
+                            "refusal_detail": dict(strategic["condition_refusal"]),
+                            "partial_marshal": marshal_name,
+                            "partial_target": strategic.get("target"),
+                            "dropped_sequel": dropped_sequel,
+                        }
                     # FA slice 7: a BARE retreat verb is a retreat. "Ney, fall
                     # back" / "Ney, withdraw" parsed as `retreat` and were then
                     # upgraded by the strategic table's bare "fall back" /
@@ -2092,6 +2267,10 @@ class CommandParser:
                         result["target_snapshot_location"] = strategic.get("target_snapshot_location")
                         result["strategic_condition"] = strategic.get("condition")
                         result["attack_on_arrival"] = strategic.get("attack_on_arrival", False)
+                        # CR-7-6: the arrival order's OBJECT; CR-7-4: how the
+                        # conditions were read (the echo's second half).
+                        result["arrival_target"] = strategic.get("arrival_target")
+                        result["condition_notes"] = list(strategic.get("condition_notes") or [])
                         # Override target with canonical name from strategic parser
                         strategic_target = strategic["target"]
                         # Apply fuzzy matching to strategic target (strategic parser
@@ -2156,11 +2335,9 @@ class CommandParser:
                 # design pillar: every input gets a response, nothing is
                 # silently dropped.
                 if dropped_sequel:
-                    sequel_note = (
-                        f'One order at a time, Sire — I have relayed the first. '
-                        f'"{dropped_sequel}" must follow as its own command.')
-                    result["warning"] = (f"{result['warning']} {sequel_note}"
-                                         if result.get("warning") else sequel_note)
+                    _note = sequel_note(dropped_sequel)
+                    result["warning"] = (f"{result['warning']} {_note}"
+                                         if result.get("warning") else _note)
                     result["dropped_sequel"] = dropped_sequel
 
                 # ══════════════════════════════════════════════════════
@@ -2201,6 +2378,13 @@ class CommandParser:
                 if llm_result.get("refusal"):
                     failure["refusal"] = llm_result["refusal"]
                     failure["refusal_phrase"] = llm_result.get("refusal_phrase")
+                    if llm_result.get("refusal_detail"):
+                        failure["refusal_detail"] = llm_result["refusal_detail"]
+                # CR-7-3: a refused HEAD still names the tail it carried, so
+                # the reply can say the tail is not relayed instead of losing
+                # it in silence.
+                if dropped_sequel:
+                    failure["dropped_sequel"] = dropped_sequel
                 if llm_result.get("llm_error"):
                     failure["llm_error"] = True  # CR-3(c)
                 return failure

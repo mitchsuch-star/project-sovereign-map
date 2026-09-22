@@ -1325,11 +1325,19 @@ class StrategicExecutor:
             condition=condition,
             target_snapshot_location=snapshot,
             attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+            # CR-7-6: the man the arrival tail named (None for a bare tail).
+            arrival_target=parsed_command.get("arrival_target"),
             # CR-5 Phase 4: tag orders the CR-5 router inferred from a delegation
             # verb so ONLY they get the fortification-aware bad-odds gate.
             delegation_inferred=parsed_command.get("delegation_inferred", False),
             issued_turn=world.current_turn,
         )
+        # CR-7-4 item 5: `until the battle is won` read the MARSHAL-scoped
+        # `last_combat_result`, which a battle fought BEFORE this order left
+        # standing — so the hold completed on its first tick. A new order
+        # starts with no battle behind it; `_check_condition` also gates the
+        # read on `last_combat_turn >= started_turn` for legacy saves.
+        marshal.last_combat_result = None
 
         # Cancel any existing strategic order
         if marshal.strategic_order:
@@ -1746,16 +1754,22 @@ class StrategicExecutor:
         else:
             msg = f"{marshal.name} received the order to {order_verb_display(strategic_type)}.{first_step_msg}"
 
+        # CR-7-4 item 6 — THE ECHO. The confirmation used to be byte-identical
+        # across six different conditions (this block named four and was
+        # appended where the player never read it); it now names EVERY
+        # accepted condition from the ONE sentence the Strategic Ledger
+        # renders (`condition_grammar.describe_condition`), and says how a
+        # clause was read ("'for three turns' read as for 3 turns") or that
+        # it could not be ("'unless attacked' is not a clause I can hold").
         cond_str = ""
         if condition:
-            if condition.max_turns:
-                cond_str = f" (for {condition.max_turns} turns)"
-            elif condition.until_marshal_arrives:
-                cond_str = f" (until {condition.until_marshal_arrives} arrives)"
-            elif condition.until_relieved:
-                cond_str = " (until relieved)"
-            elif condition.until_marshal_destroyed:
-                cond_str = f" (until {condition.until_marshal_destroyed} destroyed)"
+            from backend.ai.condition_grammar import describe_condition
+            described = describe_condition(condition)
+            if described:
+                cond_str = f" ({described})"
+        _condition_notes = [str(n) for n in (parsed_command.get("condition_notes") or []) if n]
+        if _condition_notes:
+            cond_str += " Berthier: \"" + ". ".join(_condition_notes) + ".\""
 
         # Strategic commands cost 2 actions (1 for literal — they follow orders efficiently)
         # Auto-upgrades (e.g., attack→PURSUE) cost 1 (player didn't ask for strategic)
@@ -2056,10 +2070,14 @@ class StrategicExecutor:
                 condition=condition,
                 target_snapshot_location=parsed_command.get("target_snapshot_location"),
                 attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+                # CR-7-6: the 12-kwarg objection-resume rebuild used to eat
+                # the arrival object on any objection.
+                arrival_target=parsed_command.get("arrival_target"),
                 delegation_inferred=parsed_command.get("delegation_inferred", False),
                 issued_turn=world.current_turn,
                 objection_resolved=True,
             )
+            marshal.last_combat_result = None  # CR-7-4 item 5 (see the primary site)
 
             # Apply the order
             marshal.strategic_order = order
@@ -2272,8 +2290,10 @@ class StrategicExecutor:
             Dict with interrupt data if player input needed, None if handled automatically
         """
         personality = getattr(marshal, 'personality', 'balanced')
-        enemy = enemies[0]
         order = marshal.strategic_order
+        # CR-7-6: the named quarry when he stands among the blockers.
+        from backend.commands.strategic import pick_contact_enemy
+        enemy = pick_contact_enemy(order, enemies)
 
         # FA-15 / FA-20 (slice 3, Sept 4 2026): the executor's own crossing
         # predicate, asked BEFORE any personality arm. The cautious arm used

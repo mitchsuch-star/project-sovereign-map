@@ -134,9 +134,17 @@ class TestWO6TheLeadingFiller:
     def test_the_strip_leaves_a_non_filler_untouched(self, text):
         assert strip_leading_filler(text) == text
 
-    def test_end_to_end_the_marshal_retreats_and_never_waits(self, parser):
+    def test_end_to_end_the_marshal_retreats_and_never_waits(self, parser, monkeypatch):
         """The done-when: `no wait, Ney, retreat` retreats - never WAITs.
-        Driven through the real executor."""
+        Driven through the real executor.
+
+        CR-7-3 (September 22, 2026, CQ-11's family): Ney is AGGRESSIVE and
+        the V2a trigger rolls a ±1 concern shift 25% of the time, so on a
+        promoting roll he OBJECTS to the retreat and the last assertion
+        reads a marshal who never moved — green alone, red in a long batch.
+        0.5 is 'exactly as evaluated'."""
+        import backend.commands.objection_v2 as objection_v2
+        monkeypatch.setattr(objection_v2.random, "random", lambda: 0.5)
         world = _world()
         ney = world.get_marshal("Ney")
         parsed = _parse(parser, "no wait, Ney, retreat", world)
@@ -458,8 +466,8 @@ class TestWO7TheSoftStopWall:
             seen["keyword"] = keyword
             return {"success": True, "message": "answered"}
 
-        monkeypatch.setattr(m_mod.executor, "handle_diplomatic_dialogue_response",
-                            _fake_handler)
+        monkeypatch.setattr(type(m_mod.executor._diplomatic), "handle_diplomatic_dialogue_response",  # class-level on the SUB-executor: the executor delegates via __getattr__, so an instance patch would leave a shadow (CR-7-6)
+                            lambda _self, *a, **k: _fake_handler(*a, **k))
         called_executor = {}
         real_execute = m_mod.executor.execute
 
@@ -467,7 +475,8 @@ class TestWO7TheSoftStopWall:
             called_executor["yes"] = True
             return real_execute(parsed, game_state)
 
-        monkeypatch.setattr(m_mod.executor, "execute", _spy)
+        monkeypatch.setattr(type(m_mod.executor), "execute",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
+                            lambda _self, parsed, game_state: _spy(parsed, game_state))
         resp = _post(client, "accept the offer")
         assert seen.get("keyword") == "accept"
         assert resp["message"].startswith("answered")

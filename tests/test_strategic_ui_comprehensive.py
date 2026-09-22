@@ -1611,6 +1611,7 @@ class TestConditionSystem:
         """until_battle_won completes on victory."""
         grouchy = world.get_marshal("Grouchy")
         grouchy.last_combat_result = "victory"
+        grouchy.last_combat_turn = world.current_turn  # CR-7-4: a simulated battle stamps its turn, as every production writer does
         grouchy.strategic_order = _make_order(
             "HOLD", "Wavre", path=[],
             condition=StrategicCondition(until_battle_won=True))
@@ -1623,6 +1624,7 @@ class TestConditionSystem:
         """until_battle_won also triggers on stalemate."""
         grouchy = world.get_marshal("Grouchy")
         grouchy.last_combat_result = "stalemate"
+        grouchy.last_combat_turn = world.current_turn  # CR-7-4: a simulated battle stamps its turn, as every production writer does
         grouchy.strategic_order = _make_order(
             "HOLD", "Wavre", path=[],
             condition=StrategicCondition(until_battle_won=True))

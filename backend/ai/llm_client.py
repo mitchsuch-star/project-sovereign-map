@@ -43,6 +43,7 @@ from .clause_guards import (
     is_question,
     mentions_stand_down,
     strip_condition_clauses,
+    strip_condition_clauses_with_handoff,
     strip_deferred_clauses,
     strip_negated_clauses,
 )
@@ -1423,7 +1424,7 @@ class LLMClient:
         return random.choice(templates)
 
     def _refusal_result(self, original_text: str, reason: str,
-                        phrase: str) -> ParseResult:
+                        phrase: str, detail: Optional[Dict] = None) -> ParseResult:
         """PARSE-NEG: the parser understood the sentence and there is no order.
 
         Deliberately NOT a `matched` result — it carries action "unknown" so
@@ -1451,9 +1452,28 @@ class LLMClient:
             raw_command=original_text,
             refusal=reason,
             refusal_phrase=phrase,
+            refusal_detail=detail,
         )
 
     def _parse_with_mock(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
+        """CR-7-5: the mock chain, plus the hand-off it decided.
+
+        The chain below has a dozen `return ParseResult(...)` sites; the
+        third verdict is stamped ONCE here rather than at each of them. A
+        hand-off rides only a MATCHED, order-bearing result — a refusal, a
+        question or an unknown carries none, so nothing downstream can read
+        a condition off a sentence that issued no order.
+        """
+        self._condition_handoff = None
+        result = self._parse_with_mock_chain(command_text, game_state)
+        handoff = self._condition_handoff
+        self._condition_handoff = None
+        if (handoff is not None and result is not None and result.matched
+                and result.action not in ("unknown", None) and not result.refusal):
+            result.condition_handoff = handoff
+        return result
+
+    def _parse_with_mock_chain(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
         """
         Mock parser using simple keyword matching.
         Fast, free, deterministic - perfect for development!
@@ -1536,8 +1556,37 @@ class LLMClient:
                 or is_question(command_text,
                                _question_subjects(game_state))):
             stand_down = mentions_stand_down(command_lower)
+            # CR-7-5 (CQ-7): the condition verdict is ALSO taken on the
+            # PRE-negation text. `attack Mack if he is not fortified` had its
+            # negation blanked first, which shrank the `if` clause under the
+            # two-word floor — so the negated twin FOUGHT (measured: muster +
+            # battle, 1 AP) while `attack Mack if he is fortified` was refused.
+            # Re-asking the floor against the untouched sentence flips 0 of
+            # 449 corpus rows (the memo's counterfactual, carried here).
+            _all_roster = _player_roster + list(_game_state_dict(game_state, "enemies"))
+            _pre_verdict = strip_condition_clauses_with_handoff(
+                command_text, friendly_names=_player_roster,
+                roster_names=_all_roster)
             guarded, negation_applied = strip_negated_clauses(command_text)
-            guarded, condition_refuses = strip_condition_clauses(guarded)
+            _verdict = strip_condition_clauses_with_handoff(
+                guarded, friendly_names=_player_roster, roster_names=_all_roster)
+            guarded, condition_refuses = _verdict.text, _verdict.refuse
+            condition_refuses = condition_refuses or _pre_verdict.refuse
+            _refusing_clause = (_verdict.refusing_clause
+                                or _pre_verdict.refusing_clause)
+            # CR-7-5 — THE THIRD VERDICT, and it fails closed: the hand-off
+            # rides only when the residue is a HOLD. "when Davout arrives,
+            # attack" is PARSE-NEG's own pinned refusal and stays one; a
+            # hold NOW until he arrives is the honest reading of "hold
+            # Lorraine when Ney arrives", and the echo says so.
+            condition_handoff = _verdict.handoff
+            if condition_handoff is not None:
+                from backend.ai.strategic_parser import clause_is_a_hold_order
+                if condition_refuses or not clause_is_a_hold_order(guarded):
+                    condition_handoff = None
+                    condition_refuses = True
+                    _refusing_clause = _refusing_clause or _verdict.handoff["clause"]
+            self._condition_handoff = condition_handoff
             # FA-7: "not YET" is not "not that". The guards above knew every
             # way to forbid an order and none to postpone one, so "Ney, delay
             # the attack" fought a real battle at 0.95 confidence — above the
@@ -1584,9 +1633,20 @@ class LLMClient:
             # the defect: "if Mack advances fall back to Alsace" marched on the
             # turn it was typed, at the highest confidence in the whole set.
             if condition_refuses:
+                # CR-7-4: the refusing CLAUSE rides with the verdict, and
+                # whether it names one of our own marshals arriving — so the
+                # reply can stop blaming the enemy for a friendly arrival.
+                _detail = {"clause": _refusing_clause or ""}
+                _arrival = re.search(
+                    r"\b(?:" + HONORIFIC + r")?([A-Za-z][A-Za-z'’-]*)\s+arrives?\b",
+                    _refusing_clause or "", re.IGNORECASE)
+                if _arrival and any(_arrival.group(1).lower() == n.lower()
+                                    for n in _player_roster):
+                    _detail["friendly_arrival"] = _arrival.group(1)
                 return self._refusal_result(
                     original_text, "conditional",
-                    "a conditional order (the engine holds no 'if')")
+                    "a conditional order (the engine holds no 'if')",
+                    detail=_detail)
 
             # The negation consumed every word that could have named an order.
             # Checked here because the diplomatic routes below return EARLY —

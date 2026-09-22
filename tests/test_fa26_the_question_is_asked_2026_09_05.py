@@ -394,8 +394,8 @@ class TestTheFailedReinforcerAsks:
 
     def _battle(self, board, client, monkeypatch, reinforcer="Lannes"):
         combat = M.executor._combat
-        monkeypatch.setattr(combat, "_calculate_reinforcements",
-                            lambda primary, defender, region, nation, world: (
+        monkeypatch.setattr(type(combat), "_calculate_reinforcements",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
+                            lambda _self, primary, defender, region, nation, world: (
                                 _no_show(reinforcer) if nation == board.player_nation else []))
         return post(client, "Ney, attack Mack")
 
@@ -608,7 +608,8 @@ class TestTheReviewRound:
     def test_a_pursue_first_step_no_show_carries_the_question(self, board, client, monkeypatch):
         murat = board.marshals["Murat"]
         murat.trust.set(22)
-        monkeypatch.setattr(M.executor._combat, "_calculate_reinforcements", _french_no_show("Murat"))
+        monkeypatch.setattr(type(M.executor._combat), "_calculate_reinforcements",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
+                            lambda _self, *a, **k: _french_no_show("Murat")(*a, **k))
         r = post(client, "Ney, pursue Mack")
         assert murat.trust.value == 19, r.get("message")
         assert asked(r) and r["redemption_event"]["marshal"] == "Murat"
@@ -618,7 +619,8 @@ class TestTheReviewRound:
         lannes = board.marshals["Lannes"]
         lannes.trust.set(22)
         mack = board.marshals["Mack"]
-        monkeypatch.setattr(M.executor._combat, "_calculate_reinforcements", _french_no_show("Lannes"))
+        monkeypatch.setattr(type(M.executor._combat), "_calculate_reinforcements",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
+                            lambda _self, *a, **k: _french_no_show("Lannes")(*a, **k))
         with _quiet():
             result = M.executor._combat._execute_attack(mack, "Ney", board, M.game_state)
         assert lannes.trust.value == 19, result.get("message")
@@ -686,7 +688,7 @@ class TestTheReviewRound:
         davout = objected.marshals["Davout"]
         davout.trust.set(26)
         monkeypatch.setattr(ME.random, "random", lambda: 0.999)
-        monkeypatch.setattr(M.executor._meta, "_execute_post_objection",
+        monkeypatch.setattr(type(M.executor._meta), "_execute_post_objection",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
                             lambda *a, **k: {"success": True, "message": "The order is carried out."})
         r2 = post(client, "insist")
         assert davout.trust.value <= 20, (davout.trust.value, r2.get("message"))

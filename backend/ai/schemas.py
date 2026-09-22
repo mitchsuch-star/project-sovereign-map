@@ -83,6 +83,18 @@ class ParseResult:
     # was forbidden would re-open the very bug this guards.
     refusal: Optional[str] = None
     refusal_phrase: Optional[str] = None  # the words the player used, for the reply
+    # CR-7-4 / CR-7-5: WHY, by cause — the refusing clause for a "conditional"
+    # refusal (so main.py's copy stops blaming the enemy for a sentence about a
+    # friendly arrival), or the grammar's own {"kind": …} for a condition the
+    # engine read and must refuse (an unmet referent, `for 0 turns`, a turn
+    # behind us). Display-only; never read by routing.
+    refusal_detail: Optional[Dict[str, Any]] = None
+    # CR-7-5 — THE THIRD VERDICT. `when|if|once|as soon as <friendly marshal>
+    # arrives` handed off by the clause guard as the engine's own
+    # `until_marshal_arrives`: {"until_marshal_arrives": Name, "span": (s, e),
+    # "clause": "…"}. The parser blanks the span for the strategic layer and
+    # applies the condition; nothing here picks an action (GR6, §8 rule 3).
+    condition_handoff: Optional[Dict[str, Any]] = None
 
     # Metadata
     confidence: float = 0.9
@@ -146,6 +158,12 @@ class ParseResult:
         if self.refusal:
             result["refusal"] = self.refusal
             result["refusal_phrase"] = self.refusal_phrase
+            if self.refusal_detail:
+                result["refusal_detail"] = self.refusal_detail
+        # CR-7-5: only emitted when the guard handed a clause off, so the dict
+        # shape is unchanged for every ordinary parse.
+        if self.condition_handoff:
+            result["condition_handoff"] = self.condition_handoff
         if self.standing_order:
             result["standing_order"] = self.standing_order
         if self.condition:

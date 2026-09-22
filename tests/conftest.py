@@ -363,3 +363,51 @@ def game_state(world):
 def combat_resolver():
     """A fresh CombatResolver."""
     return CombatResolver()
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# SUITE HYGIENE — no method shadows on the process-lifetime singletons (CR-7-6)
+# ════════════════════════════════════════════════════════════════════════════════
+
+@pytest.fixture(scope="session", autouse=True)
+def _the_singletons_carry_no_method_shadows():
+    """`monkeypatch.setattr(<instance>, "<method>", ...)` on a process-lifetime
+    singleton (`backend.main.executor`, its sub-executors, `backend.main.parser`)
+    pollutes the whole session: pytest records `getattr(instance, name)` — the
+    BOUND method — and its undo writes that bound method back as an INSTANCE
+    attribute, so every later class-level patch of the same method is silently
+    bypassed for the singleton. Measured September 22, 2026: three CR-7-6 spy
+    pins went red in the full suite and green alone. The static census in
+    `test_cr7_6_*` catches the direct forms; this runs once at session END so an
+    offender patching through a local alias fails the run by NAME. The rule:
+    patch `type(obj)` — for a `CommandExecutor.__getattr__`-delegated name
+    (`_execute_cancel`, `handle_diplomatic_dialogue_response`), the SUB-
+    executor's class. Measured at boot over all 16 singleton objects: none
+    stores a bound method as an instance attribute, so any bound method found
+    here was left by a test."""
+    yield
+    import inspect
+    try:
+        import backend.main as M
+    except Exception:  # pragma: no cover - the suite cannot import main at all
+        return
+    roots = [getattr(M, "executor", None), getattr(M, "parser", None)]
+    roots.append(getattr(getattr(M, "parser", None), "llm", None))
+    targets = []
+    for root in roots:
+        if root is None:
+            continue
+        targets.append(root)
+        targets.extend(v for v in vars(root).values()
+                       if getattr(type(v), "__module__", "").startswith("backend"))
+    shadows = []
+    for obj in targets:
+        cls = type(obj)
+        for name, value in vars(obj).items():
+            if inspect.ismethod(value) or (
+                    callable(value) and name in vars(cls) and callable(vars(cls)[name])):
+                shadows.append(f"{cls.__name__}.{name}")
+    assert not shadows, (
+        "a test monkeypatched a method on a singleton INSTANCE and left the bound "
+        "method behind as an instance attribute, blinding every later class-level "
+        f"patch of it: {sorted(set(shadows))} — patch type(obj) instead")

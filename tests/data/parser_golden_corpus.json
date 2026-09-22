@@ -665,10 +665,13 @@
       "world": "legacy",
       "expected": {
         "strategic_type": "HOLD",
-        "target": "Belgium"
+        "target": "Belgium",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
       },
       "source": "tests/test_strategic_parser.py::test_hold_region_with_condition",
-      "notes": "Condition asserted: {until_marshal_arrives: 'Ney'}; target_type region. Also mirrored as a handcrafted LLM-JSON mapping test ('Hold Belgium until Ney arrives') in test_llm_strategic.py."
+      "notes": "Condition asserted: {until_marshal_arrives: 'Ney'}; target_type region. Also mirrored as a handcrafted LLM-JSON mapping test ('Hold Belgium until Ney arrives') in test_llm_strategic.py. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "grouchy-hold-position",
@@ -686,10 +689,13 @@
       "world": "legacy",
       "expected": {
         "strategic_type": "SUPPORT",
-        "target": "Ney"
+        "target": "Ney",
+        "strategic_condition": {
+          "until_battle_won": true
+        }
       },
       "source": "tests/test_strategic_parser.py::test_support_friendly",
-      "notes": "Condition asserted: {until_battle_won: true}. Fragment variant 'support ney until battle won' also pinned at _parse_condition seam."
+      "notes": "Condition asserted: {until_battle_won: true}. Fragment variant 'support ney until battle won' also pinned at _parse_condition seam. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "grouchy-attack-wellington",
@@ -706,10 +712,13 @@
       "utterance": "Grouchy, pursue Wellington until destroyed",
       "world": "legacy",
       "expected": {
-        "strategic_type": "PURSUE"
+        "strategic_type": "PURSUE",
+        "strategic_condition": {
+          "until_marshal_destroyed": "Wellington"
+        }
       },
       "source": "tests/test_strategic_parser.py::test_pursue_until_destroyed",
-      "notes": "Condition asserted: {until_marshal_destroyed: 'Wellington'}. Fragment 'pursue until destroyed' also pinned at _parse_condition seam in both files."
+      "notes": "Condition asserted: {until_marshal_destroyed: 'Wellington'}. Fragment 'pursue until destroyed' also pinned at _parse_condition seam in both files. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "grouchy-pursue-the-enemy",
@@ -949,10 +958,13 @@
         "success": true,
         "marshal": null,
         "target": "Belgium",
-        "strategic_type": "HOLD"
+        "strategic_type": "HOLD",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
       },
       "source": "tests/test_llm_strategic.py::test_full_detect_hold_with_condition",
-      "notes": "CR-2 BEHAVIOR CHANGE (was: marshal=Ney, the condition marshal hijacked as executor): a name inside the 'until ...' clause is the condition marshal only. marshal=null routes to the marshal-choice clarification; the condition still parses ({until_marshal_arrives: Ney})."
+      "notes": "CR-2 BEHAVIOR CHANGE (was: marshal=Ney, the condition marshal hijacked as executor): a name inside the 'until ...' clause is the condition marshal only. marshal=null routes to the marshal-choice clarification; the condition still parses ({until_marshal_arrives: Ney}). | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "diplomat-propose-peace-with-prussia",
@@ -2980,10 +2992,12 @@
         "success": true,
         "action": "attack",
         "target": "Bern",
-        "strategic_type": null
+        "strategic_type": null,
+        "dropped_sequel": "hold your positions",
+        "warning_contains": "One order at a time"
       },
       "source": "CR-2 authored (sequential compound orders)",
-      "notes": "CR-2 BEHAVIOR CHANGE (was: auto_assign_attack on phantom region 'Your Positions' + a stray strategic HOLD upgrade from the second clause). The first clause executes; the parse result carries dropped_sequel + a Berthier warning naming the unrelayed tail."
+      "notes": "CR-2 BEHAVIOR CHANGE (was: auto_assign_attack on phantom region 'Your Positions' + a stray strategic HOLD upgrade from the second clause). The first clause executes; the parse result carries dropped_sequel + a Berthier warning naming the unrelayed tail. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "cr2-march-to-vienna-then-attack-not-split",
@@ -2992,10 +3006,12 @@
       "expected": {
         "success": true,
         "marshal": "Ney",
-        "strategic_type": "MOVE_TO"
+        "strategic_type": "MOVE_TO",
+        "attack_on_arrival": true,
+        "dropped_sequel": null
       },
       "source": "CR-2 authored (sequential-split guard)",
-      "notes": "A bare attack verb after 'then' is the long-standing attack-on-arrival hint — the sequential split must not fire (the MOVE_TO order keeps attack_on_arrival=true)."
+      "notes": "A bare attack verb after 'then' is the long-standing attack-on-arrival hint — the sequential split must not fire (the MOVE_TO order keeps attack_on_arrival=true). | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "cr2-march-then-attack-named-object-not-split",
@@ -3005,10 +3021,12 @@
         "success": true,
         "marshal": "Ney",
         "target": "Vienna",
-        "strategic_type": "MOVE_TO"
+        "strategic_type": "MOVE_TO",
+        "attack_on_arrival": true,
+        "dropped_sequel": null
       },
       "source": "CR-2 adversarial-review fix (named-object attack-on-arrival tails)",
-      "notes": "Pre-CR-2, 'then attack <name>' fired attack_on_arrival on the substring match with ANY suffix — the split guard must exempt tails STARTING with an attack verb, not just bare verbs (the review's 3x-confirmed regression). attack_on_arrival=true asserted in test_command_robustness_cr2_clarification.py."
+      "notes": "Pre-CR-2, 'then attack <name>' fired attack_on_arrival on the substring match with ANY suffix — the split guard must exempt tails STARTING with an attack verb, not just bare verbs (the review's 3x-confirmed regression). attack_on_arrival=true asserted in test_command_robustness_cr2_clarification.py. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "cr2-cavalry-charge-collective-addressee",
@@ -3053,10 +3071,13 @@
         "success": true,
         "marshal": null,
         "target": "Munich",
-        "strategic_type": "HOLD"
+        "strategic_type": "HOLD",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
       },
       "source": "CR-2 authored (condition-marshal hijack fix, 1805 twin of stand-firm-at-belgium-until-ney-arrives)",
-      "notes": "The condition marshal must not bind as executor on the shipped 1805 boot either."
+      "notes": "The condition marshal must not bind as executor on the shipped 1805 boot either. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "cr2-ney-support-davout-executor-binds",
@@ -3079,10 +3100,13 @@
         "success": true,
         "marshal": "Grouchy",
         "target": "Belgium",
-        "strategic_type": "HOLD"
+        "strategic_type": "HOLD",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
       },
       "source": "CR-2 authored (condition-demotion regression pin; twin of grouchy-hold-belgium-until-ney-arrives)",
-      "notes": "A name BEFORE the 'until' clause binds as executor exactly as before; only names inside the condition clause are demoted."
+      "notes": "A name BEFORE the 'until' clause binds as executor exactly as before; only names inside the condition clause are demoted. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "cr5-deleg-aggressive-ney-resolves-live",
@@ -3898,10 +3922,14 @@
       "expected": {
         "success": true,
         "action": "hold",
-        "strategic_type": "HOLD"
+        "strategic_type": "HOLD",
+        "strategic_condition": {
+          "until_marshal_arrives": "Davout"
+        },
+        "dropped_sequel": null
       },
       "source": "PARSE-NEG (BUG_FIXES.md) — filed table row 6",
-      "notes": "Attacked immediately. `until` is the ONE condition the engine implements, so it is scoped rather than refused: the keyword inside the subordinate clause no longer outranks the main verb, and the StrategicCondition survives intact."
+      "notes": "Attacked immediately. `until` is the ONE condition the engine implements, so it is scoped rather than refused: the keyword inside the subordinate clause no longer outranks the main verb, and the StrategicCondition survives intact. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "parseneg-unless-elliptical-holds",
@@ -4400,10 +4428,12 @@
       "world": "1805",
       "expected": {
         "success": true,
-        "not_action": "attack"
+        "not_action": "attack",
+        "dropped_sequel": "attack Mack",
+        "warning_contains": "attack Mack"
       },
       "source": "FA-7 (Final Whole-Game Audit) — the deferral family",
-      "notes": "`_ATTACK_ON_ARRIVAL_TAIL_RE` refuses to split any tail starting with an attack verb, so the whole sentence stayed one parse and `attack` outranked `wait`. Attack-on-arrival is a MOVEMENT idiom — a first clause that orders the marshal to stand still carries no arrival. `until` is excluded, so the engine's own 'hold until Davout arrives then attack' is untouched."
+      "notes": "`_ATTACK_ON_ARRIVAL_TAIL_RE` refuses to split any tail starting with an attack verb, so the whole sentence stayed one parse and `attack` outranked `wait`. Attack-on-arrival is a MOVEMENT idiom — a first clause that orders the marshal to stand still carries no arrival. `until` is excluded, so the engine's own 'hold until Davout arrives then attack' is untouched. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "fa6-what-happens-next-turn-is-not-a-command",
@@ -4552,10 +4582,12 @@
       "world": "1805",
       "expected": {
         "success": true,
-        "action": "attack"
+        "action": "attack",
+        "dropped_sequel": "Davout, support Soult",
+        "warning_contains": "One order at a time"
       },
       "source": "FA-50 (Final Whole-Game Audit)",
-      "notes": "A `;` was consumed only as an optional PREFIX to 'then', so a bare semicolon never split. With a RESOLVABLE second marshal this succeeded silently and marched Ney away from the battle; the row's probe happened to name an unresolvable pronoun and saw a loud failure instead."
+      "notes": "A `;` was consumed only as an optional PREFIX to 'then', so a bare semicolon never split. With a RESOLVABLE second marshal this succeeded silently and marched Ney away from the battle; the row's probe happened to name an unresolvable pronoun and saw a loud failure instead. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "fa73-live-cover-the-retreat-is-not-a-retreat",
@@ -5085,10 +5117,11 @@
         "action": "hold",
         "marshal": "Ney",
         "target": "Lorraine",
-        "strategic_type": "HOLD"
+        "strategic_type": "HOLD",
+        "dropped_sequel": "attack Mack"
       },
       "source": "FA slice 7 review round (Sept 5, 2026)",
-      "notes": "R1-1: the sequential split reads the repaired first clause; measured FIGHTING before."
+      "notes": "R1-1: the sequential split reads the repaired first clause; measured FIGHTING before. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "r7-stay-here-then-attack-waits",
@@ -5098,10 +5131,11 @@
       "expected": {
         "action": "wait",
         "marshal": "Ney",
-        "not_action": "attack"
+        "not_action": "attack",
+        "dropped_sequel": "attack Mack"
       },
       "source": "FA slice 7 review round (Sept 5, 2026)",
-      "notes": "R1-2 (P1): the split gate's stand-fast list learned the wait vocabulary; measured FIGHTING before (gold -132)."
+      "notes": "R1-2 (P1): the split gate's stand-fast list learned the wait vocabulary; measured FIGHTING before (gold -132). | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "r7-rest-your-men-then-attack-waits",
@@ -5111,10 +5145,11 @@
       "expected": {
         "action": "wait",
         "marshal": "Ney",
-        "not_action": "attack"
+        "not_action": "attack",
+        "dropped_sequel": "attack Mack"
       },
       "source": "FA slice 7 review round (Sept 5, 2026)",
-      "notes": "R1-2."
+      "notes": "R1-2. | CR-7-2: asserts the compound/conditional key(s) it always produced."
     },
     {
       "id": "r7-the-line-held-is-not-an-order",
@@ -5475,6 +5510,255 @@
       },
       "source": "NP-1 — the Emperor's Hand (NAPOLEON_SPEC §4.1)",
       "notes": "Gate (c): the question detector runs FIRST, so an interrogative lead is never rewritten into an order. | CX-2: the legacy twin, kept so the help route is still pinned where the desk cannot classify the foe."
+    },
+    {
+      "id": "cr7-fortify-then-attack-keeps-the-head",
+      "utterance": "Ney, fortify then attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "fortify",
+        "not_action": "attack",
+        "dropped_sequel": "attack Mack",
+        "warning_contains": "One order at a time"
+      },
+      "source": "CR-7-1 / CR-7-2 (COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md)",
+      "notes": "The CQ-1 headline: 40 of 40 non-movement compound shapes had the tail REPLACE the head. The head keeps its order; the tail rides dropped_sequel."
+    },
+    {
+      "id": "cr7-comma-is-a-boundary",
+      "utterance": "Ney, fortify, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "fortify",
+        "not_action": "attack",
+        "dropped_sequel": "attack Mack"
+      },
+      "source": "CR-7-3 (CQ-10)",
+      "notes": "The fifth tail form. A bare comma before an order verb splits when the head parses on its own; the ADDRESS comma never does (see cr7-address-comma-is-not-a-boundary)."
+    },
+    {
+      "id": "cr7-address-comma-is-not-a-boundary",
+      "utterance": "Ney, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Mack",
+        "dropped_sequel": null
+      },
+      "source": "CR-7-3 (CQ-10) negative control",
+      "notes": "A bare name before the comma is the address, never a head."
+    },
+    {
+      "id": "cr7-comma-arrival-keeps-the-attack",
+      "utterance": "Ney, march to Swabia, attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Swabia",
+        "attack_on_arrival": true,
+        "dropped_sequel": null
+      },
+      "source": "CR-7-3 (CQ-10)",
+      "notes": "Before CR-7-3 the comma form fused as a plain MOVE_TO with the attack silently gone."
+    },
+    {
+      "id": "cr7-third-clause-is-reported",
+      "utterance": "Ney, march to Swabia then attack Mack then fortify",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Swabia",
+        "attack_on_arrival": true,
+        "dropped_sequel": "fortify"
+      },
+      "source": "CR-7-3",
+      "notes": "The arrival idiom keeps its two clauses; the third is the sequel that is reported (it was lost in silence)."
+    },
+    {
+      "id": "cr7-till-is-until",
+      "utterance": "Davout, hold Lorraine till Ney arrives",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "Was HOLD on the phantom province Lorraine Till Ney Arrives."
+    },
+    {
+      "id": "cr7-word-number-turns",
+      "utterance": "Davout, hold Lorraine for three turns",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "max_turns": 3
+        }
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "Was HOLD on the phantom province Lorraine For Three Turns."
+    },
+    {
+      "id": "cr7-honorific-in-the-condition",
+      "utterance": "Davout, hold Lorraine until Marshal Ney arrives",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "The honorific the game itself prints was silently dropping the condition."
+    },
+    {
+      "id": "cr7-relief-arrives-is-relieved",
+      "utterance": "Davout, hold Lorraine until relief arrives",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "until_relieved": true
+        }
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "Was until_marshal_arrives=Relief, an order that could never complete."
+    },
+    {
+      "id": "cr7-unknown-referent-refused",
+      "utterance": "Davout, hold Lorraine until Godot arrives",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "not one I can hold"
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "Refused at 0 AP by name (refusal=condition, kind unknown_referent); before, a paid order that could never complete."
+    },
+    {
+      "id": "cr7-zero-turns-refused",
+      "utterance": "Davout, hold Lorraine for 0 turns",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "not one I can hold"
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "Was max_turns=0, a paid order that self-completed on the next tick."
+    },
+    {
+      "id": "cr7-until-turn-is-read-as-turns",
+      "utterance": "Davout, hold Lorraine until turn 5",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "max_turns": 4
+        }
+      },
+      "source": "CR-7-4 (CQ-6)",
+      "notes": "The corpus boots at turn 1, so until turn 5 reads as 4 turns from now; the echo says so. Was silently unconditional."
+    },
+    {
+      "id": "cr7-handoff-when-arrives-holds",
+      "utterance": "Davout, when Ney arrives, hold Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Lorraine",
+        "strategic_condition": {
+          "until_marshal_arrives": "Ney"
+        }
+      },
+      "source": "CR-7-5 (the third verdict)",
+      "notes": "The clause guard hands `when <friendly marshal> arrives` off as the engine's own until_marshal_arrives when the residue is a HOLD. Was refused as a contingency that blamed the enemy."
+    },
+    {
+      "id": "cr7-handoff-needs-a-hold",
+      "utterance": "Ney, when Davout arrives, attack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CR-7-5 fail-closed control (the PARSE-NEG row parseneg-when-clause-refuses, re-pinned beside its twin)",
+      "notes": "The hand-off fires ONLY onto a HOLD; an attack behind a friendly arrival stays refused."
+    },
+    {
+      "id": "cr7-negated-condition-refuses-too",
+      "utterance": "Ney, attack Mack if he is not fortified",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CR-7-5 (CQ-7)",
+      "notes": "Was a muster and a battle at 1 AP: the negation was blanked first and the if clause fell under the two-word floor. The verdict is now taken on the pre-negation text too."
+    },
+    {
+      "id": "cr7-trailing-should-refuses",
+      "utterance": "Ney, attack Mack should the enemy advance",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CR-7-5 (CQ-7)",
+      "notes": "The inversion arm was clause-initial only; a trailing should <determiner> fought."
+    },
+    {
+      "id": "cr7-comma-leak-refuses",
+      "utterance": "Ney, attack if, Swabia is threatened",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CR-7-5 (CQ-7)",
+      "notes": "The clause was measured as the word if alone; punctuation after a marker is skipped before the floor is measured."
+    },
+    {
+      "id": "cr7-arrival-object-parsed",
+      "utterance": "Ney, march to Swabia then attack Archduke Charles",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Swabia",
+        "attack_on_arrival": true
+      },
+      "source": "CR-7-6",
+      "notes": "The arrival order carries its object (arrival_target=ArchdukeCharles, read by strategic.pick_contact_enemy), asserted in pytest; the corpus can pin only the arrival flag."
     }
   ]
 }

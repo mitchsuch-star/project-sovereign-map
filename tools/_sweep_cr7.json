@@ -1,0 +1,233 @@
+[
+ {
+  "id": "CR7-1 the comma arm never splits",
+  "file": "backend/commands/parser.py",
+  "old": "        for match in _COMMA_VERB_SPLIT_RE.finditer(command_text):\n            if match.start() < filler_end:\n                continue",
+  "new": "        for match in []:\n            if match.start() < filler_end:\n                continue",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-2 the verb-opening guard removed (Talleyrand and the Guard split)",
+  "file": "backend/commands/parser.py",
+  "old": "            if not _HEAD_OPENS_WITH_A_VERB_RE.match(first):\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-3 the leading-filler span is a boundary again (FA-R3 reds)",
+  "file": "backend/commands/parser.py",
+  "old": "            if match.start() < filler_end:\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-4 the third clause re-scan removed",
+  "file": "backend/commands/parser.py",
+  "old": "        if rest and tail[:rest.start()].strip() and tail[rest.end():].strip():",
+  "new": "        if False:",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-5 the relay always fills (contradiction becomes ready)",
+  "file": "backend/commands/relay.py",
+  "old": "        if tail_moves:\n            reason = _standing_state(marshal)\n            if reason:",
+  "new": "        if tail_moves:\n            reason = None\n            if reason:",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-6 the moment kind never fires",
+  "file": "backend/commands/relay.py",
+  "old": "        if order is not None and order.command_type in MOVING_STRATEGIC_TYPES:",
+  "new": "        if False:",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-7 the refused head still relays",
+  "file": "backend/commands/relay.py",
+  "old": "    if not (isinstance(result, dict) and result.get(\"success\")):",
+  "new": "    if False:",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-8 the objection answer forgets the stash",
+  "file": "backend/main.py",
+  "old": "        # CR-7-3: the tail that waited behind the objection, re-judged.\n        _attach_answered_relay(response, result, _pending_relay)",
+  "new": "        # CR-7-3: the tail that waited behind the objection, re-judged.\n        pass",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-9 the turn boundary keeps the stash",
+  "file": "backend/models/world_state.py",
+  "old": "        # CR-7-3 rule 5: a relayed tail never crosses a turn boundary.\n        self._pending_relay = None",
+  "new": "        # CR-7-3 rule 5: a relayed tail never crosses a turn boundary.\n        pass",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-10 the relay keys drop off the main-path whitelist",
+  "file": "backend/main.py",
+  "old": "    \"dropped_sequel\",\n    \"relay_kind\",\n    \"relay_note\",\n    \"relay_command\",",
+  "new": "    \"relay_note\",",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-11 the grammar forgets till",
+  "file": "backend/ai/condition_grammar.py",
+  "old": "UNTIL = r\"(?:until\\s+such\\s+time\\s+as|until|till|['’]til)\"",
+  "new": "UNTIL = r\"(?:until\\s+such\\s+time\\s+as|until)\"",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-12 the unknown referent is minted again",
+  "file": "backend/ai/condition_grammar.py",
+  "old": "            if who is None:\n                read.refusal = {\"kind\": \"unknown_referent\", \"name\": raw.capitalize()}\n                return read",
+  "new": "            if who is None:\n                cond[\"until_marshal_arrives\"] = raw.capitalize()\n                read.condition = cond\n                return read",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-13 zero turns accepted again",
+  "file": "backend/ai/condition_grammar.py",
+  "old": "        if world is not None and n < 1:\n            read.refusal = {\"kind\": \"zero_turns\"}\n            return read",
+  "new": "        if False:\n            read.refusal = {\"kind\": \"zero_turns\"}\n            return read",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-14 the unread clause is dropped in silence again",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    for clause in read.unread:\n        notes.append(",
+  "new": "    for clause in []:\n        notes.append(",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-15 the ledger stops reading describe_condition",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    return describe_condition(cond, remaining=remaining) or \"active\"",
+  "new": "    return (f\"until {cond.until_marshal_arrives} arrives\" if cond.until_marshal_arrives else describe_condition(cond, remaining=remaining)) or \"active\"",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-16 the stale battle read returns",
+  "file": "backend/commands/strategic.py",
+  "old": "                return since is None or (turn is not None and turn >= since)",
+  "new": "                return True",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-17 the combat seam stops stamping the turn",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            attacker.last_combat_turn = int(world.current_turn)\n            if defender and defender.name in world.marshals:\n                defender.last_combat_turn = int(world.current_turn)",
+  "new": "            pass",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-18 the refusal copy blames the enemy again",
+  "file": "backend/main.py",
+  "old": "                    if _friend:\n                        refusal_msg = (",
+  "new": "                    if False:\n                        refusal_msg = (",
+  "tests": "tests/test_cr7_4_the_engine_says_what_it_heard.py"
+ },
+ {
+  "id": "CR7-19 the hand-off never fires",
+  "file": "backend/ai/clause_guards.py",
+  "old": "            if canonical and handoff is None and marker_count == 1:",
+  "new": "            if False:",
+  "tests": "tests/test_cr7_5_the_third_verdict.py"
+ },
+ {
+  "id": "CR7-20 the hand-off fires onto an attack",
+  "file": "backend/ai/llm_client.py",
+  "old": "                if condition_refuses or not clause_is_a_hold_order(guarded):",
+  "new": "                if condition_refuses:",
+  "tests": "tests/test_cr7_5_the_third_verdict.py"
+ },
+ {
+  "id": "CR7-21 the pre-negation verdict is dropped",
+  "file": "backend/ai/llm_client.py",
+  "old": "            condition_refuses = condition_refuses or _pre_verdict.refuse",
+  "new": "            condition_refuses = condition_refuses",
+  "tests": "tests/test_cr7_5_the_third_verdict.py"
+ },
+ {
+  "id": "CR7-22 the trailing should arm removed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not inversion:\n        inversion = _SHOULD_TRAILING_DETERMINER_RE.search(text)",
+  "new": "    if False:\n        inversion = _SHOULD_TRAILING_DETERMINER_RE.search(text)",
+  "tests": "tests/test_cr7_5_the_third_verdict.py"
+ },
+ {
+  "id": "CR7-23 the comma leak returns",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        if punct and punct.end() > clause_start:\n            clause_start = punct.end()",
+  "new": "        if False:\n            clause_start = punct.end()",
+  "tests": "tests/test_cr7_5_the_third_verdict.py"
+ },
+ {
+  "id": "CR7-24 the sole-condition guard removed",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if handoff is not None and marker_count > 1:",
+  "new": "    if False:",
+  "tests": "tests/test_cr7_5_the_third_verdict.py"
+ },
+ {
+  "id": "CR7-25 the contact pick falls back to the first",
+  "file": "backend/commands/strategic.py",
+  "old": "    if wanted:\n        for enemy in enemies:\n            if getattr(enemy, \"name\", None) == wanted:\n                return enemy",
+  "new": "    if False:\n        pass",
+  "tests": "tests/test_cr7_6_the_arrival_order_carries_its_object.py"
+ },
+ {
+  "id": "CR7-26 the arrival object is never parsed",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    arrival_target = (_extract_arrival_target(cleaned, marshal_name, world)\n                      if attack_on_arrival else None)",
+  "new": "    arrival_target = None",
+  "tests": "tests/test_cr7_6_the_arrival_order_carries_its_object.py"
+ },
+ {
+  "id": "CR7-27 the objection-resume rebuild eats the object",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                arrival_target=parsed_command.get(\"arrival_target\"),\n                delegation_inferred=parsed_command.get(\"delegation_inferred\", False),\n                issued_turn=world.current_turn,\n                objection_resolved=True,",
+  "new": "                delegation_inferred=parsed_command.get(\"delegation_inferred\", False),\n                issued_turn=world.current_turn,\n                objection_resolved=True,",
+  "tests": "tests/test_cr7_6_the_arrival_order_carries_its_object.py"
+ },
+ {
+  "id": "CR7-28 the harness ignores an unknown key again",
+  "file": "backend/ai/parser_eval.py",
+  "old": "    if unknown:\n        mismatches.append(f\"unknown expected key(s): {unknown}\")\n        return mismatches",
+  "new": "    if False:\n        return mismatches",
+  "tests": "tests/test_cr7_2_the_harness_can_see_it.py"
+ },
+ {
+  "id": "CR7-29 dropped_sequel is not evaluated",
+  "file": "backend/ai/parser_eval.py",
+  "old": "    if \"dropped_sequel\" in expected:\n        check(\"dropped_sequel\", result.get(\"dropped_sequel\"), expected[\"dropped_sequel\"])",
+  "new": "    if False:\n        pass",
+  "tests": "tests/test_cr7_2_the_harness_can_see_it.py"
+ },
+ {
+  "id": "CR7-30 the completer offers the continuation on a half-typed target",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\tif not _is_region_name(head_target):\n\t\t\t\tcontinue\n\t\t\tbase = marshal + \", \" + verb + \" \" + _canonical_region(head_target)",
+  "new": "\t\t\tbase = marshal + \", \" + verb + \" \" + head_target",
+  "tests": "tests/test_cr7_7_the_completer_teaches_both_forms.py"
+ },
+ {
+  "id": "CR7-31 the queue census reads nothing",
+  "file": "backend/commands/relay.py",
+  "old": "def attach(response: Dict, relay: Optional[Dict]) -> None:",
+  "new": "QUEUE_PROMISE = \"I shall hold the order until next turn, Sire.\"\n\n\ndef attach(response: Dict, relay: Optional[Dict]) -> None:",
+  "tests": "tests/test_cr7_8_the_queue_is_retired.py"
+ },
+ {
+  "id": "CR7-32 the clarification arm forgets the tail",
+  "file": "backend/main.py",
+  "old": "                        _relay_question(marshal_clarification, parsed)  # CR-7-3",
+  "new": "                        pass",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ },
+ {
+  "id": "CR7-33 a marshal-less head relays a bare tail (the events fallback removed)",
+  "file": "backend/main.py",
+  "old": "            if not _who:\n                # An auto-assigned order carries the actor on its first event",
+  "new": "            if False:\n                # An auto-assigned order carries the actor on its first event",
+  "tests": "tests/test_cr7_3_the_tail_comes_back.py"
+ }
+]

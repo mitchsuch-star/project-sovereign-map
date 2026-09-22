@@ -620,7 +620,7 @@ class TestModalGuards:
                  "message": "OBJECTION_MODAL_COPY", "marshal": "Ney",
                  "action_info": {"cost": 0, "remaining": 3,
                                  "turn_advanced": False, "new_turn": None}}
-        monkeypatch.setattr(m.executor, "execute", lambda *a, **k: modal)
+        monkeypatch.setattr(type(m.executor), "execute", lambda *a, **k: modal)  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
         data = client.post(
             "/command", json={"command": "Ney, deal with Mack"}).json()
         msg = data.get("message") or ""

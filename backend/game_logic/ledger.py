@@ -1089,20 +1089,16 @@ def _derive_condition_text(order, world) -> str:
             return "active"
         return "active"
 
+    # CR-7-4 item 6: ONE sentence for a condition — the confirmation echo
+    # reads the same `describe_condition`, so the Ledger and the reply can
+    # never name the same order differently (drift-pinned).
+    from backend.ai.condition_grammar import describe_condition
+    remaining = None
     if cond.max_turns is not None:
         ref_turn = order.arrived_turn if order.arrived_turn is not None else order.started_turn
         elapsed = world.current_turn - ref_turn
         remaining = max(0, cond.max_turns - elapsed)
-        return f"{remaining} turn(s) remaining"
-    if cond.until_relieved:
-        return "until relieved"
-    if cond.until_battle_won:
-        return "until battle won"
-    if cond.until_marshal_arrives:
-        return f"until {cond.until_marshal_arrives} arrives"
-    if cond.until_marshal_destroyed:
-        return f"until {cond.until_marshal_destroyed} destroyed"
-    return "active"
+    return describe_condition(cond, remaining=remaining) or "active"
 
 
 def _build_orders(world, player: str) -> list:

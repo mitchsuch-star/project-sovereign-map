@@ -143,6 +143,17 @@ class StrategicOrder:
     last_contact_enemy: Optional[str] = None
     last_contact_turn: Optional[int] = None
 
+    # CR-7-6: the arrival order carries its OBJECT. "march to Swabia then
+    # attack Archduke Charles" names a man; `attack_on_arrival` alone kept
+    # only the bool, and every contact seam then fought `enemies[0]` — with
+    # Mack and Charles both at Swabia, a favourable first step engaged Mack
+    # (measured, September 22 2026). Read through `strategic.pick_contact_
+    # enemy`: the named man when he stands among the enemies met, else the
+    # first as before. A DECLARED dataclass field (the serialization census
+    # short-circuits on `is_dataclass` and would not see a runtime attribute),
+    # nested in the marshal dict — legacy saves load by construction.
+    arrival_target: Optional[str] = None
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -168,6 +179,7 @@ class StrategicOrder:
             "arrived_turn": self.arrived_turn,
             "last_contact_enemy": self.last_contact_enemy,
             "last_contact_turn": self.last_contact_turn,
+            "arrival_target": self.arrival_target,
         }
 
     @classmethod
@@ -199,6 +211,7 @@ class StrategicOrder:
             arrived_turn=data.get("arrived_turn"),
             last_contact_enemy=data.get("last_contact_enemy"),
             last_contact_turn=data.get("last_contact_turn"),
+            arrival_target=data.get("arrival_target"),
         )
 
 

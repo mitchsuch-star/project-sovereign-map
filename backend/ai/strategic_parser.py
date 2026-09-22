@@ -340,6 +340,7 @@ def detect_strategic_command(
     command_text: str,
     marshal_name: Optional[str],
     world,
+    condition_override: Optional[Dict] = None,
 ) -> Optional[Dict]:
     """
     Detect if a command is strategic and parse its details.
@@ -348,6 +349,10 @@ def detect_strategic_command(
         command_text: Raw command text from the player.
         marshal_name: Name of the issuing marshal (from parser), or None.
         world: WorldState instance for marshal/region lookups.
+        condition_override: CR-7-5 — the clause guard's HAND-OFF, already
+            validated against the friendly roster; applied in place of the
+            sentence's own `until` read (the handed-off span has been
+            blanked out of ``command_text`` by the caller).
 
     Returns:
         None if this is a tactical command.
@@ -381,24 +386,39 @@ def detect_strategic_command(
         if strategic_type == "HOLD" and marshal_name and world:
             marshal = world.get_marshal(marshal_name)
             if marshal:
+                # CR-7-4: the SAME grammar read as the targeted arm below —
+                # this branch used to call the legacy unvalidated read, so
+                # "hold until Davout arrives" issued to Davout, and "unless
+                # attacked, hold position", were read without the referent
+                # check and without the unread-clause note.
+                _c, _r, _n = _read_condition(cleaned, marshal.location,
+                                             marshal_name, world, condition_override)
                 return {
                     "is_strategic": True,
                     "strategic_type": "HOLD",
                     "target": marshal.location,
                     "target_type": "region",
                     "target_snapshot_location": None,
-                    "condition": _parse_condition(cleaned, marshal.location),
+                    "condition": _c,
                     "attack_on_arrival": False,
+                    "arrival_target": None,
+                    "condition_refusal": _r,
+                    "condition_notes": _n,
                 }
         # Generic target (no specific target identified)
+        _c, _r, _n = _read_condition(cleaned, "generic", marshal_name, world,
+                                     condition_override)
         return {
             "is_strategic": True,
             "strategic_type": strategic_type,
             "target": "generic",
             "target_type": "generic",
             "target_snapshot_location": None,
-            "condition": _parse_condition(cleaned, "generic"),
+            "condition": _c,
             "attack_on_arrival": False,
+            "arrival_target": None,
+            "condition_refusal": _r,
+            "condition_notes": _n,
         }
 
     # Step 3: Classify target (region, friendly marshal, enemy marshal, generic)
@@ -420,11 +440,20 @@ def detect_strategic_command(
             and _GUARD_VERB_RE.search(cleaned)):
         strategic_type = "SUPPORT"
 
-    # Step 5: Parse conditions
-    condition = _parse_condition(cleaned, target_info["target"])
+    # Step 5: Parse conditions — CR-7-4: ONE grammar (condition_grammar) reads
+    # them, validates every referent against the board, floors the turn forms
+    # and names what it could not read. A refusal here is answered at 0 AP by
+    # the parser (`condition_refusal`), never minted into an order.
+    condition, condition_refusal, condition_notes = _read_condition(
+        cleaned, target_info["target"], marshal_name, world, condition_override)
 
     # Step 6: Check attack_on_arrival hints
     attack_on_arrival = _detect_attack_on_arrival(cleaned)
+    # CR-7-6: the arrival order carries its OBJECT. "march to Swabia then
+    # attack Archduke Charles" names a man; before this the bool alone
+    # survived and every contact seam fought `enemies[0]`.
+    arrival_target = (_extract_arrival_target(cleaned, marshal_name, world)
+                      if attack_on_arrival else None)
 
     result = {
         "is_strategic": True,
@@ -434,6 +463,9 @@ def detect_strategic_command(
         "target_snapshot_location": target_info["target_snapshot_location"],
         "condition": condition,
         "attack_on_arrival": attack_on_arrival,
+        "arrival_target": arrival_target,
+        "condition_refusal": condition_refusal,
+        "condition_notes": condition_notes,
     }
 
     # Phase 5.2-C: Add interpretation for generic targets (Grouchy clarification)
@@ -445,6 +477,50 @@ def detect_strategic_command(
 # ════════════════════════════════════════════════════════════════════════════════
 # INTERNAL HELPERS
 # ════════════════════════════════════════════════════════════════════════════════
+
+def _read_condition(cleaned: str, target: str, marshal_name: Optional[str],
+                    world, condition_override: Optional[Dict]):
+    """CR-7-4: ONE read for every branch of `detect_strategic_command`.
+
+    Returns ``(condition, refusal, notes)`` — the StrategicCondition-shaped
+    dict (or None), the grammar's refusal (or None), and the plain-text
+    fragments the confirmation echoes ("'for three turns' read as for 3
+    turns"; "'unless attacked' is not a clause I can hold — the order
+    stands without it"). With a CR-7-5 hand-off the condition is the guard's
+    and the note says the hold begins NOW.
+    """
+    from backend.ai.condition_grammar import parse_condition as _grammar_read
+    notes: list = []
+    if condition_override is not None:
+        who = condition_override.get("until_marshal_arrives")
+        # The guard validated the name against the FRIENDLY roster; the
+        # board-level checks the grammar applies to an `until` (not himself,
+        # not a prisoner) are applied here too, so a hand-off can never mint
+        # what an `until` would refuse.
+        if world is not None:
+            from backend.ai.condition_grammar import _resolve_marshal
+            found = _resolve_marshal(str(who or ""), world)
+            if found is None:
+                return None, {"kind": "unknown_referent", "name": str(who)}, []
+            if marshal_name and found.name == marshal_name:
+                return None, {"kind": "self_referent", "name": found.name}, []
+            if getattr(found, "captured_by", "") or getattr(found, "strength", 1) <= 0:
+                return None, {"kind": "fallen_referent", "name": found.name}, []
+            who = found.name
+        notes.append(
+            f"'{condition_override.get('_clause') or 'the clause'}' read as until "
+            f"{who} arrives — {marshal_name or 'the marshal'} holds NOW, and stands "
+            f"down when he arrives")
+        condition = {k: v for k, v in condition_override.items()
+                     if not str(k).startswith("_")}
+        return condition, None, notes
+    read = _grammar_read(cleaned, target, world=world, issuing_marshal=marshal_name)
+    notes.extend(read.notes)
+    for clause in read.unread:
+        notes.append(f"'{clause}' is not a clause I can hold — the order stands "
+                     f"without it")
+    return read.condition, read.refusal, notes
+
 
 def _strip_marshal_prefix(command_lower: str, marshal_name: Optional[str]) -> str:
     """Remove 'Grouchy,' or 'Marshal Grouchy,' prefix for cleaner matching."""
@@ -577,21 +653,17 @@ def _extract_target_text(command_lower: str, strategic_type: str,
 
 
 def _strip_conditions(text: str) -> str:
-    """Remove condition phrases from text so they don't get parsed as targets."""
-    # Remove "until ..." clauses
-    text = re.sub(r'\s+until\s+.*$', '', text)
-    # Remove "for N turns" clauses
-    text = re.sub(r'\s+for\s+\d+\s+turns?', '', text)
-    # Remove "and attack" / "then attack" / "and then attack" suffixes.
-    # CR-7-1: the old `(and|then)\s+attack` cut "march to Vienna and then
-    # attack" at the `then`, leaving "vienna and" — title-cased into the
-    # phantom destination "Vienna And" (`in world.regions` → False), on the
-    # exact sentence the CR-2 split pin used. The conjunction pair is
-    # consumed whole, and the tail verbs are the three the split gate and
-    # the arrival hint already agree on.
-    text = re.sub(r'\s+(?:and\s+then|and|then)\s+(?:attack|engage|assault)\b.*$',
-                  '', text)
-    return text.strip()
+    """Remove condition phrases from text so they don't get parsed as targets.
+
+    CR-7-4: the strip and the read are ONE list (`condition_grammar`). The
+    two used to hold different vocabularies — `until` but not `till`, digits
+    but not word-numbers — so "hold Lorraine till Ney arrives" held the
+    phantom province "Lorraine Till Ney Arrives". CR-7-1's arrival-tail cut
+    (`and then` consumed whole, `;` a boundary) lives there too, and CR-7-3
+    adds the bare comma.
+    """
+    from backend.ai.condition_grammar import strip_condition_text
+    return strip_condition_text(text)
 
 
 def _clean_target_text(text: str) -> Optional[str]:
@@ -812,40 +884,22 @@ def _classify_target(
     }
 
 
-def _parse_condition(command_lower: str, target: str) -> Optional[Dict]:
+def _parse_condition(command_lower: str, target: str, world=None,
+                     issuing_marshal: Optional[str] = None) -> Optional[Dict]:
     """
     Parse condition from command text.
 
     Returns:
         Dict matching StrategicCondition.to_dict() format, or None.
+
+    CR-7-4: a thin face on `condition_grammar.parse_condition` — the legacy
+    two-argument read (no world) is byte-for-byte what it was; with a world
+    the referents are validated and a refused read returns None here (the
+    refusal itself is read by `detect_strategic_command`).
     """
-    condition = {}
-
-    # "until [marshal] arrives"
-    match = re.search(r'until\s+(\w+)\s+arrives', command_lower)
-    if match:
-        condition["until_marshal_arrives"] = match.group(1).capitalize()
-
-    # "until relieved"
-    if "until relieved" in command_lower:
-        condition["until_relieved"] = True
-
-    # "until destroyed" / "to destruction"
-    if "until destroyed" in command_lower or "to destruction" in command_lower:
-        condition["until_marshal_destroyed"] = target
-
-    # "for N turns"
-    match = re.search(r'for\s+(\d+)\s+turns?', command_lower)
-    if match:
-        condition["max_turns"] = int(match.group(1))
-
-    # "until battle won" / "until victory"
-    if ("until" in command_lower and "battle" in command_lower and "won" in command_lower):
-        condition["until_battle_won"] = True
-    if "until victory" in command_lower:
-        condition["until_battle_won"] = True
-
-    return condition if condition else None
+    from backend.ai.condition_grammar import parse_condition as _grammar_read
+    return _grammar_read(command_lower, target, world=world,
+                         issuing_marshal=issuing_marshal).condition
 
 
 # CR-7-1: the arrival hint is read at a clause BOUNDARY — `then`, `and then`,
@@ -854,14 +908,54 @@ def _parse_condition(command_lower: str, target: str) -> Optional[Dict]:
 # knew no `;`, so `march to Swabia; attack Mack` fused as a plain MOVE_TO with
 # the attack silently gone — the semicolon downgraded the engine's one
 # supported two-step order to a march. `\b` keeps "Holland and attack" from
-# reading its own last syllable as the conjunction.
+# reading its own last syllable as the conjunction. CR-7-3 (CQ-10): the bare
+# comma is the fifth boundary — `march to Swabia, attack Mack` had fused as
+# a plain MOVE_TO with the attack silently gone, one token over from the `;`.
 _ATTACK_ON_ARRIVAL_HINT_RE = re.compile(
-    r'(?:\b(?:and\s+)?then\b|\band\b|;)\s*(?:attack|engage|assault)\b')
+    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:attack|engage|assault)\b')
+_ARRIVAL_OBJECT_RE = re.compile(
+    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:attack|engage|assault)\s+'
+    r'(?:the\s+)?(?:' + HONORIFIC + r')?(?P<obj>[a-z][a-z\'’ -]*?)\s*[.!]?\s*$')
 
 
 def _detect_attack_on_arrival(command_lower: str) -> bool:
     """Detect if the player wants to attack on arrival."""
     return bool(_ATTACK_ON_ARRIVAL_HINT_RE.search(command_lower))
+
+
+def _extract_arrival_target(command_lower: str, marshal_name: Optional[str],
+                            world) -> Optional[str]:
+    """CR-7-6 — the man the arrival tail names, as a canonical marshal on
+    the board who is NOT of the issuer's nation; None for a bare tail
+    ("then attack"), a generic one ("then attack the Austrians") or a name
+    the board does not carry. The seams that pick a contact enemy prefer
+    this man when he stands among them (`strategic.pick_contact_enemy`)."""
+    if world is None:
+        return None
+    m = _ARRIVAL_OBJECT_RE.search(command_lower)
+    if not m:
+        return None
+    obj = (m.group("obj") or "").strip().lower()
+    if not obj:
+        return None
+    try:
+        from backend.ai.condition_grammar import _resolve_marshal, _issuer_nation
+    except Exception:  # pragma: no cover
+        return None
+    found = _resolve_marshal(obj, world)
+    if found is None:
+        return None
+    nation = _issuer_nation(world, marshal_name)
+    if nation is not None and getattr(found, "nation", None) == nation:
+        return None
+    return found.name
+
+
+def clause_is_a_hold_order(clause: str) -> bool:
+    """CR-7-5 — is this (guarded) residue a standing HOLD?  The hand-off's
+    fail-closed check: `when Ney arrives, hold Lorraine` becomes a hold NOW
+    until Ney arrives; `when Ney arrives, attack` stays a refusal."""
+    return _detect_strategic_type(clause.lower()) == "HOLD"
 
 
 # ── CR-7-1: which clauses can CARRY an arrival ──────────────────────────────

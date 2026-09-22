@@ -1283,6 +1283,90 @@ Tests: `tests/test_cr7_1_the_tail_stops_eating_the_head.py`. ⚠ The golden corp
 688/688 in BOTH arms of this rule — pins for compound orders must drive
 `CommandParser.parse` or `POST /command`, never the corpus alone.
 
+### Stage 2b: Conditions — one vocabulary, honest referents, the echo (CR-7-4, September 22, 2026)
+
+**File:** `backend/ai/condition_grammar.py` — the ONE list every reader derives from.
+`strategic_parser._strip_conditions` (what is REMOVED from the target text) and
+`_parse_condition` / `detect_strategic_command` (what is READ) used to hold different
+vocabularies, so `hold Lorraine till Ney arrives` held the phantom province
+"Lorraine Till Ney Arrives". Rules:
+
+1. A clause the engine reads never reaches the target text (`strip_condition_text`
+   removes exactly the READ spans + the generic `until …` tail + the arrival tail).
+2. A referent the engine cannot meet is REFUSED at 0 AP, by cause, never minted:
+   `until X arrives` names a friendly marshal on the board or is refused as
+   `unknown_referent` / `enemy_referent` / `self_referent` / `fallen_referent`
+   (`refusal_copy` — a sentence about a friendly arrival never blames the enemy).
+   `until relief|reinforcements|help arrives` is `until_relieved`. `for 0 turns` is
+   refused; `until turn N` is read as `for (N − now) turns` and said so; word-numbers
+   and the `Marshal <Name>` honorific are read.
+3. Shown == applied: the confirmation and the Strategic Ledger render a condition
+   through `describe_condition` (drift-pinned); how a clause was read is echoed
+   ("'for three turns' read as for 3 turns"); a subordinate clause the engine could not
+   read is NAMED ("'unless attacked' is not a clause I can hold — the order stands
+   without it") rather than dropped in silence.
+4. `until the battle is won` reads THIS order's battle: the order-scoped
+   `last_combat_result` first, the marshal-scoped one only when
+   `marshal.last_combat_turn >= order.started_turn` (both combat seams stamp the
+   turn; issuance clears the holder's stale result; a legacy result with no turn
+   fails closed).
+
+A refusal rides the parse as `refusal="condition"` + `refusal_detail={"kind": …}`;
+main.py answers it with `refusal_copy`. Tests: `tests/test_cr7_4_the_engine_says_what_it_heard.py`.
+
+### Stage 2c: The relay — nothing is dropped in silence (CR-7-3, September 22, 2026)
+
+**File:** `backend/commands/relay.py`; the parser's sentence is `parser.sequel_note`.
+A compound order's dropped tail rides EVERY arm of the response — success, refused
+head, objection, clarification, interrupt — as `dropped_sequel` + `relay_kind` +
+`relay_note`, and is handed back for the player's seal as `relay_command` (the client
+fills the command line at `set_input_enabled(true)` and NEVER sends) only when sending
+it now is coherent:
+
+| kind | when | `relay_command` |
+|---|---|---|
+| `ready` | the head completed this turn and the tail does not undo it, or the tail names another marshal | the tail, re-addressed |
+| `contradiction` | the marshal's LIVE state is fortified / square / drilling / defensive and the tail moves him; or a standing HOLD / SUPPORT that an executor override verb would end | none — named |
+| `moment` | the head left a live MOVE_TO / PURSUE (a five-hop march outlives the memory of its tail) — destination + ETA named | none |
+| `refused_head` | the head did not go out; the tail is never promoted to a new head | none |
+| `question` | objection / clarification / interrupt pending — stashed on `world._pending_relay` (transient, never serialized, one command's life, cleared at the turn boundary) and re-judged against the live state when the answer lands (`/respond_to_objection`, `/strategic_response`, the typed answer) | none |
+
+Boundaries (`parser._split_sequential_orders` + `_and_clause_is_a_second_order` +
+`_comma_clause_is_a_second_order`): `then` / `and then` / `;` / `and <Marshal>` / a bare
+`and <verb>` with its own object / **a bare comma before an order verb** (CQ-10) — the
+address comma never splits (a bare name, a diplomatic addressee, a unit named like a
+verb, a whole sentence the guards refuse, and emphasis in the head's own verb family
+are all controls). A third clause behind the arrival idiom is reported. A relayed tail
+pays its own AP when sent; nothing is queued (Stage 2e). `CommandRequest.relayed` →
+`command_history[].relayed` is the CR-7-8 re-open instrument.
+Tests: `tests/test_cr7_3_the_tail_comes_back.py`.
+
+### Stage 2d: The third verdict and the arrival object (CR-7-5 / CR-7-6, September 22, 2026)
+
+**CR-7-5** — `clause_guards.strip_condition_clauses_with_handoff` returns REFUSE /
+BLANK / **HAND-OFF**: `when|if|once|as soon as <friendly marshal> arrives` (and a
+LEADING `until … ,`) is handed to the strategic layer as `until_marshal_arrives` when
+the residue is a HOLD (`strategic_parser.clause_is_a_hold_order`), the name is on the
+friendly roster, and it is the sole condition — fails closed otherwise. The nine
+REFUSING words and the two-word floor are untouched; the blank stays index-preserving;
+a refusal stays terminal. The condition verdict is ALSO taken on the pre-negation text
+(`attack Mack if he is not fortified` fought before); a trailing `should <determiner |
+marshal> …` is the inversion; punctuation glued to a marker is skipped before the floor
+is measured (the comma leak). Tests: `tests/test_cr7_5_the_third_verdict.py`.
+
+**CR-7-6** — `StrategicOrder.arrival_target` (declared, serialized, nested in the
+marshal dict) carries the man an arrival tail NAMED; `strategic.pick_contact_enemy`
+prefers him among the enemies met at the first-step, mid-path and arrival seams and
+falls back to `enemies[0]` as before. Measured before the fix: with Mack and Charles
+both at Swabia, `march to Swabia then attack Archduke Charles` engaged Mack.
+Tests: `tests/test_cr7_6_the_arrival_order_carries_its_object.py`.
+
+### Stage 2e: There is no queue (CR-7-8, September 22, 2026)
+
+Orders are never held for a later turn — `COMMAND_ROBUSTNESS_SPEC.md` §11.1 carries
+the ruling, its measured reasons and two instrumented re-open conditions; the census
+is `tests/test_cr7_8_the_queue_is_retired.py`.
+
 ### Stage 3: Validation
 
 **File:** `backend/ai/validation.py`

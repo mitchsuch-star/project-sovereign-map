@@ -72,6 +72,12 @@ ALLOWED_EXPECTED_KEYS = {
     "success", "marshal", "action", "not_action", "target", "type",
     "strategic_type", "target_stance", "requested_type", "error_contains",
     "diplo",
+    # CR-7-2: the compound / conditional keys. Before this the harness had
+    # no way to assert a dropped tail, a condition or an arrival — 24 rows
+    # carried a marker and 0 asserted any of the three, and a row asserting
+    # a deliberately wrong `dropped_sequel` reported PASS on the CLI.
+    "dropped_sequel", "warning_contains", "strategic_condition",
+    "attack_on_arrival",
 }
 ALLOWED_DIPLO_KEYS = {
     "action", "proposal_type", "target_nation", "mission_type", "tone",
@@ -154,6 +160,16 @@ def evaluate_entry(parser, entry: Dict, world_key: str, world,
         if actual != want:
             mismatches.append(f"{label}: expected {want!r}, got {actual!r}")
 
+    # CR-7-2: an expected key the harness cannot evaluate is a FAILURE, not
+    # a silent pass — `evaluate_entry` used to check only the keys it knew,
+    # so a row asserting anything else was green whatever the parser did.
+    # The pytest hygiene gate (`test_expected_keys_allowed`) still forbids
+    # such rows from being committed; this makes the CLI say so too.
+    unknown = sorted(set(expected) - ALLOWED_EXPECTED_KEYS)
+    if unknown:
+        mismatches.append(f"unknown expected key(s): {unknown}")
+        return mismatches
+
     # Implicit success=True when unstated — negative-only expectations must
     # never pass vacuously against a hard parse failure (a regression that
     # makes 'attack wellington' error out would otherwise keep the gate
@@ -191,6 +207,25 @@ def evaluate_entry(parser, entry: Dict, world_key: str, world,
         diplo = command.get("diplomatic_data") or {}
         for key, want in expected["diplo"].items():
             check(f"diplo.{key}", diplo.get(key), want)
+    # CR-7-2: the compound / conditional keys. `dropped_sequel` and
+    # `attack_on_arrival` compare the parse result's own top-level values
+    # (None when absent — a row may assert `null` to pin "nothing dropped");
+    # `strategic_condition` compares the StrategicCondition-shaped dict;
+    # `warning_contains` is a substring of the parser's `warning`.
+    if "dropped_sequel" in expected:
+        check("dropped_sequel", result.get("dropped_sequel"), expected["dropped_sequel"])
+    if "attack_on_arrival" in expected:
+        actual = result.get("attack_on_arrival") if result.get("is_strategic") else None
+        check("attack_on_arrival", bool(actual) if actual is not None else None,
+              expected["attack_on_arrival"])
+    if "strategic_condition" in expected:
+        actual = result.get("strategic_condition") if result.get("is_strategic") else None
+        check("strategic_condition", actual, expected["strategic_condition"])
+    if "warning_contains" in expected:
+        warning = result.get("warning") or ""
+        if expected["warning_contains"].lower() not in warning.lower():
+            mismatches.append(
+                f"warning_contains: {expected['warning_contains']!r} not in {warning!r}")
     return mismatches
 
 

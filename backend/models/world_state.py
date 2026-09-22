@@ -1540,6 +1540,13 @@ class WorldState:
         # R6: PopupQueue for one-shot diplomatic popups
         self._popup_queue = PopupQueue()
 
+        # CR-7-3 rule 5: the compound order's tail that waited behind a
+        # question, for exactly ONE command's life. TRANSIENT BY CONTRACT —
+        # never in to_dict/from_dict (a serialized relay would be the cross-
+        # turn order queue wearing a disguise, and CR-7-8 retires that queue);
+        # cleared at the turn boundary and by the next /command.
+        self._pending_relay: Optional[Dict] = None
+
         # Active treaties keyed by diplo pair key
         self.active_treaties: Dict[str, Dict] = {}
 
@@ -9729,6 +9736,8 @@ class WorldState:
         if self._last_advanced_turn >= self.current_turn:
             debug_print(f"[WARNING] advance_turn already ran for turn {self.current_turn}, skipping")
             return
+        # CR-7-3 rule 5: a relayed tail never crosses a turn boundary.
+        self._pending_relay = None
         self._last_advanced_turn = self.current_turn
 
         # A3 §7.5: archive terminal war_instances whose 10-turn retention

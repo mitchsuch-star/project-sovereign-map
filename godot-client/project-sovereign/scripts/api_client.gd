@@ -144,8 +144,15 @@ func respond_to_mailbox_item(mailbox_id: int, choice: String, callback: Callable
 
 # --- POST endpoints ---
 
-func send_command(command: String, callback: Callable):
-	_send_post("/command", {"command": command}, callback)
+func send_command(command: String, callback: Callable, relayed: bool = false):
+	# CR-7-3: `relayed` marks a compound order's tail sent back unchanged from
+	# the relay fill; the backend records it on the command history (the
+	# CR-7-8 queue re-open instrument). Omitted entirely when false so every
+	# other request body is byte-identical to what it was.
+	var body := {"command": command}
+	if relayed:
+		body["relayed"] = true
+	_send_post("/command", body, callback)
 
 
 func send_structured_command(command: String, data: Dictionary, callback: Callable):

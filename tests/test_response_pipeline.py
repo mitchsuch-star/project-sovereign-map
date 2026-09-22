@@ -425,7 +425,8 @@ class TestCommandEndpointDiplomaticFields:
                 }
             return original_execute(parsed, game_state)
 
-        monkeypatch.setattr(main_module.executor, "execute", _fake_execute)
+        monkeypatch.setattr(type(main_module.executor), "execute",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
+                            lambda _self, parsed, game_state: _fake_execute(parsed, game_state))
 
         first = client.post("/command", json={"command": "end turn"})
         first_data = first.json()
@@ -478,7 +479,8 @@ class TestCommandEndpointDiplomaticFields:
                 }
             return original_execute(parsed, game_state)
 
-        monkeypatch.setattr(main_module.executor, "execute", _fake_execute)
+        monkeypatch.setattr(type(main_module.executor), "execute",  # class-level: an instance-level monkeypatch leaves a bound-method shadow after undo (CR-7-6)
+                            lambda _self, parsed, game_state: _fake_execute(parsed, game_state))
 
         first = client.post("/command", json={"command": "end turn"})
         first_data = first.json()
@@ -699,7 +701,8 @@ class TestOtherEndpointDiplomaticFields:
                 "message": "Prussia has rejected our proposal.",
             }
 
-        monkeypatch.setattr(main_module.executor, "handle_diplomatic_dialogue_response", _fake_handle)
+        monkeypatch.setattr(type(main_module.executor._diplomatic), "handle_diplomatic_dialogue_response",  # class-level on the SUB-executor: the executor delegates via __getattr__, so an instance patch would leave a shadow (CR-7-6)
+                            lambda _self, *a, **k: _fake_handle(*a, **k))
 
         response = client.post("/respond_to_diplomatic_dialogue", json={"choice": 1})
         data = response.json()

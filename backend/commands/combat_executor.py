@@ -2997,6 +2997,13 @@ class CombatExecutor:
 
         # ── 9. Set last_combat_result ──
         if not is_bombardment and not ctx.get('skip_last_combat_result'):
+            # CR-7-4 item 5: stamp the TURN beside the result, both sides,
+            # so `until the battle is won` can tell this order's battle
+            # from one fought before the order was issued. `Marshal.
+            # last_combat_turn` had no reader anywhere in the backend.
+            attacker.last_combat_turn = int(world.current_turn)
+            if defender and defender.name in world.marshals:
+                defender.last_combat_turn = int(world.current_turn)
             if attacker_won:
                 attacker.last_combat_result = "victory"
                 if defender and defender.name in world.marshals:
@@ -7601,6 +7608,8 @@ class CombatExecutor:
                 int(battle_result.get("defender", {}).get("casualties", 0)))
 
         # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
+        marshal.last_combat_turn = int(world.current_turn)  # CR-7-4 item 5
+        enemy_marshal.last_combat_turn = int(world.current_turn)
         if atk_won:
             marshal.last_combat_result = "victory"
             enemy_marshal.last_combat_result = "defeat"

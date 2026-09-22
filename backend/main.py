@@ -759,6 +759,14 @@ def _message_with_suggestion(result: dict) -> str:
 
 _COMMAND_RESULT_SIMPLE_FIELDS = (
     "show_load_dialog",
+    # CR-7-3: the relay keys ride the ordinary /command response (the early
+    # returns carry them through `**extra`; this whitelist is the main path).
+    # `relay_command` is absent — not null — on every kind but `ready`, which
+    # is what makes the client's fill impossible on the other kinds.
+    "dropped_sequel",
+    "relay_kind",
+    "relay_note",
+    "relay_command",
     # FA-9, slice 17 review round (L1-3): the walk-in-refused flag reaches the
     # wire, so the digest (and a pin) can tell "walked on and did not take".
     "capture_refused_recovering",
@@ -2500,6 +2508,11 @@ async def serialize_state_mutations(request: Request, call_next):
 
 class CommandRequest(BaseModel):
     command: str = Field(max_length=500)
+    # CR-7-3 / CR-7-8: the client sets this when the line it sends is the
+    # relayed tail it filled, UNCHANGED. Recorded on the command history so
+    # the queue's re-open trigger ("a relayed tail re-sent as-is on more than
+    # one compound in ten") can be measured off a played campaign.
+    relayed: bool = False
     action: str | None = None
     target_nation: str | None = None
     war_id: str | None = None
@@ -2671,6 +2684,32 @@ def execute_command(request: CommandRequest):
     # print(f"   Current turn: {world.current_turn}")
     # print(f"   Actions before: {world.actions_remaining}/{world.max_actions_per_turn}")
     # print(f"{'=' * 60}")
+
+    # CR-7-3 rule 5: a tail stashed behind a question lives for exactly ONE
+    # command. It is popped here — the typed objection answer ("insist")
+    # routes through this handler and hands it on; any other command
+    # supersedes it.
+    from backend.commands import relay as _relay
+    _carried_relay = _relay.pop(world)
+
+    def _relay_question(question_dict, source_parsed):
+        """CR-7-3 rule 5 for a question raised OUTSIDE the executor result —
+        the CR-2 clarifications ("Which marshal, Sire?", the did-you-mean)
+        are built as fresh dicts, so a relay stamped on `result` never
+        reached them: the tail waited behind the question with no word said.
+        The reissue re-derives the tail from the player's whole sentence, so
+        the stash is superseded by the answer's own relay."""
+        _tail = source_parsed.get("dropped_sequel") if isinstance(source_parsed, dict) else None
+        if not _tail or not isinstance(question_dict, dict):
+            return
+        _cmd = source_parsed.get("command") or {}
+        _q = _relay.build_relay(
+            world, parser, get_llm_game_state(), tail=_tail,
+            marshal_name=_cmd.get("marshal") or source_parsed.get("partial_marshal"),
+            head_action=_cmd.get("action"), result=question_dict, question=True)
+        _relay.attach(question_dict, _q)
+        _relay.append_note(question_dict, _q, standalone=True)
+        _relay.stash(world, _q, _cmd.get("marshal"), _cmd.get("action"))
 
     try:
         # ════════════════════════════════════════════════════════════
@@ -2849,7 +2888,8 @@ def execute_command(request: CommandRequest):
                 and _objection_pending:
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> objection response")
-            return _respond_to_objection_sync(_pending_answer_token)
+            return _respond_to_objection_sync(_pending_answer_token,
+                                              carried_relay=_carried_relay)
         # CA9-N5: the exact-token gate above rejected plain English meaning
         # one of its own words — "I trust him", "insist on it", "trust
         # Davout" all fell through to the parser and then died on the
@@ -2882,7 +2922,8 @@ def execute_command(request: CommandRequest):
             if len(_spoken) == 1:
                 print(f"[PENDING-QUESTION] Plain-English objection answer "
                       f"'{command_text}' -> {_spoken[0]}")
-                return _respond_to_objection_sync(_spoken[0])
+                return _respond_to_objection_sync(_spoken[0],
+                                                  carried_relay=_carried_relay)
         _capture_answer = _typed_capture_answer(world, _pending_answer_token)
         if _capture_answer is not None:
             # W6-8: all four capture-pipeline tokens route here; the handler
@@ -3046,13 +3087,16 @@ def execute_command(request: CommandRequest):
                         _player_marshal_names(world), world=world) is not None
         if parsed.get("success") and not _consumed_as_dialogue_answer:
             _parsed_command = parsed.get("command", {})
-            world.add_to_command_history({
+            _history_entry = {
                 "raw_input": command_text,
                 "marshal": _parsed_command.get("marshal"),
                 "action": _parsed_command.get("action"),
                 "target": _parsed_command.get("target"),
                 "turn": int(world.current_turn),
-            })
+            }
+            if getattr(request, "relayed", False):
+                _history_entry["relayed"] = True  # CR-7-8 re-open instrument
+            world.add_to_command_history(_history_entry)
 
         # ════════════════════════════════════════════════════════════
         # CR-5: PERSONALITY-BIASED DISAMBIGUATION (COMMAND_ROBUSTNESS_SPEC §6).
@@ -3441,6 +3485,7 @@ def execute_command(request: CommandRequest):
                         register_pending_clarification(
                             world, name_clarification, command_text))
                     print("[CLARIFICATION] Unknown-name question -> frontend")
+                    _relay_question(name_clarification, parsed)  # CR-7-3
                     return _build_result_response(name_clarification, world)
 
             # ════════════════════════════════════════════════════════════
@@ -3453,14 +3498,43 @@ def execute_command(request: CommandRequest):
             # read and what he did about it.
             # ════════════════════════════════════════════════════════════
             if not parsed.get("success") and parsed.get("refusal"):
+                _detail = parsed.get("refusal_detail") or {}
                 if parsed["refusal"] == "conditional":
-                    refusal_msg = (
-                        "Berthier sets down his pen. \"Sire, that is a "
-                        "contingency, not an order — I have no way to hold a "
-                        "dispatch until the enemy moves. Nothing has been "
-                        "relayed. Give me the order for THIS turn and I shall "
-                        "carry it at once; a standing order I can hold is "
-                        "'hold until Davout arrives'.\"")
+                    # CR-7-4 (CQ-6): the refusal is split by CAUSE. One
+                    # hardcoded string used to blame the enemy for every
+                    # refusing marker — including a sentence about one of
+                    # our own marshals arriving — and offered as its
+                    # paraphrase a form the engine honours.
+                    _clause = str(_detail.get("clause") or "").strip()
+                    _friend = _detail.get("friendly_arrival")
+                    _addressee = parsed.get("partial_marshal") or "the marshal"
+                    if _friend:
+                        refusal_msg = (
+                            f"Berthier sets down his pen. \"Sire, I cannot hold "
+                            f"an order until {_friend} arrives — I keep no drawer "
+                            f"for it, and nothing has been relayed. Give the "
+                            f"order when he stands beside {_addressee}, or have "
+                            f"{_addressee} hold the ground until then: 'hold "
+                            f"until {_friend} arrives' is a standing order I "
+                            f"can carry at once.\"")
+                    else:
+                        _named = (f" until '{_clause}' comes to pass"
+                                  if _clause else " until the enemy moves")
+                        refusal_msg = (
+                            f"Berthier sets down his pen. \"Sire, that is a "
+                            f"contingency, not an order — I have no way to hold a "
+                            f"dispatch{_named}. Nothing has been "
+                            f"relayed. Give me the order for THIS turn and I shall "
+                            f"carry it at once; a standing order I can hold is "
+                            f"'hold until Davout arrives'.\"")
+                elif parsed["refusal"] == "condition":
+                    # CR-7-4: a condition the engine READ and cannot meet —
+                    # an unmet referent, a hold of no turns, a turn behind
+                    # us — refused by name at 0 AP, never minted.
+                    from backend.ai.condition_grammar import refusal_copy
+                    refusal_msg = refusal_copy(
+                        _detail, parsed.get("partial_marshal"), world,
+                        target=parsed.get("partial_target"))
                 elif parsed["refusal"] == "deferral":
                     # FA-7. A DIFFERENT failure from a prohibition and it must
                     # not wear the same words: the player did not forbid the
@@ -3516,7 +3590,17 @@ def execute_command(request: CommandRequest):
                     refusal_msg += (
                         f"\n\n{_objector} still awaits your answer, Sire. "
                         f"Reply {_answer_words(_choices)}.")
-                return build_base_response(
+                # CR-7-3 rule 4: a refused HEAD cancels the tail it carried,
+                # and says so.
+                _refused_relay = None
+                if parsed.get("dropped_sequel"):
+                    _refused_relay = _relay.build_relay(
+                        world, parser, llm_game_state,
+                        tail=parsed["dropped_sequel"],
+                        marshal_name=parsed.get("partial_marshal"),
+                        head_action=None, result={"success": False},
+                        question=False)
+                _refusal_response_dict = build_base_response(
                     world, success=False, message=refusal_msg,
                     objection=_pending_obj if _pending_obj else None,
                     action_info={
@@ -3525,6 +3609,9 @@ def execute_command(request: CommandRequest):
                         "turn_advanced": False,
                         "new_turn": None,
                     })
+                _relay.attach(_refusal_response_dict, _refused_relay)
+                _relay.append_note(_refusal_response_dict, _refused_relay, standalone=True)
+                return _refusal_response_dict
 
             # ════════════════════════════════════════════════════════════
             # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
@@ -3577,15 +3664,17 @@ def execute_command(request: CommandRequest):
         # marshal note) were computed and then never surfaced — append them
         # to the player-visible message ("every input gets a response").
         # Sits BEFORE the early-return checks so diplomatic dialogues and
-        # popup paths carry the note too; objection popups (success=False)
-        # deliberately skip it — the objection dominates, and the sequel
-        # note re-surfaces if the reissued/proceeded command re-parses.
+        # popup paths carry the note too. (Until CR-7-3 this comment claimed
+        # the sequel note "re-surfaces if the reissued/proceeded command
+        # re-parses" — measured FALSE on all three objection answers; the
+        # relay below stashes the tail and re-judges it when the answer lands.)
         # ════════════════════════════════════════════════════════════
         if result.get("success") and parsed.get("warning"):
             result["message"] = (
                 f"{result.get('message') or ''}\n\n"
                 f"Berthier: \"{parsed['warning']}\""
             ).strip()
+
         # FA slice 7 review round (R1-10 / R3-6): a REFUSED repaired order
         # still says what was assumed — "Ney, atack Lorraine" was refused
         # about a word the player never typed. Question-bearing results
@@ -3596,6 +3685,58 @@ def execute_command(request: CommandRequest):
                 f"{result.get('message') or ''}\n\n"
                 f"Berthier: \"{parsed['typo_note']}\""
             ).strip()
+
+        # ════════════════════════════════════════════════════════════
+        # CR-7-3 — THE RELAY (backend/commands/relay.py). A dropped tail
+        # rides EVERY arm of this response as `dropped_sequel` +
+        # `relay_kind` + `relay_note`, and is handed back for the player's
+        # seal (`relay_command`) only when sending it now is coherent. On a
+        # question arm (objection / clarification / interrupt) it is
+        # stashed for exactly one command's life and re-judged against the
+        # LIVE state when the answer lands — the production comment that
+        # used to sit at the `warning` block above claimed the note
+        # "re-surfaces if the reissued/proceeded command re-parses";
+        # measured false on all three objection answers (`insist` /
+        # `trust` / `compromise` is a different utterance and never
+        # re-parses the compound). Computed here, and again after a CR-4
+        # focus reissue below, because the reissue rebinds both `parsed`
+        # and `result`.
+        # ════════════════════════════════════════════════════════════
+        _relay_obj = None
+
+        def _stamp_relay():
+            nonlocal _relay_obj
+            _tail = parsed.get("dropped_sequel") if isinstance(parsed, dict) else None
+            if not _tail:
+                _relay_obj = None
+                return
+            _cmd = parsed.get("command") or {}
+            _question = (_result_carries_question(result)
+                         or bool(result.get("pending_objection"))
+                         or bool(result.get("pending_interrupt")))
+            # A marshal-less head ("scout Swabia, then fortify") is executed
+            # by whoever the executor chose; the relayed tail is re-addressed
+            # to THAT man, never left bare for a second "which marshal?".
+            _who = _cmd.get("marshal") or (result.get("marshal")
+                                           if isinstance(result.get("marshal"), str)
+                                           else None)
+            if not _who:
+                # An auto-assigned order carries the actor on its first event
+                # (measured: a marshal-less `scout Swabia` returns no `marshal`
+                # key and `events[0]["marshal"] == "Soult"`).
+                _first = (result.get("events") or [None])[0]
+                if isinstance(_first, dict) and isinstance(_first.get("marshal"), str):
+                    _who = _first["marshal"]
+            _relay_obj = _relay.build_relay(
+                world, parser, llm_game_state, tail=_tail,
+                marshal_name=_who, head_action=_cmd.get("action"),
+                result=result, question=_question)
+            _relay.attach(result, _relay_obj)
+            _relay.append_note(result, _relay_obj, standalone=False)
+            if _relay_obj["relay_kind"] == "question":
+                _relay.stash(world, _relay_obj, _who, _cmd.get("action"))
+
+        _stamp_relay()
 
         # CR-5: a cautious delegation executed as an observe-first order —
         # append the character-naming soft note (§6.3c legibility) so the
@@ -3684,6 +3825,7 @@ def execute_command(request: CommandRequest):
                             f"{result.get('message') or ''}\n\n"
                             f"Berthier: \"{parsed['warning']}\""
                         ).strip()
+                    _stamp_relay()  # CR-7-3: the reissue rebound parsed + result
 
             if not focus_handled:
                 if parsed.get("success"):
@@ -3694,6 +3836,7 @@ def execute_command(request: CommandRequest):
                             register_pending_clarification(
                                 world, marshal_clarification, command_text))
                         print("[CLARIFICATION] Marshal-choice question -> frontend")
+                        _relay_question(marshal_clarification, parsed)  # CR-7-3
                         return _build_result_response(marshal_clarification, world)
                 berthier_msg = parser.llm.generate_berthier_recovery(
                     raw_command=command_text,
@@ -3705,7 +3848,7 @@ def execute_command(request: CommandRequest):
                     },
                     skip_llm=bool(parsed.get("llm_error")),  # CR-3(c)
                 )
-                return build_base_response(
+                _recovery = build_base_response(
                     world, success=False, message=berthier_msg,
                     action_info={
                         "cost": 0,
@@ -3713,6 +3856,11 @@ def execute_command(request: CommandRequest):
                         "turn_advanced": False,
                         "new_turn": None,
                     })
+                # CR-7-3 rule 4: the head found no marshal — the tail it
+                # carried is named as not relayed, never lost in silence.
+                _relay.attach(_recovery, _relay_obj)
+                _relay.append_note(_recovery, _relay_obj, standalone=True)
+                return _recovery
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR OBJECTION: If awaiting player choice, return full result
@@ -3950,10 +4098,33 @@ def respond_to_objection(request: ObjectionResponse):
         return _resp
 
 
-def _respond_to_objection_sync(choice: str):
+def _attach_answered_relay(response: dict, result: dict, pending: Optional[dict]) -> None:
+    """CR-7-3 rule 5: the tail that waited behind a question, re-judged against
+    the LIVE state now that the answer has landed, and named again. A new
+    question re-stashes it; anything else settles it (ready / moment /
+    contradiction / refused head)."""
+    if not pending:
+        return
+    from backend.commands import relay as _relay
+    _question = (_result_carries_question(result)
+                 or bool((result or {}).get("pending_objection"))
+                 or bool((result or {}).get("pending_interrupt")))
+    relay = _relay.build_relay(
+        world, parser, get_llm_game_state(), tail=pending["tail"],
+        marshal_name=pending.get("marshal"), head_action=pending.get("head_action"),
+        result=result or {}, question=_question, answered=True)
+    _relay.attach(response, relay)
+    _relay.append_note(response, relay, standalone=True)
+    if relay["relay_kind"] == "question":
+        _relay.stash(world, relay, pending.get("marshal"), pending.get("head_action"))
+
+
+def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None):
     """Shared objection-response assembly for the endpoint AND the W6-0 typed
     pending-question router — a typed "trust" must behave byte-identically to
     the objection popup's Trust button."""
+    from backend.commands import relay as _relay
+    _pending_relay = carried_relay if carried_relay is not None else _relay.pop(world)
     try:
         # Handle the objection response through executor
         result = executor.handle_objection_response(choice, game_state)
@@ -3988,6 +4159,8 @@ def _respond_to_objection_sync(choice: str):
         # both. Carry the same combat allowlist the interrupt route uses.
         from backend.commands.strategic import _carry_combat_fields
         _carry_combat_fields(response, result)
+        # CR-7-3: the tail that waited behind the objection, re-judged.
+        _attach_answered_relay(response, result, _pending_relay)
 
         # V2b: Defiance passthrough
         if result.get("defiance"):
@@ -4523,6 +4696,9 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             response["redemption_event"] = result["redemption_event"]
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
+        # CR-7-3: the tail that waited behind the interrupt, re-judged.
+        from backend.commands import relay as _relay
+        _attach_answered_relay(response, result, _relay.pop(world))
         return response
     except Exception as e:
         print(f"[ERROR] handling strategic response: {e}")

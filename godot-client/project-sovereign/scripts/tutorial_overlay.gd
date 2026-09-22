@@ -63,7 +63,7 @@ const STEPS := [
 		"id": "first_move",
 		"turn_gate": 1,
 		"title": "II. The Army Marches",
-		"body": "You hold 4 command actions and 2 administrative actions each turn — the counters stand above. A march costs one command action. Send Senarmont's guns forward through allied Bavaria — an ALLIANCE opens the road.",
+		"body": "You hold 4 command actions and 2 administrative actions each turn — the counters stand above. A march costs one command action. Send Senarmont's guns forward through allied Bavaria — an ALLIANCE opens the road. Two orders may share a line: 'march to Munich then attack' engages whoever holds the ground on arrival, and any other second order is handed back to your line for your seal. A hold may carry its relief — 'hold Munich until Ney arrives'.",
 		"suggest": "Senarmont, move to Munich",
 		"suggest_action": "move",
 		"advance": "_pred_senarmont_in_munich",

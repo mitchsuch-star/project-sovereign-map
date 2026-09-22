@@ -786,6 +786,7 @@ class TestConditions:
         """Order completes on victory."""
         ney = world.get_marshal("Ney")
         ney.last_combat_result = "victory"
+        ney.last_combat_turn = world.current_turn  # CR-7-4: a simulated battle stamps its turn, as every production writer does
 
         condition = StrategicCondition(until_battle_won=True)
         _set_strategic_order(ney, "HOLD", ney.location, condition=condition)

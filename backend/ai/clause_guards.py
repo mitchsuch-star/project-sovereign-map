@@ -51,6 +51,20 @@ existing keyword chain reads, and whether the caller should refuse.
 import re
 from typing import Iterable, List, Optional, Tuple
 
+# FA slice 7 (FA-N39): ONE honorific for every ADDRESS regex in the parse
+# pipeline. ADDRESS_TOKEN_RE admitted `marshal` alone while parser.py's WO-1
+# copy admitted `general` too — so "General Ney, attack Mack" made every
+# address guard blind: measured Sept 4, 2026, a CAPTURED Ney marched out of
+# Vienna on that spelling (the prisoner refusal never saw a token) and a
+# FALLEN Ney's order was refused in the wrong register. Composed into each
+# regex, never copied: the census in tests/test_fa_slice7_* fails on any
+# surviving `(?:marshal\s+)?` literal in address position. An import-time
+# constant rather than a flip lever on purpose — the ten address regexes that
+# read it are compiled at import, and the parser has no series exposure (the
+# ambient harness types nothing). The two CAPTURE regexes ("Marshal X" as a
+# name pull) stay marshal-only by design.
+HONORIFIC = r"(?:marshal|general|gen\.|mar[eé]chal)\s+"
+
 # ---------------------------------------------------------------------------
 # Clause terminators
 # ---------------------------------------------------------------------------
@@ -427,28 +441,116 @@ _ONCE_ADVERB_RE = re.compile(r"^\s*(?:more|again)\b", re.IGNORECASE)
 _SHOULD_INVERSION_RE = re.compile(
     r"(?:^|[,;.!?]\s*)should\s+(?!(?:i|we|you|us|me)\b)\w+\s+\w+",
     re.IGNORECASE)
+# CR-7-5 (CQ-7): the TRAILING inversion. `attack Mack should the enemy advance`
+# fought, because the arm above is clause-initial only. Mid-sentence, a
+# `should` followed by a DETERMINER ("should the enemy…", "should his corps…")
+# or by a marshal's name (the roster the chain hands in) is the inversion;
+# followed by a verb ("you should attack") it is the plain modal and stays.
+_SHOULD_TRAILING_DETERMINER_RE = re.compile(
+    r"\sshould\s+(?:the|a|an|any|our|their|his|her|its|this|that|these|those|no"
+    r"|enemy|hostile)\s+\w+",
+    re.IGNORECASE)
+
+# CR-7-5 — THE THIRD VERDICT. A REFUSING marker whose clause is exactly
+# `<friendly marshal> arrives` (with or without the honorific, with or without
+# a leading comma) is HANDED OFF to the strategic layer as the engine's one
+# implemented condition, `until_marshal_arrives`, instead of refused. It is a
+# CLOSED grammar over a CLOSED roster and fails closed: any other clause on
+# the same marker takes the ordinary REFUSE road, `_REFUSING_CONDITION_WORDS`
+# is not widened, and the two-word floor is untouched. The residue must be a
+# HOLD — the chain checks that, because "when Davout arrives, attack" must
+# stay refused (PARSE-NEG's own pinned row).
+_HANDOFF_MARKERS = frozenset({"when", "if", "once", "as soon as"})
+_HANDOFF_ARRIVAL_RE = re.compile(
+    r"^\s*(?:" + HONORIFIC + r")?(?P<name>[A-Za-z][A-Za-z'’-]*)\s+arrives?\s*$",
+    re.IGNORECASE)
+_COMMA_RE = re.compile(r",")
+# A LEADING clause: nothing before the marker but whitespace and, at most,
+# the addressee ("Davout, until Ney arrives, hold Lorraine").
+_LEADING_ADDRESS_RE = re.compile(
+    r"\s*(?:(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*\s*,\s*)?", re.IGNORECASE)
+# The comma leak (CQ-7's third member): `attack if, Bavaria is threatened`
+# measured the clause as the word "if" alone, below the floor, and the noun
+# after the comma was read as the province to attack. Punctuation immediately
+# after a marker is skipped before the clause is measured.
+_MARKER_PUNCT_RE = re.compile(r"\s*[,;:]\s*")
 
 
 def _clause_word_count(text: str, start: int, end: int) -> int:
     return len(re.findall(r"[A-Za-z']+", text[start:end]))
 
 
-def strip_condition_clauses(text: str) -> Tuple[str, bool]:
-    """Blank subordinate condition clauses, preserving character positions.
+def condition_marker_spans(text: str) -> List[Tuple[int, int]]:
+    """Where the condition markers are, as ``(start, end)`` spans over the
+    ORIGINAL string — the `negation_marker_spans` idiom, exposed so the
+    condition grammar (`condition_grammar.unread_condition_clauses`) reads
+    the ONE marker vocabulary instead of copying it."""
+    if not text:
+        return []
+    out: List[Tuple[int, int]] = []
+    pos = 0
+    while pos < len(text):
+        marker = _CONDITION_MARKER_RE.search(text, pos)
+        if not marker:
+            break
+        collapsed = re.sub(r"\s+", " ", marker.group(0).lower())
+        pos = marker.end()
+        if collapsed == "after" and _PURSUE_AFTER_RE.search(text[:marker.start()]):
+            continue
+        if collapsed == "once" and _ONCE_ADVERB_RE.match(text[marker.end():]):
+            continue
+        out.append((marker.start(), marker.end()))
+    return out
 
-    Returns ``(effective_text, refuse)``.
 
-    ``refuse`` is True when the utterance carries a condition the engine cannot
-    honour AND that condition is a real clause — at least two words. The
-    two-word floor is what keeps an elliptical adverbial ("when ready then
-    retreat", pinned in the golden corpus) executing as it always has, while
-    "when Davout arrives, attack" stops attacking on the turn it is typed.
+class ConditionGuardVerdict:
+    """What `strip_condition_clauses_with_handoff` decided, in full."""
+    __slots__ = ("text", "refuse", "handoff", "refusing_clause")
+
+    def __init__(self, text: str, refuse: bool, handoff: Optional[dict],
+                 refusing_clause: Optional[str]):
+        self.text = text
+        self.refuse = refuse
+        self.handoff = handoff
+        self.refusing_clause = refusing_clause
+
+    def __iter__(self):
+        yield self.text
+        yield self.refuse
+        yield self.handoff
+
+
+def strip_condition_clauses_with_handoff(
+        text: str, friendly_names: Iterable[str] = (),
+        roster_names: Iterable[str] = ()) -> ConditionGuardVerdict:
+    """Blank subordinate condition clauses, preserving character positions,
+    and decide among THREE verdicts per clause:
+
+    * REFUSE   — a real (two-word) clause on a REFUSING marker the engine
+                 cannot hold ("if Mack advances …").
+    * BLANK    — `until` / `while` / `before`, or an elliptical adverbial.
+    * HAND-OFF — CR-7-5: `when|if|once|as soon as <friendly marshal> arrives`,
+                 returned as ``handoff = {"until_marshal_arrives": Name,
+                 "span": (start, end), "clause": "…"}`` for the strategic
+                 layer to apply as the engine's own `until` condition. At most
+                 one per sentence; any second condition marker refuses.
+
+    ``friendly_names`` is the roster the hand-off may name (the player's own
+    marshals); an empty roster means no hand-off is possible and the
+    function is the pre-CR-7-5 guard plus the comma-leak and trailing-
+    `should` fixes. ``roster_names`` (every marshal on the board) feeds the
+    trailing-`should` inversion arm.
     """
     if not text:
-        return text, False
+        return ConditionGuardVerdict(text, False, None, None)
+    friendly = {n.lower(): n for n in friendly_names if n}
+    roster = sorted({n for n in roster_names if n}, key=len, reverse=True)
     chars = list(text)
     refuse = False
     applied = False
+    handoff: Optional[dict] = None
+    refusing_clause: Optional[str] = None
+    marker_count = 0
     pos = 0
     while pos < len(text):
         marker = _CONDITION_MARKER_RE.search(text, pos)
@@ -462,23 +564,80 @@ def strip_condition_clauses(text: str) -> Tuple[str, bool]:
             continue
         if collapsed == "once" and _ONCE_ADVERB_RE.match(text[marker.end():]):
             continue
+        marker_count += 1
+
+        # CR-7-5: skip punctuation glued to the marker before measuring.
+        clause_start = marker.end()
+        punct = _MARKER_PUNCT_RE.match(text, clause_start)
+        if punct and punct.end() > clause_start:
+            clause_start = punct.end()
 
         if collapsed == "until":
-            end_match = _UNTIL_CLAUSE_END_RE.search(text, marker.end())
+            end_match = _UNTIL_CLAUSE_END_RE.search(text, clause_start)
         else:
-            end_match = _CLAUSE_END_RE.search(text, marker.end())
+            end_match = _CLAUSE_END_RE.search(text, clause_start)
         clause_end = end_match.start() if end_match else len(text)
 
-        if (collapsed in _REFUSING_CONDITION_WORDS
-                and _clause_word_count(text, marker.end(), clause_end) >= 2):
-            refuse = True
+        # CR-7-5: a LEADING `until <friendly marshal> arrives,` — the one
+        # `until` shape the engine's own read could never reach, because the
+        # clause runs to the sentence end and took the order with it
+        # ("until Ney arrives, hold Lorraine" was refused as unparseable).
+        # Handed off exactly like `when …`: the clause ends at its comma,
+        # names one of our own, is the sole condition, and the chain still
+        # demands a HOLD residue (fails closed on "until Ney arrives, attack").
+        if (collapsed == "until" and friendly and handoff is None
+                and marker_count == 1
+                and _LEADING_ADDRESS_RE.fullmatch(text[:marker.start()] or "")):
+            comma = _COMMA_RE.search(text, clause_start)
+            if comma:
+                arrival = _HANDOFF_ARRIVAL_RE.match(text[clause_start:comma.start()])
+                canonical = (friendly.get(arrival.group("name").lower())
+                             if arrival else None)
+                if canonical:
+                    clause_end = comma.start()
+                    handoff = {
+                        "until_marshal_arrives": canonical,
+                        "span": (marker.start(), clause_end),
+                        "clause": text[marker.start():clause_end].strip(),
+                    }
+
+        if collapsed in _REFUSING_CONDITION_WORDS:
+            arrival = (_HANDOFF_ARRIVAL_RE.match(text[clause_start:clause_end])
+                       if collapsed in _HANDOFF_MARKERS and friendly else None)
+            canonical = (friendly.get(arrival.group("name").lower())
+                         if arrival else None)
+            if canonical and handoff is None and marker_count == 1:
+                handoff = {
+                    "until_marshal_arrives": canonical,
+                    "span": (marker.start(), clause_end),
+                    "clause": text[marker.start():clause_end].strip(),
+                }
+            elif _clause_word_count(text, clause_start, clause_end) >= 2:
+                refuse = True
+                if refusing_clause is None:
+                    refusing_clause = text[marker.start():clause_end].strip()
 
         for i in range(marker.start(), clause_end):
             chars[i] = " "
         applied = True
         pos = max(clause_end, marker.end())
 
+    # A hand-off is only ever the SOLE condition in the sentence.
+    if handoff is not None and marker_count > 1:
+        refuse = True
+        if refusing_clause is None:
+            refusing_clause = handoff["clause"]
+        handoff = None
+
     inversion = _SHOULD_INVERSION_RE.search(text)
+    if not inversion:
+        inversion = _SHOULD_TRAILING_DETERMINER_RE.search(text)
+    if not inversion and roster:
+        roster_re = re.compile(
+            r"\sshould\s+(?:" + HONORIFIC + r")?(?:"
+            + "|".join(re.escape(n) for n in roster) + r")\s+\w+",
+            re.IGNORECASE)
+        inversion = roster_re.search(text)
     if inversion:
         refuse = True
         end_match = _CLAUSE_END_RE.search(text, inversion.end())
@@ -486,11 +645,34 @@ def strip_condition_clauses(text: str) -> Tuple[str, bool]:
         start = inversion.start()
         while start < len(text) and text[start] in ",;.!? ":
             start += 1
+        if refusing_clause is None:
+            refusing_clause = text[start:clause_end].strip()
         for i in range(start, clause_end):
             chars[i] = " "
         applied = True
+        handoff = None
 
-    return ("".join(chars) if applied else text), refuse
+    return ConditionGuardVerdict(
+        ("".join(chars) if applied else text), refuse, handoff, refusing_clause)
+
+
+def strip_condition_clauses(text: str) -> Tuple[str, bool]:
+    """Blank subordinate condition clauses, preserving character positions.
+
+    Returns ``(effective_text, refuse)``.
+
+    ``refuse`` is True when the utterance carries a condition the engine cannot
+    honour AND that condition is a real clause — at least two words. The
+    two-word floor is what keeps an elliptical adverbial ("when ready then
+    retreat", pinned in the golden corpus) executing as it always has, while
+    "when Davout arrives, attack" stops attacking on the turn it is typed.
+
+    CR-7-5: the two-tuple face of `strip_condition_clauses_with_handoff`
+    with NO roster — so no hand-off can fire through it, and every caller
+    that never learned the third verdict keeps the two it knows.
+    """
+    verdict = strip_condition_clauses_with_handoff(text)
+    return verdict.text, verdict.refuse
 
 
 # ---------------------------------------------------------------------------
@@ -527,19 +709,6 @@ def mentions_stand_down(command_lower: str) -> bool:
 # ---------------------------------------------------------------------------
 # Questions
 # ---------------------------------------------------------------------------
-# FA slice 7 (FA-N39): ONE honorific for every ADDRESS regex in the parse
-# pipeline. ADDRESS_TOKEN_RE admitted `marshal` alone while parser.py's WO-1
-# copy admitted `general` too — so "General Ney, attack Mack" made every
-# address guard blind: measured Sept 4, 2026, a CAPTURED Ney marched out of
-# Vienna on that spelling (the prisoner refusal never saw a token) and a
-# FALLEN Ney's order was refused in the wrong register. Composed into each
-# regex, never copied: the census in tests/test_fa_slice7_* fails on any
-# surviving `(?:marshal\s+)?` literal in address position. An import-time
-# constant rather than a flip lever on purpose — the ten address regexes that
-# read it are compiled at import, and the parser has no series exposure (the
-# ambient harness types nothing). The two CAPTURE regexes ("Marshal X" as a
-# name pull) stay marshal-only by design.
-HONORIFIC = r"(?:marshal|general|gen\.|mar[eé]chal)\s+"
 
 # FA slice 7 (FA-D25's executing half): `will Ney attack Mack?` FOUGHT A
 # BATTLE on the boot board (measured: gold -128, four corps to Swabia).

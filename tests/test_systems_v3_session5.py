@@ -355,6 +355,7 @@ class TestLastCombatResult:
 
         # Simulate combat result already set
         ney.last_combat_result = "victory"
+        ney.last_combat_turn = world.current_turn  # CR-7-4: a simulated battle stamps its turn, as every production writer does
 
         place_marshals(world, ney)
 

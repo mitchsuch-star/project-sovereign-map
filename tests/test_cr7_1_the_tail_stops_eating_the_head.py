@@ -158,11 +158,18 @@ class TestTheHeadlineAtTheEndpoint:
         assert "One order at a time" in message, message
         assert '"attack Mack"' in message, message
 
-    def test_an_aggressive_marshal_objects_to_the_head_not_the_tail(self, shipped):
+    def test_an_aggressive_marshal_objects_to_the_head_not_the_tail(self, shipped, monkeypatch):
         """Ney firmly objects to sitting idle — to the FORTIFY, the order he
         was given. Before the fix there was nothing to object to: the tail
         had replaced the head and he was already marching. No battle, no
-        movement, no men lost, and the tail is still reported."""
+        movement, no men lost, and the tail is still reported.
+
+        CR-7-3 (Sept 22, 2026): the V2a trigger rolls a ±1 concern shift
+        25% of the time, so this pin was order-dependent (measured: the
+        objection fired on 2 of 3 fresh boards in one process); 0.5 is
+        'exactly as evaluated'."""
+        import backend.commands.objection_v2 as objection_v2
+        monkeypatch.setattr(objection_v2.random, "random", lambda: 0.5)
         _client, world = shipped
         ney = world.get_marshal("Ney")
         assert ney.personality == "aggressive"
@@ -326,7 +333,15 @@ class TestTheNamedCorpusRowsAreUnedited:
 
     @pytest.mark.parametrize("entry_id", sorted(FROZEN_EXPECTED))
     def test_the_assertion_is_the_one_the_memo_named(self, corpus_index, entry_id):
-        assert corpus_index[entry_id]["expected"] == FROZEN_EXPECTED[entry_id]
+        """CR-7-2 (September 22, 2026, conscious relaxation): the harness
+        gained the compound keys and the marker rows now ALSO assert
+        `dropped_sequel` / `attack_on_arrival` / `strategic_condition`. The
+        rule this pin keeps is that CR-7-1's assertions were never WEAKENED
+        or rewritten — the frozen block must survive as a subset, key for
+        key, value for value; keys may only be ADDED."""
+        current = corpus_index[entry_id]["expected"]
+        frozen = FROZEN_EXPECTED[entry_id]
+        assert {k: current.get(k) for k in frozen} == frozen, (entry_id, current)
 
     @pytest.mark.parametrize("entry_id", sorted(FROZEN_EXPECTED))
     def test_the_row_is_green_on_every_world_it_names(self, corpus_index, entry_id,

@@ -271,9 +271,9 @@ class TestARefusalNeverDrains:
     def test_cancel_order_except_arm(self, monkeypatch):
         world = _boot()
 
-        def boom(command, game_state):
+        def boom(*_args, **_kwargs):
             raise RuntimeError("probe")
-        monkeypatch.setattr(M.executor, "_execute_cancel", boom)
+        monkeypatch.setattr(type(M.executor._strategic), "_execute_cancel", boom)  # class-level on the SUB-executor: the executor delegates via __getattr__, so an instance patch would leave a shadow (CR-7-6)
         reply = self._refused(world, "/cancel_order", {"marshal": "Ney"})
         assert "Error" in (reply.get("message") or "")
         assert reply.get("diplomatic_sabotage") is None

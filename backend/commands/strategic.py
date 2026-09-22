@@ -676,6 +676,22 @@ def issuance_road_refusal(world, marshal, destination: str, strategic_type: str,
     return None
 
 
+def pick_contact_enemy(order, enemies):
+    """CR-7-6 — which of the enemies met does an order engage?  The man the
+    arrival tail NAMED (`StrategicOrder.arrival_target`) when he stands among
+    them; otherwise the first, exactly as every contact seam picked before.
+    ONE rule for the first-step blocked seam, the mid-path blocked seam and
+    the arrival handler."""
+    if not enemies:
+        return None
+    wanted = getattr(order, "arrival_target", None) if order is not None else None
+    if wanted:
+        for enemy in enemies:
+            if getattr(enemy, "name", None) == wanted:
+                return enemy
+    return enemies[0]
+
+
 def resolve_order_destination(world, marshal, order):
     """The destination a standing order should aim at, fog included.
 
@@ -2458,7 +2474,7 @@ class StrategicOrderProcessor:
         if order.attack_on_arrival:
             enemies = world.get_enemies_in_region(marshal.location, marshal.nation)
             if enemies:
-                target = enemies[0]
+                target = pick_contact_enemy(order, enemies)  # CR-7-6
                 # CR-5 Phase 3: an inferred attack-on-arrival into a fortified
                 # superior force routes through the one-modal confirm before it
                 # commits (§6.3c). Explicit orders fall straight through.
@@ -3924,14 +3940,28 @@ class StrategicOrderProcessor:
 
         if condition.until_battle_won:
             battle_ending_results = ("victory", "stalemate")
-            combat_result = getattr(marshal, 'last_combat_result', None)
+            # CR-7-4 item 5: a battle fought BEFORE the order was issued is not
+            # this order's battle. The order-scoped result is read first (the
+            # order-driven combat seam writes it); the marshal-scoped result
+            # counts only when his `last_combat_turn` is on or after the turn
+            # the order started — every tactical seam stamps it now. A legacy
+            # save with a result and no turn reads as stale (fails closed).
+            since = getattr(order, "started_turn", None)
+
+            def _fought_since(m) -> bool:
+                turn = getattr(m, "last_combat_turn", None)
+                return since is None or (turn is not None and turn >= since)
+
+            combat_result = getattr(order, "last_combat_result", None)
+            if combat_result not in battle_ending_results and _fought_since(marshal):
+                combat_result = getattr(marshal, 'last_combat_result', None)
             if combat_result in battle_ending_results:
                 label = "Victory achieved!" if combat_result == "victory" else "Battle concluded (stalemate)."
                 return (True, label)
             # For SUPPORT, also check ally's combat
             if order.command_type == "SUPPORT":
                 ally = world.get_marshal(order.target)
-                if ally:
+                if ally and _fought_since(ally):
                     ally_result = getattr(ally, 'last_combat_result', None)
                     if ally_result in battle_ending_results:
                         label = f"{ally.name} won the battle!" if ally_result == "victory" else f"Battle at {ally.location} concluded."
@@ -4038,8 +4068,8 @@ class StrategicOrderProcessor:
         from backend.models.intel import FULL as FULL_VIS
 
         personality = marshal.personality
-        enemy = enemies[0]
         order = marshal.strategic_order
+        enemy = pick_contact_enemy(order, enemies)  # CR-7-6
 
         # Session 36: Check if this is a fog discovery (region below FULL visibility)
         is_fog_discovery = False
