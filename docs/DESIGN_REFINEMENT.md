@@ -1206,7 +1206,7 @@ Cross-system findings from comprehensive review. Needs design gate as a batch.
 | R155 | AI Proposal Personality Voice | Partially absorbed into PL-25. Remaining: visible motive / personality in timing, terms, persistence, and player-facing explanation |
 | R156 | Diplomacy Strategic Optionality | Diplomacy feels optional vs military path |
 | R157 | Talleyrand Voice Depth | Partially absorbed into PL-25 (situational flavor, personality pen nudge). Remaining: deep commentary integration |
-| R158 | NL Parser Confidence Feedback | Show parse confidence to player |
+| R158 | ~~NL Parser Confidence Feedback~~ | ~~Show parse confidence to player~~ **STRUCK by the CR-6 triage, September 23, 2026** (`COMMAND_ROBUSTNESS_SPEC.md` §12.5, its owner row CR-7 having closed with it in "backlog"): the fast parser's confidence is **0.90–1.00 on every measured cell where the game acted on an order the player did not give** (STATUS ruling D6, September 20, 2026), so displaying it would tell the player the game is sure exactly when it is wrong. The feedback R158 asked for ships another way — the relay (`relay_note`), the named refusals and the completer's offers. **Re-open** only if a CALIBRATED confidence exists (HC-L's L-0/L-2 model, if built, with a measured calibration). |
 | R159 | Information Screen Teaching | Screens don't teach mechanics |
 
 ---

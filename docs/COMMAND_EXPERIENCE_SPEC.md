@@ -88,7 +88,8 @@ version, not the original.
 (24.8%)** before the backend sees them. Those rows certify a backend that is
 correct and a road the player cannot take. That is not a defect — it is user
 ruling **G1**, recorded — but the instrument should say so. Routed as
-**CX-X2**, owner CR-6 proper (§7).
+**CX-X2**, owner CR-6 proper (§7) → re-homed to **CRT-8** by the CR-6 triage,
+September 23, 2026 (`COMMAND_ROBUSTNESS_SPEC.md` §12).
 
 ---
 
@@ -648,20 +649,26 @@ definition. Defect rows are in `BUG_FIXES.md` §Row CX; design rows in
 
 | id | what | owner · landing slice | done when |
 |---|---|---|---|
-| **CX3-X1** | The campaign narrates in Ulm, Austerlitz and Jena and none is typable | **CR-6 proper**, beside IQ9-X2 | `Ney, march to Ulm` reaches Swabia, or refuses by naming it |
-| **CX-X1** | The wh-word Cabinet backdoor, and its `DIPLO_NO_HOME_KEYWORDS` sibling | **CR-6 proper** | a question reaches `diplomatic_advisory` and cannot reach `diplomatic_declare_war` |
-| **CX-X2** | 111 of 447 corpus rows are client-blocked and unmarked; 14 of 46 chip templates have no coverage | **CR-6 proper** | every chip template has a row; blocked rows carry `client_blocked` |
-| **CX-X3** | `vassalize <great power>` is ungated at the backend (client-blocked today) | **the vassal/Cabinet owner**, `VASSAL_DEEPENING_SPEC` | the backend gates it independently of the client |
-| **CX-X4** | The region panel prints raw camelCase; its Cavalry/Artillery chips are cosmetic on a single-arm corps | the next UI slice | the panel humanises, and a cosmetic chip states its terms or goes |
+| **CX3-X1** | The campaign narrates in Ulm, Austerlitz and Jena and none is typable | ~~**CR-6 proper**, beside IQ9-X2~~ → **CRT-10** (the CR-6 triage, `COMMAND_ROBUSTNESS_SPEC.md` §12; re-measured LIVE, with two siblings filed: CX3-X2 the eight-button marshal question for a destination the map lacks, CX3-X3 the across-Europe "Did you mean") | `Ney, march to Ulm` reaches Swabia, or refuses by naming it — ruled: an authored alias that REFUSES AND NAMES THE PROVINCE; Jena needs a designer's ruling |
+| **CX-X1** | The wh-word Cabinet backdoor, and its `DIPLO_NO_HOME_KEYWORDS` sibling | ~~**CR-6 proper**~~ → **CRT-3** (re-measured: the seam is the BACKEND's `_parse_diplomatic_command`, which never reads the shared question verdict; a question also DOWNGRADES a real alliance for 1 DP) | a question reaches `diplomatic_advisory` and cannot reach `diplomatic_declare_war` |
+| **CX-X2** | 111 of 447 corpus rows are client-blocked and unmarked; 14 of 46 chip templates have no coverage | ~~**CR-6 proper**~~ → **CRT-8** (re-measured: 111 of 472 blocked, zero marked; the chip half largely moot since CN-4's driven census) | restated: the `client_blocked` marker is DERIVED from the committed redirect mirror and asserted to mark exactly that set; the engine-only chip shapes and the four `known_unwitnessed` family actions get corpus witnesses |
+| **CX-X3** | `vassalize <great power>` is ungated at the backend (client-blocked today) | ~~**the vassal/Cabinet owner**, `VASSAL_DEEPENING_SPEC`~~ → **CRT-8** (the CR-6 triage, `COMMAND_ROBUSTNESS_SPEC.md` §12 — re-measured LIVE over the API September 23, 2026; kept because a keyed player's paraphrase the Cabinet door cannot spell reaches the executor, which has no rule) | the backend gates it independently of the client — §8a's two paths, at `vassal_executor._execute_make_vassal`, never inside `create_vassal_conquest` (the settlement's vassal clause calls it legitimately) |
+| **CX-X4** | The region panel prints raw camelCase; its Cavalry/Artillery chips are cosmetic on a single-arm corps | ~~the next UI slice~~ → **✅ CLOSED by CN-3 + CN-4 (September 22, 2026)**, recorded by the CR-6 triage | met: the panel prints `Utils.humanize_entity_name` on the row and the chip (CN-4's census pins "the printed name, never the roster key"), and each recruit chip is ENABLED only where the quote says the levy of that arm will be made, stating its terms (CN-3) |
 | **CX-D1** | A proactive movement affordance on the click road | **the user, at a gate** | it ships and this spec's §3 re-open condition fires, or the row is struck with its reason |
 | **CX-D2** | Whether the model may answer a question the desk cannot classify | **the CR-6 gate** | the gate rules, with the constraint that an answer can never issue an order |
 | **CX-D3** | The completer's FEEL | **the user, in a played session** | a turn's orders typed with it on, and the verdict recorded |
 
 | **L2-1** | The addressee rule measures its head against a hand-written verb list missing 27 of 40 routed verbs (`pull back` and `recon` closed in §8; the rest stand) | ~~**CR-6 proper**~~ → **✅ CLOSED by CX-R1, September 22, 2026** (`SYSTEMS_REFERENCE.md` §51) | the list is DERIVED from the parser's routing table, and a census pins the two in step — **met**: `tools/gen_routed_order_words.py` generates it, the CX-R1 test file re-derives it and fails on drift |
-| **CX7-X1** | The parser's fuzzy near-miss guard answers `sure attack Mack` with *"Did you mean Soult?"* — a different producer, a different threshold | **CR-6 proper** | a leading run that is not a near-miss of any name is not offered as one |
+| **CX7-X1** | The parser's fuzzy near-miss guard answers `sure attack Mack` with *"Did you mean Soult?"* — a different producer, a different threshold | ~~**CR-6 proper**~~ → **CRT-10** (re-measured far wider: 568 of 2,408 closed-class cells claimed as a name; ⚠ §8.3's `Ok, retreat` example does NOT stand down on both arms — measured; lands with or after CRT-1) | a leading run that is not a near-miss of any name is not offered as one |
 
 **Inherited and unchanged:** IQ9-X1, IQ9-X2, IQ9-X3, IQ10-X1, IQ10-X2, and
 the six real deferrals of IQ7-X7 (its question half closed here).
+**⚠ Re-homed September 23, 2026 by the CR-6 triage** (`COMMAND_ROBUSTNESS_SPEC.md`
+§12 — "CR-6 proper" is retired as an owner): IQ9-X1 and IQ9-X3 ride HC-L's L-1
+session; IQ9-X2 → CRT-10; IQ7-X7's deferrals → CRT-5; every CR-6-proper row in
+this table and in the ALL-57-VERDICTS table of `BUG_FIXES.md` §Row CX now names
+its CRT slice or is closed/struck. IQ10-X1 / IQ10-X2 were never CR-6 proper's
+and keep their owner.
 
 **From the review round (§8):** the 57 verdicts produced CXR1-2..5,
 DESK-1..12, CX3-R1..R12, CX5-L5-F1..F7 and the CX-CLAIM rows. CX-7 fixes what

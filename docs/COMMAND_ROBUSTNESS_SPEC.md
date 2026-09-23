@@ -33,7 +33,8 @@ The pipeline is a 4-stage chain: fast keyword parser → optional LLM fallback (
 | **CR-5b** — ✅ **LANDED July 7, 2026** | **Flavor Echoing** — the marshal's IMMEDIATE spoken reply at the **response seam** echoes the player's tone ("the game heard me"), distinct from CR-5's parse seam. **Entry gate CLEARED** (§6.11): the non-parroting fallback is specifiable as a deterministic FLOOR keyed to (personality, RESOLVED action, target) — never the raw verb — so CR-5b landed as a fast-follow, no user gate. A `flavor` field rides the EXISTING CR-3 parse call (zero extra LLM call — re-adds the field CR-3 cut "parked at the CR-5 gate"); the live LLM composes an action-agnostic attitude line, and `flavor_passes_register` drops any parroting/action-naming/register-violating line to the floor. Cosmetic only (§5 non-goal holds — Golden Rule 6). `test_command_robustness_cr5b_flavor_echoing.py` (60). | ✅ Entry gate CLEARED July 7, 2026 (§6.11) |
 | **CR-6 mini-gate (bare-attack gating)** — ✅ **BLESSED + LANDED July 16, 2026** | S5-D1: a bare `attack` with no marshal named auto-picked a marshal into a real battle, skipping CR-2 clarification, the W6-4 muster gate, and objections. Resolve-and-rewrite at the dispatch seam so the pick flows through the ordinary named-attack pipeline. Full record: **§7**. | ✅ Gate held + built (record §7) |
 | **CR-6** (feature) | Conversational Objection Negotiation — player argues back in natural language; LLM classifies into the existing deterministic Insist/Trust/Compromise buckets with a trust modifier. Distinct from the bare-attack mini-gate above (which reused the "CR-6 gate" slot the 8.EVAL named). | **USER DESIGN GATE** (LLM picks the bucket) — still unbuilt |
-| **CR-7 — "The Second Clause"** — ✅ **BUILT COMPLETE September 22, 2026 (CR-7-1..CR-7-8; landing records = the memo's §CR-7-1 and §CR-7-2..8 LANDING RECORD blocks; the queue ruling = §11.1 below)** | Conditional/compound orders. **Build contract = `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md`** (8 slices, 5.0 sessions, four honest stopping points, per-slice `done_when` + kill gates); routing = `docs/STATUS.md` ▶ NEXT UP. **CR-7-1 is a P1 and is slice 1 of the queue:** a compound order whose first clause is not stand-still vocabulary **discards that clause and executes the tail** — measured **40 of 40** non-movement shapes (`Ney, fortify then attack Mack` marches Rhineland→Swabia, fights, 24,000→22,050, `fortified` still False, 1 AP, no warning), at confidence 0.95 against a 0.70 gate, so no model is ever consulted. FA-7's fix enumerated the verbs that were *reported* instead of asking whether clause 1 carries an order, so every verb outside `STAND_STILL_ALTERNATION` is still eaten. The conditional substrate is **NOT dead code** (`StrategicCondition`: 6 serialized fields, 5 typed-reachable, `_check_condition` evaluated per turn) — what is broken is what a player can SAY: **4 of 15** natural phrasings work, 2 mint phantom provinces (`till Ney arrives` → target `"Lorraine Till Ney Arrives"`), 2 mint unmeetable orders (`until relief arrives`), 4 drop silently — **all charged 2 AP**. Also owns `parse_multiple` (zero production callers) and the multi-marshal string — **which is at `validation.py:410-413`, NOT the `:195` cited twice in §2/§3 of this spec; `:195` is `NEVER_STRATEGIC_ACTIONS` commentary.** Command-surface shortcuts, map-driven command context, fuzzy autocomplete dropdown UI and R158 parse-confidence display stay backlog under this row. | ✅ Scoped Sept 20, 2026 (memo) — per-item at phase review |
+| **CR-7 — "The Second Clause"** — ✅ **BUILT COMPLETE September 22, 2026 (CR-7-1..CR-7-8; landing records = the memo's §CR-7-1 and §CR-7-2..8 LANDING RECORD blocks; the queue ruling = §11.1 below)** | Conditional/compound orders. **Build contract = `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md`** (8 slices, 5.0 sessions, four honest stopping points, per-slice `done_when` + kill gates); routing = `docs/STATUS.md` ▶ NEXT UP. **CR-7-1 is a P1 and is slice 1 of the queue:** a compound order whose first clause is not stand-still vocabulary **discards that clause and executes the tail** — measured **40 of 40** non-movement shapes (`Ney, fortify then attack Mack` marches Rhineland→Swabia, fights, 24,000→22,050, `fortified` still False, 1 AP, no warning), at confidence 0.95 against a 0.70 gate, so no model is ever consulted. FA-7's fix enumerated the verbs that were *reported* instead of asking whether clause 1 carries an order, so every verb outside `STAND_STILL_ALTERNATION` is still eaten. The conditional substrate is **NOT dead code** (`StrategicCondition`: 6 serialized fields, 5 typed-reachable, `_check_condition` evaluated per turn) — what is broken is what a player can SAY: **4 of 15** natural phrasings work, 2 mint phantom provinces (`till Ney arrives` → target `"Lorraine Till Ney Arrives"`), 2 mint unmeetable orders (`until relief arrives`), 4 drop silently — **all charged 2 AP**. Also owns `parse_multiple` (zero production callers) and the multi-marshal string — **which is at `validation.py:410-413`, NOT the `:195` cited twice in §2/§3 of this spec; `:195` is `NEVER_STRATEGIC_ACTIONS` commentary.** ~~Command-surface shortcuts, map-driven command context, fuzzy autocomplete dropdown UI and R158 parse-confidence display stay backlog under this row.~~ **Disposed by the CR-6 triage, September 23, 2026 (§12.5) — CR-7 closed with them still under its "backlog":** `parse_multiple` + the multi-marshal string + CQ-8 → **CRT-11**; the fuzzy autocomplete dropdown → **closed**, absorbed by row CX and built as CX-3's predictor (`COMMAND_EXPERIENCE_SPEC.md` §5, §3.3; made reachable by CX-R2); command-surface shortcuts and map-driven command context → **closed**, built as UI-6's Region Action Panel (a map click opens the province's order chips) and made honest by row CN; R158 parse-confidence display → **struck** (§12.5). | ✅ Scoped Sept 20, 2026 (memo) — per-item at phase review |
+| **The CR-6 triage** — ✅ **HELD September 23, 2026 (record + build contract = §12)** | D3's dated session. It disposed every row that named "CR-6 proper", the seven intake rows and CR-7's orphans:<br>• rows are homed to slices **CRT-1 … CRT-11**, closed, or struck with a reason;<br>• it filed CQ-30 … CQ-36;<br>• **it found four P1s on one seam** — an order to retreat, a prohibition, a negative question and a refusal each carry out the OPPOSITE — and routed them as **CRT-1, AHEAD of the shippable build**. | ✅ Held (delegated grant) — CRT-1 next |
 
 > **⛔ "CR-6 proper" IS RETIRED AS A ROUTING DESTINATION — September 20, 2026.**
 > It had accumulated **47 routed rows** (`grep -c "CR-6 proper" docs/BUG_FIXES.md`)
@@ -50,15 +51,19 @@ The pipeline is a 4-stage chain: fast keyword parser → optional LLM fallback (
 > keeps its standing USER DESIGN GATE and is untouched by this. Record +
 > argument = `docs/STATUS.md` ▶ NEXT UP ruling **D3**; assurance measurements
 > = `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md`.
+> **✅ THE TRIAGE WAS HELD September 23, 2026 — §12.** Every row that still named
+> "CR-6 proper", the seven rows the Command-Road Queue filed to the triage and
+> the two orphans CR-7 left behind now name a real slice (CRT-1 … CRT-11, or
+> HC-L's L-1 session) or are closed or struck with their reason.
 
 Deferred out (unchanged owners): anti-memorization/creative-phrasing bundle (gated behind CR-4/CR-5 per ROADMAP), Voice-to-Text (Pre-EA; rides this pipeline unchanged), Groq implementation (Pre-EA BYOK).
 
 ## 3. Absorbed owner rows (Golden Rule 9 — each source row now points here)
 
 - BUG_FIXES.md mock-parser bare-command entry (+ its upgraded marshal-roster dimension) → CR-0
-- `validation.py` multi-marshal "coming soon" string (the `len(result.marshals) > 1` block inside `validate_parse_result` — `"Multi-marshal commands coming in a future update!"`; it was at `:410-413` on September 22, 2026, NOT the `:195` this row cited twice, which is `NEVER_STRATEGIC_ACTIONS` commentary — navigate by the string) → CR-7 (still open: CQ-8)
-- Dead `parse_multiple` / `build_clarification_prompt` / fuzzy TODOs → CR-2/CR-7 dispositions. **CR-2 disposition (July 4, 2026):** the shipped clarification dialogue is fully deterministic — `build_clarification_prompt` (prompt_builder.py:638) stays unwired; its cut-or-wire decision moves to CR-3's prompt-surface cleanup. **CR-3 disposition (July 4, 2026): CUT** — the function is deleted from prompt_builder.py (an LLM-phrased clarification question would add a blocking API call for zero mechanical gain over the deterministic builder). `parse_multiple` + the fuzzy autocomplete TODOs remain CR-7.
-- DESIGN_REFINEMENT R158 (parser confidence feedback) → CR-7
+- `validation.py` multi-marshal "coming soon" string (the `len(result.marshals) > 1` block inside `validate_parse_result` — `"Multi-marshal commands coming in a future update!"`; it was at `:410-413` on September 22, 2026, NOT the `:195` this row cited twice, which is `NEVER_STRATEGIC_ACTIONS` commentary — navigate by the string) → CR-7 (still open: CQ-8) → **CRT-11** (the CR-6 triage, §12 — the string is a player-facing promise on the live road and is replaced by the relay)
+- Dead `parse_multiple` / `build_clarification_prompt` / fuzzy TODOs → CR-2/CR-7 dispositions. **CR-2 disposition (July 4, 2026):** the shipped clarification dialogue is fully deterministic — `build_clarification_prompt` (prompt_builder.py:638) stays unwired; its cut-or-wire decision moves to CR-3's prompt-surface cleanup. **CR-3 disposition (July 4, 2026): CUT** — the function is deleted from prompt_builder.py (an LLM-phrased clarification question would add a blocking API call for zero mechanical gain over the deterministic builder). `parse_multiple` + the fuzzy autocomplete TODOs remain CR-7. **CR-6 triage disposition (September 23, 2026, §12.5):** `parse_multiple` → **CRT-11** (deleted by that slice unless its relay reads it); the fuzzy autocomplete → **closed** (row CX's predictor, CX-3 + CX-R2).
+- DESIGN_REFINEMENT R158 (parser confidence feedback) → CR-7 → **struck by the CR-6 triage, September 23, 2026 (§12.5)**, with its re-open condition
 - ROADMAP Post-Diplomacy Command Layer Queue (all 9 rows) → CR-2..CR-7
 - SYSTEMS_REFERENCE §5 stays the single pipeline-behavior doc; this spec links, never duplicates.
 
@@ -562,3 +567,239 @@ The N-step order queue held across turns is **not built, and the promise is remo
 2. **The churn that made it furniture has been fixed.** If `python -m tools.cr7_8_order_completions` reports player `_complete_order` fires **above 5 per 40-turn commanded arm** on the committed script, standing marches are completing often enough that a queue behind them would be reachable — re-open.
 
 **Recorded dissent (memo §5, carried):** the relay solves silence, not memory — a five-hop march outlives the player's memory of its tail. The mitigation that binds is the `moment` kind: the tail is handed back with its moment NAMED (destination and ETA), never pre-filled. **The PARSE-NEG §8 rule 5 scope ambiguity resolves to CR-7** (above).
+
+---
+
+## §12 THE CR-6 TRIAGE — the retired backlog, homed ✅ HELD September 23, 2026
+
+> **A triage, not a build — zero production code and zero tests changed.** Ruling
+> D3 (`docs/STATUS.md` ▶ NEXT UP, September 20, 2026) retired "CR-6 proper" as a
+> routing destination — 47 routed rows with no spec section, no gate and no build
+> contract — and dated this session. Its intake: every row that still named
+> "CR-6 proper"; the seven rows the Command-Road Queue filed here (CQ-17, CQ-20,
+> CQ-21, CQ-24, CQ-28, CQ-29, CX-X3); and the orphans CR-7 left under its
+> "backlog" when it closed (CQ-8, the multi-marshal string, `parse_multiple`, the
+> autocomplete dropdown, command-surface shortcuts, map-driven command context,
+> R158). **Every row now names a real slice with a done-when and a behaviour test
+> (Golden Rule 9), or is closed or struck with its reason.** The slices are **CRT-1
+> … CRT-11** ("Command-Road Triage"), numbered in build order. The prefix is new
+> on purpose: `docs/audits/cx_recon_2026_09_19/refute_keystrokes.md` already uses
+> `CX-R3`…`CX-R13` as recon ids. `CR-6` the FEATURE (Conversational Objection
+> Negotiation, ROADMAP position 15) is untouched and keeps its USER DESIGN GATE.
+> **The disposition of record for every row is `docs/BUG_FIXES.md`**: the
+> Command-Road Queue table, and the ALL-57-VERDICTS table and routed rows of
+> §Row CX. Each row carries its re-measure, its owner slice and its done-when.
+> This section is the index and the build contract.
+
+### §12.1 Method — re-measured, not re-read
+
+Everything was re-measured at HEAD `5fec6a9c` (the docs commit after CX-R2) on a
+fresh shipped 1805 board per sentence, `LLM_MODE=mock`, driven at the real
+`POST /command` with the world / game_state / parser triple swapped (a probe
+harness in the session's scratch directory; nothing in the repo was touched but
+these documents). The intake rows and the routed CX / IQ rows were driven by hand.
+The September 19 review verdicts (`docs/audits/cx_review_2026_09_19/`) were
+re-driven by four read-only agents, one per family, each reproducing its rows' OWN
+sentences and, where it measured a fix shape, simulating it in-process on a
+patched copy. **Every P1 and every P2 that spends or leaks was re-confirmed by
+hand** before it was filed. The three rows pinned as CURRENT behaviour (IQ9-X1,
+IQ9-X3, IQ7-X7) were confirmed by running their pins (10 passed). The golden
+corpus stands at 711/711 and moves under none of the simulated fix shapes — for
+this family it is not evidence, which is why every done-when is stated at
+`POST /command`.
+
+### §12.2 What the re-measure found
+
+1. **FOUR P1s, ONE SEAM — each makes the game carry out the OPPOSITE of what the
+   player said, silently, at confidence 0.8–0.9, above the 0.70 gate, so no key
+   corrects it.**
+   - **CQ-32:** `Ney, retreat as they attack` fights a battle with four French
+     corps. The reason clause is read as the order.
+   - **CQ-34:** `Nobody retreat` orders a general retreat (−2,270 men), and `No one
+     attack Mack` fights (−6,010). CX-7's collective list (`3ccf6b69`) RE-OPENED the
+     plain forms.
+   - **CXR1-3:** `couldn't we attack Mack` fights (−6,010). It was filed at P1 on
+     September 19 and has sat under "CR-6 proper" since, with no owner and no date.
+   - **CQ-35:** with a letter current, `I would not accept` SIGNS the treaty. This is
+     FA-N2's class, one vocabulary gap wider.
+
+   All four close in `clause_guards`: the negation vocabulary, the negative
+   indefinites, and a subtractive reason-clause guard.
+2. **Almost nothing had closed itself.** Only four rows closed since filing: L2-6
+   and L2-7 (by CX7-2 and CX7-4), CX-X4 (by CN-3 + CN-4), and CQ-20 (in the shipped
+   client only — the Cabinet door claims it). Everything else reproduced, most rows
+   with the same figures. The desk's two modules (`question_desk.py`, `counsel.py`)
+   have not changed since the review round filed them.
+3. **Wider than filed:**
+   - **CQ-17:** the estate arm endows the ADDRESSEE for 200 gold and an admin action,
+     and no verb takes an estate back.
+   - **CX-X1:** a question DOWNGRADES a real alliance for 1 DP (`why not downgrade
+     relations with Spain`). The seam is the backend's `_parse_diplomatic_command`,
+     which never reads the shared question verdict.
+   - **CX7-X1:** 568 of 2,408 closed-class cells are claimed as a marshal's name.
+   - **DESK-2:** the price quote misstates every arm; artillery is quoted too.
+4. **New P2s that spend or leak:**
+   - **CQ-30:** `Ney, attack Archduke Charls` fights MACK. A one-letter slip on a
+     FOGGED foe's name is read as a description, while the exact name refuses
+     honestly.
+   - **CQ-31:** `Ney, move to London` takes 2 actions across the crossing that
+     `march to London` refuses for free. FA slice 5's one issuance reader has a
+     second door.
+   - **CQ-33:** `with the Guard` turns a march into a 2-action hold.
+   - **L2-7b:** `can Bavaria attack Mack` fights.
+   - **DESK-1:** `why not attack Kutuzov` names Kutuzov's FOGGED province (a fog
+     leak).
+5. **Three labels have the shape "CR-6 proper" had.** None is in this intake, and
+   all are recorded in §12.5 so they are not lost: "CR-8" (the advice owner), "the
+   next UI slice" (predictor polish and IQ10-X1/X2), and NPC-12's wider census.
+
+### §12.3 The slices — owned, ordered, each with its contract
+
+**Build order:**
+1. CRT-1.
+2. ROADMAP position 10 (the shippable build).
+3. CRT-2 … CRT-11, in order.
+
+HC-L's L-1 may ride any session.
+
+**Why CRT-1 goes first:** ruling D2's own rule is that a P1 which fires on ordinary
+typing precedes the build (the recorded dissent: *"slices 1 and 2 alone … must
+still precede the build"*). Four P1s on one seam are exactly that case.
+
+**After the build, Round 0 evidence may re-order CRT-2 … CRT-11:** a row a tester
+actually hits jumps the queue.
+
+**Build contracts:** the per-row done-whens in `docs/BUG_FIXES.md` are the build
+contracts. Each slice's commit carries the four-file gate STATUS names: the STATUS
+block, the landing record (appended here as `§12.x CRT-n LANDING RECORD`),
+CLAUDE.md LIVE STATE and the BUG_FIXES rows.
+
+| # | Slice | P | Rows | Effort | Done when (headline — the rows carry the full done-when) | Pins |
+|---|---|---|---|---|---|---|
+| **1** | **CRT-1 "What the sentence forbids is never the order"** ▶ **NEXT, before position 10** | **P1 ×4** | CQ-32, CQ-34, CQ-35, CXR1-3; CX5-L5-F1 (P2, the same guard) | 1.0–1.25 | All changes are in `clause_guards`:<br>• the modal and perfect negative contractions and `ought` / `have we` join the negation vocabulary;<br>• the negative indefinites (`nobody`, `no one`, `none`, `not a man`…) become markers and leave `_COLLECTIVE`;<br>• a SUBTRACTIVE third-party reason-clause guard (the PARSE-NEG shape: blank with spaces, never pick an action), sited after the question and condition guards and excluding wh-words and condition words.<br>Every measured sentence spends nothing and moves nothing. The controls behave exactly as today: `someone attack Mack`, `everyone retreat`, `Ney, attack Mack as he retreats`, `accept`, `I would accept`, `Davout, don't advance on our left, fortify`. **Do NOT widen `is_question`'s lead.** | `tests/test_crt1_what_the_sentence_forbids.py` + additions to `test_parse_negation.py` and `test_fa_n_p1_cluster_2026_09_02.py` |
+| → | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | — | — | — |
+| **2** | **CRT-2 "The name is never replaced"** | P2 ×3 | CQ-17, CQ-29, CQ-30 | 0.75–1.0 | A name the sentence gives is the one acted on, or the order is refused free:<br>• a reward goes to its OBJECT;<br>• an unresolved province is refused with the region matcher's answer, never raised at the capital;<br>• a near miss of any roster enemy takes the ASK arm, fog-honest, while descriptions keep ESP-EV-4's disclose-and-proceed. | `tests/test_crt2_the_name_is_never_replaced.py` |
+| **3** | **CRT-3 "A question never orders"** | P2 | CX-X1 (+ the downgrade), L2-7b, CXR1-2, CXR1-4, CXR1-5, CXR1-N2, CXR1-N3 | 1.0 | The diplomatic parser reads the shared question verdict, so a question reaches the advisory and never the chooser or a downgrade. The question arms' residue closes:<br>• the comma tail stands down only on an order verb;<br>• a hedge arm;<br>• a leading run of up to three non-order words;<br>• the comma-free address;<br>• nation subjects in `_question_subjects`. | `tests/test_crt3_a_question_never_orders.py` + `test_cx1_a_question_never_orders.py` additions |
+| **4** | **CRT-4 "The road law is read where it is quoted and where it is taken"** | P2 | CQ-31, DESK-3, DESK-10 | 0.5 | `move to X` refuses exactly where `march to X` refuses. The desk's reach answer is Yes iff the march is accepted (33 → 0), and its turn count equals the driven arrival. Measure `BASELINE_SERIES` first: the move road is shared with the AI. | `tests/test_crt4_the_road_law_everywhere.py` |
+| **5** | **CRT-5 "An answer is read closed"** | P2 | IQ7-X7 | 0.75 | Every dialogue family's typed answer is read by a closed per-family grammar that fails closed, so IQ7-X7's seven deferrals execute nothing and its pinned-as-current class flips. **Ruled here:** a hedged answer (`maybe accept`, `perhaps accept`) is not a plain answer and fails closed. It is one of IQ7-X7's own seven lines, and it is IQ-7's closed-grammar lesson. | `tests/test_iq7_review_round.py::TestIQ7X7TheDeferralLimitOnOtherFamilies` (flipped) + `tests/test_crt5_an_answer_is_read_closed.py` |
+| **6** | **CRT-6 "The retreat is a word, not always an order"** | P2 + P3/P4 | CQ-33, CX5-L5-F2…F7, CX5-L5-N2, N4, N5 | 1.25 | • The noun rule covers the demonstratives, the possessives, `line of retreat` and the carry-out/continuative forms.<br>• `with the Guard` and `guard the retreat` are not a HOLD.<br>• `fall back now` is not a destination.<br>• `pursue Mack's retreat` pursues Mack.<br>• The "he will turn" promise appears only while nothing is committed.<br>**The F6 pins land FIRST:** the corpus is blind to this family, at 711/711 with CX-5's lever on AND off. | `tests/test_crt6_the_retreat_is_a_word.py` |
+| **7** | **CRT-7 "The desk answers what the order would do"** | P2 ×3 + P3/P4 | DESK-1, 2, 4, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16 (+ DESK-6's dead clause) | 1.25–1.5 | Each desk answer asks the seam that would refuse or charge the order:<br>• the what-if answer reads fog and the executor's refusals;<br>• the price reads `recruit_quote`;<br>• `who is winning` reads the war banner's rows;<br>• the counsel reads the action pools and CN-4's refusals;<br>• the router points at the right screen;<br>• our own captured or fallen marshal can be asked about;<br>• the muster prints display names (keep the diorama's keys). | `tests/test_crt7_the_desk_reads_the_order.py` |
+| **8** | **CRT-8 "The Cabinet's rules hold on every road"** | P2 (keyed / API) + P3/P4 | CX-X3, CQ-36, CX-X2, CQ-20's witness | 0.5 | • A typed `make_vassal` is refused unless one of §8a's two paths is met, at `vassal_executor._execute_make_vassal`. Never in `create_vassal_conquest`: the settlement's clause and the AI rung call it legitimately.<br>• The Cabinet's break row either breaks a boot alliance through its preview or is dimmed with the executor's reason.<br>• `client_blocked` is derived from the committed redirect mirror, and the four `known_unwitnessed` family actions get witnesses. | `tests/test_crt8_the_cabinets_rules.py` + the eval-harness pin |
+| **9** | **CRT-9 "The state speaks first"** | P3 | CQ-21, CQ-24, CQ-28 | 1.0 | ONE pure per-verb state probe (fortified, drill-locked, recovering, broken, zero actions), read by the battery, the payload, the completer and both chip surfaces. **CQ-28's rule, decided:** refuse the standing order at issuance, free. Measure `BASELINE_SERIES` first. A `.gd` slice, so the boot smoke is owed. | CX-R2's census with `_state_gated` deleted + CN-4's census at 0 actions + `tests/test_crt9_the_state_speaks_first.py` |
+| **10** | **CRT-10 "The suggestion is honest"** | P3/P4 | CX7-X1, L2-6's residue, IQ9-X2, CX3-X1, CX3-X2, CX3-X3, CX-BEHAV-1 | 1.0 | • The word scan skips `never_an_address` words (568 → 0).<br>• A suggestion never names a fogged enemy.<br>• Ulm and Austerlitz refuse by naming Swabia and Moravia.<br>• No marshal question is staged for a destination the map lacks.<br>• A guess keeps the typed first letter.<br>• `help` and the refusals' `Example:` strings name 1805 provinces.<br>⛔ **Lands WITH or AFTER CRT-1:** without it, the word-scan fix turns `Nobody, retreat` into a general retreat. | `tests/test_crt10_the_suggestion_is_honest.py` + the `test_cx3_the_predictor` re-key |
+| **11** | **CRT-11 "The second name is heard"** | P3 | CQ-8 (+ the "coming in a future update" promise, `parse_multiple`) | 0.5 | The second marshal's order is RELAYED, never spent. The muster no longer asks the player to type what he typed, and the promise string is gone from every road. | `tests/test_crt11_the_second_name_is_heard.py` |
+| **HC-L** | **L-1 riders** (row 7 of the queue, unconditional) | P3/P4 | IQ9-X1, IQ9-X3 | +0.25 on L-1 | Both are live-LLM-road rows, and L-1 already opens that road and replays the IQ-9 cassettes. The retried live parse is ADOPTED when it resolves the mis-bound marshal, and a failure dict carries `mode`. Both pinned-as-current tests flip. | the two IQ-9 pins (flipped) + `tests/test_cr6_retry_rescues_the_word_scan.py` |
+
+**Totals:** CRT-1 is 1.0–1.25 sessions before the build, and CRT-2 … CRT-11 are
+≈ 8.5–9 sessions after it.
+
+**None of these slices can move `BASELINE_SERIES` or M1–M7 by design.** Every seam
+is on the typed road:
+- the AI never parses text, never answers a dialogue by typing, and never reaches
+  the desk;
+- `guessed_target_refusal` returns early without `_raw_input`, which AI commands
+  never carry.
+
+**CRT-4 and CRT-9 touch roads the AI shares** (the move executor, the state gates).
+They measure the series FIRST, and any gate the AI's road does not already carry
+is filed, not flipped (CQ-22's precedent).
+
+### §12.4 Every row, disposed (index — the full disposition is on each row in `docs/BUG_FIXES.md`)
+
+| Row | P | HEAD re-measure (Sept 23) | Disposition |
+|---|---|---|---|
+| CQ-17 | P2 | LIVE, wider (estate arm irreversible) | CRT-2 |
+| CQ-20 | P3 | API only; the Cabinet door claims it in the client | **CLOSED in the shipped client**; pin owed → CRT-8 |
+| CQ-21 · CQ-24 · CQ-28 | P3 | LIVE (measured on CX-R2's landing HEAD) | CRT-9; CQ-28's rule decided (§12.5) |
+| CQ-29 | P2 | LIVE, to the digit | CRT-2 |
+| CX-X3 | P2 | LIVE over the API; keyed exposure through paraphrase | CRT-8 |
+| CQ-8 (+ multi-marshal string, `parse_multiple`) | P3 | LIVE — the muster asks the player to type what he typed | CRT-11 |
+| autocomplete dropdown | — | built as row CX's predictor (CX-3, CX-R2) | **CLOSED** |
+| command-surface shortcuts · map-driven command context | — | built as UI-6's Region Action Panel, made honest by row CN | **CLOSED** |
+| R158 parse-confidence display | — | — | **STRUCK** (§12.5) |
+| IQ9-X1 · IQ9-X3 | P3/P4 | LIVE (pins pass) | HC-L L-1 riders |
+| IQ9-X2 | P3 | re-homed | CRT-10 (its spending sibling is CQ-30 → CRT-2) |
+| IQ7-X7 | P2 | LIVE (pins pass) | CRT-5 |
+| CX7-3 | P3 | fixed for the two measured; its L2-1 remainder closed by CX-R1 | **CLOSED** |
+| CX7-X1 | P4 → P3 | LIVE, far wider (568 cells) | CRT-10 |
+| CX3-X1 | P3 (Ulm) / P4 | LIVE | CRT-10 |
+| CX-X1 | P2 | LIVE on the backend, wider (a downgrade) | CRT-3 |
+| CX-X2 | P3 → P4 | first half LIVE; chip half largely moot since CN-4 | CRT-8 |
+| CX-X4 | P3 | closed by CN-3 + CN-4 | **CLOSED** |
+| CX-BEHAV-1 | P3 | LIVE, wider (two refusals teach Lyon — a loop) | CRT-10 |
+| CX5-L5-F1 | P2 | LIVE 8/8 | CRT-1 |
+| CX5-L5-F2 … F7 | P2 … P4 | LIVE | CRT-6 |
+| CX5-L5-F8 | — | working as designed | **CLOSED**; residue N5 → CRT-6 |
+| CXR1-1 · L2-5 | — | closed by CX-7 | **CLOSED** |
+| CXR1-2 · CXR1-4 · CXR1-5 | P2 | LIVE | CRT-3 |
+| CXR1-3 | **P1** | LIVE 15/15 | **CRT-1** |
+| CXR1-6 | — | refutation holds | **STRUCK** |
+| DESK-1 · DESK-2 · DESK-7 | P2 | LIVE (DESK-1 a fog leak) | CRT-7 |
+| DESK-3 · DESK-10 | P2 / P3 | LIVE | CRT-4 |
+| DESK-4 · 5 · 8 · 9 · 11 · 12 | P3/P4 | LIVE | CRT-7 |
+| DESK-6 | — | refutation holds | **CLOSED**; its dead `is_drilling` clause → CRT-7 |
+| L2-1 … L2-4 | — | closed by CX-R1 | **CLOSED** (recorded September 22) |
+| L2-6 · L2-7 | — | closed since CX7-2 / CX7-4 | **CLOSED**; residues → CRT-10 (L2-6) and L2-7b → CRT-3 |
+| **NEW** CQ-30 · CQ-31 · CQ-33 | P2 | found here | CRT-2 · CRT-4 · CRT-6 |
+| **NEW** CQ-32 · CQ-34 · CQ-35 | **P1** | found here, confirmed by hand | **CRT-1** |
+| **NEW** CQ-36 | P3 | found here (the boot alliance cannot be broken) | CRT-8 |
+| **NEW** DESK-13 … 16 · CXR1-N2 · N3 · CX5-L5-N2 · N4 · N5 · CX3-X2 · CX3-X3 · L2-7b | P2 … P4 | found here | per the slice table |
+
+### §12.5 Decisions taken here (under the standing delegated grant — recorded, not gated)
+
+1. **CRT-1 precedes the shippable build.** D2's order put position 10 next because
+   *"the three P1s are dead"*. Four new ones are live on ordinary typing, all on one
+   seam. Nothing else from this triage moves ahead of the build.
+2. **CQ-28: refuse at issuance, free, in the lock's own words.** Three reasons:
+   - a one-turn lock is the commitment the player chose;
+   - a queued order is the promise §11.1 retired by contract;
+   - the refusal costs one re-typed line, where the queued arm costs 2 actions for a
+     turn of nothing.
+
+   Re-open with §11.1's conditions.
+3. **CQ-8: RELAY the second name, never spend it.** This follows CR-7's cost rule: a
+   relayed order pays its own actions when the player seals it.
+4. **CQ-20: closed in the shipped client** by the Cabinet door (G1). The API road is a
+   parser fallback by standing ruling; its pin is owed to CRT-8.
+5. **CX-X3 is KEPT, not closed by that same standing ruling.** The door claims only
+   the sentences it can SPELL, and a keyed player's paraphrase reaches an executor
+   with no rule. The rule is §8a exactly. The ledger's minor-court filter is a display
+   choice and must not be imported.
+6. **A hedged dialogue answer fails closed** (CRT-5's ruling, above). This is the
+   ruling CXR1-4's measured shape needed.
+7. **Place names.** Ulm → Swabia and Austerlitz → Moravia are AUTHORED aliases that
+   REFUSE AND NAME THE PROVINCE. An alias that resolves would be discarded by the
+   march/hold path's typo re-check. **Jena gets no alias:** there is no Thuringia
+   province, the map's projection is ambiguous, and the game prints Jena only as a
+   title-screen caption. It falls through to the honest "no such province" answer,
+   without the across-Europe guess (CX3-X3).
+8. **R158 is STRUCK.** The fast parser's confidence is 0.90–1.00 on every measured
+   cell where the game acted on an order the player did not give (D6). Showing it
+   would say the game is sure exactly when it is wrong, and the relay, the named
+   refusals and the completer already carry the feedback R158 asked for. **Re-open**
+   only if a CALIBRATED confidence exists (an HC-L model, with a measured
+   calibration).
+9. **"CR-8" is recorded, not re-owned.** It is the §4 "Two-way channel" candidate:
+   its owner is §4, and its landing is the CR-6 FEATURE's gate review, where §4's own
+   completion definition (accept, drop or re-home) is taken. The FACT desk is CRT-7's;
+   ADVICE waits on that gate. The label names no row by itself, so anything citing
+   "CR-8" means that §4 candidate and that gate.
+10. **Two labels outside this intake keep "CR-6 proper"'s shape.** They are flagged,
+    not re-homed, because this triage's scope was D3's label:
+    - **"the next UI slice"** owns CX3-R2/R4/R5/R6/R9/R10/R11/R12, IQ10-X1 and IQ10-X2;
+    - **NPC-12's wider census** has ~426 interpolations and an AST pin named as its
+      completion, but no slice.
+
+    **Dated trigger:** the next session that touches a `.gd` file names a concrete row
+    for the first, and CRT-7's builder names a concrete owner for the second. Both
+    are tracked in the STATUS block.
+
+### §12.6 Re-open conditions and standing rules
+
+- **Nothing new routes to "CR-6 proper"** (D3 stands). A new command-road row names
+  a CRT slice, CR-7, CX-R, or files its own.
+- **A new phrasing in a CRT slice's class is a pin in that slice's file, not a new
+  row.** This applies especially to CRT-1: the negation and reason vocabulary is a
+  CLASS, and the next member will be found.
+- **The four-file gate applies to every CRT slice.** STATUS, this section's landing
+  record, CLAUDE.md LIVE STATE and the BUG_FIXES rows all go in the same commit.

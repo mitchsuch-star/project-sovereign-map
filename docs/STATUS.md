@@ -20,6 +20,76 @@
 > not gated; each carries its argument and its re-open condition. The user has NOT
 > separately confirmed any of them.
 >
+> **✅ ROW 6 — THE CR-6 TRIAGE — HELD September 23, 2026 (docs only: no production
+> code or tests changed). Record and build contract = `docs/COMMAND_ROBUSTNESS_SPEC.md`
+> §12; every row's disposition is on the row in `docs/BUG_FIXES.md`.**
+>
+> **Scope.** This was D3's dated session. It re-measured the whole retired "CR-6 proper"
+> backlog at HEAD `5fec6a9c`, on a fresh 1805 board per sentence at `POST /command`,
+> together with:
+> - the seven intake rows (CQ-17, CQ-20, CQ-21, CQ-24, CQ-28, CQ-29, CX-X3);
+> - CR-7's orphans (CQ-8, the multi-marshal string, `parse_multiple`, R158 and the
+>   rest).
+>
+> Four read-only agents re-drove the September 19 review verdicts, one per family.
+> Every P1, and every P2 that spends or leaks, was re-confirmed by hand.
+>
+> **⛔ It found FOUR P1s on ONE seam.** In each, the game carries out the OPPOSITE of
+> what the player said, silently, at 0.8–0.9 confidence (above the gate):
+> - `Ney, retreat as they attack` fights with four corps (**CQ-32**);
+> - `Nobody retreat` orders a general retreat (−2,270 men), and `No one attack Mack`
+>   fights (−6,010) (**CQ-34**). CX-7's collective list re-opened this;
+> - `couldn't we attack Mack` fights (**CXR1-3**). It was filed at P1 on September 19
+>   and left unowned since;
+> - `I would not accept` SIGNS the treaty (**CQ-35**, FA-N2's class).
+>
+> All four close in `clause_guards`, so they are one slice, **CRT-1**, routed **AHEAD
+> of the shippable build** under D2's own rule (a P1 on ordinary typing precedes the
+> build).
+>
+> **Everything else is homed.** CRT-2 … CRT-11 come after position 10; HC-L's L-1
+> takes IQ9-X1 and IQ9-X3 as riders.
+>
+> **Closed or struck:**
+> - L2-6 and L2-7 (closed since CX-7);
+> - CX-X4 (closed by CN-3 + CN-4);
+> - CQ-20 (closed in the shipped client — the Cabinet door claims it; its pin goes to
+>   CRT-8);
+> - CX5-L5-F8 (as designed);
+> - CXR1-6 and DESK-6 (their refutations hold);
+> - the CR-7 orphans: the autocomplete dropdown and the map-driven context were built
+>   by CX-3 and UI-6; R158 is struck.
+>
+> **Found and filed** (with CQ-32, CQ-34, CQ-35 above):
+> - CQ-30: `Ney, attack Archduke Charls` fights MACK. A slip on a fogged name is read
+>   as a description.
+> - CQ-31: `Ney, move to London` takes 2 actions across the sea that `march to`
+>   refuses.
+> - CQ-33: `with the Guard` becomes a 2-action hold.
+> - CQ-36: the Cabinet offers to break a boot alliance the executor says does not
+>   exist.
+> - Family rows: DESK-13…16, CX5-L5-N2/N4/N5, CXR1-N2/N3, L2-7b, CX3-X2/X3.
+>
+> **Wider than filed:**
+> - CQ-17: the estate arm endows the ADDRESSEE for 200g, irreversibly.
+> - CX-X1: a question DOWNGRADES a real alliance.
+> - CX7-X1: 568 cells are misread as marshals' names.
+> - DESK-1: a fog leak — `why not attack Kutuzov` names his fogged province.
+>
+> **Decided:**
+> - CQ-28: refuse at issuance, free.
+> - CQ-8: relay the second name, never spend it.
+> - A hedged dialogue answer fails closed.
+> - Ulm and Austerlitz refuse by naming their province; Jena gets no alias.
+> - CX-X3 is kept (a keyed paraphrase reaches an executor with no rule).
+>
+> **Flagged, not in scope:** "the next UI slice" and NPC-12's census carry "CR-6
+> proper"'s shape. Dated trigger: the next `.gd` session names the first, and CRT-7's
+> builder names the second.
+>
+> **The IDs are `CRT-n`, not `CX-R3+`,** because `docs/audits/cx_recon_2026_09_19/`
+> already uses `CX-R3`…`CX-R13`.
+>
 > **✅ SLICE 1 — CR-7-1 "The tail stops eating the head" — LANDED September 22,
 > 2026.** Landing record = `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md`
 > §CR-7-1 LANDING RECORD (authoritative); rows **CQ-1** and **CQ-9** disposed in
@@ -265,18 +335,29 @@
 >
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = the **CR-6 triage** (row 6 below — its dated trigger fires NOW: the
->    session after CX-R1 / CN / CX-R2, all landed September 22–23, 2026), a **0.25-session
->    TRIAGE, not a build**: give every row in its intake an owner row, a landing slice, a
->    completion definition, a STATUS line and a behaviour test (Golden Rule 9) — **CQ-17**,
->    **CX-X3**, **CQ-20**, **CQ-21**, **CQ-24**, **CQ-28**, **CQ-29** (done-when on each in `BUG_FIXES.md`
->    §Command-Road Queue) plus whatever of the retired "CR-6 proper" (ruling D3) is not already
->    homed. CQ-21 and CQ-24 are one design for two surfaces (the battery's STATE gates extracted
->    into one pure per-verb probe) and CQ-28 sits beside them — measure `BASELINE_SERIES` before
->    touching any executor road (CQ-22 is the precedent that the AI's road differs). Then
->    **ROADMAP position 10, the shippable build** — slices 1–4 are all landed, so the build is
->    unblocked; if the user would rather ship first, the triage is small enough to ride that
->    session.
+> 1. **What is next** = **CRT-1 "What the sentence forbids is never the order"** (P1 ×4,
+>    ~1.0–1.25 sessions). **The CR-6 triage (row 6) is DONE** (September 23, 2026 — record =
+>    `docs/COMMAND_ROBUSTNESS_SPEC.md` §12). It found four P1s on one seam and routed them
+>    AHEAD of the build:
+>    - **CQ-32:** `Ney, retreat as they attack` fights;
+>    - **CQ-34:** `Nobody retreat` retreats the whole army, and `No one attack Mack` fights;
+>    - **CXR1-3:** `couldn't we attack Mack` fights;
+>    - **CQ-35:** `I would not accept` signs the treaty.
+>
+>    **How to build it.** Everything is in `backend/ai/clause_guards.py`:
+>    - the modal and perfect negative contractions, plus `ought` / `have we`, join the
+>      negation vocabulary;
+>    - the negative indefinites become markers and leave `_COLLECTIVE`;
+>    - add ONE subtractive reason-clause guard, in the PARSE-NEG shape (blank with spaces,
+>      never pick an action).
+>
+>    ⛔ **Do NOT widen `is_question`'s lead:** it stops `Davout, don't advance on our left,
+>    fortify` from fortifying. The per-row done-whens are in `BUG_FIXES.md` §Command-Road
+>    Queue; §12.3 of the spec carries the controls. Pins drive `POST /command`; the corpus
+>    is 711/711 in both arms and is NOT evidence.
+>
+>    **Then ROADMAP position 10, the shippable build.** After that, CRT-2 … CRT-11 in the
+>    §12.3 order; Round 0 evidence may re-order them.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -304,6 +385,7 @@
 > | `docs/audits/COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md` | **row CR-7** — compound & conditional orders (8 slices, 5.0 sessions) |
 > | `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md` | **row CX-R** — the assurance verdict + the completer's gaps |
 > | `docs/audits/LOCAL_PARSER_FEASIBILITY_2026_09_20.md` | **row HC-L** — the local model; amends `HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7b |
+> | `docs/COMMAND_ROBUSTNESS_SPEC.md` **§12** (September 23, 2026) | **the CR-6 triage — slices CRT-1 … CRT-11**; each CRT slice appends its landing record there as `§12.x CRT-n LANDING RECORD` |
 >
 > ### ▶ THE BUILD ORDER (decided — take these in order)
 >
@@ -313,11 +395,14 @@
 > | ~~**2**~~ | ~~**CX-R1 "The unbound name spends nothing"**~~ ✅ **LANDED Sept 22, 2026** | CX-R | 0.5 | ~~**P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**.~~ **~30 forms → 0**; the verb set is generated from the router. Landing record in the memo. CX-X3 (a bare `vassalize`) re-routed to the CR-6 triage. |
 > | ~~**3**~~ | ~~**CN-1 … CN-4 "The Chip Names the Man"**~~ ✅ **ALL FOUR LANDED Sept 22, 2026 — row CN is done** (CN-1 + CN-2 backend, CN-3 the chip, CN-4 the census) | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
 > | ~~**4**~~ | ~~**CX-R2 "The offer is reachable"**~~ ✅ **LANDED Sept 23, 2026** | CX-R | 0.5 | ~~The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`.~~ **169 of 280 refused on the boot → 0** (every offered line driven at `/command`); not client-only, by decision — two display-only fields. Landing record in the memo. |
-> | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — next after the dated CR-6 triage (row 6) | — | — | The three P1s are dead and the first-contact surface is honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship here.** |
+> | **▶ 6a** | **CRT-1 "What the sentence forbids is never the order"** — **NEXT** (filed by the CR-6 triage, Sept 23, 2026) | CRT | 1.0–1.25 | **P1 ×4 on one seam — CQ-32, CQ-34, CQ-35, CXR1-3 (+ CX5-L5-F1):** an order to retreat, a prohibition, a negative question and a refusal each carry out the OPPOSITE. **It precedes the build under D2's own rule.** Contract = `COMMAND_ROBUSTNESS_SPEC.md` §12.3. |
+> | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — next after CRT-1 (row 6a) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
 | ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
-> | **▶ 6** | **CR-6 triage** — **NEXT (due now)** | CR-6 | 0.25 | **▶ DUE NOW — CX-R2 landed September 23, 2026.** **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — **and by two more the same day (CN-4): CQ-20** (typed `propose white peace with <N>` is heard as a Peace Treaty with terms) **and CQ-21** (at zero AP every order chip is offered and refused) — **and by two more on September 23 (CX-R2): CQ-24** (the completer offers orders a marshal's STATE refuses — CQ-21's sibling, one design for both) **and CQ-28** (a drill-locked marshal takes a standing order the lock says he cannot receive) — **and, filed after CX-R2 landed, CQ-29** (`recruit <arm> in <X>` with a typo, an accent or an unknown place is raised AT THE CAPITAL and charged, P2) — all with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
-> | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. |
+> | ~~**6**~~ | ~~**CR-6 triage**~~ ✅ **HELD September 23, 2026** — record + build contract = `COMMAND_ROBUSTNESS_SPEC.md` §12. Every "CR-6 proper" row is homed to CRT-1…CRT-11 or closed or struck, and CQ-30…CQ-36 are filed | CR-6 | 0.25 | ~~**▶ DUE NOW — CX-R2 landed September 23, 2026.**~~ **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — **and by two more the same day (CN-4): CQ-20** (typed `propose white peace with <N>` is heard as a Peace Treaty with terms) **and CQ-21** (at zero AP every order chip is offered and refused) — **and by two more on September 23 (CX-R2): CQ-24** (the completer offers orders a marshal's STATE refuses — CQ-21's sibling, one design for both) **and CQ-28** (a drill-locked marshal takes a standing order the lock says he cannot receive) — **and, filed after CX-R2 landed, CQ-29** (`recruit <arm> in <X>` with a typo, an accent or an unknown place is raised AT THE CAPITAL and charged, P2) — all with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
+> | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. **+ the CR-6 triage's riders on L-1: IQ9-X1** (the retried live parse is adopted) **and IQ9-X3** (a live failure stamps its own mode), +0.25. |
+> | **8** | **CRT-2 … CRT-11** — after position 10, in `COMMAND_ROBUSTNESS_SPEC.md` §12.3's order (Round 0 evidence may re-order; a tester-hit row jumps) | CRT | ≈ 8.5–9 | **CRT-2** the name is never replaced (CQ-17 / 29 / 30, P2) · **CRT-3** a question never orders (CX-X1 + the downgrade, L2-7b, CXR1-2/4/5/N2/N3) · **CRT-4** the road law read where it is quoted (CQ-31, DESK-3/10) · **CRT-5** an answer is read closed (IQ7-X7) · **CRT-6** the retreat is a word (CQ-33, CX5-L5-F2…F7/N2/N4/N5) · **CRT-7** the desk answers what the order would do (DESK-1…16) · **CRT-8** the Cabinet's rules on every road (CX-X3, CQ-36, CX-X2, CQ-20's pin) · **CRT-9** the state speaks first (CQ-21 / 24 / 28) · **CRT-10** the suggestion is honest (CX7-X1 — lands WITH or AFTER CRT-1 — IQ9-X2, CX3-X1/X2/X3, CX-BEHAV-1) · **CRT-11** the second name is heard (CQ-8). |
+> | **—** | **Flagged by the triage, not in its scope** | — | — | **"the next UI slice"** (CX3-R2/4/5/6/9/10/11/12, IQ10-X1/X2) and **NPC-12's wider census** have "CR-6 proper"'s shape — a label with no slice. **Dated:** the next session that touches a `.gd` names a concrete row for the first; CRT-7's builder names a concrete owner for the second. |
 >
 > **Recorded dissent on the order:** a build in a tester's hands surfaces defects a
 > fleet cannot, so there is a real case for shipping position 10 first. It is
@@ -355,6 +440,8 @@
 > - **nothing new routes to "CR-6 proper".** A new row names CR-7, CX-R, or files
 >   its own. `CR-6` the *feature* (Conversational Objection Negotiation) keeps its
 >   standing USER DESIGN GATE and is untouched by this.
+> - **✅ The dated triage was HELD September 23, 2026** (`COMMAND_ROBUSTNESS_SPEC.md` §12):
+>   the remainder is homed to **CRT-1 … CRT-11**, and a new row may also name a CRT slice.
 >
 > **D4 — No artillery marshal is authored onto the 1805 board.** There are **zero
 > artillery marshals for any nation**, so the 10,000-man artillery pool is
