@@ -3046,7 +3046,12 @@ func _draw_fleet_tooltip():
 	var lines: Array = []
 	var nation := str(f.get("nation", ""))
 	var admiral := str(f.get("admiral", ""))
-	var head := Utils.display_nation_name(nation)
+	# The adjectival label the backend ships ("the Royal Navy", "the French
+	# fleet"), capitalised; the nation name is the fallback.
+	var head := str(f.get("label", ""))
+	if head == "":
+		head = Utils.display_nation_name(nation)
+	head = Utils.humanize_nation_keys_in_text(head.substr(0, 1).to_upper() + head.substr(1))
 	if admiral != "":
 		head += " — Adm. " + admiral
 	_push_tooltip_line(lines, head, Color.WHITE, 14)

@@ -2981,6 +2981,10 @@ def fleet_pieces(world) -> List[Dict]:
         blockading = sorted(n for n, who in blockader_of.items() if who == nation)
         out.append({
             "nation": nation,
+            # The adjectival name every naval sentence uses ("the Royal
+            # Navy", "the French fleet") — never "the France fleet", the
+            # NV-4 copy defect; the client renders this, not the tag.
+            "label": _fleet_label(nation, rec),
             "ships": int(rec.get("ships", 0) or 0),
             "readiness": int(rec.get("readiness", 0) or 0),
             "posture": str(rec.get("posture", "guard") or "guard"),

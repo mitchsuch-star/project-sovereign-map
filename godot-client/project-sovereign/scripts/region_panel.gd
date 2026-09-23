@@ -299,7 +299,14 @@ func _render() -> void:
 					f_color = Utils.COLOR_GOLD
 				elif bool(f.get("at_war_with_player", false)):
 					f_color = Utils.COLOR_ERROR
-				var row := "  [color=#" + f_color + "]" + Utils.display_nation_name(str(f.get("nation", ""))) + " fleet"
+				# The backend's adjectival label ("the French fleet", "the Royal
+				# Navy") — capitalised as the row's first word; the raw tag + "fleet"
+				# only as a fallback for a payload without it.
+				var f_label := str(f.get("label", ""))
+				if f_label == "":
+					f_label = "the " + Utils.display_nation_name(str(f.get("nation", ""))) + " fleet"
+				f_label = f_label.substr(0, 1).to_upper() + f_label.substr(1)
+				var row := "  [color=#" + f_color + "]" + Utils.humanize_nation_keys_in_text(f_label)
 				if admiral != "":
 					row += " (Adm. " + admiral + ")"
 				row += " — " + Utils.format_number(int(f.get("ships", 0))) + " sail, readiness " \

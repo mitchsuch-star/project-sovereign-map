@@ -132,7 +132,7 @@ def boot_payloads():
 # The payload — fleets on the map, public counts
 # ═══════════════════════════════════════════════════════════════════════════
 
-FLEET_KEYS = {"nation", "ships", "readiness", "posture", "admiral", "station",
+FLEET_KEYS = {"nation", "label", "ships", "readiness", "posture", "admiral", "station",
               "is_player", "at_war_with_player", "blockaded_by", "blockading",
               "island"}
 
@@ -160,6 +160,14 @@ class TestTheOverlayCarriesTheFleets:
                 assert isinstance(row[key], int)
         # a ports-only row (Austria, Prussia…) is not a fleet and not drawn
         assert "Austria" not in by_nation and "Prussia" not in by_nation
+
+    def test_the_label_is_adjectival_never_the_tag(self, world):
+        """"the France fleet" is the NV-4 copy defect; the payload carries the
+        naval sentences' own label and the client renders it."""
+        by_nation = {f["nation"]: f for f in naval.map_naval_overlay(world)["fleets"]}
+        assert by_nation["France"]["label"] == "the French fleet"
+        assert by_nation["Britain"]["label"] == "the Royal Navy"
+        assert by_nation["Russia"]["label"] == "the Russian fleet"
 
     def test_the_counts_are_public_by_ruling(self, world):
         """§9 fog ruling: period newspapers printed orders of battle. A
@@ -412,7 +420,8 @@ class TestTheRegionPanelSpeaksOfTheSea:
     def test_a_dockyard_names_its_fleet_and_its_blockade(self, driven_panel):
         text = driven_panel[driven_panel["_stations"]["France"]]
         assert "THE SEA" in text
-        assert "France fleet" in text and "Villeneuve" in text
+        assert "The French fleet" in text and "Villeneuve" in text
+        assert "France fleet" not in text
         assert "45 sail" in text and "readiness 70" in text
         assert "blockaded by Britain" in text
         assert "THE ADMIRALTY" in text
@@ -438,7 +447,7 @@ class TestTheRegionPanelSpeaksOfTheSea:
 
     def test_the_enemy_yard_shows_the_royal_navy(self, driven_panel):
         text = driven_panel[driven_panel["_stations"]["Britain"]]
-        assert "Britain fleet" in text and "Nelson" in text and "100 sail" in text
+        assert "The Royal Navy" in text and "Nelson" in text and "100 sail" in text
 
 
 # ═══════════════════════════════════════════════════════════════════════════

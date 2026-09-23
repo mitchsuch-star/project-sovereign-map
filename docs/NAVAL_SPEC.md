@@ -1708,7 +1708,10 @@ played.
   orders of battle); the only player-relative field is `at_war_with_player`,
   which every enemy corps already carries (CX-R2). DIFF-updated like the
   corps (retire / re-place / create), hitboxes in world coords like the
-  marshals'.
+  marshals'. **The row's name is the payload's adjectival `label`**
+  (`_fleet_label`: "the French fleet", "the Royal Navy") — the first cut
+  rendered "France fleet", the NV-4 copy defect the label exists to
+  prevent; fixed the same day, pinned.
 - **ONE crossing sentence** (`naval.crossing_line`): the Admiralty's
   Crossings row, the map's sea-link tooltip and the region panel's THE SEA
   block all read the same string (parity pinned entry for entry). The
