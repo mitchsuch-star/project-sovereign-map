@@ -6446,3 +6446,66 @@ Generals cards and the real wizard's `_build_command` headless (`tools/cn3_regio
 `tests/_chip_census.py`) and drives every rendered chip; `TestTheInventoryIsComplete` fails on any
 chip url in any client `.gd` it has not reviewed. ⛔ **A new chip gets a census row, or the
 suite goes red.**
+
+## 53. The offer is reachable (CX-R2, landed September 23, 2026)
+
+**The rule, one layer deeper than CX-3.** CX-3 made the command-line completer obey *the game
+must not offer a sentence it cannot read* and pinned it at the parser, where it held (280 of 280
+lines parsed). CX-R2 draws it at the executor: **the game must not offer a sentence it will
+refuse.** Measured on the 1805 boot before: 169 of 280 offered lines refused (60.4%; the memo
+measured 59.3% at `15c498cb`) — every target pool ended in `out.sort()`.
+
+**Every pool is nearest-first, and each is the executor's own answer.** `_MARSHAL_VERBS` gives
+each verb a slot letter naming its pool:
+
+| Slot | Pool | Source of truth |
+|---|---|---|
+| `E` | enemies France is AT WAR with, nearest over the lawful road | `enemies[].at_war_with_player` (the executor's `is_at_war`, both fog branches) |
+| `R` | provinces his march can reach — own soil and `passable_nations`, through no sea crossing the navy shuts | `passable_nations` (`can_enter_territory(..., ignore_evacuation=True)` once per nation) + `naval_overlay.sea_link_verdicts` |
+| `A` | provinces his `move to` enters | `tactical_state.move_open` = `movement_executor.move_open`, the move executor's own pure probe over his `movement_range` |
+| `S` | provinces within his scouting reach | `tactical_state.scout_range` = `movement_executor.scout_range` (read by `_execute_scout`) |
+| `H` | the province he stands in — a detachment is never sent ahead | the executor garrisons `marshal.location`; a named province that is not his is REFUSED with the road to it (`_execute_garrison`) |
+| `M` | our other marshals ON THE MAP, nearest over the lawful road | the payload's marshals and their map entries |
+
+A no-target verb is offered only where its `<verb>_refusal` in `tactical_state` is empty
+(`_VERB_GATE_FIELD`: `fortify`, `unfortify`, `drill`, `defend`, `garrison` — each the executor's
+own predicate: `fortify_refusal`, `unfortify_refusal`, `drill_refusal`, `defend_refusal`,
+`EconomyExecutor.garrison_refusal`). A verb whose pool is empty is not offered at all. The
+distances are a breadth-first walk of `/map_topology` (`map.gd get_region_topology`); before the
+topology arrives the `R` and `S` pools are empty and the others come back alphabetically.
+
+**Hidden, not dimmed.** The completer PREDICTS a line; a line the executor will refuse is not
+predicted. The dimmed-with-its-reason idiom belongs to the chips (CN-4), which are affordances a
+player browses; a player who types a hidden verb anyway gets the executor's own reason.
+
+**A garrison is left where the corps stands.** The `H` slot names only his province, and
+`_execute_garrison` REFUSES a named province that is not his — with the road to it — instead of
+garrisoning his own ground under another name (the latent substitution the memo's correction 1
+warned about). A nation named gets the region matcher's own answer. The AI names no province, so
+its road is unchanged.
+
+**The continuations are drawn where they happen.** `then attack` offers enemies nearest the
+march's DESTINATION; `until … arrives` offers marshals nearest the ground HELD; a head his lawful
+road does not reach offers nothing (a refused first step refuses the two-step order).
+`_continuation_head` cuts at the first `then` / `until` / `for` WORD, which may be the first word
+(`hold until` holds where he stands).
+
+**Retreat reads the map, not the executor — deliberately.** The executor's danger test
+(`world.is_in_danger`) counts corps the player cannot see; shipped on every response it would say
+where a hidden enemy stands. The completer offers `retreat` only when an enemy at war, seen now
+(a STALE sighting is not a position), stands in his province or one march off. It may leave out
+a retreat the executor would take; it never offers one refused for want of danger.
+
+**The marshal's STATE is not this row's.** Fortified (no move, no attack), locked in drill,
+recovering from a retreat, broken, zero action points — a state that refuses whole families of
+orders at once — is the chips' CQ-21 class; the completer's side is **CQ-24**, owned by the CR-6
+triage, beside **CQ-28** (the drill lock refuses every tactical order, retreat included, yet a
+standing order is taken for its AP and waits out the drill). A marshal off the map (a prisoner, or
+on administrative duty) is offered nothing.
+
+**Proof is driven.** `tools/cx_r2_completer_harness.gd` boots the real `main.tscn` headless and
+records what `_build_completions` offers on real payloads; `tests/test_cx_r2_the_offer_is_reachable.py`
+sends every offered line to POST /command (the boot, a staged board, the turn-10 and turn-20
+fixtures), pins each pool against an independent Python computation, and pins each payload field
+against the executor directly. ⛔ **A new completer verb gets a slot letter whose pool is the
+executor's own answer, or a `<verb>_refusal` in `tactical_state` — and the driven census.**

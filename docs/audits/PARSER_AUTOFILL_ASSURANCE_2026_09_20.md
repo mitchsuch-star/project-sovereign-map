@@ -435,3 +435,212 @@ dialogue queue), never by the message:
   reason, not the byte-identity, is the claim:** the gate is skipped for AI,
   strategic-execution and autonomous commands, and the ambient harness types
   nothing, so no series command can reach it. Zero `.gd`; ruff clean.
+
+---
+
+## §CX-R2 LANDING RECORD — "The offer is reachable" (September 23, 2026)
+
+**Status: LANDED on master** (slice 4 of the Command-Road Queue, built on
+`dec7b48c`). Row **CQ-5** → FIXED in `docs/BUG_FIXES.md` §Command-Road Queue —
+this memo's remediation **item 4**, with **item 6** (`garrison` / `unfortify`
+stop being offered where they cannot succeed, and the garrison slot's latent
+substitution) taken with it. Found and closed in the build: **CQ-25** (`this
+province` is Provence), **CQ-26** (the continuation vanished at the word it was
+built for), **CQ-27** (a CA9 pin failed whenever the dice fell badly). Filed: **CQ-24**
+(a marshal's STATE refuses whole families of orders — the completer's sibling
+of CQ-21) and **CQ-28** (a drill-locked marshal takes a standing order the lock
+says he cannot receive), both owned by the CR-6 triage. Rules = `SYSTEMS_REFERENCE.md` §53. Pins =
+`tests/test_cx_r2_the_offer_is_reachable.py` (75). Sweep =
+`tools/_sweep_cx_r2.json` (**38/38 killed, 0 INERT at close**).
+
+### Reproduced first (HEAD `dec7b48c`)
+
+A Python replica of `main.gd`'s completer, every line driven at the real
+`POST /command` on a fresh board (the memo's §2 scorer, re-run):
+
+| board | lines | executed | staged | refused |
+|---|---|---|---|---|
+| 1805 boot | 280 | 82 (29.3%) | 29 | **169 (60.4%)** |
+| turn-10 fixture | 252 | 73 (29.0%) | 31 | **148 (58.7%)** |
+| turn-20 fixture | 252 | 93 (36.9%) | 12 | **147 (58.3%)** |
+
+The memo's figures reproduce within a point (it measured 80 / 34 / 166 on
+`15c498cb`; CN-4's CQ-23 has since turned the boot's drill objections into
+refusals-before-objection). **Refusals, by cause, on the boot:** `garrison`
+40 of 40 (the cap of three, or foreign soil: "We do not control Franconia") ·
+`march to` / `move to` 64 of 80 and `scout` 34 of 40 (the alphabet — Albania,
+Alentejo, Algiers, Anatolia: at peace, or too far) · `attack` 15 of 32
+(Deroy, France's Bavarian ally; Brunswick, Prussia at peace) · `unfortify` 8
+of 8 (nobody dug in) · `drill` 8 of 8 (every corps one march from Mack or
+John).
+
+**The order in which the fixes were tried was measured, and it decided the
+shape of the slice.** Proximity alone (a breadth-first walk of `/map_topology`)
+took the boot to 58.6% executed and 31.4% refused — the nearest provinces to
+the Rhine corps are Hesse's Frankfurt and Nassau, at PEACE with France, so a
+nearest-first list still led with refusals. Adding what the executor itself
+knows took it to **0 refused**.
+
+### Decisions (taken under the delegated grant, each with its reason)
+
+1. **"Client-only" was the memo's claim about the INPUTS, and it does not hold
+   for movement — so the slice ships display-only fields, each the executor's
+   own answer.** The memo wrote that adjacency and `active_wars[].opponent` are
+   already on the wire; they are, but which courts' soil France may enter is on
+   no response (`map_data` carries the controller, never the diplomatic state),
+   and deriving "at war" from `active_wars` would be a second implementation of
+   `is_at_war` inside a HUD structure that collapses coalition rows and drops
+   eliminated opponents — the CA9 through-line (the advisory surface keeping its
+   own copy of the rule) this project keeps paying for. So: `enemies[].
+   at_war_with_player` (CN-4's flag, the same `is_at_war`, on both fog branches)
+   and `passable_nations` (nation-level, once per summary over the cached active
+   roster — GR8 — from `can_enter_territory(..., ignore_evacuation=True)`; the
+   WIN-D3 corridor is deliberately not counted: it is a road home issued with its
+   own free march, and a pair-level question with no mover cannot ask it
+   honestly — the corridor census pin in `test_wo_slice13` admits the call by
+   that flag). No mechanic reads either field. Cost measured: 0.9 ms on a 7 ms
+   summary.
+2. **Every pool is the executor's own answer, nearest first**, and the table
+   says which (`_MARSHAL_VERBS` slot letters): `E` enemies at war · `R` a march's
+   lawful reach (own soil + `passable_nations`, through no sea crossing the navy
+   shuts — `naval_overlay.sea_link_verdicts`, the verdicts the map already tints)
+   · `A` `tactical_state.move_open` (NEW single source
+   `movement_executor.move_open` — the move executor's own pure probe over his
+   `movement_range`, so a cavalry corps' second ring is offered) · `S` within
+   `tactical_state.scout_range` (NEW single source `movement_executor.
+   scout_range`, read by `_execute_scout`) · `H` his own province · `M` our other
+   marshals on the map. Ties break alphabetically; before the topology arrives
+   `R` and `S` offer nothing and the rest come back alphabetically.
+3. **A no-target verb is offered only where its own gate is open** —
+   `tactical_state.<verb>_refusal` (`_VERB_GATE_FIELD`): CN-4's `drill_refusal`
+   and `fortify_refusal`, and three NEW single sources the executors now read:
+   `tactical_executor.unfortify_refusal`, `tactical_executor.defend_refusal`
+   (fortify shifts a marshal to DEFENSIVE, so every fortified marshal's `defend`
+   was an offer the executor refused) and `EconomyExecutor.garrison_refusal` (the
+   probe's gates, moved one level down so the payload can ship their short form;
+   the GR8 pin follows them). **Hidden, not dimmed:** the completer is a typing
+   aid that PREDICTS the line — a dimmed reason is the chips' idiom (CN-4), and
+   a player who types the verb anyway gets the executor's own reason.
+4. **Retreat reads the map, not the executor — deliberately.** The executor's
+   danger test counts corps the player cannot see; shipped on every response it
+   would say where a hidden enemy stands. The completer offers `retreat` only
+   when an enemy at war, seen NOW (a stale sighting is where he was), stands in
+   his province or one march off. It may leave out a retreat the executor would
+   take; it never offers one refused for want of danger.
+5. **A garrison is left where the corps stands — and the executor now says so.**
+   The slot names only his own province; and `_execute_garrison`, which read
+   `marshal.location` and never the province named, now REFUSES a named province
+   that is not his, with the road to it (*"Ney stands at Rhineland, Your Majesty
+   — a garrison is left where the corps stands, not sent ahead of it. March him
+   to Bohemia first."*), and answers a nation named with the region matcher's
+   own reply. This memo's correction 1 (*fix the cap without the slot and you
+   ship the substitution*) is closed; the AI never names a province (pinned by a
+   census of its garrison order), so its road is unchanged. CR-7-7's dated
+   garrison exemption is RETIRED — its verb-table pin now runs `garrison` for
+   real, on a board with room under the cap.
+6. **The marshal's STATE is not this row's (CQ-24, filed).** Fortified (no
+   move, no attack), locked in drill, recovering from a retreat, broken, zero
+   action points — a state that refuses whole families of orders at once — is
+   the chips' CQ-21 class; building it here would mean extracting the
+   pre-objection battery's state gates into a pure per-verb probe (CN-4-scale
+   work, with CQ-22's series hazard). A marshal off the map (a prisoner, or on
+   administrative duty) is offered nothing — the map entry is the fact.
+7. **The follow-on attack is drawn from where the march ENDS; the awaited
+   marshal from the ground HELD** — `Massena, march to Bern then attack` offers
+   Mack before Archduke John (from Milan it would be the reverse), `Ney, hold
+   Lorraine until` offers Napoleon and Soult (who stand on it) before Davout.
+   A two-step order whose head his lawful road does not reach is not offered at
+   all (a refused first step refuses the whole order).
+8. **The proof is DRIVEN, never a Python copy** (the CX-7 lesson).
+   `tools/cx_r2_completer_harness.gd` boots the real `main.tscn` headless behind
+   CX-7's API stub, hands the real map node the real topology and the completer
+   real payloads (four boards and five client-only payloads in one engine boot),
+   and records what `_build_completions` offers; the pytest sends every offered
+   line on a real board to `POST /command`. Two independent pins sit under it:
+   every pool is recomputed in Python from the world and compared line for line
+   (a drift pin between two implementations), and every payload field is pinned
+   against the executor directly, engine-free.
+
+### Found in the build, and closed
+
+* **CQ-25 — `this province` is Provence.** `Ney, scout this province` answered
+  *"Provence is too far to scout (distance: 5)"* — one letter from the common
+  noun, and absent from the parser's `_NON_TARGET_WORDS`; it would also have
+  turned `Ney, garrison this province` into a refusal once the executor stopped
+  substituting. The place nouns (`province(s)`, `region(s)`, `territory/ies`)
+  joined the list; `Ney, scout Provence` still resolves.
+* **CQ-26 — the continuation vanished at the word it was built for.** CR-7-7's
+  head cut looked for `" until"` with its leading space after `strip_edges` had
+  removed it, so `Ney, hold until ` offered NOTHING (the head read as a province
+  called "until"), and `hold for ` the same. One word-level cut
+  (`_continuation_head`).
+* **CQ-27 — a CA9 pin failed whenever the dice fell badly.**
+  `test_the_bare_order_really_would_object` needs the strategic objection to
+  fire, and it passes through `apply_mood_variance`, whose 15% down-shift
+  turns MODERATE into MILD (no popup): measured, the same 25 files in the same
+  order under `-p no:randomly` fail it on a clean HEAD worktree (`dec7b48c`),
+  and under pytest-randomly it rides the session seed. The fixture now holds
+  the variance at identity (CN-4's pattern). CQ-11's class.
+* **Recorded, not filed — the defend gate's consolidation is hygiene, not a
+  defect.** I first wrote it up as CQ-23's class one verb over ("answered after
+  the objection"); building the pin showed it was not: the battery's broader
+  locked-drill gate ("cannot receive orders") already refuses before any
+  objection, and of its two fortified-gate copies the first always answered
+  (the second was dead). What is real is the single source: the battery,
+  `_execute_defend` and the payload now read one `defend_refusal`, and the
+  executor's own road (the AI's) reads the refusal before its drill-cancel
+  (the old order could not bite — drill and fortify refuse each other).
+* **CQ-28 — filed, not fixed: the drill lock is one road deep.** Checking the
+  comment I wrote for that note found my own sentence wrong twice: the
+  battery's locked-drill gate stops `retreat` too (not "every order but
+  retreat"), and it stops only the orders the battery sees. Measured on a fresh
+  boot with Davout drilled the real way and locked by the turn's end (**not
+  Soult** — his Drillmaster of Boulogne never locks, so a probe on him measures
+  nothing): `Davout, move to Normandy` is refused free, while `Davout, march to
+  Brittany` and `Davout, support Ney` are TAKEN for 2 AP with a reply that says
+  he has begun (*"Davout begins march to Brittany. Route: Paris -> Berry ->
+  …"*); he stands at Paris through the locked turn and marches the turn after
+  the drill completes. Not this row's: the completer offers what the executor
+  TAKES, and the census counts these lines as executed on the executor's own
+  verdict. The rule (refuse at issuance, or accept and say it waits) is the CR-6
+  triage's, beside CQ-24.
+
+### Measured after
+
+Driven, never replicated: `tools/cx_r2_completer_harness.gd` runs the real
+completer on each board and EVERY line it offers is sent to `POST /command` on a
+fresh copy of that board (the census includes the continuations, so it is not
+the memo's 280-line frame — the "before" column is the replica above):
+
+| board | lines offered | executed | staged a question | refused | refused before |
+|---|---|---|---|---|---|
+| 1805 boot | 272 | 237 (87.1%) | 35 | **0** | 169 of 280 (60.4%) |
+| turn-10 fixture | 243 | 201 (82.7%) | 42 | **0** | 148 of 252 (58.7%) |
+| turn-20 fixture | 278 | 217 (78.1%) | 29 | 32 — every one Bernadotte, recovering from a retreat | 147 of 252 (58.3%) |
+| staged board | 239 | 196 (82.0%) | 39 | 4 — every one fortified Davout's `move to` | — |
+
+Every refusal left is **CQ-24's class** (the marshal's STATE), exempted by the
+state and pinned so the exemption covers exactly Bernadotte on t20 and Davout on
+the staged board and nobody else. "Staged" is the order TAKEN and the marshal
+answering in character — an objection (Ney does not like to dig in), a muster,
+an interrupt.
+
+* **The sweep's one INERT was the pin, and it was the cap:** CXR2-30 (a
+  prisoner can be supported) survived because the synthetic prisoner stood at
+  Vienna, beyond the five-offer cap — the cap, not the rule, kept him out. The
+  realistic near case is a marshal on administrative duty; he now stands in
+  Soult's own province and the mutation is killed. 38/38 at close.
+
+* M1–M7 and `BASELINE_SERIES` byte-identical without re-record — every change
+  on the AI's road is inert by construction (the AI never names a garrison
+  province; `defend_refusal` / `unfortify_refusal` are the executor's existing
+  checks, re-sited; `scout_range` is the same formula; the parser's stop words
+  touch only typed text), and the pins passed unchanged.
+* Corpus 711/711 (not evidence — the corpus stops at the parser).
+* Parse harness EXIT=0 (50 scripts — the new harness listed); boot smoke 0
+  `SCRIPT ERROR`.
+* Pins moved consciously: CX-3's slot set and enemy-roster function; CR-7-7's
+  continuation wiring (the new reach gate is pinned there too) and its retired
+  garrison exemption; the scale-readiness GR8 pin follows the garrison count
+  into `garrison_refusal`; CX-7's synthetic board gains the real payload's shape
+  (its assertions unchanged).

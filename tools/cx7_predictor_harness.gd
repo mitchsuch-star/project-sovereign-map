@@ -144,11 +144,36 @@ func _type(text: String) -> void:
 
 
 func _board() -> Dictionary:
+	# CX-R2: the completer now draws each slot from the executor's answers on
+	# the payload — a marshal's map entry (`tactical_state` gates), each
+	# enemy's `at_war_with_player`, `passable_nations` — so the synthetic
+	# board carries the shape the real payload has. The topology is left
+	# unanswered (see `get_map_topology` above), so distances are unknown and
+	# the pools come back alphabetically: the no-topology arm, exercised here.
+	var gates := {
+		"fortify_refusal": "", "unfortify_refusal": "not fortified",
+		"drill_refusal": "", "defend_refusal": "", "garrison_refusal": "",
+		"scout_range": 2, "move_open": ["Saxony", "Silesia"],
+	}
+	var corps := []
+	for name in ["Ney", "Davout", "Soult", "Murat"]:
+		corps.append({"name": name, "nation": "France", "tactical_state": gates})
 	return {
 		"player_nation": "France",
-		"marshals": {"Ney": {}, "Davout": {}, "Soult": {}, "Murat": {}},
-		"enemies": {"Mack": {}, "Brunswick": {}, "Deroy": {}},
-		"map_data": {"Swabia": {}, "Silesia": {}, "Saxony": {}, "Paris": {}},
+		"marshals": {"Ney": {"location": "Paris"}, "Davout": {"location": "Paris"},
+			"Soult": {"location": "Paris"}, "Murat": {"location": "Paris"}},
+		"enemies": {
+			"Mack": {"location": "Swabia", "nation": "Austria", "at_war_with_player": true},
+			"Brunswick": {"location": "Saxony", "nation": "Prussia", "at_war_with_player": true},
+			"Deroy": {"location": "Silesia", "nation": "Bavaria", "at_war_with_player": true},
+		},
+		"passable_nations": ["Austria", "Bavaria", "France", "Prussia"],
+		"map_data": {
+			"Swabia": {"controller": "Austria", "marshals": []},
+			"Silesia": {"controller": "Prussia", "marshals": []},
+			"Saxony": {"controller": "Prussia", "marshals": []},
+			"Paris": {"controller": "France", "marshals": corps},
+		},
 	}
 
 

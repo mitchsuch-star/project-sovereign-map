@@ -33,6 +33,13 @@ func set_region_topology(topology: Dictionary) -> void:
 		_build_static_map_visuals()
 
 
+func get_region_topology() -> Dictionary:
+	"""CX-R2: {province: [adjacent...]} from `/map_topology` — the command-line
+	completer orders its targets by marching distance over the same graph the
+	executor walks. Empty until the topology has arrived."""
+	return _region_topology
+
+
 func _get_colors() -> Dictionary:
 	if _colors_cache.is_empty():
 		_colors_cache = Utils.NATION_COLORS.duplicate()

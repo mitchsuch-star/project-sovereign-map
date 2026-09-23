@@ -709,6 +709,11 @@ _NON_TARGET_WORDS = frozenset({
     "battle", "war", "campaign", "victory", "defeat", "casualties",
     "morale", "strength", "men", "soldier", "soldiers", "prisoners",
     "rente", "pension", "estate", "duchy", "treasury", "gold",
+    # CX-R2: the common nouns for a place. "this province" was one letter
+    # from Provence, so `Ney, scout this province` answered "Provence is too
+    # far to scout (distance: 5)", and `Ney, garrison this province` named a
+    # province the executor now (rightly) refuses to garrison from Rhineland.
+    "province", "provinces", "region", "regions", "territory", "territories",
 })
 
 # Words shorter than this can only bind as an EXACT name — a three-letter

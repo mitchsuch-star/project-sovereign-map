@@ -64,7 +64,7 @@ def board():
 
 
 @pytest.fixture()
-def objecting_board():
+def objecting_board(monkeypatch):
     """Cautious Ney against a force that dwarfs him.
 
     MEASURED: this is the configuration in which
@@ -72,7 +72,20 @@ def objecting_board():
     WITHOUT a `variable_action_cost` key. An aggressive marshal at good
     odds - the first draft of these tests - never objects at all, so the
     suppression pins passed while testing nothing.
+
+    CX-R2 (Sept 23, 2026): the objection passes through `apply_mood_variance`
+    — a 15% chance to fall one level, MODERATE to MILD, and a MILD concern
+    raises no popup — so the negative control below failed whenever the
+    shared `random` stream landed on it: measured, the same 25 files in the
+    same order under `-p no:randomly` fail it on a clean HEAD worktree
+    (`dec7b48c`), and under pytest-randomly it rides the session seed, so
+    the 15% is a live chance on any run. The variance is held at identity
+    here (the module-level name, CN-4's pattern), so the control measures
+    the configuration, not the dice.
     """
+    from backend.commands import strategic_executor
+    monkeypatch.setattr(strategic_executor, "apply_mood_variance",
+                        lambda concern: concern)
     ney = MarshalFactory.infantry(name="Ney", location="Belgium",
                                   strength=30000, personality="cautious")
     murat = MarshalFactory.infantry(name="Murat", location="Paris",

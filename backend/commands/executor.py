@@ -1941,15 +1941,26 @@ class CommandExecutor:
                     }
 
                 # ═══════════════════════════════════════════════════════════
-                # DEFEND NO-OP: Already defensive + fortified = no action needed
+                # DEFEND GATES — Validation BEFORE objection (CX-R2)
                 # Pre-validated here to avoid showing an objection then telling
-                # the player the action is pointless.
+                # the player the action is pointless. ONE predicate
+                # (`tactical_executor.defend_refusal`), shared with
+                # `_execute_defend` and the payload the completer reads — this
+                # battery held two copies of the fortified gate in two wordings
+                # (the second unreachable behind the first). A locked drill is
+                # refused earlier still, by the DRILLING CHECK above, which
+                # stops every order a drill-locked marshal is given (retreat
+                # included); the predicate carries it for the executor's own
+                # road and the payload.
                 # ═══════════════════════════════════════════════════════════
-                if action == 'defend' and getattr(marshal, 'stance', None) == Stance.DEFENSIVE and getattr(marshal, 'fortified', False):
-                    return {
-                        "success": False,
-                        "message": f"{marshal_name} is already defending and fortified at {marshal.location}. No further defensive action needed.",
-                    }
+                if action == 'defend':
+                    from backend.commands.tactical_executor import defend_refusal
+                    _sentence, _short = defend_refusal(marshal)
+                    if _sentence:
+                        _refusal = {"success": False, "message": _sentence}
+                        if _short == "locked in drill":
+                            _refusal["drilling_locked"] = True
+                        return _refusal
 
                 # ═══════════════════════════════════════════════════════════
                 # RETREAT STATE: Simplified - No personality objections during recovery
@@ -2023,19 +2034,9 @@ class CommandExecutor:
                         # Recruit is allowed - skip objection check
                         should_check_objection = False
 
-                # ═══════════════════════════════════════════════════════════
-                # ALREADY-DEFENDED CHECK - Validation BEFORE objection
-                # Don't fire objection for defend when already fortified
-                # ═══════════════════════════════════════════════════════════
+                # (The second copy of the already-defended gate that stood here
+                # is gone — CX-R2: `defend_refusal`, above, is the one gate.)
                 current_stance = getattr(marshal, 'stance', None)
-                if action == 'defend' and current_stance == Stance.DEFENSIVE:
-                    if getattr(marshal, 'fortified', False):
-                        current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name} is already defending and fortified at {marshal.location} (+{current_bonus}% defense). "
-                                      f"No further defensive action needed.",
-                        }
 
                 # ═══════════════════════════════════════════════════════════
                 # ALREADY-IN-STANCE CHECK - Validation BEFORE objection

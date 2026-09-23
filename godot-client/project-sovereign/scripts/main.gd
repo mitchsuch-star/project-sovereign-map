@@ -7022,19 +7022,39 @@ const COMPLETIONS_ACTIVE := true
 const MAX_SUGGESTIONS := 5
 
 # The verbs the completer offers, with the slot each one takes.
-#   "" = no target · "E" = a VISIBLE enemy · "R" = a province ·
-#   "M" = another of our marshals
+#   "" = no target · "E" = a visible enemy France is AT WAR with ·
+#   "R" = a province his march can reach · "A" = a province his move can
+#   enter · "S" = a province within his scouting range · "H" = the province
+#   he stands in · "M" = another of our marshals
 # ⚠ THIS TABLE IS PINNED FROM PYTHON (`tests/test_cx3_the_predictor.py`):
 # every line it can produce is filled with real names from the shipped 1805
 # board and run through the REAL parser, and must resolve to the action named
 # here. That is the IQ10-6 rule generalised — *the game must not offer a
 # sentence it cannot read* — and it is what stops this table rotting the way
 # the help text's `halt Ney` did.
+#
+# CX-R2 "THE OFFER IS REACHABLE" (the Command-Road Queue, slice 4): the rule
+# is drawn one layer deeper — *the game must not offer a sentence it will
+# refuse*. Measured on the 1805 boot before: 280 of 280 offered lines parsed
+# and 169 were refused (60.4%), because every target pool ended in
+# `out.sort()` — a marshal at Rhineland was offered Albania, Alentejo,
+# Algiers — `attack` offered France's Bavarian ally and neutral Prussia,
+# `garrison <R>` named a province the executor never reads, and `unfortify`
+# / `drill` went to corps with no works and an enemy one march away. Each
+# slot now draws from the executor's own answer, nearest first: `E` is
+# `enemies[].at_war_with_player`, `R` walks `/map_topology` over
+# `passable_nations` and the open sea crossings, `A` is
+# `tactical_state.move_open` (the move executor's own probe), `S` stops at
+# `tactical_state.scout_range`, `H` is his own province behind
+# `garrison_refusal`, and a no-target verb is offered only where its
+# `<verb>_refusal` is empty. Proof: `tests/test_cx_r2_the_offer_is_reachable.py`
+# drives this completer headless and sends every line it offers to
+# POST /command.
 const _MARSHAL_VERBS := [
 	["attack", "E", "attack"],
 	["march to", "R", "move"],
-	["move to", "R", "move"],
-	["scout", "R", "scout"],
+	["move to", "A", "move"],
+	["scout", "S", "scout"],
 	["fortify", "", "fortify"],
 	["unfortify", "", "unfortify"],
 	["drill", "", "drill"],
@@ -7042,8 +7062,22 @@ const _MARSHAL_VERBS := [
 	["hold", "", "hold"],
 	["retreat", "", "retreat"],
 	["support", "M", "move"],
-	["garrison", "R", "garrison"],
+	["garrison", "H", "garrison"],
 ]
+# CX-R2: the no-target verbs whose OWN gate rides the payload — the field in
+# the marshal's `tactical_state` that holds the executor's refusal ("" when
+# the order would be taken). `retreat` is gated below on what the MAP shows
+# (see `_in_visible_danger`); `hold` has no gate of its own.
+const _VERB_GATE_FIELD := {
+	"fortify": "fortify_refusal",
+	"unfortify": "unfortify_refusal",
+	"drill": "drill_refusal",
+	"defend": "defend_refusal",
+	"garrison": "garrison_refusal",
+}
+# A crossing verdict the navy lets through (`naval._OPEN_VERDICTS`) — any
+# other verdict on a sea link is no road for the completer's march.
+const _OPEN_CROSSINGS := ["open", "open_ratio", "window"]
 # CR-7-7 — THE CONTINUATIONS. Once the line holds a complete `<verb> <target>`
 # the table knows, the two compound forms the manual teaches are offered:
 # the engine's one two-step order (`march to <R> then attack <E>`) and the
@@ -7126,17 +7160,22 @@ func _own_marshal_names() -> Array:
 	return out
 
 
-func _visible_enemy_names() -> Array:
-	"""Fog-honest by construction: `game_state.enemies` is built by
-	`get_llm_game_state`, which filters to PARTIAL-or-better visibility. The
-	completer keeps no roster of its own."""
-	var out := []
+func _enemy_rows() -> Array:
+	"""[[shown name, province]] for every visible corps France is AT WAR
+	with. Fog-honest by construction: `game_state.enemies` is the
+	fog-filtered payload, and the completer keeps no roster of its own.
+	CX-R2: that dict holds EVERY foreign corps — France's Bavarian ally and
+	neutral Prussia included — and `attack` is an order, not a declaration,
+	so only `at_war_with_player` (the executor's own `is_at_war`) is kept."""
+	var rows := []
 	var enemies = _last_game_state.get("enemies", {})
 	if enemies is Dictionary:
 		for name in enemies.keys():
-			out.append(Utils.humanize_entity_name(str(name)))
-	out.sort()
-	return out
+			var row = enemies[name]
+			if row is Dictionary and bool(row.get("at_war_with_player", false)):
+				rows.append([Utils.humanize_entity_name(str(name)),
+					str(row.get("location", ""))])
+	return rows
 
 
 func _region_names() -> Array:
@@ -7150,6 +7189,240 @@ func _region_names() -> Array:
 			out.append(str(name))
 	out.sort()
 	return out
+
+
+# ── CX-R2: every pool nearest-first, and drawn from the executor's answer ──
+
+func _marshal_key_for(shown: String) -> String:
+	"""The payload key of the marshal printed as `shown`."""
+	var marshals = _last_game_state.get("marshals", {})
+	if marshals is Dictionary:
+		for key in marshals.keys():
+			if Utils.humanize_entity_name(str(key)) == shown:
+				return str(key)
+	return shown
+
+
+func _marshal_entry(key: String) -> Dictionary:
+	"""His entry on the map (it carries `tactical_state`) with `location`
+	added, or {} when he is not on the map — a prisoner, or a marshal on
+	administrative duty. Neither takes a field order, so the completer
+	offers him none."""
+	var marshals = _last_game_state.get("marshals", {})
+	if not (marshals is Dictionary) or not marshals.has(key):
+		return {}
+	var row = marshals[key]
+	var where := str(row.get("location", "")) if row is Dictionary else ""
+	var map_data = _last_game_state.get("map_data", {})
+	if where == "" or not (map_data is Dictionary) or not map_data.has(where):
+		return {}
+	var region = map_data[where]
+	if not (region is Dictionary):
+		return {}
+	for m in region.get("marshals", []):
+		if m is Dictionary and str(m.get("name", "")) == key:
+			var entry: Dictionary = m.duplicate()
+			entry["location"] = where
+			return entry
+	return {}
+
+
+func _completion_topology() -> Dictionary:
+	if map_area != null and map_area.has_method("get_region_topology"):
+		var topology = map_area.get_region_topology()
+		if topology is Dictionary:
+			return topology
+	return {}
+
+
+func _link_id(a: String, b: String) -> String:
+	return (a + "|" + b) if a < b else (b + "|" + a)
+
+
+func _closed_crossings() -> Dictionary:
+	"""The sea links the navy shuts to us — `naval_overlay.sea_link_verdicts`,
+	the crossing verdicts the map already tints (shown = applied)."""
+	var closed := {}
+	var overlay = _last_game_state.get("naval_overlay", {})
+	if overlay is Dictionary:
+		for verdict in overlay.get("sea_link_verdicts", []):
+			if verdict is Dictionary and not (str(verdict.get("verdict", "")) in _OPEN_CROSSINGS):
+				closed[_link_id(str(verdict.get("link_a", "")),
+					str(verdict.get("link_b", "")))] = true
+	return closed
+
+
+func _march_distances(origin: String) -> Dictionary:
+	"""Steps from `origin` over the provinces a march may enter — our own
+	soil and every court in `passable_nations`, through no sea crossing the
+	navy shuts: the road the executor's lawful route takes. {} before the
+	topology has arrived."""
+	var topology := _completion_topology()
+	var dist := {}
+	if origin == "" or topology.is_empty():
+		return dist
+	var passable := {}
+	for nation in _last_game_state.get("passable_nations", []):
+		passable[str(nation)] = true
+	var map_data = _last_game_state.get("map_data", {})
+	if not (map_data is Dictionary):
+		map_data = {}
+	var closed := _closed_crossings()
+	dist[origin] = 0
+	var queue := [origin]
+	var head := 0
+	while head < queue.size():
+		var here: String = queue[head]
+		head += 1
+		for nxt in topology.get(here, []):
+			var name := str(nxt)
+			if dist.has(name) or closed.has(_link_id(here, name)):
+				continue
+			var region = map_data.get(name, {})
+			var holder := str(region.get("controller", "")) if region is Dictionary else ""
+			if holder != "" and not passable.has(holder):
+				continue
+			dist[name] = int(dist[here]) + 1
+			queue.append(name)
+	return dist
+
+
+func _plain_distances(origin: String) -> Dictionary:
+	"""Steps from `origin` over every road on the map — how `world.get_distance`
+	measures scouting range and the danger a retreat needs. {} before the
+	topology has arrived."""
+	var topology := _completion_topology()
+	var dist := {}
+	if origin == "" or topology.is_empty():
+		return dist
+	dist[origin] = 0
+	var queue := [origin]
+	var head := 0
+	while head < queue.size():
+		var here: String = queue[head]
+		head += 1
+		for nxt in topology.get(here, []):
+			var name := str(nxt)
+			if not dist.has(name):
+				dist[name] = int(dist[here]) + 1
+				queue.append(name)
+	return dist
+
+
+func _nearest_first(rows: Array, dist: Dictionary) -> Array:
+	"""`rows` = [[shown, province]] → the shown names, nearest province
+	first, then alphabetically. A row whose province `dist` never reached is
+	dropped — no road leads there. With no distances at all (the topology
+	has not arrived) the rows come back alphabetically, unjudged."""
+	var ranked := []
+	for row in rows:
+		var place := str(row[1])
+		if dist.is_empty():
+			ranked.append([0, str(row[0])])
+		elif dist.has(place):
+			ranked.append([int(dist[place]), str(row[0])])
+	ranked.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
+	var out := []
+	for row in ranked:
+		out.append(row[1])
+	return out
+
+
+func _enemy_offers(origin: String) -> Array:
+	"""Enemies France is at war with, nearest to `origin` first over the road
+	a march may take; one no lawful road reaches is not offered."""
+	return _nearest_first(_enemy_rows(), _march_distances(origin))
+
+
+func _marshal_offers(origin: String, except_key: String) -> Array:
+	"""Our other marshals ON THE MAP (a prisoner can be neither supported nor
+	awaited), nearest to `origin` first over the road a march may take."""
+	var rows := []
+	var marshals = _last_game_state.get("marshals", {})
+	if marshals is Dictionary:
+		for key in marshals.keys():
+			var name := str(key)
+			if name == except_key or _marshal_entry(name).is_empty():
+				continue
+			# Where the payload says he is — a prisoner is still somewhere
+			# (his captor's capital), so it is the map entry above, not the
+			# distance below, that leaves him out.
+			var row = marshals[key]
+			var where := str(row.get("location", "")) if row is Dictionary else ""
+			rows.append([Utils.humanize_entity_name(name), where])
+	return _nearest_first(rows, _march_distances(origin))
+
+
+func _province_offers(slot: String, entry: Dictionary, march: Dictionary,
+		plain: Dictionary) -> Array:
+	"""The province pools. `march` / `plain` are the distances from where he
+	stands (`_march_distances` / `_plain_distances`)."""
+	var here := str(entry.get("location", ""))
+	var state = entry.get("tactical_state", {})
+	if not (state is Dictionary):
+		state = {}
+	var rows := []
+	match slot:
+		"R":
+			for name in march.keys():
+				if str(name) != here:
+					rows.append([str(name), str(name)])
+			return _nearest_first(rows, march) if not march.is_empty() else []
+		"A":
+			# The move executor's own probe (`move_open`), nearest first.
+			for name in state.get("move_open", []):
+				rows.append([str(name), str(name)])
+			return _nearest_first(rows, plain)
+		"S":
+			var reach := int(state.get("scout_range", 0))
+			for name in plain.keys():
+				if str(name) != here and int(plain[name]) <= reach:
+					rows.append([str(name), str(name)])
+			return _nearest_first(rows, plain) if not plain.is_empty() else []
+		"H":
+			# A detachment is left where the corps stands — never elsewhere.
+			# Whether it WILL be left is `garrison_refusal`, read once, by
+			# `_verb_open`, like every other gated verb.
+			return [here]
+	return []
+
+
+func _in_visible_danger(entry: Dictionary, plain: Dictionary) -> bool:
+	"""`retreat` is refused unless an enemy threatens him. The executor's
+	test (`world.is_in_danger`) counts corps the player cannot see, so it is
+	deliberately NOT shipped — on every response it would say where a hidden
+	enemy stands. The completer asks only what the map shows: an enemy at
+	war, seen now (a stale sighting is not a position), in his province or
+	one march away. It may leave out a retreat the executor would take (a
+	hidden threat; cavalry two marches off); it never offers one refused for
+	want of danger."""
+	var here := str(entry.get("location", ""))
+	var enemies = _last_game_state.get("enemies", {})
+	if not (enemies is Dictionary):
+		return false
+	for name in enemies.keys():
+		var row = enemies[name]
+		if not (row is Dictionary) or not bool(row.get("at_war_with_player", false)):
+			continue
+		if str(row.get("fog_level", "")) == "stale":
+			continue
+		var where := str(row.get("location", ""))
+		if where == here or (plain.has(where) and int(plain[where]) <= 1):
+			return true
+	return false
+
+
+func _verb_open(verb: String, entry: Dictionary, plain: Dictionary) -> bool:
+	"""A no-target verb's own gate: its `<verb>_refusal` is empty (the
+	executor would take it). A missing field is a closed gate."""
+	if verb == "retreat":
+		return _in_visible_danger(entry, plain)
+	if not _VERB_GATE_FIELD.has(verb):
+		return true
+	var state = entry.get("tactical_state", {})
+	if not (state is Dictionary):
+		return false
+	return str(state.get(_VERB_GATE_FIELD[verb], "-")) == ""
 
 
 func _starts_with_ci(text: String, prefix: String) -> bool:
@@ -7230,6 +7503,21 @@ func _canonical_region(name: String) -> String:
 	return ""
 
 
+func _continuation_head(after: String) -> String:
+	"""The head order's own target — the words before the first `then` /
+	`until` / `for`, which may be none (`hold until …` holds where he
+	stands). CX-R2: the cut used to look for " until" WITH its leading space,
+	and `strip_edges` had already removed it, so the moment the player typed
+	the word the continuation was built for — `Ney, hold until ` — every
+	offer vanished (the head read as a province called "until")."""
+	var kept := []
+	for word in after.split(" ", false):
+		if str(word).to_lower() in ["then", "until", "for"]:
+			break
+		kept.append(word)
+	return " ".join(kept)
+
+
 func _add_continuations(marshal: String, rest: String, out: Array,
 		seen: Dictionary) -> void:
 	"""CR-7-7: offer `then attack <E>` after a complete march, and the
@@ -7237,6 +7525,13 @@ func _add_continuations(marshal: String, rest: String, out: Array,
 	complete hold. Only when the head's own target is a real province name
 	(or the hold names none), so nothing is offered on a half-typed target."""
 	var typed := marshal + ", " + rest
+	# CX-R2: the head must be a march his road reaches (a two-step order
+	# whose first step is refused is refused whole), the attack is drawn
+	# nearest the DESTINATION, and the awaited marshal nearest the ground
+	# being held.
+	var key := _marshal_key_for(marshal)
+	var here := str(_marshal_entry(key).get("location", ""))
+	var reach := _march_distances(here)
 	for entry in _CONTINUATIONS:
 		var verb := str(entry[0])
 		var cont := str(entry[1])
@@ -7244,28 +7539,30 @@ func _add_continuations(marshal: String, rest: String, out: Array,
 		if not (_starts_with_ci(rest, verb + " ") or rest.to_lower() == verb):
 			continue
 		var after := rest.substr(verb.length()).strip_edges()
-		var head_target := after
-		for token in [" then", " until", " for "]:
-			var cut := head_target.to_lower().find(token)
-			if cut >= 0:
-				head_target = head_target.substr(0, cut).strip_edges()
+		var head_target := _continuation_head(after)
 		var base := ""
+		var ground := here
 		if verb == "hold":
 			if head_target != "" and not _is_region_name(head_target):
 				continue
-			base = marshal + ", hold" + ("" if head_target == "" else " " + _canonical_region(head_target))
+			if head_target != "":
+				ground = _canonical_region(head_target)
+				if ground != here and not reach.has(ground):
+					continue
+			base = marshal + ", hold" + ("" if head_target == "" else " " + ground)
 		else:
 			if not _is_region_name(head_target):
 				continue
-			base = marshal + ", " + verb + " " + _canonical_region(head_target)
+			ground = _canonical_region(head_target)
+			if ground == here or not reach.has(ground):
+				continue
+			base = marshal + ", " + verb + " " + ground
 		var lines := []
 		if slot == "E":
-			for enemy in _visible_enemy_names():
+			for enemy in _enemy_offers(ground):
 				lines.append(base + " " + cont + " " + str(enemy))
 		elif slot == "M":
-			for name in _own_marshal_names():
-				if str(name) == marshal:
-					continue
+			for name in _marshal_offers(ground, key):
 				lines.append(base + " " + cont + " " + str(name) + " arrives")
 		else:
 			lines.append(base + " " + cont)
@@ -7283,15 +7580,35 @@ func _add_continuations(marshal: String, rest: String, out: Array,
 
 func _add_verb_or_target(marshal: String, rest: String, prefix: String,
 		out: Array, seen: Dictionary) -> void:
+	# CX-R2: a marshal not on the map (a prisoner, or on administrative
+	# duty) takes no field order — offer him none.
+	var key := _marshal_key_for(marshal)
+	var entry := _marshal_entry(key)
+	if entry.is_empty():
+		return
 	_add_continuations(marshal, rest, out, seen)
 	if out.size() >= MAX_SUGGESTIONS:
 		return
-	for entry in _MARSHAL_VERBS:
-		var verb := str(entry[0])
-		var slot := str(entry[1])
+	var here := str(entry.get("location", ""))
+	var march := _march_distances(here)
+	var plain := _plain_distances(here)
+	for row in _MARSHAL_VERBS:
+		var verb := str(row[0])
+		var slot := str(row[1])
+		# CX-R2: the pool, drawn once, decides both halves — a verb whose
+		# pool is empty, or whose own gate is shut, is not offered at all.
+		var pool: Array = []
+		if slot == "E":
+			pool = _nearest_first(_enemy_rows(), march)
+		elif slot == "M":
+			pool = _marshal_offers(here, key)
+		elif slot != "":
+			pool = _province_offers(slot, entry, march, plain)
+		var offered := (_verb_open(verb, entry, plain)
+			and (slot == "" or not pool.is_empty()))
 		if not _starts_with_ci(rest, verb):
 			# Still typing the verb.
-			if _starts_with_ci(verb, rest):
+			if offered and _starts_with_ci(verb, rest):
 				var line := marshal + ", " + verb + ("" if slot == "" else " ")
 				if not seen.has(line.to_lower()):
 					seen[line.to_lower()] = true
@@ -7299,20 +7616,11 @@ func _add_verb_or_target(marshal: String, rest: String, prefix: String,
 					if out.size() >= MAX_SUGGESTIONS:
 						return
 			continue
-		if slot == "":
+		if slot == "" or not offered:
 			continue
-		# The verb is typed — complete its TARGET, from the right roster.
+		# The verb is typed — complete its TARGET, nearest first.
 		var tail := rest.substr(verb.length()).strip_edges()
-		var pool: Array = []
-		if slot == "E":
-			pool = _visible_enemy_names()
-		elif slot == "R":
-			pool = _region_names()
-		else:
-			pool = _own_marshal_names()
 		for candidate in pool:
-			if slot == "M" and str(candidate) == marshal:
-				continue
 			if tail != "" and not _starts_with_ci(str(candidate), tail):
 				continue
 			var full := marshal + ", " + verb + " " + str(candidate)

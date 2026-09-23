@@ -943,7 +943,12 @@ def test_slice8_hot_paths_ride_cached_region_index():
         # into `garrison_refusal_probe` (the PF-4 pattern) and the pin
         # followed it — leaving it on `_execute_garrison` would have
         # kept the NAME green while binding nothing.
-        (EconomyExecutor.garrison_refusal_probe, "get_nation_regions",
+        # CX-R2 (Sept 23, 2026): the gates moved one level down again, into
+        # `garrison_refusal` (so the payload can ship their short form);
+        # the pin follows the count, and the probe is pinned to CALL it.
+        (EconomyExecutor.garrison_refusal, "get_nation_regions",
+         ".regions.items()"),
+        (EconomyExecutor.garrison_refusal_probe, "garrison_refusal(",
          ".regions.items()"),
     ]
     for func, need, forbid in pins:

@@ -140,6 +140,7 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/iq10_surface_screenshot.gd",
 	"res://../../tools/cn3_region_panel_harness.gd",
 	"res://../../tools/cx7_predictor_harness.gd",
+	"res://../../tools/cx_r2_completer_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

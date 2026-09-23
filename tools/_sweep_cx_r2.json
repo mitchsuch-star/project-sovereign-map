@@ -1,0 +1,268 @@
+[
+  {
+    "id": "CXR2-1 unfortify gate never refuses",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    if not getattr(marshal, 'fortified', False):\n        return (f\"{marshal.name} is not currently fortified.\", \"not fortified\")",
+    "new": "    if False:\n        return (f\"{marshal.name} is not currently fortified.\", \"not fortified\")",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-2 defend gate forgets the works",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    if (getattr(marshal, 'stance', Stance.NEUTRAL) == Stance.DEFENSIVE\n            and getattr(marshal, 'fortified', False)):",
+    "new": "    if False:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-3 defend gate forgets the locked drill",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    if getattr(marshal, 'drilling', False) and getattr(marshal, 'drilling_locked', False):\n        return (f\"{marshal.name} is locked in drill formation",
+    "new": "    if False:\n        return (f\"{marshal.name} is locked in drill formation",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-4 the battery forgets the defend gate",
+    "file": "backend/commands/executor.py",
+    "old": "                if action == 'defend':\n                    from backend.commands.tactical_executor import defend_refusal",
+    "new": "                if False:\n                    from backend.commands.tactical_executor import defend_refusal",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-5 _execute_defend stops reading its gate",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "        _sentence, _short = defend_refusal(marshal)\n        if _sentence:\n            refusal = {\"success\": False, \"message\": _sentence}",
+    "new": "        _sentence, _short = defend_refusal(marshal)\n        if False:\n            refusal = {\"success\": False, \"message\": _sentence}",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-6 _execute_unfortify stops reading its gate",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "        _sentence, _short = unfortify_refusal(marshal)\n        if _sentence:\n            return {\"success\": False, \"message\": _sentence}",
+    "new": "        _sentence, _short = unfortify_refusal(marshal)\n        if False:\n            return {\"success\": False, \"message\": _sentence}",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-7 the garrison cap is forgotten",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if nation_garrisons >= cls.GARRISON_MAX_PER_NATION:",
+    "new": "        if False:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-8 a named province is garrisoned at his feet",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if named_region is not None and named_region.name != region_name:",
+    "new": "            if False:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree tests/test_cr7_7_the_completer_teaches_both_forms.py"
+  },
+  {
+    "id": "CXR2-9 a nation named is ignored",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if named_error is not None:\n                return named_error",
+    "new": "            if False:\n                return named_error",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-10 move_open ignores the probe",
+    "file": "backend/commands/movement_executor.py",
+    "old": "        if target is not None and MovementExecutor.move_refusal_probe(\n                world, marshal, target, name) is None:",
+    "new": "        if target is not None:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-11 move_open reaches one province only",
+    "file": "backend/commands/movement_executor.py",
+    "old": "    reach = max(1, int(getattr(marshal, 'movement_range', 1) or 1))",
+    "new": "    reach = 1",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-12 the scout range forgets the cautious kit",
+    "file": "backend/commands/movement_executor.py",
+    "old": "    return int(SCOUT_BASE_RANGE + get_scout_range_bonus(",
+    "new": "    return int(SCOUT_BASE_RANGE + 0 * get_scout_range_bonus(",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-13 passable_nations ignores the law",
+    "file": "backend/models/world_state.py",
+    "old": "            if n and can_enter_territory(world, player, n,\n                                         ignore_evacuation=True))",
+    "new": "            if n)",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-14 every foreign corps is at war",
+    "file": "backend/models/world_state.py",
+    "old": "                    \"at_war_with_player\": bool(\n                        self.is_at_war(self.player_nation, m.nation)),\n                }",
+    "new": "                    \"at_war_with_player\": True,\n                }",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-15 a fogged corps loses the flag",
+    "file": "backend/models/world_state.py",
+    "old": "                    \"at_war_with_player\": bool(\n                        enemy_data.get(\"at_war_with_player\", False)),\n",
+    "new": "",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-16 the garrison gate never ships",
+    "file": "backend/models/world_state.py",
+    "old": "            return EconomyExecutor.garrison_refusal(world, marshal)[1]",
+    "new": "            return \"\"",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-17 move_open never ships",
+    "file": "backend/models/world_state.py",
+    "old": "                        \"move_open\": _move_open_of(self, m),",
+    "new": "                        \"move_open\": [],",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-18 'province' is a target again",
+    "file": "backend/commands/parser.py",
+    "old": "    \"province\", \"provinces\", \"region\", \"regions\", \"territory\", \"territories\",",
+    "new": "    \"provinces\", \"region\", \"regions\", \"territory\", \"territories\",",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-19 every foreign corps is an attack offer",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tif row is Dictionary and bool(row.get(\"at_war_with_player\", false)):",
+    "new": "\t\t\tif row is Dictionary:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-20 the march walks through closed soil",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tif holder != \"\" and not passable.has(holder):\n\t\t\t\tcontinue",
+    "new": "\t\t\tif false:\n\t\t\t\tcontinue",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-21 the march crosses a shut strait",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tif dist.has(name) or closed.has(_link_id(here, name)):",
+    "new": "\t\t\tif dist.has(name):",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-22 nearest-first becomes the alphabet",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tranked.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))",
+    "new": "\tranked.sort_custom(func(a, b): return a[1] < b[1])",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-23 the march offers where he stands",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tfor name in march.keys():\n\t\t\t\tif str(name) != here:",
+    "new": "\t\t\tfor name in march.keys():\n\t\t\t\tif true:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-24 the scout ignores his reach",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t\tif str(name) != here and int(plain[name]) <= reach:",
+    "new": "\t\t\t\tif str(name) != here:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-25 the move pool is not the probe's",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tfor name in state.get(\"move_open\", []):",
+    "new": "\t\t\tfor name in plain.keys():",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-26 danger reaches across the map",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tif where == here or (plain.has(where) and int(plain[where]) <= 1):",
+    "new": "\t\tif where == here or (plain.has(where) and int(plain[where]) <= 99):",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-27 a stale sighting is a threat",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tif str(row.get(\"fog_level\", \"\")) == \"stale\":\n\t\t\tcontinue",
+    "new": "\t\tif false:\n\t\t\tcontinue",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-28 the verb gates are open",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\treturn str(state.get(_VERB_GATE_FIELD[verb], \"-\")) == \"\"",
+    "new": "\treturn true",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-29 a prisoner is offered orders",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif entry.is_empty():\n\t\treturn\n\t_add_continuations(marshal, rest, out, seen)",
+    "new": "\tif false:\n\t\treturn\n\t_add_continuations(marshal, rest, out, seen)",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-30 a prisoner can be supported",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tif name == except_key or _marshal_entry(name).is_empty():",
+    "new": "\t\t\tif name == except_key:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-31 the continuation cut is lost",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tif str(word).to_lower() in [\"then\", \"until\", \"for\"]:\n\t\t\tbreak",
+    "new": "\t\tif false:\n\t\t\tbreak",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-32 a head no road reaches is a head",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tif ground == here or not reach.has(ground):\n\t\t\t\tcontinue",
+    "new": "\t\t\tif ground == here:\n\t\t\t\tcontinue",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-33 a hold on closed ground is offered",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t\tif ground != here and not reach.has(ground):\n\t\t\t\t\tcontinue",
+    "new": "\t\t\t\tif false:\n\t\t\t\t\tcontinue",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-34 the follow-on attack is drawn from where he stands",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tfor enemy in _enemy_offers(ground):",
+    "new": "\t\t\tfor enemy in _enemy_offers(here):",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-35 the awaited marshal is drawn from where he stands",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tfor name in _marshal_offers(ground, key):",
+    "new": "\t\t\tfor name in _marshal_offers(here, key):",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-36 the navy's verdicts are misread",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "const _OPEN_CROSSINGS := [\"open\", \"open_ratio\", \"window\"]",
+    "new": "const _OPEN_CROSSINGS := [\"open\", \"open_ratio\"]",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree"
+  },
+  {
+    "id": "CXR2-37 the drill gate is dropped",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\"drill\": \"drill_refusal\",\n",
+    "new": "",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestThePayloadIsTheExecutor tests/test_cx_r2_the_offer_is_reachable.py::TestTheGarrisonIsLeftWhereTheCorpsStands tests/test_cx_r2_the_offer_is_reachable.py::TestThisProvinceIsNotProvence tests/test_cx_r2_the_offer_is_reachable.py::TestTheTableAndTheGatesAgree tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  },
+  {
+    "id": "CXR2-38 the map hands over no roads",
+    "file": "godot-client/project-sovereign/scenes/map.gd",
+    "old": "\treturn _region_topology\n\n\nfunc _get_colors() -> Dictionary:",
+    "new": "\treturn {}\n\n\nfunc _get_colors() -> Dictionary:",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestTheOfferIsNearest tests/test_cx_r2_the_offer_is_reachable.py::TestTheNoTargetVerbsReadTheirGates tests/test_cx_r2_the_offer_is_reachable.py::TestTheContinuations tests/test_cx_r2_the_offer_is_reachable.py::TestWhatTheMapDoesNotShowIsNotOffered"
+  }
+]

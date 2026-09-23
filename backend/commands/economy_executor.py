@@ -1946,6 +1946,57 @@ class EconomyExecutor:
     # ════════════════════════════════════════════════════════════════════════════
 
     @classmethod
+    def garrison_refusal(cls, world, marshal) -> Tuple[str, str]:
+        """CX-R2: the garrison gates as `(sentence, short)`, or `("", "")`
+        when the detachment would be made. The sentence is the executor's;
+        `short` rides the payload (`tactical_state.garrison_refusal`) so the
+        completer offers `<marshal>, garrison <his province>` only where the
+        detachment will be left (measured before: 40 garrison lines offered
+        on the 1805 boot, 40 refused — three garrisons already kept, or
+        foreign soil). `garrison_refusal_probe` is this function's sentence
+        for its readers. PURE; every fact it reads is the player's own or
+        stands in his own province, so the short form carries no fog."""
+        marshal_name = marshal.name
+        region_name = marshal.location
+        region = world.regions.get(region_name)
+        if not region:
+            return (f"{marshal_name} is in an unknown region, Your Majesty.",
+                    "unknown region")
+        if region.controller != marshal.nation:
+            return (f"We do not control {region_name}, Your Majesty. "
+                    f"We cannot garrison enemy territory.",
+                    "not our soil")
+        enemies_present = [
+            m for m in world.marshals.values()
+            if m.location == region_name and m.nation != marshal.nation
+            and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
+        if enemies_present:
+            return (f"Enemy forces contest {region_name}. We cannot "
+                    f"garrison while under threat, Your Majesty.",
+                    "enemy forces contest the province")
+        if region.garrison_strength > 0:
+            return (f"A garrison already holds {region_name}, Your Majesty.",
+                    "already garrisoned")
+        # Golden Rule 8: count over the cached region index.
+        nation_garrisons = sum(
+            1 for r_name in world.get_nation_regions(marshal.nation)
+            if world.regions[r_name].garrison_strength > 0)
+        if nation_garrisons >= cls.GARRISON_MAX_PER_NATION:
+            return (f"Berthier shakes his head. 'We already maintain "
+                    f"{nation_garrisons} garrisons, Your Majesty. Our supply "
+                    f"lines cannot support another. Maximum "
+                    f"{cls.GARRISON_MAX_PER_NATION} garrisons per nation.'",
+                    f"{nation_garrisons} of {cls.GARRISON_MAX_PER_NATION} "
+                    f"garrisons kept")
+        if marshal.strength < cls.GARRISON_MIN_MARSHAL_STRENGTH:
+            return (f"{marshal_name}'s forces are too depleted to spare a "
+                    f"garrison, Your Majesty. We need at least "
+                    f"{cls.GARRISON_MIN_MARSHAL_STRENGTH:,} men to leave "
+                    f"troops behind.",
+                    "too depleted")
+        return "", ""
+
+    @classmethod
     def garrison_refusal_probe(cls, world, marshal):
         """The garrison gates as a PURE read — the reason a garrison would
         be refused HERE, right now, or None if it would be allowed.
@@ -1963,39 +2014,12 @@ class EconomyExecutor:
         Advisory copy must consult the gate, never a copy of it — that is
         the CA9 through-line this project keeps paying for. Extracted
         verbatim from `_execute_garrison`'s prologue, which now calls it.
+        CX-R2: the gates themselves moved one level down, into
+        `garrison_refusal`, so the payload can carry their short form; this
+        is that function's sentence, or None.
         """
-        marshal_name = marshal.name
-        region_name = marshal.location
-        region = world.regions.get(region_name)
-        if not region:
-            return f"{marshal_name} is in an unknown region, Your Majesty."
-        if region.controller != marshal.nation:
-            return (f"We do not control {region_name}, Your Majesty. "
-                    f"We cannot garrison enemy territory.")
-        enemies_present = [
-            m for m in world.marshals.values()
-            if m.location == region_name and m.nation != marshal.nation
-            and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
-        if enemies_present:
-            return (f"Enemy forces contest {region_name}. We cannot "
-                    f"garrison while under threat, Your Majesty.")
-        if region.garrison_strength > 0:
-            return f"A garrison already holds {region_name}, Your Majesty."
-        # Golden Rule 8: count over the cached region index.
-        nation_garrisons = sum(
-            1 for r_name in world.get_nation_regions(marshal.nation)
-            if world.regions[r_name].garrison_strength > 0)
-        if nation_garrisons >= cls.GARRISON_MAX_PER_NATION:
-            return (f"Berthier shakes his head. 'We already maintain "
-                    f"{nation_garrisons} garrisons, Your Majesty. Our supply "
-                    f"lines cannot support another. Maximum "
-                    f"{cls.GARRISON_MAX_PER_NATION} garrisons per nation.'")
-        if marshal.strength < cls.GARRISON_MIN_MARSHAL_STRENGTH:
-            return (f"{marshal_name}'s forces are too depleted to spare a "
-                    f"garrison, Your Majesty. We need at least "
-                    f"{cls.GARRISON_MIN_MARSHAL_STRENGTH:,} men to leave "
-                    f"troops behind.")
-        return None
+        sentence, _short = cls.garrison_refusal(world, marshal)
+        return sentence or None
 
     def _execute_garrison(self, command: Dict, game_state: Dict) -> Dict:
         """Detach troops to garrison the marshal's current region.
@@ -2028,6 +2052,34 @@ class EconomyExecutor:
 
         region_name = marshal.location
         region = world.regions.get(region_name)
+
+        # CX-R2: a detachment is left where the corps STANDS. A sentence that
+        # named another province used to be obeyed at his feet instead —
+        # `Ney, garrison Bohemia` detached 3,000 men at Rhineland (latent on
+        # the 1805 boot only because the cap of three refused first, and live
+        # the moment a garrison fell). The completer offered exactly that
+        # sentence. A named province that is not his is refused with the road
+        # to it; a name that resolves to nothing gets the region matcher's
+        # own answer (a nation named is told its provinces). The AI never
+        # names a province, so its road is unchanged.
+        named = (command.get("target") or "").strip()
+        if named:
+            named_region, named_error = self._executor._fuzzy_match_region(
+                named, world, near=region_name)
+            if named_error is not None:
+                return named_error
+            if named_region is not None and named_region.name != region_name:
+                from backend.display_names import humanize_entity_name
+                shown = humanize_entity_name(marshal_name)
+                return {
+                    "success": False,
+                    "message": (
+                        f"{shown} stands at {region_name}, Your Majesty — a "
+                        f"garrison is left where the corps stands, not sent "
+                        f"ahead of it. March him to {named_region.name} first."),
+                    "suggestion": f"Try: '{shown}, march to {named_region.name}'",
+                }
+
         refusal = self.garrison_refusal_probe(world, marshal)
         if refusal is not None:
             return {"success": False, "message": refusal}

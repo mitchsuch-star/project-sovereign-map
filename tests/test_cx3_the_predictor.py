@@ -179,7 +179,10 @@ class TestTheCompleterOffersNothingItCannotRead:
         verbs = _gd_table("_MARSHAL_VERBS")
         assert len(verbs) >= 10, verbs
         for verb, slot, action in verbs:
-            assert slot in ("", "E", "R", "M"), (verb, slot)
+            # CX-R2: one letter per kind of target — a march reach (R), a
+            # move the move executor takes (A), a scouting reach (S), his own
+            # ground (H) — alongside the enemy (E) and marshal (M) slots.
+            assert slot in ("", "E", "R", "A", "S", "H", "M"), (verb, slot)
             assert action, verb
 
     def test_every_marshal_verb_parses_to_the_action_it_claims(self, board):
@@ -190,7 +193,8 @@ class TestTheCompleterOffersNothingItCannotRead:
         region = world.get_marshal(marshal).location
         failures = []
         for verb, slot, action in _gd_table("_MARSHAL_VERBS"):
-            target = {"": "", "E": enemy, "R": region, "M": other}[slot]
+            target = {"": "", "E": enemy, "R": region, "A": region,
+                      "S": region, "H": region, "M": other}[slot]
             line = f"{marshal}, {verb}" + (f" {target}" if target else "")
             result = _parse(board, line)
             command = result.get("command") or {}
@@ -384,7 +388,9 @@ class TestTheCompletionSurface:
         assert "_execute_command" not in accept
 
     def test_the_enemy_roster_comes_from_the_fog_filtered_payload(self):
-        enemies = _gd_function("_visible_enemy_names", "_region_names")
+        # CX-R2: the roster function is `_enemy_rows` (it also keeps only
+        # courts France is at war with); the pin follows it.
+        enemies = _gd_function("_enemy_rows", "_region_names")
         assert '_last_game_state.get("enemies"' in enemies
         # …and nowhere does the completer reach for a roster of its own.
         assert "get_enemies_of_nation" not in _gd_source()

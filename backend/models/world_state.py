@@ -168,6 +168,64 @@ def _fortify_refusal_short(world, marshal) -> str:
         return ""
 
 
+def _order_gate_short(world, marshal, verb: str) -> str:
+    """CX-R2: an order's OWN gate, short form ("" when the executor would
+    take it) — the predicates `_execute_unfortify`, `_execute_defend` and
+    `_execute_garrison` refuse by, read so the command-line completer stops
+    offering `unfortify` to a corps with no works, `defend` to one already
+    dug in, and `garrison` where the detachment will not be left. Imported
+    late: the executor modules import this one."""
+    try:
+        if verb == "unfortify":
+            from backend.commands.tactical_executor import unfortify_refusal
+            return unfortify_refusal(marshal)[1]
+        if verb == "defend":
+            from backend.commands.tactical_executor import defend_refusal
+            return defend_refusal(marshal)[1]
+        if verb == "garrison":
+            from backend.commands.economy_executor import EconomyExecutor
+            return EconomyExecutor.garrison_refusal(world, marshal)[1]
+    except Exception:
+        return ""
+    return ""
+
+
+def _passable_nations(world) -> list:
+    """CX-R2: every nation whose soil the player's armies may enter by the
+    law of nations — `diplomacy.can_enter_territory(..., ignore_evacuation=
+    True)` for each active nation, the player's own included. Sorted."""
+    try:
+        from backend.game_logic.diplomacy import can_enter_territory
+        player = world.player_nation
+        nations = set(world.get_active_nations()) | {player}
+        return sorted(
+            n for n in nations
+            if n and can_enter_territory(world, player, n,
+                                         ignore_evacuation=True))
+    except Exception:
+        return []
+
+
+def _scout_range_of(marshal) -> int:
+    """CX-R2: `movement_executor.scout_range` — the reach `_execute_scout`
+    refuses beyond."""
+    try:
+        from backend.commands.movement_executor import scout_range
+        return int(scout_range(marshal))
+    except Exception:
+        return 0
+
+
+def _move_open_of(world, marshal) -> list:
+    """CX-R2: `movement_executor.move_open` — the provinces a `move to`
+    would take."""
+    try:
+        from backend.commands.movement_executor import move_open
+        return list(move_open(world, marshal))
+    except Exception:
+        return []
+
+
 INFANTRY_BASE_REGEN = 2500             # Per nation per turn (halved S8 — manpower is precious)
 CAVALRY_BASE_REGEN = 250               # Per nation per turn (halved S8 — slow, this IS the bottleneck)
 ARTILLERY_BASE_REGEN = 150             # Per nation per turn (halved S8 — foundries are scarce)
@@ -9264,6 +9322,16 @@ class WorldState:
                         # CN-4: why the Fortify chip would be refused ("" when
                         # the works would begin — `fortify_refusal`).
                         "fortify_refusal": _fortify_refusal_short(self, m),
+                        # CX-R2: the command-line completer's gates — each
+                        # the executor's own answer (`unfortify_refusal`,
+                        # `defend_refusal`, `garrison_refusal`,
+                        # `scout_range`, `move_open`), so it offers a line
+                        # only where the order would be taken.
+                        "unfortify_refusal": _order_gate_short(self, m, "unfortify"),
+                        "defend_refusal": _order_gate_short(self, m, "defend"),
+                        "garrison_refusal": _order_gate_short(self, m, "garrison"),
+                        "scout_range": _scout_range_of(m),
+                        "move_open": _move_open_of(self, m),
                         # Fortify state
                         "fortified": bool(getattr(m, 'fortified', False)),
                         "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert 0.02 -> 2%
@@ -9459,11 +9527,27 @@ class WorldState:
                 name: {
                     "location": m.location,
                     "strength": int(m.strength),
-                    "nation": m.nation
+                    "nation": m.nation,
+                    # CX-R2: CN-4's flag, on the dict the command-line
+                    # completer reads — "enemies" holds every foreign corps
+                    # (France's Bavarian ally and neutral Prussia included),
+                    # and `attack` is an order, not a declaration. Diplomacy
+                    # carries no fog.
+                    "at_war_with_player": bool(
+                        self.is_at_war(self.player_nation, m.nation)),
                 }
                 for name, m in self.marshals.items()
                 if m.nation != self.player_nation
             },
+            # CX-R2: the courts whose soil the player's armies may enter —
+            # `can_enter_territory` asked once per nation (GR8: the cached
+            # active roster, never a region scan), the evacuation corridor
+            # deliberately NOT counted (it is a road home for stranded
+            # corps, issued with its own free march order, and a pair-level
+            # question with no mover cannot ask it honestly). The completer
+            # offers `march to` only over this soil. Public: diplomacy
+            # carries no fog.
+            "passable_nations": _passable_nations(self),
             "game_over": self.game_over,
             "victory": self.victory
         }
@@ -9747,6 +9831,10 @@ class WorldState:
                     "nation": enemy_data["nation"],
                     "strength_band": band,
                     "fog_level": intel.visibility,
+                    # CX-R2: a fogged corps' COURT is known (the band and the
+                    # nation already ride), and diplomacy carries no fog.
+                    "at_war_with_player": bool(
+                        enemy_data.get("at_war_with_player", False)),
                 }
             # LAST_KNOWN / UNKNOWN: enemy not shown in enemies dict
 

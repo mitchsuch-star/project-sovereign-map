@@ -129,6 +129,39 @@ def fortify_refusal(world, marshal):
     return "", ""
 
 
+def unfortify_refusal(marshal):
+    """CX-R2: why `<marshal>, unfortify` would be refused — `(sentence,
+    short)`, or `("", "")` when the works would be abandoned. The one gate
+    `_execute_unfortify` has, shared with the payload so the completer stops
+    offering `unfortify` to a marshal who has nothing to abandon (measured:
+    offered to all eight corps on the 1805 boot, refused 8 of 8). PURE."""
+    if not getattr(marshal, 'fortified', False):
+        return (f"{marshal.name} is not currently fortified.", "not fortified")
+    return "", ""
+
+
+def defend_refusal(marshal):
+    """CX-R2: why `<marshal>, defend` would be refused — `(sentence, short)`,
+    or `("", "")` when the defence would change something. ONE predicate for
+    the pre-objection battery (which held two copies of the second gate, in
+    two wordings) and `_execute_defend`, shared with the payload: fortify
+    shifts a marshal to DEFENSIVE, so every fortified marshal's `defend` was
+    an offer the executor refused. The AP a stance change costs is a
+    resource, left to the executor. PURE."""
+    if getattr(marshal, 'drilling', False) and getattr(marshal, 'drilling_locked', False):
+        return (f"{marshal.name} is locked in drill formation and cannot change "
+                f"to defensive stance. Only RETREAT is allowed.",
+                "locked in drill")
+    if (getattr(marshal, 'stance', Stance.NEUTRAL) == Stance.DEFENSIVE
+            and getattr(marshal, 'fortified', False)):
+        current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
+        return (f"{marshal.name} is already defending and fortified at "
+                f"{marshal.location} (+{current_bonus}% defense). "
+                f"No further defensive action needed.",
+                "already defending and fortified")
+    return "", ""
+
+
 def order_refusal_response(world, marshal, verb: str, *,
                            stance_gate: bool = True):
     """CN-4: the refusal response for `drill` / `fortify`, or None — built
@@ -206,41 +239,36 @@ class TacticalExecutor:
         This makes "defend" an intuitive command that always moves
         the marshal toward a more defensive posture.
         """
+        # CX-R2: the two refusals, from the predicate the payload ships — a
+        # locked drill (turn 2), or a marshal already DEFENSIVE and fortified.
+        # Read BEFORE the drill is cancelled below; the two states cannot
+        # coincide (drill and fortify refuse each other), so the order is
+        # the one this function always had.
+        _sentence, _short = defend_refusal(marshal)
+        if _sentence:
+            refusal = {"success": False, "message": _sentence}
+            if _short == "locked in drill":
+                refusal["drilling_locked"] = True
+            return refusal
+
         # ════════════════════════════════════════════════════════════
-        # DRILL STATE CHECK: Handle drilling marshal trying to defend
+        # DRILL STATE CHECK: a drill not yet locked is cancelled
         # ════════════════════════════════════════════════════════════
         drill_cancelled_message = ""
         if getattr(marshal, 'drilling', False):
-            if getattr(marshal, 'drilling_locked', False):
-                # Turn 2: Locked in drill, cannot defend
-                return {
-                    "success": False,
-                    "message": f"{marshal.name} is locked in drill formation and cannot change to defensive stance. Only RETREAT is allowed.",
-                    "drilling_locked": True
-                }
-            else:
-                # Turn 1: Can defend but drill is cancelled
-                marshal.drilling = False
-                marshal.drill_complete_turn = -1
-                drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+            # Turn 1: Can defend but drill is cancelled
+            marshal.drilling = False
+            marshal.drill_complete_turn = -1
+            drill_cancelled_message = f"[!] DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         # ════════════════════════════════════════════════════════════
         # SMART DEFEND: Context-aware routing based on stance
         # ════════════════════════════════════════════════════════════
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
 
-        # Case 1: Already in DEFENSIVE stance
+        # Case 1: Already in DEFENSIVE stance (and, by the refusal above,
+        # not yet fortified) — execute fortify
         if current_stance == Stance.DEFENSIVE:
-            # Check if already fortified
-            if getattr(marshal, 'fortified', False):
-                current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
-                return {
-                    "success": False,
-                    "message": f"{marshal.name} is already defending and fortified at {marshal.location} (+{current_bonus}% defense). "
-                              f"No further defensive action needed.",
-                }
-
-            # Not fortified yet - execute fortify
             command = {"marshal": marshal.name}
             fortify_result = self._execute_fortify(command, game_state)
 
@@ -636,11 +664,9 @@ class TacticalExecutor:
         if error:
             return error
 
-        if not getattr(marshal, 'fortified', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is not currently fortified."
-            }
+        _sentence, _short = unfortify_refusal(marshal)
+        if _sentence:
+            return {"success": False, "message": _sentence}
 
         # ════════════════════════════════════════════════════════════
         # DAVOUT FREE UNFORTIFY (Phase 2.8)

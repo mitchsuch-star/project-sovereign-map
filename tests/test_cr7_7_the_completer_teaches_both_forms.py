@@ -145,28 +145,36 @@ class TestTheContinuationsAreReadable:
         walk = walk[:walk.index("\nfunc ", 10)]
         assert "_add_continuations(marshal, rest, out, seen)" in walk
         cont = body[body.index("func _add_continuations"):body.index("func _add_verb_or_target")]
-        assert "_visible_enemy_names()" in cont and "_own_marshal_names()" in cont
+        # CX-R2: the attack is drawn nearest the destination and the awaited
+        # marshal nearest the ground held — `_enemy_offers` /
+        # `_marshal_offers` in place of the alphabetical rosters.
+        assert "_enemy_offers(ground)" in cont and "_marshal_offers(ground, key)" in cont
         assert '" arrives"' in cont
         # Never on a half-typed target — BOTH branches guard it, and each
         # guard is pinned by its own lines (the sweep found a loose census
         # satisfied by the hold branch alone while the march branch offered
-        # `then attack` on "Ney, march to Swa").
+        # `then attack` on "Ney, march to Swa"). CX-R2 adds the reach: a
+        # head his lawful road does not reach is no head at all. Driven by
+        # `tests/test_cx_r2_the_offer_is_reachable.py` (`TestTheContinuations`)
+        # as well.
         assert ("\t\t\tif not _is_region_name(head_target):\n\t\t\t\tcontinue\n"
-                "\t\t\tbase = marshal + \", \" + verb + \" \" + _canonical_region(head_target)") in cont
+                "\t\t\tground = _canonical_region(head_target)\n"
+                "\t\t\tif ground == here or not reach.has(ground):\n\t\t\t\tcontinue\n"
+                "\t\t\tbase = marshal + \", \" + verb + \" \" + ground") in cont
         assert "if head_target != \"\" and not _is_region_name(head_target):\n\t\t\t\tcontinue" in cont
+        assert "if ground != here and not reach.has(ground):\n\t\t\t\t\tcontinue" in cont
 
 
 class TestTheRepairedVerbTablePin:
     """Every `_MARSHAL_VERBS` line, on a province the marshal is NOT in."""
 
-    # CX-R2 (the next slice of the Command-Road Queue, "the offer is
-    # reachable") owns the completer's target POOLS; `garrison <R>` is
-    # its member: `_execute_garrison` reads `marshal.location` and never
-    # `command["region"]`, and on the boot board the cap of 3 refuses first
-    # (BUG_FIXES §Command-Road Queue, correction 1: fix the cap without the
-    # slot and you ship the substitution). Exempted here BY NAME, dated
-    # September 22, 2026, and proved red below so the exemption is earned.
-    EXEMPT = {"garrison": "CX-R2 / CN — the region slot is discarded by the executor"}
+    # The garrison exemption this pin carried (dated September 22, 2026) is
+    # RETIRED by CX-R2 (September 23, 2026): the completer's `garrison` slot
+    # is "H" — the province he STANDS in, the only one the executor has ever
+    # garrisoned — and `_execute_garrison` now refuses a named province that
+    # is not his instead of substituting it. The row runs below on a board
+    # with room under the cap; the substitution is pinned refused below.
+    EXEMPT = {}
 
     @staticmethod
     def _adjacent_not_his(world, marshal_name):
@@ -187,6 +195,13 @@ class TestTheRepairedVerbTablePin:
         if verb == "unfortify":
             return lambda world, client: client.post(
                 "/command", json={"command": "Davout, fortify"})
+        if verb == "garrison":
+            def room_under_the_cap(world, _client):
+                # The boot keeps exactly three garrisons — the cap.
+                flanders = world.get_region("Flanders")
+                flanders.garrison_strength = 0
+                flanders.garrison_detachment = False
+            return room_under_the_cap
         if verb == "drill":
             def clear_the_neighbourhood(world, _client):
                 for enemy in list(world.get_enemy_marshals()):
@@ -206,8 +221,13 @@ class TestTheRepairedVerbTablePin:
         with _quiet():
             world = build_world("1805")
         marshal = "Davout" if verb in ("hold", "fortify", "defend", "drill", "unfortify") else "Ney"
-        if slot == "R":
-            target = "Swabia" if verb in ("scout", "march to") else self._adjacent_not_his(world, marshal)
+        if slot in ("R", "S"):
+            target = "Swabia"
+        elif slot == "A":
+            target = self._adjacent_not_his(world, marshal)
+        elif slot == "H":
+            # The one province this slot may name: his own (CX-R2).
+            target = world.get_marshal(marshal).location
         elif slot == "E":
             target = ENEMY
         elif slot == "M":
@@ -220,15 +240,21 @@ class TestTheRepairedVerbTablePin:
         reply, _world = _execute(line, stage=self._stage_for(verb))
         assert reply.get("success") is True, (line, reply.get("message"))
 
-    def test_the_exemption_is_earned(self):
-        """`Ney, garrison Lorraine` is refused on the boot board — the row IS
-        red, which is the only reason it may be exempted."""
-        reply, _world = _execute("Ney, garrison Lorraine")
+    def test_the_retired_exemption_names_no_substitution(self):
+        """What the exemption covered: a garrison named on a province he is
+        NOT standing in. With room under the cap it is now refused with the
+        road to it — never quietly left at his feet — and nothing is
+        detached."""
+        reply, world = _execute("Ney, garrison Lorraine",
+                                stage=self._stage_for("garrison"))
         assert reply.get("success") is False, reply.get("message")
+        assert "March him to Lorraine first" in reply.get("message", "")
+        assert world.get_region("Rhineland").garrison_strength == 0
 
     def test_the_exemption_is_not_a_wildcard(self):
         table = {row[0] for row in _gd_table("_MARSHAL_VERBS")}
         assert set(self.EXEMPT) <= table
+        assert self.EXEMPT == {}, "CX-R2 retired the last exemption"
 
 
 class TestTheManualAndTheSchool:

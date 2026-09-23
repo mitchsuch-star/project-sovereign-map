@@ -98,6 +98,56 @@ RECOVERING_CORPS_TAKES_NO_GROUND = True
 MARCH_HALTS_AT_GARRISON = 5000
 
 
+SCOUT_BASE_RANGE = 2
+
+
+def scout_range(marshal) -> int:
+    """CX-R2: how far this marshal can scout — ONE source for `_execute_scout`
+    and the payload (`tactical_state.scout_range`), so the completer offers
+    only provinces within reach. Base 2, +1 for the cautious kit (Phase 2.8)."""
+    from backend.models.personality_modifiers import get_scout_range_bonus
+    return int(SCOUT_BASE_RANGE + get_scout_range_bonus(
+        getattr(marshal, 'personality', 'unknown')))
+
+
+def move_open(world, marshal) -> list:
+    """CX-R2: the provinces a `<marshal>, move to <R>` would take — every
+    province within his `movement_range` that the executor's own pure probe
+    (`MovementExecutor.move_refusal_probe`: engagement, the crossing gate, a
+    visible enemy at the destination, the law of nations) accepts. Shipped as
+    `tactical_state.move_open` so the completer's `move to` offers are the
+    executor's answers, not a guess at them. Sorted. PURE.
+
+    TARGET gates only. The marshal's own STATE — fortified, locked in drill,
+    recovering from a retreat, broken, a prisoner — refuses whole families of
+    orders at once and is not read here (BUG_FIXES CQ-24, the completer's
+    sibling of CQ-21). Fog-safe: the probe refuses only an enemy the player
+    can see, and every other gate reads public or own-side state."""
+    here = marshal.location
+    region = world.regions.get(here)
+    if region is None:
+        return []
+    reach = max(1, int(getattr(marshal, 'movement_range', 1) or 1))
+    seen = {here}
+    frontier = [here]
+    for _step in range(reach):
+        nxt = []
+        for name in frontier:
+            node = world.regions.get(name)
+            for adj in (node.adjacent_regions if node else []):
+                if adj not in seen:
+                    seen.add(adj)
+                    nxt.append(adj)
+        frontier = nxt
+    out = []
+    for name in sorted(seen - {here}):
+        target = world.regions.get(name)
+        if target is not None and MovementExecutor.move_refusal_probe(
+                world, marshal, target, name) is None:
+            out.append(name)
+    return out
+
+
 def corps_takes_no_ground(marshal) -> bool:
     """True when the mover may march but may not annex: the recovery window."""
     if not RECOVERING_CORPS_TAKES_NO_GROUND:
@@ -975,11 +1025,12 @@ class MovementExecutor:
             # ════════════════════════════════════════════════════════════
             # PERSONALITY-SPECIFIC SCOUT RANGE (Phase 2.8)
             # Davout (cautious) gets +1 scout range
+            # CX-R2: ONE source, `scout_range` — the payload ships it so
+            # the completer offers only provinces within this reach.
             # ════════════════════════════════════════════════════════════
             from backend.models.personality_modifiers import get_scout_range_bonus
-            base_scout_range = 2
             scout_bonus = get_scout_range_bonus(getattr(marshal, 'personality', 'unknown'))
-            max_scout_range = base_scout_range + scout_bonus
+            max_scout_range = scout_range(marshal)
 
             if distance > max_scout_range:
                 range_msg = f"Can only scout regions within {max_scout_range} moves"
