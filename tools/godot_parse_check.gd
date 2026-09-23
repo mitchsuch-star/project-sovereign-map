@@ -130,9 +130,16 @@ const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
 # SOURCE here (`_check_tool_script`), with the project's global classes
 # (Utils / UiSettings / AudioManager) in scope because `--path` loaded them.
 # Every tools/iq10_*.gd must be named in this list (pinned by
-# tests/test_iq10_client_pass.py).
+# tests/test_iq10_client_pass.py), and so must every harness a pytest DRIVES
+# (CN-3: tools/cn3_region_panel_harness.gd, pinned by
+# tests/test_cn3_the_chip_tells_the_truth.py; CX-7's
+# tools/cx7_predictor_harness.gd, driven by tests/test_cx7_predictor_driven.py)
+# — a driven pin whose harness does not parse fails with no output rather than
+# naming the line.
 const TOOL_SCRIPTS = [
 	"res://../../tools/iq10_surface_screenshot.gd",
+	"res://../../tools/cn3_region_panel_harness.gd",
+	"res://../../tools/cx7_predictor_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

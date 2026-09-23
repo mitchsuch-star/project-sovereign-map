@@ -251,55 +251,40 @@ func _render() -> void:
 
 	# ── Context actions ──
 	var action_rows = []
-	# IQ-10 "The Client Pass" (Sept 19, 2026): the levy and the substitute
-	# market are open on ALLY and VASSAL soil — IQ1-3 opened the granary to
-	# the engine's own `ALLY_SUPPLY_STATES` and the backend prices it there
-	# (measured on the 1805 boot: Amsterdam, Holland's province with
-	# Bernadotte standing on it, 598g a battalion and 3,193g a substitute
-	# batch; Milan 3,672g) — and the substitutes comment below SAID it
-	# rendered there. It did not: every row sat inside `controller ==
-	# _PLAYER_NATION`, so the one surface where the choice is made showed a
-	# French corps on friendly ground no way to feed itself. The ground that
-	# feeds us is the ground the backend PRICED (it prices only where a
-	# French corps stands, so this needs no second rule).
+	var levy = _map_node.levy_status if _map_node != null else {}
+
+	# ── The levy — CN-3 "The Chip Names the Man" (Sept 22, 2026) ──
+	# The row renders where the backend QUOTED it: `recruit_here`, one quote
+	# per arm, built from the executor's own selector, gates and pricer
+	# (`economy_executor.recruit_quote`, drift-pinned against the real
+	# `/command` on every province), and only on the player's own soil and
+	# on friendly ground feeding a French corps — where it carries the
+	# executor's refusal, because recruiting does not open on ally soil
+	# (ruling D5). Measured before: of the 90 chips this row rendered, 69
+	# refused and 14 of the 21 that acted raised an arm the label did not
+	# name. A chip is now ENABLED only where its levy will be made, and it
+	# states its terms — the man, the men, the gold, the pool it draws on;
+	# otherwise it is dimmed beside the backend's own reason. Nothing is
+	# re-derived here.
+	var recruit_here = data.get("recruit_here", {})
+	if recruit_here is Dictionary and not recruit_here.is_empty():
+		for recruit_row in _recruit_rows(recruit_here, levy):
+			action_rows.append(recruit_row)
+
+	# IQ-10 "The Client Pass" (Sept 19, 2026): the substitute market is open
+	# on ALLY and VASSAL soil — IQ1-3 opened the granary to the engine's own
+	# `ALLY_SUPPLY_STATES` and the backend prices it there (measured on the
+	# 1805 boot: Amsterdam, Holland's province with Bernadotte standing on
+	# it, 3,193g a substitute batch; Milan 3,672g) — and every row used to
+	# sit inside `controller == _PLAYER_NATION`. The ground that feeds us is
+	# the ground the backend PRICED (it prices only where a French corps
+	# stands, so this needs no second rule). CN-3: the levy no longer rides
+	# this gate — it opened the recruit row on a SUBSTITUTE signal while the
+	# executor gates recruiting on control, which is how Franconia and Milan
+	# rendered six chips that could never act.
 	var feeds_us := controller == _PLAYER_NATION \
-		or int(data.get("recruit_price_here", 0)) > 0 \
 		or int(data.get("substitute_price_here", 0)) > 0
 	if feeds_us:
-		# Recruit — all three arms (the executor gates gold/pools/AP).
-		var recruit_chips = ""
-		for arm in ["infantry", "cavalry", "artillery"]:
-			recruit_chips += Utils.bb_button_chip("do:recruit " + arm + " in " + _region, arm.capitalize(), Utils.COLOR_GOLD, _CHIP_BG) + " "
-		# "The Levy is Open" (econ spec review §6): say whether the ordinance
-		# permits it, right where the choice is made. The played campaign spent
-		# ten turns +59,000 over the limit, learned that recruiting was
-		# forbidden, and was never told when it stopped being true.
-		var levy = _map_node.levy_status if _map_node != null else {}
-		var levy_note = ""
-		if levy is Dictionary and int(levy.get("force_limit", 0)) > 0:
-			if int(levy.get("over_by", 0)) > 0:
-				levy_note = "  [color=#" + Utils.COLOR_WARNING + "]" \
-					+ Utils.format_number(int(levy.get("over_by", 0))) \
-					+ " over the ordinance[/color]"
-			else:
-				# Aug 30, 2026 review: `levy_status.infantry_price` is priced
-				# at the CAPITAL, and this row sits beside chips that recruit
-				# in THIS province — measured on the 1805 boot, 654g quoted
-				# against 872g charged in Rhineland, a third more than the
-				# number the player read while choosing. The backend now ships
-				# the per-region figure with the rest of the fogged econ block;
-				# the capital's rate is the fallback for a province that has
-				# none (fog, or a legacy payload).
-				var _here = int(data.get("recruit_price_here", 0))
-				if _here <= 0:
-					_here = int(levy.get("infantry_price", 0))
-				levy_note = "  [color=#" + Utils.COLOR_SUCCESS + "]" \
-					+ Utils.format_number(int(levy.get("headroom", 0))) \
-					+ " under — " + str(_here) + "g per " \
-					+ Utils.format_number(int(levy.get("infantry_amount", 0))) \
-					+ " foot here[/color]"
-		action_rows.append("  Recruit: " + recruit_chips + levy_note)
-
 		# IQ-1 IQ1-3D rider 1: THE SUBSTITUTE MARKET, where the choice is made.
 		# Until IQ1-2 the row's headline gold sink had zero mentions on any
 		# unprompted surface; the help text closed that, and this closes the
@@ -522,6 +507,78 @@ const _BUILD_CHIP_DEFS = [
 ]
 
 
+const _RECRUIT_ARMS := ["infantry", "cavalry", "artillery"]
+
+# CN-3 rider 1: the marshal row names the arm the payload already carries
+# (`arm` rides the base marshal dict; an enemy's only at FULL visibility).
+# The player could not see that Murat is the cavalryman and Lannes the
+# infantryman standing in one province — the fact the recruit chips turn on.
+const _ARM_WORD := {"infantry": " foot", "cavalry": " horse", "artillery": " guns", "emperor": " Guard"}
+
+
+func _arm_word(m: Dictionary) -> String:
+	return str(_ARM_WORD.get(str(m.get("arm", "")), ""))
+
+
+func _recruit_rows(recruit_here: Dictionary, levy) -> Array:
+	# CN-3: one chip per arm — enabled with its terms where the quote says
+	# the levy will be made, dimmed with the quote's own reason where it will
+	# not. When every arm is refused for ONE reason (ally soil, no
+	# administrative action left, unrest) the reason is said once, beside
+	# three dimmed chips, rather than three times.
+	var rows := []
+	var shorts := {}
+	var any_ok := false
+	for arm in _RECRUIT_ARMS:
+		var q = recruit_here.get(arm, {})
+		if q is Dictionary:
+			if bool(q.get("ok", false)):
+				any_ok = true
+			else:
+				shorts[str(q.get("short", ""))] = true
+	if not any_ok and shorts.size() == 1:
+		var chips := ""
+		for arm in _RECRUIT_ARMS:
+			chips += Utils.bb_chip_disabled(str(arm).capitalize()) + " "
+		rows.append("  Recruit: " + chips + " [color=#" + Utils.COLOR_DIMMED + "]" \
+			+ str(shorts.keys()[0]) + "[/color]")
+		return rows
+	rows.append("  Recruit:" + _ordinance_note(levy))
+	for arm in _RECRUIT_ARMS:
+		var q = recruit_here.get(arm, {})
+		if not (q is Dictionary):
+			continue
+		if bool(q.get("ok", false)):
+			rows.append("    " + Utils.bb_button_chip("do:recruit " + str(arm) + " in " + _region, str(arm).capitalize(), Utils.COLOR_GOLD, _CHIP_BG) \
+				+ "  [color=#" + Utils.COLOR_GREY + "]" + str(q.get("terms", "")) + "[/color]")
+		else:
+			rows.append("    " + Utils.bb_chip_disabled(str(arm).capitalize()) \
+				+ "  [color=#" + Utils.COLOR_DIMMED + "]" + str(q.get("short", "")) + "[/color]")
+	return rows
+
+
+func _ordinance_note(levy) -> String:
+	# "The Levy is Open" (econ spec review §6): say where the army stands
+	# against the ordinance, right where the choice is made — the played
+	# campaign spent ten turns +59,000 over the limit and read the warning as
+	# a ban. CN-3 rider 4: over the limit the ordinance is a PRICE, not a bar
+	# (every levy costs (1 + overage) more — the figure on each chip already
+	# includes it), so the line says the multiplier instead of a warning with
+	# no verb. The per-arm price moved onto the chips (rider 7: the old
+	# "872g per 10,000 foot here" quoted men a field levy never delivers).
+	if not (levy is Dictionary) or int(levy.get("force_limit", 0)) <= 0:
+		return ""
+	var over := int(levy.get("over_by", 0))
+	if over > 0:
+		var txt := Utils.format_number(over) + " over the ordinance"
+		var mult := int(levy.get("ordinance_mult_pct", 100))
+		if mult > 100:
+			txt += " — every levy costs ×" + ("%.2f" % (float(mult) / 100.0))
+		return "  [color=#" + Utils.COLOR_WARNING + "]" + txt + "[/color]"
+	return "  [color=#" + Utils.COLOR_SUCCESS + "]" \
+		+ Utils.format_number(int(levy.get("headroom", 0))) + " under the ordinance[/color]"
+
+
 func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	var m_name = str(m.get("name", "?"))
 	var m_nation = str(m.get("nation", ""))
@@ -530,7 +587,7 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	var nation_color = Utils.COLOR_TEXT if m_nation == _PLAYER_NATION else Utils.COLOR_ERROR
 	row += "[color=#" + nation_color + "]" + m_name + "[/color]"
 	if m_strength > 0:
-		row += " [color=#" + Utils.COLOR_GREY + "](" + Utils.format_number(m_strength) + ")[/color]"
+		row += " [color=#" + Utils.COLOR_GREY + "](" + Utils.format_number(m_strength) + _arm_word(m) + ")[/color]"
 	if m_nation == _PLAYER_NATION:
 		# Order chips — mirror the Generals-card gating: nothing for a
 		# broken/retreating marshal. The map summary carries tactical_state

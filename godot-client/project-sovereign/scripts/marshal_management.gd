@@ -51,6 +51,9 @@ const _PORTRAIT_W = 80
 const _PORTRAIT_H = 100
 const _ICON_GAME = "res://assets/ui/icons/game-icons/"
 const _ICON_PHOSPHOR = "res://assets/ui/icons/phosphor/"
+# CN-3 rider 2: the corps noun on the commission bench (the region panel's
+# recruit chips say it the same way — foot, horse, guns).
+const _BENCH_ARM_NOUN = {"infantry": "foot", "cavalry": "horse", "artillery": "guns"}
 # Cache portrait lookups so a long roster doesn't re-probe ResourceLoader each
 # render (the overview re-renders on every refresh).
 var _portrait_cache: Dictionary = {}
@@ -316,10 +319,16 @@ func _render_commission_view():
 	bbcode += _icon(_ICON_PHOSPHOR + "crown.svg", 20, Utils.COLOR_GOLD)
 	bbcode += " [color=#" + Utils.COLOR_GOLD + "]COMMISSION A MARSHAL[/color]\n"
 	var treasury = int(cached_recruitment.get("treasury", 0))
-	var pool = int(cached_recruitment.get("infantry_pool", 0))
-	var corps = int(cached_recruitment.get("corps_size", 5000))
-	bbcode += "[color=#" + COLOR_DIM + "]Treasury: " + _format_number(treasury) + "g | Infantry pool: " + _format_number(pool)
-	bbcode += " | A commission raises a corps of " + _format_number(corps) + " at the capital (1 admin AP + the candidate's price).[/color]\n\n"
+	# CN-3 rider 2: every arm's pool, not the infantry pool alone — a
+	# commission raises the candidate's corps from HIS arm's pool (the
+	# payload's per-candidate `arm` and `corps`), so the old header promised
+	# France's two gun marshals a 5,000-man corps from a pool they never draw.
+	var pools = cached_recruitment.get("pools", {})
+	if not (pools is Dictionary):
+		pools = {}
+	var inf_pool = int(pools.get("infantry", cached_recruitment.get("infantry_pool", 0)))
+	bbcode += "[color=#" + COLOR_DIM + "]Treasury: " + _format_number(treasury) + "g | Pools: " + _format_number(inf_pool) + " foot · " + _format_number(int(pools.get("cavalry", 0))) + " horse · " + _format_number(int(pools.get("artillery", 0))) + " guns"
+	bbcode += " | A commission raises his corps at the capital from his own arm's pool (1 admin AP + the candidate's price).[/color]\n\n"
 
 	var candidates = cached_recruitment.get("candidates", [])
 	if not (candidates is Array) or candidates.size() == 0:
@@ -339,8 +348,21 @@ func _render_commission_view():
 		bbcode += _portrait_block(cname, 64, 80)
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]" + cname + "[/color]"
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "][" + personality.capitalize() + "][/color]"
-		if c.get("cavalry", false):
-			bbcode += "  " + _unit_icon("Cavalry", Utils.COLOR_ORANGE) + " [color=#" + Utils.COLOR_ORANGE + "][Cavalry][/color]"
+		# CN-3 rider 2: every arm is tagged, the serving card's own idiom —
+		# the bench tagged only [Cavalry], so Marmont and Senarmont, the gun
+		# marshals, rendered untagged. The corps he raises rides beside it.
+		var c_arm = str(c.get("arm", "infantry"))
+		var arm_label = c_arm.capitalize()
+		var arm_color = Utils.COLOR_INFO
+		if c_arm == "cavalry":
+			arm_color = Utils.COLOR_ORANGE
+		elif c_arm == "artillery":
+			arm_color = Utils.COLOR_ERROR
+		if c_arm != "infantry":
+			bbcode += "  " + _unit_icon(arm_label, arm_color) + " [color=#" + arm_color + "][" + arm_label + "][/color]"
+		else:
+			bbcode += "  [color=#" + arm_color + "][" + arm_label + "][/color]"
+		bbcode += " [color=#" + COLOR_DIM + "]a corps of " + _format_number(int(c.get("corps", 0))) + " " + str(_BENCH_ARM_NOUN.get(c_arm, "men")) + "[/color]"
 		bbcode += "  [color=#" + Utils.COLOR_GOLD + "]" + _format_number(cost) + "g[/color]\n"
 		var bio = str(c.get("biography", ""))
 		if bio != "":

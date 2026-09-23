@@ -1,0 +1,212 @@
+[
+  {
+    "id": "CN3-1 the province branch asks the man first",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if _kind:\n                return {\"success\": False, \"message\": _refusal}\n            result = world.find_nearest_marshal_to_region(\n                location_specified, arm=choose_arm)\n",
+    "new": "            if False:\n                return {\"success\": False, \"message\": _refusal}\n            result = world.find_nearest_marshal_to_region(\n                location_specified, arm=choose_arm)\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN3-2 the capital branch asks the man first",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if _kind:\n                return {\"success\": False, \"message\": _refusal}\n            result = world.find_nearest_marshal_to_region(capital,\n",
+    "new": "            if False:\n                return {\"success\": False, \"message\": _refusal}\n            result = world.find_nearest_marshal_to_region(capital,\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN3-3 the quote asks the man first",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if kind:\n        quote.update(kind=kind, reason=sentence)\n",
+    "new": "    if False:\n        quote.update(kind=kind, reason=sentence)\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN3-4 the ground gate forgets unrest",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if gate == RECRUIT_GATE_UNREST:\n        return \"unrest\", _msg_unrest(location, region)\n",
+    "new": "    if False:\n        return \"unrest\", _msg_unrest(location, region)\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN3-5 the unknown province is not named",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if region is None:\n        return \"unknown_region\", f\"Unknown region: {location}\"\n",
+    "new": "    if region is None:\n        return \"\", \"\"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-6 the remedy offers the order on any ground",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if (his_ground is not None\n                and recruit_location_gate(his_ground, nation) is None):\n",
+    "new": "        if (his_ground is not None\n                or recruit_location_gate(his_ground, nation) is None):\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-7 the remedy never offers the order",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            order = (f\", or give him the order yourself: \"\n",
+    "new": "            order = (\"\" and f\", or give him the order yourself: \"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN3-8 the terms drop the field levy",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if quote.get(\"field_capped\"):\n            terms += \" · field levy\"\n",
+    "new": "        if False:\n            terms += \" · field levy\"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-9 the terms name the pool after the draw",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    quote[\"pool\"] = available\n",
+    "new": "    quote[\"pool\"] = available - amount\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-10 the treasury short swaps its figures",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        short = (f\"{int(quote.get('price') or 0):,}g — the treasury holds \"\n                 f\"{int(quote.get('have') or 0):,}g\")\n",
+    "new": "        short = (f\"{int(quote.get('have') or 0):,}g — the treasury holds \"\n                 f\"{int(quote.get('price') or 0):,}g\")\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-11 the remedy is dropped from the short",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        short = quote.get(\"remedy\", \"\")\n",
+    "new": "        short = \"\"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-12 the unrest short loses its figure",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            quote[\"unrest_label\"] = (f\"{region.get_stability_label()} — \"\n                                     f\"stability {int(region.stability)}/100\")\n",
+    "new": "            quote[\"unrest_label\"] = \"unrest\"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-13 the ordinance multiplier forgets the overage",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        \"ordinance_mult_pct\": (int(round((1.0 + (total - limit) / limit) * 100))\n",
+    "new": "        \"ordinance_mult_pct\": (int(round(1.0 * 100))\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-14 the legacy world carries a multiplier",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                               if limit and total > limit else 100),\n",
+    "new": "                               if limit and total > limit else 110),\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-15 every quoted arm is enabled",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\tif bool(q.get(\"ok\", false)):\n\t\t\trows.append(\"    \" + Utils.bb_button_chip(",
+    "new": "\t\tif true:\n\t\t\trows.append(\"    \" + Utils.bb_button_chip(",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-16 the chip sends another arm's command",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "Utils.bb_button_chip(\"do:recruit \" + str(arm) + \" in \" + _region, str(arm).capitalize()",
+    "new": "Utils.bb_button_chip(\"do:recruit infantry in \" + _region, str(arm).capitalize()",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-17 the dimmed chip forgets its reason",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\t+ \"  [color=#\" + Utils.COLOR_DIMMED + \"]\" + str(q.get(\"short\", \"\")) + \"[/color]\")\n",
+    "new": "\t\t\t\t+ \"\")\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-18 the enabled chip states no terms",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\t+ \"  [color=#\" + Utils.COLOR_GREY + \"]\" + str(q.get(\"terms\", \"\")) + \"[/color]\")\n",
+    "new": "\t\t\t\t+ \"\")\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-19 mixed reasons collapse into one",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\tif not any_ok and shorts.size() == 1:\n",
+    "new": "\tif not any_ok:\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-20 one reason is said three times",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\tif not any_ok and shorts.size() == 1:\n",
+    "new": "\tif false:\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-21 the row renders where nothing was quoted",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\tif recruit_here is Dictionary and not recruit_here.is_empty():\n",
+    "new": "\tif recruit_here is Dictionary:\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-22 the ordinance note drops its multiplier",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\tif mult > 100:\n",
+    "new": "\t\tif false:\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-23 the marshal row forgets the arm",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "Utils.format_number(m_strength) + _arm_word(m) + \")[/color]\"",
+    "new": "Utils.format_number(m_strength) + \")[/color]\"",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-24 the emperor has no word",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": ", \"emperor\": \" Guard\"}",
+    "new": "}",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-25 the bench tags only cavalry again",
+    "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+    "old": "\t\tvar c_arm = str(c.get(\"arm\", \"infantry\"))\n",
+    "new": "\t\tvar c_arm = \"cavalry\" if c.get(\"cavalry\", false) else \"infantry\"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-26 the bench header forgets the gun pool",
+    "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+    "old": " + _format_number(int(pools.get(\"artillery\", 0))) + \" guns\"",
+    "new": " + \"0 guns\"",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-27 the bench states no corps",
+    "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+    "old": "\t\tbbcode += \" [color=#\" + COLOR_DIM + \"]a corps of \" + _format_number(int(c.get(\"corps\", 0))) + \" \" + str(_BENCH_ARM_NOUN.get(c_arm, \"men\")) + \"[/color]\"\n",
+    "new": "\t\tpass\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-28 the war term is not named",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                terms.append(f\"×{self.WAR_RECRUIT_COST_MULT} at war\")\n",
+    "new": "                pass\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-29 the ordinance term is not named",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                    terms.append(f\"×{1.0 + overage:.2f} over the ordinance\")\n",
+    "new": "                    pass\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  },
+  {
+    "id": "CN3-30 the note ignores the terms",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        cost_note = \"\".join(f\" ({term})\" for term in price_terms)\n",
+    "new": "        cost_note = \"\"\n",
+    "tests": "tests/test_cn3_the_chip_tells_the_truth.py"
+  }
+]

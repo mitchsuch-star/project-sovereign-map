@@ -357,13 +357,24 @@ SHOTS: list[dict] = [
             "must_show": must,
         }
         for region, label, must in [
-            ("Paris", "own soil, Soult present", "the recruit chips, the levy line with the price HERE, "
-                                                 "the Substitutes row, Build/Repair"),
-            ("Amsterdam", "a vassal's province, Bernadotte present", "H1: the levy and the Substitutes row "
-                                                                    "render on the soil that feeds France "
-                                                                    "(the backend prices it: 598g / 3,193g)"),
+            ("Paris", "own soil, Soult present", "CN-3: one recruit chip per arm — Infantry ENABLED naming "
+                                                 "Soult, his men, his gold and the pool; Cavalry and "
+                                                 "Artillery dimmed with the backend's reason and remedy; "
+                                                 "the ordinance line saying its multiplier; the "
+                                                 "Substitutes row, Build/Repair"),
+            ("Rhineland", "own soil, Davout present, Murat in range", "CN-3: Infantry via Davout and "
+                                                                      "Cavalry via Murat both ENABLED, each "
+                                                                      "stating its own man and price; "
+                                                                      "Artillery dimmed naming the "
+                                                                      "commission remedy"),
+            ("Amsterdam", "a vassal's province, Bernadotte present", "H1 + CN-3 (ruling D5): the Substitutes "
+                                                                    "row renders on the soil that feeds "
+                                                                    "France (3,193g) and the recruit row is "
+                                                                    "three DIMMED chips with the one reason "
+                                                                    "— recruiting does not open on ally soil"),
             ("Milan", "a vassal's province, Massena present", "H1 again on the Kingdom of Italy's soil, with "
-                                                             "the court named by its article"),
+                                                             "the court named by its article; the recruit "
+                                                             "row dimmed with one reason (D5)"),
             ("Vienna", "an enemy capital", "no levy rows, no raw tag, the garrison honestly fogged"),
         ]
     ],

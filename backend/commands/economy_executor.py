@@ -5,7 +5,7 @@ Extracted from executor.py: _execute_economy, _execute_recruit, _execute_garriso
 _execute_build, _execute_build_watchtower, _execute_repair.
 Also includes _calculate_recruit_cost, _extract_building_type, and garrison constants.
 """
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import (
     WorldState, RECRUIT_ARMS, recruit_arm_of,
     INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
@@ -400,6 +400,31 @@ def _msg_treasury(cost: int, have: int) -> str:
             f"Sire. Need {cost} gold, have {have}.'")
 
 
+def recruit_ground_refusal(world, location: str, nation: str) -> Tuple[str, str]:
+    """CN-3: the GROUND's own refusal where the game chooses the man —
+    `(kind, sentence)`, or `("", "")` when the ground will levy.
+
+    It is asked BEFORE the man is chosen, because no marshal can remedy it.
+    Measured with the man first (CN-2 as landed): `recruit artillery in
+    Milan` — Kingdom of Italy's soil, where no French levy is raised
+    (ruling D5) — answered 'No marshal of artillery can reach Milan …
+    commission Marmont (4500g)', a 4,500-gold remedy for a refusal no
+    commission lifts, while the infantry chip beside it said the truth; and
+    `recruit in Vienna` told the player to march a corps within range of
+    Austria's capital. The NAMED road keeps its own order — there the ground
+    is the named man's own ground, and the gate below the selection reads
+    it."""
+    region = world.get_region(location)
+    if region is None:
+        return "unknown_region", f"Unknown region: {location}"
+    gate = recruit_location_gate(region, nation)
+    if gate == RECRUIT_GATE_NOT_CONTROLLED:
+        return "not_controlled", _msg_not_controlled(location)
+    if gate == RECRUIT_GATE_UNREST:
+        return "unrest", _msg_unrest(location, region)
+    return "", ""
+
+
 def recruit_arm_remedy(world, nation: str, arm: str,
                        region_name: Optional[str] = None) -> str:
     """CN-2: the way to an arm nobody in range commands — DERIVED from the
@@ -423,9 +448,19 @@ def recruit_arm_remedy(world, nation: str, arm: str,
                     -int(m.strength), m.name)
         serving.sort(key=_near)
         man = serving[0]
+        # CN-3: the named order levies on HIS ground, so it is offered only
+        # where that ground would levy. Measured with it unconditional: Paris
+        # at boot told the player "give him the order yourself: 'Massena,
+        # recruit infantry'" — Massena stands on Milan, Kingdom of Italy's
+        # soil, and that order is refused ("We do not control Milan").
+        his_ground = world.get_region(man.location)
+        order = ""
+        if (his_ground is not None
+                and recruit_location_gate(his_ground, nation) is None):
+            order = (f", or give him the order yourself: "
+                     f"'{man.name}, recruit {arm}'")
         return (f"{man.name} commands our {noun} at {man.location} — march "
-                f"him within reach, or give him the order yourself: "
-                f"'{man.name}, recruit {arm}'.")
+                f"him within reach{order}.")
     from backend.game_logic.recruitment import candidate_arm, get_marshal_pool
     bench = [c for c in get_marshal_pool(world, nation)
              if candidate_arm(c) == arm and c.get("name")
@@ -471,10 +506,54 @@ def recruit_quote(world, region_name: str, arm: Optional[str] = None,
     amount equal what the executor actually does — so a check added to one
     and not the other cannot ship green.
     """
+    quote = _recruit_quote_core(world, region_name, arm, nation)
+    quote["short"], quote["terms"] = _recruit_quote_display(quote, arm)
+    return quote
+
+
+def _recruit_quote_display(quote: Dict, arm: Optional[str]):
+    """CN-3: the chip's own words — `terms` for a levy that will be made
+    (the man, the men, the gold, the pool it draws on), `short` for one that
+    will not (the reason in a few words, the remedy when there is one). The
+    long `reason` is the executor's sentence; the chip reads these so the
+    client re-derives nothing (the memo's R3)."""
+    kind = quote.get("kind")
+    noun = _ARM_NOUN.get(quote.get("arm") or arm or "", "men")
+    if quote.get("ok"):
+        terms = (f"{quote['recipient']} · {int(quote['amount']):,} {noun} · "
+                 f"{int(quote['price']):,}g")
+        if quote.get("field_capped"):
+            terms += " · field levy"
+        if quote.get("pool") is not None:
+            terms += f" (pool {int(quote['pool']):,})"
+        return "", terms
+    short = {
+        "no_admin_ap": "no administrative action left this turn",
+        "unknown_region": "no such province",
+        "no_recipient": "no marshal of ours stands within reach",
+        "not_controlled": ("not our soil — our levies are raised on our own "
+                           "ground"),
+    }.get(kind, "")
+    if kind == "no_arm_in_range":
+        short = quote.get("remedy", "")
+    elif kind == "unrest":
+        short = quote.get("unrest_label", "the populace will not answer")
+    elif kind == "pool_short":
+        short = (f"the {quote.get('arm')} pool holds "
+                 f"{int(quote.get('pool') or 0):,} of the "
+                 f"{int(quote.get('amount') or 0):,} needed")
+    elif kind == "treasury":
+        short = (f"{int(quote.get('price') or 0):,}g — the treasury holds "
+                 f"{int(quote.get('have') or 0):,}g")
+    return short, ""
+
+
+def _recruit_quote_core(world, region_name: str, arm: Optional[str],
+                        nation: Optional[str]) -> Dict:
     nation = nation or world.player_nation
     quote = {"ok": False, "kind": "", "reason": "", "arm_requested": arm,
              "recipient": None, "arm": None, "distance": None,
-             "price": 0, "amount": 0, "field_capped": False}
+             "price": 0, "amount": 0, "field_capped": False, "pool": None}
     # The executor's routing layer refuses an order of state before the
     # executor runs when the Emperor has no administrative action left.
     if int(getattr(world, "admin_actions_remaining", 0) or 0) < 1:
@@ -482,17 +561,24 @@ def recruit_quote(world, region_name: str, arm: Optional[str] = None,
             f"No administrative actions remaining this turn. (Military "
             f"commands: {int(world.actions_remaining)} remaining)"))
         return quote
+    # CN-3: the ground's own gates speak before the man is chosen — no
+    # marshal can remedy them (`recruit_ground_refusal`, which the executor's
+    # two no-marshal branches call too).
     region = world.get_region(region_name)
-    if region is None:
-        quote.update(kind="unknown_region",
-                     reason=f"Unknown region: {region_name}")
+    kind, sentence = recruit_ground_refusal(world, region_name, nation)
+    if kind:
+        quote.update(kind=kind, reason=sentence)
+        if kind == "unrest":
+            quote["unrest_label"] = (f"{region.get_stability_label()} — "
+                                     f"stability {int(region.stability)}/100")
         return quote
     ready, blocked = world.ready_marshals_near(region_name)
     if arm is not None and THE_ARM_CHOOSES_THE_MAN:
         of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]
         if not of_arm:
             quote.update(kind="no_arm_in_range", reason=_msg_no_arm_in_range(
-                world, nation, arm, region_name, ready))
+                world, nation, arm, region_name, ready),
+                remedy=recruit_arm_remedy(world, nation, arm, region_name))
             return quote
         ready = of_arm
     if not ready:
@@ -508,16 +594,9 @@ def recruit_quote(world, region_name: str, arm: Optional[str] = None,
         quote["field_capped"] = True
     quote.update(recipient=marshal.name, arm=levy_arm, distance=int(distance),
                  amount=int(amount))
-    gate = recruit_location_gate(region, marshal.nation)
-    if gate == RECRUIT_GATE_NOT_CONTROLLED:
-        quote.update(kind="not_controlled",
-                     reason=_msg_not_controlled(region_name))
-        return quote
-    if gate == RECRUIT_GATE_UNREST:
-        quote.update(kind="unrest", reason=_msg_unrest(region_name, region))
-        return quote
     available = int(world.manpower_pools.get(marshal.nation, {}).get(
         levy_arm, 0))
+    quote["pool"] = available
     if available < amount:
         quote.update(kind="pool_short", reason=_msg_pool_short(
             world, marshal.nation, levy_arm, available, amount))
@@ -528,19 +607,11 @@ def recruit_quote(world, region_name: str, arm: Optional[str] = None,
     quote["price"] = price
     have = int(world.nation_gold.get(marshal.nation, 0))
     if have < price:
-        quote.update(kind="treasury", reason=_msg_treasury(price, have))
+        quote.update(kind="treasury", reason=_msg_treasury(price, have),
+                     have=have)
         return quote
     quote.update(ok=True, kind="ok")
     return quote
-
-
-def recruit_here(world, region_name: str) -> Dict:
-    """CN-1: the map payload's block for one province — the quote for each
-    arm (what that chip would do) and the quote with no arm named (what a
-    bare `recruit in <region>` would do)."""
-    return {"arms": {arm: recruit_quote(world, region_name, arm=arm)
-                     for arm in RECRUIT_ARMS},
-            "any": recruit_quote(world, region_name)}
 
 
 def _decree_preamble(world, acting_nation: str) -> str:
@@ -873,7 +944,22 @@ class EconomyExecutor:
     def _calculate_recruit_cost(self, region, world, base_cost: int = 200,
                                 nation: str = None, marshal=None,
                                 foreign_soil: bool = False) -> int:
-        """Calculate recruitment gold cost based on region properties.
+        """The levy's price — `_recruit_cost_terms` without the terms."""
+        return self._recruit_cost_terms(
+            region, world, base_cost=base_cost, nation=nation,
+            marshal=marshal, foreign_soil=foreign_soil)[0]
+
+    def _recruit_cost_terms(self, region, world, base_cost: int = 200,
+                            nation: str = None, marshal=None,
+                            foreign_soil: bool = False):
+        """`(cost, terms)` — the recruitment gold cost and the named terms
+        that made it, in the order they compose. ONE source for the price and
+        for the recruit result's note (CN-3 rider 5: the note named the
+        capital discount and the Intendance and never the ×3 war or the
+        ordinance terms — together 4.36× of a 741-gold charge at boot).
+        The Intendance is named by the result itself, which names the man.
+
+        Calculate recruitment gold cost based on region properties.
 
         Priority: Capital discount wins over settling premium.
         Parameterized base_cost: 200 for infantry, 300 for cavalry.
@@ -900,12 +986,15 @@ class EconomyExecutor:
         _capital_discount = (region.region_type == "capital"
                              and not (foreign_soil
                                       and LEVY_PAYS_THE_HOSTS_PRICE))
+        terms: List[str] = []
         # Capital discount: 25% off (checked first — always wins)
         if _capital_discount:
             cost = int(base_cost * 0.75)
+            terms.append("capital discount")
         # Settling stability premium: 50% more (stability 51-75)
         elif 51 <= region.stability <= 75:
             cost = int(base_cost * 1.50)
+            terms.append("unstable region premium")
         else:
             cost = int(base_cost)
 
@@ -913,6 +1002,7 @@ class EconomyExecutor:
                 and getattr(world, "sovereign_map", "legacy") == "europe"):
             if world.get_nations_at_war_with(nation):
                 cost = int(cost * self.WAR_RECRUIT_COST_MULT)
+                terms.append(f"×{self.WAR_RECRUIT_COST_MULT} at war")
             force_limit = world.get_force_limit(nation)
             if force_limit:
                 total_strength = int(
@@ -920,11 +1010,12 @@ class EconomyExecutor:
                 if total_strength > force_limit:
                     overage = (total_strength - force_limit) / force_limit
                     cost = int(cost * (1.0 + overage))
+                    terms.append(f"×{1.0 + overage:.2f} over the ordinance")
             if marshal is not None:
                 # round(), not int(): 200 * 1.15 is 229.999... in floats, and
                 # truncation would break shown-=-applied by a gold.
                 cost = int(round(cost * marshal.get_recruit_cost_modifier()))
-        return int(cost)
+        return int(cost), terms
 
     @staticmethod
     def _no_recruit_recipient(world, location: str, arm: Optional[str],
@@ -989,6 +1080,12 @@ class EconomyExecutor:
             recruitment_location = marshal.location
 
         elif location_specified:
+            # CN-3: the ground refuses before a man is chosen — no marshal
+            # can remedy it (see `recruit_ground_refusal`).
+            _kind, _refusal = recruit_ground_refusal(
+                world, location_specified, world.player_nation)
+            if _kind:
+                return {"success": False, "message": _refusal}
             result = world.find_nearest_marshal_to_region(
                 location_specified, arm=choose_arm)
 
@@ -1007,6 +1104,10 @@ class EconomyExecutor:
         else:
             from backend.models.region import NATION_CAPITALS
             capital = world.player_capital or NATION_CAPITALS.get(world.player_nation, "Paris")
+            _kind, _refusal = recruit_ground_refusal(
+                world, capital, world.player_nation)
+            if _kind:
+                return {"success": False, "message": _refusal}
             result = world.find_nearest_marshal_to_region(capital,
                                                           arm=choose_arm)
 
@@ -1146,7 +1247,7 @@ class EconomyExecutor:
             cost_base = CAVALRY_RECRUIT_GOLD_COST_BASE
         else:
             cost_base = INFANTRY_RECRUIT_GOLD_COST_BASE
-        gold_cost = self._calculate_recruit_cost(
+        gold_cost, price_terms = self._recruit_cost_terms(
             region, world, base_cost=cost_base, nation=acting_nation,
             marshal=recruit_marshal)
 
@@ -1214,11 +1315,11 @@ class EconomyExecutor:
         is_capital_discount = region.region_type == "capital"
         is_stability_premium = (51 <= region.stability <= 75) and not is_capital_discount
 
-        cost_note = ""
-        if is_capital_discount:
-            cost_note = " (capital discount)"
-        elif is_stability_premium:
-            cost_note = " (unstable region premium)"
+        # CN-3 rider 5: the note names every term the pricer applied — the
+        # SAME list `_recruit_cost_terms` priced with — so the ×3 war and the
+        # ordinance ride beside the capital discount instead of vanishing into
+        # the figure (the two words it already said are unchanged).
+        cost_note = "".join(f" ({term})" for term in price_terms)
 
         # MC-2b: The Intendance — the note appears exactly when the modifier
         # priced this levy (shown = applied; Europe-scoped like the seam).
@@ -2723,6 +2824,11 @@ def get_levy_status(world, nation: str = None) -> dict:
         # so a renderer can branch on whichever it finds.
         "headroom": int(headroom),
         "over_by": int(max(0, total - limit)) if limit else 0,
+        # CN-3 rider 4: the price multiplier the ordinance lays on every
+        # levy — the same (1 + overage) `_calculate_recruit_cost` applies —
+        # so the panel can SAY it instead of a warning with no verb.
+        "ordinance_mult_pct": (int(round((1.0 + (total - limit) / limit) * 100))
+                               if limit and total > limit else 100),
         "infantry_price": int(price),
         "infantry_amount": int(INFANTRY_RECRUIT_AMOUNT),
         "infantry_pool": int(pool),

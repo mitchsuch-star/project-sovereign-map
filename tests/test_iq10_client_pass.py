@@ -177,11 +177,22 @@ class TestTheLevyRendersWhereItIsPriced:
     showed neither."""
 
     def test_the_panel_branches_on_the_ground_that_feeds_us(self):
+        """CN-3 (Sept 22, 2026) — CONSCIOUSLY RE-PINNED. The substitute market
+        still renders on the ground that feeds us (`feeds_us`, H1). The LEVY
+        no longer rides that gate: it renders where the backend QUOTED it
+        (`recruit_here` — own soil and friendly soil feeding a French corps,
+        the same ground H1 found) and carries the executor's refusal on ally
+        soil (ruling D5). The old gate opened the recruit row on
+        `recruit_price_here > 0` (an arm-blind infantry base) OR a substitute
+        price — which is how Franconia and Milan rendered six chips that
+        could never act. The driven pins are in
+        tests/test_cn3_the_chip_tells_the_truth.py."""
         gd = _gd("region_panel")
         assert "var feeds_us :=" in gd
-        assert 'int(data.get("recruit_price_here", 0)) > 0' in gd
         assert 'int(data.get("substitute_price_here", 0)) > 0' in gd
         assert "\tif feeds_us:\n" in gd
+        assert "recruit_price_here" not in gd
+        assert 'var recruit_here = data.get("recruit_here", {})' in gd
 
     def test_the_owner_only_actions_still_gate_on_ownership(self):
         """Build, repair and the garrison are the OWNER's to order — the

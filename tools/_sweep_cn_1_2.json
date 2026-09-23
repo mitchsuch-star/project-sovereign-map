@@ -28,10 +28,10 @@
     "tests": "tests/test_cn_the_chip_names_the_man.py"
   },
   {
-    "id": "CN-5 the quote forgets whose soil it is",
+    "id": "CN-5 the quote forgets whose soil it is (CN-3: the ground's own gate)",
     "file": "backend/commands/economy_executor.py",
-    "old": "    if gate == RECRUIT_GATE_NOT_CONTROLLED:\n        quote.update(kind=\"not_controlled\",\n",
-    "new": "    if False:\n        quote.update(kind=\"not_controlled\",\n",
+    "old": "    if gate == RECRUIT_GATE_NOT_CONTROLLED:\n        return \"not_controlled\", _msg_not_controlled(location)\n",
+    "new": "    if False:\n        return \"not_controlled\", _msg_not_controlled(location)\n",
     "tests": "tests/test_cn_the_chip_names_the_man.py"
   },
   {
@@ -44,8 +44,8 @@
   {
     "id": "CN-7 the quote forgets the treasury",
     "file": "backend/commands/economy_executor.py",
-    "old": "    if have < price:\n        quote.update(kind=\"treasury\", reason=_msg_treasury(price, have))\n",
-    "new": "    if False:\n        quote.update(kind=\"treasury\", reason=_msg_treasury(price, have))\n",
+    "old": "    if have < price:\n        quote.update(kind=\"treasury\", reason=_msg_treasury(price, have),\n",
+    "new": "    if False:\n        quote.update(kind=\"treasury\", reason=_msg_treasury(price, have),\n",
     "tests": "tests/test_cn_the_chip_names_the_man.py"
   },
   {

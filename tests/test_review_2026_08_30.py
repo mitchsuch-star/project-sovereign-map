@@ -828,11 +828,23 @@ class TestTheLevyPriceIsThePriceHere:
             "invisible — this pin exists because they do differ")
 
     def test_the_panel_reads_it(self):
+        """CN-3 (Sept 22, 2026) — CONSCIOUSLY RE-PINNED. The price HERE now
+        rides each ARM's quote (`recruit_here[arm]["terms"]`: the man, the men,
+        the gold the executor charges — drift-pinned against `/command` on
+        every province and driven through the real panel in
+        tests/test_cn3_the_chip_tells_the_truth.py). The panel no longer reads
+        the one bare-levy figure, and no longer prints "per 10,000 foot here",
+        which quoted a quantity a field levy never delivers (3,000 — the
+        memo's rider 7)."""
         src = _read("godot-client/project-sovereign/scripts/region_panel.gd")
-        body = src[src.index("var levy = _map_node.levy_status"):]
-        body = body[:body.index("action_rows.append")]
-        assert 'data.get("recruit_price_here", 0)' in body
-        assert "foot here" in body
+        body = src[src.index("func _recruit_rows"):]
+        body = body[:body.index("\nfunc ")]
+        assert 'q.get("terms", "")' in body
+        # Code lines only: the comment that explains the retirement quotes
+        # the old wording, and a census must count the thing, not its prose.
+        code = "\n".join(line for line in src.splitlines()
+                         if not line.lstrip().startswith("#"))
+        assert "foot here" not in code
 
 
 class TestTheDisabledRouteIsRefusedWhenTyped:

@@ -6363,10 +6363,11 @@ addressed to Zorglub; `attack Bern, then hold` to nobody). Arms of service
 (`cavalry attack Mack`) stay CX-7's ruling — not a name, not claimed. Lever
 `clause_guards.THE_ADDRESS_IS_ITS_HEAD`.
 
-## 52. The chip names the man (CN, backend half landed September 22, 2026)
+## 52. The chip names the man (CN-1 … CN-3 landed September 22, 2026)
 
-Landing record = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-1 + CN-2 LANDING
-RECORD. Pins = `tests/test_cn_the_chip_names_the_man.py`.
+Landing records = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-1 + CN-2 and §CN-3
+LANDING RECORD. Pins = `tests/test_cn_the_chip_names_the_man.py`,
+`tests/test_cn3_the_chip_tells_the_truth.py`.
 
 **The arm is a selection key, never an override.** A marshal IS his corps, and his
 arm (`world_state.recruit_arm_of` — the one rule the levy raises by) is fixed. So:
@@ -6392,3 +6393,24 @@ refusal — recruiting does not open on ally soil, ruling D5). `recruit_price_he
 what a bare `recruit in <province>` would charge, 0 where it would refuse. ⛔ **A check
 added to the executor and not the quote reds the drift pin**, which drives the real
 `/command` on every province × arm.
+
+**The ground speaks first (CN-3).** Where the game chooses the man — a province named,
+or the bare levy at the capital — the province's own gates (unknown province, whose soil
+it is, unrest) refuse BEFORE a man is chosen, because no marshal can remedy them: ONE
+source `economy_executor.recruit_ground_refusal`, called by the executor's two no-marshal
+branches and by the quote. The NAMED road keeps its order — there the ground is the named
+man's own. A remedy's "give him the order yourself: '<Name>, recruit <arm>'" is offered
+only where that man's own ground would levy.
+
+**The chip says what the quote says (CN-3).** `region_panel.gd` renders the recruit row
+where `recruit_here` is non-empty — one chip per arm, ENABLED only where the quote is
+`ok`, stating its `terms` (the man, the men, the gold, the pool), otherwise dimmed beside
+its `short` (said once when every arm is refused for one reason). Both strings are built
+by the backend (`_recruit_quote_display`); the panel re-derives nothing. `feeds_us` gates
+the substitute market only. The ordinance line reads `get_levy_status["ordinance_mult_pct"]`
+(the pricer's own `1 + overage`; 100 on the legacy world). **The price and its named terms
+are one computation**: `_recruit_cost_terms` returns both, `_calculate_recruit_cost` is its
+price, and the recruit result's note is its terms list — so the note cannot name a term
+the price did not apply. ⛔ **The client pins are DRIVEN**: `tools/cn3_region_panel_harness.gd`
+runs the real panel headless on the live payload and every `do:recruit` url it renders is
+sent through `/command` (they skip without the engine; a skip is not a pass).

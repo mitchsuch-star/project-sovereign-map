@@ -60,6 +60,34 @@
 > INERT**; corpus 711/711 (two chip-form rows); zero `.gd` — **CN-3 (the chip renders it) and CN-4
 > (the census of every `do:` template) are next.**
 >
+> **✅ SLICE 3, CLIENT HALF — CN-3 "The chip tells the truth" — LANDED September 22, 2026.**
+> Landing record = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-3 LANDING RECORD; row **CQ-3**'s
+> client half, **CQ-18 + CQ-19** found and closed. Re-measured first: CN-1's quote was on the wire
+> and the client did not read it — **90 identical enabled chips while the quote refused 78** (funded
+> board). The recruit row now renders where the backend quoted it (`recruit_here`), one chip per
+> arm, **ENABLED only where the levy will be made and stating its terms** (*"Davout · 3,000 foot ·
+> 741g · field levy (pool 80,000)"*), otherwise dimmed beside the backend's own reason — one reason
+> said once on ally soil (D5). **CQ-18: the ground speaks first** — a province's own gates refuse
+> before a man is chosen (`economy_executor.recruit_ground_refusal`, one source for the executor and
+> the quote), because `recruit artillery in Milan` had told the player to commission Marmont for
+> 4,500g on soil where no levy is raised. **CQ-19: a remedy names an order the game takes** — Paris
+> had offered *"'Massena, recruit infantry'"* while Massena stood on Milan. Riders: the marshal row
+> names the arm (`Murat (22,000 horse)`, `Napoleon (10,000 Guard)`); the commission bench tags every
+> arm and every pool; the ordinance line says its multiplier (*"59,000 over the ordinance — every
+> levy costs ×1.45"*); the recruit result names every term the pricer applied (*"741 gold (×3 at
+> war) (×1.45 over the ordinance) (Davout's intendance: -15%)"*, one source
+> `_recruit_cost_terms`). **Driven, not censused:** `tools/cn3_region_panel_harness.gd` runs the real
+> panel headless on the live payload and every `do:recruit` url it renders is sent through
+> `/command` — **12 enabled, each raises the arm its label names; 0 enabled-and-refusing (was 78);
+> 0 enabled-and-wrong-arm (was 14)**. `test_cn3_the_chip_tells_the_truth.py` **26** (22 red on the
+> pre-slice tree; the four green are the harness check and three controls); sweep
+> `tools/_sweep_cn_3.json` **30/30, 0 INERT** (14 of them in the `.gd`, killed only by the driven
+> pins); parse harness EXIT=0 (49 scripts — the new harness and CX-7's added to the list);
+> boot smoke 0 `SCRIPT ERROR`; frames `docs/audits/IQ10_REGION_*_2026_09_22.png` at both scales;
+> `BASELINE_SERIES` + M1–M7 byte-identical because the AI never enters the no-marshal branches.
+> Two pins flipped consciously (IQ-10's `feeds_us` gate, the Aug-30 review's price line). **CN-4
+> (the chip-honesty census of every `do:` template, and the four §3 siblings) is next.**
+>
 > **✅ SLICE 2 — CX-R1 "The unbound name spends nothing" — LANDED September 22, 2026.**
 > Landing record = `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md` §CX-R1 LANDING
 > RECORD (authoritative); rules = `SYSTEMS_REFERENCE.md` §51; row **CQ-2** disposed in
@@ -167,14 +195,15 @@
 >
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = slice **3**'s client half, **CN-3 "the chip tells the
->    truth" and CN-4 "the chip-honesty census"** (slices 1, 2, 5 and CN-1 + CN-2
->    landed September 22, 2026 — above; the backend now ships `recruit_here` per
->    province, which CN-3 renders). Take it. Do not re-plan it — the build contract is the memo named on
->    its row (`RECRUIT_ARM_UX_2026_09_20.md`, memo ids R1–R4 ≡ CN-1–CN-4, with the
->    positive artillery case added as R2 item 9), and the memos are already sliced
->    with falsifiable `done_when` clauses. Rulings D4 (no artillery marshal is
->    authored) and D5 (recruiting does not open on ally soil) are taken.
+> 1. **What is next** = the last of slice **3**, **CN-4 "the chip-honesty census"**
+>    (slices 1, 2, 5 and CN-1 + CN-2 + CN-3 landed September 22, 2026 — above). CN-4
+>    enumerates every `do:` template across the chip-producing `.gd` files, drives each
+>    composed string at the real `/command` (CN-3's harness `tools/cn3_region_panel_harness.gd`
+>    is the road for the region panel's templates), and disposes the four §3 siblings (the
+>    white-peace and cede echoes, the substitutes chip's quantity and gate, the raw roster key
+>    on the Attack chip). Take it. Do not re-plan it — the build contract is the memo named on
+>    its row (`RECRUIT_ARM_UX_2026_09_20.md`, memo id R4 ≡ CN-4), with a falsifiable
+>    `done_when`. Then slice 4, **CX-R2**.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -209,7 +238,7 @@
 > |---|---|---|---|---|
 > | ~~**1**~~ | ~~**CR-7-1 "The tail stops eating the head"**~~ ✅ **LANDED Sept 22, 2026** | CR-7 | 0.5 | ~~**P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes.~~ **40 → 0.** Landing record in the memo. |
 > | ~~**2**~~ | ~~**CX-R1 "The unbound name spends nothing"**~~ ✅ **LANDED Sept 22, 2026** | CX-R | 0.5 | ~~**P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**.~~ **~30 forms → 0**; the verb set is generated from the router. Landing record in the memo. CX-X3 (a bare `vassalize`) re-routed to the CR-6 triage. |
-> | **▶ 3** | **CN-1 … CN-4 "The Chip Names the Man"** — ✅ CN-1 + CN-2 (backend) LANDED Sept 22, 2026; **▶ CN-3 + CN-4 next** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
+> | **▶ 3** | **CN-1 … CN-4 "The Chip Names the Man"** — ✅ CN-1 + CN-2 (backend) and ✅ CN-3 (the chip) LANDED Sept 22, 2026; **▶ CN-4 next** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
 > | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |

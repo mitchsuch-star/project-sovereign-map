@@ -513,3 +513,120 @@ Nivernais, Orleanais, Rhineland infantry+cavalry; Burgundy and Savoy cavalry); e
 artillery chip refuses free and names `commission Marmont (4500g)`. 2,161 existing
 recruit-family tests pass unedited, including PF-7, the Aug-30 review's price pins and
 IQ-10's.
+
+## §CN-3 LANDING RECORD — the chip tells the truth (September 22, 2026)
+
+**Status: LANDED on master** (built on `608c094b`). The client half of row **CQ-3**;
+rows **CQ-18** and **CQ-19** found and closed in the build. **CN-4 (the census of every
+`do:` template, and the four §3 siblings) is NEXT.** Pins =
+`tests/test_cn3_the_chip_tells_the_truth.py` (26 — seven of them DRIVEN: the new
+headless harness `tools/cn3_region_panel_harness.gd` runs the real `region_panel.gd` and
+`marshal_management.gd` on the live payload, and the pytest sends every `do:recruit` url
+the panel rendered through POST /command; they skip without the engine, and a skip is not
+a pass). **22 of the 26 fail on the pre-slice tree** — the four that pass are the harness
+check and three controls. Sweep = `tools/_sweep_cn_3.json` (**30/30 killed, 0 INERT, 0
+BROKEN** — 14 of the mutations are in the two `.gd` files and are killed only by the
+driven pins). Evidence frames = `docs/audits/IQ10_REGION_{PARIS,RHINELAND,AMSTERDAM,MILAN}{,_X2}_2026_09_22.png`
+(the IQ-10 instrument re-shot at both Interface Scales, 0 `SCRIPT ERROR`; the
+`_2026_09_19` frames are the before, where Paris shows three identical chips).
+
+### Reproduced first (HEAD `608c094b`)
+
+CN-1 had made the backend quote every chip, and the client did not read the quote: on
+the funded boot payload the row still rendered on `feeds_us` as **90 identical enabled
+chips while the quote refused 78 of them** (69 on the 800-gold boot treasury, the memo's
+figure). Reading the quotes the chips were about to print then found two defects in CN-2's
+own refusals:
+
+- **CQ-18 — the man was asked before the ground.** The arm refusal ran ahead of the
+  province's own gates, so `recruit artillery in Milan` — Kingdom of Italy's soil, where no
+  French levy is raised (ruling D5) — answered *"No marshal of artillery can reach Milan …
+  commission Marmont (4500g)"*, a 4,500-gold remedy for a refusal no commission lifts, while
+  the infantry chip beside it said the truth. The order was older than CN on the no-arm road:
+  `recruit infantry in Vienna` told the player to march a corps within range of Austria's
+  capital, and an own province in unrest with nobody in reach said *"No marshal is available
+  … March a corps within range"* — marching one there would not have helped.
+- **CQ-19 — a remedy named an order the game refuses.** The "give him the order yourself"
+  clause was unconditional: at boot, Paris's infantry refusal told the player *"give him the
+  order yourself: 'Massena, recruit infantry'"* — Massena stands on Milan, and that order is
+  refused (*"We do not control Milan"*).
+
+### Decisions (taken under the delegated grant, each with its reason)
+
+1. **The row renders where the backend QUOTED it** (`recruit_here` non-empty), not on
+   `feeds_us` — the quote is built only on own soil and friendly soil feeding a French corps,
+   which is IQ-10's H1 ground, so the row appears exactly where it did and ally soil keeps its
+   honest refusal (D5). `feeds_us` now gates the substitute market only. One chip per arm,
+   ENABLED iff the quote is `ok` and stating the quote's `terms` (*"Davout · 3,000 foot · 741g
+   · field levy (pool 80,000)"*), otherwise `Utils.bb_chip_disabled` beside the quote's
+   `short`. **Both strings are the backend's** (`economy_executor._recruit_quote_display`,
+   from the quote's own fields); the panel re-derives nothing (the memo's R3). When every arm
+   is refused for ONE reason (ally soil, no administrative action, unrest) the reason is said
+   once beside three dimmed chips. The chip carries the `short`, not the executor's full
+   sentence: the long form is in Berthier's voice and is what the terminal prints if the order
+   is typed; the short is the same reason from the same quote.
+2. **The ground speaks first (CQ-18).** Where the game chooses the man — a province named, or
+   the bare levy at the capital — the province's own gates refuse BEFORE a man is chosen,
+   because no marshal can remedy them: ONE source `economy_executor.recruit_ground_refusal`,
+   called by the executor's two no-marshal branches and by the quote (whose later gate is
+   deleted — a quote has no named road). The NAMED road keeps its order: there the ground is
+   the named man's own. **No lever**, deliberately: the drift pin binds the executor and the
+   quote together, and a lever would need a second quote path — the thing CN-1 exists to
+   prevent. `recruit in Atlantis` now says *"Unknown region: Atlantis"* on both.
+3. **A remedy is an order the game takes (CQ-19).** The "give him the order yourself"
+   clause is offered only where the named man's own ground would levy; the man named is still
+   the NEAREST (CN-2's pinned rule). Considered and rejected: preferring the nearest man on
+   levying ground — it would name a farther man for the march half, and "nearest" is pinned.
+   The pin collects every order any refusal on the board quotes and drives each one: all act.
+4. **Rider 1 — the marshal row names the arm** — `Ney (24,000 foot)`, `Murat (22,000
+   horse)`, and Napoleon's fourth value `emperor` as `(10,000 Guard)`. It reads the payload's
+   `arm`, which rides an enemy marshal only at FULL visibility.
+5. **Rider 2 — the commission bench tags every arm** with the serving card's own idiom
+   (icon + colour for horse and guns, label for foot), states the corps each candidate raises
+   (*"a corps of 3,000 guns"*), and the header names all three pools (*"Pools: 80,000 foot ·
+   15,000 horse · 10,000 guns"*) instead of the infantry pool alone. The payload always
+   carried `arm`, `corps` and `pools`; client-only.
+6. **Riders 3, 4 and 7** — the pool rides each enabled chip's terms; the ordinance line says
+   its multiplier (*"59,000 over the ordinance — every levy costs ×1.45"*) from the new
+   `get_levy_status["ordinance_mult_pct"]`, pinned against the pricer's actual ratio rather
+   than its formula (100 on the legacy world, where the pricer does not apply it); the old
+   *"872g per 10,000 foot here"* is gone — a field levy delivers 3,000.
+7. **Rider 5 — the result names every term.** `_recruit_cost_terms` returns the price AND
+   the named terms in the order they compose; `_calculate_recruit_cost` is its price, so every
+   caller (the AI's three included) gets the identical number. The result now reads *"Cost:
+   741 gold (×3 at war) (×1.45 over the ordinance) (Davout's intendance: -15%)"* — the note
+   had named the capital discount and the Intendance and never the two terms that make 4.36×
+   of the charge. The legacy world names no war price (N1: it boots at war and is never priced
+   for it — pinned).
+8. **Rider 6 — disposed, not built.** `levy.open` / `closed_reason` are the capital's facts
+   and are named as such where they are read (*"No corps stands within reach of the depot at
+   Paris…"*, the headline, the ledger's Manpower tab). The region panel reads no capital fact
+   for the recruit row any more — it reads the province's own quotes — so the rider's hazard
+   is gone for this surface by construction, and no rename was needed.
+9. **The instrument.** `tools/cn3_region_panel_harness.gd` (headless, the real scenes, a
+   map-node stand-in copied from IQ-10's MapStub) is added to the committed parse-check list
+   (`tools/godot_parse_check.gd` `TOOL_SCRIPTS`), whose stated rule is now *every harness a
+   pytest drives* — so CX-7's `cx7_predictor_harness.gd`, driven by
+   `test_cx7_predictor_driven.py` and missing from the list, is added too (49 scripts, all
+   clean); IQ-10's runner gains a Rhineland shot and CN-3's must-show lines. ⚠ Found in
+   passing, not in scope: **twelve older one-off tool harnesses** (`tools/*_screenshot.gd`,
+   `wo7_matcher_smoke.gd`, `audio_envelope_probe.gd`, `ux23_r9_audition_render.gd`) are
+   driven by no pytest and are not in that list, so a parse error in one surfaces only when
+   somebody runs it; recorded here, not fixed.
+10. **Two pins flipped consciously**: IQ-10's
+    `test_the_panel_branches_on_the_ground_that_feeds_us` (the levy no longer rides
+    `feeds_us`) and the Aug-30 review's `test_the_panel_reads_it` (the price rides each arm's
+    terms). The second's first cut failed on its own retirement comment — a census must count
+    the code, not the prose — and is scoped to code lines. The dead
+    `economy_executor.recruit_here` (no caller) is deleted.
+
+### Measured after
+
+On the funded boot payload, through the REAL panel: **12 chips enabled — each acts at POST
+/command and raises the arm its label names; 78 dimmed, each beside the backend's reason;
+0 enabled-and-refusing (was 78 funded / 69 at the boot treasury); 0 enabled-and-wrong-arm**
+(was 14 before CN-2). Milan and Franconia: three dimmed chips and one reason. Every order a
+refusal quotes acts. Parse harness EXIT=0 (49 scripts); boot smoke 0 `SCRIPT ERROR`;
+the capture harness 0 `SCRIPT ERROR` at both scales; the recruit family (1,672) green;
+**`BASELINE_SERIES` and M1–M7 byte-identical without re-record, because the AI never enters
+the no-marshal branches** (CN-2's census) and rider 5's pricer returns the same arithmetic.
