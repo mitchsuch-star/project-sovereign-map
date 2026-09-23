@@ -164,3 +164,111 @@ Europe: its 75% fraction is exactly what DG-5 forbids.
 - **`test_economy_ec6_sandbox::test_1805_no_end_screen_at_turn_60`:** its meaning is re-blessed. It stays green because the verdict never sets `game_over`.
 - **The IQ-2 "never terminal" pins** listed in R9.
 - **Legacy:** 0 flipped.
+
+---
+
+## §7 THE IMPERIAL PEACE — the victory arm (PROPOSED September 23, 2026 — awaiting the user's ruling; nothing built)
+
+> **Status: PROPOSAL.** Written after the live review (`docs/audits/PLAYTEST_LIVE_REVIEW_2026_09_23.md`) at the user's direction: *"determine how the end can work. one suggestion is holding X for X and this involves 'stabilization of new status quo'; also how defeat conditions should work and what happens if nations eliminated globally."* It amends §2 only where it says so. R1 (the Fall), R2 (the Verdict at 44) and R3–R9 stand unless a ruling in §7.8 changes them. **GE-1 does not start until §7.8 is ruled**, because the title record (§7.2) is written at the same seams GE-1 touches.
+
+### §7.0 Why the game needs an earned ending — measured, not argued
+
+- **A. The turn-4 peace.** On the commanded-accept driver arm France accepts Britain's paying peace on turn 4 at war score 0; the coalition is spent, the alarm falls 90 → 45 → 0 by turn 40, the enemy makes **0 attacks in 56 turns**, France holds 28 provinces throughout and banks 152,941 gold. The Verdict at 44 would *grade* this campaign; nothing in it could ever be *won*.
+- **B. The fiat conquest.** A cheat probe handed France one court's provinces per turn while every enemy army stayed in the field: 91 provinces by turn 6, then alarm **97 for 25 turns**, six Revanche designs in six turns, Charges of Empire ~9,900g/turn, Net negative from turn 17, the map bleeding back 91 → 66 by turn 30 with Russian corps walking into Provence unopposed and Holland breaking free. Holding land is not winning; the board already says so, mechanically.
+- **C. Global elimination.** With every rival court torn down by the engine's own `_eliminate_nation` (probe A: rivals; probe B: vassals too) the game runs twelve more turns with no error and no ending: the alarm climbs to **99 "Brewing"** (+8 hegemony, +3 for half the map, +2 for the largest army, every turn) while Talleyrand says "No coalition stands against us" and "France wages no war — a rare and precious quiet"; the treasury grows ~14,000g a turn; the satellites drift (Holland 100 → 59); `enemy_nations` is never pruned; "how do I win" still answers "there is no laurel to be handed out".
+- **D. What the code cannot say.** `Region` has no ownership-history field; `previous_treaties` stores what was proposed, not what was applied; the campaign ledgers' captures are cleared at peace. Nothing today can tell a province *ceded by treaty* from one *seized last turn*. Britain's `low_countries` and Austria's `redeem_italy` target French homeland (Flanders, Savoy), so those designs can never read satisfied while France keeps her 1805 borders; a partitioned power's Revanche is permanent.
+
+Therefore the ending must: (1) be reachable only by **settling** conquests, not by occupying them; (2) be unreachable through the turn-4 peace; (3) fire when no one is left to contest the order; (4) be a clock the player can read on the surfaces they already use.
+
+### §7.1 The rule — "hold X for X"
+
+**THE IMPERIAL PEACE.** France wins when, for `stabilization_turns` = **8** consecutive turns:
+
+1. the French bloc (France plus her satellites) holds at least `hold_provinces` = **51** provinces **by title** (§7.2). 51 is 40% of the 126-province map, the middle `region_control` gate; the boot bloc is 35, so sixteen provinces must be won AND settled;
+2. no great power (`_CANONICAL_MAJORS` minus France: Britain, Russia, Austria, Prussia) is at WAR with France — PEACE or any treaty counts, an **ARMISTICE does not** (a truce is not an order);
+3. no coalition stands or brews against France, and Europe's alarm is below the Brewing line (`threat < 60`);
+4. no satellite is in rebellion, and every satellite's loyalty is ≥ 40;
+5. the titled count never dips below `hold_provinces` inside the window — a lost province resets the window; a province gained mid-window may join the count.
+
+The numbers are authored in the scenario's `campaign_end` block beside `verdict_turn` and are tunable there (R7: the rules arm only where a scenario authors them).
+
+### §7.2 Title — the stabilization of the new status quo
+
+A province is **held by title** when one of these holds:
+
+- **homeland** — it is in `nation_starting_regions` for France (28), or in a satellite's own starting regions (a satellite's share counts only while it is a satellite with loyalty ≥ 40);
+- **ceded by treaty** — it was transferred by a `territory_cede` / settlement clause the other court signed. The three ratify seams already exist (`_ratify_treaty`, `settlement_ratify._apply_settlement_terms`, `formations.apply_create_client_clause`); title is immediate;
+- **quiet possession** — it was captured by force and then held for `title_turns` = **12** consecutive turns (the `AGENDA_GRUDGE_TURNS` window) during which no hostile army entered it AND the court it was taken from is not at war with France (an armistice counts as not-at-war here; a new war restarts the clock);
+- **a client's soil** — the provinces of a court France created (Warsaw, the Roman Republic…) are that client's homeland, which formations already set at birth.
+
+Everything else — an enemy province occupied during a war, a province taken last turn — is *held*, shown on the ledger, and not *titled*. That is the "stabilization" the user named: a conquest joins the order only when the loser signs for it or when Europe has stopped contesting it.
+
+**The record.** ONE new serialized field, `province_title: {region: {"kind": "treaty" | "conquest", "since": turn, "from": nation}}`, written at the capture chokepoint (`capture_region` — kind `conquest`, `since` = the turn) and at the three ratify seams (kind `treaty`). Homeland needs no record. A hostile army entering a `conquest` province resets `since`; the title check reads `since <= turn − title_turns`. GR5: the record is written for every nation; only the player's ending reads it. `Region` itself is not changed.
+
+**Rider — reconciliation (gated separately, Q6).** A court that signs a cession is *reconciled* for that province: its Revanche design's weight for that province reads 0 while the treaty holds and re-arms if the treaty is broken. Today Revanche is permanent (`emergent_designs.py`), which is right for a forced peace and wrong for a signed one — without the rider a partitioned Austria is never content even after a Pressburg it signed. Zero new fields: it reads the treaty record.
+
+### §7.3 The clock the player sees
+
+ONE source, `game_end.imperial_peace_state(world)`, rendered as one line on the war room, the Strategic Ledger's Territories tab and the end-turn banner:
+
+`THE IMPERIAL PEACE — 51 titled provinces needed · 43 titled (8 held, unsettled: Vienna, Bohemia, …) · window 0 of 8 · blocked by: Britain at war; Europe's alarm 97 (Brewing)`
+
+With the window open: `window 3 of 8 · nothing blocks`. A reset is a dispatch beat that names its cause ("Provence is lost — the Imperial Peace must wait"). Talleyrand's counsel rung names the nearest gap ("Sign with Vienna and Bohemia is yours by title; London still fights"). Reuses the design-line and `enemy_eliminated` idioms; no new popup, no PopupQueue slot.
+
+### §7.4 The ending
+
+When the window completes: `record_ending(world, "victory", "imperial_peace")` through R7's seam; the R4 screen in the Proclamation style — *THE IMPERIAL PEACE — Europe accepts the order of the French Empire* — with the campaign totals and a final Moniteur, and two buttons: **Continue the reign** (EC-6: mark and continue; the Verdict at 44 still grades) and **Retire to the Tuileries** (Main Menu). The ending is stamped once and never re-fires. Symmetric predicate (GR5): `imperial_peace_state` answers for any nation; only the player's ends the game, exactly as R1.
+
+### §7.5 Global elimination — the rulings
+
+- **E1 — The Universal Monarchy.** If every great power is eliminated or vassalized to France, the Imperial Peace fires at once, without the window: no court is left to contest the order. Same ending, a different subtitle. Today this state is an eternal "Brewing".
+- **E2 — Nobody left to be alarmed.** The threat scalar stops climbing when no non-vassal court can qualify for a coalition: the hegemony / army-share / region-control producers early-return (or `add_threat` decays to 0) while `get_qualifying_nations` is structurally empty, and Talleyrand says "There is no Europe left to alarm" instead of "Brewing". Measured: 99 with nobody left, +13 a turn.
+- **E3 — The dead stay dead.** An eliminated court contributes no "X: No marshals (eliminated?)" row to the enemy phase; its fleets leave the pooling, the blockade board and `continental_ports_total`; `trade_dominance_nation` never returns it; its agenda deck is retired rather than skipped. The research read these by code; GE-1 pins them.
+- **E4 — Knocking out a great power is an ending beat**, not a rail row: a special Moniteur, the existing dispatch headline, and a verdict-tier input ("great powers eliminated or vassalized" beside "great powers still at war").
+- **E5 — Great powers stay eliminable on the battlefield.** D2 governs only the AI-vs-AI term generator. No capital immunity for the player: the last-province teardown is the fair end of a war the player fought to the finish.
+- **E6 — The AI roster shrinking** needs no change: coalitions need two members (guarded), the paymaster stops with Britain (guarded), ultimatums have no issuer; the probe played twelve turns after a total elimination with zero errors.
+
+### §7.6 Defeat — how it should work (R1 confirmed; one addition)
+
+- **R1's two clocks stand.** "The Empire Without Soil or Sword" (≤1 province, or no free corps and no affordable commission, for 5 turns) and "The Eagle in Chains" (the Emperor captive for 10 turns): warned, with exits, and Paris alone never triggers them. The research shows the shape is right — a passive France keeps 107,000 men while losing the map, so "no army" alone arrives late; Paris fell in 19 of 262 archived and fresh runs and was never retaken, so "Paris alone" would end campaigns the player had not given up.
+- **Addition — "The Humbled Peace", a marked, non-terminal ending.** If France ratifies a settlement that cedes Paris, or at least half the homeland, or makes France a vassal, `record_ending(world, "defeat", "humbled_peace")` stamps the campaign (the R4 screen in crimson; the Verdict grades it as an eclipse) and play **continues** — Prussia after Tilsit is a game, not a game over. It is not terminal because the player chose it; R3's "a defeat you can ignore is not a defeat" applies to the clocks, which the player did not choose.
+- **No third clock.** Grip collapse and treasury collapse are already legible and already reach R1 through attrition; a separate clock would double-count. Re-open if a played campaign shows a hopeless state that neither R1 arm reaches within ten turns.
+- Symmetry (GR5): AI courts keep losing by elimination and by suing; `fall.get_fall_state` answers for them and never ends the game.
+
+### §7.7 Numbers and the measurement plan (GE-1 owns it)
+
+Defaults, all in `campaign_end`: `hold_provinces: 51`, `stabilization_turns: 8`, `title_turns: 12`, `alarm_ceiling: 60`, `satellite_loyalty_floor: 40`, `verdict_turn: 44`. Measured before landing, on committed driver arms:
+
+- the commanded-accept arm must NOT win (it holds 28 — passes by construction; pinned);
+- the fiat arm must NOT win (alarm 97, at war with everyone — passes by construction; pinned);
+- a scripted **"Pressburg" arm** (Ulm → Vienna → a settlement that cedes Vienna's neighbours and the satellites' claims → eight quiet turns) should reach the Imperial Peace between turns 25 and 40. If it cannot, `hold_provinces` comes down to 45 (the 30% gate plus the satellites' seven) before anything else moves;
+- the global-elimination probe must fire E1 on the first turn after the last great power falls.
+
+The window, title and alarm constants are in-band tunable; `hold_provinces` and the title rule are the gate.
+
+### §7.8 Questions for the user (recommended default first)
+
+- **Q1 — The shape.** (a) "Hold X titled provinces for X quiet turns", §7.1–§7.2 **[recommended]**; (b) an authored objective set (Vienna, Berlin, the Rhine…) held for X turns — VP-1's territory, it would pre-empt that gate; (c) a pure province count with no title rule — rejected by §7.0-B: it rewards the occupation the board itself punishes.
+- **Q2 — The numbers.** 51 / 8 / 12 **[recommended]**, or 45 / 6 / 10 for a shorter first campaign. Both are scenario data.
+- **Q3 — After the victory.** Mark and continue, with a Retire button **[recommended]**; or terminal.
+- **Q4 — The Humbled Peace.** A marked, non-terminal defeat ending **[recommended]**; or nothing; or terminal.
+- **Q5 — The Universal Monarchy (E1)** fires without the window **[recommended]**; or requires the eight-turn window like any other Imperial Peace.
+- **Q6 — The reconciliation rider** (a signed cession silences that province's Revanche while the treaty holds): in GE **[recommended — it is what makes a signed peace worth more than an occupation]**; or deferred to the Victory pass.
+
+### §7.9 Slices (if ruled)
+
+- **GE-1 riders:** the `province_title` record at the four seams; the E2 alarm guard; the E3 "dead stay dead" pins; the Humbled Peace stamp at the three ratify seams.
+- **GE-3 "The Imperial Peace" (~1 session):** `game_end.imperial_peace_state` and the window clock (ONE serialized `imperial_peace_window`), the ledger / war-room / banner line, Talleyrand's rung, the Pressburg driver arm, the ending-screen variant (shares GE-2's scene), the E1 arm, `tests/test_game_end_imperial_peace.py`.
+- Row GE becomes ~3 sessions (GE-1 + GE-2 + GE-3). The release build still follows GE.
+
+### §7.10 Never-do pins (for the build)
+
+- The turn-4 paying peace never satisfies the Imperial Peace (the titled count stays 35 < 51; pinned on the commanded-accept archive).
+- An ARMISTICE never opens the window.
+- A province held by force and never signed for is never titled before `title_turns`.
+- The Imperial Peace never fires twice; a Humbled Peace after an Imperial Peace stamps a second ending and the Verdict reads both.
+- Nothing here writes `sandbox_mode`; the bare flag world and the tutorial never arm (R7).
+
+### §7.11 Evidence
+
+`docs/audits/PLAYTEST_LIVE_REVIEW_2026_09_23.md` §4 (the three probes, with numbers) and §1 (the played campaign). The probe scripts lived in the session scratchpad; the commanded arm is the committed `tools/playtest_scripts/commanded_full40.json` run with `--turns 60 --diplomacy accept`.

@@ -7,10 +7,62 @@
 > **▶ ▶ THE PLAN — September 23, 2026 (revised twice the same day). THIS BLOCK
 > IS THE ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
 >
+> **▶ ▶ THE LIVE REVIEW — September 23, 2026 (evening). Read this before
+> starting row GE.** The user asked for four things: *play the game for real
+> using commands, look at the game, see if any remaining bugs / anything
+> missing, do a Steam review, and determine how the end can work* (their
+> suggestion: "holding X for X" with a "stabilization of the new status quo",
+> plus defeat and global elimination). Done, nothing built:
+> - **Played** seven turns of France/1805 BY HAND in the real client (window
+>   2560×1340, backend on 8006, the live Anthropic parser): Ulm on turn 1,
+>   Mack captured, Vienna stormed on turn 6, the marshals' collective petition
+>   on turn 7. Every surface read from native captures. **0 server errors, 0
+>   parser misreads on 19 typed orders.** Memo of record =
+>   **`docs/audits/PLAYTEST_LIVE_REVIEW_2026_09_23.md`** (the campaign, the
+>   Steam review — *7/10, recommended once it has an ending* — the findings,
+>   the probes, the scores: directional ≈6.9, two new pillars scored honestly:
+>   first contact 5.5, the ending 3.0).
+> - **Filed** 21 defect rows with verified producers — **`BUG_FIXES.md` §Live
+>   Review, LV-1 … LV-21** (headlines: **LV-1** a fresh campaign and every
+>   load open on an EMPTY terminal — the boot help is printed then wiped by the
+>   world-swap clear, and no turn-1 dispatch exists; **LV-12** the battle
+>   report never printed when envoy dialogs were raised on the attack's tail;
+>   **LV-14** the settlement table tells a player holding Vienna that a white
+>   peace "claims a victory the field has not delivered"; a display-name family
+>   LV-2/3/4/9/19 — `ArchdukeJohn`, `PEACE → OPEN_BORDERS`, `(MOVE_TO)`,
+>   `2.0 turns`, `envoy(s)`) and 5 design rows — **`DESIGN_REFINEMENT.md`
+>   §Live Review, LV-D1 … LV-D5** (the reward curve firing the collective
+>   petition on turn 7 of a winning campaign; Bavaria's turn-1 triple walk-in,
+>   FA-D13 re-opened; the strategic-orders recap modal; the legitimacy
+>   blocker; PB-D1's evidence).
+> - **Measured the end three ways** (memo §4): the commanded-accept arm makes
+>   peace on turn 4 and sees **0 enemy attacks in 56 turns**; a fiat conquest
+>   of 91 provinces pins the alarm at 97 for 25 turns and bleeds back to 66;
+>   and with every rival court torn down by the engine's own teardown the game
+>   plays on with the alarm at 99 "Brewing", Talleyrand reporting "a rare and
+>   precious quiet", and "how do I win" still answering "there is no laurel".
+> - **Proposed the victory arm the user asked for — `GAME_END_SPEC.md` §7,
+>   "THE IMPERIAL PEACE"**: hold **51 provinces by TITLE** (homeland, ceded by
+>   treaty, or 12 quiet turns of possession — ONE new serialized
+>   `province_title` record; the "stabilization of the new status quo") for
+>   **8 consecutive turns** with no great power at war, no coalition, alarm
+>   below 60 and the satellites loyal; the Universal Monarchy fires it at once
+>   when no great power remains; six global-elimination rulings (E1–E6: the
+>   alarm must stop climbing with nobody left to alarm; the dead stay dead);
+>   R1's two defeat clocks confirmed plus a marked, non-terminal "Humbled
+>   Peace"; the measurement plan (the accept arm and the fiat arm must NOT
+>   win; a scripted Pressburg arm should, by turn 25–40). **⚠ AWAITING THE
+>   USER'S RULING on §7.8 Q1–Q6 (recommended defaults given). GE-1 starts on
+>   that ruling** — the title record is written at the seams GE-1 touches. If
+>   ruled, row GE becomes ~3 sessions (GE-1 + GE-2 + GE-3).
+> - **Recommended landing for the rows:** LV-1 + LV-12 ride the release build;
+>   the display-name family lands as one pass (NPC-12's first slice);
+>   LV-5/14/15 are the next client session's layout fixes.
+>
 > **▶ NEXT = row GE "The Verdict and the Fall" — game end and defeat state**
-> (spec + rulings: **`docs/GAME_END_SPEC.md`**, ROADMAP row **GE**). Then **the
-> release build** — whose **part 1 is already written and SAVED** (see below) —
-> then the fix Updates 1–5.
+> (spec + rulings: **`docs/GAME_END_SPEC.md`**, ROADMAP row **GE**; **opens on
+> the §7 ruling above**). Then **the release build** — whose **part 1 is
+> already written and SAVED** (see below) — then the fix Updates 1–5.
 >
 > **User direction, in order:**
 > 1. *"what else should we do before build any more improvements or issues we can iron out?"*
