@@ -6,7 +6,7 @@
 
 ---
 
-## Live Review — design items (LV-D) — filed September 23, 2026 (evening) (**ALL OPEN**; memo `docs/audits/PLAYTEST_LIVE_REVIEW_2026_09_23.md`; the victory design = `GAME_END_SPEC.md` §7, awaiting the user's ruling)
+## Live Review — design items (LV-D) — filed September 23, 2026 (evening) (**ALL RULED the same evening in `docs/ENDGAME_PLAN.md` — LV-D1 → slice F4 (D11), LV-D2 → F5 (D12), LV-D3 → F3 (D13), LV-D4 → F5 + GE-3 (D14), LV-D5 = evidence for PB-D1; the victory design = the plan's §2 "The Congress of Paris", superseding `GAME_END_SPEC.md` §7's questions**; memo `docs/audits/PLAYTEST_LIVE_REVIEW_2026_09_23.md`)
 
 | Row | Item | Recommendation | Owner |
 |---|---|---|---|

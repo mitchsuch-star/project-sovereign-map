@@ -7,8 +7,35 @@
 > **▶ ▶ THE PLAN — September 23, 2026 (revised twice the same day). THIS BLOCK
 > IS THE ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
 >
+> **▶ ▶ ▶ NEXT = ROW EP "THE ENDGAME PROGRAM" — `docs/ENDGAME_PLAN.md` IS
+> THE ROUTING AUTHORITY. START THERE. First slice = F1 "The first ten
+> minutes".** RULED September 23, 2026 (evening) under the user's grant
+> (*"create a plan to fix all of these, make all decisions, and for the
+> ending make the decision on how to end — a challenge to force a new status
+> quo, hold the win state for X turns, with a mechanic that makes it fun …
+> start with fixes, end with end state creations"*). The plan, in one line:
+> **F1 → F2 → F3 → F4 → F5 → F6** (the live review's 21 defect rows and 5
+> design rows, every one decided: the first-ten-minutes fixes, the
+> display-name pass, the client layout pass, the reward curve — no rise
+> before turn 6, one per marshal per 4 turns, the collective petition at
+> turn ≥ 12 — Bavaria's walk-ins capped at one per corps per turn, the
+> legitimacy sentence named, the vindication contradiction), **then GE-1 →
+> GE-2 → GE-3 → GE-V** (the ending: R1's two defeat clocks + the marked
+> "Humbled Peace"; the `campaign_end.tscn` scene with four registers;
+> **"THE CONGRESS OF PARIS"** — with **50 titled provinces** the Emperor
+> summons the Congress, every great power answers on a public table with its
+> reason and its PRICE, the Congress **sits 8 turns** while refusers are
+> driven to war and the marshals and satellites present their bills, Britain
+> is shut out by the Continental System at 60%, and full recognition on the
+> eighth turn is **THE IMPERIAL PEACE**; a failed Congress dissolves and can
+> be summoned again; the Universal Monarchy when no great power remains),
+> **then the release build (ROADMAP 10), then Updates 1–5.** ≈ 7.25 sessions
+> before the build. `GAME_END_SPEC.md` §8 records the same ruling; §7's six
+> questions are answered there. Every slice's commit marks the plan's table,
+> this block, the rows, and `CLAUDE.md` LIVE STATE.
+>
 > **▶ ▶ THE LIVE REVIEW — September 23, 2026 (evening). Read this before
-> starting row GE.** The user asked for four things: *play the game for real
+> starting row EP.** The user asked for four things: *play the game for real
 > using commands, look at the game, see if any remaining bugs / anything
 > missing, do a Steam review, and determine how the end can work* (their
 > suggestion: "holding X for X" with a "stabilization of the new status quo",
@@ -51,18 +78,21 @@
 >   alarm must stop climbing with nobody left to alarm; the dead stay dead);
 >   R1's two defeat clocks confirmed plus a marked, non-terminal "Humbled
 >   Peace"; the measurement plan (the accept arm and the fiat arm must NOT
->   win; a scripted Pressburg arm should, by turn 25–40). **⚠ AWAITING THE
->   USER'S RULING on §7.8 Q1–Q6 (recommended defaults given). GE-1 starts on
->   that ruling** — the title record is written at the seams GE-1 touches. If
->   ruled, row GE becomes ~3 sessions (GE-1 + GE-2 + GE-3).
+>   win; a scripted Pressburg arm should, by turn 25–40). **⚑ RULED the same
+>   evening under the user's grant — the proposal became "The Congress of
+>   Paris" in `docs/ENDGAME_PLAN.md` §2 (the block above); `GAME_END_SPEC.md`
+>   §8 records it.**
 > - **Recommended landing for the rows:** LV-1 + LV-12 ride the release build;
 >   the display-name family lands as one pass (NPC-12's first slice);
 >   LV-5/14/15 are the next client session's layout fixes.
 >
-> **▶ NEXT = row GE "The Verdict and the Fall" — game end and defeat state**
-> (spec + rulings: **`docs/GAME_END_SPEC.md`**, ROADMAP row **GE**; **opens on
-> the §7 ruling above**). Then **the release build** — whose **part 1 is
-> already written and SAVED** (see below) — then the fix Updates 1–5.
+> ~~**▶ NEXT = row GE "The Verdict and the Fall" — game end and defeat state**
+> (spec + rulings: **`docs/GAME_END_SPEC.md`**, ROADMAP row **GE**). Then **the
+> release build** — whose **part 1 is already written and SAVED** (see below) —
+> then the fix Updates 1–5.~~ **⚑ Superseded the same evening: row GE's slices
+> are the LAST four of row EP (`docs/ENDGAME_PLAN.md`, the block above). The
+> release build (part 1 still PARKED, see below) follows GE-V; the Updates
+> follow the build.**
 >
 > **User direction, in order:**
 > 1. *"what else should we do before build any more improvements or issues we can iron out?"*
