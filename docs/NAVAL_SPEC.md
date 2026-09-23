@@ -1681,3 +1681,107 @@ disabled-with-reason chips + the build chip under Austria's own executor
 gates). Every other standing naval suite byte-green; corpus 515 rows / 526
 harness tests green; Godot import + parse harness EXIT=0; boot smoke
 0 SCRIPT ERROR.
+
+## §17. NUI "THE ADMIRALTY ON THE MAP" — the naval UI (landing record,
+## September 23, 2026 — user-directed: "add naval ui and make the ux and ui
+## work and while at it assure ux and ui is good in other key areas")
+
+Zero mechanics (GR6-clean: every resolver, gate and constant untouched; the
+map payload gains three DISPLAY arms). The finding that opened it: the Wooden
+Wall shipped mechanically complete and presentationally buried — ledger tab
+7, a few tinted dashes and an anchor glyph — and NOTHING on the map a player
+could hover or click. The naval theatre had no presence where the game is
+played.
+
+### 17.1 What landed
+
+- **The fleets stand on the map** (`naval.fleet_pieces` → `naval_overlay.fleets`;
+  `map_renderer_base._update_fleet_pieces`): every fleet in commission is the
+  FOURTH war-table piece (the NV-7 ship, `WarTablePiece.setup("ship", …)`),
+  faction-tinted like the corps, its sail count above it (gold for ours,
+  crimson when ours is blockaded or the fleet is an enemy at war), at its
+  **senior yard** — `controlled_dockyards(...)[0]`, the SAME yard the region
+  panel's "Lay down ships" chip names as where the keel goes (alphabetical:
+  Bordelais for France, Cornwall for Britain). A fleet whose every yard has
+  fallen has no station and is not drawn; the ledger still lists it. Counts
+  and postures are PUBLIC (the §9 fog ruling — period newspapers printed
+  orders of battle); the only player-relative field is `at_war_with_player`,
+  which every enemy corps already carries (CX-R2). DIFF-updated like the
+  corps (retire / re-place / create), hitboxes in world coords like the
+  marshals'.
+- **ONE crossing sentence** (`naval.crossing_line`): the Admiralty's
+  Crossings row, the map's sea-link tooltip and the region panel's THE SEA
+  block all read the same string (parity pinned entry for entry). The
+  overlay's `sea_link_verdicts` carry `line` / `coverer` / `from_region` /
+  `to_region` now.
+- **A sea crossing answers a hover** over OPEN WATER (land always wins the
+  hover, so a province click is never stolen by a crossing that ends on it):
+  `_nearest_sea_link` hit-tests the drawn segments (`_sea_segments`, world
+  coords, 14 px), the tooltip splits the Admiralty's sentence at its dash so
+  the reason gets its own line; a crossing outside the Admiralty's watch says
+  so. A fleet piece answers a hover with admiral / sail / readiness / posture
+  / station / blockade both ways.
+- **Three doors, one room:** a fleet piece, a crossing, the region panel's
+  THE SEA link and the top bar's Admiralty chip all open THE ADMIRALTY —
+  `top_bar.open_ledger_to_tab(6)` → `strategic_ledger.open_to_tab` — never a
+  second naval surface (the modal gate holds; the region panel steps aside).
+- **The Admiralty chip** (`naval.player_naval_summary` →
+  `naval_overlay.player_summary` → `top_bar.update_admiralty`, fed on every
+  map refresh by `main._update_admiralty_chip`): "⚓ 45 sail · BLOCKADED"
+  crimson-bordered under blockade, gold while a window stands open, hidden on
+  a world with no naval theatre; the tooltip is the backend's one sentence
+  (*Villeneuve · 45 sail of the line · readiness 70 · guard — BLOCKADED by
+  Britain; 3 crossing(s) shut to us*).
+- **THE SEA block** on the region panel (`region_panel.gd`): every crossing
+  that touches the province with the Admiralty's sentence, the port's
+  blockade, the fleet stationed there, and the THE ADMIRALTY chip (reviewed
+  in CN-4's inventory).
+- **IQ10-X1 CLOSED** — the top bar goes COMPACT below 1,180 logical px
+  (`top_bar._fit_bar`, on every viewport resize): nav buttons icon-only (the
+  tooltip names the screen and both hotkeys — and falls back on the bare
+  letter where no icon loaded, so the bar never shows a blank square), the
+  Cabinet line hides, the chip keeps the count. Measured at 800×450 (Interface
+  Scale 2.0's logical viewport): no visible BaseButton outside the viewport —
+  the completion definition, driven (`tools/nui_top_bar_harness.gd`).
+- **IQ10-X2 CLOSED** — the petition popup's "Grant unavailable: …" line is
+  inserted under the header, above the fold (`incoming_proposal_popup.gd`;
+  shot at 1600×900 / 1.0: the second line of the body).
+
+### 17.2 Driven, not read
+
+`tools/nui_top_bar_harness.gd` (the real top_bar.tscn at 1600×900 and
+800×450, every BaseButton's rect recorded), the CN-3 harness (the real
+region_panel.tscn with the boot's `naval_overlay`), and
+`tools/nui_map_capture.gd` (the real `map.gd` fed exactly as main.gd feeds
+it; headless for the pins, windowed for the evidence PNG) — all three named
+in `godot_parse_check.gd`'s TOOL_SCRIPTS. Evidence:
+`docs/audits/NUI_MAP_FLEETS_CROP_WEST_2026_09_23.png` + `NUI_MAP_FLEETS_CROP_NORTH_2026_09_23.png` (crops of the windowed capture — the 4.5 MB full frame is not committed),
+`docs/audits/IQ10_TOP_BAR_BOOT_X2_2026_09_23.png` (the compact bar — the
+harness renders no icons, hence the letters),
+`docs/audits/IQ10_TOP_BAR_ADMIRALTY_2026_09_23.png` (+ `_X2`),
+`docs/audits/IQ10_PETITION_POPUP_NO_DP_2026_09_23.png`. The IQ-10
+two-command road gained the `top_bar_admiralty` shot and the
+`naval_player_summary` payload key.
+
+### 17.3 Recorded, not built
+
+- Naval rows on the notice rail (a blockade beginning, a window opening):
+  the chip is the STANDING indicator and the dispatch carries the beat; a
+  rail row would need a producer + the REV-V3 census — owner: the next naval
+  UX pass, re-open on a played campaign that misses one.
+- Enemy fleets at SEA (a blockading fleet drawn on the water it covers):
+  the piece stands at the yard; the blockade is legible on the tinted
+  crossing, the port glyph and the tooltip's "Blockading France".
+- The IQ-10 capture harness renders no button ICONS (pre-existing, both
+  dates' frames) — the compact bar's letter fallback is the honest answer
+  there and a safety net in the game.
+
+**Tests:** `tests/test_nui_the_admiralty_on_the_map.py` (31 — payload,
+summary, one-sentence parity, the three doors, and the DRIVEN classes: the
+bar fits at both sizes, THE SEA on a yard / a shore / an inland capital / the
+enemy's yard, the map's pieces + hitboxes + the crossing hit-test).
+**Sweep `tools/_sweep_nui.json`: 9/9 killed, 0 INERT, 0 BROKEN.** CN-4's inventory reviews the new
+chip; `test_iq10_client_pass` + `test_godot_parse_harness` green; parse
+harness EXIT=0 (51 scripts); boot smoke via the driven main.tscn harness
+(`test_cx7_predictor_driven`) 0 SCRIPT ERROR. `BASELINE_SERIES` + M1–M7
+untouched by construction (display payload only).

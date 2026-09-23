@@ -132,6 +132,15 @@ func open(api_client):
 	api_client.get_ledger(_on_ledger_received)
 
 
+func open_to_tab(api_client, tab_index: int):
+	"""NUI: open straight to one book (THE ADMIRALTY = 6). `open` resets the
+	tab to Forces and fetches; the fetch renders whatever `current_tab` says
+	when it lands, so the tab is set right after the reset."""
+	open(api_client)
+	current_tab = clampi(tab_index, 0, tab_buttons.size() - 1)
+	_update_tab_highlights()
+
+
 func close_view():
 	"""Hide the overlay and emit closed signal."""
 	if visible:

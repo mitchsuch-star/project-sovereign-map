@@ -143,8 +143,17 @@ func show_proposal(data: Dictionary):
 			# "...or refuse it..". The line keeps its stop when a reason lacks one.
 			var _tail := "" if grant_reason.ends_with(".") or grant_reason.ends_with("!") \
 				or grant_reason.ends_with("?") else "."
-			bbcode += "\n[color=#" + Utils.COLOR_ERROR + "]Grant unavailable: " + grant_reason \
-				+ _tail + "[/color]"
+			# IQ10-X2 (Sept 23, 2026): this line explains a DEAD button, and it
+			# sat LAST in a scrollable body — cut mid-sentence at 1600x900, the
+			# one line the player had to scroll for. It goes under the header
+			# now, above the fold; the button's tooltip still carries it too.
+			var _reason_line := "[color=#" + Utils.COLOR_ERROR + "]Grant unavailable: " + grant_reason + _tail + "[/color]"
+			var _head_end := bbcode.find("\n")
+			if _head_end >= 0:
+				bbcode = bbcode.substr(0, _head_end + 1) + _reason_line + "\n" \
+					+ bbcode.substr(_head_end + 1)
+			else:
+				bbcode = _reason_line + "\n" + bbcode
 
 	# Lapse warning
 	if is_ultimatum:

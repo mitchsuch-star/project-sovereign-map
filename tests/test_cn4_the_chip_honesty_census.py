@@ -913,6 +913,8 @@ REVIEWED = {
     ("region_panel.gd", '"order:drill:" + m_name'): "driven; dimmed with the executor's reason",
     ("region_panel.gd", '"order:scout:" + m_name'): "driven",
     ("region_panel.gd", '"negotiate:" + controller'): "opens the wizard at that court; sends nothing",
+    # NUI "The Admiralty on the Map" (Sept 23, 2026): THE SEA block's link
+    ("region_panel.gd", '"admiralty"'): "opens THE ADMIRALTY (Ledger book 7) via main.gd; sends nothing",
     # marshal_management.gd
     ("marshal_management.gd", '"order:unfortify:" + chip_name'): "same command as the panel's",
     ("marshal_management.gd", '"order:fortify:" + chip_name'): "same command as the panel's",

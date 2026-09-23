@@ -352,11 +352,25 @@
 >    corpus 723/723 (12 `crt1-*` rows; not evidence — the sensitivity class is), series + M1–M7
 >    byte-identical, zero `.gd`.
 >
->    **What is next = row NUI "The Admiralty on the Map"** (user-directed September 23, 2026:
->    *"add naval ui and make the ux and ui work and while at it assure ux and ui is good in other
->    key areas"*). It names "the next UI slice" the triage flagged (IQ10-X1 / IQ10-X2 ride it).
->    **Then ROADMAP position 10, the shippable build.** After that, CRT-2 … CRT-11 in the §12.3
->    order; Round 0 evidence may re-order them.
+>    ~~**What is next = row NUI "The Admiralty on the Map"**~~ ✅ **NUI LANDED September 23, 2026**
+>    (user-directed: *"add naval ui and make the ux and ui work and while at it assure ux and ui is
+>    good in other key areas"*; landing record = `docs/NAVAL_SPEC.md` §17). The naval theatre has a
+>    presence where the game is played: every fleet in commission stands on the map as the ship
+>    piece at its senior yard with its sail count (public counts, the §9 ruling); a sea crossing
+>    answers a hover over open water with THE ADMIRALTY's own sentence (`naval.crossing_line` — ONE
+>    string for the ledger, the tooltip and the region panel's new THE SEA block); the top bar
+>    carries the Admiralty chip ("⚓ 45 sail · BLOCKADED", crimson under blockade); and a fleet, a
+>    crossing, THE SEA's link and the chip all open THE ADMIRALTY (ledger book 7) — three doors,
+>    one room. **It named and took "the next UI slice": IQ10-X1 CLOSED** (the top bar goes compact
+>    below 1,180 logical px — driven at 800×450, no button off the viewport) **and IQ10-X2 CLOSED**
+>    (the dead button's reason above the fold). Driven, not read: `tools/nui_top_bar_harness.gd`,
+>    the CN-3 harness, `tools/nui_map_capture.gd`; `test_nui_the_admiralty_on_the_map.py` 31,
+>    sweep `_sweep_nui.json` 9/9 killed, 0 INERT, 0 BROKEN; evidence `docs/audits/NUI_MAP_FLEETS_CROP_WEST_2026_09_23.png` + `NUI_MAP_FLEETS_CROP_NORTH_2026_09_23.png` (crops of the windowed capture — the 4.5 MB full frame is not committed) +
+>    the IQ-10 frames dated 2026_09_23 (the IQ-10 road gained the `top_bar_admiralty` shot).
+>    ⚠ open for the user: the in-game feel of the ship pieces and the tooltip — the eyes-on half.
+>
+>    **What is next = ROADMAP position 10, the shippable build.** After that, CRT-2 … CRT-11 in
+>    the §12.3 order; Round 0 evidence may re-order them.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -395,14 +409,14 @@
 > | ~~**3**~~ | ~~**CN-1 … CN-4 "The Chip Names the Man"**~~ ✅ **ALL FOUR LANDED Sept 22, 2026 — row CN is done** (CN-1 + CN-2 backend, CN-3 the chip, CN-4 the census) | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
 > | ~~**4**~~ | ~~**CX-R2 "The offer is reachable"**~~ ✅ **LANDED Sept 23, 2026** | CX-R | 0.5 | ~~The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`.~~ **169 of 280 refused on the boot → 0** (every offered line driven at `/command`); not client-only, by decision — two display-only fields. Landing record in the memo. |
 > | ~~**6a**~~ | ~~**CRT-1 "What the sentence forbids is never the order"**~~ ✅ **LANDED Sept 23, 2026** — record `COMMAND_ROBUSTNESS_SPEC.md` §12.7; the four P1s closed at `POST /command` (103 pins, sweep 14/14, three readers of the raw text) | CRT | 1.0–1.25 | **P1 ×4 on one seam — CQ-32, CQ-34, CQ-35, CXR1-3 (+ CX5-L5-F1):** an order to retreat, a prohibition, a negative question and a refusal each carry out the OPPOSITE. **It precedes the build under D2's own rule.** Contract = `COMMAND_ROBUSTNESS_SPEC.md` §12.3. |
-> | **▶ 6b** | **NUI "The Admiralty on the Map"** — **NEXT** (user-directed Sept 23, 2026) | NUI | ~1.0 | *"add naval ui and make the ux and ui work and while at it assure ux and ui is good in other key areas."* The naval theatre gets a presence on the map and a door to the Admiralty; the UI/UX pass takes IQ10-X1 / IQ10-X2 and whatever the captures find. This names "the next UI slice" the triage flagged. |
-| **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — next after row NUI (CRT-1 landed Sept 23) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
+> | ~~**6b**~~ | ~~**NUI "The Admiralty on the Map"**~~ ✅ **LANDED Sept 23, 2026** (record `NAVAL_SPEC.md` §17; IQ10-X1 + IQ10-X2 closed with it) | NUI | ~1.0 | *"add naval ui and make the ux and ui work and while at it assure ux and ui is good in other key areas."* The naval theatre gets a presence on the map and a door to the Admiralty; the UI/UX pass takes IQ10-X1 / IQ10-X2 and whatever the captures find. This names "the next UI slice" the triage flagged. |
+| **▶ →** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — **NEXT** (CRT-1 and NUI both landed Sept 23) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
 | ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
 > | ~~**6**~~ | ~~**CR-6 triage**~~ ✅ **HELD September 23, 2026** — record + build contract = `COMMAND_ROBUSTNESS_SPEC.md` §12. Every "CR-6 proper" row is homed to CRT-1…CRT-11 or closed or struck, and CQ-30…CQ-36 are filed | CR-6 | 0.25 | ~~**▶ DUE NOW — CX-R2 landed September 23, 2026.**~~ **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — **and by two more the same day (CN-4): CQ-20** (typed `propose white peace with <N>` is heard as a Peace Treaty with terms) **and CQ-21** (at zero AP every order chip is offered and refused) — **and by two more on September 23 (CX-R2): CQ-24** (the completer offers orders a marshal's STATE refuses — CQ-21's sibling, one design for both) **and CQ-28** (a drill-locked marshal takes a standing order the lock says he cannot receive) — **and, filed after CX-R2 landed, CQ-29** (`recruit <arm> in <X>` with a typo, an accent or an unknown place is raised AT THE CAPITAL and charged, P2) — all with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
 > | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. **+ the CR-6 triage's riders on L-1: IQ9-X1** (the retried live parse is adopted) **and IQ9-X3** (a live failure stamps its own mode), +0.25. |
 > | **8** | **CRT-2 … CRT-11** — after position 10, in `COMMAND_ROBUSTNESS_SPEC.md` §12.3's order (Round 0 evidence may re-order; a tester-hit row jumps) | CRT | ≈ 8.5–9 | **CRT-2** the name is never replaced (CQ-17 / 29 / 30, P2) · **CRT-3** a question never orders (CX-X1 + the downgrade, L2-7b, CXR1-2/4/5/N2/N3) · **CRT-4** the road law read where it is quoted (CQ-31, DESK-3/10) · **CRT-5** an answer is read closed (IQ7-X7) · **CRT-6** the retreat is a word (CQ-33, CX5-L5-F2…F7/N2/N4/N5) · **CRT-7** the desk answers what the order would do (DESK-1…16) · **CRT-8** the Cabinet's rules on every road (CX-X3, CQ-36, CX-X2, CQ-20's pin) · **CRT-9** the state speaks first (CQ-21 / 24 / 28) · **CRT-10** the suggestion is honest (CX7-X1 — lands WITH or AFTER CRT-1 — IQ9-X2, CX3-X1/X2/X3, CX-BEHAV-1) · **CRT-11** the second name is heard (CQ-8). |
-> | **—** | **Flagged by the triage, not in its scope** | — | — | **"the next UI slice"** (CX3-R2/4/5/6/9/10/11/12, IQ10-X1/X2) and **NPC-12's wider census** have "CR-6 proper"'s shape — a label with no slice. **Dated:** the next session that touches a `.gd` names a concrete row for the first; CRT-7's builder names a concrete owner for the second. |
+> | **—** | **Flagged by the triage, not in its scope** | — | — | ~~**"the next UI slice"** (CX3-R2/4/5/6/9/10/11/12, IQ10-X1/X2)~~ **named Sept 23, 2026 = row NUI, which took IQ10-X1 / IQ10-X2; the CX3-R predictor-polish rows stay owned by CRT-10 / the predictor's next pass** — and **NPC-12's wider census** still has "CR-6 proper"'s shape — a label with no slice. **Dated:** CRT-7's builder names a concrete owner for it. |
 >
 > **Recorded dissent on the order:** a build in a tester's hands surfaces defects a
 > fleet cannot, so there is a real case for shipping position 10 first. It is
@@ -8225,6 +8239,23 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ NUI "THE ADMIRALTY ON THE MAP" — September 23, 2026 — LANDED (same session as CRT-1)
+>
+> User: *"add naval ui and make the ux and ui work and while at it assure ux
+> and ui is good in other key areas."* Landing record `NAVAL_SPEC.md` §17.
+> The Wooden Wall had no presence on the map; now every fleet in commission
+> is the ship piece at its senior yard with its sail count, a crossing
+> answers a hover over open water with the Admiralty's own sentence
+> (`naval.crossing_line`, ONE string for ledger / tooltip / region panel),
+> the region panel gains THE SEA, the top bar gains the Admiralty chip, and
+> all four doors open the ledger's book 7. The "next UI slice" the triage
+> flagged is named and taken: IQ10-X1 (the bar goes compact below 1,180 px —
+> driven at 800×450, no button off the viewport, letters where no icon loads)
+> and IQ10-X2 (the reason above the fold). Driven, not read — three headless
+> harnesses; `test_nui_the_admiralty_on_the_map.py` 31; sweep 9/9 killed, 0 INERT, 0 BROKEN; parse
+> harness EXIT=0; the IQ-10 road gained the `top_bar_admiralty` shot.
+> ⚠ open for the user: the in-game feel of the pieces and tooltips.
 
 > ### ✅ CRT-1 "WHAT THE SENTENCE FORBIDS IS NEVER THE ORDER" — September 23, 2026 — LANDED
 >

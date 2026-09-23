@@ -25,6 +25,8 @@ extends CanvasLayer
 
 signal region_command(command: String)
 signal negotiate_requested(nation: String)
+# NUI: THE SEA block's chip opens THE ADMIRALTY (main.gd → ledger book 7)
+signal admiralty_requested
 signal closed
 
 @onready var panel_container = $PanelContainer
@@ -142,6 +144,8 @@ func _on_meta_clicked(meta):
 		var nation = meta_str.substr("negotiate:".length())
 		if nation != "":
 			negotiate_requested.emit(nation)
+	elif meta_str == "admiralty":
+		admiralty_requested.emit()
 
 
 func _render() -> void:
@@ -253,6 +257,63 @@ func _render() -> void:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]FORCES PRESENT[/color]\n"
 		for m in marshals:
 			bbcode += _format_marshal_row(m, enemy_names)
+
+	# ── THE SEA (NUI "The Admiralty on the Map", September 23, 2026) ──
+	# A coastal province says what the water around it means: every sea
+	# crossing that touches it with the Admiralty's OWN verdict sentence
+	# (`crossing_line` — the same string the ledger's Crossings row shows),
+	# the port's blockade, and the fleet stationed here. Read from the map
+	# node's naval overlay — no fetch, no fog leak (fleet counts are public).
+	var sea_overlay = _map_node.naval_overlay if (_map_node != null and "naval_overlay" in _map_node) else {}
+	if sea_overlay is Dictionary and not sea_overlay.is_empty():
+		var sea_rows := []
+		var verdict_entries = sea_overlay.get("sea_link_verdicts", [])
+		if verdict_entries is Array:
+			for entry in verdict_entries:
+				if not (entry is Dictionary):
+					continue
+				if str(entry.get("link_a", "")) != _region and str(entry.get("link_b", "")) != _region:
+					continue
+				var verdict := str(entry.get("verdict", ""))
+				var vcolor: String = Utils.COLOR_TEXT
+				if verdict == "shut":
+					vcolor = Utils.COLOR_ERROR
+				elif verdict == "landing":
+					vcolor = Utils.COLOR_ORANGE
+				elif verdict == "window" or verdict == "open" or verdict == "open_ratio":
+					vcolor = Utils.COLOR_SUCCESS
+				sea_rows.append("  [color=#" + vcolor + "]"
+					+ Utils.humanize_nation_keys_in_text(str(entry.get("line", ""))) + "[/color]")
+		var ports = sea_overlay.get("blockaded_ports", [])
+		if ports is Array and _region in ports:
+			sea_rows.append("  [color=#" + Utils.COLOR_ERROR
+				+ "]This port is under blockade — its trade halved, its fleet pinned.[/color]")
+		var fleets = sea_overlay.get("fleets", [])
+		if fleets is Array:
+			for f in fleets:
+				if not (f is Dictionary) or str(f.get("station", "")) != _region:
+					continue
+				var admiral := str(f.get("admiral", ""))
+				var f_color: String = Utils.COLOR_TEXT
+				if bool(f.get("is_player", false)):
+					f_color = Utils.COLOR_GOLD
+				elif bool(f.get("at_war_with_player", false)):
+					f_color = Utils.COLOR_ERROR
+				var row := "  [color=#" + f_color + "]" + Utils.display_nation_name(str(f.get("nation", ""))) + " fleet"
+				if admiral != "":
+					row += " (Adm. " + admiral + ")"
+				row += " — " + Utils.format_number(int(f.get("ships", 0))) + " sail, readiness " \
+					+ str(int(f.get("readiness", 0))) + ", " + str(f.get("posture", "guard")) + "[/color]"
+				var blockaded_by := str(f.get("blockaded_by", ""))
+				if blockaded_by != "":
+					row += "  [color=#" + Utils.COLOR_ERROR + "]blockaded by " \
+						+ Utils.display_nation_name(blockaded_by) + "[/color]"
+				sea_rows.append(row)
+		if sea_rows.size() > 0:
+			bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]THE SEA[/color]  " \
+				+ Utils.bb_button_chip("admiralty", "THE ADMIRALTY", Utils.COLOR_GOLD, _CHIP_BG) + "\n"
+			for row in sea_rows:
+				bbcode += row + "\n"
 
 	# ── Context actions ──
 	var action_rows = []

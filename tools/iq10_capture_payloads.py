@@ -265,6 +265,11 @@ def cap_boot():
         "pending_marshal_decisions": test.get("pending_marshal_decisions"),
         "turn": test.get("turn"),
         "calendar_label": (test.get("action_summary") or {}).get("calendar_label", ""),
+        # NUI "The Admiralty on the Map": the chip's payload rides the map
+        # summary (`naval_overlay.player_summary`); main.gd feeds it to
+        # `top_bar.update_admiralty` on every map refresh.
+        "naval_player_summary": ((test.get("game_state") or {}).get("naval_overlay")
+                                 or {}).get("player_summary", {}),
     }, source="GET /test, the keys main.gd `_update_diplomatic_top_bar` copies",
         staging="1805 boot",
         facts={"talleyrand_mission_summary": test.get("talleyrand_mission_summary"),

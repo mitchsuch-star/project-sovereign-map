@@ -4229,6 +4229,25 @@ Landing record: `docs/NAVAL_SPEC.md` §14 (the spec's §1–§13 are the design 
 
 Verbs: `build_fleet` (1 admin AP + 400g, national rate 2/turn — 1 blockaded; conquest grants YARDS, never ships) · `set_fleet_posture` · `naval_expedition` · `naval_diversion`. Constants in `naval.py` = the spec's N-table, in-band tunable. Tests: `test_naval_substrate/blockade_cs/channel_gate/free_ireland/descent.py` (140).
 
+**NUI "The Admiralty on the Map" (September 23, 2026; `NAVAL_SPEC.md` §17) — the
+naval UI rules.** (1) **ONE crossing sentence:** `naval.crossing_line(world, a, b,
+verdict, player)` is the only place a crossing's verdict is put into words — THE
+ADMIRALTY's Crossings row, the map's sea-link tooltip and the region panel's THE SEA
+block read it; never compose a second. (2) **The fleets are on the map payload:**
+`naval.fleet_pieces` → `naval_overlay.fleets` (public counts, the §9 ruling) — a fleet
+in commission stands at its SENIOR yard, `controlled_dockyards(...)[0]`, the yard the
+"Lay down ships" chip names; no yard, no piece. (3) **The chip reads one summary:**
+`naval.player_naval_summary` → `naval_overlay.player_summary` → `top_bar.update_admiralty`,
+fed by `main._update_admiralty_chip` on every map refresh (and the boot bootstrap). (4)
+**Three doors, one room:** a fleet piece, a hovered crossing (open water only — land
+wins the hover), THE SEA's link and the chip all call `main._open_admiralty` →
+`top_bar.open_ledger_to_tab(6)`; a naval surface is never a second screen. (5) **The
+top bar fits the logical viewport** (`top_bar._fit_bar`, IQ10-X1): below 1,180 px the
+nav goes icon-only with the hotkey letter as the no-icon fallback; a new bar control
+must survive 800×450 — `tools/nui_top_bar_harness.gd` measures it. (6) A new naval
+map/bar surface is DRIVEN before it is landed (`tools/nui_map_capture.gd`, the CN-3
+harness), and every driven harness is named in `godot_parse_check.gd`'s TOOL_SCRIPTS.
+
 ## 32. The settlement offer on the desk (FA slice 10, landed September 5, 2026)
 
 Landing record: the boxed SLICE 10 block in `docs/BUG_FIXES.md` §Final

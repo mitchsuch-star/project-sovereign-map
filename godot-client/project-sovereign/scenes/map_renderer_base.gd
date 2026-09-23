@@ -2,6 +2,11 @@ extends Control
 
 signal region_hovered(region_name)
 signal region_clicked(region_name)
+# NUI "The Admiralty on the Map" (September 23, 2026): a fleet piece or a
+# sea crossing answers a click by opening THE ADMIRALTY — main.gd routes
+# both to the ledger's own book, never to a second naval surface.
+signal fleet_clicked(nation)
+signal sea_link_clicked(link_a, link_b)
 # UX pass July 16: dismiss affordances — right-click anywhere or left-click on
 # open water both read as "put the panel away" in every map game.
 signal map_dismiss_requested
@@ -258,6 +263,20 @@ var owner_fill_layer: TextureRect
 var region_nodes := {}
 var marshal_hitboxes: Array = []
 var fogged_force_hitboxes: Array = []
+# NUI: the fleets on the map. A ship standee per fleet in commission at its
+# senior yard (`naval_overlay.fleets` — public counts, the §9 fog ruling),
+# faction-tinted like the corps, its sail count above it. Hitboxes are in
+# WORLD coords like the marshals'. `_sea_segments` keeps the drawn sea links
+# in world coords so a hover over open water can name the crossing.
+var fleet_hitboxes: Array = []
+var hovered_fleet := {}
+var hovered_sea_link := {}
+var _fleet_pieces := {}        # nation -> WarTablePiece
+var _fleet_sail_labels := {}   # nation -> Label (the sail count)
+var _sea_segments: Array = []  # [{a, b, start, end}] in world coords
+const FLEET_PIECE_OFFSET := Vector2(-30.0, 24.0)
+const FLEET_PIECE_SCALE := 0.85
+const SEA_LINK_HOVER_RADIUS := 14.0
 # UI-5 War-Table Pieces: a PERSISTENT, y-sorted layer of tin-flat standees at
 # marshal anchors. Unlike the force_layer icons (torn down every refresh — see
 # _rebuild_dynamic_nodes), pieces keep per-marshal node identity across updates
@@ -1204,6 +1223,7 @@ func _build_connection_nodes():
 	var colors = _get_colors()
 	var drawn_connections := {}
 	var segments: Array = []
+	_sea_segments.clear()
 
 	for region_name in connections:
 		var start_pos = positions.get(region_name, null)
@@ -1242,6 +1262,9 @@ func _build_connection_nodes():
 				segment["color"] = Color(0.95, 0.78, 0.2, 0.95)
 				segment["width"] = 3.0
 			segments.append(segment)
+			# NUI: the same segment in WORLD coords for the hover hit-test.
+			_sea_segments.append({"a": region_name, "b": adjacent,
+				"start": start_pos, "end": end_pos})
 			drawn_connections[key_text] = true
 
 	connection_layer.set_connections(segments, colors.get("connection", Color(0.6, 0.6, 0.6)), 2.0)
@@ -1261,6 +1284,7 @@ func update_naval_overlay(overlay) -> void:
 		naval_overlay = {}
 	if connection_layer != null:
 		_build_connection_nodes()
+	_update_fleet_pieces()
 
 
 func _naval_verdict_for_link(a: String, b: String) -> String:
@@ -2044,6 +2068,15 @@ func _input(event):
 			# through the panel or terminal under the drifting cursor.
 			if is_panning:
 				return
+			# NUI: a fleet piece or a hovered crossing (open water only — a
+			# province always wins the hover) opens THE ADMIRALTY.
+			if hovered_fleet.size() > 0:
+				fleet_clicked.emit(str(hovered_fleet.get("nation", "")))
+				return
+			if hovered_sea_link.size() > 0:
+				sea_link_clicked.emit(str(hovered_sea_link.get("a", "")),
+					str(hovered_sea_link.get("b", "")))
+				return
 			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
 			if clicked_region == "":
 				clicked_region = hovered_region
@@ -2100,6 +2133,8 @@ func _clear_pan_key_state():
 func _clear_hover_state():
 	hovered_marshal = {}
 	hovered_fogged_force = {}
+	hovered_fleet = {}
+	hovered_sea_link = {}
 	_set_hovered_region("")
 
 
@@ -2124,6 +2159,10 @@ func _draw():
 		_draw_marshal_tooltip()
 	elif hovered_fogged_force.size() > 0:
 		_draw_fogged_force_tooltip()
+	elif hovered_fleet.size() > 0:
+		_draw_fleet_tooltip()
+	elif hovered_sea_link.size() > 0:
+		_draw_sea_link_tooltip()
 	elif hovered_region != "" and not _is_region_wired(hovered_region):
 		# §4.4: unwired provinces never populate region_full_data, so the
 		# standard region tooltip cannot render. Show a dedicated placeholder
@@ -2187,6 +2226,8 @@ func _lookup_region_from_color_map(map_position: Vector2) -> String:
 func _refresh_hover_state():
 	hovered_marshal = {}
 	hovered_fogged_force = {}
+	hovered_fleet = {}
+	hovered_sea_link = {}
 
 	var map_mouse = _get_map_mouse_position()
 	var positions = _get_active_region_positions()
@@ -2203,9 +2244,27 @@ func _refresh_hover_state():
 			_set_hovered_region("")
 			return
 
+	# NUI: a fleet piece is hoverable and clickable like a corps.
+	for hitbox in fleet_hitboxes:
+		if hitbox["rect"].has_point(map_mouse):
+			hovered_fleet = hitbox["fleet"]
+			_set_hovered_region("")
+			mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			return
+
 	var color_map_region = _lookup_region_from_color_map(map_mouse)
 	if color_map_region != "":
 		_set_hovered_region(color_map_region)
+		return
+
+	# NUI: over open water, a drawn sea crossing answers the hover with the
+	# Admiralty's own verdict sentence. Land always wins the hover (above),
+	# so a province click is never stolen by a crossing that ends on it.
+	var sea_link := _nearest_sea_link(map_mouse)
+	if not sea_link.is_empty():
+		hovered_sea_link = sea_link
+		_set_hovered_region("")
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		return
 
 	for region_name in positions:
@@ -2215,6 +2274,10 @@ func _refresh_hover_state():
 			_set_hovered_region(region_name)
 			return
 
+	# NUI: nothing under the cursor — the hand a fleet or a crossing set
+	# must not outlive it (`_set_hovered_region` returns early when the
+	# region is unchanged, so it would).
+	mouse_default_cursor_shape = Control.CURSOR_ARROW
 	_set_hovered_region("")
 
 
@@ -2797,6 +2860,7 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
 	_update_war_table_pieces()
+	_update_fleet_pieces()
 	queue_redraw()
 
 
@@ -2858,4 +2922,181 @@ func update_all_regions(map_data: Dictionary):
 	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
 	_update_war_table_pieces()
+	_update_fleet_pieces()
 	queue_redraw()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NUI "The Admiralty on the Map" (September 23, 2026)
+# ═══════════════════════════════════════════════════════════════════════════
+# The naval theatre had no presence on the map: the Wooden Wall shipped as
+# ledger tab 7, a few tinted dashes and an anchor glyph, and nothing a player
+# could hover or click. Every fleet in commission now stands at its senior
+# yard as the fourth war-table piece (the NV-7 ship, faction-tinted like the
+# corps) with its sail count, a sea crossing answers a hover over open water
+# with the Admiralty's OWN verdict sentence (`crossing_line`, shown = the
+# ledger's Crossings row), and both open THE ADMIRALTY on a click.
+
+
+func _naval_entry_for_link(a: String, b: String) -> Dictionary:
+	var verdicts = naval_overlay.get("sea_link_verdicts", [])
+	if not (verdicts is Array):
+		return {}
+	for entry in verdicts:
+		if not (entry is Dictionary):
+			continue
+		var ea := str(entry.get("link_a", ""))
+		var eb := str(entry.get("link_b", ""))
+		if (ea == a and eb == b) or (ea == b and eb == a):
+			return entry
+	return {}
+
+
+func _nearest_sea_link(map_mouse: Vector2) -> Dictionary:
+	"""The drawn crossing under the cursor (world coords), or {}."""
+	var best := {}
+	var best_d := SEA_LINK_HOVER_RADIUS
+	for seg in _sea_segments:
+		var p: Vector2 = Geometry2D.get_closest_point_to_segment(
+			map_mouse, seg["start"], seg["end"])
+		var d := map_mouse.distance_to(p)
+		if d <= best_d:
+			best_d = d
+			best = {"a": str(seg["a"]), "b": str(seg["b"])}
+	if best.is_empty():
+		return best
+	var entry := _naval_entry_for_link(best["a"], best["b"])
+	best["verdict"] = str(entry.get("verdict", ""))
+	best["line"] = str(entry.get("line", ""))
+	return best
+
+
+func _update_fleet_pieces() -> void:
+	"""DIFF-update the ship pieces against `naval_overlay.fleets` — retire,
+	re-place, create — the war-table pieces' own idiom. Bitmap-art maps only
+	(the legacy fixture has no pieces layer, and no navy)."""
+	fleet_hitboxes.clear()
+	if pieces_layer == null:
+		return
+	var fleets = naval_overlay.get("fleets", [])
+	var positions = _get_active_region_positions()
+	var colors = _get_colors()
+	var desired := {}
+	if fleets is Array:
+		for entry in fleets:
+			if not (entry is Dictionary):
+				continue
+			var nation := str(entry.get("nation", ""))
+			var station := str(entry.get("station", ""))
+			if nation == "" or station == "" or not positions.has(station):
+				continue
+			desired[nation] = entry
+	for nation in _fleet_pieces.keys():
+		if not desired.has(nation):
+			var gone: Node = _fleet_pieces[nation]
+			if is_instance_valid(gone):
+				gone.queue_free()
+			_fleet_pieces.erase(nation)
+			_fleet_sail_labels.erase(nation)
+	var frame := WAR_PIECE_FRAME_PX * FLEET_PIECE_SCALE
+	for nation in desired:
+		var entry: Dictionary = desired[nation]
+		var station := str(entry.get("station", ""))
+		var world_anchor: Vector2 = positions[station] + FLEET_PIECE_OFFSET
+		var anchor := _world_to_layer_position(world_anchor)
+		var nation_color: Color = colors.get(nation, Utils.COLOR_ENEMY_DEFAULT)
+		var piece = _fleet_pieces.get(nation, null)
+		if piece == null or not is_instance_valid(piece):
+			piece = WarTablePiece.new()
+			pieces_layer.add_child(piece)
+			piece.setup("ship", "l", nation_color, frame)
+			_fleet_pieces[nation] = piece
+			var sail := Label.new()
+			sail.name = "SailCount"
+			sail.add_theme_font_size_override("font_size", 11)
+			sail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			sail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			piece.add_child(sail)
+			_fleet_sail_labels[nation] = sail
+		else:
+			piece.set_faction(nation_color)
+		piece.position = anchor
+		var sail_label = _fleet_sail_labels.get(nation, null)
+		if sail_label != null and is_instance_valid(sail_label):
+			sail_label.text = str(int(entry.get("ships", 0)))
+			var tint := Color(0.92, 0.9, 0.85, 1.0)
+			if bool(entry.get("is_player", false)):
+				tint = Utils.UI_GOLD
+			elif bool(entry.get("at_war_with_player", false)):
+				tint = Color(0.9, 0.45, 0.4, 1.0)
+			if bool(entry.get("is_player", false)) and str(entry.get("blockaded_by", "")) != "":
+				tint = Color(0.9, 0.45, 0.4, 1.0)
+			sail_label.add_theme_color_override("font_color", tint)
+			sail_label.size = Vector2(60.0, 14.0)
+			sail_label.position = Vector2(-30.0, -frame * 0.62 - 14.0)
+		fleet_hitboxes.append({
+			"rect": Rect2(world_anchor + Vector2(-frame * 0.35, -frame * 0.62),
+				Vector2(frame * 0.7, frame * 0.62)),
+			"fleet": entry,
+		})
+
+
+func _draw_fleet_tooltip():
+	var f = hovered_fleet
+	var lines: Array = []
+	var nation := str(f.get("nation", ""))
+	var admiral := str(f.get("admiral", ""))
+	var head := Utils.display_nation_name(nation)
+	if admiral != "":
+		head += " — Adm. " + admiral
+	_push_tooltip_line(lines, head, Color.WHITE, 14)
+	_push_tooltip_line(lines, str(int(f.get("ships", 0))) + " sail of the line · readiness "
+		+ str(int(f.get("readiness", 0))), Color.WHITE)
+	var posture := str(f.get("posture", "guard"))
+	_push_tooltip_line(lines, "Posture: " + ("blockade — every enemy port watched"
+		if posture == "blockade" else "guard — home waters covered"), Color(0.7, 0.7, 0.7))
+	_push_tooltip_line(lines, "Station: " + str(f.get("station", "")), Color(0.7, 0.7, 0.7))
+	var blockaded_by := str(f.get("blockaded_by", ""))
+	if blockaded_by != "":
+		_push_tooltip_line(lines, "BLOCKADED by " + Utils.display_nation_name(blockaded_by),
+			Color(0.9, 0.45, 0.4))
+	var blockading = f.get("blockading", [])
+	if blockading is Array and blockading.size() > 0:
+		var names: Array = []
+		for n in blockading:
+			names.append(Utils.display_nation_name(str(n)))
+		_push_tooltip_line(lines, "Blockading " + ", ".join(PackedStringArray(names)),
+			Color(0.85, 0.75, 0.55))
+	_push_tooltip_spacer(lines, 6.0)
+	_push_tooltip_line(lines, "Click — THE ADMIRALTY", Color(0.85, 0.75, 0.55))
+	_draw_tooltip_lines(lines, 300.0, Color(0.08, 0.1, 0.16, 0.95), Color(0.55, 0.65, 0.85))
+
+
+func _draw_sea_link_tooltip():
+	var s = hovered_sea_link
+	var lines: Array = []
+	_push_tooltip_line(lines, str(s.get("a", "")) + " – " + str(s.get("b", "")), Color.WHITE, 14)
+	var verdict := str(s.get("verdict", ""))
+	var color := Color(0.75, 0.75, 0.75)
+	if verdict == "shut":
+		color = Color(0.9, 0.35, 0.35)
+	elif verdict == "landing":
+		color = Color(0.9, 0.6, 0.25)
+	elif verdict == "window":
+		color = Color(0.95, 0.8, 0.3)
+	elif verdict != "":
+		color = Color(0.6, 0.85, 0.6)
+	var line := Utils.humanize_nation_keys_in_text(str(s.get("line", "")))
+	if line == "":
+		_push_tooltip_line(lines, "A sea crossing — outside the Admiralty's watch this turn",
+			color)
+	else:
+		# The Admiralty's own sentence: "A–B: VERDICT — the reason". Split at
+		# the dash so the reason gets its own line rather than a 500px one.
+		var parts := line.split(" — ", false, 1)
+		_push_tooltip_line(lines, parts[0], color)
+		if parts.size() > 1:
+			_push_tooltip_line(lines, parts[1], Color(0.8, 0.8, 0.8))
+	_push_tooltip_spacer(lines, 6.0)
+	_push_tooltip_line(lines, "Click — THE ADMIRALTY", Color(0.85, 0.75, 0.55))
+	_draw_tooltip_lines(lines, 380.0, Color(0.08, 0.1, 0.16, 0.95), color)

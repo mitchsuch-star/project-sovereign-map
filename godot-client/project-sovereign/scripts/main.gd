@@ -523,6 +523,9 @@ func _ready():
 	if region_panel:
 		region_panel.region_command.connect(_on_region_panel_command)
 		region_panel.negotiate_requested.connect(_on_region_negotiate_requested)
+		# NUI: THE SEA block's chip opens the ledger's naval book.
+		if region_panel.has_signal("admiralty_requested"):
+			region_panel.admiralty_requested.connect(_open_admiralty)
 		# UX pass July 16: the panel clamps its height above the terminal's
 		# live top edge, and closing it clears the map's selected-province glow.
 		region_panel.avoid_control = bottom_left_ui
@@ -568,6 +571,9 @@ func _ready():
 		top_bar.set_api_client(api_client)
 		top_bar.screen_changed.connect(_on_screen_changed)
 		top_bar.envoy_clicked.connect(_on_envoy_clicked)
+		# NUI: the Admiralty chip opens the ledger's own naval book.
+		if top_bar.has_signal("admiralty_clicked"):
+			top_bar.admiralty_clicked.connect(_open_admiralty)
 		if top_bar.has_signal("menu_clicked"):
 			top_bar.menu_clicked.connect(_on_top_bar_menu_clicked)
 
@@ -640,6 +646,11 @@ func _ready():
 	# signal existed since the cutover but nothing listened in the game path)
 	if map_area and map_area.has_signal("region_clicked"):
 		map_area.region_clicked.connect(_on_map_region_clicked)
+		# NUI: a fleet piece or a sea crossing on the map opens THE ADMIRALTY.
+		if map_area.has_signal("fleet_clicked"):
+			map_area.fleet_clicked.connect(_on_map_fleet_clicked)
+		if map_area.has_signal("sea_link_clicked"):
+			map_area.sea_link_clicked.connect(_on_map_sea_link_clicked)
 	# UX pass July 16: right-click / open-water click dismiss the panel.
 	if map_area and map_area.has_signal("map_dismiss_requested"):
 		map_area.map_dismiss_requested.connect(_on_map_dismiss_requested)
@@ -915,6 +926,7 @@ func _update_map_from_game_state(game_state: Dictionary) -> void:
 	map_area.update_all_regions(game_state.map_data)
 	if map_area.has_method("update_naval_overlay"):
 		map_area.update_naval_overlay(game_state.get("naval_overlay", {}))
+	_update_admiralty_chip(game_state.get("naval_overlay", {}))
 	# "The Levy is Open" (econ spec review §6): nation-level, so it rides the
 	# summary's top level rather than every province — the region panel reads
 	# it to say what the establishment allows without a per-region scan.
@@ -934,6 +946,7 @@ func _try_finalize_initial_map_bootstrap() -> void:
 		map_area.update_all_regions(_pending_initial_map_data)
 		if map_area.has_method("update_naval_overlay"):
 			map_area.update_naval_overlay(_pending_initial_naval_overlay)
+		_update_admiralty_chip(_pending_initial_naval_overlay)
 	_pending_initial_map_data.clear()
 	_pending_initial_naval_overlay.clear()
 	_pending_initial_map_topology.clear()
@@ -6613,6 +6626,37 @@ func _on_map_dismiss_requested():
 	"""Right-click or open-water click on the map — put the panel away."""
 	if region_panel and region_panel.visible:
 		region_panel.close_panel()
+
+
+# ── NUI "The Admiralty on the Map" (September 23, 2026) ──
+# Three doors, one room: a fleet piece, a sea crossing and the top bar's
+# Admiralty chip all open THE ADMIRALTY — the ledger's own book 7 — never a
+# second naval surface. The chip's data rides every map refresh.
+
+func _update_admiralty_chip(overlay) -> void:
+	if top_bar == null or not top_bar.has_method("update_admiralty"):
+		return
+	var summary = overlay.get("player_summary", {}) if overlay is Dictionary else {}
+	top_bar.update_admiralty(summary if summary is Dictionary else {})
+
+
+func _on_map_fleet_clicked(_nation: String):
+	_open_admiralty()
+
+
+func _on_map_sea_link_clicked(_link_a: String, _link_b: String):
+	_open_admiralty()
+
+
+func _open_admiralty():
+	"""Open THE ADMIRALTY (Strategic Ledger, book 7). The modal gate holds
+	like every other screen hotkey; the region panel steps aside."""
+	if top_bar == null or _is_modal_dialog_open():
+		return
+	if region_panel and region_panel.visible:
+		region_panel.close_panel()
+	if top_bar.has_method("open_ledger_to_tab"):
+		top_bar.open_ledger_to_tab(6)
 
 
 func _on_map_mode_changed(mode: String):

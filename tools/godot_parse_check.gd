@@ -141,6 +141,9 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/cn3_region_panel_harness.gd",
 	"res://../../tools/cx7_predictor_harness.gd",
 	"res://../../tools/cx_r2_completer_harness.gd",
+	# NUI "The Admiralty on the Map" (tests/test_nui_the_admiralty_on_the_map.py)
+	"res://../../tools/nui_top_bar_harness.gd",
+	"res://../../tools/nui_map_capture.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

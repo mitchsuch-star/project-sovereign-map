@@ -25,6 +25,9 @@ signal screen_changed(screen_name: String)
 @onready var threat_label: Label = $BarContainer/BarBG/BarLayout/RightSection/ThreatLabel
 @onready var talleyrand_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel
 @onready var mailbox_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/MailboxButton
+# NUI "The Admiralty on the Map": the fleet's standing line, hidden on a
+# world with no naval theatre; a click opens THE ADMIRALTY (ledger tab 7).
+@onready var admiralty_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/AdmiraltyBtn
 # UI-6: the pause menu finally gets a clickable entry point (was ESC-only)
 @onready var menu_btn: Button = $BarContainer/BarBG/BarLayout/RightSection/MenuBtn
 
@@ -49,6 +52,23 @@ var _mailbox_alert_style: StyleBoxFlat = null
 var _mailbox_alert_hover_style: StyleBoxFlat = null
 var _mailbox_pressed_style: StyleBoxFlat = null
 const TALLEYRAND_SUMMARY_MAX_CHARS := 34
+# IQ10-X1 (routed to "the next UI slice" — this one): at Interface Scale
+# 2.0 the logical viewport is 800px wide and the bar's content grew past
+# it — EventLogBtn measured at x=-26 (boot) and x=-65 with a mission
+# standing, off the left edge, while MenuBtn sat at x=798. Below this
+# width the bar goes COMPACT: nav buttons keep their tinted icon and
+# drop their text (the tooltip still names the screen and both
+# hotkeys), the Cabinet line hides (its full text lives on the Ledger),
+# and the Admiralty chip shows the sail count alone.
+const COMPACT_BELOW_PX := 1180.0
+# PC15-18's hint table, hoisted so the compact bar can fall back on the
+# bare letter for a button whose icon did not load (never a blank square).
+const HOTKEY_HINTS := {
+	"event_log": "L", "ledger": "T", "generals": "G",
+	"diplomatic_ledger": "D", "dispatch": "R", "gazette": "N",
+}
+var _nav_full_text := {}
+var _compact := false
 
 func _ready():
 	# Build button styles
@@ -121,14 +141,13 @@ func _ready():
 	# PC15-18: name the focus-safe hotkey form. The bare letter works only
 	# while the command line is unfocused (typing must type); Alt+<key>
 	# works even mid-sentence (main.gd _on_command_input_gui_input).
-	var _hotkey_hints := {
-		"event_log": "L", "ledger": "T", "generals": "G",
-		"diplomatic_ledger": "D", "dispatch": "R", "gazette": "N",
-	}
-	for sname in _hotkey_hints:
-		var key: String = _hotkey_hints[sname]
+	for sname in HOTKEY_HINTS:
+		var key: String = HOTKEY_HINTS[sname]
+		# IQ10-X1: the tooltip names the SCREEN too, because in the compact
+		# bar the button's own text is gone and the icon is all that shows.
+		var screen_title: String = button_map[sname].text.split(" (")[0]
 		button_map[sname].tooltip_text = (
-			key + " — or Alt+" + key + " while typing")
+			screen_title + " — " + key + ", or Alt+" + key + " while typing")
 
 	# Apply normal style to all buttons
 	for btn in button_map.values():
@@ -176,6 +195,22 @@ func _ready():
 
 	# Mailbox button click handler
 	mailbox_btn.pressed.connect(_on_mailbox_pressed)
+
+	# NUI: the Admiralty chip — styled like the mailbox button, hidden
+	# until a naval world reports a fleet line, opens the ledger's book 7.
+	if admiralty_btn:
+		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
+		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
+		admiralty_btn.add_theme_stylebox_override("pressed", _mailbox_pressed_style)
+		admiralty_btn.pressed.connect(func(): admiralty_clicked.emit())
+		admiralty_btn.visible = false
+
+	# IQ10-X1: the bar fits itself to the logical viewport, now and on every
+	# resize (an Interface Scale change resizes the logical viewport too).
+	for sname in button_map:
+		_nav_full_text[sname] = button_map[sname].text
+	get_viewport().size_changed.connect(_fit_bar)
+	call_deferred("_fit_bar")
 
 	# Threat pulse timer
 	_threat_pulse_timer = Timer.new()
@@ -346,6 +381,8 @@ func _update_button_highlights():
 # =============================================================================
 
 signal envoy_clicked
+# NUI: the Admiralty chip (main.gd opens the ledger's own naval book)
+signal admiralty_clicked
 # UI-6: gear button — main.gd toggles the pause menu (mirrors ESC)
 signal menu_clicked
 
@@ -451,3 +488,113 @@ func _on_threat_pulse():
 func _on_mailbox_pressed():
 	"""Emit the mailbox click signal for main.gd to handle."""
 	envoy_clicked.emit()
+
+
+# =============================================================================
+# NUI "The Admiralty on the Map" (September 23, 2026) — the Admiralty chip
+# =============================================================================
+
+var _admiralty_summary: Dictionary = {}
+
+
+func update_admiralty(summary: Dictionary):
+	"""The fleet's standing line from `naval_overlay.player_summary` — hidden
+	on a world with no naval theatre; crimson-bordered under blockade, gold
+	while a window stands open. The tooltip is the backend's one sentence."""
+	if admiralty_btn == null:
+		return
+	_admiralty_summary = summary if summary is Dictionary else {}
+	if not bool(_admiralty_summary.get("active", false)):
+		admiralty_btn.visible = false
+		return
+	admiralty_btn.visible = true
+	admiralty_btn.tooltip_text = Utils.humanize_nation_keys_in_text(
+		str(_admiralty_summary.get("line", ""))) + "\nClick — THE ADMIRALTY (Ledger, book 7)"
+	var blockaded := str(_admiralty_summary.get("blockaded_by", "")) != ""
+	var window := int(_admiralty_summary.get("window_turns", 0)) > 0
+	if blockaded:
+		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
+		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
+		admiralty_btn.add_theme_color_override("font_color", Utils.UI_ALERT)
+	elif window:
+		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
+		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
+		admiralty_btn.add_theme_color_override("font_color", Utils.UI_GOLD)
+	else:
+		admiralty_btn.add_theme_stylebox_override("normal", _mailbox_idle_style)
+		admiralty_btn.add_theme_stylebox_override("hover", _mailbox_idle_hover_style)
+		admiralty_btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+	_refresh_admiralty_text()
+
+
+func _refresh_admiralty_text():
+	if admiralty_btn == null or _admiralty_summary.is_empty():
+		return
+	var ships := int(_admiralty_summary.get("ships", 0))
+	var blockaded := str(_admiralty_summary.get("blockaded_by", "")) != ""
+	var window := int(_admiralty_summary.get("window_turns", 0)) > 0
+	var text := "\u2693 " + str(ships)
+	if not _compact:
+		text += " sail"
+		if blockaded:
+			text += " \u00b7 BLOCKADED"
+		elif window:
+			text += " \u00b7 WINDOW"
+	elif blockaded:
+		text += "!"
+	admiralty_btn.text = text
+
+
+func open_ledger_to_tab(tab_index: int):
+	"""Open the Strategic Ledger straight to one book (THE ADMIRALTY = 6)."""
+	var screen_name := "ledger"
+	if not screens.has(screen_name) or screens[screen_name] == null:
+		return
+	if active_screen == screen_name:
+		var open_node = screens[screen_name]
+		if open_node.has_method("_switch_tab"):
+			open_node._switch_tab(tab_index)
+		return
+	if active_screen != "":
+		_close_screen(active_screen)
+	var node = screens[screen_name]
+	active_screen = screen_name
+	if node.has_method("open_to_tab"):
+		node.open_to_tab(api_client, tab_index)
+	elif node.has_method("open"):
+		node.open(api_client)
+	else:
+		node.show()
+	_update_button_highlights()
+	screen_changed.emit(active_screen)
+
+
+func is_compact() -> bool:
+	return _compact
+
+
+func _fit_bar():
+	"""IQ10-X1: fit the bar to the LOGICAL viewport. Below COMPACT_BELOW_PX the
+	nav buttons go icon-only (their tooltips carry the name and both hotkeys),
+	the Cabinet line hides and the Admiralty chip keeps the count alone."""
+	var width := get_viewport().get_visible_rect().size.x
+	var compact := width < COMPACT_BELOW_PX
+	if compact == _compact and not _nav_full_text.is_empty() and _fit_applied:
+		return
+	_compact = compact
+	_fit_applied = true
+	for sname in button_map:
+		var btn: Button = button_map[sname]
+		if compact:
+			# Icon-only — or the hotkey letter where no icon loaded, so the
+			# bar never shows a blank square (the capture harness has no
+			# icon imports and showed six).
+			btn.text = "" if btn.icon != null else str(HOTKEY_HINTS.get(sname, ""))
+		else:
+			btn.text = str(_nav_full_text.get(sname, btn.text))
+	if talleyrand_label:
+		talleyrand_label.visible = not compact
+	_refresh_admiralty_text()
+
+
+var _fit_applied := false

@@ -232,6 +232,20 @@ SHOTS: list[dict] = [
         "must_show": "IQ-4's Cabinet line: 'Talleyrand: Idle' where the backend says 'None' — "
                      "never the raw word None",
     },
+    # ── NUI "The Admiralty on the Map" (Sept 23, 2026): the Admiralty chip ──
+    {
+        "id": "top_bar_admiralty",
+        "surface": "Top bar — the Admiralty chip (a naval board, boot blockade)",
+        "payload": "top_bar_fields_boot",
+        "scene": "res://scenes/top_bar.tscn",
+        "mode": "call", "method": "update_diplomatic_fields",
+        "steps": [{"call": "update_admiralty",
+                   "args": ["$payload.naval_player_summary"], "then_wait": 6}],
+        "place": {"position": [0, 0], "height": 64},
+        "must_show": "the Admiralty chip beside DP — '⚓ 45 sail · BLOCKADED' at 1.0, '⚓ 45!' in "
+                     "the compact bar at 2.0 — crimson-bordered under the boot blockade; at 2.0 "
+                     "every nav button icon-only and NO button off the logical viewport (IQ10-X1)",
+    },
 
     # ═══ IQ-4 the Cabinet (the mission boards) ═══════════════════════════════
     *[
@@ -526,8 +540,12 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
             "out": out,
             "scales": scales,
         }
+        # NUI (Sept 23, 2026): a row may carry its own `steps` (the Admiralty
+        # chip is fed by a second call after the entry method) — the tuple
+        # below is the ONLY road a row key takes into the spec, and `steps`
+        # was not on it, so the chip shot rendered the bare bar in silence.
         for key in ("args", "api_method", "place", "settle", "window", "window_by_scale",
-                    "formation_overrides", "downscale"):
+                    "formation_overrides", "downscale", "steps"):
             if key in row:
                 shot[key] = row[key]
         if "tab" in row:

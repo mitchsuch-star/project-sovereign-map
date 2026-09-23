@@ -1,0 +1,65 @@
+[
+  {
+    "id": "NUI-1 the fleet loses its station",
+    "file": "backend/game_logic/naval.py",
+    "old": "            \"station\": str(yards[0]) if yards else \"\",",
+    "new": "            \"station\": \"\",",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestTheOverlayCarriesTheFleets tests/test_nui_the_admiralty_on_the_map.py::TestTheMapCarriesTheFleets"
+  },
+  {
+    "id": "NUI-2 the overlay drops the crossing sentence",
+    "file": "backend/game_logic/naval.py",
+    "old": "            \"line\": crossing_line(world, a, b, v, player),",
+    "new": "            \"line\": \"\",",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestOneCrossingSentence tests/test_nui_the_admiralty_on_the_map.py::TestTheRegionPanelSpeaksOfTheSea"
+  },
+  {
+    "id": "NUI-3 the summary never names the blockade",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if blockader:\n        tails.append(f\"BLOCKADED by {blockader}\")",
+    "new": "    if False:\n        tails.append(f\"BLOCKADED by {blockader}\")",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestThePlayerSummary tests/test_nui_the_admiralty_on_the_map.py::TestTheTopBarFits"
+  },
+  {
+    "id": "NUI-4 the Admiralty and the overlay read different sentences",
+    "file": "backend/game_logic/naval.py",
+    "old": "                          \"line\": crossing_line(world, a, b, verdict, player)})\n    report[\"crossings\"] = crossings",
+    "new": "                          \"line\": crossing_line(world, a, b, verdict, player).upper()})\n    report[\"crossings\"] = crossings",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestOneCrossingSentence"
+  },
+  {
+    "id": "NUI-5 the map never places a fleet",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "\tfleet_hitboxes.clear()\n\tif pieces_layer == null:\n\t\treturn\n\tvar fleets = naval_overlay.get(\"fleets\", [])",
+    "new": "\tfleet_hitboxes.clear()\n\tif pieces_layer == null or true:\n\t\treturn\n\tvar fleets = naval_overlay.get(\"fleets\", [])",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestTheMapCarriesTheFleets"
+  },
+  {
+    "id": "NUI-6 the bar never goes compact",
+    "file": "godot-client/project-sovereign/scripts/top_bar.gd",
+    "old": "\tvar compact := width < COMPACT_BELOW_PX",
+    "new": "\tvar compact := false",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestTheTopBarFits"
+  },
+  {
+    "id": "NUI-7 the chip stays hidden",
+    "file": "godot-client/project-sovereign/scripts/top_bar.gd",
+    "old": "\tadmiralty_btn.visible = true\n\tadmiralty_btn.tooltip_text",
+    "new": "\tadmiralty_btn.visible = false\n\tadmiralty_btn.tooltip_text",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestTheTopBarFits"
+  },
+  {
+    "id": "NUI-8 the region panel forgets the sea",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\tif sea_overlay is Dictionary and not sea_overlay.is_empty():",
+    "new": "\tif false:",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestTheRegionPanelSpeaksOfTheSea"
+  },
+  {
+    "id": "NUI-9 the crossing hover finds nothing",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "\t\tif d <= best_d:\n\t\t\tbest_d = d\n\t\t\tbest = {\"a\": str(seg[\"a\"]), \"b\": str(seg[\"b\"])}",
+    "new": "\t\tif false:\n\t\t\tbest_d = d\n\t\t\tbest = {\"a\": str(seg[\"a\"]), \"b\": str(seg[\"b\"])}",
+    "tests": "tests/test_nui_the_admiralty_on_the_map.py::TestTheMapCarriesTheFleets"
+  }
+]

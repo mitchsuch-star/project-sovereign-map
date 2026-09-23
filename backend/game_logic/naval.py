@@ -2507,6 +2507,43 @@ def lay_down_ship(world, nation: str) -> Dict:
             "readiness_before": int(readiness)}
 
 
+def crossing_line(world, a: str, b: str, verdict: Dict,
+                  player: Optional[str]) -> str:
+    """NUI "The Admiralty on the Map" — the ONE sentence for a crossing's
+    verdict. THE ADMIRALTY's Crossings rows, the map's sea-link tooltip and
+    the region panel's THE SEA block all read it (shown = applied; the text
+    was the Admiralty's inline chain until September 23, 2026)."""
+    v = verdict["verdict"]
+    if v == "open":
+        return f"{a}–{b}: OPEN — uncovered"
+    if v == "open_ratio":
+        return f"{a}–{b}: OPEN — ours {verdict['ratio']:.1f}× theirs"
+    if v == "landing":
+        # NV-4 (§4.1a): the water is ours; the shore is not.
+        return (f"{a}–{b}: DEFENDED SHORE — "
+                f"{verdict.get('to_region', b)} must be taken by "
+                f"expedition, not marched into")
+    if v == "window":
+        own_rec = (get_fleet(world, player) or {}) if player else {}
+        # NV-12: the countdown finally names what the window DOES.
+        return (f"{a}–{b}: WINDOW — open "
+                f"{int(own_rec.get('window_turns', 0) or 0)} more turn(s) "
+                "(their coverage halved; the defended-shore rule waived)")
+    coverer = verdict.get("coverer")
+    coverer_label = (_fleet_label(coverer, get_fleet(world, coverer) or {})
+                     if coverer else "")
+    if verdict.get("ratio"):
+        return (f"{a}–{b}: SHUT — {coverer_label}"
+                f" at {1.0 / verdict['ratio']:.1f}×")
+    if coverer_label:
+        # NV-12 (recon trap 1): a destroyed fleet made the ratio falsy and
+        # the row degraded to a bare "SHUT" — the worst-informed state
+        # produced the least information. The coverer is still named.
+        return (f"{a}–{b}: SHUT — {coverer_label} commands the "
+                "water unopposed")
+    return f"{a}–{b}: SHUT"
+
+
 def build_admiralty_report(world) -> Dict:
     """§9 — THE ADMIRALTY block: everything the ledger (and the map payload)
     renders, from the SAME functions the resolvers read (shown = applied).
@@ -2591,46 +2628,15 @@ def build_admiralty_report(world) -> Dict:
         }
 
     # The Crossings verdict lines (§9 v1.0.1) — the SAME predicate the
-    # movement gate reads.
+    # movement gate reads. NUI: ONE sentence per crossing (`crossing_line`),
+    # shared with the map's sea-link tooltip and the region panel's THE SEA
+    # block, so three surfaces cannot describe one strait three ways.
     crossings: List[Dict] = []
     for key, verdict in sorted(link_verdicts(world).items()):
         a, b = key.split("|")
-        v = verdict["verdict"]
-        if v == "open":
-            line = f"{a}–{b}: OPEN — uncovered"
-        elif v == "open_ratio":
-            line = (f"{a}–{b}: OPEN — ours "
-                    f"{verdict['ratio']:.1f}× theirs")
-        elif v == "landing":
-            # NV-4 (§4.1a): the water is ours; the shore is not.
-            line = (f"{a}–{b}: DEFENDED SHORE — "
-                    f"{verdict.get('to_region', b)} must be taken by "
-                    f"expedition, not marched into")
-        elif v == "window":
-            own_rec = get_fleet(world, player) or {}
-            # NV-12: the countdown finally names what the window DOES.
-            line = (f"{a}–{b}: WINDOW — open "
-                    f"{int(own_rec.get('window_turns', 0) or 0)} more turn(s) "
-                    "(their coverage halved; the defended-shore rule waived)")
-        else:
-            coverer = verdict.get("coverer")
-            coverer_label = (_fleet_label(coverer,
-                                          get_fleet(world, coverer) or {})
-                             if coverer else "")
-            if verdict.get("ratio"):
-                line = (f"{a}–{b}: SHUT — {coverer_label}"
-                        f" at {1.0 / verdict['ratio']:.1f}×")
-            elif coverer_label:
-                # NV-12 (recon trap 1): a destroyed fleet made the ratio
-                # falsy and the row degraded to a bare "SHUT" — the
-                # worst-informed state produced the least information. The
-                # coverer is still named.
-                line = (f"{a}–{b}: SHUT — {coverer_label} commands the "
-                        "water unopposed")
-            else:
-                line = f"{a}–{b}: SHUT"
-        crossings.append({"link_a": a, "link_b": b, "verdict": v,
-                          "line": line})
+        crossings.append({"link_a": a, "link_b": b,
+                          "verdict": verdict["verdict"],
+                          "line": crossing_line(world, a, b, verdict, player)})
     report["crossings"] = crossings
     # NV-12: one legend + remedy line under the Crossings header (chosen
     # over per-row remedy tails — same clarity, less noise; §16 records the
@@ -2897,24 +2903,39 @@ def build_admiralty_report(world) -> Dict:
 def map_naval_overlay(world) -> Dict:
     """§9 v1.0.4 — the two MAP render arms, riding the map summary payload:
     sea-link verdict tint (player perspective) + the port blockade glyph on
-    blockaded nations' dockyard provinces. Fog-clean (Q4: public data)."""
+    blockaded nations' dockyard provinces. Fog-clean (Q4: public data).
+
+    NUI "The Admiralty on the Map" (September 23, 2026) — three more arms on
+    the same payload: every verdict entry carries the Admiralty's OWN
+    crossing sentence (`crossing_line`) for the sea-link tooltip, `fleets`
+    puts every fleet in commission on the map at its senior yard (public
+    counts — the §9 fog ruling: period newspapers printed orders of battle),
+    and `player_summary` is the top bar's Admiralty chip."""
     if not has_naval_layer(world):
         return {"sea_link_verdicts": [], "blockaded_ports": [],
-                "expedition_blocked": {}}
-    verdicts = [
-        {"link_a": key.split("|")[0], "link_b": key.split("|")[1],
-         "verdict": v["verdict"]}
-        for key, v in sorted(link_verdicts(world).items())
-    ]
+                "expedition_blocked": {}, "fleets": [],
+                "player_summary": {"active": False}}
+    player = getattr(world, "player_nation", None)
+    verdicts = []
+    for key, v in sorted(link_verdicts(world).items()):
+        a, b = key.split("|")
+        verdicts.append({
+            "link_a": a, "link_b": b, "verdict": v["verdict"],
+            "line": crossing_line(world, a, b, v, player),
+            "coverer": str(v.get("coverer") or ""),
+            "from_region": str(v.get("from_region") or a),
+            "to_region": str(v.get("to_region") or b),
+        })
     ports: List[str] = []
     for nation in blockaded_nations(world):
         rec = get_fleet(world, nation) or {}
         for prov in rec.get("dockyards", []) or []:
             if _controller(world, prov) == nation:
                 ports.append(prov)
-    player = getattr(world, "player_nation", None)
     return {"sea_link_verdicts": verdicts,
             "blockaded_ports": sorted(set(ports)),
+            "fleets": fleet_pieces(world),
+            "player_summary": player_naval_summary(world, verdicts),
             # The region panel's honest chip (§9): player-controlled build
             # sites + the live price, never hardcoded client-side.
             "player_dockyards": (controlled_dockyards(world, player)
@@ -2936,6 +2957,103 @@ def map_naval_overlay(world) -> Dict:
             # got NO landing chip (the executor's own gates, named).
             "expedition_blocked": (expedition_blocked_reasons(world, player)
                                    if player else {})}
+
+
+def fleet_pieces(world) -> List[Dict]:
+    """NUI — the fleets on the map. One row per fleet IN COMMISSION (ships >
+    0), drawn at its `station`: the senior dockyard the nation still
+    controls (`controlled_dockyards` keeps the authored order, so France's
+    piece stands at Brittany, Britain's at London). A fleet whose every
+    yard has fallen has no station and is not drawn — the ledger still
+    lists it. Public counts and postures (the §9 fog ruling); the only
+    player-relative field is `at_war_with_player`, which every enemy corps
+    on the map already carries (CX-R2)."""
+    player = getattr(world, "player_nation", None)
+    blockaded = list(blockaded_nations(world))
+    blockader_of: Dict[str, str] = {}
+    for nation in blockaded:
+        who, _cov = blockader_against(world, nation)
+        if who:
+            blockader_of[nation] = who
+    out: List[Dict] = []
+    for nation, rec in iter_fleets(world):
+        yards = controlled_dockyards(world, nation)
+        blockading = sorted(n for n, who in blockader_of.items() if who == nation)
+        out.append({
+            "nation": nation,
+            "ships": int(rec.get("ships", 0) or 0),
+            "readiness": int(rec.get("readiness", 0) or 0),
+            "posture": str(rec.get("posture", "guard") or "guard"),
+            "admiral": str(rec.get("admiral", "") or ""),
+            "station": str(yards[0]) if yards else "",
+            "is_player": bool(player and nation == player),
+            "at_war_with_player": bool(
+                player and nation != player and world.is_at_war(player, nation)),
+            "blockaded_by": str(blockader_of.get(nation, "")),
+            "blockading": blockading,
+            "island": bool(rec.get("island")),
+        })
+    return sorted(out, key=lambda r: (-r["ships"], r["nation"]))
+
+
+def player_naval_summary(world, verdicts: Optional[List[Dict]] = None) -> Dict:
+    """NUI — the top bar's Admiralty chip: what the player's fleet is, and
+    the one thing about the sea that matters right now (blockaded / a window
+    open / N crossings shut). `line` is the chip's tooltip; the client runs
+    it through the nation-name humaniser. Dormant worlds get `active: False`
+    and the chip stays hidden."""
+    player = getattr(world, "player_nation", None)
+    if not player or not has_naval_layer(world):
+        return {"active": False}
+    if verdicts is None:
+        verdicts = [{"verdict": v["verdict"]}
+                    for v in link_verdicts(world).values()]
+    own = get_fleet(world, player) or {}
+    ships = int(own.get("ships", 0) or 0)
+    counts = {"shut": 0, "landing": 0, "window": 0, "open": 0}
+    for entry in verdicts:
+        v = str(entry.get("verdict", ""))
+        if v in ("open", "open_ratio"):
+            counts["open"] += 1
+        elif v in counts:
+            counts[v] += 1
+    blockader, _cov = (blockader_against(world, player)
+                       if player in blockaded_nations(world) else (None, 0.0))
+    blockading = sorted(n for n in blockaded_nations(world)
+                        if blockader_against(world, n)[0] == player)
+    window = int(own.get("window_turns", 0) or 0)
+    if ships > 0:
+        head = (f"{own.get('admiral') or 'The fleet'} · {ships} sail of the "
+                f"line · readiness {int(own.get('readiness', 0) or 0)} · "
+                f"{str(own.get('posture', 'guard') or 'guard')}")
+    else:
+        head = "No fleet in commission"
+    tails = []
+    if blockader:
+        tails.append(f"BLOCKADED by {blockader}")
+    if blockading:
+        tails.append("blockading " + ", ".join(blockading))
+    if window > 0:
+        tails.append(f"a window is open — {window} more turn(s)")
+    if counts["shut"]:
+        tails.append(f"{counts['shut']} crossing(s) shut to us")
+    if counts["landing"]:
+        tails.append(f"{counts['landing']} defended shore(s)")
+    return {
+        "active": True,
+        "ships": ships,
+        "readiness": int(own.get("readiness", 0) or 0),
+        "posture": str(own.get("posture", "guard") or "guard"),
+        "admiral": str(own.get("admiral", "") or ""),
+        "blockaded_by": str(blockader or ""),
+        "blockading": blockading,
+        "window_turns": window,
+        "shut": int(counts["shut"]),
+        "landing": int(counts["landing"]),
+        "window": int(counts["window"]),
+        "open": int(counts["open"]),
+        "line": head + (" — " + "; ".join(tails) if tails else ""),
+    }
 
 
 def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
