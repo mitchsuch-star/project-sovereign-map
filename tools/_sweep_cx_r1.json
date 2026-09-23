@@ -1,0 +1,233 @@
+[
+  {
+    "id": "CXR1-1 the widened gate is off",
+    "file": "backend/commands/executor.py",
+    "old": "        widened = self.THE_UNBOUND_NAME_SPENDS_NOTHING\n",
+    "new": "        widened = False\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-2 a read is refused",
+    "file": "backend/commands/executor.py",
+    "old": "            if command.get(\"action\") in NON_ORDER_ACTIONS | {\"unknown\"}:\n                return None\n",
+    "new": "            if False:\n                return None\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-3 the rewarded marshal binds the address",
+    "file": "backend/commands/executor.py",
+    "old": "                and command.get(\"action\") in self._MARSHAL_IS_THE_OBJECT):\n",
+    "new": "                and False):\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-4 the foreign minister is refused",
+    "file": "backend/commands/executor.py",
+    "old": "        if any(name in low for name in DIPLOMAT_ADDRESS_NAMES):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-5 the desk is refused an order of state",
+    "file": "backend/commands/executor.py",
+    "old": "                and low in DESK_ADDRESSEES):\n",
+    "new": "                and False):\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-6 the desk takes a field order",
+    "file": "backend/commands/executor.py",
+    "old": "        if (command.get(\"type\") not in self._FIELD_TYPES\n                and low in DESK_ADDRESSEES):\n",
+    "new": "        if (True\n                and low in DESK_ADDRESSEES):\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-7 general_defensive is not a field type",
+    "file": "backend/commands/executor.py",
+    "old": "    _FIELD_TYPES = _MARSHAL_LESS_TYPES + (\"general_defensive\",)\n",
+    "new": "    _FIELD_TYPES = _MARSHAL_LESS_TYPES\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-8 the admiral is refused the fleet",
+    "file": "backend/commands/executor.py",
+    "old": "                and _names_the_admiral(phrase, world)):\n",
+    "new": "                and False):\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-9 the admiral takes a land order",
+    "file": "backend/commands/executor.py",
+    "old": "        if (command.get(\"action\") in _NAVAL_META_VERBS\n",
+    "new": "        if (True\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-10 the order is not handed back",
+    "file": "backend/commands/executor.py",
+    "old": "                if _plain:\n                    _message += (f\" If it is yours to give, give it without \"\n",
+    "new": "                if False:\n                    _message += (f\" If it is yours to give, give it without \"\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-11 a marshal order gets the state copy",
+    "file": "backend/commands/executor.py",
+    "old": "                    and command.get(\"action\") in META_ACTIONS | ADMIN_ACTIONS):\n",
+    "new": "                    and True):\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-12 the hand list comes back",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    return _ROUTED_ORDER_VERB_RE if ORDER_WORDS_ARE_DERIVED else _ORDER_VERB_RE\n",
+    "new": "    return _ORDER_VERB_RE\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-13 a long word loses its prefix reach",
+    "file": "backend/ai/clause_guards.py",
+    "old": "                     + r\")\\w*\")\n",
+    "new": "                     + r\")\")\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-14 a short word becomes a prefix",
+    "file": "backend/ai/clause_guards.py",
+    "old": "                     + r\")(?:s|es|ed|d|ing)?\")\n",
+    "new": "                     + r\")\\w*\")\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-15 the head is judged whole",
+    "file": "backend/ai/clause_guards.py",
+    "old": "            head = _leading_name_run(head, roster)\n",
+    "new": "            head = head\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-16 a connective ends the name",
+    "file": "backend/ai/clause_guards.py",
+    "old": "        if name and bare.lower() in _NAME_CONNECTIVES:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-17 a connective inside a name is grammar",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    if THE_ADDRESS_IS_ITS_HEAD:\n        # CX-R1: a connective INSIDE a name",
+    "new": "    if False:\n        # CX-R1: a connective INSIDE a name",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-18 a closing title ends the epithet",
+    "file": "backend/ai/clause_guards.py",
+    "old": "                name and bare.lower() in _TITLE_WORDS):\n",
+    "new": "                False):\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-19 the clause comma is an address comma",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    if sep and THE_ADDRESS_IS_ITS_HEAD and verbs.search(head):\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-20 the possessive stays on the name",
+    "file": "backend/ai/clause_guards.py",
+    "old": "        phrase = _POSSESSIVE_RE.sub(\"\", phrase).strip()\n",
+    "new": "        phrase = phrase\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-21 the hand-back cuts at the clause comma",
+    "file": "backend/ai/clause_guards.py",
+    "old": "            if THE_ADDRESS_IS_ITS_HEAD and verbs.search(head):\n                break        # the comma closes a clause (`address_of`)\n",
+    "new": "            if False:\n                break        # the comma closes a clause (`address_of`)\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-22 the harvest reads a `not` test",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):\n            return\n",
+    "new": "        if False:\n            return\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-23 the harvest reads a `not in` test",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "                isinstance(op, (ast.NotIn, ast.IsNot, ast.NotEq))\n",
+    "new": "                isinstance(op, ())\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-24 the harvest follows a local name",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "        if name in local or depth >= _MAX_DEPTH:\n",
+    "new": "        if depth >= _MAX_DEPTH:\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-25 the sub-router hand-off is not a branch",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "                    and func.attr in ROUTER_FUNCTIONS):\n                return True\n",
+    "new": "                    and False):\n                return True\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-26 the addressees are harvested as orders",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "                    stop.update(_WORD_RE.findall(sub.value.lower()))\n",
+    "new": "                    pass\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-28 the closed classes are harvested",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "    words = set(clause_guards._NOT_A_NAME)\n",
+    "new": "    words = set()\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-29 the honorific is harvested",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "    words.update(_WORD_RE.findall(clause_guards.HONORIFIC.lower()))\n",
+    "new": "    pass\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-30 a regex suffix group is not expanded",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "        forms = [stem + alt for alt in alts\n",
+    "new": "        forms = [stem for alt in alts\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-31 an optional group hides what follows it",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "        if rest[:1] in (\"?\", \"*\"):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-32 STRATEGIC_KEYWORDS is not read",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "    table = strategic.defs.get(\"STRATEGIC_KEYWORDS\")\n",
+    "new": "    table = None\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-33 the run keeps the typed punctuation",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    words = [_bare_token(word) for word in head.split()]\n",
+    "new": "    words = head.split()\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  },
+  {
+    "id": "CXR1-34 a leading lookaround hides the branch",
+    "file": "tools/gen_routed_order_words.py",
+    "old": "        if group.startswith((\"(?=\", \"(?!\", \"(?<=\", \"(?<!\")):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_cx_r1_the_unbound_name_spends_nothing.py"
+  }
+]

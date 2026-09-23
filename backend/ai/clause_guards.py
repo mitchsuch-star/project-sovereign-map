@@ -51,6 +51,8 @@ existing keyword chain reads, and whether the caller should refuse.
 import re
 from typing import Iterable, List, Optional, Tuple
 
+from backend.ai.routed_order_words import ROUTED_ORDER_WORDS
+
 # FA slice 7 (FA-N39): ONE honorific for every ADDRESS regex in the parse
 # pipeline. ADDRESS_TOKEN_RE admitted `marshal` alone while parser.py's WO-1
 # copy admitted `general` too — so "General Ney, attack Mack" made every
@@ -148,8 +150,13 @@ END_TURN_PHRASINGS = ("end turn", "end_turn", "next turn")
 # same vocabulary and `llm_client` imports this module rather than the other
 # way round. It is the whole desk-address vocabulary, in one place, for the
 # backend and — mirrored, with a parity pin — for the client.
-DESK_ADDRESS_RE = re.compile(r"^\s*(?:berthier|sire)\s*[,:]\s*",
-                             re.IGNORECASE)
+#
+# CX-R1: the addressees are named once, because the executor's addressee
+# rule needs them as NAMES too — the desk is somebody the game knows, so an
+# order of state addressed to Berthier is bound, not an unknown officer.
+DESK_ADDRESSEES = ("berthier", "sire")
+DESK_ADDRESS_RE = re.compile(
+    r"^\s*(?:" + "|".join(DESK_ADDRESSEES) + r")\s*[,:]\s*", re.IGNORECASE)
 
 
 def strip_desk_address(text: str) -> str:
@@ -1025,6 +1032,14 @@ def looks_like_an_address(run: str,
     if not phrase or len(phrase) > 40:
         return False
     tokens = _NAME_TOKEN_RE.findall(phrase)
+    if THE_ADDRESS_IS_ITS_HEAD:
+        # CX-R1: a connective INSIDE a name is part of the name, not grammar
+        # around it — "Prince of Moskowa", "Bravest of the Brave". Only
+        # between two other tokens: a run that opens or closes on "of" is
+        # not a name.
+        tokens = [tok for i, tok in enumerate(tokens)
+                  if not (0 < i < len(tokens) - 1
+                          and tok.lower() in _NAME_CONNECTIVES)]
     if not tokens or len(tokens) > 3:
         return False
     for tok in tokens:
@@ -1065,6 +1080,125 @@ _ORDER_VERB_RE = re.compile(
 )
 
 
+# ───────────────────────────────────────────────────────────────────────────
+# CX-R1 (September 22, 2026) — THE VERB SET IS DERIVED, NOT WRITTEN.
+# ───────────────────────────────────────────────────────────────────────────
+# The list above was widened twice and was still 27 of 40 routed verbs short
+# (row L2-1), so `Zorglub crush Mack` fought a battle and `Zorglub retire`
+# marched the whole army back for a name nobody has — and, one word over,
+# `crush Mack, then hold your positions` was refused as an officer called
+# "crush Mack" (the mirror, L2-1 §6). The words the rule measures against are
+# now the words the fast parser ROUTES on, generated from its own branches by
+# `tools/gen_routed_order_words.py` into `routed_order_words.py`; a census in
+# `tests/test_cx_r1_the_unbound_name_spends_nothing.py` re-derives them from
+# the live parser and fails on drift, so a keyword added to the chain cannot
+# ship without this rule learning it.
+#
+# How a word matches. The chain routes most keywords by SUBSTRING (`"recon"
+# in command_lower` reads "reconnoitre"), so a word of five letters or more
+# matches as a word PREFIX — the router's own reach — while a short word
+# ("go", "dig", "pay", "lay") matches whole, with its inflections, because
+# "be" as a prefix would read Bernadotte and Berthier as orders.
+#
+# Flip lever: False restores the hand-written `_ORDER_VERB_RE` above
+# byte-for-byte.
+ORDER_WORDS_ARE_DERIVED = True
+
+
+def compile_routed_order_words(words) -> "re.Pattern":
+    """One regex over the routed order words (the rule above)."""
+    long_words = sorted((w for w in words if len(w) >= 5),
+                        key=lambda w: (-len(w), w))
+    short_words = sorted((w for w in words if len(w) < 5),
+                         key=lambda w: (-len(w), w))
+    parts = []
+    if long_words:
+        parts.append(r"(?:" + "|".join(map(re.escape, long_words))
+                     + r")\w*")
+    if short_words:
+        parts.append(r"(?:" + "|".join(map(re.escape, short_words))
+                     + r")(?:s|es|ed|d|ing)?")
+    return re.compile(r"\b(?:" + "|".join(parts) + r")\b", re.IGNORECASE)
+
+
+_ROUTED_ORDER_VERB_RE = compile_routed_order_words(ROUTED_ORDER_WORDS)
+
+
+def order_verb_re() -> "re.Pattern":
+    """The verbs a leading run is measured against — derived, or (lever
+    down) the hand-written list it replaced."""
+    return _ROUTED_ORDER_VERB_RE if ORDER_WORDS_ARE_DERIVED else _ORDER_VERB_RE
+
+
+# ───────────────────────────────────────────────────────────────────────────
+# CX-R1 — AN UNMARKED ADDRESS IS THE NAME AT ITS HEAD.
+# ───────────────────────────────────────────────────────────────────────────
+# With no comma, the address was "every word before the first order verb",
+# judged WHOLE — so one word of filler after the name made the whole run
+# grammar and the name vanished: `Zorglub just attack Mack`, `Zorglub please
+# attack Mack`, `Zorglub's corps attack Mack` all fought for a name nobody
+# has (row L2-4), and `the Prince of Moskowa attack Mack` fought because "of"
+# is a closed-class word (L2-3, the epithet half). The address is now the
+# NAME the run opens with — the article and the honorific in front of it,
+# then name-shaped tokens, a connective allowed only between two of them —
+# and whatever follows it is filler. The run's FIRST word still decides:
+# "quickly attack Mack" and "can you attack Mack" name nobody, exactly as
+# CX-7 pins them. Unmarked arms of service ("cavalry attack Mack") stay
+# CX-7's deliberate ruling — lowercase and not a name, they are not claimed.
+#
+# Flip lever: False restores the whole-run reading byte-for-byte.
+THE_ADDRESS_IS_ITS_HEAD = True
+
+_NAME_CONNECTIVES = frozenset(
+    "of de du des la le von van der den di da the".split())
+_TITLE_WORDS = frozenset(("marshal", "general", "gen.", "marechal",
+                          "maréchal"))
+_POSSESSIVE_RE = re.compile(r"['’]s$", re.IGNORECASE)
+
+
+def _bare_token(word: str) -> str:
+    return word.strip(".,;:!?\"()[]")
+
+
+def _leading_name_run(head: str,
+                      roster: Optional[Iterable[str]] = None) -> str:
+    """The name an unmarked address OPENS with, or "" when it opens with
+    none. Keeps the article and the honorific in front ("the Iron Marshal",
+    "Marshal Zorglub") and a title that closes an epithet."""
+    # Bare tokens throughout, so the refusal names "Zorglub" and not the
+    # "Zorglub!" the player typed.
+    words = [_bare_token(word) for word in head.split()]
+    prefix: List[str] = []
+    i = 0
+    while i < len(words) and (
+            words[i].lower() in ("the", "a", "an")
+            or words[i].lower() in _TITLE_WORDS):
+        prefix.append(words[i])
+        i += 1
+    name: List[str] = []
+    while i < len(words):
+        bare = words[i]
+        if not bare:
+            break
+        if looks_like_an_address(bare, roster) or (
+                name and bare.lower() in _TITLE_WORDS):
+            name.append(bare)
+            i += 1
+            continue
+        if name and bare.lower() in _NAME_CONNECTIVES:
+            j = i
+            while j < len(words) and words[j].lower() in _NAME_CONNECTIVES:
+                j += 1
+            if j < len(words) and looks_like_an_address(words[j], roster):
+                name.extend(words[i:j])
+                i = j
+                continue
+        break
+    if not name:
+        return ""
+    return " ".join(prefix + name)
+
+
 def address_of(text: str,
                roster: Optional[Iterable[str]] = None,
                *, require_separator: bool = False) -> Optional[str]:
@@ -1090,25 +1224,59 @@ def address_of(text: str,
     head, sep, _tail = raw.partition(",")
     if not sep:
         head, sep, _tail = raw.partition(":")
+    verbs = order_verb_re()
+    scan = raw
+    if sep and THE_ADDRESS_IS_ITS_HEAD and verbs.search(head):
+        # CX-R1: a comma AFTER an order closes a clause, not an address —
+        # `Zorglub attack Mack, then hold` read "Zorglub attack Mack" as the
+        # addressed run, found a verb in it, and let the name go. The head is
+        # read as an unmarked line instead; `attack Bern, then hold your
+        # positions` still opens with its order and names nobody.
+        sep = ""
+        scan = head
     if not sep:
         if require_separator:
             return None      # the executor's own AN_ADDRESS_NEEDS_NO_COMMA
-        verb = _ORDER_VERB_RE.search(raw)
+        verb = verbs.search(scan)
         if not verb:
             return None
         head = raw[:verb.start()]
+        if THE_ADDRESS_IS_ITS_HEAD:
+            head = _leading_name_run(head, roster)
+            if not head:
+                return None  # the run opens with grammar, not a name
     phrase = head.strip().strip("'\"").strip()
     if phrase.lower().startswith(("the ", "a ", "an ")):
         # the refusal names what the player typed, minus the article —
         # "no 'Iron Marshal' in the order of battle" (FA-22's own pin)
         phrase = phrase.split(None, 1)[1].strip() if " " in phrase else phrase
-    if not phrase or _ORDER_VERB_RE.search(phrase):
+    if not phrase or verbs.search(phrase):
         return None
     if never_an_address(phrase):
         return None          # a collective, an interjection, an adverb
     if not sep and not looks_like_an_address(phrase, roster):
         return None          # nothing marked it, and it is not name-shaped
+    if not sep and THE_ADDRESS_IS_ITS_HEAD:
+        # "Zorglub's corps attack Mack" names Zorglub
+        phrase = _POSSESSIVE_RE.sub("", phrase).strip()
     return phrase
+
+
+def order_after_address(text: str) -> str:
+    """CX-R1: the order the player gave, with the address taken off —
+    `Zorglub build ships` -> `build ships`, `Zorglub, vassalize Austria` ->
+    `vassalize Austria`. What a refusal hands back so the player can give an
+    order of state without the name. "" when there is nothing to hand back."""
+    raw = (text or "").strip()
+    verbs = order_verb_re()
+    for sep in (",", ":"):
+        head, found, tail = raw.partition(sep)
+        if found:
+            if THE_ADDRESS_IS_ITS_HEAD and verbs.search(head):
+                break        # the comma closes a clause (`address_of`)
+            return tail.strip()
+    verb = verbs.search(raw)
+    return raw[verb.start():].strip() if verb else ""
 
 
 _ADDRESSED_LINE_RE = re.compile(

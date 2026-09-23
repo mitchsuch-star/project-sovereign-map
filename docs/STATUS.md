@@ -42,6 +42,32 @@
 > CR-7-3: *"fortify and attack is a contradiction"* — a contradictory pair's drop
 > note must not invite the tail to be re-sent as-is.
 >
+> **✅ SLICE 2 — CX-R1 "The unbound name spends nothing" — LANDED September 22, 2026.**
+> Landing record = `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md` §CX-R1 LANDING
+> RECORD (authoritative); rules = `SYSTEMS_REFERENCE.md` §51; row **CQ-2** disposed in
+> `BUG_FIXES.md` §Command-Road Queue (closing **L2-1**, **L2-2**, **L2-4** and **L2-3's
+> epithet half**), **CQ-17** filed. Re-measured first — and **wider than filed: ~30 forms
+> mutated the world for a name nobody has** (the keel 800 → 400, the recruit 800 → 59,
+> **Austria subjugated**, a depot, a fort, autonomy, a released satellite, sponsor,
+> guarantee; `Zorglub crush Mack` / `occupy Swabia` fought battles; **`Zorglub retire` marched
+> eight corps back at 0 AP**; `Zorglub defend`; `Zorglub just attack Mack`; `the Prince of
+> Moskowa attack Mack`) — and **the comma was not the discriminator** for the vassal/instrument
+> family (`Zorglub, vassalize Austria` subjugated Austria too), the rewards (their `marshal`
+> slot is the RECIPIENT) or a clause comma (`Zorglub attack Mack, then hold`). Built as one
+> rule: the executor's gate covers **every** order (reads exempt) and accepts only a name that
+> takes the order — our marshals; the desk on an order of state, never a field order (FA-22
+> stands); the foreign minister; the admiral on the fleet's orders; **the verb set is GENERATED
+> from the parser's routing branches** (`tools/gen_routed_order_words.py` →
+> `backend/ai/routed_order_words.py`, 283 words — generated, not harvested at import, because
+> the frozen build carries no source; a census re-derives it and fails on drift); an unmarked
+> address is the name at its head. Every census form now refuses with an empty state
+> footprint; sentence-case orders (`Grant Holland more autonomy`, `Send the fleet to blockade
+> Britain`), reads, `Davoust attack Mack` and the addressees still act; the L2-1 mirror is
+> fixed. `test_cx_r1_the_unbound_name_spends_nothing.py` **426**; sweep `tools/_sweep_cx_r1.json` **33/33, 0 INERT at close** (a first sweep found three INERT — one dead harvester line deleted, two correct rules given direct pins); full suite 24,211 / 5 skipped / 0 failed; corpus 709/709 (not evidence); M1–M7 + `BASELINE_SERIES` byte-identical because the gate skips AI/strategic/autonomous commands. **⚠ CX-X3 (a
+> BARE `vassalize Austria`) is NOT in this slice** — a missing game rule, not an unbound name,
+> taken out when the user asked why it was being worked on; routed to the CR-6 triage with its
+> done-when. Zero `.gd`.
+>
 > **✅ SLICE CR-7-9 — "The conditions say what they mean" — LANDED September 22, 2026**
 > (the user's follow-up on the landed row: *"what if multiple conditions arise in x turns hows
 > it look or work"* → *"make fixes continue with and finish work assure ux is good for this
@@ -123,11 +149,13 @@
 >
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = slice **2** of the numbered queue below, **CX-R1 "The
->    unbound name spends nothing"** (slice 1 landed September 22, 2026 — above).
->    Take it. Do not re-plan it — the build contract is the memo named on its row
->    (`PARSER_AUTOFILL_ASSURANCE_2026_09_20.md`), and the memos are already sliced
->    with falsifiable `done_when` clauses.
+> 1. **What is next** = slice **3** of the numbered queue below, **CN-1 … CN-4
+>    "The Chip Names the Man"** (slices 1, 2 and 5 landed September 22, 2026 —
+>    above). Take it. Do not re-plan it — the build contract is the memo named on
+>    its row (`RECRUIT_ARM_UX_2026_09_20.md`, memo ids R1–R4 ≡ CN-1–CN-4, with the
+>    positive artillery case added as R2 item 9), and the memos are already sliced
+>    with falsifiable `done_when` clauses. Rulings D4 (no artillery marshal is
+>    authored) and D5 (recruiting does not open on ally soil) are taken.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -161,13 +189,13 @@
 > | # | Slice | Row | Effort | Why here |
 > |---|---|---|---|---|
 > | ~~**1**~~ | ~~**CR-7-1 "The tail stops eating the head"**~~ ✅ **LANDED Sept 22, 2026** | CR-7 | 0.5 | ~~**P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes.~~ **40 → 0.** Landing record in the memo. |
-> | **▶ 2** | **CX-R1 "The unbound name spends nothing"** | CX-R | 0.5 | **P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**. (`Zorglub, build ships` — with the comma — correctly refuses.) This is L2-1 + CX-X3 pulled out of the CR-6 pile because its members are state-mutating. **Derive the verb set from the parser's routing table — do not widen the hand-written list a third time** (the CX-7 lesson). |
-> | **3** | **CN-1 … CN-4 "The Chip Names the Man"** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
+> | ~~**2**~~ | ~~**CX-R1 "The unbound name spends nothing"**~~ ✅ **LANDED Sept 22, 2026** | CX-R | 0.5 | ~~**P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**.~~ **~30 forms → 0**; the verb set is generated from the router. Landing record in the memo. CX-X3 (a bare `vassalize`) re-routed to the CR-6 triage. |
+> | **▶ 3** | **CN-1 … CN-4 "The Chip Names the Man"** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
 > | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
 | ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
-> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". |
+> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — both with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
 > | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. |
 >
 > **Recorded dissent on the order:** a build in a tester's hands surfaces defects a

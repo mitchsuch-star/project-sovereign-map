@@ -300,6 +300,7 @@ Fill out this sheet completely before implementing:
 | `backend/ai/enemy_ai.py` | AI behavior | If enemy marshal with special AI |
 | `backend/nation_config.py` + `backend/models/diplomat.py` | Nation runtime config and diplomat factory | If NEW nation |
 | `backend/ai/llm_client.py` | LLM keyword matching | If special command keywords |
+| `backend/ai/routed_order_words.py` | GENERATED — the verbs the addressee rule reads (CX-R1) | **After ANY change to `llm_client.py`'s routing keywords:** `python -m tools.gen_routed_order_words` — the census in `tests/test_cx_r1_the_unbound_name_spends_nothing.py` fails until it is regenerated |
 
 **Frontend/Godot Files (Conditional)**
 
@@ -1640,6 +1641,8 @@ Add keyword detection in `_parse_with_mock()` (~line 408):
 elif "patrol" in command_lower or "sweep" in command_lower:
     action = "move"  # Strategic parser will upgrade to PATROL
 ```
+
+Then regenerate the addressee rule's verb set — `python -m tools.gen_routed_order_words` (CX-R1, `SYSTEMS_REFERENCE.md` §51). The new keyword is not an order word to the unbound-name guard until you do, and the census test says so.
 
 #### Step 4: Command Handler
 

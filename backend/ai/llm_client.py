@@ -105,6 +105,13 @@ ADDRESS_NON_NAME_WORDS = frozenset({
     "fortify", "withdraw", "go", "run", "ride", "stand", "rally",
 })
 
+# The Cabinet's addressees: a sentence naming any of these is routed to the
+# diplomatic parser whole (the "Route to diplomacy if addressed to
+# Talleyrand" arm of the mock chain). CX-R1 reads the same tuple, so the
+# executor's addressee rule accepts exactly the names the parser routes on.
+DIPLOMAT_ADDRESS_NAMES = ("talleyrand", "diplomat", "envoy", "minister",
+                          "foreign minister", "ambassador")
+
 # CR-2: text immediately before a name that marks it as the OBJECT of a
 # support-family verb ("support Ney", "move to reinforce Ney") — such a
 # name is the supportee, never the executing marshal. Shared with
@@ -1717,9 +1724,7 @@ class LLMClient:
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
-        _diplomat_names = ["talleyrand", "diplomat", "envoy", "minister",
-                           "foreign minister", "ambassador"]
-        if any(name in command_lower for name in _diplomat_names):
+        if any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Break/downgrade treaty commands route to diplomacy even without "Talleyrand"

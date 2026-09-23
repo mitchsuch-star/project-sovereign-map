@@ -1015,18 +1015,68 @@ class CommandExecutor:
         re.IGNORECASE,
     )
 
+    # ───────────────────────────────────────────────────────────────────
+    # CX-R1 (September 22, 2026) — THE UNBOUND NAME SPENDS NOTHING.
+    # ───────────────────────────────────────────────────────────────────
+    # FA-22's refusal guarded the marshal-LESS field family only, on the
+    # reasoning that only there does the game pick somebody the player did
+    # not name. But every order the player ADDRESSES is a claim about who
+    # takes it, and the rest of the game read straight past the name.
+    # Measured on the 1805 boot through POST /command, mock mode:
+    #
+    #   "Zorglub build ships"          gold 800 -> 400, a keel laid
+    #   "Zorglub recruit in Rhineland" gold 800 -> 59, Davout +3,000
+    #   "Zorglub vassalize Austria"    AUSTRIA SUBJUGATED, three marshals
+    #                                  assimilated — WITH the comma too
+    #   "Zorglub defend"               1 AP, the whole army defensive (L2-2)
+    #   "Zorglub, grant Ney a rente"   the grant arm ran (the marshal slot
+    #                                  holds the man REWARDED, not the one
+    #                                  addressed)
+    #
+    # The rule is now: an addressed name must be somebody the game knows who
+    # takes THIS order — one of our marshals; the desk (Berthier, or the
+    # sovereign's own title) for an order of state, never a field order
+    # (FA-22's ruling stands); the foreign minister for anything the parser
+    # routed to his Cabinet; the admiral for the fleet's orders — or nothing
+    # happens and nothing is spent. Reads and housekeeping
+    # (`validation.NON_ORDER_ACTIONS`, a failed parse) keep their answers:
+    # they spend nothing by construction.
+    #
+    # Flip lever: False restores FA-22's field-family-only gate byte-for-byte.
+    THE_UNBOUND_NAME_SPENDS_NOTHING = True
+
+    # The FIELD orders — someone must carry them out, so naming the desk is
+    # naming nobody. FA-22's family plus `general_defensive` ("Zorglub
+    # defend" put the whole army on the defensive, row L2-2).
+    _FIELD_TYPES = _MARSHAL_LESS_TYPES + ("general_defensive",)
+
+    # The rewards: their `marshal` slot holds the man the Emperor rewards,
+    # not the one he addressed — so a bound marshal proves nothing about the
+    # address.
+    _MARSHAL_IS_THE_OBJECT = ("grant_pension", "revoke_pension",
+                              "grant_dotation")
+
     def _unbound_addressee(self, command: Dict, parsed_command: Dict,
                            world) -> Optional[str]:
         """The phrase the player addressed, when the roster cannot bind it.
 
-        Returns None for every command that is not of the marshal-less
-        family, for a genuinely BARE order, and whenever the addressed
+        Returns None for a genuinely BARE order, and whenever the addressed
         phrase names a live player marshal, addresses the army as a whole,
-        or is itself an order.
+        is itself an order, or (CX-R1) names somebody who takes this order.
+        With the CX-R1 lever down, None for every command outside the
+        marshal-less family, exactly as FA-22 shipped it.
         """
-        if command.get("type") not in self._MARSHAL_LESS_TYPES:
-            return None
-        if command.get("marshal"):
+        widened = self.THE_UNBOUND_NAME_SPENDS_NOTHING
+        if not widened:
+            if command.get("type") not in self._MARSHAL_LESS_TYPES:
+                return None
+        else:
+            from backend.ai.validation import NON_ORDER_ACTIONS
+            if command.get("action") in NON_ORDER_ACTIONS | {"unknown"}:
+                return None
+        if command.get("marshal") and not (
+                widened
+                and command.get("action") in self._MARSHAL_IS_THE_OBJECT):
             return None
         raw = str(parsed_command.get("raw_input")
                   or command.get("raw_input") or "")
@@ -1039,8 +1089,11 @@ class CommandExecutor:
                 require_separator=not self.AN_ADDRESS_NEEDS_NO_COMMA)
             if not phrase:
                 return None
-            return None if self._names_a_player_marshal(phrase, world) \
-                else phrase
+            if self._names_a_player_marshal(phrase, world):
+                return None
+            if widened and self._takes_this_order(phrase, command, world):
+                return None
+            return phrase
         head, sep, _tail = raw.partition(",")
         if not sep:
             if not self.AN_ADDRESS_NEEDS_NO_COMMA:
@@ -1067,7 +1120,35 @@ class CommandExecutor:
             return None
         if self._names_a_player_marshal(phrase, world):
             return None
+        if widened and self._takes_this_order(phrase, command, world):
+            return None
         return phrase
+
+    def _takes_this_order(self, phrase: str, command: Dict, world) -> bool:
+        """CX-R1: whether the addressed phrase names somebody the game knows
+        who takes THIS order, though he is not one of our marshals.
+
+        * the foreign minister (the parser's own `DIPLOMAT_ADDRESS_NAMES`) —
+          a sentence naming him was routed to his Cabinet whole;
+        * the desk — Berthier, or the sovereign's own title — for an order
+          of state; never for a FIELD order, which is FA-22's ruling
+          (`Berthier, retreat` ran a whole-army retreat at 0 AP);
+        * the admiral, for the fleet's own orders (the parser's
+          `ADMIRAL_IS_AN_ADDRESSEE` rule, read through the same predicate).
+        """
+        from backend.ai.clause_guards import DESK_ADDRESSEES
+        from backend.ai.llm_client import DIPLOMAT_ADDRESS_NAMES
+        low = phrase.strip().lower()
+        if any(name in low for name in DIPLOMAT_ADDRESS_NAMES):
+            return True
+        if (command.get("type") not in self._FIELD_TYPES
+                and low in DESK_ADDRESSEES):
+            return True
+        from backend.commands.parser import _NAVAL_META_VERBS, _names_the_admiral
+        if (command.get("action") in _NAVAL_META_VERBS
+                and _names_the_admiral(phrase, world)):
+            return True
+        return False
 
     @staticmethod
     def _roster_names(world) -> list:
@@ -1622,11 +1703,30 @@ class CommandExecutor:
                 and not is_ai_command
                 and not is_strategic_execution
                 and not command.get("_autonomous_execution")):
+            _message = (f"There is no '{_unbound}' in the order of battle, "
+                        f"Sire. Whom did you intend?")
+            from backend.ai.validation import META_ACTIONS
+            if (self.THE_UNBOUND_NAME_SPENDS_NOTHING
+                    and command.get("action") in META_ACTIONS | ADMIN_ACTIONS):
+                # CX-R1: an order of STATE — one that needs no marshal
+                # (`validation.META_ACTIONS`, the declared single source) or
+                # spends the Emperor's own administrative actions
+                # (`ADMIN_ACTIONS`) — has no officer to ask for, so the
+                # honest answer says nothing was done and hands the order
+                # back without the name. An order a marshal carries out
+                # (fortify, drill, garrison, attack) keeps FA-22's question.
+                _plain = clause_guards.order_after_address(
+                    str(parsed_command.get("raw_input")
+                        or command.get("raw_input") or ""))
+                _message = (f"There is no '{_unbound}' in the order of "
+                            f"battle, Sire — the order was not given, and "
+                            f"nothing was spent.")
+                if _plain:
+                    _message += (f" If it is yours to give, give it without "
+                                 f"the name: '{_plain}'.")
             return {
                 "success": False,
-                "message": (
-                    f"There is no '{_unbound}' in the order of battle, Sire. "
-                    f"Whom did you intend?"),
+                "message": _message,
                 "kind": "marshal_not_found",
                 "new_state": world,
             }

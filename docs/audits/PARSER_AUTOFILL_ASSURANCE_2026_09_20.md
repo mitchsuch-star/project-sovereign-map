@@ -273,3 +273,165 @@ Recorded so they are not re-filed:
 2. **`Zorglub buy substitutes for Ney` charging 4,012 gold** — does not reproduce. Refused on **price** (4,012g against a boot treasury of 800), not on the addressee. The addressee hole is real; this particular member is masked by affordability.
 3. **`Ney and Davout, attack Mack` "silently dropping Davout"** — the observable is wrong. Davout musters regardless; the defect is that naming him is **causally inert** (four byte-identical muster heads).
 4. **Completer refusal rate "153 of 232 = 65.9%"** — my measurement on the client's real payload is **166 of 280 = 59.3% refused, 28.6% executing cleanly, 12.1% staging a question.** Same conclusion, different denominator; `success: true` is not a refusal signal on this endpoint, so any figure read off that flag alone should be re-measured.
+
+---
+
+## §CX-R1 LANDING RECORD — "The unbound name spends nothing" (September 22, 2026)
+
+**Status: LANDED on master** (slice 2 of the Command-Road Queue, built on
+`85347d48`). Row **CQ-2** → FIXED in `docs/BUG_FIXES.md` §Command-Road Queue,
+closing with it the addressee family's state-mutating members **L2-1** (the
+verb list 27 of 40 short, and its mirror), **L2-2** (`defend`), **L2-4** (filler
+after the name) and **L2-3's epithet half**. Rules = `SYSTEMS_REFERENCE.md` §51.
+Pins = `tests/test_cx_r1_the_unbound_name_spends_nothing.py` (426). Sweep =
+`tools/_sweep_cx_r1.json` (**33/33 killed, 0 INERT at close**).
+
+### Reproduced first (HEAD `22dc1d71`, then again on `85347d48`)
+
+Fresh 1805 board per sentence, the real `POST /command`, `LLM_MODE=mock`,
+verdict by **state delta** (gold, AP, DP, fleets, vassals, diplomatic states,
+marshal location/strength/stance/orders/rentes/estates, controllers, the
+dialogue queue), never by the message:
+
+* **The memo's four reproduce to the digit** — `Zorglub build ships` 800 → 400
+  and a keel; `Zorglub recruit in Rhineland` 800 → 59, Davout +3,000;
+  `Zorglub blockade` the fleet to sea, 1 AP; `Zorglub vassalize Austria`
+  **Austria subjugated, Mack/Charles/John assimilated**, four diplomatic
+  states rewritten.
+* **It was wider than filed — about thirty forms mutated.** The national
+  verbs (`lay down a keel`, `subjugate`/`make vassal of Austria`, `grant
+  Holland more autonomy` (DP spent, autonomy moved), `release Holland` (a
+  satellite freed), `sponsor Prussia`, `guarantee Saxony`, `build a depot in
+  Rhineland` (300g), `build a fort in Paris` (400g)); the L2-1 synonyms
+  (`crush`/`smash`/`destroy`/`rout`/`strike`/`fight`/`ambush Mack` and
+  `occupy`/`capture`/`seize Swabia` fought real battles; `intercept`/`harry`/
+  `shadow` issued a PURSUE; **`Zorglub retire` marched all eight corps back at
+  0 AP**; `reconnaissance` scouted); L2-2 (`Zorglub`/`Wellington`/`Berthier
+  defend` — 1 AP, the whole army defensive); L2-4 (`Zorglub just`/`now`/
+  `please`/`you attack Mack`, `Zorglub's corps attack Mack` — battles); L2-3
+  (`the Prince of Moskowa attack Mack` — a battle).
+* **⚠ Correction to this memo's own §3: "the comma is the discriminator" was
+  half true.** `Zorglub, vassalize Austria` **also** subjugated Austria, and
+  the comma forms of `grant … autonomy`, `release`, `sponsor`, `propose peace`
+  and `declare war` also acted or staged — the parser's vassal/instrument
+  early-return discards the address before its own CR-2 guard reads it. The
+  memo measured only `Zorglub, build ships`.
+* **Two more seams the row did not name.** The rewards (`grant_pension`,
+  `revoke_pension`, `grant_dotation`) put the man REWARDED in the `marshal`
+  slot, so a bound marshal proved nothing about the address (`Zorglub, grant
+  Ney a rente` reached the grant arm). And the comma arm split at the FIRST
+  comma, so `Zorglub attack Mack, then hold` read "Zorglub attack Mack" as the
+  addressed run, found a verb in it, and let the name go.
+
+### Decisions (taken under the delegated grant, each with its reason)
+
+1. **One gate, at the executor, for every order.** `_unbound_addressee` no
+   longer stops at FA-22's five marshal-less field types. The executor is the
+   one choke point every parse path reaches (mock, live LLM, the vassal
+   early-return) and it runs before any cost. Reads and housekeeping
+   (`validation.NON_ORDER_ACTIONS`, a failed parse) are exempt: they spend
+   nothing by construction and keep their answers (`Zorglub economy` still
+   reads the treasury). Lever `CommandExecutor.THE_UNBOUND_NAME_SPENDS_NOTHING`.
+2. **The verb set is GENERATED from the parser's routing branches** —
+   `tools/gen_routed_order_words.py` → `backend/ai/routed_order_words.py`
+   (**283 words**). The routing table is the mock chain and its three
+   sub-routers; the harvest reads every branch that assigns the action (or
+   hands the sentence to a sub-router), collects the keyword text in its
+   POSITIVE test only (never under `not` / `not in`), follows helper
+   predicates and keyword constants one hop into `llm_client` /
+   `attack_vocabulary`, reads `STRATEGIC_KEYWORDS`, keeps the verb-position
+   word of each keyword, and drops the closed classes (`_NOT_A_NAME`), the
+   honorific and the router's own addressee words. It covers all 27 of L2-1's
+   verbs and every national verb in the census; it drops only words the
+   parser does not route (`sortie`, `sally`, `regroup`, `probe`, `levy`,
+   `watch` — measured: each shrugs, with or without a name in front). **Why
+   generated and not harvested at import:** the shippable build is frozen, and
+   PyInstaller carries bytecode, not the parser's source — a runtime AST walk
+   finds nothing exactly where it matters. The census re-derives the set from
+   the live parser and fails on drift (L2-1's own done-when: *derived, and a
+   census pins the two in step*). Lever `clause_guards.ORDER_WORDS_ARE_DERIVED`.
+3. **How a word matches.** Five letters or more: as a word PREFIX — the
+   router's own substring reach (`"recon" in command_lower` reads
+   "reconnoitre"). Shorter: whole, with inflections — `be` routes ("be
+   aggressive") and as a prefix would read Bernadotte and Berthier as orders.
+   A census pins that no name the game prints (every marshal on every roster,
+   the bench, the admirals, the diplomats, the printed epithets) matches.
+4. **Rejected: asking the parser at runtime.** `address_of` is shared with the
+   question guard, which the mock chain itself calls, so a `fast_parse` oracle
+   recurses — and no behavioural probe can tell a sentence-case verb the
+   router keys through a NOUN (`Grant Holland more autonomy`, routed on
+   "autonomy") from a name (`Zorglub grant Holland more autonomy`). Only the
+   router's keyword vocabulary can.
+5. **An unmarked address is the NAME AT ITS HEAD** (L2-4, L2-3 epithet): the
+   article and honorific, then name-shaped tokens, a connective only between
+   two of them, a title that closes an epithet; filler after the name is
+   filler. The first word still decides — `quickly attack Mack` and `can you
+   attack Mack` name nobody, as CX-7 pins them. **Arms of service stay CX-7's
+   deliberate ruling:** lowercase `cavalry attack Mack` is not a name and is
+   not claimed. Lever `clause_guards.THE_ADDRESS_IS_ITS_HEAD`.
+6. **A comma after an order closes a clause, not an address** (same lever).
+   `attack Bern, then hold your positions` still opens with its order and
+   names nobody (FA-22's pin).
+7. **Who takes which order** (`_takes_this_order`): our marshals, any order (a
+   typo the parser repaired still binds — `Davoust attack Mack` goes to
+   Davout); the **desk** (Berthier, or the sovereign's title) for an order of
+   state, **never** a field order — FA-22's ruling stands, and L2-2's
+   `general_defensive` joins the field family; the **foreign minister** — the
+   parser's own `DIPLOMAT_ADDRESS_NAMES`, now a module constant both read; the
+   **admiral** for the fleet's orders only. **A bound marshal on an ORDER is
+   still trusted** — the live parser may bind an epithet this rule cannot read
+   (the Bravest of the Brave → Ney) — and only the reward verbs, whose slot
+   holds the recipient, are checked.
+8. **The copy.** An order of STATE — `validation.META_ACTIONS` (the declared
+   "no marshal needed" source) or `ADMIN_ACTIONS` (the Emperor's own
+   administrative acts) — reads *"There is no 'Zorglub' in the order of
+   battle, Sire — the order was not given, and nothing was spent. If it is
+   yours to give, give it without the name: 'build ships'."* An order a
+   marshal carries keeps FA-22's *"Whom did you intend?"* byte-for-byte.
+   `kind: marshal_not_found` is kept, so CX-7's forget rule still drops the
+   line from the completer's history.
+9. **Out of scope, said out loud.** **CX-X3** — a BARE `vassalize Austria`
+   (no name at all) subjugates a great power for free on turn 1 over the API.
+   That is a missing game rule (`DIPLOMACY_SPEC.md` §8a: conquest needs the
+   capital held and war score > 60), not an unbound name, and the user asked
+   mid-session why it was being worked on; it is **not built here** and is
+   routed with its completion definition (`BUG_FIXES.md` CQ-2 row). The shipped
+   client already redirects typed `vassalize` to the Cabinet, so it is
+   API/driver-only. Found in passing and filed, not fixed: **CQ-17** —
+   `Davout, grant Ney a rente` binds the rente to DAVOUT (the parser puts the
+   addressee in the recipient slot).
+
+### Measured after
+
+* The census: **every unbound-name form refused, state footprint empty.**
+  The only survivors are clarification questions (the parser's CR-2 ask), CX-7's
+  lowercase arm-of-service ruling, and the addressees the game knows
+  (Berthier on an order of state, Talleyrand, Villeneuve).
+* The controls act: bare and **sentence-case** orders (`Build ships`, `Lay down
+  a keel`, `Grant Holland more autonomy`, `Send the fleet to blockade Britain`,
+  `Keep watch on Swabia`, `Pull back`, `Retire`); `Ney attack Mack`;
+  `Davoust attack Mack`; reads keep their answers.
+* **The mirror is fixed:** `crush Mack, then hold your positions`,
+  `occupy Swabia, then hold`, `retire, then fortify` act instead of being
+  refused as officers called "crush Mack".
+* **The question guard reads the same rule:** `Ney crush Mack?` is an order
+  now (CXR1-1 held only for the verbs the hand list knew); `crush Mack?`
+  stays a question.
+* **The sweep's first run found three INERT, each treated as a real weakness:**
+  the desk-address subtraction in the harvester was DEAD (the router strips
+  "Berthier," by regex and never keys a branch on the name) and was deleted;
+  the local-shadow rule (a router function's local is never read as the module
+  constant of the same name — the prototype had pulled a docstring into the
+  vocabulary that way) and the regex reader's optional-leading-group arm are
+  correct but no live router regex exercises them, so each gained a direct pin;
+  and writing the regex pin found the reader gave up on a LEADING lookaround,
+  which consumes nothing — it now reads past it (a 34th mutation pins that).
+  Final: 33/33 killed.
+* Full suite **24,211 passed / 5 skipped / 0 failed** (11:03) with the fix in and
+  before the new file existed; the new file **426**; the three existing addressee
+  families (CX-7, CX-1, FA slice 1) **427 unedited**; corpus **709/709** — *not
+  evidence*, the corpus stops at the parser and the gate is in the executor.
+* **M1–M7 and `BASELINE_SERIES` byte-identical without re-record — and the
+  reason, not the byte-identity, is the claim:** the gate is skipped for AI,
+  strategic-execution and autonomous commands, and the ambient harness types
+  nothing, so no series command can reach it. Zero `.gd`; ruff clean.

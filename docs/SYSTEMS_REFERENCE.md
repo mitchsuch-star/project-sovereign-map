@@ -6212,8 +6212,11 @@ answer than a refusal: the **collective** (`all marshals`, `everyone`,
 `someone`, `whoever is closest`) — the marshal-less arm exists to serve it —
 and the **interjection** (`Well, attack Mack`, `Ok, retreat`), because a comma
 after one is ordinary punctuation and nobody commands an officer called Well.
-What may appear INSIDE an addressed noun phrase (`Prince of Moskowa`, `the
-Bravest of the Brave`) disqualifies a run on the bare arm only.
+~~What may appear INSIDE an addressed noun phrase (`Prince of Moskowa`, `the
+Bravest of the Brave`) disqualifies a run on the bare arm only.~~ **Superseded
+by §51 (CX-R1, September 22, 2026):** a connective BETWEEN two name tokens is
+part of the name on the bare arm too, so `the Prince of Moskowa attack Mack`
+is claimed — and refused — as its comma twin always was.
 
 The residue is stated, not discovered later: an all-lowercase INVENTED name
 (`zorglub attack mack`) is no longer claimed and reaches the marshal-less arm
@@ -6237,9 +6240,11 @@ family.
 ⚠ **And the same list under-refused in the other direction.** The verbs a head
 is measured against were hand-maintained too, and missing `pull back` and
 `recon`, so `Zorglub pull back` ran a whole-army retreat — FA-22's own defect,
-still live a year later. **One hand-written list, both signs.** The remaining
+still live a year later. **One hand-written list, both signs.** ~~The remaining
 27 of 40 belong to CR-6 proper, and the durable fix there is to derive the
-list from the parser's routing table rather than widen it again.
+list from the parser's routing table rather than widen it again.~~ **Done — §51
+(CX-R1, September 22, 2026): the list is generated from the parser's routing
+branches and a census keeps the two in step.**
 
 ### 50.12 A name the game PRINTS must be a name the game READS
 
@@ -6290,3 +6295,70 @@ one answered the topology request synchronously, which flipped
 `_initial_map_bootstrapped` and handed the boot handler an arm it takes in no
 real boot — so a pin **passed with its own fix reverted**. The stub records
 that call and never answers it, which is what the real client does.
+
+## 51. The unbound name spends nothing (CX-R1, landed September 22, 2026)
+
+Build contract + landing record = `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md`
+§CX-R1 LANDING RECORD. Pins = `tests/test_cx_r1_the_unbound_name_spends_nothing.py`.
+
+### 51.1 An addressed name must take the order, or nothing happens
+
+`CommandExecutor._unbound_addressee` runs for **every** player order, not only
+FA-22's marshal-less field family. If the player addressed a name
+(`clause_guards.address_of`, §50.11) and that name is not somebody the game
+knows who takes THIS order, the executor refuses before any cost, and the
+state footprint is empty. Who takes which order (`_takes_this_order`):
+
+| Addressee | Takes |
+|---|---|
+| one of our marshals (by name, or a typo the parser repaired) | any order |
+| the desk — Berthier, or the sovereign's title (`clause_guards.DESK_ADDRESSEES`) | an order of STATE only — never a field order (FA-22) |
+| the foreign minister (`llm_client.DIPLOMAT_ADDRESS_NAMES`, the parser's own routing words) | anything the parser routed to his Cabinet |
+| the admiral (`fleets[nation]["admiral"]`) | the fleet's orders (`parser._NAVAL_META_VERBS`) |
+
+The **field family** is FA-22's five marshal-less types plus
+`general_defensive`. Reads and housekeeping (`validation.NON_ORDER_ACTIONS`, a
+failed parse) are exempt — they spend nothing and keep their answers. **A
+marshal the parser bound on an ORDER is trusted** (the live parser may bind an
+epithet this rule cannot read); only the rewards (`grant_pension`,
+`revoke_pension`, `grant_dotation`), whose `marshal` slot holds the recipient,
+are checked against the address. Lever
+`CommandExecutor.THE_UNBOUND_NAME_SPENDS_NOTHING`.
+
+The refusal for an order of STATE (`META_ACTIONS` ∪ `ADMIN_ACTIONS`) says the
+order was not given and nothing was spent, and hands the order back without
+the name; an order a marshal carries keeps FA-22's line, *"There is no 'X' in
+the order of battle, Sire. Whom did you intend?"*. Both carry
+`kind: marshal_not_found`.
+
+### 51.2 The verb set is generated from the router, never written
+
+Where an order begins in `Zorglub build ships` is decided by
+`clause_guards.order_verb_re()`, compiled from
+`backend/ai/routed_order_words.py` — a **generated** module
+(`python -m tools.gen_routed_order_words`). The harvest reads the fast
+parser's own routing branches (the mock chain and its sub-routers): every
+branch that assigns the action or hands to a sub-router, its POSITIVE test
+only, helper predicates and keyword constants followed one hop, plus
+`STRATEGIC_KEYWORDS`; it keeps each keyword's verb-position word and drops the
+closed classes, the honorific and the router's addressee words. A word of five
+letters or more matches as a prefix (the router's substring reach); a shorter
+word matches whole with its inflections.
+
+⛔ **After changing the parser's keywords, regenerate the module** — the
+census in the CX-R1 test file re-derives it from the live source and fails on
+drift. It is generated rather than harvested at import because the shipped
+build is frozen and carries bytecode, not source. Lever
+`clause_guards.ORDER_WORDS_ARE_DERIVED` (False restores the old hand list).
+
+### 51.3 An unmarked address is the name at its head
+
+With no comma, the address is the NAME the leading run opens with — article
+and honorific in front, name-shaped tokens, a connective only between two of
+them, a title that closes an epithet — and filler after it is filler
+(`Zorglub just attack Mack`, `Zorglub's corps attack Mack`). The run's first
+word still decides: `quickly attack Mack` names nobody. A comma that follows
+an order closes a clause, not an address (`Zorglub attack Mack, then hold` is
+addressed to Zorglub; `attack Bern, then hold` to nobody). Arms of service
+(`cavalry attack Mack`) stay CX-7's ruling — not a name, not claimed. Lever
+`clause_guards.THE_ADDRESS_IS_ITS_HEAD`.

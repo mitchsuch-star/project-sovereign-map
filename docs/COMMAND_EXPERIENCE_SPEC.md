@@ -657,7 +657,7 @@ definition. Defect rows are in `BUG_FIXES.md` §Row CX; design rows in
 | **CX-D2** | Whether the model may answer a question the desk cannot classify | **the CR-6 gate** | the gate rules, with the constraint that an answer can never issue an order |
 | **CX-D3** | The completer's FEEL | **the user, in a played session** | a turn's orders typed with it on, and the verdict recorded |
 
-| **L2-1** | The addressee rule measures its head against a hand-written verb list missing 27 of 40 routed verbs (`pull back` and `recon` closed in §8; the rest stand) | **CR-6 proper** | the list is DERIVED from the parser's routing table, and a census pins the two in step |
+| **L2-1** | The addressee rule measures its head against a hand-written verb list missing 27 of 40 routed verbs (`pull back` and `recon` closed in §8; the rest stand) | ~~**CR-6 proper**~~ → **✅ CLOSED by CX-R1, September 22, 2026** (`SYSTEMS_REFERENCE.md` §51) | the list is DERIVED from the parser's routing table, and a census pins the two in step — **met**: `tools/gen_routed_order_words.py` generates it, the CX-R1 test file re-derives it and fails on drift |
 | **CX7-X1** | The parser's fuzzy near-miss guard answers `sure attack Mack` with *"Did you mean Soult?"* — a different producer, a different threshold | **CR-6 proper** | a leading run that is not a near-miss of any name is not offered as one |
 
 **Inherited and unchanged:** IQ9-X1, IQ9-X2, IQ9-X3, IQ10-X1, IQ10-X2, and
@@ -863,7 +863,7 @@ substance:
   and moved the list into `clause_guards` where the other sentence-shape rules
   live; **closing the remaining gap is CR-6 proper's**, because the durable fix
   is to derive the list from the parser's own routing table rather than to
-  widen it again.
+  widen it again. **✅ Closed by CX-R1 (September 22, 2026) — `SYSTEMS_REFERENCE.md` §51.**
 * **CX7-X1** — the parser's fuzzy near-miss guard answers `sure attack Mack`
   with *"Did you mean Soult?"*. A different producer, a different threshold,
   its own pins. **CR-6 proper.**

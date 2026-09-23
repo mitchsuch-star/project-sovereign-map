@@ -526,7 +526,8 @@ says.
 IQ9-X2, IQ9-X3, the six real deferrals of IQ7-X7, and the three rows CX routed
 (CX3-X1, CX-X1 the wh-word Cabinet backdoor, CX-X2 the corpus's blind spot) —
 **plus two from the review round: L2-1** (the verb list is 27 of 40 short and
-must be DERIVED from the parser's routing table, not widened a third time) and
+must be DERIVED from the parser's routing table, not widened a third time —
+**✅ CLOSED by CX-R1, September 22, 2026, `SYSTEMS_REFERENCE.md` §51**) and
 **CX7-X1** (the fuzzy near-miss guard offering `sure` → *"Did you mean
 Soult?"*).
 
