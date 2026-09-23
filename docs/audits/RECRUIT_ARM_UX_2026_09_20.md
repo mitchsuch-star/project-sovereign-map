@@ -336,13 +336,14 @@ Either way, fall back to **R1+R3 alone** (name the recipient, dim the unreachabl
 > 6. AST census over `backend/ai/**`: every `{"action": "recruit"}` literal carries an explicit `marshal` — **with a sensitivity arm** that deletes the key in a copied tree and shows the census red
 > 7. `BASELINE_SERIES` and M1–M7 byte-identical **without re-record**, and the landing record **states the reason** (the AI never enters the province branch) rather than presenting byte-identity as proof
 > 8. negative control: with `requested_type=None`, the delivered arm on all 30 chip provinces is unchanged from HEAD
+> 9. **the positive artillery case (added September 22, 2026 after the user asked whether recruit would work for a gun marshal):** on a funded fresh world, `commission Marmont` (he arrives at Paris as an artillery commander with a 3,000 corps — measured), then `recruit artillery in Paris` → `{'artillery': -3000}` **via Marmont** at the capital price, and `Marmont, recruit artillery` the same. The artillery chip on Paris is ENABLED naming Marmont and his price; on every other province it stays a refusal whose remedy is DERIVED from the board, never hard-coded — `commission Marmont (4500g)` while no gun marshal stands, `march Marmont there` / `Marmont, recruit artillery` once one does. Senarmont is the second gun marshal on the bench; the same pin runs on him.
 
 ---
 
 **R3 — The chip tells the truth (client).** Three edits in `region_panel.gd`:
 
 1. **Gate the recruit row on the recruit gate, not the substitute gate.** `feeds_us` at `:265-268` opens the row on `substitute_price_here > 0`, which is why Franconia and Milan render six permanently-dead chips.
-2. **One chip per arm, enabled only where `recruit_here` names a recipient of that arm**, otherwise `Utils.bb_chip_disabled` with the stated reason — the idiom already used twice in this file and never on this row.
+2. **One chip per arm, enabled only where `recruit_here` names a recipient of that arm** — so the artillery chip lights up on Marmont's or Senarmont's province the moment he is commissioned (R2 item 9), otherwise `Utils.bb_chip_disabled` with the stated reason — the idiom already used twice in this file and never on this row.
 3. **The enabled chip states its terms** — the man, his arm, the gold he will be charged, the men who will arrive. This is exactly the discipline the Substitutes chip eleven lines below already applies, with its own comment explaining why:
 
 ```gdscript
