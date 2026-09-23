@@ -15,7 +15,8 @@ from backend.ai.llm_client import (
     SUPPORT_OBJECT_PREFIX_RE,
     CONDITION_CLAUSE_RE,
 )
-from backend.ai.attack_vocabulary import IDIOM_FILLER_WORDS
+from backend.ai.attack_vocabulary import (IDIOM_FILLER_WORDS,
+                                          guard_attack_verb_forms)
 from backend.ai.clause_guards import (
     HONORIFIC,
     is_question,
@@ -1595,6 +1596,13 @@ class CommandParser:
             # is the general case, so "Ney, form square" stops marching on
             # Normandy and "Ney, hold the pass" stops holding Nassau.
             skip_words.extend(_NON_TARGET_WORDS)
+            # First contact (Sept 23, 2026): every attack verb the game
+            # accepts, with its inflections. The six verbs above were
+            # assembled defect-by-defect; `destroy Austria` fuzzy-matched
+            # its own VERB into the Bavarian marshal Deroy ("Bernadotte
+            # cannot attack Bavaria — they are our ally"). ONE source
+            # with the attack vocabulary the mock chain reads.
+            skip_words.extend(guard_attack_verb_forms())
             # Also skip the marshal name if identified
             if llm_result.get("marshal"):
                 skip_words.append(llm_result["marshal"].lower())

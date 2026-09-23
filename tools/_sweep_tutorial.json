@@ -1,0 +1,72 @@
+[
+  {
+    "id": "TUT-1 a refused order no longer releases its step",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent:\n\t\treturn false\n\tif _truthy(response.get(\"success\")):\n\t\treturn false",
+    "new": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent:\n\t\treturn false\n\tif true:\n\t\treturn false",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheRefusedOrderReleasesItsStep::test_the_card_moves_on_and_says_why"
+  },
+  {
+    "id": "TUT-2 any refusal releases (the sent line is not compared)",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent:\n\t\treturn false\n",
+    "new": "",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheRefusedOrderReleasesItsStep::test_a_refusal_of_some_other_order_does_not_release"
+  },
+  {
+    "id": "TUT-3 the skip chip is dropped",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\tlines.append(Utils.bb_button_chip(\"skipstep:\", \"Skip this lesson ▸\", CHIP_TEXT_HEX, CHIP_BG_HEX))",
+    "new": "\t\tpass",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheIdleEmperorStillReachesTheEnd::test_the_card_reaches_the_handoff_by_the_gate_of_the_last_page"
+  },
+  {
+    "id": "TUT-4 the skip click does nothing",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\t_release_step(\"You skipped the last page — the school moves on.\")",
+    "new": "\t\tpass",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheChips::test_skip_releases_the_step_with_a_word"
+  },
+  {
+    "id": "TUT-5 the Cabinet chip emits nothing",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\topen_cabinet.emit(meta_str.substr(13))",
+    "new": "\t\tpass",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheChips::test_the_cabinet_chip_asks_main_gd_for_the_wizard_on_austria"
+  },
+  {
+    "id": "TUT-6 the mission predicate reads the sentinel as live",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\treturn text != \"\" and text != \"None\" and text != \"<null>\"",
+    "new": "\treturn text != \"\"",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheCabinetLesson::test_the_card_advances_on_the_confirm_response tests/test_tutorial_unbreakable_2026_09_23.py::TestTheHappyLesson"
+  },
+  {
+    "id": "TUT-7 the catch-up floor is gone",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\twhile _step_index < STEPS.size() - 1 \\\n",
+    "new": "\twhile false \\\n",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheIdleEmperorStillReachesTheEnd::test_the_card_reaches_the_handoff_by_the_gate_of_the_last_page"
+  },
+  {
+    "id": "TUT-8 the mirror drifts",
+    "file": "backend/game_logic/tutorial_state.py",
+    "old": "    (\"cabinet\", 3, \"VII. The Cabinet\"),\n",
+    "new": "",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheTableAndItsMirrors::test_the_backend_mirror_matches tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestFA89TheSchoolStepIsApproximateAndOnTheWire::test_the_mirror_matches_the_overlay_exactly"
+  },
+  {
+    "id": "TUT-9 the driver forgets the begin dial",
+    "file": "tools/playtest_driver.py",
+    "old": "MISSIONS_MODES = (\"off\", \"advisor\", \"begin\", \"decline\")",
+    "new": "MISSIONS_MODES = (\"off\", \"advisor\")",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheTableAndItsMirrors::test_the_driver_knows_the_begin_dial"
+  },
+  {
+    "id": "TUT-10 main.gd no longer notes a typed send",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif tutorial_overlay:\n\t\ttutorial_overlay.note_sent(command)\n\n\t# Send to backend\n",
+    "new": "\n\t# Send to backend\n",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheTableAndItsMirrors::test_main_gd_wires_the_door_and_notes_every_send"
+  }
+]

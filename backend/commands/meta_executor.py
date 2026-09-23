@@ -724,6 +724,19 @@ class MetaExecutor:
             if routed:
                 return {"success": True, "free_action": True,
                         "message": routed, "question_answered": True}
+        # First contact (September 23, 2026): a greeting, a word for the
+        # pause menu, an undo, the goal of the game — answered in a
+        # sentence from the ONE source the parser routed on
+        # (`ai/first_contact.py`), never with the manual.
+        from backend.ai.first_contact import (FIRST_CONTACT_HELP_KINDS,
+                                              answer_first_contact)
+        if str(asked.get("kind") or "") in FIRST_CONTACT_HELP_KINDS:
+            answered = answer_first_contact(
+                str(asked.get("kind")), str(asked.get("asked") or ""),
+                (game_state or {}).get("world"))
+            if answered:
+                return {"success": True, "free_action": True,
+                        "message": answered, "question_answered": True}
         help_text = """═══════════════════════════════════════
            COMMAND REFERENCE
 ═══════════════════════════════════════
@@ -825,7 +838,7 @@ ECONOMY (Admin AP - the new imperial economy):
                dotations, manpower pools ("economy" / "treasury")
   build      - "build market at Paris" (1 AP) - also fortification,
                stables, training ground, supply depot, watchtower
-  repair     - "repair Lyon" (1 AP, 150g)
+  repair     - "repair Lorraine" (1 AP, 150g)
   endow      - "Endow Ney with the Duchy of Swabia" (1 AP)
                Grants a CONQUERED province to a marshal as his
                ESTATE: its full income becomes his, permanently.

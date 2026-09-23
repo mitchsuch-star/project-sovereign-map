@@ -2,10 +2,18 @@
 
 > **Living document. Updated every phase. Feeds the tutorial.**
 > **Format: What the player needs to learn, and how to teach it.**
-> **Last Updated:** August 8, 2026 (POSITION 7: THE TUTORIAL IS BUILT — "The
-> School of War" on the authored Danube Lesson scenario; see §The Danube
-> Lesson below. The concept tables remain the teaching INVENTORY for hints
-> and future beats; the live script is `tutorial_overlay.gd` STEPS.)
+> **Last Updated:** September 23, 2026 (THE SCHOOL OF WAR REFRESH — three new
+> cards: VII the Cabinet (diplomacy, through the REAL F1 wizard), IX the
+> Marshalate (trust, glory, relationships, envy, reward) and XVI the Wooden
+> Wall (the naval rule, taught honestly on a lesson with no fleet); the
+> pushback/defiance explanation on cards IV/V; first-contact copy on I and
+> XVII; and the lesson made UNBREAKABLE — a per-step Skip chip, a refused
+> suggested order releases its step at once, the catch-up floor kept. Eighteen
+> cards. Built Aug 8, 2026 at POSITION 7 on the authored Danube Lesson; see
+> §The Danube Lesson below. The concept tables remain the teaching INVENTORY;
+> the live script is `tutorial_overlay.gd` STEPS, mirrored by
+> `backend/game_logic/tutorial_state.py` and driven headless by
+> `tools/tutorial_overlay_harness.gd`.)
 >
 > **⚠ Staleness note (Aug 8 refresh):** the pre-cutover tables below were
 > written against the legacy 19-region world (Feb 2026). Numbers corrected in
@@ -272,13 +280,19 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 ---
 
-## Shipped Since February (teaching inventory — NOT yet in the built tutorial)
+## Shipped Since February (teaching inventory — partly in the built tutorial since Sept 23, 2026)
 
 > These systems SHIPPED (coalitions/multi-marshal July 2025-era phases;
 > diplomacy Phase 8; jealousy/estates/naval/agendas 2026). The Danube Lesson
-> deliberately teaches the CORE LOOP only — these rows are the inventory for
-> R159 screen lines, first-encounter hints in the real campaign, and any
-> future tutorial expansion. The Gazette row is CUT to post-EA (Aug-3
+> taught the CORE LOOP only until the September 23, 2026 refresh, which
+> promoted three rows into cards: **diplomacy** (VII — a real Cabinet mission,
+> the DP cost stated, the D ledger and the mailbox named), **relationships /
+> envy / reward expectation** (IX — the muster's WILL JOIN line, the G card,
+> "two marshals at odds bring half their weight", envy dormant in the lesson
+> and said so), and **naval** (XVI — the crossing rule, the crimson SHUT link,
+> THE ADMIRALTY, blockade, expeditions — on a lesson that authors no fleet,
+> and says so). The remaining rows stay the inventory for R159 screen lines
+> and first-encounter hints. The Gazette row is CUT to post-EA (Aug-3
 > re-plan) and kept only as provenance.
 
 ### Coalitions & Multi-Marshal (SHIPPED)
@@ -357,13 +371,16 @@ mock-parse-verified against the tutorial roster in
 | 2 | The marshal's temper | `Ney, defend` | REAL aggressive objection at STRONG (24k vs PARTIAL-midpoint 10k = 2.4; popup survives mood variance). Never `hold` (strategic, evaluates NONE) or `fortify` (2 AP + immobilizes) |
 | 2 | Trust/Insist/Compromise | *(the modal's own buttons)* | ⚠ The command line is DISABLED while the objection modal is up, so this is NOT a typed answer on the shipped client — the buttons read Trust… / Proceed as Ordered / Compromise… (built at runtime with the marshal's name and the trust figures). The W6-0 typed router still exists and is what a headless driver uses. **Trust branch = Ney attacks on T2 and card VII pivots to what the board actually shows** (FA-42: four arms — stands / running / lost / taken) |
 | 2 | The guns speak | `Senarmont, bombard Jellacic` | Munich→Tyrol adjacent; moved-T1 so the moved-this-turn refusal cannot fire; then clear Swabia. (PC15-9 moved this gate 3→2, which is why it precedes First Blood) |
-| 4 | First blood | `Ney, attack Kienmayer` | Battle on allied Bavarian soil (PT-F1: no capture modal) — pure combat lesson. ⚠ "Kienmayer has no friendly exit (breaks in place or dies)" is FALSE and was measured so: forced retreat does not consult `can_enter_territory`, and he breaks onto French soil and survives in roughly half of trust runs. That is why card VII branches |
+| 3 | **The Cabinet** (Sept 23, 2026) | *(chip: `Open the Cabinet on Austria ▸` → the REAL F1 wizard via `open_cabinet`; no typed chip — ruling G1 redirects typed diplomatic verbs)* | Gather intelligence on Austria: the wizard's own `gather intel on Austria` stages the `mission` confirm dialogue; "Begin mission" makes it live and the base response's `talleyrand_mission_summary` turns from the sentinel `"None"` to `Gather Intelligence → Austria` — that is the card's predicate (`_pred_mission_started`). 1 DP/turn of the lesson's 5. The driver scripts issue the same sentence on loop 3 under the new `missions: begin` dial |
+| 4 | First blood | `Ney, attack Kienmayer` | Battle on allied Bavarian soil (PT-F1: no capture modal) — pure combat lesson. ⚠ "Kienmayer has no friendly exit (breaks in place or dies)" is FALSE and was measured so: forced retreat does not consult `can_enter_territory`, and he breaks onto French soil and survives in roughly half of trust runs. That is why card VIII branches |
+| 5 | **The Marshalate** (Sept 23, 2026; gate 5 — FA-42 forbids a second gate-4 card, so it shows as "waiting" from the moment VIII completes) | *(none — a self-releasing card, `_pred_turn_gte_5`)* | The muster's WILL JOIN / WILL NOT line; the G card (trust, glory, skills, relationships); "Ney and Soult are at odds — two marshals at odds bring half their weight" (the authored −1 pair, `_pair_contribution_scale`); the glory ladder and envy — DORMANT in the lesson (`jealousy_dormant`) and the card says so; the Reward chip and reward expectation. A turn-gated card by design: it reads no event, so it can never wedge |
 | 5 | Standing orders | `Davout, march to Franconia` | 2-hop auto-upgrade to strategic MOVE_TO at 2 AP (literal Soult pays 1 — the card contrasts) |
 | 6 | Conquest | `Davout, move to Bohemia` | Battle-win capture → Plunder/Secure modal (typed answers work; no estate stage — no enemy `dotation_regions`); fallback `Ney, move to Tyrol` = PF-3 move-capture, same modal. Capitals lesson: Munich 10,000 / Vienna 25,000 on screen |
 | 6 | The conqueror's choice | *(the modal's own buttons)* | Same as beat V: the capture modal disables the command line, so the shipped answer is the PLUNDER / SECURE button, not a typed token. `plunder` (×4 income, quoted live) vs `secure` — the card counsels SECURE on an allied front |
 | 7 | The depots | `Soult, recruit troops` | 450g at Paris (200 × 0.75 capital × 3 war; admin-7 neutral Intendance — pinned); second admin action: `build watchtower in Lorraine` |
 | 8+ | The fog | `Davout, scout Bohemia` | Austria's main body is ALREADY on you — see the FA-63 note below; the fog lesson is where it has gone, not whether it is coming |
-| 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs the Vienna pair (~50k, cautious) — by this turn they have been in contact for six turns |
+| 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs the Vienna pair (~50k, cautious) — by this turn they have been in contact for six turns. Now also names supply: a province feeds only so many, and the region panel states the limit |
+| 10+ | **The Wooden Wall** (Sept 23, 2026) | *(none — self-releasing, `_pred_turn_gte_11`)* | The naval rule taught, not staged: the lesson authors no `navies` (an Admiralty bill would bankrupt the 900-gold treasury), and the card SAYS there is no fleet in this lesson. Names the Royal Navy's Channel, the crimson SHUT link, THE ADMIRALTY (T, then 7), `build ships`, blockade + the Continental System, expeditions, the Grand Diversion, and where Britain lands (Normandy, Lisbon) |
 
 > **FA-63 (Sept 11, 2026) — the reserve's timing, measured.** The scenario
 > file's original `_comment` and this table's rows XII/XIII claimed that
@@ -385,11 +402,27 @@ mock-parse-verified against the tutorial roster in
 | 10+ | The instruments — the Cabinet (**IQ-4**, "The Cabinet Is Visible") | *(none)* | Step XIV now counts **Five** instruments: the fifth is Talleyrand's missions, sent from **F1** (warm a court, reassure an ally, spy, or pry two allies apart) — they cost diplomatic points every turn they run and stand in the Strategic Ledger's Orders book (the THE CABINET block, with a free Recall link) and on the notice rail until done. The card quotes **no figures** (a `.gd` constant cannot quote an applied number; the help text's missions block carries the live ones) and there is **no chip**: typed mission verbs are caught by the Cabinet redirect (`main.gd` `_redirect_diplomatic_command`), so a chip would teach a dead route |
 | 12 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
 
+> **Card numbering after the refresh (18):** I Situation · II Marches · III
+> Day Closes · IV Temper (pushback) · V Trust/Insist/Compromise (trust,
+> defiance) · VI Guns · **VII Cabinet** · VIII First Blood · **IX Marshalate**
+> · X Standing Orders · XI Conquest · XII Conqueror's Choice · XIII Depots ·
+> XIV Fog · XV Counter-Blow · **XVI Wooden Wall** · XVII Instruments (now
+> also L, N, Alt+key, the notice rail, Esc) · XVIII Lesson Ends. Card I now
+> teaches Tab completion, province-click chips and the three first-contact
+> doors (`what can I do` / `status` / `help`).
+
 **Design rules (pinned):** the tutorial steers the player into REAL system
 responses — nothing is faked; the overlay is observe-only (never routes,
-never sends); every beat tolerates its fallback branch; turn-gate catch-up
-guarantees the school can never stall; GR6 absolute (zero mechanics changes;
-`scenario_name` is display-only).
+never sends — main.gd tells it what was SENT via `note_sent`, and the
+Cabinet chip asks main.gd to open the real wizard via `open_cabinet`); every
+beat tolerates its fallback branch; **the lesson is unbreakable** — a
+refusal of the card's OWN suggested order releases the step at once with
+the reason on the next card, every card but the last carries a `Skip this
+lesson` chip, and the turn-gate catch-up (gate + 2) stays as the floor
+(`tests/test_tutorial_unbreakable_2026_09_23.py` drives the real overlay
+over real responses: the idle Emperor, the refused order, the chips, the
+Cabinet lesson, and the committed lesson script end to end); GR6 absolute
+(zero mechanics changes; `scenario_name` is display-only).
 
 ---
 

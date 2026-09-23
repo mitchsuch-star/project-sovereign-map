@@ -23,6 +23,12 @@ extends CanvasLayer
 # resumes at the turn's first step. Completion/skip latches per-machine via
 # UiSettings.set_tutorial_done.
 #
+# UNBREAKABLE (Sept 23, 2026): every card but the last carries a Skip chip;
+# a refusal of the card's OWN suggested order releases the step at once
+# (main.gd notes what was sent via note_sent(); the card reads the
+# refusal); the Cabinet card's chip opens the real wizard (open_cabinet).
+# The turn-gate catch-up below stays as the floor under all of it.
+#
 # ADVANCE RULE: at most ONE step per observed response; a step whose event
 # passed unseen (the player ran ahead) is released by the turn-gate catch-up
 # so the school can never stall. A step the WAR refuses (Aug 8 live report:
@@ -37,6 +43,10 @@ extends CanvasLayer
 # =============================================================================
 
 signal suggest_command(cmd: String)
+# Sept 23, 2026: the Cabinet chip — the card asks main.gd to open the REAL
+# diplomacy wizard on a court (typed diplomatic verbs are redirected to
+# that door by ruling G1, so a suggest chip would teach a dead route).
+signal open_cabinet(nation: String)
 
 const CHIP_TEXT_HEX := "e8d4a8"
 const CHIP_BG_HEX := "233043"
@@ -54,7 +64,7 @@ const STEPS := [
 		"id": "survey",
 		"turn_gate": 1,
 		"title": "I. The Situation",
-		"body": "Sire — Austria has pushed two corps over the Iller while her main army musters at Vienna. Before orders, knowledge: every command is TYPED into the line below. Ask the treasury for its books; it costs no action.",
+		"body": "Sire — Austria has pushed two corps over the Iller while her main army musters at Vienna. Before orders, knowledge. Every command is TYPED into the line below: [color=#e8d4a8]Tab[/color] completes a half-typed order, and clicking any province on the map offers its orders as chips. Lost for words? Type [color=#e8d4a8]what can I do[/color], [color=#e8d4a8]status[/color] or [color=#e8d4a8]help[/color]; [color=#e8d4a8]Esc[/color] is the pause menu. Ask the treasury for its books first — it costs no action.",
 		"suggest": "economy",
 		"suggest_action": "economy",
 		"advance": "_pred_any_success",
@@ -72,7 +82,7 @@ const STEPS := [
 		"id": "first_end_turn",
 		"turn_gate": 1,
 		"title": "III. The Day Closes",
-		"body": "Spend what actions you please, Sire — then close the day. The enemy moves when you have finished, and my morning dispatch reports what changed overnight.",
+		"body": "Spend what actions you please, Sire — then close the day. The enemy moves when you have finished, and my morning dispatch reports what changed overnight. Whatever needs your answer afterwards — a letter, a grievance, a reward owed — waits on the notice rail at the top of the screen.",
 		"suggest": "end turn",
 		"suggest_action": "end_turn",
 		"advance": "_pred_turn_advanced",
@@ -81,7 +91,7 @@ const STEPS := [
 		"id": "objection",
 		"turn_gate": 2,
 		"title": "IV. The Marshal's Temper",
-		"body": "Your marshals are men, not pieces. Order Ney — who smells the enemy across the border — onto the DEFENSIVE, and hear what the bravest of the brave thinks of that.",
+		"body": "Your marshals are men, not pieces — and a man may PUSH BACK against an order that offends his character: the aggressive marshal hates to sit still, the cautious one hates long odds, the literal one does exactly as told and never argues. Order Ney — who smells the enemy across the border — onto the DEFENSIVE, and hear what the bravest of the brave thinks of that.",
 		"suggest": "Ney, defend",
 		"suggest_action": "defend",
 		"advance": "_pred_objection_pending",
@@ -95,7 +105,7 @@ const STEPS := [
 		# not type. The buttons are built at runtime and carry the marshal's
 		# name and the trust figures, so only the stable leading words are
 		# named here.
-		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
+		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. TRUST is the currency of command — his card ([color=#e8d4a8]G[/color]) shows the figure. Yield to him and it rises; overrule him and it falls. A marshal whose trust runs low may DEFY you — refuse an order, or act on his own judgement — and at the bottom he asks for a hearing you must answer. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_objection_resolved",
@@ -114,9 +124,26 @@ const STEPS := [
 		"advance": "_pred_bombardment",
 	},
 	{
+		"id": "cabinet",
+		"turn_gate": 3,
+		"title": "VII. The Cabinet",
+		# Sept 23, 2026: the diplomacy lesson. Typed diplomatic verbs are
+		# REDIRECTED to the Cabinet by ruling G1 (main.gd
+		# _redirect_diplomatic_command), so a suggest chip would teach a
+		# dead route — the card's chip OPENS the real wizard on Austria
+		# instead (`open`), and the step completes when the mission the
+		# wizard confirms is live on the base response.
+		"body": "War is also made at the table. Press [color=#e8d4a8]F1[/color] — the Cabinet — or click below: choose Austria and send Talleyrand to GATHER INTELLIGENCE. For five turns her armies stand revealed to you, at one diplomatic point a turn (you hold 5; they return each turn). Confirm on the card that follows. From the same door you propose peace, alliances and open borders, hire a court's neutrality, or read every court's DESIGN — the why behind their armies; the Diplomatic Ledger ([color=#e8d4a8]D[/color]) keeps the whole of Europe. Letters from other courts arrive in the mailbox at the top, and each one names its terms.",
+		"suggest": "",
+		"suggest_action": "",
+		"open": "cabinet:Austria",
+		"open_label": "Open the Cabinet on Austria ▸",
+		"advance": "_pred_mission_started",
+	},
+	{
 		"id": "first_battle",
 		"turn_gate": 4,
-		"title": "VII. First Blood",
+		"title": "VIII. First Blood",
 		"body": "Now the sword. Kienmayer's screen still stands across the Rhine on allied Bavarian soil — Ney carries three times their number. Attack, and read the battle report that follows: terrain, casualties, and the temper of the men. Then occupy Swabia ([color=#e8d4a8]Ney, move to Swabia[/color]); if the move is refused, his corps still stands — beaten men must be broken, so strike again before you walk in.",
 		"suggest": "Ney, attack Kienmayer",
 		"suggest_action": "attack",
@@ -160,10 +187,26 @@ const STEPS := [
 		},
 	},
 	{
+		"id": "marshalate",
+		"turn_gate": 5,
+		"title": "IX. The Marshalate",
+		# Sept 23, 2026: the relationships lesson. A turn-gated card (the
+		# kind that releases itself), so it can never wedge: it reads no
+		# event, and the muster line it describes may or may not have shown.
+		# Gate 5, not 4: FA-42's rule (test_fa_slice14c) — a second gate-4
+		# entry would land a mid-lesson reload on the wrong branch of VIII.
+		# It shows from the moment VIII completes (as "waiting") and
+		# releases itself on turn 5's first response.
+		"body": "Read the MUSTER before every battle: it names who WILL JOIN, who WILL NOT, and why. Your marshals are men with histories — press [color=#e8d4a8]G[/color]: each card shows his TRUST in you, his GLORY, his skills, and whom he loves and hates. Ney and Soult are at odds; two marshals at odds bring half their weight to a shared battle, and friends fight better side by side. Glory is a ladder — in the great campaign a man who watches a rival crowned grows ENVIOUS: he petitions you, demands an estate, and may even march on his own. Here the school keeps the peace; envy sleeps in this lesson. Victories also raise a marshal's EXPECTATION of reward — the [color=#e8d4a8]Reward[/color] chip on his card pays it (an estate or a rente) before his loyalty erodes.",
+		"suggest": "",
+		"suggest_action": "",
+		"advance": "_pred_turn_gte_5",
+	},
+	{
 		"id": "strategic_order",
 		"turn_gate": 5,
-		"title": "VIII. Standing Orders",
-		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own).",
+		"title": "X. Standing Orders",
+		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own). The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color]) lists every standing order and can cancel one.",
 		"suggest": "Davout, march to Franconia",
 		"suggest_action": "move",
 		"advance": "_pred_davout_marching",
@@ -171,7 +214,7 @@ const STEPS := [
 	{
 		"id": "capture",
 		"turn_gate": 6,
-		"title": "IX. Conquest",
+		"title": "XI. Conquest",
 		"body": "Bohemia is Austrian soil, one march past Franconia. When Davout reaches the border, march in and it is yours ([color=#e8d4a8]Davout, move to Bohemia[/color]); if an Austrian corps holds it, the refusal names him — attack that name, and the battle that breaks the last of them hands you the province. Should Austria mass there in strength, any Austrian province serves the lesson — the battered Tyrol will do — or fight your own war and the school will catch up. Capitals are not taken by walking: Munich's fortress holds 10,000, Vienna's 25,000.",
 		"suggest": "Davout, move to Bohemia",
 		"suggest_action": "move",
@@ -180,11 +223,11 @@ const STEPS := [
 	{
 		"id": "capture_answer",
 		"turn_gate": 6,
-		"title": "X. The Conqueror's Choice",
+		"title": "XII. The Conqueror's Choice",
 		# FA-N78: same lie as card V — the capture modal disables the command
 		# line. The button WORDS are right (they are built at runtime as
 		# "PLUNDER (…)" / "SECURE (…)"); only "Type" was false.
-		"body": "The province is yours, Sire — now choose its fate on the card before you: [color=#e8d4a8]PLUNDER[/color] for gold now and a hostile countryside after, or [color=#e8d4a8]SECURE[/color] for order and income that lasts. On an allied front, I counsel SECURE.",
+		"body": "The province is yours, Sire — now choose its fate on the card before you: [color=#e8d4a8]PLUNDER[/color] for gold now and a hostile countryside after, or [color=#e8d4a8]SECURE[/color] for order and income that lasts. On an allied front, I counsel SECURE. Conquered soil costs upkeep to hold until it settles — the treasury's Occupation line — and every conquest raises Europe's alarm against you.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_capture_resolved",
@@ -192,8 +235,8 @@ const STEPS := [
 	{
 		"id": "recruit_build",
 		"turn_gate": 7,
-		"title": "XI. The Depots",
-		"body": "War eats men and gold. Your 2 ADMINISTRATIVE actions recruit and build: raise infantry for Soult at Paris — the price is war-inflated, the capital discounts it — and spend the second on [color=#e8d4a8]build watchtower in Lorraine[/color] to watch the frontier.",
+		"title": "XIII. The Depots",
+		"body": "War eats men and gold. Your 2 ADMINISTRATIVE actions recruit and build: raise infantry for Soult at Paris — the price is war-inflated, the capital discounts it, and clicking Paris on the map offers the same levy as a priced chip — then spend the second on [color=#e8d4a8]build watchtower in Lorraine[/color] to watch the frontier.",
 		"suggest": "Soult, recruit troops",
 		"suggest_action": "recruit",
 		"advance": "_pred_recruited",
@@ -201,7 +244,7 @@ const STEPS := [
 	{
 		"id": "free_scout",
 		"turn_gate": 8,
-		"title": "XII. The Fog",
+		"title": "XIV. The Fog",
 		"body": "You see only what your armies and towers see. Austria's main body is stirring — scout toward Bohemia and find it before it finds you. From here the school only advises, Sire; the war is yours.",
 		"suggest": "Davout, scout Bohemia",
 		"suggest_action": "scout",
@@ -210,17 +253,30 @@ const STEPS := [
 	{
 		"id": "free_stand",
 		"turn_gate": 9,
-		"title": "XIII. The Counter-Blow",
-		"body": "Charles and Schwarzenberg have been on you since the second morning — fifty thousand of them, and they will keep coming. Mountains favor the defender; so do earthworks ([color=#e8d4a8]Ney, fortify[/color]) and a garrison detachment. Stand where the ground is strong and let them bleed on it.",
+		"title": "XV. The Counter-Blow",
+		"body": "Charles and Schwarzenberg have been on you since the second morning — fifty thousand of them, and they will keep coming. Mountains favor the defender; so do earthworks ([color=#e8d4a8]Ney, fortify[/color]) and a garrison detachment. Stand where the ground is strong and let them bleed on it — but not too many men on poor ground: a province feeds only so many, and a corps that outstays its supply starves (the region panel names the limit).",
 		"suggest": "Ney, fortify",
 		"suggest_action": "fortify",
 		"advance": "_pred_turn_gte_10",
 	},
 	{
-		"id": "free_books",
+		"id": "naval",
 		"turn_gate": 10,
-		"title": "XIV. The Instruments",
-		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger, [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again. The treasury now carries occupation costs and the charges of empire — read them in the ledger. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
+		"title": "XVI. The Wooden Wall",
+		# Sept 23, 2026: the naval concept. The lesson authors no navies (the
+		# scenario's own comment: naval dormant — an Admiralty bill would
+		# bankrupt a 900-gold treasury), so this card TEACHES the great
+		# campaign's rule and points at the book that shows it.
+		"body": "There is no fleet in this lesson — the Danube is a river war — but the great campaign is fought against a sea power. Britain's Royal Navy holds the Channel: NO army crosses water she commands, and the map draws such a crossing SHUT in crimson (an open one is a dashed route). The ledger's seventh book, THE ADMIRALTY ([color=#e8d4a8]T[/color], then 7), shows your fleets and their readiness, the yards that lay keels ([color=#e8d4a8]build ships[/color]), and every crossing's verdict. A BLOCKADE taxes your trade every turn — the treasury's Blockade line — and the Continental System is the answer to it. A small corps may still sail as an EXPEDITION where the odds allow, and the Grand Diversion draws the Royal Navy off for a season. Britain lands where an army will receive her: watch Normandy and Lisbon.",
+		"suggest": "",
+		"suggest_action": "",
+		"advance": "_pred_turn_gte_11",
+	},
+	{
+		"id": "free_books",
+		"turn_gate": 11,
+		"title": "XVII. The Instruments",
+		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger (seven books — forces, land, treasury, intelligence, manpower, orders, the Admiralty), [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again, [color=#e8d4a8]L[/color] the campaign log, [color=#e8d4a8]N[/color] Le Moniteur. Hold [color=#e8d4a8]Alt[/color] with the letter while you type. The treasury now carries occupation costs and the charges of empire — read them in the ledger. The notice rail at the top collects every matter that waits on you; [color=#e8d4a8]Esc[/color] saves, loads and sets the screen. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_12",
@@ -228,7 +284,7 @@ const STEPS := [
 	{
 		"id": "handoff",
 		"turn_gate": 12,
-		"title": "XV. The Lesson Ends",
+		"title": "XVIII. The Lesson Ends",
 		"body": "That is the whole of the craft, Sire: orders, temper, battle, conquest, coin — and the courts beyond. The real war of 1805 waits at the main menu under BEGIN. Hold this little front as long as it amuses you.",
 		"suggest": "",
 		"suggest_action": "",
@@ -256,6 +312,13 @@ var _pending_pulse := false
 # _turn, but _render only ran on STEP change — a wedged step showed the same
 # text forever while turns passed. Re-render whenever the observed turn moves.
 var _last_rendered_turn := -1
+# Sept 23, 2026 — THE LESSON CANNOT BE BROKEN BY THE WAR. The line the
+# player SENT is noted (observe-only: main.gd tells the card what it sent;
+# the card never sends), and a refusal of the card's own order releases
+# the step at once, with the reason on the next card. Every card but the
+# last also carries a Skip chip, so no step can hold the player hostage.
+var _last_sent := ""
+var _released_note := ""
 
 @onready var _card: PanelContainer = $Card
 @onready var _title_label: Label = $Card/VBox/HeaderRow/TitleLabel
@@ -373,11 +436,16 @@ func observe(response) -> void:
 	if typeof(gs) == TYPE_DICTIONARY:
 		_turn = _as_int(gs.get("turn"), _turn)
 	_note_observations(response)
-	var step: Dictionary = STEPS[_step_index]
+	var step: Dictionary = _effective_step(_step_index)
 	if call(str(step["advance"]), response):
 		_advance_one()
+	elif _refused_our_order(response, step):
+		_release_step("The war refused that order — " + _refusal_reason(response)
+			+ " The school moves on.")
 	else:
 		_maybe_catch_up()
+	# One response consumes the note of what was sent.
+	_last_sent = ""
 	# AFTER the predicate: the pool memory rolls forward (see _pred_recruited).
 	var pool_now := _pool_from(response)
 	if pool_now >= 0:
@@ -447,6 +515,7 @@ func _note_kienmayer(response: Dictionary) -> void:
 func _advance_one() -> void:
 	if _step_index >= STEPS.size() - 1:
 		return
+	_released_note = ""
 	_step_index += 1
 	if visible and _card.visible:
 		AudioManager.play("select")
@@ -462,8 +531,80 @@ func _maybe_catch_up() -> void:
 	while _step_index < STEPS.size() - 1 \
 			and _turn > int(STEPS[_step_index]["turn_gate"]) + 1 \
 			and _turn >= int(STEPS[_step_index + 1]["turn_gate"]):
+		_released_note = "The war outran the last page — the school has moved on."
 		_step_index += 1
 		_render()
+
+
+func note_sent(cmd: String) -> void:
+	"""Observe-only: main.gd tells the card what the player SENT — typed, or
+	filled from a chip and sealed with Enter. The card never sends. Read by
+	`_refused_our_order`, so a refusal of the card's own suggestion releases
+	the step at once instead of two turns later; consumed by the next
+	observed response."""
+	_last_sent = _norm_line(cmd)
+
+
+static func _norm_line(line: String) -> String:
+	var parts := line.strip_edges().to_lower().split(" ", false)
+	return " ".join(parts)
+
+
+func _effective_step(index: int) -> Dictionary:
+	"""The step as rendered — the FA-42 branch arm folded in when one is
+	authored and true. ⛔ `STEPS` is a `const`, and in Godot 4 a const
+	Dictionary is READ-ONLY AT RUNTIME — assigning into it raises "Invalid
+	assignment on read-only value" the moment the card draws, and the parse
+	harness CANNOT see it because it never calls _render(). Duplicate first."""
+	var step: Dictionary = STEPS[index]
+	var alt = step.get("alt")
+	if typeof(alt) == TYPE_DICTIONARY and alt.has(_kienmayer_state):
+		var arm = alt[_kienmayer_state]
+		step = step.duplicate()
+		for key in arm:
+			step[key] = arm[key]
+	return step
+
+
+func _refused_our_order(response: Dictionary, step: Dictionary) -> bool:
+	"""True when the response answers the card's OWN suggested order and the
+	engine refused it — the step cannot complete as written, so it is
+	released now rather than at the gate+2 catch-up. Read from what main.gd
+	said it sent, never from the payload (the endpoint whitelists its keys
+	and ships no command echo). A response that carries a question — an
+	objection, a capture choice, a Cabinet confirm — is not a refusal."""
+	if _last_sent == "" or str(step.get("suggest", "")) == "":
+		return false
+	if _norm_line(str(step["suggest"])) != _last_sent:
+		return false
+	if _truthy(response.get("success")):
+		return false
+	if _pred_objection_pending(response) or _truthy(response.get("pending_capture_choice")):
+		return false
+	if typeof(response.get("diplomatic_dialogue")) == TYPE_DICTIONARY:
+		return false
+	return true
+
+
+static func _refusal_reason(response: Dictionary) -> String:
+	var text := str(response.get("message", "")).strip_edges()
+	text = text.replace("[", "(").replace("]", ")")
+	var cut := text.find("\n")
+	if cut > 0:
+		text = text.substr(0, cut)
+	if text.length() > 160:
+		text = text.substr(0, 157).strip_edges() + "…"
+	return text if text != "" else "the order could not be carried out."
+
+
+func _release_step(note: String) -> void:
+	"""Release the current step with a word on the next card — the refused
+	order, the skip chip. Never past the last card."""
+	if _step_index >= STEPS.size() - 1:
+		return
+	_released_note = note
+	_step_index += 1
+	_render()
 
 
 func on_control_returned() -> void:
@@ -486,6 +627,8 @@ func _render() -> void:
 	# READ-ONLY AT RUNTIME — assigning into it raises "Invalid assignment
 	# on read-only value" the moment the card draws, and the parse harness
 	# CANNOT see it because it never calls _render(). Duplicate first.
+	# (`_effective_step` folds the same arm for observe(); the idiom is
+	# kept HERE too because test_fa_slice14c pins it in this body.)
 	var alt = step.get("alt")
 	if typeof(alt) == TYPE_DICTIONARY and alt.has(_kienmayer_state):
 		var arm = alt[_kienmayer_state]
@@ -512,10 +655,20 @@ func _render() -> void:
 	elif str(step["suggest"]) != "":
 		lines.append(Utils.bb_button_chip("suggest:" + str(step["suggest"]), "✎ " + str(step["suggest"]), CHIP_TEXT_HEX, CHIP_BG_HEX))
 		lines.append("[color=#" + Utils.COLOR_DIMMED + "]Click the quill to place the order on your command line — you give the word.[/color]")
+	if not waiting and step.has("open"):
+		# Sept 23, 2026: a door, not an order — the chip opens the real
+		# screen (the Cabinet) on the court the card names.
+		lines.append(Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")), CHIP_TEXT_HEX, CHIP_BG_HEX))
 	if overdue:
 		lines.append("[color=#" + Utils.COLOR_DIMMED + "]The war has outrun this page — fight it as you find it; end the turn and the school will move on.[/color]")
+	if _released_note != "":
+		lines.append("[color=#" + Utils.COLOR_DIMMED + "]" + _released_note + "[/color]")
 	if str(step["id"]) == "handoff":
 		lines.append(Utils.bb_button_chip("skipdone:", "Conclude the lesson", CHIP_TEXT_HEX, CHIP_BG_HEX))
+	else:
+		# Sept 23, 2026: no step may hold the player hostage — every card
+		# but the last can be skipped on its own, at no cost.
+		lines.append(Utils.bb_button_chip("skipstep:", "Skip this lesson ▸", CHIP_TEXT_HEX, CHIP_BG_HEX))
 	_body.text = "\n".join(lines)
 
 
@@ -528,6 +681,12 @@ func _on_meta_clicked(meta) -> void:
 		suggest_command.emit(meta_str.substr(8))
 	elif meta_str.begins_with("skipdone:"):
 		_conclude()
+	elif meta_str.begins_with("skipstep:"):
+		AudioManager.play("back")
+		_release_step("You skipped the last page — the school moves on.")
+	elif meta_str.begins_with("open:cabinet:"):
+		AudioManager.play("click")
+		open_cabinet.emit(meta_str.substr(13))
 
 
 func _on_minimize() -> void:
@@ -667,12 +826,33 @@ func _pred_recruited(response: Dictionary) -> bool:
 		and pool_now < _last_infantry_pool
 
 
+func _pred_mission_started(response: Dictionary) -> bool:
+	# The Cabinet's mission confirm carries the live mission summary on the
+	# base response ("Gather Intelligence → Austria"); with no mission it is
+	# the string "None" — the backend's own sentinel — so both spellings of
+	# absence read as absent. Any later response carries it too, so a
+	# mission begun before this card is due completes it on the next reply.
+	var summary = response.get("talleyrand_mission_summary")
+	if summary == null:
+		return false
+	var text := str(summary).strip_edges()
+	return text != "" and text != "None" and text != "<null>"
+
+
+func _pred_turn_gte_5(_response: Dictionary) -> bool:
+	return _turn >= 5
+
+
 func _pred_turn_gte_9(_response: Dictionary) -> bool:
 	return _turn >= 9
 
 
 func _pred_turn_gte_10(_response: Dictionary) -> bool:
 	return _turn >= 10
+
+
+func _pred_turn_gte_11(_response: Dictionary) -> bool:
+	return _turn >= 11
 
 
 func _pred_turn_gte_12(_response: Dictionary) -> bool:

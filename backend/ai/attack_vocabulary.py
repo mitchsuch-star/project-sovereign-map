@@ -168,3 +168,26 @@ def guard_attack_verbs() -> frozenset:
     return (BATTLE_VERBS | CAPTURE_VERBS | MOVEMENT_ATTACK_VERBS
             | POSITION_ONLY_ANCHORS | PURSUIT_VERBS | BOMBARD_VERBS
             | {"take", "go"})
+
+
+def guard_attack_verb_forms() -> frozenset:
+    """`guard_attack_verbs()` plus the inflections a typed order carries —
+    "destroys", "destroyed", "destroying", "crushes" — for the parser's
+    fuzzy TARGET scan, which must never read a VERB as a place or a man.
+
+    First contact (Sept 23, 2026): `destroy Austria` fuzzy-matched its
+    own verb into the Bavarian marshal Deroy and answered "Bernadotte
+    cannot attack Bavaria — they are our ally" (measured); the scan's
+    skip list had been assembled defect-by-defect and held six verbs.
+    """
+    # Over-generation is harmless here (a skip list of English verb forms
+    # can never collide with a province or a marshal), so every regular
+    # spelling is added without a rule per ending: "destroy" is a vowel+y
+    # verb ("destroyed"), "harry" a consonant+y one ("harried").
+    forms = set()
+    for verb in guard_attack_verbs():
+        forms.update({verb, verb + "s", verb + "es", verb + "ed", verb + "d",
+                      verb + "ing", verb[:-1] + "ing", verb[:-1] + "ied",
+                      verb[:-1] + "ies", verb + verb[-1] + "ed",
+                      verb + verb[-1] + "ing"})
+    return frozenset(forms)

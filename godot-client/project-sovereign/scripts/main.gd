@@ -537,6 +537,7 @@ func _ready():
 	tutorial_overlay = dialog_manager.register("tutorial_overlay", "res://scenes/tutorial_overlay.tscn", false)
 	if tutorial_overlay:
 		tutorial_overlay.suggest_command.connect(_on_tutorial_suggest_command)
+		tutorial_overlay.open_cabinet.connect(_on_tutorial_open_cabinet)
 
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
@@ -1810,6 +1811,11 @@ func _execute_command():
 	var relayed: bool = (_last_relay_fill != "" and command == _last_relay_fill)
 	_last_relay_fill = ""
 	pending_relay_command = ""
+
+	# POSITION 7 (Sept 23, 2026): the School of War is told what was SENT
+	# (observe-only — it reads the refusal of its own suggested order).
+	if tutorial_overlay:
+		tutorial_overlay.note_sent(command)
 
 	# Send to backend
 	api_client.send_command(command, _on_command_result, relayed)
@@ -6414,6 +6420,9 @@ func _on_wizard_command_selected(command: String):
 	# Disable input while processing
 	set_input_enabled(false)
 
+	if tutorial_overlay:
+		tutorial_overlay.note_sent(command)
+
 	# Send to backend via normal command flow
 	api_client.send_command(command, _on_command_result)
 
@@ -6738,6 +6747,8 @@ func _on_wizard_structured_command_selected(command: String, data: Dictionary):
 	add_output(echo_line)
 
 	set_input_enabled(false)
+	if tutorial_overlay:
+		tutorial_overlay.note_sent(command)
 
 	if api_client.has_method("send_structured_command"):
 		api_client.send_structured_command(command, data, _on_command_result)
@@ -7009,6 +7020,20 @@ func _on_tutorial_suggest_command(cmd: String) -> void:
 	command_input.text = cmd
 	command_input.caret_column = cmd.length()
 	command_input.grab_focus()
+
+func _on_tutorial_open_cabinet(nation: String) -> void:
+	"""POSITION 7 (Sept 23, 2026): the tutor card's Cabinet chip opens the
+	REAL diplomacy wizard on the court it names — the same door F1 opens
+	(`_open_diplomacy_wizard`, same guards). Typed diplomatic verbs are
+	redirected to this door by ruling G1, so a chip that filled one would
+	teach a dead route. The card still sends nothing."""
+	if nation.is_empty() or not diplomacy_wizard:
+		return
+	if _is_modal_dialog_open():
+		return
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	diplomacy_wizard.open_for_nation(nation)
 
 func _on_new_game_result(response):
 	"""Handle fresh-campaign hydration from backend."""

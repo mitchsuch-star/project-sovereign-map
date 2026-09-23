@@ -1,0 +1,142 @@
+[
+  {
+    "id": "FC-1 the desk lever down",
+    "file": "backend/ai/first_contact.py",
+    "old": "FIRST_CONTACT_DESK_ACTIVE = True",
+    "new": "FIRST_CONTACT_DESK_ACTIVE = False",
+    "tests": "tests/test_first_contact_keyless.py::TestTheGreeting tests/test_first_contact_keyless.py::TestThePauseMenuIsNamed tests/test_first_contact_keyless.py::TestUndoIsHonest tests/test_first_contact_keyless.py::TestTheGoal"
+  },
+  {
+    "id": "FC-2 the stuck arm deleted",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if _STUCK_RE.match(line):\n        return {\"kind\": \"options\", \"asked\": raw}",
+    "new": "    if False:\n        return {\"kind\": \"options\", \"asked\": raw}",
+    "tests": "tests/test_first_contact_keyless.py::TestTheStuckPlayerGetsTheCounsel"
+  },
+  {
+    "id": "FC-3 the undo arm deleted",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if _UNDO_RE.match(line):\n        return {\"kind\": \"undo\", \"asked\": raw}",
+    "new": "    if False:\n        return {\"kind\": \"undo\", \"asked\": raw}",
+    "tests": "tests/test_first_contact_keyless.py::TestUndoIsHonest"
+  },
+  {
+    "id": "FC-4 the escape arm deleted",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if _ESCAPE_RE.match(line):\n        return {\"kind\": \"escape_menu\", \"asked\": raw}",
+    "new": "    if False:\n        return {\"kind\": \"escape_menu\", \"asked\": raw}",
+    "tests": "tests/test_first_contact_keyless.py::TestThePauseMenuIsNamed"
+  },
+  {
+    "id": "FC-5 the goal arm deleted",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if _GOAL_RE.match(line):\n        return {\"kind\": \"goal\", \"asked\": raw}",
+    "new": "    if False:\n        return {\"kind\": \"goal\", \"asked\": raw}",
+    "tests": "tests/test_first_contact_keyless.py::TestTheGoal"
+  },
+  {
+    "id": "FC-6 the goal answer ignores the world's flag",
+    "file": "backend/ai/first_contact.py",
+    "old": "        if _is_open_ended(world):",
+    "new": "        if True:",
+    "tests": "tests/test_first_contact_keyless.py::TestTheGoal::test_the_open_ended_line_reads_the_worlds_own_flag"
+  },
+  {
+    "id": "FC-7 the undo answer forgets the standing order",
+    "file": "backend/ai/first_contact.py",
+    "old": "        holder = _standing_order_holder(world)",
+    "new": "        holder = None",
+    "tests": "tests/test_first_contact_keyless.py::TestUndoIsHonest::test_a_standing_order_is_named_as_the_one_thing_that_can_be_stood_down"
+  },
+  {
+    "id": "FC-8 the shrug loses its doors",
+    "file": "backend/ai/first_contact.py",
+    "old": "               \"'status' for the state of the board, or 'help' for the \"",
+    "new": "               \"or 'help' for the \"",
+    "tests": "tests/test_first_contact_keyless.py::TestTheShrugNamesItsDoors::test_a_line_nobody_can_read_still_names_the_three_doors"
+  },
+  {
+    "id": "FC-9 the place suggestion stops reading the road",
+    "file": "backend/ai/llm_client.py",
+    "old": "            _placed = _place_suggestion(game_state, recognized_target)",
+    "new": "            _placed = None",
+    "tests": "tests/test_first_contact_keyless.py::TestThePlaceSuggestionReadsTheRoad"
+  },
+  {
+    "id": "FC-10 the home example is Paris again",
+    "file": "backend/ai/llm_client.py",
+    "old": "    return str(capital or \"Paris\")\n\n\ndef _place_suggestion",
+    "new": "    return \"Paris\"\n\n\ndef _place_suggestion",
+    "tests": "tests/test_first_contact_keyless.py::TestTheShrugNamesItsDoors::test_the_marshal_only_shrug_names_the_capital_of_the_board"
+  },
+  {
+    "id": "FC-11 the help executor drops the first-contact arm",
+    "file": "backend/commands/meta_executor.py",
+    "old": "        if str(asked.get(\"kind\") or \"\") in FIRST_CONTACT_HELP_KINDS:",
+    "new": "        if False:",
+    "tests": "tests/test_first_contact_keyless.py::TestTheGreeting tests/test_first_contact_keyless.py::TestThePauseMenuIsNamed"
+  },
+  {
+    "id": "FC-12 the manual's example is off the map again",
+    "file": "backend/commands/meta_executor.py",
+    "old": "  repair     - \"repair Lorraine\" (1 AP, 150g)",
+    "new": "  repair     - \"repair Lyon\" (1 AP, 150g)",
+    "tests": "tests/test_first_contact_keyless.py::TestTheStuckPlayerGetsTheCounsel::test_bare_help_keeps_the_command_reference"
+  },
+  {
+    "id": "FC-13 the own-army kind is not dispatched",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if kind == \"own_army\":\n            return _answer_own_army(world, player)",
+    "new": "        if False:\n            return _answer_own_army(world, player)",
+    "tests": "tests/test_first_contact_keyless.py::TestTheArmyAnswers::test_the_whole_army_is_one_return"
+  },
+  {
+    "id": "FC-14 the fourth name group is not read",
+    "file": "backend/ai/question_desk.py",
+    "old": "                                   groups.get(\"name3\"), groups.get(\"name4\"))",
+    "new": "                                   groups.get(\"name3\"), None)",
+    "tests": "tests/test_first_contact_keyless.py::TestTheArmyAnswers::test_is_x_strong_is_the_strength_answer tests/test_first_contact_keyless.py::TestTheArmyAnswers::test_the_classifier_reads_the_fourth_name_group"
+  },
+  {
+    "id": "FC-15 the verbs leave the skip list",
+    "file": "backend/commands/parser.py",
+    "old": "            skip_words.extend(guard_attack_verb_forms())",
+    "new": "            pass",
+    "tests": "tests/test_first_contact_keyless.py::TestAVerbIsNeverAPlace::test_destroy_a_nation_reaches_the_nation_refusal"
+  },
+  {
+    "id": "FC-16 the inflections are dropped",
+    "file": "backend/ai/attack_vocabulary.py",
+    "old": "        forms.update({verb, verb + \"s\", verb + \"es\", verb + \"ed\", verb + \"d\",",
+    "new": "        forms.update({verb, verb, verb, verb, verb,",
+    "tests": "tests/test_first_contact_keyless.py::TestAVerbIsNeverAPlace::test_the_verb_forms_cover_the_inflections"
+  },
+  {
+    "id": "FC-17 the example province is Lyon again",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    return str(capital or \"Paris\")",
+    "new": "    return \"Lyon\"",
+    "tests": "tests/test_first_contact_keyless.py::TestTheExampleProvinceIsOnTheMap"
+  },
+  {
+    "id": "FC-18 the belt stops reading the verdict",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                if _road_refusal is not None:\n                    if move_substitution_note and _road_refusal.get(\"message\"):",
+    "new": "                if False:\n                    if move_substitution_note and _road_refusal.get(\"message\"):",
+    "tests": "tests/test_first_contact_keyless.py::TestTheMoveRoadReadsTheLaw"
+  },
+  {
+    "id": "FC-19 the belt plots without a verdict",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                want_verdict=(marshal.nation == world.player_nation))\n            path = ([marshal.location] + list(_road_path)) if _road_path else None",
+    "new": "                want_verdict=False)\n            path = ([marshal.location] + list(_road_path)) if _road_path else None",
+    "tests": "tests/test_first_contact_keyless.py::TestTheMoveRoadReadsTheLaw::test_a_move_across_shut_water_is_refused_at_issuance_for_nothing"
+  },
+  {
+    "id": "FC-20 the route stops declining the literal meta prefixes",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if not lowered or lowered.startswith(_LITERAL_META_PREFIXES) or lowered == \"load\":",
+    "new": "    if not lowered:",
+    "tests": "tests/test_first_contact_keyless.py::TestThePauseMenuIsNamed::test_the_route_declines_the_literal_meta_prefixes tests/test_first_contact_keyless.py::TestThePauseMenuIsNamed::test_save_and_load_keep_their_literal_meaning"
+  }
+]

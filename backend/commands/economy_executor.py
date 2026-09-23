@@ -756,6 +756,19 @@ def _decree_preamble(world, acting_nation: str) -> str:
     return f"By decree of the court of {humanize_entity_name(acting_nation)}"
 
 
+
+def example_region(world) -> str:
+    """First contact (Sept 23, 2026): the province an EXAMPLE order names.
+    Two refusals said "Example: 'build supply depot at Lyon'" — Lyon is not
+    on the 1805 map, so the game's own remedy could not be typed. The
+    player's capital is on every board and is always their own soil."""
+    try:
+        capital = world.get_nation_capital(world.player_nation)
+    except Exception:
+        capital = None
+    return str(capital or "Paris")
+
+
 class EconomyExecutor:
     """Handles economy, recruitment, garrison, building, and repair commands."""
 
@@ -2634,7 +2647,9 @@ class EconomyExecutor:
         building_type = command.get("building_type") or self._extract_building_type(command)
 
         if not region_name:
-            return {"success": False, "message": "Specify a region. Example: 'build supply depot at Lyon'"}
+            return {"success": False,
+                    "message": ("Specify a region. Example: 'build supply "
+                                f"depot at {example_region(world)}'")}
 
         # ════════════════════════════════════════════════════════════
         # WATCHTOWER: Dedicated field, bypasses slot system (Phase 6 Fog - Session 35)
@@ -2794,7 +2809,9 @@ class EconomyExecutor:
 
         region_name = command.get("target")
         if not region_name:
-            return {"success": False, "message": "Specify a region. Example: 'repair Lyon'"}
+            return {"success": False,
+                    "message": ("Specify a region. Example: "
+                                f"'repair {example_region(world)}'")}
 
         region = world.get_region(region_name)
         if not region:

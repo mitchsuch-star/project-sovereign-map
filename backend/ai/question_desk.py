@@ -77,11 +77,19 @@ _KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         _LEAD + r"what(?:" + _APOS + r"s|\s+is|\s+are)\s+" + _HON
         + r"(?P<name>.+?)\s+(?:doing|up to|about)" + _TAIL, re.IGNORECASE)),
     ("how_many", re.compile(
-        _LEAD + r"how\s+(?:"
+        _LEAD + r"(?:how\s+(?:"
         r"many\s+(?:men|troops|soldiers)\s+(?:does|do|has|have)\s+" + _HON
         + r"(?P<name>.+?)(?:\s+(?:have|got|command|left|under\s+arms))?"
         r"|strong\s+is\s+" + _HON + r"(?P<name2>.+?)" + _POSSESSIVE_TAIL
         + r"|big\s+is\s+" + _HON + r"(?P<name3>.+?)" + _POSSESSIVE_TAIL
+        + r")"
+        # First contact (Sept 23, 2026): "is Mack strong" / "is Mack
+        # dangerous" — the strength answer, asked the way a player asks
+        # it. It routed to the unanswered tail while "how strong is
+        # Mack" was answered a line above.
+        + r"|(?:is|are)\s+" + _HON + r"(?P<name4>.+?)\s+"
+        r"(?:strong|weak|powerful|dangerous|formidable|big|large|small"
+        r"|a\s+threat|threatening|beatable|beaten)"
         + r")" + _TAIL, re.IGNORECASE)),
 ]
 
@@ -143,7 +151,8 @@ def classify_question(text: str, marshals: Iterable[str] = (),
             continue
         groups = match.groupdict()
         phrase = next((g for g in (groups.get("name"), groups.get("name2"),
-                                   groups.get("name3")) if g), "")
+                                   groups.get("name3"), groups.get("name4"))
+                       if g), "")
         resolved = _resolve(phrase, marshals, enemies, regions, kind)
         if resolved is None:
             return None
@@ -492,6 +501,27 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         _LEAD + r"(?:how\s+much\s+(?:is|are|does|do)|what\s+(?:does|do))\s+"
         r"(?:a|an|the)?\s*(?P<thing>[A-Za-z ]+?)(?:\s+cost)?" + _TAIL,
         re.IGNORECASE)),
+    # First contact (Sept 23, 2026): the WHOLE army — "how many men do I
+    # have", "how big is my army", "what forces do we have", "how many
+    # marshals do I have". The fact desk's `how_many` reads a NAME and
+    # "I" resolves to nobody, so the commonest question a new player
+    # asks fell to the unanswered tail.
+    ("own_army", re.compile(
+        _LEAD + r"(?:how\s+many\s+(?:men|troops|soldiers|marshals|generals|corps"
+        r"|armies|regiments)\s+(?:do|does|have|has)\s+(?:i|we)"
+        r"(?:\s+(?:have|got|command|left|under\s+arms|in\s+the\s+field))?"
+        r"|how\s+(?:strong|big|large|many)\s+(?:is|are)\s+(?:my|our)\s+"
+        r"(?:army|armies|forces|men|troops)"
+        r"|what\s+(?:is|are)\s+(?:my|our)\s+(?:army|armies|forces|strength"
+        r"|order\s+of\s+battle)(?:\s+like)?"
+        r"|what\s+(?:forces|troops|men|armies|marshals)\s+(?:do|have)\s+(?:i|we)"
+        r"(?:\s+(?:have|got|command))?"
+        r"|(?:is|are)\s+(?:my|our)\s+(?:army|forces|armies)\s+"
+        r"(?:strong|weak|big|large|small|ready)"
+        r"|how\s+(?:is|are)\s+(?:my|our|the)\s+(?:army|forces|armies|men|troops)"
+        r"(?:\s+doing)?"
+        r"|where\s+(?:is|are)\s+(?:my|our)\s+(?:army|armies|forces|men|troops"
+        r"|marshals))" + _TAIL, re.IGNORECASE)),
     # "what can I do" / "what are my options" / "what now"
     ("options", re.compile(
         _LEAD + r"(?:what\s+can\s+(?:i|we)\s+do"
@@ -504,7 +534,7 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
 # parser already knows rather than against the marshal/region rosters.
 _NATION_KINDS = frozenset({"at_war", "wants"})
 # The kinds that need no subject at all.
-_SUBJECTLESS_KINDS = frozenset({"treasury", "winning", "options"})
+_SUBJECTLESS_KINDS = frozenset({"treasury", "winning", "options", "own_army"})
 
 
 def classify_board_question(text: str, marshals: Iterable[str] = (),
@@ -806,6 +836,36 @@ def _first_own_region_with_a_corps(world, player: str) -> Optional[str]:
     return None
 
 
+def _answer_own_army(world, player: str) -> str:
+    """First contact: the whole army in one return — every corps of ours
+    that stands in the field, strongest first, and where the full return
+    lives. Captives and empty commands are left off (the Generals screen
+    shows them); the total is the fielded total."""
+    marshals = []
+    for marshal in world.get_player_marshals():
+        if getattr(marshal, "captured_by", ""):
+            continue
+        if int(getattr(marshal, "strength", 0) or 0) <= 0:
+            continue
+        marshals.append(marshal)
+    if not marshals:
+        return ("No corps of ours stands in the field, Sire. The Generals "
+                "screen (press G) shows the roster.")
+    marshals.sort(key=lambda m: -int(m.strength))
+    total = sum(int(m.strength) for m in marshals)
+    plural = "s" if len(marshals) != 1 else ""
+    head = (f"Our army stands at {total:,} men under {len(marshals)} "
+            f"marshal{plural}, Sire:")
+    rows = [f"  {_display(m.name)} — {int(m.strength):,} at {m.location}"
+            f" (morale {int(getattr(m, 'morale', 0) or 0)})"
+            for m in marshals[:8]]
+    if len(marshals) > 8:
+        rows.append(f"  … and {len(marshals) - 8} more")
+    tail = ("The Strategic Ledger's Forces tab (press T) has the full return; "
+            "the Generals screen (press G) has each man's card.")
+    return "\n".join([head, *rows, tail])
+
+
 def _answer_options(world, player: str) -> Optional[str]:
     """What can be ordered, right now, that would not be refused.
 
@@ -866,6 +926,8 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_price(world, player, subject)
         if kind == "options":
             return _answer_options(world, player)
+        if kind == "own_army":
+            return _answer_own_army(world, player)
     except Exception as exc:  # the desk must never break the status verb
         print(f"[QUESTION DESK] could not answer {question!r}: {exc}")
         return None

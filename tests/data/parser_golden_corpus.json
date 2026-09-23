@@ -5972,6 +5972,105 @@
       },
       "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-34 control",
       "notes": "The collective retreat is still the general retreat."
+    },
+    {
+      "id": "first-contact-hello",
+      "utterance": "hello",
+      "world": "any",
+      "expected": {
+        "action": "help"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact (Sept 23, 2026): a greeting is answered by the desk, free — it used to draw the shrug."
+    },
+    {
+      "id": "first-contact-quit",
+      "utterance": "quit",
+      "world": "any",
+      "expected": {
+        "action": "help"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: a word for the pause menu points at Esc; nothing is relayed."
+    },
+    {
+      "id": "first-contact-undo",
+      "utterance": "undo that",
+      "world": "any",
+      "expected": {
+        "action": "help"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: there is no undo; the answer names 'cancel <marshal>' and the pause menu."
+    },
+    {
+      "id": "first-contact-how-do-i-win",
+      "utterance": "how do I win",
+      "world": "any",
+      "expected": {
+        "action": "help"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: the goal of the game, answered in a sentence — it used to print the 12k manual."
+    },
+    {
+      "id": "first-contact-what-now",
+      "utterance": "what now",
+      "world": "any",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: a stuck phrasing reaches the options desk ('These orders would be carried out today')."
+    },
+    {
+      "id": "first-contact-im-stuck",
+      "utterance": "I'm stuck",
+      "world": "any",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: a stuck phrasing reaches the options desk."
+    },
+    {
+      "id": "first-contact-help-me",
+      "utterance": "help me",
+      "world": "any",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: 'help me' is a plea, not a request for the manual — the options desk answers; bare 'help' keeps the reference."
+    },
+    {
+      "id": "first-contact-how-many-men",
+      "utterance": "how many men do I have",
+      "world": "any",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: the whole army is a board question (own_army)."
+    },
+    {
+      "id": "first-contact-is-mack-strong",
+      "utterance": "is Mack strong?",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "tests/test_first_contact_keyless.py",
+      "notes": "First contact: 'is X strong' is the how_many strength answer. The question mark keeps it a question under BOTH arms of the CX-1 lever (the corpus is measured with the lever down too)."
     }
   ]
 }

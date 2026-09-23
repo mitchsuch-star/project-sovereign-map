@@ -933,6 +933,10 @@ REVIEWED = {
     # tutorial_overlay.gd
     ("tutorial_overlay.gd", '"suggest:" + str(step["suggest"])'): "fills the line, never sends (T-B1 pins each parse)",
     ("tutorial_overlay.gd", '"skipdone:"'): "concludes the lesson; sends nothing",
+    # Sept 23, 2026 (the School of War refresh): the two new chips, both
+    # observe-only — neither reaches /command.
+    ("tutorial_overlay.gd", '"skipstep:"'): "releases the current card with a word; sends nothing",
+    ("tutorial_overlay.gd", '"open:" + str(step["open"])'): "asks main.gd to open the real Cabinet on the named court (open_cabinet); sends nothing",
 }
 
 

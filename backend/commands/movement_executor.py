@@ -571,10 +571,29 @@ class MovementExecutor:
             # (AI keeps its omniscient routing). Fall back to the terrain-only
             # path if no passable route exists so the order still forms and the
             # stall-feedback path can report why.
-            _pf = marshal.nation if marshal.nation == world.player_nation else None
-            path = world.find_weighted_path(marshal.location, target_name, passable_for=_pf)
-            if _pf and not (path and len(path) > 1):
-                path = world.find_weighted_path(marshal.location, target_name)
+            # First contact (Sept 23, 2026): the belt plots by the ONE
+            # road-law ladder (`strategic.plot_route`, lawful-first then
+            # terrain-only — the same two calls it made by hand) and reads
+            # the verdict BEFORE an AP is charged. `Ney, march to London`
+            # was refused at the Channel by the strategic seam (FA-46)
+            # while `Ney, move to London` — the SAME order one verb over,
+            # and the one Berthier's own shrug suggested — was accepted,
+            # walked the corps to Normandy and stalled it there (measured).
+            # The AI's road is byte-identical: the verdict is player-only.
+            import backend.commands.strategic as _road
+            _road_path, _road_verdict = _road.plot_route(
+                world, marshal, target_name, use_weighted=True,
+                want_verdict=(marshal.nation == world.player_nation))
+            path = ([marshal.location] + list(_road_path)) if _road_path else None
+            if path and len(path) > 1 and _road_verdict is not None:
+                _road_refusal = _road.issuance_road_refusal(
+                    world, marshal, target_name, "MOVE_TO", _road_verdict)
+                if _road_refusal is not None:
+                    if move_substitution_note and _road_refusal.get("message"):
+                        _road_refusal = dict(_road_refusal)
+                        _road_refusal["message"] = (
+                            str(_road_refusal["message"]) + move_substitution_note)
+                    return _road_refusal
             if path and len(path) > 1:
                 order = StrategicOrder(
                     command_type="MOVE_TO",

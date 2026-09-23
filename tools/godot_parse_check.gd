@@ -144,6 +144,8 @@ const TOOL_SCRIPTS = [
 	# NUI "The Admiralty on the Map" (tests/test_nui_the_admiralty_on_the_map.py)
 	"res://../../tools/nui_top_bar_harness.gd",
 	"res://../../tools/nui_map_capture.gd",
+	# The School of War, driven (tests/test_tutorial_unbreakable_2026_09_23.py)
+	"res://../../tools/tutorial_overlay_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

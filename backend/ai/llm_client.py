@@ -32,6 +32,7 @@ from .schemas import ParseResult
 from .providers import get_provider, PROVIDERS
 from .validation import validate_parse_result, NON_ORDER_ACTIONS
 from .attack_vocabulary import mentions_attack
+from .first_contact import THREE_DOORS, first_contact_route
 from .recruit_arm import extract_requested_arm
 from .clause_guards import HONORIFIC  # FA slice 7: ONE honorific
 from .clause_guards import DESK_ADDRESS_RE as _DESK_ADDRESS_RE_SOURCE
@@ -656,6 +657,95 @@ def _counsel_lines(game_state: Optional[Dict]) -> list:
                              limit=4)
     except Exception:
         return []
+
+
+def _home_example(game_state: Optional[Dict]) -> str:
+    """First contact: the player's CAPITAL for an example order. The shrug
+    hard-coded "move to Paris" — the tutorial's France and a mod's are not
+    Paris, and a suggested order should be one the board can take."""
+    world = (game_state or {}).get("world")
+    try:
+        capital = (world.get_nation_capital(world.player_nation)
+                   if world is not None else None)
+    except Exception:
+        capital = None
+    return str(capital or "Paris")
+
+
+def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
+    """First contact: the place-only shrug used to offer `'<first marshal>,
+    move to <place>'` for ANY place — `send the submarines to London` was
+    answered with a march to London that the Royal Navy shuts at the
+    Channel (and, until the same slice, the tactical `move to` road then
+    ACCEPTED that order and walked the corps to Normandy to stall). The
+    suggestion now walks the road law first — `strategic.plot_route` +
+    `issuance_road_refusal`, the executor's own readers — with the corps
+    that has the shortest lawful road, and when nothing can march it names
+    what stops it and where to look, instead of an order the game refuses.
+
+    None when the target is not a province or the parse is cold (no world),
+    so the caller keeps its old templates."""
+    world = (game_state or {}).get("world")
+    if world is None or not target:
+        return None
+    regions = getattr(world, "regions", None) or {}
+    region = regions.get(target)
+    if region is None:
+        return None
+    try:
+        from backend.commands.strategic import (issuance_road_refusal,
+                                                plot_route)
+        from backend.display_names import humanize_entity_name
+    except Exception:
+        return None
+    player = getattr(world, "player_nation", None)
+    best = None
+    try:
+        for marshal in world.get_player_marshals():
+            if getattr(marshal, "captured_by", ""):
+                continue
+            if int(getattr(marshal, "strength", 0) or 0) <= 0:
+                continue
+            if marshal.location == target:
+                continue
+            road, verdict = plot_route(world, marshal, target,
+                                       use_weighted=True, want_verdict=True)
+            if road is None:
+                continue
+            refusal = issuance_road_refusal(world, marshal, target,
+                                            "MOVE_TO", verdict)
+            rank = (0 if refusal is None else 1, len(road))
+            if best is None or rank < best[0]:
+                best = (rank, marshal, refusal)
+    except Exception:
+        return None
+    if best is None:
+        return (f"Berthier studies the map. \"Sire, I note the reference to "
+                f"{target}, but no road of ours reaches it. {THREE_DOORS}\"")
+    _rank, marshal, refusal = best
+    name = humanize_entity_name(marshal.name)
+    if refusal is None:
+        controller = getattr(region, "controller", None)
+        hostile = False
+        try:
+            hostile = bool(controller and controller != player
+                           and world.is_at_war(player, controller))
+        except Exception:
+            hostile = False
+        orders = f"'{name}, move to {target}'"
+        if hostile:
+            orders += f" or '{name}, attack {target}'"
+        return (f"Berthier studies the map. \"Sire, I note the reference to "
+                f"{target}, but which marshal should act? {name} has the "
+                f"shortest road — try {orders}. {THREE_DOORS}\"")
+    why = str(refusal.get("message") or "").strip()
+    door = ""
+    if refusal.get("blocked_naval"):
+        door = (" THE ADMIRALTY (press T, then 7) has the state of the fleet "
+                "and of every crossing.")
+    return (f"Berthier studies the map. \"Sire, I note the reference to "
+            f"{target} — but no corps of ours can march there today. "
+            f"{why}{door} {THREE_DOORS}\"")
 
 
 def _known_nation_names(game_state: Optional[Dict]) -> list:
@@ -1405,7 +1495,7 @@ class LLMClient:
                 (f"Berthier adjusts his spectacles. \"Sire, I understand this concerns "
                  f"Marshal {recognized_marshal}, but I cannot determine the order. "
                  f"Perhaps: '{recognized_marshal}, attack {first_enemy}' or "
-                 f"'{recognized_marshal}, move to Paris'?\""),
+                 f"'{recognized_marshal}, move to {_home_example(game_state)}'?\""),
                 (f"Berthier frowns at the dispatch. \"I see Marshal {recognized_marshal}'s "
                  f"name, Sire, but the instruction is unclear. Valid orders include: "
                  f"{actions_sample}.\""),
@@ -1414,7 +1504,10 @@ class LLMClient:
                  f"'{recognized_marshal}, defend'?\" Berthier asks carefully."),
             ]
         elif recognized_target:
-            templates = [
+            # First contact (Sept 23, 2026): the road law is read before
+            # a march is suggested — see `_place_suggestion`.
+            _placed = _place_suggestion(game_state, recognized_target)
+            templates = [_placed] if _placed else [
                 (f"Berthier studies the map. \"Sire, I note the reference to "
                  f"{recognized_target}, but which marshal should act? "
                  f"Try: '{first_marshal}, attack {recognized_target}' or "
@@ -1448,13 +1541,13 @@ class LLMClient:
                 (f"Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret "
                  f"that order. Our marshals ({', '.join(marshal_names[:3]) or first_marshal}) "
                  f"await clear commands — '{_offer}', perhaps? "
-                 f"{_CABINET_DOOR}\""),
+                 f"{THREE_DOORS} {_CABINET_DOOR}\""),
                 (f"\"Sire, I must confess this order eludes me,\" Berthier admits. "
                  f"\"Shall I relay an order to {first_marshal}? Valid actions include: "
-                 f"{actions_sample}. {_CABINET_DOOR}\""),
+                 f"{actions_sample}. {THREE_DOORS} {_CABINET_DOOR}\""),
                 (f"Berthier peers at the dispatch with concern. \"I cannot make sense of "
                  f"this, Sire. A clear order might be: '{_offer}' or "
-                 f"'{_second}'. {_CABINET_DOOR}\""),
+                 f"'{_second}'. {THREE_DOORS} {_CABINET_DOOR}\""),
             ]
 
         return random.choice(templates)
@@ -1579,6 +1672,41 @@ class LLMClient:
         # declare one. Debug/save/load are literal-argument commands and are
         # exempted for the same reason as cheat.
         # ════════════════════════════════════════════════════════════
+        # ════════════════════════════════════════════════════════════
+        # FIRST CONTACT (September 23, 2026): a greeting, a word for the
+        # pause menu, an undo, a stuck phrasing, the goal of the game.
+        # None of these is an order and none is a question about the
+        # board, and every one of them used to draw the same canned
+        # shrug — a reply that names neither `help`, `what can I do`
+        # nor `status`, and never points `quit` at Esc. ONE source
+        # (`ai/first_contact.py`) for the vocabulary and the copy.
+        # Sited before the guards and the question arm on purpose —
+        # `how do I win` is a syntax question to the manual otherwise
+        # — and never in front of the literal-argument meta-commands
+        # (the route itself declines `save …`, `load`, `debug`).
+        # ════════════════════════════════════════════════════════════
+        _first = first_contact_route(command_text)
+        if _first is not None:
+            if _first["kind"] == "options":
+                return ParseResult(
+                    matched=True, command_type="tactical", marshals=[],
+                    action="status", target=None, ambiguity=5,
+                    strategic_score=0,
+                    interpretation="First contact — what can be ordered",
+                    confidence=0.9, mode="mock", key_source=self.key_source,
+                    raw_command=command_text,
+                    question={"kind": "options", "subject": "",
+                              "subject_type": "board",
+                              "asked": command_text},
+                )
+            return ParseResult(
+                matched=True, command_type="tactical", marshals=[],
+                action="help", target=None, ambiguity=5, strategic_score=0,
+                interpretation=f"First contact — {_first['kind']}",
+                confidence=0.9, mode="mock", key_source=self.key_source,
+                raw_command=command_text, question=_first,
+            )
+
         original_text = command_text
         stand_down = False
         negation_applied = False

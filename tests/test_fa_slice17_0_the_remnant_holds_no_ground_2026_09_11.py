@@ -343,7 +343,9 @@ class TestFa63TheReserveIsAlreadyOnYou:
 
     def test_card_xiii_no_longer_promises_a_future_blow(self):
         src = OVERLAY.read_text(encoding="utf-8")
-        card = src[src.index('"title": "XIII. The Counter-Blow"'):]
+        # Sept 23, 2026: the School gained three cards and the numerals
+        # moved (XIII → XV); the pin follows the TITLE, not the numeral.
+        card = src[src.index('The Counter-Blow"'):]
         body = re.search(r'"body": "(.*?)",\n', card, re.S).group(1)
         assert "will come west" not in body
         assert "have been on you since the second morning" in body

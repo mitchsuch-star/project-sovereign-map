@@ -558,7 +558,11 @@ class TestFA89TheSchoolStepIsApproximateAndOnTheWire:
             scenario_name = "tutorial"
             current_turn = 6
         step = T.tutorial_step_for(W())
-        assert step["id"] == "capture_answer" and step["step"] == 10
+        # Sept 23, 2026 (the School of War refresh): three cards were added
+        # ahead of this one — VII the Cabinet, IX the Marshalate — so the
+        # conqueror's choice is the twelfth page now, not the tenth. Flipped
+        # consciously; the id is the pin that matters.
+        assert step["id"] == "capture_answer" and step["step"] == 12
         assert step["approximate"] is True
         W.current_turn = 1
         assert T.tutorial_step_for(W())["id"] == "first_end_turn"

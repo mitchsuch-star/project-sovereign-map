@@ -112,6 +112,27 @@
 ---
 
 
+## First Contact & the School of War — landed September 23, 2026 (**9 FIXED · 1 FILED**)
+
+> The keyless first-contact report (92 wild sentences at the shipped fast parser) and
+> the user's tutorial report (*"not being able to finish tasks because conditions in
+> game grabbed it"*). Landing record = `docs/audits/FIRST_CONTACT_AND_SCHOOL_2026_09_23.md`;
+> rules = `SYSTEMS_REFERENCE.md` §54 + §55. Every row reproduced at `POST /command` on the
+> shipped 1805 boot before a line was written.
+
+| Row | Severity | Finding (measured) | Fix |
+|---|---|---|---|
+| **FC-1** | P2 | ONE canned shrug fit everything — `hello`, `quit`, `undo`, `what now`, `I'm stuck`, `win the war` all drew "I cannot interpret that order… 'Ney, attack Mack', perhaps?"; the reply never named `help`, `what can I do` or `status`, and `quit`/`restart`/`undo` never pointed at Esc | **FIXED** — `backend/ai/first_contact.py` (greeting / escape_menu / undo / options / goal), the three doors on every shrug |
+| **FC-2** | P2 | `Ney, move to London` was ACCEPTED (walked to Normandy to stall) while `Ney, march to London` was refused at the Channel — FA-46 one verb over; the place-only shrug SUGGESTED that march for `send the submarines to London` | **FIXED** — the tactical belt reads `plot_route` + `issuance_road_refusal` (player-only, AI byte-identical); the suggestion walks the road law first and names THE ADMIRALTY |
+| **FC-3** | P2 | `destroy Austria` / `destroy Prussia` answered *"Bernadotte cannot attack Bavaria — they are our ally"* — the VERB fuzzy-matched into the Bavarian marshal Deroy | **FIXED** — `guard_attack_verb_forms()` in the target scan's skip list |
+| **FC-4** | P3 | `build a tank` → *"Example: 'build supply depot at Lyon'"*; `repair` → `'repair Lyon'`; the manual's `repair Lyon` — Lyon is not on the 1805 map | **FIXED** — `economy_executor.example_region` (the capital); `repair Lorraine` |
+| **FC-5** | P3 | `how many men do I have` (and six phrasings) and `is Mack strong` reached the unanswered tail while `how strong is Mack` was answered | **FIXED** — `own_army` kind; `how_many` name4 arm |
+| **FC-6** | P3 | `help me` printed the 12k manual; `I don't know` drew the PARSE-NEG prohibition line ("Then no order goes out") | **FIXED** — both reach the options desk |
+| **FC-7** | P2 | A tutorial card demanded an order the board refused and only the whole-tutorial Skip released it (the user's report) | **FIXED** — a refused suggested order releases its step at once with the reason; per-step Skip chip; the catch-up floor says so |
+| **FC-8** | P3 | The School of War taught no diplomacy, no relationships/envy/reward, no naval rule, no pushback; card I said only "every command is TYPED" (no Tab, no province chips, no doors) | **FIXED** — cards VII / IX / XVI added, IV/V/I/XVII rewritten (18 cards; mirror + docs synced) |
+| **FC-9** | P3 | The lesson could not be DRIVEN — no harness fed real responses to the real overlay, so liveness was a claim | **FIXED** — `tools/tutorial_overlay_harness.gd` + five driven paths |
+| **FC-X1** | P3 | A typed `yes` to Talleyrand's mission confirm (the `mission` dialogue) draws the shrug; the dialogue answers only to its buttons / the wizard | **FILED** — owner: the CRT-5 "an answer is read closed" slice (`COMMAND_ROBUSTNESS_SPEC.md` §12.3) |
+
 ## Command-Road Queue — OPENED September 20, 2026 (**12 fixed · 12 found-and-closed · 1 closed in the shipped client · 11 OPEN, every one owned** — ⛔ **the CR-6 triage (September 23, 2026, `COMMAND_ROBUSTNESS_SPEC.md` §12) re-homed every open row to a CRT slice, closed CQ-20 in the shipped client (its pin → CRT-8), and filed CQ-30 … CQ-36 — THREE OF THEM P1 (CQ-32, CQ-34, CQ-35: an order to retreat, a prohibition, and a refusal each carry out the opposite), routed AHEAD of the shippable build as CRT-1**; open: CQ-8 / CQ-17 / CQ-21 / CQ-22 / CQ-24 / CQ-28 / CQ-29 / CQ-30 / CQ-31 / CQ-33 / CQ-36 — **CQ-32 + CQ-34 + CQ-35 FIXED by CRT-1 on September 23, 2026** — CQ-1 + CQ-9 closed by CR-7-1 on September 22, 2026; CQ-6 / CQ-7 / CQ-10 closed by CR-7-4 / CR-7-5 / CR-7-3 the same day, with CQ-11 + CQ-12 found and closed in the build, CQ-13 found by the hook's full run, and CQ-14 / CQ-15 / CQ-16 found by asking how several conditions behave and closed by CR-7-9; **CQ-2 closed by CX-R1 the same day, which filed CQ-17**; **CQ-3 closed by CN-1 + CN-2 the same day, its client half by CN-3, which found and closed CQ-18 + CQ-19**; **CQ-4 closed by CN-4 the same day, which found and closed CQ-23 and filed CQ-20 / CQ-21 / CQ-22**; **CQ-5 closed by CX-R2 on September 23, 2026, which found and closed CQ-25 / CQ-26 / CQ-27 and filed CQ-24 + CQ-28; CQ-29 filed after it landed**; CQ-8 / CQ-17 / CQ-20 / CQ-21 / CQ-22 / CQ-24 / CQ-28 / CQ-29 remain)
 
 > **Routing authority = `docs/STATUS.md` ▶ NEXT UP, top block.** Memos of record:

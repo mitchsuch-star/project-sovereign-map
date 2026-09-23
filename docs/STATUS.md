@@ -7,6 +7,31 @@
 > **▶ ▶ THE COMMAND-ROAD QUEUE — OPENED September 20, 2026. THIS BLOCK IS THE
 > ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
 >
+> **✅ FIRST CONTACT + THE SCHOOL OF WAR REFRESH — LANDED September 23, 2026
+> (user-directed, after CRT-1 and row NUI; one commit). Landing record =
+> `docs/audits/FIRST_CONTACT_AND_SCHOOL_2026_09_23.md`; rules =
+> `SYSTEMS_REFERENCE.md` §54 + §55; rows = `BUG_FIXES.md` §First Contact.**
+> The keyless first-contact report's one canned shrug is gone: `hello` / `quit` /
+> `undo` / `what now` / `I'm stuck` / `win the war` each get their own honest
+> answer from ONE source (`backend/ai/first_contact.py`), every shrug names the
+> three doors (`what can I do` / `status` / `help`), `send the submarines to
+> London` no longer suggests a march the Royal Navy shuts — and **`Ney, move to
+> London` no longer ACCEPTS one** (the tactical belt reads the road law; AI
+> byte-identical), `destroy Austria` reaches the nation refusal instead of
+> Deroy, `build a tank` names a province on the map, and the whole army /
+> `is Mack strong` are answered. **The School of War:** 18 cards — VII the
+> Cabinet (a REAL F1 mission on Austria; the chip opens the wizard), IX the
+> Marshalate (trust, glory, "Ney and Soult are at odds — half their weight",
+> envy dormant and said so, the Reward chip), XVI the Wooden Wall (the naval
+> rule, honest that the lesson has no fleet), pushback/defiance on IV/V, the
+> first-contact doors on I/XVII — and **UNBREAKABLE**: a refused suggested
+> order releases its step at once with the reason, every card but the last has
+> a Skip chip, the catch-up floor says so; DRIVEN by
+> `tools/tutorial_overlay_harness.gd` over real responses (idle Emperor,
+> refused order, the chips, the Cabinet lesson, the committed script end to
+> end). Full IQ-10 re-shoot at both Interface Scales (`docs/audits/IQ10_*_2026_09_23.png`).
+> **NEXT = ROADMAP position 10, the shippable build** (then CRT-2 … CRT-11).
+>
 > **User direction (September 20, 2026):** *"examine feasibility for local llm for
 > parser making the game 'just work'… lay out plan for multi step or conditional
 > commands and assure the parser and autofill are in good form and sensical…

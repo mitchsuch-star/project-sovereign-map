@@ -1,6 +1,6 @@
 """FA-89 (slice 17, Sept 11 2026): the School of War's step, for the digest.
 
-The lesson's progression lives ENTIRELY in `tutorial_overlay.gd` — fifteen
+The lesson's progression lives ENTIRELY in `tutorial_overlay.gd` — eighteen
 `advance` predicates over cross-response latches the backend does not have
 (`_saw_objection`, `_saw_capture`, `_last_infantry_pool`, the Kienmayer
 kill). So no unattended run could ever assert that a beat FIRED, and the
@@ -25,15 +25,18 @@ STEPS: List[Tuple[str, int, str]] = [
     ("objection", 2, "IV. The Marshal's Temper"),
     ("objection_answer", 2, "V. Trust, Insist, Compromise"),
     ("bombardment", 2, "VI. The Guns Speak"),
-    ("first_battle", 4, "VII. First Blood"),
-    ("strategic_order", 5, "VIII. Standing Orders"),
-    ("capture", 6, "IX. Conquest"),
-    ("capture_answer", 6, "X. The Conqueror's Choice"),
-    ("recruit_build", 7, "XI. The Depots"),
-    ("free_scout", 8, "XII. The Fog"),
-    ("free_stand", 9, "XIII. The Counter-Blow"),
-    ("free_books", 10, "XIV. The Instruments"),
-    ("handoff", 12, "XV. The Lesson Ends"),
+    ("cabinet", 3, "VII. The Cabinet"),
+    ("first_battle", 4, "VIII. First Blood"),
+    ("marshalate", 5, "IX. The Marshalate"),
+    ("strategic_order", 5, "X. Standing Orders"),
+    ("capture", 6, "XI. Conquest"),
+    ("capture_answer", 6, "XII. The Conqueror's Choice"),
+    ("recruit_build", 7, "XIII. The Depots"),
+    ("free_scout", 8, "XIV. The Fog"),
+    ("free_stand", 9, "XV. The Counter-Blow"),
+    ("naval", 10, "XVI. The Wooden Wall"),
+    ("free_books", 11, "XVII. The Instruments"),
+    ("handoff", 12, "XVIII. The Lesson Ends"),
 ]
 
 TUTORIAL_SCENARIO_NAME = "tutorial"

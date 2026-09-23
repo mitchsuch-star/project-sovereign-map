@@ -6562,3 +6562,76 @@ sends every offered line to POST /command (the boot, a staged board, the turn-10
 fixtures), pins each pool against an independent Python computation, and pins each payload field
 against the executor directly. ⛔ **A new completer verb gets a slot letter whose pool is the
 executor's own answer, or a `<verb>_refusal` in `tactical_state` — and the driven census.**
+
+## 54. First contact (landed September 23, 2026)
+
+**The rule:** a line that is neither an order nor a question about the board
+gets an answer that names a DOOR, never the shrug. ONE source,
+`backend/ai/first_contact.py`, holds both the vocabulary the mock chain routes
+on and the copy the help executor prints, so the two cannot drift.
+
+* **Kinds:** `greeting` (hello / bonjour / how are you / a bare "Berthier"),
+  `escape_menu` (quit / exit / restart / menu / settings / new game / load game
+  / how do I save / I give up → *press Esc; nothing relayed*), `undo` (undo /
+  go back / oops → *there is no unsaying an order; `cancel <marshal>` stands a
+  standing order down; the pause menu recalls a save*), `options` (what now /
+  I'm stuck / help me / any suggestions / `?` → the question desk's options
+  answer — ONE source with `what can I do`, `ai/counsel.what_can_i_do`) and
+  `goal` (win the war / how do I win / what is the goal → the open-ended
+  campaign, read from `sandbox_mode`, + today's counsel).
+* **Anchored, whole-line, closed vocabulary**; the address is stripped; every
+  pattern is matched against the whole line, so an order to a marshal ("Ney,
+  go back") never reaches the desk and no order verb appears in any pattern.
+* **Sited** in `llm_client._parse_with_mock_chain` before the clause guards and
+  the question arm, and never in front of `save …` / `load` / `debug`. The
+  route mints `help` (kinds answered by `meta_executor._execute_help` via
+  `answer_first_contact`) or `status` (`options`), confidence 0.9 → no LLM.
+* **The three doors** (`first_contact.THREE_DOORS` — `what can I do` / `status`
+  / `help`) close every generic shrug; the marshal-only shrug names the
+  player's capital (`_home_example`); the place-only shrug walks the road law
+  first (`_place_suggestion`: every fielded corps through `strategic.plot_route`
+  + `issuance_road_refusal`; the shortest LAWFUL road is named, `attack` only
+  against a court we are at war with; a naval refusal names the sea and THE
+  ADMIRALTY).
+* **The tactical `move to` belt reads the road law** (`movement_executor`,
+  the auto-upgrade belt): `plot_route` + `issuance_road_refusal` before an AP
+  is charged, player-only verdict, AI road byte-identical. `Ney, move to
+  London` and `Ney, march to London` give ONE verdict.
+* **The question desk** answers the whole army (`own_army`, subjectless) and
+  `is <X> strong|dangerous|…` (the `how_many` name4 arm).
+* **A verb is never a place:** `attack_vocabulary.guard_attack_verb_forms()`
+  (every attack verb + inflections) is in the fuzzy target scan's skip list —
+  `destroy Austria` reaches the nation refusal, not Deroy.
+* **Example provinces are on the map:** `economy_executor.example_region`
+  (the player's capital); the manual says `repair Lorraine`.
+* Pins: `tests/test_first_contact_keyless.py`; sweep `tools/_sweep_first_contact.json`.
+
+## 55. The School of War is unbreakable (landed September 23, 2026)
+
+Eighteen cards in `tutorial_overlay.gd` `STEPS`, mirrored by
+`backend/game_logic/tutorial_state.py` (drift-pinned), driven headless by
+`tools/tutorial_overlay_harness.gd`.
+
+* **Three release roads, none of them the whole-tutorial Skip:** (1) a refusal
+  of the card's OWN suggested order releases the step at once — `main.gd`
+  calls `tutorial_overlay.note_sent(command)` at its three send sites (typed,
+  wizard, structured chip) and `_refused_our_order` reads `success == false`
+  with no question on the response (an objection, a capture choice or a
+  Cabinet confirm is not a refusal); the next card says why; (2) **Skip this
+  lesson ▸** on every card but the last (`skipstep:` → `_release_step`);
+  (3) the gate+2 turn catch-up stays as the floor and now says so.
+* **The Cabinet card opens the real wizard** (`open_cabinet(nation)` →
+  `_on_tutorial_open_cabinet` → `diplomacy_wizard.open_for_nation`, the F1
+  guards) — typed diplomatic verbs are redirected by ruling G1, so no typed
+  chip. Its predicate reads `talleyrand_mission_summary` on the base response
+  (the sentinel `"None"` = no mission).
+* **The overlay stays observe-only:** it never sends (the `send_command`
+  substring is pinned absent); it is TOLD what was sent.
+* **The three new lessons** are honest about the lesson board: envy is dormant
+  (`jealousy_dormant`) and the card says so; there is no fleet and the card
+  says so.
+* The driver's `missions` dial gains `begin` / `decline`; both lesson scripts
+  open the Cabinet on loop 3 under `begin` (the T-B1 / gate-drift pins are
+  unchanged: the Cabinet card carries no typed suggest).
+* Pins: `tests/test_tutorial_unbreakable_2026_09_23.py` (driven; skips without
+  Godot — a skip is not a pass); sweep `tools/_sweep_tutorial.json`.

@@ -2872,6 +2872,11 @@ class Answerer:
                 picked = self._advisor_mission_choice(dialogue, options, find)
                 if picked is not None:
                     return picked
+            if policy_key == "missions" and missions_mode(self.policy) in ("begin", "decline"):
+                picked = (find("start", "begin") if missions_mode(self.policy) == "begin"
+                          else find("dismiss", "cancel", "not"))
+                if picked is not None:
+                    return picked
 
         mode = self.policy["diplomacy"]
         if mode in ("accept", "propose"):
@@ -3477,7 +3482,11 @@ def run(args):
 # measured the harness, not the game.
 # ═══════════════════════════════════════════════════════════════════════
 
-MISSIONS_MODES = ("off", "advisor")
+# Sept 23, 2026 (the School of War refresh): `begin` presses "Begin
+# mission" on every Cabinet confirm and `decline` presses "Not now",
+# independent of --diplomacy — the lesson script begins one mission
+# (gather intelligence on Austria) while declining every proposal.
+MISSIONS_MODES = ("off", "advisor", "begin", "decline")
 
 
 def missions_mode(policy) -> str:
@@ -3915,7 +3924,9 @@ def main():
                     choices=["", "first", "fight", "breakout"])
     ap.add_argument("--contact", default="",
                     choices=["", "first", "attack", "around", "hold", "cancel"])
-    ap.add_argument("--missions", default="", choices=["", *MISSIONS_MODES],
+    # `begin` / `decline` (Sept 23, 2026) are SCRIPT-ONLY dials (the lesson
+    # scripts carry them) — the CLI keeps its three arms, as pinned.
+    ap.add_argument("--missions", default="", choices=["", "off", "advisor"],
                     help="IQ-4: advisor = send Talleyrand on the missions the "
                          "game's own counsel names (Cabinet rows marked "
                          "available only); off (default) answers a mission "
