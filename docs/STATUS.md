@@ -4,8 +4,108 @@
 
 ## ▶ NEXT UP
 
-> **▶ ▶ THE COMMAND-ROAD QUEUE — OPENED September 20, 2026. THIS BLOCK IS THE
-> ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
+> **▶ ▶ THE PLAN — September 23, 2026 (revised twice the same day). THIS BLOCK
+> IS THE ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
+>
+> **▶ NEXT = row GE "The Verdict and the Fall" — game end and defeat state**
+> (spec + rulings: **`docs/GAME_END_SPEC.md`**, ROADMAP row **GE**). Then **the
+> release build** — whose **part 1 is already written and SAVED** (see below) —
+> then the fix Updates 1–5.
+>
+> **User direction, in order:**
+> 1. *"what else should we do before build any more improvements or issues we can iron out?"*
+> 2. *"make calls please and then separate out game end and defeat state as session after these"*
+> 3. on the calls: *"i mean people should be able to add keys and stuff lets just release a playable game"*
+> 4. *"wait are you doing build? thought we wanted end state first?"* — then *"you can finish now just call out in docs build is saved etc commit and push"*
+>
+> Direction 3 revised three calls (✎ below): the API-key section ships, and the
+> fix sessions first planned before the build become updates after it. Direction
+> 4 put **game end before the build**: a playable game has an ending.
+>
+> **⛔ THE RELEASE BUILD'S PART 1 IS SAVED — do not rewrite it.** Started this
+> session, then parked when direction 4 arrived. It is kept in two places:
+> - the local `git stash` entry *"release-build part 1 (parked Sept 23, 2026 for row GE) ..."* (`git stash list`);
+> - the committed, pushed patch **`deploy/parked/release_build_part1.patch`** — 13 files, applies cleanly to the HEAD it was cut from.
+>
+> **Resume it** at the start of the release-build session: `git apply --3way deploy/parked/release_build_part1.patch` (or `git stash apply` on this machine), resolve against row GE's changes, then delete the patch file and drop the stash in that session's commit. **What part 1 holds** (written, NOT yet tested or committed):
+> - **PB-1:** `backend/main.py` derives the scenario paths from `region.EUROPE_REGISTRY_PATH`, not its own `__file__`.
+> - **PB-4:** `backend/runtime_log.py` (server log + transcript, crash-proof console) and `backend/build_info.py` (the build stamp; `/test` reports `version`). The server never prints any part of the key, `/command` records each order to the transcript, and the main menu prints the build.
+> - **C1 (keys):** `/config/llm` checks a key with a free Models-API GET and reports `key_status` (Connected / Not connected / Key rejected / Unreachable). `providers.py` records each live request's outcome (`pop_last_api_outcome`, `ANTHROPIC_PARSE_MODEL`). A once-per-session `parser_notice` appears when the live parser fails. The Settings section is renamed "SMARTER PARSING (OPTIONAL)" with honest copy.
+> - **Client and launcher:** `Utils.server_lost_hint` / `server_error_hint` replace "Connection failed"; `launch.bat` refuses a server with a different build stamp, waits 60 s and points at the log; the `config.txt` copy is fixed.
+> - **PB-2 (partial):** `help` no longer teaches `Soult, move to Bavaria` and shows its DEBUG block only in debug mode; `/debug` no longer names `main.py`.
+> - **One conscious pin flip:** `test_main_menu_and_ux_pass.py` section marker → "SMARTER PARSING (OPTIONAL)".
+>
+> **Still to do in that session:**
+> - PB-2's rest: the boot-help lines in `main.gd` ("Soult, scout Swabia" / "Lannes, move to Munich" / "what can I do"), the recruit refusal's hard-coded "recruit 10000 infantry with Ney", and a test that DRIVES every advertised example at `/command`.
+> - PB-5: the README (the "Davout, move to Bavaria" example; keys; SmartScreen; "no ending yet" is now obsolete once GE lands; logs; how to report).
+> - PB-6 + PB-1's `build.bat` half: automate the release export with `GODOT_EXE` + `--export-release`, boot the frozen server on 8006 and hit `/test` before zipping, write the build stamp, remove the stale zip.
+> - Tests for the part-1 modules; the live-key smoke on the user's own key (~$0.11, with their go-ahead); the fresh-account run.
+>
+> **The review behind it** (read-only, HEAD `289697ef`):
+> - six seeded driver campaigns: **0 server errors, 0 unhandled popups**;
+> - a build-pipeline audit;
+> - an open-defect census with reproductions;
+> - a census of pending decisions;
+> - a game-end research fleet: 12 fresh 40–60-turn runs plus 250 archived digests;
+> - an in-memory simulation of PR-D1b.
+>
+> **Where it is recorded:** `BUG_FIXES.md` §Pre-Build Review (**PB-1 … PB-7**);
+> `DESIGN_REFINEMENT.md` PR-D1b (ruled), **PR-D1d** and **PB-D1**; the new spec
+> **`docs/GAME_END_SPEC.md`**; notes on ROADMAP rows GE / 10 / UPD / 12 / 13,
+> `COMMAND_ROBUSTNESS_SPEC.md` §12.3, `LOCAL_PARSER_FEASIBILITY_2026_09_20.md` §6.3
+> and `PETITION_POPUP_REVISIT_SPEC.md` §9.
+>
+> **Headline findings:**
+> - **PB-1: the frozen server cannot find its scenario.** PyInstaller's entry-script `__file__` is `_internal\main.py` (measured with a probe build), so `main.py`'s `parents[1]` points outside the bundle and the frozen server dies at import. Fixed in part 1.
+> - **The tester kit teaches refused orders**, and the key hint says the key is never sent anywhere (it goes to Anthropic).
+> - **A player has nothing to send with a bug report:** no log file, no transcript. Fixed in part 1.
+> - **Known, shipping, fixed in updates:** questions that still execute orders (`could Austria retreat` → a general French retreat), and a paying turn-3/4 peace after which the enemy makes 0 attacks for 36 turns.
+>
+> ### The calls
+>
+> Taken by Claude under the user's delegated grant; ✎ = revised by the user's own
+> word. Each keeps its re-open condition.
+>
+> | # | Call | Ruling | Re-open when |
+> |---|---|---|---|
+> | **C1** ✎ | API keys | **SHIP THEM** — the user: *"people should be able to add keys"*. The release build carries the key section working and honest: PB-3's false privacy sentence fixed; the section renamed "Smarter Parsing (optional) — connect your Anthropic account"; a status line (Connected / Not connected / Key rejected); a quiet once-per-session notice when the live parser fails; a live-key smoke before release (~15 min, ~$0.11 on the user's own key, with their go-ahead). Written in part 1. L-1 (with riders IQ9-X1 / IQ9-X3) stays after the release. | — |
+> | **C2** | L-D "The Boolean Road" (keyless personality delegation) | **YES**, in **Update 3**. The §6.4 `done_when` is unchanged. | Keyless delegation surprises players with an unwanted attack. |
+> | **C3** ✎ | The misread fixes | **After the release:** CRT-3 whole + WO-32 → **Update 2**; CX5-L5-F2 + CQ-30 → **Update 3**. They ship known: rare phrasings, and every one names what it did. | A player hits one — it jumps the queue. |
+> | **C4** ✎ | PR-D1b | **After the release, as Update 1**, with R1–R5 as ruled on its row. The gate is P1's own coalition break-ranks clause, NOT `effective_peace_threshold` (that reading collapsed France in simulation). Until it lands, accepting Britain's paying turn-3/4 peace ends the opening war; the README says so, and that a new war can always be declared. | — |
+> | **C5** | Petition Antechamber B1 | **Update 4**; it jumps ahead if players flag modal overload. | Player reports. |
+> | **C6** | Every ruling marked "FOR USER CONFIRMATION" before Sept 23:<br>• FA-D29 / FA-S17-1, FA-D4, FA-S2-D1, FA-D23, the FA-D27 re-open<br>• `FRESH_PEACE_FLOOR_TURNS = 5`, `LEAGUE_SPENT_DIVISOR = 2`<br>• the Court's Favour<br>• IQ-1's crux and the 590× correction<br>• IQ-7's petition constants<br>• the pillar re-scores, the eylau ±1 breach<br>• Command-Road D1–D6 | **CONFIRMED AS BUILT.** Each keeps its lever and its re-open condition. The pillar regrades wait for player evidence. | Each row's own condition. |
+> | **C7** ✎ | The release | **itch.io** (monetization memo §8). The user uploads the zip and chooses public or restricted. The first players are Round 0: they send `transcript.jsonl` and `server.log` (and their saves) with a report. The clean-machine run is a fresh local Windows account first; the first outside player's launch confirms it runs with no Python. **The feedback address is the user's to choose.** | — |
+> | **C8** ✎ | Game end + defeat state | Its own row **GE**, spec `docs/GAME_END_SPEC.md`, RULED there: defeat = two warned clocks; game end = the Verdict of History at turn 44 (Tilsit), marked and then continued. **▶ NEXT — before the release build** (the user: *"thought we wanted end state first"*). | GE spec §2. |
+> | **C9** | LLC + Steamworks (ROADMAP 2) | Start now, in parallel. This is the user's track. | — |
+>
+> ### ▶ THE ORDER
+>
+> | # | Session | Contents | Effort |
+> |---|---|---|---|
+> | **▶ NEXT** | **GE "The Verdict and the Fall"** | `GAME_END_SPEC.md` §4: GE-1 backend (the fall clocks, the Verdict of History at turn 44, `record_ending`, `campaign_totals`, saves, WO-D10), GE-2 client (`campaign_end.tscn`, raised from every end-turn flow and from `/load`) | ~2 |
+> | **then** | **THE RELEASE BUILD** (ROADMAP 10) | **Apply part 1 first** (above). Then: PB-2's rest · PB-5 README · PB-6 + `build.bat` (frozen boot on 8006 + `/test`, release export, build stamp, stale zip) · the part-1 tests · the live-key smoke · the fresh-account run → the user uploads to itch.io | ~1–1.5 |
+> | **Update 1** | **"The League Treats When Spent"** | PR-D1b (R1–R5 + the same-turn-envoy rider; its row names the pins to flip) + PB-7 doc housekeeping | ~1.25–1.5 |
+> | **Update 2** | **"A question never orders"** | CRT-3 whole (contract `COMMAND_ROBUSTNESS_SPEC.md` §12.3) + WO-32 (close the rebellion popup only when its order succeeds — the `jealousy.py` pattern) | ~1.25 |
+> | **Update 3** | **"The word is the order"** | L-D + CX5-L5-F2 (land the F6 pins first) + CQ-30 (a misspelt name is refused free, never replaced) | ~1.25 |
+> | **Update 4** | **B1 "The Antechamber"** | `PETITION_POPUP_REVISIT_SPEC.md` §9 B1 (B2–B5 after) | ~1 |
+> | **Update 5** | **the league's ledger** | PR-D1c + PR-D1d | ~1 |
+> | then | — | CRT-2 (CQ-17, CQ-29) … CRT-11 · L-1 (+ IQ9-X1 / IQ9-X3) · the Victory & Objectives gate (ROADMAP 12, which also owns PB-D1 "the long peace") | — |
+>
+> **Player reports re-order Updates 1–5:** a defect a player actually hits jumps the queue.
+>
+> **⛔ EVERY SESSION'S COMMIT MUST ALSO CARRY:**
+> - this block, updated: strike what landed and name what is next;
+> - the landing record in the row's own doc;
+> - `CLAUDE.md` §Active work items ▶ LIVE STATE;
+> - the row's disposition in `BUG_FIXES.md` / `DESIGN_REFINEMENT.md`.
+>
+> **A slice is not landed until those four are in the commit.** The pre-commit hook runs `ruff check backend/` + the full suite (~14 min at HEAD). Commit in the background and read the log; never `--no-verify`.
+>
+> ---
+>
+> **▶ THE COMMAND-ROAD QUEUE — OPENED September 20, 2026.** *(Superseded as the
+> routing authority by the plan above, September 23, 2026. Kept as the
+> record of the slices that led here.)*
 >
 > **✅ FIRST CONTACT + THE SCHOOL OF WAR REFRESH — LANDED September 23, 2026
 > (user-directed, after CRT-1 and row NUI; one commit). Landing record =
@@ -30,7 +130,7 @@
 > `tools/tutorial_overlay_harness.gd` over real responses (idle Emperor,
 > refused order, the chips, the Cabinet lesson, the committed script end to
 > end). Full IQ-10 re-shoot at both Interface Scales (`docs/audits/IQ10_*_2026_09_23.png`).
-> **NEXT = ROADMAP position 10, the shippable build** (then CRT-2 … CRT-11).
+> ~~**NEXT = ROADMAP position 10, the shippable build** (then CRT-2 … CRT-11).~~ **⚑ Superseded September 23, 2026 by the plan at the top of this section. NEXT = row GE (game end and defeat), then the release build.**
 >
 > **User direction (September 20, 2026):** *"examine feasibility for local llm for
 > parser making the game 'just work'… lay out plan for multi step or conditional
@@ -394,7 +494,7 @@
 >    the IQ-10 frames dated 2026_09_23 (the IQ-10 road gained the `top_bar_admiralty` shot).
 >    ⚠ open for the user: the in-game feel of the ship pieces and the tooltip — the eyes-on half.
 >
->    **What is next = ROADMAP position 10, the shippable build.** After that, CRT-2 … CRT-11 in
+>    ~~**What is next = ROADMAP position 10, the shippable build.**~~ **⚑ Superseded September 23, 2026: see the plan at the top — NEXT = row GE (game end and defeat), then the release build.** After that, CRT-2 … CRT-11 in
 >    the §12.3 order; Round 0 evidence may re-order them.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
@@ -435,7 +535,7 @@
 > | ~~**4**~~ | ~~**CX-R2 "The offer is reachable"**~~ ✅ **LANDED Sept 23, 2026** | CX-R | 0.5 | ~~The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`.~~ **169 of 280 refused on the boot → 0** (every offered line driven at `/command`); not client-only, by decision — two display-only fields. Landing record in the memo. |
 > | ~~**6a**~~ | ~~**CRT-1 "What the sentence forbids is never the order"**~~ ✅ **LANDED Sept 23, 2026** — record `COMMAND_ROBUSTNESS_SPEC.md` §12.7; the four P1s closed at `POST /command` (103 pins, sweep 14/14, three readers of the raw text) | CRT | 1.0–1.25 | **P1 ×4 on one seam — CQ-32, CQ-34, CQ-35, CXR1-3 (+ CX5-L5-F1):** an order to retreat, a prohibition, a negative question and a refusal each carry out the OPPOSITE. **It precedes the build under D2's own rule.** Contract = `COMMAND_ROBUSTNESS_SPEC.md` §12.3. |
 > | ~~**6b**~~ | ~~**NUI "The Admiralty on the Map"**~~ ✅ **LANDED Sept 23, 2026** (record `NAVAL_SPEC.md` §17; IQ10-X1 + IQ10-X2 closed with it) | NUI | ~1.0 | *"add naval ui and make the ux and ui work and while at it assure ux and ui is good in other key areas."* The naval theatre gets a presence on the map and a door to the Admiralty; the UI/UX pass takes IQ10-X1 / IQ10-X2 and whatever the captures find. This names "the next UI slice" the triage flagged. |
-| **▶ →** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — **NEXT** (CRT-1 and NUI both landed Sept 23) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
+| **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — ⚑ **after row GE, per the September 23, 2026 plan; part 1 is written and saved** (CRT-1 and NUI both landed Sept 23) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
 | ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
 > | ~~**6**~~ | ~~**CR-6 triage**~~ ✅ **HELD September 23, 2026** — record + build contract = `COMMAND_ROBUSTNESS_SPEC.md` §12. Every "CR-6 proper" row is homed to CRT-1…CRT-11 or closed or struck, and CQ-30…CQ-36 are filed | CR-6 | 0.25 | ~~**▶ DUE NOW — CX-R2 landed September 23, 2026.**~~ **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — **and by two more the same day (CN-4): CQ-20** (typed `propose white peace with <N>` is heard as a Peace Treaty with terms) **and CQ-21** (at zero AP every order chip is offered and refused) — **and by two more on September 23 (CX-R2): CQ-24** (the completer offers orders a marshal's STATE refuses — CQ-21's sibling, one design for both) **and CQ-28** (a drill-locked marshal takes a standing order the lock says he cannot receive) — **and, filed after CX-R2 landed, CQ-29** (`recruit <arm> in <X>` with a typo, an accent or an unknown place is raised AT THE CAPITAL and charged, P2) — all with their done-when in `BUG_FIXES.md` §Command-Road Queue. |

@@ -327,6 +327,19 @@ incidental. The guard was written against the wrong witness.
 
 ### 6.3 ⚠ THIS NEEDS THE USER'S WORD — it is not a builder's call
 
+> **✅ RULED September 23, 2026: YES.** Taken by Claude under the user's delegated grant (*"make calls please"*); recorded, not separately confirmed by the user.
+>
+> **The ruling.** The deterministic delegation arms fire for a keyless player. The gate reads the `DelegationMatch`, not the parse. What does not change:
+> - the literal arm still asks;
+> - the incidental-keyword control must stay green;
+> - the CR-5b flavor line stays live-only, so keyless players get the deterministic floor.
+>
+> **Why.** The default game is keyless and most players will not bring a key, and the three-way split is the VISION's own premise: marshals answer by personality. The store copy then has one fewer thing to reserve for BYOK, which position 14 discloses.
+>
+> **Landing.** **Update 3** ("the word is the order"), after the release, per `STATUS.md` ▶ NEXT UP, with the §6.4 `done_when` unchanged.
+>
+> **Re-open.** If player transcripts show a keyless delegation producing an attack the tester did not expect, restore the witness. It is a single seam.
+
 **Do not build L-D on this memo alone.** Guardrail (e) is part of CR-5's
 **blessed scope** (`COMMAND_ROBUSTNESS_SPEC.md` §6.3, blessed July 5, 2026), whose
 own language is *"the bias is live-only"*. Flipping it changes what was blessed,

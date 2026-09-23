@@ -660,6 +660,18 @@ this family it is not evidence, which is why every done-when is stated at
 2. ROADMAP position 10 (the shippable build).
 3. CRT-2 … CRT-11, in order.
 
+> **⚑ AMENDED September 23, 2026 by the pre-build review and the release plan** (the user: *"lets just release a playable game"*; routing = `STATUS.md` ▶ NEXT UP). All of these were reproduced at HEAD `289697ef`. Row GE (game end) lands first, then the release; these become the first fix updates after it.
+>
+> **Update 2:**
+> - all of **CRT-3** ("a question never orders"): `what happens if we downgrade relations with Spain` downgrades the alliance; `could Austria retreat` orders a general French retreat; `maybe build ships` spends 400g;
+> - **WO-32** (P1): the vassal-rebellion popup is lost when its order is refused.
+>
+> **Update 3:**
+> - **CX5-L5-F2** from CRT-6: `Davout, block Mack's retreat` makes Davout retreat;
+> - **CQ-30** from CRT-2: a misspelt, fogged name (`Archduke Charls`) fights Mack instead. The fix refuses free, per CRT-2's own contract.
+>
+> CRT-2's other rows (CQ-17, CQ-29) and CRT-4 … CRT-11 follow, in this order. Player reports may re-order them.
+
 HC-L's L-1 may ride any session.
 
 **Why CRT-1 goes first:** ruling D2's own rule is that a P1 which fires on ordinary

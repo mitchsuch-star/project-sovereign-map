@@ -1,0 +1,951 @@
+diff --git a/backend/ai/providers.py b/backend/ai/providers.py
+index 3eaf12b7..db0f46e0 100644
+--- a/backend/ai/providers.py
++++ b/backend/ai/providers.py
+@@ -114,6 +114,32 @@ REQUEST_TIMEOUT_SECONDS = 5.0
+ # do not raise it without re-measuring that ceiling.
+ MAX_RETRIES = 1
+ 
++# C1 (the release build, Sept 23 2026): the outcome of the most recent live
++# request -- "ok" or a failure kind -- so the server can say ONCE per session
++# that the live parser failed and why, and the Settings panel can say "Key
++# rejected". Read-and-cleared by `pop_last_api_outcome()`; display only, never
++# read by game mechanics (GR6).
++# The parser's pinned model, ONE source: the provider sends it and the
++# release build's key check (main.py) confirms a player's key can use it.
++ANTHROPIC_PARSE_MODEL = "claude-haiku-4-5"
++
++API_OUTCOME_OK = "ok"
++API_FAILURE_KINDS = ("auth", "permission", "model", "bad_request", "rate",
++                     "timeout", "network", "server", "other")
++_LAST_API_OUTCOME: Optional[str] = None
++
++
++def _record_api_outcome(kind: str) -> None:
++    global _LAST_API_OUTCOME
++    _LAST_API_OUTCOME = kind
++
++
++def pop_last_api_outcome() -> Optional[str]:
++    """The last live request's outcome since the previous pop, then cleared."""
++    global _LAST_API_OUTCOME
++    kind, _LAST_API_OUTCOME = _LAST_API_OUTCOME, None
++    return kind
++
+ 
+ # =============================================================================
+ # PARSE TOOL (CR-3): forced tool-use structured output
+@@ -481,7 +507,7 @@ class AnthropicProvider(BaseProvider):
+             # CR-3 pin refresh: claude-3-haiku-20240307 is deprecated
+             # (retires Apr 19, 2026); claude-haiku-4-5 is its documented
+             # drop-in replacement — same fast/cheap tier this parser needs.
+-            model="claude-haiku-4-5",
++            model=ANTHROPIC_PARSE_MODEL,
+             # 1000, not 500 (CR-3 review fix): measured tool-call outputs
+             # already reach ~300 tokens; a verbose interpretation +
+             # suggestion could truncate the forced tool call mid-input at
+@@ -698,16 +724,19 @@ class AnthropicProvider(BaseProvider):
+         # only that "the LLM failed" — the whole point of the typed
+         # exceptions is that the log names WHICH failure.
+         except anthropic.AuthenticationError:
++            _record_api_outcome("auth")
+             print("AnthropicProvider: ERROR 401 - Invalid API key")
+             return None, "Invalid API key"
+ 
+         except anthropic.PermissionDeniedError:
++            _record_api_outcome("permission")
+             print("AnthropicProvider: ERROR 403 - API key lacks permission")
+             return None, "API key lacks permission for this model"
+ 
+         except anthropic.NotFoundError:
+             # Almost always a bad/retired model id — name the pin, since that
+             # is the one thing an operator has to change.
++            _record_api_outcome("model")
+             print(f"AnthropicProvider: ERROR 404 - unknown model "
+                   f"'{body.get('model')}'")
+             return None, f"Unknown model '{body.get('model')}'"
+@@ -717,26 +746,31 @@ class AnthropicProvider(BaseProvider):
+             # rejects, or a schema the API refused. Surface the message: this
+             # is the failure a model migration produces, and a generic string
+             # would send the reader hunting.
++            _record_api_outcome("bad_request")
+             print(f"AnthropicProvider: ERROR 400 - {e}")
+             return None, "Invalid request (see server log)"
+ 
+         except anthropic.RateLimitError:
+             # Already retried with backoff by the SDK, honoring `retry-after`.
++            _record_api_outcome("rate")
+             print("AnthropicProvider: ERROR 429 - Rate limited (retries exhausted)")
+             return None, "Rate limited - too many requests"
+ 
+         except anthropic.APITimeoutError:
++            _record_api_outcome("timeout")
+             print(f"AnthropicProvider: ERROR - Timed out after "
+                   f"{REQUEST_TIMEOUT_SECONDS}s (retries exhausted)")
+             return None, f"Request timed out after {REQUEST_TIMEOUT_SECONDS}s"
+ 
+         except anthropic.APIConnectionError as e:
++            _record_api_outcome("network")
+             print(f"AnthropicProvider: ERROR - Connection failed: {e}")
+             return None, "Connection failed - check internet"
+ 
+         except anthropic.APIStatusError as e:
+             # Any other non-2xx, including 5xx and 529 overloaded — both
+             # already retried by the SDK.
++            _record_api_outcome("server")
+             print(f"AnthropicProvider: ERROR {e.status_code} - server error")
+             return None, f"Server error ({e.status_code})"
+ 
+@@ -744,6 +778,7 @@ class AnthropicProvider(BaseProvider):
+             # The provider contract is absolute: NEVER raise to the caller.
+             # A parse failure degrades to the fast parser; an exception here
+             # would 500 the player's whole command.
++            _record_api_outcome("other")
+             print(f"AnthropicProvider: ERROR - Unexpected: {type(e).__name__}: {e}")
+             return None, f"Unexpected error: {type(e).__name__}"
+ 
+@@ -751,6 +786,7 @@ class AnthropicProvider(BaseProvider):
+         # wire shape, and the test suite mocks THIS method with dicts — so the
+         # typed Message is converted back to a dict here. That keeps the
+         # transport swap invisible to every caller and every existing mock.
++        _record_api_outcome(API_OUTCOME_OK)
+         response_json = message.to_dict()
+ 
+         request_id = getattr(message, "_request_id", None)
+diff --git a/backend/build_info.py b/backend/build_info.py
+new file mode 100644
+index 00000000..84fa3ac2
+--- /dev/null
++++ b/backend/build_info.py
+@@ -0,0 +1,28 @@
++"""Which build is this (PB-4, the release build, Sept 23 2026).
++
++``deploy/build.bat`` writes ``build_stamp.json`` (date + commit) and
++``ink_iron.spec`` ships it at the bundle root, so a player's bug report names
++the exact build. ``/test`` reports it, the main menu prints it, and launch.bat
++refuses to reuse a server whose stamp differs from the zip's own.
++"""
++
++from __future__ import annotations
++
++import json
++import sys
++from pathlib import Path
++
++STAMP_FILENAME = "build_stamp.json"
++DEV_VERSION = "dev"
++
++
++def build_version() -> str:
++    """The stamped build version, ``"dev"`` from source, ``"unknown"`` if a
++    frozen build lost its stamp."""
++    if not getattr(sys, "frozen", False):
++        return DEV_VERSION
++    stamp = Path(getattr(sys, "_MEIPASS", ".")) / STAMP_FILENAME
++    try:
++        return str(json.loads(stamp.read_text(encoding="utf-8")).get("version") or "unknown")
++    except (OSError, ValueError):
++        return "unknown"
+diff --git a/backend/commands/meta_executor.py b/backend/commands/meta_executor.py
+index 85544cc9..5a774f9d 100644
+--- a/backend/commands/meta_executor.py
++++ b/backend/commands/meta_executor.py
+@@ -159,6 +159,17 @@ def _resolve_cheat_name(raw_name: str, valid_names) -> str | None:
+ # reads +8.
+ MISSION_HELP_BLOCK = True
+ _MISSIONS_HELP_ANCHOR = "[Request Terms] to make the enemy name a price.\n"
++
++# PB-2 (the release build, Sept 23 2026): spliced into `help` only when debug
++# mode is on, so a player's reference never lists orders that answer "not
++# available in this build".
++DEBUG_HELP_BLOCK = """DEBUG COMMANDS (for testing):
++  /debug counter_punch <marshal> - Enable free attack
++  /debug restless <marshal>      - Trigger restlessness
++  /debug cavalry <marshal>       - Toggle 2-tile attacks
++  /debug hold <marshal>          - Enable Immovable
++
++"""
+ _MISSIONS_HELP_ORDER = ("IMPROVE_RELATIONS", "COURT_NATION", "REASSURE_ALLY",
+                         "UNDERMINE_ALLIANCE", "GATHER_INTEL")
+ 
+@@ -749,7 +760,7 @@ MILITARY COMMANDS:
+                "Davout, defend" / "hold" (alias)
+ 
+   move       - Move to adjacent region
+-               "Soult, move to Bavaria"
++               "Lannes, move to Munich"
+ 
+   retreat    - Fall back toward friendly territory (FREE)
+                "Ney, retreat" - Aggressive marshals may object!
+@@ -970,18 +981,18 @@ GLORY AND GRIEVANCE (the ladder on the Generals screen):
+ 
+ FREE ACTIONS: help, end turn, wait, retreat, economy
+ 
+-DEBUG COMMANDS (for testing):
+-  /debug counter_punch <marshal> - Enable free attack
+-  /debug restless <marshal>      - Trigger restlessness
+-  /debug cavalry <marshal>       - Toggle 2-tile attacks
+-  /debug hold <marshal>          - Enable Immovable
+-
+ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
+   After retreating, marshals are demoralized.
+   BLOCKED: attack, fortify, drill, scout
+   ALLOWED: move, recruit, defend, wait, change stance
+ 
+ ═══════════════════════════════════════"""
++        # PB-2 (the release build): the debug commands are listed only where
++        # they work — a player's `help` never teaches an order that answers
++        # "disabled".
++        if (game_state or {}).get("debug_mode"):
++            help_text = help_text.replace(
++                "RETREAT RECOVERY", DEBUG_HELP_BLOCK + "RETREAT RECOVERY", 1)
+ 
+         # IQ-4 S3g: the missions, spliced after the `war terms` entry of the
+         # Cabinet block — every figure the tick's own, read at call time.
+@@ -1029,7 +1040,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
+         if not debug_mode:
+             return {
+                 "success": False,
+-                "message": "Debug commands are disabled. Set DEBUG_MODE = True in main.py to enable."
++                "message": "Debug commands are not available in this build."
+             }
+ 
+         target = command.get("target", "")
+diff --git a/backend/main.py b/backend/main.py
+index b594de46..4feea3c1 100644
+--- a/backend/main.py
++++ b/backend/main.py
+@@ -16,6 +16,14 @@ from dotenv import load_dotenv
+ # Load .env BEFORE any imports that might read env vars
+ load_dotenv()
+ 
++# PB-4 (the release build, Sept 23 2026): an emoji must never crash a turn on
++# a cp1252 console, and the shipped build tees everything it prints into
++# %APPDATA%\InkAndIron\logs\server.log — the file a player can send. Off in the
++# dev repo unless INK_IRON_LOG_DIR is set. Installed before the first print.
++from backend import runtime_log  # noqa: E402
++runtime_log.install()
++from backend.build_info import build_version  # noqa: E402
++
+ from fastapi import FastAPI, Request
+ from fastapi.middleware.cors import CORSMiddleware
+ from pydantic import BaseModel, Field  # noqa: F401
+@@ -46,8 +54,11 @@ print("PROJECT SOVEREIGN - Server Starting")
+ print("=" * 60)
+ llm_mode = os.getenv("LLM_MODE", "mock")
+ api_key = os.getenv("ANTHROPIC_API_KEY", "")
++print(f"BUILD: {build_version()}")
+ print(f"LLM_MODE: {llm_mode}")
+-print(f"ANTHROPIC_API_KEY: {'SET (' + api_key[:10] + '...)' if api_key else 'NOT SET'}")
++# PB-4: never print any part of the key — this line now reaches server.log,
++# the file players are asked to send with a bug report.
++print(f"ANTHROPIC_API_KEY: {'SET' if api_key else 'NOT SET'}")
+ print("=" * 60)
+ 
+ # Initialize game
+@@ -104,11 +115,19 @@ def _resolve_sovereign_map() -> str:
+ 
+ 
+ # Map Slice 7 default-boot flip: the shipped campaign IS the 1805 scenario.
+-# Absolute (repo-root-derived) so the boot works regardless of CWD.
+-_DEFAULT_SCENARIO_PATH = (
+-    Path(__file__).resolve().parents[1]
+-    / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
+-)
++# Absolute so the boot works regardless of CWD.
++#
++# PB-1 (Sept 23, 2026): the maps folder is derived from region.py's registry
++# path, NEVER from this file's own __file__. This module is PyInstaller's ENTRY
++# script, and an entry script's __file__ is <bundle>\_internal\main.py
++# (measured with a 6.19 onedir probe build) — so the old parents[1] resolved to
++# the bundle root, outside _internal, while ink_iron.spec ships the maps inside
++# it, and the frozen server died at import. region.py is an IMPORTED module, so
++# its __file__ mirrors the repo layout inside _internal in both worlds.
++from backend.models.region import EUROPE_REGISTRY_PATH  # noqa: E402
++
++MAPS_DIR = Path(EUROPE_REGISTRY_PATH).parent
++_DEFAULT_SCENARIO_PATH = MAPS_DIR / "europe_1805.json"
+ # Explicit opt-out sentinel: with a scenario as the default, tests/devs need an
+ # env value that means "no scenario — boot the bare flag-resolved world".
+ SCENARIO_NONE_SENTINEL = "none"
+@@ -116,10 +135,7 @@ SCENARIO_NONE_SENTINEL = "none"
+ # POSITION 7: named scenarios a client may request over HTTP (/new_game).
+ # Names map to repo-root-derived paths (the _DEFAULT_SCENARIO_PATH idiom) —
+ # a raw path is NEVER accepted over the wire.
+-TUTORIAL_SCENARIO_PATH = (
+-    Path(__file__).resolve().parents[1]
+-    / "godot-client" / "project-sovereign" / "assets" / "maps" / "tutorial_1805.json"
+-)
++TUTORIAL_SCENARIO_PATH = MAPS_DIR / "tutorial_1805.json"  # PB-1: see MAPS_DIR
+ SCENARIO_ALLOWLIST = {"tutorial": TUTORIAL_SCENARIO_PATH}
+ 
+ 
+@@ -567,6 +583,12 @@ def build_base_response(world, success: bool = True, message: str = "",
+         _PARSE_PROVENANCE.set(None)
+         response.setdefault("parse_mode", _provenance[0])
+         response.setdefault("parse_confidence", _provenance[1])
++    # C1 (the release build): a live parse that FAILED is said once per
++    # session, quietly — the offline parser read the order — and its kind
++    # feeds the Settings status line ("Key rejected").
++    _notice = _live_parser_outcome_notice()
++    if _notice:
++        response.setdefault("parser_notice", _notice)
+     # FA-49: what each button on an interrupt popup COSTS. Stamped on a
+     # SHALLOW COPY, not on `marshal.pending_interrupt` itself — the stored
+     # dict is handed out by reference from a dozen sites and is serialized
+@@ -2621,6 +2643,9 @@ def test_connection():
+         "success": True,
+         "status": "ok",
+         "message": "Backend is running",
++        # PB-4: the build stamp — the main menu prints it and launch.bat
++        # refuses to reuse a server whose stamp is not the zip's own.
++        "version": build_version(),
+         "turn": int(world.current_turn),
+         "gold": int(world.gold),
+         "manpower_pools": {
+@@ -2688,7 +2713,17 @@ def get_map_topology():
+ 
+ @app.post("/command")
+ def execute_command(request: CommandRequest):
+-    """Execute a game command and return result."""
++    """Execute a game command and return result.
++
++    PB-4 (the release build): the one door every typed order walks through
++    records it in the transcript — a no-op unless logging is on."""
++    response = _execute_command(request)
++    runtime_log.append_transcript(world, getattr(request, "command", ""), response)
++    return response
++
++
++def _execute_command(request: CommandRequest):
++    """The command pipeline; every road returns a response dict."""
+     # print(f"\n{'=' * 60}")
+     # print(f"📨 COMMAND RECEIVED: '{request.command}'")
+     # print(f"   Current turn: {world.current_turn}")
+@@ -5158,16 +5193,99 @@ async def list_saves_endpoint():
+ # LLM CONFIG (Main Menu pass, position 6 — the in-client API key)
+ # ════════════════════════════════════════════════════════════
+ 
++# C1 (the release build, Sept 23 2026): players connect their OWN Anthropic
++# key, so the key is CHECKED when they connect it, and what the check — or a
++# later live parse — found is said plainly in Settings. None = derive the
++# state from the live client (an unchecked launcher key reads "configured").
++KEY_STATUS_TEXT = {
++    "not_connected": "Not connected — the offline parser reads your orders.",
++    "configured": "A key is set in config.txt — it is checked on the first hard phrasing.",
++    "connected": "Connected — hard phrasings go to Anthropic with your key.",
++    "rejected": ("Key rejected by Anthropic — check it at console.anthropic.com. "
++                 "The offline parser reads your orders."),
++    "no_model": ("Your key works, but it cannot use the parser's model — "
++                 "the offline parser reads your orders."),
++    "unreachable": ("Anthropic could not be reached — the offline parser reads "
++                    "your orders until it can."),
++}
++_key_status = {"state": None}
++# The live-parse failure notice is spoken once per session (and once more
++# after a new key is connected) — a quiet line, never a modal.
++_parser_notice = {"spoken": False}
++_LIVE_FAILURE_STATE = {
++    "auth": "rejected", "permission": "rejected", "model": "no_model",
++    "timeout": "unreachable", "network": "unreachable",
++}
++_LIVE_FAILURE_NOTICE = {
++    "rejected": "Smarter Parsing: Anthropic rejected the key, so the offline parser read that order. Fix the key under Settings → Smarter Parsing. (Said once.)",
++    "no_model": "Smarter Parsing: the key cannot use the parser's model, so the offline parser read that order. (Said once.)",
++    "unreachable": "Smarter Parsing: Anthropic could not be reached, so the offline parser read that order. (Said once.)",
++}
++_LIVE_FAILURE_NOTICE_DEFAULT = ("Smarter Parsing could not answer just now, so the "
++                                "offline parser read that order. (Said once.)")
++
++
+ def _llm_config_payload() -> dict:
+     llm = parser.llm
++    state = _key_status["state"]
++    if state is None:
++        state = ("configured" if llm.use_real_api and getattr(llm, "api_key", None)
++                 else "not_connected")
+     return {
+         "success": True,
+         "provider": llm.provider_name,
+         "key_source": llm.key_source,
+         "live": llm.use_real_api,
++        "key_status": state,
++        "key_status_text": KEY_STATUS_TEXT[state],
+     }
+ 
+ 
++def _check_anthropic_key(key: str) -> str:
++    """One free, authenticated GET — the Models API — confirms the key AND its
++    access to the parser's pinned model. Costs nothing, never raises, and never
++    retries: a player waits on this click."""
++    import anthropic
++    from backend.ai.providers import ANTHROPIC_PARSE_MODEL
++    try:
++        client = anthropic.Anthropic(
++            api_key=key, timeout=anthropic.Timeout(6.0, connect=3.0),
++            max_retries=0)
++        client.models.retrieve(ANTHROPIC_PARSE_MODEL)
++        return "connected"
++    except (anthropic.AuthenticationError, anthropic.PermissionDeniedError):
++        return "rejected"
++    except anthropic.NotFoundError:
++        return "no_model"
++    except anthropic.RateLimitError:
++        return "connected"  # a 429 is an authenticated answer
++    except anthropic.APIError:
++        return "unreachable"  # connection, timeout, 5xx — could not confirm
++    except Exception as e:  # the Settings click must never 500
++        print(f"[WARN] key check failed unexpectedly: {type(e).__name__}")
++        return "unreachable"
++
++
++def _live_parser_outcome_notice() -> Optional[str]:
++    """Read the last live request's outcome (providers.py) into the key status,
++    and return the once-per-session failure notice when one is due."""
++    from backend.ai.providers import API_OUTCOME_OK, pop_last_api_outcome
++    outcome = pop_last_api_outcome()
++    if not outcome:
++        return None
++    if outcome == API_OUTCOME_OK:
++        if _key_status["state"] in (None, "configured", "unreachable"):
++            _key_status["state"] = "connected"
++        return None
++    state = _LIVE_FAILURE_STATE.get(outcome)
++    if state:
++        _key_status["state"] = state
++    if _parser_notice["spoken"]:
++        return None
++    _parser_notice["spoken"] = True
++    return _LIVE_FAILURE_NOTICE.get(state, _LIVE_FAILURE_NOTICE_DEFAULT)
++
++
+ @app.get("/config/llm")
+ async def get_llm_config():
+     """Effective parser configuration — the Settings panel's honesty line."""
+@@ -5186,12 +5304,25 @@ async def set_llm_config(request: LLMConfigRequest):
+     """
+     from backend.ai.llm_client import LLMClient
+     key = (request.api_key or "").strip()
++    # C1: a new key (or none) earns a fresh once-per-session notice.
++    _parser_notice["spoken"] = False
++    state = _check_anthropic_key(key) if key else None
+     try:
++        if state in ("rejected", "no_model"):
++            # A key Anthropic refuses is never installed: every hard phrasing
++            # would pay a failed round-trip before the offline parser answered.
++            parser.llm = LLMClient.create(None)
++            _key_status["state"] = state
++            payload = _llm_config_payload()
++            payload["success"] = False
++            payload["message"] = KEY_STATUS_TEXT[state]
++            return payload
+         parser.llm = LLMClient.create(key if key else None)
++        _key_status["state"] = state
+         return _llm_config_payload()
+     except Exception as e:  # a bad key string must never take the server down
+-        print(f"[ERROR] /config/llm: {e}")
+-        return {"success": False, "message": f"Could not configure parser: {e}"}
++        print(f"[ERROR] /config/llm: {type(e).__name__}")
++        return {"success": False, "message": "Could not configure the parser."}
+ 
+ 
+ @app.post("/delete_save")
+diff --git a/backend/runtime_log.py b/backend/runtime_log.py
+new file mode 100644
+index 00000000..bb085ded
+--- /dev/null
++++ b/backend/runtime_log.py
+@@ -0,0 +1,173 @@
++"""What a player can send with a bug report (PB-4, the release build, Sept 23 2026).
++
++Two files, written beside the saves folder in the shipped (frozen) build:
++
++- ``server.log`` — everything the server prints, stdout and stderr, as UTF-8
++  with undecodable characters replaced. A crash traceback used to go to a
++  minimized console that launch.bat kills on exit; now it survives.
++- ``transcript.jsonl`` — one line per typed order: the turn, the order, the
++  reply and who parsed it. A misread is recorded even when the order failed
++  to parse, which the save's 50-line command history never did.
++
++In the dev repo both are OFF unless ``INK_IRON_LOG_DIR`` is set, so the suite
++and the playtest driver never write logs. The console streams are made
++error-tolerant in every world: the backend prints emoji, and a redirected
++cp1252 stdout otherwise raises ``UnicodeEncodeError`` in the middle of a turn.
++"""
++
++from __future__ import annotations
++
++import json
++import os
++import sys
++import time
++from pathlib import Path
++from typing import Any, Optional
++
++LOG_DIR_ENV = "INK_IRON_LOG_DIR"
++SERVER_LOG = "server.log"
++SERVER_LOG_PREVIOUS = "server.prev.log"
++TRANSCRIPT = "transcript.jsonl"
++# One reply is enough to judge a misread; the full text of a long report
++# (the status sheet, the ledger) would swamp the file.
++REPLY_CHARS = 1200
++
++_log_dir: Optional[Path] = None
++
++
++def resolve_log_dir() -> Optional[Path]:
++    """Where logs go, or None when logging is off.
++
++    1. ``INK_IRON_LOG_DIR`` — explicit, wins everywhere.
++    2. Frozen build — ``%APPDATA%/InkAndIron/logs`` (``~/.ink_iron/logs``
++       where APPDATA is absent), the sibling of the saves folder.
++    3. Dev — off.
++    """
++    env_dir = os.getenv(LOG_DIR_ENV)
++    if env_dir:
++        return Path(env_dir)
++    if getattr(sys, "frozen", False):
++        appdata = os.getenv("APPDATA")
++        base = Path(appdata) / "InkAndIron" if appdata else Path.home() / ".ink_iron"
++        return base / "logs"
++    return None
++
++
++class _Tee:
++    """A text stream that writes to the console AND the log file.
++
++    Neither side may raise: a closed console or a full disk must never take
++    a turn down with it."""
++
++    def __init__(self, stream, fh):
++        self._stream = stream
++        self._fh = fh
++
++    def write(self, text):
++        if self._stream is not None:
++            try:
++                self._stream.write(text)
++            except Exception:
++                pass
++        try:
++            self._fh.write(text)
++            self._fh.flush()
++        except Exception:
++            pass
++        return len(text)
++
++    def flush(self):
++        for target in (self._stream, self._fh):
++            try:
++                if target is not None:
++                    target.flush()
++            except Exception:
++                pass
++
++    def isatty(self):
++        try:
++            return bool(self._stream is not None and self._stream.isatty())
++        except Exception:
++            return False
++
++    def fileno(self):
++        if self._stream is None:
++            raise OSError("no console stream")
++        return self._stream.fileno()
++
++    @property
++    def encoding(self):
++        return "utf-8"
++
++    def __getattr__(self, name):
++        return getattr(self._stream, name)
++
++
++def _tolerant_console() -> None:
++    for stream in (sys.stdout, sys.stderr):
++        try:
++            stream.reconfigure(errors="replace")
++        except Exception:
++            pass
++
++
++def install() -> Optional[Path]:
++    """Make the console safe, and tee it into ``server.log`` when logging is on.
++
++    Returns the log folder, or None when logging is off. Idempotent."""
++    global _log_dir
++    _tolerant_console()
++    if _log_dir is not None:
++        return _log_dir
++    log_dir = resolve_log_dir()
++    if log_dir is None:
++        return None
++    try:
++        log_dir.mkdir(parents=True, exist_ok=True)
++        current = log_dir / SERVER_LOG
++        if current.exists():
++            # Keep exactly one previous session: the crash a player reports
++            # is almost always the session BEFORE the relaunch.
++            previous = log_dir / SERVER_LOG_PREVIOUS
++            try:
++                if previous.exists():
++                    previous.unlink()
++                current.rename(previous)
++            except OSError:
++                pass
++        fh = open(current, "a", encoding="utf-8", errors="replace", buffering=1)
++    except OSError as exc:
++        print(f"[WARN] Could not open the log folder {log_dir}: {exc}")
++        return None
++    fh.write(f"=== Ink & Iron server log — {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
++    sys.stdout = _Tee(sys.stdout, fh)
++    sys.stderr = _Tee(sys.stderr, fh)
++    _log_dir = log_dir
++    return log_dir
++
++
++def log_dir() -> Optional[Path]:
++    """The folder logs are being written to this session, or None."""
++    return _log_dir
++
++
++def append_transcript(world: Any, order: str, response: Any) -> None:
++    """Record one typed order and the game's reply (no-op when logging is off)."""
++    if _log_dir is None:
++        return
++    try:
++        reply = response if isinstance(response, dict) else {}
++        message = str(reply.get("message") or "")
++        line = {
++            "time": time.strftime("%Y-%m-%d %H:%M:%S"),
++            "turn": int(getattr(world, "current_turn", 0) or 0),
++            "order": str(order or ""),
++            "success": bool(reply.get("success", False)),
++            "action": reply.get("action") if isinstance(reply.get("action"), str) else None,
++            "parse_mode": reply.get("parse_mode"),
++            "reply": message[:REPLY_CHARS],
++        }
++        with open(_log_dir / TRANSCRIPT, "a", encoding="utf-8", errors="replace") as fh:
++            fh.write(json.dumps(line, ensure_ascii=False) + "\n")
++    except Exception as exc:  # the transcript must never cost a turn
++        print(f"[WARN] transcript line not written: {exc}")
+diff --git a/deploy/dist_template/config.txt b/deploy/dist_template/config.txt
+index 57f2dcea..daf4c84f 100644
+--- a/deploy/dist_template/config.txt
++++ b/deploy/dist_template/config.txt
+@@ -3,12 +3,14 @@
+ ; The full game works WITHOUT this file being edited - no account,
+ ; no key, no internet. Orders are read by the built-in parser.
+ ;
+-; Smarter Parsing (optional): if you add an Anthropic key below,
+-; unusually-phrased orders the built-in parser can't confidently
+-; read are interpreted by Claude. Typical cost: under $2 for an
+-; entire campaign, billed by Anthropic to you.
++; Smarter Parsing (optional): if you add your own Anthropic key
++; below, orders the built-in parser is unsure of are also read by
++; Claude. Anthropic bills your account - under a cent for each
++; order it reads. The key stays on this PC and is sent only to
++; Anthropic, through the game's own local server.
+ ; Get a key at: https://console.anthropic.com/
+ ;
+-; You can also do this in-game instead: Main Menu -> Settings.
++; You can also do this in-game instead: Main Menu -> Settings ->
++; Smarter Parsing, which also tells you if the key was rejected.
+ ;
+ ANTHROPIC_API_KEY=your_key_here
+diff --git a/deploy/launch.bat b/deploy/launch.bat
+index c2e96b95..263ebacf 100644
+--- a/deploy/launch.bat
++++ b/deploy/launch.bat
+@@ -47,12 +47,23 @@ if not exist "ink_iron_server.exe" (
+     exit /b 1
+ )
+ 
+-:: If a server is already answering on port 8005, reuse it rather than
+-:: silently starting a second one underneath it.
++:: If a server is already answering on port 8005, reuse it ONLY if it is this
++:: build's own (PB-4, the release build): a different build - an older zip, a
++:: developer's source server - would play a different game under this client.
++set "BUILD_STAMP="
++if exist "build_stamp.txt" set /p BUILD_STAMP=<build_stamp.txt
+ curl -s --fail -o nul http://127.0.0.1:8005/test 2>nul
+ if not errorlevel 1 (
+-    echo [WARN] A server is already running on port 8005 - reusing it.
+-    echo        ^(If the game acts stale, close everything and relaunch.^)
++    set "RUNNING_STAMP="
++    for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "try { (Invoke-RestMethod -Uri 'http://127.0.0.1:8005/test' -TimeoutSec 5).version } catch { '' }"`) do set "RUNNING_STAMP=%%v"
++    if defined BUILD_STAMP if not "!RUNNING_STAMP!"=="!BUILD_STAMP!" (
++        echo [ERROR] Another Ink and Iron server is already running on port 8005,
++        echo         and it is a different build ^(!RUNNING_STAMP!, this one is !BUILD_STAMP!^).
++        echo         Close its window ^(or restart the PC^) and run launch.bat again.
++        pause
++        exit /b 1
++    )
++    echo [INFO] This build's server is already running - reusing it.
+     goto server_up
+ )
+ 
+@@ -60,27 +71,28 @@ if not errorlevel 1 (
+ echo [INFO] Starting server...
+ start "Ink and Iron Server" /min ink_iron_server.exe
+ 
+-:: Wait until the server actually answers (up to ~30s) instead of hoping
+-:: a fixed 3s was enough. curl ships with Windows 10/11.
++:: Wait until the server actually answers (up to ~60s - a first launch on a
++:: slow disk, or under an antivirus scan of the new exe, can take well over
++:: 30) instead of hoping a fixed 3s was enough. curl ships with Windows 10/11.
+ echo [INFO] Waiting for the server to come up...
+ set /a TRIES=0
+ :wait_server
+ curl -s --fail -o nul http://127.0.0.1:8005/test 2>nul
+ if not errorlevel 1 goto server_up
+ set /a TRIES+=1
+-if !TRIES! geq 30 goto server_dead
++if !TRIES! geq 60 goto server_dead
+ timeout /t 1 /nobreak >nul
+ goto wait_server
+ 
+ :server_dead
+ echo.
+-echo [ERROR] The server did not come up after 30 seconds.
++echo [ERROR] The server did not come up after 60 seconds.
+ echo.
+-echo   - Check the "Ink and Iron Server" window in the taskbar for
+-echo     an error message ^(it stays open when something goes wrong^).
+-echo   - If it closed instantly, run ink_iron_server.exe from a
+-echo     command prompt to see the error.
+-echo   - Port 8005 may be blocked by another program or a firewall.
++echo   - Its log records why: %APPDATA%\InkAndIron\logs\server.log
++echo     ^(please send that file with a report^).
++echo   - Windows Defender or another antivirus may have blocked
++echo     ink_iron_server.exe - allow it and try again.
++echo   - Port 8005 may be in use by another program or blocked by a firewall.
+ echo.
+ pause
+ exit /b 1
+diff --git a/godot-client/project-sovereign/scripts/api_client.gd b/godot-client/project-sovereign/scripts/api_client.gd
+index b44457a6..7e15131e 100644
+--- a/godot-client/project-sovereign/scripts/api_client.gd
++++ b/godot-client/project-sovereign/scripts/api_client.gd
+@@ -277,7 +277,7 @@ func _on_request_completed(result, response_code, _headers, body):
+ 	if result != HTTPRequest.RESULT_SUCCESS:
+ 		push_error("HTTP request failed with result: " + str(result))
+ 		if callback:
+-			callback.call({"success": false, "message": "Connection failed"})
++			callback.call({"success": false, "message": Utils.server_lost_hint()})
+ 		_start_next_request()
+ 		return
+ 
+@@ -297,7 +297,7 @@ func _on_request_completed(result, response_code, _headers, body):
+ 	else:
+ 		push_error("Bad response code: " + str(response_code))
+ 		if callback:
+-			callback.call({"success": false, "message": "Server error (code " + str(response_code) + ")"})
++			callback.call({"success": false, "message": Utils.server_error_hint(response_code)})
+ 
+ 	_start_next_request()
+ 
+diff --git a/godot-client/project-sovereign/scripts/main.gd b/godot-client/project-sovereign/scripts/main.gd
+index fbd9ff31..1c510ec1 100644
+--- a/godot-client/project-sovereign/scripts/main.gd
++++ b/godot-client/project-sovereign/scripts/main.gd
+@@ -2954,6 +2954,13 @@ func _on_command_result(response):
+ 		_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline
+ 		_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition
+ 		_stash_relay(response)  # CR-7-3: the relayed tail, filled at control return
++		# C1 (the release build): the once-per-session Smarter Parsing notice
++		# (the live parser failed; the offline parser read the order). Printed
++		# BEFORE routing — an early-returning route must not swallow a line
++		# the backend will not say twice.
++		var _parser_notice = response.get("parser_notice", null)
++		if _parser_notice is String and _parser_notice != "":
++			add_output("[color=#" + Utils.COLOR_DIMMED + "]" + _parser_notice + "[/color]")
+ 		# POSITION 7: observe-only — the School of War reads every response
+ 		# ahead of routing so an early-returning route (objection, capture)
+ 		# still reaches the tutor. NEVER a _post_hud_response_routes entry
+diff --git a/godot-client/project-sovereign/scripts/main_menu.gd b/godot-client/project-sovereign/scripts/main_menu.gd
+index f1a73c6b..c95c7eaa 100644
+--- a/godot-client/project-sovereign/scripts/main_menu.gd
++++ b/godot-client/project-sovereign/scripts/main_menu.gd
+@@ -51,6 +51,9 @@ var _tex_cache: Dictionary = {}        # slide index -> Texture2D (current + nex
+ # (console error on every campaign start). Children die with the scene.
+ var _slide_timer: Timer
+ var _poll_timer: Timer
++# PB-4 (the release build): the war office's build stamp, from GET /test —
++# printed beside the version so a bug report names the exact build.
++var _server_version := ""
+ var _kb_tweens: Array = []
+ 
+ var _backend_up := false
+@@ -515,6 +518,9 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
+ 	if mode == "test":
+ 		if result == HTTPRequest.RESULT_SUCCESS and code == 200:
+ 			_backend_up = true
++			var test_data = JSON.parse_string(body.get_string_from_utf8())
++			if test_data is Dictionary:
++				_server_version = str(test_data.get("version", ""))
+ 			_apply_backend_state()
+ 			# now learn what there is to continue
+ 			_http_mode = "saves"
+@@ -539,6 +545,9 @@ func _apply_backend_state() -> void:
+ 	if _backend_up:
+ 		_status_label.text = "✓ The war office answers.  ·  " + Utils.backend_origin_label()
+ 		_status_label.add_theme_color_override("font_color", Color(0.55, 0.72, 0.55, 0.9))
++		var version_line := get_node_or_null("VersionLine") as Label
++		if version_line != null and _server_version != "" and _server_version != "dev":
++			version_line.text = "Ink & Iron — " + Utils.build_label() + "  ·  build " + _server_version
+ 	else:
+ 		# FA-29: the instruction depends on WHICH build is running. In a
+ 		# source checkout it is the backend command; in the zip a tester
+diff --git a/godot-client/project-sovereign/scripts/settings_panel.gd b/godot-client/project-sovereign/scripts/settings_panel.gd
+index 7653e9d3..c74e2f10 100644
+--- a/godot-client/project-sovereign/scripts/settings_panel.gd
++++ b/godot-client/project-sovereign/scripts/settings_panel.gd
+@@ -10,10 +10,12 @@ class_name SettingsPanel
+ #   • INTERFACE — the global Interface Scale slider (UI-2 semantics: live-apply
+ #     every step, persist on drag end) + reset + hint
+ #   • SOUND     — Battle sounds toggle + the four bus volume sliders
+-#   • THE PARSER — the in-client Anthropic API key (BYOK). Stored locally in
+-#     user://ui_settings.cfg, pushed to the player's OWN backend at
+-#     127.0.0.1:8005 (/config/llm); an empty key reverts the backend to its
+-#     .env configuration. The key is never sent anywhere else.
++#   • SMARTER PARSING — the player's own Anthropic API key (BYOK). Stored
++#     locally in user://ui_settings.cfg, pushed to the player's OWN backend
++#     (/config/llm), which checks it with Anthropic and sends hard phrasings
++#     to Anthropic with it. An empty key reverts the backend to its launcher
++#     configuration. C1 (the release build, Sept 23 2026): the copy says where
++#     the key goes, and the status line says what the check found.
+ #   • SPOKEN ORDERS — the Voice-to-Text v1 hint (Road-to-EA position 8):
+ #     OS dictation (Win+H) into the command line. Display-only by design —
+ #     dictation types text; the SAME deterministic parser reads it (GR6).
+@@ -169,7 +171,7 @@ func _build_sound_section() -> void:
+ # ── THE PARSER (BYOK) ───────────────────────────────────────────────────────
+ 
+ func _build_parser_section() -> void:
+-	_add_header("THE PARSER (AI)")
++	_add_header("SMARTER PARSING (OPTIONAL)")
+ 	_parser_status = Label.new()
+ 	_parser_status.add_theme_font_size_override("font_size", 12)
+ 	_parser_status.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+@@ -185,23 +187,25 @@ func _build_parser_section() -> void:
+ 	var btn_row := HBoxContainer.new()
+ 	btn_row.add_theme_constant_override("separation", 8)
+ 	var apply := Button.new()
+-	apply.text = "Apply key"
++	apply.text = "Connect"
+ 	apply.custom_minimum_size = Vector2(0, 32)
+ 	apply.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ 	apply.pressed.connect(_on_apply_key)
+ 	btn_row.add_child(apply)
+ 	var clear := Button.new()
+-	clear.text = "Clear (use .env)"
++	clear.text = "Disconnect"
+ 	clear.custom_minimum_size = Vector2(0, 32)
+ 	clear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+ 	clear.pressed.connect(_on_clear_key)
+ 	btn_row.add_child(clear)
+ 	add_child(btn_row)
+ 
+-	_add_hint("Typed orders are read by a fast offline parser; an Anthropic API "
+-		+ "key lets Berthier's aide handle the hard phrasings live. The key is "
+-		+ "stored locally (user://ui_settings.cfg) and sent only to your own "
+-		+ "backend on this machine — never anywhere else.")
++	_add_hint("Your orders are read by a fast offline parser that needs no key. "
++		+ "Connect your own Anthropic account and the orders it is unsure of are "
++		+ "also read by Claude: create an API key at console.anthropic.com and "
++		+ "paste it here. Anthropic bills your account — under a cent for each "
++		+ "order it reads. The key is stored on this PC (user://ui_settings.cfg) "
++		+ "and sent to Anthropic through the game's own local server — to no one else.")
+ 	_show_stored_parser_state()
+ 
+ 
+@@ -234,9 +238,9 @@ func _show_stored_parser_state() -> void:
+ 		return
+ 	var stored := UiSettings.get_api_key()
+ 	if stored == "":
+-		_parser_status.text = "No key stored — the backend uses its .env configuration."
++		_parser_status.text = "No key connected — the offline parser reads your orders."
+ 	else:
+-		_parser_status.text = "Your key (ends …" + stored.right(4) + ") is stored and pushed when a campaign starts."
++		_parser_status.text = "Your key (ends …" + stored.right(4) + ") is stored on this PC and connected when a campaign starts."
+ 
+ 
+ func _push_key(key: String) -> void:
+@@ -272,20 +276,16 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
+ 	var data = JSON.parse_string(body.get_string_from_utf8())
+ 	if not (data is Dictionary):
+ 		return
+-	var provider := str(data.get("provider", "?"))
+-	var key_source := str(data.get("key_source", "none"))
+-	var live := bool(data.get("live", false))
+-	var line: String
+-	if not live:
+-		line = "Live parser: OFF — offline mock parser (deterministic keywords only)."
+-	elif key_source == "byok":
+-		line = "Live parser: %s — using YOUR key." % provider.to_upper()
+-	elif key_source == "inhouse":
+-		line = "Live parser: %s — key from the backend's .env." % provider.to_upper()
++	# C1: the backend checked the key with Anthropic (a free Models-API GET)
++	# and says what it found; a later live parse keeps the line honest.
++	var line := str(data.get("key_status_text", ""))
++	if line == "":
++		line = "Smarter Parsing: on." if bool(data.get("live", false)) else "Not connected — the offline parser reads your orders."
++	var status := str(data.get("key_status", ""))
++	if status == "rejected" or status == "no_model":
++		_parser_status.add_theme_color_override("font_color", Color(Utils.COLOR_ERROR))
+ 	else:
+-		line = "Live parser: %s — but NO key found; falls back to the offline parser." % provider.to_upper()
+-	if mode == "push":
+-		line = "Applied. " + line
++		_parser_status.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+ 	_parser_status.text = line
+ 
+ 
+diff --git a/godot-client/project-sovereign/scripts/utils.gd b/godot-client/project-sovereign/scripts/utils.gd
+index 4b2d3cee..79aadd27 100644
+--- a/godot-client/project-sovereign/scripts/utils.gd
++++ b/godot-client/project-sovereign/scripts/utils.gd
+@@ -82,6 +82,30 @@ static func launch_hint() -> String:
+ 			+ "(it starts the war office first, and must stay open)")
+ 
+ 
++static func server_lost_hint() -> String:
++	"""PB-4 (the release build, Sept 23 2026): what to do when the war office
++	stops answering mid-game. The zip has no console to read, so the line names
++	the remedy and the log a report should carry."""
++	if OS.has_feature("editor"):
++		return "The war office is not answering — restart it with " + launch_hint() + "."
++	return ("The war office (the server window) is not answering. If that window "
++		+ "has closed, close the game and start it again with launch.bat — your "
++		+ "campaign is autosaved every turn (Load). Its log is "
++		+ SERVER_LOG_PATH + " — please send it with a report.")
++
++
++static func server_error_hint(code: int) -> String:
++	"""PB-4: a 500 is a bug, and the log holds its traceback."""
++	if OS.has_feature("editor"):
++		return "Server error (code " + str(code) + ") — see the backend console."
++	return ("The war office hit an error (code " + str(code) + "). Your last turn "
++		+ "is autosaved. The details are in " + SERVER_LOG_PATH
++		+ " — please send it with a report.")
++
++
++const SERVER_LOG_PATH = "%APPDATA%\\InkAndIron\\logs\\server.log"
++
++
+ static func build_label() -> String:
+ 	"""The version line. `application/config/version` is authored in
+ 	project.godot; the fallback is what a source checkout without one reads."""
+diff --git a/tests/test_main_menu_and_ux_pass.py b/tests/test_main_menu_and_ux_pass.py
+index d1ebf142..66117383 100644
+--- a/tests/test_main_menu_and_ux_pass.py
++++ b/tests/test_main_menu_and_ux_pass.py
+@@ -214,7 +214,7 @@ class TestSharedSettingsPanel:
+     def test_panel_scene_exists_and_owns_the_four_sections(self):
+         assert (SCENES / "settings_panel.tscn").exists()
+         panel = _read(SCRIPTS / "settings_panel.gd")
+-        for marker in ("INTERFACE", "SOUND", "THE PARSER (AI)", "CREDITS"):
++        for marker in ("INTERFACE", "SOUND", "SMARTER PARSING (OPTIONAL)", "CREDITS"):
+             assert marker in panel, f"settings panel missing section {marker}"
+         # the four bus sliders + battle toggle + the scale contract
+         assert '["Master", "Music", "SFX", "UI"]' in panel
