@@ -604,6 +604,13 @@ knows took it to **0 refused**.
   TAKES, and the census counts these lines as executed on the executor's own
   verdict. The rule (refuse at issuance, or accept and say it waits) is the CR-6
   triage's, beside CQ-24.
+* **CQ-29 — filed after landing: an unrecognised province is recruited at the
+  capital.** Re-checking an aside (a typed `Franche-Comté`) found the accent resolves
+  on the march, scout and garrison roads but not on `recruit` / `build`, and that
+  `recruit infantry in Swabbia` / `in Franche-Comté` / `in Atlantis` each raise
+  10,000 men AT PARIS for 654 gold on a board where a marshal can reach the capital
+  (the boot masks it). Not this row's surface — the completer offers only exact
+  names — but the parser's: `BUG_FIXES.md` CQ-29, owner the CR-6 triage.
 
 ### Measured after
 
