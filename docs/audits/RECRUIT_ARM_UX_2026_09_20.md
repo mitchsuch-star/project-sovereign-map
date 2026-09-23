@@ -426,3 +426,90 @@ commission Marmont  →  "Marshal Marmont accepts his commission and raises a co
 ```
 
 So commissioning Marmont both unlocks artillery **and** un-deadens **Paris** — which was dead only because no French marshal boots within range of the capital.
+
+---
+
+## §CN-1 + CN-2 LANDING RECORD — the backend half (September 22, 2026)
+
+**Status: LANDED on master** (built on `9871fa12`). Row **CQ-3** → FIXED in
+`docs/BUG_FIXES.md` §Command-Road Queue. **CN-3 (the chip, client) and CN-4 (the
+chip-honesty census) are NEXT** — this commit changes no `.gd`. Pins =
+`tests/test_cn_the_chip_names_the_man.py` (32). Sweep = `tools/_sweep_cn_1_2.json`
+(**19/19 killed, 0 INERT** on the first run).
+
+### Reproduced first (HEAD `9871fa12`)
+
+The memo's census reproduced to the digit: **30 provinces render the row, 90 chips —
+69 refuse, 21 act, 14 of the 21 deliver an arm the label did not name.** `recruit
+cavalry in Rhineland` → 3,000 infantry via Davout, 741g; `recruit infantry in
+Franche-Comte` (funded) → 3,000 cavalry via Murat, 1,504g, with Lannes (infantry,
+872g) standing in the province; `recruit artillery in <any>` → infantry or cavalry at
+full price; every province quoted `recruit_price_here` 872 (the infantry base, no
+marshal, no arm, no field cap); Paris dead. The positive artillery case already
+worked once a gun marshal stood there (`commission Marmont` → `recruit artillery in
+Paris` → 3,000 guns via Marmont, 1,329g) — but nothing told the player so, and Paris
+quoted 675.
+
+### Decisions (taken under the delegated grant, each with its reason)
+
+1. **CN-2 — the arm is a SELECTION KEY where the game chooses the man, never an
+   override on a man the player named.** `find_nearest_marshal_to_region(region,
+   arm=None)`: with an arm, only a marshal of that arm is chosen, nearest first; none
+   in range → a refusal that names who IS in range and what he commands, the remedy,
+   and "Nothing was spent." `arm=None` is the pre-slice rule, pinned byte-identical
+   against the old algorithm on 126 provinces × 9 boards. Both no-marshal branches
+   (`in <province>` and the capital) take the key. Lever
+   `economy_executor.THE_ARM_CHOOSES_THE_MAN`.
+2. **The named road stays PF-7's surfaced correction** (this memo's R2 item 4):
+   `Davout, recruit cavalry` raises his infantry and says so first;
+   `test_pf7_recruit_arm_amount_bombard.py` passes unedited. ⚠ **Correction to
+   STATUS ruling D1**, which said CN-1/CN-2 "close both roads": they close the
+   province road (the chip and its typed twin); the NAMED road is PF-7's deliberate
+   design and is not a wrong purchase in the same sense — the player named the man,
+   whose corps IS his arm. **Re-open condition:** if the user would rather the named
+   mismatch refuse (spending nothing) than surface, that is one branch in
+   `_execute_recruit` plus a conscious flip of PF-7's
+   `test_arm_mismatch_soft_correction_fires_for_artillery`.
+3. **CN-1 — one quote, the executor's own steps.** `economy_executor.recruit_quote`
+   runs the executor's selector (the new PURE `WorldState.ready_marshals_near`, which
+   `find_nearest_marshal_to_region` is now built on, so the two cannot disagree and
+   the payload never disturbs the refusal reason the selector stashes), gates, CO-4
+   field cap, pool check, pricer (with the recipient's Intendance) and treasury check,
+   in the executor's order; the executor refuses through the SAME message builders.
+   **The drift pin drives the real `/command` on all 126 provinces × (no arm + three
+   arms)**: every refusal reads the quote's sentence byte-for-byte and changes nothing;
+   every acting cell matches recipient, gold, men and arm.
+4. **The payload.** `map_data[p]["recruit_here"]` = the three arm quotes, built ONLY
+   where the row renders (own soil, and friendly soil that feeds a French corps —
+   where it carries the executor's refusal, ruling D5); `{}` elsewhere (GR8: 96
+   provinces cost nothing). `recruit_price_here` is kept but made TRUE — what a bare
+   `recruit in <province>` charges (the nearest marshal's own arm), 0 where it would
+   refuse (Rhineland 741, Franche-Comte 0 at the boot treasury, Paris 0). Both ride
+   the existing fog gate. Measured cost: the filtered summary 4.5 → 6.5 ms.
+5. **The remedy is derived from the board, never written in** (R2 item 9): the
+   NEAREST serving commander of the arm, with the order that reaches him (`'Marmont,
+   recruit artillery'`); failing that the cheapest bench candidate of that arm with
+   his price (`commission Marmont (4500g)`); failing that the plain fact. After
+   `commission Marmont`, the Rhineland artillery refusal names Marmont and never the
+   commission; the Paris artillery quote is `ok` via Marmont.
+6. **One arm rule.** `world_state.recruit_arm_of` is the arm the levy raises; the
+   executor reads it instead of its own if-chain.
+7. **Kill criteria both hold.** (1) The no-arm selector is byte-identical (above). (2)
+   An AST census over `backend/ai/**` finds every `{"action": "recruit"}` producer
+   carrying `marshal` (2 of 2, `enemy_ai.py`) — `prompt_builder`'s few-shot dicts are
+   examples, not producers — with a sensitivity arm that deletes the key in a copy and
+   goes red. So the AI never enters the arm-keyed branch: GR5 is free and
+   **`BASELINE_SERIES` and M1–M7 are byte-identical because the AI never reaches it**,
+   not merely because they measured so.
+8. **Corpus**: two rows for the chip's own `recruit <arm> in <province>` form (no row
+   had used `in`); corpus 711/711 — which pins the PARSE only; the endpoint pins are
+   the evidence.
+
+### Measured after
+
+Re-running the census: **0 of 90 chips deliver the wrong arm (was 14)**; the acting
+chips are exactly the arms a marshal in range commands (12 — Franche-Comte, Lorraine,
+Nivernais, Orleanais, Rhineland infantry+cavalry; Burgundy and Savoy cavalry); every
+artillery chip refuses free and names `commission Marmont (4500g)`. 2,161 existing
+recruit-family tests pass unedited, including PF-7, the Aug-30 review's price pins and
+IQ-10's.

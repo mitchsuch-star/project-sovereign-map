@@ -5806,6 +5806,34 @@
       },
       "source": "CR-7-9 (COMPOUND_CONDITIONAL_COMMANDS_2026_09_20.md)",
       "notes": "The dangling `and` left when both clauses are cut never reaches the target (was `Lorraine and`)."
+    },
+    {
+      "id": "cn-chip-recruit-cavalry-in-rhineland",
+      "utterance": "recruit cavalry in Rhineland",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit",
+        "requested_type": "cavalry",
+        "target": "Rhineland",
+        "marshal": null
+      },
+      "source": "CN (the Command-Road Queue, slice 3) — the region panel chip's OWN string form",
+      "notes": "Until CN no corpus row used the chip's `in <province>` form (all used `at`/`for`). The parse carries the arm as requested_type and no marshal, which is what makes the arm a SELECTION KEY in _execute_recruit (CN-2) — pinned at the endpoint in tests/test_cn_the_chip_names_the_man.py; the corpus pins only the parse."
+    },
+    {
+      "id": "cn-chip-recruit-artillery-in-paris",
+      "utterance": "recruit artillery in Paris",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit",
+        "requested_type": "artillery",
+        "target": "Paris",
+        "marshal": null
+      },
+      "source": "CN (the Command-Road Queue, slice 3) — the artillery chip, R2 item 9",
+      "notes": "The chip a commissioned gun marshal answers (Marmont/Senarmont at Paris)."
     }
   ]
 }

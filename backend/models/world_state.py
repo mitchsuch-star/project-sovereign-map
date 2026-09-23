@@ -130,6 +130,23 @@ ARTILLERY_RECRUIT_AMOUNT = 3000        # Troops per artillery recruit (smallest 
 INFANTRY_RECRUIT_GOLD_COST_BASE = 200  # Gold cost for infantry recruit (existing behavior)
 CAVALRY_RECRUIT_GOLD_COST_BASE = 300   # Gold cost for cavalry recruit (vs 200 infantry)
 ARTILLERY_RECRUIT_GOLD_COST_BASE = 400 # Gold cost for artillery recruit (most expensive — guns + training)
+
+# CN (the Command-Road Queue, slice 3): the three arms a levy can raise.
+RECRUIT_ARMS = ("infantry", "cavalry", "artillery")
+
+
+def recruit_arm_of(marshal) -> str:
+    """The arm a marshal's recruits arrive as — the arm of his corps. The
+    ONE rule `_execute_recruit` levies by and the arm-keyed selector reads
+    (arms are mutually exclusive by construction, so the order only matters
+    for readability; the sovereign's corps levies infantry)."""
+    if getattr(marshal, "artillery", False):
+        return "artillery"
+    if getattr(marshal, "cavalry", False):
+        return "cavalry"
+    return "infantry"
+
+
 INFANTRY_BASE_REGEN = 2500             # Per nation per turn (halved S8 — manpower is precious)
 CAVALRY_BASE_REGEN = 250               # Per nation per turn (halved S8 — slow, this IS the bottleneck)
 ARTILLERY_BASE_REGEN = 150             # Per nation per turn (halved S8 — foundries are scarce)
@@ -5492,33 +5509,22 @@ class WorldState:
     # Add this to backend/models/world_state.py
     # ============================================================================
 
-    def find_nearest_marshal_to_region(self, region_name: str) -> Optional[Tuple[Marshal, int]]:
-        """
-        Find the player's STRONGEST combat-ready marshal nearest to a region.
-
-        Filters out:
-        - Dead marshals (strength <= 0)
-        - Weak marshals (strength < 1000)
-        - Marshals out of attack range (distance > movement_range)
-
-        Returns:
-            Tuple of (Marshal, distance) or None if no marshals available
-        """
+    def ready_marshals_near(self, region_name: str
+                            ) -> Tuple[List[Tuple[Marshal, int]], List[str]]:
+        """CN (the Command-Road Queue, slice 3): the player's LIVING,
+        combat-ready marshals within their own range of `region_name`,
+        sorted nearest first (strength breaks the tie), and the reason each
+        of the others was passed over. PURE — no stash, no logging — so the
+        recruit quote and the map payload can ask it for every province
+        without disturbing the refusal reason `find_nearest_marshal_to_
+        region` leaves for `_recruit_block_reason`. That method is now this
+        one plus its logging, so the two cannot disagree."""
+        ready_marshals: List[Tuple[Marshal, int]] = []
+        filtered_out: List[str] = []
         if region_name not in self.regions:
-            return None
-
-        player_marshals = self.get_player_marshals()
-
-        if not player_marshals:
-            return None
-
-        # Filter for LIVING, COMBAT-READY marshals within range
-        ready_marshals = []
-        filtered_out = []
-
-        for m in player_marshals:
+            return ready_marshals, filtered_out
+        for m in self.get_player_marshals():
             distance = self.get_distance(m.location, region_name)
-
             if m.strength <= 0:
                 # WO-15 (slice 12): a prisoner is a strength-0 marshal who
                 # stays on the roster BY DESIGN (W6-7) — the recruit refusal
@@ -5537,6 +5543,50 @@ class WorldState:
                 filtered_out.append(f"{m.name} (out of range - {distance} regions away, range {m.movement_range})")
             else:
                 ready_marshals.append((m, distance))
+        # Sort by DISTANCE (nearest first), then by strength as tiebreaker
+        ready_marshals.sort(key=lambda x: (x[1], -x[0].strength))
+        return ready_marshals, filtered_out
+
+    def find_nearest_marshal_to_region(self, region_name: str,
+                                       arm: Optional[str] = None
+                                       ) -> Optional[Tuple[Marshal, int]]:
+        """
+        Find the player's STRONGEST combat-ready marshal nearest to a region.
+
+        Filters out:
+        - Dead marshals (strength <= 0)
+        - Weak marshals (strength < 1000)
+        - Marshals out of attack range (distance > movement_range)
+
+        CN-2 (the Command-Road Queue, slice 3): `arm` makes the corps's arm
+        a SELECTION KEY — only a marshal of that arm is chosen, nearest
+        first, and None when none of that arm is in range. `arm=None` is
+        the pre-slice rule byte-for-byte (pinned over 126 provinces). The
+        arm is a key only where the game is choosing the man freely; a
+        NAMED marshal's arm is never overridden (PF-7) — that branch never
+        calls here.
+
+        Returns:
+            Tuple of (Marshal, distance) or None if no marshals available
+        """
+        if region_name not in self.regions:
+            return None
+
+        player_marshals = self.get_player_marshals()
+
+        if not player_marshals:
+            return None
+
+        # Filter for LIVING, COMBAT-READY marshals within range
+        ready_marshals, filtered_out = self.ready_marshals_near(region_name)
+        if arm is not None:
+            passed_over = [m for m, _d in ready_marshals
+                           if recruit_arm_of(m) != arm]
+            ready_marshals = [(m, d) for m, d in ready_marshals
+                              if recruit_arm_of(m) == arm]
+            filtered_out = filtered_out + [
+                f"{m.name} (commands {recruit_arm_of(m)})"
+                for m in passed_over]
 
         # Log filtering results
         if filtered_out:
@@ -5553,9 +5603,6 @@ class WorldState:
             self._last_nearest_marshal_block = list(filtered_out)
             return None
         self._last_nearest_marshal_block = []
-
-        # Sort by DISTANCE (nearest first), then by strength as tiebreaker
-        ready_marshals.sort(key=lambda x: (x[1], -x[0].strength))
 
         nearest_marshal, distance = ready_marshals[0]
 
@@ -9253,6 +9300,9 @@ class WorldState:
 
                 marshals_data.append(marshal_data)
 
+            # CN-1: the recruit row's quotes, only where the row renders.
+            _recruit_block = self._region_recruit_block(region)
+
             # This is the map_data that Godot actually reads (via game_state response).
             map_data[region_name] = {
                 "controller": region.controller,
@@ -9279,13 +9329,22 @@ class WorldState:
                 # cost runs up to twice that. The player read one number and
                 # was charged another, at the moment of choosing. Fogged
                 # downstream with the rest of the econ block.
-                "recruit_price_here": int(self._region_recruit_price(region)),
+                "recruit_price_here": int(_recruit_block.get("price_here", 0)),
+                # CN-1 (the Command-Road Queue, slice 3): what each arm's
+                # chip WOULD DO here — the recipient, his arm, the gold HE
+                # will be charged, the men who will actually arrive after the
+                # CO-4 field cap — or the refusal in the executor's own
+                # sentence. Built by `economy_executor.recruit_quote` from the
+                # executor's own selector and pricer, and drift-pinned against
+                # the real /command. Only where the recruit row renders.
+                "recruit_here": _recruit_block.get("arms", {}),
                 # IQ-1 IQ1-3D rider 1: what SUBSTITUTES cost HERE, for the
                 # marshal actually standing here. Two things the draft's own
                 # key learned the hard way and this must not repeat: price it
                 # in THIS province (the capital's rate ran up to twice the
                 # local one) and price it for THIS MARSHAL — MC-2b's Intendance
-                # moves the charge +-15% and `_region_recruit_price` passes no
+                # moves the charge +-15% and the pre-CN `_region_recruit_price` (deleted
+                # by CN-1) passed no
                 # `marshal=`, so reusing it would quote a figure the executor
                 # does not charge. 0 = no substitute market here.
                 "substitute_price_here": int(
@@ -9363,18 +9422,38 @@ class WorldState:
             "victory": self.victory
         }
 
-    def _region_recruit_price(self, region) -> int:
-        """Gold for one infantry levy raised in THIS province (GR1: the
-        executor's own pricer, not a second formula)."""
+    def _region_recruit_block(self, region) -> Dict:
+        """CN-1: `{"arms": {arm: quote}, "price_here": int}` for a province
+        whose recruit row renders — the player's own soil, and friendly
+        soil that feeds a French corps (where the row renders DISABLED with
+        the executor's own sentence: recruiting does not open on ally soil,
+        ruling D5). `{}` everywhere else, so 96 provinces cost nothing.
+
+        `price_here` is what a bare `recruit in <province>` would charge —
+        the nearest marshal's own arm, which is the per-arm quote of that
+        arm — or 0 when it would refuse. It replaces the arm-blind infantry
+        base the key used to carry (872g quoted beside 741g/1,504g charged).
+        """
         try:
             from backend.commands.economy_executor import (
-                INFANTRY_RECRUIT_GOLD_COST_BASE, _levy_pricer,
+                recruit_quote, region_feeds_nation,
             )
-            return int(_levy_pricer()._calculate_recruit_cost(
-                region, self, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,
-                nation=self.player_nation))
+            from backend.models.world_state import RECRUIT_ARMS, recruit_arm_of
+            nation = self.player_nation
+            if (region.controller != nation
+                    and not region_feeds_nation(self, nation, region)):
+                return {}
+            arms = {arm: recruit_quote(self, region.name, arm=arm)
+                    for arm in RECRUIT_ARMS}
+            ready, _blocked = self.ready_marshals_near(region.name)
+            price_here = 0
+            if ready:
+                nearest = arms.get(recruit_arm_of(ready[0][0])) or {}
+                if nearest.get("ok"):
+                    price_here = int(nearest.get("price", 0))
+            return {"arms": arms, "price_here": price_here}
         except Exception:
-            return 0
+            return {}
 
     def _region_substitute_price(self, region) -> int:
         """Gold for one SUBSTITUTE batch bought in THIS province, by the
@@ -9479,6 +9558,8 @@ class WorldState:
                 filtered_region["supply_capacity"] = region_data["supply_capacity"]
                 filtered_region["recruit_price_here"] = region_data.get(
                     "recruit_price_here", 0)
+                filtered_region["recruit_here"] = region_data.get(
+                    "recruit_here", {})
                 filtered_region["substitute_price_here"] = region_data.get(
                     "substitute_price_here", 0)
                 filtered_region["buildings"] = region_data["buildings"]

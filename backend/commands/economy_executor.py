@@ -5,9 +5,9 @@ Extracted from executor.py: _execute_economy, _execute_recruit, _execute_garriso
 _execute_build, _execute_build_watchtower, _execute_repair.
 Also includes _calculate_recruit_cost, _extract_building_type, and garrison constants.
 """
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from backend.models.world_state import (
-    WorldState,
+    WorldState, RECRUIT_ARMS, recruit_arm_of,
     INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
     INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE, ARTILLERY_RECRUIT_GOLD_COST_BASE,
     INFANTRY_BASE_REGEN,
@@ -309,7 +309,13 @@ def _recruit_block_reason(world) -> str:
     `find_nearest_marshal_to_region` already computed the per-marshal
     reasons and discarded them. This states them, and names the rule.
     """
-    blocked = list(getattr(world, "_last_nearest_marshal_block", None) or [])
+    return _recruit_block_reason_from(
+        list(getattr(world, "_last_nearest_marshal_block", None) or []))
+
+
+def _recruit_block_reason_from(blocked: List[str]) -> str:
+    """The sentence `_recruit_block_reason` states, from an explicit list —
+    CN-1's quote reads the pure selector and has no stash to read."""
     if not blocked:
         return ""
     shown = "; ".join(blocked[:3])
@@ -317,6 +323,224 @@ def _recruit_block_reason(world) -> str:
     return (f" Recruits join a marshal who can reach the depot: {shown}"
             f"{more}. March a corps within range, or name one directly "
             f"(\"recruit 10000 infantry with Ney\").")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# CN "The Chip Names the Man" (the Command-Road Queue, slice 3)
+# ═══════════════════════════════════════════════════════════════════════
+# Build contract: docs/audits/RECRUIT_ARM_UX_2026_09_20.md (R1 ≡ CN-1, R2 ≡
+# CN-2). Measured on the 1805 boot through POST /command before a line was
+# written: of 90 recruit chips the region panel renders, 69 refused and 14
+# of the 21 that acted delivered an arm the label did not name — the arm
+# word was read ONCE, to build a footnote, after the gold was spent.
+# `recruit cavalry in Rhineland` raised 3,000 INFANTRY via Davout for 741g;
+# `recruit infantry in Franche-Comte` raised 3,000 CAVALRY via Murat for
+# 1,504g while Lannes, infantry, stood in the same province at 872g.
+#
+# ⚖ THE DISTINCTION, argued at the seam so the next reader does not revert
+# it. The requested arm is ILLEGITIMATE as an override on a NAMED marshal —
+# a marshal IS his corps and its arm is fixed, so `Murat, recruit infantry`
+# raises horse and says so (PF-7's "surface or reject — never honour an
+# arbitrary arm", pinned in test_pf7_recruit_arm_amount_bombard.py and left
+# untouched). It is entirely LEGITIMATE as a SELECTION KEY where the game
+# is choosing the man freely: `recruit cavalry in Rhineland` names no
+# marshal, and the old choice was an arbitrary `(distance, -strength)`
+# tiebreak the player never made. Keying it takes nothing from anyone.
+# Flip lever: False restores the arm-blind choice byte-for-byte.
+THE_ARM_CHOOSES_THE_MAN = True
+
+_ARM_NOUN = {"infantry": "foot", "cavalry": "horse", "artillery": "guns"}
+
+
+def _levy_arm_constants(arm: str):
+    """(batch, base gold) for an arm — the executor's own table."""
+    if arm == "artillery":
+        return ARTILLERY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_GOLD_COST_BASE
+    if arm == "cavalry":
+        return CAVALRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_GOLD_COST_BASE
+    return INFANTRY_RECRUIT_AMOUNT, INFANTRY_RECRUIT_GOLD_COST_BASE
+
+
+def _msg_no_recipient(location: Optional[str], blocked: List[str]) -> str:
+    where = f" at {location}" if location else ""
+    return (f"Berthier scans the dispatches. 'No marshal is available to "
+            f"receive reinforcements{where}, Sire.'"
+            f"{_recruit_block_reason_from(blocked)}")
+
+
+def _msg_not_controlled(location: str) -> str:
+    return (f"Berthier frowns. 'We do not control {location}, Your Majesty. "
+            f"Recruitment is impossible there.'")
+
+
+def _msg_unrest(location: str, region) -> str:
+    return (f"Berthier advises caution. '{location} is in "
+            f"{region.get_stability_label()} (stability {region.stability}/100). "
+            f"The populace will not answer our call until stability exceeds 50.'")
+
+
+def _msg_pool_short(world, nation: str, arm: str, available: int,
+                    need: int) -> str:
+    if arm == "artillery":
+        regen_rate = world.get_artillery_regen_rate(nation)
+    elif arm == "cavalry":
+        regen_rate = world.get_cavalry_regen_rate(nation)
+    else:
+        regen_rate = world.get_manpower_regen_rates(nation)["infantry"]
+    turns_until = max(1, (need - available + regen_rate - 1) // regen_rate)
+    plural = "s" if turns_until > 1 else ""
+    return (f"Berthier consults his ledgers. 'Sire, our {arm} reserves are "
+            f"insufficient. Pool: {available:,}, need: {need:,}. "
+            f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} "
+            f"turn{plural}.'")
+
+
+def _msg_treasury(cost: int, have: int) -> str:
+    return (f"Berthier shakes his head. 'The treasury cannot support this, "
+            f"Sire. Need {cost} gold, have {have}.'")
+
+
+def recruit_arm_remedy(world, nation: str, arm: str,
+                       region_name: Optional[str] = None) -> str:
+    """CN-2: the way to an arm nobody in range commands — DERIVED from the
+    board, never written in (the memo's R2 item 9). The NEAREST commander of
+    that arm who serves is named with the order that reaches him; failing
+    that, the cheapest candidate of that arm on the commission bench, with
+    his price; failing that, the plain fact."""
+    noun = _ARM_NOUN.get(arm, arm)
+    serving = [m for m in world.marshals.values()
+               if m.nation == nation and m.strength > 0
+               and not getattr(m, "captured_by", "")
+               and recruit_arm_of(m) == arm]
+    if serving:
+        def _near(m):
+            try:
+                d = (world.get_distance(m.location, region_name)
+                     if region_name else 0)
+            except Exception:
+                d = 0
+            return (d if d is not None and d >= 0 else 999,
+                    -int(m.strength), m.name)
+        serving.sort(key=_near)
+        man = serving[0]
+        return (f"{man.name} commands our {noun} at {man.location} — march "
+                f"him within reach, or give him the order yourself: "
+                f"'{man.name}, recruit {arm}'.")
+    from backend.game_logic.recruitment import candidate_arm, get_marshal_pool
+    bench = [c for c in get_marshal_pool(world, nation)
+             if candidate_arm(c) == arm and c.get("name")
+             and c.get("name") not in world.marshals]
+    if bench:
+        bench.sort(key=lambda c: (int(c.get("cost", 0) or 0),
+                                  str(c.get("name"))))
+        cand = bench[0]
+        return (f"No commander of {noun} serves us — commission "
+                f"{cand['name']} ({int(cand.get('cost', 0) or 0)}g) and he "
+                f"raises a corps of {noun}.")
+    return f"No commander of {noun} serves us, and none waits on the bench."
+
+
+def _msg_no_arm_in_range(world, nation: str, arm: str,
+                         location: Optional[str], ready) -> str:
+    """CN-2: the requested arm has no recipient in range — say who IS in
+    range and what he commands, name the remedy, and spend nothing. Never a
+    silent substitution."""
+    where = f" {location}" if location else " the depot"
+    shown = (", ".join(f"{m.name} commands {recruit_arm_of(m)}"
+                       for m, _d in ready[:3])
+             or "none of ours stands within reach")
+    return (f"Berthier checks the order of battle. 'No marshal of {arm} can "
+            f"reach{where}, Sire — {shown}.' "
+            f"{recruit_arm_remedy(world, nation, arm, location)}"
+            f" Nothing was spent.")
+
+
+def recruit_quote(world, region_name: str, arm: Optional[str] = None,
+                  nation: Optional[str] = None) -> Dict:
+    """CN-1: what `recruit [<arm>] in <region>` would do — the recipient,
+    the arm he raises, the gold he will be charged, the men who will
+    actually arrive after the CO-4 field cap — or the refusal, in the very
+    sentence the executor would print. Built from the executor's OWN
+    selector (`ready_marshals_near`, the pure core of
+    `find_nearest_marshal_to_region`), gates, field cap, pool check and
+    pricer, in the executor's order; `_execute_recruit` refuses through the
+    same message builders. PURE: it reads the board and changes nothing.
+
+    The drift pin in tests/test_cn_the_chip_names_the_man.py drives the real
+    `POST /command` on every province and asserts recipient, price and
+    amount equal what the executor actually does — so a check added to one
+    and not the other cannot ship green.
+    """
+    nation = nation or world.player_nation
+    quote = {"ok": False, "kind": "", "reason": "", "arm_requested": arm,
+             "recipient": None, "arm": None, "distance": None,
+             "price": 0, "amount": 0, "field_capped": False}
+    # The executor's routing layer refuses an order of state before the
+    # executor runs when the Emperor has no administrative action left.
+    if int(getattr(world, "admin_actions_remaining", 0) or 0) < 1:
+        quote.update(kind="no_admin_ap", reason=(
+            f"No administrative actions remaining this turn. (Military "
+            f"commands: {int(world.actions_remaining)} remaining)"))
+        return quote
+    region = world.get_region(region_name)
+    if region is None:
+        quote.update(kind="unknown_region",
+                     reason=f"Unknown region: {region_name}")
+        return quote
+    ready, blocked = world.ready_marshals_near(region_name)
+    if arm is not None and THE_ARM_CHOOSES_THE_MAN:
+        of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]
+        if not of_arm:
+            quote.update(kind="no_arm_in_range", reason=_msg_no_arm_in_range(
+                world, nation, arm, region_name, ready))
+            return quote
+        ready = of_arm
+    if not ready:
+        quote.update(kind="no_recipient",
+                     reason=_msg_no_recipient(region_name, blocked))
+        return quote
+    marshal, distance = ready[0]
+    levy_arm = recruit_arm_of(marshal)
+    amount, cost_base = _levy_arm_constants(levy_arm)
+    if (not region_has_friendly_supply(region)
+            and 0 < AI_CORPS_REGEN_CAP < amount):
+        amount = int(AI_CORPS_REGEN_CAP)
+        quote["field_capped"] = True
+    quote.update(recipient=marshal.name, arm=levy_arm, distance=int(distance),
+                 amount=int(amount))
+    gate = recruit_location_gate(region, marshal.nation)
+    if gate == RECRUIT_GATE_NOT_CONTROLLED:
+        quote.update(kind="not_controlled",
+                     reason=_msg_not_controlled(region_name))
+        return quote
+    if gate == RECRUIT_GATE_UNREST:
+        quote.update(kind="unrest", reason=_msg_unrest(region_name, region))
+        return quote
+    available = int(world.manpower_pools.get(marshal.nation, {}).get(
+        levy_arm, 0))
+    if available < amount:
+        quote.update(kind="pool_short", reason=_msg_pool_short(
+            world, marshal.nation, levy_arm, available, amount))
+        return quote
+    price = int(_levy_pricer()._calculate_recruit_cost(
+        region, world, base_cost=cost_base, nation=marshal.nation,
+        marshal=marshal))
+    quote["price"] = price
+    have = int(world.nation_gold.get(marshal.nation, 0))
+    if have < price:
+        quote.update(kind="treasury", reason=_msg_treasury(price, have))
+        return quote
+    quote.update(ok=True, kind="ok")
+    return quote
+
+
+def recruit_here(world, region_name: str) -> Dict:
+    """CN-1: the map payload's block for one province — the quote for each
+    arm (what that chip would do) and the quote with no arm named (what a
+    bare `recruit in <region>` would do)."""
+    return {"arms": {arm: recruit_quote(world, region_name, arm=arm)
+                     for arm in RECRUIT_ARMS},
+            "any": recruit_quote(world, region_name)}
 
 
 def _decree_preamble(world, acting_nation: str) -> str:
@@ -702,6 +926,21 @@ class EconomyExecutor:
                 cost = int(round(cost * marshal.get_recruit_cost_modifier()))
         return int(cost)
 
+    @staticmethod
+    def _no_recruit_recipient(world, location: str, arm: Optional[str],
+                              *, say_where: bool) -> str:
+        """The refusal when the selector found nobody: CN-2's arm-keyed
+        refusal when an arm was asked for (it names who IS in range and the
+        remedy derived from the board), else the old sentence,
+        byte-for-byte."""
+        if arm is not None:
+            ready, _blocked = world.ready_marshals_near(location)
+            return _msg_no_arm_in_range(world, world.player_nation, arm,
+                                        location, ready)
+        return _msg_no_recipient(location if say_where else None,
+                                 list(getattr(world, "_last_nearest_marshal_block",
+                                              None) or []))
+
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
         """Recruit new troops with manpower pools, morale dilution, stability gates, and cost modifiers.
 
@@ -731,6 +970,14 @@ class EconomyExecutor:
                 "message": "Error: No world state available"
             }
 
+        # CN-2: where the game chooses the man (no marshal named), the arm the
+        # player asked for is the SELECTION KEY — never an override on a man
+        # the player named (see THE_ARM_CHOOSES_THE_MAN above).
+        choose_arm = (requested_type
+                      if (THE_ARM_CHOOSES_THE_MAN and not marshal_specified
+                          and requested_type in RECRUIT_ARMS)
+                      else None)
+
         # Determine which marshal gets the troops and where recruitment happens
         if marshal_specified:
             # Use fuzzy matching for marshal lookup
@@ -742,16 +989,15 @@ class EconomyExecutor:
             recruitment_location = marshal.location
 
         elif location_specified:
-            result = world.find_nearest_marshal_to_region(location_specified)
+            result = world.find_nearest_marshal_to_region(
+                location_specified, arm=choose_arm)
 
             if not result:
                 return {
                     "success": False,
-                    "message": (
-                        f"Berthier scans the dispatches. 'No marshal is "
-                        f"available to receive reinforcements at "
-                        f"{location_specified}, Sire.'"
-                        f"{_recruit_block_reason(world)}")
+                    "message": self._no_recruit_recipient(
+                        world, location_specified, choose_arm,
+                        say_where=True),
                 }
 
             marshal, distance = result
@@ -761,14 +1007,14 @@ class EconomyExecutor:
         else:
             from backend.models.region import NATION_CAPITALS
             capital = world.player_capital or NATION_CAPITALS.get(world.player_nation, "Paris")
-            result = world.find_nearest_marshal_to_region(capital)
+            result = world.find_nearest_marshal_to_region(capital,
+                                                          arm=choose_arm)
 
             if not result:
                 return {
                     "success": False,
-                    "message": ("Berthier scans the dispatches. 'No marshal "
-                                "is available to receive reinforcements, "
-                                "Sire.'" + _recruit_block_reason(world))
+                    "message": self._no_recruit_recipient(
+                        world, capital, choose_arm, say_where=False),
                 }
 
             marshal, distance = result
@@ -780,12 +1026,7 @@ class EconomyExecutor:
         # Auto-break square formation (Session 67)
         if recruit_marshal:
             self._executor._auto_break_square(recruit_marshal, "recruit")
-        if getattr(recruit_marshal, 'artillery', False):
-            recruit_type = "artillery"
-        elif getattr(recruit_marshal, 'cavalry', False):
-            recruit_type = "cavalry"
-        else:
-            recruit_type = "infantry"
+        recruit_type = recruit_arm_of(recruit_marshal)   # CN: the one rule
 
         # Set batch size and cost based on type
         if recruit_type == "artillery":
@@ -878,34 +1119,24 @@ class EconomyExecutor:
         if location_gate == RECRUIT_GATE_NOT_CONTROLLED:
             return {
                 "success": False,
-                "message": f"Berthier frowns. 'We do not control {recruitment_location}, Your Majesty. Recruitment is impossible there.'"
+                "message": _msg_not_controlled(recruitment_location),
             }
 
         # Stability gate: block entire Unrest tier (stability <= 50).
         if location_gate == RECRUIT_GATE_UNREST:
-            label = region.get_stability_label()
             return {
                 "success": False,
-                "message": f"Berthier advises caution. '{recruitment_location} is in {label} (stability {region.stability}/100). The populace will not answer our call until stability exceeds 50.'"
+                "message": _msg_unrest(recruitment_location, region),
             }
 
         # --- Manpower pool check (BEFORE gold check) ---
         pool = world.manpower_pools.get(acting_nation, {})
         available = pool.get(recruit_type, 0)
         if available < NEW_TROOPS:
-            if recruit_type == "artillery":
-                regen_rate = world.get_artillery_regen_rate(acting_nation)
-            elif recruit_type == "cavalry":
-                regen_rate = world.get_cavalry_regen_rate(acting_nation)
-            else:
-                regen_rate = world.get_manpower_regen_rates(acting_nation)["infantry"]
-            turns_until = max(1, (NEW_TROOPS - available + regen_rate - 1) // regen_rate)
-            plural = "s" if turns_until > 1 else ""
             return {
                 "success": False,
-                "message": f"Berthier consults his ledgers. 'Sire, our {recruit_type} reserves are insufficient. "
-                           f"Pool: {available:,}, need: {NEW_TROOPS:,}. "
-                           f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} turn{plural}.'"
+                "message": _msg_pool_short(world, acting_nation, recruit_type,
+                                           available, NEW_TROOPS),
             }
 
         # --- Gold cost calculation ---
@@ -923,7 +1154,7 @@ class EconomyExecutor:
         if nation_treasury < gold_cost:
             return {
                 "success": False,
-                "message": f"Berthier shakes his head. 'The treasury cannot support this, Sire. Need {gold_cost} gold, have {nation_treasury}.'"
+                "message": _msg_treasury(gold_cost, nation_treasury),
             }
 
         # Phase 6.2 Audit Fix #6: Training Ground morale bonus buffed from +15% to +30%

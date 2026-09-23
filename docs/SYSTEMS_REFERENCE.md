@@ -6362,3 +6362,33 @@ an order closes a clause, not an address (`Zorglub attack Mack, then hold` is
 addressed to Zorglub; `attack Bern, then hold` to nobody). Arms of service
 (`cavalry attack Mack`) stay CX-7's ruling — not a name, not claimed. Lever
 `clause_guards.THE_ADDRESS_IS_ITS_HEAD`.
+
+## 52. The chip names the man (CN, backend half landed September 22, 2026)
+
+Landing record = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-1 + CN-2 LANDING
+RECORD. Pins = `tests/test_cn_the_chip_names_the_man.py`.
+
+**The arm is a selection key, never an override.** A marshal IS his corps, and his
+arm (`world_state.recruit_arm_of` — the one rule the levy raises by) is fixed. So:
+
+* a NAMED marshal raises his own arm whatever arm the sentence names — `Davout,
+  recruit cavalry` raises infantry and says so first (PF-7's surfaced correction);
+* where the game chooses the man (`recruit cavalry in Rhineland`, `recruit cavalry`),
+  the arm is the key: `find_nearest_marshal_to_region(region, arm=...)` picks only a
+  marshal of that arm, nearest first (strength breaks the tie). None in range → a free
+  refusal naming who IS in range and what he commands, and the remedy derived from the
+  board — the nearest commander of that arm with the order that reaches him, else the
+  cheapest bench candidate of that arm with his price. With `arm=None` the selector is
+  the pre-CN rule byte-for-byte. Lever `economy_executor.THE_ARM_CHOOSES_THE_MAN`.
+
+**One quote.** `economy_executor.recruit_quote(world, region, arm=None)` answers "what
+would this levy do?" with the executor's own steps in the executor's order — admin
+action, selector (`WorldState.ready_marshals_near`, the pure core the selector is built
+on), location gate, CO-4 field cap, pool, price (with the recipient's Intendance),
+treasury — and the executor refuses through the same message builders. It ships as
+`map_data[p]["recruit_here"]` (one quote per arm) only where the recruit row renders:
+own soil, and friendly soil that feeds a French corps (where it carries the executor's
+refusal — recruiting does not open on ally soil, ruling D5). `recruit_price_here` is
+what a bare `recruit in <province>` would charge, 0 where it would refuse. ⛔ **A check
+added to the executor and not the quote reds the drift pin**, which drives the real
+`/command` on every province × arm.

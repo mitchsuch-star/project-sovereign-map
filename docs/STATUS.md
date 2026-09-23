@@ -42,6 +42,24 @@
 > CR-7-3: *"fortify and attack is a contradiction"* — a contradictory pair's drop
 > note must not invite the tail to be re-sent as-is.
 >
+> **✅ SLICE 3, BACKEND HALF — CN-1 + CN-2 "The Chip Names the Man" — LANDED September 22,
+> 2026.** Landing record = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-1 + CN-2 LANDING RECORD;
+> row **CQ-3** disposed. Re-measured first (30 rows, 90 chips, 69 dead, **14 of 21 acting chips
+> the wrong arm**). Where the game chooses the man, the requested arm is now a SELECTION KEY
+> (`find_nearest_marshal_to_region(..., arm=)`, the no-arm rule byte-identical on 126 provinces × 9
+> boards): `recruit cavalry in Rhineland` → horse via Murat, `recruit infantry in Franche-Comte` →
+> Lannes at 872g, an arm nobody in range commands refuses free and names the remedy DERIVED from the
+> board (`commission Marmont (4500g)`, then `'Marmont, recruit artillery'`). **0 of 90 chips now
+> deliver the wrong arm.** The NAMED road stays PF-7's surfaced correction — **ruling D1's "closes
+> both roads" is corrected** in the landing record, with a re-open condition. One quote
+> (`economy_executor.recruit_quote`, the executor's own steps, drift-pinned against the real
+> `/command` on every province × arm) now rides the payload as `recruit_here`; `recruit_price_here`
+> is now true. Kill criteria both hold (AI recruit producers all name a marshal — census with a
+> sensitivity arm), so `BASELINE_SERIES` + M1–M7 are byte-identical because the AI never reaches the
+> branch. `test_cn_the_chip_names_the_man.py` **32**; sweep `tools/_sweep_cn_1_2.json` **19/19, 0
+> INERT**; corpus 711/711 (two chip-form rows); zero `.gd` — **CN-3 (the chip renders it) and CN-4
+> (the census of every `do:` template) are next.**
+>
 > **✅ SLICE 2 — CX-R1 "The unbound name spends nothing" — LANDED September 22, 2026.**
 > Landing record = `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md` §CX-R1 LANDING
 > RECORD (authoritative); rules = `SYSTEMS_REFERENCE.md` §51; row **CQ-2** disposed in
@@ -149,9 +167,10 @@
 >
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = slice **3** of the numbered queue below, **CN-1 … CN-4
->    "The Chip Names the Man"** (slices 1, 2 and 5 landed September 22, 2026 —
->    above). Take it. Do not re-plan it — the build contract is the memo named on
+> 1. **What is next** = slice **3**'s client half, **CN-3 "the chip tells the
+>    truth" and CN-4 "the chip-honesty census"** (slices 1, 2, 5 and CN-1 + CN-2
+>    landed September 22, 2026 — above; the backend now ships `recruit_here` per
+>    province, which CN-3 renders). Take it. Do not re-plan it — the build contract is the memo named on
 >    its row (`RECRUIT_ARM_UX_2026_09_20.md`, memo ids R1–R4 ≡ CN-1–CN-4, with the
 >    positive artillery case added as R2 item 9), and the memos are already sliced
 >    with falsifiable `done_when` clauses. Rulings D4 (no artillery marshal is
@@ -190,7 +209,7 @@
 > |---|---|---|---|---|
 > | ~~**1**~~ | ~~**CR-7-1 "The tail stops eating the head"**~~ ✅ **LANDED Sept 22, 2026** | CR-7 | 0.5 | ~~**P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes.~~ **40 → 0.** Landing record in the memo. |
 > | ~~**2**~~ | ~~**CX-R1 "The unbound name spends nothing"**~~ ✅ **LANDED Sept 22, 2026** | CX-R | 0.5 | ~~**P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**.~~ **~30 forms → 0**; the verb set is generated from the router. Landing record in the memo. CX-X3 (a bare `vassalize`) re-routed to the CR-6 triage. |
-> | **▶ 3** | **CN-1 … CN-4 "The Chip Names the Man"** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
+> | **▶ 3** | **CN-1 … CN-4 "The Chip Names the Man"** — ✅ CN-1 + CN-2 (backend) LANDED Sept 22, 2026; **▶ CN-3 + CN-4 next** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
 > | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |

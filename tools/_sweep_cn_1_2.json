@@ -1,0 +1,135 @@
+[
+  {
+    "id": "CN-1 the executor ignores the requested arm",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        choose_arm = (requested_type\n",
+    "new": "        choose_arm = (None\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-2 the selector drops its arm filter",
+    "file": "backend/models/world_state.py",
+    "old": "            ready_marshals = [(m, d) for m, d in ready_marshals\n                              if recruit_arm_of(m) == arm]\n",
+    "new": "            ready_marshals = [(m, d) for m, d in ready_marshals]\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-3 the quote ignores the requested arm",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if arm is not None and THE_ARM_CHOOSES_THE_MAN:\n        of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]\n",
+    "new": "    if False:\n        of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-4 the quote forgets the field cap",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if (not region_has_friendly_supply(region)\n            and 0 < AI_CORPS_REGEN_CAP < amount):\n",
+    "new": "    if (False\n            and 0 < AI_CORPS_REGEN_CAP < amount):\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-5 the quote forgets whose soil it is",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if gate == RECRUIT_GATE_NOT_CONTROLLED:\n        quote.update(kind=\"not_controlled\",\n",
+    "new": "    if False:\n        quote.update(kind=\"not_controlled\",\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-6 the quote prices without the marshal's intendance",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        region, world, base_cost=cost_base, nation=marshal.nation,\n        marshal=marshal))\n",
+    "new": "        region, world, base_cost=cost_base, nation=marshal.nation,\n        marshal=None))\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-7 the quote forgets the treasury",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if have < price:\n        quote.update(kind=\"treasury\", reason=_msg_treasury(price, have))\n",
+    "new": "    if False:\n        quote.update(kind=\"treasury\", reason=_msg_treasury(price, have))\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-8 the quote forgets the pool",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if available < amount:\n        quote.update(kind=\"pool_short\", reason=_msg_pool_short(\n",
+    "new": "    if False:\n        quote.update(kind=\"pool_short\", reason=_msg_pool_short(\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-9 the quote forgets the admin action",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if int(getattr(world, \"admin_actions_remaining\", 0) or 0) < 1:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-10 the remedy names the strongest, not the nearest",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            return (d if d is not None and d >= 0 else 999,\n                    -int(m.strength), m.name)\n",
+    "new": "            return (-int(m.strength), m.name)\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-11 the arm refusal falls back to the plain sentence",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if arm is not None:\n            ready, _blocked = world.ready_marshals_near(location)\n            return _msg_no_arm_in_range(",
+    "new": "        if False:\n            ready, _blocked = world.ready_marshals_near(location)\n            return _msg_no_arm_in_range(",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-12 the levy ignores the man's arm",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        recruit_type = recruit_arm_of(recruit_marshal)   # CN: the one rule\n",
+    "new": "        recruit_type = \"infantry\"\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-13 the payload computes a block for every province",
+    "file": "backend/models/world_state.py",
+    "old": "            if (region.controller != nation\n                    and not region_feeds_nation(self, nation, region)):\n                return {}\n",
+    "new": "            if False:\n                return {}\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-14 the price_here quotes a refused levy",
+    "file": "backend/models/world_state.py",
+    "old": "                if nearest.get(\"ok\"):\n                    price_here = int(nearest.get(\"price\", 0))\n",
+    "new": "                if True:\n                    price_here = int(nearest.get(\"price\", 0))\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-15 the pure selector loses its sort",
+    "file": "backend/models/world_state.py",
+    "old": "        ready_marshals.sort(key=lambda x: (x[1], -x[0].strength))\n        return ready_marshals, filtered_out\n",
+    "new": "        return ready_marshals, filtered_out\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-16 the remedy never names the bench",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if bench:\n        bench.sort(key=lambda c: (int(c.get(\"cost\", 0) or 0),\n",
+    "new": "    if False:\n        bench.sort(key=lambda c: (int(c.get(\"cost\", 0) or 0),\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-17 a serving gun marshal is not named",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if serving:\n        def _near(m):\n",
+    "new": "    if False:\n        def _near(m):\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-18 the payload never ships the block",
+    "file": "backend/models/world_state.py",
+    "old": "                \"recruit_here\": _recruit_block.get(\"arms\", {}),\n",
+    "new": "                \"recruit_here\": {},\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  },
+  {
+    "id": "CN-19 the fog filter drops the block",
+    "file": "backend/models/world_state.py",
+    "old": "                filtered_region[\"recruit_here\"] = region_data.get(\n                    \"recruit_here\", {})\n",
+    "new": "                filtered_region[\"recruit_here\"] = {}\n",
+    "tests": "tests/test_cn_the_chip_names_the_man.py"
+  }
+]
