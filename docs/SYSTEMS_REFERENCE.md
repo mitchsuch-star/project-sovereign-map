@@ -6363,11 +6363,11 @@ addressed to Zorglub; `attack Bern, then hold` to nobody). Arms of service
 (`cavalry attack Mack`) stay CX-7's ruling — not a name, not claimed. Lever
 `clause_guards.THE_ADDRESS_IS_ITS_HEAD`.
 
-## 52. The chip names the man (CN-1 … CN-3 landed September 22, 2026)
+## 52. The chip names the man (CN-1 … CN-4 landed September 22, 2026)
 
-Landing records = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-1 + CN-2 and §CN-3
-LANDING RECORD. Pins = `tests/test_cn_the_chip_names_the_man.py`,
-`tests/test_cn3_the_chip_tells_the_truth.py`.
+Landing records = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-1 + CN-2, §CN-3 and
+§CN-4 LANDING RECORD. Pins = `tests/test_cn_the_chip_names_the_man.py`,
+`tests/test_cn3_the_chip_tells_the_truth.py`, `tests/test_cn4_the_chip_honesty_census.py`.
 
 **The arm is a selection key, never an override.** A marshal IS his corps, and his
 arm (`world_state.recruit_arm_of` — the one rule the levy raises by) is fixed. So:
@@ -6414,3 +6414,35 @@ price, and the recruit result's note is its terms list — so the note cannot na
 the price did not apply. ⛔ **The client pins are DRIVEN**: `tools/cn3_region_panel_harness.gd`
 runs the real panel headless on the live payload and every `do:recruit` url it renders is
 sent through `/command` (they skip without the engine; a skip is not a pass).
+
+**Every chip is honest, and a census proves it (CN-4).** A chip is offered only where the
+order it sends would act on what it names; otherwise it is dimmed beside the executor's own
+reason. The reasons come from single sources the executors read too:
+
+* **Drill / Fortify** — `tactical_executor.drill_refusal` / `fortify_refusal` (`(sentence,
+  short)`), one builder `order_refusal_response`, read by the pre-objection battery (so an
+  order the executor will refuse is refused BEFORE any objection), both executors, and the
+  payloads (`tactical_state.drill_refusal` / `fortify_refusal`; the Generals card's
+  `drill_refusal` / `fortify_refusal`). Gate order = the player's road: stance, engagement,
+  then the executor's own. ⚠ `_execute_drill` passes `stance_gate=False`: the executor's road
+  (the AI, and the player's strategic/autonomous executions) never had the drill stance gate,
+  and giving it one moves `BASELINE_SERIES` — filed as CQ-22, pinned as current.
+* **Substitutes** — `economy_executor.substitute_quote` (the executor's gates in
+  `_execute_purchase_levy`'s order, shared message builders), shipped as
+  `map_data[p]["substitute_here"]`; the quote CHOOSES the recipient (the first infantryman
+  standing there) and the chip names him.
+* **The keel** — `naval.build_ships_refusal`, one gate for the Admiralty's chip and the region
+  panel's (`naval_overlay.ship_build_refusal`).
+* **Attack** — offered only against a court France is at war with
+  (`marshal_data["at_war_with_player"]`, display-only, foreign marshals only); a neutral's
+  marshal gets no chip — a declaration of war is the wizard's decision. Names are printed
+  (`Utils.humanize_entity_name`) on the row, the label and the command.
+* **Wizard echoes** — every structured action's echo, typed, must do what the structured road
+  does, or be listed in `diplomacy_wizard.ECHO_IS_DISPLAY_ONLY` (today: the white peace), which
+  `main.gd` keeps off the up-arrow and discloses beside the echo.
+
+The census (`tests/test_cn4_the_chip_honesty_census.py`) renders the real panel, the real
+Generals cards and the real wizard's `_build_command` headless (`tools/cn3_region_panel_harness.gd`,
+`tests/_chip_census.py`) and drives every rendered chip; `TestTheInventoryIsComplete` fails on any
+chip url in any client `.gd` it has not reviewed. ⛔ **A new chip gets a census row, or the
+suite goes red.**

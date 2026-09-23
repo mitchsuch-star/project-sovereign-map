@@ -2057,65 +2057,26 @@ class CommandExecutor:
                         }
 
                 # ═══════════════════════════════════════════════════════════
-                # AGGRESSIVE STANCE CHECK - Validation BEFORE objection
-                # Cannot fortify or drill while in aggressive stance
+                # DRILL / FORTIFY GATES — Validation BEFORE objection (CN-4)
+                # One predicate per order (`tactical_executor.drill_refusal`
+                # / `fortify_refusal`), in the order this road has always met
+                # the gates — stance, engagement, then the executor's own —
+                # replacing four hand copies that disagreed: the stance block
+                # (both verbs), the fortify-while-engaged copy, and the
+                # "already fortified / already drilling" first lines. The
+                # executors return the same builder, so an order the executor
+                # will refuse is refused here, before any objection, in the
+                # executor's words. Measured with the copies: `Murat, drill`
+                # beside Mack drew "Murat firmly objects" on the objection
+                # roll's bad turns — the player argued over an order that
+                # could never begin.
                 # ═══════════════════════════════════════════════════════════
-                if current_stance and current_stance.value == "aggressive":
-                    blocked_while_aggressive = ['fortify', 'drill']
-                    if action in blocked_while_aggressive:
-                        return {
-                            "success": False,
-                            "message": f"{marshal_name} cannot {action} while in AGGRESSIVE stance. "
-                                      f"The troops are ready to attack, not dig trenches!",
-                            "stance": "aggressive",
-                            "suggestion": f"Change stance first: '{marshal_name} defensive' or '{marshal_name} neutral'"
-                        }
-
-                # ═══════════════════════════════════════════════════════════
-                # FORTIFY-WHILE-ENGAGED CHECK - Validation BEFORE objection
-                # Mirrors _execute_fortify's own gate. Live playthrough:
-                # Massena (engaged at Milan) objected to fortify, the player
-                # INSISTED through the drama, and only then did execution
-                # fail on the engagement — the exact objection-then-failure
-                # shape the bypass hierarchy exists to prevent.
-                # ═══════════════════════════════════════════════════════════
-                if action == 'fortify':
-                    _engaged_here = [
-                        m for m in world.marshals.values()
-                        if m.location == marshal.location
-                        and m.nation != marshal.nation
-                        and m.strength > 0
-                        and world.is_at_war(marshal.nation, m.nation)
-                    ]
-                    if _engaged_here:
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name} cannot fortify while engaged with enemy forces! "
-                                      f"Enemy present: {', '.join(e.name for e in _engaged_here)}. "
-                                      f"Attack or retreat first."
-                        }
-
-                # ═══════════════════════════════════════════════════════════
-                # ALREADY-FORTIFIED CHECK - Validation BEFORE objection
-                # Objection evaluation must run AFTER action validation —
-                # no point objecting to an action that would fail anyway.
-                # ═══════════════════════════════════════════════════════════
-                if action == 'fortify' and getattr(marshal, 'fortified', False):
-                    current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
-                    return {
-                        "success": False,
-                        "message": f"{marshal.name} is already fortified at {marshal.location} (+{current_bonus}% defense)."
-                    }
-
-                # ═══════════════════════════════════════════════════════════
-                # ALREADY-DRILLING CHECK - Validation BEFORE objection
-                # Same principle: don't object to a redundant drill order.
-                # ═══════════════════════════════════════════════════════════
-                if action == 'drill' and (getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)):
-                    return {
-                        "success": False,
-                        "message": f"{marshal.name} is already engaged in drill exercises."
-                    }
+                if action in ('drill', 'fortify'):
+                    from backend.commands.tactical_executor import (
+                        order_refusal_response)
+                    _refusal = order_refusal_response(world, marshal, action)
+                    if _refusal:
+                        return _refusal
 
                 # ═══════════════════════════════════════════════════════════
                 # RETREAT DANGER CHECK - Validation BEFORE objection (BUG-010)

@@ -16,6 +16,141 @@ from backend.display_names import (STRATEGIC_ORDER_DISPLAY,
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
+def _aggressive_stance_refusal(marshal, verb: str):
+    """The stance gate the player's road has always applied to drill and
+    fortify BEFORE the executor ran (the pre-objection battery), in its own
+    words — now the first gate of both predicates, so the chip, the typed
+    road and the executor say one thing."""
+    if getattr(marshal, 'stance', Stance.NEUTRAL) == Stance.AGGRESSIVE:
+        return (f"{marshal.name} cannot {verb} while in AGGRESSIVE stance. "
+                f"The troops are ready to attack, not dig trenches!",
+                "aggressive stance — change stance first")
+    return None
+
+
+def drill_refusal(world, marshal, *, stance_gate: bool = True):
+    """CN-4: why `<marshal>, drill` would be refused — `(sentence, short)`,
+    or `("", "")` when the drill would begin. ONE predicate for the three
+    readers that used to keep their own copies: the pre-objection battery
+    (the player's road), `_execute_drill`, and the payload, which ships
+    `short` so the Drill chips (the region panel, the Generals screen) dim
+    with the reason instead of offering an order that is refused. The gates
+    run in the order the player's road has always met them: stance, then
+    the executor's own.
+
+    ⚠ `stance_gate=False` is the EXECUTOR's call, deliberately. The stance
+    gate lived only in the player's pre-objection battery; the executor —
+    the AI's road, and the player's strategic/autonomous executions that
+    skip the battery — never had it. Giving it to the executor moved
+    BASELINE_SERIES (measured, CN-4), so this UX slice leaves that road's
+    behaviour exactly as it was and files the asymmetry (BUG_FIXES CQ-22).
+
+    Measured before: `Murat, drill` and `Bernadotte, drill` were enabled
+    chips that answered "cannot drill with enemy forces nearby"; every
+    fortified marshal's Drill chip answered "fortified and cannot drill".
+    PURE — the square break the executor performs first is not a gate.
+    Fog-safe: a player marshal's neighbours are read through
+    `get_visible_enemies`, exactly as the executor read them."""
+    name = marshal.name
+    stance = _aggressive_stance_refusal(marshal, "drill") if stance_gate else None
+    if stance:
+        return stance
+    if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+        return (f"{name} is already engaged in drill exercises.",
+                "already drilling")
+    if getattr(marshal, 'fortified', False):
+        return (f"{name} is fortified and cannot drill. Abandon fortification first.",
+                "fortified — unfortify first")
+    if getattr(marshal, 'retreating', False):
+        return (f"{name} is recovering from retreat and cannot drill yet.",
+                "recovering from retreat")
+    # Enemies at the current location — nation-aware, so enemies drill too.
+    enemy_here = world.get_enemy_at_location_for_nation(marshal.location, marshal.nation)
+    if enemy_here and enemy_here.strength > 0:
+        shown = humanize_entity_name(enemy_here.name)
+        return (f"{name} cannot drill with enemy forces ({enemy_here.name}) present at {marshal.location}!",
+                f"{shown} stands here")
+    # Enemies in adjacent regions — fog-filtered for the player (P2-2).
+    current_region = world.get_region(marshal.location)
+    if current_region:
+        is_player = marshal.nation == world.player_nation
+        enemies = (world.get_visible_enemies(marshal.nation) if is_player
+                   else world.get_enemies_of_nation(marshal.nation))
+        for adj_name in current_region.adjacent_regions:
+            for enemy in enemies:
+                if enemy.location == adj_name and enemy.strength > 0:
+                    return (f"{name} cannot drill with enemy forces nearby! "
+                            f"{enemy.name} is at {adj_name}, just one region away.",
+                            f"{humanize_entity_name(enemy.name)} is at {adj_name}, "
+                            f"one region away")
+    return "", ""
+
+
+def fortify_refusal(world, marshal):
+    """CN-4: why `<marshal>, fortify` would be refused — `(sentence, short)`,
+    or `("", "")` when the works would begin (the AP a neutral stance costs
+    is a resource, not a gate on the order, and is left to the executor).
+    ONE predicate for the pre-objection battery, `_execute_fortify` and the
+    payload, in the order the player's road has always met the gates:
+    stance, engagement, then the executor's own. Measured before: a marshal
+    standing with an enemy (Ney and Davout beside Archduke Charles) had an
+    enabled Fortify chip that answered "cannot fortify while engaged with
+    enemy forces", and the aggressive-stance refusal existed twice, in two
+    wordings, one per road. PURE."""
+    name = marshal.name
+    stance = _aggressive_stance_refusal(marshal, "fortify")
+    if stance:
+        return stance
+    # Engaged: an enemy at war stands on the same ground.
+    enemies_in_region = [
+        m for m in world.marshals.values()
+        if m.location == marshal.location
+        and m.nation != marshal.nation
+        and m.strength > 0
+        and world.is_at_war(marshal.nation, m.nation)
+    ]
+    if enemies_in_region:
+        enemy_names = [e.name for e in enemies_in_region]
+        return (f"{name} cannot fortify while engaged with enemy forces! "
+                f"Enemy present: {', '.join(enemy_names)}. "
+                f"Attack or retreat first.",
+                f"{humanize_entity_name(enemy_names[0])} stands here — attack "
+                f"or retreat first")
+    if getattr(marshal, 'fortified', False):
+        current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
+        return (f"{name} is already fortified at {marshal.location} (+{current_bonus}% defense).",
+                "already fortified")
+    if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+        return (f"{name} is engaged in drill exercises and cannot fortify.",
+                "drilling — the works wait for the drill")
+    if getattr(marshal, 'retreating', False):
+        return (f"{name} is recovering from retreat and cannot fortify yet.",
+                "recovering from retreat")
+    return "", ""
+
+
+def order_refusal_response(world, marshal, verb: str, *,
+                           stance_gate: bool = True):
+    """CN-4: the refusal response for `drill` / `fortify`, or None — built
+    from the predicate, with the stance gate's `stance` and `suggestion`
+    keys (the player's road always carried them). The pre-objection battery
+    and both executors return this, so the typed road and the chip read one
+    refusal; `_execute_drill` passes `stance_gate=False` (see
+    `drill_refusal`)."""
+    if verb == "drill":
+        sentence, _short = drill_refusal(world, marshal, stance_gate=stance_gate)
+    else:
+        sentence, _short = fortify_refusal(world, marshal)
+    if not sentence:
+        return None
+    response = {"success": False, "message": sentence}
+    if (stance_gate or verb == "fortify") and _aggressive_stance_refusal(marshal, verb):
+        response["stance"] = "aggressive"
+        response["suggestion"] = (f"Change stance first: '{marshal.name} "
+                                  f"defensive' or '{marshal.name} neutral'")
+    return response
+
+
 def _square_break_infinitive(action_name) -> str:
     """FA-93 + FA-N50: "breaks formation TO ___", in the infinitive.
 
@@ -227,51 +362,13 @@ class TacticalExecutor:
         # Auto-break square formation (Session 67)
         self._auto_break_square(marshal, "drill")
 
-        # Check if already drilling
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already engaged in drill exercises."
-            }
-
-        # Check if fortified (can't drill while fortified)
-        if getattr(marshal, 'fortified', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is fortified and cannot drill. Abandon fortification first."
-            }
-
-        # Check if retreating (can't drill while recovering)
-        if getattr(marshal, 'retreating', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot drill yet."
-            }
-
-        # Check for enemies at current location (can't drill with enemy present)
-        # Use nation-aware lookup so enemies can drill too (not just player marshals)
-        enemy_at_location = world.get_enemy_at_location_for_nation(marshal.location, marshal.nation)
-        if enemy_at_location and enemy_at_location.strength > 0:
-            return {
-                "success": False,
-                "message": f"{marshal.name} cannot drill with enemy forces ({enemy_at_location.name}) present at {marshal.location}!"
-            }
-
-        # Check for enemies in adjacent regions (too risky to drill)
-        # Use fog-filtered lookup for player marshals to avoid leaking fogged enemy info (P2-2)
-        current_region = world.get_region(marshal.location)
-        if current_region:
-            is_player = marshal.nation == world.player_nation
-            enemies = (world.get_visible_enemies(marshal.nation) if is_player
-                       else world.get_enemies_of_nation(marshal.nation))
-            for adj_name in current_region.adjacent_regions:
-                for enemy in enemies:
-                    if enemy.location == adj_name and enemy.strength > 0:
-                        return {
-                            "success": False,
-                            "message": f"{marshal.name} cannot drill with enemy forces nearby! "
-                                      f"{enemy.name} is at {adj_name}, just one region away."
-                        }
+        # CN-4: the gates live in `drill_refusal` (via the one response
+        # builder), so the Drill chips dim with this very reason. No stance
+        # gate here — this road never had one (see `drill_refusal`).
+        refusal = order_refusal_response(world, marshal, "drill",
+                                         stance_gate=False)
+        if refusal:
+            return refusal
 
         # MC-1: Soult's "Drillmaster of Boulogne" — drill completes in ONE
         # turn and NEVER enters the drilling_locked unorderable state.
@@ -350,46 +447,12 @@ class TacticalExecutor:
         # Auto-break square formation (Session 67) — fortify replaces square
         self._auto_break_square(marshal, "fortify")
 
-        # Check if already fortified
-        if getattr(marshal, 'fortified', False):
-            current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
-            return {
-                "success": False,
-                "message": f"{marshal.name} is already fortified at {marshal.location} (+{current_bonus}% defense)."
-            }
-
-        # Check if drilling (can't fortify while drilling)
-        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is engaged in drill exercises and cannot fortify."
-            }
-
-        # Check if retreating (can't fortify while recovering)
-        if getattr(marshal, 'retreating', False):
-            return {
-                "success": False,
-                "message": f"{marshal.name} is recovering from retreat and cannot fortify yet."
-            }
-
-        # ════════════════════════════════════════════════════════════
-        # ENGAGEMENT CHECK: Cannot fortify while engaged with enemy
-        # ════════════════════════════════════════════════════════════
-        enemies_in_region = [
-            m for m in world.marshals.values()
-            if m.location == marshal.location
-            and m.nation != marshal.nation
-            and m.strength > 0
-            and world.is_at_war(marshal.nation, m.nation)
-        ]
-        if enemies_in_region:
-            enemy_names = [e.name for e in enemies_in_region]
-            return {
-                "success": False,
-                "message": f"{marshal.name} cannot fortify while engaged with enemy forces! "
-                          f"Enemy present: {', '.join(enemy_names)}. "
-                          f"Attack or retreat first."
-            }
+        # CN-4: the gates live in `fortify_refusal` (via the one response
+        # builder), so the Fortify chips dim with this very reason and the
+        # typed road, the AI's road and the chip read one refusal.
+        refusal = order_refusal_response(world, marshal, "fortify")
+        if refusal:
+            return refusal
 
         # ════════════════════════════════════════════════════════════
         # STANCE CHECK: Fortify requires defensive stance
@@ -398,16 +461,7 @@ class TacticalExecutor:
         stance_transition_cost = 0
         stance_message = ""
 
-        if current_stance == Stance.AGGRESSIVE:
-            # Block - aggressive marshals cannot fortify
-            return {
-                "success": False,
-                "message": f"{marshal.name} is in AGGRESSIVE stance and cannot fortify! "
-                          f"An aggressive posture is incompatible with defensive preparations. "
-                          f"Use 'defend' to switch to defensive stance first.",
-                "suggestion": f"Try: '{marshal.name}, defend' to change stance, then fortify"
-            }
-        elif current_stance == Stance.NEUTRAL:
+        if current_stance == Stance.NEUTRAL:
             # Auto-transition to defensive (costs 1 extra action)
             stance_transition_cost = 1
             total_cost = 1 + stance_transition_cost  # fortify + stance change

@@ -2462,6 +2462,23 @@ def check_build_fleet(world, nation: str) -> Optional[str]:
     return None
 
 
+def build_ships_refusal(world, nation: str) -> str:
+    """Why `build ships` would be refused now — "" when a keel would be laid.
+    The executor's own validator composed with its treasury check: ONE gate
+    for the Admiralty's keel chip (NV-12) and the region panel's dockyard
+    chip (CN-4). Measured before CN-4: the panel's chip was gated on nothing
+    but "this is our yard", so the second keel of a turn (the yards at
+    capacity) and a short treasury were enabled chips the executor refused."""
+    reason = check_build_fleet(world, nation)
+    if reason is not None:
+        return reason
+    treasury = int(getattr(world, "nation_gold", {}).get(nation, 0))
+    if treasury < SHIP_COST:
+        return (f"a ship of the line costs {SHIP_COST}g — the treasury holds "
+                f"{treasury}g")
+    return ""
+
+
 def lay_down_ship(world, nation: str) -> Dict:
     """Add one ship at green readiness (weighted fold — §3.3: you can watch
     your navy get bigger and worse at once). Caller has validated + paid."""
@@ -2850,12 +2867,7 @@ def build_admiralty_report(world) -> Dict:
     # (recon gap 11). THE ADMIRALTY is its honest, nation-scoped home; the
     # gate composes check_build_fleet (the executor's own validator) with
     # the executor's treasury check, so enabled state IS the executor gate.
-    build_reason = check_build_fleet(world, player)
-    if build_reason is None:
-        treasury = int(getattr(world, "nation_gold", {}).get(player, 0))
-        if treasury < SHIP_COST:
-            build_reason = (f"a ship of the line costs {SHIP_COST}g — the "
-                            f"treasury holds {treasury}g")
+    build_reason = build_ships_refusal(world, player) or None
     build_label = (f"Lay down ships ({SHIP_COST}g at {yards[0]})"
                    if yards else f"Lay down ships ({SHIP_COST}g)")
     chips.append({
@@ -2908,6 +2920,10 @@ def map_naval_overlay(world) -> Dict:
             "player_dockyards": (controlled_dockyards(world, player)
                                  if player else []),
             "ship_cost": int(SHIP_COST),
+            # CN-4: the dockyard chip's gate — the Admiralty's own
+            # (`build_ships_refusal`), "" when a keel would be laid.
+            "ship_build_refusal": (build_ships_refusal(world, player)
+                                   if player else ""),
             # NV-6: {region: [{marshal, strength, odds}]} — which corps may
             # land HERE and at what odds, resolved server-side through the
             # same eligibility the executor applies and the same

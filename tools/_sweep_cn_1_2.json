@@ -58,8 +58,8 @@
   {
     "id": "CN-9 the quote forgets the admin action",
     "file": "backend/commands/economy_executor.py",
-    "old": "    if int(getattr(world, \"admin_actions_remaining\", 0) or 0) < 1:\n",
-    "new": "    if False:\n",
+    "old": "    if int(getattr(world, \"admin_actions_remaining\", 0) or 0) < 1:\n        quote.update(kind=\"no_admin_ap\", reason=(\n",
+    "new": "    if False:\n        quote.update(kind=\"no_admin_ap\", reason=(\n",
     "tests": "tests/test_cn_the_chip_names_the_man.py"
   },
   {
@@ -86,8 +86,8 @@
   {
     "id": "CN-13 the payload computes a block for every province",
     "file": "backend/models/world_state.py",
-    "old": "            if (region.controller != nation\n                    and not region_feeds_nation(self, nation, region)):\n                return {}\n",
-    "new": "            if False:\n                return {}\n",
+    "old": "            if (region.controller != nation\n                    and not region_feeds_nation(self, nation, region)):\n                return {}\n            arms = {arm: recruit_quote(self, region.name, arm=arm)\n",
+    "new": "            if False:\n                return {}\n            arms = {arm: recruit_quote(self, region.name, arm=arm)\n",
     "tests": "tests/test_cn_the_chip_names_the_man.py"
   },
   {

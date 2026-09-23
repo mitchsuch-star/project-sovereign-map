@@ -34,6 +34,7 @@ var _spec: Dictionary = {}
 var _panel = null
 var _map = null
 var _bench = null
+var _wizard = null
 var _result: Dictionary = {"regions": {}, "bench": ""}
 
 
@@ -105,6 +106,11 @@ func _tick():
 			root.add_child(_panel)
 			_bench = load("res://scenes/marshal_management.tscn").instantiate()
 			root.add_child(_bench)
+			# CN-4: the diplomacy wizard, for its REAL `_build_command` and
+			# `echo_note` — a census that composed the echoes from the
+			# template text could not see a branch condition change.
+			_wizard = load("res://scenes/diplomacy_wizard.tscn").instantiate()
+			root.add_child(_wizard)
 			_phase = "render"
 		"render":
 			# One frame after add_child: every @onready is bound.
@@ -114,6 +120,23 @@ func _tick():
 			_bench.cached_recruitment = _spec.get("recruitment", {})
 			_bench._render_commission_view()
 			_result["bench"] = _bench.content_area.text
+			# CN-4: the Generals cards too, when the spec carries the
+			# `/marshal_overview` response — the screen's own renderer.
+			var overview = _spec.get("overview", {})
+			if overview is Dictionary and not overview.is_empty():
+				_bench.cached_data = overview.get("marshals", [])
+				_bench.cached_ladder = overview.get("glory_ladder", [])
+				_bench.cached_glory_window = int(overview.get("glory_window", 8))
+				_bench._commission_view = false
+				_bench._render_all_cards()
+				_result["cards"] = _bench.content_area.text
+			# Each case: [action_id, nation, payload] -> [echo, echo_note].
+			var echoes = []
+			for case in _spec.get("wizard_cases", []):
+				var payload = case[2] if case.size() > 2 and case[2] is Dictionary else {}
+				echoes.append([_wizard._build_command(str(case[0]), str(case[1]), payload),
+					_wizard.echo_note(str(case[0]))])
+			_result["wizard"] = echoes
 			_finish()
 
 

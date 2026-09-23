@@ -400,6 +400,128 @@ def _msg_treasury(cost: int, have: int) -> str:
             f"Sire. Need {cost} gold, have {have}.'")
 
 
+def _msg_subs_closed() -> str:
+    return ("There is no market for substitutes, Sire. The class must "
+            "be called in the ordinary way.")
+
+
+def _msg_subs_wrong_arm(marshal) -> str:
+    arm = "cavalry" if getattr(marshal, "cavalry", False) else "artillery"
+    return (f"There is no market in {arm}, Sire — a substitute may carry "
+            f"a musket, not ride a trooper's horse nor serve a gun. "
+            f"{marshal.name} commands {arm}; the class must be called.")
+
+
+def _msg_subs_not_fed(region) -> str:
+    held_by = region.controller or "no one"
+    return (f"We do not hold {region.name}, Sire, and {held_by} does not "
+            f"feed our battalions. Substitutes are received on ground we "
+            f"hold or a host's whose magazines are open to us.")
+
+
+def _msg_subs_no_room(standing: int, ceiling: int, room: int,
+                      per_batch_men: int) -> str:
+    short = per_batch_men - max(0, room)
+    return (f"Berthier closes the ledger. 'The establishment stands "
+            f"at {standing:,} against a ceiling of {ceiling:,}, Sire. "
+            f"A battalion bought above that line is paid for twice "
+            f"over. We should need {short:,} fewer men under arms "
+            f"before the depots could take another {per_batch_men:,}.'")
+
+
+def _msg_subs_treasury(per_batch: int, gold_cost: int, batches: int,
+                       treasury: int) -> str:
+    afford = treasury // per_batch if per_batch else 0
+    tail = (f" We could stand {afford:,} batch"
+            f"{'es' if afford != 1 else ''} at that price."
+            if afford else "")
+    return (f"Berthier shakes his head. 'Substitutes are {per_batch:,} "
+            f"gold the battalion, Sire — {gold_cost:,} for "
+            f"{batches}. The treasury holds {treasury:,}.{tail}'")
+
+
+def substitute_quote(world, region_name: str,
+                     nation: Optional[str] = None) -> Dict:
+    """CN-4: what the region panel's Substitutes chip — `buy substitutes for
+    <recipient>`, one batch — would do, or the refusal in the executor's own
+    sentence. The recipient is chosen HERE and named on the chip (the first
+    infantryman of ours standing in the province: the market sells muskets,
+    not horses or guns), and the gates run in `_execute_purchase_levy`'s
+    order through the same message builders. Measured before: the chip
+    quoted the NATIONAL batch ("4,012g per 10,000") while every field
+    purchase delivers 3,000, it was gated on a national room flag while the
+    executor gates per batch size, and at Franche-Comte it named Murat — a
+    cavalryman the executor always refuses. PURE.
+
+    Returns `{}` where no marshal of ours stands (the row does not render:
+    there is nobody to name)."""
+    nation = nation or world.player_nation
+    region = world.get_region(region_name)
+    if region is None:
+        return {}
+    ours = [m for m in world.get_marshals_in_region(region_name)
+            if m.nation == nation and m.strength > 0
+            and not getattr(m, "captured_by", "")]
+    if not ours:
+        return {}
+    infantry = [m for m in ours if recruit_arm_of(m) == "infantry"]
+    marshal = infantry[0] if infantry else ours[0]
+    quote = {"ok": False, "kind": "", "reason": "", "short": "", "terms": "",
+             "recipient": marshal.name, "men": 0, "price": 0,
+             "field_capped": False, "room": 0}
+
+    def refuse(kind, reason, short):
+        quote.update(kind=kind, reason=reason, short=short)
+        return quote
+
+    # The routing layer refuses an order of state first.
+    if int(getattr(world, "admin_actions_remaining", 0) or 0) < 1:
+        return refuse("no_admin_ap", (
+            f"No administrative actions remaining this turn. (Military "
+            f"commands: {int(world.actions_remaining)} remaining)"),
+            "no administrative action left this turn")
+    if not THE_SUBSTITUTE_MARKET_IS_OPEN:
+        return refuse("closed", _msg_subs_closed(),
+                      "there is no market for substitutes")
+    if recruit_arm_of(marshal) != "infantry":
+        arm = recruit_arm_of(marshal)
+        return refuse("wrong_arm", _msg_subs_wrong_arm(marshal),
+                      f"{marshal.name} commands {arm} — the market sells "
+                      f"muskets, not horses or guns")
+    if not region_feeds_nation(world, nation, region):
+        return refuse("not_fed", _msg_subs_not_fed(region),
+                      "this ground does not feed our battalions")
+    in_the_field = not region_has_friendly_supply(region)
+    per_batch_men = (AI_CORPS_REGEN_CAP if in_the_field
+                     else INFANTRY_RECRUIT_AMOUNT)
+    quote.update(men=int(per_batch_men), field_capped=bool(in_the_field))
+    ceiling = levy_purchase_ceiling(world, nation)
+    if ceiling:
+        standing = int(world.calculate_turn_upkeep(nation)["total_strength"])
+        room = ceiling - standing
+        quote["room"] = int(max(0, room))
+        if room < per_batch_men:
+            return refuse("no_room", _msg_subs_no_room(
+                standing, ceiling, room, per_batch_men),
+                "no room under the establishment — the market buys back "
+                "only what you have lost")
+    base = levy_substitute_price(world, nation)
+    per_batch = int(_levy_pricer()._calculate_recruit_cost(
+        region, world, base_cost=base, nation=nation, marshal=marshal,
+        foreign_soil=(region.controller != nation)))
+    quote["price"] = per_batch
+    treasury = int(world.nation_gold.get(nation, 0))
+    if treasury < per_batch:
+        return refuse("treasury", _msg_subs_treasury(
+            per_batch, per_batch, 1, treasury),
+            f"{per_batch:,}g — the treasury holds {treasury:,}g")
+    terms = f"{marshal.name} · {per_batch_men:,} men · {per_batch:,}g"
+    if in_the_field:
+        terms += " · field levy"
+    quote.update(ok=True, kind="ok", terms=terms)
+    return quote
+
+
 def recruit_ground_refusal(world, location: str, nation: str) -> Tuple[str, str]:
     """CN-3: the GROUND's own refusal where the game chooses the man —
     `(kind, sentence)`, or `("", "")` when the ground will levy.
@@ -1533,9 +1655,7 @@ class EconomyExecutor:
             return {"success": False, "message": "No world state available"}
 
         if not THE_SUBSTITUTE_MARKET_IS_OPEN:
-            return {"success": False, "message": (
-                "There is no market for substitutes, Sire. The class must "
-                "be called in the ordinary way.")}
+            return {"success": False, "message": _msg_subs_closed()}
 
         marshal_name = command.get("marshal") or command.get("target")
         if not marshal_name:
@@ -1554,11 +1674,7 @@ class EconomyExecutor:
 
         # Infantry only — the E2 scarcity blessing is about horses and guns.
         if getattr(marshal, "cavalry", False) or getattr(marshal, "artillery", False):
-            arm = "cavalry" if getattr(marshal, "cavalry", False) else "artillery"
-            return {"success": False, "message": (
-                f"There is no market in {arm}, Sire — a substitute may carry "
-                f"a musket, not ride a trooper's horse nor serve a gun. "
-                f"{marshal.name} commands {arm}; the class must be called.")}
+            return {"success": False, "message": _msg_subs_wrong_arm(marshal)}
 
         region = world.get_region(marshal.location)
         if region is None:
@@ -1568,11 +1684,7 @@ class EconomyExecutor:
         # Every one of the six refusals this used to produce on the archived
         # arm was on soil PC15-D2 feeds at HOME_SUPPLY_MULTIPLIER.
         if not region_feeds_nation(world, acting_nation, region):
-            held_by = region.controller or "no one"
-            return {"success": False, "message": (
-                f"We do not hold {region.name}, Sire, and {held_by} does not "
-                f"feed our battalions. Substitutes are received on ground we "
-                f"hold or a host's whose magazines are open to us.")}
+            return {"success": False, "message": _msg_subs_not_fed(region)}
 
         # CO-4's rule, applied IDENTICALLY to a draft rather than
         # reinterpreted: a corps away from a capital or supply depot cannot
@@ -1625,13 +1737,8 @@ class EconomyExecutor:
                            ["total_strength"])
             room = ceiling - standing
             if room < per_batch_men:
-                short = per_batch_men - max(0, room)
-                return {"success": False, "message": (
-                    f"Berthier closes the ledger. 'The establishment stands "
-                    f"at {standing:,} against a ceiling of {ceiling:,}, Sire. "
-                    f"A battalion bought above that line is paid for twice "
-                    f"over. We should need {short:,} fewer men under arms "
-                    f"before the depots could take another {per_batch_men:,}.'")}
+                return {"success": False, "message": _msg_subs_no_room(
+                    standing, ceiling, room, per_batch_men)}
             if men > room:
                 batches = max(1, room // per_batch_men)
                 men = batches * per_batch_men
@@ -1647,14 +1754,8 @@ class EconomyExecutor:
 
         treasury = int(world.nation_gold.get(acting_nation, 0))
         if treasury < gold_cost:
-            afford = treasury // per_batch if per_batch else 0
-            tail = (f" We could stand {afford:,} batch"
-                    f"{'es' if afford != 1 else ''} at that price."
-                    if afford else "")
-            return {"success": False, "message": (
-                f"Berthier shakes his head. 'Substitutes are {per_batch:,} "
-                f"gold the battalion, Sire — {gold_cost:,} for "
-                f"{batches}. The treasury holds {treasury:,}.{tail}'")}
+            return {"success": False, "message": _msg_subs_treasury(
+                per_batch, gold_cost, batches, treasury)}
 
         pool_before = int((world.manpower_pools.get(acting_nation) or {})
                           .get("infantry", 0))

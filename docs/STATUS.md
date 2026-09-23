@@ -88,6 +88,36 @@
 > Two pins flipped consciously (IQ-10's `feeds_us` gate, the Aug-30 review's price line). **CN-4
 > (the chip-honesty census of every `do:` template, and the four §3 siblings) is next.**
 >
+> **✅ SLICE 3 COMPLETE — CN-4 "The chip-honesty census" — LANDED September 22, 2026. ROW CN IS
+> DONE.** Landing record = `docs/audits/RECRUIT_ARM_UX_2026_09_20.md` §CN-4 LANDING RECORD; row
+> **CQ-4** FIXED, **CQ-23** found and closed, **CQ-20 / CQ-21 / CQ-22** filed with owners. A census
+> of every chip the client composes, DRIVEN: the real region panel and the real Generals cards
+> rendered headless on a staged board (an enemy, an ally and a neutral beside French corps, a
+> damaged market, war damage, a corps in a dockyard) and all 175 chips sent through `/command`;
+> the diplomacy wizard's 26 templates (both branches of the conditional ones, run by the REAL
+> `_build_command`), the Vassals tab, the reward dialog, the Admiralty's chips on three boards.
+> The four filed siblings reproduced and **five more members of the class were found**: the
+> attack chip offered against an ALLY (and a neutral — a declaration of war behind a one-click
+> order); every Drill chip at the boot refused (every corps one province from Mack) and every
+> fortified marshal's; Fortify refused beside an enemy; the dockyard chip after the first keel.
+> Fixed as single sources: **`economy_executor.substitute_quote`** (the chip names the recipient
+> the quote chose — the first infantryman, the market sells muskets — and states the men after
+> the field cap and the gold charged; drift-pinned on every province × five boards);
+> **`tactical_executor.drill_refusal` / `fortify_refusal`** read by the pre-objection battery,
+> both executors and the payloads, replacing four hand copies — so an order the executor will
+> refuse is refused BEFORE any objection (**CQ-23**: `Murat, drill` beside Mack had drawn "Murat
+> firmly objects"); `at_war_with_player` on foreign marshals (the attack chip is an order, not a
+> declaration); the printed name on the row, the label and the command; `naval.build_ships_refusal`
+> for both keel chips; the wizard's cede echo names the province and its white-peace echo is
+> disclosed as display copy and kept off the up-arrow. **CQ-22**: giving the executor's drill road
+> the stance gate MOVED `BASELINE_SERIES` (flip-proven), so that road stays byte-identical and the
+> asymmetry is filed; with it off, series + M1–M7 are byte-identical. `test_cn4_the_chip_honesty_census.py`
+> **26** (+ `tests/_chip_census.py`); sweep `tools/_sweep_cn_4.json` **33/33, 0 INERT at close**
+> (the first sweep's two INERT were the pins — a board where "first marshal" = "first
+> infantryman", and wizard pins that composed echoes from template TEXT — both fixed); the
+> affected family (193 files, 10,201 tests) green; parse harness EXIT=0 (49 scripts). **Slice 4,
+> CX-R2, is next.**
+>
 > **✅ SLICE 2 — CX-R1 "The unbound name spends nothing" — LANDED September 22, 2026.**
 > Landing record = `docs/audits/PARSER_AUTOFILL_ASSURANCE_2026_09_20.md` §CX-R1 LANDING
 > RECORD (authoritative); rules = `SYSTEMS_REFERENCE.md` §51; row **CQ-2** disposed in
@@ -195,15 +225,16 @@
 >
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = the last of slice **3**, **CN-4 "the chip-honesty census"**
->    (slices 1, 2, 5 and CN-1 + CN-2 + CN-3 landed September 22, 2026 — above). CN-4
->    enumerates every `do:` template across the chip-producing `.gd` files, drives each
->    composed string at the real `/command` (CN-3's harness `tools/cn3_region_panel_harness.gd`
->    is the road for the region panel's templates), and disposes the four §3 siblings (the
->    white-peace and cede echoes, the substitutes chip's quantity and gate, the raw roster key
->    on the Attack chip). Take it. Do not re-plan it — the build contract is the memo named on
->    its row (`RECRUIT_ARM_UX_2026_09_20.md`, memo id R4 ≡ CN-4), with a falsifiable
->    `done_when`. Then slice 4, **CX-R2**.
+> 1. **What is next** = slice **4**, **CX-R2 "the offer is reachable"** (slices 1, 2, 3 and 5
+>    landed September 22, 2026 — above; row CN is done). **Client-only**: the completer's two
+>    target pools (`main.gd` `_region_names` / `_visible_enemy_names`) both end in `out.sort()`,
+>    so 59.3% of the lines it offers are refused by the executor — order them by proximity
+>    (`/map_topology` adjacency) and filter by war (`active_wars.wars[].opponent`). Take it. Do
+>    not re-plan it — the build contract is its memo (`PARSER_AUTOFILL_ASSURANCE_2026_09_20.md`,
+>    row CX-R), with a falsifiable `done_when`. CN-3's headless harness
+>    (`tools/cn3_region_panel_harness.gd`) and CX-7's driven harness
+>    (`tools/cx7_predictor_harness.gd`, `tests/test_cx7_predictor_driven.py`) are the roads for
+>    driving the client. Then **ROADMAP position 10, the shippable build**.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -238,12 +269,12 @@
 > |---|---|---|---|---|
 > | ~~**1**~~ | ~~**CR-7-1 "The tail stops eating the head"**~~ ✅ **LANDED Sept 22, 2026** | CR-7 | 0.5 | ~~**P1.** `Ney, fortify then attack Mack` marches to Swabia, fights, loses 1,950 men, is **not** fortified, spends 1 AP and says nothing — **40 of 40** non-movement compound shapes.~~ **40 → 0.** Landing record in the memo. |
 > | ~~**2**~~ | ~~**CX-R1 "The unbound name spends nothing"**~~ ✅ **LANDED Sept 22, 2026** | CX-R | 0.5 | ~~**P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**.~~ **~30 forms → 0**; the verb set is generated from the router. Landing record in the memo. CX-X3 (a bare `vassalize`) re-routed to the CR-6 triage. |
-> | **▶ 3** | **CN-1 … CN-4 "The Chip Names the Man"** — ✅ CN-1 + CN-2 (backend) and ✅ CN-3 (the chip) LANDED Sept 22, 2026; **▶ CN-4 next** | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
-> | **4** | **CX-R2 "The offer is reachable"** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
+> | ~~**3**~~ | ~~**CN-1 … CN-4 "The Chip Names the Man"**~~ ✅ **ALL FOUR LANDED Sept 22, 2026 — row CN is done** (CN-1 + CN-2 backend, CN-3 the chip, CN-4 the census) | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
+> | **▶ 4** | **CX-R2 "The offer is reachable"** — **NEXT** | CX-R | 0.5 | **Client-only**, no backend work — every input is already on the wire. The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`. It is the surface a new tester meets first. |
 > | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | The three P1s are dead and the first-contact surface is honest. **Ship here.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
 | ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
-> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — both with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
+> | **6** | **CR-6 triage** | CR-6 | 0.25 | **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — **and by two more the same day (CN-4): CQ-20** (typed `propose white peace with <N>` is heard as a Peace Treaty with terms) **and CQ-21** (at zero AP every order chip is offered and refused) — all with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
 > | **7** | **HC-L — L-1, then L-D, then (only if needed) L-0 + L-2** | HC-L | 0.5 + 0.5 + 1.0 | **Order amended — see D6 below.** **L-1** (the prompt reorder) is unconditional and may ride any earlier session. **L-D "The Boolean Road"** (~0.5) is NEW and is behind a user gate: the delegation feature is already fully deterministic in mock and gated on one boolean, so the probe may not be needed at all. **L-0 + L-2** (the ceiling probe, 1.0) runs only if L-D proves too narrow in play. |
 >
 > **Recorded dissent on the order:** a build in a tester's hands surfaces defects a

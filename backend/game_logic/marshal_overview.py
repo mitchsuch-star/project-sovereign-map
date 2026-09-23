@@ -14,6 +14,8 @@ from backend.models.marshal import Marshal
 from backend.display_names import PERSONALITY_DISPLAY, STANCE_DISPLAY
 from backend.game_logic.formations import formed_display_name
 from backend.display_names import with_definite_article
+from backend.models.world_state import (_drill_refusal_short,
+                                        _fortify_refusal_short)
 
 # IQ-2 (Sept 14, 2026): the captured sovereign's card kept the apex note "The
 # Empire is his estate." while he sat at strength 0 in the captor's capital —
@@ -199,6 +201,10 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
 
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
+        # CN-4: the Drill chip's reason — the executor's own gates
+        # (`tactical_executor.drill_refusal`), "" when the drill would begin.
+        "drill_refusal": _drill_refusal_short(world, marshal),
+        "fortify_refusal": _fortify_refusal_short(world, marshal),
 
         # ═══════ CAVALRY/ARTILLERY SPECIFICS ═══════
         **_build_unit_specifics(marshal),

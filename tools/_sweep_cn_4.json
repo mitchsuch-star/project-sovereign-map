@@ -1,0 +1,233 @@
+[
+  {
+    "id": "CN4-1 drill forgets the adjacent enemy",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    current_region = world.get_region(marshal.location)\n    if current_region:\n        is_player = marshal.nation == world.player_nation\n",
+    "new": "    current_region = world.get_region(marshal.location)\n    if False:\n        is_player = marshal.nation == world.player_nation\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-2 drill forgets the works",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    if getattr(marshal, 'fortified', False):\n        return (f\"{name} is fortified and cannot drill.",
+    "new": "    if False:\n        return (f\"{name} is fortified and cannot drill.",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-3 fortify forgets the enemy on the ground",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    if enemies_in_region:\n        enemy_names = [e.name for e in enemies_in_region]\n        return (f\"{name} cannot fortify",
+    "new": "    if False:\n        enemy_names = [e.name for e in enemies_in_region]\n        return (f\"{name} cannot fortify",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-4 the stance gate forgets aggression",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    if getattr(marshal, 'stance', Stance.NEUTRAL) == Stance.AGGRESSIVE:\n        return (f\"{marshal.name} cannot {verb} while in AGGRESSIVE stance. \"",
+    "new": "    if False:\n        return (f\"{marshal.name} cannot {verb} while in AGGRESSIVE stance. \"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-5 the executor's drill gains the stance gate",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "        refusal = order_refusal_response(world, marshal, \"drill\",\n                                         stance_gate=False)\n",
+    "new": "        refusal = order_refusal_response(world, marshal, \"drill\",\n                                         stance_gate=True)\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-6 the response forgets its suggestion",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "        response[\"suggestion\"] = (f\"Change stance first: '{marshal.name} \"\n",
+    "new": "        response[\"_suggestion\"] = (f\"Change stance first: '{marshal.name} \"\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-7 the battery skips the drill/fortify gates",
+    "file": "backend/commands/executor.py",
+    "old": "                if action in ('drill', 'fortify'):\n                    from backend.commands.tactical_executor import (\n                        order_refusal_response)\n",
+    "new": "                if False:\n                    from backend.commands.tactical_executor import (\n                        order_refusal_response)\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-8 the map payload forgets the drill reason",
+    "file": "backend/models/world_state.py",
+    "old": "                        \"drill_refusal\": _drill_refusal_short(self, m),\n",
+    "new": "                        \"drill_refusal\": \"\",\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-9 the map payload forgets the fortify reason",
+    "file": "backend/models/world_state.py",
+    "old": "                        \"fortify_refusal\": _fortify_refusal_short(self, m),\n",
+    "new": "                        \"fortify_refusal\": \"\",\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-10 the card forgets the drill reason",
+    "file": "backend/game_logic/marshal_overview.py",
+    "old": "        \"drill_refusal\": _drill_refusal_short(world, marshal),\n",
+    "new": "        \"drill_refusal\": \"\",\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-11 the card forgets the fortify reason",
+    "file": "backend/game_logic/marshal_overview.py",
+    "old": "        \"fortify_refusal\": _fortify_refusal_short(world, marshal),\n",
+    "new": "        \"fortify_refusal\": \"\",\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-12 every foreigner is at war",
+    "file": "backend/models/world_state.py",
+    "old": "                    marshal_data[\"at_war_with_player\"] = bool(\n                        self.is_at_war(self.player_nation, m.nation))\n",
+    "new": "                    marshal_data[\"at_war_with_player\"] = True\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-13 the quote names the first marshal, not the first infantryman",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    marshal = infantry[0] if infantry else ours[0]\n",
+    "new": "    marshal = ours[0]\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-14 the quote forgets the field cap",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    per_batch_men = (AI_CORPS_REGEN_CAP if in_the_field\n                     else INFANTRY_RECRUIT_AMOUNT)\n",
+    "new": "    per_batch_men = INFANTRY_RECRUIT_AMOUNT\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-15 the quote forgets the room",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if room < per_batch_men:\n            return refuse(\"no_room\"",
+    "new": "        if False:\n            return refuse(\"no_room\"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-16 the quote forgets the treasury",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if treasury < per_batch:\n        return refuse(\"treasury\"",
+    "new": "    if False:\n        return refuse(\"treasury\"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-17 the quote forgets the admin action",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    if int(getattr(world, \"admin_actions_remaining\", 0) or 0) < 1:\n        return refuse(\"no_admin_ap\"",
+    "new": "    if False:\n        return refuse(\"no_admin_ap\"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-18 the quote prices a host's capital as ours",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        foreign_soil=(region.controller != nation)))\n",
+    "new": "        foreign_soil=False))\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-19 the quote refuses the cavalryman in other words",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        return refuse(\"wrong_arm\", _msg_subs_wrong_arm(marshal),\n",
+    "new": "        return refuse(\"wrong_arm\", \"no market\",\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-20 the ships gate forgets the treasury",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if treasury < SHIP_COST:\n        return (f\"a ship of the line costs {SHIP_COST}g — the treasury holds \"",
+    "new": "    if False:\n        return (f\"a ship of the line costs {SHIP_COST}g — the treasury holds \"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-21 the overlay forgets the ships gate",
+    "file": "backend/game_logic/naval.py",
+    "old": "            \"ship_build_refusal\": (build_ships_refusal(world, player)\n                                   if player else \"\"),\n",
+    "new": "            \"ship_build_refusal\": \"\",\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-22 the attack chip ignores the war",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\t\tand bool(em.get(\"at_war_with_player\", false)):\n",
+    "new": "\t\t\t\t\tand true:\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-23 the attack chip sends the roster key",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\"do:\" + m_name + \", attack \" + enemy_shown",
+    "new": "\"do:\" + m_name + \", attack \" + enemy",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-24 the row prints the roster key",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\trow += \"[color=#\" + nation_color + \"]\" + shown_name + \"[/color]\"\n",
+    "new": "\trow += \"[color=#\" + nation_color + \"]\" + m_name + \"[/color]\"\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-25 the Drill chip ignores the refusal",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\tif not drilling and drill_why == \"\":\n",
+    "new": "\t\t\t\tif not drilling:\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-26 the Fortify chip ignores the refusal",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\telif fortify_why == \"\":\n",
+    "new": "\t\t\t\telif true:\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-27 the substitutes chip is enabled on a refusal",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\tif bool(sub_q.get(\"ok\", false)):\n",
+    "new": "\t\t\tif true:\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-28 the ships chip ignores the gate",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\tif ship_why == \"\":\n",
+    "new": "\t\t\t\tif true:\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-29 the Generals Drill ignores the refusal",
+    "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+    "old": "\t\t\t\tif drill_why == \"\":\n\t\t\t\t\torder_chips.append(Utils.bb_button_chip(\"order:drill:\"",
+    "new": "\t\t\t\tif true:\n\t\t\t\t\torder_chips.append(Utils.bb_button_chip(\"order:drill:\"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-30 the Generals Fortify ignores the refusal",
+    "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+    "old": "\t\t\telif fortify_why == \"\":\n",
+    "new": "\t\t\telif true:\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-31 the cede echo drops the province",
+    "file": "godot-client/project-sovereign/scripts/diplomacy_wizard.gd",
+    "old": "\t\t\treturn \"cede \" + cede_region + \" to \" + nation\n",
+    "new": "\t\t\treturn \"cede territory to \" + nation\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-32 the white-peace echo is not display copy",
+    "file": "godot-client/project-sovereign/scripts/diplomacy_wizard.gd",
+    "old": "\t\"propose_white_peace\": \"sent from the diplomacy screen",
+    "new": "\t\"propose_white_peaceX\": \"sent from the diplomacy screen",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  },
+  {
+    "id": "CN4-33 main parks display copy on the up-arrow",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif echo_note == \"\":\n\t\t_add_to_history(command)\n",
+    "new": "\t_add_to_history(command)\n\tif echo_note == \"\":\n\t\tpass\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py"
+  }
+]

@@ -645,20 +645,33 @@ class TestTheRegionPanelChip:
         return PANEL_GD.read_text(encoding="utf-8")
 
     def test_the_chip_exists_and_names_the_marshal(self):
+        """CN-4 (Sept 22, 2026) — CONSCIOUSLY RE-PINNED: the chip still names
+        its marshal, but the BACKEND's quote chooses him
+        (`economy_executor.substitute_quote`: the first infantryman standing
+        there — the market sells muskets). The client used to name the first
+        French marshal in the list, which at Franche-Comte was Murat, a
+        cavalryman the executor always refuses. The CN-4 census drives it."""
         src = self._gd()
-        assert 'do:buy substitutes for " + sub_marshal' in src, (
+        assert 'do:buy substitutes for " + str(sub_q.get("recipient", ""))' in src, (
             "the chip sends a bare verb with no marshal — the parser would "
             "have to guess, and IQ1-2 pinned that the help teaches phrasings "
             "that actually parse")
 
     def test_a_gated_chip_is_dimmed_with_a_reason_never_absent(self):
-        """This project's honest-availability idiom."""
+        """This project's honest-availability idiom. CN-4 — CONSCIOUSLY
+        RE-PINNED: the reason is the backend quote's `short` (the executor's
+        own gate, in its order), so the words live in the quote, not here."""
         src = self._gd()
         block = src[src.index("IQ-1 IQ1-3D rider 1"):]
         block = block[:block.index("\t\t# Build")] if "\t\t# Build" in block else block[:3000]
         assert "bb_chip_disabled" in block
-        assert "does not feed our battalions" in block
+        assert 'str(sub_q.get("short", ""))' in block
         assert "under the establishment" in block
+        quote_src = (REPO / "backend/commands/economy_executor.py").read_text(
+            encoding="utf-8")
+        body = quote_src[quote_src.index("def substitute_quote"):]
+        body = body[:body.index("\ndef ")]
+        assert "does not feed our battalions" in body
 
     def test_it_quotes_the_per_region_figure_not_the_capitals(self):
         """The Aug-30 lesson, one verb over: the capital's rate ran up to

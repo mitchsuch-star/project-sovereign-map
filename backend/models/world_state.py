@@ -147,6 +147,27 @@ def recruit_arm_of(marshal) -> str:
     return "infantry"
 
 
+def _drill_refusal_short(world, marshal) -> str:
+    """CN-4: the Drill chip's reason — `tactical_executor.drill_refusal`'s
+    short form ("" when the drill would begin). Imported late: the executor
+    module imports this one."""
+    try:
+        from backend.commands.tactical_executor import drill_refusal
+        return drill_refusal(world, marshal)[1]
+    except Exception:
+        return ""
+
+
+def _fortify_refusal_short(world, marshal) -> str:
+    """CN-4: the Fortify chip's reason — `tactical_executor.fortify_refusal`'s
+    short form ("" when the works would begin)."""
+    try:
+        from backend.commands.tactical_executor import fortify_refusal
+        return fortify_refusal(world, marshal)[1]
+    except Exception:
+        return ""
+
+
 INFANTRY_BASE_REGEN = 2500             # Per nation per turn (halved S8 — manpower is precious)
 CAVALRY_BASE_REGEN = 250               # Per nation per turn (halved S8 — slow, this IS the bottleneck)
 ARTILLERY_BASE_REGEN = 150             # Per nation per turn (halved S8 — foundries are scarce)
@@ -9189,6 +9210,17 @@ class WorldState:
                         else "infantry"
                     ),
                 }
+                # CN-4: the region panel offered "Attack <X>" against every
+                # foreign marshal standing beside a French corps — an ALLY's
+                # included (measured: "Attack Deroy" at Franconia, always
+                # refused, "they are our ally"). The chip is an order, not a
+                # declaration of war, so it is offered only against a court
+                # France is at war with. Display-only; war states are public
+                # (diplomacy carries no fog), and a foreign marshal rides this
+                # dict only at FULL visibility.
+                if m.nation != self.player_nation:
+                    marshal_data["at_war_with_player"] = bool(
+                        self.is_at_war(self.player_nation, m.nation))
 
                 # Add debug info for player marshals
                 if m.nation == self.player_nation:
@@ -9224,6 +9256,14 @@ class WorldState:
                             getattr(m, 'drilling', False)
                             and not getattr(m, 'drilling_locked', False)
                             and int(getattr(m, 'drill_complete_turn', -1)) <= int(self.current_turn)),
+                        # CN-4: why the Drill chip would be refused ("" when
+                        # the drill would begin) — the executor's own gates
+                        # (`tactical_executor.drill_refusal`), so the chip
+                        # dims with the reason instead of refusing.
+                        "drill_refusal": _drill_refusal_short(self, m),
+                        # CN-4: why the Fortify chip would be refused ("" when
+                        # the works would begin — `fortify_refusal`).
+                        "fortify_refusal": _fortify_refusal_short(self, m),
                         # Fortify state
                         "fortified": bool(getattr(m, 'fortified', False)),
                         "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert 0.02 -> 2%
@@ -9349,6 +9389,12 @@ class WorldState:
                 # does not charge. 0 = no substitute market here.
                 "substitute_price_here": int(
                     self._region_substitute_price(region)),
+                # CN-4: what the Substitutes chip would do HERE — the
+                # recipient it names, the men, the gold — or the executor's
+                # own refusal (`economy_executor.substitute_quote`). Built
+                # only where the row can render: our soil or friendly soil
+                # that feeds us, with a marshal of ours standing on it.
+                "substitute_here": self._region_substitute_block(region),
                 # Building data for region tooltip
                 "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
                 "building_under_construction": {
@@ -9452,6 +9498,22 @@ class WorldState:
                 if nearest.get("ok"):
                     price_here = int(nearest.get("price", 0))
             return {"arms": arms, "price_here": price_here}
+        except Exception:
+            return {}
+
+    def _region_substitute_block(self, region) -> Dict:
+        """CN-4: the Substitutes chip's quote for this province — `{}` where
+        the row cannot render (not our soil and not friendly soil feeding
+        us, or no marshal of ours standing on it)."""
+        try:
+            from backend.commands.economy_executor import (
+                region_feeds_nation, substitute_quote,
+            )
+            nation = self.player_nation
+            if (region.controller != nation
+                    and not region_feeds_nation(self, nation, region)):
+                return {}
+            return substitute_quote(self, region.name, nation=nation)
         except Exception:
             return {}
 
@@ -9562,6 +9624,8 @@ class WorldState:
                     "recruit_here", {})
                 filtered_region["substitute_price_here"] = region_data.get(
                     "substitute_price_here", 0)
+                filtered_region["substitute_here"] = region_data.get(
+                    "substitute_here", {})
                 filtered_region["buildings"] = region_data["buildings"]
                 filtered_region["building_under_construction"] = region_data["building_under_construction"]
                 filtered_region["max_building_slots"] = region_data["max_building_slots"]

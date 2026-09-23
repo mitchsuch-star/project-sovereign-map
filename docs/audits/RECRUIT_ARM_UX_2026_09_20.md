@@ -630,3 +630,144 @@ refusal quotes acts. Parse harness EXIT=0 (49 scripts); boot smoke 0 `SCRIPT ERR
 the capture harness 0 `SCRIPT ERROR` at both scales; the recruit family (1,672) green;
 **`BASELINE_SERIES` and M1–M7 byte-identical without re-record, because the AI never enters
 the no-marshal branches** (CN-2's census) and rider 5's pricer returns the same arithmetic.
+
+## §CN-4 LANDING RECORD — the chip-honesty census (September 22, 2026)
+
+**Status: LANDED on master** (built on `8b6591b8`). Row **CQ-4** → FIXED; **CQ-23** found
+and closed in the build; **CQ-20, CQ-21, CQ-22** found and FILED (owners and done-whens on
+their rows). **Row CN is complete** (CN-1 … CN-4); **slice 4, CX-R2, is next.** Pins =
+`tests/test_cn4_the_chip_honesty_census.py` (26) on the shared helper `tests/_chip_census.py`;
+the harness `tools/cn3_region_panel_harness.gd` now also renders the Generals cards from the
+real `/marshal_overview` and runs the diplomacy wizard's REAL `_build_command` / `echo_note`. Sweep = `tools/_sweep_cn_4.json` (**33/33 killed, 0 INERT at close** — the first
+sweep found TWO INERT, both real weaknesses in the pins, see decision 11).
+
+### Reproduced first (HEAD `8b6591b8`), everything driven at POST /command
+
+A census of every chip the client composes — rendered by the REAL panel on a staged 1805 board
+(an enemy beside Ney and Davout, an ally and a neutral beside Bernadotte, a damaged market, war
+damage, a 12,000-man corps in the senior yard) and every one sent through `/command` on a fresh
+copy of that board — 175 chips, 13 kinds. The four §3 siblings reproduced, and the census found
+five more members of the class:
+
+- **The four filed.** The Substitutes chip quoted the national "4,012g per 10,000" where every
+  field purchase delivers 3,000, was gated on a national room flag the executor does not read
+  (Milan, a capital: enabled, always refused — a full 10,000 batch against 6,000 of room), and
+  named the first French marshal in the list — at Franche-Comte, Murat, a cavalryman the market
+  always refuses. The wizard's cede echo `cede territory to Holland` dropped the province the
+  player picked (typed, it answers the eligible list); its white-peace echo, re-sent from the
+  up-arrow, proposed a **Peace Treaty with terms** (the structured road opens the white-peace
+  settlement). The attack chip and the FORCES row printed the roster key `ArchdukeCharles`.
+- **The attack chip was offered against an ALLY** — every foreign marshal beside a French corps
+  got one, so "Attack Deroy" at Franconia (Bavaria) was refused every time ("they are our
+  ally"); against a NEUTRAL (Brunswick) it opened an objection and then a battle with a court
+  France was not at war with — a declaration of war behind a one-click order.
+- **Every Drill chip at the 1805 boot was refused** — every French corps stands one province
+  from Mack ("cannot drill with enemy forces nearby") — and so was every fortified marshal's.
+- **Fortify was refused beside an enemy** — Ney's and Davout's chips beside Archduke Charles
+  ("cannot fortify while engaged").
+- **The dockyard chip after the first keel of a turn** (the yards at capacity) and on a short
+  treasury: enabled, refused. The Admiralty's own keel chip was gated on exactly those checks.
+- **CQ-23 — an objection spoke for an order the executor refuses.** With the chip dimmed,
+  typing `Murat, drill` beside Mack drew "Murat firmly objects" on the objection roll's bad
+  turns: the pre-objection battery carried only hand copies of the gates' first lines, and in
+  one case (aggressive stance) a copy the executor did not share.
+
+Every other chip honoured what it names: recruit (CN-3), all six build chips, both repairs, the
+landing chips (the quote step), scout, the order chips' objections, every wizard template (26),
+the Vassals tab (4), the reward dialog (3), `commission <name>`, `Talleyrand, assess our
+situation`, and the Admiralty's backend-composed chips on three boards.
+
+### Decisions (taken under the delegated grant, each with its reason)
+
+1. **The substitutes chip renders ONE quote** — `economy_executor.substitute_quote`, the
+   executor's own gates in `_execute_purchase_levy`'s order through shared message builders,
+   shipped as `map_data[p]["substitute_here"]` where the row can render. It **chooses the
+   recipient** (the first infantryman standing there: the market sells muskets) and the chip
+   names him; its terms state the men after the field cap and the gold the executor charges
+   (*"Lannes · 3,000 men · 3,489g · field levy — no men off the rolls (6,000 under the
+   establishment)"*); a refusal dims the chip beside the quote's `short`. Drift-pinned against
+   the real `/command` on every province × five boards (funded, bled, poor, no administrative
+   action, the census board): every refusal byte-equal, every purchase the quoted men and gold.
+2. **Drill and Fortify: ONE predicate per order** (`tactical_executor.drill_refusal` /
+   `fortify_refusal`, one response builder `order_refusal_response`), read by the pre-objection
+   battery, both executors and the payloads (`tactical_state.*_refusal` on the map, the card's
+   `*_refusal` on the Generals screen). The chips are offered only where the order would begin;
+   otherwise they are dimmed at the end of the row beside the executor's own reason. The
+   battery's four hand copies (the stance block for both verbs, the fortify-while-engaged copy,
+   the "already fortified/drilling" first lines) are replaced by one call, **in the order the
+   player's road has always met the gates** — stance, engagement, the executor's own — so an
+   order the executor will refuse is refused BEFORE any objection (**CQ-23**), pinned
+   deterministically by forcing the objection roll to STRONG (with a control that proves the
+   patch is live). The two roads' aggressive-fortify refusals, in two wordings, are now one.
+3. **CQ-22 — the drill stance gate stays OFF the executor's road, by measurement.** The stance
+   gate lived only in the player's battery; the executor (the AI's road, and the player's
+   strategic/autonomous executions that skip the battery) never had it. Giving it the gate
+   moved `BASELINE_SERIES` — flip-proven: with it, the two series pins fail; without it, both
+   pass — so this UX slice leaves that road's behaviour byte-identical (`stance_gate=False` at
+   `_execute_drill`) and files the asymmetry to the next combat-mechanics row. Pinned as
+   CURRENT, so the fix flips it consciously.
+4. **The attack chip is an order, not a declaration** — offered only against a court France is
+   at war with. The backend marks every foreign marshal `at_war_with_player` (display-only; war
+   states are public; a foreign marshal rides the payload only at FULL). A neutral's marshal gets
+   no chip — declaring war is the wizard's decision, with its war-purpose flow.
+5. **The printed name** on the FORCES row, the attack chip's label AND its command (`Ney, attack
+   Archduke Charles`) — so the terminal echo and the up-arrow history read what the player saw;
+   the parser resolves the printed form (pinned by driving every rendered attack chip).
+6. **The dockyard chip reads the Admiralty's gate** — `naval.build_ships_refusal` (the
+   executor's validator + its treasury check), now ONE function for both chips, shipped as
+   `naval_overlay.ship_build_refusal`.
+7. **The wizard's echoes.** The cede echo names the province (`cede Osnabruck to Holland`, which
+   typed does exactly what the structured road does). The white-peace echo is **display copy by
+   a recorded design decision** (SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1: the white peace
+   is structured-only on this surface, and the settlement stays out of the typed road — the
+   user's standing preference), so it is **disclosed, not made typeable**: the wizard lists it
+   in `ECHO_IS_DISPLAY_ONLY`, `main.gd` keeps it off the up-arrow and prints why beside it. The
+   census pins the rule both ways — every structured echo, typed, does what the structured road
+   did unless it is on that list, and a listed echo must genuinely differ. The typed road's own
+   mishearing of "white peace" is **CQ-20**, filed.
+8. **CQ-21 filed, not built — at zero AP every order chip is offered and refused.** It is a
+   global resource gate (the top bar states it), not the class this row owns (a chip naming a
+   parameter the executor drops, or offered where its own gates refuse); the recruit and
+   substitutes chips already dim for it because their quotes run the executor's steps.
+9. **The inventory is complete and enforced.** `TestTheInventoryIsComplete` extracts every chip
+   url expression from every client `.gd` and fails on any row the census has not reviewed (28
+   rows, each with its verdict) — with a sensitivity arm that plants a chip and sees it caught.
+10. **Pins flipped consciously**: IQ1-3's two substitutes-chip source pins (the recipient comes
+    from the quote; the reason lives in the quote). The harness extension and the helper module
+    are new; the Generals cards are now rendered by the screen's own `_render_all_cards`.
+
+11. **The sweep's two INERT results were the pins, not the code.** The substitutes
+    cavalryman pin stood on the boot board, where Lannes precedes Murat in the roster, so "the
+    first marshal" and "the first infantryman" picked the same man and a mutation choosing the
+    wrong one changed nothing — it now stands Murat FIRST with Bernadotte behind him. And the
+    wizard pins composed every echo from the template TEXT in Python, so disabling the cede
+    branch's condition left them green: the harness now runs the REAL `_build_command` and
+    `echo_note` for every arm and both branches of the conditional ones, and a driven pin holds
+    the census's composition to them — which is what makes the engine-free wizard pins
+    trustworthy at all.
+
+### Measured after
+
+On the staged census board, through the REAL panel and the REAL Generals screen: **every
+rendered chip acts and acts on what it names** (0 enabled-and-refusing, 0 acting on another
+subject); every dimmed Drill/Fortify is refused for exactly the reason beside it; after one keel
+every yard's chip is dimmed "at capacity this season"; Franconia offers no attack chip; no
+roster key reaches the panel. The substitutes quote matches the executor on every province of
+five boards. The affected test family (193 files, 10,201 tests) passes; **`BASELINE_SERIES` and
+M1–M7 are byte-identical** — the flip experiment in decision 3 is what makes that a measurement
+rather than a hope. On the pre-slice tree the CN-4 file does not import (the predicates it pins
+did not exist), so the per-pin evidence is the sweep, not a red-before run. Parse harness
+EXIT=0 (49 scripts); boot smoke 0 `SCRIPT ERROR`.
+
+### The hook's full run
+
+The first commit attempt was blocked by two of 24,723 tests, both in FA-N81's
+`TestFAN81TheWizardMirrorsTheTransitGate`: its drift pin reads each `_build_command` arm's
+FIRST `return` as the arm's canonical echo and evaluates it with a fixed namespace, and the
+cede arm's first return had become the named-province form (`cede_region` undefined there).
+The arm now returns the bare form first — identical behaviour, and FA-N81 reads exactly what it
+read before, untouched. The first repair then failed on a COMMENT: it said the bare form was the
+arm's "first return", and both FA-N81's extractor and this census find the echoes by matching
+`return (.+)` anywhere in an arm — comments included. The comment was reworded, and now says
+why. ⛔ **The lesson a third time this row: a source census reads the file, not the code — a
+comment that names the token a census matches is a code change.**

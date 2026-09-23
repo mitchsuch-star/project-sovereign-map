@@ -242,7 +242,12 @@ func _render() -> void:
 	var enemy_names = []
 	if marshals is Array:
 		for em in marshals:
-			if str(em.get("nation", "")) != _PLAYER_NATION:
+			# CN-4: an ENEMY, not every foreigner — the chip is an order, not
+			# a declaration of war, and "Attack Deroy" beside a Bavarian ally
+			# was refused every time ("they are our ally"). The backend marks
+			# the courts France is at war with (`at_war_with_player`).
+			if str(em.get("nation", "")) != _PLAYER_NATION \
+					and bool(em.get("at_war_with_player", false)):
 				enemy_names.append(str(em.get("name", "")))
 	if marshals is Array and marshals.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]FORCES PRESENT[/color]\n"
@@ -292,39 +297,34 @@ func _render() -> void:
 		# gated — never absent — which is this project's honest-availability
 		# idiom, and it renders on ALLY soil too because the granary is open
 		# there (IQ1-3A).
-		# The marshal standing here is the one the substitutes join, and the
-		# one the backend priced (Intendance is per-marshal), so the chip
-		# names him rather than sending a bare verb the parser must guess at.
-		var sub_marshal = ""
-		if marshals is Array:
-			for om in marshals:
-				if str(om.get("nation", "")) == _PLAYER_NATION:
-					sub_marshal = str(om.get("name", ""))
-					break
-		var subs = levy.get("substitutes", null) if levy is Dictionary else null
-		if subs is Dictionary and sub_marshal != "":
-			var _here = int(data.get("substitute_price_here", 0))
-			if _here <= 0:
-				_here = int(subs.get("price", 0))
-			var _room = int(subs.get("room", 0))
-			var _alarm = int(subs.get("alarm_premium_pct", 0))
-			var _terms = Utils.format_number(_here) + "g per " \
-				+ Utils.format_number(int(subs.get("amount", 0))) + " — no men off the rolls"
-			if _alarm > 0:
-				_terms += ", +" + str(_alarm) + "% while Europe is alarmed"
-			if bool(subs.get("open", false)) and _here > 0:
+		# CN-4: the chip renders the backend's quote (`substitute_here`,
+		# `economy_executor.substitute_quote`, the executor's own gates in its
+		# own order): it names the recipient the quote chose — the first
+		# infantryman of ours standing here, the market sells muskets — and
+		# states the men and the gold the executor will charge, or dims with
+		# the executor's own reason. Measured before: it quoted the national
+		# "per 10,000" where a field purchase delivers 3,000, it was gated on
+		# a national room flag the executor does not read (Milan: enabled,
+		# always refused), and at Franche-Comte it named Murat, a cavalryman.
+		var sub_q = data.get("substitute_here", {})
+		if sub_q is Dictionary and not sub_q.is_empty():
+			if bool(sub_q.get("ok", false)):
+				var _terms = str(sub_q.get("terms", "")) + " — no men off the rolls"
+				var subs = levy.get("substitutes", null) if levy is Dictionary else null
+				var _alarm = int(subs.get("alarm_premium_pct", 0)) if subs is Dictionary else 0
+				if _alarm > 0:
+					_terms += ", +" + str(_alarm) + "% while Europe is alarmed"
+				var _room = int(sub_q.get("room", 0))
+				if _room > 0:
+					_terms += "  (" + Utils.format_number(_room) + " under the establishment)"
 				action_rows.append("  Substitutes: " \
-					+ Utils.bb_button_chip("do:buy substitutes for " + sub_marshal, \
+					+ Utils.bb_button_chip("do:buy substitutes for " + str(sub_q.get("recipient", "")), \
 						"Buy Substitutes", Utils.COLOR_GOLD, _CHIP_BG) \
-					+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _terms \
-					+ "  (" + Utils.format_number(_room) + " under the establishment)[/color]")
+					+ "  [color=#" + Utils.COLOR_SUCCESS + "]" + _terms + "[/color]")
 			else:
-				var _why = "no room under the establishment — the market buys back only what you have lost"
-				if _here <= 0:
-					_why = "this ground does not feed our battalions"
 				action_rows.append("  Substitutes: " \
 					+ Utils.bb_chip_disabled("Buy Substitutes") \
-					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + _why + "[/color]")
+					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + str(sub_q.get("short", "")) + "[/color]")
 
 	# Everything below is OWN soil: a building, a repair and a garrison are
 	# the owner's to order, and the executors refuse them on a vassal's
@@ -423,8 +423,16 @@ func _render() -> void:
 				var yard_note = "a keel in this yard"
 				if yards.size() > 0 and str(yards[0]) != _region:
 					yard_note = "the keel is laid at " + str(yards[0]) + " (the senior yard)"
-				action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
-					+ "  [color=#" + Utils.COLOR_GREY + "]" + yard_note + "[/color]")
+				# CN-4: the Admiralty's own gate (`naval.build_ships_refusal`)
+				# — the second keel of a turn (the yards at capacity) and a
+				# short treasury were enabled chips the executor refused.
+				var ship_why = str(overlay.get("ship_build_refusal", ""))
+				if ship_why == "":
+					action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
+						+ "  [color=#" + Utils.COLOR_GREY + "]" + yard_note + "[/color]")
+				else:
+					action_rows.append("  " + Utils.bb_chip_disabled("Lay down ships (" + str(ship_cost) + "g)")
+						+ "  [color=#" + Utils.COLOR_DIMMED + "]" + ship_why + "[/color]")
 	elif controller != "Neutral" and controller != "" and visibility != "unknown":
 		action_rows.append("  " + Utils.bb_button_chip("negotiate:" + controller, "Negotiate with " + Utils.display_nation_name(controller), Utils.COLOR_COMMAND, _CHIP_BG))
 
@@ -581,11 +589,15 @@ func _ordinance_note(levy) -> String:
 
 func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	var m_name = str(m.get("name", "?"))
+	# CN-4: the printed name, never the roster key ("ArchdukeCharles" —
+	# Golden Rule 7). The order chips keep the key (they address our own
+	# marshals, whose keys are their names).
+	var shown_name = Utils.humanize_entity_name(m_name)
 	var m_nation = str(m.get("nation", ""))
 	var m_strength = int(m.get("strength", 0))
 	var row = "  "
 	var nation_color = Utils.COLOR_TEXT if m_nation == _PLAYER_NATION else Utils.COLOR_ERROR
-	row += "[color=#" + nation_color + "]" + m_name + "[/color]"
+	row += "[color=#" + nation_color + "]" + shown_name + "[/color]"
 	if m_strength > 0:
 		row += " [color=#" + Utils.COLOR_GREY + "](" + Utils.format_number(m_strength) + _arm_word(m) + ")[/color]"
 	if m_nation == _PLAYER_NATION:
@@ -598,11 +610,27 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 			var retreating = bool(tactical.get("retreating", false))
 			var broken = bool(tactical.get("broken", false))
 			if not retreating and not broken:
-				if bool(tactical.get("fortified", false)):
+				# CN-4: Fortify likewise — offered only where the works would
+				# begin (`tactical_state.fortify_refusal`, the executor's own
+				# gates), else dimmed at the end of the row with the reason:
+				# Ney and Davout beside Archduke Charles had enabled Fortify
+				# chips that answered "cannot fortify while engaged".
+				var fortified = bool(tactical.get("fortified", false))
+				var fortify_why = str(tactical.get("fortify_refusal", ""))
+				if fortified:
 					row += "  " + Utils.bb_button_chip("order:unfortify:" + m_name, "Unfortify", Utils.COLOR_COMMAND, _CHIP_BG)
-				else:
+				elif fortify_why == "":
 					row += "  " + Utils.bb_button_chip("order:fortify:" + m_name, "Fortify", Utils.COLOR_COMMAND, _CHIP_BG)
-				if not bool(tactical.get("drilling", false)):
+				# CN-4: the Drill chip is offered only where the drill would
+				# begin; otherwise it is dimmed at the end of the row beside
+				# the executor's own reason (`tactical_state.drill_refusal`,
+				# `tactical_executor.drill_refusal`). Measured before: at the
+				# 1805 boot every French corps stood one province from Mack
+				# and every Drill chip answered "cannot drill with enemy
+				# forces nearby".
+				var drill_why = str(tactical.get("drill_refusal", ""))
+				var drilling = bool(tactical.get("drilling", false))
+				if not drilling and drill_why == "":
 					row += "  " + Utils.bb_button_chip("order:drill:" + m_name, "Drill", Utils.COLOR_COMMAND, _CHIP_BG)
 				row += "  " + Utils.bb_button_chip("order:scout:" + m_name, "Scout", Utils.COLOR_COMMAND, _CHIP_BG)
 				# Attack chips — only enemies the fog actually shows here
@@ -611,7 +639,16 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 				for i in range(mini(enemy_names.size(), 2)):
 					var enemy = str(enemy_names[i])
 					if enemy != "":
-						row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy, "Attack " + enemy, Utils.COLOR_ERROR, _CHIP_BG)
+						# CN-4: the printed name on the label AND in the
+						# command, so the terminal echo and the up-arrow
+						# history read what the player saw (the parser
+						# resolves the printed form — pinned by driving it).
+						var enemy_shown = Utils.humanize_entity_name(enemy)
+						row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR, _CHIP_BG)
+				if not fortified and fortify_why != "":
+					row += "  " + Utils.bb_chip_disabled("Fortify") + " [color=#" + Utils.COLOR_DIMMED + "]" + fortify_why + "[/color]"
+				if not drilling and drill_why != "":
+					row += "  " + Utils.bb_chip_disabled("Drill") + " [color=#" + Utils.COLOR_DIMMED + "]" + drill_why + "[/color]"
 	return row + "\n"
 
 

@@ -6678,10 +6678,20 @@ func _on_wizard_structured_command_selected(command: String, data: Dictionary):
 	if command.is_empty():
 		return
 
-	_add_to_history(command)
+	# CN-4: an echo whose typed form does something else is display copy —
+	# it is not parked on the up-arrow (re-sending "propose white peace with
+	# Austria" proposed a treaty with terms) and it says where it came from.
+	var echo_note := ""
+	if diplomacy_wizard and diplomacy_wizard.has_method("echo_note"):
+		echo_note = str(diplomacy_wizard.echo_note(str(data.get("action", ""))))
+	if echo_note == "":
+		_add_to_history(command)
 
 	add_output("")
-	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]")
+	var echo_line := "[color=#" + Utils.COLOR_COMMAND + "]► " + Utils.humanize_nation_keys_in_text(command) + "[/color]"
+	if echo_note != "":
+		echo_line += "  [color=#" + Utils.COLOR_DIMMED + "](" + echo_note + ")[/color]"
+	add_output(echo_line)
 
 	set_input_enabled(false)
 

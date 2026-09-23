@@ -736,6 +736,23 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 	return {}
 
 
+# CN-4: a structured action whose echo, TYPED, does something else. The echo
+# is display copy (SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1: the white
+# peace is structured-only on this surface), so main.gd does not park it on
+# the up-arrow and says where it came from. Measured: re-sending "propose
+# white peace with Austria" from the history proposed a Peace Treaty with
+# terms. Every other structured echo re-types to its own action (pinned by
+# driving each one — tests/test_cn4_the_chip_honesty_census.py).
+const ECHO_IS_DISPLAY_ONLY = {
+	"propose_white_peace": "sent from the diplomacy screen — typed, this line would propose a peace treaty with terms",
+}
+
+
+func echo_note(action: String) -> String:
+	"""The disclosure for a structured action's display-only echo, or ""."""
+	return str(ECHO_IS_DISPLAY_ONLY.get(action, ""))
+
+
 func _build_command(action_id: String, nation: String, action_payload: Dictionary = {}) -> String:
 	"""Map wizard action ID to the command string the backend expects."""
 	match action_id:
@@ -792,8 +809,20 @@ func _build_command(action_id: String, nation: String, action_payload: Dictionar
 		"release_vassal":
 			return "release " + nation
 		"grant_region_to_vassal":
-			# VS-3: display echo — the structured payload carries the region
-			return "cede territory to " + nation
+			# VS-3: the structured payload carries the region. CN-4: so does
+			# the echo — the typed form reads a province ("cede Rhineland to
+			# Holland"), and "cede territory to <N>" dropped the one the
+			# player picked, so the up-arrow re-sent a different order (the
+			# eligible list). With no pick, the bare form asks for the list,
+			# which is what the structured road does too. (The bare form
+			# comes first on purpose: FA-N81's drift pin reads each arm's
+			# first echo as its canonical one. Keep the word the arms use
+			# to hand back a string out of comments here — the census pins
+			# find the echoes by it.)
+			var cede_region = str(action_payload.get("region", ""))
+			if cede_region == "":
+				return "cede territory to " + nation
+			return "cede " + cede_region + " to " + nation
 		"mission_improve_relations":
 			return "improve relations with " + nation
 		"mission_court":

@@ -668,12 +668,26 @@ func _render_card(m: Dictionary, index: int) -> String:
 		var chip_name = str(m.get("name", ""))
 		if chip_name != "":
 			var order_chips = []
+			# CN-4: Fortify is offered only where the works would begin (the
+			# card's `fortify_refusal`), else dimmed beside the reason.
+			var fortify_why = str(m.get("fortify_refusal", ""))
 			if m.get("is_fortified", false):
 				order_chips.append(Utils.bb_button_chip("order:unfortify:" + chip_name, "Unfortify", Utils.COLOR_COMMAND, "233043"))
-			else:
+			elif fortify_why == "":
 				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, "Fortify", Utils.COLOR_COMMAND, "233043"))
+			else:
+				order_chips.append(Utils.bb_chip_disabled("Fortify") + " [color=#" + COLOR_DIM + "]" + fortify_why + "[/color]")
+			# CN-4: Drill is offered only where the drill would begin;
+			# otherwise it is dimmed beside the executor's own reason (the
+			# card's `drill_refusal`, `tactical_executor.drill_refusal`) —
+			# at the 1805 boot every corps stood one province from Mack and
+			# every Drill chip was refused.
+			var drill_why = str(m.get("drill_refusal", ""))
 			if not m.get("is_drilling", false):
-				order_chips.append(Utils.bb_button_chip("order:drill:" + chip_name, "Drill", Utils.COLOR_COMMAND, "233043"))
+				if drill_why == "":
+					order_chips.append(Utils.bb_button_chip("order:drill:" + chip_name, "Drill", Utils.COLOR_COMMAND, "233043"))
+				else:
+					order_chips.append(Utils.bb_chip_disabled("Drill") + " [color=#" + COLOR_DIM + "]" + drill_why + "[/color]")
 			if order_chips.size() > 0:
 				bbcode += "  " + "  ".join(PackedStringArray(order_chips)) + "\n"
 
