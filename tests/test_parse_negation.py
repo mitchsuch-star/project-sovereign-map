@@ -307,6 +307,29 @@ class TestParserBehaviour:
         assert result["command"]["action"] == "hold"
         assert result["command"]["target"] != "Nassau"
 
+    @pytest.mark.parametrize("text", [
+        "Nobody retreat", "Let no one retreat", "Nobody is to retreat",
+        "No one attack Mack", "None attack Mack", "Nobody retreats!",
+        "Let nobody retreat", "None of you retreat", "Not a man retreats",
+        "Not one of you retreat", "Nobody, retreat",
+    ])
+    def test_a_negative_indefinite_is_a_prohibition(self, board, text):
+        """CRT-1 (CQ-34, September 23, 2026). `Nobody retreat` ordered a
+        GENERAL RETREAT of eight corps (−2,270 men) and `No one attack Mack`
+        a battle — CX-7 had put the negative indefinites into `_COLLECTIVE`,
+        the "served, never refused" list, so the auto-assign arm carried them
+        out as orders. They are negation markers now."""
+        result = run(board, text)
+        assert not result.get("success")
+        assert result.get("refusal") == "negation"
+
+    @pytest.mark.parametrize("text,action", [
+        ("someone attack Mack", "attack"),
+        ("everyone retreat", "retreat"),
+    ])
+    def test_the_indefinites_the_auto_assign_serves_are_untouched(self, board, text, action):
+        assert action_of(board, text) == action
+
 
 # ════════════════════════════════════════════════════════════════════════
 # 3. The guards must not over-fire

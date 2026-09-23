@@ -1,0 +1,100 @@
+[
+  {
+    "id": "CRT1-1 the vocabulary lever down",
+    "file": "backend/ai/clause_guards.py",
+    "old": "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER = True",
+    "new": "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER = False",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeIndefiniteIsAProhibition tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeContractionIsANegation tests/test_crt1_what_the_sentence_forbids.py::TestTheNegatedAnswerSignsNothing"
+  },
+  {
+    "id": "CRT1-2 the reason lever down",
+    "file": "backend/ai/clause_guards.py",
+    "old": "THE_REASON_IS_NOT_THE_ORDER = True",
+    "new": "THE_REASON_IS_NOT_THE_ORDER = False",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder tests/test_crt1_what_the_sentence_forbids.py::TestTheThirdPartysRetreatIsNotOurs"
+  },
+  {
+    "id": "CRT1-3 the vocative comma is not consumed",
+    "file": "backend/ai/clause_guards.py",
+    "old": "            if comma and comma.end() > scan_from and \",\" in comma.group(0):",
+    "new": "            if False:",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeIndefiniteIsAProhibition tests/test_parse_negation.py::TestParserBehaviour::test_a_negative_indefinite_is_a_prohibition"
+  },
+  {
+    "id": "CRT1-4 the negative indefinites arm deleted",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    r\"|no\\s*-?\\s*(?:body|one)\\b|noone\\b|none\\b\"",
+    "new": "",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeIndefiniteIsAProhibition tests/test_parse_negation.py::TestParserBehaviour::test_a_negative_indefinite_is_a_prohibition"
+  },
+  {
+    "id": "CRT1-5 the modal negatives arm deleted",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    r\"|would\\s*n[o']t|would\\s+not|could\\s*n[o']t|could\\s+not\"",
+    "new": "",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeContractionIsANegation tests/test_crt1_what_the_sentence_forbids.py::TestTheNegatedAnswerSignsNothing tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2NegatedAnswers"
+  },
+  {
+    "id": "CRT1-6 the contracted auxiliaries arm deleted",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    r\"|['’](?:d|ll|re|ve|s)\\s+not\"",
+    "new": "",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegatedAnswerSignsNothing tests/test_fa_n_p1_cluster_2026_09_02.py::TestFAN2NegatedAnswers"
+  },
+  {
+    "id": "CRT1-7 the deliberative openers arm deleted",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    r\"|ought\\s+(?:we|i)\\b|have\\s+(?:we|i)\\b\"",
+    "new": "",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeContractionIsANegation"
+  },
+  {
+    "id": "CRT1-8 the negative indefinites re-enter the collective",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    \"someone somebody anyone anybody whoever whomever\"\n).split())",
+    "new": "    \"someone somebody anyone anybody whoever whomever nobody noone none\"\n).split())",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheNegativeIndefiniteIsAProhibition"
+  },
+  {
+    "id": "CRT1-9 the strategic layer reads the raw clause again",
+    "file": "backend/commands/parser.py",
+    "old": "                    strategic_text, _ = strip_reason_clauses(\n                        strategic_text, foes=foe_names_for_guards(game_state))",
+    "new": "                    strategic_text = strategic_text",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheThirdPartysRetreatIsNotOurs"
+  },
+  {
+    "id": "CRT1-10 the fuzzy word scan reads the raw clause again",
+    "file": "backend/commands/parser.py",
+    "old": "            _scan_text, _ = strip_reason_clauses(\n                command_text, foes=foe_names_for_guards(names=known_enemies))",
+    "new": "            _scan_text = command_text",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder"
+  },
+  {
+    "id": "CRT1-11 the chain hands the guard no foe names",
+    "file": "backend/ai/llm_client.py",
+    "old": "            _foes = foe_names_for_guards(game_state)",
+    "new": "            _foes = []",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder"
+  },
+  {
+    "id": "CRT1-12 the foe roster carries the keys only",
+    "file": "backend/ai/llm_client.py",
+    "old": "        for form in (str(name), humanize_entity_name(str(name)),\n                     *_name_match_patterns(str(name))):",
+    "new": "        for form in (str(name),):",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder tests/test_crt1_what_the_sentence_forbids.py::TestTheGuardsStayNarrow"
+  },
+  {
+    "id": "CRT1-13 the reason-only sentence loses its copy",
+    "file": "backend/main.py",
+    "old": "                elif parsed[\"refusal\"] == \"reason\":",
+    "new": "                elif False:",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder"
+  },
+  {
+    "id": "CRT1-14 the reason-only sentence is not refused",
+    "file": "backend/ai/llm_client.py",
+    "old": "            if negation_applied or deferral_applied or reason_applied:",
+    "new": "            if negation_applied or deferral_applied:",
+    "tests": "tests/test_crt1_what_the_sentence_forbids.py::TestTheReasonIsNotTheOrder"
+  }
+]

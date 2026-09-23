@@ -3560,6 +3560,22 @@ def execute_command(request: CommandRequest):
                     refusal_msg = refusal_copy(
                         _detail, parsed.get("partial_marshal"), world,
                         target=parsed.get("partial_target"))
+                elif parsed["refusal"] == "reason":
+                    # CRT-1 (CQ-32): the sentence reported the enemy's
+                    # movements and gave no order of ours — "as they
+                    # attack", "the Austrians are storming the bridge". The
+                    # old answer was to read THEIR verb as OUR order and
+                    # fight; the honest one names what was heard and asks
+                    # for the order that was not.
+                    _clause = str(_detail.get("clause") or "").strip()
+                    _addressee = parsed.get("partial_marshal") or "the marshal"
+                    _heard = f" — '{_clause}' —" if _clause else ""
+                    refusal_msg = (
+                        f"Berthier waits, pen raised. \"You have told me what "
+                        f"the enemy is about, Sire{_heard} but not what "
+                        f"{_addressee} is to do about it. Nothing has been "
+                        f"relayed; give me his order and I shall carry it at "
+                        f"once.\"")
                 elif parsed["refusal"] == "deferral":
                     # FA-7. A DIFFERENT failure from a prohibition and it must
                     # not wear the same words: the player did not forbid the

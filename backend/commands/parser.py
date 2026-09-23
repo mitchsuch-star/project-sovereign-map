@@ -21,7 +21,9 @@ from backend.ai.clause_guards import (
     is_question,
     strip_deferred_clauses,
     strip_negated_clauses,
+    strip_reason_clauses,
 )
+from backend.ai.llm_client import foe_names_for_guards
 from backend.ai.validation import (
     META_ACTIONS,
     NEVER_STRATEGIC_ACTIONS,
@@ -1598,7 +1600,17 @@ class CommandParser:
                 skip_words.append(llm_result["marshal"].lower())
 
             # Extract potential target words from command (words after action)
-            words = command_text.split()
+            #
+            # CRT-1 (CQ-32): the THIRD reader of the raw utterance. The
+            # mock chain and the strategic layer both read the sentence
+            # with the third-party reason clause blanked, and this scan
+            # did not — so `Ney, retreat, Mack is attacking` retreated
+            # correctly and then bound Mack as the retreat's DESTINATION
+            # ("Mack cannot be reached, Sire — no such province"). The
+            # blank is same-length, and `split()` drops it.
+            _scan_text, _ = strip_reason_clauses(
+                command_text, foes=foe_names_for_guards(names=known_enemies))
+            words = _scan_text.split()
             for _wi, word in enumerate(words):
                 # Aug 30, 2026 review: the word BEFORE matters (see the
                 # near-enemy arm below), so the raw previous token is kept.
@@ -2216,6 +2228,14 @@ class CommandParser:
                     # `until`, so StrategicCondition's one supported condition
                     # is safe here in a way `strip_condition_clauses` is not.
                     strategic_text, _ = strip_negated_clauses(effective_text)
+                    # CRT-1 (CQ-32 / CX5-L5-F1): the strategic layer is the
+                    # SECOND producer that reads the raw utterance, so the
+                    # third-party reason clause is blanked for it too —
+                    # measured, `Ney, hold the line as they fall back` had
+                    # read "fall back" as a march toward Mack here while
+                    # the action chain read a HOLD.
+                    strategic_text, _ = strip_reason_clauses(
+                        strategic_text, foes=foe_names_for_guards(game_state))
                     strategic_text, _ = strip_deferred_clauses(strategic_text)
                     # CR-7-5: the clause guard's HAND-OFF. The handed-off
                     # span is blanked SAME-LENGTH for the strategic layer

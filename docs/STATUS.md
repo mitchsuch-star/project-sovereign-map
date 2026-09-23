@@ -335,29 +335,28 @@
 >
 > ### ⛔ FOR THE NEXT SESSION — READ THIS BEFORE ANYTHING ELSE
 >
-> 1. **What is next** = **CRT-1 "What the sentence forbids is never the order"** (P1 ×4,
->    ~1.0–1.25 sessions). **The CR-6 triage (row 6) is DONE** (September 23, 2026 — record =
->    `docs/COMMAND_ROBUSTNESS_SPEC.md` §12). It found four P1s on one seam and routed them
->    AHEAD of the build:
->    - **CQ-32:** `Ney, retreat as they attack` fights;
->    - **CQ-34:** `Nobody retreat` retreats the whole army, and `No one attack Mack` fights;
->    - **CXR1-3:** `couldn't we attack Mack` fights;
->    - **CQ-35:** `I would not accept` signs the treaty.
+> 1. ~~**What is next** = **CRT-1 "What the sentence forbids is never the order"**~~ ✅ **CRT-1
+>    LANDED September 23, 2026** — landing record = `docs/COMMAND_ROBUSTNESS_SPEC.md` §12.7;
+>    rules = `SYSTEMS_REFERENCE.md` §4 Stage 2g; **CQ-32 / CQ-34 / CQ-35 / CXR1-3 / CX5-L5-F1
+>    FIXED** in `BUG_FIXES.md`. Re-measured first (every family reproduced at `POST /command`),
+>    then built as the contract said: the wider negation vocabulary (modal / perfect / past-copula /
+>    contracted negatives, `ought we` / `have we` as markers — `is_question`'s lead untouched),
+>    the negative indefinites as markers that LEFT `_COLLECTIVE` (+ the vocative comma:
+>    `Nobody, retreat` is `Nobody retreat`), and ONE subtractive reason-clause guard applied at
+>    all THREE readers of the raw text — the mock chain, the strategic layer's read, and the
+>    parser's fuzzy target scan (the third found while driving: `Ney, retreat, Mack is attacking`
+>    had bound Mack as the retreat's DESTINATION). Foes handed in both registers (with keys alone
+>    `Archduke Charles is attacking` ATTACKED him); a reason-only sentence refused by name
+>    (`refusal == "reason"`); `'d not` closed (11 of 11). `test_crt1_what_the_sentence_forbids.py`
+>    103 (+13 / +18 in the two contract-named files), sweep `_sweep_crt1.json` **14/14, 0 INERT**,
+>    corpus 723/723 (12 `crt1-*` rows; not evidence — the sensitivity class is), series + M1–M7
+>    byte-identical, zero `.gd`.
 >
->    **How to build it.** Everything is in `backend/ai/clause_guards.py`:
->    - the modal and perfect negative contractions, plus `ought` / `have we`, join the
->      negation vocabulary;
->    - the negative indefinites become markers and leave `_COLLECTIVE`;
->    - add ONE subtractive reason-clause guard, in the PARSE-NEG shape (blank with spaces,
->      never pick an action).
->
->    ⛔ **Do NOT widen `is_question`'s lead:** it stops `Davout, don't advance on our left,
->    fortify` from fortifying. The per-row done-whens are in `BUG_FIXES.md` §Command-Road
->    Queue; §12.3 of the spec carries the controls. Pins drive `POST /command`; the corpus
->    is 711/711 in both arms and is NOT evidence.
->
->    **Then ROADMAP position 10, the shippable build.** After that, CRT-2 … CRT-11 in the
->    §12.3 order; Round 0 evidence may re-order them.
+>    **What is next = row NUI "The Admiralty on the Map"** (user-directed September 23, 2026:
+>    *"add naval ui and make the ux and ui work and while at it assure ux and ui is good in other
+>    key areas"*). It names "the next UI slice" the triage flagged (IQ10-X1 / IQ10-X2 ride it).
+>    **Then ROADMAP position 10, the shippable build.** After that, CRT-2 … CRT-11 in the §12.3
+>    order; Round 0 evidence may re-order them.
 > 2. **Reproduce before fixing.** Every figure below was measured at HEAD
 >    `15c498cb`. Re-measure on your own HEAD before changing a line. This repo's
 >    own records say ~80% of filed line numbers go stale — **navigate by symbol**.
@@ -395,8 +394,9 @@
 > | ~~**2**~~ | ~~**CX-R1 "The unbound name spends nothing"**~~ ✅ **LANDED Sept 22, 2026** | CX-R | 0.5 | ~~**P1.** Without a comma, an unknown addressee mutates state: `Zorglub build ships` → gold **800 → 400** and a keel laid; `Zorglub recruit in Rhineland` → **800 → 59**; `Zorglub vassalize Austria` → **Austria subjugated**.~~ **~30 forms → 0**; the verb set is generated from the router. Landing record in the memo. CX-X3 (a bare `vassalize`) re-routed to the CR-6 triage. |
 > | ~~**3**~~ | ~~**CN-1 … CN-4 "The Chip Names the Man"**~~ ✅ **ALL FOUR LANDED Sept 22, 2026 — row CN is done** (CN-1 + CN-2 backend, CN-3 the chip, CN-4 the census) | CN | 2.0 | The user's own reported bug. Wrong purchase, charged in full, irreversible, at the scarcest resource on the board. Slices + `done_when` in the memo (memo ids R1–R4 ≡ CN-1–CN-4). **Reminder (Sept 22, 2026):** recruit must WORK for a commissioned gun marshal — memo R2 done-when item 9 (Marmont/Senarmont: `recruit artillery in Paris` delivers via him; the artillery chip lights on his province; the remedy line is derived from the board). |
 > | ~~**4**~~ | ~~**CX-R2 "The offer is reachable"**~~ ✅ **LANDED Sept 23, 2026** | CX-R | 0.5 | ~~The completer offers lines that all parse (280/280) and **59.3% of which the executor refuses**, because both target pools end in `out.sort()`.~~ **169 of 280 refused on the boot → 0** (every offered line driven at `/command`); not client-only, by decision — two display-only fields. Landing record in the memo. |
-> | **▶ 6a** | **CRT-1 "What the sentence forbids is never the order"** — **NEXT** (filed by the CR-6 triage, Sept 23, 2026) | CRT | 1.0–1.25 | **P1 ×4 on one seam — CQ-32, CQ-34, CQ-35, CXR1-3 (+ CX5-L5-F1):** an order to retreat, a prohibition, a negative question and a refusal each carry out the OPPOSITE. **It precedes the build under D2's own rule.** Contract = `COMMAND_ROBUSTNESS_SPEC.md` §12.3. |
-> | **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — next after CRT-1 (row 6a) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
+> | ~~**6a**~~ | ~~**CRT-1 "What the sentence forbids is never the order"**~~ ✅ **LANDED Sept 23, 2026** — record `COMMAND_ROBUSTNESS_SPEC.md` §12.7; the four P1s closed at `POST /command` (103 pins, sweep 14/14, three readers of the raw text) | CRT | 1.0–1.25 | **P1 ×4 on one seam — CQ-32, CQ-34, CQ-35, CXR1-3 (+ CX5-L5-F1):** an order to retreat, a prohibition, a negative question and a refusal each carry out the OPPOSITE. **It precedes the build under D2's own rule.** Contract = `COMMAND_ROBUSTNESS_SPEC.md` §12.3. |
+> | **▶ 6b** | **NUI "The Admiralty on the Map"** — **NEXT** (user-directed Sept 23, 2026) | NUI | ~1.0 | *"add naval ui and make the ux and ui work and while at it assure ux and ui is good in other key areas."* The naval theatre gets a presence on the map and a door to the Admiralty; the UI/UX pass takes IQ10-X1 / IQ10-X2 and whatever the captures find. This names "the next UI slice" the triage flagged. |
+| **→** | **ROADMAP position 10 — THE SHIPPABLE BUILD** — next after row NUI (CRT-1 landed Sept 23) | — | — | ~~The three P1s are dead~~ — the triage found four more; they are CRT-1's. The first-contact surface is otherwise honest (CX-R2: 0 of 272 offered lines refused on the boot). **Ship after CRT-1.** |
 > | ~~**5**~~ | ~~**CR-7-2 … CR-7-8**~~ ✅ **LANDED September 22, 2026 — pulled ahead of slices 2–4 by user direction** | CR-7 | 4.5 | ~~The rest of compound + conditional, in spec order, with the kill gates.~~ All seven landed in one session (block above); CR-7-8 = the queue retired by contract, `COMMAND_ROBUSTNESS_SPEC.md` §11.1. |
 | ~~**5b**~~ | ~~**CR-7-9** "The conditions say what they mean"~~ ✅ **LANDED September 22, 2026** | CR-7 | 0.5 | `and` = every arm (latched, with a progress beat), `or`/none = whichever comes first, said on the echo and the Ledger; the timer counts the turn it was given; a stashed tail is let go with a word. Opened by the user's question on the landed row. |
 > | ~~**6**~~ | ~~**CR-6 triage**~~ ✅ **HELD September 23, 2026** — record + build contract = `COMMAND_ROBUSTNESS_SPEC.md` §12. Every "CR-6 proper" row is homed to CRT-1…CRT-11 or closed or struck, and CQ-30…CQ-36 are filed | CR-6 | 0.25 | ~~**▶ DUE NOW — CX-R2 landed September 23, 2026.**~~ **Dated trigger: the session immediately after CR-7-8 — which landed September 22, 2026, so this is due the session after CX-R1 / CN / CX-R2 (the user's re-sequencing put those ahead of it).** Not "someday". **Its intake grew by two on September 22 (CX-R1): CQ-17** (an addressed marshal steals a reward meant for another) **and CX-X3** (a bare `vassalize <great power>` over the API) — **and by two more the same day (CN-4): CQ-20** (typed `propose white peace with <N>` is heard as a Peace Treaty with terms) **and CQ-21** (at zero AP every order chip is offered and refused) — **and by two more on September 23 (CX-R2): CQ-24** (the completer offers orders a marshal's STATE refuses — CQ-21's sibling, one design for both) **and CQ-28** (a drill-locked marshal takes a standing order the lock says he cannot receive) — **and, filed after CX-R2 landed, CQ-29** (`recruit <arm> in <X>` with a typo, an accent or an unknown place is raised AT THE CAPITAL and charged, P2) — all with their done-when in `BUG_FIXES.md` §Command-Road Queue. |
@@ -8225,6 +8225,22 @@
 > definition. Gate record = `CREATIVE_AUDIT_2026_08_04.md` §10.
 
 ## The session log — RE-STAGED July 2, 2026 (post-map / post-diplo)
+
+> ### ✅ CRT-1 "WHAT THE SENTENCE FORBIDS IS NEVER THE ORDER" — September 23, 2026 — LANDED
+>
+> The CR-6 triage's four P1s, closed at `POST /command` (landing record
+> `COMMAND_ROBUSTNESS_SPEC.md` §12.7; rules `SYSTEMS_REFERENCE.md` §4 Stage 2g).
+> Re-measured first on `d9745e22`: 6 of 6 reason-clause retreats FOUGHT at Swabia,
+> `Nobody retreat` was a general retreat of eight corps, 15 of 15 negative
+> contractions acted, 11 of 11 negated modal answers SIGNED Prussia's letter. Built
+> as the contract said — the vocabulary, the negative indefinites as markers that
+> left `_COLLECTIVE` (+ the vocative comma), ONE subtractive reason-clause guard —
+> and at all THREE readers of the raw text; the third (the parser's fuzzy target
+> scan) was found while driving: `Ney, retreat, Mack is attacking` retreated and
+> then bound Mack as the DESTINATION. Foes in both registers (the keys alone let
+> `Archduke Charles is attacking` attack him); the reason-only sentence refused by
+> name; `'d not` closed. 103 + 31 pins, sweep 14/14 0 INERT, corpus 723/723, series
+> + M1–M7 byte-identical, zero `.gd`.
 
 > ### ✅ THE SCHOOL OF WAR (position 7) + NV-12 "THE CLEAR DECK" — August 8, 2026 — BUILT, one session
 >

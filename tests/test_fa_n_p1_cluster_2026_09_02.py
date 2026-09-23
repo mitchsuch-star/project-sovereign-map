@@ -64,6 +64,12 @@ ADVISORY = {"type": "advisory", "options": [
     {"label": "Execute", "action": "execute_suggestion"},
     {"label": "Dismiss", "action": "dismiss"},
 ]}
+# CRT-1 (CQ-35): the proposal confirm the row measured its twin on.
+CONFIRM = {"type": "proposal_confirm", "options": [
+    {"label": "Send as suggested", "action": "execute_proposal"},
+    {"label": "Harsher terms", "action": "harsher_terms"},
+    {"label": "Reconsider", "action": "cancel_proposal"},
+]}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -115,6 +121,42 @@ class TestFAN2NegatedAnswers:
         it is a PARSE-NEG change."""
         assert match_dialogue_answer(
             PROPOSAL, "not accept", ROSTER, world_regions=[]) == "accept"
+
+    @pytest.mark.parametrize("line", [
+        "i would not accept", "i wouldn't accept", "we could not accept that",
+        "we'd rather not accept", "we had better not accept",
+        "i might not accept", "we ought not accept", "we may not accept",
+        "i'd not accept", "we couldn't accept", "we'll not accept",
+    ])
+    def test_a_modal_negated_accept_answers_nothing(self, line):
+        """CRT-1 (CQ-35, September 23, 2026): every one of these SIGNED the
+        treaty — FA-N2's class one vocabulary gap wider. The modal, perfect
+        and contracted negations joined `clause_guards`' one vocabulary,
+        which this router reads through `text_the_player_still_means`; the
+        `'d not` form the row wrote off as the bare-`not` limit is a
+        contraction and is closed with the rest."""
+        assert match_dialogue_answer(
+            PROPOSAL, line, ROSTER, world_regions=[]) is None
+
+    @pytest.mark.parametrize("line", [
+        "i would not send it", "we couldn't send that", "i'd rather not send it",
+    ])
+    def test_a_modal_negated_send_answers_nothing(self, line):
+        """The twin on the proposal confirm: `I would not send it` dispatched
+        Talleyrand and spent the DP."""
+        assert match_dialogue_answer(
+            CONFIRM, line, ROSTER, world_regions=[]) is None
+
+    @pytest.mark.parametrize("line,expected", [
+        ("i would accept", "accept"),
+        ("we could accept that", "accept"),
+        ("send it", "send"),
+        ("i would send it", "send"),
+    ])
+    def test_the_modal_affirmative_still_answers(self, line, expected):
+        dialogue = CONFIRM if "send" in line else PROPOSAL
+        assert match_dialogue_answer(
+            dialogue, line, ROSTER, world_regions=[]) == expected
 
 
 class TestFAN2SelfNegatingTokensAreExempt:

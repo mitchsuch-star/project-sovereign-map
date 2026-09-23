@@ -1408,6 +1408,40 @@ that dropped it (`relay_let_go` + Berthier's line, from `relay.let_go_line`, spo
 had dropped the tail in silence) clear it. Tests:
 `tests/test_cr7_9_the_conditions_say_what_they_mean.py`; sweep `tools/_sweep_cr7_9.json`.
 
+### Stage 2g: What the sentence forbids is never the order (CRT-1, September 23, 2026)
+
+**The vocabulary is ONE regex.** `clause_guards._negation_re()` — read by
+`negation_marker_spans`, `strip_negated_clauses`, and through them by
+`dialogue_routing.text_the_player_still_means` for every dialogue family — holds every
+way English says "not that": the plain negatives PARSE-NEG shipped, and (CRT-1) the modal
+ones (`would/could/might/may/ought/need/dare + not`, contracted or not), the perfect
+(`have/has/had + not`), the past copula (`was/were + not`), the idioms of reluctance (`'d
+rather not`, `had better not`), the contracted auxiliaries (`I'd not`, `we'll not`), the
+deliberative openers `ought we` / `have we` (no imperative begins with them — and `have`
+must stay OUT of `is_question`'s lead, because `have Ney attack Mack` is the causative
+order), and the negative indefinites (`nobody`, `no one`, `none`, `not one`, `not a man`,
+`no man/corps/…`). A negative indefinite is its clause's SUBJECT: it left `_COLLECTIVE`
+(a prohibition on everybody is not an address the auto-assign serves), it stays in
+`_NEVER_AN_ADDRESS`, and a vocative comma typed straight after it belongs to its clause
+(`Nobody, retreat` is `Nobody retreat`). A bare `not` and a bare `no` stay outside the
+vocabulary (CR-4's `not you, Davout`; `no quarter`). A new member of the class is a pin
+in `test_crt1_what_the_sentence_forbids.py`, not a new row.
+
+**The reason is not the order.** `strip_reason_clauses` (lever
+`THE_REASON_IS_NOT_THE_ORDER`) blanks — same-length, never splicing, never choosing — a
+THIRD-PARTY reason clause: a subordinator (`as`, `because`, `since`, `now that`, `seeing
+that`) or a bare comma, then `they` / `he` / `she`, `the enemy` / any `the <demonym>`
+(morphological: `-ians`, `-ans`, `-ish`, `-ese`), or a foe on the roster in EITHER
+register (`llm_client.foe_names_for_guards`: keys and printed forms — `ArchdukeCharles`
+and `Archduke Charles`), then an auxiliary + verb or a hostile third-person verb. `it` is
+never a subject (`it is time to attack Mack` is an order); a friendly name never is (`as
+Davout arrives` is timing, Stage 2d's). Sited AFTER `is_question` and the condition guard,
+so a condition keeps its refusal or hand-off. **It is applied at all three readers of the
+raw text** — the mock chain, the strategic layer's read (`parser.py`), and the parser's
+fuzzy target scan — because a blank that reaches only one reader is the FA slice-1
+defect. A sentence that is ONLY the enemy's movements is refused by name
+(`refusal == "reason"`, `main.py`) with its clause quoted, never shrugged at.
+
 ### Stage 3: Validation
 
 **File:** `backend/ai/validation.py`

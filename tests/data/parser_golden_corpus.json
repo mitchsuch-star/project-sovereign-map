@@ -5834,6 +5834,144 @@
       },
       "source": "CN (the Command-Road Queue, slice 3) — the artillery chip, R2 item 9",
       "notes": "The chip a commissioned gun marshal answers (Marmont/Senarmont at Paris)."
+    },
+    {
+      "id": "crt1-retreat-as-they-attack",
+      "utterance": "Ney, retreat as they attack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "retreat",
+        "marshal": "Ney",
+        "target": null
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-32",
+      "notes": "FOUGHT at Swabia before the reason-clause guard: the reason clause's verb was read as the order at 0.9, above the gate. The clause is blanked; the retreat stands and carries no destination."
+    },
+    {
+      "id": "crt1-retreat-mack-is-attacking",
+      "utterance": "Ney, retreat, Mack is attacking",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "retreat",
+        "marshal": "Ney",
+        "target": null
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-32",
+      "notes": "The comma-appositive arm with a named foe. `target: null` pins the parser's fuzzy word scan reading the blank too — it had bound Mack as the retreat's DESTINATION."
+    },
+    {
+      "id": "crt1-attack-mack-as-he-retreats-control",
+      "utterance": "Ney, attack Mack as he retreats",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-32 control",
+      "notes": "The player's own verb survives the blank; the guard is subtractive."
+    },
+    {
+      "id": "crt1-cover-the-retreat-as-they-fall-back",
+      "utterance": "Ney, cover the retreat as they fall back",
+      "world": "1805",
+      "expected": {
+        "success": false
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CX5-L5-F1",
+      "notes": "Retreated Ney at 0.9 before the guard (the third party's `fall back` read as his). Screening is not a modelled action, so the honest outcome is the shrug, not a retreat."
+    },
+    {
+      "id": "crt1-nobody-retreat-refuses",
+      "utterance": "Nobody retreat",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "retreat"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-34",
+      "notes": "A GENERAL RETREAT of eight corps before the fix: CX-7 had put the negative indefinites into the served collective list. A negation marker now."
+    },
+    {
+      "id": "crt1-no-one-attack-mack-refuses",
+      "utterance": "No one attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-34",
+      "notes": "A muster and a battle before the fix."
+    },
+    {
+      "id": "crt1-nobody-comma-retreat-refuses",
+      "utterance": "Nobody, retreat",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "retreat"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-34",
+      "notes": "The vocative comma is consumed with the subject marker; without that rule the comma ends the clause at the marker and the retreat stands."
+    },
+    {
+      "id": "crt1-couldnt-we-attack-mack-refuses",
+      "utterance": "couldn't we attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CXR1-3",
+      "notes": "A muster and a battle at 0.9 before the fix — the modal negative contraction was not in the vocabulary. is_question's lead is NOT widened (the ruling); the marker blanks the clause and nothing survives."
+    },
+    {
+      "id": "crt1-wouldnt-we-do-better-to-retreat-refuses",
+      "utterance": "wouldn't we do better to retreat",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "retreat"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CXR1-3",
+      "notes": "A general retreat before the fix."
+    },
+    {
+      "id": "crt1-ought-we-to-attack-mack-refuses",
+      "utterance": "ought we to attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "not_action": "attack"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CXR1-3",
+      "notes": "The deliberative opener no imperative can begin with; blanked as a marker rather than made a question lead."
+    },
+    {
+      "id": "crt1-someone-attack-mack-control",
+      "utterance": "someone attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-34 control",
+      "notes": "The indefinites the auto-assign serves are untouched."
+    },
+    {
+      "id": "crt1-everyone-retreat-control",
+      "utterance": "everyone retreat",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "retreat"
+      },
+      "source": "CRT-1 (the CR-6 triage, slice 1) — COMMAND_ROBUSTNESS_SPEC.md §12.3 — CQ-34 control",
+      "notes": "The collective retreat is still the general retreat."
     }
   ]
 }

@@ -46,6 +46,8 @@ from .clause_guards import (
     strip_condition_clauses_with_handoff,
     strip_deferred_clauses,
     strip_negated_clauses,
+    reason_clause_spans,
+    strip_reason_clauses,
 )
 
 # Load environment variables
@@ -369,6 +371,33 @@ def _askable_enemy_names(game_state: Optional[Dict]):
         return names
     except Exception:
         return list(_game_state_dict(game_state, "enemies"))
+
+
+def foe_names_for_guards(game_state: Optional[Dict] = None,
+                         names=None) -> List[str]:
+    """CRT-1: every enemy commander the sentence may name as the SUBJECT of a
+    reason clause — the roster KEYS and the forms the game PRINTS.
+
+    The roster holds `ArchdukeCharles`; the player types the name the map
+    and every dispatch print, "Archduke Charles". Measured with the keys
+    alone handed to `strip_reason_clauses`: `Ney, retreat, Archduke Charles
+    is attacking` ATTACKED him while `Ney, retreat, Mack is attacking`
+    retreated — the CX-7 through-line one guard over. Both registers go in,
+    supplied by R7's own chokepoint. ``names`` overrides the roster read
+    (the parser's fuzzy scan already holds one)."""
+    base = list(names) if names is not None else list(
+        _askable_enemy_names(game_state) or [])
+    from backend.display_names import humanize_entity_name
+    out: List[str] = []
+    seen = set()
+    for name in base:
+        for form in (str(name), humanize_entity_name(str(name)),
+                     *_name_match_patterns(str(name))):
+            key = form.strip().lower()
+            if key and key not in seen:
+                seen.add(key)
+                out.append(form.strip())
+    return out
 
 
 def _hostile_first(game_state: Optional[Dict], enemy_names):
@@ -1594,6 +1623,18 @@ class LLMClient:
                     condition_refuses = True
                     _refusing_clause = _refusing_clause or _verdict.handoff["clause"]
             self._condition_handoff = condition_handoff
+            # CRT-1 (CQ-32 / CX5-L5-F1): THE REASON IS NOT THE ORDER. A
+            # third-party reason clause — "as they attack", ", Mack is
+            # attacking", "because the Austrians are storming the bridge"
+            # — is blanked AFTER the question and condition guards, so a
+            # condition keeps its refusal or hand-off and only the enemy's
+            # verb is removed from what the chain below may read. Measured
+            # before this line: `Ney, retreat as they attack` FOUGHT.
+            _foes = foe_names_for_guards(game_state)
+            _reason_spans = reason_clause_spans(guarded, foes=_foes)
+            _reason_clause = (guarded[_reason_spans[0][0]:_reason_spans[0][1]]
+                              .strip(" ,") if _reason_spans else "")
+            guarded, reason_applied = strip_reason_clauses(guarded, foes=_foes)
             # FA-7: "not YET" is not "not that". The guards above knew every
             # way to forbid an order and none to postpone one, so "Ney, delay
             # the attack" fought a real battle at 0.95 confidence — above the
@@ -1659,7 +1700,7 @@ class LLMClient:
             # Checked here because the diplomatic routes below return EARLY —
             # without it, "Talleyrand, do not propose peace with Austria" fell
             # through on the bare-address rule and opened the nation picker.
-            if negation_applied or deferral_applied:
+            if negation_applied or deferral_applied or reason_applied:
                 address = ADDRESS_TOKEN_RE.match(original_text)
                 if not has_executable_residue(
                         guarded, address.group(1) if address else None):
@@ -1671,9 +1712,18 @@ class LLMClient:
                     if negation_applied:
                         return self._refusal_result(
                             original_text, "negation", "an order NOT to act")
+                    if deferral_applied:
+                        return self._refusal_result(
+                            original_text, "deferral",
+                            "an order for a later turn")
+                    # CRT-1: the sentence was ONLY the enemy's movements —
+                    # "as they attack", "they are storming the bridge" —
+                    # and named nothing of ours to do. Refused with the
+                    # clause quoted, never shrugged at as unparseable.
                     return self._refusal_result(
-                        original_text, "deferral",
-                        "an order for a later turn")
+                        original_text, "reason",
+                        "the enemy's movements, not an order of ours",
+                        detail={"clause": _reason_clause})
 
             command_text = guarded
             command_lower = guarded.lower()

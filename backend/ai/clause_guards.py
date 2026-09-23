@@ -90,8 +90,7 @@ _UNTIL_CLAUSE_END_RE = re.compile(r"[.!?]")
 # Markers are precise phrases, never a bare "no" — `attack_vocabulary` ships
 # "no quarter" as an ATTACK idiom, and a bare "not" collides with the CR-4
 # "not you, Davout" rewrite that context_carryover resolves upstream.
-_NEGATION_MARKER_RE = re.compile(
-    r"\b(?:"
+_NEGATION_MARKER_SRC = (
     r"never"
     r"|do(?:es)?\s*n[o']t|do(?:es)?\s+not|dont|doesnt"
     r"|did\s*n[o']t|did\s+not|didnt"
@@ -121,9 +120,108 @@ _NEGATION_MARKER_RE = re.compile(
     # nothing. The general form is also the correct one — the prohibitive is
     # "no <abstract noun>" whatever preposition introduces it.
     r"|no\s+(?:circumstances?|account|means|case|event|time|point)\b"
-    r")\b",
+)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CRT-1 — WHAT THE SENTENCE FORBIDS IS NEVER THE ORDER (the CR-6 triage,
+# September 23, 2026; `COMMAND_ROBUSTNESS_SPEC.md` §12.3 slice 1).
+# ═══════════════════════════════════════════════════════════════════════════
+# Four P1s on this one seam, each carrying out the OPPOSITE of what the
+# player typed, silently, at confidence 0.8–0.9 — above the 0.70 gate, so no
+# key in any mode corrected it. Measured on the shipped 1805 boot at
+# `POST /command` before a line here changed:
+#
+#   `couldn't we attack Mack`       → a muster and a battle, −6,010 men  (CXR1-3)
+#   `wouldn't we do better to retreat` → a GENERAL RETREAT of eight corps
+#   `Nobody retreat` / `Let no one retreat` → a general retreat, −2,270 men (CQ-34)
+#   `No one attack Mack`            → a battle at Swabia
+#   `I would not accept` (a letter current) → "Treaty signed"           (CQ-35)
+#
+# The vocabulary above knew `don't`, `won't`, `can't`, `shouldn't`, `isn't`
+# and `mustn't` and stopped there. The MODAL negatives (`would/could/might/
+# may/ought/need/dare + not`), the PERFECT ones (`have/has/had + not`), the
+# past copula (`was/were + not`), the contracted auxiliaries (`I'd not`,
+# `we'll not`) and the idioms of reluctance (`'d rather not`, `had better
+# not`) were all missing — so `I wouldn't accept` carried the same words as
+# `accept` and matched it. `dialogue_routing.text_the_player_still_means`
+# reads THIS vocabulary for every dialogue family, which is why one list
+# closes CQ-35 and CXR1-3 together.
+#
+# THE NEGATIVE INDEFINITES are a prohibition on everybody: `nobody`, `no
+# one`, `none (of you)`, `not one`, `not a man`. CX-7 (`3ccf6b69`) had put
+# `nobody noone none` into `_COLLECTIVE` — "served, never refused" — so the
+# army's auto-assign arm carried them out as orders to whoever was nearest.
+# They are markers here and leave `_COLLECTIVE` (they stay in
+# `_NEVER_AN_ADDRESS`: nobody is called Nobody). A vocative comma after one
+# is consumed with it — `Nobody, retreat` is `Nobody retreat` — because
+# otherwise the comma would end the clause and the order would stand.
+#
+# THE DELIBERATIVE OPENERS `ought we` / `have we` cannot begin an
+# imperative and are not question leads (`have Ney attack Mack` is the
+# causative ORDER, which is why `have` was kept out of `is_question` — and
+# stays out: the ruling is "do NOT widen `is_question`'s lead", because a
+# contraction as a lead would read `Davout, don't advance on our left,
+# fortify` as a question and leave him unfortified). Blanked as markers,
+# `ought we to attack Mack` and `have we attacked Mack` leave nothing to
+# execute and refuse, which is the non-executing answer they need.
+#
+# Flip lever: False restores the pre-CRT-1 vocabulary byte-for-byte. The
+# sensitivity arm in `tests/test_crt1_what_the_sentence_forbids.py` flips it
+# and shows the battery going red.
+WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER = True
+
+_CRT1_NEGATION_ARMS = (
+    # the modal negatives
+    r"|would\s*n[o']t|would\s+not|could\s*n[o']t|could\s+not"
+    r"|might\s*n[o']t|might\s+not|may\s+not|mayn[o']t"
+    r"|ought\s*n[o']t|ought\s+not(?:\s+to)?"
+    r"|need\s*n[o']t|need\s+not|dare\s*n[o']t|dare\s+not"
+    # the perfect, and the past copula
+    r"|ha(?:ve|s|d)\s*n[o']t|ha(?:ve|s|d)\s+not"
+    r"|was\s*n[o']t|was\s+not|were\s*n[o']t|were\s+not"
+    # the idioms of reluctance
+    r"|had\s+better\s+not|['’]d\s+better\s+not|['’]d\s+rather\s+not"
+    r"|would\s+rather\s+not|would\s+sooner\s+not"
+    # the contracted auxiliaries + not: I'd not, we'll not, we're not, it's
+    # not, we've not. `'d not` closes the one CQ-35 case the row itself
+    # wrote off as FA-N2's bare-`not` limit — it is a contraction, not a
+    # bare `not`.
+    r"|['’](?:d|ll|re|ve|s)\s+not"
+    # the deliberative openers no imperative can begin with
+    r"|ought\s+(?:we|i)\b|have\s+(?:we|i)\b"
+    # the negative indefinites — a prohibition on everybody
+    r"|no\s*-?\s*(?:body|one)\b|noone\b|none\b"
+    r"|not\s+(?:one|a\s+(?:single\s+)?(?:man|soul|corps|marshal|general"
+    r"|regiment|division|battalion|unit)|a\s+single\s+one)\b"
+    r"|no\s+(?:man|men|marshals?|generals?|corps|soldiers?|officers?"
+    r"|regiments?|divisions?|battalions?|units?|army|armies|troops|forces?)\b"
+)
+
+_NEGATION_MARKER_RE = re.compile(
+    r"\b(?:" + _NEGATION_MARKER_SRC + _CRT1_NEGATION_ARMS + r")\b",
     re.IGNORECASE,
 )
+_NEGATION_MARKER_RE_LEGACY = re.compile(
+    r"\b(?:" + _NEGATION_MARKER_SRC + r")\b",
+    re.IGNORECASE,
+)
+# The SUBJECT markers: a negative indefinite is the subject of its clause,
+# so a vocative comma right after it belongs to the clause too.
+_SUBJECT_NEGATION_RE = re.compile(
+    r"^(?:no\s*-?\s*(?:body|one)|noone|none"
+    r"|not\s+(?:one|a\s+(?:single\s+)?(?:man|soul|corps|marshal|general"
+    r"|regiment|division|battalion|unit)|a\s+single\s+one)"
+    r"|no\s+(?:man|men|marshals?|generals?|corps|soldiers?|officers?"
+    r"|regiments?|divisions?|battalions?|units?|army|armies|troops|forces?))$",
+    re.IGNORECASE,
+)
+_VOCATIVE_COMMA_RE = re.compile(r"\s*,\s*")
+
+
+def _negation_re() -> "re.Pattern":
+    """The ONE negation vocabulary, or (lever down) the one it widened."""
+    return (_NEGATION_MARKER_RE if WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER
+            else _NEGATION_MARKER_RE_LEGACY)
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +309,7 @@ def negation_marker_spans(text: str) -> List[Tuple[int, int]]:
     """
     if not text:
         return []
-    return [(m.start(), m.end()) for m in _NEGATION_MARKER_RE.finditer(text)]
+    return [(m.start(), m.end()) for m in _negation_re().finditer(text)]
 
 
 def strip_negated_clauses(text: str) -> Tuple[str, bool]:
@@ -230,11 +328,22 @@ def strip_negated_clauses(text: str) -> Tuple[str, bool]:
     chars = list(text)
     applied = False
     pos = 0
+    negation = _negation_re()
     while pos < len(text):
-        marker = _NEGATION_MARKER_RE.search(text, pos)
+        marker = negation.search(text, pos)
         if not marker:
             break
-        end_match = _CLAUSE_END_RE.search(text, marker.end())
+        scan_from = marker.end()
+        # CRT-1: a negative indefinite is its clause's SUBJECT, so the
+        # vocative comma a player types after it ("Nobody, retreat") is
+        # part of the same clause — read past it, or the comma ends the
+        # clause at the marker and the retreat stands.
+        if (WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER
+                and _SUBJECT_NEGATION_RE.match(marker.group(0))):
+            comma = _VOCATIVE_COMMA_RE.match(text, scan_from)
+            if comma and comma.end() > scan_from and "," in comma.group(0):
+                scan_from = comma.end()
+        end_match = _CLAUSE_END_RE.search(text, scan_from)
         clause_end = end_match.start() if end_match else len(text)
         for i in range(marker.start(), clause_end):
             chars[i] = " "
@@ -683,6 +792,143 @@ def strip_condition_clauses(text: str) -> Tuple[str, bool]:
 
 
 # ---------------------------------------------------------------------------
+# CRT-1 — THE REASON IS NOT THE ORDER (CQ-32, P1 · CX5-L5-F1, P2)
+# ---------------------------------------------------------------------------
+# A player who explains an order gives the enemy's verb as well as his own,
+# and the mock chain's attack branch is a bare `"attack" in command_lower`.
+# Measured on the shipped 1805 boot at `POST /command`, every one of
+#
+#   `Ney, retreat as they attack`
+#   `Ney, pull back, they are attacking`
+#   `Ney, retreat, Mack is attacking`
+#   `Ney, retreat because they are attacking`
+#   `Ney, retreat, they will attack us`
+#   `Ney, retreat, the Austrians are storming the bridge`
+#
+# FOUGHT AT SWABIA — four corps marched onto Mack, a battle report, the
+# Butcher's Bill — under "Your words named no foe our maps know, Sire — Ney
+# marches on Mack at Swabia, the nearest in sight". The control `Ney,
+# retreat` retreats to Lorraine at 0 actions. The same mechanism the other
+# way round (CX5-L5-F1): `Ney, cover the retreat as they fall back`, `Ney,
+# hold the line as they fall back` and `Ney, fortify as they pull back` all
+# RETREATED, the third party's `fall back` read as the marshal's.
+#
+# This guard is SUBTRACTIVE (the PARSE-NEG shape): it blanks a THIRD-PARTY
+# reason clause with spaces, never splices, and never picks an action. A
+# reason clause is a subordinator (`as`, `because`, `since`, `now that`,
+# `seeing that`) or a bare comma, then a third party — `they`, `he`, `she`,
+# `the enemy` / `the Austrians` / any `the <demonym>`, or a foe on the
+# roster handed in — then a predicate: an auxiliary and a verb (`is
+# attacking`, `will attack`, `has broken through`) or a hostile verb in the
+# third person (`attacks`, `falls back`). Wh-words and the condition
+# words can never be its subject, so `if they attack, retreat` keeps the
+# condition guard's refusal and `when Davout arrives` keeps CR-7's hand-off
+# — the guard is sited AFTER both (the agent's first draft, sited before
+# them, cost five corpus rows). Friendly names are never a subject: `as
+# Davout arrives` is a TIMING clause and belongs to CR-7, not here. `it`
+# is deliberately absent — `Ney, it is time to attack Mack` is an order.
+#
+# What survives is the player's own verb, exactly as PARSE-NEG leaves the
+# order standing when only the negation is removed. `Ney, attack Mack as he
+# retreats` still fights, `Lannes, pursue the retreating enemy` (no clause)
+# still pursues, and a sentence that was ONLY a reason — `as they attack` —
+# leaves nothing and is refused with its clause quoted, not shrugged at.
+#
+# Flip lever: False makes both functions below inert, byte-for-byte.
+THE_REASON_IS_NOT_THE_ORDER = True
+
+_REASON_SUBORDINATOR = r"(?:as|because|since|now\s+that|seeing\s+(?:that|as))"
+_REASON_PRONOUN = r"(?:they|he|she)"
+# A hostile party named by class. The demonym arm is morphological
+# (`Austrians`, `Bavarians`, `Prussians`, `British`, `Portuguese`) so the
+# list does not have to know every court on the map.
+_REASON_THE_PARTY = (
+    r"the\s+(?:enemy|enemies|foe|foes|coalition|allies|column|columns|host"
+    r"|swedes|danes|turks|ottomans|saxons|hessians|dutch|french"
+    r"|[a-z]+(?:ians|ans|ish|ese))")
+_REASON_AUX = (
+    r"(?:is|are|was|were|will|shall|would|could|might|may|has|have|had"
+    r"|['’]s|['’]re|['’]ll|['’]ve|['’]d)")
+_HOSTILE_VERB = (
+    r"(?:attack|advance|approach|come|arrive|appear|close|press|push|strike"
+    r"|hit|engage|storm|assault|charge|march|move|threaten|cross|land|mass"
+    r"|gather|form|hold|dig|fortif|entrench|besiege|invest|surround|outflank"
+    r"|turn|waver|rout|yield|surrender|regroup|rall|reinforce|bring|bear"
+    r"|fall|pull|give|break|flee|run|retire|withdraw|retreat|open|fire|shell"
+    r"|bombard|cannonade|pursue|chase|follow|harass|raid|plunder|sack|burn"
+    r"|loot|escape|slip|disperse|scatter|halt|stop|wait|stand|hesitate"
+    r"|falter|crumble|collapse|melt|dissolve|recoil)"
+    r"(?:ies|y|s|es|ed|ing)?")
+_REASON_PRED = (
+    r"(?:" + _REASON_AUX + r"\s+(?:not\s+|n[o']t\s+)?\w+|" + _HOSTILE_VERB + r")")
+
+
+def _reason_pattern(foes) -> "re.Pattern":
+    names = sorted({str(n).strip() for n in (foes or ()) if n and str(n).strip()},
+                   key=len, reverse=True)
+    subjects = [_REASON_PRONOUN, _REASON_THE_PARTY]
+    if names:
+        subjects.append(
+            r"(?:the\s+)?(?:" + HONORIFIC + r")?(?:"
+            + "|".join(re.escape(n) for n in names)
+            + r")(?:['’]s\s+\w+)?")
+    return re.compile(
+        r"(?P<lead>\b" + _REASON_SUBORDINATOR + r"\s+|,\s*)"
+        r"(?P<subj>" + "|".join(subjects) + r")\s+"
+        r"(?P<pred>" + _REASON_PRED + r")\b",
+        re.IGNORECASE)
+
+
+def reason_clause_spans(text: str,
+                        foes: Iterable[str] = ()) -> List[Tuple[int, int]]:
+    """Where the third-party reason clauses are, as ``(start, end)`` spans
+    over the ORIGINAL string, each running from its lead to the clause end
+    (`negation_marker_spans`'s idiom). Empty with the lever down."""
+    if not text or not THE_REASON_IS_NOT_THE_ORDER:
+        return []
+    pattern = _reason_pattern(foes)
+    spans: List[Tuple[int, int]] = []
+    pos = 0
+    while pos < len(text):
+        found = pattern.search(text, pos)
+        if not found:
+            break
+        # The clause runs from the SUBJECT to the clause end; the comma or
+        # subordinator that introduced it goes too.
+        end_match = _CLAUSE_END_RE.search(text, found.end("subj"))
+        clause_end = end_match.start() if end_match else len(text)
+        spans.append((found.start(), clause_end))
+        pos = max(clause_end, found.end())
+    return spans
+
+
+def strip_reason_clauses(text: str,
+                         foes: Iterable[str] = ()) -> Tuple[str, bool]:
+    """Blank every third-party reason clause, preserving character positions.
+
+    Returns ``(effective_text, reason_applied)``.
+
+    "Ney, retreat as they attack"          -> "Ney, retreat               "
+    "Ney, retreat, Mack is attacking"      -> "Ney, retreat                "
+    "Ney, attack Mack as he retreats"      -> "Ney, attack Mack               "
+
+    ``foes`` is the roster of enemy commanders the sentence may name as its
+    subject (their NAMES are not a fog secret — see `_askable_enemy_names`);
+    with none handed in, only the pronoun and `the <party>` arms fire.
+    """
+    if not text:
+        return text, False
+    spans = reason_clause_spans(text, foes)
+    if not spans:
+        return text, False
+    chars = list(text)
+    for start, end in spans:
+        for i in range(start, end):
+            chars[i] = " "
+    return "".join(chars), True
+
+
+# ---------------------------------------------------------------------------
 # Stand-down ("stop attacking" is a CANCEL, not an attack)
 # ---------------------------------------------------------------------------
 _ORDER_NOUNS = (
@@ -946,7 +1192,14 @@ _COLLECTIVE = frozenset((
     # the indefinite pronouns — "someone attack Mack" IS the auto-assign, and
     # the game's own clarification answers it with "Which marshal shall lead
     # the attack, Sire?"
-    "someone somebody anyone anybody whoever whomever nobody noone none"
+    #
+    # ⛔ CRT-1 (CQ-34): the NEGATIVE indefinites are NOT here any more.
+    # `nobody noone none` were added by CX-7 and "served" by the
+    # auto-assign arm — `Nobody retreat` became a general retreat of eight
+    # corps (−2,270 men) and `No one attack Mack` a battle. A negative
+    # indefinite is a PROHIBITION on everybody; it is a negation marker now
+    # (`_CRT1_NEGATION_ARMS`) and it stays in `_NEVER_AN_ADDRESS` below.
+    "someone somebody anyone anybody whoever whomever"
 ).split())
 
 # Not a name, by class — the BARE arm's guard. Every group is CLOSED in
@@ -969,7 +1222,10 @@ _NEVER_AN_ADDRESS = frozenset((
     "quick hurry urgent finally "
     # time and sequence
     "now then today tonight tomorrow morning evening soon later first "
-    "next also just still again immediate once"
+    "next also just still again immediate once "
+    # CRT-1: the negative indefinites — nobody is called Nobody, with or
+    # without a comma. (They left `_COLLECTIVE`; see the note there.)
+    "nobody noone none no-one"
 ).split()) | _COLLECTIVE
 
 # ... and the BARE arm's list adds what may legitimately appear INSIDE an

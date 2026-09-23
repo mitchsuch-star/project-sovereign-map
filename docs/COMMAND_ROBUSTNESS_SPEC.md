@@ -676,7 +676,7 @@ CLAUDE.md LIVE STATE and the BUG_FIXES rows.
 
 | # | Slice | P | Rows | Effort | Done when (headline — the rows carry the full done-when) | Pins |
 |---|---|---|---|---|---|---|
-| **1** | **CRT-1 "What the sentence forbids is never the order"** ▶ **NEXT, before position 10** | **P1 ×4** | CQ-32, CQ-34, CQ-35, CXR1-3; CX5-L5-F1 (P2, the same guard) | 1.0–1.25 | All changes are in `clause_guards`:<br>• the modal and perfect negative contractions and `ought` / `have we` join the negation vocabulary;<br>• the negative indefinites (`nobody`, `no one`, `none`, `not a man`…) become markers and leave `_COLLECTIVE`;<br>• a SUBTRACTIVE third-party reason-clause guard (the PARSE-NEG shape: blank with spaces, never pick an action), sited after the question and condition guards and excluding wh-words and condition words.<br>Every measured sentence spends nothing and moves nothing. The controls behave exactly as today: `someone attack Mack`, `everyone retreat`, `Ney, attack Mack as he retreats`, `accept`, `I would accept`, `Davout, don't advance on our left, fortify`. **Do NOT widen `is_question`'s lead.** | `tests/test_crt1_what_the_sentence_forbids.py` + additions to `test_parse_negation.py` and `test_fa_n_p1_cluster_2026_09_02.py` |
+| ~~**1**~~ | ~~**CRT-1 "What the sentence forbids is never the order"**~~ ✅ **LANDED September 23, 2026 — landing record §12.7** | **P1 ×4** | CQ-32, CQ-34, CQ-35, CXR1-3; CX5-L5-F1 (P2, the same guard) | 1.0–1.25 | All changes are in `clause_guards`:<br>• the modal and perfect negative contractions and `ought` / `have we` join the negation vocabulary;<br>• the negative indefinites (`nobody`, `no one`, `none`, `not a man`…) become markers and leave `_COLLECTIVE`;<br>• a SUBTRACTIVE third-party reason-clause guard (the PARSE-NEG shape: blank with spaces, never pick an action), sited after the question and condition guards and excluding wh-words and condition words.<br>Every measured sentence spends nothing and moves nothing. The controls behave exactly as today: `someone attack Mack`, `everyone retreat`, `Ney, attack Mack as he retreats`, `accept`, `I would accept`, `Davout, don't advance on our left, fortify`. **Do NOT widen `is_question`'s lead.** | `tests/test_crt1_what_the_sentence_forbids.py` + additions to `test_parse_negation.py` and `test_fa_n_p1_cluster_2026_09_02.py` |
 | → | **ROADMAP position 10 — THE SHIPPABLE BUILD** | — | — | — | — | — |
 | **2** | **CRT-2 "The name is never replaced"** | P2 ×3 | CQ-17, CQ-29, CQ-30 | 0.75–1.0 | A name the sentence gives is the one acted on, or the order is refused free:<br>• a reward goes to its OBJECT;<br>• an unresolved province is refused with the region matcher's answer, never raised at the capital;<br>• a near miss of any roster enemy takes the ASK arm, fog-honest, while descriptions keep ESP-EV-4's disclose-and-proceed. | `tests/test_crt2_the_name_is_never_replaced.py` |
 | **3** | **CRT-3 "A question never orders"** | P2 | CX-X1 (+ the downgrade), L2-7b, CXR1-2, CXR1-4, CXR1-5, CXR1-N2, CXR1-N3 | 1.0 | The diplomatic parser reads the shared question verdict, so a question reaches the advisory and never the chooser or a downgrade. The question arms' residue closes:<br>• the comma tail stands down only on an order verb;<br>• a hedge arm;<br>• a leading run of up to three non-order words;<br>• the comma-free address;<br>• nation subjects in `_question_subjects`. | `tests/test_crt3_a_question_never_orders.py` + `test_cx1_a_question_never_orders.py` additions |
@@ -803,3 +803,95 @@ is filed, not flipped (CQ-22's precedent).
   CLASS, and the next member will be found.
 - **The four-file gate applies to every CRT slice.** STATUS, this section's landing
   record, CLAUDE.md LIVE STATE and the BUG_FIXES rows all go in the same commit.
+
+### §12.7 CRT-1 LANDING RECORD — "What the sentence forbids is never the order" ✅ LANDED September 23, 2026
+
+**Re-measured first, on HEAD `d9745e22`,** at the real `POST /command` on a fresh
+1805 boot per sentence (`LLM_MODE=mock`, the three seams swapped, a state snapshot
+diffed around every line): every filed figure reproduced, and every control
+behaved.
+
+| Family | Measured before | After |
+|---|---|---|
+| **CQ-32** `Ney, retreat as they attack` and five siblings (`, Mack is attacking` · `because they are attacking` · `, they will attack us` · `, the Austrians are storming the bridge` · `since the enemy attacks`) | FOUGHT at Swabia — Ney, Davout, Lannes and the Emperor marched, a battle report, the Butcher's Bill; 6 of 6 | the retreat road: Ney to Lorraine at 0 AP (or an aggressive Ney objecting to the retreat), no battle, no destination bound |
+| **CX5-L5-F1** `Ney, cover the retreat as they fall back` and seven siblings | RETREATED Ney at 0.9; `hold the line as they fall back` staged a MARCH onto Mack ("Mack blocks the path at Swabia") | Ney stands at Rhineland: `hold the line` holds, `fortify` reaches the fortify road, `cover the retreat` is the honest shrug; `fall back, the enemy is retreating` / `withdraw as they fall back` still retreat |
+| **CQ-34** `Nobody retreat` · `Let no one retreat` · `Nobody is to retreat` · `No one attack Mack` · `None attack Mack` · `Nobody, retreat` (+8) | a GENERAL RETREAT of eight corps (−2,270); a battle (−6,010); NEY sent (`none` → Ney) | refused free, "no order goes out", nothing moved; `someone attack Mack` / `everyone retreat` / `all marshals attack` exactly as before |
+| **CXR1-3** `couldn't we attack Mack` (+18 forms incl. `have we attacked Mack`, `ought we to attack Mack`, `wasn't Ney to attack Mack`, `haven't we retreated enough`) | 15 of 15 acted — a battle or a general retreat | refused free; `can you attack Mack`, `would you have Ney attack Mack`, `Ney, you should attack Mack` and **`Davout, don't advance on our left, fortify`** unchanged |
+| **CQ-35** `I would not accept` (+10, incl. `I'd not accept`) with Prussia's letter current; `I would not send it` on the proposal confirm | "Treaty signed" 11 of 11; Talleyrand dispatched, 1 DP spent | the letter stays current, France–Prussia stays PEACE, 0 DP; `accept` / `I would accept` / `we could accept that` still sign, `send it` still sends |
+
+**What was built** — the contract's three items in `backend/ai/clause_guards.py`, and
+the readers the class turned out to have:
+
+1. **The vocabulary** (`_CRT1_NEGATION_ARMS`, lever
+   `WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER`): the modal negatives
+   (`would/could/might/may/ought/need/dare + not`, contracted or not), the perfect
+   (`have/has/had + not`), the past copula (`was/were + not`), the idioms of
+   reluctance (`'d rather not`, `had better not`, `would sooner not`), the contracted
+   auxiliaries (`'d/'ll/'re/'ve/'s + not`), the deliberative openers `ought we|i` /
+   `have we|i`, and the negative indefinites (`nobody`, `no one`, `no-one`, `none`,
+   `not one`, `not a man/soul/corps/…`, `no man/men/marshal/corps/…`). ONE regex
+   (`_negation_re()`), read by `negation_marker_spans` and `strip_negated_clauses`
+   and therefore by `dialogue_routing.text_the_player_still_means` for every
+   dialogue family — which is why one list closes CQ-35 and CXR1-3 together. The
+   legacy regex is kept byte-for-byte for the lever's False arm (pinned).
+2. **The negative indefinites left `_COLLECTIVE`** and joined `_NEVER_AN_ADDRESS`
+   (nobody is called Nobody). **The vocative comma:** a subject marker consumes a
+   comma typed straight after it — `Nobody, retreat` is `Nobody retreat`. Measured
+   on the first cut without that rule: the comma ended the clause at the marker and
+   `retreat` stood as a general retreat.
+3. **The reason-clause guard** (`strip_reason_clauses` / `reason_clause_spans`,
+   lever `THE_REASON_IS_NOT_THE_ORDER`): subtractive, same-length blank, never picks
+   an action. A clause is a subordinator (`as`, `because`, `since`, `now that`,
+   `seeing that`) or a bare comma, then a third party (`they` / `he` / `she`, `the
+   enemy` / `the Austrians` / any `the <demonym>` by morphology, or a foe on the
+   roster handed in — BOTH registers, key and printed form), then a predicate (an
+   auxiliary and a verb, or a hostile third-person verb). Sited AFTER the question
+   and condition guards in the mock chain, so `if they attack, retreat` keeps the
+   condition guard's refusal and `when Davout arrives` keeps CR-7's hand-off. `it`
+   is deliberately not a subject (`Ney, it is time to attack Mack` is an order) and
+   a friendly name never is (`as Davout arrives` is timing, CR-7's).
+
+**Three readers, not one.** The blank had to reach every reader of the raw text (the
+FA slice-1 lesson, again): (a) the mock chain (`llm_client`); (b) the strategic
+layer's read in `parser.py` — measured, `Ney, hold the line as they fall back` read
+HOLD in the chain and a MARCH onto Mack in the strategic layer; (c) the parser's
+fuzzy target scan, **found while driving**: `Ney, retreat, Mack is attacking`
+retreated correctly and then bound Mack as the retreat's DESTINATION ("Mack cannot
+be reached, Sire — no such province is known to the staff"). `foe_names_for_guards`
+(`llm_client`) supplies the roster in both registers: with the KEYS alone, `Ney,
+retreat, Archduke Charles is attacking` ATTACKED him — the CX-7 through-line one
+guard over.
+
+**A sentence that is only the enemy's movements** (`as they attack`; `Ney, they are
+storming the bridge`) leaves nothing to execute and is refused by NAME: a new
+`refusal == "reason"` arm in `main.py` quotes the clause and asks for the order
+(*"You have told me what the enemy is about, Sire — 'as they attack' — but not what
+the marshal is to do about it. Nothing has been relayed"*), never the generic shrug.
+
+**Deviations from the contract, recorded:**
+- **`'d not` is CLOSED.** The row wrote it off as FA-N2's bare-`not` limit; it is a
+  contraction, not a bare `not`. 11 of 11, not 10 of 11. A bare `not` stays the
+  documented limit and CRT-5's closed grammar remains its backstop.
+- **`ought` / `have we` are MARKERS**, as asked, so `ought we to attack Mack` wears
+  the negation refusal ("no order goes out"). `is_question`'s lead is untouched. A
+  bare `ought` is NOT a marker — `Ney, you ought to attack Mack` fights (pinned).
+- **The comma arm requires an auxiliary or a hostile verb**, so a second marshal's
+  order after a comma (`, Davout hold Swabia`) is never read as a reason clause.
+
+**Residue, recorded not fixed:** the negation and deferral blanks are still not
+applied to the parser's fuzzy target scan (pre-existing, outside this row —
+`Ney, hold your position, do not attack Mack` binds a target string the hold
+ignores); CRT-10's word-scan work owns that reader.
+
+**Tests:** `tests/test_crt1_what_the_sentence_forbids.py` (103 — every family at
+`POST /command` reading the WORLD, the controls, the narrowness pins, a sensitivity
+class that flips each lever and shows the defect reproduce, the corpus) +
+`test_parse_negation.py::TestParserBehaviour::test_a_negative_indefinite_is_a_prohibition`
+(+13) + `test_fa_n_p1_cluster_2026_09_02.py::TestFAN2NegatedAnswers::test_a_modal_negated_accept_answers_nothing`
+and the `send` twin (+18). **Sweep `tools/_sweep_crt1.json`: 14 mutations, 14 killed,
+0 INERT, 0 BROKEN.** Corpus 711 → 723 rows (12 `crt1-*` rows), 723/723 — it was
+711/711 in BOTH arms before the rows were added, so the corpus is not evidence here;
+the sensitivity class is. `BASELINE_SERIES` + M1–M7 byte-identical without re-record
+(63 passed), for the stated reason: the AI never parses text. Zero `.gd`. Adjacent
+suites green (CR-7, CX-R1/R2, CX-1/7, FA slices 1/7, IQ-7 review, WO slice 11,
+CR-2/CR-4: 2,062 passed).
