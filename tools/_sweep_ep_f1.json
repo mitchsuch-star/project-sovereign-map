@@ -1,0 +1,268 @@
+[
+  {
+    "id": "EPF1-1 the boot-briefing lever down",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_FIRST_MORNING_HAS_A_BRIEFING = True",
+    "new": "THE_FIRST_MORNING_HAS_A_BRIEFING = False",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFirstMorningHasABriefing::test_a_new_campaign_is_born_with_its_briefing"
+  },
+  {
+    "id": "EPF1-2 the boot rolls the sabotage",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if not boot:\n        # LV-1: the sabotage-discovery ROLL",
+    "new": "    if True:\n        # LV-1: the sabotage-discovery ROLL",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_no_consuming_arm_is_called"
+  },
+  {
+    "id": "EPF1-3 the boot spends Talleyrand's cooldowns",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "[] if boot else _build_talleyrand_report(world, player_nation))",
+    "new": "_build_talleyrand_report(world, player_nation))",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_talleyrand_spends_no_cooldown"
+  },
+  {
+    "id": "EPF1-4 the boot clears the event queue",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "if not boot and getattr(world, \"pending_dispatch_events\", None):",
+    "new": "if getattr(world, \"pending_dispatch_events\", None):",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_a_queued_event_waits_for_the_first_real_morning"
+  },
+  {
+    "id": "EPF1-5 the boot reads the diplomatic queue",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if boot:\n        diplomatic_events = []\n    else:",
+    "new": "    if False:\n        diplomatic_events = []\n    else:",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_no_consuming_arm_is_called"
+  },
+  {
+    "id": "EPF1-6 the boot writes the warnings",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if not boot:\n        turn_limit_warning = ",
+    "new": "    if True:\n        turn_limit_warning = ",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_no_consuming_arm_is_called"
+  },
+  {
+    "id": "EPF1-7 the boot records its headline",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "headline = _build_headline(world, player_nation, record=not boot)",
+    "new": "headline = _build_headline(world, player_nation, record=True)",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_a_boot_headline_leaves_the_lead_memory_alone"
+  },
+  {
+    "id": "EPF1-8 the record guard in the selector",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if record:\n        world.headline_lead_memory = {",
+    "new": "    if True:\n        world.headline_lead_memory = {",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_the_headline_memory_is_read_not_written"
+  },
+  {
+    "id": "EPF1-9 the boot latches expectations",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "if boot or m.nation != player_nation or m.strength <= 0:",
+    "new": "if m.nation != player_nation or m.strength <= 0:",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheBootBriefingConsumesNothing::test_the_expectation_latch_waits"
+  },
+  {
+    "id": "EPF1-10 the first morning names no doors",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if boot:\n        # LV-1: the first morning names what to do with it.",
+    "new": "    if False:\n        # LV-1: the first morning names what to do with it.",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFirstMorningHasABriefing::test_the_first_morning_names_the_doors"
+  },
+  {
+    "id": "EPF1-11 _reset_world_state builds no briefing",
+    "file": "backend/main.py",
+    "old": "    _ensure_first_morning(new_world)\n    return _set_active_world(new_world)",
+    "new": "    return _set_active_world(new_world)",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFirstMorningHasABriefing::test_the_process_boot_world_is_born_with_one_too"
+  },
+  {
+    "id": "EPF1-12 /load gives no briefing to a save without one",
+    "file": "backend/main.py",
+    "old": "        _ensure_first_morning(result[\"world\"])\n",
+    "new": "",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheLoadedTurnIsBriefed::test_a_save_without_a_briefing_is_given_the_boot_one"
+  },
+  {
+    "id": "EPF1-13 /new_game does not carry the briefing",
+    "file": "backend/main.py",
+    "old": "            morning_dispatch=_readable_dispatch(new_world),\n",
+    "new": "",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFirstMorningHasABriefing::test_a_new_campaign_is_born_with_its_briefing"
+  },
+  {
+    "id": "EPF1-14 /load does not carry the briefing",
+    "file": "backend/main.py",
+    "old": "                                       morning_dispatch=_readable_dispatch(world))",
+    "new": "                                       )",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheLoadedTurnIsBriefed::test_continue_carries_the_saved_turn_one_briefing"
+  },
+  {
+    "id": "EPF1-15 a stored briefing is rebuilt as a boot one",
+    "file": "backend/main.py",
+    "old": "    if getattr(target_world, \"last_morning_dispatch\", None):\n        return\n    _dispatch.build_morning_dispatch",
+    "new": "    _dispatch.build_morning_dispatch",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheLoadedTurnIsBriefed::test_a_mid_campaign_save_carries_its_own_briefing"
+  },
+  {
+    "id": "EPF1-16 the courts-at-war lever down",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "ONLY_THE_COURTS_AT_WAR_ARE_COUNTED = True",
+    "new": "ONLY_THE_COURTS_AT_WAR_ARE_COUNTED = False",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheCourtsAtWar::test_the_boot_count_is_the_courts_at_war"
+  },
+  {
+    "id": "EPF1-17 the at-war filter dropped",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "at_war is None or region.controller in at_war)",
+    "new": "True)",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheCourtsAtWar::test_the_boot_count_is_the_courts_at_war"
+  },
+  {
+    "id": "EPF1-18 the at-war flag never sent",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        situation[\"enemy_regions_are_at_war\"] = True",
+    "new": "        pass",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheCourtsAtWar::test_the_boot_count_is_the_courts_at_war tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_courts_at_war_on_both_surfaces"
+  },
+  {
+    "id": "EPF1-19 the one-sentence lever down",
+    "file": "backend/game_logic/war_status.py",
+    "old": "THE_PURPOSE_IS_ONE_SENTENCE = True",
+    "new": "THE_PURPOSE_IS_ONE_SENTENCE = False",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_boot_purpose_is_one_sentence"
+  },
+  {
+    "id": "EPF1-20 the cap widened",
+    "file": "backend/game_logic/war_status.py",
+    "old": "PURPOSE_TARGETS_NAMED = 8",
+    "new": "PURPOSE_TARGETS_NAMED = 80",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_any_other_list_names_eight tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_dispatch_line_names_eight"
+  },
+  {
+    "id": "EPF1-21 the lost homeland counted as a fraction",
+    "file": "backend/game_logic/war_status.py",
+    "old": "        if held == 0:\n            return \"the homeland is lost\"\n",
+    "new": "",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_a_fallen_homeland_is_lost"
+  },
+  {
+    "id": "EPF1-22 the Europe scope dropped",
+    "file": "backend/game_logic/war_status.py",
+    "old": "    if not bool(getattr(world, \"sandbox_mode\", False)):\n        return \"\"\n    if not isinstance(objective, dict):",
+    "new": "    if not isinstance(objective, dict):",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_legacy_fixture_keeps_its_list"
+  },
+  {
+    "id": "EPF1-23 the war row carries no sentence",
+    "file": "backend/game_logic/war_status.py",
+    "old": "                objective_info[\"target_summary\"] = _summary",
+    "new": "                pass",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_every_surface_reads_the_one_source tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_purpose_is_one_sentence_on_every_surface"
+  },
+  {
+    "id": "EPF1-24 the snapshot carries no sentence",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            snapshot[\"war_objective\"][\"target_summary\"] = _summary",
+    "new": "            pass",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_every_surface_reads_the_one_source tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_purpose_is_one_sentence_on_every_surface"
+  },
+  {
+    "id": "EPF1-25 the dispatch keeps the list",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if homeland_sentence:\n            line_text = f\"War Purpose: {type_display} vs {target_nation} — {target_summary}\"",
+    "new": "        if False:\n            line_text = f\"War Purpose: {type_display} vs {target_nation} — {target_summary}\"",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_boot_purpose_is_one_sentence"
+  },
+  {
+    "id": "EPF1-26 the dispatch keeps the uncapped list",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if target_summary and not homeland_sentence and not lists_only_what_is_held:\n            region_str = target_summary",
+    "new": "        if False:\n            region_str = target_summary",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_dispatch_line_names_eight"
+  },
+  {
+    "id": "EPF1-27 the fog lever down",
+    "file": "backend/main.py",
+    "old": "THE_FOG_IS_ONE_SENTENCE = True           # LV-13",
+    "new": "THE_FOG_IS_ONE_SENTENCE = False          # LV-13",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFogIsOneSentence::test_nine_fogged_courts_are_one_line"
+  },
+  {
+    "id": "EPF1-28 one court collapsed too",
+    "file": "backend/main.py",
+    "old": "if THE_FOG_IS_ONE_SENTENCE and len(_names) > 1:",
+    "new": "if THE_FOG_IS_ONE_SENTENCE:",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheFogIsOneSentence::test_one_fogged_court_keeps_its_own_sentence"
+  },
+  {
+    "id": "EPF1-29 the world swap prints no briefing",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif briefing is Dictionary and not briefing.is_empty():\n\t\t_display_morning_dispatch(briefing)",
+    "new": "\tif false:\n\t\t_display_morning_dispatch(briefing)",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_begin_shows_the_briefing_then_the_help"
+  },
+  {
+    "id": "EPF1-30 the world swap prints no help",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t_print_boot_help()\n\n\t# WO-30",
+    "new": "\n\t# WO-30",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_begin_shows_the_briefing_then_the_help tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_continue_shows_the_loaded_turns_briefing"
+  },
+  {
+    "id": "EPF1-31 the command path passes no renderer",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "if _route_response_ui(response, _post_hud_response_routes, _render_own_result):",
+    "new": "if _route_response_ui(response, _post_hud_response_routes):",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_orders_result_prints_before_the_envoy"
+  },
+  {
+    "id": "EPF1-32 the renderer is never called",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tif before_modal.is_valid() and bool(route.get(\"result_first\", false)):",
+    "new": "\t\tif false:",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_orders_result_prints_before_the_envoy"
+  },
+  {
+    "id": "EPF1-33 the envoy route is not result-first",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\"show\": \"_route_incoming_proposal_response\", \"result_first\": true}",
+    "new": "\"show\": \"_route_incoming_proposal_response\"}",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_orders_result_prints_before_the_envoy tests/test_ep_f1_the_first_ten_minutes.py::TestTheRouteTable::test_the_modals_the_command_did_not_ask_for_wait"
+  },
+  {
+    "id": "EPF1-34 the result renders nothing",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tif own_message == \"\" and not has_events:\n\t\t\treturn\n\t\t_display_result(response)",
+    "new": "\t\tif own_message == \"\" and not has_events:\n\t\t\treturn\n\t\tpass",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_orders_result_prints_before_the_envoy"
+  },
+  {
+    "id": "EPF1-35 the terminal says 'Enemy nations' always",
+    "file": "godot-client/project-sovereign/scripts/utils.gd",
+    "old": "\t\treturn \"The courts at war hold \" + str(n) + \" \" + noun + \".\"",
+    "new": "\t\treturn \"Enemy nations hold \" + str(n) + \" \" + noun + \".\"",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_courts_at_war_on_both_surfaces"
+  },
+  {
+    "id": "EPF1-36 the client ignores the sentence",
+    "file": "godot-client/project-sovereign/scripts/utils.gd",
+    "old": "\tif summary is String and summary != \"\":\n\t\treturn summary",
+    "new": "\tif false:\n\t\treturn summary",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_purpose_is_one_sentence_on_every_surface"
+  },
+  {
+    "id": "EPF1-37 the terminal renders no TODAY",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif today is Dictionary and not today.is_empty():\n\t\tadd_output(\"[color=#\" + Utils.COLOR_BERTHIER + \"]TODAY[/color]\")",
+    "new": "\tif false:\n\t\tadd_output(\"[color=#\" + Utils.COLOR_BERTHIER + \"]TODAY[/color]\")",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_begin_shows_the_briefing_then_the_help"
+  },
+  {
+    "id": "EPF1-38 the Dispatch screen renders no TODAY",
+    "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+    "old": "\tif today is Dictionary and not today.is_empty():\n\t\tbbcode += \"[color=#\" + Utils.COLOR_BERTHIER + \"]TODAY[/color]\\n\"",
+    "new": "\tif false:\n\t\tbbcode += \"[color=#\" + Utils.COLOR_BERTHIER + \"]TODAY[/color]\\n\"",
+    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_dispatch_screen_renders_the_first_morning"
+  }
+]

@@ -365,7 +365,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/tutorial_overlay_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ep_f1_first_ten_minutes_harness.gd"
     }
   ],
-  "timestamp": "2026-09-23T18:10:58Z"
+  "timestamp": "2026-09-24T03:44:19Z"
 }

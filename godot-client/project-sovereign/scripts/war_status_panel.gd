@@ -315,8 +315,8 @@ func _build_war_tooltip(war_data: Dictionary) -> String:
 			lines.append("Settlement: " + tier)
 	var objective = war_data.get("objective", null)
 	if objective != null and objective is Dictionary:
-		var targets = objective.get("target_regions", [])
-		var target_text = ", ".join(targets) if targets is Array and not targets.is_empty() else "target pending"
+		# LV-8 (row EP F1): one sentence, not the 28-name homeland list.
+		var target_text = Utils.objective_targets_text(objective, "target pending")
 		lines.append("Objective: " + str(objective.get("type_display", "Objective")) + " - " + target_text)
 		lines.append("Ticking: +" + str(int(float(objective.get("accumulated_ticking", 0)))))
 	var enemy_objective = war_data.get("enemy_objective", null)

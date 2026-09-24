@@ -57,7 +57,13 @@ func _on_dispatch_received(response):
 
 	var data = response.get("dispatch", {})
 	if data.is_empty():
-		content_label.text = "[color=#" + Utils.COLOR_INFO + "]No dispatch available yet.\nThe morning dispatch appears at the start of each turn.[/color]"
+		# LV-1 (row EP F1): the old copy — "No dispatch available yet. The
+		# morning dispatch appears at the start of each turn" — was FALSE on
+		# turn 1, which is the only turn it ever showed. Every live campaign
+		# now carries a briefing from its first morning (the backend builds
+		# the boot one where a campaign starts or loads), so this arm is
+		# reached only with the backend's lever down; it claims nothing.
+		content_label.text = "[color=#" + Utils.COLOR_INFO + "]Berthier has no dispatch on the table.[/color]"
 		return
 
 	# Build BBCode — same format as main.gd _display_morning_dispatch()
@@ -96,7 +102,6 @@ func _on_dispatch_received(response):
 	# ═══ SITUATION ═══
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]\n"
 	var player_regions = int(situation.get("player_regions", 0))
-	var enemy_regions = int(situation.get("enemy_regions", 0))
 	var treasury = int(situation.get("treasury", 0))
 	var treasury_delta = int(situation.get("treasury_delta", 0))
 	var bankrupt = situation.get("bankrupt", false)
@@ -117,14 +122,16 @@ func _on_dispatch_received(response):
 		# WO-10 (WO slice 12): the estimate says how good it is.
 		var strength_note = str(situation.get("enemy_strength_note", ""))
 		var note_suffix = "" if strength_note == "" else " " + strength_note
+		# LV-7 (row EP F1): the same sentence the terminal prints (Utils).
+		var held_line = Utils.enemy_regions_sentence(situation)
 		# IQ-2 (Sept 14, 2026): with no French corps under arms the ratio has
 		# no denominator — it printed "Estimated enemy strength: 0% of French
 		# forces" over an annihilated army. The backend says so instead.
 		var no_field_army = situation.get("no_field_army", false)
 		if typeof(no_field_army) == TYPE_BOOL and no_field_army:
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. [/color][color=#" + Utils.COLOR_ERROR + "]France has no army in the field.[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + held_line + " [/color][color=#" + Utils.COLOR_ERROR + "]France has no army in the field.[/color]\n"
 		else:
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]\n"
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + held_line + " Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]\n"
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
@@ -450,6 +457,24 @@ func _on_dispatch_received(response):
 				diw_heading = "DEFEAT WARNING"
 			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]" + diw_heading + "[/color]\n"
 			bbcode += "[color=#" + diw_color + "]  " + diw_msg + "[/color]\n\n"
+
+	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
+	# The turn-1 briefing's own section, mirrored from main.gd.
+	var today = data.get("today", null)
+	if today is Dictionary and not today.is_empty():
+		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]TODAY[/color]\n"
+		var today_orders = today.get("orders", [])
+		if today_orders is Array and today_orders.size() > 0:
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  Orders the board will take at once:[/color]\n"
+			for order in today_orders:
+				bbcode += "[color=#" + Utils.COLOR_COMMAND + "]    • " + str(order) + "[/color]\n"
+		var today_doors = str(today.get("doors", ""))
+		if today_doors != "":
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_doors + "[/color]\n"
+		var today_cabinet = str(today.get("cabinet", ""))
+		if today_cabinet != "":
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_cabinet + "[/color]\n"
+		bbcode += "\n"
 
 	# ═══ BERTHIER'S NOTE ═══
 	bbcode += "[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"

@@ -4408,6 +4408,13 @@ def build_war_context_snapshot(
             "accumulated_ticking": int(player_obj.get("accumulated_ticking", 0)),
             "ticking_active": bool(player_obj.get("ticking_active", False)),
         }
+        # LV-8 (row EP F1): the sentence the envoy's and the confirm popup's
+        # War Summary print — the one the war panel reads. Absent off the
+        # Europe board or with the lever down (both popups keep their list).
+        from backend.game_logic.war_status import objective_target_summary
+        _summary = objective_target_summary(world, player_nation, player_obj)
+        if _summary:
+            snapshot["war_objective"]["target_summary"] = _summary
     else:
         snapshot["war_objective"] = None
 

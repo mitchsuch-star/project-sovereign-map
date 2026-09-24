@@ -433,15 +433,24 @@ def _set_score(world, opponent, score):
 
 class TestWarObjectives:
     def test_one_of_many_is_not_held(self, world):
-        assert "[HELD]" in _line_vs(world, "Britain")
-        _reduce(world)
-        text = _line_vs(world, "Britain")
-        assert "[HELD]" not in text
-        n = len(world.war_objectives[world._make_diplo_key("France", "Britain")]
-                ["France"]["target_regions"])
-        assert f"[1 of {n} held]" in text
-        with _lever(D, "WAR_PURPOSE_COUNTS_WHAT_IS_HELD", False):
+        # ⚑ Consciously flipped by row EP F1 (LV-8, Sept 23, 2026): a DEFENCE
+        # purpose over the homeland is now ONE sentence ("the homeland — 1 of
+        # 28 provinces held") that carries its own count, so it takes no
+        # bracket. This lever still governs the BRACKET on the list shape —
+        # which is what the LV-8 lever-down arm restores, so the pin runs
+        # there; the sentence's own count is pinned beside it.
+        from backend.game_logic import war_status as WS
+        with _lever(WS, "THE_PURPOSE_IS_ONE_SENTENCE", False):
             assert "[HELD]" in _line_vs(world, "Britain")
+            _reduce(world)
+            text = _line_vs(world, "Britain")
+            assert "[HELD]" not in text
+            n = len(world.war_objectives[world._make_diplo_key("France", "Britain")]
+                    ["France"]["target_regions"])
+            assert f"[1 of {n} held]" in text
+            with _lever(D, "WAR_PURPOSE_COUNTS_WHAT_IS_HELD", False):
+                assert "[HELD]" in _line_vs(world, "Britain")
+        assert f"the homeland — 1 of {n} provinces held" in _line_vs(world, "Britain")
 
     def test_a_losing_score_names_whose_terms(self, world):
         _set_score(world, "Britain", -65)

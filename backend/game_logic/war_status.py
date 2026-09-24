@@ -3,7 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 from backend.display_names import display_nation
-from backend.game_logic.formations import formed_display_name
+from backend.game_logic.formations import format_progress, formed_display_name
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 ARMISTICE_AUTO_PEACE_RELATION = -60  # Must match diplomacy.py (G4F-17)
@@ -25,6 +25,66 @@ THE_TIER_NAMES_ITS_SIDE = True
 # collapse: a France holding foreign conquests but none of her own soil is
 # in the same position. False = the FA-D4 hint byte-for-byte.
 THE_HINT_KNOWS_THE_HOMELAND_IS_LOST = True
+
+# LV-8 (row EP F1, Sept 23, 2026) flip lever: a war purpose's targets are ONE
+# sentence. FA-D4 gave every boot war the declaration's defensive purpose, and
+# a defence purpose's target list IS the homeland — twenty-eight province names
+# printed every turn on the morning dispatch, the war panel, the war-detail
+# popup and the envoy's War Summary (FA-N71 was verified while the boot list
+# was still empty). Europe-scoped (N1): the legacy fixture keeps its list.
+# False = every surface prints the raw list, as before.
+THE_PURPOSE_IS_ONE_SENTENCE = True
+# Any other target list names at most this many provinces, then ", and N
+# more" — the cap `nation_names.nation_not_a_province_message` already uses.
+PURPOSE_TARGETS_NAMED = 8
+
+
+def objective_is_the_homeland(world, owner: str, objective) -> bool:
+    """True when `objective` is a DEFENSE purpose whose targets cover the
+    owner's whole homeland — FA-D4's shape (`_auto_assign_defense_objective`
+    copies `nation_starting_regions`). False on a board with no recorded
+    homeland (a bare test world) and for every other purpose."""
+    if not isinstance(objective, dict):
+        return False
+    if str(objective.get("type") or "") != "defense":
+        return False
+    home = list((getattr(world, "nation_starting_regions", None) or {}).get(owner, []) or [])
+    targets = set(str(t) for t in (objective.get("target_regions") or []))
+    return bool(home) and set(home) <= targets
+
+
+def objective_target_summary(world, owner: str, objective) -> str:
+    """The ONE sentence every surface prints for a war purpose's targets.
+
+    * a defence purpose over the owner's homeland → "the homeland — 28 of 28
+      provinces held" (`formations.format_progress`), or "the homeland is
+      lost" when none of it is held (IQ-2's phrase, which the dispatch and
+      the war-detail hint already speak);
+    * any other list → its names, at most eight, then ", and N more";
+    * "" when the lever is down, off the Europe board, or with no targets —
+      each surface keeps its own fallback copy for that case.
+    """
+    if not THE_PURPOSE_IS_ONE_SENTENCE or world is None:
+        return ""
+    if not bool(getattr(world, "sandbox_mode", False)):
+        return ""
+    if not isinstance(objective, dict):
+        return ""
+    targets = [str(t) for t in (objective.get("target_regions") or []) if str(t)]
+    if not targets:
+        return ""
+    if objective_is_the_homeland(world, owner, objective):
+        held = 0
+        for name in targets:
+            region = world.regions.get(name)
+            if region is not None and getattr(region, "controller", None) == owner:
+                held += 1
+        if held == 0:
+            return "the homeland is lost"
+        return f"the homeland — {format_progress(held, len(targets))}"
+    shown = ", ".join(targets[:PURPOSE_TARGETS_NAMED])
+    rest = len(targets) - PURPOSE_TARGETS_NAMED
+    return shown if rest <= 0 else f"{shown}, and {rest} more"
 
 
 def _tier_side(score: int) -> str:
@@ -225,6 +285,13 @@ def build_active_wars(world) -> Dict[str, Any]:
                 "ticking_active": bool(france_obj.get("ticking_active", False)),
                 "ticking_rate": int(TICKING_RATES.get(obj_type, 0)),
             }
+            # LV-8: the ONE sentence the war panel and the war-detail popup
+            # print. Absent (not "") off the Europe board or with the lever
+            # down, so those payloads stay byte-identical and each client
+            # surface keeps its own list fallback.
+            _summary = objective_target_summary(world, france, france_obj)
+            if _summary:
+                objective_info["target_summary"] = _summary
 
         enemy_objective_info = None
         if enemy_obj and enemy_obj.get("concluded_turn") is None:

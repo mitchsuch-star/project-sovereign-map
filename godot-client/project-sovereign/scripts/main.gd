@@ -797,17 +797,7 @@ func _on_connection_test(response):
 			print("⚠️  MAIN: Connection test - NO map_data in response!")
 
 		# Show instructions
-		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
-		add_output("")
-		add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
-		add_output("")
-		_add_separator()
+		_print_boot_help()
 
 		set_input_enabled(true)
 
@@ -823,6 +813,28 @@ func _on_connection_test(response):
 		add_output("[color=#" + Utils.COLOR_INFO + "]To reach it: "
 			+ Utils.launch_hint() + "[/color]")
 		add_output("")
+
+
+func _print_boot_help() -> void:
+	"""LV-1 (row EP F1): the boot help, in ONE place.
+
+	It was printed only by `_on_connection_test` — and every road into a
+	campaign (Begin, Continue, Load, the School of War) then ran the world
+	swap, whose reset CLEARS the terminal. Measured in the live review: a
+	fresh campaign opened on "New campaign ready." and nothing else. The
+	world-swap handler now prints it last, after the briefing, so the orders
+	sit nearest the command line. (PB-2 owns the examples' wording.)"""
+	add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
+	add_output("")
+	add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
+	add_output("")
+	_add_separator()
 
 
 func _push_stored_llm_key() -> void:
@@ -2308,23 +2320,38 @@ func _configure_response_routes():
 		{"id": "objection", "matches": "_response_has_objection_route", "show": "_route_objection_response"},
 		{"id": "glorious_charge", "matches": "_response_has_glorious_charge_route", "show": "_route_glorious_charge_response"},
 	]
+	# LV-12 (row EP F1): `result_first` marks the modals the command did NOT
+	# ask for — popped off the PopupQueue, they merely ride whatever response
+	# comes next. Every route here returns BEFORE `_display_result`, so a
+	# letter riding an order swallowed the order's own result: measured in the
+	# live review, an armistice envoy and a settlement offer rode `Ney, attack
+	# Archduke Charles`, and Berthier's report, the casualties and the strength
+	# lines never printed. Such a route now renders the command's result first
+	# (the BD §14.1 discipline, applied to the envoy family). The unmarked
+	# routes ARE the command's result — its capture, its objection, its
+	# confirm, its clarification, its interrupt — or render it themselves
+	# (the redemption arm).
 	_post_hud_response_routes = [
-		{"id": "commitment_paradox", "matches": "_response_has_commitment_paradox_route", "show": "_route_commitment_paradox_response"},
+		{"id": "commitment_paradox", "matches": "_response_has_commitment_paradox_route", "show": "_route_commitment_paradox_response", "result_first": true},
 		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
-		{"id": "marshal_petition", "matches": "_response_has_marshal_petition_route", "show": "_route_marshal_petition_response"},
+		{"id": "marshal_petition", "matches": "_response_has_marshal_petition_route", "show": "_route_marshal_petition_response", "result_first": true},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
-		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response"},
-		{"id": "incoming_settlement_offer", "matches": "_response_has_incoming_settlement_offer_route", "show": "_route_incoming_settlement_offer_response"},
+		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response", "result_first": true},
+		{"id": "incoming_settlement_offer", "matches": "_response_has_incoming_settlement_offer_route", "show": "_route_incoming_settlement_offer_response", "result_first": true},
 		{"id": "proposal_confirm", "matches": "_response_has_proposal_confirm_route", "show": "_route_proposal_confirm_response"},
 		{"id": "clarification", "matches": "_response_has_clarification_route", "show": "_route_clarification_response"},
 		{"id": "interrupt", "matches": "_response_has_interrupt_route", "show": "_route_interrupt_response"},
-		{"id": "diplomatic_sabotage", "matches": "_response_has_sabotage_route", "show": "_route_sabotage_response"},
-		{"id": "vassal_rebellion", "matches": "_response_has_vassal_rebellion_route", "show": "_route_vassal_rebellion_response"},
+		{"id": "diplomatic_sabotage", "matches": "_response_has_sabotage_route", "show": "_route_sabotage_response", "result_first": true},
+		{"id": "vassal_rebellion", "matches": "_response_has_vassal_rebellion_route", "show": "_route_vassal_rebellion_response", "result_first": true},
 		{"id": "redemption_event", "matches": "_response_has_redemption_route", "show": "_route_redemption_response"},
 	]
 
-func _route_response_ui(response: Dictionary, routes: Array) -> bool:
-	"""Run the first matching response route and keep the precedence policy data-driven."""
+func _route_response_ui(response: Dictionary, routes: Array, before_modal: Callable = Callable()) -> bool:
+	"""Run the first matching response route and keep the precedence policy data-driven.
+
+	`before_modal` (LV-12): called with the response just before a route
+	marked `result_first` raises its modal — `_on_command_result` passes
+	`_render_own_result`, so the order's own result is on the page first."""
 	for route in routes:
 		var matches_method = str(route.get("matches", ""))
 		if matches_method == "" or not call(matches_method, response):
@@ -2334,10 +2361,43 @@ func _route_response_ui(response: Dictionary, routes: Array) -> bool:
 			continue
 		if DEBUG_VERBOSE:
 			print("RESPONSE ROUTE MATCHED: ", route.get("id", "unknown"))
+		if before_modal.is_valid() and bool(route.get("result_first", false)):
+			before_modal.call(response)
 		call(show_method, response)
 		_process_active_wars(response)
 		return true
 	return false
+
+
+func _render_own_result(response: Dictionary) -> void:
+	"""LV-12 (row EP F1): what the ordinary path of `_on_command_result`
+	prints for the command itself, printed ahead of a modal that merely rides
+	the response (a `result_first` route). The same blocks in the same order —
+	the result (Berthier's report, the casualties and strength lines ride
+	`_display_result`), the tactical events, the glory attacks, the field
+	dispatches — or the refusal line. The tableau stays stashed (BD) and plays
+	at the next control return, as it did before; nothing here raises a modal.
+	A response carrying no result of its own (no message, no events) adds
+	nothing, so a letter riding a bare answer does not print an empty line."""
+	if response.get("success", false):
+		var own_message = str(response.get("message", "")).strip_edges()
+		var own_events = response.get("events", [])
+		var has_events = own_events is Array and not own_events.is_empty()
+		if own_message == "" and not has_events:
+			return
+		_display_result(response)
+		if response.has("tactical_events"):
+			var tactical = response.tactical_events
+			if tactical is Array:
+				for event in tactical:
+					var msg = str(event.get("message", ""))
+					if msg != "":
+						add_output("[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]")
+		_display_jealousy_attacks(response)
+		_show_mild_dispatches(response)
+	else:
+		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
+	add_output("")
 
 func _response_has_objection_route(response: Dictionary) -> bool:
 	var is_tactical_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
@@ -3005,7 +3065,9 @@ func _on_command_result(response):
 	# Priority 6.25: Proposal Result Popup (PL-5A - proposal outcome)
 	# Informational-only proposal results now route through the notice rail.
 
-	if _route_response_ui(response, _post_hud_response_routes):
+	# LV-12: a modal riding this response (a `result_first` route) waits
+	# behind the command's own result.
+	if _route_response_ui(response, _post_hud_response_routes, _render_own_result):
 		return  # Don't re-enable input until choice made
 
 	# Re-enable input
@@ -3872,7 +3934,6 @@ func _display_morning_dispatch(data: Dictionary):
 	# ═══ SITUATION ═══
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]")
 	var player_regions = int(situation.get("player_regions", 0))
-	var enemy_regions = int(situation.get("enemy_regions", 0))
 	var treasury = int(situation.get("treasury", 0))
 	var treasury_delta = int(situation.get("treasury_delta", 0))
 	var bankrupt = situation.get("bankrupt", false)
@@ -3893,14 +3954,17 @@ func _display_morning_dispatch(data: Dictionary):
 		# WO-10 (WO slice 12): the estimate says how good it is.
 		var strength_note = str(situation.get("enemy_strength_note", ""))
 		var note_suffix = "" if strength_note == "" else " " + strength_note
+		# LV-7 (row EP F1): who holds the counted regions, as the backend
+		# counted them (one source for both surfaces: Utils).
+		var held_line = Utils.enemy_regions_sentence(situation)
 		# IQ-2 (Sept 14, 2026): with no French corps under arms the ratio has
 		# no denominator — it printed "Estimated enemy strength: 0% of French
 		# forces" over an annihilated army. The backend says so instead.
 		var no_field_army = situation.get("no_field_army", false)
 		if typeof(no_field_army) == TYPE_BOOL and no_field_army:
-			add_output("[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. [/color][color=#" + Utils.COLOR_ERROR + "]France has no army in the field.[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + held_line + " [/color][color=#" + Utils.COLOR_ERROR + "]France has no army in the field.[/color]")
 		else:
-			add_output("[color=#" + Utils.COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]")
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + held_line + " Estimated enemy strength: " + str(strength_pct) + "% of French forces" + note_suffix + ".[/color]")
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
@@ -4204,6 +4268,25 @@ func _display_morning_dispatch(data: Dictionary):
 				var coal_leader = str(active_coal.get("leader", "?"))
 				add_output("[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]")
 			add_output("")
+
+	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
+	# Only the turn-1 briefing carries it: the orders the board will take,
+	# read off the counsel's one source, and first contact's three doors.
+	var today = data.get("today", null)
+	if today is Dictionary and not today.is_empty():
+		add_output("[color=#" + Utils.COLOR_BERTHIER + "]TODAY[/color]")
+		var today_orders = today.get("orders", [])
+		if today_orders is Array and today_orders.size() > 0:
+			add_output("[color=#" + Utils.COLOR_INFO + "]  Orders the board will take at once:[/color]")
+			for order in today_orders:
+				add_output("[color=#" + Utils.COLOR_COMMAND + "]    • " + str(order) + "[/color]")
+		var today_doors = str(today.get("doors", ""))
+		if today_doors != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_doors + "[/color]")
+		var today_cabinet = str(today.get("cabinet", ""))
+		if today_cabinet != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_cabinet + "[/color]")
+		add_output("")
 
 	# ═══ BERTHIER'S NOTE ═══
 	add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]")
@@ -5290,6 +5373,18 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	if detail != "":
 		add_output("[color=#" + Utils.COLOR_INFO + "]" + detail + "[/color]")
 	add_output("")
+
+	# LV-1 (row EP F1): every road into a campaign — Begin, Continue, Load,
+	# the School of War — lands here, and the reset above has just cleared
+	# the terminal. The briefing first (the turn-1 one a new campaign is
+	# born with, or the loaded turn's own, under "Loaded: …"), then the boot
+	# help last so the orders sit nearest the command line. Both are printed
+	# ABOVE the capture / interrupt / redemption arms below, which return
+	# early and own input from there.
+	var briefing = response.get("morning_dispatch")
+	if briefing is Dictionary and not briefing.is_empty():
+		_display_morning_dispatch(briefing)
+	_print_boot_help()
 
 	# WO-30: a save can carry an unanswered plunder/secure (or W6-8 estate)
 	# question. This handler consults no route table — the route tables are

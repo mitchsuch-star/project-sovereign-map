@@ -617,13 +617,18 @@ def _headline_keys(candidate: Dict[str, Any]) -> tuple:
             ("", candidate["text"]))
 
 
-def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
+def _build_headline(world, player_nation: str,
+                    record: bool = True) -> Optional[Dict[str, Any]]:
     """W6-3 §5.1: score the turn's fog-visible events; return the headline.
 
     Returns {"class", "weight", "text", "sub_beats": [str, ...]} or None
     when nothing scored above the noise floor. Deterministic templates over
     existing events — no LLM (GR6). Bounded work: one pass over the recent
     event-log window + the player's own intel entries (GR8-safe).
+
+    `record=False` (LV-1, the boot briefing) reads the lead memory and
+    writes nothing back: the turn-2 dispatch selects exactly as it did
+    before the first morning had a briefing.
     """
     window = [e for e in world.event_log
               if e.get("turn", 0) >= world.current_turn - 1]
@@ -1545,16 +1550,20 @@ def _build_headline(world, player_nation: str) -> Optional[Dict[str, Any]]:
     if not candidates:
         return None
 
-    return _select_headline(world, candidates)
+    return _select_headline(world, candidates, record=record)
 
 
-def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _select_headline(world, candidates: List[Dict[str, Any]],
+                     record: bool = True) -> Dict[str, Any]:
     """Choose the lead from scored candidates and record what led.
 
     Extracted from `_build_headline` (PC-7) so the whole rule — weight order,
     the July-19 exact-repeat demotion, and the standing-class cooldown — is
     one testable source rather than a tail nobody could reach without
     building a world.
+
+    `record=False` (LV-1): select, but leave `headline_lead_memory` as it
+    was — the boot briefing is not a turn in the lead's streak.
     """
     candidates.sort(key=lambda c: c["weight"], reverse=True)
 
@@ -1666,15 +1675,16 @@ def _select_headline(world, candidates: List[Dict[str, Any]]) -> Dict[str, Any]:
                 break
 
     top = candidates[0]
-    world.headline_lead_memory = {
-        "class": top["class"],
-        "identity": top["identity"],
-        "streak": (streak + 1
-                   if (top["class"] == memory.get("class")
-                       and top["identity"] == memory.get("identity"))
-                   else 1),
-        "runs": runs,
-    }
+    if record:
+        world.headline_lead_memory = {
+            "class": top["class"],
+            "identity": top["identity"],
+            "streak": (streak + 1
+                       if (top["class"] == memory.get("class")
+                           and top["identity"] == memory.get("identity"))
+                       else 1),
+            "runs": runs,
+        }
     # ────────────────────────────────────────────────────────────────────
     # CA8-5: dedupe on (class, identity), not on rendered TEXT.
     #
@@ -2188,6 +2198,22 @@ THE_LAPSED_LEAGUE_NAMES_THE_WAR = True
 # their list. False = the full list on every board.
 WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD = True
 
+# ── Row EP F1 (Sept 23, 2026) "The first ten minutes" ──────────────────────
+# LV-1: a fresh campaign opened on an EMPTY terminal and the Dispatch screen
+# said "No dispatch available yet" on turn 1 — `build_morning_dispatch` ran
+# only at end turn. `build_morning_dispatch(world, boot=True)` is the turn-1
+# briefing: the pure halves (situation, marshal status, intelligence, the war
+# block, the "what to do today" doors) and NONE of the consuming arms (the
+# sabotage roll, the cooldowns and seen-lists, the once-per-turn beats, the
+# event-queue clear). `main.py` builds it where a campaign starts and where a
+# save without a stored briefing loads. False = no boot briefing.
+THE_FIRST_MORNING_HAS_A_BRIEFING = True
+# LV-7: "Enemy nations hold 98 regions" counted every controller that was not
+# the player — vassals, allies, the neutral courts. On the 1805 boot the
+# courts at war hold 28. Only a controller at war with the player counts now;
+# the client says "The courts at war hold N regions". Europe-scoped (N1).
+ONLY_THE_COURTS_AT_WAR_ARE_COUNTED = True
+
 
 def _sandbox_board(world) -> bool:
     """N1 scope for the IQ-2 general fixes: the Europe sandbox only."""
@@ -2698,7 +2724,8 @@ def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
 
 
 def build_morning_dispatch(world, tactical_events: Optional[List] = None,
-                           lapsed_offers: Optional[List] = None) -> Dict[str, Any]:
+                           lapsed_offers: Optional[List] = None,
+                           boot: bool = False) -> Dict[str, Any]:
     """
     Build the morning dispatch dict for Godot rendering.
 
@@ -2713,6 +2740,18 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
             the dispatch's TURN EVENTS section.
         lapsed_offers: Optional list of lapse info dicts from turn-end.
             Each has nation, offer_type, proposal_type.
+        boot: LV-1 (row EP F1) — the briefing of a campaign's FIRST morning,
+            built where a campaign starts rather than at an end turn. It
+            runs the pure halves (situation, marshal status, intelligence,
+            the headline read without recording, the war block, the envoys)
+            and adds `today` — the orders the board will take and the three
+            doors. It skips EVERY consuming arm: the expectation latch, the
+            headline-lead memory, the two warnings (they write the rail),
+            Talleyrand's report (it writes cooldowns), the Session-6
+            sabotage roll, the diplomatic-event queue (read AND cleared by
+            the next real dispatch, so nothing is told twice). The only
+            write is `world.last_morning_dispatch`, which is what the
+            Dispatch screen (R) reads.
 
     Returns:
         Dict with turn, situation, marshals, intelligence, turn_events,
@@ -2726,7 +2765,7 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         # HC-0: dated header ("" without an anchor — the client appends
         # only when non-empty, so legacy renders exactly as before).
         "calendar_label": world.get_calendar_label(),
-        "situation": _build_situation(world, player_nation),
+        "situation": _build_situation(world, player_nation, boot=boot),
         "marshals": _build_marshal_status(world, player_nation),
         "intelligence": _build_intelligence(world, player_nation),
         "turn_events": _build_turn_events(tactical_events or [], player_nation),
@@ -2734,7 +2773,7 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
 
     # W6-3 §5.1: the dispatch opens with the turn's top story — one prose
     # headline + up to 2 sub-beats, scored from fog-visible events.
-    headline = _build_headline(world, player_nation)
+    headline = _build_headline(world, player_nation, record=not boot)
     if headline:
         dispatch["headline"] = headline
 
@@ -2772,16 +2811,22 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     # ════════════════════════════════════════════════════════════
     # V2-85: TURN-LIMIT WARNINGS — alert player as campaign nears end
     # ════════════════════════════════════════════════════════════
-    turn_limit_warning = _build_turn_limit_warning(world, player_nation)
-    if turn_limit_warning:
-        dispatch["turn_limit_warning"] = turn_limit_warning
+    # LV-1: both warnings write the notification rail, so the boot briefing
+    # (which may not write) leaves them to the first real morning.
+    if not boot:
+        turn_limit_warning = _build_turn_limit_warning(world, player_nation)
+        if turn_limit_warning:
+            dispatch["turn_limit_warning"] = turn_limit_warning
 
-    defeat_imminent_warning = _build_defeat_imminent_warning(world, player_nation)
-    if defeat_imminent_warning:
-        dispatch["defeat_imminent_warning"] = defeat_imminent_warning
+        defeat_imminent_warning = _build_defeat_imminent_warning(world, player_nation)
+        if defeat_imminent_warning:
+            dispatch["defeat_imminent_warning"] = defeat_imminent_warning
 
     # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
-    dispatch["talleyrand_report"] = _build_talleyrand_report(world, player_nation)
+    # LV-1: the report writes its trigger cooldowns — a once-per-N-turns
+    # beat, so the boot briefing does not spend it.
+    dispatch["talleyrand_report"] = (
+        [] if boot else _build_talleyrand_report(world, player_nation))
 
     # ════════════════════════════════════════════════════════════
     # SESSION 6: Talleyrand sabotage discovery + override notes + redemption
@@ -2790,7 +2835,9 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     dispatch["talleyrand_override_note"] = None
     dispatch["talleyrand_redemption"] = None
 
-    _check_talleyrand_session6(dispatch, world, player_nation)
+    if not boot:
+        # LV-1: the sabotage-discovery ROLL — never at the boot briefing.
+        _check_talleyrand_session6(dispatch, world, player_nation)
 
     # Coalition status (Session 7)
     dispatch["coalition_status"] = _build_coalition_section(world, player_nation)
@@ -2806,12 +2853,18 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         dispatch["peace_settlements"] = peace_settlements
 
     # Diplomatic events (Session 8D)
-    diplomatic_events = _build_diplomatic_events_section(world, player_nation)
+    # LV-1: the boot briefing reads none of the queue — the first real
+    # dispatch reads it AND clears it below, so an event queued at boot is
+    # told once, where it always was.
+    if boot:
+        diplomatic_events = []
+    else:
+        diplomatic_events = _build_diplomatic_events_section(world, player_nation)
 
-    # S2: Merge significant relation change events
-    relation_events = _build_relation_change_events(world, player_nation)
-    if relation_events:
-        diplomatic_events.extend(relation_events)
+        # S2: Merge significant relation change events
+        relation_events = _build_relation_change_events(world, player_nation)
+        if relation_events:
+            diplomatic_events.extend(relation_events)
 
     dispatch["diplomatic_events"] = diplomatic_events
 
@@ -2831,7 +2884,7 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     # The turn-stamp prune stays as the safety net for the direct
     # `advance_turn()` callers that never build a dispatch.
     # ══════════════════════════════════════════════════════════════════
-    if getattr(world, "pending_dispatch_events", None):
+    if not boot and getattr(world, "pending_dispatch_events", None):
         world.pending_dispatch_events = []
 
     # Lapsed offers from previous turn-end
@@ -2852,24 +2905,67 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         dispatch["pending_envoy_count"] = int(len(pending_envoys))
         dispatch["pending_envoys"] = pending_envoys
 
+    if boot:
+        # LV-1: the first morning names what to do with it.
+        dispatch["today"] = _build_first_morning_doors(world, player_nation)
+
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 
     return dispatch
 
 
+# LV-1: how many board-derived orders the first morning names.
+FIRST_MORNING_ORDER_LIMIT = 4
+
+
+def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
+    """LV-1 (row EP F1): the boot briefing's "what to do today" section.
+
+    `orders` are the counsel's own lines (`ai/counsel.what_can_i_do` — the
+    ONE board-derived source Berthier's shrug and "what can I do" already
+    read, so every line is an order this board will take); `doors` and
+    `cabinet` are first contact's own sentences, quoted rather than
+    re-typed, so the briefing and the desk can never name different doors.
+    A pure read: counsel asks the executors' refusal probes and writes
+    nothing.
+    """
+    from backend.ai.counsel import what_can_i_do
+    from backend.ai.first_contact import CABINET_DOOR, THREE_DOORS
+    try:
+        orders = [str(line) for line in (what_can_i_do(
+            world, player_nation, limit=FIRST_MORNING_ORDER_LIMIT) or [])]
+    except Exception:
+        # A briefing must never fail to build; with no counsel the doors
+        # still stand.
+        orders = []
+    return {"orders": orders, "doors": THREE_DOORS, "cabinet": CABINET_DOOR}
+
+
 # ============================================================================
 # SITUATION
 # ============================================================================
 
-def _build_situation(world, player_nation: str) -> Dict[str, Any]:
-    """Build the SITUATION section of the dispatch."""
+def _build_situation(world, player_nation: str,
+                     boot: bool = False) -> Dict[str, Any]:
+    """Build the SITUATION section of the dispatch.
+
+    `boot=True` (LV-1): the first morning's briefing — the expectation latch
+    below is a once-per-dispatch write and is left to the first real one.
+    """
+    # LV-7: the courts at war with us, read once. The one region pass that
+    # counts the player's own provinces already exists; the at-war filter
+    # rides it (once per dispatch — not a hot path, GR8).
+    at_war = None
+    if ONLY_THE_COURTS_AT_WAR_ARE_COUNTED and _sandbox_board(world):
+        at_war = set(world.get_nations_at_war_with(player_nation))
     player_regions = 0
     enemy_regions = 0
     for region in world.regions.values():
         if region.controller == player_nation:
             player_regions += 1
-        elif region.controller is not None:
+        elif region.controller is not None and (
+                at_war is None or region.controller in at_war):
             enemy_regions += 1
 
     treasury = int(world.nation_gold.get(player_nation, 0))
@@ -2964,7 +3060,9 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     )
     if is_dotation_world(world):
         for m in world.marshals.values():
-            if m.nation != player_nation or m.strength <= 0:
+            # LV-1: the boot briefing announces no rise and latches nothing
+            # (there is no earlier dispatch for a demand to have risen since).
+            if boot or m.nation != player_nation or m.strength <= 0:
                 continue
             expectation = get_expectation(m)
             satisfaction = get_satisfaction(m, world)
@@ -3061,6 +3159,11 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "authority": int(authority),
         "authority_label": authority_label,
     }
+    if at_war is not None:
+        # LV-7: `enemy_regions` counted only the courts at war with us, and
+        # the client's sentence says so. Absent (legacy, lever down) = the
+        # old count and the old wording, byte-for-byte.
+        situation["enemy_regions_are_at_war"] = True
     if THE_SITUATION_NAMES_THE_EMPTY_FIELD and _sandbox_board(world):
         # IQ-2: `strength_ratio_pct` keeps its 999 sentinel for compatibility;
         # this flag is what lets a renderer say "no field army" instead of
@@ -4450,17 +4553,36 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
                 and len(held_regions) < len(target_regions)):
             # IQ-2: one of twenty-eight is not HELD.
             held_str = f"{len(held_regions)} of {len(target_regions)} held"
-        if (WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD and _sandbox_board(world)
-                and obj_type == "defense" and target_regions
-                and len(held_regions) < len(target_regions)):
+        lists_only_what_is_held = (
+            WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD and _sandbox_board(world)
+            and obj_type == "defense" and target_regions
+            and len(held_regions) < len(target_regions))
+        if lists_only_what_is_held:
             # IQ-2 (PR-X1): no producer claims a holding France does not hold.
             # The COUNT is `WAR_PURPOSE_COUNTS_WHAT_IS_HELD`'s; this lever
             # owns only which provinces the line names.
             region_str = (f"holding {', '.join(held_regions)}" if held_regions
                           else "the homeland is lost")
+        # LV-8 (row EP F1): ONE sentence for the targets, from the source the
+        # war panel, the war-detail popup and the envoy's War Summary read.
+        # The homeland sentence carries its own count, so it takes no bracket
+        # (and supersedes IQ-2's list arms, whose rule — never name a
+        # province France does not hold — it keeps by naming none). Any other
+        # list is capped at eight names.
+        from backend.game_logic.war_status import (
+            objective_is_the_homeland, objective_target_summary,
+        )
+        target_summary = objective_target_summary(world, player_nation, player_obj)
+        homeland_sentence = bool(target_summary) and objective_is_the_homeland(
+            world, player_nation, player_obj)
+        if target_summary and not homeland_sentence and not lists_only_what_is_held:
+            region_str = target_summary
         tick_str = f"+{rate}/turn" if rate > 0 else ""
 
-        line_text = f"War Purpose: {type_display} vs {target_nation} — {region_str} [{held_str}]"
+        if homeland_sentence:
+            line_text = f"War Purpose: {type_display} vs {target_nation} — {target_summary}"
+        else:
+            line_text = f"War Purpose: {type_display} vs {target_nation} — {region_str} [{held_str}]"
         if accumulated > 0:
             line_text += f" (ticking: +{accumulated}{', ' + tick_str if tick_str else ''})"
 

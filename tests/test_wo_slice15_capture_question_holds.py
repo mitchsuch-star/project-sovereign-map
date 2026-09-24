@@ -726,7 +726,11 @@ class TestWO30TheLoadedSaveRaisesIt:
         rest = src[start:]
         nxt = re.search(r"\nfunc ", rest[1:])
         body = rest[:nxt.start() + 1] if nxt else rest
-        assert 200 < len(body) < 4000, (
+        # ⚑ Row EP F1 (LV-1, Sept 23, 2026): the ceiling rose 4000 → 6000
+        # consciously — the handler grew by the turn-1 briefing and the boot
+        # help it now prints (4,101 chars measured). The bound still catches
+        # an extraction that runs off into the next function.
+        assert 200 < len(body) < 6000, (
             f"the function-body extraction returned {len(body)} chars — it "
             f"has drifted off the function it claims to bound")
         assert "_response_has_capture_choice_route" in body

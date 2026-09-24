@@ -146,6 +146,8 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/nui_map_capture.gd",
 	# The School of War, driven (tests/test_tutorial_unbreakable_2026_09_23.py)
 	"res://../../tools/tutorial_overlay_harness.gd",
+	# Row EP F1 "The first ten minutes", driven (tests/test_ep_f1_the_first_ten_minutes.py)
+	"res://../../tools/ep_f1_first_ten_minutes_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

@@ -406,8 +406,8 @@ func _render_war_detail(w: Dictionary):
 	var objective = w.get("objective", null)
 	if objective != null and objective is Dictionary:
 		var obj_type = str(objective.get("type_display", "Objective"))
-		var targets = objective.get("target_regions", [])
-		var target_text = ", ".join(targets) if targets is Array and not targets.is_empty() else "target pending"
+		# LV-8 (row EP F1): one sentence, not the 28-name homeland list.
+		var target_text = Utils.objective_targets_text(objective, "target pending")
 		var accumulated = int(float(objective.get("accumulated_ticking", 0)))
 		var rate = int(float(objective.get("ticking_rate", 0)))
 		var active = "active" if bool(objective.get("ticking_active", false)) else "not ticking"

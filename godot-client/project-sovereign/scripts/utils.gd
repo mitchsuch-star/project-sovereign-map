@@ -75,6 +75,37 @@ static func standing_lines(war_data: Dictionary) -> Array:
 	return lines
 
 
+# LV-7 (row EP F1): the SITUATION line's first sentence, ONCE for the terminal
+# briefing and the Dispatch screen. It read "Enemy nations hold 98 regions" on
+# the 1805 boot — every controller that was not France, vassals and neutral
+# courts included. The backend now counts only the courts AT WAR with us and
+# says so with `enemy_regions_are_at_war`; a payload without the flag (the
+# legacy fixture, the lever down) keeps the old wording, which is what it
+# counted.
+static func enemy_regions_sentence(situation: Dictionary) -> String:
+	var n := int(situation.get("enemy_regions", 0))
+	var noun := "region" if n == 1 else "regions"
+	var at_war = situation.get("enemy_regions_are_at_war", false)
+	if typeof(at_war) == TYPE_BOOL and at_war:
+		return "The courts at war hold " + str(n) + " " + noun + "."
+	return "Enemy nations hold " + str(n) + " " + noun + "."
+
+
+# LV-8 (row EP F1): a war purpose's targets, ONCE for the war panel tooltip,
+# the war-detail popup and both War Summaries. The backend's `target_summary`
+# is the one sentence ("the homeland — 28 of 28 provinces held", or at most
+# eight names); a payload without it (the legacy fixture, the lever down)
+# keeps the joined list — or `fallback` when there is none.
+static func objective_targets_text(objective: Dictionary, fallback: String) -> String:
+	var summary = objective.get("target_summary", "")
+	if summary is String and summary != "":
+		return summary
+	var targets = objective.get("target_regions", [])
+	if targets is Array and not targets.is_empty():
+		return ", ".join(targets)
+	return fallback
+
+
 static func launch_hint() -> String:
 	if OS.has_feature("editor"):
 		return ".venv\\Scripts\\python.exe -m backend.main"

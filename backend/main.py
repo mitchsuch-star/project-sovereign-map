@@ -191,14 +191,60 @@ def _set_active_world(new_world: WorldState) -> WorldState:
     return new_world
 
 
+def _ensure_first_morning(target_world: WorldState) -> None:
+    """LV-1 (row EP F1): every live campaign has a briefing the Dispatch
+    screen (R) can find — before this, `build_morning_dispatch` ran only at
+    end turn, so turn 1 had none and R said "No dispatch available yet".
+
+    Builds the BOOT briefing (`build_morning_dispatch(..., boot=True)`: the
+    pure halves, no consuming arm — see its docstring) when the world has no
+    stored dispatch: a campaign just created, or a save written before its
+    first end turn. A world that already carries one keeps it untouched."""
+    from backend.game_logic import dispatch as _dispatch
+    if not _dispatch.THE_FIRST_MORNING_HAS_A_BRIEFING:
+        return
+    if getattr(target_world, "last_morning_dispatch", None):
+        return
+    _dispatch.build_morning_dispatch(target_world, boot=True)
+
+
+def _readable_dispatch(target_world: WorldState) -> dict:
+    """The stored briefing as a reader receives it — `GET /dispatch`, and the
+    `/new_game` and `/load` responses that render it (LV-1).
+
+    UX23-R4: the stored dispatch is frozen at turn start, so "Unmet
+    Marshals" went on naming a marshal the player had already paid — the
+    same shown-not-applied class the reward rail fixed, one surface over.
+    ONLY that block is re-derived, and onto a COPY. Rebuilding the whole
+    dispatch is not an option: `build_morning_dispatch` consumes
+    `pending_dispatch_events`, overwrites the PC-7 headline-lead memory,
+    latches `last_expectation_seen`, re-adds notification families and rolls
+    `check_sabotage_discovery` — pressing R would re-roll sabotage. A read
+    must not mutate, and this one does not: `dict(...)` twice, then a pure
+    builder."""
+    dispatch = getattr(target_world, "last_morning_dispatch", None)
+    if not dispatch:
+        return {}
+    from backend.game_logic.dotation import build_unmet_marshals
+    dispatch = dict(dispatch)
+    situation = dict(dispatch.get("situation") or {})
+    situation["unmet_marshals"] = build_unmet_marshals(
+        target_world, target_world.player_nation)
+    dispatch["situation"] = situation
+    return dispatch
+
+
 def _reset_world_state(
     player_nation: str = DEFAULT_PLAYER_NATION,
     scenario_override: str = "",
 ) -> WorldState:
     """Replace the active campaign with a fresh world."""
-    return _set_active_world(
-        _build_new_world(player_nation=player_nation, scenario_override=scenario_override)
-    )
+    new_world = _build_new_world(
+        player_nation=player_nation, scenario_override=scenario_override)
+    # LV-1: the first morning has a briefing — every creation road (the
+    # process boot, New Campaign, the School of War) passes here.
+    _ensure_first_morning(new_world)
+    return _set_active_world(new_world)
 
 
 _reset_world_state()
@@ -394,6 +440,7 @@ CANCEL_BUTTON_READS_THE_HARD_STOP = True  # FA-N62: the Orders-tab cancel blocks
 LOAD_KEEPS_THE_DRAFT_NOTICES = True      # FA-99: /load never drains the draft notices the world swap never renders
 PETITION_RIDES_THE_END_TURN = True       # FA-5: the standing petition rides the end-turn response under its own key
 DISMISSAL_IS_NOT_A_DEATH = True          # FA-47: a marshal the player DISMISSED is not mourned as destroyed
+THE_FOG_IS_ONE_SENTENCE = True           # LV-13: a wholly fogged enemy phase is ONE sentence naming the courts, not one per court
 
 _QUESTION_STATES = frozenset({
     "awaiting_player_choice", "awaiting_clarification", "awaiting_redemption_choice",
@@ -1547,12 +1594,25 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
         # `with_definite_article` also kills the unfiled sibling: the
         # possessive rendered "Papal States's borders", and PapalStates is
         # in the boot roster.
-        cleaned_phase["fog_hidden_summary"] = [
-            f"Our scouts report activity within the borders of "
-            f"{with_definite_article(formed_display_name(world, nation))}, "
-            f"but their formations remain beyond our sight."
-            for nation in raw_nations
-        ]
+        _names = [with_definite_article(formed_display_name(world, nation))
+                  for nation in raw_nations]
+        if THE_FOG_IS_ONE_SENTENCE and len(_names) > 1:
+            # LV-13 (row EP F1): with NOTHING visible this branch printed
+            # one sentence per court — nine identical lines on turns 4 and 5
+            # of the live review, each ending in the same seven words. PT-E4
+            # collapsed the visible-phase branch to one named sentence; this
+            # branch now says the same thing the same way. One court keeps
+            # its own sentence, which names it best.
+            cleaned_phase["fog_hidden_summary"] = [
+                f"{_join_courts(_names, capitalize=True)} stirred, "
+                f"but their formations remain beyond our sight."
+            ]
+        else:
+            cleaned_phase["fog_hidden_summary"] = [
+                f"Our scouts report activity within the borders of {name}, "
+                f"but their formations remain beyond our sight."
+                for name in _names
+            ]
         return cleaned_phase
     return None
 
@@ -5045,6 +5105,10 @@ async def new_game_endpoint(request: Optional[NewGameRequest] = None):
             new_game=True,
             autosave_success=autosave_ok,
             autosave_message=autosave_result.get("message", ""),
+            # LV-1 (row EP F1): the turn-1 briefing, rendered by the client's
+            # world-swap handler (`_reset_world_state` built and stored it,
+            # so the autosave above carries it too).
+            morning_dispatch=_readable_dispatch(new_world),
         )
     except Exception as e:
         print(f"[ERROR] handling new_game: {e}")
@@ -5069,10 +5133,17 @@ async def load_endpoint(request: LoadRequest):
     filepath = save_manager.SAVE_DIR / request.filename
     result = load_game(filepath)
     if result["success"]:
+        # LV-1 (row EP F1): a save written before its first end turn carries
+        # no briefing — it gets the boot one, so R never comes up empty.
+        _ensure_first_morning(result["world"])
         _set_active_world(result["world"])
         response = build_base_response(world, message=result["message"],
                                        include_popup_passthroughs=False,
-                                       drain_draft_notices=not LOAD_KEEPS_THE_DRAFT_NOTICES)
+                                       drain_draft_notices=not LOAD_KEEPS_THE_DRAFT_NOTICES,
+                                       # LV-1 (c): the loaded turn's briefing,
+                                       # re-rendered by the client under
+                                       # "Loaded: …".
+                                       morning_dispatch=_readable_dispatch(world))
     else:
         response = build_base_response(world, success=False,
                                        message=result["message"],
@@ -5275,26 +5346,10 @@ def get_dispatch():
     """Get the last morning dispatch for re-read screen."""
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
-    dispatch = world.last_morning_dispatch
-    # UX23-R4: the stored dispatch is frozen at turn start, so "Unmet
-    # Marshals" went on naming a marshal the player had already paid — the
-    # same shown-not-applied class the reward rail fixed, one surface over.
-    #
-    # ONLY that block is re-derived, and onto a COPY. Rebuilding the whole
-    # dispatch is not an option: `build_morning_dispatch` consumes
-    # `pending_dispatch_events`, overwrites the PC-7 headline-lead memory,
-    # latches `last_expectation_seen`, re-adds notification families and rolls
-    # `check_sabotage_discovery` — pressing R would re-roll sabotage. A read
-    # endpoint must not mutate, and this one still does not: `dict(...)` twice,
-    # then a pure builder.
-    if dispatch:
-        from backend.game_logic.dotation import build_unmet_marshals
-        dispatch = dict(dispatch)
-        situation = dict(dispatch.get("situation") or {})
-        situation["unmet_marshals"] = build_unmet_marshals(
-            world, world.player_nation)
-        dispatch["situation"] = situation
-    payload = {"success": True, "dispatch": dispatch or {}}
+    # UX23-R4 + LV-1: one reader for the stored briefing (see
+    # `_readable_dispatch`) — the Dispatch screen and the world-swap
+    # responses that render it must never show two different copies.
+    payload = {"success": True, "dispatch": _readable_dispatch(world)}
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
     return payload
 

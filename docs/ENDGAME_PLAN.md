@@ -1,6 +1,6 @@
 # The Endgame Program — the fixes, then "The Congress of Paris" (row EP)
 
-> **Status: RULED September 23, 2026 (evening) — BUILD-READY. This document is the routing authority for row EP; `docs/STATUS.md` ▶ NEXT UP points here.** Every decision below was taken by Claude under the user's delegated grant (*"create a plan to fix all of these, make all decisions, and for the ending make the decision on how to end — but it should be a challenge to force a new status quo, and you should have to hold the win state for X turns, with a mechanic that makes it fun"*). Each decision carries its argument and, where it matters, its re-open condition. The user has not separately confirmed them.
+> **Status: RULED September 23, 2026 (evening) — BUILD-READY. This document is the routing authority for row EP; `docs/STATUS.md` ▶ NEXT UP points here.** **Progress: ~~F1~~ ✅ LANDED September 23, 2026 (landing record in §1 F1) → ▶ NEXT = F2 "The display-name pass".** Every decision below was taken by Claude under the user's delegated grant (*"create a plan to fix all of these, make all decisions, and for the ending make the decision on how to end — but it should be a challenge to force a new status quo, and you should have to hold the win state for X turns, with a mechanic that makes it fun"*). Each decision carries its argument and, where it matters, its re-open condition. The user has not separately confirmed them.
 >
 > **Order, by the user's direction:** *start with the fixes, end with the end state.* Slices **F1 → F6** (the live review's 21 defect rows and 5 design rows, `BUG_FIXES.md` §Live Review, `DESIGN_REFINEMENT.md` §Live Review), then **GE-1 → GE-2 → GE-3 → GE-V** (the ending). **The release build (ROADMAP 10) follows GE-V**, then Updates 1–5.
 >
@@ -36,7 +36,7 @@
 
 Conventions for every slice: the four-file rule (`STATUS` ▶ NEXT UP struck and advanced, this document's slice table marked, `BUG_FIXES`/`DESIGN_REFINEMENT` rows disposed, `CLAUDE.md` LIVE STATE), a mutation sweep with 0 INERT at close, the XR-1 parse harness + boot smoke on any `.gd` change, and the series policy of D15. Effort is in sessions.
 
-### F1 — "The first ten minutes" (0.5) — LV-1, LV-12, LV-13, LV-7, LV-8
+### F1 — "The first ten minutes" (0.5) — LV-1, LV-12, LV-13, LV-7, LV-8 — ✅ LANDED September 23, 2026 (landing record below the table)
 
 | Row | Decision | Seam |
 |---|---|---|
@@ -47,6 +47,28 @@ Conventions for every slice: the four-file rule (`STATUS` ▶ NEXT UP struck and
 | **LV-8** the 28-name war purpose | For a defense objective that covers the homeland, ONE sentence: "the homeland — 28 of 28 provinces held" (`_homeland_held_fraction` + `format_progress`); any other list capped at 8 names + "and N more" (`nation_names.py:91-95`). Sent as a field to the war panel and the war-detail popup; the envoy dialog's War Summary reads the same field. | `dispatch.py:4446-4463`, `war_status_panel.gd:318`, `war_detail_popup.gd:409`, the envoy payload |
 
 Done when: a fresh Begin shows the boot help AND a turn-1 briefing in the terminal and on R; Continue shows the loaded turn's briefing; the LV-12 reproduction renders the report; boot dispatch says 28; the purpose line is one sentence on all four surfaces; `BASELINE_SERIES` + M1–M7 byte-identical.
+
+**✅ Landing record (September 23, 2026 — the commit that carries this record).** Every done-when item is met and driven on the real `main.tscn` (`tools/ep_f1_first_ten_minutes_harness.gd`, fed payloads from the real endpoints; `tests/test_ep_f1_the_first_ten_minutes.py`, 48 tests); rules `SYSTEMS_REFERENCE.md` §56; rows disposed in `BUG_FIXES.md` §Live Review.
+
+- **LV-1, as ruled, plus one addition.** `build_morning_dispatch(world, boot=True)` skips every consuming arm: the expectation latch, the headline-lead memory (`_select_headline(record=False)`), both warnings (they write the rail), Talleyrand's report (its cooldowns), the Session-6 sabotage roll, and the diplomatic-event queue (the next real dispatch reads and clears it). Its only write is `last_morning_dispatch`. **Measured:** the world after `/new_game` differs from a fresh `from_scenario` world ONLY in that field; the next real dispatch is identical with or without it; no module dice are drawn.
+  - **Where it is built.** `main.py` `_ensure_first_morning` runs in `_reset_world_state`, so the process boot, `/new_game` and the School are all covered — not only `/new_game`, as the ruling said. It also runs in `/load` for a save written before its first end turn. A stored briefing is never rebuilt.
+  - **Where it is read.** `/new_game` and `/load` carry it as `morning_dispatch` through `_readable_dispatch`, which is now also the one reader behind `GET /dispatch`.
+  - **The addition, a TODAY section.** "The 'what to do today' doors" became the counsel's own orders (`ai/counsel.what_can_i_do`, at most 4), each sent as printed to `/command` and taken (pinned), plus first contact's `THREE_DOORS` + `CABINET_DOOR`, quoted rather than re-typed.
+  - **The client.** `_print_boot_help()` is the one home of the help. The world swap prints the briefing, then the help. The Dispatch screen's empty arm no longer claims "appears at the start of each turn"; it is unreachable on a live world.
+- **LV-12, as ruled.** Reproduced for real first: Austria's envoy was delivered, then `Ney, attack Mack`. The response carried both `battle_report` and `incoming_proposal`, and the envoy route returned before `_display_result`.
+  - **The fix.** Six `_post_hud_response_routes` entries are marked `result_first`: the paradox, the petition, the proposal, the settlement offer, the sabotage and the rebellion. These are the modals a command does not ask for. `_on_command_result` passes `_render_own_result`, so the order's result prints first.
+  - **Out of scope, filed.** The capture route is one the command DID ask for, and it has its own form of the defect. Filed as **LV-22**, owned by F3.
+- **LV-13, one refinement.** The fog line is one sentence through PT-E4's `_join_courts` ("Britain, Russia, Prussia and 6 other courts stirred, …"). A single court keeps its own sentence, which names it best.
+- **LV-7, as ruled.** The count now reads 28. It stays one region pass, with the at-war set read once; the per-nation cache would read stale on a fixture that re-colours a province without invalidating. Europe-scoped (N1). A new `enemy_regions_are_at_war` flag tells the client which sentence to print.
+- **LV-8, as ruled; FIVE client surfaces, not four.** The player's own peace-confirm popup prints the same War Summary. ONE source: `war_status.objective_target_summary`. "The homeland is lost" at none held keeps PR-X1's rule by naming no province. Europe-scoped: the field is absent off the board, so the legacy payloads are byte-identical.
+- **Levers:** `dispatch.THE_FIRST_MORNING_HAS_A_BRIEFING`, `dispatch.ONLY_THE_COURTS_AT_WAR_ARE_COUNTED`, `war_status.THE_PURPOSE_IS_ONE_SENTENCE`, `main.THE_FOG_IS_ONE_SENTENCE`.
+- **Pins consciously flipped or re-scoped (9):**
+  - `test_popup_routing_registry.py::test_on_command_result_uses_route_dispatcher` — the dispatcher call now carries the renderer.
+  - `test_iq2_collapse_dispatch.py::TestWarObjectives::test_one_of_many_is_not_held` and `test_iq2_collapse_integration.py::TestTheWarPurposeListsOnlyWhatIsHeld` ×4 — these now run on the list shape that the LV-8 lever-down arm restores. Their levers still govern it. The sentence's PR-X1 guarantee is pinned beside them.
+  - `test_pt_f_jealousy_channel.py::TestTheAutonomousAttackIsShown::test_it_is_called_before_the_enemy_phase` — re-scoped, assertion unchanged: it read the FIRST `_display_jealousy_attacks(response)` in the whole file, and `_render_own_result` now calls it earlier; it reads `_on_command_result`'s own call.
+  - `test_ux23b_the_desk_is_quiet.py::TestTheDispatchReReadIsNotStale` ×2 — the copy-and-overlay moved verbatim into `_readable_dispatch`; the pins read it there, pin that `GET /dispatch` goes through it, and the never-rebuild guard now covers the shared reader too.
+  - `test_wo_slice15_capture_question_holds.py::test_the_world_swap_handler_raises_it_client_side` — its body-length sanity ceiling 4000 → 6000 (the handler grew to 4,101 chars by the briefing and help it now prints).
+- **Series:** `BASELINE_SERIES` + M1–M7 byte-identical — neither harness boots through `/new_game`, and every non-boot dispatch arm is unchanged. **Gates:** ruff clean, full suite green, Godot parse harness EXIT=0 (the harness registered in `TOOL_SCRIPTS`), boot smoke 0 `SCRIPT ERROR`, mutation sweep `tools/_sweep_ep_f1.json` **38/38 killed, 0 INERT, 0 BROKEN** (nine of them `.gd` mutations killed by the driven pins).
 
 ### F2 — "The display-name pass" (0.75) — LV-2, LV-3, LV-4, LV-6, LV-9, LV-10, LV-11, LV-18, LV-19 (NPC-12's first slice)
 
@@ -64,7 +86,7 @@ Done when: a fresh Begin shows the boot help AND a turn-1 briefing in the termin
 
 Done when: NPC-12's census lists these sites as CLOSED; every string above is pinned by a driven `/command` test rather than a source grep; zero `BASELINE_SERIES` movement.
 
-### F3 — "The client layout pass" (0.75) — LV-5, LV-14(b), LV-15, LV-16, LV-20, LV-D3
+### F3 — "The client layout pass" (0.75) — LV-5, LV-14(b), LV-15, LV-16, LV-20, LV-22, LV-D3
 
 | Row | Decision | Seam |
 |---|---|---|
@@ -73,6 +95,7 @@ Done when: NPC-12's census lists these sites as CLOSED; every string above is pi
 | **LV-15** the wizard's chips | Chip labels autowrap; the gate reason moves to a second, smaller line; the horizontal scrollbar goes. Step 2 joins the IQ-10 capture set. | `diplomacy_wizard.gd` |
 | **LV-16** the log's letters | The glyph font is bound on `campaign_log.gd`'s row prefix (the letters are the fallback); pinned by the IQ-10 frame. | `campaign_log.gd` |
 | **LV-20** the wizard's gap + one chip | The prompt sits directly above the list (the spacer was the old nation-count block); "Sponsor Their Design" for a court whose design is against France reads "Fund the design they already pursue against us" and is hidden while at war with that court. | `diplomacy_wizard.gd` |
+| **LV-22** the capture swallows the report (filed by F1) | The rule F1 applied to the envoy family, applied to the one route a command DOES ask for that also discards a result: `_show_capture_choice_dialog` prints `response.message` only, so a battle that ends in a capture loses Berthier's report; the muster road prints the message twice. The capture route renders the order's result first (`_render_own_result`) and its renderer skips the message a rendered result already printed; the muster road's second print goes. Driven like F1's LV-12 pin, on an attack that captures. | `main.gd` `_route_capture_choice_response` / `_show_capture_choice_dialog` / `_on_interrupt_response` |
 | **LV-D3** the recap modal | `strategic_report_popup` is no longer raised at turn start. Its rows render inside the morning dispatch's MARSHAL STATUS ("Soult — marching to Vienna, arrives next turn"), and the popup class is kept only for reports that carry a question (an interrupt) — those already route through their own dialogs. The end-turn response drops `strategic_report` from the popup whitelist and adds it to the dispatch payload. | `main.gd` popup whitelist, `dispatch.py`, `strategic.py:1294` |
 
 Done when: the four IQ-10 frames at 1.0 and 2.0 show no clipped text; a turn with three standing orders and no interrupt raises no modal at turn start; parse harness EXIT=0, boot 0 `SCRIPT ERROR`.
@@ -200,7 +223,7 @@ E1 the Universal Monarchy · E2 the alarm producers early-return while `get_qual
 
 ## §7 Build order and the routing rule
 
-**F1 → F2 → F3 → F4 → F5 → F6 → GE-1 → GE-2 → GE-3 → GE-V → the release build (ROADMAP 10) → Updates 1–5.** ≈ 7.25 sessions before the build. A player report never re-orders the ending; it may re-order F2–F6.
+**~~F1~~ ✅ (Sept 23, 2026) → ▶ F2 → F3 → F4 → F5 → F6 → GE-1 → GE-2 → GE-3 → GE-V → the release build (ROADMAP 10) → Updates 1–5.** ≈ 7.25 sessions before the build. A player report never re-orders the ending; it may re-order F2–F6.
 
 Every slice's commit carries: this document's §6/§1 table marked (✅ + date + commit), `STATUS` ▶ NEXT UP struck and advanced, the rows disposed in `BUG_FIXES` / `DESIGN_REFINEMENT`, `CLAUDE.md` LIVE STATE. A slice is not landed until those four are in the commit.
 

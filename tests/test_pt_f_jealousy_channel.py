@@ -88,8 +88,16 @@ class TestTheAutonomousAttackIsShown:
 
     def test_it_is_called_before_the_enemy_phase(self):
         """The order they were fought in: the marshal goes, then the enemy
-        answers."""
-        head = MAIN_GD.split("_display_jealousy_attacks(response)")[1]
+        answers.
+
+        ⚑ Consciously re-scoped by row EP F1 (LV-12, Sept 23, 2026): the pin
+        read the FIRST call in the whole file, and `_render_own_result` (the
+        result printed ahead of a modal that rides the response — a road that
+        never carries `enemy_phase`) now calls it earlier in the file. The
+        assertion is unchanged; it reads `_on_command_result`'s own call."""
+        start = MAIN_GD.index("func _on_command_result(")
+        body = MAIN_GD[start:MAIN_GD.index("\nfunc ", start + 10)]
+        head = body.split("_display_jealousy_attacks(response)")[1]
         assert head.lstrip().startswith("\n\t\tif response.has(\"enemy_phase\")") \
             or 'if response.has("enemy_phase")' in head[:200]
 

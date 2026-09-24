@@ -6635,3 +6635,62 @@ Eighteen cards in `tutorial_overlay.gd` `STEPS`, mirrored by
   unchanged: the Cabinet card carries no typed suggest).
 * Pins: `tests/test_tutorial_unbreakable_2026_09_23.py` (driven; skips without
   Godot — a skip is not a pass); sweep `tools/_sweep_tutorial.json`.
+
+## 56. The first ten minutes (row EP F1, landed September 23, 2026)
+
+Five rows from the September 23 live review (`BUG_FIXES.md` §Live Review);
+plan and rulings = `docs/ENDGAME_PLAN.md` §1 F1.
+
+* **Every live campaign has a briefing from its first morning (LV-1).**
+  `dispatch.build_morning_dispatch(world, boot=True)` is the turn-1 briefing:
+  the pure halves (situation, marshal status, intelligence, the headline read
+  with `record=False`, the war block, the envoys) plus `today` — the counsel's
+  own orders (`ai/counsel.what_can_i_do`, `FIRST_MORNING_ORDER_LIMIT = 4`) and
+  first contact's `THREE_DOORS` + `CABINET_DOOR`. It skips EVERY consuming
+  arm — the expectation latch, the headline-lead memory, both warnings (they
+  write the rail), Talleyrand's report (its cooldowns), the Session-6 sabotage
+  roll, the diplomatic-event queue (read and cleared by the next real
+  dispatch). Its only write is `last_morning_dispatch`. `main.py`
+  `_ensure_first_morning` builds it in `_reset_world_state` (the process boot,
+  `/new_game`, the School of War) and in `/load` for a save without a stored
+  briefing; `/new_game` and `/load` carry it as `morning_dispatch` through
+  `_readable_dispatch` — the ONE reader `GET /dispatch` also uses (UX23-R4's
+  unmet-marshals re-derivation, onto a copy). Pinned: the world after
+  `/new_game` differs from a fresh `from_scenario` world ONLY in
+  `last_morning_dispatch`, and the next real dispatch is identical with or
+  without it. Lever `dispatch.THE_FIRST_MORNING_HAS_A_BRIEFING`.
+* **The client prints the briefing, then the help, after every world swap.**
+  `main.gd` `_print_boot_help()` is the one home of the boot help;
+  `_apply_world_swap_response` (Begin, Continue, Load, the School) renders
+  `morning_dispatch` and then the help, above the capture / interrupt /
+  redemption arms. Both dispatch renderers draw a TODAY section. The Dispatch
+  screen's empty arm says only "Berthier has no dispatch on the table."
+* **A modal the command did not ask for waits behind its result (LV-12).**
+  The six `_post_hud_response_routes` entries marked `result_first` —
+  commitment paradox, marshal petition, incoming proposal, incoming
+  settlement offer, sabotage discovery, vassal rebellion — are popped off the
+  PopupQueue and merely ride a response; `_on_command_result` passes
+  `_render_own_result`, so the order's result (Berthier's report, the tactical
+  events, the glory attacks, the field dispatches, or the refusal line) prints
+  first. The unmarked routes ARE the command's result or render it themselves.
+* **One fog sentence (LV-13).** A wholly fogged enemy phase is ONE line naming
+  up to three courts ("… and 6 other courts stirred, but their formations
+  remain beyond our sight."); one court keeps its own sentence. Lever
+  `main.THE_FOG_IS_ONE_SENTENCE`.
+* **The courts at war (LV-7).** The SITUATION count reads only controllers at
+  war with the player and stamps `enemy_regions_are_at_war`; `Utils.enemy_regions_sentence`
+  says "The courts at war hold N regions." (legacy / lever down: the old
+  count and wording). Lever `dispatch.ONLY_THE_COURTS_AT_WAR_ARE_COUNTED`,
+  Europe-scoped (N1).
+* **A war purpose's targets are one sentence (LV-8).**
+  `war_status.objective_target_summary` is the ONE source: a defence purpose
+  over the homeland (`objective_is_the_homeland`) → "the homeland — 28 of 28
+  provinces held" / "the homeland is lost"; any other list → eight names,
+  ", and N more" (`PURPOSE_TARGETS_NAMED`). The dispatch line, the war row's
+  `objective.target_summary` and the snapshot's `war_objective.target_summary`
+  read it; `Utils.objective_targets_text` renders it on the war tooltip, the
+  war-detail popup and both War Summaries. Absent off the Europe board or with
+  lever `war_status.THE_PURPOSE_IS_ONE_SENTENCE` down.
+* Pins: `tests/test_ep_f1_the_first_ten_minutes.py` (the client classes drive
+  the real `main.tscn` through `tools/ep_f1_first_ten_minutes_harness.gd`; they
+  skip without Godot — a skip is not a pass); sweep `tools/_sweep_ep_f1.json`.

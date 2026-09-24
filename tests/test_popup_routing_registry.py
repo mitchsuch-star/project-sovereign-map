@@ -65,7 +65,12 @@ class TestPopupRoutingRegistry:
         body = _extract_function(source, "_on_command_result")
 
         assert 'if _route_response_ui(response, _pre_hud_response_routes):' in body
-        assert 'if _route_response_ui(response, _post_hud_response_routes):' in body
+        # ⚑ Consciously flipped by row EP F1 (LV-12, Sept 23, 2026): the
+        # command path hands the dispatcher its own-result renderer, so a
+        # modal that merely rides the response waits behind the order's
+        # result (the routes marked `result_first`).
+        assert ('if _route_response_ui(response, _post_hud_response_routes, '
+                '_render_own_result):') in body
 
         legacy_inline_show_calls = [
             "commitment_paradox_popup.show_paradox(",

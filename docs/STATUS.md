@@ -8,8 +8,12 @@
 > IS THE ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
 >
 > **▶ ▶ ▶ NEXT = ROW EP "THE ENDGAME PROGRAM" — `docs/ENDGAME_PLAN.md` IS
-> THE ROUTING AUTHORITY. START THERE. First slice = F1 "The first ten
-> minutes".** RULED September 23, 2026 (evening) under the user's grant
+> THE ROUTING AUTHORITY. START THERE. ~~First slice = F1 "The first ten
+> minutes"~~ ✅ LANDED September 23, 2026 (block below). ▶ NEXT SLICE = F2
+> "The display-name pass"** (`ENDGAME_PLAN.md` §1 F2: LV-2, LV-3, LV-4,
+> LV-6, LV-9, LV-10, LV-11, LV-18, LV-19 — NPC-12's first slice; every
+> string pinned by a driven `/command` test; zero `BASELINE_SERIES`
+> movement). RULED September 23, 2026 (evening) under the user's grant
 > (*"create a plan to fix all of these, make all decisions, and for the
 > ending make the decision on how to end — a challenge to force a new status
 > quo, hold the win state for X turns, with a mechanic that makes it fun …
@@ -33,6 +37,31 @@
 > before the build. `GAME_END_SPEC.md` §8 records the same ruling; §7's six
 > questions are answered there. Every slice's commit marks the plan's table,
 > this block, the rows, and `CLAUDE.md` LIVE STATE.
+>
+> **▶ ▶ F1 "THE FIRST TEN MINUTES" — ✅ LANDED September 23, 2026** (row EP's
+> first slice; landing record = `ENDGAME_PLAN.md` §1 F1, rules
+> `SYSTEMS_REFERENCE.md` §56, rows disposed in `BUG_FIXES.md` §Live Review).
+> All five rows fixed and DRIVEN on the real `main.tscn`
+> (`tools/ep_f1_first_ten_minutes_harness.gd`, payloads from the real
+> endpoints; `tests/test_ep_f1_the_first_ten_minutes.py`):
+> - **LV-1** — a campaign is born with a turn-1 briefing
+>   (`build_morning_dispatch(world, boot=True)`: the pure halves, no consuming
+>   arm; the world after `/new_game` differs from a fresh one ONLY in
+>   `last_morning_dispatch`), `/new_game` and `/load` carry it, and the client
+>   prints the briefing then the help after every world swap — plus a TODAY
+>   section: the counsel's orders (each taken at `/command`, pinned) and the
+>   three doors.
+> - **LV-12** — a modal the command did not ask for waits behind its result
+>   (`result_first` routes + `_render_own_result`); reproduced for real first
+>   (Austria's envoy riding `Ney, attack Mack` swallowed Berthier's report).
+> - **LV-13** one fog sentence · **LV-7** "The courts at war hold 28 regions."
+>   · **LV-8** one sentence for the homeland purpose on five client surfaces
+>   from `war_status.objective_target_summary`.
+> - **Filed:** **LV-22** (a battle that ends in a capture has LV-12's defect on
+>   the capture route; read, not driven) → owner **F3**.
+> - Nine pins consciously flipped or re-scoped (named in the landing record);
+>   `BASELINE_SERIES` + M1–M7 byte-identical; mutation sweep 38/38 killed,
+>   0 INERT; Godot parse harness EXIT=0; boot smoke 0 `SCRIPT ERROR`.
 >
 > **▶ ▶ THE LIVE REVIEW — September 23, 2026 (evening). Read this before
 > starting row EP.** The user asked for four things: *play the game for real

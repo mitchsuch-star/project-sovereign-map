@@ -1344,8 +1344,8 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var objective = snapshot.get("war_objective", {})
 	if objective is Dictionary and not objective.is_empty():
 		var objective_type = str(objective.get("type", "")).replace("_", " ").capitalize()
-		var target_regions = objective.get("target_regions", [])
-		var region_text = ", ".join(target_regions) if target_regions is Array and not target_regions.is_empty() else "objective target"
+		# LV-8 (row EP F1): one sentence, not the 28-name homeland list.
+		var region_text = Utils.objective_targets_text(objective, "objective target")
 		var accumulated = int(objective.get("accumulated_ticking", 0))
 		var active = bool(objective.get("ticking_active", false))
 		var active_text = "active" if active else "inactive"

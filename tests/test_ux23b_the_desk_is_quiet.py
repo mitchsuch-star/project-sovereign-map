@@ -648,12 +648,25 @@ class TestTheDispatchReReadIsNotStale:
                    ["unmet_marshals"]), (
             "and it must do it WITHOUT mutating the stored dispatch")
 
+    @staticmethod
+    def _reader_body(src):
+        """⚑ Row EP F1 (LV-1, Sept 23, 2026): the copy-and-overlay moved,
+        verbatim, into `main._readable_dispatch` — the ONE reader `GET
+        /dispatch` and the `/new_game` and `/load` responses share, so the
+        Dispatch screen and the world-swap briefing can never show two
+        copies. These pins now read that function, and pin that the
+        endpoint still goes through it."""
+        body = src[src.index("def _readable_dispatch("):]
+        return body[:body.index("\ndef ")]
+
     def test_the_endpoint_overlays_onto_a_copy(self):
         """A read endpoint must not mutate. `dict()` twice, then a pure
         builder."""
         src = _py_live(os.path.join(REPO_ROOT, "backend", "main.py"))
-        body = src[src.index("def get_dispatch():"):]
-        body = body[:body.index("\n@app")]
+        endpoint = src[src.index("def get_dispatch():"):]
+        endpoint = endpoint[:endpoint.index("\n@app")]
+        assert "_readable_dispatch(" in endpoint
+        body = self._reader_body(src)
         assert "dispatch = dict(dispatch)" in body
         assert "situation = dict(" in body
         assert "build_unmet_marshals(" in body
@@ -668,6 +681,11 @@ class TestTheDispatchReReadIsNotStale:
         body = src[src.index("def get_dispatch():"):]
         body = body[:body.index("\n@app")]
         assert "build_morning_dispatch" not in body
+        # ...nor through the shared reader it now calls (F1). The BOOT
+        # briefing is built only where a campaign is created or loaded
+        # (`_ensure_first_morning`), never on a read.
+        assert "build_morning_dispatch" not in self._reader_body(src)
+        assert "_ensure_first_morning" not in body
 
     def test_the_builder_is_pure(self, world):
         """Called twice, it must change nothing — the latch stayed behind in

@@ -404,7 +404,19 @@ def _defense_line(world, nation="Britain"):
 class TestTheWarPurposeListsOnlyWhatIsHeld:
     """PR-X1: 'the war-purpose line lists twenty provinces France no longer
     holds' — a Defence purpose names what is HELD, or says the homeland is
-    lost; it never advertises a lost province as an objective."""
+    lost; it never advertises a lost province as an objective.
+
+    ⚑ Consciously flipped by row EP F1 (LV-8, Sept 23, 2026): the homeland
+    defence purpose is now ONE sentence ("the homeland — 1 of 28 provinces
+    held" / "the homeland is lost"), which keeps PR-X1's rule by naming no
+    province at all. These pins bind the LIST arms this lever governs, which
+    the LV-8 lever-down arm restores — so they run there, and the sentence's
+    PR-X1 guarantee is pinned in `test_the_sentence_names_nothing_lost`."""
+
+    @pytest.fixture(autouse=True)
+    def _the_list_shape(self, monkeypatch):
+        from backend.game_logic import war_status as WS
+        monkeypatch.setattr(WS, "THE_PURPOSE_IS_ONE_SENTENCE", False)
 
     def test_a_rump_names_only_what_it_holds(self):
         text = _defense_line(_collapsed(keep=("Brittany",)))
@@ -427,6 +439,18 @@ class TestTheWarPurposeListsOnlyWhatIsHeld:
     def test_a_standing_realm_keeps_its_full_list(self):
         text = _defense_line(_boot())
         assert "Paris" in text and "[HELD]" in text
+
+
+class TestTheSentenceNamesNothingLost:
+    """LV-8's sentence carries PR-X1's guarantee on the shipped arm."""
+
+    def test_the_sentence_names_nothing_lost(self):
+        rump = _defense_line(_collapsed(keep=("Brittany",)))
+        assert "the homeland — 1 of 28 provinces held" in rump
+        fallen = _defense_line(_collapsed(keep=()))
+        assert "— the homeland is lost" in fallen
+        for text in (rump, fallen):
+            assert "Paris" not in text and "Normandy" not in text
 
 
 class TestTheIQ2CompletionDefinition:
