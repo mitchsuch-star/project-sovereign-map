@@ -144,6 +144,16 @@ computed at read time from diplomatic state — no pool object, nothing new seri
 | Naples | 5 | 60 | — | 1 | Naples |
 | *ports-only rows (v1.0.3)* | 0 | — | — | Austria 1 (Trieste) · Prussia 1 · Hanover 1 · KingdomOfItaly 1 · PapalStates 1 | — (no fleet record created at ships 0; the row exists so §5.1's closure denominator is authored, not derived) |
 
+> **The yards as authored today.** The table above is the v1.0 gate design.
+> Two later passes moved yards, and each is recorded where it landed:
+> - Britain **London / East Anglia / Cornwall** (NV-0, §14: East Anglia, not
+>   the inland Wessex).
+> - France **Brittany / Provence / Normandy / Bordelais**, Holland
+>   **Friesland**, Russia **Livonia** (NUI-2, §18: Flanders, Amsterdam and
+>   Estonia are drawn inland on the painted map).
+>
+> `SYSTEMS_REFERENCE.md` §57 lists every yard.
+
 France's 70 readiness at boot **is** the Brest/Toulon rot (H2) — Britain's boot blockade
 (§6) pins it there until the pressure lifts. Admirals are strings for dispatch flavor,
 never objects. `ports` is the CS closure weight (§5.1) — authored precisely so the broad
@@ -1788,3 +1798,240 @@ chip; `test_iq10_client_pass` + `test_godot_parse_harness` green; parse
 harness EXIT=0 (51 scripts); boot smoke via the driven main.tscn harness
 (`test_cx7_predictor_driven`) 0 SCRIPT ERROR. `BASELINE_SERIES` + M1–M7
 untouched by construction (display payload only).
+
+
+## §18. NUI-2 "THE FLEET RIDES AT ANCHOR" — the coast audit and the naval buttons (landing record,
+## September 24, 2026 — user-directed: "amsterdam is no attached to ocean on map look for
+## any more bugs like this explain how i use boats whats the ux", then "fix all those and
+## we should add buttons for naval stuff maybe? its less clear what to type there and they
+## never disobey etc")
+
+The user saw Holland's dockyard on the Amsterdam plain. The audit that followed
+read every province against the painted map, and the answer was wider:
+
+- **Three dockyards stood on provinces the map draws inland** — Holland's
+  **Amsterdam**, France's Channel yard **Flanders**, and Russia's only yard, the
+  province named **Estonia**, whose one patch of "water" is a 246 px lake
+  pocket behind a strip of land (the pixel view settles it: the channel to
+  the Gulf is a province border line, not water).
+- **Three coastal flags the map contradicts** — **Flanders**, **White Russia**
+  (0 px of sea) and **Volhynia** (it meets the Black Sea at one corner point
+  where three borders touch the water). These fed the naval layer's real
+  readers of `is_coastal`: landing targets, embarkation abroad, shore supply
+  and the AI's beach search.
+- **Every fleet piece drew at its province's CENTRE**, offset a fixed step —
+  Russia's 260 px from the nearest water, Holland's 136, Spain's 54,
+  France's 52. A blockade glyph sat on the land too.
+- The user's second point: **the naval orders were typed-only**, and — unlike
+  a marshal's orders — they carry no voice to prompt the words (the Admiralty
+  does not object; that is by design, and it is why buttons fit them).
+
+### 18.1 What landed
+
+- **The coast audit is a tool** — `tools/gen_port_anchors.py` (dev-only,
+  Pillow + numpy, like `gen_war_table_pieces.py`). *Open sea* = the lookup's
+  no-province pixels painted sea (R−B < 45) that belong to a water body of at
+  least 5,000 px: on the shipped art exactly ONE body (1.54M px — the ocean,
+  the Baltic, the Mediterranean and the Black Sea, connected), the next
+  largest 246 px (the Estonia pocket). *A coast* = at least 100 px of the
+  province within 4 px of it; the shipped art has a clean gap there (Wessex 29,
+  Volhynia 50, then the first real coast at 236). `--audit` prints every flag
+  the art contradicts, every yard that does not reach open water and every
+  sea-link end that is inland, and exits 1 on anything not in its
+  `ART_EXCEPTIONS` table — which records, with reasons, the **DEF-8 five**
+  (the stylised Adriatic really does reach Bern, Franche-Comte, Milan, Munich
+  and Tyrol; the flag follows the landlocked place) and **Estonia** (a DEF-7
+  sea-link end, kept coastal by rule G3; it hosts no yard). `--check` also
+  fails when the registry's anchors differ from what the art derives.
+- **The registry follows the map.** `europe.json`: Flanders, White Russia,
+  Volhynia → `is_coastal: false` (recorded as `adjacency_derivation
+  .nui2_coast_pass`; adjacency untouched — never re-run
+  `build_region_key_from_psd.py --adjacency-only`).
+- **The yards moved to the coast** (`europe_1805.json`, the `_navies_comment`
+  records why): Holland **Amsterdam → Friesland** (the Frisian coast and the
+  Texel roadstead — Holland's only province on the sea), France **Flanders →
+  Normandy** (Le Havre and Cherbourg; Flanders stays a CAMP province —
+  Davout's camp at Bruges; the camp counts men standing there and never asks
+  for a coast), Russia **Estonia → Livonia** (Riga — Russia's only province on
+  the Baltic). The senior yards (alphabetical, §17.1) become Friesland and
+  Livonia; France's stays Bordelais.
+- **A dockyard on an inland province is a validation ERROR**
+  (`validator._validate_navies`). The boot path reads the injected regions;
+  the CLI path (the raw file omits `regions`) reads the registry rather than
+  skipping, and says so if it cannot. **On the Europe registry a yard also
+  needs open water to moor at** — a registry `port_anchor` — because a flag
+  cannot see every case: Estonia keeps `is_coastal` as a DEF-7 sea-link end
+  and has no open water, so the flag rule alone would have passed a yard
+  there. Both rules refuse on both paths.
+- **Every coastal province carries a `port_anchor`** — 77 of 78 (Estonia is
+  the exception) — the base of a fleet piece on open water off that
+  province's OWN shore: the nearest province to the point is the province
+  itself, the point is at most 40 px out, and the piece fits on water (hull
+  + sail count + the blockade glyph beside it; a narrower core box where the
+  water is tight). The shipped scenario's yards moor first, then the rest
+  (fewest mooring spots first), each at least 40 px from the others.
+  Measured on the stdlib decode: every anchor strictly nearer its own
+  province than any other (worst margin 0.48 px), at most 39.4 px offshore;
+  all 16 yards carry at least the ship's core on water (14 the full box;
+  London and Provence the core only — no wider water lies off their shores),
+  and no two yards closer than 51 px.
+- **The map draws the fleet there** (`map_renderer_base.gd`): the loader
+  reads `port_anchor` into `province_shapes`; `_fleet_anchor` places the
+  piece (the old centre offset is the fallback for a map without anchors);
+  the blockade glyph sits beside the ship (`PORT_GLYPH_BESIDE_SHIP`).
+- **An old save comes ashore on load** — `save_manager.load_game` calls
+  `world_state.reconcile_saved_registry_corrections`: on a registry world
+  (the all-or-nothing scope `_reconcile_saved_adjacency` argues for) it
+  re-applies `SAVE_COAST_CORRECTIONS` (the three flags — TARGETED, because
+  `is_coastal` is also a `region_overrides` field a mod may author and a
+  blanket reconcile would overwrite it) and swaps any retired yard in a
+  fleet record for its replacement (`naval.RETIRED_DOCKYARDS`, authored order
+  kept, never doubled). Both tables duplicate the data on purpose and are
+  drift-pinned (the EB-2 `OVERSEAS_INCOME_BACKFILL` idiom). `from_scenario`
+  never runs it — its regions are injected fresh.
+- **THE ADMIRALTY opens with its orders.** The "Orders to the Admiralty"
+  block rendered at the bottom of the tab, below the Blockade Board, the
+  Crossings and both sets of gate terms; it now sits directly under the
+  fleet lines (`strategic_ledger._render_admiralty_block`).
+- **The expedition's road is buttons** — `naval.expedition_road_chips` rides
+  the report as `expedition_chips`, the NEXT step in the order a player takes
+  them, each the same typed command the terminal takes and enabled by the
+  same gate the executor applies:
+  - a corps is ready → up to four **"Land X in Y"** buttons (enemy shores
+    first, then the quoted odds, then the nearest), with the map for the
+    rest;
+  - else a corps under the lift stands away from a yard → **"X, march to
+    Y"** to the yard with the shortest road the road law accepts (the
+    executor's own `issuance_road_refusal` is asked);
+  - else → **"Commission X (price)"** — the cheapest bench marshal the gate
+    would pass with his price in hand, DISABLED with the gate's own refusal
+    when the treasury cannot pay yet (the 1805 boot: *"Commissioning Oudinot
+    costs 3,500g — the treasury holds 800g."*).
+  The gate is asked, never copied: `recruitment.check_commission(...,
+  treasury=)` is a counterfactual over the ONE rule, and
+  `cheapest_commission_if_funded` reads it.
+- **FA-D16 reaches its last two surfaces.** The expedition term said "march
+  Napoleon (10,000) to a yard" at every 1805 boot — the Guard is the only
+  French corps under the lift — and the region panel's withheld landing
+  chip said "march one there". Both now read ONE sentence
+  (`naval.no_small_corps_line`): the Guard is under the lift and the Emperor
+  does not sail; a new marshal's 5,000-man corps is the road. The march
+  buttons read the same `_small_corps` source.
+- **The lift counsel names the price** (`marshalate_road`, lever
+  `THE_LIFT_COUNSEL_NAMES_THE_PRICE`): when no commission is affordable it
+  names the cheapest one and what the treasury holds, instead of falling
+  silent at exactly the moment the player asked why nothing could sail.
+- **The words teach a landing that can sail.** The help and two executor
+  refusals taught `land Soult in Munster` — Soult's 30,000 are twice the lift,
+  so the example always failed. They now teach `land <marshal> in <province>`
+  and point to the Admiralty; the help's Admiralty header says every order
+  under it is a button there. The help writes the form UNQUOTED, the help's
+  own convention for a form with a slot in it (the `/debug` block): every
+  quoted string in the help is parsed as an order by the CX-3 manual census,
+  and `<marshal>` is not a marshal. The line also says a corps may embark from
+  a foreign shore, which the executor has always allowed. The commission
+  refusal gained thousands separators to match the button beside it.
+- **Docs corrected where they said the flag is never read** — `naval.py`'s
+  module docstring (nine readers), `fleet_pieces` (the order is
+  alphabetical, per §17.1), `MODDING_FORMAT.md`'s navies row; `MAP_IMPLEMENTATION_PLAN.md`
+  DEF-6 and DEF-8 record the moves.
+
+### 18.2 Driven, not read
+
+- `tools/nui_map_capture.gd` (the real `map.gd`, headless): every fleet
+  hitbox's base resolves to its yard's registry `port_anchor`.
+- `tools/nui2_admiralty_harness.gd` (NEW — the real `strategic_ledger.tscn`
+  fed real `GET /ledger` payloads, opened on the Admiralty book): the orders
+  sit above the report, the boot prices the commission without linking it,
+  a ready corps is offered its landings. Named in `godot_parse_check.gd`'s
+  TOOL_SCRIPTS.
+- The CN-4 idiom on the road's four boards (boot, funded, raised, ready):
+  every expedition button's command sent through `/command` — an enabled one
+  acts, a disabled one is refused.
+- Evidence: `docs/audits/NUI2_FLEETS_AT_ANCHOR_{CHANNEL,BALTIC,IBERIA}_2026_09_24.png`
+  (crops of a windowed capture of the real map — the Royal Navy off
+  Cornwall, the Dutch fleet off Friesland with its blockade anchor, the red
+  anchors off Normandy and Brittany; the Danish, Russian (Livonia) and Swedish
+  fleets; Spain off Galicia, France off Bordelais, Portugal off Lisbon) and
+  `docs/audits/IQ10_LEDGER_BOOT_ADMIRALTY_2026_09_24.png` +
+  `IQ10_LEDGER_ADMIRALTY_READY_2026_09_24.png` (+ `_X2`), against yesterday's
+  `IQ10_LEDGER_BOOT_ADMIRALTY_2026_09_23.png` where the orders were below the
+  fold.
+
+### 18.3 Measured, and what it means
+
+`BASELINE_SERIES` and M1–M7 are **byte-identical**. That is a fact about the
+harness, not proof the change is inert: the 40-turn ambient run never lands
+at, builds at or supplies through a moved yard or a corrected province (its
+expeditions go to Lisbon and Corsica). The new data is live in it — the run
+logs Friesland 24 times and Amsterdam never. On a played board the moves do
+act: Normandy is now a French build site and a British capture there grants
+a yard; Flanders, White Russia and Volhynia no longer offer a landing or take
+shore supply; Holland builds at Friesland; Russia at Livonia.
+
+**One counterfactual arm DID move, and it is re-recorded with its cause
+measured.** `tests/test_wo_slice10_enemy_direction_gate.py` runs the ambient
+board a second time with the WO-13 gates DOWN, to keep the defect those gates
+fixed on the record. On that arm the AI plays differently, and
+Britain's Paget sails from London on turn 16. He used to land at **Flanders**,
+the province the map draws inland. He now lands at **Provence**. The board
+forks there, and four of that file's pins moved:
+- the collision counts, 28 + 7 → 40 + 7;
+- the pairs: `Bern` now collapses onto Brunswick, because Bernadotte is
+  Austria's prisoner by turn 25, and `Champagne` and `Maine` return;
+- the ungated threat series, forking at index [17] (36 → 35);
+- the ungated cooldown writes, 28 → 40.
+The attribution was measured in hash-pinned children, reverting the NUI-2
+data IN THE CHILD one change at a time. Reverting Flanders' flag alone
+reproduces every old figure. White Russia's and Volhynia's flags and the
+three moved yards are inert on that arm. The gated arm is unchanged: it
+still equals `BASELINE_SERIES` and still writes 5.
+
+**Pins flipped consciously, each with a dated note in its file:**
+- `test_fa_slice17_p2a_…::test_the_road_names_the_cheapest_commission_…`
+  asserted the lift counsel fell SILENT at the 1805 boot. It now names the
+  price. The old reading is kept behind the lever in a new sibling test.
+- `test_naval_ui_clarity.py`, two pins. They asserted "march … to a yard"
+  and "march one there" at the boot, which was counsel to embark the Emperor.
+  Each now pins the one sentence at the boot, plus a second arm where the
+  march advice is true: Soult reduced under the lift.
+- `test_nui_the_admiralty_on_the_map.py`: Russia's senior station is Livonia,
+  not Estonia.
+
+Not a flip: the CX-3 manual census went red on the first draft of the help
+line. That draft quoted `"land <marshal> in Munster"`, which is not typable,
+and the unquoted form above fixed it.
+
+### 18.4 Recorded, not built
+
+- **DEF-14 "The Names Match the Map"** — several province names do not match
+  their painted place (Oslo at the base of the Jutland peninsula; the DEF-8
+  five on the Adriatic; Moravia, Hungary and Croatia on the Black Sea; Karelia
+  south of the Gulf; Amsterdam and Flanders inland; the earlier-noted East
+  Prussia / Samogitia / Picardy–Artois / Toledo). The game is consistent —
+  every rule reads the registry — so it is legibility and trust, not
+  correctness. Owner row, landing, completion and test:
+  `MAP_IMPLEMENTATION_PLAN.md` DEF-14.
+- **London's and Provence's blockade glyph** may touch the coastline — no
+  water wide enough for the full piece box lies off either shore; the ship's
+  core is on water. Re-open if a player reads it as a land marker.
+- **Fleets drawn AT SEA** (a blockading fleet on the water it covers) stays
+  §17.3's recorded item — the piece now rides at its yard's anchor on the
+  water, which is where a fleet in port belongs.
+
+**Tests:** `tests/test_nui2_the_fleet_rides_at_anchor.py` (44 — the registry
+against the art through the stdlib decoder, the yards, the validator both
+rules and both paths, the save migration, the Admiralty's buttons and their
+census, the gate's counterfactual, the words, and the two DRIVEN classes).
+**Sweep `tools/_sweep_nui2.json`: 31/31 killed, 0 INERT, 0 BROKEN at close.**
+The first run found one INERT pin: the positive price test set the lever it
+was meant to catch, and it now reads the shipped default. It also found one
+BROKEN mutation. Holland's yard put back at Amsterdam stops every module
+importing, because `backend/main.py` boots the default scenario at import and
+the validator refuses it. That is the guard working, which a sweep cannot
+score. The claim is carried by NUI2-5 (the rule removed), and the slot now
+pins Flanders staying a camp. NUI2-31 disables the mooring rule. Adding that
+rule turned NUI2-2 (Russia's yard put back at Estonia) BROKEN in the same way,
+because the boot now refuses it. That claim is carried by NUI2-31, and the
+slot now pins Livonia's mooring against the art. Godot parse harness EXIT=0;
+the map capture 0 `SCRIPT ERROR`.

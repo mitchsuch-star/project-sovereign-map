@@ -994,7 +994,33 @@ class TestTheAmbientBoard:
     With the IQ-7 levers down, the ungated arm reproduces every figure
     below as previously recorded: 21 hits, 3 + 13 + 5, the old series, and
     21 cooldown writes. The only extra writes with them up are Deroy's
-    seven `attack` refusals."""
+    seven `attack` refusals.
+
+    Re-measured by NUI-2 "The Fleet Rides at Anchor" (September 24, 2026).
+    NUI-2 corrected Flanders' coastal flag: the map draws the province
+    inland. On THIS arm (the gates down), Britain's Paget sails from London
+    on turn 16. He used to land at Flanders. He now lands at Provence and
+    walks Limousin -> Berry instead of Nivernais -> Berry, and the board
+    forks there.
+      - Bavaria's seven Bern orders fall a turn later (turns 25, 27 ... 37).
+      - By the first of them, Bernadotte is Austria's prisoner in Vienna,
+        so the absorber's pick for `Bern` is now Brunswick. Brunswick is a
+        Prussian marshal Bavaria is at peace with. It is the same defect on
+        the same province, answered by a different wrong man.
+      - Two provinces this arm had stopped pressing return:
+        `Champagne -> Ney` (nine) and `Maine -> Ney` (three).
+    The hit count is 40 + 7: 3 + 14 + 9 + 14 + 4 + 3.
+    Attribution was measured in hash-pinned children, with the NUI-2 data
+    changes reverted IN THE CHILD (never by a source edit):
+      - Reverting the three flags reproduces every prior figure below.
+      - Reverting the three moved dockyards changes nothing.
+      - Reverting Flanders' flag alone reproduces them all. White Russia's
+        and Volhynia's flags are inert here.
+    The gated board still collapses never, its series is the unchanged
+    BASELINE_SERIES, and it still writes 5.
+    ⚠ This arm moves because the counterfactual AI once landed on a
+    province the map draws inland. That is the defect NUI-2 fixed, seen
+    from the other side."""
 
     @pytest.fixture(scope="class")
     def ungated(self):
@@ -1016,8 +1042,11 @@ class TestTheAmbientBoard:
         # Bavaria's Deroy ordering `attack Bern`, seven orders each recorded
         # at both seams (see the class docstring). With the four IQ-7 vassal
         # levers down, this arm reads exactly 21 and nothing else (measured).
-        assert seams == {"_fuzzy_match_enemy": 28,
-                         "_broad_fuzzy_diplomatic_check": 7}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte)
+        # NUI-2 (September 24, 2026): 28 -> 40. Paget's turn-16 descent
+        # lands at Provence, not at a Flanders the map draws inland (the
+        # class docstring); Flanders' flag alone moves this arm (measured).
+        assert seams == {"_fuzzy_match_enemy": 40,
+                         "_broad_fuzzy_diplomatic_check": 7}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1037,10 +1066,17 @@ class TestTheAmbientBoard:
         # Bernadotte ... at a full 100"). The ambient board had not pressed
         # it until IQ-7 put a war on Switzerland. The original three pairs
         # are unchanged.
+        # NUI-2 (September 24, 2026): the board forks at Paget's turn-16
+        # landing (Provence, not Flanders). `Bern` still collapses fourteen
+        # times, but onto Brunswick: Bernadotte is Austria's prisoner by
+        # turn 25, when the orders start. `Champagne` and `Maine` return.
+        # Reverting Flanders' flag alone restores 3 + 13 + 5 + 14 (measured).
         assert dict(pairs) == {("Leon", "Napoleon"): 3,
-                               ("Gascony", "Ney"): 13,
-                               ("Guyenne", "Ney"): 5,
-                               ("Bern", "Bernadotte"): 14}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7
+                               ("Gascony", "Ney"): 14,
+                               ("Champagne", "Ney"): 9,
+                               ("Bern", "Brunswick"): 14,
+                               ("Guyenne", "Ney"): 4,
+                               ("Maine", "Ney"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1116,11 +1152,24 @@ class TestTheAmbientBoard:
         four IQ-7 vassal levers set down in a hash-pinned child, this arm
         reproduces the Phase 3 list byte-for-byte (measured). The gated arm
         below equals the re-recorded BASELINE_SERIES (the four-arm
-        attribution is in `test_ai_intent_threat_migration.py`)."""
+        attribution is in `test_ai_intent_threat_migration.py`).
+
+        Re-recorded again by NUI-2 "The Fleet Rides at Anchor" (September
+        24, 2026). Flanders' coastal flag was corrected, and Paget's
+        turn-16 descent on this arm now lands at Provence, not Flanders.
+        The list forks at index [17] (36 -> 35); indices [0]-[16] are
+        byte-identical to the IQ-7 record. Reverting Flanders' flag alone,
+        in a hash-pinned child, reproduces the IQ-7 list byte-for-byte
+        (measured). The other two flags and the three moved dockyards are
+        inert on this arm. The gated arm below still equals the standing
+        BASELINE_SERIES, which NUI-2 did not re-record."""
         # Phase 3 record, kept for the diff:
         # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
         #  36, 33, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, ...]
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 36, 33, 30, 27, 24, 21, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # IQ-7 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
+        #  36, 33, 30, 27, 24, 21, 8, 5, 2, 0, 0, ...]
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 35, 32, 29, 26, 23, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1770,7 +1819,15 @@ class TestTheAiIsNotFrozenInstead:
         # So the gate's gap widens (23 against 16 before), and the defect
         # again freezes an AI army, this time in front of a canton. Gated,
         # Bavaria takes Bern at turn 21.
-        assert cooldowns["ungated"] == 28, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 across slices (IQ-7: +7 Deroy/Bern)
+        # Re-measured by NUI-2 (September 24, 2026): 40 vs 5.
+        #   - The gated count is unchanged.
+        #   - The ungated count again equals the `_fuzzy_match_enemy`
+        #     collision count: 3 + 14 + 9 + 7 + 4 + 3 = 40. That is a count
+        #     match; no per-write probe was run this time. The seven Bern
+        #     orders now collapse onto Brunswick.
+        #   - Flanders' flag alone moves this arm: reverted in the child, it
+        #     reads 28 (measured). See TestTheAmbientBoard.
+        assert cooldowns["ungated"] == 40, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag)
         assert cooldowns["gated"] == 5, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 across slices (IQ-7: unchanged)
 
 

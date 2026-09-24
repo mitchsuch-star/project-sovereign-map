@@ -206,6 +206,13 @@ def load_game(filepath: Path) -> Dict:
 
         world = WorldState.from_dict(world_data)
 
+        # NUI-2 (Sept 24, 2026): a save written before the coast audit
+        # carries the old coastal flags and the three inland dockyards
+        # (Amsterdam, Flanders, Estonia) in its fleet records. Registry
+        # worlds only; a no-op on every save written since.
+        from backend.models.world_state import reconcile_saved_registry_corrections
+        reconcile_saved_registry_corrections(world)
+
         # Clear transient per-turn data that shouldn't persist across save/load
         #
         # REV-F1 (Aug 31, 2026) — a FIFTH deliberate non-clear, and the reason

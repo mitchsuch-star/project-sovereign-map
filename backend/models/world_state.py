@@ -952,6 +952,58 @@ def _reconcile_saved_adjacency(regions: Dict[str, "Region"]) -> int:
     return pruned
 
 
+# NUI-2 (Sept 24, 2026) — the coastal flags the coast audit corrected
+# (tools/gen_port_anchors.py --audit: the painted map draws these provinces
+# with no shore; Volhynia meets the Black Sea at one corner point). A save
+# written before the correction carries the old flag per region, so an
+# old campaign would keep offering landings, embarkations and shore supply
+# on soil the map draws inland. TARGETED on purpose, unlike the adjacency
+# reconcile: `is_coastal` is also a `region_overrides` field a mod may
+# author, and a blanket reconcile would overwrite that on every load. A
+# drift pin asserts each value here equals the live registry.
+SAVE_COAST_CORRECTIONS: Dict[str, bool] = {
+    "Flanders": False,
+    "White Russia": False,
+    "Volhynia": False,
+}
+
+
+def _registry_world(regions: Dict[str, "Region"]) -> bool:
+    """The ALL-OR-NOTHING scope `_reconcile_saved_adjacency` argues for:
+    every province is one the Europe registry knows (the legacy fixture and
+    any mod that adds a province of its own are left untouched)."""
+    if not regions:
+        return False
+    try:
+        live = create_europe_regions()
+    except Exception:
+        return False
+    return all(name in live for name in regions)
+
+
+def reconcile_saved_registry_corrections(world) -> Dict[str, int]:
+    """NUI-2 — SAVE MIGRATION for the coast audit, called by
+    `save_manager.load_game` after `from_dict` (never by `from_scenario`,
+    whose regions are injected fresh from the registry). On a registry world
+    it re-applies `SAVE_COAST_CORRECTIONS` and moves any retired dockyard in
+    a fleet record to its replacement (`naval.RETIRED_DOCKYARDS`). Returns
+    what moved — `{"coast": n, "dockyards": n}`, both 0 on a save written
+    after NUI-2."""
+    regions = getattr(world, "regions", None) or {}
+    moved = {"coast": 0, "dockyards": 0}
+    if not _registry_world(regions):
+        return moved
+    for name, want in SAVE_COAST_CORRECTIONS.items():
+        region = regions.get(name)
+        if region is not None and bool(getattr(region, "is_coastal", False)) != want:
+            region.is_coastal = want
+            moved["coast"] += 1
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import migrate_retired_dockyards
+        moved["dockyards"] = migrate_retired_dockyards(world)
+    return moved
+
+
 # FA slice 4 (Sept 4 2026) flip lever — FA-N54: the cavalry defensive limits
 # apply to every nation's horse, not only the player's (GR5).
 CAVALRY_LIMITS_ALL_NATIONS = True

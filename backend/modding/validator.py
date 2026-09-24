@@ -808,6 +808,7 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
         return
     region_names: Set[str] = set()
     controllers: Dict[str, str] = {}
+    coastal: Dict[str, bool] = {}
     if isinstance(data.get("regions"), dict):
         for rname, region_data in data["regions"].items():
             region_names.add(rname)
@@ -816,6 +817,40 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
                               or region_data.get("starting_controller"))
                 if controller:
                     controllers[rname] = controller
+                if "is_coastal" in region_data:
+                    coastal[rname] = bool(region_data["is_coastal"])
+    elif str(data.get("sovereign_map") or "").strip().lower() == "europe":
+        # NUI-2: the raw scenario file (the CLI path) omits `regions` — the
+        # registry IS its map, so the yard checks read it rather than skip.
+        # (`from_scenario` injects the regions before validating, so the
+        # boot path takes the branch above.) Never silently disabled: a
+        # rule that reports "clean" when it did not run is worse than none.
+        try:
+            from backend.models.region import create_europe_regions
+            for rname, region in create_europe_regions().items():
+                region_names.add(rname)
+                coastal[rname] = bool(getattr(region, "is_coastal", False))
+        except Exception as exc:                          # pragma: no cover
+            result.add_warning(
+                "navies", f"NUI-2 dockyard coast check SKIPPED: {exc}")
+    # NUI-2: on the Europe registry a yard must also have open WATER to moor
+    # at. The registry records that as the art-derived `port_anchor`
+    # (`tools/gen_port_anchors.py`). The coastal flag cannot see every case:
+    # Estonia keeps `is_coastal` as a DEF-7 sea-link end (rule G3), but its
+    # only painted water is a lake pocket, so a yard there would put the
+    # fleet on land with its flag reading true.
+    moorings: Set[str] = set()
+    check_moorings = False
+    if str(data.get("sovereign_map") or "").strip().lower() == "europe":
+        try:
+            from backend.models.region import _load_europe_registry
+            moorings = {entry.get("name")
+                        for entry in _load_europe_registry()["regions"].values()
+                        if "port_anchor" in entry}
+            check_moorings = True
+        except Exception as exc:                          # pragma: no cover
+            result.add_warning(
+                "navies", f"NUI-2 dockyard mooring check SKIPPED: {exc}")
     for nation, row in navies.items():
         path = f"navies.{nation}"
         if not isinstance(row, dict):
@@ -882,6 +917,28 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
                         f"boot (held by {controllers.get(prov)}) — a yard "
                         "is authored where its nation starts; conquest "
                         "grants yards at runtime (§3.4a)")
+                elif key == "dockyards" and coastal.get(prov) is False:
+                    # NUI-2 (Sept 24, 2026): Holland's yard sat at Amsterdam
+                    # and France's at Flanders, both drawn inland, so the
+                    # fleet, the keel chip and the blockade glyph stood on
+                    # land. Their flags now say so. Russia's yard at Estonia
+                    # is the case a flag cannot see; the mooring rule below
+                    # refuses it.
+                    result.add_error(
+                        f"{path}.{key}",
+                        f"Dockyard '{prov}' is an inland province — a yard "
+                        "must stand on the sea (its is_coastal flag is "
+                        "false; `python -m tools.gen_port_anchors --audit` "
+                        "checks the flags against the painted map)")
+                elif (key == "dockyards" and check_moorings
+                        and prov not in moorings):
+                    result.add_error(
+                        f"{path}.{key}",
+                        f"Dockyard '{prov}' has no open water to moor at — "
+                        "the map paints no sea off its shore (the registry "
+                        "gives it no port_anchor), so its fleet would be "
+                        "drawn on land; `python -m tools.gen_port_anchors "
+                        "--audit` checks every yard against the painted map")
         if ships == 0 and "dockyards" in row:
             result.add_error(f"{path}.dockyards",
                              "A ports-only row (ships 0) authors no "

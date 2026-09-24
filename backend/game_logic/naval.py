@@ -22,9 +22,15 @@ Design rules (spec §2):
 - Deterministic under `campaign_seed` — every roll uses the AI-0b sha256
   helpers, namespaced by turn/actor so a re-attempt after losses re-rolls.
 - Authored, not derived (D7): fleets/ports/dockyards are scenario content in
-  `europe_1805.json`; the over-true `is_coastal` flag is NEVER read (§3.4 —
-  DEF-8 stays un-triggered). Coverage keys off the 18 hand-authored
-  `sea_links`; closure keys off authored `ports`.
+  `europe_1805.json`. Coverage keys off the 18 hand-authored `sea_links`;
+  closure keys off authored `ports`; building keys off `dockyards`. The
+  registry's `is_coastal` IS read, for the shore itself: which provinces an
+  expedition may land on or embark from abroad, which coasts a fleet feeds
+  (`shore_supply_state`) and where the AI looks for a beach. NUI-2 (Sept 24,
+  2026) audited it against the painted map — `tools/gen_port_anchors.py
+  --audit` — so a flag now means "the map draws a coast here"; the recorded
+  exceptions (the DEF-8 five, Estonia) carry their reasons in that tool. A
+  dockyard must be coastal (a validation ERROR otherwise).
 
 Derived-state memory (blockade transitions, strait verdicts, CS tier) lives
 under `world.fleets[META_KEY]` — the jealousy `__levels__` idiom: one
@@ -441,6 +447,48 @@ def _controller(world, region_name: str) -> Optional[str]:
     return getattr(region, "controller", None) if region else None
 
 
+# NUI-2 (Sept 24, 2026) — the three dockyards the coast audit moved off
+# inland provinces (tools/gen_port_anchors.py --audit: the painted map draws
+# Amsterdam, Flanders and the province named Estonia with no shore). A save
+# written before the move carries the old yard in its fleet record, which
+# round-trips verbatim, so the build chip, the blockade glyph and the fleet
+# piece would stand on land again. `migrate_retired_dockyards` swaps the old
+# yard for its replacement on load. The table DUPLICATES the scenario on
+# purpose (the EB-2 OVERSEAS_INCOME_BACKFILL idiom): a drift pin asserts
+# every replacement is authored in europe_1805.json and every retired yard
+# is not.
+RETIRED_DOCKYARDS: Dict[str, Dict[str, str]] = {
+    "Holland": {"Amsterdam": "Friesland"},
+    "France": {"Flanders": "Normandy"},
+    "Russia": {"Estonia": "Livonia"},
+}
+
+
+def migrate_retired_dockyards(world) -> int:
+    """Swap a retired yard for its replacement in every fleet record of a
+    loaded save — authored order kept, no duplicate if the replacement is
+    already listed. Scoped to the Europe registry world (the caller decides;
+    see `save_manager.load_game`). Returns the number of yards moved (0 on
+    every save written after NUI-2)."""
+    moved = 0
+    for nation, rec in get_fleets(world).items():
+        if nation == META_KEY or not isinstance(rec, dict):
+            continue
+        table = RETIRED_DOCKYARDS.get(nation)
+        yards = rec.get("dockyards")
+        if not table or not isinstance(yards, list):
+            continue
+        out: List[str] = []
+        for prov in yards:
+            new = table.get(prov, prov)
+            if new != prov:
+                moved += 1
+            if new not in out:
+                out.append(new)
+        rec["dockyards"] = out
+    return moved
+
+
 def all_dockyard_provinces(world) -> Dict[str, str]:
     """{dockyard province -> authoring nation}. Conquest grants the YARD
     (§3.4a) — build rights follow CONTROL of any listed province."""
@@ -788,27 +836,52 @@ def over_lift_refusal(world, marshal) -> str:
 THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE = True
 
 
+# NUI-2 (Sept 24, 2026) flip lever: when no bench marshal is affordable yet,
+# the lift counsel still names the cheapest one the gate would pass WITH the
+# gold, and his price against the treasury. False = the prior counsel, which
+# fell silent — measured on the 1805 boot, France holds 800g against a
+# cheapest commission of 3,500g, so the one road to an expedition corps was
+# never named at the moment the player asked why nothing could sail.
+THE_LIFT_COUNSEL_NAMES_THE_PRICE = True
+
+
 def marshalate_road(world, nation: str) -> str:
     """The historical road to an expedition corps: commission the cheapest
     bench marshal the executor's own gate would pass RIGHT NOW (PT-J4's
     `first_affordable_commission`, never a copy of the rule) — his corps is
-    under the lift by construction."""
+    under the lift by construction. When nobody is affordable yet, the
+    cheapest man the gate would pass with his price in hand
+    (`cheapest_commission_if_funded`) and what the treasury lacks."""
     if not THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:
         return ""
     try:
-        from backend.game_logic.recruitment import (RECRUIT_MARSHAL_CORPS,
-                                                    first_affordable_commission)
+        from backend.game_logic.recruitment import (
+            RECRUIT_MARSHAL_CORPS, cheapest_commission_if_funded,
+            first_affordable_commission)
     except Exception:
         return ""
     cand = first_affordable_commission(world, nation)
+    if cand:
+        name = str(cand.get("name") or cand.get("id") or "")
+        cost = int(cand.get("cost", 0) or 0)
+        if not name:
+            return ""
+        return (f"Or commission {name} — {int(RECRUIT_MARSHAL_CORPS):,} men for {cost:,}g, "
+                f"under the transports' lift from the day he is raised — and march him to a yard.")
+    if not THE_LIFT_COUNSEL_NAMES_THE_PRICE:
+        return ""
+    cand = cheapest_commission_if_funded(world, nation)
     if not cand:
         return ""
     name = str(cand.get("name") or cand.get("id") or "")
     cost = int(cand.get("cost", 0) or 0)
     if not name:
         return ""
-    return (f"Or commission {name} — {int(RECRUIT_MARSHAL_CORPS):,} men for {cost:,}g, "
-            f"under the transports' lift from the day he is raised — and march him to a yard.")
+    gold = int(world.nation_gold.get(nation, 0) or 0)
+    return (f"Or, when the treasury allows, commission {name} — "
+            f"{int(RECRUIT_MARSHAL_CORPS):,} men for {cost:,}g (we hold "
+            f"{gold:,}g), under the transports' lift from the day he is "
+            f"raised — and march him to a yard.")
 
 
 def blockade_trade_loss(world) -> Dict[str, int]:
@@ -2544,6 +2617,159 @@ def crossing_line(world, a: str, b: str, verdict: Dict,
     return f"{a}–{b}: SHUT"
 
 
+def _small_corps(world, nation: str) -> List:
+    """Corps under the transports' lift the Admiralty may COUNSEL — the
+    Emperor's Guard excluded (FA-D16), largest first."""
+    return sorted(
+        (m for m in world.get_marshals_by_nation(nation)
+         if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+         and not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE
+                  and getattr(m, "is_sovereign", False))),
+        key=lambda m: -int(m.strength))
+
+
+def no_small_corps_line(world, nation: str) -> str:
+    """NUI-2 (Sept 24, 2026): FA-D16's ruling reaches its last two surfaces.
+    The lift counsel stopped offering the Emperor at slice 17, while the
+    Admiralty's expedition term went on reading "march Napoleon (10,000) to
+    a yard" at every 1805 boot and the region panel's withheld landing chip
+    said "march one there" — his Guard is the only French corps under the
+    lift. ONE sentence for both, for the moment no counselable corps is
+    under the lift: it names the Guard when that is why, and the road that
+    does exist (a new marshal's corps)."""
+    from backend.game_logic.recruitment import RECRUIT_MARSHAL_CORPS
+    new_corps = (f"a new marshal's {int(RECRUIT_MARSHAL_CORPS):,}-man corps "
+                 f"is under it from the day he is raised")
+    guard = [m for m in world.get_marshals_by_nation(nation)
+             if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+             and getattr(m, "is_sovereign", False)]
+    if guard and THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:
+        return (f"only {guard[0].name}'s Guard is under the "
+                f"{EXPEDITION_MAX_TROOPS:,} lift, and the Emperor does not "
+                f"sail on an expedition — {new_corps}")
+    return (f"no corps of ours is under the {EXPEDITION_MAX_TROOPS:,} lift "
+            f"— an expedition needs a smaller command, and only a garrison "
+            f"sheds strength ({_GARRISON_DETACHMENT:,} at a time); "
+            f"{new_corps}")
+
+
+# NUI-2 (Sept 24, 2026) — "the fleet rides at anchor": the expedition's
+# ROAD as buttons. The Admiralty rendered the expedition's gate terms and a
+# corps list, but every step toward a sailing was still a sentence the
+# player had to compose — "commission Mortier", "Davout, march to Brittany",
+# "land Davout in Munster" — and the naval orders carry no marshal's voice
+# to prompt them (the Admiralty does not object). Each button below is the
+# SAME typed command the terminal takes, enabled by the SAME gate the
+# executor reads (the §11.6 honest idiom): a shown button works; a withheld
+# one says why.
+EXPEDITION_CHIP_LANDINGS = 4   # the best landings listed; the map has the rest
+EXPEDITION_CHIP_MARCHES = 2    # corps offered a march to a yard
+
+
+def _grid_distance(world, a: str, b: str) -> int:
+    ra, rb = world.regions.get(a), world.regions.get(b)
+    ga = getattr(ra, "grid_position", None) if ra is not None else None
+    gb = getattr(rb, "grid_position", None) if rb is not None else None
+    if not ga or not gb:
+        return 0
+    return abs(int(ga[0]) - int(gb[0])) + abs(int(ga[1]) - int(gb[1]))
+
+
+def expedition_road_chips(world, player: str, yards: List[str],
+                          ready_corps: List) -> List[Dict]:
+    """The next step toward an expedition, as buttons, in the order a
+    player takes them: land a ready corps (the best few landings — enemy
+    shores first, then the odds, then the nearest); else march a corps
+    under the lift to a yard (a lawful road, asked of the road law itself);
+    else commission a marshal (the cheapest the gate would pass, disabled
+    with the treasury's own refusal when it cannot pay yet)."""
+    chips: List[Dict] = []
+    if not yards:
+        return chips  # term 1 names it: take or build one — no button can
+    if ready_corps:
+        ready = {m.name for m in ready_corps}
+        rows = []
+        for region, corps_list in expedition_landing_options(world, player).items():
+            holder = _controller(world, region)
+            enemy = bool(holder and holder != player
+                         and world.is_at_war(player, holder))
+            for corps in corps_list:
+                if corps.get("marshal") not in ready:
+                    continue
+                rows.append((0 if enemy else 1, -int(corps.get("odds", 0)),
+                             _grid_distance(world, str(corps.get("from", "")), region),
+                             region, str(corps.get("marshal", "")), corps))
+        rows.sort(key=lambda r: r[:5])
+        for _enemy, _odds, _dist, region, who, corps in rows[:EXPEDITION_CHIP_LANDINGS]:
+            chips.append({
+                "command": f"land {who} in {region}",
+                "label": f"Land {who} in {region}",
+                "enabled": True, "reason": "",
+                "note": (f"{int(corps.get('odds', 0))} in 100 slip past · "
+                         f"{int(corps.get('strength', 0)):,} men from "
+                         f"{corps.get('from', '')}"),
+            })
+        return chips
+
+    from backend.commands.strategic import issuance_road_refusal, plot_route
+    under = [m for m in _small_corps(world, player)
+             if m.location and m.location not in yards
+             and not getattr(m, "captured_by", "")
+             and not getattr(m, "administrative", False)]
+    for marshal in under:
+        best = None
+        for yard in yards:
+            road, verdict = plot_route(world, marshal, yard, use_weighted=True,
+                                       want_verdict=True)
+            if not road or issuance_road_refusal(world, marshal, yard,
+                                                 "MOVE_TO", verdict):
+                continue
+            if best is None or (len(road), yard) < (len(best[1]), best[0]):
+                best = (yard, road)
+        if best is None:
+            continue
+        yard, road = best
+        chips.append({
+            "command": f"{marshal.name}, march to {yard}",
+            "label": f"{marshal.name}, march to {yard}",
+            "enabled": True, "reason": "",
+            "note": (f"{int(marshal.strength):,} men, {len(road)} "
+                     f"province{'s' if len(road) != 1 else ''} to the yard "
+                     f"— he embarks there"),
+        })
+        if len(chips) >= EXPEDITION_CHIP_MARCHES:
+            break
+    if chips:
+        return chips
+
+    try:
+        from backend.game_logic.recruitment import (
+            RECRUIT_MARSHAL_CORPS, cheapest_commission_if_funded,
+            check_commission, find_spawn_region, first_affordable_commission)
+    except Exception:
+        return chips
+    cand = (first_affordable_commission(world, player)
+            or cheapest_commission_if_funded(world, player))
+    if not cand:
+        return chips
+    name = str(cand.get("name") or "")
+    if not name:
+        return chips
+    cost = int(cand.get("cost", 0) or 0)
+    refusal = check_commission(world, player, cand)
+    spawn = find_spawn_region(world, player) or "the capital"
+    chips.append({
+        "command": f"commission {name}",
+        "label": f"Commission {name} ({cost:,}g)",
+        "enabled": refusal is None,
+        "reason": refusal or "",
+        "note": (f"a {int(RECRUIT_MARSHAL_CORPS):,}-man corps raised at "
+                 f"{spawn}, under the lift from the day he is raised — then "
+                 f"march him to a yard" if refusal is None else ""),
+    })
+    return chips
+
+
 def build_admiralty_report(world) -> Dict:
     """§9 — THE ADMIRALTY block: everything the ledger (and the map payload)
     renders, from the SAME functions the resolvers read (shown = applied).
@@ -2720,15 +2946,9 @@ def build_admiralty_report(world) -> Dict:
         # leads to the over-lift refusal. It now names WHICH corps the
         # advice is for, and says plainly when the only one is the
         # sovereign.
-        _under = sorted((m for m in player_corps
-                         if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS),
-                        key=lambda m: -int(m.strength))
+        _under = _small_corps(world, player)
         if not _under:
-            corps_detail = (
-                f"no corps of ours is under the {EXPEDITION_MAX_TROOPS:,} "
-                f"lift — an expedition needs a smaller command, and only a "
-                f"garrison sheds strength ({_GARRISON_DETACHMENT:,} at a "
-                f"time)")
+            corps_detail = no_small_corps_line(world, player)
         elif yards:
             corps_detail = (
                 "march "
@@ -2897,6 +3117,8 @@ def build_admiralty_report(world) -> Dict:
         {"marshal": m.name, "strength": int(m.strength),
          "location": m.location}
         for m in ready_corps]
+    report["expedition_chips"] = expedition_road_chips(world, player, yards,
+                                                       ready_corps)
     return report
 
 
@@ -2962,8 +3184,11 @@ def map_naval_overlay(world) -> Dict:
 def fleet_pieces(world) -> List[Dict]:
     """NUI — the fleets on the map. One row per fleet IN COMMISSION (ships >
     0), drawn at its `station`: the senior dockyard the nation still
-    controls (`controlled_dockyards` keeps the authored order, so France's
-    piece stands at Brittany, Britain's at London). A fleet whose every
+    controls — `controlled_dockyards(...)[0]`, which is ALPHABETICAL (the
+    NUI landing record, NAVAL_SPEC §17.1: Bordelais for France, Cornwall
+    for Britain), the same yard the keel chip names. The client draws the
+    piece at that yard's registry `port_anchor` — on the water off its
+    shore (NUI-2) — never at the province centre. A fleet whose every
     yard has fallen has no station and is not drawn — the ledger still
     lists it. Public counts and postures (the §9 fog ruling); the only
     player-relative field is `at_war_with_player`, which every enemy corps
@@ -3154,6 +3379,10 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
             # later, said he could not be lightened at all. It now shares
             # the single source rather than paraphrasing it.
             no_corps_reason = over_lift_refusal(world, m)
+        elif yards and not _small_corps(world, nation):
+            # NUI-2: "march one there" named a corps that does not exist
+            # (at the 1805 boot the only one under the lift is the Guard).
+            no_corps_reason = no_small_corps_line(world, nation)
         elif yards:
             no_corps_reason = (
                 f"no corps of {EXPEDITION_MAX_TROOPS:,} or fewer stands at "

@@ -152,7 +152,10 @@ class TestTheOverlayCarriesTheFleets:
         # Cornwall for Britain and Bordelais for France — the SAME yard the
         # region panel's "Lay down ships" chip names as where the keel goes.
         assert by_nation["Britain"]["station"] == "Cornwall"
-        assert by_nation["Russia"]["station"] == "Estonia"
+        # NUI-2 (Sept 24, 2026), CONSCIOUS RE-BLESS: Russia's yard moved from
+        # Estonia (whose only painted water is a 246-px lake pocket) to
+        # Livonia, on the Gulf of Riga — NAVAL_SPEC §18.
+        assert by_nation["Russia"]["station"] == "Livonia"
         for row in by_nation.values():
             assert set(row) == FLEET_KEYS, row
             assert row["ships"] > 0

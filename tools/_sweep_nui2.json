@@ -1,0 +1,219 @@
+[
+  {
+    "id": "NUI2-1 Flanders struck from the camp (Davout's camp at Bruges)",
+    "file": "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "old": "\"camp_provinces\": [\"Flanders\", \"Artois\", \"Normandy\", \"Brittany\"]",
+    "new": "\"camp_provinces\": [\"Artois\", \"Normandy\", \"Brittany\"]",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheYardsStandOnTheSea::test_the_three_yards_moved"
+  },
+  {
+    "id": "NUI2-2 the Russian fleet moored on Livonia's land (the Estonia yard itself is now refused at boot: NUI2-31 carries that claim)",
+    "file": "godot-client/project-sovereign/assets/maps/europe.json",
+    "old": "\"port_anchor\": [\n        1502,\n        302\n      ],",
+    "new": "\"port_anchor\": [\n        1581,\n        320\n      ],",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheCoastIsWhereTheMapDrawsIt"
+  },
+  {
+    "id": "NUI2-3 Flanders flagged coastal again",
+    "file": "godot-client/project-sovereign/assets/maps/europe.json",
+    "old": "\"visual_tint\": [\n        94,\n        249,\n        125\n      ],\n      \"is_coastal\": false,",
+    "new": "\"visual_tint\": [\n        94,\n        249,\n        125\n      ],\n      \"is_coastal\": true,",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheCoastIsWhereTheMapDrawsIt"
+  },
+  {
+    "id": "NUI2-4 Friesland's anchor on its own land",
+    "file": "godot-client/project-sovereign/assets/maps/europe.json",
+    "old": "\"port_anchor\": [\n        913,\n        510\n      ],",
+    "new": "\"port_anchor\": [\n        946,\n        556\n      ],",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheCoastIsWhereTheMapDrawsIt"
+  },
+  {
+    "id": "NUI2-5 the validator's inland-yard rule removed",
+    "file": "backend/modding/validator.py",
+    "old": "elif key == \"dockyards\" and coastal.get(prov) is False:",
+    "new": "elif False:",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestAnInlandYardIsRefused"
+  },
+  {
+    "id": "NUI2-6 the CLI path skips the registry",
+    "file": "backend/modding/validator.py",
+    "old": "elif str(data.get(\"sovereign_map\") or \"\").strip().lower() == \"europe\":",
+    "new": "elif False:",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestAnInlandYardIsRefused::test_the_cli_path_reads_the_registry"
+  },
+  {
+    "id": "NUI2-7 load_game never migrates",
+    "file": "backend/save_manager.py",
+    "old": "        reconcile_saved_registry_corrections(world)\n",
+    "new": "        pass\n",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestAnOldSaveComesAshore::test_the_yards_and_flags_move_on_load"
+  },
+  {
+    "id": "NUI2-8 the migration ignores the registry scope",
+    "file": "backend/models/world_state.py",
+    "old": "    return all(name in live for name in regions)\n\n\ndef reconcile_saved_registry_corrections",
+    "new": "    return True\n\n\ndef reconcile_saved_registry_corrections",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestAnOldSaveComesAshore::test_a_world_the_registry_does_not_own_is_left_alone"
+  },
+  {
+    "id": "NUI2-9 a listed replacement is doubled",
+    "file": "backend/game_logic/naval.py",
+    "old": "            if new not in out:\n                out.append(new)",
+    "new": "            if True:\n                out.append(new)",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestAnOldSaveComesAshore::test_a_replacement_already_listed_is_not_doubled"
+  },
+  {
+    "id": "NUI2-10 the retired-yard table drifts",
+    "file": "backend/game_logic/naval.py",
+    "old": "\"Holland\": {\"Amsterdam\": \"Friesland\"},",
+    "new": "\"Holland\": {\"Amsterdam\": \"Gelderland\"},",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheYardsStandOnTheSea::test_the_retired_yards_table_matches_the_scenario"
+  },
+  {
+    "id": "NUI2-11 the save coast table drifts",
+    "file": "backend/models/world_state.py",
+    "old": "    \"Volhynia\": False,\n}",
+    "new": "    \"Volhynia\": True,\n}",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheYardsStandOnTheSea::test_the_save_coast_table_matches_the_registry"
+  },
+  {
+    "id": "NUI2-12 the fleet drawn at the centre again",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "var world_anchor: Vector2 = _fleet_anchor(station, positions)",
+    "new": "var world_anchor: Vector2 = positions[station] + FLEET_PIECE_OFFSET",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheMapDrawsTheFleetAtAnchor"
+  },
+  {
+    "id": "NUI2-13 the renderer never loads a port anchor",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "if region_data.has(\"port_anchor\"):",
+    "new": "if false:",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheMapDrawsTheFleetAtAnchor"
+  },
+  {
+    "id": "NUI2-14 the glyph on the ship's base",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "shape[\"port_anchor\"] + PORT_GLYPH_BESIDE_SHIP))",
+    "new": "shape[\"port_anchor\"]))",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheClientReadsTheAnchor::test_the_renderer_reads_the_port_anchor"
+  },
+  {
+    "id": "NUI2-15 the orders vanish from the tab",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\tif orders != \"\":\n\t\tbbcode += orders + \"\\n\"",
+    "new": "\tif orders != \"\":\n\t\tpass",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheAdmiraltyOpensWithItsOrders"
+  },
+  {
+    "id": "NUI2-16 the expedition buttons are not drawn",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\tfor chip in road:\n\t\t\tbbcode += _admiralty_chip_row(chip)",
+    "new": "\t\tfor chip in road:\n\t\t\tpass",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheAdmiraltyOpensWithItsOrders"
+  },
+  {
+    "id": "NUI2-17 the report carries no road",
+    "file": "backend/game_logic/naval.py",
+    "old": "report[\"expedition_chips\"] = expedition_road_chips(world, player, yards,\n                                                       ready_corps)",
+    "new": "report[\"expedition_chips\"] = []",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons"
+  },
+  {
+    "id": "NUI2-18 the landings ranked by name",
+    "file": "backend/game_logic/naval.py",
+    "old": "rows.sort(key=lambda r: r[:5])",
+    "new": "rows.sort(key=lambda r: (r[3],))",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_landings_rank_enemy_shores_then_odds"
+  },
+  {
+    "id": "NUI2-19 the commission always enabled",
+    "file": "backend/game_logic/naval.py",
+    "old": "        \"enabled\": refusal is None,\n        \"reason\": refusal or \"\",",
+    "new": "        \"enabled\": True,\n        \"reason\": refusal or \"\",",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons"
+  },
+  {
+    "id": "NUI2-20 the march ignores the road law",
+    "file": "backend/game_logic/naval.py",
+    "old": "            if not road or issuance_road_refusal(world, marshal, yard,\n                                                 \"MOVE_TO\", verdict):",
+    "new": "            if not road:",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_a_yard_the_road_law_refuses_is_not_offered"
+  },
+  {
+    "id": "NUI2-21 the Emperor counselled again",
+    "file": "backend/game_logic/naval.py",
+    "old": "         and not (THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE\n                  and getattr(m, \"is_sovereign\", False))),\n        key=lambda m: -int(m.strength))",
+    "new": "),\n        key=lambda m: -int(m.strength))",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_the_emperor_is_never_the_counsel"
+  },
+  {
+    "id": "NUI2-22 the Guard line never fires",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if guard and THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE:",
+    "new": "    if False:",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_the_emperor_is_never_the_counsel"
+  },
+  {
+    "id": "NUI2-23 the panel says march one there",
+    "file": "backend/game_logic/naval.py",
+    "old": "        elif yards and not _small_corps(world, nation):",
+    "new": "        elif False:",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_the_panel_names_the_real_road"
+  },
+  {
+    "id": "NUI2-24 the price lever down",
+    "file": "backend/game_logic/naval.py",
+    "old": "THE_LIFT_COUNSEL_NAMES_THE_PRICE = True",
+    "new": "THE_LIFT_COUNSEL_NAMES_THE_PRICE = False",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheLiftCounselNamesThePrice::test_the_road_is_named_when_the_treasury_cannot_pay"
+  },
+  {
+    "id": "NUI2-25 the treasury override ignored",
+    "file": "backend/game_logic/recruitment.py",
+    "old": "    gold = (int(world.nation_gold.get(nation, 0)) if treasury is None\n            else int(treasury))",
+    "new": "    gold = int(world.nation_gold.get(nation, 0))",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheGateIsAskedNotCopied"
+  },
+  {
+    "id": "NUI2-26 the first candidate, not the cheapest",
+    "file": "backend/game_logic/recruitment.py",
+    "old": "        if best is None or cost < int(best.get(\"cost\", 0)):\n            best = candidate\n    return best\n\n\n# PT-J4",
+    "new": "        if best is None:\n            best = candidate\n    return best\n\n\n# PT-J4",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheGateIsAskedNotCopied::test_the_cheapest_wins"
+  },
+  {
+    "id": "NUI2-27 the price loses its separators",
+    "file": "backend/game_logic/recruitment.py",
+    "old": "return (f\"Commissioning {name} costs {cost:,}g",
+    "new": "return (f\"Commissioning {name} costs {cost}g",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_the_boot_names_the_commission_and_its_price"
+  },
+  {
+    "id": "NUI2-28 the help teaches Soult again",
+    "file": "backend/commands/meta_executor.py",
+    "old": "  land       - land <marshal> in <province> (2 AP) - a small",
+    "new": "  land       - \"land Soult in Munster\" (2 AP) - a small",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheWordsTeachALandingThatSails::test_the_help"
+  },
+  {
+    "id": "NUI2-29 the refusal teaches Soult again",
+    "file": "backend/commands/naval_executor.py",
+    "old": "\"Name the marshal who is to embark, Sire — 'land <marshal> \"\n                \"in <province>'.",
+    "new": "\"Name the marshal who is to embark, Sire — 'land Soult \"\n                \"in Munster'.",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheWordsTeachALandingThatSails::test_the_refusals_name_the_form"
+  },
+  {
+    "id": "NUI2-30 the Admiralty lever down restores Napoleon",
+    "file": "backend/game_logic/naval.py",
+    "old": "THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE = True",
+    "new": "THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE = False",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestTheExpeditionIsButtons::test_the_emperor_is_never_the_counsel"
+  },
+  {
+    "id": "NUI2-31 the mooring rule never fires (an Estonia yard passes)",
+    "file": "backend/modding/validator.py",
+    "old": "                elif (key == \"dockyards\" and check_moorings\n                        and prov not in moorings):",
+    "new": "                elif (key == \"dockyards\" and check_moorings\n                        and prov not in moorings and False):",
+    "tests": "tests/test_nui2_the_fleet_rides_at_anchor.py::TestAnInlandYardIsRefused::test_a_coastal_flag_with_no_open_water_is_refused_too"
+  }
+]

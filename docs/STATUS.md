@@ -63,6 +63,46 @@
 >   `BASELINE_SERIES` + M1–M7 byte-identical; mutation sweep 38/38 killed,
 >   0 INERT; Godot parse harness EXIT=0; boot smoke 0 `SCRIPT ERROR`.
 >
+> **▶ ▶ NUI-2 "THE FLEET RIDES AT ANCHOR" — ✅ LANDED September 24, 2026**
+> (a user-directed insertion between F1 and F2 — *"amsterdam is no attached
+> to ocean on map look for any more bugs like this … fix all those and we
+> should add buttons for naval stuff"*. **NEXT is still F2.** Landing record
+> `NAVAL_SPEC.md` §18, rules `SYSTEMS_REFERENCE.md` §57, rows `BUG_FIXES.md`
+> §Naval Coast Audit):
+> - Three dockyards stood on provinces the map draws inland and moved to the
+>   coast — Holland Amsterdam → **Friesland**, France Flanders → **Normandy**
+>   (Flanders stays a camp), Russia Estonia → **Livonia** (Estonia's only water
+>   is a lake pocket). Three flags corrected (Flanders, White Russia,
+>   Volhynia). An inland yard is now a validation ERROR; old saves come ashore
+>   on load.
+> - Every fleet is drawn on the water off its senior yard — the registry's new
+>   `port_anchor`, derived from the art by `tools/gen_port_anchors.py`, whose
+>   `--audit` is the standing coast check (run it after any map-art or flag
+>   change).
+> - THE ADMIRALTY opens with its orders, and the expedition's road is buttons —
+>   commission a marshal (priced, disabled until affordable) → march him to the
+>   nearest lawful yard → land him — each the typed command and the executor's
+>   gate. The Emperor is never the counsel (FA-D16's last two surfaces).
+> - **Filed: DEF-14 "The Names Match the Map"** (`MAP_IMPLEMENTATION_PLAN.md`) —
+>   several province names do not match their painted place (Oslo at the
+>   Jutland neck, Bern and Munich on the Adriatic, Moravia on the Black Sea).
+>   Recommended before the release build; the user's to schedule.
+> - A yard also needs open water to moor at (a registry `port_anchor`): Estonia
+>   keeps its coastal flag as a sea-link end, so the flag rule alone would have
+>   passed a yard there.
+> - Tests 44 (two classes DRIVEN on the real map and ledger); sweep 31/31
+>   killed at close; `BASELINE_SERIES` + M1–M7 byte-identical (the ambient run
+>   never touches a moved province); Godot parse harness EXIT=0.
+> - **Pins flipped consciously, each with a dated note:**
+>   - Four WO-13 counterfactual pins, on the gates-DOWN arm. There, Paget's
+>     turn-16 descent used to land at Flanders and now lands at Provence.
+>     Reverting Flanders' flag alone in a hash-pinned child reproduces every
+>     old figure. The gated arm is unchanged.
+>   - The boot lift counsel, which now names the price.
+>   - Two NV-12 boot sentences that counselled embarking the Emperor.
+>   - Russia's senior station (Livonia).
+>   - Record: `NAVAL_SPEC.md` §18.3.
+>
 > **▶ ▶ THE LIVE REVIEW — September 23, 2026 (evening). Read this before
 > starting row EP.** The user asked for four things: *play the game for real
 > using commands, look at the game, see if any remaining bugs / anything

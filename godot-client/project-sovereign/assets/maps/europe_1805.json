@@ -899,7 +899,7 @@
             "grudge_label": "The Irish Question"
         }
     },
-    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: the Dutch dockyard is the province Amsterdam (the map has no province named Holland; the Texel roadstead), and Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 500 = the India/sugar trade + the fiscal machine; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
+    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. NUI-2 (Sept 24, 2026; tools/gen_port_anchors.py): a dockyard must reach open water in the art, so three yards moved - Holland's Amsterdam -> Friesland (the Frisian coast and the Texel roadstead; the art draws Amsterdam inland), France's Channel yard Flanders -> Normandy (Le Havre and Cherbourg; the art draws Flanders inland, and it stays a camp province - Davout's camp at Bruges), Russia's Estonia -> Livonia (Riga; the art gives the province named Estonia a lake pocket, not a shore). The map draws each fleet on the water off its senior yard (the registry's port_anchor). EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 500 = the India/sugar trade + the fiscal machine; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
     "navies": {
         "Britain": {
             "ships": 100,
@@ -915,7 +915,7 @@
             "readiness": 70,
             "admiral": "Villeneuve",
             "ports": 4,
-            "dockyards": ["Brittany", "Provence", "Flanders", "Bordelais"],
+            "dockyards": ["Brittany", "Provence", "Normandy", "Bordelais"],
             "camp_provinces": ["Flanders", "Artois", "Normandy", "Brittany"]
         },
         "Spain": {
@@ -945,14 +945,14 @@
             "admiral": "Verhuell",
             "ports": 2,
             "overseas_income": 150,
-            "dockyards": ["Amsterdam"]
+            "dockyards": ["Friesland"]
         },
         "Russia": {
             "ships": 20,
             "readiness": 65,
             "admiral": "Senyavin",
             "ports": 2,
-            "dockyards": ["Estonia"]
+            "dockyards": ["Livonia"]
         },
         "Portugal": {
             "ships": 10,

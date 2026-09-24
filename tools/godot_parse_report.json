@@ -371,7 +371,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/ep_f1_first_ten_minutes_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/nui2_admiralty_harness.gd"
     }
   ],
-  "timestamp": "2026-09-24T03:44:19Z"
+  "timestamp": "2026-09-24T08:09:36Z"
 }

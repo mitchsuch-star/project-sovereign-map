@@ -52,17 +52,34 @@ class TestExpeditionTerms:
         # it was a road ending at the over-lift refusal. The pin is now on
         # the PROPERTY (the detail names a corps that is actually under the
         # lift, and a yard to march it to) rather than on the sentence.
+        #
+        # NUI-2 (Sept 24, 2026), CONSCIOUS RE-BLESS: the one French corps
+        # under the lift at the boot is the Emperor's Guard, and FA-D16 ruled
+        # that the Emperor never sails on an expedition — so the "march ... to
+        # a yard" this pin asserted was, at every 1805 boot, the sentence
+        # "march Napoleon (10,000) to a yard". The boot detail is now the ONE
+        # sentence the region panel reads too (`naval.no_small_corps_line`):
+        # it names the Guard as the reason and the road that does exist, a
+        # new marshal's corps. The march advice is pinned below where it is
+        # TRUE — a counselable corps under the lift.
         assert terms[1]["met"] is False
         detail = terms[1]["detail"]
-        assert "march" in detail and "yard" in detail, detail
+        assert detail == naval.no_small_corps_line(world, "France"), detail
         under = [m for m in world.get_marshals_by_nation("France")
                  if 0 < int(m.strength) <= naval.EXPEDITION_MAX_TROOPS]
-        assert under, "the boot board must have at least one eligible corps"
-        assert any(m.name in detail for m in under), (detail, [m.name for m in under])
+        assert [m.name for m in under] == ["Napoleon"], [m.name for m in under]
+        assert "Napoleon's Guard" in detail and "does not sail" in detail, detail
+        assert "march Napoleon" not in detail, detail
         over = [m for m in world.get_marshals_by_nation("France")
                 if int(m.strength) > naval.EXPEDITION_MAX_TROOPS]
         assert not any(m.name in detail for m in over), (
             "the advice named a corps the transports cannot lift", detail)
+        # Where the march advice is true: Soult reduced under the lift,
+        # standing inland at Lorraine, is told to march to a yard — by name.
+        world.marshals["Soult"].strength = 10_000
+        detail = naval.build_admiralty_report(world)["expedition_terms"][1]["detail"]
+        assert detail.startswith("march Soult (10,000) to a yard — "), detail
+        assert "Napoleon" not in detail, detail
 
     def test_ready_corps_named_when_one_qualifies(self, world):
         yards = naval.controlled_dockyards(world, "France")
@@ -164,10 +181,23 @@ class TestBlockedLandings:
         blocked = naval.expedition_blocked_reasons(world, "France")
         # At boot no French corps is expedition-sized at a yard: at-war
         # coastal shores (Britain's home islands) carry the corps reason.
+        #
+        # NUI-2 (Sept 24, 2026), CONSCIOUS RE-BLESS: this asserted "march one
+        # there", which named a corps that does not exist — the only French
+        # corps under the lift at the boot is the Emperor's Guard (FA-D16: he
+        # never sails). The boot reason is the same sentence the Admiralty's
+        # term reads (`naval.no_small_corps_line`); "march one there" is
+        # pinned below where it is true.
+        line = naval.no_small_corps_line(world, "France")
+        assert [r for r in blocked.values() if r == line], blocked
+        assert "a new marshal's 5,000-man corps" in line, line
+        assert not any("march one there" in r for r in blocked.values()), blocked
+        world.marshals["Soult"].strength = 10_000
+        blocked = naval.expedition_blocked_reasons(world, "France")
         corps_reasons = [r for r in blocked.values() if "stands at" in r
                          or "detach" in r]
         assert corps_reasons, blocked
-        assert any("march one there" in r for r in corps_reasons)
+        assert any(r.endswith("march one there") for r in corps_reasons), blocked
 
     def test_over_cap_at_yard_gets_the_detach_line(self, world):
         yards = naval.controlled_dockyards(world, "France")

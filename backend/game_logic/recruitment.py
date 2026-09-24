@@ -128,6 +128,24 @@ def first_affordable_commission(world, nation: str) -> Optional[Dict]:
     return best
 
 
+def cheapest_commission_if_funded(world, nation: str) -> Optional[Dict]:
+    """NUI-2 (Sept 24, 2026): the cheapest bench candidate whose ONLY
+    refusal is the treasury — the gate asked with his own price in hand
+    (`check_commission(..., treasury=cost)`), so the serving, home-soil and
+    manpower arms are the real ones. The Admiralty names this man when no
+    one is affordable yet: a disabled button that states the price is a
+    road; no button at all was a wall. None when the bench is empty or
+    every candidate is refused for a reason gold cannot fix."""
+    best = None
+    for candidate in get_marshal_pool(world, nation):
+        cost = int(candidate.get("cost", 0))
+        if check_commission(world, nation, candidate, treasury=cost) is not None:
+            continue
+        if best is None or cost < int(best.get("cost", 0)):
+            best = candidate
+    return best
+
+
 # PT-J4: the counsel rung's need test — blessed, in-band tunable. Thin
 # roster mirrors the AI's own P1.75 commission rung (standing < 3); the
 # under-strength arm reads the levy single source (total fielded strength
@@ -175,18 +193,29 @@ def _no_home_soil(name: str) -> str:
             f"home province, and we hold neither.")
 
 
-def check_commission(world, nation: str, candidate: Dict) -> Optional[str]:
+def check_commission(world, nation: str, candidate: Dict,
+                     treasury: Optional[int] = None) -> Optional[str]:
     """Refusal reason for commissioning this candidate, or None when clear.
-    Player-facing copy; the AI rung reads the same gate (GR5)."""
+    Player-facing copy; the AI rung reads the same gate (GR5).
+
+    `treasury` (NUI-2, Sept 24, 2026) asks the SAME gate a counterfactual —
+    "would he pass with this much gold?" — so an advisory surface can name
+    a commission the treasury cannot yet pay for without keeping a copy of
+    the other three arms. None (every executor and AI caller) reads the
+    live treasury, byte-identically."""
     name = candidate.get("name", "?")
     if name in world.marshals:
         return f"Marshal {name} already serves."
     if COMMISSION_ASKS_FOR_HOME_SOIL_FIRST and find_spawn_region(world, nation) is None:
         return _no_home_soil(name)
     cost = int(candidate.get("cost", 0))
-    if world.nation_gold.get(nation, 0) < cost:
-        return (f"Commissioning {name} costs {cost}g — the treasury holds "
-                f"{int(world.nation_gold.get(nation, 0))}g.")
+    gold = (int(world.nation_gold.get(nation, 0)) if treasury is None
+            else int(treasury))
+    if gold < cost:
+        # NUI-2: thousands separators — the Admiralty's button beside this
+        # reason reads "Commission Oudinot (3,500g)".
+        return (f"Commissioning {name} costs {cost:,}g — the treasury holds "
+                f"{int(world.nation_gold.get(nation, 0)):,}g.")
     arm, size = corps_requirement(candidate)
     pool = world.manpower_pools.get(nation, {})
     have = int(pool.get(arm, 0))

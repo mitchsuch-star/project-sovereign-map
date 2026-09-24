@@ -408,14 +408,38 @@ class TestD16LiftCounselNamesTheMarshalate:
 
     def test_the_road_names_the_cheapest_commission_the_gate_would_pass(self):
         from backend.game_logic import naval as NV
-        from backend.game_logic.recruitment import first_affordable_commission, RECRUIT_MARSHAL_CORPS
+        from backend.game_logic.recruitment import (
+            RECRUIT_MARSHAL_CORPS, cheapest_commission_if_funded,
+            first_affordable_commission)
         w = _boot()
-        assert NV.marshalate_road(w, "France") == ""  # 800g at boot clears nobody
+        # 800g at boot clears nobody. FLIPPED CONSCIOUSLY by NUI-2 (Sept 24,
+        # 2026; lever `naval.THE_LIFT_COUNSEL_NAMES_THE_PRICE`, NAVAL_SPEC
+        # §18): this pin used to assert the road fell SILENT here, which left
+        # the lift refusal naming no road at all at exactly the moment the
+        # player needed one. It now names the cheapest man the gate would pass
+        # with the treasury topped up — his price, and what we hold.
+        assert first_affordable_commission(w, "France") is None
+        dear = cheapest_commission_if_funded(w, "France")
+        assert dear, "the bench has a man the gate would pass on price alone"
+        road = NV.marshalate_road(w, "France")
+        assert road.startswith(
+            f"Or, when the treasury allows, commission {dear['name']} — "
+            f"{RECRUIT_MARSHAL_CORPS:,} men for {int(dear['cost']):,}g (we hold 800g)"), road
+        assert road in NV.over_lift_refusal(w, w.marshals["Soult"])
         w.nation_gold["France"] = 10_000
         cand = first_affordable_commission(w, "France")
         road = NV.marshalate_road(w, "France")
         assert road.startswith(f"Or commission {cand['name']} — {RECRUIT_MARSHAL_CORPS:,} men for {int(cand['cost']):,}g")
         assert road in NV.over_lift_refusal(w, w.marshals["Soult"])
+
+    def test_price_lever_down_the_boot_road_falls_silent_again(self, monkeypatch):
+        """The pre-NUI-2 reading, reproduced behind its lever."""
+        from backend.game_logic import naval as NV
+        _flip(monkeypatch, NV, "THE_LIFT_COUNSEL_NAMES_THE_PRICE", False)
+        w = _boot()
+        assert NV.marshalate_road(w, "France") == ""
+        w.nation_gold["France"] = 10_000
+        assert NV.marshalate_road(w, "France").startswith("Or commission ")
 
     def test_lever_down_names_the_emperor_again(self, monkeypatch):
         from backend.game_logic import naval as NV

@@ -866,7 +866,8 @@ ECONOMY (Admin AP - the new imperial economy):
   - Capturing a province holding an enemy marshal's estate offers
     CONFISCATE (gold windfall + his lasting grudge) or RESPECT.
 
-THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
+THE ADMIRALTY (the wooden wall - press T, then 7; every order below
+is a button there, with its terms, so none of it need be typed):
   build ships - "build ships" / "lay down a ship" (1 Admin AP +
                400g). 2 keels/turn at most - 1 under blockade.
                New crews come aboard GREEN; only sea-time drills
@@ -880,9 +881,14 @@ THE ADMIRALTY (the wooden wall - full block in the ledger, press T):
                board names both, court by court.
   guard      - "guard home waters" (1 AP) - cover every crossing
                that touches our own coast.
-  land       - "land Soult in Munster" (2 AP) - a small expedition
-               (15,000 men or fewer) slips past the patrols at
-               QUOTED odds; Ireland is reachable, an army is not.
+  land       - land <marshal> in <province> (2 AP) - a small
+               expedition (15,000 men or fewer, embarking at one of
+               our yards or from a foreign shore) slips past the
+               patrols at QUOTED odds; Ireland is reachable, an
+               army is not. At the 1805 opening only the Guard is
+               under the lift, and the Emperor does not sail - a
+               newly commissioned marshal's 5,000 is the road;
+               THE ADMIRALTY names him and his price.
                A neutral shore must RECEIVE us (a friend, ally or
                vassal); an enemy's needs no leave. Click a coastal
                province on the map for the landing chip.

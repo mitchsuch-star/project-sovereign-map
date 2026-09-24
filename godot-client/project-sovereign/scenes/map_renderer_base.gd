@@ -274,7 +274,12 @@ var hovered_sea_link := {}
 var _fleet_pieces := {}        # nation -> WarTablePiece
 var _fleet_sail_labels := {}   # nation -> Label (the sail count)
 var _sea_segments: Array = []  # [{a, b, start, end}] in world coords
+# The pre-NUI-2 placement beside a province's CENTRE — now only the fallback
+# for a province whose registry entry carries no `port_anchor`.
 const FLEET_PIECE_OFFSET := Vector2(-30.0, 24.0)
+# NUI-2: the blockade glyph beside the ship at a port anchor (the anchor is
+# the ship's base; tools/gen_port_anchors.py clears water for both).
+const PORT_GLYPH_BESIDE_SHIP := Vector2(26.0, -12.0)
 const FLEET_PIECE_SCALE := 0.85
 const SEA_LINK_HOVER_RADIUS := 14.0
 # UI-5 War-Table Pieces: a PERSISTENT, y-sorted layer of tin-flat standees at
@@ -499,6 +504,12 @@ func _build_province_shapes():
 			"wired": wired,
 			"interactive": interactive,
 		}
+		# NUI-2: where a fleet rides at anchor — on the water off this
+		# province's own shore (the registry's `port_anchor`, derived from the
+		# painted map by tools/gen_port_anchors.py). Coastal provinces only.
+		if region_data.has("port_anchor"):
+			province_shapes[region_name]["port_anchor"] = _vector_from_array(
+				region_data.get("port_anchor", []), center)
 		province_color_lookup[_color_to_key(lookup_color)] = region_name
 
 		min_x = min(min_x, center.x - radius)
@@ -1309,12 +1320,31 @@ func _refresh_port_glyphs() -> void:
 	if ports is Array and ports.size() > 0:
 		var positions = _get_active_region_positions()
 		for port_name in ports:
-			var pos = positions.get(str(port_name), null)
+			var port_key := str(port_name)
+			var shape = province_shapes.get(port_key, {})
+			if shape is Dictionary and shape.has("port_anchor"):
+				# NUI-2: on the water off the yard, beside where its fleet
+				# would ride — never on the province's land.
+				glyphs.append(_world_to_layer_position(
+					shape["port_anchor"] + PORT_GLYPH_BESIDE_SHIP))
+				continue
+			var pos = positions.get(port_key, null)
 			if pos != null:
 				# Offset the anchor glyph off the piece/label anchor so it
 				# reads as a port marker, not a unit.
 				glyphs.append(_world_to_layer_position(pos) + Vector2(14, -14))
 	connection_layer.set_port_glyphs(glyphs)
+
+
+func _fleet_anchor(station: String, positions: Dictionary) -> Vector2:
+	# NUI-2: a fleet stands on the water off its senior yard (the registry's
+	# `port_anchor`). The pre-NUI-2 offset from the province centre is the
+	# fallback for a map whose registry carries no port anchor — it drew
+	# Russia's fleet 260 px inland and Holland's on the Amsterdam plain.
+	var shape = province_shapes.get(station, {})
+	if shape is Dictionary and shape.has("port_anchor"):
+		return shape["port_anchor"]
+	return positions[station] + FLEET_PIECE_OFFSET
 
 
 func _build_region_nodes():
@@ -3002,7 +3032,7 @@ func _update_fleet_pieces() -> void:
 	for nation in desired:
 		var entry: Dictionary = desired[nation]
 		var station := str(entry.get("station", ""))
-		var world_anchor: Vector2 = positions[station] + FLEET_PIECE_OFFSET
+		var world_anchor: Vector2 = _fleet_anchor(station, positions)
 		var anchor := _world_to_layer_position(world_anchor)
 		var nation_color: Color = colors.get(nation, Utils.COLOR_ENEMY_DEFAULT)
 		var piece = _fleet_pieces.get(nation, null)

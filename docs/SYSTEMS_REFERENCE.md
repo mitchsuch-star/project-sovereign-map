@@ -6694,3 +6694,70 @@ plan and rulings = `docs/ENDGAME_PLAN.md` §1 F1.
 * Pins: `tests/test_ep_f1_the_first_ten_minutes.py` (the client classes drive
   the real `main.tscn` through `tools/ep_f1_first_ten_minutes_harness.gd`; they
   skip without Godot — a skip is not a pass); sweep `tools/_sweep_ep_f1.json`.
+
+
+## 57. The fleet rides at anchor (NUI-2, landed September 24, 2026)
+
+Landing record: `docs/NAVAL_SPEC.md` §18. The rules:
+
+* **A coastal flag means the painted map draws a coast.** `tools/gen_port_anchors.py
+  --audit` is the check (dev-only, Pillow + numpy): open sea = the lookup's
+  no-province pixels painted sea (R−B < 45) in a water body of at least
+  5,000 px; a coast = at least 100 px of the province within 4 px of it. A
+  flag that disagrees is either corrected or recorded in the tool's
+  `ART_EXCEPTIONS` with its reason — today the DEF-8 five (the stylised
+  Adriatic reaches them; the flag follows the landlocked place) and Estonia
+  (a DEF-7 sea-link end kept coastal by rule G3; its only water is a lake
+  pocket). After changing the map art or a flag, run `--audit` and `--check`.
+* **`is_coastal` is read**, for the shore itself: landing targets, embarking
+  from a foreign shore, `shore_supply_state`, the AI's beach search (and the
+  legacy Britain income/power arms on fleet-less worlds). Coverage keys off
+  `sea_links`, closure off `ports`, building off `dockyards` — never the flag.
+* **A dockyard stands on the sea.** A yard on an inland province is a
+  validation ERROR (`validator._validate_navies`, boot path and CLI path). On
+  the Europe registry a yard also needs open water to moor at, a registry
+  `port_anchor`; a flag alone cannot see a province like Estonia, which is
+  coastal as a sea-link end and has no open water. The
+  1805 yards: Britain London / East Anglia / Cornwall · France Brittany /
+  Provence / Normandy / Bordelais · Spain Galicia / Toledo · Denmark
+  Copenhagen · Ottoman Constantinople · Holland Friesland · Russia Livonia ·
+  Portugal Lisbon · Sweden Scania · Naples Naples. Flanders stays a France
+  CAMP province (the camp never asks for a coast).
+* **Every coastal province carries a `port_anchor`** in the registry — the base
+  of a fleet piece on open water off its OWN shore (the nearest province to it
+  is itself, ≤ 40 px out, the piece's box on water; yards moor first, 40 px
+  apart). Derived from the art by `gen_port_anchors.py --write`; hand edits are
+  overwritten, and `--check` fails when the registry drifts from the art.
+  Estonia carries none (it hosts no yard).
+* **The map draws a fleet at its senior yard's `port_anchor`** and a blockade
+  glyph beside it (`map_renderer_base._fleet_anchor`,
+  `PORT_GLYPH_BESIDE_SHIP`); a map without anchors falls back to the old
+  offset from the province centre.
+* **An old save comes ashore on load** (`save_manager.load_game` →
+  `world_state.reconcile_saved_registry_corrections`, registry worlds only):
+  the corrected flags (`SAVE_COAST_CORRECTIONS`, targeted — a mod may author
+  `is_coastal` through `region_overrides`) and the retired yards
+  (`naval.RETIRED_DOCKYARDS`: Amsterdam → Friesland, Flanders → Normandy,
+  Estonia → Livonia). Never on the scenario path. A future flag correction or
+  yard move adds its row to these tables (both are drift-pinned).
+* **The naval orders are buttons.** THE ADMIRALTY (T, then 7) opens with
+  "Orders to the Admiralty" under the fleet lines — Blockade / Recall, the
+  Grand Diversion, Lay down ships — and then the expedition's NEXT step
+  (`naval.expedition_road_chips`): land a ready corps (up to four landings,
+  enemy shores first, then odds, then nearest), else march a corps under the
+  lift to the nearest yard the road law accepts, else commission the cheapest
+  marshal the gate would pass — disabled with the gate's own refusal while the
+  treasury cannot pay. Each button is the typed command the terminal takes;
+  its enabled state is the executor's gate. The Admiralty does not object:
+  naval orders carry no marshal's voice.
+* **The gate is asked, never copied.** `recruitment.check_commission(...,
+  treasury=)` answers "would he pass with this gold?" over the one rule;
+  `cheapest_commission_if_funded` and the Admiralty read it.
+* **The Emperor is never the expedition's counsel** (FA-D16, all surfaces):
+  the lift refusal, the expedition term (`no_small_corps_line`), the region
+  panel's withheld landing and the march buttons (`_small_corps`) all leave the
+  Guard out, and name a new marshal's 5,000-man corps as the road — with its
+  price when the treasury cannot pay (lever `THE_LIFT_COUNSEL_NAMES_THE_PRICE`).
+* Pins: `tests/test_nui2_the_fleet_rides_at_anchor.py` (the registry against the
+  art through the stdlib PNG decoder; the driven map and ledger classes skip
+  without Godot — a skip is not a pass); sweep `tools/_sweep_nui2.json`.

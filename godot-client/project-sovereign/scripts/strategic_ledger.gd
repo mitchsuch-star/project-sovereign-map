@@ -728,6 +728,13 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 				+ _format_number(camp_required) + " men a descent requires\n"
 	else:
 		bbcode += "  We keep no fleet in commission.\n"
+	# NUI-2 (Sept 24, 2026): the ORDERS come first, under the fleet line.
+	# They rendered at the bottom of the tab, below the Blockade board, the
+	# Crossings and both sets of gate terms — so a player who opened THE
+	# ADMIRALTY to act had to scroll past the whole report to find a button.
+	var orders := _render_admiralty_orders(adm)
+	if orders != "":
+		bbcode += orders + "\n"
 	var cs = adm.get("continental_system")
 	if cs is Dictionary:
 		var tier = int(cs.get("tier", 0))
@@ -804,7 +811,6 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		if notes is Array:
 			for note in notes:
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "]· " + str(note) + "[/color]\n"
-	bbcode += _render_admiralty_orders(adm)
 	return bbcode
 
 
@@ -813,31 +819,29 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 	but `build_fleet` used to be typed-command only. Each chip carries the
 	same typed command a player would write, and its enabled state comes
 	from the backend gate (honest availability, the section 11.6 idiom): a
-	shown chip works, a withheld one states why in present tense."""
+	shown chip works, a withheld one states why in present tense.
+
+	NUI-2 (Sept 24, 2026): the expedition's ROAD rides here too —
+	`expedition_chips`, the next step toward a sailing (land a ready corps,
+	march a small one to a yard, or commission a marshal), each the typed
+	command the terminal takes. The naval orders carry no marshal's voice to
+	prompt the words, so the words are the buttons."""
 	var chips = adm.get("chips", [])
 	var ready = adm.get("embark_ready", [])
 	if not (chips is Array) or chips.is_empty():
 		return ""
 	var bbcode = "\n[color=#" + Utils.COLOR_HEADER + "]Orders to the Admiralty[/color]\n"
 	for chip in chips:
-		if not (chip is Dictionary):
-			continue
-		var label = str(chip.get("label", ""))
-		var enabled = bool(chip.get("enabled", false))
-		bbcode += "  "
-		if enabled:
-			bbcode += Utils.bb_button_chip("do:" + str(chip.get("command", "")),
-				label, Utils.COLOR_GOLD, _NAVAL_CHIP_BG)
-			var note = str(chip.get("note", ""))
-			if note != "":
-				bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + note + "[/color]"
-		else:
-			# NV-12 (recon gap 13): disabled chips were grey TEXT, reading as
-			# a different control family than the region panel's disabled
-			# pills — same pill shape now, reason after it.
-			bbcode += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_GREY + "]" \
-				+ str(chip.get("reason", "not available")) + "[/color]"
-		bbcode += "\n"
+		bbcode += _admiralty_chip_row(chip)
+	var road = adm.get("expedition_chips", [])
+	var has_road: bool = road is Array and road.size() > 0
+	if has_road:
+		# A blank line first: a chip's pill padding overlaps the line above
+		# it (the house style — see the region panel's ACTIONS), and the
+		# sub-header must not sit under the last order's pill.
+		bbcode += "\n  [color=#" + Utils.COLOR_GREY + "]The expedition — the next step:[/color]\n"
+		for chip in road:
+			bbcode += _admiralty_chip_row(chip)
 	if ready is Array and ready.size() > 0:
 		# The expedition's chip lives on the map, where its destination is
 		# actually chosen — say so rather than offering a verb with no object.
@@ -847,9 +851,33 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 				names.append(str(corps.get("marshal", "")) + " ("
 					+ Utils.format_number(int(corps.get("strength", 0))) + " at "
 					+ str(corps.get("location", "")) + ")")
+		var where := " — click a coastal province to choose the landing."
+		if has_road:
+			where = " — or click any coastal province for another landing."
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ready to embark: " \
-			+ ", ".join(names) + " — click a coastal province to choose the landing.[/color]\n"
+			+ ", ".join(names) + where + "[/color]\n"
 	return bbcode
+
+
+func _admiralty_chip_row(chip) -> String:
+	# One chip row, both families: enabled = the gold pill + its note,
+	# disabled = the dimmed pill + the gate's own reason (NV-12 recon gap 13:
+	# disabled chips were grey TEXT, reading as a different control family
+	# than the region panel's disabled pills).
+	if not (chip is Dictionary):
+		return ""
+	var label = str(chip.get("label", ""))
+	var row := "  "
+	if bool(chip.get("enabled", false)):
+		row += Utils.bb_button_chip("do:" + str(chip.get("command", "")),
+			label, Utils.COLOR_GOLD, _NAVAL_CHIP_BG)
+		var note = str(chip.get("note", ""))
+		if note != "":
+			row += "  [color=#" + Utils.COLOR_GREY + "]" + note + "[/color]"
+	else:
+		row += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_GREY + "]" \
+			+ str(chip.get("reason", "not available")) + "[/color]"
+	return row + "\n"
 
 
 func _render_intel():

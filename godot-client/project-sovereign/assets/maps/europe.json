@@ -42,7 +42,7 @@
         75,
         75
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -127,6 +127,10 @@
       "building_anchor": [
         1991,
         1153
+      ],
+      "port_anchor": [
+        1952,
+        1033
       ],
       "radius": 145,
       "lookup_color": [
@@ -225,6 +229,10 @@
         2195,
         1193
       ],
+      "port_anchor": [
+        2167,
+        1294
+      ],
       "radius": 113,
       "lookup_color": [
         75,
@@ -272,6 +280,10 @@
         287,
         1460
       ],
+      "port_anchor": [
+        212,
+        1410
+      ],
       "radius": 112,
       "lookup_color": [
         198,
@@ -317,6 +329,10 @@
       "building_anchor": [
         1281,
         245
+      ],
+      "port_anchor": [
+        1297,
+        401
       ],
       "radius": 109,
       "lookup_color": [
@@ -469,6 +485,10 @@
       "building_anchor": [
         763,
         1382
+      ],
+      "port_anchor": [
+        766,
+        1328
       ],
       "radius": 100,
       "lookup_color": [
@@ -629,7 +649,7 @@
         249,
         172
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -665,6 +685,10 @@
       "building_anchor": [
         1646,
         60
+      ],
+      "port_anchor": [
+        1498,
+        42
       ],
       "radius": 92,
       "lookup_color": [
@@ -811,6 +835,10 @@
         1572,
         1017
       ],
+      "port_anchor": [
+        1465,
+        1086
+      ],
       "radius": 92,
       "lookup_color": [
         249,
@@ -860,6 +888,10 @@
         2274,
         1054
       ],
+      "port_anchor": [
+        2232,
+        993
+      ],
       "radius": 91,
       "lookup_color": [
         94,
@@ -906,6 +938,10 @@
       "building_anchor": [
         1180,
         1007
+      ],
+      "port_anchor": [
+        1262,
+        957
       ],
       "radius": 87,
       "lookup_color": [
@@ -1005,6 +1041,10 @@
         1125,
         157
       ],
+      "port_anchor": [
+        998,
+        127
+      ],
       "radius": 85,
       "lookup_color": [
         94,
@@ -1050,6 +1090,10 @@
       "building_anchor": [
         1623,
         1198
+      ],
+      "port_anchor": [
+        1569,
+        1322
       ],
       "radius": 85,
       "lookup_color": [
@@ -1097,6 +1141,10 @@
       "building_anchor": [
         1054,
         1472
+      ],
+      "port_anchor": [
+        1085,
+        1505
       ],
       "radius": 84,
       "lookup_color": [
@@ -1241,6 +1289,10 @@
         2273,
         1308
       ],
+      "port_anchor": [
+        2176,
+        1368
+      ],
       "radius": 80,
       "lookup_color": [
         75,
@@ -1337,6 +1389,10 @@
         1850,
         799
       ],
+      "port_anchor": [
+        1922,
+        875
+      ],
       "radius": 79,
       "lookup_color": [
         90,
@@ -1384,6 +1440,10 @@
       ],
       "building_anchor": [
         1750,
+        943
+      ],
+      "port_anchor": [
+        1894,
         943
       ],
       "radius": 78,
@@ -1434,6 +1494,10 @@
       "building_anchor": [
         1174,
         49
+      ],
+      "port_anchor": [
+        1031,
+        37
       ],
       "radius": 77,
       "lookup_color": [
@@ -1581,6 +1645,10 @@
         949,
         639
       ],
+      "port_anchor": [
+        860,
+        580
+      ],
       "radius": 75,
       "lookup_color": [
         157,
@@ -1631,6 +1699,10 @@
       "building_anchor": [
         1741,
         1033
+      ],
+      "port_anchor": [
+        1867,
+        1005
       ],
       "radius": 74,
       "lookup_color": [
@@ -1729,6 +1801,10 @@
         1615,
         1563
       ],
+      "port_anchor": [
+        1654,
+        1523
+      ],
       "radius": 74,
       "lookup_color": [
         75,
@@ -1773,6 +1849,10 @@
       "building_anchor": [
         1343,
         1139
+      ],
+      "port_anchor": [
+        1375,
+        1080
       ],
       "radius": 73,
       "lookup_color": [
@@ -1920,6 +2000,10 @@
         2033,
         719
       ],
+      "port_anchor": [
+        2113,
+        760
+      ],
       "radius": 72,
       "lookup_color": [
         249,
@@ -1969,6 +2053,10 @@
         706,
         491
       ],
+      "port_anchor": [
+        779,
+        420
+      ],
       "radius": 71,
       "lookup_color": [
         145,
@@ -2017,6 +2105,10 @@
       "building_anchor": [
         1383,
         145
+      ],
+      "port_anchor": [
+        1442,
+        106
       ],
       "radius": 70,
       "lookup_color": [
@@ -2165,6 +2257,10 @@
         356,
         964
       ],
+      "port_anchor": [
+        368,
+        924
+      ],
       "radius": 65,
       "lookup_color": [
         224,
@@ -2262,6 +2358,10 @@
         770,
         979
       ],
+      "port_anchor": [
+        801,
+        1035
+      ],
       "radius": 63,
       "lookup_color": [
         94,
@@ -2312,6 +2412,10 @@
         492,
         396
       ],
+      "port_anchor": [
+        487,
+        330
+      ],
       "radius": 63,
       "lookup_color": [
         249,
@@ -2357,6 +2461,10 @@
       "building_anchor": [
         666,
         942
+      ],
+      "port_anchor": [
+        590,
+        932
       ],
       "radius": 63,
       "lookup_color": [
@@ -2405,6 +2513,10 @@
       "building_anchor": [
         423,
         1276
+      ],
+      "port_anchor": [
+        407,
+        1343
       ],
       "radius": 63,
       "lookup_color": [
@@ -2506,6 +2618,10 @@
         278,
         1206
       ],
+      "port_anchor": [
+        163,
+        1224
+      ],
       "radius": 61,
       "lookup_color": [
         75,
@@ -2604,6 +2720,10 @@
         1353,
         42
       ],
+      "port_anchor": [
+        1452,
+        54
+      ],
       "radius": 59,
       "lookup_color": [
         141,
@@ -2650,6 +2770,10 @@
       "building_anchor": [
         1648,
         233
+      ],
+      "port_anchor": [
+        1664,
+        158
       ],
       "radius": 58,
       "lookup_color": [
@@ -2699,6 +2823,10 @@
         297,
         1063
       ],
+      "port_anchor": [
+        224,
+        1033
+      ],
       "radius": 58,
       "lookup_color": [
         198,
@@ -2746,6 +2874,10 @@
       "building_anchor": [
         686,
         816
+      ],
+      "port_anchor": [
+        579,
+        845
       ],
       "radius": 58,
       "lookup_color": [
@@ -2845,6 +2977,10 @@
         2204,
         1487
       ],
+      "port_anchor": [
+        2144,
+        1468
+      ],
       "radius": 57,
       "lookup_color": [
         198,
@@ -2889,6 +3025,10 @@
       "building_anchor": [
         462,
         484
+      ],
+      "port_anchor": [
+        364,
+        480
       ],
       "radius": 55,
       "lookup_color": [
@@ -2985,6 +3125,10 @@
         673,
         313
       ],
+      "port_anchor": [
+        730,
+        240
+      ],
       "radius": 54,
       "lookup_color": [
         126,
@@ -3030,6 +3174,10 @@
       "building_anchor": [
         689,
         1075
+      ],
+      "port_anchor": [
+        687,
+        1139
       ],
       "radius": 52,
       "lookup_color": [
@@ -3079,6 +3227,10 @@
         624,
         598
       ],
+      "port_anchor": [
+        607,
+        667
+      ],
       "radius": 52,
       "lookup_color": [
         249,
@@ -3127,6 +3279,10 @@
         2054,
         803
       ],
+      "port_anchor": [
+        2116,
+        866
+      ],
       "radius": 52,
       "lookup_color": [
         94,
@@ -3171,6 +3327,10 @@
       "building_anchor": [
         1133,
         894
+      ],
+      "port_anchor": [
+        1228,
+        935
       ],
       "radius": 51,
       "lookup_color": [
@@ -3267,6 +3427,10 @@
       "building_anchor": [
         738,
         716
+      ],
+      "port_anchor": [
+        682,
+        680
       ],
       "radius": 50,
       "lookup_color": [
@@ -3414,6 +3578,10 @@
         643,
         253
       ],
+      "port_anchor": [
+        656,
+        179
+      ],
       "radius": 50,
       "lookup_color": [
         160,
@@ -3459,6 +3627,10 @@
       "building_anchor": [
         568,
         1211
+      ],
+      "port_anchor": [
+        638,
+        1199
       ],
       "radius": 49,
       "lookup_color": [
@@ -3508,6 +3680,10 @@
         1107,
         346
       ],
+      "port_anchor": [
+        1148,
+        258
+      ],
       "radius": 49,
       "lookup_color": [
         75,
@@ -3554,6 +3730,10 @@
         1246,
         1307
       ],
+      "port_anchor": [
+        1242,
+        1272
+      ],
       "radius": 49,
       "lookup_color": [
         198,
@@ -3599,6 +3779,10 @@
       "building_anchor": [
         588,
         1015
+      ],
+      "port_anchor": [
+        573,
+        974
       ],
       "radius": 49,
       "lookup_color": [
@@ -3649,6 +3833,10 @@
         698,
         392
       ],
+      "port_anchor": [
+        745,
+        345
+      ],
       "radius": 47,
       "lookup_color": [
         75,
@@ -3694,6 +3882,10 @@
       "building_anchor": [
         605,
         515
+      ],
+      "port_anchor": [
+        505,
+        551
       ],
       "radius": 47,
       "lookup_color": [
@@ -3741,6 +3933,10 @@
         1581,
         320
       ],
+      "port_anchor": [
+        1502,
+        302
+      ],
       "radius": 47,
       "lookup_color": [
         75,
@@ -3786,6 +3982,10 @@
       "building_anchor": [
         244,
         1146
+      ],
+      "port_anchor": [
+        188,
+        1098
       ],
       "radius": 47,
       "lookup_color": [
@@ -3885,6 +4085,10 @@
         907,
         973
       ],
+      "port_anchor": [
+        947,
+        1044
+      ],
       "radius": 47,
       "lookup_color": [
         75,
@@ -3981,6 +4185,10 @@
         1536,
         409
       ],
+      "port_anchor": [
+        1478,
+        408
+      ],
       "radius": 46,
       "lookup_color": [
         84,
@@ -4029,6 +4237,10 @@
         1877,
         1107
       ],
+      "port_anchor": [
+        1912,
+        1041
+      ],
       "radius": 46,
       "lookup_color": [
         102,
@@ -4075,6 +4287,10 @@
         607,
         762
       ],
+      "port_anchor": [
+        597,
+        717
+      ],
       "radius": 46,
       "lookup_color": [
         249,
@@ -4120,6 +4336,10 @@
       "building_anchor": [
         1081,
         516
+      ],
+      "port_anchor": [
+        1021,
+        485
       ],
       "radius": 45,
       "lookup_color": [
@@ -4169,6 +4389,10 @@
       "building_anchor": [
         1032,
         1169
+      ],
+      "port_anchor": [
+        1084,
+        1190
       ],
       "radius": 45,
       "lookup_color": [
@@ -4265,6 +4489,10 @@
       "building_anchor": [
         1762,
         150
+      ],
+      "port_anchor": [
+        1753,
+        117
       ],
       "radius": 44,
       "lookup_color": [
@@ -4562,6 +4790,10 @@
         848,
         669
       ],
+      "port_anchor": [
+        828,
+        604
+      ],
       "radius": 41,
       "lookup_color": [
         249,
@@ -4611,6 +4843,10 @@
         1442,
         472
       ],
+      "port_anchor": [
+        1433,
+        424
+      ],
       "radius": 40,
       "lookup_color": [
         138,
@@ -4658,6 +4894,10 @@
         1323,
         481
       ],
+      "port_anchor": [
+        1296,
+        461
+      ],
       "radius": 40,
       "lookup_color": [
         77,
@@ -4704,6 +4944,10 @@
       "building_anchor": [
         1105,
         448
+      ],
+      "port_anchor": [
+        1037,
+        416
       ],
       "radius": 39,
       "lookup_color": [
@@ -4898,6 +5142,10 @@
         1014,
         941
       ],
+      "port_anchor": [
+        1031,
+        990
+      ],
       "radius": 38,
       "lookup_color": [
         75,
@@ -4944,6 +5192,10 @@
       "building_anchor": [
         1200,
         484
+      ],
+      "port_anchor": [
+        1258,
+        438
       ],
       "radius": 37,
       "lookup_color": [
@@ -4992,6 +5244,10 @@
       "building_anchor": [
         780,
         543
+      ],
+      "port_anchor": [
+        802,
+        498
       ],
       "radius": 36,
       "lookup_color": [
@@ -5089,6 +5345,10 @@
         1836,
         1070
       ],
+      "port_anchor": [
+        1780,
+        1114
+      ],
       "radius": 33,
       "lookup_color": [
         198,
@@ -5183,6 +5443,10 @@
       "building_anchor": [
         997,
         536
+      ],
+      "port_anchor": [
+        978,
+        489
       ],
       "radius": 33,
       "lookup_color": [
@@ -5292,7 +5556,7 @@
         249,
         125
       ],
-      "is_coastal": true,
+      "is_coastal": false,
       "wired": true,
       "interactive": true,
       "adjacent": [
@@ -5380,6 +5644,10 @@
       "building_anchor": [
         2092,
         1373
+      ],
+      "port_anchor": [
+        2040,
+        1366
       ],
       "radius": 29,
       "lookup_color": [
@@ -5476,6 +5744,10 @@
         1182,
         391
       ],
+      "port_anchor": [
+        1175,
+        344
+      ],
       "radius": 27,
       "lookup_color": [
         249,
@@ -5523,6 +5795,10 @@
         946,
         556
       ],
+      "port_anchor": [
+        913,
+        510
+      ],
       "radius": 27,
       "lookup_color": [
         94,
@@ -5569,6 +5845,10 @@
         1041,
         1056
       ],
+      "port_anchor": [
+        1007,
+        1023
+      ],
       "radius": 26,
       "lookup_color": [
         249,
@@ -5614,6 +5894,10 @@
       "building_anchor": [
         753,
         612
+      ],
+      "port_anchor": [
+        717,
+        660
       ],
       "radius": 25,
       "lookup_color": [
@@ -5662,6 +5946,10 @@
       "building_anchor": [
         1749,
         1402
+      ],
+      "port_anchor": [
+        1747,
+        1385
       ],
       "radius": 25,
       "lookup_color": [
@@ -5803,6 +6091,10 @@
         315,
         1312
       ],
+      "port_anchor": [
+        251,
+        1323
+      ],
       "radius": 20,
       "lookup_color": [
         198,
@@ -5895,6 +6187,10 @@
         749,
         1178
       ],
+      "port_anchor": [
+        755,
+        1155
+      ],
       "radius": 20,
       "lookup_color": [
         75,
@@ -5939,6 +6235,10 @@
       "building_anchor": [
         1443,
         277
+      ],
+      "port_anchor": [
+        1462,
+        235
       ],
       "radius": 20,
       "lookup_color": [
@@ -5986,6 +6286,10 @@
         1701,
         1220
       ],
+      "port_anchor": [
+        1721,
+        1192
+      ],
       "radius": 20,
       "lookup_color": [
         75,
@@ -6031,6 +6335,10 @@
       "building_anchor": [
         1568,
         223
+      ],
+      "port_anchor": [
+        1560,
+        186
       ],
       "radius": 20,
       "lookup_color": [
@@ -6785,7 +7093,8 @@
     "sea_gap_max": 400,
     "land_edges": 250,
     "sea_candidates": 144,
-    "def7_pass": "July 2, 2026 cross-Baltic mini-pass: 10 compressed land edges cut (Scania-Berlin/Brunswick/Jutland, EastPrussia-Finland, Posen-Finland/Livonia, Brandenburg-Livonia, Hanover-Oslo, Oldenburg-Oslo, Jutland-Brunswick), 4 demoted to sea links (Livonia-Pomerania, Livonia-Finland, Scania-Pomerania, Finland-Estonia), 2 connectivity sea links added (Oslo-Jutland, Scania-Gothland), Hanover-Jutland kept as the Holstein land bridge, Estonia-EastPrussia kept as the Courland stand-in; DEF-8: is_coastal corrected to false for Franche-Comte/Munich/Bern/Tyrol/Milan. adjacent edge count 258 -> 250; sea_links 12 -> 18."
+    "def7_pass": "July 2, 2026 cross-Baltic mini-pass: 10 compressed land edges cut (Scania-Berlin/Brunswick/Jutland, EastPrussia-Finland, Posen-Finland/Livonia, Brandenburg-Livonia, Hanover-Oslo, Oldenburg-Oslo, Jutland-Brunswick), 4 demoted to sea links (Livonia-Pomerania, Livonia-Finland, Scania-Pomerania, Finland-Estonia), 2 connectivity sea links added (Oslo-Jutland, Scania-Gothland), Hanover-Jutland kept as the Holstein land bridge, Estonia-EastPrussia kept as the Courland stand-in; DEF-8: is_coastal corrected to false for Franche-Comte/Munich/Bern/Tyrol/Milan. adjacent edge count 258 -> 250; sea_links 12 -> 18.",
+    "nui2_coast_pass": "Sept 24, 2026 NUI-2 coast audit (tools/gen_port_anchors.py --audit, the art's open sea = the >=5,000 px water bodies, a coast = >=100 px of province within 4 px of it): is_coastal corrected to false for Flanders, White Russia and Volhynia (drawn inland; Volhynia meets the Black Sea at one corner point). Recorded exceptions: the DEF-8 five (the stylised Adriatic reaches them; the flag follows the landlocked place) and Estonia (a DEF-7 sea-link end, kept coastal by rule G3; the art gives it a lake pocket). Every coastal province gained a port_anchor: the base of a fleet piece on open water off its own shore. Adjacency untouched."
   },
   "sea_links": [
     [

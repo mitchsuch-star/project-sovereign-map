@@ -328,9 +328,13 @@ class NavalExecutor:
         if not marshal or marshal.nation != (
                 command.get("_acting_nation")
                 or getattr(world, 'player_nation', 'France')):
+            # NUI-2: the example named Soult, whose 30,000 are twice the
+            # transports' lift — the sentence taught an order that always
+            # fails. The form, and where the buttons are.
             return {"success": False, "message": (
-                "Name the marshal who is to embark, Sire — 'land Soult in "
-                "Munster'.")}
+                "Name the marshal who is to embark, Sire — 'land <marshal> "
+                "in <province>'. A corps of 15,000 or fewer sails; THE "
+                "ADMIRALTY (press T, then 7) names who can, and where.")}
         if not naval.has_naval_layer(world):
             return {"success": False, "message": (
                 "This campaign has no naval theatre — there are no "
@@ -581,8 +585,9 @@ class NavalExecutor:
             name = best
         if not name:
             return {"success": False, "message": (
-                "Name the landing, Sire — 'land Soult in Munster with the "
-                "transports'.")}
+                f"Name the landing, Sire — 'land {marshal.name} in <a coastal "
+                "province>'. THE ADMIRALTY (press T, then 7) lists the best "
+                "landings; any coastal province on the map offers its own.")}
         if name == marshal.location:
             return {"success": False, "message":
                     f"{marshal.name} already stands at {name}."}
