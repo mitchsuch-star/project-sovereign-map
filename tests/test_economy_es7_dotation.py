@@ -139,12 +139,12 @@ class TestBlessedConstants:
 class TestExpectation:
     def test_expectation_is_rep_step_times_wins(self, world):
         m = _french_marshal(world)
-        m.battles_won = 3
+        m.expectation_steps = 3
         assert get_expectation(m) == 3 * REP_STEP
 
     def test_expectation_caps(self, world):
         m = _french_marshal(world)
-        m.battles_won = 100
+        m.expectation_steps = 100
         assert get_expectation(m) == EXPECTATION_CAP
 
     def test_satisfaction_is_full_effective_income(self, world):
@@ -210,7 +210,7 @@ class TestGrantAction:
 
     def test_grant_success_full_wiring(self, world):
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         region = _conquer(world, stability=80)
         gold_before = world.nation_gold["France"]
         admin_before = world.admin_actions_remaining
@@ -227,7 +227,7 @@ class TestGrantAction:
         """THE no-bribe negative assertion (§0.6.2 non-goal): the endowment
         is a promise, not a purchase — zero trust on grant, ever."""
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         region = _conquer(world, stability=80)
         trust_before = m.trust.value
         result = self._grant(world, m.name, region.name)
@@ -410,7 +410,7 @@ class TestReconciliation:
         on the Aug-23 retune purely because it had the window hardcoded in
         its control flow, which tells you nothing about the mechanic."""
         m = _french_marshal(world)
-        m.battles_won = 5  # expectation 200, shortfall 200 -> -3 capped
+        m.expectation_steps = 5  # expectation 200, shortfall 200 -> -3 capped
         trust_start = m.trust.value
         for _ in range(GRACE_TURNS):
             world.advance_turn()
@@ -421,7 +421,7 @@ class TestReconciliation:
 
     def test_erosion_magnitude_scales_and_caps(self, world):
         m = _french_marshal(world)
-        m.battles_won = 1  # expectation 40 -> ceil(40/50) = 1 point
+        m.expectation_steps = 1  # expectation 40 -> ceil(40/50) = 1 point
         world.current_turn = 10  # keep grace_turn clear of the -1 sentinel
         m.expectation_grace_turn = world.current_turn - GRACE_TURNS
         trust_start = m.trust.value
@@ -431,7 +431,7 @@ class TestReconciliation:
     def test_met_expectation_stops_the_bleed(self, world):
         """Paying stops the bleed (grace resets) — and never buys trust."""
         m = _french_marshal(world)
-        m.battles_won = 2  # expectation 80
+        m.expectation_steps = 2  # expectation 80
         world.current_turn = 10
         m.expectation_grace_turn = world.current_turn - GRACE_TURNS
         region = _endow(world, m, stability=100, min_income=100)
@@ -447,7 +447,7 @@ class TestReconciliation:
         """§0.6.2 idempotency pin: reconciliation run twice in one turn
         yields one result — a duplicate call never double-erodes."""
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         world.current_turn = 10
         m.expectation_grace_turn = world.current_turn - GRACE_TURNS
         world._process_dotation_state()
@@ -472,7 +472,7 @@ class TestReconciliation:
 
     def test_first_erosion_fires_notification_once(self, world):
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         for _ in range(GRACE_TURNS):
             world.advance_turn()
         world.advance_turn()  # first eroding turn
@@ -499,7 +499,7 @@ class TestReconciliation:
         nation-agnostic reconciliation loop."""
         mack = next(m for m in world.marshals.values()
                     if m.nation == "Austria" and m.strength > 0)
-        mack.battles_won = 5
+        mack.expectation_steps = 5
         world.current_turn = 10
         mack.expectation_grace_turn = world.current_turn - GRACE_TURNS
         trust_start = mack.trust.value
@@ -510,7 +510,7 @@ class TestReconciliation:
         """N1: legacy-fixture marshals with wins never erode — zero legacy
         pins move."""
         m = next(m for m in legacy.marshals.values() if m.nation == "France")
-        m.battles_won = 10
+        m.expectation_steps = 10
         trust_start = m.trust.value
         for _ in range(4):
             legacy.advance_turn()
@@ -549,7 +549,7 @@ class TestAIGrant:
     def test_ai_picks_grant_for_shortfalling_marshal(self, world):
         mack = next(m for m in world.marshals.values()
                     if m.nation == "Austria" and m.strength > 0)
-        mack.battles_won = 5  # shortfall 200 >= threshold 80
+        mack.expectation_steps = 5  # shortfall 200 >= threshold 80
         region = _conquer(world, nation="Austria", stability=80)
         world.nation_gold["Austria"] = 1000
         ai = EnemyAI(CommandExecutor())
@@ -563,7 +563,7 @@ class TestAIGrant:
         would double-count against execute_admin_phase's direct payout)."""
         mack = next(m for m in world.marshals.values()
                     if m.nation == "Austria" and m.strength > 0)
-        mack.battles_won = 5
+        mack.expectation_steps = 5
         region = _conquer(world, nation="Austria", stability=80)
         world.nation_gold["Austria"] = 1000
         executor = CommandExecutor()
@@ -586,7 +586,7 @@ class TestAIGrant:
     def test_ai_skips_when_treasury_below_fee(self, world):
         mack = next(m for m in world.marshals.values()
                     if m.nation == "Austria" and m.strength > 0)
-        mack.battles_won = 5
+        mack.expectation_steps = 5
         _conquer(world, nation="Austria", stability=80)
         world.nation_gold["Austria"] = INVESTITURE_FEE - 1
         ai = EnemyAI(CommandExecutor())
@@ -630,8 +630,11 @@ class TestThreading:
         # _conquer picks — the July 16 map-registry renames shifted the first
         # safe pick from Algarve (city, 150) to Piedmont (major_city, 200),
         # where an expectation of exactly 200 was silently fully met.
-        m.battles_won = 6  # expectation 240
+        m.expectation_steps = 6  # expectation 240
         region = _endow(world, m, stability=100)
+        # F4: the UNMET block names a man only within two turns of erosion.
+        world.current_turn = max(int(world.current_turn), 5)
+        m.expectation_grace_turn = int(world.current_turn) - 2
         situation = _build_situation(world, "France")
         assert situation["dotation_skim"] == region.get_effective_income()
         unmet = situation["unmet_marshals"]
@@ -694,7 +697,7 @@ class TestThreading:
     def test_marshal_overview_card_carries_estates(self, world):
         from backend.game_logic.marshal_overview import build_marshal_overview
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         region = _endow(world, m, stability=100)
         cards = build_marshal_overview(world)
         card = next(c for c in cards if c["name"] == m.name)
@@ -739,7 +742,7 @@ class TestHelpers:
 
     def test_shortfall_and_eroding_helpers(self, world):
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         assert get_shortfall(m, world) == 200
         assert is_eroding(m, world) is False
         world.current_turn = 10

@@ -10,9 +10,9 @@
 
 | Row | Item | Recommendation | Owner |
 |---|---|---|---|
-| **LV-D1** | **The reward curve is too steep for a first campaign.** Measured in the client: after Ulm (turn 1) four marshals already "expect" 40–80g/turn and the dispatch carries an UNMET MARSHALS block from turn 2; by turn 5 Ney looks for 200g and Davout 240g; on turn 7 of a WINNING campaign (Mack captured, Vienna stormed) the Fontainebleau collective petition fires — "600g/turn of expectation stands unmet" against ~3,400g/turn income, 900g/turn to satisfy. Every mechanic behaved as built (BUG_FIXES LV-21). | **Re-open UX23-D1..D4 with this measurement.** Recommended shape: the expectation ladder should climb with *glory rank and campaign length*, not per victory — e.g. no rise before turn 6, a 4-turn cooldown between rises per marshal, and the collective petition gated on `turn ≥ 12`. Numbers are in-band; the gate is the curve's SHAPE. | The UX23-D gate (the reward curve) |
+| **LV-D1** | **The reward curve is too steep for a first campaign.** Measured in the client: after Ulm (turn 1) four marshals already "expect" 40–80g/turn and the dispatch carries an UNMET MARSHALS block from turn 2; by turn 5 Ney looks for 200g and Davout 240g; on turn 7 of a WINNING campaign (Mack captured, Vienna stormed) the Fontainebleau collective petition fires — "600g/turn of expectation stands unmet" against ~3,400g/turn income, 900g/turn to satisfy. Every mechanic behaved as built (BUG_FIXES LV-21). | **Re-open UX23-D1..D4 with this measurement.** Recommended shape: the expectation ladder should climb with *glory rank and campaign length*, not per victory — e.g. no rise before turn 6, a 4-turn cooldown between rises per marshal, and the collective petition gated on `turn ≥ 12`. Numbers are in-band; the gate is the curve's SHAPE. | **✅ BUILT September 24, 2026 — row EP F4** (`ENDGAME_PLAN.md` §1 F4 landing record, `SYSTEMS_REFERENCE.md` §59): the shape recommended here, measured on the review's own board — first rise turn 7, no petition in 14 turns. |
 | **LV-D2** | **A minor's single corps captures three great-power homeland provinces in one AI turn** (Bavaria's Deroy → Bohemia + 2 on turn 1 of the historical seed, promoting Austria's REVANCHE against Bavaria on turn 1 and drawing Charles into a three-turn punishment). P4.5's undefended-capture rung has no per-turn cap and no strength check for a "literal" marshal (`enemy_ai.py:3835-3956`, `:5502-5513`). FA-D13 asked exactly this and was closed as a duplicate of PT-D4, which only changed the display. | **Rule on FA-D13 option (a):** cap walk-in captures per army per turn at its `movement_range` (one), and give "literal" the strength check "cautious" has. Measure the ambient series (this WILL move `BASELINE_SERIES`; re-record once with attribution). | The next AI-behaviour slice (FA-D13 re-opened) |
-| **LV-D3** | **The STRATEGIC ORDERS recap modal blocks every turn start** for every standing order (Continue-only, one line per order) — on top of the enemy phase, the dioramas, the petitions and the letter-book: five or six modals before the first order on turns 4–7. | Make it a non-blocking terminal block (or fold the lines into the morning dispatch's MARSHAL STATUS) and raise a modal only for an order that needs an ANSWER (the interrupts already have their own popups). | The next client session (with BUG_FIXES LV-4's copy) |
+| **LV-D3** | **The STRATEGIC ORDERS recap modal blocks every turn start** for every standing order (Continue-only, one line per order) — on top of the enemy phase, the dioramas, the petitions and the letter-book: five or six modals before the first order on turns 4–7. | Make it a non-blocking terminal block (or fold the lines into the morning dispatch's MARSHAL STATUS) and raise a modal only for an order that needs an ANSWER (the interrupts already have their own popups). | **✅ BUILT September 24, 2026 — row EP F3** (D13): the modal is retired, the terminal block stays, the dispatch's MARSHAL STATUS carries each order's ETA from the report's own arithmetic; LV-4's copy stays with F2. |
 | **LV-D4** | **The settlement legitimacy blocker for a victor.** With Vienna held and the war score at +58 a white peace is refused as "claiming a victory the field has not delivered" (BUG_FIXES LV-14). The predicate is whole-war (Britain and Russia unbeaten) but the sentence and the counsel do not say so, and there is no legible road from "I hold their capital" to "so make Austria sign alone". | Rule with `GAME_END_SPEC.md` §7: title by treaty is what the Imperial Peace rewards, so the settlement surface must tell a victor which court can sign NOW (per-court acceptance ≥ 50) and route them to the separate-peace tier; the whole-war blocker names the unbeaten courts by name. | Row GE (§7) + the Victory pass |
 | **LV-D5** | **PB-D1 "the long peace" — evidence.** The 60-turn commanded-accept arm: peace on turn 4 at war score 0, Britain PAYING 1,358g; the coalition spent; alarm 45 → 0 by turn 40; **0 enemy attacks in 56 turns**; 28 provinces throughout; 152,941 gold banked. | No new ruling — the row already exists. The Imperial Peace (§7) is structurally unreachable through this peace (the titled count stays 35 < 51), and PR-D1b (Update 1) still lands. | PB-D1 (ROADMAP 12) |
 
@@ -116,6 +116,21 @@
 ---
 
 ## Live UX Report — the reward curve (August 23, 2026, rows UX23-D1..D4)
+
+> **⚑ CLOSED September 24, 2026 by row EP F4 "The fuse is longer"**
+> (`ENDGAME_PLAN.md` D11 + §1 F4 landing record; rules
+> `SYSTEMS_REFERENCE.md` §59). The gate's question — *too soon, or too many
+> at once* — was answered by the live review's measurement (LV-D1) and the
+> ruling took the SHAPE: an expectation rises only on a DEED (a decisive
+> victory as LEAD, or an earned rise in glory RANK), one rise per marshal
+> per 4 turns, none before turn 6, the collective petition at turn ≥ 12 and
+> ≥ 300g. None of the four rows is built as written: D1's free-wins floor
+> is subsumed by the turn-6 floor and the deed rule; D2's "key to glory" by
+> the rank deed (glory's graded, decaying, participation-aware curve is now
+> one of the two deeds without becoming the price); D3's war-age damper by
+> the first-turn floor and the cooldown; D4's co-locator credit by the LEAD
+> rule (a reinforcer never rises). The correction block below stands as
+> the record of what the rows got wrong.
 
 > Filed from the Aug-23 live turn-3 France/1805 report (*"it happens so early
 > in the war them wanting raises etc. whole ux is off"*). The **delay** half

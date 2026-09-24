@@ -121,7 +121,7 @@ def test_dotation_expectation_dedup_via_process():
     world = WorldState.from_scenario(str(SCENARIO_PATH))
     marshal = next(m for m in world.marshals.values()
                    if m.nation == "France" and m.strength > 0)
-    marshal.battles_won = 5      # expectation 200
+    marshal.expectation_steps = 5      # expectation 200
     marshal.dotation_regions = []
     marshal.pension = 0
     marshal.expectation_grace_turn = -1

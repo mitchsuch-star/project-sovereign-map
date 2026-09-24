@@ -618,9 +618,14 @@ class TestTheDispatchReReadIsNotStale:
     def _world_owing_ney(self):
         from backend.models.world_state import WorldState
         w = WorldState.from_scenario(SCENARIO)
-        w.marshals["Ney"].battles_won = 3
+        w.marshals["Ney"].expectation_steps = 3
         w._dotation_processed_turn = None
         w._process_dotation_state()
+        # F4: the UNMET block names him only within two turns of erosion
+        # (the boot world is turn 1, so the clock is placed two turns back
+        # from turn 5 rather than at a negative turn, which reads as none).
+        w.current_turn = max(int(w.current_turn), 5)
+        w.marshals["Ney"].expectation_grace_turn = int(w.current_turn) - 2
         return w
 
     def test_paying_a_marshal_drops_him_from_a_re_read(self, world):
@@ -629,9 +634,13 @@ class TestTheDispatchReReadIsNotStale:
         from backend.game_logic.dotation import build_unmet_marshals
 
         ney = world.marshals["Ney"]
-        ney.battles_won = 3
+        ney.expectation_steps = 3
         world._dotation_processed_turn = None
         world._process_dotation_state()
+        # F4: the UNMET block names him only within two turns of erosion
+        # (placed two turns back from turn 5 — the boot world is turn 1).
+        world.current_turn = max(int(world.current_turn), 5)
+        ney.expectation_grace_turn = int(world.current_turn) - 2
         build_morning_dispatch(world)
         stored = world.last_morning_dispatch["situation"]["unmet_marshals"]
         assert any(r["marshal"] == "Ney" for r in stored), "precondition"
@@ -693,7 +702,7 @@ class TestTheDispatchReReadIsNotStale:
         from backend.game_logic.dotation import build_unmet_marshals
 
         ney = world.marshals["Ney"]
-        ney.battles_won = 3
+        ney.expectation_steps = 3
         world._dotation_processed_turn = None
         world._process_dotation_state()
         seen_before = int(getattr(ney, "last_expectation_seen", 0))
@@ -762,13 +771,27 @@ class TestTheDispatchReReadIsNotStale:
         without the window it is prompting about."""
         from backend.game_logic.dotation import GRACE_TURNS, build_unmet_marshals
 
+        from backend.game_logic import dotation as _dot
+
         ney = world.marshals["Ney"]
-        ney.battles_won = 3                     # a victory, mid-turn
+        ney.expectation_steps = 3                     # a victory, mid-turn
         assert int(ney.expectation_grace_turn) == -1, (
             "precondition: the turn pass has not run since")
 
-        row = next(r for r in build_unmet_marshals(world, "France")
-                   if r["marshal"] == "Ney")
+        # F4 "The fuse is longer" (Sept 24, 2026): the block is an ALARM —
+        # a shortfall whose clock has not even started is the rail's row,
+        # not the briefing's, so it is absent here by design...
+        assert not [r for r in build_unmet_marshals(world, "France")
+                    if r["marshal"] == "Ney"]
+        # ...and with the lever down the pre-F4 rule stands: the honest
+        # figure is the full window — never -1, which rendered as nothing.
+        prior = _dot.THE_UNMET_BLOCK_WAITS
+        _dot.THE_UNMET_BLOCK_WAITS = False
+        try:
+            row = next(r for r in build_unmet_marshals(world, "France")
+                       if r["marshal"] == "Ney")
+        finally:
+            _dot.THE_UNMET_BLOCK_WAITS = prior
         assert row["grace_turns_left"] == GRACE_TURNS, (
             "his patience has not started burning yet, so the honest figure "
             "is the full window — never -1, which renders as nothing at all")

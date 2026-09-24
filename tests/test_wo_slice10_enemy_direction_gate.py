@@ -1052,8 +1052,14 @@ class TestTheAmbientBoard:
         # NUI-2 (September 24, 2026): 28 -> 40. Paget's turn-16 descent
         # lands at Provence, not at a Flanders the map draws inland (the
         # class docstring); Flanders' flag alone moves this arm (measured).
-        assert seams == {"_fuzzy_match_enemy": 40,
-                         "_broad_fuzzy_diplomatic_check": 7}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag)
+        # Row EP F4 (September 24, 2026): 40+7 -> 39+6. The deed-keyed reward
+        # curve takes the AI's ambient grants from eight to none (F4's
+        # landing record), which re-times one attack on this UNGATED board;
+        # the gated board — the standing BASELINE_SERIES — is byte-identical.
+        # With the four F4 levers down in the child this arm reads 40+7
+        # again (measured, F4's landing record).
+        assert seams == {"_fuzzy_match_enemy": 39,
+                         "_broad_fuzzy_diplomatic_check": 6}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1078,12 +1084,15 @@ class TestTheAmbientBoard:
         # times, but onto Brunswick: Bernadotte is Austria's prisoner by
         # turn 25, when the orders start. `Champagne` and `Maine` return.
         # Reverting Flanders' flag alone restores 3 + 13 + 5 + 14 (measured).
+        # Row EP F4 (September 24, 2026): the ungated board re-times under
+        # the deed-keyed reward curve (no AI grants): `Guyenne -> Ney`'s four
+        # orders are gone, `Gascony -> Ney` 14 -> 18, `Bern -> Brunswick`
+        # 14 -> 12; the other three pairs are unchanged.
         assert dict(pairs) == {("Leon", "Napoleon"): 3,
-                               ("Gascony", "Ney"): 14,
+                               ("Gascony", "Ney"): 18,
                                ("Champagne", "Ney"): 9,
-                               ("Bern", "Brunswick"): 14,
-                               ("Guyenne", "Ney"): 4,
-                               ("Maine", "Ney"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2
+                               ("Bern", "Brunswick"): 12,
+                               ("Maine", "Ney"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1842,7 +1851,11 @@ class TestTheAiIsNotFrozenInstead:
         #     orders now collapse onto Brunswick.
         #   - Flanders' flag alone moves this arm: reverted in the child, it
         #     reads 28 (measured). See TestTheAmbientBoard.
-        assert cooldowns["ungated"] == 40, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag)
+        #   - Row EP F4 (September 24, 2026): 40 -> 39, again the
+        #     `_fuzzy_match_enemy` count (3 + 18 + 9 + 6 + 3 = 39; the seven
+        #     Bern orders became six). The gated count is unchanged. See
+        #     TestTheAmbientBoard for the cause.
+        assert cooldowns["ungated"] == 39, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve)
         assert cooldowns["gated"] == 5, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 across slices (IQ-7: unchanged)
 
 

@@ -391,7 +391,7 @@ class TestFAN27TheArrearsAgeIsTheMarshals:
 
     def _eroding(self, w, name, grace_turn):
         m = w.get_marshal(name)
-        m.battles_won = 6            # an expectation, and no estate to meet it
+        m.expectation_steps = 6            # an expectation, and no estate to meet it
         m.dotation_regions = []
         m.pension = 0
         m.expectation_grace_turn = grace_turn

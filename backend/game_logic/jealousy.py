@@ -113,6 +113,16 @@ ESCALATION_MUTUAL_LEVEL = 3         # tier 3: mutual spiral
 # ESP-1 Fontainebleau (spec §0.3): >=3 player marshals eroding at once.
 FONTAINEBLEAU_MIN_ERODING = 3
 FONTAINEBLEAU_COOLDOWN = 8          # turns between petitions
+# F4 "The fuse is longer" (ENDGAME_PLAN §1 F4 / D11, Sept 24 2026): the
+# collective petition is an end-of-empire beat and needs a campaign behind
+# it — the live review saw it on turn 7 of a WINNING campaign. It now needs
+# turn >= FONTAINEBLEAU_MIN_TURN and >= FONTAINEBLEAU_MIN_UNMET_GOLD of
+# expectation standing unmet across the petitioners (on top of the three
+# eroding men and the cooldown). The lever is the third arm of the F4
+# BASELINE_SERIES attribution (dotation.py carries the other three).
+THE_COLLECTIVE_PETITION_WAITS = True
+FONTAINEBLEAU_MIN_TURN = 12
+FONTAINEBLEAU_MIN_UNMET_GOLD = 300
 FONTAINEBLEAU_CONCEDE_TRUST = 2
 FONTAINEBLEAU_REFUSE_TRUST = -8
 FONTAINEBLEAU_PROMISE_GRACE = 3     # extra grace turns
@@ -2461,6 +2471,15 @@ def check_fontainebleau(world, events: List[Dict]) -> None:
     if len(eroding) < FONTAINEBLEAU_MIN_ERODING:
         world.fontainebleau_armed = True
         return
+    # F4: the fuse — no collective petition before FONTAINEBLEAU_MIN_TURN,
+    # and none over small change. Checked AFTER the re-arm above so a
+    # count that fell and rose again still re-arms during the wait.
+    if THE_COLLECTIVE_PETITION_WAITS:
+        if int(world.current_turn) < FONTAINEBLEAU_MIN_TURN:
+            return
+        if sum(dotation.get_shortfall(m, world)
+               for m in eroding) < FONTAINEBLEAU_MIN_UNMET_GOLD:
+            return
     last = int(getattr(world, "fontainebleau_last_turn", -999))
     if not armed or world.current_turn - last < FONTAINEBLEAU_COOLDOWN:
         return
@@ -3639,6 +3658,21 @@ def process_turn(world) -> List[Dict]:
 
     # 6) crowns
     events.extend(recompute_crowns(world))
+
+    # 6b) F4 "The fuse is longer" (ENDGAME_PLAN §1 F4): a rise in RANK that
+    # a man's own accrual earned this turn is the second deed that raises
+    # his reward expectation — `dotation.observe_glory_rank` records the
+    # position and owns the rise (floor, cooldown, cap). Every nation's
+    # ladder (GR5); the sovereign holds no rank and a captured or destroyed
+    # man is off the ladder already. Dotation-scoped: the School and the
+    # legacy fixture world record nothing.
+    if dotation.is_dotation_world(world):
+        for _nation in {m.nation for m in world.marshals.values()}:
+            for _index, (_m, _score) in enumerate(get_nation_ladder(world, _nation)):
+                _accrued = any(
+                    int(e.get("turn", -1)) == turn and int(e.get("points", 0)) > 0
+                    for e in (getattr(_m, "glory_events", []) or []))
+                dotation.observe_glory_rank(_m, world, _index + 1, _accrued)
 
     # ══════════════════════════════════════════════════════════════════
     # 7) §6b separation warnings

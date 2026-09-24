@@ -107,6 +107,53 @@ GRACE_TURNS = 4
 # "any met turn resets" byte-identically.
 PENSION_CHURN_GUARD_ACTIVE = True
 
+# ═══════ F4 "THE FUSE IS LONGER" (ENDGAME_PLAN §1 F4 / D11, Sept 24 2026) ═══════
+# The live review (BUG_FIXES LV-21 / DESIGN_REFINEMENT LV-D1) measured the
+# curve as built: after Ulm (turn 1) four marshals expected 40–80g/turn, the
+# dispatch carried an UNMET MARSHALS block from turn 2, and on turn 7 of a
+# WINNING campaign the Fontainebleau collective petition fired for 600g/turn
+# against ~3,400g/turn of income. Every mechanic did what it said; the fuse
+# was too short for a first campaign, because `battles_won` is a monotonic
+# ratchet that every participant of every tactical win banks.
+#
+# The ruling reshapes the CURVE, not the numbers. An expectation now rises
+# only on a DEED:
+#   (a) a decisive victory with the marshal as LEAD — the beaten corps
+#       broken, destroyed or its commander taken (FULL_VICTORY_OUTCOMES or
+#       the loser gone from the field), or the war score's own decisive
+#       exchange (battle_scale.is_decisive_exchange); never a reinforcer,
+#       never a stalemate, never a garrison stomp (that path never reaches
+#       the seam — the exemption the glory ladder keeps, CA8-19);
+#   (b) a rise in his glory RANK that his own accrual earned that turn
+#       (a rank that rose because a rival's glory decayed raises nothing);
+# at most once per marshal per EXPECTATION_RISE_COOLDOWN turns, and never
+# before EXPECTATION_FIRST_TURN. The count lives in
+# `Marshal.expectation_steps` (REP_STEP × steps, capped): it cannot stay on
+# `battles_won`, which the ledger and the card print as his RECORD, and a
+# record must not lie to lengthen a fuse. `battles_won` still ratchets for
+# every other reader exactly as before.
+#
+# Four levers, one per arm of the BASELINE_SERIES attribution (plan D15):
+# EXPECTATION_RISES_ON_DEEDS (the deed rule AND the first-turn floor),
+# EXPECTATION_RISE_COOLDOWN_ACTIVE, jealousy.THE_COLLECTIVE_PETITION_WAITS
+# (turn ≥ 12 and ≥ 300g unmet across the petitioners) and
+# THE_UNMET_BLOCK_WAITS (the dispatch block only within 2 turns of erosion).
+# All four down reproduces the pre-F4 game byte-for-byte: `get_expectation`
+# reads `battles_won` again and nothing writes the new fields' meaning.
+# GR5: the AI's marshals climb the same curve and its grant rung reads the
+# same predicates. Every number is in-band; the SHAPE is the ruling.
+# Re-open condition (plan F4): a 40-turn commanded campaign that never sees
+# a collective petition lowers FONTAINEBLEAU_MIN_TURN to 9.
+EXPECTATION_RISES_ON_DEEDS = True
+EXPECTATION_FIRST_TURN = 6
+EXPECTATION_RISE_COOLDOWN_ACTIVE = True
+EXPECTATION_RISE_COOLDOWN = 4
+# Outcomes in which the beaten corps is broken or destroyed outright — a
+# decisive victory by outcome, whatever the exchange.
+FULL_VICTORY_OUTCOMES = ("attacker_victory", "defender_victory")
+THE_UNMET_BLOCK_WAITS = True
+UNMET_BLOCK_WINDOW_TURNS = 2
+
 # AI grant rung (GR5): the enemy AI endows its most-shortfalling marshal
 # once the shortfall clears this threshold (2 wins' worth of expectation).
 AI_GRANT_SHORTFALL_THRESHOLD = 80
@@ -223,7 +270,9 @@ def is_dotation_world(world) -> bool:
 
 
 def expectation_for_wins(battles_won: int) -> int:
-    """The curve itself: what N victories are felt to be worth, per turn.
+    """The curve itself: what N steps up the curve are felt to be worth, per
+    turn. Under F4 a step is a DEED (`Marshal.expectation_steps`); with the
+    lever down it is a battle won, as it was from ES-7 to September 2026.
 
     GR1. `combat_executor` needed the value for a marshal's win count BEFORE
     the battle (to say "victory RAISES his expectation") and hand-rolled
@@ -246,7 +295,84 @@ def get_expectation(marshal) -> int:
     """
     if getattr(marshal, "is_sovereign", False):
         return 0
+    if EXPECTATION_RISES_ON_DEEDS:
+        return expectation_for_wins(getattr(marshal, "expectation_steps", 0))
     return expectation_for_wins(getattr(marshal, "battles_won", 0))
+
+
+def is_decisive_victory(outcome: str, winner_casualties: int,
+                        loser_casualties: int, loser=None) -> bool:
+    """F4 (a): the field DEED that raises the winner's reward expectation.
+
+    Decisive by OUTCOME (the beaten corps broken or destroyed —
+    FULL_VICTORY_OUTCOMES), by FATE (the loser gone from the field or his
+    commander taken by the time the pipeline reaches the seam: the
+    destruction sweep can turn a tactical outcome into a kill), or by the
+    EXCHANGE (the war score's own decisive test). A tactical victory that
+    is none of these is a battle won, not a claim on the Empire.
+    """
+    if str(outcome or "") in FULL_VICTORY_OUTCOMES:
+        return True
+    if loser is not None and (int(getattr(loser, "strength", 0) or 0) <= 0
+                              or getattr(loser, "captured_by", "")):
+        return True
+    from backend.game_logic.battle_scale import is_decisive_exchange
+    return is_decisive_exchange(int(winner_casualties), int(loser_casualties))
+
+
+def expectation_rise_blocked(marshal, world) -> str:
+    """Why a rise would NOT happen for this man now ('' = it would).
+
+    The three gates in the order they are said: the sovereign never
+    expects, nobody expects before EXPECTATION_FIRST_TURN, one rise per
+    EXPECTATION_RISE_COOLDOWN turns, and the cap is the cap.
+    """
+    if getattr(marshal, "is_sovereign", False):
+        return "the Empire is his estate"
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    if turn < EXPECTATION_FIRST_TURN:
+        return f"no claim is felt before turn {EXPECTATION_FIRST_TURN}"
+    last = int(getattr(marshal, "last_expectation_rise_turn", -1) or -1)
+    if (EXPECTATION_RISE_COOLDOWN_ACTIVE and last >= 0
+            and turn - last < EXPECTATION_RISE_COOLDOWN):
+        return (f"his expectation rose on turn {last} — one rise per "
+                f"{EXPECTATION_RISE_COOLDOWN} turns")
+    if expectation_for_wins(getattr(marshal, "expectation_steps", 0)) >= EXPECTATION_CAP:
+        return "his expectation is at its cap"
+    return ""
+
+
+def raise_expectation(marshal, world, cause: str = "") -> bool:
+    """F4: the ONE write that raises a reward expectation. Returns True when
+    it rose. Both deeds — the decisive victory as lead (combat_executor's
+    post-combat tail, player and AI alike) and the earned rank rise
+    (jealousy.process_turn) — come through here, so the floor, the cooldown
+    and the cap are checked in one place and stamped once.
+    """
+    if not EXPECTATION_RISES_ON_DEEDS:
+        return False
+    if marshal is None or expectation_rise_blocked(marshal, world):
+        return False
+    marshal.expectation_steps = int(getattr(marshal, "expectation_steps", 0) or 0) + 1
+    marshal.last_expectation_rise_turn = int(world.current_turn)
+    return True
+
+
+def observe_glory_rank(marshal, world, position: int,
+                       accrued_this_turn: bool) -> bool:
+    """F4 (b): record the man's ladder position and raise his expectation
+    when it ROSE and he earned it. `position` is 1-based (0 = off the
+    ladder). The first observation is silent (the NA-1 `*_seen` idiom), and
+    a rise that a rival's decay or capture handed him is not a deed — his
+    own positive accrual THIS turn is required. Returns True on a rise.
+    """
+    seen = int(getattr(marshal, "glory_rank_seen", 0) or 0)
+    marshal.glory_rank_seen = int(position)
+    if seen <= 0 or position <= 0 or position >= seen:
+        return False
+    if not accrued_this_turn:
+        return False
+    return raise_expectation(marshal, world, "glory rank")
 
 
 def get_estate_income(marshal, world, ignore_disruption: bool = False) -> int:
@@ -1035,12 +1161,23 @@ def build_unmet_marshals(world, nation: str) -> List[Dict]:
                 # exists to prompt action. His patience has not started
                 # burning yet, so the honest figure is the full window.
                 grace_turns_left = GRACE_TURNS
+        eroding = bool(is_eroding(marshal, world))
+        # F4 "The fuse is longer" (ENDGAME_PLAN §1 F4): the block is the
+        # briefing's ALARM, not its ledger — it names a man only once his
+        # patience is down to UNMET_BLOCK_WINDOW_TURNS or already eroding.
+        # The rail row (post_expectation_notice) still opens with the
+        # shortfall and counts the whole window down; the per-victory
+        # "raises his expectation" line stays (it is the tell). A captured
+        # man's expectations are frozen (W6-7), so he is never an alarm.
+        if THE_UNMET_BLOCK_WAITS and not eroding:
+            if grace_turns_left < 0 or grace_turns_left > UNMET_BLOCK_WINDOW_TURNS:
+                continue
         rows.append({
             "marshal": marshal.name,
             "expectation": int(expectation),
             "satisfaction": int(satisfaction),
             "shortfall": int(expectation - satisfaction),
-            "eroding": bool(is_eroding(marshal, world)),
+            "eroding": eroding,
             "grace_turns_left": int(grace_turns_left),
             "pension": int(getattr(marshal, "pension", 0)),
         })

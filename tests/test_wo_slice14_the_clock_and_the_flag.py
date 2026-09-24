@@ -94,7 +94,7 @@ class TestWO18PensionChurn:
         """A marshal owed 200/turn with no estate — a bare rente closes
         the shortfall, so the rente is always load-bearing."""
         m = _french_marshal(world)
-        m.battles_won = 5           # expectation 200
+        m.expectation_steps = 5           # expectation 200
         world.current_turn = 10
         m.expectation_grace_turn = -1
         m.pension = 0
@@ -164,7 +164,7 @@ class TestWO18PensionChurn:
         estate coverage too."""
         world = self._world(europe)
         m = self._owed_marshal(world)
-        m.battles_won = 2                     # expectation 80
+        m.expectation_steps = 2                     # expectation 80
         m.expectation_grace_turn = world.current_turn - 1   # clock open
         # An estate whose income alone covers the 80.
         region = next(r for r in world.regions.values() if r.controller == "France")

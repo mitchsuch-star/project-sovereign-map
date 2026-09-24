@@ -349,7 +349,7 @@ class TestCapturedState:
         capital — the grace clock resets."""
         world, weak = self._captured()
         world.sovereign_map = "europe"
-        weak.battles_won = 8            # high expectation
+        weak.expectation_steps = 8            # high expectation
         weak.expectation_grace_turn = 1  # clock was running
         trust_before = weak.trust.value if hasattr(weak.trust, "value") \
             else weak.trust

@@ -84,3 +84,27 @@ def is_a_battle(total_casualties) -> bool:
         return int(total_casualties) >= MIN_BATTLE_CASUALTIES
     except (TypeError, ValueError):
         return True  # unreadable input is never silently downgraded
+
+
+# The war score's own DECISIVE test (diplomacy.record_battle, unchanged since
+# Phase 8): a blood exchange above DECISIVE_MIN_CASUALTIES in which one side
+# bled more than DECISIVE_RATIO times the other. F4 "The fuse is longer"
+# (ENDGAME_PLAN §1 F4, Sept 24 2026) made it a named predicate because a
+# second reader arrived — the reward curve's "decisive victory as lead" — and
+# a second inline copy of `> 10000 and ratio > 2.0` is the drift pattern this
+# codebase keeps paying for. The two threat arms in combat_executor keep their
+# older inline copies (both combat copies, pinned byte-identical elsewhere).
+DECISIVE_MIN_CASUALTIES = 10000
+DECISIVE_RATIO = 2.0
+
+
+def is_decisive_exchange(side_a_casualties, side_b_casualties) -> bool:
+    """True when the exchange itself was decisive, whoever won it."""
+    try:
+        a = int(side_a_casualties)
+        b = int(side_b_casualties)
+    except (TypeError, ValueError):
+        return False
+    if a + b <= DECISIVE_MIN_CASUALTIES or a <= 0 or b <= 0:
+        return False
+    return max(a, b) / min(a, b) > DECISIVE_RATIO

@@ -109,7 +109,7 @@ def _endow_marshals(world, nation, count=3):
     marshals = [m for m in world.marshals.values()
                 if m.nation == nation and m.strength > 0][:count]
     for m in marshals:
-        m.battles_won = 10  # capped expectation
+        m.expectation_steps = 10  # capped expectation
         eligible = list_eligible_estates(world, nation)
         if eligible:
             m.dotation_regions.append(eligible[0])
@@ -252,7 +252,7 @@ class TestMinorAISide:
         world.invalidate_active_nations_cache()
         marshal = next(m for m in world.marshals.values()
                        if m.nation == self.NATION and m.strength > 0)
-        marshal.battles_won = 5
+        marshal.expectation_steps = 5
         # endow the conquest itself — the redirect sink
         marshal.dotation_regions.append(conquest.name)
         income = world.calculate_turn_income(self.NATION)
@@ -285,7 +285,7 @@ class TestMinorAISide:
         world.invalidate_active_nations_cache()
         marshal = next(m for m in world.marshals.values()
                        if m.nation == self.NATION and m.strength > 0)
-        marshal.battles_won = 5
+        marshal.expectation_steps = 5
         marshal.dotation_regions.append(conquest.name)
         start_gold = world.nation_gold[self.NATION]
         for _ in range(8):
@@ -300,7 +300,7 @@ class TestMinorAISide:
         — identical machinery, no AI-only code."""
         marshal = next(m for m in world.marshals.values()
                        if m.nation == self.NATION and m.strength > 0)
-        marshal.battles_won = 2  # expectation 80
+        marshal.expectation_steps = 2  # expectation 80
         trust_start = marshal.trust.value
         # Derived from the grace window, not the literal 3 — this pin red-ed
         # on the Aug-23 GRACE_TURNS retune only because it had the window

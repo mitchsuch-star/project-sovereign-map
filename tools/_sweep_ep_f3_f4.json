@@ -1,0 +1,219 @@
+[
+  {
+    "id": "EPF4-1 the deed lever down",
+    "file": "backend/game_logic/dotation.py",
+    "old": "EXPECTATION_RISES_ON_DEEDS = True",
+    "new": "EXPECTATION_RISES_ON_DEEDS = False",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_the_record_no_longer_prices_the_claim"
+  },
+  {
+    "id": "EPF4-2 the first-turn floor removed",
+    "file": "backend/game_logic/dotation.py",
+    "old": "EXPECTATION_FIRST_TURN = 6",
+    "new": "EXPECTATION_FIRST_TURN = 1",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_no_claim_is_felt_before_turn_six"
+  },
+  {
+    "id": "EPF4-3 the cooldown shortened",
+    "file": "backend/game_logic/dotation.py",
+    "old": "EXPECTATION_RISE_COOLDOWN = 4",
+    "new": "EXPECTATION_RISE_COOLDOWN = 1",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_one_rise_per_four_turns"
+  },
+  {
+    "id": "EPF4-4 the cooldown never checked",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if (EXPECTATION_RISE_COOLDOWN_ACTIVE and last >= 0\n            and turn - last < EXPECTATION_RISE_COOLDOWN):",
+    "new": "    if False:",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_one_rise_per_four_turns"
+  },
+  {
+    "id": "EPF4-5 the cap not checked",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if expectation_for_wins(getattr(marshal, \"expectation_steps\", 0)) >= EXPECTATION_CAP:\n        return \"his expectation is at its cap\"",
+    "new": "    if False:\n        return \"his expectation is at its cap\"",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_the_cap_is_the_cap"
+  },
+  {
+    "id": "EPF4-6 a reinforcer counted as the lead",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                    if (_f4_lead is not None\n                            and is_decisive_victory(",
+    "new": "                    for _p in list(atk_participants if 'atk_participants' in dir() else []):\n                        raise_expectation(_p, world, 'x')\n                    if (_f4_lead is not None\n                            and is_decisive_victory(",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_a_reinforcer_never_rises"
+  },
+  {
+    "id": "EPF4-7 a tactical victory counted as decisive",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if str(outcome or \"\") in FULL_VICTORY_OUTCOMES:\n        return True",
+    "new": "    if \"victory\" in str(outcome or \"\"):\n        return True",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_a_tactical_victory_raises_nothing"
+  },
+  {
+    "id": "EPF4-8 the rank rise ignores the deed",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if not accrued_this_turn:\n        return False\n    return raise_expectation(marshal, world, \"glory rank\")",
+    "new": "    return raise_expectation(marshal, world, \"glory rank\")",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheRankRise::test_a_rank_handed_over_by_decay_is_not_a_deed"
+  },
+  {
+    "id": "EPF4-9 the first observation is not silent",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if seen <= 0 or position <= 0 or position >= seen:\n        return False",
+    "new": "    if position <= 0 or (seen > 0 and position >= seen):\n        return False",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheRankRise::test_first_observation_is_silent"
+  },
+  {
+    "id": "EPF4-10 the jealousy pass stops observing the ladder",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                dotation.observe_glory_rank(_m, world, _index + 1, _accrued)",
+    "new": "                pass",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheRankRise::test_the_jealousy_pass_observes_every_ladder"
+  },
+  {
+    "id": "EPF4-11 the petition's turn floor removed",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "FONTAINEBLEAU_MIN_TURN = 12",
+    "new": "FONTAINEBLEAU_MIN_TURN = 1",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheCollectivePetitionWaits::test_no_petition_before_turn_twelve"
+  },
+  {
+    "id": "EPF4-12 the petition's gold floor removed",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "FONTAINEBLEAU_MIN_UNMET_GOLD = 300",
+    "new": "FONTAINEBLEAU_MIN_UNMET_GOLD = 0",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheCollectivePetitionWaits::test_no_petition_over_small_change"
+  },
+  {
+    "id": "EPF4-13 the wait swallows the re-arm",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if len(eroding) < FONTAINEBLEAU_MIN_ERODING:\n        world.fontainebleau_armed = True\n        return\n    # F4: the fuse",
+    "new": "    if THE_COLLECTIVE_PETITION_WAITS and int(world.current_turn) < FONTAINEBLEAU_MIN_TURN:\n        return\n    if len(eroding) < FONTAINEBLEAU_MIN_ERODING:\n        world.fontainebleau_armed = True\n        return\n    # F4: the fuse",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheCollectivePetitionWaits::test_the_wait_still_re_arms_the_latch"
+  },
+  {
+    "id": "EPF4-14 the unmet block names everyone",
+    "file": "backend/game_logic/dotation.py",
+    "old": "            if grace_turns_left < 0 or grace_turns_left > UNMET_BLOCK_WINDOW_TURNS:\n                continue",
+    "new": "            pass",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheUnmetBlockWaits::test_a_fresh_shortfall_is_the_rails_row_not_the_briefings"
+  },
+  {
+    "id": "EPF4-15 the captive is an alarm",
+    "file": "backend/game_logic/dotation.py",
+    "old": "            if grace_turns_left < 0 or grace_turns_left > UNMET_BLOCK_WINDOW_TURNS:",
+    "new": "            if grace_turns_left > UNMET_BLOCK_WINDOW_TURNS:",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheUnmetBlockWaits::test_a_captive_is_never_an_alarm"
+  },
+  {
+    "id": "EPF4-16 the old save is not backfilled",
+    "file": "backend/models/marshal.py",
+    "old": "        if _steps is None:\n            _steps = data.get(\"battles_won\", 0)",
+    "new": "        if _steps is None:\n            _steps = 0",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheSaveAndTheAI::test_a_pre_f4_save_keeps_what_he_was_owed"
+  },
+  {
+    "id": "EPF4-17 the decisive exchange test loosened",
+    "file": "backend/game_logic/battle_scale.py",
+    "old": "    return max(a, b) / min(a, b) > DECISIVE_RATIO",
+    "new": "    return True",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheSaveAndTheAI::test_the_decisive_exchange_is_the_war_scores_own"
+  },
+  {
+    "id": "EPF4-18 the war score no longer reads the shared predicate",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    if battle_scale.is_decisive_exchange(attacker_casualties, defender_casualties):",
+    "new": "    if total_casualties > 10000 and attacker_casualties > 0 and defender_casualties > 0 and max(attacker_casualties, defender_casualties) / min(attacker_casualties, defender_casualties) > 3.0:",
+    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheSaveAndTheAI::test_record_battle_reads_the_shared_predicate"
+  },
+  {
+    "id": "EPF3-1 the dispatch drops the ETA",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            return \"en_route\", f\"Moving to {target}{eta}.{letter}\"",
+    "new": "            return \"en_route\", f\"Moving to {target}.{letter}\"",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheOrderTellsItsEta::test_the_dispatch_status_carries_the_eta"
+  },
+  {
+    "id": "EPF3-2 the ETA counts the road wrong",
+    "file": "backend/commands/strategic.py",
+    "old": "    path = getattr(order, \"path\", None)\n    return len(path) if path else 0",
+    "new": "    path = getattr(order, \"path\", None)\n    return len(path) + 1 if path else 0",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheOrderTellsItsEta::test_the_road_ahead_is_the_reading"
+  },
+  {
+    "id": "EPF3-3 the timed hold reads the tick's count on the dispatch",
+    "file": "backend/commands/strategic.py",
+    "old": "    remaining = order_turns_remaining(order, current_turn, including_current=False)",
+    "new": "    remaining = order_turns_remaining(order, current_turn, including_current=True)",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheOrderTellsItsEta::test_a_timed_hold_counts_its_turns_from_the_dispatch_side"
+  },
+  {
+    "id": "EPF3-4 the report stops sharing the arithmetic",
+    "file": "backend/commands/strategic.py",
+    "old": "                remaining = order_turns_remaining(order, int(world.current_turn))",
+    "new": "                remaining = len(order.path) if order.path else 0",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheRecapModalIsRetired::test_the_report_and_the_dispatch_share_the_arithmetic"
+  },
+  {
+    "id": "EPF3-5 the sponsor chip offered to a court at war with its design against us",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        if not (at_war and aim == player):\n            actions.append(_chip(",
+    "new": "        if True:\n            actions.append(_chip(",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheSponsorChipSpeaksTrue::test_a_court_at_war_whose_design_is_against_us_gets_no_sponsor_chip"
+  },
+  {
+    "id": "EPF3-6 the sponsor copy aims a court at France",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        if aim == player:\n            sponsor_detail = (\"Fund the design they already pursue against \"\n                              \"us — a bribe, not a purchase.\")",
+    "new": "        if False:\n            sponsor_detail = (\"Fund the design they already pursue against \"\n                              \"us — a bribe, not a purchase.\")",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheSponsorChipSpeaksTrue::test_at_peace_the_chip_says_it_funds_the_design_against_us"
+  },
+  {
+    "id": "EPF3-7 the capture route not result_first",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\"show\": \"_route_capture_choice_response\", \"result_first\": true}",
+    "new": "\"show\": \"_route_capture_choice_response\"}",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheCaptureRouteIsResultFirst::test_the_route_is_marked tests/test_ep_f3_the_client_layout_pass.py::TestTheCaptureWaitsBehindTheReport"
+  },
+  {
+    "id": "EPF3-8 the capture renderer prints the message again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif response.has(\"message\") and not bool(response.get(\"_result_rendered\", false)):",
+    "new": "\tif response.has(\"message\"):",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheCaptureRouteIsResultFirst::test_the_renderer_stamps_and_the_capture_reads_the_stamp tests/test_ep_f3_the_client_layout_pass.py::TestTheCaptureWaitsBehindTheReport"
+  },
+  {
+    "id": "EPF3-9 the recap modal raised again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t# LV-D3: no modal — straight on to the interrupts (if any) and the dispatch.\n\t_on_strategic_report_dismissed()",
+    "new": "\tstrategic_report_popup.show_reports(reports, current_turn)",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheRecapModalIsRetired::test_the_turn_start_never_raises_the_popup tests/test_ep_f3_the_client_layout_pass.py::TestTheTurnStartRaisesNoRecap"
+  },
+  {
+    "id": "EPF3-10 the log prefix is the letter again",
+    "file": "godot-client/project-sovereign/scripts/campaign_log.gd",
+    "old": "\t\tif ResourceLoader.exists(path):\n\t\t\treturn Utils.bb_icon(path, 12, color)",
+    "new": "\t\tif false:\n\t\t\treturn Utils.bb_icon(path, 12, color)",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheLogRowsAreGlyphs::test_the_prefix_is_the_tinted_glyph_and_the_letter_is_the_fallback"
+  },
+  {
+    "id": "EPF3-11 the petition reason printed twice again",
+    "file": "godot-client/project-sovereign/scripts/marshal_petition_dialog.gd",
+    "old": "\tif not is_enabled and reason != \"\" and detail == reason:\n\t\tdetail = \"\"",
+    "new": "\tif not is_enabled and reason != \"\":\n\t\tdetail = reason if detail == \"\" else reason + \"  \" + detail",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestThePetitionNamesItsClosedArm::test_the_script_fills_the_gate_line_and_drops_the_duplicate"
+  },
+  {
+    "id": "EPF3-12 the wizard chip no longer wraps",
+    "file": "godot-client/project-sovereign/scripts/diplomacy_wizard.gd",
+    "old": "\tbtn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART\n\tbtn.size_flags_horizontal = Control.SIZE_EXPAND_FILL\n\tif has_reason:",
+    "new": "\tif has_reason:",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheWizardWraps::test_the_chip_wraps_and_the_reason_is_its_own_line"
+  },
+  {
+    "id": "EPF3-13 the tier-2 chips back in one grid",
+    "file": "godot-client/project-sovereign/scripts/proposal_confirm_popup.gd",
+    "old": "\t\ttier2_button_container.add_child(line)",
+    "new": "\t\ttier2_button_container.add_child(Label.new())",
+    "tests": "tests/test_ep_f3_the_client_layout_pass.py::TestTheSettlementRowsPerCourt::test_the_builder_groups_by_court_and_derives_the_floor tests/test_ui_visual_foundation.py::test_settlement_tier2_buttons_have_their_own_bounded_rail"
+  }
+]

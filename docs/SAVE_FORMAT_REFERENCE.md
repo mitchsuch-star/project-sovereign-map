@@ -442,6 +442,9 @@ Reserved future `event_log` payloads:
   "administrative_location": null,
   "pension": 0,
   "last_expectation_seen": 0,
+  "expectation_steps": 0,
+  "last_expectation_rise_turn": -1,
+  "glory_rank_seen": 0,
 
   "relationships": {"Davout": -2, "Grouchy": 0},
 
@@ -589,6 +592,9 @@ Reserved future `event_log` payloads:
 | `administrative_location` | str/null | Where he was standing when he was frozen. Kept for the record and NOT used as the restore destination — `recruitment.find_spawn_region` is, because the old province may be in enemy hands. Absent → null. |
 | `pension` | int | ES-7 second pass (§0.6.8): the rente FACE in g/turn. Counts fully toward satisfaction; the treasury pays `ceil(1.5 × face)`/turn through the income phase. Neither pays nor counts while captured (W6-7). Default `0`. |
 | `last_expectation_seen` | int | Last expectation value announced in the Morning Dispatch's expectation-rise lines; reconciled at dispatch build. Default `0`. |
+| `expectation_steps` | int | **Row EP F4 "The fuse is longer"** (September 24, 2026; `SYSTEMS_REFERENCE.md` §59). The reward curve's own count — the number of DEEDS that raised his expectation (`dotation.REP_STEP × steps`, capped); kept apart from `battles_won`, the printed record. Save-compat: absent → backfilled from `battles_won`, the count the old curve read, so nobody's claim vanishes on load. |
+| `last_expectation_rise_turn` | int | F4. The turn of his last rise (-1 = never) — the per-marshal cooldown `dotation.raise_expectation` reads (`EXPECTATION_RISE_COOLDOWN` 4). Absent → -1. |
+| `glory_rank_seen` | int | F4. His ladder position as the last jealousy pass saw it (1-based; 0 = off the ladder or never observed). A rise in RANK earned by his own accrual is the second deed; the first observation is silent. Absent → 0. |
 
 #### Relationships & Co-Location (Phase 4 / Phase 7 S59)
 | Field | Type | Description |

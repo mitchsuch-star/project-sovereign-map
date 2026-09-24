@@ -103,7 +103,7 @@ def stage_erosion(world, name="Lannes", trust=23, wins=3):
     `turn - GRACE_TURNS` negative, which the tick reads as "no clock" and
     opens a fresh grace — so the board is advanced to turn 10 first."""
     m = world.marshals[name]
-    m.battles_won = wins
+    m.expectation_steps = wins
     m.trust.set(trust)
     world.current_turn = 10
     m.expectation_grace_turn = int(world.current_turn) - D.GRACE_TURNS

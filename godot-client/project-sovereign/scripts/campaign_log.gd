@@ -15,12 +15,23 @@ signal closed
 @onready var turn_list = $PanelContainer/VBoxContainer/ScrollContainer/TurnList
 @onready var empty_label = $PanelContainer/VBoxContainer/ScrollContainer/TurnList/EmptyLabel
 
-const CATEGORY_ICONS = {
-	"combat": "[color=#daa06d]X[/color]",
-	"territory": "[color=#90d890]>[/color]",
-	"economy": "[color=#d9c08c]$[/color]",
-	"command": "[color=#c9b8e0]![/color]",
-	"diplomacy": "[color=#b0a0d0]D[/color]",
+# LV-16 (row EP F3): the row prefix is a GLYPH — the phosphor set the notice
+# rail already uses (UI-6), tinted the category's colour. The letters were
+# the fallback and had been rendering AS the prefix ("D An envoy…", "X Battle
+# of Vienna…"); they stay the fallback for a glyph missing on disk.
+const CATEGORY_GLYPHS = {
+	"combat": "sword",
+	"territory": "flag",
+	"economy": "coins",
+	"command": "scroll",
+	"diplomacy": "handshake",
+}
+const CATEGORY_LETTERS = {
+	"combat": "X",
+	"territory": ">",
+	"economy": "$",
+	"command": "!",
+	"diplomacy": "D",
 }
 
 const CATEGORY_COLORS = {
@@ -116,7 +127,7 @@ func _on_campaign_log_received(response):
 			label.add_theme_font_size_override("normal_font_size", 12)
 
 			var category = evt.get("category", "unknown")
-			var icon = CATEGORY_ICONS.get(category, " ")
+			var icon = _category_icon(str(category))
 			var color = CATEGORY_COLORS.get(category, "a0a0a8")
 			var display_text = evt.get("display", "Unknown event")
 
@@ -131,6 +142,18 @@ func _on_campaign_log_received(response):
 			expanded_turns[turn_num] = false
 			event_container.visible = false
 		_update_turn_header(turn_num)
+
+
+func _category_icon(category: String) -> String:
+	"""LV-16: the category's glyph, tinted; the letter only as a fallback."""
+	var color = str(CATEGORY_COLORS.get(category, "a0a0a8"))
+	var glyph = str(CATEGORY_GLYPHS.get(category, ""))
+	if glyph != "":
+		var path = Utils.ICON_PHOSPHOR + glyph + ".svg"
+		if ResourceLoader.exists(path):
+			return Utils.bb_icon(path, 12, color)
+	var letter = str(CATEGORY_LETTERS.get(category, " "))
+	return "[color=#" + color + "]" + letter + "[/color]"
 
 
 func _toggle_turn(turn_num: int):

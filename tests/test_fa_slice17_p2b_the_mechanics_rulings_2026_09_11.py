@@ -114,7 +114,7 @@ class TestD5TheAudienceNamesItsCause:
     def _in_arrears(w, name="Lannes", wins=4):
         from backend.game_logic import dotation as DT
         m = w.marshals[name]
-        m.battles_won = wins
+        m.expectation_steps = wins
         assert DT.get_shortfall(m, w) > 0
         m.trust.modify(-100)
         return m

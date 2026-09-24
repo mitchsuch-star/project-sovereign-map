@@ -9591,19 +9591,18 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
     }
     world.battle_records[diplo_key].append(record)
 
-    # Check for decisive battle (total_casualties already computed above)
-    if total_casualties > 10000:
-        if attacker_casualties > 0 and defender_casualties > 0:
-            ratio = max(attacker_casualties, defender_casualties) / min(attacker_casualties, defender_casualties)
-            if ratio > 2.0:
-                # Max 2 decisive bonuses per war
-                if len(world.decisive_battles[diplo_key]) < 2:
-                    world.decisive_battles[diplo_key].append({
-                        "turn": world.current_turn,
-                        "winner": winner_nation,
-                        "total_casualties": int(total_casualties),
-                        "ratio": round(ratio, 1),
-                    })
+    # Check for decisive battle — the ONE predicate (battle_scale, F4): a
+    # blood exchange above 10,000 in which one side bled more than 2:1.
+    if battle_scale.is_decisive_exchange(attacker_casualties, defender_casualties):
+        ratio = max(attacker_casualties, defender_casualties) / min(attacker_casualties, defender_casualties)
+        # Max 2 decisive bonuses per war
+        if len(world.decisive_battles[diplo_key]) < 2:
+            world.decisive_battles[diplo_key].append({
+                "turn": world.current_turn,
+                "winner": winner_nation,
+                "total_casualties": int(total_casualties),
+                "ratio": round(ratio, 1),
+            })
 
 
 # ═══════════════════════════════════════════════════════
@@ -11882,14 +11881,25 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
             sponsor_ok, reason = True, ""
         from backend.display_names import display_nation as _dn
         aim_display = _dn(aim) if aim else "their rival"
-        actions.append(_chip(
-            "sponsor_design",
-            f"Sponsor Their Design ({amount}g/turn)",
-            sponsor_ok, reason,
-            f"Aim their court at {aim_display} — gold flows, the compact "
-            f"binds both ends (§3.3).",
-            gold_cost=amount, aim=aim, amount=amount,
-        ))
+        # LV-20 (row EP F3): a court whose design is aimed at FRANCE is not
+        # being aimed anywhere by our gold — the chip says what the money
+        # would actually do; and while that court is at war with us the
+        # chip is not offered at all (funding the enemy's war aim is not a
+        # diplomatic action, and the executor refuses it anyway).
+        if aim == player:
+            sponsor_detail = ("Fund the design they already pursue against "
+                              "us — a bribe, not a purchase.")
+        else:
+            sponsor_detail = (f"Aim their court at {aim_display} — gold "
+                              f"flows, the compact binds both ends (§3.3).")
+        if not (at_war and aim == player):
+            actions.append(_chip(
+                "sponsor_design",
+                f"Sponsor Their Design ({amount}g/turn)",
+                sponsor_ok, reason,
+                sponsor_detail,
+                gold_cost=amount, aim=aim, amount=amount,
+            ))
 
         # ── Buy off their design (D5-1) ──
         price = compute_buyoff_price(world, target_nation)

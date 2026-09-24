@@ -8104,36 +8104,85 @@ class CombatExecutor:
                 result["battle_report"]["marshal_voice"] = battle_result["marshal_voice"]
             # §0.6.8 item 4c: a victory that raised the winner's reward
             # expectation says so in the report at the moment it happens,
-            # not just in tomorrow's dispatch. Read as a battles_won DELTA
-            # against the pre-combat snapshot — decisive outcomes, tactical
-            # coordination wins, and destruction-sweep kills all land here
-            # regardless of which seam did the increment. Player marshals
-            # only; display-only (Golden Rule 6). Reinforcing participants
-            # surface via the next dispatch's expectation_rises instead.
+            # not just in tomorrow's dispatch.
+            #
+            # F4 "The fuse is longer" (ENDGAME_PLAN §1 F4, Sept 24 2026):
+            # the rise itself is DECIDED here — the one post-combat tail
+            # every attack passes through, the player's and the AI's alike
+            # (GR5). The LEAD of the winning side (never a reinforcer —
+            # `marshal` / `enemy_marshal` are the principals; participants
+            # have their own loop above), on a DECISIVE victory
+            # (`dotation.is_decisive_victory`: the beaten corps broken,
+            # destroyed or its commander taken, or the war score's own
+            # decisive exchange), through `dotation.raise_expectation`,
+            # which owns the first-turn floor, the cooldown and the cap.
+            # Garrison assaults return before this tail, so a stomp raises
+            # nothing — the exemption the glory ladder keeps (CA8-19).
+            # With the lever down the pre-F4 reading stands: a battles_won
+            # DELTA against the pre-combat snapshot (decisive outcomes,
+            # tactical coordination wins and destruction-sweep kills all
+            # land there regardless of which seam did the increment).
+            # The note is player-only and display-only (Golden Rule 6).
             from backend.game_logic.dotation import (
-                expectation_for_wins, get_expectation,
-                get_satisfaction, is_dotation_world, restate_reward_notice,
+                EXPECTATION_RISES_ON_DEEDS, expectation_for_wins,
+                get_expectation, get_satisfaction, is_decisive_victory,
+                is_dotation_world, raise_expectation, restate_reward_notice,
             )
             if is_dotation_world(world):
-                for _exp_winner in (marshal, enemy_marshal):
-                    if (_exp_winner is None
-                            or _exp_winner.nation != world.player_nation):
-                        continue
-                    _exp_before = _exp_wins_before.get(_exp_winner.name)
-                    if (_exp_before is None
-                            or int(getattr(_exp_winner, "battles_won", 0))
-                            <= _exp_before):
-                        continue
-                    _exp_now = get_expectation(_exp_winner)
-                    # GR1: the curve has ONE implementation. This used to
-                    # re-derive `min(REP_STEP * n, EXPECTATION_CAP)` by hand.
-                    _exp_prev = expectation_for_wins(_exp_before)
-                    if _exp_now > _exp_prev:
+                _rise_winner = None
+                _rise_prev = 0
+                if EXPECTATION_RISES_ON_DEEDS:
+                    _f4_outcome = str(battle_result.get("raw_outcome")
+                                      or battle_result.get("outcome") or "")
+                    _f4_atk = int(battle_result.get(
+                        "attacker_raw_casualties",
+                        battle_result.get("attacker_casualties", 0)) or 0)
+                    _f4_def = int(battle_result.get(
+                        "defender_raw_casualties",
+                        battle_result.get("defender_casualties", 0)) or 0)
+                    _f4_lead, _f4_loser = None, None
+                    _f4_won_cas, _f4_lost_cas = 0, 0
+                    if _f4_outcome in ("attacker_victory",
+                                       "attacker_tactical_victory"):
+                        _f4_lead, _f4_loser = marshal, enemy_marshal
+                        _f4_won_cas, _f4_lost_cas = _f4_atk, _f4_def
+                    elif _f4_outcome in ("defender_victory",
+                                         "defender_tactical_victory"):
+                        _f4_lead, _f4_loser = enemy_marshal, marshal
+                        _f4_won_cas, _f4_lost_cas = _f4_def, _f4_atk
+                    if (_f4_lead is not None
+                            and is_decisive_victory(
+                                _f4_outcome, _f4_won_cas, _f4_lost_cas,
+                                loser=_f4_loser)):
+                        _rise_prev = get_expectation(_f4_lead)
+                        if raise_expectation(_f4_lead, world,
+                                             "decisive victory"):
+                            _rise_winner = _f4_lead
+                else:
+                    for _exp_winner in (marshal, enemy_marshal):
+                        if (_exp_winner is None
+                                or _exp_winner.nation != world.player_nation):
+                            continue
+                        _exp_before = _exp_wins_before.get(_exp_winner.name)
+                        if (_exp_before is None
+                                or int(getattr(_exp_winner, "battles_won", 0))
+                                <= _exp_before):
+                            continue
+                        # GR1: the curve has ONE implementation. This used
+                        # to re-derive `min(REP_STEP * n, EXPECTATION_CAP)`
+                        # by hand.
+                        _rise_prev = expectation_for_wins(_exp_before)
+                        _rise_winner = _exp_winner
+                        break
+                if (_rise_winner is not None
+                        and _rise_winner.nation == world.player_nation):
+                    _exp_now = get_expectation(_rise_winner)
+                    if _exp_now > _rise_prev:
                         result["battle_report"]["expectation_note"] = (
-                            f"Victory raises Marshal {_exp_winner.name}'s "
+                            f"Victory raises Marshal {_rise_winner.name}'s "
                             f"expectation of reward — he now looks for "
                             f"{_exp_now}g/turn (holds "
-                            f"{get_satisfaction(_exp_winner, world)}g).")
+                            f"{get_satisfaction(_rise_winner, world)}g).")
                         # UX23-A: a victory is the one thing that raises an
                         # expectation MID-TURN, and the reward rail was
                         # reconciled only at the turn boundary — so a standing
@@ -8144,8 +8193,7 @@ class CombatExecutor:
                         # "Grant rente — 120g/turn" and the treasury paid 180.
                         # Re-states an EXISTING row only; opening one belongs
                         # to the per-turn pass, which owns the grace clock.
-                        restate_reward_notice(world, _exp_winner)
-                    break
+                        restate_reward_notice(world, _rise_winner)
 
             # HC-2 "The Butcher's Ledger Speaks" (gate §3): past the dead
             # threshold the report closes on the war's running cost —

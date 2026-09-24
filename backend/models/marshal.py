@@ -421,6 +421,20 @@ class Marshal:
         # Last expectation value announced to the player (Morning Dispatch
         # expectation-rise lines) — reconciled at dispatch build.
         self.last_expectation_seen: int = 0
+        # F4 "The fuse is longer" (ENDGAME_PLAN §1 F4, Sept 24 2026): the
+        # reward curve's own count — the number of DEEDS that raised his
+        # expectation (dotation.REP_STEP × steps, capped). Kept apart from
+        # `battles_won`, which is his printed record. A pre-F4 save
+        # backfills it from `battles_won` at load, so a marshal keeps what
+        # he was owed.
+        self.expectation_steps: int = 0
+        # The turn of his last rise (-1 = never) — the per-marshal cooldown
+        # dotation.raise_expectation reads.
+        self.last_expectation_rise_turn: int = -1
+        # His ladder position as the last jealousy pass saw it (1-based;
+        # 0 = off the ladder or never observed). A rise in RANK that his own
+        # accrual earned is the second deed. The first observation is silent.
+        self.glory_rank_seen: int = 0
 
         # ════════════════════════════════════════════════════════════
         # RELATIONSHIPS SYSTEM (Phase 4)
@@ -1749,6 +1763,10 @@ class Marshal:
                 self.expectation_covered_at_freeze),
             "pension": int(self.pension),
             "last_expectation_seen": int(self.last_expectation_seen),
+            # F4: the reward curve's own state (see __init__).
+            "expectation_steps": int(self.expectation_steps),
+            "last_expectation_rise_turn": int(self.last_expectation_rise_turn),
+            "glory_rank_seen": int(self.glory_rank_seen),
 
             # ═══════ RELATIONSHIPS ═══════
             "relationships": self.relationships.copy(),
@@ -1950,6 +1968,16 @@ class Marshal:
             data.get("expectation_covered_at_freeze", -1) or -1)
         marshal.pension = int(data.get("pension", 0) or 0)
         marshal.last_expectation_seen = int(data.get("last_expectation_seen", 0) or 0)
+        # F4: a save written before the fuse was lengthened carries no
+        # `expectation_steps` — it is backfilled from `battles_won`, the
+        # count the old curve read, so nobody's claim vanishes on load.
+        _steps = data.get("expectation_steps")
+        if _steps is None:
+            _steps = data.get("battles_won", 0)
+        marshal.expectation_steps = int(_steps or 0)
+        _last_rise = data.get("last_expectation_rise_turn")
+        marshal.last_expectation_rise_turn = int(-1 if _last_rise is None else _last_rise)
+        marshal.glory_rank_seen = int(data.get("glory_rank_seen", 0) or 0)
 
         # ═══════ RELATIONSHIPS ═══════
         marshal.relationships = data.get("relationships", {}).copy()

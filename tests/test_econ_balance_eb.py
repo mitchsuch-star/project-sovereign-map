@@ -534,7 +534,7 @@ class TestRenteFaceIgnoresTransientDisruption:
             world.invalidate_active_nations_cache()
         world.regions[estate].stability = 100
         world.regions[estate].war_damage = 0.0
-        marshal.battles_won = 10  # capped expectation
+        marshal.expectation_steps = 10  # capped expectation
         marshal.dotation_regions.append(estate)
 
         undisturbed_face = compute_rente_face(marshal, world)
@@ -554,7 +554,7 @@ class TestRenteFaceIgnoresTransientDisruption:
             compute_rente_face, get_expectation)
         marshal = next(m for m in world.marshals.values()
                        if m.nation == "France" and m.strength > 0)
-        marshal.battles_won = 10
+        marshal.expectation_steps = 10
         assert compute_rente_face(marshal, world) == get_expectation(marshal)
 
 
@@ -565,7 +565,7 @@ class TestXR4EndowCopy:
         from backend.game_logic.marshal_overview import _build_estates
         marshal = next(m for m in world.marshals.values()
                        if m.nation == "France" and m.strength > 0)
-        marshal.battles_won = 10
+        marshal.expectation_steps = 10
         # conquer a province and leave it war-torn
         estate = next(iter(world.get_nation_regions("Austria")))
         world.regions[estate].controller = "France"
@@ -590,7 +590,7 @@ class TestXR4EndowCopy:
         from backend.game_logic.marshal_overview import _build_estates
         marshal = next(m for m in world.marshals.values()
                        if m.nation == "France" and m.strength > 0)
-        marshal.battles_won = 10
+        marshal.expectation_steps = 10
         estate = next(iter(world.get_nation_regions("Austria")))
         world.regions[estate].controller = "France"
         world.regions[estate].stability = 100  # healthy — only disruption zeroes it

@@ -3394,6 +3394,11 @@ def _derive_marshal_status(marshal, world) -> tuple:
         # tell — he is doing exactly this, and only this.
         letter = (" (to the letter)"
                   if getattr(marshal, "personality", "") == "literal" else "")
+        # LV-D3 (row EP F3, plan D13): the STRATEGIC ORDERS recap modal is
+        # retired; its "N turns remaining" reading rides this line instead,
+        # from the one arithmetic the report uses (strategic.order_eta_phrase).
+        from backend.commands.strategic import order_eta_phrase
+        eta = order_eta_phrase(order, int(world.current_turn))
         if cmd == "MOVE_TO":
             # PC-9 (quiet-France played campaign, Aug 3 2026): the dispatch
             # reported a marshal "Moving to Swabia" while he was standing in
@@ -3403,13 +3408,13 @@ def _derive_marshal_status(marshal, world) -> tuple:
             # the standing order, so nothing is hidden.
             if target and target == marshal.location:
                 return "arrived", f"Arrived at {marshal.location}.{letter}"
-            return "en_route", f"Moving to {target}.{letter}"
+            return "en_route", f"Moving to {target}{eta}.{letter}"
         elif cmd == "PURSUE":
-            return "en_route", f"Pursuing {target}.{letter}"
+            return "en_route", f"Pursuing {target}{eta}.{letter}"
         elif cmd == "HOLD":
-            return "en_route", f"Holding at {marshal.location}.{letter}"
+            return "en_route", f"Holding at {marshal.location}{eta}.{letter}"
         elif cmd == "SUPPORT":
-            return "en_route", f"Supporting {target}.{letter}"
+            return "en_route", f"Supporting {target}{eta}.{letter}"
         else:
             return "en_route", f"{cmd} {target}.{letter}"
 

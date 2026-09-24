@@ -152,7 +152,7 @@ class TestConstants:
 class TestSatisfactionMath:
     def test_pension_counts_fully_toward_satisfaction(self, world):
         m = _french_marshal(world)
-        m.battles_won = 3  # expectation 120
+        m.expectation_steps = 3  # expectation 120
         m.pension = 50
         assert get_estate_income(m, world) == 0
         assert get_satisfaction(m, world) == 50
@@ -181,7 +181,7 @@ class TestSatisfactionMath:
         # Re-granting must close the WHOLE gap, not just the delta over the
         # current pension (the top-up verb).
         m = _french_marshal(world)
-        m.battles_won = 3  # expectation 120
+        m.expectation_steps = 3  # expectation 120
         m.pension = 40
         assert compute_rente_face(m, world) == 120
         offer = build_rente_offer(m, world)
@@ -194,7 +194,7 @@ class TestSatisfactionMath:
 class TestGrantPension:
     def test_grant_full_wiring(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2  # expectation 80
+        m.expectation_steps = 2  # expectation 80
         gold_before = world.nation_gold["France"]
         admin_before = world.admin_actions_remaining
         trust_before = _trust(m)
@@ -214,17 +214,17 @@ class TestGrantPension:
 
     def test_regrant_resizes_to_close_the_gap(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2  # expectation 80
+        m.expectation_steps = 2  # expectation 80
         assert _grant_pension(world, m.name)["success"] is True
         assert m.pension == 80
-        m.battles_won = 4  # expectation 160 — he won again
+        m.expectation_steps = 4  # expectation 160 — he won again
         result = _grant_pension(world, m.name)
         assert result["success"] is True
         assert m.pension == 160  # replaced, not stacked
 
     def test_grant_refused_when_expectation_met(self, world):
         m = _french_marshal(world)
-        m.battles_won = 0
+        m.expectation_steps = 0
         result = _grant_pension(world, m.name)
         assert result["success"] is False
         assert "already met" in result["message"]
@@ -232,7 +232,7 @@ class TestGrantPension:
 
     def test_grant_refused_for_captured_marshal(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2
+        m.expectation_steps = 2
         m.captured_by = "Austria"
         result = _grant_pension(world, m.name)
         assert result["success"] is False
@@ -240,14 +240,14 @@ class TestGrantPension:
 
     def test_grant_refused_on_legacy_world(self, legacy):
         m = next(m for m in legacy.marshals.values() if m.nation == "France")
-        m.battles_won = 5
+        m.expectation_steps = 5
         result = _grant_pension(legacy, m.name)
         assert result["success"] is False
         assert "not available" in result["message"]
 
     def test_grant_refused_for_foreign_marshal(self, world):
         enemy = _enemy_marshal(world)
-        enemy.battles_won = 5
+        enemy.expectation_steps = 5
         result = _grant_pension(world, enemy.name,
                                 _acting_nation="France")
         assert result["success"] is False
@@ -257,7 +257,7 @@ class TestGrantPension:
 class TestRevokePension:
     def test_revoke_full_wiring(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2
+        m.expectation_steps = 2
         assert _grant_pension(world, m.name)["success"] is True
         result = _revoke_pension(world, m.name)
         assert result["success"] is True
@@ -273,7 +273,7 @@ class TestRevokePension:
         # Review fix: revoking a rente made redundant by estate income must
         # not threaten erosion that cannot happen.
         m = _french_marshal(world)
-        m.battles_won = 1  # expectation 40
+        m.expectation_steps = 1  # expectation 40
         region = _conquer(world, stability=100, min_income=50)
         m.dotation_regions.append(region.name)  # estates cover ≥40 alone
         m.pension = 40
@@ -284,7 +284,7 @@ class TestRevokePension:
 
     def test_revoke_copy_warns_when_shortfall_reopens(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2  # expectation 80, no estates
+        m.expectation_steps = 2  # expectation 80, no estates
         m.pension = 80
         result = _revoke_pension(world, m.name)
         assert result["success"] is True
@@ -292,7 +292,7 @@ class TestRevokePension:
 
     def test_revoke_reopens_the_shortfall_machinery(self, world):
         m = _french_marshal(world)
-        m.battles_won = 1  # expectation 40
+        m.expectation_steps = 1  # expectation 40
         world.current_turn = 10
         m.pension = 40
         world._dotation_processed_turn = None
@@ -359,7 +359,7 @@ class TestAIRenteRung:
     def _needy_austrian(self, world):
         m = next(m for m in world.marshals.values()
                  if m.nation == "Austria" and m.strength > 0)
-        m.battles_won = 3  # expectation 120 ≥ threshold 80
+        m.expectation_steps = 3  # expectation 120 ≥ threshold 80
         return m
 
     def test_ai_prefers_land_when_eligible(self, world):
@@ -474,7 +474,7 @@ class TestDeadClaimEligibility:
     def test_grant_eagerly_strips_the_dead_claim(self, world):
         enemy, region = self._foreign_estate_flipped_to_france(world)
         m = _french_marshal(world)
-        m.battles_won = 3
+        m.expectation_steps = 3
         world.nation_gold["France"] = 5000
         result = _execute(world, {
             "marshal": m.name, "action": "grant_dotation",
@@ -626,7 +626,7 @@ class TestExpectationLegibility:
     def test_dispatch_announces_expectation_rises(self, world):
         from backend.game_logic.dispatch import _build_situation
         m = _french_marshal(world)
-        m.battles_won = 2  # expectation 80, nothing held
+        m.expectation_steps = 2  # expectation 80, nothing held
         situation = _build_situation(world, "France")
         rises = situation["expectation_rises"]
         assert any(r["marshal"] == m.name and r["expectation"] == 80
@@ -640,20 +640,23 @@ class TestExpectationLegibility:
     def test_dispatch_grace_countdown_and_pension_ride_unmet(self, world):
         from backend.game_logic.dispatch import _build_situation
         m = _french_marshal(world)
-        m.battles_won = 3  # expectation 120
+        m.expectation_steps = 3  # expectation 120
         m.pension = 40     # satisfaction 40 — short 80
         world.current_turn = 10
-        m.expectation_grace_turn = 9  # one turn into grace
+        # F4 "The fuse is longer": the UNMET block is an alarm — a row
+        # appears only within UNMET_BLOCK_WINDOW_TURNS of erosion, so the
+        # clock is two turns in here (was one; that row is now the rail's).
+        m.expectation_grace_turn = 8
         situation = _build_situation(world, "France")
         row = next(u for u in situation["unmet_marshals"]
                    if u["marshal"] == m.name)
         assert row["pension"] == 40
-        assert row["grace_turns_left"] == GRACE_TURNS - 1
+        assert row["grace_turns_left"] == GRACE_TURNS - 2
         assert situation["rente_cost"] == get_rente_cost(40)
 
     def test_shortfall_open_fires_the_expectation_notification(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2
+        m.expectation_steps = 2
         world.current_turn = 10
         world._dotation_processed_turn = None
         world._process_dotation_state()
@@ -665,7 +668,7 @@ class TestExpectationLegibility:
 
     def test_erosion_advice_is_honest_when_nothing_is_endowable(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2
+        m.expectation_steps = 2
         world.current_turn = 10
         m.expectation_grace_turn = world.current_turn - GRACE_TURNS
         world._dotation_processed_turn = None
@@ -681,7 +684,7 @@ class TestExpectationLegibility:
 
     def test_erosion_advice_offers_both_remedies_when_land_exists(self, world):
         m = _french_marshal(world)
-        m.battles_won = 2
+        m.expectation_steps = 2
         _conquer(world, stability=80)
         world.current_turn = 10
         m.expectation_grace_turn = world.current_turn - GRACE_TURNS
@@ -699,6 +702,9 @@ class TestExpectationLegibility:
 
 class TestBattleReportExpectationNote:
     def _decisive_win(self, world):
+        # F4 "The fuse is longer": no claim is felt before turn 6, so the
+        # deed is done on the first turn a rise is possible.
+        world.current_turn = max(int(world.current_turn), 6)
         ney = world.marshals["Ney"]
         mack = world.marshals["Mack"]
         mack.location = ney.location
@@ -709,22 +715,23 @@ class TestBattleReportExpectationNote:
                                   "_muster_confirmed": True})
         return ney, result
 
-    def test_note_fires_on_any_battles_won_increment(self, world):
-        # Audit fix (July 11): the increment seams differ by path —
-        # combat.py bumps only on decisive outcomes, the coordination
-        # caller bumps on tactical wins, and the destruction sweep can
-        # kill after a tactical outcome. The note reads the battles_won
-        # DELTA, so it fires in every one of those cases.
+    def test_note_fires_on_a_decisive_rise(self, world):
+        # Audit fix (July 11) read the battles_won DELTA. F4 "The fuse is
+        # longer" (Sept 24, 2026): the note fires when the DEED raises the
+        # expectation — a decisive victory with Ney as lead (Mack destroyed
+        # outright), at or after turn 6 — and the record still ratchets.
         ney, result = self._decisive_win(world)
         assert result["success"] is True
         assert ney.battles_won >= 1
+        assert ney.expectation_steps == 1
         note = (result.get("battle_report") or {}).get("expectation_note", "")
         assert "expectation of reward" in note, result.get("battle_report")
 
     def test_no_note_at_the_expectation_cap(self, world):
-        world.marshals["Ney"].battles_won = 8  # already at the 300 cap
+        world.marshals["Ney"].expectation_steps = 8  # already at the 300 cap
         ney, result = self._decisive_win(world)
-        assert ney.battles_won >= 9
+        assert ney.battles_won >= 1
+        assert ney.expectation_steps == 8, "the cap is the cap — no rise"
         br = result.get("battle_report") or {}
         assert "expectation_note" not in br
 
@@ -937,7 +944,7 @@ class TestRewardCardPayload:
     def test_card_exposes_the_portfolio(self, world):
         from backend.game_logic.marshal_overview import _build_estates
         m = _french_marshal(world)
-        m.battles_won = 3  # expectation 120
+        m.expectation_steps = 3  # expectation 120
         m.skills["administration"] = 9
         region = _conquer(world, stability=80, min_income=50)
         card = _build_estates(m, world)
@@ -955,7 +962,7 @@ class TestRewardCardPayload:
     def test_card_estate_income_excludes_pension(self, world):
         from backend.game_logic.marshal_overview import _build_estates
         m = _french_marshal(world)
-        m.battles_won = 3
+        m.expectation_steps = 3
         m.pension = 50
         card = _build_estates(m, world)
         assert card["estate_income"] == 0
@@ -990,7 +997,7 @@ class TestRewardCardPayload:
         # not dangle a rente offer or estate options he cannot receive.
         from backend.game_logic.marshal_overview import _build_estates
         m = _french_marshal(world)
-        m.battles_won = 5
+        m.expectation_steps = 5
         m.pension = 40
         m.captured_by = "Austria"
         _conquer(world, stability=80)

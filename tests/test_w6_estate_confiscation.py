@@ -216,7 +216,7 @@ class TestConfiscation:
 
     def test_confiscated_holder_erodes_via_existing_machinery(self, world, executor):
         holder, region = self._mount(world, executor)
-        holder.battles_won = 3  # expectation 120 > satisfaction 0
+        holder.expectation_steps = 3  # expectation 120 > satisfaction 0
         holder.expectation_grace_turn = -1
         executor.handle_capture_choice("confiscate", {"world": world})
         trust_before = (holder.trust.value if hasattr(holder.trust, "value")

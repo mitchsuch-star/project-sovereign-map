@@ -644,9 +644,13 @@ def test_settlement_tier2_buttons_have_their_own_bounded_rail():
     assert "custom_minimum_size" in tier2, "the tier-2 rail must be bounded"
     assert 'name="Tier2ButtonContainer"' in src
     gd = _script("proposal_confirm_popup")
-    assert "tier2_button_container.add_child(btn)" in gd, (
+    # LV-14(b) (row EP F3): the chips mount one ROW PER COURT inside the
+    # scrolled container (a name, then its Press/Ease/Drop) — never the
+    # primary rail. Pin flipped consciously from the three-column grid.
+    assert "tier2_button_container.add_child(line)" in gd, (
         "tier-2 affordances must mount in the scrolled container, not the "
         "primary rail")
+    assert "line.add_child(btn)" in gd
     # The primary rail must stay OUTSIDE any scroll region.
     assert re.search(
         r'\[node name="ButtonContainer" type="GridContainer" '
@@ -917,6 +921,19 @@ def test_diplomacy_wizard_fixed_chain_fits_its_authored_box():
 
 
 def test_both_wizard_open_paths_clamp():
-    """The wizard is reachable from F1 AND from the war-panel handoff."""
-    assert _script("diplomacy_wizard").count(
-        "Utils.clamp_centered_panel($PanelContainer)") == 2
+    """The wizard is reachable from F1 AND from the war-panel handoff — both
+    paths fit the panel. Since row EP F3 (September 24, 2026) the clamp lives
+    in ONE place, `refit()` (public, so the IQ-10 offline road fits the way
+    the live wizard does), and both open paths call it. Pin re-stated from
+    "the literal appears twice" to "the literal appears once, in refit, and
+    both open paths reach it"."""
+    src = _script("diplomacy_wizard")
+    assert src.count("Utils.clamp_centered_panel($PanelContainer)") == 1
+    refit = src[src.index("func refit()"):]
+    refit = refit[:refit.find("\nfunc ", 1)]
+    assert "Utils.clamp_centered_panel($PanelContainer)" in refit
+    for name, nxt in (("func open():", "func open_for_nation("),
+                      ("func open_for_nation(", "func _close_wizard(")):
+        body = src[src.index(name):src.index(nxt)]
+        assert "\trefit()" in body, name
+

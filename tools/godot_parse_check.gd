@@ -150,6 +150,8 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/ep_f1_first_ten_minutes_harness.gd",
 	# NUI-2 "The Fleet Rides at Anchor", driven (tests/test_nui2_the_fleet_rides_at_anchor.py)
 	"res://../../tools/nui2_admiralty_harness.gd",
+	# Row EP F3 "The client layout pass", driven (tests/test_ep_f3_the_client_layout_pass.py)
+	"res://../../tools/ep_f3_client_layout_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

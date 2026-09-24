@@ -584,7 +584,7 @@ class TestPayingRetiresTheAsking:
         """An unfiltered dismiss would clear everyone else's live grievance."""
         world = _europe_world()
         ney, davout = _ney(world), world.marshals["Davout"]
-        ney.battles_won = davout.battles_won = 2
+        ney.expectation_steps = davout.expectation_steps = 2
         world._dotation_processed_turn = None
         world._process_dotation_state()
 
@@ -611,7 +611,7 @@ class TestTheDismissalIsWiredAtEverySeamAndOnlyWhenSettled:
 
     def _owed(self, world, wins=2):
         ney = _ney(world)
-        ney.battles_won = wins
+        ney.expectation_steps = wins
         world._dotation_processed_turn = None
         world._process_dotation_state()
         assert self._rows(world), "precondition: a row is up"
@@ -749,7 +749,7 @@ class TestTheDismissalIsWiredAtEverySeamAndOnlyWhenSettled:
 
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         world._dotation_processed_turn = None
         world._process_dotation_state()
         assert self._rows(world), "precondition: he is asking"
@@ -780,7 +780,7 @@ class TestTheRenteButtonCannotOfferWhatTheExecutorRefuses:
 
     def _paid_with_an_estate(self, world):
         ney = _ney(world)
-        ney.battles_won = 6                        # expectation 240
+        ney.expectation_steps = 6                        # expectation 240
         ney.pension = 240
         region = next(r for r in world.regions.values()
                       if r.controller not in ("France", None)
@@ -813,7 +813,7 @@ class TestTheRenteButtonCannotOfferWhatTheExecutorRefuses:
 
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2                        # expectation 80
+        ney.expectation_steps = 2                        # expectation 80
         ney.pension = 80                           # exactly met, no estates
         assert dotation.rente_would_change(ney, world) is False
 
@@ -829,7 +829,7 @@ class TestTheRenteButtonCannotOfferWhatTheExecutorRefuses:
 
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         ney.pension = 80                           # met — nothing to change
         card = _build_estates(ney, world)
         assert card["rente_offer"]["face"] > 0, (
@@ -851,7 +851,7 @@ class TestTheRailIsAWayInNotASignpost:
     def test_the_row_carries_a_deep_link_to_the_named_marshal(self):
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         world._dotation_processed_turn = None
         world._process_dotation_state()
         row = next(n for n in world.notifications.get_pending()
@@ -881,7 +881,7 @@ class TestTheFirstThingTheGameSaysIsTrue:
         assert not dotation.list_paying_estates(world, "France"), (
             "precondition: no province is paying an estate at boot")
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         world._dotation_processed_turn = None
         world._process_dotation_state()
         msg = next(n for n in world.notifications.get_pending()
@@ -893,7 +893,7 @@ class TestTheFirstThingTheGameSaysIsTrue:
     def test_it_names_an_order_the_player_can_type(self):
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         world._dotation_processed_turn = None
         world._process_dotation_state()
         msg = next(n for n in world.notifications.get_pending()
@@ -905,7 +905,7 @@ class TestTheFirstThingTheGameSaysIsTrue:
     def test_the_quoted_price_is_the_price_the_treasury_pays(self):
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         world._dotation_processed_turn = None
         world._process_dotation_state()
         msg = next(n for n in world.notifications.get_pending()
@@ -924,7 +924,7 @@ class TestTheNoOpResize:
 
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2                 # expectation 80
+        ney.expectation_steps = 2                 # expectation 80
         ney.pension = dotation.get_expectation(ney)   # already met, by rente
         assert dotation.get_shortfall(ney, world) == 0
         assert dotation.compute_rente_face(ney, world) > 0, (
@@ -956,7 +956,7 @@ class TestTheCurveHasOneImplementation:
         world = _europe_world()
         ney = _ney(world)
         for wins in (0, 1, 2, 5, 20):
-            ney.battles_won = wins
+            ney.expectation_steps = wins
             assert dotation.get_expectation(ney) == \
                 dotation.expectation_for_wins(wins)
 
@@ -971,7 +971,7 @@ class TestTheGraceWindow:
         of a 60-turn campaign. It must now take longer than the old window."""
         world = _europe_world()
         ney = _ney(world)
-        ney.battles_won = 2
+        ney.expectation_steps = 2
         trust_start = ney.trust.value
         for _ in range(3):              # the OLD window plus one
             world._dotation_processed_turn = None

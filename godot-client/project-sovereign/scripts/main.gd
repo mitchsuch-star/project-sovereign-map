@@ -460,6 +460,8 @@ func _ready():
 		load_dialog.save_selected.connect(_on_load_save_selected)
 		load_dialog.load_cancelled.connect(_on_load_cancelled)
 
+	# LV-D3 (row EP F3): registered, never raised at turn start any more — the
+	# recap lives in the terminal block and the dispatch's MARSHAL STATUS.
 	strategic_report_popup = dialog_manager.register("strategic_report", "res://scenes/strategic_report_popup.tscn")
 	if strategic_report_popup:
 		strategic_report_popup.dismissed.connect(_on_strategic_report_dismissed)
@@ -2333,7 +2335,10 @@ func _configure_response_routes():
 	# (the redemption arm).
 	_post_hud_response_routes = [
 		{"id": "commitment_paradox", "matches": "_response_has_commitment_paradox_route", "show": "_route_commitment_paradox_response", "result_first": true},
-		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response"},
+		# LV-22 (row EP F3): the capture IS what the command asked for, but its
+		# question still waits behind Berthier's report — a battle that ends in
+		# a capture used to lose the report to the Plunder/Secure modal.
+		{"id": "capture_choice", "matches": "_response_has_capture_choice_route", "show": "_route_capture_choice_response", "result_first": true},
 		{"id": "marshal_petition", "matches": "_response_has_marshal_petition_route", "show": "_route_marshal_petition_response", "result_first": true},
 		{"id": "diplomatic_objection", "matches": "_response_has_diplomatic_objection_route", "show": "_route_diplomatic_objection_response"},
 		{"id": "incoming_proposal", "matches": "_response_has_incoming_proposal_route", "show": "_route_incoming_proposal_response", "result_first": true},
@@ -3211,6 +3216,12 @@ func _display_result(response):
 	var message = str(response.get("message", ""))
 	var events = response.get("events", [])
 	var action_info = response.get("action_info", {})
+	# LV-22 (row EP F3): the capture route's renderer prints the message only
+	# when no result has rendered it yet — stamped HERE, at the one renderer,
+	# so the command path (a `result_first` route) and the muster road
+	# (`_on_interrupt_response` renders, then routes) agree by construction.
+	if typeof(response) == TYPE_DICTIONARY:
+		response["_result_rendered"] = true
 
 	# Music & Sound Core §2: a refused/failed order lands with a soft error
 	# tone (successes stay quiet — the quill flick already marked the send).
@@ -5145,8 +5156,11 @@ func _show_capture_choice_dialog(response):
 	var region_name = capture_data.get("region", "Unknown") if capture_data is Dictionary else "Unknown"
 	var capturer_name = capture_data.get("capturer", "Marshal") if capture_data is Dictionary else "Marshal"
 
-	# Show the capture message in log first
-	if response.has("message"):
+	# Show the capture message in log first — unless the order's own result
+	# already printed it (LV-22, row EP F3: `_display_result` stamps
+	# `_result_rendered`, so Berthier's report prints once and the message
+	# once on the command path AND on the muster road).
+	if response.has("message") and not bool(response.get("_result_rendered", false)):
 		add_output("[color=#" + Utils.COLOR_CONQUEST + "]" + str(response.get("message", "")) + "[/color]")
 
 	# Update status/map from the response
@@ -5651,22 +5665,23 @@ func _display_jealousy_attacks(response) -> void:
 
 
 func _show_strategic_reports(response):
-	"""Show strategic order reports popup after enemy phase."""
+	"""Print the turn's standing-order updates and continue the chain.
+
+	LV-D3 (row EP F3, ENDGAME_PLAN D13): the STRATEGIC ORDERS recap modal is
+	RETIRED. It blocked every turn start for every standing order — on top of
+	the enemy phase, the dioramas, the petitions and the letter-book — with a
+	Continue-only card whose lines the morning dispatch's MARSHAL STATUS now
+	carries ("Moving to Vienna — arrives next turn."). The terminal block
+	below is the non-blocking record; an order that needs an ANSWER still
+	raises its own interrupt popup from `_on_strategic_report_dismissed`,
+	which runs directly now. `strategic_report_popup` stays registered and is
+	never raised at turn start."""
 	var reports = response.get("strategic_reports", [])
 	if reports.is_empty():
 		_on_strategic_report_dismissed()
 		return
 
-	if strategic_report_popup == null:
-		push_error("strategic_report_popup is NULL!")
-		_on_strategic_report_dismissed()
-		return
-
-	var turn = current_turn
-	if response.has("action_summary"):
-		turn = int(response.action_summary.get("turn", current_turn))
-
-	# Log reports to output too
+	# Log reports to output
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]--- Strategic Order Updates ---[/color]")
 	for report in reports:
@@ -5684,7 +5699,8 @@ func _show_strategic_reports(response):
 			add_output("[color=#" + outcome_color + "]  Result: " + outcome.capitalize() + "[/color]")
 	add_output("")
 
-	strategic_report_popup.show_reports(reports, turn)
+	# LV-D3: no modal — straight on to the interrupts (if any) and the dispatch.
+	_on_strategic_report_dismissed()
 
 
 func _on_strategic_report_dismissed():

@@ -178,7 +178,7 @@ class TestS53DotationRailLive:
         world.current_turn = 10
         world.marshals.clear()
         ney = Marshal("Ney", "Paris", 30000, "aggressive", "France")
-        ney.battles_won = 2          # expectation = 40 * 2 = 80
+        ney.expectation_steps = 2          # expectation = 40 * 2 = 80
         ney.dotation_regions = []    # no estates → satisfaction 0
         ney.pension = 0
         ney.expectation_grace_turn = -1
@@ -208,7 +208,7 @@ class TestS53DotationRailLive:
         # and the countdown must tick down with it. Walked to its LAST turn
         # rather than assuming a two-turn window — the Aug-23 retune red-ed
         # the hardcoded form.
-        ney.battles_won = 4          # expectation = 160
+        ney.expectation_steps = 4          # expectation = 160
         for step in range(1, GRACE_TURNS):
             world.current_turn = 10 + step
             world._process_dotation_state()

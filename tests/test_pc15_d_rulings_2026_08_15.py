@@ -496,7 +496,7 @@ class TestD3TutorialExpectationDormancy:
         processor tick."""
         world = self._lesson_world()
         ney = world.get_marshal("Ney")
-        ney.battles_won = 4
+        ney.expectation_steps = 4
         trust_before = int(ney.trust.value)
         grace_before = int(getattr(ney, "expectation_grace_turn", -1))
         world._process_dotation_state()

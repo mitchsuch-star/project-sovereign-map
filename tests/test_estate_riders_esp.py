@@ -38,11 +38,16 @@ def world(world1805):
 
 
 def _make_eroding(world, name, wins=3):
-    """Give a marshal an unmet expectation past the grace window."""
-    if world.current_turn <= dotation.GRACE_TURNS:
-        world.current_turn = dotation.GRACE_TURNS + 3
+    """Give a marshal an unmet expectation past the grace window.
+
+    F4 "The fuse is longer": the collective petition also needs
+    turn >= FONTAINEBLEAU_MIN_TURN, so the board is placed there (three
+    men at 120g each clear the 300g floor)."""
+    floor = max(dotation.GRACE_TURNS + 3, J.FONTAINEBLEAU_MIN_TURN)
+    if world.current_turn < floor:
+        world.current_turn = floor
     marshal = world.marshals[name]
-    marshal.battles_won = wins
+    marshal.expectation_steps = wins
     marshal.expectation_grace_turn = world.current_turn - dotation.GRACE_TURNS
     assert dotation.is_eroding(marshal, world)
     return marshal
@@ -80,7 +85,7 @@ class TestFontainebleau:
         J.check_fontainebleau(world, [])
         assert world.pending_marshal_petition is None
         # count drops below 3 → re-arms; rises again → fires
-        world.marshals["Ney"].battles_won = 0
+        world.marshals["Ney"].expectation_steps = 0
         J.check_fontainebleau(world, [])
         _make_eroding(world, "Ney")
         J.check_fontainebleau(world, [])
@@ -92,7 +97,7 @@ class TestFontainebleau:
         J.check_fontainebleau(world, [])
         J.handle_petition_response(world, "refuse")
         # drop + re-rise INSIDE the cooldown window
-        world.marshals["Ney"].battles_won = 0
+        world.marshals["Ney"].expectation_steps = 0
         J.check_fontainebleau(world, [])
         _make_eroding(world, "Ney")
         world.current_turn += 1  # well inside FONTAINEBLEAU_COOLDOWN
@@ -154,7 +159,7 @@ class TestWarWeary:
     def _enrich(self, world, name="Davout", wins=5):
         """Fully met, large expectation (>= the 160 floor at 5 wins=200)."""
         marshal = world.marshals[name]
-        marshal.battles_won = wins
+        marshal.expectation_steps = wins
         marshal.pension = dotation.get_expectation(marshal)
         assert dotation.get_satisfaction(marshal, world) >= \
             dotation.get_expectation(marshal)
@@ -167,12 +172,12 @@ class TestWarWeary:
 
     def test_unmet_rich_marshal_does_not_qualify(self, world):
         marshal = world.marshals["Davout"]
-        marshal.battles_won = 5      # expectation 200, satisfaction 0
+        marshal.expectation_steps = 5      # expectation 200, satisfaction 0
         assert J.find_war_weary_objector(world) is None
 
     def test_small_met_expectation_does_not_qualify(self, world):
         marshal = world.marshals["Davout"]
-        marshal.battles_won = 2      # expectation 80 < the 160 floor
+        marshal.expectation_steps = 2      # expectation 80 < the 160 floor
         marshal.pension = 80
         assert J.find_war_weary_objector(world) is None
 
@@ -313,7 +318,7 @@ class TestRenteDefault:
         self._run_dotation(world)
         assert marshal.pension == 0
         # solvency returns; the re-grant path works (top-up verb semantics)
-        marshal.battles_won = 3
+        marshal.expectation_steps = 3
         face = dotation.compute_rente_face(marshal, world)
         assert face > 0
         marshal.pension = face

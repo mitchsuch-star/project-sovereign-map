@@ -509,6 +509,84 @@ SHOTS: list[dict] = [
         "mode": "api_stub", "method": "open", "api_method": "get_ledger", "tab": 0,
         "must_show": "the Emperor's corps in the muster, the Seat's +1 DP named",
     },
+    # ═══ Row EP F3 "The client layout pass" (September 24, 2026) ════════════
+    # The four frames the live review's layout rows owe. The wizard has no
+    # offline entry (it fetches over its own HTTPRequest), so its rows show
+    # the panel, set the step's state, render the captured payload through
+    # the SAME `_render_*` the wire response reaches, and `refit` (the live
+    # clamp) — see diplomacy_wizard.gd `refit`.
+    {
+        "id": "petition_command_closed",
+        "surface": "Marshal petition — the command arm closed (LV-5)",
+        "payload": "petition_command_closed",
+        "scene": "res://scenes/marshal_petition_dialog.tscn",
+        "mode": "call", "method": "show_petition",
+        "must_show": "the whole body above the fold (no clipped second line); the closed arm's "
+                     "reason as ONE line under the header; no reason printed twice under a button",
+    },
+    {
+        "id": "wizard_step1",
+        "surface": "Diplomacy wizard — step 1, the nation list (LV-20)",
+        "payload": "wizard_nations",
+        "scene": "res://scenes/diplomacy_wizard.tscn",
+        "mode": "call", "method": "show", "args": [],
+        "steps": [
+            {"set_path": "_current_step", "value": 1},
+            {"set_path": "title_label.text", "value": "DIPLOMACY"},
+            {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
+            {"call": "_lay_out_prompt", "args": [1]},
+            {"call": "_render_nations", "args": ["$payload"]},
+            {"call": "refit", "args": []},
+            {"wait": 4},
+        ],
+        "must_show": "the prompt directly above the list — no blank gap; every court in its category",
+    },
+    *[
+        {
+            "id": f"wizard_step2_{court.lower()}",
+            "surface": f"Diplomacy wizard — step 2, {court} ({note})",
+            "payload": f"wizard_preview_{court.lower()}",
+            "scene": "res://scenes/diplomacy_wizard.tscn",
+            "mode": "call", "method": "show", "args": [],
+            "steps": [
+                {"set_path": "_current_step", "value": 2},
+                {"set_path": "_selected_nation", "value": court},
+                {"set_path": "title_label.text", "value": f"DIPLOMACY — {court}"},
+                {"set_path": "back_button.visible", "value": True},
+                {"call": "_lay_out_prompt", "args": [2]},
+                {"call": "_render_preview", "args": ["$payload"]},
+                {"call": "refit", "args": []},
+                {"wait": 4},
+            ],
+            "must_show": must,
+        }
+        for court, note, must in [
+            ("Austria", "at war", "every chip WRAPPED inside the panel — no horizontal scrollbar; a "
+                                  "gate reason as its own smaller line under its chip; no Sponsor chip "
+                                  "for a court at war whose design is aimed at France"),
+            ("Prussia", "at peace", "the three instrument chips incl. 'Sponsor Their Design', wrapped, "
+                                    "with 'Aim their court at Hanover' readable in full"),
+        ]
+    ],
+    {
+        "id": "settlement_three_courts",
+        "surface": "Settlement table — three courts, Vienna held (LV-14b)",
+        "payload": "settlement_three_courts",
+        "scene": "res://scenes/proposal_confirm_popup.tscn",
+        "mode": "call", "method": "show_dialogue",
+        "must_show": "one row per court in the Press/Ease/Drop block — Austria, Britain AND Russia, "
+                     "none clipped; the block sits under the table, not over the 'Allies and "
+                     "Standing' heading",
+    },
+    {
+        "id": "campaign_log_glyphs",
+        "surface": "Campaign log — glyph prefixes (LV-16)",
+        "payload": "campaign_log_glyphs",
+        "scene": "res://scenes/campaign_log.tscn",
+        "mode": "api_stub", "method": "open_log", "api_method": "get_campaign_log",
+        "must_show": "a tinted glyph (sword / flag / coins / scroll / handshake) before each row — "
+                     "never a bare letter",
+    },
 ]
 
 

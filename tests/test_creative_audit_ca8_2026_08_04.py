@@ -2523,7 +2523,7 @@ class TestCA820EstateWorth:
         marshal = next(m for m in world.marshals.values() if m.nation == "France")
         marshal.dotation_regions = []
         marshal.pension = 0
-        marshal.battles_won = 8              # -> a real, unmet expectation
+        marshal.expectation_steps = 8              # -> a real, unmet expectation
         assert _dotation.get_shortfall(marshal, world) >= 80
         assert _dotation.list_eligible_estates(world, "France"), "premise: land IS listed"
         assert _dotation.list_paying_estates(world, "France") == []
@@ -2538,7 +2538,7 @@ class TestCA820EstateWorth:
         marshal = next(m for m in world.marshals.values() if m.nation == "France")
         marshal.dotation_regions = []
         marshal.pension = 0
-        marshal.battles_won = 8
+        marshal.expectation_steps = 8
         paying = _dotation.list_paying_estates(world, "France")
         assert paying
         action = EnemyAI(CommandExecutor())._find_dotation_grant(
@@ -2552,7 +2552,7 @@ class TestCA820EstateWorth:
         marshal = next(m for m in world.marshals.values() if m.nation == "France")
         marshal.dotation_regions = []
         marshal.pension = 0
-        marshal.battles_won = 8
+        marshal.expectation_steps = 8
         # The boot world is on turn 1; the eroding branch needs a grace clock
         # that STARTED, so move the clock forward before setting it.
         world.current_turn = max(int(world.current_turn), _dotation.GRACE_TURNS + 2)
@@ -2622,7 +2622,7 @@ class TestCA820EstateWorth:
 
         marshal = next(m for m in world.marshals.values() if m.nation == "France")
         marshal.dotation_regions = []
-        marshal.battles_won = 8
+        marshal.expectation_steps = 8
         card = next(c for c in build_marshal_overview(world)
                     if c["name"] == marshal.name)
         rows = {r["region"]: r["income"] for r in card["eligible_estate_details"]}

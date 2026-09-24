@@ -9,11 +9,57 @@
 >
 > **▶ ▶ ▶ NEXT = ROW EP "THE ENDGAME PROGRAM" — `docs/ENDGAME_PLAN.md` IS
 > THE ROUTING AUTHORITY. START THERE. ~~First slice = F1 "The first ten
-> minutes"~~ ✅ LANDED September 23, 2026 (block below). ▶ NEXT SLICE = F2
-> "The display-name pass"** (`ENDGAME_PLAN.md` §1 F2: LV-2, LV-3, LV-4,
+> minutes"~~ ✅ LANDED September 23, 2026 (block below). ~~F3 "The client
+> layout pass" + F4 "The fuse is longer"~~ ✅ LANDED September 24, 2026
+> (taken ahead of F2 by the user's direction; block below). ▶ NEXT SLICE =
+> F2 "The display-name pass"** (`ENDGAME_PLAN.md` §1 F2: LV-2, LV-3, LV-4,
 > LV-6, LV-9, LV-10, LV-11, LV-18, LV-19 — NPC-12's first slice; every
 > string pinned by a driven `/command` test; zero `BASELINE_SERIES`
-> movement). RULED September 23, 2026 (evening) under the user's grant
+> movement), **then F5, F6, then GE-1.**
+>
+> **▶ ▶ F3 "THE CLIENT LAYOUT PASS" + F4 "THE FUSE IS LONGER" — ✅ LANDED
+> September 24, 2026** (row EP's second and third slices, one commit;
+> landing records = `ENDGAME_PLAN.md` §1 F3 and §1 F4, rules
+> `SYSTEMS_REFERENCE.md` §59 (F4) and §60 (F3), rows disposed in
+> `BUG_FIXES.md` §Live Review and `DESIGN_REFINEMENT.md`).
+> - **F4 — the reward curve is deed-keyed.** An expectation rises only on
+>   a decisive victory as LEAD (the corps broken/destroyed/taken, or the war
+>   score's own decisive exchange — `battle_scale.is_decisive_exchange`,
+>   now the ONE predicate `record_battle` reads too) or an earned rise in
+>   glory RANK; one rise per marshal per 4 turns, never before turn 6; the
+>   collective petition needs turn ≥ 12 and ≥ 300g unmet; the UNMET block
+>   names a man only within 2 turns of erosion. ONE write
+>   (`dotation.raise_expectation`) at the post-combat tail both sides pass
+>   (GR5). THREE serialized fields (`expectation_steps` — the count could
+>   not stay on `battles_won`, the printed record — `last_expectation_rise_turn`,
+>   `glory_rank_seen`; pre-F4 saves backfill). **Measured on the historical
+>   seed played as the review played it: first rise Lannes turn 7, no
+>   collective petition in 14 turns** (was: expectations from turn 1, the
+>   block from turn 2, the petition on turn 7). **`BASELINE_SERIES`
+>   byte-identical across a SEVEN-arm attribution with the reason measured
+>   — no re-record**: the old curve's 8 AI grants and 4 petitions on the
+>   ambient board became 0 and 0, and none of it reaches a threat-bearing
+>   decision. 111 fixtures in 22 files rewritten `battles_won` →
+>   `expectation_steps`; `test_ep_f4_the_fuse_is_longer.py` 34.
+> - **F3 — the client layout pass, driven.** LV-5 the petition's closed
+>   arm reads under the header and the body fits its text; LV-14(b) one
+>   Press/Ease/Drop row per court, floor from the row count; LV-15 wizard
+>   chips wrap with the gate reason on its own line, no sideways scroll;
+>   LV-16 glyph prefixes; LV-20 a one-line step-1 prompt + the Sponsor
+>   chip's honest copy (hidden while at war with a court whose design is
+>   aimed at us); LV-22 the capture route is `result_first` and the
+>   renderer skips a message already printed (driven: report once, message
+>   once, then the question, on the command path AND the muster road);
+>   LV-D3 the recap modal is RETIRED — terminal block + the dispatch's
+>   MARSHAL STATUS ETA from the report's own arithmetic
+>   (`strategic.order_turns_remaining` / `order_eta_phrase`). Six IQ-10
+>   frames `docs/audits/IQ10_{PETITION_COMMAND_CLOSED,SETTLEMENT_THREE_COURTS,WIZARD_STEP1,WIZARD_STEP2_AUSTRIA,WIZARD_STEP2_PRUSSIA,CAMPAIGN_LOG_GLYPHS}_2026_09_24.png`
+>   (+`_X2`), clean by the machine record at both scales;
+>   `tools/ep_f3_client_layout_harness.gd` drives the real `main.tscn`;
+>   `test_ep_f3_the_client_layout_pass.py` 36. Sweep
+>   `tools/_sweep_ep_f3_f4.json`: 31 mutations, 31 killed, 0 INERT, 0 BROKEN. Parse harness
+>   EXIT=0 (56 scripts), boot 0 `SCRIPT ERROR`. ⚠ open for the user: the
+>   in-game feel of the six surfaces. RULED September 23, 2026 (evening) under the user's grant
 > (*"create a plan to fix all of these, make all decisions, and for the
 > ending make the decision on how to end — a challenge to force a new status
 > quo, hold the win state for X turns, with a mechanic that makes it fun …

@@ -58,6 +58,10 @@ func _ready():
 	cancel_button.pressed.connect(_close_wizard)
 	back_button.pressed.connect(_go_back)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# LV-15 (row EP F3): the list never scrolls sideways — a chip that is
+	# wider than the panel WRAPS (see _add_action_button) instead of dragging
+	# a horizontal scrollbar under the list with its gate reason clipped off.
+	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 
 	# Create dedicated HTTPRequest (§9b)
 	_http = HTTPRequest.new()
@@ -75,6 +79,7 @@ func open():
 	_selected_nation = ""
 	title_label.text = "DIPLOMACY"
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
+	_lay_out_prompt(1)
 	back_button.visible = false
 	dp_label.text = ""
 	_clear_content_list()
@@ -85,7 +90,8 @@ func open():
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport. Both
 	# open paths clamp — the wizard is reachable from F1 and from the war
 	# panel handoff, and only clamping one would leave the other overflowing.
-	Utils.clamp_centered_panel($PanelContainer)
+	# (Row EP F3: the clamp lives in ONE place, `refit`.)
+	refit()
 	_fetch_nations()
 
 
@@ -100,6 +106,7 @@ func open_for_nation(nation: String):
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
+	_lay_out_prompt(2)
 	_clear_content_list()
 	_add_loading_label()
 	AudioManager.play("panel_open")
@@ -108,8 +115,35 @@ func open_for_nation(nation: String):
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport. Both
 	# open paths clamp — the wizard is reachable from F1 and from the war
 	# panel handoff, and only clamping one would leave the other overflowing.
-	Utils.clamp_centered_panel($PanelContainer)
+	# (Row EP F3: the clamp lives in ONE place, `refit`.)
+	refit()
 	_fetch_preview(nation)
+
+
+func refit() -> void:
+	"""Fit the panel to the CURRENT logical viewport — what `open` and
+	`open_for_nation` do on their own road. Public so a surface rendered
+	OFFLINE (the IQ-10 capture harness feeds `_render_nations` /
+	`_render_preview` a captured payload instead of fetching it) fits the
+	way the live wizard does, and so a later Interface Scale change can
+	refit an open wizard without re-fetching."""
+	Utils.clamp_centered_panel($PanelContainer)
+
+
+func _lay_out_prompt(step: int) -> void:
+	"""LV-20 (row EP F3): on step 1 the prompt is ONE line and the nation list
+	sits directly under it. The scene authors the assessment panel as an
+	expanding region (half the slack, for Talleyrand's step-2 assessment), so
+	on step 1 it opened a blank gap the height of an assessment that had not
+	been written. Step 1 pins it to a one-line floor; steps 2 and 3 expand."""
+	if assessment_panel == null:
+		return
+	if step == 1:
+		assessment_panel.size_flags_vertical = Control.SIZE_FILL
+		assessment_panel.custom_minimum_size.y = 40.0
+	else:
+		assessment_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		assessment_panel.custom_minimum_size.y = 56.0
 
 
 func _close_wizard():
@@ -132,6 +166,7 @@ func _go_back():
 		back_button.visible = false
 		title_label.text = "DIPLOMACY"
 		assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
+		_lay_out_prompt(1)
 		_clear_content_list()
 		_add_loading_label()
 		_fetch_nations()
@@ -333,6 +368,7 @@ func _on_nation_selected(nation: String):
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
+	_lay_out_prompt(2)
 	_clear_content_list()
 	_add_loading_label()
 	_fetch_preview(nation)
@@ -358,6 +394,7 @@ func _on_formables_pressed():
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — FORMABLE NATIONS"
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"The map of Europe is not finished, Sire. These states could yet exist — each names what its existence would require.\"[/color]"
+	_lay_out_prompt(2)
 	_clear_content_list()
 	_add_loading_label()
 	_fetch_formables()
@@ -589,14 +626,23 @@ func _add_action_button(action: Dictionary):
 	elif likelihood and likelihood != "" and likelihood != "null":
 		text += "  —  " + likelihood
 
-	if not available and disabled_reason and disabled_reason != "" and disabled_reason != "null":
-		text += "  [" + disabled_reason + "]"
+	var has_reason = (not available and disabled_reason and disabled_reason != ""
+		and disabled_reason != "null")
 
 	var btn = Button.new()
 	btn.text = text
 	btn.custom_minimum_size = Vector2(0, 40)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.disabled = not available
+	# LV-15 (row EP F3): the chip WRAPS instead of running off the panel (the
+	# list's horizontal scroll is disabled in _ready), and a gate reason is
+	# its own smaller line under the chip rather than a bracket clipped off
+	# its end — "Sponsor Their Design (200g/turn) (1 DP + 200g) — Aim their
+	# court at France — gold flows, the compa…" was the measured frame.
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if has_reason:
+		btn.tooltip_text = disabled_reason
 
 	# Color the button text based on likelihood
 	if likelihood in _likelihood_colors:
@@ -607,6 +653,13 @@ func _add_action_button(action: Dictionary):
 		btn.pressed.connect(_on_action_selected.bind(action_id, action))
 
 	content_list.add_child(btn)
+	if has_reason:
+		var reason_label = Label.new()
+		reason_label.text = "    " + disabled_reason
+		reason_label.add_theme_font_size_override("font_size", 11)
+		reason_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
+		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_list.add_child(reason_label)
 
 	# May 24, 2026 audit punch list Tier 2: multi-war ambiguity in-wizard
 	# rescue. When the backend marks the action unavailable with

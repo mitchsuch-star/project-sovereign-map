@@ -622,7 +622,7 @@ class TestTheRentePayerKeepsHisGraceWindow:
         from backend.game_logic import dotation as DOT
         world = _europe()
         marshal = world.marshals["Lannes"]
-        marshal.battles_won = 1
+        marshal.expectation_steps = 1
         _tick(world)                       # the clock opens
         assert marshal.expectation_grace_turn >= 0
         marshal.pension = DOT.compute_rente_face(marshal, world)
@@ -638,7 +638,7 @@ class TestTheRentePayerKeepsHisGraceWindow:
             "the clock is supposed to be frozen here, not reset")
         _tick(world, 5)                    # quiet, fully-paid turns
         trust_before = marshal.trust.value
-        marshal.battles_won = 3            # he wins again
+        marshal.expectation_steps = 3            # he wins again
         _tick(world)
         assert DOT.is_eroding(marshal, world) is False
         assert marshal.trust.value == trust_before
@@ -676,7 +676,7 @@ class TestTheRentePayerKeepsHisGraceWindow:
         running clock rather than restarting forever."""
         from backend.game_logic import dotation as DOT
         world, marshal = self._paid_and_frozen()
-        marshal.battles_won = 3
+        marshal.expectation_steps = 3
         _tick(world)                       # the window re-opens
         opened = marshal.expectation_grace_turn
         _tick(world, DOT.GRACE_TURNS + 1)  # and is never topped up again

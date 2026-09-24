@@ -1070,6 +1070,55 @@ def _carry_combat_fields(out: dict, inner: dict) -> dict:
     return out
 
 
+def order_is_timed(order) -> bool:
+    """A timed order is one carrying a `max_turns` condition that is not a
+    CR-7-9 `require_all` conjunction (those count their arms, not turns)."""
+    condition = getattr(order, "condition", None)
+    return (condition is not None
+            and getattr(condition, "max_turns", None) is not None
+            and not getattr(condition, "require_all", False))
+
+
+def order_turns_remaining(order, current_turn: int, *,
+                          including_current: bool = True) -> int:
+    """LV-D3 (row EP F3): ONE arithmetic for "how much of this order is
+    left" — the strategic report at the tick and the morning dispatch's
+    MARSHAL STATUS (which inherited the retired recap modal's lines) must
+    agree. A timed order counts its turns (`count_order_turns`); any other
+    order counts the steps of road still ahead of the man.
+
+    ``including_current`` is the timer's own knob: True at the tick (the turn
+    being closed counts), False on a start-of-turn surface (the dispatch, the
+    Ledger), where that turn is still to play.
+    """
+    if order_is_timed(order):
+        return max(0, int(order.condition.max_turns)
+                   - count_order_turns(order, int(current_turn),
+                                       including_current=including_current))
+    path = getattr(order, "path", None)
+    return len(path) if path else 0
+
+
+def order_eta_phrase(order, current_turn: int) -> str:
+    """LV-D3: the dispatch's clause for a standing order — "" when there is
+    nothing to say, else " — arrives next turn" / " — 3 turns out" /
+    " — holds 2 more turns" and the pursuit/support variants. Start-of-turn
+    reading (the turn is still to play)."""
+    remaining = order_turns_remaining(order, current_turn, including_current=False)
+    cmd = getattr(order, "command_type", "")
+    if order_is_timed(order):
+        if remaining <= 0:
+            return ""
+        return f" — holds {remaining} more turn{'s' if remaining != 1 else ''}"
+    if remaining <= 0:
+        return ""
+    if cmd == "PURSUE":
+        return " — closes next turn" if remaining == 1 else f" — {remaining} turns behind him"
+    if cmd == "SUPPORT":
+        return " — joins him next turn" if remaining == 1 else f" — {remaining} turns out"
+    return " — arrives next turn" if remaining == 1 else f" — {remaining} turns out"
+
+
 def count_order_turns(order, current_turn: int, *, including_current: bool = True) -> int:
     """CR-7-9 — THE timer rule, read by the checker AND the Strategic Ledger.
 
@@ -1219,13 +1268,10 @@ class StrategicOrderProcessor:
                         continue
                     progress_note = reason or ""
                 # Emit a status report so the player knows the order is active
-                remaining = len(order.path) if order.path else 0
-                timed = (order.condition is not None
-                         and order.condition.max_turns is not None
-                         and not getattr(order.condition, "require_all", False))
-                if timed:
-                    remaining = max(0, int(order.condition.max_turns)
-                                    - self._turns_active(order, world))
+                # LV-D3: ONE arithmetic with the dispatch's MARSHAL STATUS
+                # (order_turns_remaining) — the two surfaces cannot drift.
+                timed = order_is_timed(order)
+                remaining = order_turns_remaining(order, int(world.current_turn))
 
                 # Context-appropriate message based on order type and position
                 if order.command_type == "HOLD":

@@ -162,11 +162,13 @@ class TestFAN52TheMoniteurReadsLiveTypes:
 # ═══════════════════════════════════════════════════════════════════════
 
 def _make_eroding(world, name, wins=3):
-    from backend.game_logic import dotation
-    if world.current_turn <= dotation.GRACE_TURNS:
-        world.current_turn = dotation.GRACE_TURNS + 3
+    from backend.game_logic import dotation, jealousy as J
+    # F4 "The fuse is longer": the collective petition needs turn >= 12.
+    floor = max(dotation.GRACE_TURNS + 3, J.FONTAINEBLEAU_MIN_TURN)
+    if world.current_turn < floor:
+        world.current_turn = floor
     marshal = world.marshals[name]
-    marshal.battles_won = wins
+    marshal.expectation_steps = wins
     marshal.expectation_grace_turn = world.current_turn - dotation.GRACE_TURNS
     assert dotation.is_eroding(marshal, world)
     return marshal
@@ -197,7 +199,19 @@ class TestFAN53ThePromiseQuotesItsWindow:
             result = J.handle_petition_response(world, "promise")
         assert result["success"]
         assert f"extends {J.FONTAINEBLEAU_PROMISE_WINDOW} turns" in result["message"], result["message"]
-        rows = {r["marshal"]: r for r in dotation.build_unmet_marshals(world, "France")}
+        # F4 "The fuse is longer" (Sept 24, 2026): the dispatch's UNMET block
+        # is an ALARM — it names a man only within two turns of erosion, so a
+        # promise that just bought seven turns of patience takes him OFF it
+        # (the rail row and the petition's own confirmation quote the window,
+        # asserted above). With the lever down the rows say the same number.
+        assert not [r for r in dotation.build_unmet_marshals(world, "France")
+                    if r["marshal"] in {m.name for m in marshals}]
+        prior = dotation.THE_UNMET_BLOCK_WAITS
+        dotation.THE_UNMET_BLOCK_WAITS = False
+        try:
+            rows = {r["marshal"]: r for r in dotation.build_unmet_marshals(world, "France")}
+        finally:
+            dotation.THE_UNMET_BLOCK_WAITS = prior
         for m in marshals:
             assert rows[m.name]["grace_turns_left"] == J.FONTAINEBLEAU_PROMISE_WINDOW, rows[m.name]
 

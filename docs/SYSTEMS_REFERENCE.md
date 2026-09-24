@@ -6810,3 +6810,114 @@ Record: `docs/MAP_IMPLEMENTATION_PLAN.md` DEF-14. The rules:
   fuzzy-matched the old province "Oslo".
 * Pins: `tests/test_def14_the_names_match_the_map.py`; sweep
   `tools/_sweep_def14.json`.
+
+## 59. The fuse is longer (row EP F4, landed September 24, 2026)
+
+The reward curve (§ES-7 "The Cost of Success") is DEED-keyed. Gate record
+`ENDGAME_PLAN.md` D11; landing record `ENDGAME_PLAN.md` §1 F4.
+
+* **An expectation rises only on a deed.** (a) A decisive victory with the
+  marshal as LEAD — `dotation.is_decisive_victory`: the beaten corps broken
+  or destroyed outright (`attacker_victory` / `defender_victory`), or its
+  commander taken or gone from the field by the time the pipeline reaches
+  the seam, or the war score's own decisive exchange
+  (`battle_scale.is_decisive_exchange`: above 10,000 dead with one side
+  bleeding more than 2:1 — the ONE predicate `diplomacy.record_battle` reads
+  too). (b) A rise in his glory RANK that his own positive accrual earned
+  that turn (`dotation.observe_glory_rank`, from the jealousy pass after the
+  crowns, every nation's ladder; the first observation is silent; a rank
+  handed over by a rival's decay or capture is not a deed). A reinforcer, a
+  stalemate, a battle won on points with both corps standing, a garrison
+  stomp (that path never reaches the seam — CA8-19's exemption) raise
+  nothing.
+* **One write.** `dotation.raise_expectation(marshal, world, cause)` owns the
+  floor (`EXPECTATION_FIRST_TURN = 6`), the cooldown
+  (`EXPECTATION_RISE_COOLDOWN = 4`, on `last_expectation_rise_turn`) and the
+  cap; `expectation_rise_blocked` says why not. The field-deed call sits in
+  the post-combat tail of `_execute_attack` that the player's and the AI's
+  attacks share (GR5); the enemy AI's grant rung reads the same predicates.
+* **The count is its own field.** `Marshal.expectation_steps` prices the
+  claim (`REP_STEP × steps`, capped); `battles_won` stays the printed RECORD
+  and still ratchets for every other reader. A pre-F4 save backfills
+  `expectation_steps` from `battles_won` at load. `glory_rank_seen` is the
+  rank memory (1-based; 0 = off the ladder or never observed).
+* **The collective petition waits.** `jealousy.check_fontainebleau` needs
+  turn ≥ `FONTAINEBLEAU_MIN_TURN` (12) and ≥ `FONTAINEBLEAU_MIN_UNMET_GOLD`
+  (300) across the petitioners, on top of the three eroding men and the
+  cooldown; checked after the re-arm, so a count that fell during the wait
+  still re-arms.
+* **The UNMET block is an alarm.** `dotation.build_unmet_marshals` names a
+  man only within `UNMET_BLOCK_WINDOW_TURNS` (2) of erosion or already
+  eroding; a captive is never an alarm. The rail row still opens with the
+  shortfall and counts the whole window; the per-victory "raises his
+  expectation" line and the dispatch's `expectation_rises` stay.
+* **Levers, one per arm of the attribution:** `dotation.EXPECTATION_RISES_ON_DEEDS`
+  (the deed rule AND the first-turn floor; down, `get_expectation` reads
+  `battles_won` again), `dotation.EXPECTATION_RISE_COOLDOWN_ACTIVE`,
+  `jealousy.THE_COLLECTIVE_PETITION_WAITS`, `dotation.THE_UNMET_BLOCK_WAITS`.
+  All four down is the pre-F4 game byte-for-byte. The ambient
+  `BASELINE_SERIES` is byte-identical under every combination — measured, with
+  the reason (`tools/_f4_series_arms.py`, `tools/_f4_ambient_reason.py`): the
+  reward economy's outputs (AI grants, petitions) never reach a
+  threat-bearing decision inside 40 turns.
+* **Measured on the review's own board** (`flagship_1805.json`, 14 turns,
+  mock): first rise Lannes on turn 7, Massena on turn 11, first grace clocks
+  turns 7–8, no collective petition. Re-open: a 40-turn commanded campaign
+  that never sees a collective petition lowers the gate to turn 9.
+* Pins: `tests/test_ep_f4_the_fuse_is_longer.py`; sweep
+  `tools/_sweep_ep_f3_f4.json`.
+
+## 60. The client layout pass (row EP F3, landed September 24, 2026)
+
+Seven live-review rows on four client surfaces; landing record
+`ENDGAME_PLAN.md` §1 F3; driven by `tools/ep_f3_client_layout_harness.gd`.
+
+* **A closed petition arm names its reason above the fold.**
+  `marshal_petition_dialog` renders every closed arm as "<arm> is closed —
+  <reason>" in `GateLabel` under the header (an arm shut only by the purse
+  names its price); the body sizes to its own text one frame after layout
+  (`_fit_body`, bounded 120–360) and is `relax_last`, so the clamp shrinks
+  the options list first; a reason is never printed twice.
+* **The settlement rail is one row per court.** `_add_settlement_tier2_buttons`
+  builds an `HFlowContainer` per court (name, then its Press/Ease/Drop) and a
+  last row for coverage suggestions inside `Tier2ButtonContainer`
+  (a `VBoxContainer`); the rail's floor is derived per open from the row count
+  (42px a row + 10, capped at 30% of the logical viewport). A court can never
+  be folded out of sight by a fixed grid floor.
+* **Wizard chips wrap.** `_add_action_button` sets `Button.autowrap_mode`
+  (a 4.4 property) with the chip filling the width; a gate reason is its own
+  11px line under the chip and the chip's tooltip; the list's horizontal
+  scroll is disabled. Step 1 pins the prompt to one line
+  (`_lay_out_prompt(1)`); steps 2 and 3 expand. `refit()` is the live clamp,
+  public, for a surface rendered offline (the IQ-10 harness feeds
+  `_render_nations` / `_render_preview` a captured payload).
+* **The Sponsor chip says what the money does.** For a court whose design is
+  aimed at France the detail reads "Fund the design they already pursue
+  against us — a bribe, not a purchase.", and the chip is not offered while
+  at war with that court (`diplomacy.get_available_diplomatic_actions`).
+* **Log rows carry glyphs.** `campaign_log._category_icon` prefixes each row
+  with the category's phosphor glyph (sword / flag / coins / scroll /
+  handshake) through `Utils.bb_icon`; the letters are the fallback only for a
+  glyph missing on disk.
+* **The capture waits behind the report.** The capture route is
+  `result_first` in `_post_hud_response_routes`; `_display_result` stamps
+  `_result_rendered` on the response it prints and `_show_capture_choice_dialog`
+  prints the message only when nothing has — so the command path and the
+  muster road (`_on_interrupt_response` renders, then routes) both print
+  Berthier's report once and the message once before "Plunder or Secure?".
+* **The recap modal is retired (D13).** `_show_strategic_reports` prints the
+  "--- Strategic Order Updates ---" block and continues straight to
+  `_on_strategic_report_dismissed` (an order that needs an ANSWER still
+  raises its own interrupt popup from there). The dispatch's MARSHAL STATUS
+  carries each order's reading from ONE arithmetic —
+  `strategic.order_turns_remaining` (the report's own `turns_remaining`;
+  `including_current=False` on a start-of-turn surface) and
+  `strategic.order_eta_phrase` ("— arrives next turn", "— 3 turns out",
+  "— holds 2 more turns", "— closes next turn", "— joins him next turn").
+  `strategic_report_popup` stays registered and is never raised at turn
+  start.
+* **Evidence:** six IQ-10 frames `docs/audits/IQ10_{PETITION_COMMAND_CLOSED,
+  SETTLEMENT_THREE_COURTS,WIZARD_STEP1,WIZARD_STEP2_AUSTRIA,WIZARD_STEP2_PRUSSIA,
+  CAMPAIGN_LOG_GLYPHS}_2026_09_24.png` (+`_X2`), the capture group
+  `layout_f3` in `tools/iq10_capture_payloads.py`. Pins
+  `tests/test_ep_f3_the_client_layout_pass.py`; sweep `tools/_sweep_ep_f3_f4.json`.

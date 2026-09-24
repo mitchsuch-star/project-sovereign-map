@@ -105,7 +105,7 @@ def _reconcile(world):
 
 def _owe(world, name="Ney", wins=2):
     marshal = world.marshals[name]
-    marshal.battles_won = wins
+    marshal.expectation_steps = wins
     _reconcile(world)
     return marshal
 
@@ -191,7 +191,7 @@ class TestTheRowCanSettleWhatItAnnounces:
         ney = _owe(world, wins=2)
         assert "Grant rente" in _row(world)["details"]["action_label"]
         ney.pension = 40
-        ney.battles_won = 4
+        ney.expectation_steps = 4
         world.current_turn += 1
         _reconcile(world)
         assert "Re-size rente" in _row(world)["details"]["action_label"]
@@ -281,7 +281,7 @@ class TestItNeverOffersWhatTheExecutorRefuses:
 def _two_estates(world, name="Ney", wins=8):
     """A marshal with two paying estates worth 300 between them."""
     marshal = world.marshals[name]
-    marshal.battles_won = wins
+    marshal.expectation_steps = wins
     picks = []
     for region in world.regions.values():
         if (region.controller not in ("France", None)
@@ -425,7 +425,7 @@ class TestAGrantNeverLeavesHimWorseOff:
         from backend.commands.executor import CommandExecutor
 
         ney = world.marshals["Ney"]
-        ney.battles_won = 8
+        ney.expectation_steps = 8
         picks = []
         for region in world.regions.values():
             if (region.controller not in ("France", None)
@@ -729,7 +729,7 @@ class TestTheBuilderKeepsItsOwnPromise:
         if napoleon is None:
             pytest.skip("no sovereign in this scenario")
         napoleon.pension = 50
-        napoleon.battles_won = 5
+        napoleon.expectation_steps = 5
         assert dotation.rente_action_keys(napoleon, world) == {}, (
             "the executor answers 'the treasury is already his'; the builder "
             "was offering him a priced rente")
@@ -737,7 +737,7 @@ class TestTheBuilderKeepsItsOwnPromise:
     def test_it_refuses_a_foreign_marshal(self, world):
         mack = next(m for m in world.marshals.values()
                     if m.nation != world.player_nation)
-        mack.battles_won = 5
+        mack.expectation_steps = 5
         assert dotation.rente_action_keys(mack, world) == {}, (
             "measured before the fix: a complete affordance for an Austrian "
             "marshal, priced against the FRENCH treasury")
@@ -854,7 +854,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         before = _row(world)["details"]["action_label"]
         opened_id = _row(world)["id"]
 
-        ney.battles_won = 3                      # what winning a battle does
+        ney.expectation_steps = 3                      # what winning a battle does
         dotation.restate_reward_notice(world, ney)
 
         row = _row(world)
@@ -880,7 +880,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         src = inspect.getsource(combat_executor)
         note_at = src.index('result["battle_report"]["expectation_note"]')
         window = src[note_at:note_at + 1400]
-        assert "restate_reward_notice(world, _exp_winner)" in window, (
+        assert "restate_reward_notice(world, _rise_winner)" in window, (
             "the expectation_note seam is where the engine already knows the "
             "expectation rose; the rail has to learn it there too")
 
@@ -928,7 +928,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         to the per-turn pass — a mid-turn victory must not shorten a marshal's
         patience."""
         lannes = world.marshals["Lannes"]
-        lannes.battles_won = 2
+        lannes.expectation_steps = 2
         assert not _rows(world, "Lannes"), "precondition: no row yet"
 
         dotation.restate_reward_notice(world, lannes)
@@ -956,7 +956,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         world.notifications.dismiss(row_id)
         assert _rows(world) == [], "precondition: he acknowledged it"
 
-        ney.battles_won = 3
+        ney.expectation_steps = 3
         dotation.restate_reward_notice(world, ney)
 
         assert _rows(world) == [], (
@@ -973,7 +973,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         assert _rows(world, "Ney"), "precondition: Ney is still asking"
         assert _rows(world, "Davout") == [], "precondition: Davout is not"
 
-        dav.battles_won = 3
+        dav.expectation_steps = 3
         dotation.restate_reward_notice(world, dav)
 
         assert _rows(world, "Davout") == [], (
@@ -996,7 +996,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         before = str(rows[0]["details"]["action_label"])
         erosion_id = str(rows[0]["id"])
 
-        ney.battles_won = 6
+        ney.expectation_steps = 6
         dotation.restate_reward_notice(world, ney)
 
         rows = _rows(world)
@@ -1013,7 +1013,7 @@ class TestThePriceOnTheButtonIsNeverStale:
         actually lives."""
         foreign = next(m for m in world.marshals.values()
                        if m.nation != world.player_nation)
-        foreign.battles_won = 5
+        foreign.expectation_steps = 5
         foreign.expectation_grace_turn = int(world.current_turn) - 1
 
         dotation.restate_reward_notice(world, foreign)
@@ -1080,7 +1080,7 @@ class TestTheBellRingsOncePerGrievance:
     def test_the_restated_row_still_carries_live_numbers(self, world):
         ney = _owe(world, wins=1)
         first = _row(world)["message"]
-        ney.battles_won = 5
+        ney.expectation_steps = 5
         world.current_turn += 1
         _reconcile(world)
         row = _row(world)

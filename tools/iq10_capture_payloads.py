@@ -922,7 +922,97 @@ def cap_user_saves():
                        facts={"opponent": wars["wars"][0].get("opponent")})
 
 
+def cap_layout_f3():
+    """Row EP F3 "The client layout pass" — the four frames the live review's
+    layout rows owe (LV-5 the petition's closed arm, LV-14(b) the settlement
+    table's third court, LV-15/LV-20 the wizard's chips and first step, LV-16
+    the log's glyphs), each off a REAL payload on a STAGED 1805 board."""
+    from backend.game_logic import jealousy as J
+
+    # LV-5: Murat's confrontation with Ney, Murat sent to Brittany (no enemy
+    # within his reach), so the command arm arrives CLOSED with the backend's
+    # own reason (the live review's frame).
+    world, c = fresh()
+    clear_dialogues(world)
+    world.marshals["Murat"].location = "Brittany"     # no enemy within his reach
+    world.marshals["Murat"].strategic_order = None
+    with _quiet():
+        status = J.queue_confrontation_petition(
+            world, world.marshals["Murat"], world.marshals["Ney"], level=0)
+    response = cmd(c, "status")
+    petition = response.get("marshal_petition")
+    record("petition_command_closed", petition,
+           source="POST /command 'status' → marshal_petition (the PopupQueue's delivery)",
+           staging="fresh 1805 boot; dialogue slot emptied; Murat WRITTEN to Brittany (no enemy "
+                   "in reach); `jealousy.queue_confrontation_petition(Murat, Ney, level 0)` — "
+                   f"the command arm is closed (push status {status})",
+           facts={"kind": (petition or {}).get("kind"),
+                  "options": [(o.get("label"), o.get("enabled"), o.get("unavailable_reason"))
+                              for o in ((petition or {}).get("options") or [])
+                              if isinstance(o, dict)]})
+
+    # LV-15 / LV-20: the wizard's nation list (step 1) and two previews —
+    # Austria at war (the Sponsor chip hidden, the buy-off chip's long gate
+    # reason) and Prussia at peace (all three instrument chips, the long
+    # "Sponsor Their Design" label that ran off the panel).
+    world, c = fresh()
+    nations = get(c, "/diplomatic_preview")
+    record("wizard_nations", nations, source="GET /diplomatic_preview (nation list mode)",
+           staging="fresh 1805 boot",
+           facts={"nation_count": sum(len(v) for v in (nations.get("categories") or {}).values())
+                  if isinstance(nations.get("categories"), dict) else None})
+    for court in ("Austria", "Prussia"):
+        preview = get(c, f"/diplomatic_preview?nation={court}")
+        record(f"wizard_preview_{court.lower()}", preview,
+               source=f"GET /diplomatic_preview?nation={court}",
+               staging="fresh 1805 boot",
+               facts={"at_war": preview.get("current_state"),
+                      "chips": [(a.get("display_name"), a.get("available"),
+                                 (a.get("disabled_reason_display") or a.get("disabled_reason")))
+                                for a in (preview.get("actions") or []) if isinstance(a, dict)]})
+
+    # LV-14(b): the settlement table with THREE covered courts — Vienna held
+    # (state write), the whole-war peace drafted against Austria's coalition.
+    world, c = fresh()
+    clear_dialogues(world)
+    vienna = world.regions.get("Vienna")
+    if vienna is not None:
+        vienna.controller = PLAYER
+        world.invalidate_active_nations_cache()
+    world.diplomatic_points = max(int(world.diplomatic_points), 5)
+    drafted = cmd(c, "propose common peace with Austria")
+    dialogue = drafted.get("diplomatic_dialogue")
+    per_court = (dialogue or {}).get("per_court_acceptance") or []
+    record("settlement_three_courts", dialogue,
+           source="POST /command 'propose common peace with Austria' → diplomatic_dialogue",
+           staging="fresh 1805 boot; Vienna's controller WRITTEN to France; DP raised to 5; "
+                   "the typed whole-war settlement draft (settlement_confirm, PROPOSE)",
+           facts={"dialogue_type": (dialogue or {}).get("type"),
+                  "dialogue_mode": (dialogue or {}).get("dialogue_mode"),
+                  "courts": [r.get("nation") for r in per_court if isinstance(r, dict)],
+                  "dial_actions": {r.get("nation"): len(r.get("dial_actions") or [])
+                                   for r in per_court if isinstance(r, dict)},
+                  "message": str(drafted.get("message"))[:200]})
+
+    # LV-16: a log with rows of several categories — Ulm fought, two turns
+    # ended (the enemy phase and the envoys fill the rest).
+    world, c = fresh()
+    world.marshals["Mack"].strength = 600
+    cmd(c, "Ney, attack Mack")
+    cmd(c, "end turn")
+    cmd(c, "end turn")
+    log = get(c, "/campaign_log")
+    cats = {}
+    for turn in (log.get("turns") or []):
+        for ev in (turn.get("events") or []):
+            cats[ev.get("category")] = cats.get(ev.get("category"), 0) + 1
+    record("campaign_log_glyphs", log, source="GET /campaign_log",
+           staging="fresh 1805 boot; Mack cut to 600 (state write); `Ney, attack Mack`; two end turns",
+           facts={"categories": cats})
+
+
 CAPTURES = {
+    "layout_f3": cap_layout_f3,
     "boot": cap_boot,
     "spent": cap_spent,
     "ceiling": cap_ceiling_states,

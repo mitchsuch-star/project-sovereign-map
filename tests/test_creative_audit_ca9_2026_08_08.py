@@ -1336,7 +1336,7 @@ class TestN3DotationErosionIsRetired:
     def _eroding(world, name="Ney", battles=2):
         """Drive a marshal to a live erosion notice."""
         m = world.marshals[name]
-        m.battles_won = battles
+        m.expectation_steps = battles
         m.dotation_regions = []
         m.pension = 0
         world.notifications.dismiss_all()
@@ -1429,7 +1429,7 @@ class TestN3DotationErosionIsRetired:
         from backend.game_logic.dotation import get_expectation
         ney = self._eroding(world, "Ney")
         soult = world.marshals["Soult"]
-        soult.battles_won = 3
+        soult.expectation_steps = 3
         soult.dotation_regions = []
         soult.pension = 0
         for turn in range(16, 22):
@@ -1903,9 +1903,9 @@ class TestN1OneBattleOneTally:
         from tests.conftest import MarshalFactory
 
         m = MarshalFactory.infantry(name="Ney")
-        m.battles_won = 4
+        m.expectation_steps = 4
         honest = get_expectation(m)
-        m.battles_won = 8          # what the doubled seam produced
+        m.expectation_steps = 8          # what the doubled seam produced
         doubled = get_expectation(m)
         assert doubled > honest, (
             "get_expectation must be sensitive to battles_won, or this row "

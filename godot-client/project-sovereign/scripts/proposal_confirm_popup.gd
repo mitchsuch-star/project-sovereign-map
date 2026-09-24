@@ -268,41 +268,77 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 	# this client gate keeps the contract explicit at the render layer too.
 	if str(data.get("dialogue_mode", "REVIEW")) != "PROPOSE":
 		return
-	var affordances: Array = []
+	# LV-14(b) (row EP F3): ONE ROW PER COURT — the court's name, then its
+	# Press/Ease/Drop chips — and a last row for the coverage suggestions.
+	# The old three-column grid folded a third court's chips under the
+	# rail's fixed 96px floor (Russia's row clipped at 2560x1340, the live
+	# review's frame); a per-court row can never lose a court, and the
+	# rail's floor is derived below from the row count so every court is
+	# visible whenever the viewport has the room (the relax pass still
+	# shrinks it first on a small one — it scrolls).
+	var court_rows: Array = []   # [{label, affordances}]
 	var per_court = data.get("per_court_acceptance", [])
 	if per_court is Array:
 		for row in per_court:
 			if not (row is Dictionary):
 				continue
+			var court_affordances: Array = []
 			# Focused dials ("Press <court>" / "Ease <court>") ride on every
 			# dialable row; holdout Ease/Drop ride on holdout rows.
 			var dial_actions = row.get("dial_actions", [])
 			if dial_actions is Array:
 				for da in dial_actions:
 					if da is Dictionary and str(da.get("action", "")) != "":
-						affordances.append(da)
+						court_affordances.append(da)
 			var holdout_actions = row.get("holdout_actions", [])
 			if holdout_actions is Array:
 				for ha in holdout_actions:
 					if ha is Dictionary and str(ha.get("action", "")) != "":
-						affordances.append(ha)
+						court_affordances.append(ha)
+			if not court_affordances.is_empty():
+				court_rows.append({
+					"label": Utils.display_nation_name(str(row.get("nation", "?"))),
+					"affordances": court_affordances,
+				})
+	var coverage: Array = []
 	var coverage_suggestions = data.get("coverage_add_suggestions", [])
 	if coverage_suggestions is Array:
 		for cs in coverage_suggestions:
 			if cs is Dictionary and str(cs.get("action", "")) != "":
-				affordances.append(cs)
-	for aff in affordances:
-		var btn = Button.new()
-		btn.text = str(aff.get("label", "???"))
-		btn.tooltip_text = str(aff.get("description", ""))
-		btn.custom_minimum_size = Vector2(160, 40)
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.add_theme_font_size_override("font_size", 13)
-		btn.add_theme_color_override("font_color", Color("#80b0e0"))
-		btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
-		tier2_button_container.add_child(btn)
+				coverage.append(cs)
+	if not coverage.is_empty():
+		court_rows.append({"label": "Coverage", "affordances": coverage})
+	for entry in court_rows:
+		var line = HFlowContainer.new()
+		line.add_theme_constant_override("h_separation", 8)
+		line.add_theme_constant_override("v_separation", 6)
+		var name_label = Label.new()
+		name_label.text = str(entry.get("label", "")) + ":"
+		name_label.custom_minimum_size = Vector2(110, 36)
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.add_theme_font_size_override("font_size", 13)
+		name_label.add_theme_color_override("font_color", Color(COLOR_GOLD))
+		line.add_child(name_label)
+		for aff in entry.get("affordances", []):
+			var btn = Button.new()
+			btn.text = str(aff.get("label", "???"))
+			btn.tooltip_text = str(aff.get("description", ""))
+			btn.custom_minimum_size = Vector2(150, 36)
+			btn.add_theme_font_size_override("font_size", 13)
+			btn.add_theme_color_override("font_color", Color("#80b0e0"))
+			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
+			line.add_child(btn)
+		tier2_button_container.add_child(line)
 	if tier2_scroll:
-		tier2_scroll.visible = not affordances.is_empty()
+		tier2_scroll.visible = not court_rows.is_empty()
+		# The floor follows the rows: 42px a row plus a little air, capped at
+		# 30% of the logical viewport so the table keeps its priority.
+		var cap: float = 240.0
+		var vp := get_viewport()
+		if vp:
+			cap = maxf(96.0, vp.get_visible_rect().size.y * 0.30)
+		tier2_scroll.custom_minimum_size.y = clampf(
+			float(court_rows.size()) * 42.0 + 10.0, 96.0, cap)
 
 func _build_content(data: Dictionary) -> String:
 	var target = data.get("target_nation", "Unknown")

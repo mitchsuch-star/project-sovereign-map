@@ -532,7 +532,10 @@ class TestTheFogIsOneSentence:
 # ═══════════════════════════════════════════════════════════════════════════
 RESULT_FIRST = {"commitment_paradox", "marshal_petition", "incoming_proposal",
                 "incoming_settlement_offer", "diplomatic_sabotage",
-                "vassal_rebellion"}
+                "vassal_rebellion",
+                # LV-22 (row EP F3): the capture IS asked for, and its question
+                # still waits behind Berthier's report — pin flipped consciously.
+                "capture_choice"}
 
 
 def _post_hud_block():

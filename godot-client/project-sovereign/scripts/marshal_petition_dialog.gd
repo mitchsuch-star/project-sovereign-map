@@ -26,6 +26,9 @@ signal petition_choice(choice_id: String)
 signal petition_deferred
 
 @onready var title_label = $PanelContainer/VBoxContainer/TitleLabel
+# LV-5 (row EP F3): a closed arm's reason, ONE line under the header — above
+# the fold, where the player reads it before the options scroll.
+@onready var gate_label = $PanelContainer/VBoxContainer/GateLabel
 @onready var body_label = $PanelContainer/VBoxContainer/BodyLabel
 @onready var options_container = $PanelContainer/VBoxContainer/ScrollContainer/OptionsContainer
 @onready var later_button = $PanelContainer/VBoxContainer/LaterButton
@@ -42,6 +45,10 @@ const KIND_TITLES = {
 func _ready():
 	if later_button:
 		later_button.pressed.connect(_on_later)
+	# LV-5: the body is the petition — clamp_centered_panel's relax pass
+	# shrinks the options list first and the man's words last.
+	if body_label:
+		body_label.set_meta("relax_last", true)
 	hide()
 
 
@@ -82,11 +89,27 @@ func show_petition(petition: Dictionary):
 		child.queue_free()
 
 	var options = petition.get("options", [])
+	var closed_lines: Array = []
 	if options is Array:
 		for option in options:
 			if not (option is Dictionary):
 				continue
 			_add_option(option)
+			# LV-5: a closed arm names its reason ABOVE the fold. The backend
+			# always sends one (`unavailable_reason`) for a refused arm; an
+			# arm shut only by the action-point purse names the price.
+			if not bool(option.get("enabled", true)):
+				var why = str(option.get("unavailable_reason", ""))
+				if why == "" or why == "<null>":
+					var cost_note = str(option.get("cost_note", ""))
+					if cost_note != "" and cost_note != "<null>":
+						why = "it needs " + cost_note + " this turn"
+				if why != "" and why != "<null>":
+					closed_lines.append(str(option.get("label", "That arm"))
+						+ " is closed — " + Utils.humanize_nation_keys_in_text(why))
+	if gate_label:
+		gate_label.text = "\n".join(PackedStringArray(closed_lines))
+		gate_label.visible = not closed_lines.is_empty()
 
 	# Fontainebleau and war-weary petitions demand an answer NOW — the
 	# moment does not keep. Grievance/rivalry petitions (and NP-3's
@@ -100,6 +123,22 @@ func show_petition(petition: Dictionary):
 	# viewport, so a fixed authored rect can carry the action row off-screen
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
+	Utils.clamp_centered_panel($PanelContainer)
+	# LV-5: then size the body to its own text and fit again — after layout
+	# has given the label its width (deferred, one frame).
+	call_deferred("_fit_body")
+
+
+func _fit_body() -> void:
+	"""LV-5 (row EP F3): the body sizes to `get_content_height()` (bounded)
+	so the petition's second line no longer falls below the fold with only
+	a thin scrollbar as the cue; the options list yields first (relax_last
+	on the body), and the clamp still fits the whole panel to the viewport."""
+	await get_tree().process_frame
+	if body_label == null or not visible:
+		return
+	var wanted: float = body_label.get_content_height() + 12.0
+	body_label.custom_minimum_size.y = clampf(wanted, 120.0, 360.0)
 	Utils.clamp_centered_panel($PanelContainer)
 
 
@@ -127,8 +166,11 @@ func _add_option(option: Dictionary):
 
 	var detail = str(option.get("detail", ""))
 	var reason = str(option.get("unavailable_reason", ""))
-	if not is_enabled and reason != "":
-		detail = reason if detail == "" else reason + "  " + detail
+	# LV-5 (row EP F3): the reason renders above the fold (GateLabel, see
+	# show_petition); under the button only the detail — and never the reason
+	# twice (the backend sends `detail == reason` for a non-AP refusal).
+	if not is_enabled and reason != "" and detail == reason:
+		detail = ""
 	if detail != "":
 		var detail_label = Label.new()
 		detail_label.text = "    " + detail

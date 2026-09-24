@@ -314,7 +314,7 @@ class TestSovereignCard:
         s = make_sovereign()
         w = make_world(s)
         w.sovereign_map = "europe"
-        s.battles_won = 12  # would be expectation 480 for anyone else
+        s.expectation_steps = 12  # would be expectation 480 for anyone else
         card = build_marshal_overview(w)[0]
         assert card["glory"] == 0
         assert card["expectation"] == 0

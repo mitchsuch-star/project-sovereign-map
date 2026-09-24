@@ -1,0 +1,428 @@
+{
+ "old curve (all down)": {
+  "steps": {
+   "Ney": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Davout": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Soult": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Lannes": [
+    "France",
+    0,
+    11,
+    0,
+    []
+   ],
+   "Murat": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Bernadotte": [
+    "France",
+    0,
+    8,
+    0,
+    []
+   ],
+   "Massena": [
+    "France",
+    0,
+    12,
+    0,
+    []
+   ],
+   "Napoleon": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Deroy": [
+    "Bavaria",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Mack": [
+    "Austria",
+    0,
+    1,
+    0,
+    []
+   ],
+   "ArchdukeCharles": [
+    "Austria",
+    0,
+    8,
+    90,
+    [
+     "Piedmont",
+     "Provence",
+     "Lyonnais",
+     "Gascony"
+    ]
+   ],
+   "ArchdukeJohn": [
+    "Austria",
+    0,
+    5,
+    98,
+    [
+     "Franconia"
+    ]
+   ],
+   "Kutuzov": [
+    "Russia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Buxhowden": [
+    "Russia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Moore": [
+    "Britain",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Brunswick": [
+    "Prussia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Hohenlohe": [
+    "Prussia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Armfelt": [
+    "Sweden",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Damas": [
+    "Naples",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Frederick": [
+    "Denmark",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Castanos": [
+    "Spain",
+    0,
+    2,
+    80,
+    []
+   ],
+   "Abdurrahman": [
+    "Ottoman",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Paget": [
+    "Britain",
+    0,
+    1,
+    0,
+    []
+   ],
+   "Bennigsen": [
+    "Russia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Shrapnel": [
+    "Britain",
+    0,
+    0,
+    0,
+    []
+   ]
+  },
+  "grants": [
+   [
+    4,
+    "Austria",
+    "ArchdukeCharles",
+    "dotation_granted"
+   ],
+   [
+    4,
+    "Austria",
+    "ArchdukeJohn",
+    "dotation_granted"
+   ],
+   [
+    7,
+    "Austria",
+    "ArchdukeCharles",
+    "rente_granted"
+   ],
+   [
+    7,
+    "Austria",
+    "ArchdukeJohn",
+    "rente_granted"
+   ],
+   [
+    10,
+    "Spain",
+    "Castanos",
+    "rente_granted"
+   ],
+   [
+    26,
+    "Austria",
+    "ArchdukeCharles",
+    "dotation_granted"
+   ],
+   [
+    27,
+    "Austria",
+    "ArchdukeCharles",
+    "dotation_granted"
+   ],
+   [
+    28,
+    "Austria",
+    "ArchdukeCharles",
+    "dotation_granted"
+   ]
+  ],
+  "types": {
+   "fontainebleau_petition": 4,
+   "estate_respected": 1,
+   "dotation_granted": 4
+  },
+  "fontainebleau_last_turn": -999,
+  "threat": 0
+ },
+ "full tree": {
+  "steps": {
+   "Ney": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Davout": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Soult": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Lannes": [
+    "France",
+    1,
+    11,
+    0,
+    []
+   ],
+   "Murat": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Bernadotte": [
+    "France",
+    1,
+    8,
+    0,
+    []
+   ],
+   "Massena": [
+    "France",
+    2,
+    12,
+    0,
+    []
+   ],
+   "Napoleon": [
+    "France",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Deroy": [
+    "Bavaria",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Mack": [
+    "Austria",
+    0,
+    1,
+    0,
+    []
+   ],
+   "ArchdukeCharles": [
+    "Austria",
+    1,
+    8,
+    0,
+    []
+   ],
+   "ArchdukeJohn": [
+    "Austria",
+    0,
+    5,
+    0,
+    []
+   ],
+   "Kutuzov": [
+    "Russia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Buxhowden": [
+    "Russia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Moore": [
+    "Britain",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Brunswick": [
+    "Prussia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Hohenlohe": [
+    "Prussia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Armfelt": [
+    "Sweden",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Damas": [
+    "Naples",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Frederick": [
+    "Denmark",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Castanos": [
+    "Spain",
+    1,
+    2,
+    0,
+    []
+   ],
+   "Abdurrahman": [
+    "Ottoman",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Paget": [
+    "Britain",
+    1,
+    1,
+    0,
+    []
+   ],
+   "Bennigsen": [
+    "Russia",
+    0,
+    0,
+    0,
+    []
+   ],
+   "Shrapnel": [
+    "Britain",
+    0,
+    0,
+    0,
+    []
+   ]
+  },
+  "grants": [],
+  "types": {},
+  "fontainebleau_last_turn": -999,
+  "threat": 0
+ }
+}
