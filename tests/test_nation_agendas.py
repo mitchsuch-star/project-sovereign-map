@@ -1812,13 +1812,17 @@ class TestNeutralityViolation:
         return world.nation_relations.get(world._make_diplo_key(a, b), 0)
 
     def test_player_columns_offend_copenhagen(self, world):
-        """GR5 canonical case: belligerent France's marshal in Jutland
-        (Denmark's ACTIVE guard) → one-time -25 + dispatch + campaign log."""
+        """GR5 canonical case: belligerent France's marshal in Holstein
+        (Denmark's ACTIVE guard) → one-time -25 + dispatch + campaign log.
+
+        DEF-14 (Sept 24, 2026): the guarded province was called Jutland; the
+        art paints it on Hanover's Baltic coast, so it is Holstein now. The
+        region, and the deck that guards it, did not change."""
         from backend.game_logic.agendas import (
             AGENDA_VIOLATION_RELATION_PENALTY, process_agenda_violations,
         )
         before = self._relation(world, "France", "Denmark")
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         events = process_agenda_violations(world)
         assert [(e["violator"], e["guard_holder"]) for e in events] == [
             ("France", "Denmark")]
@@ -1833,7 +1837,7 @@ class TestNeutralityViolation:
         from backend.game_logic.agendas import (
             AGENDA_VIOLATION_COOLDOWN, process_agenda_violations,
         )
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         # Two French corps in two guard regions: still ONE beat per pair.
         world.marshals["Davout"].location = "Copenhagen"
         assert len(process_agenda_violations(world)) == 1
@@ -1842,13 +1846,13 @@ class TestNeutralityViolation:
         assert len(process_agenda_violations(world)) == 1
 
     def test_ai_violator_pays_the_same(self, world):
-        """GR5 mirror: a British column in Jutland (Britain at war with
+        """GR5 mirror: a British column in Holstein (Britain at war with
         France, at peace with Denmark) offends Copenhagen identically."""
         from backend.game_logic.agendas import process_agenda_violations
         british = [m for m in world.marshals.values()
                    if m.nation == "Britain"]
         assert british, "1805 roster should field a British marshal"
-        british[0].location = "Jutland"
+        british[0].location = "Holstein"
         events = process_agenda_violations(world)
         assert [(e["violator"], e["guard_holder"]) for e in events] == [
             ("Britain", "Denmark")]
@@ -1856,7 +1860,7 @@ class TestNeutralityViolation:
     def test_exemptions_hold(self, world):
         from backend.game_logic.agendas import process_agenda_violations
         from backend.game_logic.diplomacy import set_diplomatic_state
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         # Ally: France allied to Denmark → its columns are no outrage.
         set_diplomatic_state(world, "France", "Denmark", "ALLIANCE", "test")
         assert process_agenda_violations(world) == []
@@ -1867,13 +1871,13 @@ class TestNeutralityViolation:
 
     def test_peaceful_nation_never_offends(self, world):
         """Only a belligerent's columns violate — France at peace with
-        the whole world may cross Jutland freely."""
+        the whole world may cross Holstein freely."""
         from backend.game_logic.agendas import process_agenda_violations
         for nation in list(world.get_nations_at_war_with("France")):
             key = world._make_diplo_key("France", nation)
             world.diplomatic_states[key] = "PEACE"
         world.invalidate_bloc_members_cache()
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         assert process_agenda_violations(world) == []
 
     def test_latent_guard_prices_nothing(self, world):
@@ -1885,18 +1889,18 @@ class TestNeutralityViolation:
 
     def test_courier_remnants_do_not_trigger(self, world):
         from backend.game_logic.agendas import process_agenda_violations
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         world.marshals["Ney"].strength = 999
         assert process_agenda_violations(world) == []
 
     def test_own_soil_is_never_a_violation(self, world):
         """Review fix pin: a garrison on a legally-held (treaty-ceded)
         province is no transit — Denmark's reactivated guard over a now-
-        FRENCH Jutland cannot bleed France -25 forever."""
+        FRENCH Holstein cannot bleed France -25 forever."""
         from backend.game_logic.agendas import process_agenda_violations
-        _conquer(world, "Jutland", "France")
+        _conquer(world, "Holstein", "France")
         world.invalidate_bloc_members_cache()
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         assert process_agenda_violations(world) == []
         # The other guard region is still Danish — crossing IT violates.
         world.marshals["Ney"].location = "Copenhagen"
@@ -1907,7 +1911,7 @@ class TestNeutralityViolation:
         events INSIDE the cooldown window, the latch cannot prove a
         prior firing was absent — it suppresses rather than re-fires."""
         from backend.game_logic.agendas import process_agenda_violations
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         cap = world.MAX_EVENT_LOG_SIZE
         world.event_log = [
             {"type": "noise", "turn": int(world.current_turn)}
@@ -1926,7 +1930,7 @@ class TestNeutralityViolation:
         """Review fix pin: the world_state wiring itself — deleting the
         process_agenda_violations call from _advance_turn_internal must
         fail HERE, not just in the helper tests."""
-        world.marshals["Ney"].location = "Jutland"
+        world.marshals["Ney"].location = "Holstein"
         key = world._make_diplo_key("France", "Denmark")
         before = world.nation_relations.get(key, 0)
         world.advance_turn()

@@ -151,6 +151,11 @@ computed at read time from diplomatic state — no pool object, nothing new seri
 > - France **Brittany / Provence / Normandy / Bordelais**, Holland
 >   **Friesland**, Russia **Livonia** (NUI-2, §18: Flanders, Amsterdam and
 >   Estonia are drawn inland on the painted map).
+> - Spain **Galicia / Cartagena** and Sweden **Stralsund** (DEF-14,
+>   September 24, 2026: the same yards, renamed to where the art paints them;
+>   the real Toledo is inland, and the real Scania lies across the Baltic from
+>   the German coast where the province is painted). `MAP_IMPLEMENTATION_PLAN.md`
+>   DEF-14 has the record.
 >
 > `SYSTEMS_REFERENCE.md` §57 lists every yard.
 
@@ -2004,14 +2009,16 @@ and the unquoted form above fixed it.
 
 ### 18.4 Recorded, not built
 
-- **DEF-14 "The Names Match the Map"** — several province names do not match
-  their painted place (Oslo at the base of the Jutland peninsula; the DEF-8
-  five on the Adriatic; Moravia, Hungary and Croatia on the Black Sea; Karelia
-  south of the Gulf; Amsterdam and Flanders inland; the earlier-noted East
-  Prussia / Samogitia / Picardy–Artois / Toledo). The game is consistent —
-  every rule reads the registry — so it is legibility and trust, not
-  correctness. Owner row, landing, completion and test:
-  `MAP_IMPLEMENTATION_PLAN.md` DEF-14.
+- **DEF-14 "The Names Match the Map" — ✅ LANDED the same day** (September 24,
+  2026; record `MAP_IMPLEMENTATION_PLAN.md` DEF-14): nine provinces renamed so
+  each name sits where the art paints it — Bergen → Jutland, Oslo → Schleswig,
+  Jutland → Holstein, Dalarna → Scania, Scania → Stralsund (Sweden's yard),
+  Gothland → Norrland, Norrland → Uleaborg, Toledo → Cartagena (Spain's second
+  yard), La Mancha → Andalusia. The yards did not move. One display change
+  follows from the alphabet: the senior yard (§17.1) is alphabetical, so
+  Spain's fleet piece is now drawn off Cartagena instead of off Galicia (the
+  NUI-2 captures above predate it). The Low Countries (Amsterdam inland,
+  Holland's and Hanover's provinces interleaved) are DEF-15.
 - **London's and Provence's blockade glyph** may touch the coastline — no
   water wide enough for the full piece box lies off either shore; the ship's
   core is on water. Re-open if a player reads it as a land marker.

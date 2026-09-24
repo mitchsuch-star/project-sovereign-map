@@ -6719,9 +6719,9 @@ Landing record: `docs/NAVAL_SPEC.md` §18. The rules:
   `port_anchor`; a flag alone cannot see a province like Estonia, which is
   coastal as a sea-link end and has no open water. The
   1805 yards: Britain London / East Anglia / Cornwall · France Brittany /
-  Provence / Normandy / Bordelais · Spain Galicia / Toledo · Denmark
+  Provence / Normandy / Bordelais · Spain Galicia / Cartagena · Denmark
   Copenhagen · Ottoman Constantinople · Holland Friesland · Russia Livonia ·
-  Portugal Lisbon · Sweden Scania · Naples Naples. Flanders stays a France
+  Portugal Lisbon · Sweden Stralsund · Naples Naples. Flanders stays a France
   CAMP province (the camp never asks for a coast).
 * **Every coastal province carries a `port_anchor`** in the registry — the base
   of a fleet piece on open water off its OWN shore (the nearest province to it
@@ -6761,3 +6761,52 @@ Landing record: `docs/NAVAL_SPEC.md` §18. The rules:
 * Pins: `tests/test_nui2_the_fleet_rides_at_anchor.py` (the registry against the
   art through the stdlib PNG decoder; the driven map and ledger classes skip
   without Godot — a skip is not a pass); sweep `tools/_sweep_nui2.json`.
+
+## 58. The names match the map (DEF-14, landed September 24, 2026)
+
+Record: `docs/MAP_IMPLEMENTATION_PLAN.md` DEF-14. The rules:
+
+* **A province's name sits where the art paints it, relative to its
+  neighbours.** `tools/audit_province_names.py` is the check (standard library
+  only): each name's real coordinates (its `GAZETTEER`) are fitted to the art
+  by a local affine transform over its ten nearest provinces, trimming the
+  three worst-fitting neighbours; the miss is scored in units of local
+  spacing, and a score of 1.5 or more is an outlier. `--check` exits 1 on an
+  outlier that is not recorded.
+* **Every outlier is renamed or recorded.** `STYLISED` holds the recorded
+  cases with their reasons: "outlier" (the audit flags it and the name is
+  kept on purpose — the Paris-basin shuffle, inland Amsterdam, the compressed
+  North Sea and Baltic coasts) and "art" (the name fits its neighbours but the
+  painted sea or coast does not — the Black Sea trio, the Adriatic five,
+  Estonia's lake pocket).
+* **A rename moves the name, never the game.** The nine DEF-14 renames kept
+  every owner, shape, adjacency, yard and capital, and every scenario
+  reference was rewritten to point at the same region (`BASELINE_SERIES`
+  and M1–M7 were byte-identical).
+* **An old save is renamed on load**, on the raw dict before `from_dict`
+  (`world_state.rename_provinces_in_save_data`, table
+  `RENAMED_PROVINCES`). It must run first, because the registry reconciles
+  only run on a world whose every province the registry knows. The table is
+  applied SIMULTANEOUSLY, because three names were reused for a different
+  region; a save is recognised as old by a name that exists only before the
+  rename. Prose that merely mentions a province stays as written.
+* **After renaming a province:** add the pair to `RENAMED_PROVINCES`, move its
+  entry in the audit's `GAZETTEER`, rewrite the scenario's references to the
+  same region, re-run `python -m tools.audit_province_names --check`,
+  re-measure the WO-13 collision census (`BOOT_COLLAPSES`) — a new name can
+  sit within a typed mistake of a marshal's — and re-stamp the AUTHORED IQ-9
+  parser cassettes: the parse prompt carries the alphabetical province list,
+  so every 1805 parse prompt drifts (`docs/PLAYTESTING.md`, drift policy).
+  Check the fuzzy suggestions too: a name that outranks an existing one moves
+  a pinned typo ("Valencia" took "Venetia" from Vienna, so Toledo became
+  Cartagena), and the senior yard is alphabetical (Spain's fleet piece now
+  stands off Cartagena, not Galicia).
+* **A title is not a name.** In the parser's word scan, a word right after
+  "of" that matches no marshal and no target is a title's territory ("the
+  Prince of Moskowa", "the Duke of Elchingen"), so the address is left whole
+  to the executor's unbound-addressee refusal (CX-R1), which names what the
+  player typed. A bare unknown name ("Moskowa, attack Mack") still gets the
+  CR-2 question. Until DEF-14 "Moskowa" was refused properly only because it
+  fuzzy-matched the old province "Oslo".
+* Pins: `tests/test_def14_the_names_match_the_map.py`; sweep
+  `tools/_sweep_def14.json`.

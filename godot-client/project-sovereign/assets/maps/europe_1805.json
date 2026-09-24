@@ -353,7 +353,7 @@
         "Armfelt": {
             "name": "Armfelt",
             "nation": "Sweden",
-            "location": "Scania",
+            "location": "Stralsund",
             "strength": 12000,
             "personality": "cautious",
             "skills": { "tactical": 3, "shock": 4, "defense": 4, "logistics": 3, "administration": 5, "command": 4 },
@@ -375,7 +375,7 @@
         "Frederick": {
             "name": "Frederick",
             "nation": "Denmark",
-            "location": "Jutland",
+            "location": "Holstein",
             "strength": 16000,
             "personality": "cautious",
             "skills": { "tactical": 3, "shock": 3, "defense": 5, "logistics": 5, "administration": 7, "command": 4 },
@@ -386,7 +386,7 @@
         "Castanos": {
             "name": "Castanos",
             "nation": "Spain",
-            "location": "La Mancha",
+            "location": "Andalusia",
             "strength": 15000,
             "personality": "cautious",
             "skills": { "tactical": 4, "shock": 3, "defense": 4, "logistics": 5, "administration": 4, "command": 4 },
@@ -753,7 +753,7 @@
                 "id": "neutrality_of_the_north",
                 "type": "guard_neutrality",
                 "title": "Neutrality of the North",
-                "regions": ["Jutland", "Copenhagen"],
+                "regions": ["Holstein", "Copenhagen"],
                 "blurb": "Armed neutrality - the fleet is the state."
             }
         ],
@@ -899,7 +899,7 @@
             "grudge_label": "The Irish Question"
         }
     },
-    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. NUI-2 (Sept 24, 2026; tools/gen_port_anchors.py): a dockyard must reach open water in the art, so three yards moved - Holland's Amsterdam -> Friesland (the Frisian coast and the Texel roadstead; the art draws Amsterdam inland), France's Channel yard Flanders -> Normandy (Le Havre and Cherbourg; the art draws Flanders inland, and it stays a camp province - Davout's camp at Bruges), Russia's Estonia -> Livonia (Riga; the art gives the province named Estonia a lake pocket, not a shore). The map draws each fleet on the water off its senior yard (the registry's port_anchor). EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 500 = the India/sugar trade + the fiscal machine; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
+    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. NUI-2 (Sept 24, 2026; tools/gen_port_anchors.py): a dockyard must reach open water in the art, so three yards moved - Holland's Amsterdam -> Friesland (the Frisian coast and the Texel roadstead; the art draws Amsterdam inland), France's Channel yard Flanders -> Normandy (Le Havre and Cherbourg; the art draws Flanders inland, and it stays a camp province - Davout's camp at Bruges), Russia's Estonia -> Livonia (Riga; the art gives the province named Estonia a lake pocket, not a shore). The map draws each fleet on the water off its senior yard (the registry's port_anchor). DEF-14 (Sept 24, 2026; tools/audit_province_names.py): two yards' provinces were renamed to where the art paints them - Sweden's Scania is Stralsund (Swedish Pomerania's port, where Armfelt's army stood in 1805) and Spain's Toledo is Cartagena (the south-east coast; Spain's Mediterranean arsenal in 1805); the yards did not move. EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 500 = the India/sugar trade + the fiscal machine; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
     "navies": {
         "Britain": {
             "ships": 100,
@@ -924,7 +924,7 @@
             "admiral": "Gravina",
             "ports": 3,
             "overseas_income": 250,
-            "dockyards": ["Galicia", "Toledo"]
+            "dockyards": ["Galicia", "Cartagena"]
         },
         "Denmark": {
             "ships": 18,
@@ -965,7 +965,7 @@
             "ships": 10,
             "readiness": 70,
             "ports": 2,
-            "dockyards": ["Scania"]
+            "dockyards": ["Stralsund"]
         },
         "Naples": {
             "ships": 5,

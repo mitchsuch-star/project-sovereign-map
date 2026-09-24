@@ -793,6 +793,17 @@ model's answer to a prompt. A drifted cassette proves handling of a
 PLAUSIBLE answer, not today's answer to today's prompt — the recorder is how
 that gap is closed.
 
+The authored set is still pinned INFORMATIONALLY (`drifted == {}` in the same
+test), so a change to anything the parse prompt carries — the alphabetical
+province list, the roster, the few-shots — fails it until the authored
+fingerprints are re-stamped. Attribute the drift first: undo the change in
+today's prompt and check that the result hashes to the recorded
+`prompt_sha256`. DEF-14 (September 24, 2026) did this for its nine province
+renames, undoing the names and re-sorting the province line; all 14 drifted
+1805 prompts matched exactly, with the system and tool hashes unchanged. Only
+then update `request.prompt_sha256` / `request.prompt_chars` in each cassette
+and `prompt_sha256` in `MANIFEST.json`. The responses stay as authored.
+
 The same rows run from the CLI, keyless: `python -m backend.ai.parser_eval
 --replay` (the `live_only` corpus rows on the cassettes; exit 2 on a miss).
 

@@ -968,6 +968,84 @@ SAVE_COAST_CORRECTIONS: Dict[str, bool] = {
 }
 
 
+# DEF-14 (Sept 24, 2026) — "The Names Match the Map". Nine provinces were
+# renamed so each name sits where the art paints it (the audit is
+# tools/audit_province_names.py); the regions themselves did not change.
+# The table is APPLIED SIMULTANEOUSLY: three names were reused for a
+# different province (the old Jutland is Holstein while the old Bergen is
+# Jutland; the old Scania is Stralsund while the old Dalarna is Scania; the
+# old Norrland is Uleaborg while the old Gothland is Norrland), so a
+# name-by-name pass would chain them onto the wrong ground.
+RENAMED_PROVINCES: Dict[str, str] = {
+    "Bergen": "Jutland",
+    "Oslo": "Schleswig",
+    "Jutland": "Holstein",
+    "Dalarna": "Scania",
+    "Scania": "Stralsund",
+    "Gothland": "Norrland",
+    "Norrland": "Uleaborg",
+    "Toledo": "Cartagena",
+    "La Mancha": "Andalusia",
+}
+
+# The names that exist ONLY before the rename. A reused name (Jutland,
+# Scania, Norrland) cannot tell an old save from a new one; any of these can.
+_PRE_RENAME_ONLY = frozenset(RENAMED_PROVINCES) - frozenset(RENAMED_PROVINCES.values())
+
+
+def rename_provinces_in_save_data(world_data) -> int:
+    """DEF-14 — SAVE MIGRATION on the RAW world dict, called by
+    `save_manager.load_game` BEFORE `from_dict`. It must run first:
+    `_registry_world` requires every region name to be one the registry
+    knows, so an old save still naming "Oslo" would silently skip the
+    adjacency and NUI-2 reconciles that follow.
+
+    A save is renamed only when its regions carry a pre-rename-only name;
+    a save written since is untouched (0). Every string EQUAL to an old
+    name — a dict key or a value, at any depth — takes the new name, and a
+    "|"-joined key whose parts include one (a naval crossing such as
+    "Jutland|Oslo") is renamed part by part and re-sorted if it was sorted.
+    Prose that merely mentions a province (an event message) is history and
+    is left as written. Returns how many strings moved."""
+    if not isinstance(world_data, dict):
+        return 0
+    regions = world_data.get("regions")
+    if not isinstance(regions, dict) or not (_PRE_RENAME_ONLY & set(regions)):
+        return 0
+    moved = [0]
+
+    def _name(text: str) -> str:
+        new = RENAMED_PROVINCES.get(text)
+        if new is not None:
+            moved[0] += 1
+            return new
+        if "|" in text:
+            parts = text.split("|")
+            if any(part in RENAMED_PROVINCES for part in parts):
+                was_sorted = parts == sorted(parts)
+                parts = [RENAMED_PROVINCES.get(part, part) for part in parts]
+                if was_sorted:
+                    parts.sort()
+                moved[0] += 1
+                return "|".join(parts)
+        return text
+
+    def _walk(node):
+        if isinstance(node, dict):
+            return {(_name(k) if isinstance(k, str) else k): _walk(v)
+                    for k, v in node.items()}
+        if isinstance(node, list):
+            return [_walk(v) for v in node]
+        if isinstance(node, str):
+            return _name(node)
+        return node
+
+    migrated = _walk(world_data)
+    world_data.clear()
+    world_data.update(migrated)
+    return moved[0]
+
+
 def _registry_world(regions: Dict[str, "Region"]) -> bool:
     """The ALL-OR-NOTHING scope `_reconcile_saved_adjacency` argues for:
     every province is one the Europe registry knows (the legacy fixture and

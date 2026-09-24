@@ -83,7 +83,7 @@
 >   commission a marshal (priced, disabled until affordable) → march him to the
 >   nearest lawful yard → land him — each the typed command and the executor's
 >   gate. The Emperor is never the counsel (FA-D16's last two surfaces).
-> - **Filed: DEF-14 "The Names Match the Map"** (`MAP_IMPLEMENTATION_PLAN.md`) —
+> - **Filed: DEF-14 "The Names Match the Map"** (✅ built the same day — the block below) —
 >   several province names do not match their painted place (Oslo at the
 >   Jutland neck, Bern and Munich on the Adriatic, Moravia on the Black Sea).
 >   Recommended before the release build; the user's to schedule.
@@ -102,6 +102,35 @@
 >   - Two NV-12 boot sentences that counselled embarking the Emperor.
 >   - Russia's senior station (Livonia).
 >   - Record: `NAVAL_SPEC.md` §18.3.
+>
+> **▶ ▶ DEF-14 "THE NAMES MATCH THE MAP" — ✅ LANDED September 24, 2026**
+> (user-directed right after NUI-2: *"fix province names commit and push"*.
+> **NEXT is still F2.** Record `MAP_IMPLEMENTATION_PLAN.md` DEF-14, rules
+> `SYSTEMS_REFERENCE.md` §58):
+> - Nine provinces renamed so each name sits where the art paints it; owners,
+>   shapes, borders, yards and capitals unchanged. **Scandinavia:** Bergen →
+>   Jutland, Oslo → Schleswig, Jutland → Holstein, Dalarna → Scania, Scania →
+>   Stralsund (Swedish Pomerania, where Armfelt's army stood in 1805), Gothland
+>   → Norrland, Norrland → Uleaborg. **Spain:** Toledo → Cartagena, La Mancha →
+>   Andalusia.
+> - The audit is now a tool: `python -m tools.audit_province_names --check`.
+>   It fits each name's real coordinates to its painted neighbours. The 8
+>   outliers left are all recorded as stylisations with reasons, beside the 14
+>   art distortions DEF-14 named. Karelia was correctly placed all along.
+> - Old saves are renamed on load, before `from_dict`, all at once (three
+>   names were reused). The committed pre-rename fixtures load through it.
+> - **Filed: DEF-15 "The Low Countries"** (`MAP_IMPLEMENTATION_PLAN.md`) —
+>   Amsterdam is drawn inland and Holland's and Hanover's provinces are
+>   interleaved; fixing it means moving Holland's capital, a gameplay change
+>   for the user to schedule.
+> - Two accidents the renames exposed, both fixed: "Prince of Moskowa,
+>   attack Mack" was refused by name only because "Moskowa" fuzzy-matched
+>   "Oslo" (the parser now reads a word after "of" as a title's territory,
+>   so "Duke of Elchingen" is refused by name too); and the 14 authored IQ-9
+>   cassettes' prompt fingerprints drifted with the province list —
+>   attributed exactly to the renames, then re-stamped.
+> - Tests 42; sweep 13/13 killed; `BASELINE_SERIES`, M1–M7 and the WO-13
+>   counterfactual arm byte-identical; the WO-13 collision census 12 → 11.
 >
 > **▶ ▶ THE LIVE REVIEW — September 23, 2026 (evening). Read this before
 > starting row EP.** The user asked for four things: *play the game for real

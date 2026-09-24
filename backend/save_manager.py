@@ -204,6 +204,14 @@ def load_game(filepath: Path) -> Dict:
         if world_data is None:
             return {"success": False, "message": "Invalid save file: no world_state", "world": None, "metadata": metadata}
 
+        # DEF-14 (Sept 24, 2026): nine provinces were renamed to where the
+        # art paints them. A save written before carries the old names, so
+        # it is renamed on the RAW dict, before `from_dict`: the registry
+        # reconciles below (and inside `from_dict`) only run on a world whose
+        # every province the registry knows.
+        from backend.models.world_state import rename_provinces_in_save_data
+        rename_provinces_in_save_data(world_data)
+
         world = WorldState.from_dict(world_data)
 
         # NUI-2 (Sept 24, 2026): a save written before the coast audit

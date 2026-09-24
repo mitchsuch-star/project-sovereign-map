@@ -1083,7 +1083,7 @@ def process_agenda_violations(world) -> List[Dict]:
     Latch = bounded event-log lookback keyed (violator, guard-holder),
     refiring only after AGENDA_VIOLATION_COOLDOWN turns (the
     defensive-refusal-memory idiom; `log_event` auto-stamps `turn`).
-    GR5: the player's columns crossing Jutland offend Copenhagen exactly
+    GR5: the player's columns crossing Holstein offend Copenhagen exactly
     as Bernadotte's crossing of Ansbach offended Berlin.
     """
     # Guard map: region -> holder, from ACTIVE guard agendas only (the

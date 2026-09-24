@@ -6,7 +6,9 @@ Three name-resolution seams in `backend/commands/executor.py` auto-corrected
 a query onto a MARSHAL with no typo gate, while their region sibling
 (`_fuzzy_match_region`) has been gated since WO-2. The fuzzy matcher scores
 by partial ratio, which rewards a short word for being CONTAINED in a long
-name, so on the shipped 1805 board twelve province names collapse:
+name, so on the shipped 1805 board twelve province names collapsed
+(eleven since DEF-14, September 24, 2026, renamed Oslo to Schleswig — the
+new name collides with no marshal, and no other new name does either):
 
     Bern      -> Bernadotte  100      Lorraine  -> Ney         80
     Leon      -> Napoleon    100      Maine     -> Ney         80
@@ -74,13 +76,17 @@ SCENARIO_PATH = (REPO / "godot-client" / "project-sovereign" / "assets"
 
 _DOCSTRING_HEADS = ('"""', "'''", 'r"""')
 
-# The twelve boot-live collapses, measured on the shipped board. Only
+# The boot-live collapses, measured on the shipped board. Only
 # `Brunswick` survives the gate, and it survives on the EXACT arm.
+# DEF-14 (Sept 24, 2026): twelve -> eleven. `Oslo -> Napoleon` left the
+# census when the province became Schleswig; re-measured with all three
+# levers down over every renamed province, no new name collapses onto a
+# marshal (the validator's collision warning agrees: Brunswick only).
 BOOT_COLLAPSES = {
     "Bern": "Bernadotte", "Brittany": "Ney", "Brunswick": "Brunswick",
     "Champagne": "Ney", "Gascony": "Ney", "Guyenne": "Ney",
     "Leon": "Napoleon", "Lorraine": "Ney", "Maine": "Ney",
-    "Oslo": "Napoleon", "Rome": "Armfelt", "Ukraine": "Ney",
+    "Rome": "Armfelt", "Ukraine": "Ney",
 }
 
 
@@ -176,8 +182,9 @@ class TestTheEnemySeam:
 
     def test_every_boot_collision_is_closed_except_the_exact_one(
             self, ex, world):
-        """The census over the shipped board: of the twelve measured
-        collapses, exactly one survives - and it survives on the EXACT arm.
+        """The census over the shipped board: of the measured collapses
+        (eleven since DEF-14), exactly one survives - and it survives on the
+        EXACT arm.
 
         Killed by: any mutation that lets the fuzzy arm through."""
         survivors = {}
@@ -1260,7 +1267,15 @@ class TestTheContractsThirty:
                 clarified[name] = error["suggestion"]
         visible = {m.name for m in world.get_visible_enemies("France")}
         assert set(clarified.values()) <= visible, clarified
-        assert clarified == {"La Mancha": "Mack"}, clarified
+        # DEF-14 (Sept 24, 2026): the one shipped province in the band was
+        # La Mancha, and it is Andalusia now, so no province asks at all.
+        # The positive half is kept on the retired name, which still sits in
+        # the band beside Mack (visible): the seam must go on asking about
+        # the man we can see rather than resolving or going silent.
+        assert clarified == {}, clarified
+        marshal, error = ex._fuzzy_match_enemy("La Mancha", world, None)
+        assert marshal is None, marshal
+        assert (error or {}).get("suggestion") == "Mack", error
 
     def test_no_bench_marshal_can_mint_a_second_brunswick(self, world):
         """The exception must stay a single named case. Every name on the
@@ -2203,6 +2218,8 @@ class TestWhatThePlayerActuallySees:
         Killed by: deleting the enemy-seam gate (the answer then names a
         marshal with no disclosure)."""
         with self._client() as (client, world):
+            # "Oslo" is Schleswig's retired name (DEF-14) and still a word
+            # the ungated collapse eats (-> Napoleon), so it stays typed.
             for province in ("Gascony", "Bern", "Leon", "Oslo", "Rome",
                              "Ukraine", "Maine", "Brittany"):
                 message = self._say(client, f"Ney, attack {province}")

@@ -1429,6 +1429,16 @@ class CommandParser:
 
                     # If this word also doesn't match any target, it's likely a bad marshal attempt
                     if target_check["action"] == "error":
+                        # DEF-14: a word right after "of" is the territory of
+                        # a TITLE ("the Prince of Moskowa", "the Duke of
+                        # Elchingen"), never a marshal's name. The executor's
+                        # unbound-addressee rule refuses the whole address and
+                        # names what the player typed (CX-R1, L2-3). Until
+                        # DEF-14 "Moskowa" reached that refusal only by
+                        # accident: it fuzzy-matched the province "Oslo" (75).
+                        if (word_index > 0 and words[word_index - 1][0]
+                                .strip(",.!?;:").lower() == "of"):
+                            continue
                         # CR-1: only a CAPITALIZED unknown word reads as a
                         # name attempt worth a hard error — lowercase
                         # sentence words ("costs", "positions", "all") were

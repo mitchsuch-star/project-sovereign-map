@@ -304,30 +304,36 @@ def _sea_link_pairs(europe: dict) -> set[frozenset[str]]:
 # The DEF-7 row's listed pairs plus the same-class siblings discovered and
 # dispositioned in the pass. "cut" = no longer walkable; "sea" = walkable but
 # a deliberate sea crossing (in adjacent AND sea_links).
+#
+# DEF-14 (Sept 24, 2026) renamed four of these regions to where the art
+# paints them; the pairs below are the SAME regions under the new names
+# (Scania -> Stralsund, Oslo -> Schleswig, Jutland -> Holstein,
+# Gothland -> Norrland). Under the new names every DEF-7 cut is a border the
+# history never had either: Schleswig meets neither Hanover nor Oldenburg.
 DEF7_CUT_PAIRS = [
-    ("Scania", "Berlin"),
-    ("Scania", "Brunswick"),
-    ("Scania", "Jutland"),
+    ("Stralsund", "Berlin"),
+    ("Stralsund", "Brunswick"),
+    ("Stralsund", "Holstein"),
     ("East Prussia", "Finland"),
     ("Posen", "Finland"),
     ("Posen", "Livonia"),
     ("Brandenburg", "Livonia"),
-    ("Hanover", "Oslo"),
-    ("Oldenburg", "Oslo"),
-    ("Jutland", "Brunswick"),
+    ("Hanover", "Schleswig"),
+    ("Oldenburg", "Schleswig"),
+    ("Holstein", "Brunswick"),
 ]
 DEF7_SEA_PAIRS = [
     ("Livonia", "Pomerania"),
     ("Livonia", "Finland"),
-    ("Scania", "Pomerania"),
+    ("Stralsund", "Pomerania"),
     ("Finland", "Estonia"),
     # connectivity restorers added by the pass (Denmark/Sweden internal routes)
-    ("Oslo", "Jutland"),
-    ("Scania", "Gothland"),
+    ("Schleswig", "Holstein"),
+    ("Stralsund", "Norrland"),
 ]
 # Decisions of record: kept as ordinary LAND edges (walkable, not sea links).
 DEF7_KEPT_LAND_PAIRS = [
-    ("Hanover", "Jutland"),       # Holstein land bridge (no Holstein province)
+    ("Hanover", "Holstein"),      # the Holstein land bridge (DEF-14 named the province)
     ("Estonia", "East Prussia"),  # Courland stand-in (no Courland province)
 ]
 

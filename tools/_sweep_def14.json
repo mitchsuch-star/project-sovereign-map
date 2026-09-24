@@ -1,0 +1,93 @@
+[
+  {
+    "id": "DEF14-1 load_game never renames an old save",
+    "file": "backend/save_manager.py",
+    "old": "        rename_provinces_in_save_data(world_data)\n",
+    "new": "        pass\n",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestAnOldSaveIsRenamed::test_the_fixture_loads_on_the_new_map"
+  },
+  {
+    "id": "DEF14-2 every save is renamed, new ones too",
+    "file": "backend/models/world_state.py",
+    "old": "    if not isinstance(regions, dict) or not (_PRE_RENAME_ONLY & set(regions)):\n        return 0\n    moved = [0]",
+    "new": "    if not isinstance(regions, dict):\n        return 0\n    moved = [0]",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestAnOldSaveIsRenamed::test_a_new_save_is_untouched"
+  },
+  {
+    "id": "DEF14-3 the table chains instead of applying at once",
+    "file": "backend/models/world_state.py",
+    "old": "        new = RENAMED_PROVINCES.get(text)\n        if new is not None:",
+    "new": "        new = RENAMED_PROVINCES.get(RENAMED_PROVINCES.get(text, text)) if text in RENAMED_PROVINCES else None\n        if new is not None:",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestAnOldSaveIsRenamed::test_the_rename_is_simultaneous"
+  },
+  {
+    "id": "DEF14-4 a crossing key is left under its old names",
+    "file": "backend/models/world_state.py",
+    "old": "        if \"|\" in text:\n            parts = text.split(\"|\")",
+    "new": "        if False:\n            parts = text.split(\"|\")",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestAnOldSaveIsRenamed::test_a_naval_crossing_key_is_renamed_and_resorted"
+  },
+  {
+    "id": "DEF14-5 a renamed crossing key is not re-sorted",
+    "file": "backend/models/world_state.py",
+    "old": "                if was_sorted:\n                    parts.sort()",
+    "new": "                if False:\n                    parts.sort()",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestAnOldSaveIsRenamed::test_a_naval_crossing_key_is_renamed_and_resorted"
+  },
+  {
+    "id": "DEF14-6 prose is rewritten as if it were a key",
+    "file": "backend/models/world_state.py",
+    "old": "        if isinstance(node, str):\n            return _name(node)\n        return node",
+    "new": "        if isinstance(node, str):\n            for _o, _n in RENAMED_PROVINCES.items():\n                node = node.replace(_o, _n)\n            return _name(node)\n        return node",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestAnOldSaveIsRenamed::test_prose_is_history_and_is_left_as_written"
+  },
+  {
+    "id": "DEF14-7 an audit outlier loses its record",
+    "file": "tools/audit_province_names.py",
+    "old": "    \"Orleanais\": (\"outlier\",",
+    "new": "    \"Orleanais_\": (\"outlier\",",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestTheAuditHolds::test_every_outlier_is_recorded"
+  },
+  {
+    "id": "DEF14-8 the threshold is raised until the old map passes",
+    "file": "tools/audit_province_names.py",
+    "old": "THRESHOLD = 1.5",
+    "new": "THRESHOLD = 3.0",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestTheAuditHolds::test_the_old_names_were_outliers"
+  },
+  {
+    "id": "DEF14-9 the fit stops trimming its misfits",
+    "file": "tools/audit_province_names.py",
+    "old": "TRIM = 3",
+    "new": "TRIM = 0",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestTheAuditHolds"
+  },
+  {
+    "id": "DEF14-10 Armfelt stands on the new Scania, not his own ground",
+    "file": "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "old": "            \"nation\": \"Sweden\",\n            \"location\": \"Stralsund\",",
+    "new": "            \"nation\": \"Sweden\",\n            \"location\": \"Scania\",",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestTheScenarioFollowsItsRegions::test_the_marshals_stand_on_the_same_ground"
+  },
+  {
+    "id": "DEF14-11 Denmark guards the new Jutland instead",
+    "file": "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "old": "\"regions\": [\"Holstein\", \"Copenhagen\"],",
+    "new": "\"regions\": [\"Jutland\", \"Copenhagen\"],",
+    "tests": "tests/test_nation_agendas.py::TestNeutralityViolation::test_player_columns_offend_copenhagen"
+  },
+  {
+    "id": "DEF14-12 Sweden's yard follows the name onto the new Scania",
+    "file": "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "old": "\"dockyards\": [\"Stralsund\"]",
+    "new": "\"dockyards\": [\"Scania\"]",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestTheScenarioFollowsItsRegions::test_the_yards_did_not_move"
+  },
+  {
+    "id": "DEF14-13 a title's territory is read as a marshal's name again",
+    "file": "backend/commands/parser.py",
+    "old": "                                .strip(\",.!?;:\").lower() == \"of\"):",
+    "new": "                                .strip(\",.!?;:\").lower() == \"of-never\"):",
+    "tests": "tests/test_def14_the_names_match_the_map.py::TestATitleIsNotAName"
+  }
+]

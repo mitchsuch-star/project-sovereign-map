@@ -165,7 +165,8 @@ _META_DELEGATED = {
 # twelve province names collapse onto marshals — `Bern` -> Bernadotte and
 # `Leon` -> Napoleon at a full score of 100, `Gascony`/`Guyenne`/`Maine`/
 # `Brittany`/`Champagne`/`Lorraine`/`Ukraine` -> Ney at 80, `Oslo` ->
-# Napoleon and `Rome` -> Armfelt at 75.
+# Napoleon and `Rome` -> Armfelt at 75. (Eleven since DEF-14, Sept 24,
+# 2026: `Oslo` is Schleswig now, and no renamed province collides.)
 #
 # What that cost, measured on the 40-turn ambient board:
 #   * Britain's Iberian army STALLED FOR TWELVE TURNS. Paget stood at

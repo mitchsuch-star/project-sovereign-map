@@ -155,9 +155,10 @@ class TestChannelGateHeadline:
         assert world.regions["Flanders"].garrison_strength == 12000
 
     def test_uncontested_links_stay_free(self, world):
-        """The Danish straits at peace: no hostile coverage, no change."""
+        """The Danish straits at peace: no hostile coverage, no change.
+        (DEF-14: the far shore was called Scania; it is Stralsund now.)"""
         assert naval.crossing_check(
-            world, "Denmark", "Copenhagen", "Scania")["verdict"] == "open"
+            world, "Denmark", "Copenhagen", "Stralsund")["verdict"] == "open"
         # France's own Mediterranean link vs nobody covering it:
         assert naval.crossing_check(
             world, "Sardinia", "Cagliari", "Rome")["allowed"]
@@ -325,7 +326,7 @@ class TestExpeditionOdds:
         assert quote["mode"] == "link"
 
     def test_no_hostile_fleet_means_no_gamble(self, world):
-        quote = naval.expedition_slip_odds(world, "Denmark", "Scania", 10000)
+        quote = naval.expedition_slip_odds(world, "Denmark", "Stralsund", 10000)
         assert quote["odds"] == 100
 
     def test_window_bonus(self, world):

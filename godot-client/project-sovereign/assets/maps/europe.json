@@ -707,7 +707,7 @@
       "adjacent": [
         "Region_088"
       ],
-      "name": "Norrland",
+      "name": "Uleaborg",
       "starting_controller": "Sweden",
       "terrain": "plains",
       "region_type": "city",
@@ -2129,7 +2129,7 @@
         "Region_053",
         "Region_095"
       ],
-      "name": "Gothland",
+      "name": "Norrland",
       "starting_controller": "Sweden",
       "terrain": "forest",
       "region_type": "city",
@@ -2539,7 +2539,7 @@
         "Region_081",
         "Region_120"
       ],
-      "name": "La Mancha",
+      "name": "Andalusia",
       "starting_controller": "Spain",
       "terrain": "plains",
       "region_type": "city",
@@ -3652,7 +3652,7 @@
         "Region_062",
         "Region_081"
       ],
-      "name": "Toledo",
+      "name": "Cartagena",
       "starting_controller": "Spain",
       "terrain": "plains",
       "region_type": "town",
@@ -3702,7 +3702,7 @@
         "Region_097",
         "Region_113"
       ],
-      "name": "Bergen",
+      "name": "Jutland",
       "starting_controller": "Denmark",
       "terrain": "forest",
       "region_type": "town",
@@ -4866,7 +4866,7 @@
         "Region_082",
         "Region_123"
       ],
-      "name": "Scania",
+      "name": "Stralsund",
       "starting_controller": "Sweden",
       "terrain": "plains",
       "region_type": "rural",
@@ -4917,7 +4917,7 @@
         "Region_102",
         "Region_123"
       ],
-      "name": "Jutland",
+      "name": "Holstein",
       "starting_controller": "Denmark",
       "terrain": "plains",
       "region_type": "rural",
@@ -4968,7 +4968,7 @@
         "Region_096",
         "Region_113"
       ],
-      "name": "Oslo",
+      "name": "Schleswig",
       "starting_controller": "Denmark",
       "terrain": "forest",
       "region_type": "rural",
@@ -5767,7 +5767,7 @@
         "Region_072",
         "Region_097"
       ],
-      "name": "Dalarna",
+      "name": "Scania",
       "starting_controller": "Sweden",
       "terrain": "forest",
       "region_type": "rural",
@@ -7094,7 +7094,8 @@
     "land_edges": 250,
     "sea_candidates": 144,
     "def7_pass": "July 2, 2026 cross-Baltic mini-pass: 10 compressed land edges cut (Scania-Berlin/Brunswick/Jutland, EastPrussia-Finland, Posen-Finland/Livonia, Brandenburg-Livonia, Hanover-Oslo, Oldenburg-Oslo, Jutland-Brunswick), 4 demoted to sea links (Livonia-Pomerania, Livonia-Finland, Scania-Pomerania, Finland-Estonia), 2 connectivity sea links added (Oslo-Jutland, Scania-Gothland), Hanover-Jutland kept as the Holstein land bridge, Estonia-EastPrussia kept as the Courland stand-in; DEF-8: is_coastal corrected to false for Franche-Comte/Munich/Bern/Tyrol/Milan. adjacent edge count 258 -> 250; sea_links 12 -> 18.",
-    "nui2_coast_pass": "Sept 24, 2026 NUI-2 coast audit (tools/gen_port_anchors.py --audit, the art's open sea = the >=5,000 px water bodies, a coast = >=100 px of province within 4 px of it): is_coastal corrected to false for Flanders, White Russia and Volhynia (drawn inland; Volhynia meets the Black Sea at one corner point). Recorded exceptions: the DEF-8 five (the stylised Adriatic reaches them; the flag follows the landlocked place) and Estonia (a DEF-7 sea-link end, kept coastal by rule G3; the art gives it a lake pocket). Every coastal province gained a port_anchor: the base of a fleet piece on open water off its own shore. Adjacency untouched."
+    "nui2_coast_pass": "Sept 24, 2026 NUI-2 coast audit (tools/gen_port_anchors.py --audit, the art's open sea = the >=5,000 px water bodies, a coast = >=100 px of province within 4 px of it): is_coastal corrected to false for Flanders, White Russia and Volhynia (drawn inland; Volhynia meets the Black Sea at one corner point). Recorded exceptions: the DEF-8 five (the stylised Adriatic reaches them; the flag follows the landlocked place) and Estonia (a DEF-7 sea-link end, kept coastal by rule G3; the art gives it a lake pocket). Every coastal province gained a port_anchor: the base of a fleet piece on open water off its own shore. Adjacency untouched.",
+    "def14_rename": "Sept 24, 2026 DEF-14 'The Names Match the Map': nine provinces renamed so each name sits where the art paints it — owners, shapes, adjacency, yards and capitals unchanged, only the names move. Scandinavia: the peninsula the art attaches to Germany is Denmark's (Bergen -> Jutland, Oslo -> Schleswig), the old 'Jutland' east of Hanover is Holstein (DEF-7 already called its Hanover edge 'the Holstein land bridge'), the Swedish land between that peninsula and Stockholm is Scania (was Dalarna), the Swedish province on the German Baltic coast is Stralsund, Swedish Pomerania (was Scania), Sweden's north-east coast is Norrland (was Gothland) and the north of the Finnish landmass is Uleaborg (was Norrland). Spain: the south-east-coast province is Cartagena (was Toledo; Spain's Mediterranean arsenal - named Cartagena, not Valencia, because 'Valencia' outranked Vienna as the suggestion for a mistyped 'Venetia') and the south-coast province is Andalusia (was La Mancha). The DEF-7 notes above use the OLD names: Scania = Stralsund, Oslo = Schleswig, Jutland = Holstein, Gothland = Norrland. Old saves are renamed on load (world_state.RENAMED_PROVINCES)."
   },
   "sea_links": [
     [
