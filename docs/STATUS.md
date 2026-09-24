@@ -19,7 +19,13 @@
 > slices in §6, with `docs/GAME_END_SPEC.md` as the spec: R1's two warned
 > defeat clocks + the marked "Humbled Peace", the `province_title` substrate
 > and the Verdict; then GE-2 the screens, GE-3 "The Congress of Paris",
-> GE-V, then the release build). ⚠ Still open for the user, not for a
+> GE-V, then the release build). **Three September 25 asks ride GE-1 by
+> user direction:** the Emperor's death as a third defeat arm ("The Eagle
+> Falls" — today `destroy_marshal` converts every sovereign removal to
+> capture), a measured memo on the generals' odds of death (recommend,
+> do not build), and an exile story on the Fall flavored by the
+> campaign's record (`build_exile_story`); the build note =
+> `docs/NEXT_SESSION_PROMPT.md`. ⚠ Still open for the user, not for a
 > session: the in-game feel of F3's six surfaces (frames
 > `docs/audits/IQ10_*_2026_09_24.png`) and now F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).

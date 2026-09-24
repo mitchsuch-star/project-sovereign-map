@@ -136,7 +136,7 @@ Europe: its 75% fraction is exactly what DG-5 forbids.
 ## §3 What stays with the Victory & Objectives pass (positions 12–13)
 
 - **VP-1, "The Emperor's Designs":** France's objective deck, branching, and the decisive-peace triumph.
-- **The rest of VP-2:** the Napoleon Comparison (which may anchor on this row's verdict date), HC-D1, NPC-D2, NP-D7 (the Victory-Pass interlock), and the Emperor's death.
+- **The rest of VP-2:** the Napoleon Comparison (which may anchor on this row's verdict date), HC-D1, NPC-D2, NP-D7 (the Victory-Pass interlock)~~, and the Emperor's death~~. **Amended September 25, 2026: the Emperor's death moved INTO GE-1 by user direction** — the third defeat arm "The Eagle Falls" (`ENDGAME_PLAN.md` §3; the build note in `docs/NEXT_SESSION_PROMPT.md`). NP-4's "a sovereign never dies in v1" is superseded where the rules are authored.
 - **Hand-off:** VP-2's "chosen loss condition" is **discharged by R1** unless VP-2 re-opens it.
 - **Churn:** the ROADMAP's churn note for rows 12–13 is corrected to the §1 count.
 

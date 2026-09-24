@@ -1,295 +1,60 @@
-# NEXT SESSION PROMPT — verify the Final Whole-Game Audit before anyone builds from it
+# NEXT SESSION PROMPT — GE-1 "The Verdict and the Fall", plus the Emperor's death, the generals' odds of death, and the exile story
 
-> Overwritten each time a session hands off. Current hand-off: **September 2,
-> 2026.** The final whole-game audit is committed, pushed, and named as the
-> current item in `docs/STATUS.md`. It has **not** been verified end to end, and
-> the next build session is meant to work straight out of it — so this session
-> makes it trustworthy first.
->
-> **This prompt was red-teamed before hand-off.** Four agents cold-started the
-> work with nothing but this document; every fact below was re-measured against
-> the repo on September 2, and their corrections are folded in. Where the audit
-> or this prompt was wrong, the wrong version is named rather than quietly
-> replaced.
+> Overwritten each time a session hands off. Current hand-off: **September 25,
+> 2026.** Row EP's six fixes F1–F6 are landed (master `805f8a20`, pushed, suite
+> 25,427 passed / 4 skipped, hook green). The next slice is GE-1, the first of
+> the four ending slices, and the user added three asks on September 25 that
+> ride with it. Everything below was measured against the repo at `805f8a20`.
 >
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-You are verifying an audit before it is used as a build contract. Read
-`CLAUDE.md`'s Golden Rules first; work directly on master per the project
-workflow.
+Row EP, the Endgame Program: **land GE-1 "The Verdict and the Fall" with the user's three September 25 additions — the Emperor's death as a defeat arm, a measured memo on the generals' odds of death, and an exile story on the Fall whose flavor comes from what happened in the campaign. Commit and push when done.** Work directly on master per `CLAUDE.md`'s workflow; read its Golden Rules first.
 
-**Repo state:** master `97c64eba`, pushed, suite green (19,387 passed / 4
-skipped). Everything the audit names is committed. **The one uncommitted file is
-`docs/NEXT_SESSION_PROMPT.md` — this document.** Commit it on its own or leave
-it; do not sweep it into an unrelated commit.
+**Repo state:** master `805f8a20`, pushed, suite green (25,427 / 4 skipped). The working tree is clean. Routing = `docs/STATUS.md` ▶ NEXT UP (top block) → `docs/ENDGAME_PLAN.md` (the routing authority for row EP) → `docs/GAME_END_SPEC.md` (the spec).
 
-## What exists
+## Reading order
 
-The **Final Whole-Game Audit**, held September 1, 2026 at master `ccf5f111`:
+1. `docs/STATUS.md` ▶ NEXT UP, the top block — it names GE-1 and the three additions.
+2. `docs/ENDGAME_PLAN.md` §3 (defeat, RULED), §4 (screens, RULED), §5 (global elimination E1–E6), §6 (the ending slices — GE-1's row is the contract), §7 (the build order and the four-file rule), §9 (the pins that flip consciously in GE-1).
+3. `docs/GAME_END_SPEC.md` §2 R1–R9 (the gate record), §7.5 (E1–E6 as written), §7.6 (defeat), §7.7 (the numbers and the measurement plan GE-1 owns), §7.10 (never-do pins), §3 (what stays with the Victory Pass — amended today: the Emperor's death no longer stays there).
+4. The F5 and F6 landing records in `ENDGAME_PLAN.md` §1 for the staging traps (a cautious man with a grievance withholds from his rival's battle; `world.war_scores` is keyed alphabetically and holds the FIRST court's view; a corps on an ally's province is driven off, never captured; a 60-man remnant is destroyed outright, a 900-man corps survives a lone assault).
+5. `docs/SYSTEMS_REFERENCE.md` §41 (the collapse predicate — `collapse.py` stays the ONE predicate; `fall.py` reads it and never forks it), §59–§63 (the EP rules so far).
+6. `docs/NAPOLEON_SPEC.md` §7 (the Peril: today the sovereign never dies) and `docs/PLAYTESTING.md` (the driver; every measurement below runs on it).
 
-| artifact | what it is |
-|---|---|
-| `docs/audits/FINAL_AUDIT_2026_09_01.md` | the memo of record. §0 method and limits · §1 verdict · §2 campaigns · **§3 the findings** · §4 refuted · §5 what works · §6 build order · §7 top recommendation · §8 method notes |
-| `docs/audits/final_audit_2026_09_01_findings.json` | the untruncated machine record. **Do all row work here**, not in the memo |
-| `docs/audits/FINAL_AUDIT_2026_09_01_HAND_VERIFIED.md` | 37 notes the previous session reproduced by hand, in parallel with the fleet |
-| `docs/BUG_FIXES.md` §Final Whole-Game Audit | filed rows **FA-1..FA-102** (defects, absences, harness) |
-| `docs/DESIGN_REFINEMENT.md` §FA-D | filed rows **FA-D1..FA-D26** (tie-ins) |
-| `docs/audits/playtest_digests/audit-*` | the nine archived campaigns it was argued from (~200 played turns); see `docs/PLAYTESTING.md` |
+## GE-1 — the contract (ENDGAME_PLAN §6, as ruled)
 
-**Counts, reconciled — the documents disagree and here is why.** The machine
-record holds **130 rows**. **128 are filed** (FA-1..FA-102 + FA-D1..FA-D26);
-the other **2 carry `_id: null`** — they are the REFUTED rows, live only in memo
-§4, and are in no routing table. `STATUS.md` and `CLAUDE.md` say "128 findings
-filed"; both numbers are right about different things. **Your scope is the 128
-filed rows.**
+- **`backend/game_logic/fall.py`** — R1's two clocks: "The Empire Without Soil or Sword" (≤ 1 province, or no free corps and no affordable commission, **5** consecutive turns) and "The Eagle in Chains" (the Emperor captive **10** consecutive turns unfreed). ONE serialized `fall_clock`. Warned on the existing defeat-imminent channel with the clock and the exits named; Paris alone never triggers them (PL-31). `get_fall_state(world, nation)` answers for any nation (GR5); only the player's ends the game. The captivity exit's reachability proof (the purse-priced ransom road must be reachable from a captive board — pin it).
+- **`backend/game_logic/game_end.py`** — `record_ending(world, kind, cause)` the ONE entry point; the serialized `ending`; `campaign_totals` (battles fought / won / lost, men lost and inflicted, provinces taken / lost, coalitions faced); `build_campaign_summary(world, ending)` feeding GE-2's one scene; the Verdict tiers (four, triumph → eclipse; thresholds in-band tunable; **measure the tier distribution on the driver arms and publish it in the landing record**); the scenario-authored `campaign_end` block in `europe_1805.json` + `modding/validator.py` + `MODDING_FORMAT.md` (R7: a NEW derived flag, not `sandbox_mode`; the tutorial and the bare flag world never arm — the suite's `SOVEREIGN_SCENARIO=none` pin keeps every sandbox test as it is).
+- **`province_title`** at the four seams + reconciliation (homeland / ceded by treaty / 12 quiet turns) — the substrate GE-3's Congress counts.
+- **The Humbled Peace** stamped at the three ratify seams (a settlement ceding Paris, or ≥ half the homeland, or making France a vassal → `record_ending(world, "defeat", "humbled_peace")`, continue).
+- **E2 / E3 / E4** with pins (the alarm producers early-return while the qualifying set is structurally empty and Talleyrand says "There is no Europe left to alarm"; the dead stay dead; a great power's knockout is a beat and a verdict input).
+- **WO-D10** the exile commissioning (`find_spawn_region` → the richest HELD province when no home soil remains; symmetric; behind a flip lever; if it moves `BASELINE_SERIES`, re-record once with a flip-experiment attribution).
+- **Saves (R6):** the ending stamped in `metadata.ending`; the autosave after a fall is the pre-fall turn plus a "Final — <date>" save; a defeated save loads onto the end screen (GE-2 renders it; GE-1 carries the payload).
+- The three end-turn exits and `/load` carry the ending; `/mailbox/activate` gets the "The war is over." guard; `first_contact._is_open_ended` re-pointed to the new flag so "how do I win" names the verdict and the fall.
+- **Pins consciously flipped (name each in the commit):** the IQ-2 "never terminal" pins — `_dispatch` (the forbidden-phrase list and `endswith(CAMPAIGN_CONTINUES)`), `_economy_status`, `_war_room`, `_chronicle`, `_client`; `test_first_contact_keyless` (the open-ended answer, 2 tests); `test_economy_ec6_sandbox::test_1805_no_end_screen_at_turn_60` re-blessed (the verdict never sets `game_over`).
 
-Severity across the filed rows: **9 P1 · 41 P2 · 63 P3 · 15 P4.** Kinds: 70
-defects, 26 tie-ins, 25 harness, 7 missing.
+## The three additions (user direction, September 25, 2026)
 
-**§3 is grouped by KIND, not severity**, so do not navigate by it: §3a P1
-defects (9) · §3b **P2 defects only, 25 of the 41 P2s** · §3c missing (7) · §3d
-tie-ins P1/P2 (7) · §3e tie-ins P3/P4 (19) · §3f defects P3/P4 (36) · §3g
-harness (25). **Filter by `_sev` in the JSON instead.**
+**A. "If Napoleon dies" — the Emperor's death becomes a defeat arm of GE-1.** Measured fact: today the sovereign CANNOT die. `WorldState.destroy_marshal` (`backend/models/world_state.py`, the ONE removal seam, PC15-1) converts every removal of a marshal with `is_sovereign` into `capture_marshal(marshal, captor, context="death_guard:<cause>")` and returns False; the Guard first buys the escape at `CombatExecutor.GUARD_ESCAPE_TOLL = 0.30` (`combat_executor.py`, the NP-4 peril block); `GAME_END_SPEC.md` §3 had parked "the Emperor's death" with VP-2 — the user's direction moves it here. Decide and build under the delegated grant; **recommended default = "The Réunion Cannonball"**: at that ONE seam, when the Emperor's corps would be destroyed on the battlefield (`cause` in {`battle`, `charge`} — never attrition, internment, dismissal or nation teardown, and never while captive), a bounded roll decides death instead of capture — `SOVEREIGN_DEATH_CHANCE` (recommend 0.15, in-band tunable) drawn through the campaign-seed jitter helpers (no module RNG), behind the lever `THE_EMPEROR_IS_MORTAL`; the Guard's escape toll still runs first, so death is rolled only when the escape failed and the corps is gone. His death is the third arm of the Fall — **"The Eagle Falls"**, immediate and terminal (1805 has no heir; the Senate dissolves the Empire): its own cause line on the crimson register, a `sovereign_dead` dispatch beat weighted ABOVE `sovereign_captured` (`dispatch.py`'s weight table), a Moniteur special, the `marshal_destroyed` tombstone with `cause`. GR5 holds by construction (a foreign sovereign marshal takes the same roll; none is authored in 1805, say so). If it moves `BASELINE_SERIES`, re-record once with the flip attribution; measure how often it fires on the ambient and commanded arms and publish the figure. If you decide against mortality, record why on the row with a re-open condition instead of leaving the ask silent.
 
-### The machine record's schema, because the natural guesses silently return None
+**B. "Check the odds of death for generals" — a measured memo, `docs/audits/GENERALS_DEATH_ODDS_2026_09_XX.md`, not a build.** Facts to state first: a general has NO personal death roll — he falls only when his corps is removed at `destroy_marshal` (cause census: `battle`, `charge`, `attrition`, `interned`, `dismissed`, `nation_eliminated`; the tombstone `fallen_marshals[name] = {nation, turn, location, cause}` and the `marshal_destroyed` event are the record). Measure on the driver (`tools/playtest_driver.py`, Mode A): the ambient 40-turn arm on the three seeds, the commanded arm (`tools/playtest_scripts/commanded_full40.json`), and the committed archives in `docs/audits/playtest_digests/` — how many generals fall per campaign, per cause, per nation; the odds per BATTLE that a corps is destroyed (the victory outcomes, the rubble rule, the 60-man remnant vs the 900-man corps); how many of France's marshals are dead by turn 20 / 30 / 40 on each arm (the September 11 re-score saw four French marshals die between turns 30 and 37 on the historical seed — re-measure that). Compare against history in one paragraph (in 1805–07 corps were rarely annihilated; Lannes 1809, Bessières, Duroc and Poniatowski 1813 are the marshals who died in the field) and **recommend, do not build**: whether a personal death-or-wound roll for a LEADING general in a lost battle should exist, and whether the attrition and internment roads should kill a general at all. File it as a design row in `docs/DESIGN_REFINEMENT.md` with an owner and a re-open condition; the user reads the memo and rules.
 
-Underscore-prefixed: `_id`, `_sev` (P1..P4), `_status`, `_corrected`, `_hv`.
-Plain: `kind` (defect/tie_in/harness/missing), `file`, `line`, `title`,
-`summary`, `player_consequence`, `evidence`, `repro`, `fix_shape`,
-`behaviour_test`, `already_filed`, `refuters` (list of `{lens, verdict,
-reason}`), `merged`. FA-6's amendment sits under a plain `amendment` key plus a
-top-level `amendments` array.
+**C. "If France loses, a story about exile with flavor from what happened."** `game_end.build_exile_story(world, ending)` in GE-1 — deterministic (GR6: never the LLM), every clause derived from a fact on the record with its source named in the builder: the place of exile from the captor or the victor (captured by Britain → the Bellerophon and St Helena; by Austria, Prussia or Russia → a continental confinement in that court's voice per the Voice Bible; deposed but uncaptured → the abdication at Fontainebleau and Elba); the men who stood with him (the living marshals by trust and relationship — "Davout followed him to the boat"; the fallen by their tombstones and causes; the one who broke with him, from the trust floor or a defection, if any); the campaign's record (the greatest victory and the worst defeat by casualties from the battle events, the provinces lost and the coalition that took them, the treaties signed and the Humbled Peace if one was ratified); the Verdict tier's closing sentence. Three to six paragraphs in the game's register; Berthier or Talleyrand may speak one line each. **The death arm gets the funeral variant** ("the Empire dies with him" — the state funeral, the marshals at the bier, who takes the crown or nobody). Rides `build_campaign_summary` as `epilogue` (a list of paragraphs plus the facts they were built from) so GE-2 renders it on the Fall register; pin it with DRIVEN tests on staged endings (an Emperor captured by Britain; a deposed Emperor with no captor; the death arm; a Humbled Peace) and assert every named man, court and battle in the text exists on that world's record. If GE-1 finishes with room, the GE-2 render on the Fall register is the next item; otherwise it opens GE-2.
 
-**Two traps in that schema:**
+## Gates (every slice)
 
-- **`summary` is the finder's ORIGINAL text; `_corrected` is the refuter's
-  corrected reading.** They differ on exactly the 36 refuted rows and are
-  byte-identical on the other 94. **Always read `_corrected`.** Reading
-  `summary` on a NARROWED row means verifying the claim a refuter already
-  corrected, at a seam it already moved — silent wrong work on the rows most
-  likely to be wrong.
-- **`lens` is empty on all 130 rows.** Per-row agent attribution was not
-  preserved; it survives only inside `refuters[].lens`. So systematic bias must
-  be argued from content, not computed per lens.
+- The four-file rule: `STATUS` ▶ NEXT UP struck and advanced, `ENDGAME_PLAN.md` §6 marked + the landing record under it, the rows disposed in `BUG_FIXES.md` / `DESIGN_REFINEMENT.md` (the memo's design row filed), `CLAUDE.md` LIVE STATE; `SYSTEMS_REFERENCE.md` gains the rules (§64+); `SAVE_FORMAT_REFERENCE.md` for `fall_clock`, `ending`, `province_title` and `metadata.ending`. Overwrite this prompt file at hand-off.
+- `tools/mutation_sweep.py` with 0 INERT at close (it refuses a red baseline; name real test ids; JSON strings cannot hold raw tabs; **it mutates the tree in place — never run a capture, a series run or the driver beside it**).
+- `BASELINE_SERIES` (`tests/test_ai_intent_threat_migration.py`) and M1–M7 (`tests/test_combat_sweep_metrics.py`) byte-identical, or re-recorded ONCE with a flip attribution where the levers are set IN THE CHILD (`tools/_f5_series_arms.py` is the idiom; for a pin that runs real end turns, a pytest plugin passed with `-p` whose `pytest_configure` flips the levers, `PYTHONPATH` on the scratchpad).
+- Any `.gd` change: the parse harness (`Godot …exe --headless --path godot-client/project-sovereign --script ../../tools/godot_parse_check.gd`, EXIT=0) and a driven boot of `main.tscn` with 0 `SCRIPT ERROR`; IQ-10 frames via `tools/iq10_capture_payloads.py` then `tools/iq10_run_captures.py --payload-dir <the dir the capture tool printed> --only <ids> --date 2026_09_XX`.
+- The full suite runs in the pre-commit hook (~14.5 min) — commit in the BACKGROUND and read the log; stage by name, never `git add -A`. **A copy change's pins reach the whole suite**: grep the suite for every retired literal before committing (F2's targeted run was green and the hook found 13 more).
 
-## Why this session exists
+## Hazards (verbatim constraints)
 
-The audit came from a sixteen-lens find-then-refute fleet that **ran out of
-budget three times.** The finders all completed. The refuter pass did not, and
-the ten pillar scorers never ran at all.
+The Bash tool mangles backslashes in heredocs — any script with a backslash or a regex goes through the Write tool and runs by path; never normalise line endings by pattern (git normalises on add; leave endings alone); `PYTHONIOENCODING` is forbidden (it fakes six subprocess ERRORs) — probes reconfigure stdout to utf-8 instead; every `/command` staging under the suite needs `tests._chip_census.board_env(monkeypatch)` (conftest pins `SOVEREIGN_SCENARIO=none`, the bare world), and a module-scoped fixture that restores `M.world` in `finally` makes every later request hit the OLD world — use function scope; `Marshal(...)` needs `personality`, `EnemyAI(executor)`, `is_sovereign` / `in_strategic_mode` have no setter; a function-local `from X import name` inside a big function makes the name local for the WHOLE function (F2's series mover) — when the series moves with the levers down, bisect against a clean worktree of HEAD before attributing; a lever pin masked by another lever sweeps INERT — sweep every lever alone; `check_battle_resolution` has THREE call sites; the sovereign's removal is ONE seam (`destroy_marshal`) — put the death roll there and nowhere else; a `const` Dictionary is read-only at runtime in Godot 4.
 
-**The verification census, in the record's own vocabulary:**
+## Finish
 
-| `_status` | rows | what it means |
-|---|---|---|
-| UNVERIFIED | 46 | **nobody tried to kill it.** Unexamined, not survived |
-| AUTHOR_VERIFIED | 25 | hand-reproduced by the previous session's author |
-| HARNESS_AUTHOR_CHECK | 23 | author-checked harness rows |
-| PLAUSIBLE | 19 | one refuter examined it and said CONFIRMED |
-| NARROWED | 15 | one refuter kept the defect but corrected it |
-| REFUTED | 2 | killed (the two unfiled rows) |
-
-**No row has status CONFIRMED, and none ever will:** the memo defines it as
-"two refuters agreed" and **every refuted row got exactly one refuter.** So
-`PLAUSIBLE` means one adversary tried and failed — not settled. When you write
-verdicts back, use this vocabulary and add `VERIFIED_2026_09_02` /
-`REFUTED_2026_09_02` / `DUPLICATE` / `UNREACHABLE` / `HARNESS_ARTIFACT` rather
-than inventing a second meaning for CONFIRMED.
-
-**34 of the UNVERIFIED rows are P1 or P2** — FA-1, FA-2, FA-3, FA-4, FA-8,
-FA-9, FA-13, FA-14, FA-15, FA-16, FA-17, FA-18, FA-19, FA-20, FA-21, FA-22,
-FA-23, FA-25, FA-27, FA-28, FA-29, FA-30, FA-31, FA-32, FA-33, FA-35, FA-38,
-FA-42, FA-43, FA-D1, FA-D2, FA-D4, FA-D5, FA-D7.
-
-**Two severity ladders share the P1–P4 labels.** For `defect` / `missing` /
-`tie_in`, severity is player impact. For the **25 `harness` rows it is
-evidential impact** — how badly this degraded the audit's own conclusions — and
-10 of them state `player_consequence: "None…"` on purpose. FA-10 is correctly
-P1 despite no player consequence, because it invalidated four flagship
-conclusions. Do not re-grade a harness row down for having no player impact.
-
-**There is precedent for finding the audit wrong, and that is the outcome the
-owner wants when warranted.** After publication he challenged FA-6 ("attack next
-turn ends the turn, forfeiting 4 AP") on the grounds that charging AP for a
-deferred order makes no sense and would be a cheat. **He was right; the row was
-amended P1 → P2 in place** (`97c64eba`): action points reset every turn
-(`world_state.py:9608`), so nothing is banked and the fix must not queue the
-order. What survived was narrower and re-measured — a *question* ("what happens
-next turn") ends the turn. **Correct rows in place with a dated amendment; never
-delete one.**
-
-## Your three tasks
-
-### 1. Are the bugs real?
-
-Order: **the 34 UNVERIFIED P1/P2 rows first**, then the remaining UNVERIFIED,
-then spot-check enough PLAUSIBLE/NARROWED/AUTHOR_VERIFIED rows to calibrate
-whether single-refuter and author verification held up. (PLAUSIBLE and the
-memo's "CONFIRMED" are the same 19 rows — do them once.)
-
-Take the adversarial position; **default to REFUTED and make each row earn its
-place**:
-
-- Open the cited seam and read it. Does the code do what `_corrected` says?
-- **Run the row's own `repro`.** All 130 carry one.
-- **Reachability:** can a player actually hit this through a typed command, the
-  client's routes, or the enemy phase? Some rows may be true of the code and
-  unreachable in the shipped game.
-- **Harness or game?** §3g lists 25 known harness effects — a passive France,
-  the driver's answer policy, a digest counter that lies. Do not re-file those
-  as game defects.
-- **Duplication:** 126 of 130 rows carry an `already_filed` claim, and the
-  documents to check against run to ~19,000 lines with no OPEN/FIXED index.
-  **Scope this: check `already_filed` properly on the 34 priority rows only**,
-  and spot-check the rest. If you build an index of currently-OPEN row ids and
-  their seams, commit it — the next session will need it too.
-
-**Already established mechanically on September 2 — do not redo, but note its
-limit.** A scan of all 130 rows found every cited `file` exists, every `line` is
-within its file, and every row carries a repro, a fix shape and a behaviour
-test. **That scan covered the `file` and `line` fields only.** Paths *inside*
-repro text were not checked, and **17 rows depend on gitignored
-`tools/playtest_runs/` or `saves/` artifacts** (FA-1, FA-3, FA-4, FA-9, FA-17,
-FA-19, FA-21, FA-37, FA-38, FA-39, FA-41, FA-76, FA-83, FA-85, FA-D13, FA-D14,
-FA-D24). Those run only because the previous session's output is still on this
-machine; on a fresh clone they do not. Re-derive or re-generate rather than
-trusting them.
-
-### 2. Are there adjacent bugs?
-
-The audit's recurring shape is *one rule with two implementations and only one
-maintained*. When you confirm a row, check its neighbourhood before moving on:
-
-- The seam's other callers — an **AST or `grep -c` census**, never a
-  single-file `re.search`; this project has been burned by that repeatedly.
-- **The mirror.** Golden Rule 5 says enemy AI runs the same executor as the
-  player, so a player-path defect usually has an AI-path twin.
-- **The producer→renderer join** — a backend key no `.gd` reads, or a `.gd`
-  read no producer emits. Several confirmed rows are exactly this.
-- What the row's proposed fix would break in a sibling branch.
-
-File new rows as **FA-N1, FA-N2, …** in the same tables with the same fields:
-seam `path:line`, player consequence, runnable repro, the ONE seam to change,
-and the behaviour test to write.
-
-### 3. Does the prose make sense — all of it?
-
-**Review prose against the JSON, not the memo.** The memo truncates long fields
-by design — **408 ellipses**, some mid-word — so "truncated sentence" is the
-memo's format, not a defect, and flagging it there wastes the pass.
-
-What to look for, with the real starting points:
-
-- **Dangling cross-references — the highest-yield real defect.** Six rows carry
-  "finding N" self-references from a lens agent's private numbering: **FA-4,
-  FA-46, FA-67, FA-74, FA-90, FA-D2.** FA-4's "finding 1" and FA-D2's "finding
-  1" denote different rows, and because `lens` is empty they cannot be resolved
-  mechanically. Rewrite each to name the row it means, or cut the reference.
-- **Genuinely unbalanced brackets: FA-74, FA-93, FA-D24** (measured with
-  backticked code spans masked). ⚠ **An earlier draft of this prompt sent the
-  reader to FA-38 and FA-D15 — that was wrong.** Both are clean: their
-  "unbalanced" parens are inside code quotations (`` `_add("` ``, `` `.get(` ``).
-  A naive bracket check flags 12 rows and all 12 are that false positive. Do
-  not "fix" a code citation into balance.
-- **Claims that over-reach their evidence.** A row saying "verified by running"
-  should name what was run. A title claiming more than its body supports gets
-  the title corrected — exactly what happened to FA-6.
-- **Severity honesty**, under the two-ladder rule above.
-- **The memo's own prose sections** (§0–§2, §6–§8), not just the findings. In
-  particular §6: are the eight slices coherent groupings, is the order
-  defensible, and is the coverage note accurate? (Measured Sept 2: the slices
-  name 59 of 128 rows; all 9 P1s are covered; 16 of the 50 P1/P2 rows are in no
-  slice; 17 of the 26 FA-D rows sit outside. The memo now states this — check
-  it is still true after your amendments.)
-- **Cross-document agreement.** Every `FA-n` cited in prose should exist, and
-  the memo, `BUG_FIXES.md`, `DESIGN_REFINEMENT.md`, `STATUS.md` and `CLAUDE.md`
-  should say the same thing about the audit.
-
-## Method rules this project holds you to
-
-- **Reproduce before believing.** `docs/PLAYTESTING.md` is the document of
-  record for driving the game: Mode A (`tools/playtest_driver.py`, in-process,
-  seeded, digested) is the default; never pass `--archive` for a throwaway probe.
-- **PLAYTESTING.md has no idiom for a single `POST /command` probe**, which is
-  the shape many repros need. Use this, **from the repo root** (a copy in a
-  scratch dir dies with `ModuleNotFoundError: backend`):
-
-  ```python
-  import contextlib, io
-  from fastapi.testclient import TestClient
-  import backend.main as M
-  from backend.commands.parser import CommandParser
-  from backend.models.world_state import WorldState
-  P = "godot-client/project-sovereign/assets/maps/europe_1805.json"
-  with contextlib.redirect_stdout(io.StringIO()):
-      w = WorldState.from_scenario(P)
-      M.parser = CommandParser(use_real_llm=False)   # load-bearing, see below
-      M.world = w
-      M.game_state = {"world": w}
-  c = TestClient(M.app)
-  d = c.post("/command", json={"command": "Ney, attack Mack"}).json()
-  ```
-
-  Swap `world` **and** `game_state` **and** `parser`; a partial swap does not
-  error, it silently runs against a different world.
-- **⚠ Money hazard the prompt must not leave implicit:** `.env` sets
-  `LLM_MODE=anthropic`, so importing `backend.main` initialises a **live**
-  parser. Overriding `M.parser` with `use_real_llm=False` is what keeps a probe
-  free. A repro written as a bare `POST /command` will otherwise spend real API
-  credit — and this session may run dozens.
-- **Never set `PYTHONIOENCODING`** — it fakes six subprocess ERRORs and blocks
-  the pre-commit hook. The ban is absolute, including for probes. Console
-  stdout is cp1252 and **115 of 130 rows contain characters it cannot encode**,
-  so call `sys.stdout.reconfigure(encoding="utf-8")` *inside* the snippet, or
-  write to a UTF-8 file and read that.
-- **A passing suite is not evidence about `BASELINE_SERIES` or M1–M7.** Those
-  run in a fresh hash-seeded subprocess. This session should not move them at
-  all.
-- **Report-only for game behaviour** — decide what is real, do not fix it.
-  **Docs are yours**: amendments, severity changes, prose repairs and new FA-N
-  rows are the deliverable.
-- Any test you do write, mutation-sweep (`tools/mutation_sweep.py`).
-- Commit directly to master; the pre-commit hook runs `ruff` plus the full suite
-  (~3 minutes). Do not bypass it.
-
-### The amendment convention, as a checklist
-
-FA-6 is the worked example but it did not land completely (its downgrade left a
-stale "two P1s" claim in memo §6 that had to be fixed afterwards). Do all five:
-
-1. **JSON row:** set `_sev` if it changed, suffix `_status` (e.g.
-   `AUTHOR_VERIFIED (amended 2026-09-02)`), and add an `amendment` key stating
-   what changed and why.
-2. **JSON top level:** append to the `amendments` array.
-3. **`BUG_FIXES.md` / `DESIGN_REFINEMENT.md`:** strike the old severity
-   (`~~P1~~ **P2**`) and open the cell with a bolded **⚠ AMENDED** block.
-4. **Memo §3:** correct the `####` heading *and* add a blockquoted amendment
-   block under the row — do not silently rewrite the heading alone.
-5. **Sweep for consequences:** grep the memo's §1, §6 and §7 for anything the
-   change falsifies (counts, "two P1s", slice composition), and fix those too.
-
-## What to produce
-
-1. **`docs/audits/FINAL_AUDIT_VERIFICATION_2026_09_02.md`** — every filed row's
-   verdict with the evidence, the new FA-N rows, and a section on **what the
-   audit got wrong as a body of work**: its systematic biases, not just
-   individual misses. Argue those from content (the `lens` field is empty).
-2. **Amendments in place**, per the checklist, across the memo, the machine
-   record and both routing tables.
-3. **Updated headlines** in `docs/STATUS.md` and `CLAUDE.md`. ⚠ Both currently
-   route the next session straight to the memo's §6 build order — that is the
-   state this session is inserted in front of, and correcting it is part of
-   this deliverable.
-4. **A one-paragraph answer to the question the owner will actually ask:** *is
-   this audit safe to build from, and which rows would you build first?*
-
-Then commit and push.
-
-## One honest caveat about the thing you are checking
-
-The audit has **no pillar re-score** — the ten scorers never ran — so the August
-16 priors stand. If your verification substantially changes the picture (say a
-third of the P1/P2 rows fall), say so plainly rather than patching numbers, and
-recommend whether a scoring pass is worth running before the build.
+Commit (one commit for GE-1 with the additions, or one per part — each landing record complete), `git push origin master`, then report where we are and what the next session opens (GE-2 the client: `campaign_end.tscn` with the four registers and the exile epilogue, the clock line on three surfaces, the driver arm that reaches each fall — then GE-3 "The Congress of Paris", GE-V, the release build). Still open for the user, not for you: the in-game feel of F3's six surfaces (`docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`); and the memo's recommendation on the generals' death roll is the user's ruling to make.
