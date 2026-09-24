@@ -29,6 +29,44 @@
 > `docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
 >
+> **▶ ▶ GE-1 REVIEW ROUND — ✅ LANDED September 25, 2026** (the commit
+> after `975f1f13`; record = `ENDGAME_PLAN.md` §6, the review-round
+> addendum under GE-1's landing record; rules `SYSTEMS_REFERENCE.md` §64.1;
+> pins `tests/test_ge1_review_round.py`). Seven lenses at the committed
+> slice, two refuters per finding: **50 filed, 38 survived both, 4 P1 —
+> all fixed and pinned**, plus eight of the ten the refuters split on,
+> taken on merit.
+> - **The war is closed at ONE seam** — the Emperor killed on an answered
+>   interrupt, a typed answer or an objection road ended the war SILENTLY
+>   (no `game_over`, no ending, no Final save ever written).
+>   `game_end.close_campaign` now runs at `build_base_response`, rebuilds
+>   the terminal summary on the FINISHED field (the battle that killed him
+>   was missing) and clears every question nobody can answer.
+> - **The captor's terms arrive** — P1 was the one rung without
+>   `proposal is None`, so a LOSING captor overwrote its own terms and the
+>   Emperor was deposed with no offer ever sent; and the envoy now names the
+>   release.
+> - **The clocks say what is true** — a ticking arm outranks a paused one;
+>   a fresh capture is a fresh clock; a truce pauses the soil clock; the
+>   exits are read from the live relation to the captor; **no court at
+>   peace holds the Emperor** (a lapsed passage escorts him home).
+> - **The death is placed and named** — the field he fell on, "And the
+>   Emperor himself fell on that field." on Berthier's report, no prestige
+>   for the dead, the killer's turn stops with the Empire.
+> - **Titles** — a renewed war breaks the signature (a truce no longer
+>   re-reconciles); a Tilsit carve reconciles; a grant inside the bloc keeps
+>   its title. **The record** — only cessions that happened, a truce is not a
+>   peace, a settlement names the courts that signed. **The words** — the
+>   time held, the province still held, Verdict lines chosen from what is
+>   true, the record paragraph's prose. **Saves** — two falls keep two
+>   Final saves; a pre-GE-1 save is backfilled with a record. **E2** — the
+>   alarm shows 0 with nobody left; **E3** — a dead court is refused before
+>   the War Purpose card; the goal answer after the Verdict is past tense.
+> - **Not taken:** #19 and #41 (refuted by both); #10 (the command-road
+>   death has no dispatch) is **owned by GE-2** — the end screen is its
+>   only surface.
+> - **Gates:** ruff clean; `tools/_sweep_ge1_review.json` **59/59 killed, 0 INERT at close** (3 inert on the first pass, each a pin weakness — GR-18 asserted the carve's break only during the war, GR-41 read `action` where the AI's rows carry `ai_action`, GR-50 passed a turn where the builder takes a nation — all three strengthened and killed); six anchors in older sweeps broken by this round (`_sweep_ge1.json` GE1-3/31/41, `_sweep_fa_slice15r.json` S15R-18/a, `_sweep_fa_slice2.json` FA-N68/a, `_sweep_wo15.json` WO-30) re-anchored and re-swept, 6/6 killed; full suite **25,566 passed / 4 skipped**; `BASELINE_SERIES` + M1–M7 byte-identical; zero `.gd`.
+>
 > **▶ ▶ GE-1 "THE VERDICT AND THE FALL" — ✅ LANDED September 25, 2026**
 > (row EP's first ending slice; landing record = `ENDGAME_PLAN.md` §6 GE-1,
 > rules `SYSTEMS_REFERENCE.md` §64; pins

@@ -147,9 +147,13 @@ class TestSandboxEnforcement:
 
     def test_1805_no_end_screen_at_turn_60(self, world1805):
         # ⚑ GE-1 (Sept 25, 2026) — RE-BLESSED, not flipped: the 1805 board now
-        # arms its endings, and this stays green because the Verdict of
-        # History (turn 44) is MARKED, never terminal — it never sets
-        # `game_over`. Only a recorded Fall does (GAME_END_SPEC R2/R3).
+        # arms its endings. What THIS pin holds is that the victory check is
+        # a pure read — no ending is recorded, so nothing ends the war at
+        # turn 60. That the Verdict itself (turn 44) is MARKED and never sets
+        # `game_over` is pinned by the Verdict driven through the real tick
+        # (`test_ge1_the_verdict_and_the_fall.py::TestTheVerdict::
+        # test_fires_once_at_the_authored_turn_and_never_ends_the_war`) —
+        # corrected in the GE-1 review round (#48).
         world = _copy(world1805)
         world.current_turn = 60
         tm = TurnManager(world)

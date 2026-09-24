@@ -7099,7 +7099,9 @@ GE-D1) and the exile story.
   terminal ending nothing else is stamped. Terminal causes (`soil_or_sword`,
   `chains`, `eagle_falls`) set `game_over` / `victory = "defeat"`; marked
   causes (`humbled_peace`, `verdict`) never do. The record carries its
-  `build_campaign_summary` taken AT THE MOMENT.
+  `build_campaign_summary` taken at the moment, built with the record already
+  in the list (so a Humbled Peace grades itself the eclipse); a TERMINAL
+  record's summary is rebuilt ONCE when the war is closed (§64.1).
 * **One per-turn caller.** `game_end.process_end_of_turn(world, turn_ended)`
   runs once per `TurnManager.end_turn`, after `advance_turn` — the fall clocks
   tick (`fall.tick_fall_clocks`, the ONE writer of `fall_clock`) and, at the
@@ -7116,12 +7118,17 @@ GE-D1) and the exile story.
   `fall_grace_turns` (5) consecutive turns; "The Eagle in Chains" — the
   sovereign a prisoner — for `captivity_grace_turns` (10). **The Fall is a
   death in war:** the soil clock ticks only while France is at war with
-  someone and resets at a general peace (a humbled rump is not a fallen
-  Empire); the chains clock advances only on a turn France is at war with the
-  captor and PAUSES (never resets) during a truce or a vassal treaty, resetting
-  only on release. Exits are per disjunct — retake a province, commission a
-  marshal or free a captive corps, make peace; accept the captor's terms (any
-  peace frees him) or storm the city that holds him. Paris alone never
+  someone, PAUSES while its only quarrels stand in a truce, and resets at a
+  general peace (a humbled rump is not a fallen Empire); the chains clock
+  advances only on a turn France is at war with the captor and PAUSES (never
+  resets) during a truce or a vassal treaty, resetting on release or on a
+  fresh capture (the entry is keyed on the captor AND the turn he was taken).
+  Exits are per disjunct — retake a province, commission a marshal or free a
+  captive corps, make peace; for the chains, read from the live relation to
+  the captor: at war, accept his terms (any peace frees him) or storm the
+  city that holds him; in a truce, turn it into a peace; at peace, make war
+  and storm. A TICKING arm outranks a paused one as the "soonest", and a
+  paused arm has no fall date. Paris alone never
   triggers either arm (PL-31). GR5: `get_fall_state(world, nation)` answers
   for any nation; only the player's clocks are kept.
 * **The captivity exit is reachable (R1's proof).** No existing captor offer
@@ -7129,9 +7136,13 @@ GE-D1) and the exile story.
   OFFERS its terms on the clock's own cadence (chains turns 1, 4, 7 —
   `ai_diplomacy._captor_offer_due`, the FIRST rung, before P1, whose armistice
   would only pause the clock), priced to the purse by the one EC-W4 source,
-  bypassing the P8 gate and the type cooldowns, never dropped
-  (`_force_send`). Accepting at an empty treasury is legal and frees him
-  (pinned). Lever `ai_diplomacy.THE_CAPTOR_NAMES_HIS_PRICE`.
+  bypassing the P8 gate and the type cooldowns, never overwritten by a later
+  rung (P1 carries `proposal is None` like every other wartime rung — the
+  review round), and never dropped (the P8 reducer forces an unwelcome harsh
+  peace through). The envoy names the release (`captor_terms` in the dialogue
+  context; the clause "any peace with Austria frees the Emperor"). Accepting
+  at an empty treasury is legal and frees him (pinned). Lever
+  `ai_diplomacy.THE_CAPTOR_NAMES_HIS_PRICE`.
 * **The warning.** `turn_manager.get_defeat_imminent_state` on an armed world
   reads `fall.warning_state` — the condition, the clock ("1 of 5 — the Empire
   falls at the end of turn 17 (4 turns remain)") and the exits, heading "THE
@@ -7231,3 +7242,72 @@ GE-D1) and the exile story.
   closing line and one voice (the captor's diplomat, Berthier, or Talleyrand).
   A Humbled Peace gets the "signed" variant. It rides the summary as
   `epilogue`; GE-2 renders it.
+
+### 64.1 The review round (September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §6 GE-1 (the review-round addendum); pins
+`tests/test_ge1_review_round.py`, each named for its finding.
+
+* **The war is closed at ONE seam.** `game_end.close_campaign(world)` runs at
+  the head of `main.build_base_response` — every POST — and, for an
+  enemy-phase death, in `TurnManager`'s `_attach_endings`, and in
+  `save_manager.write_final_save`. Once per campaign (`closed` on the
+  terminal record): the terminal summary is rebuilt on the FINISHED field
+  (the battle that killed him counted, the province it took lost) and
+  `game_end.clear_unanswerable` — the ONE list — empties every question
+  nobody can answer (the dialogue and popup queues, the capture choice, both
+  objections, the redemption, standing interrupts, an armed charge). Then
+  `main._attach_terminal_ending` sets `game_over` / `victory` / `ending`
+  (setdefault — the end-turn road's own payload wins) and writes the Final
+  save. Lever `game_end.THE_WAR_IS_CLOSED_AT_ONE_SEAM`.
+* **After the Fall nothing of the player's moves.** An enemy-phase death stops
+  the killer's own turn (the per-marshal loop breaks on `game_over`; the admin
+  phase is skipped) and the rest of the end turn skips the player's standing
+  orders, the grievance pass and the autonomous marshals. No prestige moves
+  for a sovereign killed in the battle; the `sovereign_dead` headline stands
+  alone; the Marshalate is not offered.
+* **The field he fell on.** `destroy_marshal(..., location=)` — the attack,
+  the charge and the auto-charge pass the battle region for a destroyed
+  attacker (who has not advanced); the tombstone, the event, the ending detail
+  and the epilogue read it. Berthier's report carries "And the Emperor himself
+  fell on that field." (`CombatExecutor._stamp_death_on_report`, beside the
+  capture stamp).
+* **No court at peace holds the Emperor.** A lapsed safe passage on the soil
+  of a court the realm is at peace with escorts him home through the release
+  seam (`withdrawal._escort_sovereign_home`; he keeps at most the released
+  prisoner's escort). Lever `withdrawal.THE_EMPEROR_IS_ESCORTED_HOME`.
+* **Titles.** A renewed WAR breaks what either side signed to the other:
+  `game_end.break_signed_titles`, from the ONE diplomatic-state setter on
+  every entry into WAR, turns the treaty record into a conquest record (quiet
+  clock from now) and marks a carve `carve_broken` (its `carved_from` origin
+  kept); the per-turn pass backs it at the bloc level. `reconciled_regions`
+  reads a standing treaty record — or a standing carve — not "any active
+  treaty" (an armistice had re-reconciled the very province its war was over).
+  A hand-off inside the holder's bloc carries the record to the new holder; a
+  signed province occupied by the receiver's satellite is titled.
+* **The treaty record.** `note_ratification` counts a signed territory term
+  only when the province is no longer France's (or a French satellite's), and
+  a carve only from the APPLIED clauses. A truce is not a peace: WAR →
+  ARMISTICE passes `war_ending` false; an armistice that expires into peace is
+  counted there (`game_end.count_peace`). A settlement's Humbled Peace names
+  the courts the plan covered.
+* **The words.** The chains cause line and epilogue give the time HELD when a
+  truce paused the clock (`detail.held_turns`); the realm arm names the
+  province still held; the Verdict's lines are chosen from what is true
+  (`game_end._tier_lines`); provinces lost are counted distinct
+  (`campaign_totals.lost_regions`) and worded by the count; a single
+  coalition is never "the last".
+* **Saves.** A second Final save on the same date takes the next free name;
+  the record names its own file before the write. A pre-GE-1 save is
+  backfilled with a record at load (`game_end.backfill_record`: the opening,
+  `record_since_turn` — carried on the summary and said in the epilogue — and a
+  conquest title record for every province held off its holder's homeland).
+  `/mailbox/activate`'s game-over refusal carries the letter-book count.
+* **E2/E3 and the goal.** `coalition.displayed_threat` shows 0 with no court
+  left to alarm (the ledger gauge and tier, the top bar, every response; the
+  ledger's projection line is `coalition.NO_EUROPE_LEFT_LINE`; the stored
+  scalar is untouched). `diplomacy.dead_court_refusal` refuses a declaration
+  on a dead court at the flow's first step (and in `declare_war`). A court
+  eliminated inside the enemy phase gets no row (the roster read live). The
+  goal answer after the Verdict is in the past tense and says the Empire can
+  still fall.

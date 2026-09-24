@@ -2349,6 +2349,24 @@ def no_court_left_to_alarm(world, target: Optional[str] = None) -> bool:
     return True
 
 
+NO_EUROPE_LEFT_LINE = ("There is no Europe left to alarm — no court stands "
+                       "that could raise a coalition against us.")
+
+
+def displayed_threat(world) -> int:
+    """The alarm every SURFACE shows (GE-1 E2, review round): 0 when no court
+    is left to be alarmed. The scalar itself only decays by 1 a turn, so the
+    ledger's gauge and the top bar read "99 CRITICAL — forms at once (now)"
+    for decades of turns after the last court fell, contradicting the war
+    room's "There is no Europe left to alarm". Display only (GR6): the
+    stored scalar is untouched, and a satellite that breaks free re-opens
+    the alarm where it stood."""
+    level = int(getattr(world, "threat_level", 0) or 0)
+    if NOBODY_LEFT_TO_ALARM_IS_SILENT and no_court_left_to_alarm(world):
+        return 0
+    return level
+
+
 def process_coalition_turn(world) -> List[Dict]:
     """Master per-turn coalition processing (§3c processing order).
 

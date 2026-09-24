@@ -2277,6 +2277,14 @@ class DiplomaticExecutor:
 
         player = world.player_nation
 
+        # GE-1 E3 (review round): a dead court is refused HERE, at the flow's
+        # first step — the backstop inside `declare_war` came after the War
+        # Purpose card, a STRONG objection and the ally review.
+        from backend.game_logic.diplomacy import dead_court_refusal
+        _dead = dead_court_refusal(world, target_nation)
+        if _dead:
+            return {"success": False, "message": _dead}
+
         # Already at war?
         current_state = world.get_diplomatic_state(player, target_nation)
         if current_state == "WAR":

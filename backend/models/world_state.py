@@ -3129,7 +3129,7 @@ class WorldState:
             self.event_log = self.event_log[-self.MAX_EVENT_LOG_SIZE:]
 
     def destroy_marshal(self, marshal, cause: str, victor: str = "",
-                        log: bool = True) -> bool:
+                        log: bool = True, location: str = "") -> bool:
         """PC15-1: the ONE marshal-destruction seam.
 
         Every removal of a marshal from `world.marshals` funnels through
@@ -3147,6 +3147,12 @@ class WorldState:
         the prisoner the same tick his capture event was written.
 
         Returns True when the marshal was actually removed.
+
+        `location` (GE-1 review round) names the FIELD when it is not where
+        he stands: an attacker is destroyed before he advances, so his own
+        `location` is still the province he marched from — "at Lorraine,
+        the Emperor was killed" for the Battle of Swabia. Defaults to his
+        location.
         """
         if isinstance(marshal, str):
             marshal = self.marshals.get(marshal)
@@ -3206,10 +3212,11 @@ class WorldState:
         # never evicted, capture retired it, destruction did not.
         from backend.notifications import dismiss_marshal_ask
         dismiss_marshal_ask(self, marshal.name)
+        _where = str(location or marshal.location or "")
         self.fallen_marshals[marshal.name] = {
             "nation": marshal.nation,
             "turn": int(self.current_turn),
-            "location": marshal.location,
+            "location": _where,
             "cause": str(cause),
         }
         _is_sovereign = bool(getattr(marshal, "is_sovereign", False))
@@ -3227,19 +3234,19 @@ class WorldState:
                 "type": "marshal_destroyed",
                 "marshal": marshal.name,
                 "nation": marshal.nation,
-                "location": marshal.location,
+                "location": _where,
                 "cause": str(cause),
                 "victor": str(victor or ""),
                 "sovereign": _is_sovereign,
                 "message": (
                     (f"THE EMPEROR {marshal.name} has fallen at "
-                     f"{marshal.location}") if _is_sovereign else
+                     f"{_where}") if _is_sovereign else
                     (f"Marshal {marshal.name}'s corps has been destroyed "
-                     f"at {marshal.location}")),
+                     f"at {_where}")),
             })
         if _sovereign_dies:
             _game_end.record_sovereign_death(
-                self, marshal, str(cause), str(victor or ""))
+                self, marshal, str(cause), str(victor or ""), location=_where)
         return True
 
     def get_events_for_turn(self, turn: int) -> List[Dict]:
@@ -4517,7 +4524,8 @@ class WorldState:
         _game_end.record_province_title(
             self, region_name, _game_end.TITLE_CONQUEST,
             old_controller, capturing_nation)
-        _game_end.count_capture(self, old_controller, capturing_nation)
+        _game_end.count_capture(self, old_controller, capturing_nation,
+                                region_name)
 
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation:
@@ -10774,7 +10782,11 @@ class WorldState:
         # zero times in 108 responses while an army at 48% strength sat on
         # 24,415g being nagged for 450g.
         # ════════════════════════════════════════════════════════════
-        if not self.commission_hint_shown:
+        # GE-1 review round: never on a fallen campaign — the bench is not
+        # offered to an Empire that has ended (the latch stays open).
+        from backend.game_logic import game_end as _ge_bench
+        if (not self.commission_hint_shown
+                and _ge_bench.terminal_ending(self) is None):
             from backend.game_logic.recruitment import (
                 first_affordable_commission,
             )
@@ -11995,7 +12007,10 @@ class WorldState:
             applied_clauses=applied_treaty_clauses,
             was_vassal=_player_was_vassal,
             counterparts=_ge_counterparts,
-            war_ending=bool(_is_war_ending),
+            # A truce is not a peace (review round): WAR -> ARMISTICE ends
+            # no war; the ARMISTICE -> PEACE that follows (by treaty here, or
+            # by expiry — `game_end.count_peace`) is the one peace counted.
+            war_ending=bool(_is_war_ending and target_state != "ARMISTICE"),
             source="treaty",
         )
 
@@ -13915,8 +13930,14 @@ class WorldState:
 
                 # Check if attacker destroyed
                 if marshal.strength <= 0:
-                    self.destroy_marshal(marshal, cause="charge",
-                                         victor=enemy.nation)
+                    # GE-1 review round: fallen on the field he charged.
+                    if (self.destroy_marshal(marshal, cause="charge",
+                                             victor=enemy.nation,
+                                             location=auto_charge_battle_region)
+                            and getattr(marshal, "is_sovereign", False)):
+                        enemy_destroyed_msg += (
+                            f" THE EMPEROR {marshal.name.upper()} HAS FALLEN — "
+                            f"cut down in the charge.")
 
                 # ── Territory capture (simplified, no fort occupation) ──
                 # V2-53: Intentionally skips fortified region capture. Auto-charge is a
@@ -13968,7 +13989,8 @@ class WorldState:
                                 _ge.TITLE_CONQUEST, _charge_from,
                                 marshal.nation)
                             _ge.count_capture(self, _charge_from,
-                                              marshal.nation)
+                                              marshal.nation,
+                                              auto_charge_battle_region)
                             # IQ-2 review round: the one conquest in the game
                             # that logged NO region_captured row — so an AI
                             # reckless charge that took a French province left

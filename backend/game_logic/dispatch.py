@@ -1747,7 +1747,11 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     seen_keys = {(top["class"], top["identity"]), ("", top["text"])}
     seen_classes = {top["class"]}
     sub_beats = []
-    while len(sub_beats) < SUB_BEAT_SLOTS:
+    # GE-1 review round: the Emperor's death stands ALONE on the page — no
+    # sub-beat advises a garrison or a commission to an Empire that has
+    # ended (the class's own note: "There is no order left to give").
+    _alone = top["class"] == "sovereign_dead"
+    while not _alone and len(sub_beats) < SUB_BEAT_SLOTS:
         eligible = [c for c in candidates[1:]
                     if not any(k in seen_keys for k in _headline_keys(c))]
         if not eligible:

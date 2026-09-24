@@ -1935,6 +1935,20 @@ class StrategicOrderProcessor:
                     "action_taken": "attack"
                 }, result)
             else:
+                # GE-1 review round: the fight that ended the war (the
+                # Emperor killed in this assault) is the last word — no
+                # "orders cancelled, marshal awaits new instructions" for a
+                # sovereign who is dead, on a campaign that is over.
+                from backend.game_logic import game_end as _ge_last
+                if _ge_last.terminal_ending(world) is not None:
+                    marshal.strategic_order = None
+                    return _carry_combat_fields({
+                        "success": True,
+                        "message": f"{marshal.name} attacks {enemy_name}. {combat_msg}",
+                        "order_cleared": True,
+                        "trust_change": 0,
+                        "action_taken": "attack"
+                    }, result)
                 # Loss or stalemate — increment attempts, break order
                 order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
                 order.last_combat_enemy = enemy_name

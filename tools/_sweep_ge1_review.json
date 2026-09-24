@@ -1,0 +1,415 @@
+[
+ {
+  "id": "GR-01 the terminal attach is gone",
+  "file": "backend/main.py",
+  "old": "        _attach_terminal_ending(response, world, _terminal_record)",
+  "new": "        pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-02 no Final save at the seam",
+  "file": "backend/main.py",
+  "old": "    write_final_save(world)\n\n\ndef _refusal_response",
+  "new": "    pass\n\n\ndef _refusal_response",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-03 the close is not called by the base builder",
+  "file": "backend/main.py",
+  "old": "    _terminal_record = _ge_close.close_campaign(world)",
+  "new": "    _terminal_record = _ge_close.terminal_ending(world)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-04 the close rebuilds no summary",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    try:\n        record[\"summary\"] = build_campaign_summary(world, record)\n    except Exception:\n        pass\n    clear_unanswerable(world)",
+  "new": "    clear_unanswerable(world)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-05 the close clears nothing",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    clear_unanswerable(world)\n    return record",
+  "new": "    return record",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-06 standing interrupts survive the fall",
+  "file": "backend/game_logic/game_end.py",
+  "old": "            marshal.pending_interrupt = None",
+  "new": "            pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-07 a paused arm ranks as soonest",
+  "file": "backend/game_logic/fall.py",
+  "old": "(not a[\"ticking\"], a[\"turns_left\"],",
+  "new": "(a[\"turns_left\"],",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-08 a paused arm keeps a fall date",
+  "file": "backend/game_logic/fall.py",
+  "old": "if turns and ticking else None),",
+  "new": "if turns else None),",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-09 the chains clock is keyed on the captor alone",
+  "file": "backend/game_logic/fall.py",
+  "old": "                != chains[\"captured_turn\"]):",
+  "new": "                != int(entry.get(\"captured_turn\", chains[\"captured_turn\"]))):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-10 a truce resets the soil clock",
+  "file": "backend/game_logic/fall.py",
+  "old": "    if soil is None or (not at_war and not _in_truce_with_anyone(world, nation)):",
+  "new": "    if soil is None or not at_war:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-11 the exits ignore the live state",
+  "file": "backend/game_logic/fall.py",
+  "old": "        if state == \"WAR\" or (not state and detail.get(\"at_war_with_captor\")):",
+  "new": "        if True:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-12 the Emperor is interned by a court at peace",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "THE_EMPEROR_IS_ESCORTED_HOME = True",
+  "new": "THE_EMPEROR_IS_ESCORTED_HOME = False",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-13 P1 overwrites the captor's terms",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if proposal is None and is_at_war and war_score < effective_p1_threshold:",
+  "new": "    if is_at_war and war_score < effective_p1_threshold:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-14 the envoy never names the release",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if proposal.get(\"captor_terms\"):",
+  "new": "    if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-15 a renewed war breaks no signature",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        break_signed_titles(world, nation_a, nation_b)",
+  "new": "        pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-16 a hand-off drops the record's holder",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                rec[\"holder\"] = new_holder",
+  "new": "                pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-17 a carve reconciles nothing",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        out.update(world.get_nation_regions(tag) or [])",
+  "new": "        pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-18 a renewed war does not break the carve",
+  "file": "backend/game_logic/game_end.py",
+  "old": "            row[\"carve_broken\"] = True",
+  "new": "            pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-19 a skipped clause is counted",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                ceded.update(r for r in names if not _ours(r))",
+  "new": "                ceded.update(names)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-20 an expired truce is not counted",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            count_peace(world, nation_a, nation_b)",
+  "new": "            pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-21 a truce is counted as a peace",
+  "file": "backend/models/world_state.py",
+  "old": "war_ending=bool(_is_war_ending and target_state != \"ARMISTICE\"),",
+  "new": "war_ending=bool(_is_war_ending),",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-22 a settlement names the whole side",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "        _ge_opp = _ge_signed",
+  "new": "        pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-23 the summary is built before the append",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    world.endings.append(record)\n    record[\"summary\"] = build_campaign_summary(world, record)",
+  "new": "    record[\"summary\"] = build_campaign_summary(world, record)\n    world.endings.append(record)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-24 the time held is never recorded",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                    detail[\"held_turns\"] = max(0, int(turn_ended) - taken + 1)",
+  "new": "                    pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-25 the contested field line is unconditional",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if lost > won:",
+  "new": "        if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-26 a sentence opens lower-case",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        record.append(f\"{_cap(best['name'])} (",
+  "new": "        record.append(f\"{best['name']} (",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-27 one province is 'most of them'",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if lost == 1:",
+  "new": "        if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-28 a tie names one court",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        elif len(leaders) == 2:",
+  "new": "        elif False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-29 one coalition is 'the last'",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if faced == 1:",
+  "new": "        if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-30 the coalition keeps its capital The",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        return \"the \" + name[4:]",
+  "new": "        return name",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-31 the realm arm forgets what it holds",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                detail[\"held\"] = sorted(",
+  "new": "                detail[\"held_x\"] = sorted(",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-32 two falls share one file",
+  "file": "backend/save_manager.py",
+  "old": "    while target.exists():",
+  "new": "    while False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-33 the record never names its file",
+  "file": "backend/save_manager.py",
+  "old": "    record[\"final_save\"] = str(target)",
+  "new": "    pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-34 no backfilled record",
+  "file": "backend/save_manager.py",
+  "old": "            backfill_record(world)",
+  "new": "            pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-35 no backfilled titles",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    owners: Dict[str, str] = {}",
+  "new": "    return",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-36 the mailbox guard drops its count",
+  "file": "backend/main.py",
+  "old": "            count=int(_dm_over.get_mailbox_count()))",
+  "new": "            )",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-37 a dead court reaches the war purpose",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        _dead = dead_court_refusal(world, target_nation)",
+  "new": "        _dead = None",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-38 the ledger shows the raw alarm",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    threat_level = int(displayed_threat(world))",
+  "new": "    threat_level = int(getattr(world, 'threat_level', 0) or 0)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-39 no E2 line on the projection",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "        threat_projection[\"collapse_line\"] = NO_EUROPE_LEFT_LINE",
+  "new": "        pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-40 the dead court gets its row",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                    and nation not in set(self.world.get_active_nations())):",
+  "new": "                    and False):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-41 the killer's turn runs on",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if getattr(world, \"game_over\", False):\n                break\n            self._enter_indexed_evaluation_scope(world)",
+  "new": "            self._enter_indexed_evaluation_scope(world)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-42 the report never says he fell",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        fell = [m for m in fighters",
+  "new": "        fell = [] and [m for m in fighters",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-43 the attacker falls at his origin",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                                      location=battle_region_name)\n                    and getattr(marshal, \"is_sovereign\", False)):",
+  "new": "                                      )\n                    and getattr(marshal, \"is_sovereign\", False)):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-44 prestige moves for a dead Emperor",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if _emperor_led and _player_lead.name not in world.marshals:",
+  "new": "                if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-45 the dead are ordered on",
+  "file": "backend/commands/strategic.py",
+  "old": "                if _ge_last.terminal_ending(world) is not None:",
+  "new": "                if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-46 the goal after the Verdict is future tense",
+  "file": "backend/ai/first_contact.py",
+  "old": "    if verdict is not None:",
+  "new": "    if False:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-47 the driver notes an ending twice",
+  "file": "tools/playtest_driver.py",
+  "old": "    for row in rows[seen:]:",
+  "new": "    for row in rows:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-48 provinces are counted by event",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                lost_regions.append(str(region))",
+  "new": "                pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-49 the tombstone reads the origin",
+  "file": "backend/models/world_state.py",
+  "old": "        _where = str(location or marshal.location or \"\")",
+  "new": "        _where = str(marshal.location or \"\")",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-50 the sovereign_dead page carries sub-beats",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    _alone = top[\"class\"] == \"sovereign_dead\"",
+  "new": "    _alone = False",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-51 the diorama says he watched",
+  "file": "backend/game_logic/battle_diorama.py",
+  "old": "            and \"himself fell on that field\" not in payload[\"observation\"]):",
+  "new": "            ):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-52 the signed province under a satellite is untitled",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                    or world._top_overlord(region.controller)\n                    == world._top_overlord(receiver)):",
+  "new": "                    or False):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-53 the admin phase runs after the fall",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                                 if _game_end.terminal_ending(self.world) is None",
+  "new": "                                 if True",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-54 the standing orders march after the fall",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        if game_state and hasattr(self, 'executor') and not _fallen:",
+  "new": "        if game_state and hasattr(self, 'executor'):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-55 the grievance pass runs after the fall",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        if not _fallen:\n            _jealousy_pass.process_turn(self.world)",
+  "new": "        if True:\n            _jealousy_pass.process_turn(self.world)",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-56 the autonomous marshals act after the fall",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        if game_state and not _fallen:\n            autonomous_report",
+  "new": "        if game_state:\n            autonomous_report",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-57 the Marshalate is offered to a fallen empire",
+  "file": "backend/models/world_state.py",
+  "old": "                and _ge_bench.terminal_ending(self) is None):",
+  "new": "                ):",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-58 the enemy-phase death payload is cut before the close",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "    if _game_end.close_campaign(world) is not None:",
+  "new": "    if None is not None:",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ },
+ {
+  "id": "GR-59 the fatal turn's strategic question is asked",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                report.pop(\"requires_input\", None)",
+  "new": "                pass",
+  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
+ }
+]

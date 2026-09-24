@@ -1,10 +1,12 @@
 # NEXT SESSION PROMPT — GE-2 "The Client": the end screen, its four registers and the exile epilogue
 
 > Overwritten each time a session hands off. Current hand-off: **September 25,
-> 2026.** Row EP's GE-1 "The Verdict and the Fall" is landed (master
-> — the GE-1 commit, see `git log` — pushed, hook green) with the user's three
-> September 25 additions — the Emperor's death, the generals' death-odds memo,
-> the exile story. The next slice is GE-2, the client half of the ending.
+> 2026.** Row EP's GE-1 "The Verdict and the Fall" is landed (`975f1f13`)
+> with the user's three September 25 additions — the Emperor's death, the
+> generals' death-odds memo, the exile story — AND its adversarial review
+> round (the commit after it, see `git log`: 38 surviving findings, all
+> fixed and pinned, `tests/test_ge1_review_round.py`). Pushed, hook green.
+> The next slice is GE-2, the client half of the ending.
 >
 > Paste everything below the line as the opening message of a fresh session.
 
@@ -12,7 +14,7 @@
 
 Row EP, the Endgame Program: **land GE-2 "the client" — `campaign_end.tscn` with the four registers, the exile epilogue on the Fall register, the clock line on three surfaces, and the driver arms that reach each ending. Commit and push when done.** Work directly on master per `CLAUDE.md`'s workflow; read its Golden Rules first.
 
-**Repo state:** master (the GE-1 commit), pushed, suite green. The working tree is clean. Routing = `docs/STATUS.md` ▶ NEXT UP (top block) → `docs/ENDGAME_PLAN.md` (the routing authority for row EP; GE-1's landing record is in §6) → `docs/GAME_END_SPEC.md` (the spec).
+**Repo state:** master (the GE-1 review-round commit), pushed, suite green. The working tree is clean. Routing = `docs/STATUS.md` ▶ NEXT UP (top block) → `docs/ENDGAME_PLAN.md` (the routing authority for row EP; GE-1's landing record is in §6) → `docs/GAME_END_SPEC.md` (the spec).
 
 ## Reading order
 
@@ -26,7 +28,9 @@ Row EP, the Endgame Program: **land GE-2 "the client" — `campaign_end.tscn` wi
 
 - Every response carries `game_state.endings` — the compact list `{kind, cause, register, title, cause_line, turn, calendar_label, terminal, tier, tier_title}` of every ending stamped. The end-turn road, `/load` and a `/command` that ended the war carry `ending` (the last one) with its full `summary`: `{register, title, cause_line, turn, calendar_label, nation, provinces_held, total_regions, totals, greatest_victory, worst_defeat, coalition_names, verdict: {tier, title, lines, closing, score}, epilogue?: {variant, paragraphs, facts}}`. `GET /campaign_end` returns every ending with its summary (re-opening the screen after a load).
 - Registers: `fall` (crimson, terminal — the three causes `soil_or_sword`, `chains`, `eagle_falls`; the epilogue variants `captivity`, `abdication`, `funeral`), `humbled_peace` (crimson-grey, continue; epilogue variant `humbled`), `verdict` (parchment, continue). The fourth, THE IMPERIAL PEACE (gold), is GE-3's; build the scene to take it.
-- The warning's structured `fall` key (`morning_dispatch.defeat_imminent_warning.fall.arms[]` — `{arm, title, turns, grace, turns_left, ticking, falls_at_end_of_turn, exits}`) is what the clock line reads on the war room, the Strategic Ledger's Territories tab and the end-turn banner.
+- The warning's structured `fall` key (`morning_dispatch.defeat_imminent_warning.fall.arms[]` — `{arm, title, turns, grace, turns_left, ticking, paused_by, falls_at_end_of_turn, exits}`) is what the clock line reads on the war room, the Strategic Ledger's Territories tab and the end-turn banner. `falls_at_end_of_turn` is null while the arm is paused (`paused_by` = `truce` / `captor`) — render "the clock stands still", never a date.
+- **Every POST response of a fallen campaign carries `game_over` + `ending`** (the review round closed the war at `build_base_response`, so the popup, typed and objection roads carry it too, and the `/command` game-over guard's refusal does). **The death on the command road has NO dispatch and NO special edition** — the war ends inside the command and no end turn follows — so the end screen is the fall's ONLY surface there: GE-2 owns it (review finding #10; the pin is a driven `Napoleon, attack Mack` at `SOVEREIGN_DEATH_CHANCE_PCT = 100` that raises the funeral register from the `/command` response).
+- A backfilled pre-GE-1 save's summary carries `record_since_turn` (the epilogue already says "(The record was kept from … only.)"); show the totals as "since" that date. The captor's offer popup carries `captor_terms: true` and a clause naming the release.
 - Saves: a "Final — <date>" save exists after a Fall and sorts after every playable save; `/load` of it carries `ending` and `game_over`. The client's Continue takes `saves[0]`, which is already the playable one.
 
 ## GE-2 — the contract (ENDGAME_PLAN §6 row, as ruled)

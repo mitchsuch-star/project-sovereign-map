@@ -198,7 +198,7 @@
  {
   "id": "S15R-18/a the threat key stops being live",
   "file": "backend/main.py",
-  "old": "        \"talleyrand_mission_summary\": _get_talleyrand_mission_summary(world),\n        \"threat_level\": int(getattr(world, 'threat_level', 0)),\n        \"coalition_brewing\": _player_coalition_brewing(world) is not None,\n        \"coalition_brewing_turns\": int(\n",
+  "old": "        \"talleyrand_mission_summary\": _get_talleyrand_mission_summary(world),\n        \"threat_level\": _displayed_threat(world),\n        \"coalition_brewing\": _player_coalition_brewing(world) is not None,\n        \"coalition_brewing_turns\": int(\n",
   "new": "        \"talleyrand_mission_summary\": _get_talleyrand_mission_summary(world),\n        \"threat_level\": 0,\n        \"coalition_brewing\": _player_coalition_brewing(world) is not None,\n        \"coalition_brewing_turns\": int(\n",
   "tests": "tests/test_fa_slice15b_the_instrument_sees_2026_09_06.py::TestTheLedgerLineCarriesTheThreat::test_the_backend_stamps_it_on_every_post"
  },

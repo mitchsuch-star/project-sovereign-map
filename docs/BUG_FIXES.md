@@ -112,6 +112,63 @@
 ---
 
 
+## GE-1 Review Round — September 25, 2026 (**50 filed · 38 survived both refuters, 4 P1 — ALL FIXED · 8 of the 10 split verdicts taken on merit · 1 OWNED by GE-2 · 3 NOT TAKEN**; record: `docs/ENDGAME_PLAN.md` §6, the review-round addendum; rules `SYSTEMS_REFERENCE.md` §64.1; pins `tests/test_ge1_review_round.py`)
+
+Seven lenses at `975f1f13` (clocks · the death · titles and the Humbled Peace · saves and endpoints · E2/E3/WO-D10/the captor · the exile story and the Verdict · the tests), two refuters per finding on a read-only snapshot. The row id is the review's own index.
+
+| Row | Lens | Sev | Finding | Disposition |
+|---|---|---|---|---|
+| GE1-RV0 | clocks | P1 | The clocks only look at the board after the enemy phase, so an escape the player makes during their own turn is ignored whenever the enemy undoes it before the tick; the Empire then falls at once, or the Emperor is lost on a fresh capture | FIXED (the chains half — the entry keyed on the captivity); the soil half is the designed consecutive sampling (both refuters), stands |
+| GE1-RV1 | clocks | P2 | When the Emperor dies on any road except the main /command road, the response carries no ending, no top-level game_over, and no Final save is ever written | FIXED |
+| GE1-RV2 | clocks | P2 | A paused chains arm counts as the 'soonest' clock, so a ticking soil clock is hidden from the ledger, status and war room, severity stays 'warning' with 2 turns left, and a paused arm reports a fall turn that keeps moving | FIXED |
+| GE1-RV3 | clocks | P2 | If France becomes a vassal of the court holding the Emperor, the chains clock pauses forever and the offered exits cannot be taken | FIXED as narrowed by both refuters — on the real roads the vassal treaty assimilates the Emperor (no pause); the surviving copy defect is fixed: the exits are read from the live relation to the captor |
+| GE1-RV4 | clocks | P2 | After the Fall, the end-turn response still hands the client a standing marshal petition, which it raises after the Fall and which can only be refused | FIXED (split verdict, taken on merit) — the close clears the petition |
+| GE1-RV5 | clocks | P3 | A general truce resets the soil clock (the chains clock pauses under the same truce), and the warning calls the truce 'at peace' | FIXED (split verdict, taken on merit) — a truce pauses the soil clock |
+| GE1-RV6 | death | P1 | The Emperor killed on an answered-interrupt road ends the war silently: no game_over/ending on the response, 'marshal awaits new instructions', and the Final save is never written | FIXED |
+| GE1-RV7 | death | P2 | The end screen's summary is frozen mid-battle: the battle that killed him, its losses and the province it took are missing, and the funeral says he lay in state in a Paris that fell in that same battle | FIXED |
+| GE1-RV8 | death | P2 | The battle report for the fight in which the Emperor died says 'Hardly an engagement, Sire … and the day moved on' | FIXED |
+| GE1-RV9 | death | P2 | The Emperor killed as a non-primary participant of a coordinated battle is never named in the combat copy (reachable from the boot position: Napoleon and Soult share Lorraine) | FIXED |
+| GE1-RV10 | death | P3 | On the player-turn roads the advertised 'sovereign_dead' dispatch headline and the Moniteur 'THE EMPEROR IS DEAD' special never exist | OWNED by GE-2 (split verdict) — the command-road death has no dispatch; the end screen is its only surface (ENDGAME_PLAN §6 GE-2 row) |
+| GE1-RV11 | death | P3 | Post-mortem copy still addresses a living Emperor: 'The court will hear of it (Authority −5)', a commission prompt and garrison advice after he is dead | FIXED |
+| GE1-RV12 | death | P3 | The enemy phase does not stop when the Emperor falls: the killer's court keeps marching and fighting | FIXED |
+| GE1-RV13 | death | P3 | An Emperor interned by a court at PEACE (a destroy_marshal caller, withdrawal._intern) is held forever, and the warning names an exit that cannot happen | FIXED |
+| GE1-RV14 | humbled_titles | P2 | A Tilsit-style carve (create_client) never reconciles the ceding court's Revanche, but the same province signed away as a territory_cede does | FIXED |
+| GE1-RV15 | humbled_titles | P2 | A truce inside the war that broke a cession silences the Revanche again, because any active treaty for the pair counts as 'the treaty stands' | FIXED |
+| GE1-RV16 | humbled_titles | P2 | A VS-3 grant to France's own satellite strips a treaty title for good: the province becomes permanently 'held' and the ceder's Revanche comes back while the treaty stands | FIXED |
+| GE1-RV17 | humbled_titles | P2 | A settlement-path Humbled Peace names courts that never signed: 'with' is the whole opposite side, not the courts the settlement covered | FIXED |
+| GE1-RV18 | humbled_titles | P3 | note_ratification counts cessions the ratifier refused, so a peace can be stamped Humbled ('gave away Paris itself') while France still holds Paris | FIXED |
+| GE1-RV19 | humbled_titles | P3 | Half the homeland can be signed away over two separate peaces without a Humbled Peace (the threshold is per ratification, never cumulative) | NOT TAKEN — refuted by both: the per-ratification test is the contract |
+| GE1-RV20 | humbled_titles | P3 | peaces_signed counts an armistice as a peace, so one war ended by truce then treaty reads 'He signed 2 peaces' | FIXED |
+| GE1-RV21 | humbled_titles | P3 | A pre-GE-1 save loads with the endings armed but no province titles, and no conquered or ceded province can ever be titled again | FIXED |
+| GE1-RV22 | saves_endpoints | P1 | When the Emperor dies on the interrupt road, no Final save is written and the response carries no game_over or ending | FIXED |
+| GE1-RV23 | saves_endpoints | P2 | A loaded Final save raises questions no one can answer, ahead of the ending | FIXED |
+| GE1-RV24 | saves_endpoints | P3 | Playtest driver never names an ending stamped outside the end-turn window (mid-turn Eagle Falls, a Humbled Peace signed in the drain) | FIXED |
+| GE1-RV25 | saves_endpoints | P3 | The Final save is named only by calendar date, so two fallen campaigns overwrite each other's record | FIXED |
+| GE1-RV26 | saves_endpoints | P3 | A backfilled pre-GE-1 campaign's ending summary reports zero battles and no coalitions | FIXED |
+| GE1-RV27 | saves_endpoints | P3 | The /mailbox/activate game-over guard omits `count`, so the client zeroes the mailbox badge | FIXED |
+| GE1-RV28 | e2e3_wod10_captor | P1 | The captor's guaranteed terms are overwritten by the P1 rung and dropped whenever the captor is losing on the score. The chains clock then deposes the Emperor with no offer ever sent. | FIXED |
+| GE1-RV29 | e2e3_wod10_captor | P2 | Declaring war on a dead court walks the player through three modals before the E3 guard refuses: War Purpose (Conquest offered as available), a STRONG Talleyrand objection, and the allied-entry review | FIXED (split verdict, taken on merit) — refused at the flow's first step |
+| GE1-RV30 | e2e3_wod10_captor | P2 | E2 is only half built: with no court left, the Diplomatic Ledger's Balance of Europe tab and the top bar still show a CRITICAL alarm and say a coalition 'forms at once (now)' | FIXED |
+| GE1-RV31 | e2e3_wod10_captor | P3 | E3's 'no duplicate elimination notice' fails for a court eliminated during the enemy phase itself, because the active roster is snapshotted once before the loop | FIXED |
+| GE1-RV32 | e2e3_wod10_captor | P3 | The goal answer still promises the Verdict in the future tense after turn 44 and implies the Empire can only fall before it | FIXED |
+| GE1-RV33 | e2e3_wod10_captor | P3 | The captor's offer never tells the player it is the Emperor's release. `captor_terms` is write-only, and the envoy arrives as a generic 200-gold 'Peace Treaty'. | FIXED (split verdict, taken on merit) — the envoy names the release |
+| GE1-RV34 | exile_verdict | P2 | The Humbled Peace's own end-screen Verdict is not graded as an eclipse; the epilogue closes 'an empire ascendant' | FIXED |
+| GE1-RV35 | exile_verdict | P2 | 'The Eagle Falls' summary is frozen before the battle that killed him is counted: the end screen reads 0 battles and never names the fatal field | FIXED |
+| GE1-RV36 | exile_verdict | P2 | An Emperor (or marshal) killed attacking is placed in his ORIGIN province: 'at Lorraine, the Emperor was killed' for the Battle of Swabia | FIXED |
+| GE1-RV37 | exile_verdict | P2 | The chains epilogue contradicts itself: 'taken in late September 1805, had been a prisoner… for 10 turns' when he was held 17 | FIXED |
+| GE1-RV38 | exile_verdict | P2 | The Verdict's tier lines are unconditional: a France that lost every battle, or ceded 11 homeland provinces, is told 'The coalition is beaten in the field' and 'The Empire holds what it held' | FIXED |
+| GE1-RV39 | exile_verdict | P3 | The exile story's record paragraph has broken prose: lower-case sentence starts, 'most of them' for 1 province and for ties, and a mid-sentence 'The Fourth Austrian Coalition' | FIXED |
+| GE1-RV40 | exile_verdict | P3 | The realm arm's copy says 'No soil remains… a realm that is gone' while France still holds a province (e.g. Paris) | FIXED |
+| GE1-RV41 | exile_verdict | P3 | campaign_totals' marshal counters disagree with the epilogue: marshals_fallen counts the Emperor and starved or interned corps; own_marshals_taken counts the Emperor | NOT TAKEN — refuted by both: no surface prints the counters |
+| GE1-RV42 | tests | P2 | If the Emperor dies in the player's own attack and the Final save stops being written, no test fails and the campaign's ending record is lost | FIXED |
+| GE1-RV43 | tests | P2 | The rule that a Humbled Peace forces the eclipse has no binding pin; the test named for it would pass without the rule | FIXED |
+| GE1-RV44 | tests | P2 | The Humbled Peace at the settlement ratifier, and the 'made a vassal by this treaty' snapshot in both ratifiers, are unpinned; the vassal test calls note_ratification directly | FIXED |
+| GE1-RV45 | tests | P3 | The 'fully reconciled Revanche is NOT satisfied' guard is unpinned, and the Revanche test ends on a tautology | FIXED |
+| GE1-RV46 | tests | P3 | The 'seeded' death-roll pin passes 61% of the time when the roll uses the module RNG, and nothing checks that the module RNG is left untouched | FIXED |
+| GE1-RV47 | tests | P3 | The flipped IQ-2 war-room pin no longer checks ordering or forbidden phrases on the armed text the 1805 player sees | NOT TAKEN — one refuter showed the armed and unarmed texts differ only in the scope line |
+| GE1-RV48 | tests | P3 | The re-blessed EC-6 pin claims to prove the Verdict is marked, not terminal, but never stamps the Verdict | FIXED as a comment (split) — the EC-6 pin states what it pins; the Verdict's marked-not-terminal is pinned by GE-1's own driven Verdict test |
+| GE1-RV49 | tests | P3 | The round-trip test serializes endings and province_title while both are empty, and eleven other §64 behaviours have no pin | PARTLY TAKEN (split) — the exact fall date and the change of captor pinned; the rest were already covered elsewhere |
+
 ## Naval Coast Audit — NUI-2 "The Fleet Rides at Anchor" (September 24, 2026) (**13 rows — ALL FIXED** — NUI2-13 by DEF-14 the same day; landing record: `docs/NAVAL_SPEC.md` §18)
 
 > **What this was.** The user, after F1: *"amsterdam is no attached to ocean on map look for any more bugs like this explain how i use boats whats the ux"*, then *"fix all those and we should add buttons for naval stuff maybe? its less clear what to type there and they never disobey etc"*. Every province was read against the painted map — first with a quick audit, then with the committed `tools/gen_port_anchors.py --audit`, whose lake-aware reading of the art (open sea = water bodies of ≥ 5,000 px; a coast = ≥ 100 px of the province within 4 px) found the Estonia row the quick audit had counted as coast. Every fix is pinned in `tests/test_nui2_the_fleet_rides_at_anchor.py` (44, two classes DRIVEN on the real map and the real ledger); sweep `tools/_sweep_nui2.json` 31/31 killed at close. `BASELINE_SERIES` + M1–M7 byte-identical — a fact about the ambient harness, which never lands at, builds at or supplies through a moved province (NAVAL_SPEC §18.3). One counterfactual arm did move: the WO-13 file's gates-DOWN board, where Britain's Paget used to land at Flanders on turn 16 and now lands at Provence. Its four pins are re-recorded, and reverting Flanders' flag alone in a hash-pinned child reproduces every old figure. Four more pins were flipped consciously, each with a dated note (NAVAL_SPEC §18.3).

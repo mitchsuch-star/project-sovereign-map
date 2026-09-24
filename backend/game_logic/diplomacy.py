@@ -2883,6 +2883,11 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     if new_state == "WAR" and old_state != "WAR":
         active_treaties = getattr(world, 'active_treaties', {})
         active_treaties.pop(key, None)
+        # GE-1 review round: a renewed war breaks what either side SIGNED
+        # away to the other — the province is a conquest again, its quiet
+        # clock restarting now (§2.2), and the ceder's Revanche wakes.
+        from backend.game_logic.game_end import break_signed_titles
+        break_signed_titles(world, nation_a, nation_b)
 
     # WPS-C §9.5: Clear forced alliance origin when state leaves ALLIANCE,
     # enters WAR, or becomes VASSAL.
@@ -8277,6 +8282,20 @@ def _court_is_dead(world, nation: str) -> bool:
     return True
 
 
+def dead_court_refusal(world, target: str) -> Optional[str]:
+    """The ONE refusal for a declaration on a dead court (GE-1 E3), read by
+    `declare_war` (the backstop) AND by the declare-war flow's first step,
+    so the player is refused before the War Purpose card, the objection and
+    the ally review rather than after all three (review round). None when
+    the court stands or the lever is down."""
+    if not (DEAD_COURTS_CANNOT_BE_FOUGHT and getattr(world, "sandbox_mode", False)
+            and _court_is_dead(world, target)):
+        return None
+    from backend.game_logic.formations import formed_display_name
+    return (f"{formed_display_name(world, target)} no longer exists — there is "
+            f"no court left to declare war on.")
+
+
 def declare_war(
     world,
     aggressor: str,
@@ -8309,12 +8328,9 @@ def declare_war(
     # an eliminated Britain set the pair to WAR and put its surviving
     # 100-sail fleet back on blockade. Europe worlds (the legacy fixtures
     # field region-less marshals on purpose).
-    if (DEAD_COURTS_CANNOT_BE_FOUGHT and getattr(world, "sandbox_mode", False)
-            and _court_is_dead(world, target)):
-        from backend.game_logic.formations import formed_display_name
-        return {"success": False,
-                "message": (f"{formed_display_name(world, target)} no longer "
-                            f"exists — there is no court left to declare war on.")}
+    _dead = dead_court_refusal(world, target)
+    if _dead:
+        return {"success": False, "message": _dead}
 
     diplo_key = world._make_diplo_key(aggressor, target)
     current_state = world.diplomatic_states.get(diplo_key, "PEACE")
@@ -10081,6 +10097,10 @@ def _process_armistice_expiration(world) -> List[Dict]:
             resolve_pair_to_resolved(world, diplo_key)
             set_diplomatic_state(world, nation_a, nation_b, "PEACE", "armistice_expired_peace")
             cleanup_war_end(world, diplo_key)
+            # GE-1 review round: the war this truce ends is a peace the
+            # record counts — the truce itself never was one.
+            from backend.game_logic.game_end import count_peace
+            count_peace(world, nation_a, nation_b)
             events.append({
                 "type": "armistice_expired_peace",
                 "nations": [nation_a, nation_b],

@@ -242,6 +242,17 @@ def _attach_endings(result: Dict, world: WorldState, before: int) -> None:
     stamped = _game_end.endings(world)[int(before):]
     if not stamped:
         return
+    # Review round: a death stamped INSIDE the enemy phase froze its summary
+    # mid-battle — the campaign is closed (summary rebuilt on the finished
+    # field, the unanswerable questions cleared) before the payload is cut.
+    if _game_end.close_campaign(world) is not None:
+        # A standing order that met the enemy earlier in the turn the Empire
+        # fell asks a question nobody can answer; the report still narrates
+        # the march, but asks nothing (`requires_input` is what the client
+        # and the /command promotion route on).
+        for report in (result.get("strategic_reports") or []):
+            if isinstance(report, dict):
+                report.pop("requires_input", None)
     result["endings_recorded"] = [_game_end.compact(r) for r in stamped]
     result["ending"] = _game_end.screen_payload(stamped[-1])
 
@@ -552,7 +563,12 @@ class TurnManager:
         # for cannon fire detection (advance_turn clears battles).
         # ════════════════════════════════════════════════════════════
         strategic_reports = []
-        if game_state and hasattr(self, 'executor'):
+        # GE-1 review round: once the Empire has FALLEN (the Emperor killed
+        # in the enemy phase) nothing else of the player's moves — no
+        # standing order marches, no grievance is aired, no autonomous
+        # marshal acts; each could add a question nobody can answer.
+        _fallen = _game_end.terminal_ending(self.world) is not None
+        if game_state and hasattr(self, 'executor') and not _fallen:
             strategic_exec = StrategicOrderProcessor(self.executor)
             strategic_reports = strategic_exec.process_strategic_orders(
                 self.world, game_state)
@@ -566,7 +582,8 @@ class TurnManager:
         # nations — Building Blocks, spec §9b.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic import jealousy as _jealousy_pass
-        _jealousy_pass.process_turn(self.world)
+        if not _fallen:
+            _jealousy_pass.process_turn(self.world)
 
         # ════════════════════════════════════════════════════════════
         # ADVANCE TURN (includes tactical state processing!)
@@ -609,7 +626,7 @@ class TurnManager:
         # Each gets 1 action using Enemy AI decision tree
         # ════════════════════════════════════════════════════════════
         autonomous_report = None
-        if game_state:
+        if game_state and not _fallen:
             autonomous_report = self._process_autonomous_marshals(game_state)
 
         # GE-1: the ONE per-turn caller of the endings — the fall clocks
@@ -1212,7 +1229,6 @@ class TurnManager:
         # active roster) gets no "No marshals (eliminated?)" row and no
         # second elimination notice (the teardown posted the first).
         from backend.game_logic import game_end as _game_end
-        _active_now = set(self.world.get_active_nations())
 
         # Process each enemy nation
         for nation in self.world.enemy_nations:
@@ -1229,8 +1245,13 @@ class TurnManager:
 
             # Check if nation has any marshals
             marshals = self.world.get_marshals_by_nation(nation)
+            # Read LIVE per court (review round): a court eliminated inside
+            # this very phase — Austria taking Bavaria's last province
+            # before Bavaria's turn — was still on a roster snapshotted
+            # before the loop, and got the row and the second notice E3
+            # removes. The cache is invalidated by the teardown.
             if (not marshals and _game_end.THE_CAMPAIGN_CAN_END
-                    and nation not in _active_now):
+                    and nation not in set(self.world.get_active_nations())):
                 continue
             if not marshals:
                 debug_print(f"\n{nation} has no marshals remaining - skipping")
@@ -1260,7 +1281,9 @@ class TurnManager:
                 # ════════════════════════════════════════════════════════════
                 # AI ADMIN PHASE (Phase 6.2.G): Economic actions after military
                 # ════════════════════════════════════════════════════════════
-                admin_results = ai.execute_admin_phase(nation, self.world, game_state)
+                admin_results = (ai.execute_admin_phase(nation, self.world, game_state)
+                                 if _game_end.terminal_ending(self.world) is None
+                                 else [])
                 if admin_results:
                     nation_results.extend(admin_results)
             except Exception:

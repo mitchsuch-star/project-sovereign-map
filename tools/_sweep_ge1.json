@@ -16,7 +16,7 @@
  {
   "id": "GE1-3 a general peace no longer stops the soil clock",
   "file": "backend/game_logic/fall.py",
-  "old": "    if soil is None or not _at_war_with_anyone(world, nation):",
+  "old": "    if soil is None or (not at_war and not _in_truce_with_anyone(world, nation)):",
   "new": "    if soil is None:",
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_peace_with_every_court_stops_the_clock"
  },
@@ -205,8 +205,8 @@
  {
   "id": "GE1-31 /mailbox/activate is unguarded",
   "file": "backend/main.py",
-  "old": "    if world.game_over:\n        return {\"success\": False, \"message\": \"The war is over.\",\n                \"game_over\": True, \"victory\": world.victory,\n                \"activation_blocked\": True}",
-  "new": "    if False:\n        return {\"success\": False, \"message\": \"The war is over.\",\n                \"game_over\": True, \"victory\": world.victory,\n                \"activation_blocked\": True}",
+  "old": "    if world.game_over:\n        # Review round: the bare dict carried no `count`, and the client",
+  "new": "    if False:\n        # Review round: the bare dict carried no `count`, and the client",
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFallDriven::test_the_realm_falls_on_the_fifth_end_turn_and_the_saves_obey_r6"
  },
  {
@@ -273,10 +273,10 @@
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestFirstContact::test_the_armed_campaign_names_the_verdict_and_the_fall"
  },
  {
-  "id": "GE1-41 the load forgets the ending",
+  "id": "GE1-41 the load forgets the ending (the one seam)",
   "file": "backend/main.py",
-  "old": "    if _terminal is not None:\n        response[\"game_over\"] = True\n        response[\"victory\"] = world.victory\n        response[\"ending\"] = _game_end.screen_payload(_terminal)\n    return response",
-  "new": "    if False:\n        response[\"game_over\"] = True\n        response[\"victory\"] = world.victory\n        response[\"ending\"] = _game_end.screen_payload(_terminal)\n    return response",
+  "old": "    response.setdefault(\"ending\", _game_end.screen_payload(record))",
+  "new": "    pass",
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFallDriven::test_the_realm_falls_on_the_fifth_end_turn_and_the_saves_obey_r6"
  },
  {

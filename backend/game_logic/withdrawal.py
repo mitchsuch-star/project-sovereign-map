@@ -179,6 +179,14 @@ EVACUATION_WARNING_MARGIN = 2
 CORRIDOR_MINIMUM_WINDOW_ACTIVE = True
 CORRIDOR_MINIMUM_WINDOW = 3
 
+# GE-1 review round (Sept 25, 2026): a sovereign whose safe passage lapses
+# on the soil of a court his realm is AT PEACE with is escorted home, not
+# taken. Internment only ever happens after a peace, and a prisoner taken at
+# peace was held forever: no war ran the chains clock, no peace remained to
+# free him, and the captor never offered terms (its rung needs a war).
+# False restores the NP-4 capture.
+THE_EMPEROR_IS_ESCORTED_HOME = True
+
 # The order's own record.  Rider-(d) idiom, "words become the record": an
 # evacuation march is recognised by the phrase the treaty wrote on it, which
 # is also what the player reads in the Orders ledger.  No new serialized
@@ -1330,6 +1338,41 @@ def _warn(world, marshal, nation: str, distance: int, surplus: int) -> Dict:
     return event
 
 
+def _escort_sovereign_home(world, marshal, host: str, location: str) -> Dict:
+    """The Emperor at a court he is at peace with: his corps is interned,
+    he is escorted to the frontier with an escort and sent home — through
+    the release seam's own hygiene (home via `find_safe_spawn`, the stance
+    cleared), so no second copy of that rule exists. He keeps at most the
+    released prisoner's escort (`RANSOM_RETURN_STRENGTH`), never more than
+    he brought."""
+    kept = min(int(getattr(marshal, "strength", 0) or 0),
+               int(getattr(world, "RANSOM_RETURN_STRENGTH", 5000)))
+    marshal.captured_by = host
+    marshal.captured_turn = int(getattr(world, "current_turn", 0) or 0)
+    released = world.release_captured_marshal(marshal.name,
+                                              reason="escorted_home")
+    if released:
+        marshal.strength = max(1, kept)
+        marshal.strategic_order = None
+        clear_order_bound_interrupt(marshal)  # NPC-2: the question dies with it
+    else:  # the release refused (cannot happen for a live realm's sovereign)
+        marshal.captured_by = ""
+        marshal.captured_turn = -1
+    from backend.game_logic.formations import formed_display_name
+    host_name = formed_display_name(world, host)
+    return {
+        "type": "sovereign_escorted_home",
+        "marshal": marshal.name,
+        "nation": marshal.nation,
+        "location": location,
+        "host": host,
+        "message": (
+            f"{marshal.name} failed to quit {host_name} soil before his safe "
+            f"passage expired. His corps is interned; the Emperor himself is "
+            f"escorted to the frontier and sent home to {marshal.location}."),
+    }
+
+
 def _intern(world, marshal, nation: str) -> Dict:
     """§6 (gate Q1 = yes): the passage lapsed and the corps is still standing,
     illegally, on a sovereign power's soil.  It is interned — removed from the
@@ -1350,6 +1393,9 @@ def _intern(world, marshal, nation: str) -> Dict:
         host = _encircling_power(world, marshal) or ""
     name = marshal.name
     location = marshal.location
+    if (THE_EMPEROR_IS_ESCORTED_HOME and getattr(marshal, "is_sovereign", False)
+            and host and not world.is_at_war(marshal.nation, host)):
+        return _escort_sovereign_home(world, marshal, host, location)
     # Aug 30, 2026 review: `destroy_marshal` returns False when it CAPTURES
     # instead of removing — the sovereign death-guard converts every removal
     # of a standing Emperor into a capture (NP-4: the road to the Eagle in

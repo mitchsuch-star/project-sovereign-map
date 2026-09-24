@@ -157,7 +157,11 @@ class TestTheSoilOrSwordClock:
         stamped = _tick(w, 1)
         assert [r["cause"] for r in stamped] == [game_end.CAUSE_SOIL]
         assert w.game_over and w.victory == "defeat"
-        assert stamped[0]["cause_line"].startswith("No soil remains to the Emperor")
+        # Review round (#40), flipped consciously: the arm fires at ≤ 1
+        # province, so the line names the one still held — "No soil
+        # remains" was false while Brittany was French.
+        assert stamped[0]["cause_line"].startswith(
+            "The Empire is reduced to Brittany alone")
 
     def test_retaking_a_province_on_turn_three_stops_the_clock(self):
         w = _boot()
@@ -796,7 +800,7 @@ class TestProvinceTitle:
         assert len(counts["titled"]) == 35 and counts["held"] == []
 
     def test_a_signed_province_is_reconciled_out_of_the_revanche(self):
-        from backend.game_logic.agendas import get_active_agenda, _entry_regions
+        from backend.game_logic.agendas import _entry_regions
         w = _boot()
         # Austria cedes Tyrol to France by treaty; its Revanche would claim it.
         w._ratify_treaty({"proposer_nation": "France", "target_nation": "Austria",
@@ -808,10 +812,12 @@ class TestProvinceTitle:
                  "regions": ["Tyrol", "Bavaria"], "emergent": True}
         assert game_end.reconciled_regions(w, "Austria") == {"Tyrol"}
         assert _entry_regions(w, "Austria", entry) == ["Bavaria"]
-        # Breaking the treaty re-arms it.
+        # Breaking the treaty re-arms it. (Review round #45: the tautology
+        # that closed this test — `get_active_agenda is not None` — is
+        # deleted; the live view and the not-satisfied guard are pinned in
+        # tests/test_ge1_review_round.py.)
         w.diplomatic_states[w._make_diplo_key("France", "Austria")] = "WAR"
         assert game_end.reconciled_regions(w, "Austria") == set()
-        assert get_active_agenda is not None
 
 
 # ════════════════════════════════════════════════════════════════════════

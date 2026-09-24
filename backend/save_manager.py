@@ -350,21 +350,37 @@ def write_final_save(world: WorldState) -> Dict:
     written ONCE (the terminal ending remembers its file). Called from the
     autosave door (both end-turn roads) and from the /command response when
     the Emperor fell in the player's own attack. Never raises."""
-    from backend.game_logic.game_end import terminal_ending
-    record = terminal_ending(world)
+    from backend.game_logic.game_end import close_campaign, terminal_ending
+    record = close_campaign(world) or terminal_ending(world)
     if record is None:
         return {"success": False, "message": "No ending to record", "filepath": ""}
     if record.get("final_save"):
         return {"success": True, "message": "Final save already written",
                 "filepath": str(record.get("final_save"))}
     label = record.get("calendar_label") or f"Turn {int(record.get('turn', 0) or 0)}"
+    save_name = f"Final — {label}"
+    # Review round (Sept 25): every 1805 campaign shares the authored start
+    # date, so two campaigns that fell on the same turn wrote ONE file and
+    # the earlier record was lost without a word. A Final save is written
+    # once per campaign, so any file already at the name belongs to another
+    # campaign: the new one takes the next free name. And the record names
+    # its own file BEFORE the write, so the Final save itself remembers it
+    # (a load of that file never writes a second one); rolled back on a
+    # failure.
+    safe = "".join(c if c.isalnum() or c in "- _" else "_" for c in save_name)
+    target = SAVE_DIR / f"{safe}.json"
+    n = 2
+    while target.exists():
+        target = SAVE_DIR / f"{safe} ({n}).json"
+        n += 1
+    record["final_save"] = str(target)
     try:
-        result = save_game(world, save_name=f"Final — {label}")
+        result = save_game(world, save_name=save_name, filepath=target)
     except Exception as exc:  # never let a save break the ending
         result = {"success": False, "message": f"Final save failed: {exc}",
                   "filepath": ""}
-    if result.get("success"):
-        record["final_save"] = str(result.get("filepath") or "")
+    if not result.get("success"):
+        record["final_save"] = None
     return result
 
 
@@ -397,6 +413,14 @@ def _backfill_campaign_end(world: WorldState) -> None:
             continue
         if isinstance(block, dict) and block:
             world.campaign_end = dict(block)
+            # Review round (Sept 25): the rules arrive mid-campaign — seed
+            # what the record can still derive (the opening, a conquest
+            # record for every province held off its owner's homeland) and
+            # mark where the record begins, so the end screen never prints
+            # twenty turns of war as zeros and old conquests can still be
+            # titled.
+            from backend.game_logic.game_end import backfill_record
+            backfill_record(world)
             return
 
 

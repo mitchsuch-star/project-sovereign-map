@@ -79,8 +79,8 @@
  {
   "id": "FA-N68/a destruction retires the rail row",
   "file": "backend/models/world_state.py",
-  "old": "        from backend.notifications import dismiss_marshal_ask\n        dismiss_marshal_ask(self, marshal.name)\n        self.fallen_marshals[marshal.name] = {",
-  "new": "        self.fallen_marshals[marshal.name] = {",
+  "old": "        from backend.notifications import dismiss_marshal_ask\n        dismiss_marshal_ask(self, marshal.name)\n        _where = str(location or marshal.location or \"\")\n        self.fallen_marshals[marshal.name] = {",
+  "new": "        _where = str(location or marshal.location or \"\")\n        self.fallen_marshals[marshal.name] = {",
   "tests": "tests/test_fa_slice2_no_word_came_2026_09_04.py::TestDestructionRetiresTheRow"
  },
  {

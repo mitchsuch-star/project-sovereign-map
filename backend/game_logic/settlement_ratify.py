@@ -1458,6 +1458,13 @@ def ratify_settlement_confirm(
         _ge_opp = list(pre_cleanup_attackers)
     else:
         _ge_opp = []
+    # The courts that SIGNED — the plan's own parties on the other side
+    # (review round: "the peace with Austria, Britain and Russia" for a
+    # settlement that covered Austria alone, France still at war with the
+    # other two).
+    _ge_signed = sorted(set(_ge_opp) & plan_courts(plan))
+    if _ge_signed:
+        _ge_opp = _ge_signed
     _ge.note_ratification(
         world,
         signed_terms=[t for t in (settlement_terms or []) if isinstance(t, dict)],

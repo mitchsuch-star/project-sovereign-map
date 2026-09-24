@@ -2998,6 +2998,23 @@ def peace_overture(status_payload, turn_index):
     return f"propose peace with {court}"
 
 
+def _note_new_endings(transport, digest, seen: int) -> int:
+    """GE-1 review round: the campaign's endings, read off `GET
+    /campaign_end` (the one record), each new one noted once. Returns the
+    new count. Never raises — a missing endpoint (an older server on the
+    Mode-B road) keeps the prior count."""
+    try:
+        payload = transport.get("/campaign_end") or {}
+    except Exception:
+        return seen
+    rows = [r for r in (payload.get("endings") or []) if isinstance(r, dict)]
+    for row in rows[seen:]:
+        digest.note(
+            f"ENDING — {row.get('title')}: {row.get('cause_line')}"
+            + (f" [{row.get('tier_title')}]" if row.get("tier_title") else ""))
+    return max(seen, len(rows))
+
+
 def drain(transport, digest, answerer, response, strict):
     """Digest a response and answer its blockers, chaining follow-ups.
 
@@ -3183,6 +3200,12 @@ def run(args):
     expeditions = ExpeditionTracker()          # FA-85
     advisor = MissionAdvisor()                 # IQ-4 S4 (`--missions advisor`)
     reload_every = int(getattr(args, "reload_every", 0) or 0)
+    # GE-1 review round: endings already on the record when the run starts
+    # (a `--from-save` past the Verdict) are not this run's news.
+    try:
+        _endings_seen = len((transport.get("/campaign_end") or {}).get("endings") or [])
+    except Exception:
+        _endings_seen = 0
     for turn_index in range(1, args.turns + 1):
         # NB: `status` is the run's finish state — this one is the payload.
         status_payload = transport.get("/status")
@@ -3318,18 +3341,17 @@ def run(args):
         digest.order_progress(response.get("strategic_reports"))
         digest.autonomous_attacks(response.get("jealousy_attacks"))
         drain(transport, digest, answerer, response, args.strict)
-        # GE-1: every ending the turn stamped (the Fall, the Verdict, a
-        # Humbled Peace ratified in transit) is written into the digest.
-        for _ending in (response.get("endings_recorded") or []):
-            if isinstance(_ending, dict):
-                digest.note(
-                    f"ENDING — {_ending.get('title')}: {_ending.get('cause_line')}"
-                    + (f" [{_ending.get('tier_title')}]"
-                       if _ending.get("tier_title") else ""))
+        # GE-1: every ending stamped since the last read is written into the
+        # digest — read off the campaign's own record, not the end-turn
+        # response alone (review round: an Emperor killed on an answered
+        # interrupt, or a Humbled Peace ratified in the drain, was stamped
+        # OUTSIDE the end-turn window and never reached the digest).
+        _endings_seen = _note_new_endings(transport, digest, _endings_seen)
 
         if response.get("success") is False and response.get("game_over"):
             # GE-1: the war was already over (the Emperor killed by the
-            # turn's own orders) — a game over, not a blocker.
+            # turn's own orders) — a game over, not a blocker. The guard
+            # response now carries the terminal ending (review round).
             _ending = response.get("ending") or {}
             digest.note("GAME OVER reported — stopping"
                         + (f" ({_ending.get('title')}: {_ending.get('cause_line')})"

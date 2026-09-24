@@ -1193,6 +1193,12 @@ class EnemyAI:
         max_consecutive_skips = len(marshals) + 1  # If we skip everyone, stop
 
         while actions_remaining > 0:
+            # GE-1 review round: the Emperor killed by this court's own
+            # attack ends the war at once — no further corps of it marches
+            # on a fallen Empire (the per-nation check alone let the rest
+            # of the killer's turn run on).
+            if getattr(world, "game_over", False):
+                break
             self._enter_indexed_evaluation_scope(world)
             self._reset_enemy_query_cache(world)
             try:

@@ -1019,7 +1019,16 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         power_score,
     )
 
-    threat_level = int(getattr(world, 'threat_level', 0) or 0)
+    # GE-1 E2 (review round): the alarm as it is SHOWN — 0 with no court
+    # left to be alarmed (`coalition.displayed_threat`, the one source the
+    # top bar reads too).
+    from backend.game_logic.coalition import (
+        NO_EUROPE_LEFT_LINE, displayed_threat, no_court_left_to_alarm,
+        NOBODY_LEFT_TO_ALARM_IS_SILENT,
+    )
+    threat_level = int(displayed_threat(world))
+    _no_europe_left = bool(NOBODY_LEFT_TO_ALARM_IS_SILENT
+                           and no_court_left_to_alarm(world))
     if threat_level >= 80:
         threat_tier = "CRITICAL"
     elif threat_level >= 60:
@@ -1195,7 +1204,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     collapse_line = ""
     headline_note = ""
     _collapse = get_collapse_state(world, _player)
-    if _collapse is not None:
+    if _no_europe_left:
+        threat_projection["collapse_line"] = NO_EUROPE_LEFT_LINE
+    elif _collapse is not None:
         realm = formed_display_name(world, _player)
         courts = courts_at_war_with(world, _player)
         count = len(courts)

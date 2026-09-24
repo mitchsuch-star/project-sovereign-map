@@ -142,8 +142,8 @@
   {
     "id": "WO-30 /load drains the popup queue",
     "file": "backend/main.py",
-    "old": "    _fill_popup_keys_without_draining(response)\n    # WO-30: `pending_capture_choice` is a plain world attribute",
-    "new": "    _include_popup_passthroughs(response, world)\n    # WO-30: `pending_capture_choice` is a plain world attribute",
+    "old": "    _fill_popup_keys_without_draining(response)\n    # (GE-1 review round: a FALLEN campaign's load raises the ending and",
+    "new": "    _include_popup_passthroughs(response, world)\n    # (GE-1 review round: a FALLEN campaign's load raises the ending and",
     "tests": "tests/test_wo_slice15_capture_question_holds.py::TestWO30TheLoadedSaveRaisesIt::test_load_still_leaves_a_queued_popup_alone"
   },
   {

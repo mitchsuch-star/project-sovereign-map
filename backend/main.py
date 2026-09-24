@@ -514,6 +514,33 @@ def _attach_modal_for_the_carried_question(response: dict, world) -> None:
         return
 
 
+def _displayed_threat(world) -> int:
+    """The top bar's alarm (GE-1 E2): `coalition.displayed_threat`, guarded
+    for the stub worlds some endpoint tests hand the builder."""
+    try:
+        from backend.game_logic.coalition import displayed_threat
+        return int(displayed_threat(world))
+    except Exception:
+        return int(getattr(world, 'threat_level', 0) or 0)
+
+
+def _attach_terminal_ending(response: dict, world, record: dict) -> None:
+    """The war is over, on EVERY road (review round: the Emperor killed on
+    an answered interrupt, a typed interrupt answer, an objection road or a
+    charge popup ended the war silently — no `game_over`, no ending, and the
+    Final save never written, because only the main `/command` builder read
+    the terminal ending). `ending` is set with setdefault so the end-turn
+    road's own stamped payload wins; the Final save is written once. (The
+    questions nobody can answer were cleared from the WORLD by the close —
+    `game_end.clear_unanswerable` — before the envelope read it.)"""
+    from backend.game_logic import game_end as _game_end
+    response["game_over"] = True
+    response["victory"] = world.victory
+    response.setdefault("ending", _game_end.screen_payload(record))
+    from backend.save_manager import write_final_save
+    write_final_save(world)
+
+
 def _refusal_response(world, message: str = "", **extra) -> dict:
     """FA slice 6 (FA-N67): a refusal on an endpoint whose client callback
     reads no popup key. Built WITHOUT draining — keys present, queue
@@ -557,6 +584,12 @@ def build_base_response(world, success: bool = True, message: str = "",
     from backend.game_logic.envoy_digest import build_envoy_digest
     from backend.game_logic.war_status import build_active_wars
 
+    # GE-1 review round: the war is closed at ONE seam every POST passes
+    # through — before the envelope reads the world, so the envelope sees
+    # the closed campaign (summary finished, no question standing).
+    from backend.game_logic import game_end as _ge_close
+    _terminal_record = _ge_close.close_campaign(world)
+
     response = {
         "success": success,
         "message": message,
@@ -569,7 +602,7 @@ def build_base_response(world, success: bool = True, message: str = "",
         "max_diplomatic_points": _dp_ceiling(world),
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
-        "threat_level": int(getattr(world, 'threat_level', 0)),
+        "threat_level": _displayed_threat(world),
         "coalition_brewing": _player_coalition_brewing(world) is not None,
         "coalition_brewing_turns": int(
             _player_coalition_brewing(world).get("turns_remaining", 0)
@@ -596,6 +629,8 @@ def build_base_response(world, success: bool = True, message: str = "",
         "envoy_digest": build_envoy_digest(world),
     }
     response.update(extra)
+    if _terminal_record is not None:
+        _attach_terminal_ending(response, world, _terminal_record)
     # FA-39: the player's parse provenance, display-only (GR6). Sited HERE
     # and not in `_build_result_response`, because `/command` has three
     # response roads and the two early ones (`status`, and the refusal arms)
@@ -780,18 +815,9 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     if feedback:
         response["feedback"] = feedback
     # GE-1: an ending stamped mid-command (the Emperor killed in the
-    # player's own attack) closes the war on THIS response — the result of
-    # an attack carries no end-turn keys, so the builder reads the world.
-    from backend.game_logic import game_end as _game_end
-    _terminal = _game_end.terminal_ending(world)
-    if _terminal is not None:
-        response["game_over"] = True
-        response["victory"] = world.victory
-        response.setdefault("ending", _game_end.screen_payload(_terminal))
-        # R6: the fallen campaign's "Final" save (written once; the
-        # autosave keeps the turn before the fall).
-        from backend.save_manager import write_final_save
-        write_final_save(world)
+    # player's own attack) closes the war on THIS response — carried by
+    # `build_base_response`'s terminal attach, the one seam every POST
+    # passes through (review round), which also writes the Final save.
     # CX-7. The executor stamps `kind` on the refusals that mean *I could not
     # read that sentence* and this builder, which composes from named fields,
     # dropped it — so the player got a bare sentence with no structured
@@ -2716,7 +2742,7 @@ def test_connection():
         "max_diplomatic_points": _dp_ceiling(world),
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
-        "threat_level": int(getattr(world, 'threat_level', 0)),
+        "threat_level": _displayed_threat(world),
         "coalition_brewing": _player_coalition_brewing(world) is not None,
         "coalition_brewing_turns": int(_player_coalition_brewing(world).get("turns_remaining", 0)) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
@@ -5171,6 +5197,10 @@ async def load_endpoint(request: LoadRequest):
                                        include_popup_passthroughs=False,
                                        drain_draft_notices=not LOAD_KEEPS_THE_DRAFT_NOTICES)
     _fill_popup_keys_without_draining(response)
+    # (GE-1 review round: a FALLEN campaign's load raises the ending and
+    # nothing else — `build_base_response` closed the campaign, whose
+    # `clear_unanswerable` emptied every question below before this reads
+    # the world, and attached the terminal ending.)
     # WO-30: `pending_capture_choice` is a plain world attribute, not a
     # PopupQueue member, so the fill above cannot deliver it — it only
     # setdefaults queue keys to None. A save carrying an unanswered
@@ -5238,13 +5268,8 @@ async def load_endpoint(request: LoadRequest):
         response["redemption_event"] = _standing
     # GE-1 R6: a defeated save loads onto the end screen, never onto a board
     # that silently refuses every order — the terminal ending rides the load
-    # (GE-2 raises it; the compact list is on `game_state.endings` too).
-    from backend.game_logic import game_end as _game_end
-    _terminal = _game_end.terminal_ending(world)
-    if _terminal is not None:
-        response["game_over"] = True
-        response["victory"] = world.victory
-        response["ending"] = _game_end.screen_payload(_terminal)
+    # through `build_base_response`'s terminal attach (the one seam; GE-2
+    # raises it; the compact list is on `game_state.endings` too).
     return response
 
 
@@ -5675,9 +5700,15 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     # that is over (the eleven POST siblings refuse the same way). Before
     # the promotion below, which mutates.
     if world.game_over:
-        return {"success": False, "message": "The war is over.",
-                "game_over": True, "victory": world.victory,
-                "activation_blocked": True}
+        # Review round: the bare dict carried no `count`, and the client
+        # reads it before `success` — the badge was zeroed while letters
+        # stood. Through the refusal builder, with the book's own count.
+        _dm_over = world.dialogue_manager
+        return _refusal_response(
+            world, message="The war is over.", victory=world.victory,
+            activation_blocked=True,
+            items=list(_dm_over.get_mailbox_items()),
+            count=int(_dm_over.get_mailbox_count()))
     promote_pending_settlement_offers(world)
     dm = world.dialogue_manager
 

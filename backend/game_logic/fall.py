@@ -19,15 +19,22 @@ Two arms, each a warned clock:
 threatens them is being fought:
 
 * the soil-or-sword clock ticks only while the realm is at WAR with at least
-  one court, and resets the turn it is at war with nobody — a France that has
-  made its peace, however humbled, is a rump state and not a fallen one (the
-  Humbled Peace continues; ENDGAME_PLAN §3);
+  one court, PAUSES (never resets) while its only quarrels stand in a truce,
+  and resets the turn it is at war and in truce with nobody — a France that
+  has made its peace, however humbled, is a rump state and not a fallen one
+  (the Humbled Peace continues; ENDGAME_PLAN §3). A truce is not a peace
+  (review round, Sept 25): signing one at 4 of 5 bought a whole new clock;
 * the chains clock ADVANCES only on a turn the realm is at WAR with the court
   that holds him, and PAUSES — never resets — while a truce (or a vassal
-  treaty) stands between them. It resets only on release. A truce always ends
+  treaty) stands between them. It resets only on release, or on a fresh
+  capture (the entry is keyed on the captivity itself — captor AND the turn
+  he was taken — so freed and re-taken is a new clock). A truce always ends
   in war (the clock resumes) or in peace (which frees him —
   `set_diplomatic_state` releases mutual prisoners on WAR/ARMISTICE → PEACE),
-  so a pause can never become a permanent hiding place.
+  so a pause can never become a permanent hiding place. The one road into
+  captivity WITHOUT a war — a lapsed safe passage — no longer takes the
+  Emperor (`withdrawal._intern`: he is escorted home, his corps interned),
+  so no court at peace holds him.
 
 **Exits, per disjunct (the §5 test 2 contradiction, resolved):** the realm
 arm lifts when a second province is held again, or when peace is made; the
@@ -108,6 +115,17 @@ def _at_war_with_anyone(world, nation: str) -> bool:
         return False
 
 
+def _in_truce_with_anyone(world, nation: str) -> bool:
+    """A standing ARMISTICE with any court — the pause, not the peace. One
+    pass over the pair dict (never the regions — GR8)."""
+    for key, state in (getattr(world, "diplomatic_states", {}) or {}).items():
+        if state != "ARMISTICE":
+            continue
+        if nation in str(key).split("|"):
+            return True
+    return False
+
+
 def _grace(world, arm: str) -> int:
     from backend.game_logic import game_end
     if arm == ARM_CHAINS:
@@ -143,11 +161,19 @@ def _chains(world, nation: str) -> Optional[Dict[str, Any]]:
     captor = (getattr(sov, "captured_by", "") or "") if sov is not None else ""
     if not captor:
         return None
+    try:
+        state = str(world.get_diplomatic_state(nation, captor) or "")
+    except Exception:
+        state = ""
     return {
         "sovereign": sov.name,
         "captor": captor,
         "captured_turn": int(getattr(sov, "captured_turn", -1) or -1),
         "at_war_with_captor": bool(world.is_at_war(nation, captor)),
+        # The live relation to the captor, so the exits say only what can be
+        # done from where we stand (review round: "any peace with Prussia
+        # frees him" was shown to a France already at peace with Prussia).
+        "captor_state": state,
     }
 
 
@@ -166,8 +192,17 @@ def _exits(world, nation: str, arm: str, detail: Dict[str, Any]) -> List[str]:
     from backend.game_logic.formations import formed_display_name
     if arm == ARM_CHAINS:
         captor = formed_display_name(world, detail["captor"])
-        return [f"accept {captor}'s terms — any peace with {captor} frees him",
-                "storm the city that holds him"]
+        state = str(detail.get("captor_state") or "")
+        if state == "WAR" or (not state and detail.get("at_war_with_captor")):
+            return [f"accept {captor}'s terms — any peace with {captor} frees him",
+                    "storm the city that holds him"]
+        if state == "ARMISTICE":
+            return [f"turn the truce with {captor} into a peace — the peace "
+                    f"frees him",
+                    "storm the city that holds him once the truce is over"]
+        # At peace, or bound by treaty: no peace remains to be signed, so
+        # none is offered as the road (the review's copy defect).
+        return [f"make war on {captor} and storm the city that holds him"]
     exits: List[str] = []
     if detail.get("realm"):
         exits.append("retake a province")
@@ -184,8 +219,11 @@ def _arm_view(world, nation: str, arm: str,
     turns = int(clock.get("turns", 0) or 0)
     if arm == ARM_CHAINS:
         ticking = bool(detail.get("at_war_with_captor"))
+        paused_by = "captor" if not ticking else ""
     else:
         ticking = _at_war_with_anyone(world, nation)
+        paused_by = ("truce" if not ticking and _in_truce_with_anyone(world, nation)
+                     else "")
     turns_left = max(0, grace - turns)
     current = int(getattr(world, "current_turn", 0) or 0)
     return {
@@ -196,10 +234,14 @@ def _arm_view(world, nation: str, arm: str,
         "grace": grace,
         "turns_left": turns_left,
         "ticking": ticking,
+        "paused_by": paused_by,
         # The end of turn on which the arm fires if nothing changes: the
         # tick at the end of turn N moves the clock one step, and the arm
-        # fires on the tick that reaches the grace.
-        "falls_at_end_of_turn": int(current - 1 + turns_left) if turns else None,
+        # fires on the tick that reaches the grace. None while the clock
+        # stands still — a paused arm has no date (the review round: it
+        # reported a fall turn that slid forward every turn and never came).
+        "falls_at_end_of_turn": (int(current - 1 + turns_left)
+                                 if turns and ticking else None),
         "exits": _exits(world, nation, arm, detail),
     }
 
@@ -228,7 +270,12 @@ def get_fall_state(world, nation: Optional[str] = None) -> Optional[Dict[str, An
     if not arms:
         return None
     running = [a for a in arms.values() if a["turns"] > 0]
-    soonest = (min(running, key=lambda a: (a["turns_left"], ARMS.index(a["arm"])))
+    # A TICKING arm outranks a paused one whatever its count: the one clock
+    # that will actually end the game is the one every surface must name
+    # (review round: a paused 8-of-10 chains arm hid a ticking 3-of-5 soil
+    # arm from the ledger, the status and the war room).
+    soonest = (min(running, key=lambda a: (not a["ticking"], a["turns_left"],
+                                           ARMS.index(a["arm"])))
                if running else None)
     return {
         "nation": nation,
@@ -262,14 +309,24 @@ def tick_fall_clocks(world) -> Optional[str]:
     turn = int(getattr(world, "current_turn", 0) or 0)
 
     # The chains: advance while at war with the captor; pause in a truce;
-    # reset (drop) on release or a change of captor.
+    # reset (drop) on release or a fresh capture. The entry is keyed on the
+    # CAPTIVITY — the captor and the turn he was taken — so a man freed and
+    # re-taken between two ticks starts a new clock (review round: keyed on
+    # the captor alone, a re-capture by the same court inherited the old
+    # count and deposed him two turns after the new capture, and the
+    # captor's offer cadence — turns 1, 4, 7 — was skipped entirely).
     chains = _chains(world, nation)
     if chains is None:
         clock.pop(ARM_CHAINS, None)
     else:
         entry = clock.get(ARM_CHAINS)
-        if not isinstance(entry, dict) or entry.get("captor") != chains["captor"]:
-            entry = {"turns": 0, "since": turn, "captor": chains["captor"]}
+        if (not isinstance(entry, dict)
+                or entry.get("captor") != chains["captor"]
+                or int(entry.get("captured_turn", chains["captured_turn"]))
+                != chains["captured_turn"]):
+            entry = {"turns": 0, "since": turn, "captor": chains["captor"],
+                     "captured_turn": chains["captured_turn"]}
+        entry.setdefault("captured_turn", chains["captured_turn"])
         if chains["at_war_with_captor"]:
             entry["turns"] = int(entry.get("turns", 0)) + 1
             entry["paused"] = False
@@ -277,19 +334,30 @@ def tick_fall_clocks(world) -> Optional[str]:
             entry["paused"] = True
         clock[ARM_CHAINS] = entry
 
-    # The soil or the sword: tick while at war with anyone; reset at peace
-    # or when both disjuncts lift.
+    # The soil or the sword: tick while at war with anyone; PAUSE while the
+    # only quarrels stand in a truce; reset at a peace with everyone or when
+    # both disjuncts lift.
     soil = _soil_or_sword(world, nation)
-    if soil is None or not _at_war_with_anyone(world, nation):
+    at_war = _at_war_with_anyone(world, nation)
+    if soil is None or (not at_war and not _in_truce_with_anyone(world, nation)):
         clock.pop(ARM_SOIL, None)
     else:
         entry = clock.get(ARM_SOIL)
         if not isinstance(entry, dict):
             entry = {"turns": 0, "since": turn}
-        entry["turns"] = int(entry.get("turns", 0)) + 1
+        if at_war:
+            entry["turns"] = int(entry.get("turns", 0)) + 1
+            entry["paused"] = False
+        else:
+            entry["paused"] = True
         entry["realm"] = bool(soil["realm"])
         entry["sword"] = bool(soil["sword"])
-        clock[ARM_SOIL] = entry
+        if entry.get("turns", 0) <= 0 and not at_war:
+            # A truce that began before the clock ever ticked keeps no
+            # entry: nothing is counted, nothing to pause.
+            clock.pop(ARM_SOIL, None)
+        else:
+            clock[ARM_SOIL] = entry
 
     for arm in ARMS:
         entry = clock.get(arm)
@@ -354,6 +422,11 @@ def arm_clock_sentence(world, view: Dict[str, Any]) -> str:
                 f"({_remain(view['turns_left'])}) unless he is "
                 f"freed: {exits}.")
     if not view["ticking"]:
+        if view.get("paused_by") == "truce" and turns > 0:
+            return (f"{title}: {turns} of {grace} — the clock stands still "
+                    f"while the truce holds; if the war resumes, the Empire "
+                    f"falls {plural(view['turns_left'], 'turn')} later unless "
+                    f"we {exits}.")
         return (f"{title}: at peace, no clock runs against the Empire — a new "
                 f"war would start one ({plural(grace, 'turn')}).")
     if turns <= 0:
@@ -385,7 +458,12 @@ def scope_sentence(world, nation: Optional[str] = None) -> str:
                     "or left with no corps and no marshal to commission, falls "
                     f"after {plural(_grace(world, ARM_SOIL), 'turn')} of war.")
         return collapse.CAMPAIGN_CONTINUES
-    view = state["soonest"] or state["arms"].get(ARM_CHAINS) or state["arms"].get(ARM_SOIL)
+    view = state["soonest"]
+    if view is None:
+        # No clock has counted yet: name a TICKING arm first (the one about
+        # to start), then any.
+        held = [state["arms"][a] for a in ARMS if a in state["arms"]]
+        view = next((v for v in held if v["ticking"]), held[0])
     return arm_clock_sentence(world, view)
 
 
@@ -413,7 +491,7 @@ def warning_state(world) -> Optional[Dict[str, Any]]:
                     and soonest["turns_left"] <= 2) or (
         collapse_state is not None
         and collapse_state["tier"] == collapse.TIER_FALLEN)
-    title = (soonest or arms[0])["title"]
+    title = (soonest or next((v for v in arms if v["ticking"]), arms[0]))["title"]
     return {
         "message": " ".join([p for p in lead_parts if p] + clock_parts),
         "severity": "critical" if critical else "warning",
@@ -424,6 +502,7 @@ def warning_state(world) -> Optional[Dict[str, Any]]:
                 {"arm": v["arm"], "title": v["title"], "turns": int(v["turns"]),
                  "grace": int(v["grace"]), "turns_left": int(v["turns_left"]),
                  "ticking": bool(v["ticking"]),
+                 "paused_by": str(v.get("paused_by") or ""),
                  "falls_at_end_of_turn": (int(v["falls_at_end_of_turn"])
                                           if v["falls_at_end_of_turn"] is not None
                                           else None),

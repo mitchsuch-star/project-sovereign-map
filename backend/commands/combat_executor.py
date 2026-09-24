@@ -3210,6 +3210,11 @@ class CombatExecutor:
                 _emperor_led = bool(
                     _player_lead is not None
                     and getattr(_player_lead, 'is_sovereign', False))
+                # GE-1 review round: a sovereign killed in this battle has no
+                # court to hear of it — no prestige moves and no note is
+                # addressed to a living Emperor on a war that is over.
+                if _emperor_led and _player_lead.name not in world.marshals:
+                    _emperor_led = False
 
                 if player_won:
                     outnumbered = pre_atk < pre_def
@@ -4369,6 +4374,32 @@ class CombatExecutor:
             if clause not in observation:
                 observation = (observation + " " + clause).strip()
         report["observation"] = observation
+
+    @classmethod
+    def _stamp_death_on_report(cls, battle_result, world, fighters) -> None:
+        """GE-1 review round: the death arm FA-S17-11's capture stamp never
+        had. The Emperor killed on this field is named on Berthier's report
+        (and so on the diorama built from it) — a corps annihilated is small
+        by the time it dies, so the report otherwise read "Hardly an
+        engagement, Sire … and the day moved on". Idempotent."""
+        if not cls.THE_CAPTURE_IS_ON_THE_REPORT or not isinstance(battle_result, dict):
+            return
+        report = battle_result.get("battle_report")
+        if not isinstance(report, dict):
+            return
+        tombs = getattr(world, "fallen_marshals", {}) or {}
+        turn = int(getattr(world, "current_turn", 0) or 0)
+        fell = [m for m in fighters
+                if m is not None and getattr(m, "is_sovereign", False)
+                and m.name not in (getattr(world, "marshals", {}) or {})
+                and (tombs.get(m.name) or {}).get("sovereign")
+                and int((tombs.get(m.name) or {}).get("turn", -1)) == turn]
+        if not fell:
+            return
+        clause = "And the Emperor himself fell on that field."
+        observation = str(report.get("observation") or "")
+        if clause not in observation:
+            report["observation"] = (observation + " " + clause).strip()
 
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState',
                                        skip_fate: bool = False) -> str:
@@ -7707,8 +7738,12 @@ class CombatExecutor:
         if marshal.strength <= 0:
             # GE-1: an attacking sovereign killed with his corps is named
             # (the removal of any other attacker stays silent, as before).
+            # Review round: he fell on the FIELD — `location` names it (an
+            # attacker is destroyed before he advances, so his own location
+            # is still the province he marched from).
             if (world.destroy_marshal(marshal, cause="battle",
-                                      victor=enemy_marshal.nation)
+                                      victor=enemy_marshal.nation,
+                                      location=battle_region_name)
                     and getattr(marshal, "is_sovereign", False)):
                 destroyed_msg += self._fall_clause(world, marshal, True)
 
@@ -7794,7 +7829,15 @@ class CombatExecutor:
                 if p.name not in (marshal.name, enemy_marshal.name) and p.strength <= 0:
                     p_victor = (enemy_marshal.nation if p in atk_participants
                                 else marshal.nation)
-                    world.destroy_marshal(p, cause="battle", victor=p_victor)
+                    # GE-1: a sovereign killed as a PARTICIPANT in another
+                    # commander's battle is named like one killed leading it.
+                    if (world.destroy_marshal(p, cause="battle", victor=p_victor,
+                                              location=battle_region_name)
+                            and getattr(p, "is_sovereign", False)):
+                        destroyed_msg += self._fall_clause(world, p, True)
+        self._stamp_death_on_report(
+            battle_result, world,
+            [marshal, enemy_marshal] + list(atk_participants) + list(def_participants))
 
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
         conquered = False
@@ -9273,9 +9316,12 @@ class CombatExecutor:
         if marshal.strength <= 0:
             # GE-1: a charging sovereign killed with his corps is named.
             if (world.destroy_marshal(marshal, cause="charge",
-                                      victor=target_marshal.nation)
+                                      victor=target_marshal.nation,
+                                      location=charge_battle_region)
                     and getattr(marshal, "is_sovereign", False)):
                 enemy_destroyed_msg += self._fall_clause(world, marshal, True)
+        self._stamp_death_on_report(combat_result, world,
+                                    [marshal, target_marshal])
 
         # ════════════════════════════════════════════════════════════
         # TERRITORY CAPTURE: Check if charge won empty territory

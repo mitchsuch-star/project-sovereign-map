@@ -241,16 +241,32 @@ def _judged_goal(world) -> str:
     soil = int(game_end.cfg(world, "fall_grace_turns", fall.FALL_GRACE_TURNS))
     chains = int(game_end.cfg(world, "captivity_grace_turns",
                               fall.CAPTIVITY_GRACE_TURNS))
+    # The Fall is not "before the Verdict" only — the clocks keep ticking
+    # after it; and the chains clock counts turns of WAR with the captor
+    # (review round).
+    fall_clause = (f"a realm reduced to one province, or left with no corps "
+                   f"and no marshal to commission, falls after {soil} turns "
+                   f"of war; an Emperor held prisoner through {chains} turns "
+                   f"of war with his captor is deposed; and an Emperor who "
+                   f"leads from the front can die with his corps")
+    tail = (" Take provinces, keep the Emperor free and the marshals loyal, "
+            "and make peace on your own terms. The Strategic Ledger (press T) "
+            "keeps the score and the Cabinet (F1) holds every court.")
+    verdict = next((r for r in game_end.endings(world)
+                    if r.get("cause") == game_end.CAUSE_VERDICT), None)
+    if verdict is not None:
+        # Rendered already: name what history said, in the past tense.
+        tier = str(((verdict.get("summary") or {}).get("verdict") or {})
+                   .get("title") or "").strip()
+        judged = (f"History has judged the reign, Sire, at the end of {when}: "
+                  f"{tier.title() if tier.isupper() else tier}. "
+                  if tier else
+                  f"History rendered its Verdict at the end of {when}, Sire. ")
+        return (f"{judged}The campaign goes on, and the Empire can still "
+                f"fall — {fall_clause}.{tail}")
     return (f"The reign will be judged, Sire: at the end of {when} history "
-            f"renders its Verdict, and the campaign goes on after it. Before "
-            f"that the Empire can fall — a realm reduced to one province, or "
-            f"left with no corps and no marshal to commission, falls after "
-            f"{soil} turns of war; an Emperor held prisoner {chains} turns is "
-            f"deposed; and an Emperor who leads from the front can die with "
-            f"his corps. Take provinces, keep the Emperor free and the "
-            f"marshals loyal, and make peace on your own terms. The Strategic "
-            f"Ledger (press T) keeps the score and the Cabinet (F1) holds "
-            f"every court.")
+            f"renders its Verdict, and the campaign goes on after it. At any "
+            f"time the Empire can fall — {fall_clause}.{tail}")
 
 
 def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:

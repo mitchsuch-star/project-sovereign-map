@@ -1510,7 +1510,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         proposal["captor_terms"] = True
 
     # ── P1: Losing badly (war_score < effective threshold) ──
-    if is_at_war and war_score < effective_p1_threshold:
+    # GE-1 review round: `proposal is None` — the one rung of the wartime
+    # ladder that lacked it, so a LOSING captor's P1 armistice (which only
+    # pauses the chains clock) or peace (dropped by the acceptance filter)
+    # overwrote the captor's terms: the Emperor was deposed with no offer
+    # ever sent. Every other rung already defers to an earlier proposal.
+    if proposal is None and is_at_war and war_score < effective_p1_threshold:
         # A2: Coalition loyalty — members stay loyal unless desperate
         from backend.game_logic.coalition import is_coalition_member
         coalition_blocked = False
@@ -2186,6 +2191,21 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     diplomat_line = popup_payload.get("diplomat_line", "")
     spoken = f"\n\n  {diplomat_line}" if diplomat_line else ""
 
+    # GE-1 review round: the one envoy that stops the chains clock names
+    # the prisoner — it had arrived as a generic "Peace Treaty" among the
+    # routine mail, and `captor_terms` was written and read by nothing.
+    release = ""
+    if proposal.get("captor_terms"):
+        from backend.game_logic.formations import formed_display_name
+        _captor = formed_display_name(world, nation)
+        release = (f"\n\n  These are the terms of the Emperor's release: "
+                   f"any peace with {_captor} returns him to France.")
+        popup_payload = dict(popup_payload)
+        popup_payload["clauses"] = list(popup_payload.get("clauses") or []) + [
+            f"His Majesty is returned to France — any peace with {_captor} "
+            f"frees the Emperor"]
+        popup_payload["captor_terms"] = True
+
     return {
         "type": "incoming_proposal",
         "target_nation": nation,
@@ -2193,6 +2213,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             f"Sire, {diplomat_name} has arrived with a proposal from {nation}:"
             f"{spoken}"
             f"\n\n  {proposal_summary}"
+            f"{release}"
             f"\n\n{assessment}"
         ),
         "options": [
@@ -2223,6 +2244,7 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             # on it set a cooldown the P8/P2 checks never read, letting an urgent
             # re-proposal bypass anti-spam.
             "proposal_type": proposal.get("proposal_type", ""),
+            "captor_terms": bool(proposal.get("captor_terms")),
         },
         "turn_created": int(world.current_turn),
         "blocking": False,
