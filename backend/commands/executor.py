@@ -2952,6 +2952,12 @@ class CommandExecutor:
         # Must mirror _execute_end_turn() data capture — see P0-1/2/3 audit.
         # ════════════════════════════════════════════════════════════
         should_auto_end_turn = action_result.get("should_end_turn", False) and is_player_action
+        # GE-1: the Emperor killed by the player's own last order ends the
+        # war here — the turn does not auto-advance past a fallen Empire.
+        if should_auto_end_turn:
+            from backend.game_logic.game_end import terminal_ending
+            if terminal_ending(world) is not None:
+                should_auto_end_turn = False
         _defer_notice = self._auto_end_turn_defer_notice(world) if should_auto_end_turn else ""
         if _defer_notice:
             if result.get("message"):
@@ -3161,6 +3167,18 @@ class CommandExecutor:
             if turn_result.get("victory_check", {}).get("game_over"):
                 result["game_over"] = True
                 result["victory"] = turn_result["victory_check"].get("result")
+            # GE-1: the endings stamped this turn ride the result (the Fall,
+            # the Verdict, a Humbled Peace ratified in transit), and the
+            # message names them — the reason text was otherwise lost here.
+            if turn_result.get("ending"):
+                result["ending"] = turn_result["ending"]
+                result["endings_recorded"] = list(
+                    turn_result.get("endings_recorded") or [])
+                for _ending in result["endings_recorded"]:
+                    _line = f"{_ending.get('title')}: {_ending.get('cause_line')}"
+                    if _ending.get("tier_title"):
+                        _line += f" — {_ending.get('tier_title')}"
+                    result["message"] = f"{result.get('message') or ''}\n{_line}".strip()
 
             # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5, auto-advance path)
             from backend.game_logic.dispatch import build_morning_dispatch

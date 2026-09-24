@@ -516,7 +516,14 @@ class TestTheWhitePeace:
 # A9 — the defeat-imminent warning's sandbox arm
 # ═══════════════════════════════════════════════════════════════════════
 class TestTheWarning:
+    # ⚑ GE-1 (Sept 25, 2026) — CONSCIOUS FLIP, named in the commit. The
+    # 1805 board now ARMS the campaign's endings (`campaign_end`), so its
+    # warning names the CLOCK and the EXITS (GAME_END_SPEC R1/R9) instead of
+    # promising the campaign goes on. IQ-2's copy is pinned verbatim on the
+    # UNARMED world (`campaign_end = {}` — the bare flag world, the
+    # tutorial), where it is still the truth.
     def test_fallen(self, world):
+        world.campaign_end = {}
         _reduce(world, keep=())
         w = get_defeat_imminent_state(world)
         assert w["severity"] == "critical"
@@ -528,13 +535,39 @@ class TestTheWarning:
         for text in (w["message"], w["notification_title"], w["heading"]):
             assert _clean(text), text
 
+    def test_fallen_armed_names_the_clock_and_the_exits(self, world):
+        _reduce(world, keep=())
+        w = get_defeat_imminent_state(world)
+        assert w["severity"] == "critical"
+        assert w["notification_title"] == "The Empire Without Soil or Sword"
+        assert w["heading"] == "THE FALL OF THE EMPIRE"
+        assert w["controlled_region_count"] == 0 and w["controlled_regions"] == []
+        assert not w["message"].endswith(collapse.CAMPAIGN_CONTINUES)
+        assert "the Empire falls after 5 turns" in w["message"]
+        assert "retake a province or make peace" in w["message"]
+        assert "Paris is in Austria's hands." in w["message"]
+        # The fall is named without the forbidden words of a game-over.
+        for text in (w["message"], w["notification_title"], w["heading"]):
+            assert _clean(text), text
+
     def test_last_province(self, world):
+        world.campaign_end = {}
         _reduce(world)
         w = get_defeat_imminent_state(world)
         assert w["severity"] == "warning"
         assert w["notification_title"] == "One Province Remains"
         assert w["controlled_regions"] == ["Paris"]
         assert w["living_marshals"] == collapse.get_collapse_state(world)["standing"]
+        assert _clean(w["message"])
+
+    def test_last_province_armed(self, world):
+        _reduce(world)
+        w = get_defeat_imminent_state(world)
+        assert w["severity"] == "warning"
+        assert w["notification_title"] == "The Empire Without Soil or Sword"
+        assert w["controlled_regions"] == ["Paris"]
+        assert w["living_marshals"] == collapse.get_collapse_state(world)["standing"]
+        assert w["fall"]["arms"][0]["arm"] == "soil_or_sword"
         assert _clean(w["message"])
 
     def test_silent_for_a_standing_realm_and_lever_down(self, world):
@@ -555,6 +588,7 @@ class TestTheWarning:
         assert "heading" not in d["defeat_imminent_warning"]
 
     def test_the_dispatch_carries_the_heading_and_dedupes(self, world):
+        world.campaign_end = {}          # ⚑ GE-1: IQ-2's copy, unarmed
         _reduce(world)
         D.build_morning_dispatch(world)
         d = D.build_morning_dispatch(world)
@@ -562,6 +596,19 @@ class TestTheWarning:
         rows = [n for n in world.notifications.get_pending()
                 if n.get("type") == DEFEAT_IMMINENT_WARNING]
         assert len(rows) == 1 and rows[0]["title"] == "One Province Remains"
+
+    def test_the_armed_dispatch_carries_the_fall_and_dedupes(self, world):
+        _reduce(world)
+        D.build_morning_dispatch(world)
+        d = D.build_morning_dispatch(world)
+        warning = d["defeat_imminent_warning"]
+        assert warning["heading"] == "THE FALL OF THE EMPIRE"
+        assert warning["fall"]["arms"][0]["grace"] == 5
+        rows = [n for n in world.notifications.get_pending()
+                if n.get("type") == DEFEAT_IMMINENT_WARNING]
+        assert len(rows) == 1
+        assert rows[0]["title"] == "The Empire Without Soil or Sword"
+        assert rows[0]["details"]["fall"]["arms"][0]["arm"] == "soil_or_sword"
 
 
 # ═══════════════════════════════════════════════════════════════════════

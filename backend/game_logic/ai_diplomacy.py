@@ -1393,6 +1393,28 @@ def _count_nations_at_war_with_france(world) -> int:
 # MAIN ENTRY POINT: process_diplomatic_phase
 # ═══════════════════════════════════════════════════════════════
 
+# GE-1 R1: the captor's terms (see the rung in `process_diplomatic_phase`).
+# False = no guaranteed captor offer — the pre-GE-1 roads only.
+THE_CAPTOR_NAMES_HIS_PRICE = True
+CAPTOR_OFFER_INTERVAL = 3
+
+
+def _captor_offer_due(nation: str, player: str, world) -> bool:
+    """True on the captivity clock's offer turns when `nation` holds the
+    player's sovereign (armed worlds only)."""
+    from backend.game_logic import fall, game_end
+    if not game_end.endings_armed(world):
+        return False
+    sov = fall.sovereign_of(world, player)
+    if sov is None or getattr(sov, "captured_by", "") != nation:
+        return False
+    clock = (getattr(world, "fall_clock", {}) or {}).get(fall.ARM_CHAINS) or {}
+    if clock.get("captor") != nation:
+        return False
+    turns = int(clock.get("turns", 0) or 0)
+    return turns >= 1 and (turns - 1) % CAPTOR_OFFER_INTERVAL == 0
+
+
 def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     """Evaluate whether an AI nation should make a diplomatic proposal to France.
 
@@ -1458,6 +1480,34 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     armistice_cooldowns = getattr(world, 'armistice_cooldowns', {})
     if armistice_cooldowns.get(diplo_key, 0) > 0:
         return None
+
+    # ── GE-1 R1 "The Captor Names His Price" — FIRST of the rungs (a P1
+    # armistice would PAUSE the clock, never free him) — the captivity exit's
+    # reachability proof. "The Eagle in Chains" deposes an Emperor held ten
+    # turns; R1 requires an exit legal even at an empty treasury, and none
+    # of the existing roads was GUARANTEED to arrive inside the clock (P8
+    # needs the pair score above 40, P1 is coalition-gated, the multilateral
+    # producer needs three courts and a five-turn cooldown, and a refused
+    # `request_terms` silences it for five turns). A court holding the
+    # player's sovereign now OFFERS its terms on the captivity clock's own
+    # cadence (clock turns 1, 4, 7 — three offers before the tenth), priced
+    # to the purse by the one EC-W4 source (`_build_proposal_terms`'
+    # harsh-peace arm), bypassing the P8 gate and the type cooldowns, and
+    # never dropped by the acceptance filter (the P8 reducer, which every
+    # harsh peace passes, forces an unwelcome one through — `_force_send`
+    # in `_reduce_p8_demands`' fallback). Any peace with
+    # the captor frees him (`set_diplomatic_state` releases mutual
+    # prisoners); accepting at 0 gold is legal (the transfer clamps to what
+    # the payer holds — measured). Armed worlds only (the clock exists
+    # nowhere else); GR5 by construction — the only captive sovereign the
+    # clock counts is the player's.
+    if (proposal is None and is_at_war and THE_CAPTOR_NAMES_HIS_PRICE
+            and _captor_offer_due(nation, player, world)):
+        ptype = "harsh_peace"
+        terms = _build_proposal_terms(nation, ptype, max(0, int(war_score)),
+                                      world, gold_mult=gold_mult)
+        proposal = _make_proposal(nation, ptype, 8, terms, world)
+        proposal["captor_terms"] = True
 
     # ── P1: Losing badly (war_score < effective threshold) ──
     if is_at_war and war_score < effective_p1_threshold:

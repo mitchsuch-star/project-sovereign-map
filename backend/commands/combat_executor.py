@@ -2996,6 +2996,38 @@ class CombatExecutor:
                     attacker.nation, defender_nation,
                     int(atk_casualties), int(def_casualties))
 
+        # ── 8.5 GE-1: the campaign's own record (display only, GR6) ──
+        # One battle, once, for the player's side — every combat path passes
+        # this pipeline exactly once (the world_state auto-charge, the one
+        # path outside it, mirrors the call). A ranged bombardment is not a
+        # battle (it passes `attacker_won=True` to the war-score record, the
+        # reason `diplomacy.record_battle` is the wrong counting seam).
+        if not is_bombardment:
+            _ge_player = getattr(world, 'player_nation', '')
+            _ge_side = ('attacker' if attacker.nation == _ge_player else
+                        'defender' if defender_nation == _ge_player else '')
+            if _ge_side:
+                from backend.game_logic import game_end as _ge
+                _ge_br = battle_result if isinstance(battle_result, dict) else {}
+                if _ge_side == 'attacker':
+                    _ge_won, _ge_lost = attacker_won, defender_won
+                    _ge_inf, _ge_suf = def_casualties, atk_casualties
+                    _ge_enemy, _ge_lead = defender_nation, attacker
+                else:
+                    _ge_won, _ge_lost = defender_won, attacker_won
+                    _ge_inf, _ge_suf = atk_casualties, def_casualties
+                    _ge_enemy, _ge_lead = attacker.nation, defender
+                _ge.count_battle(
+                    world, player_side=_ge_side,
+                    won=bool(_ge_won), lost=bool(_ge_lost),
+                    inflicted=int(_ge_inf or 0), suffered=int(_ge_suf or 0),
+                    name=str(_ge_br.get('battle_name') or (
+                        f"the assault on {battle_region}" if is_garrison
+                        else f"the fighting at {battle_region}")),
+                    region=battle_region, enemy=_ge_enemy,
+                    in_person=bool(_ge_lead is not None
+                                   and getattr(_ge_lead, 'is_sovereign', False)))
+
         # ── 9. Set last_combat_result ──
         if not is_bombardment and not ctx.get('skip_last_combat_result'):
             # CR-7-4 item 5: stamp the TURN beside the result, both sides,
@@ -3784,6 +3816,13 @@ class CombatExecutor:
         three, so a fourth copy cannot drift again.
         """
         if removed:
+            # GE-1 "The Eagle Falls": the one removal that is a man, not a
+            # corps — the sovereign killed with his army (the ONE death roll
+            # in `destroy_marshal`). Branch on the OBJECT: the honorific
+            # looks him up in `marshals`, which he has just left.
+            if getattr(marshal, "is_sovereign", False):
+                return (f" THE EMPEROR {marshal.name.upper()} HAS FALLEN — "
+                        f"killed at the head of his corps.")
             return f" {marshal.name}'s army is destroyed!"
         captor = getattr(marshal, "captured_by", "")
         if captor and getattr(marshal, "is_sovereign", False):
@@ -6673,6 +6712,11 @@ class CombatExecutor:
                     f"{enemy_marshal.name}. "
                     f"{marshal.name} advances unopposed."
                 )
+                # GE-1: a sovereign the barrage KILLED is not "destroyed" —
+                # the fall clause says who fell (the one-literal pin holds).
+                if getattr(enemy_marshal, "is_sovereign", False):
+                    main_msg = (self._fall_clause(world, enemy_marshal, True).strip()
+                                + f" {marshal.name} advances unopposed.")
             else:
                 from backend.display_names import marshal_honorific
                 main_msg = (
@@ -7661,8 +7705,12 @@ class CombatExecutor:
 
         # ALSO check if attacker was destroyed
         if marshal.strength <= 0:
-            world.destroy_marshal(marshal, cause="battle",
-                                  victor=enemy_marshal.nation)
+            # GE-1: an attacking sovereign killed with his corps is named
+            # (the removal of any other attacker stays silent, as before).
+            if (world.destroy_marshal(marshal, cause="battle",
+                                      victor=enemy_marshal.nation)
+                    and getattr(marshal, "is_sovereign", False)):
+                destroyed_msg += self._fall_clause(world, marshal, True)
 
         # ============================================================
         # FORCED RETREAT: Handle broken armies (morale <= 25%)
@@ -9223,8 +9271,11 @@ class CombatExecutor:
 
         # Check if attacker was destroyed
         if marshal.strength <= 0:
-            world.destroy_marshal(marshal, cause="charge",
-                                  victor=target_marshal.nation)
+            # GE-1: a charging sovereign killed with his corps is named.
+            if (world.destroy_marshal(marshal, cause="charge",
+                                      victor=target_marshal.nation)
+                    and getattr(marshal, "is_sovereign", False)):
+                enemy_destroyed_msg += self._fall_clause(world, marshal, True)
 
         # ════════════════════════════════════════════════════════════
         # TERRITORY CAPTURE: Check if charge won empty territory

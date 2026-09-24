@@ -4,6 +4,13 @@
     "scenario_name": "The Third Coalition, 1805",
     "start_date": "1805-09-25",
     "scenario_description": "September 25, 1805. The Grande Armee wheels from the Channel to the Rhine. Britain, Austria and Russia stand in arms; Mack's Austrians have crossed the Inn into Bavaria; Kutuzov marches west. Sweden and Naples lean toward the Coalition but have not yet drawn the sword. Prussia watches, armed and neutral.",
+    "_campaign_end_comment": "GE-1 The Verdict and the Fall (docs/GAME_END_SPEC.md R1/R2/R7, docs/ENDGAME_PLAN.md section 3): the block that ARMS the campaign's endings - its presence is the flag (never sandbox_mode). verdict_turn 44 = Early July 1807, the summer of Tilsit: at the end of that turn a ceremonial Verdict of History grades the reign and the campaign continues. fall_grace_turns 5 = The Empire Without Soil or Sword (at most one province, or no free corps and no affordable commission, while at war). captivity_grace_turns 10 = The Eagle in Chains (the Emperor a prisoner, counted while at war with his captor). title_turns 12 = the quiet possession after which a conquest is titled (ENDGAME_PLAN section 2.2; read by GE-3's Congress). All in-band tunable; the tutorial authors no block and never arms.",
+    "campaign_end": {
+        "verdict_turn": 44,
+        "fall_grace_turns": 5,
+        "captivity_grace_turns": 10,
+        "title_turns": 12
+    },
     "sovereign_map": "europe",
     "player_nation": "France",
     "current_turn": 1,

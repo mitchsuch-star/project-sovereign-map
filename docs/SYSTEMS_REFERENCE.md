@@ -7073,3 +7073,161 @@ Landing record `ENDGAME_PLAN.md` §1 F6; pins
   his rival's battle, so he is never on the rival's winning side: the
   shoulder-to-shoulder resolution is staged with the jealous man as the
   ATTACKER and the rival reinforcing him.
+
+## 64. The Verdict and the Fall (row EP GE-1, landed September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §6 GE-1; spec `GAME_END_SPEC.md` §2 (R1–R9);
+pins `tests/test_ge1_the_verdict_and_the_fall.py` (driven — the real
+`capture_marshal`, `destroy_marshal`, `_ratify_treaty`, `TurnManager.end_turn`,
+`/command`, `/load`). The user's September 25 additions ride here: the
+Emperor's death ("The Eagle Falls"), the generals' death-odds memo
+(`docs/audits/GENERALS_DEATH_ODDS_2026_09_25.md`, recommend-only, design row
+GE-D1) and the exile story.
+
+* **The flag (R7).** The endings arm only where a scenario authors a
+  `campaign_end` block — `game_end.endings_armed(world)` /
+  `WorldState.endings_armed`, a NEW derived flag. `sandbox_mode` is never
+  written or re-pointed (it still means "the Europe world" in nine modules).
+  `europe_1805.json` authors the block; the tutorial and the bare flag world do
+  not, so the suite's `SOVEREIGN_SCENARIO=none` pin leaves every sandbox test
+  as it was. A pre-GE-1 save is backfilled at load from its scenario's own
+  block (`save_manager._backfill_campaign_end`). Lever
+  `game_end.THE_CAMPAIGN_CAN_END`.
+* **One entry point, one list.** `game_end.record_ending(world, kind, cause)`
+  is the only writer of `world.endings` (serialized; plural because a Humbled
+  Peace and a Verdict must both stand). Each cause is stamped once; after a
+  terminal ending nothing else is stamped. Terminal causes (`soil_or_sword`,
+  `chains`, `eagle_falls`) set `game_over` / `victory = "defeat"`; marked
+  causes (`humbled_peace`, `verdict`) never do. The record carries its
+  `build_campaign_summary` taken AT THE MOMENT.
+* **One per-turn caller.** `game_end.process_end_of_turn(world, turn_ended)`
+  runs once per `TurnManager.end_turn`, after `advance_turn` — the fall clocks
+  tick (`fall.tick_fall_clocks`, the ONE writer of `fall_clock`) and, at the
+  end of `verdict_turn`, the Verdict is rendered. Never inside
+  `_check_victory_conditions`, which runs twice a turn: its sandbox arm is now
+  `game_end.victory_check` — a pure read of the recorded terminal ending (the
+  unarmed dict is byte-identical). A fallen campaign does not keep turning
+  (`end_turn`'s entry guard), the enemy phase stops the moment the Empire
+  falls, the post-advance exit now clears the choices nobody can answer, and
+  the last action point does not auto-advance past a fallen Empire.
+* **The two clocks (R1), `backend/game_logic/fall.py`.** "The Empire Without
+  Soil or Sword" — the realm at ≤ 1 province (the ONE collapse predicate,
+  read and never forked) OR no free corps and no affordable commission — for
+  `fall_grace_turns` (5) consecutive turns; "The Eagle in Chains" — the
+  sovereign a prisoner — for `captivity_grace_turns` (10). **The Fall is a
+  death in war:** the soil clock ticks only while France is at war with
+  someone and resets at a general peace (a humbled rump is not a fallen
+  Empire); the chains clock advances only on a turn France is at war with the
+  captor and PAUSES (never resets) during a truce or a vassal treaty, resetting
+  only on release. Exits are per disjunct — retake a province, commission a
+  marshal or free a captive corps, make peace; accept the captor's terms (any
+  peace frees him) or storm the city that holds him. Paris alone never
+  triggers either arm (PL-31). GR5: `get_fall_state(world, nation)` answers
+  for any nation; only the player's clocks are kept.
+* **The captivity exit is reachable (R1's proof).** No existing captor offer
+  was guaranteed inside the clock, so a court holding the player's sovereign
+  OFFERS its terms on the clock's own cadence (chains turns 1, 4, 7 —
+  `ai_diplomacy._captor_offer_due`, the FIRST rung, before P1, whose armistice
+  would only pause the clock), priced to the purse by the one EC-W4 source,
+  bypassing the P8 gate and the type cooldowns, never dropped
+  (`_force_send`). Accepting at an empty treasury is legal and frees him
+  (pinned). Lever `ai_diplomacy.THE_CAPTOR_NAMES_HIS_PRICE`.
+* **The warning.** `turn_manager.get_defeat_imminent_state` on an armed world
+  reads `fall.warning_state` — the condition, the clock ("1 of 5 — the Empire
+  falls at the end of turn 17 (4 turns remain)") and the exits, heading "THE
+  FALL OF THE EMPIRE", plus a structured `fall` key threaded through
+  `_build_defeat_imminent_warning`. It also warns for the two arms the collapse
+  never covered. The IQ-2 tail `CAMPAIGN_CONTINUES` is replaced by
+  `fall.scope_sentence(world)` at every surface (ledger note, status report,
+  war room) where the rules are armed, and stays verbatim where they are not.
+* **"The Eagle Falls" (Sept 25).** At the ONE removal seam
+  (`WorldState.destroy_marshal`), an armed world's sovereign whose corps is
+  annihilated on the battlefield (`battle` / `charge` / `bombardment` — never
+  attrition, internment, dismissal, a nation's teardown, never a prisoner)
+  dies with it on a seeded roll (`game_end.sovereign_death_roll`,
+  `SOVEREIGN_DEATH_CHANCE_PCT = 15`, `campaign_variance.seeded_int` on
+  `sovereign::death::{turn}::{name}::{cause}` — the historical seed still
+  rolls; no module RNG). A corps the fighting zeroes never reaches the Guard's
+  escape toll (`_check_marshal_fate` returns at strength 0), so the roll covers
+  exactly the case the toll could not buy — the plan's "the toll runs first"
+  is corrected here. Death is immediate and terminal: the tombstone and the
+  `marshal_destroyed` event carry `sovereign: true`, the dispatch leads with
+  `sovereign_dead` (weight 102, above `sovereign_captured`), Le Moniteur prints
+  "THE EMPEROR IS DEAD" (105), the combat copy names him. A foreign sovereign
+  takes the same roll (none is authored in 1805). Lever
+  `game_end.THE_EMPEROR_IS_MORTAL`.
+* **The Humbled Peace.** `game_end.note_ratification` runs ONCE per
+  ratification in the two top-level ratifiers (`_ratify_treaty`,
+  `ratify_settlement_confirm` — never inside `_apply_settlement_terms` or the
+  carve applier, which run on headless paths). It reads the SIGNED terms (a
+  province already occupied and signed away is ceded all the same) plus the
+  applied carve, and stamps `humbled_peace` — marked, never terminal — when
+  France signed away its capital, at least half its homeland, or its crown
+  (made a vassal by this treaty). It also titles every signed cession and
+  counts the player's peaces.
+* **The Verdict of History (R2).** At the end of `verdict_turn` (44, Early
+  July 1807) if the campaign stands; four tiers from `verdict_tier` — triumph
+  (≥ 5), ascendant (≥ 2), contested (≥ −1), eclipse — over provinces held vs
+  the opening 28, the capital, the Emperor, great powers knocked out (+2
+  each, cap 4 — E4's verdict input) and each war with a great power (±1 at
+  ±25), the satellites kept, the treasury; a Humbled Peace forces the eclipse.
+  The status quo reads "contested". Thresholds in-band tunable.
+* **`campaign_totals` (R4).** Display-only (GR6), player-scoped, written at the
+  moment: every battle at `_post_combat_pipeline` step 8.5 (one pass per
+  combat path; the world_state auto-charge mirrors it; a ranged bombardment is
+  not a battle), captures at `capture_region` and the auto-charge bypass,
+  marshals at `capture_marshal` / `destroy_marshal`, coalitions at
+  `form_coalition` (+ the boot league seeded by `from_scenario`), peaces and
+  cessions at the ratify seams.
+* **`province_title` (§2.2).** `conquest` at `capture_region` and the
+  auto-charge bypass; `treaty` at `_ratify_treaty`, `_apply_settlement_terms`,
+  an ultimatum yield and every signed cession; popped on a return home; the
+  per-turn `reconcile_province_titles` (advance_turn's NA block) restarts a
+  conquest's quiet clock under a hostile army or a renewed war.
+  `province_title_kind` / `titled_provinces` read the bloc as the leader plus
+  its vassal chain, never its allies. **Reconciliation:** an EMERGENT design
+  (the Revanche) drops the provinces its court signed away while the treaty
+  stands (`agendas._entry_regions`, `game_end.reconciled_regions`); a fully
+  reconciled Revanche reads inactive and NOT satisfied. Lever
+  `game_end.A_SIGNED_CESSION_IS_RECONCILED`.
+* **Global elimination (E2/E3/E4).** E2: `coalition.no_court_left_to_alarm`
+  (structural, never "nobody qualifies right now") silences the player's
+  passive threat producers, the murmurs, and the dispatch's coalition gauge,
+  and the war room says "There is no Europe left to alarm". E3: a dead court
+  (no province, no free corps) cannot be declared upon; it holds no trade
+  dominance; its fleet is not drawn; the enemy phase posts no "No marshals
+  (eliminated?)" row or duplicate elimination notice for it; its deck is kept
+  (revival is real) and every reader already skips it; `continental_ports_total`
+  is deliberately untouched (NV-10: closure must not fall on conquest). E4:
+  the `enemy_eliminated` beat and the "a crown struck from the map" special
+  already fire; the Verdict counts great powers knocked out.
+* **WO-D10 (R8).** With no home soil left, `recruitment.find_spawn_region`
+  returns the richest province still HELD (tie-broken by name; the cached
+  index, GR8); the refusal now means "we hold none". Symmetric — the AI's
+  commission rung reads the same gate. Lever
+  `recruitment.THE_EXILE_COMMISSIONS`.
+* **Saves (R6).** `metadata.ending` on every slot; after a Fall the autosave
+  is NOT overwritten (Continue resumes the turn before the fall) and a
+  "Final — <date>" save is written once (`save_manager.write_final_save`, from
+  the autosave door and from a `/command` that ended the war); `list_saves`
+  sorts a Final save after every playable one; `/load` carries the terminal
+  `ending`; `/mailbox/activate` is guarded like its eleven siblings; every
+  response's `game_state.endings` lists the stamped endings (compact). The
+  END SCREEN payload is `game_end.screen_payload(record)` — the compact view
+  plus the summary taken at the moment — on `ending` (the end-turn road,
+  `/load`, a `/command` that ended the war) and on `GET /campaign_end` (every
+  ending; read-only, alive after the war is over). Each ending also leaves
+  one chronicle line (`campaign_ending`, category `command` — the log type
+  count is 166).
+* **The exile story.** `game_end.build_exile_story(world, ending)` —
+  deterministic (GR6), every clause from a fact on the record with its source
+  named in `facts`: the place (captured by Britain → the Bellerophon and St
+  Helena; Austria → Olmütz; Prussia → Küstrin; Russia → Schlüsselburg; no
+  captor → the abdication at Fontainebleau and Elba; death → the funeral), the
+  men (the loyal by their bond to the sovereign and trust, the fallen by their
+  BATTLEFIELD tombstones only — the memo's §5(c)(i) — the captives, the one who
+  broke with him), the record (battles, the high-water mark and the worst day,
+  the provinces lost and to whom, the coalitions, the peaces), the Verdict's
+  closing line and one voice (the captor's diplomat, Berthier, or Talleyrand).
+  A Humbled Peace gets the "signed" variant. It rides the summary as
+  `epilogue`; GE-2 renders it.

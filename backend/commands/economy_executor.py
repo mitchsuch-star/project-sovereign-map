@@ -1619,7 +1619,7 @@ class EconomyExecutor:
             return {
                 "success": False,
                 "message": (f"There is no soil left to muster {marshal.name} "
-                            f"on, Sire. Retake a province of our own first."),
+                            f"on, Sire. Take or retake a province first."),
             }
 
         marshal.administrative = False

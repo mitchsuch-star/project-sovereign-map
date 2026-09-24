@@ -192,6 +192,12 @@ def _order_gate_short(world, marshal, verb: str) -> str:
     return ""
 
 
+def _compact_endings(world) -> list:
+    """GE-1: the compact view of every stamped ending (display only)."""
+    from backend.game_logic.game_end import compact, endings
+    return [compact(r) for r in endings(world)]
+
+
 def _passable_nations(world) -> list:
     """CX-R2: every nation whose soil the player's armies may enter by the
     law of nations — `diplomacy.can_enter_territory(..., ignore_evacuation=
@@ -2156,6 +2162,27 @@ class WorldState:
         # reads it before the HC-6 seasons gate.
         self.start_date: str = ""
 
+        # ── GE-1 "The Verdict and the Fall" (docs/GAME_END_SPEC.md R1-R9,
+        # docs/ENDGAME_PLAN.md §3-§6). Five serialized fields, every one
+        # declared here (never lazily) and JSON-stable:
+        #   campaign_end   — the scenario's authored rules block (R7). {} =
+        #                    the rules are not armed (bare flag world,
+        #                    tutorial, legacy map); the derived flag is
+        #                    `endings_armed`, NEVER `sandbox_mode`.
+        #   fall_clock     — the player's fall clocks, keyed by arm
+        #                    (`fall.tick_fall_clocks` is the ONE writer).
+        #   endings        — every ending stamped, in order
+        #                    (`game_end.record_ending` is the ONE writer).
+        #   campaign_totals— the display-only accumulator (R4; GR6: no
+        #                    mechanic reads it).
+        #   province_title — region -> {kind, since, from, holder}: the
+        #                    stabilization substrate GE-3 counts (§2.2).
+        self.campaign_end: Dict[str, Any] = {}
+        self.fall_clock: Dict[str, Dict[str, Any]] = {}
+        self.endings: List[Dict[str, Any]] = []
+        self.campaign_totals: Dict[str, Any] = {}
+        self.province_title: Dict[str, Dict[str, Any]] = {}
+
         self._apply_smoke_start_preset()
 
         # R9: Build marshal-by-region index before visibility calc uses it
@@ -2943,6 +2970,14 @@ class WorldState:
         """
         return getattr(self, "sovereign_map", "legacy") == "europe"
 
+    @property
+    def endings_armed(self) -> bool:
+        """GE-1 R7: the campaign can END here — the scenario authored a
+        `campaign_end` block. A derived flag beside (never instead of)
+        `sandbox_mode`; the single source is `game_end.endings_armed`."""
+        from backend.game_logic.game_end import endings_armed
+        return endings_armed(self)
+
     def invalidate_bloc_members_cache(self):
         """Clear bloc-members cache. Call at every seam that mutates
         vassalage or alliance state (treaty ratification, vassal add/remove,
@@ -3125,17 +3160,31 @@ class WorldState:
         # v1 — every seam that would remove him (post-battle strength-0
         # pops, the attrition sweep, nation teardown) converts to CAPTURE
         # here, at the ONE removal seam, so the whole PC15-1 census
-        # inherits the guard. Dismissal is refused upstream (NP-0). Death
-        # — the Réunion cannonball — is explicitly the Victory Pass's.
+        # inherits the guard. Dismissal is refused upstream (NP-0).
         # Returns False: he was NOT removed, he was taken.
+        #
+        # GE-1 "The Eagle Falls" (user direction, Sept 25, 2026): where the
+        # scenario authors the endings (`game_end.endings_armed`), a
+        # sovereign whose corps is ANNIHILATED ON THE BATTLEFIELD
+        # (`battle` / `charge` / `bombardment` — never attrition,
+        # internment, dismissal or a nation's teardown, never a prisoner)
+        # may die with it: one seeded roll here, at the ONE seam, and
+        # nowhere else. A corps the fighting zeroes never reaches the
+        # Guard's escape toll (`_check_marshal_fate` returns early at
+        # strength 0), so this is exactly the case the toll could not buy.
+        _sovereign_dies = False
         if getattr(marshal, "is_sovereign", False):
-            captor = victor if (victor and victor != marshal.nation) else ""
-            if not captor:
-                captor = self._sovereign_captor_fallback(marshal)
-            if captor:
-                self.capture_marshal(marshal, captor,
-                                     context=f"death_guard:{cause}")
-                return False
+            from backend.game_logic import game_end as _game_end
+            _sovereign_dies = _game_end.sovereign_death_roll(
+                self, marshal, cause)
+            if not _sovereign_dies:
+                captor = victor if (victor and victor != marshal.nation) else ""
+                if not captor:
+                    captor = self._sovereign_captor_fallback(marshal)
+                if captor:
+                    self.capture_marshal(marshal, captor,
+                                         context=f"death_guard:{cause}")
+                    return False
             # No other armed court exists to take him — unreachable in
             # shipped content (every road here implies a live enemy);
             # fall through to the normal removal rather than leave a
@@ -3163,6 +3212,16 @@ class WorldState:
             "location": marshal.location,
             "cause": str(cause),
         }
+        _is_sovereign = bool(getattr(marshal, "is_sovereign", False))
+        if _is_sovereign:
+            # GE-1: the tombstone and the event say WHO fell — the
+            # honorific cannot (it looks him up in `marshals`, which he
+            # has just left).
+            self.fallen_marshals[marshal.name]["sovereign"] = True
+        # GE-1: the campaign's own record (display only, GR6).
+        from backend.game_logic import game_end as _game_end
+        _game_end.count_marshal_destroyed(
+            self, marshal.nation, str(cause), str(victor or ""))
         if log:
             self.log_event({
                 "type": "marshal_destroyed",
@@ -3171,10 +3230,16 @@ class WorldState:
                 "location": marshal.location,
                 "cause": str(cause),
                 "victor": str(victor or ""),
+                "sovereign": _is_sovereign,
                 "message": (
-                    f"Marshal {marshal.name}'s corps has been destroyed "
-                    f"at {marshal.location}"),
+                    (f"THE EMPEROR {marshal.name} has fallen at "
+                     f"{marshal.location}") if _is_sovereign else
+                    (f"Marshal {marshal.name}'s corps has been destroyed "
+                     f"at {marshal.location}")),
             })
+        if _sovereign_dies:
+            _game_end.record_sovereign_death(
+                self, marshal, str(cause), str(victor or ""))
         return True
 
     def get_events_for_turn(self, turn: int) -> List[Dict]:
@@ -4445,6 +4510,15 @@ class WorldState:
         self.record_campaign_capture(
             old_controller, capturing_nation, region_name)
 
+        # GE-1: the province is HELD by force — titled only when the loser
+        # signs for it or Europe stops contesting it (ENDGAME_PLAN §2.2).
+        # Written for every nation (GR5); a return home clears the record.
+        from backend.game_logic import game_end as _game_end
+        _game_end.record_province_title(
+            self, region_name, _game_end.TITLE_CONQUEST,
+            old_controller, capturing_nation)
+        _game_end.count_capture(self, old_controller, capturing_nation)
+
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation:
             # AI-4a step 5: target is the ACTOR — any conqueror's capture of
@@ -5240,6 +5314,9 @@ class WorldState:
             marshal.location = captor_capital
 
         is_sovereign = bool(getattr(marshal, "is_sovereign", False))
+        # GE-1: the campaign's own record (display only, GR6).
+        from backend.game_logic import game_end as _game_end
+        _game_end.count_marshal_captured(self, owner, captor_nation)
         self.log_event({
             "type": "marshal_captured",
             "marshal": marshal.name,
@@ -7610,6 +7687,14 @@ class WorldState:
             "scenario_name": str(getattr(self, "scenario_name", "")),
             # HC-0: the calendar anchor (display-only; label derived).
             "start_date": str(getattr(self, "start_date", "")),
+            # GE-1: the authored rules block, the fall clocks, the endings,
+            # the campaign totals and the province titles (deepcopy — every
+            # one nests dicts or lists).
+            "campaign_end": copy.deepcopy(getattr(self, "campaign_end", {}) or {}),
+            "fall_clock": copy.deepcopy(getattr(self, "fall_clock", {}) or {}),
+            "endings": copy.deepcopy(getattr(self, "endings", []) or []),
+            "campaign_totals": copy.deepcopy(getattr(self, "campaign_totals", {}) or {}),
+            "province_title": copy.deepcopy(getattr(self, "province_title", {}) or {}),
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
@@ -8092,6 +8177,25 @@ class WorldState:
         # save (or a scenario without the key) reads "" and every "Turn N"
         # surface renders exactly as before.
         world.start_date = str(data.get("start_date") or "")
+
+        # GE-1: the scenario key and the save key are one (`campaign_end`,
+        # the statecraft idiom). A pre-GE-1 save carries none of the five
+        # and loads with the rules unarmed (`save_manager.load_game`
+        # backfills the authored block for a known scenario).
+        world.campaign_end = copy.deepcopy(dict(data.get("campaign_end") or {}))
+        world.fall_clock = {
+            str(k): copy.deepcopy(dict(v or {}))
+            for k, v in (data.get("fall_clock") or {}).items()
+            if isinstance(v, dict)
+        }
+        world.endings = [copy.deepcopy(dict(r)) for r in (data.get("endings") or [])
+                         if isinstance(r, dict)]
+        world.campaign_totals = copy.deepcopy(dict(data.get("campaign_totals") or {}))
+        world.province_title = {
+            str(k): copy.deepcopy(dict(v or {}))
+            for k, v in (data.get("province_title") or {}).items()
+            if isinstance(v, dict)
+        }
 
         # ═══════ CORE GAME STATE ═══════
         # 1805 pre-slice item 3: omitted-key fallbacks read the WORLD'S OWN
@@ -9274,6 +9378,14 @@ class WorldState:
         # belongs here, after marshals/regions/turn are final.
         world.calculate_visibility()
 
+        # GE-1: what the reign began with — the Verdict's opening provinces
+        # and satellites, and the coalition already standing against it
+        # (the boot league has no `coalition_declared` event). Boot only —
+        # never at load (from_dict is the save path too).
+        if world.campaign_end:
+            from backend.game_logic.game_end import seed_opening
+            seed_opening(world)
+
         return world
 
     def _region_build_terms(self, region, stables_marginal: int,
@@ -9681,7 +9793,11 @@ class WorldState:
             # carries no fog.
             "passable_nations": _passable_nations(self),
             "game_over": self.game_over,
-            "victory": self.victory
+            "victory": self.victory,
+            # GE-1: every ending stamped, compact (the end screen's register,
+            # title, cause line, date and Verdict tier) — so any response can
+            # raise the screen (GE-2) and a loaded save lands on it.
+            "endings": _compact_endings(self),
         }
 
     def _region_recruit_block(self, region) -> Dict:
@@ -10792,6 +10908,12 @@ class WorldState:
             process_agenda_shifts, process_agenda_violations,
         )
         from backend.game_logic.formations import process_formations
+        # GE-1 §2.2: the conquest titles' quiet clocks — a hostile army on
+        # the province, or its former owner at war with its holder, restarts
+        # the twelve quiet turns. After every move of the turn, before the
+        # agenda passes read the titles (the reconciliation rider).
+        from backend.game_logic.game_end import reconcile_province_titles
+        reconcile_province_titles(self)
         process_agenda_violations(self)
         # NA-6 §11.10-2: formations resolve BEFORE the shift poll, so the
         # shift beat announces the POST-formation deck entry rather than
@@ -11431,6 +11553,9 @@ class WorldState:
         # clear war_start_turns, battle records, and war scores.
         _is_war_ending = current_state in ("WAR", "ARMISTICE") and target_state != "WAR"
         _is_peace_ratification = current_state in ("WAR", "ARMISTICE") and target_state == "PEACE"
+        # GE-1: the Humbled Peace reads whether THIS treaty made the player
+        # a vassal — snapshot before any mutation.
+        _player_was_vassal = self.player_nation in (getattr(self, "vassals", {}) or {})
         _pre_cleanup_data: Dict = {}
         _pre_cleanup_cancelled_orders: List[Dict] = []
         bargain_breach_events: List[Dict] = []
@@ -11600,6 +11725,11 @@ class WorldState:
                     region.stability = 50
                     transferred_count += 1
                     transferred_regions.append(region_name)
+                    # GE-1: ceded by treaty — title is immediate (§2.2).
+                    from backend.game_logic import game_end as _ge
+                    _ge.record_province_title(
+                        self, region_name, _ge.TITLE_TREATY,
+                        from_nation, to_nation)
                     # Imperial Settlement B2: emit `allied_region_restored` when
                     # a treaty hands a region's lawful (starting) owner back
                     # their territory from an opposite-side ceding party
@@ -11849,6 +11979,25 @@ class WorldState:
         )
         record_punitive_cessions(
             self, collect_cessions_from_clauses(applied_treaty_clauses))
+
+        # GE-1: once per ratification — titles for every SIGNED cession
+        # (occupied provinces included), the player's peace and cessions
+        # counted, and the Humbled Peace stamped when France signed away
+        # Paris, half its homeland or its crown (ENDGAME_PLAN §3).
+        from backend.game_logic import game_end as _ge
+        _ge_counterparts = []
+        if self.player_nation in (proposer, target_nation):
+            _ge_counterparts = [n for n in (proposer, target_nation)
+                                if n != self.player_nation]
+        _ge.note_ratification(
+            self,
+            signed_terms=treaty_clauses,
+            applied_clauses=applied_treaty_clauses,
+            was_vassal=_player_was_vassal,
+            counterparts=_ge_counterparts,
+            war_ending=bool(_is_war_ending),
+            source="treaty",
+        )
 
         # R81: Check for elimination after territory cessions
         ceded_from = set()
@@ -13500,6 +13649,28 @@ class WorldState:
                         int(combat_result.get("attacker", {}).get("casualties", 0)),
                         int(combat_result.get("defender", {}).get("casualties", 0)))
 
+                # GE-1: the campaign's own record — the auto-charge is the
+                # one combat path outside `_post_combat_pipeline`, so it
+                # mirrors step 8.5 (display only, GR6).
+                if self.player_nation in (marshal.nation, enemy.nation):
+                    from backend.game_logic import game_end as _ge
+                    _ac_atk = int(combat_result.get("attacker", {}).get("casualties", 0))
+                    _ac_def = int(combat_result.get("defender", {}).get("casualties", 0))
+                    _ac_player_attacks = marshal.nation == self.player_nation
+                    _ge.count_battle(
+                        self,
+                        player_side="attacker" if _ac_player_attacks else "defender",
+                        won=(atk_won_diplo if _ac_player_attacks else def_won_diplo),
+                        lost=(def_won_diplo if _ac_player_attacks else atk_won_diplo),
+                        inflicted=_ac_def if _ac_player_attacks else _ac_atk,
+                        suffered=_ac_atk if _ac_player_attacks else _ac_def,
+                        name=f"the charge at {auto_charge_battle_region}",
+                        region=auto_charge_battle_region,
+                        enemy=enemy.nation if _ac_player_attacks else marshal.nation,
+                        in_person=bool(getattr(
+                            marshal if _ac_player_attacks else enemy,
+                            "is_sovereign", False)))
+
                 # Only reset recklessness when the charge actually executed.
                 # If terrain blocked the charge, recklessness should persist —
                 # the marshal is still fired up, they just couldn't charge HERE.
@@ -13736,7 +13907,11 @@ class WorldState:
                 if enemy.strength <= 0:
                     if self.destroy_marshal(enemy, cause="charge",
                                             victor=marshal.nation):
-                        enemy_destroyed_msg = f" {enemy.name}'s army is destroyed!"
+                        enemy_destroyed_msg = (
+                            f" THE EMPEROR {enemy.name.upper()} HAS FALLEN — "
+                            f"cut down in the charge."
+                            if getattr(enemy, "is_sovereign", False) else
+                            f" {enemy.name}'s army is destroyed!")
 
                 # Check if attacker destroyed
                 if marshal.strength <= 0:
@@ -13784,6 +13959,16 @@ class WorldState:
                             _charge_from = cap_region.controller or ""
                             cap_region.controller = marshal.nation
                             self.invalidate_active_nations_cache()
+                            # GE-1: the one conquest outside
+                            # capture_region writes its title and its
+                            # count here (mirrored arm).
+                            from backend.game_logic import game_end as _ge
+                            _ge.record_province_title(
+                                self, auto_charge_battle_region,
+                                _ge.TITLE_CONQUEST, _charge_from,
+                                marshal.nation)
+                            _ge.count_capture(self, _charge_from,
+                                              marshal.nation)
                             # IQ-2 review round: the one conquest in the game
                             # that logged NO region_captured row — so an AI
                             # reckless charge that took a French province left

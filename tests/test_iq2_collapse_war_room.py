@@ -87,10 +87,18 @@ def fallen():
 
 class TestWarRoomLeadsWithOurOwnState:
     def test_our_own_state_comes_first_and_the_campaign_goes_on(self, collapsed):
+        # ⚑ GE-1 (Sept 25, 2026) — CONSCIOUS FLIP: on the armed 1805 board
+        # the scope line is the fall clock (`fall.scope_sentence`); IQ-2's
+        # sentence stands on an unarmed world (the second half).
+        from backend.game_logic import fall
         text = A._assess_situation(collapsed)["talleyrand_text"]
         assert "Our own state: France holds a single province:" in text
         assert "The Emperor is a prisoner of Austria." in text
-        assert C.CAMPAIGN_CONTINUES in text
+        assert fall.scope_sentence(collapsed) in text
+        assert C.CAMPAIGN_CONTINUES not in text
+        collapsed.campaign_end = {}
+        assert C.CAMPAIGN_CONTINUES in A._assess_situation(collapsed)["talleyrand_text"]
+        text = A._assess_situation(collapsed)["talleyrand_text"]
         # It LEADS: before any war line.
         assert text.index("Our own state") < text.index("Against ")
         low = text.lower()
@@ -98,7 +106,11 @@ class TestWarRoomLeadsWithOurOwnState:
             assert phrase not in low, phrase
 
     def test_lever_down_the_war_room_says_nothing_of_itself(self, collapsed, monkeypatch):
+        # ⚑ GE-1: the fall clocks speak too (the captive Emperor is the
+        # chains arm) — the pre-IQ-2 silence is BOTH levers down.
+        from backend.game_logic import fall
         monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
+        monkeypatch.setattr(fall, "THE_EMPIRE_CAN_FALL", False)
         text = A._assess_situation(collapsed)["talleyrand_text"]
         assert "Our own state" not in text
         assert C.CAMPAIGN_CONTINUES not in text

@@ -779,6 +779,19 @@ def _build_command_response(result: dict, world, feedback: dict | None = None) -
     )
     if feedback:
         response["feedback"] = feedback
+    # GE-1: an ending stamped mid-command (the Emperor killed in the
+    # player's own attack) closes the war on THIS response — the result of
+    # an attack carries no end-turn keys, so the builder reads the world.
+    from backend.game_logic import game_end as _game_end
+    _terminal = _game_end.terminal_ending(world)
+    if _terminal is not None:
+        response["game_over"] = True
+        response["victory"] = world.victory
+        response.setdefault("ending", _game_end.screen_payload(_terminal))
+        # R6: the fallen campaign's "Final" save (written once; the
+        # autosave keeps the turn before the fall).
+        from backend.save_manager import write_final_save
+        write_final_save(world)
     # CX-7. The executor stamps `kind` on the refusals that mean *I could not
     # read that sentence* and this builder, which composes from named fields,
     # dropped it — so the player got a bare sentence with no structured
@@ -851,6 +864,14 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     # FA-16 review round: the free refusal's marker, so a headless driver
     # can tell "cornered — answer him" from any other refusal.
     "last_stand_pending",
+    # GE-1: the end-turn road's ending keys (the early-return road forwards
+    # every key already). `game_over`/`victory` were set by both end-turn
+    # roads since 4C-5 and dropped HERE — so the playtest driver's own
+    # game-over branch could never fire and a fall read as "blocked".
+    "game_over",
+    "victory",
+    "ending",
+    "endings_recorded",
 )
 
 
@@ -5215,7 +5236,32 @@ async def load_endpoint(request: LoadRequest):
     _standing = standing_redemption(world)
     if _standing:
         response["redemption_event"] = _standing
+    # GE-1 R6: a defeated save loads onto the end screen, never onto a board
+    # that silently refuses every order — the terminal ending rides the load
+    # (GE-2 raises it; the compact list is on `game_state.endings` too).
+    from backend.game_logic import game_end as _game_end
+    _terminal = _game_end.terminal_ending(world)
+    if _terminal is not None:
+        response["game_over"] = True
+        response["victory"] = world.victory
+        response["ending"] = _game_end.screen_payload(_terminal)
     return response
+
+
+@app.get("/campaign_end")
+async def get_campaign_end():
+    """GE-1 → GE-2: every ending stamped on this campaign, each with the
+    summary its end screen renders (register, cause line, totals, the
+    Verdict's tier and lines, the epilogue). Read-only; works after the war
+    is over (R3: GET endpoints stay alive)."""
+    from backend.game_logic import game_end as _game_end
+    world = game_state["world"]
+    return {
+        "success": True,
+        "armed": bool(_game_end.endings_armed(world)),
+        "game_over": bool(world.game_over),
+        "endings": [_game_end.screen_payload(r) for r in _game_end.endings(world)],
+    }
 
 
 @app.get("/saves")
@@ -5625,6 +5671,13 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     )
 
     world = game_state["world"]
+    # GE-1 R6: the twelfth guard — the letter-book is not opened on a war
+    # that is over (the eleven POST siblings refuse the same way). Before
+    # the promotion below, which mutates.
+    if world.game_over:
+        return {"success": False, "message": "The war is over.",
+                "game_over": True, "victory": world.victory,
+                "activation_blocked": True}
     promote_pending_settlement_offers(world)
     dm = world.dialogue_manager
 

@@ -266,13 +266,22 @@ class TestB2CommissionNamesTheSoil:
 class TestB3Ledger:
 
     def test_the_collapse_note_is_the_one_source_plus_the_scope_note(self, europe):
+        # ⚑ GE-1 (Sept 25, 2026) — CONSCIOUS FLIP: the tail is now the ONE
+        # scope sentence (`fall.scope_sentence`), which IS IQ-2's
+        # `CAMPAIGN_CONTINUES` on an unarmed world and the fall clock where
+        # the scenario authors the endings. The note stays exactly
+        # summary + " " + tail on both.
+        from backend.game_logic import fall
         _collapse(europe)
         note = build_strategic_ledger(europe)["collapse_note"]
         state = collapse.get_collapse_state(europe)
         assert note == (f"{collapse.summary_line(europe, state)} "
-                        f"{collapse.CAMPAIGN_CONTINUES}")
+                        f"{fall.scope_sentence(europe)}")
         assert "France holds no province of her own." in note
-        _assert_never_terminal(note.replace(collapse.CAMPAIGN_CONTINUES, ""))
+        _assert_never_terminal(note.replace(fall.scope_sentence(europe), ""))
+        europe.campaign_end = {}
+        note = build_strategic_ledger(europe)["collapse_note"]
+        assert note.endswith(collapse.CAMPAIGN_CONTINUES)
 
     def test_a_standing_realm_carries_an_empty_note(self, europe):
         assert build_strategic_ledger(europe)["collapse_note"] == ""
@@ -325,9 +334,12 @@ class TestB4IntelReport:
         report = generate_intel_report(europe)
         lines = report["report_text"].split("\n")
         state = collapse.get_collapse_state(europe)
+        from backend.game_logic import fall
         assert lines[2] == "STATE OF THE EMPIRE:"
         assert lines[3] == f"  {collapse.summary_line(europe, state)}"
-        assert lines[4] == f"  {collapse.CAMPAIGN_CONTINUES}"
+        # ⚑ GE-1 — CONSCIOUS FLIP: the scope line is the ONE scope sentence
+        # (the fall clock on the armed 1805 board; IQ-2's sentence unarmed).
+        assert lines[4] == f"  {fall.scope_sentence(europe)}"
         assert lines.index("STATE OF THE EMPIRE:") < lines.index("YOUR FORCES:")
         assert report["collapse_line"] == collapse.summary_line(europe, state)
         _assert_never_terminal(lines[3])

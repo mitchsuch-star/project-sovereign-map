@@ -1,5 +1,11 @@
 # Game End & Defeat State — "The Verdict and the Fall" (row GE)
 
+> **GE-1 ✅ LANDED September 25, 2026** — the backend half of this spec
+> (R1's clocks, R2's Verdict, R4's summary and totals, R6's saves, R7's flag,
+> R8's WO-D10, R9's flips) plus the user's September 25 additions (the
+> Emperor's death, the exile story); landing record = `ENDGAME_PLAN.md` §6
+> GE-1, rules `SYSTEMS_REFERENCE.md` §64. **GE-2 (the client) is next.**
+>
 > **Status: RULED September 23, 2026 — BUILD-READY.** The rulings in §2 were
 > taken by Claude under the user's delegated grant (*"make calls please and then
 > separate out game end and defeat state as session after these"*). They are

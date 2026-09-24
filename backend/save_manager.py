@@ -10,7 +10,10 @@ Save format:
         "save_name": "...",
         "saved_at": "ISO-8601",
         "turn": int,
-        "player_nation": "..."
+        "calendar_label": "...",       # HC-0, "" without an anchor
+        "player_nation": "...",
+        "campaign_seed": "...",        # AI-0b display copy
+        "ending": {...} | null         # GE-1 R6: the compact ending
     },
     "world_state": { ... }  # Output of world.to_dict()
 }
@@ -128,6 +131,11 @@ def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optiona
                 # slot (the authoritative copy rides world_state.campaign_seed).
                 "campaign_seed": str(
                     getattr(world, "campaign_seed", "historical")),
+                # GE-1 R6: the ending stamped on the slot — the TERMINAL one
+                # when the campaign has fallen, else the latest marked one
+                # (the Verdict, a Humbled Peace), else None. Display copy;
+                # the authoritative record rides `world_state.endings`.
+                "ending": _slot_ending(world),
             },
             "world_state": world.to_dict()
         }
@@ -213,6 +221,13 @@ def load_game(filepath: Path) -> Dict:
         rename_provinces_in_save_data(world_data)
 
         world = WorldState.from_dict(world_data)
+
+        # GE-1 R7: a save written before GE-1 carries no `campaign_end`, so
+        # an in-flight 1805 campaign would load with its endings unarmed and
+        # never end. Backfilled from the AUTHORED block of the scenario the
+        # save names (the IGR-E / EB-2 backfill precedent) — never a copy of
+        # the numbers here. A scenario that authors no block stays unarmed.
+        _backfill_campaign_end(world)
 
         # NUI-2 (Sept 24, 2026): a save written before the coast audit
         # carries the old coastal flags and the three inland dockyards
@@ -324,6 +339,67 @@ def load_game(filepath: Path) -> Dict:
         return {"success": False, "message": f"Load failed: {str(e)}", "world": None, "metadata": {}}
 
 
+def _slot_ending(world: WorldState) -> Optional[Dict]:
+    """GE-1 R6: the compact ending a save slot carries (or None)."""
+    from backend.game_logic.game_end import compact, latest_ending, terminal_ending
+    return compact(terminal_ending(world) or latest_ending(world))
+
+
+def write_final_save(world: WorldState) -> Dict:
+    """GE-1 R6: the "Final — <calendar date>" save of a fallen campaign —
+    written ONCE (the terminal ending remembers its file). Called from the
+    autosave door (both end-turn roads) and from the /command response when
+    the Emperor fell in the player's own attack. Never raises."""
+    from backend.game_logic.game_end import terminal_ending
+    record = terminal_ending(world)
+    if record is None:
+        return {"success": False, "message": "No ending to record", "filepath": ""}
+    if record.get("final_save"):
+        return {"success": True, "message": "Final save already written",
+                "filepath": str(record.get("final_save"))}
+    label = record.get("calendar_label") or f"Turn {int(record.get('turn', 0) or 0)}"
+    try:
+        result = save_game(world, save_name=f"Final — {label}")
+    except Exception as exc:  # never let a save break the ending
+        result = {"success": False, "message": f"Final save failed: {exc}",
+                  "filepath": ""}
+    if result.get("success"):
+        record["final_save"] = str(result.get("filepath") or "")
+    return result
+
+
+_BACKFILL_SCENARIOS = {
+    # scenario_name -> the scenario file that authors it
+    "The Third Coalition, 1805": ("godot-client", "project-sovereign", "assets",
+                                  "maps", "europe_1805.json"),
+}
+
+
+def _backfill_campaign_end(world: WorldState) -> None:
+    """GE-1 R7: arm a pre-GE-1 save of a scenario that NOW authors a
+    `campaign_end` block, reading the block from the scenario file itself."""
+    if getattr(world, "campaign_end", None):
+        return
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                block = json.load(fh).get("campaign_end")
+        except (OSError, ValueError):
+            continue
+        if isinstance(block, dict) and block:
+            world.campaign_end = dict(block)
+            return
+
+
 def autosave(world: WorldState) -> Dict:
     """Save to autosave slot. Called at start of each new turn.
 
@@ -344,6 +420,16 @@ def autosave(world: WorldState) -> Dict:
             "message": "Tutorial — campaign autosave untouched",
             "filepath": "",
         }
+
+    # GE-1 R6: after the Fall the autosave is NOT overwritten — it keeps the
+    # turn before the fall, so the campaign can be taken up again from the
+    # last turn it could still be saved — and a named "Final — <date>" save
+    # records the ending instead (written once).
+    from backend.game_logic.game_end import terminal_ending
+    if terminal_ending(world) is not None:
+        result = write_final_save(world)
+        result["skipped"] = "fall"
+        return result
 
     # ⚠ FA-S15-2 (L2). The announcement lives HERE, in the one door all
     # three callers already use — not in a new `autosave_and_report` they
@@ -403,8 +489,16 @@ def list_saves() -> List[Dict]:
             # Skip corrupt files
             continue
 
-    # Sort: newest first
-    saves.sort(key=lambda s: s["metadata"].get("saved_at", ""), reverse=True)
+    # Sort: newest first — except that a campaign's FINAL save (GE-1 R6: a
+    # record of a fallen Empire, which loads onto the end screen) sorts after
+    # every save that can still be played, so the menu's Continue (which
+    # takes the first row) resumes the campaign one turn before the fall
+    # rather than reopening the end screen. The Load list shows both.
+    def _key(s):
+        ending = (s.get("metadata") or {}).get("ending") or {}
+        playable = 0 if (isinstance(ending, dict) and ending.get("terminal")) else 1
+        return (playable, s["metadata"].get("saved_at", ""))
+    saves.sort(key=_key, reverse=True)
     return saves
 
 

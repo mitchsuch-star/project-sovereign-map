@@ -1726,6 +1726,12 @@ def form_coalition(qualifying_nations: List[str], world,
     else:
         name = f"The {ordinal} {leader_label} Coalition"
 
+    # GE-1: the campaign's own record — a league against the PLAYER (never
+    # an eclipse league aimed at another court). Display only (GR6).
+    if france == getattr(world, "player_nation", None):
+        from backend.game_logic.game_end import count_coalition
+        count_coalition(world, name)
+
     # 6. Set active coalition
     world.active_coalition = {
         "id": f"coalition_{world.current_turn}",
@@ -2319,6 +2325,30 @@ def get_threat_tier(threat_level: int, coalition_formed: bool = False) -> str:
 # MASTER PER-TURN FUNCTION
 # ════════════════════════════════════════════════════════════════
 
+# GE-1 E2 (ENDGAME_PLAN §5 / GAME_END_SPEC §7.5): "nobody left to be
+# alarmed". Measured on the global-elimination probe: with every rival court
+# torn down the alarm climbed to 99 "Brewing" (+8 hegemony, +3 half the map,
+# +2 the largest army, every turn) while nobody existed who could fear it.
+# The passive producers early-return while the predicate below holds. False =
+# the pre-GE-1 producers byte-for-byte.
+NOBODY_LEFT_TO_ALARM_IS_SILENT = True
+
+
+def no_court_left_to_alarm(world, target: Optional[str] = None) -> bool:
+    """GE-1 E2: True when no court other than `target` stands outside every
+    vassalage — so no court could ever qualify to stand against it. STRUCTURAL,
+    never `get_qualifying_nations() == []` (that is also true in a live war, a
+    fresh peace or a warm relation). Re-derived on every call and never
+    latched: a satellite that breaks free re-opens the alarm."""
+    target = target or getattr(world, "player_nation", None)
+    vassals = getattr(world, "vassals", {}) or {}
+    for nation in world.get_active_nations():
+        if nation == target or nation in vassals:
+            continue
+        return False
+    return True
+
+
 def process_coalition_turn(world) -> List[Dict]:
     """Master per-turn coalition processing (§3c processing order).
 
@@ -2345,6 +2375,11 @@ def process_coalition_turn(world) -> List[Dict]:
     # the START of the coalition turn. Sources that follow may set it True.
     world.positive_threat_delta_this_turn = False
 
+    # GE-1 E2: with no court left to be alarmed, the player's passive
+    # producers (1, 1b, 1c) are silent. The decay below still runs.
+    _nobody_left = (NOBODY_LEFT_TO_ALARM_IS_SILENT
+                    and no_court_left_to_alarm(world, france))
+
     # ────────── 1. Passive threat from region control (§2a) ──────────
     france_regions = len(world.get_nation_regions(france))
     total_regions = len(world.regions)
@@ -2370,7 +2405,8 @@ def process_coalition_turn(world) -> List[Dict]:
         control_pct = france_regions / total_regions
         for _threshold, _amount, _key in _gates:
             if control_pct > _threshold:
-                add_threat(world, _amount, _key)
+                if not _nobody_left:
+                    add_threat(world, _amount, _key)
                 break
 
         # AI-4a step 5: the same passive read, per non-player nation — a
@@ -2398,7 +2434,8 @@ def process_coalition_turn(world) -> List[Dict]:
     if hegemony_pressure:
         hegemon, increment = next(iter(hegemony_pressure.items()))
         if hegemon == france:
-            add_threat(world, int(increment), "hegemony_passive")
+            if not _nobody_left:
+                add_threat(world, int(increment), "hegemony_passive")
         else:
             add_threat(world, int(increment), "hegemony_passive", target=hegemon)
 
@@ -2416,7 +2453,8 @@ def process_coalition_turn(world) -> List[Dict]:
     # one pass over `world.marshals` (~21 entries), never over regions. No new
     # serialized field: `add_threat` keys by source string and `threat_by_target`
     # has per-nation slots since AI-4a step 5.
-    _establishment_threat(world, france)
+    if not _nobody_left:
+        _establishment_threat(world, france)
 
     # ────────── 2. Threat decay (§2b) ──────────
     # AI-4a step 5, the four standing contributors — the written decisions
@@ -2874,6 +2912,10 @@ def _check_threat_notifications(world) -> None:
     named-diplomat beat.
     """
     threat = world.threat_level
+
+    # GE-1 E2: no murmurs from courts that no longer exist.
+    if NOBODY_LEFT_TO_ALARM_IS_SILENT and no_court_left_to_alarm(world):
+        return
 
     # B-Hegemony: suppress the legacy tier line on the same turn a
     # named `balance_of_europe_shifted` beat fired. This is the cleanest

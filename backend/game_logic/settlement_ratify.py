@@ -308,6 +308,13 @@ def _apply_settlement_terms(
                 region.controller = to_nation
                 region.stability = 50
                 transferred.append(region_name)
+                # GE-1: ceded by treaty — title is immediate (§2.2). Every
+                # caller of this applier (the player's table and the headless
+                # AI-AI paths) titles the same way (GR5).
+                from backend.game_logic import game_end as _ge
+                _ge.record_province_title(
+                    world, region_name, _ge.TITLE_TREATY,
+                    from_nation, to_nation)
                 if from_nation and to_nation:
                     # World-scoped starting map (1805 pre-slice item 7 family —
                     # Europe cessions must fire `allied_region_restored` too).
@@ -1410,6 +1417,9 @@ def ratify_settlement_confirm(
     # IQ-3 review: the courts signing in this ratification, so a league it
     # dissolves does not report them as still at war (coalition.treaty_in_flight).
     from backend.game_logic.coalition import treaty_in_flight
+    # GE-1: the Humbled Peace reads whether THIS ratification made the
+    # player a vassal — snapshot before any mutation.
+    _player_was_vassal = world.player_nation in (getattr(world, "vassals", {}) or {})
     with treaty_in_flight(world, plan_courts(plan)):
         applied_clauses = _apply_settlement_terms(
             world,
@@ -1435,6 +1445,28 @@ def ratify_settlement_confirm(
     )
     record_punitive_cessions(
         world, collect_cessions_from_clauses(applied_clauses))
+
+    # GE-1: once per ratification (never inside `_apply_settlement_terms`,
+    # which the headless paths share) — titles for every SIGNED cession,
+    # the player's peace counted, and the Humbled Peace stamped when France
+    # signed away Paris, half its homeland or its crown.
+    from backend.game_logic import game_end as _ge
+    _ge_player = world.player_nation
+    if _ge_player in pre_cleanup_attackers:
+        _ge_opp = list(pre_cleanup_defenders)
+    elif _ge_player in pre_cleanup_defenders:
+        _ge_opp = list(pre_cleanup_attackers)
+    else:
+        _ge_opp = []
+    _ge.note_ratification(
+        world,
+        signed_terms=[t for t in (settlement_terms or []) if isinstance(t, dict)],
+        applied_clauses=applied_clauses,
+        was_vassal=_player_was_vassal,
+        counterparts=_ge_opp,
+        war_ending=True,
+        source="settlement",
+    )
 
     # Spec §11 ratification ordering line 1239: invalidate war-instance
     # indexes + Balance of Europe / hegemony / bloc caches before any

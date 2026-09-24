@@ -2069,11 +2069,14 @@ class TestT21CampaignLog:
     def test_the_type_is_registered(self):
         assert "client_petition_answered" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["client_petition_answered"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 165  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 166  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)
 
     def test_every_count_pin_moved_with_the_rationale(self):
         """The census over the flips: every file that pins the count reads
-        165 and names IQ-7 on that line. A stale 164 fails here by name."""
+        the CURRENT count and names the flip that set it on that line. A stale
+        count fails here by name. ⚑ GE-1 (Sept 25, 2026) moved it 165 -> 166
+        (`campaign_ending`) — flipped consciously: the census now reads 166
+        and GE-1, with IQ-7's own flip still on the line before it."""
         pinned = {}
         for path in sorted((REPO / "tests").glob("test_*.py")):
             for line in path.read_text(encoding="utf-8").splitlines():
@@ -2081,9 +2084,10 @@ class TestT21CampaignLog:
                 if m:
                     pinned[path.name] = (int(m.group(1)), m.group(2))
         assert len(pinned) >= 14, sorted(pinned)
-        stale = {name: value for name, (value, _) in pinned.items() if value != 165}
+        stale = {name: value for name, (value, _) in pinned.items() if value != 166}
         assert stale == {}, stale
-        unexplained = [name for name, (_, tail) in pinned.items() if "IQ-7" not in tail]
+        unexplained = [name for name, (_, tail) in pinned.items()
+                       if "IQ-7" not in tail or "GE-1" not in tail]
         assert unexplained == [], unexplained
 
     def test_the_one_liners(self):

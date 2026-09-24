@@ -231,7 +231,12 @@ class TestTheGoal:
         assert reply["success"] is True, reply
         msg = reply["message"]
         assert "COMMAND REFERENCE" not in msg, msg
-        assert "open-ended" in msg and "press T" in msg, msg
+        # ⚑ GE-1 (Sept 25, 2026) — CONSCIOUS FLIP: the shipped 1805 campaign
+        # now ARMS its endings, so "how do I win" names the Verdict and the
+        # Fall (GAME_END_SPEC R7 re-pointed `_is_open_ended`); "open-ended"
+        # stays the answer on the bare flag world and the tutorial.
+        assert "open-ended" not in msg, msg
+        assert "Verdict" in msg and "can fall" in msg and "press T" in msg, msg
         assert "Today:" in msg and "'Ney, attack Mack'" in msg, msg
         assert THREE_DOORS in msg
 

@@ -47,6 +47,28 @@ def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
         # lever lives in collapse.py; with it down this returns None, as
         # before.
         from backend.game_logic import collapse
+        # GE-1 R1/R9: where the scenario authors the endings the warning
+        # names the CLOCK and its EXITS (`fall.warning_state` — the ONE
+        # source) instead of promising the campaign goes on; it also warns
+        # for the two arms the collapse never covered (the Emperor a
+        # prisoner; no corps and no commission). Unarmed worlds (the bare
+        # flag world, the tutorial, the lever down) keep IQ-2's copy.
+        from backend.game_logic import fall as _fall
+        from backend.game_logic import game_end as _game_end
+        if _game_end.endings_armed(world):
+            warning = _fall.warning_state(world)
+            if warning is None:
+                return None
+            standing = sorted(_fall.free_corps(world, world.player_nation),
+                              key=lambda m: (-int(m.strength), m.name))
+            held = sorted(world.get_nation_regions(world.player_nation) or [])
+            warning.update({
+                "living_marshal_count": int(len(standing)),
+                "living_marshals": [m.name for m in standing],
+                "controlled_region_count": int(len(held)),
+                "controlled_regions": list(held),
+            })
+            return warning
         state = collapse.get_collapse_state(world)
         if state is None:
             return None
@@ -212,6 +234,18 @@ def _thread_petition_lapses(world, tactical_events, petition_lapses) -> list:
     return events
 
 
+def _attach_endings(result: Dict, world: WorldState, before: int) -> None:
+    """GE-1: the endings stamped during THIS end turn ride its result —
+    `ending` (the last, compact) and `endings_recorded` (all, compact) — so
+    both end-turn roads and the client can raise the right register."""
+    from backend.game_logic import game_end as _game_end
+    stamped = _game_end.endings(world)[int(before):]
+    if not stamped:
+        return
+    result["endings_recorded"] = [_game_end.compact(r) for r in stamped]
+    result["ending"] = _game_end.screen_payload(stamped[-1])
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -270,6 +304,23 @@ class TurnManager:
                 ),
                 "events": [],
             }
+
+        # GE-1: a campaign that has FALLEN does not keep turning. Keyed on a
+        # recorded terminal ending (armed worlds only) — the legacy world's
+        # game-over path is untouched. Reached when the Emperor dies in the
+        # player's own attack and the last action point auto-advances.
+        from backend.game_logic import game_end as _game_end
+        if _game_end.terminal_ending(self.world) is not None:
+            _vc = _game_end.victory_check(self.world)
+            return {
+                "turn_ended": old_turn,
+                "next_turn": self.world.current_turn,
+                "victory_check": _vc,
+                "message": "The war is over.",
+                "events": [],
+                "ending": _game_end.screen_payload(_game_end.terminal_ending(self.world)),
+            }
+        _endings_before = len(_game_end.endings(self.world))
 
         # ════════════════════════════════════════════════════════════
         # CURRENT-TURN OFFER LAPSE — before enemy phase / AI diplomacy
@@ -445,6 +496,7 @@ class TurnManager:
                 "lapsed_offers": lapsed_offers or [],
             }
             self._clear_game_over_modal_state()
+            _attach_endings(result, self.world, _endings_before)
             return result
 
         # ════════════════════════════════════════════════════════════
@@ -480,6 +532,7 @@ class TurnManager:
                     "lapsed_offers": lapsed_offers or [],
                 }
                 self._clear_game_over_modal_state()
+                _attach_endings(result, self.world, _endings_before)
                 return result
 
         # ════════════════════════════════════════════════════════════
@@ -559,12 +612,22 @@ class TurnManager:
         if game_state:
             autonomous_report = self._process_autonomous_marshals(game_state)
 
+        # GE-1: the ONE per-turn caller of the endings — the fall clocks
+        # tick and, at the authored turn, the Verdict is rendered. Once per
+        # end turn, after the advance (never inside the victory check, which
+        # runs twice a turn).
+        _game_end.process_end_of_turn(self.world, turn_ended=old_turn)
+
         # Check victory/defeat conditions
         victory_check = self._check_victory_conditions()
 
         if victory_check["game_over"]:
             self.world.game_over = True
             self.world.victory = victory_check["result"]
+            # GE-1: the post-advance exit never cleared the choice popups a
+            # fallen campaign can no longer answer (the other two exits do).
+            if _game_end.terminal_ending(self.world) is not None:
+                self._clear_game_over_modal_state()
 
         result = {
             "turn_ended": old_turn,
@@ -655,6 +718,7 @@ class TurnManager:
         if all_events:
             result["events"] = all_events
 
+        _attach_endings(result, self.world, _endings_before)
         return result
 
     # R12C: _pop_dialogue_queue() replaced by world.dialogue_manager.promote_if_empty()
@@ -1144,8 +1208,18 @@ class TurnManager:
         # (was inside per-nation loop → 4x tick bug)
         ai.decrement_all_cooldowns(self.world)
 
+        # GE-1 E3: the dead stay dead — an eliminated court (the derived
+        # active roster) gets no "No marshals (eliminated?)" row and no
+        # second elimination notice (the teardown posted the first).
+        from backend.game_logic import game_end as _game_end
+        _active_now = set(self.world.get_active_nations())
+
         # Process each enemy nation
         for nation in self.world.enemy_nations:
+            # GE-1: the Emperor killed mid-phase ends the war at once — no
+            # further court marches on a fallen Empire.
+            if _game_end.terminal_ending(self.world) is not None:
+                break
             # BUG #2 FIX: Check if victory already achieved before processing more nations
             existing_victory = self._check_enemy_victory()
             if existing_victory:
@@ -1155,6 +1229,9 @@ class TurnManager:
 
             # Check if nation has any marshals
             marshals = self.world.get_marshals_by_nation(nation)
+            if (not marshals and _game_end.THE_CAMPAIGN_CAN_END
+                    and nation not in _active_now):
+                continue
             if not marshals:
                 debug_print(f"\n{nation} has no marshals remaining - skipping")
                 results["summary"].append(f"{nation}: No marshals (eliminated?)")
@@ -1395,7 +1472,12 @@ class TurnManager:
         # otherwise run twice per end_turn on the 126-province map (GR8).
         # Real victory conditions → Pre-Ship Victory & Objectives Pass.
         if self.world.sandbox_mode:
-            return {"game_over": False, "result": None, "reason": None}
+            # GE-1: game over only when a TERMINAL ending was recorded (the
+            # Fall) — a pure read; the clocks tick once per turn in
+            # `game_end.process_end_of_turn`. Unarmed worlds read the old
+            # game-continues dict byte-for-byte.
+            from backend.game_logic.game_end import victory_check
+            return victory_check(self.world)
 
         player_regions = self.world.get_player_regions()
         player_marshals = self.world.get_player_marshals()

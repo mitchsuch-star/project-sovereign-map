@@ -203,16 +203,54 @@ def _standing_order_holder(world) -> Optional[str]:
     return None
 
 
+def _endings_armed(world) -> bool:
+    """GE-1 R7: the scenario authored the campaign's endings."""
+    if world is None:
+        return False
+    try:
+        from backend.game_logic.game_end import endings_armed
+        return bool(endings_armed(world))
+    except Exception:
+        return False
+
+
 def _is_open_ended(world) -> bool:
-    """Every Europe world plays sandbox today (victory and defeat stay with
-    the Victory & Objectives Pass, ROADMAP 12–13). The goal answer reads the
-    world's own flag so it turns honest by itself the day that pass lands."""
+    """A Europe world whose scenario authors NO endings plays sandbox (the
+    bare flag world, the tutorial). GE-1 R7 re-pointed this: where the
+    scenario arms the endings (the 1805 campaign), the campaign is judged and
+    can fall, and the goal answer names both. The legacy world keeps its own
+    objectives line."""
     if world is None:
         return True
     try:
+        if _endings_armed(world):
+            return False
         return bool(getattr(world, "sandbox_mode", True))
     except Exception:
         return True
+
+
+def _judged_goal(world) -> str:
+    """GE-1: the goal answer on a world whose endings are armed — the
+    Verdict and the Fall, named with the scenario's own numbers."""
+    from backend.game_logic import fall, game_end
+    from backend.game_logic.calendar import calendar_label
+    vt = game_end.verdict_turn(world) or 0
+    label = calendar_label(getattr(world, "start_date", ""), vt) if vt else ""
+    when = f"{label} (turn {vt})" if label else f"turn {vt}"
+    soil = int(game_end.cfg(world, "fall_grace_turns", fall.FALL_GRACE_TURNS))
+    chains = int(game_end.cfg(world, "captivity_grace_turns",
+                              fall.CAPTIVITY_GRACE_TURNS))
+    return (f"The reign will be judged, Sire: at the end of {when} history "
+            f"renders its Verdict, and the campaign goes on after it. Before "
+            f"that the Empire can fall — a realm reduced to one province, or "
+            f"left with no corps and no marshal to commission, falls after "
+            f"{soil} turns of war; an Emperor held prisoner {chains} turns is "
+            f"deposed; and an Emperor who leads from the front can die with "
+            f"his corps. Take provinces, keep the Emperor free and the "
+            f"marshals loyal, and make peace on your own terms. The Strategic "
+            f"Ledger (press T) keeps the score and the Cabinet (F1) holds "
+            f"every court.")
 
 
 def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
@@ -240,7 +278,9 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
                 f"An earlier day can be recalled from a saved game on the "
                 f"pause menu (Esc). Nothing has been relayed.\"")
     if kind == "goal":
-        if _is_open_ended(world):
+        if _endings_armed(world):
+            goal = _judged_goal(world)
+        elif _is_open_ended(world):
             goal = ("This campaign is played open-ended, Sire — there is no "
                     "laurel to be handed out; the war is the game. Take "
                     "provinces, keep the marshals loyal and the treasury "

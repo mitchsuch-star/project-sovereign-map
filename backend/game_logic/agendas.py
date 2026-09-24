@@ -252,9 +252,26 @@ def _guard_active(world, nation: str) -> bool:
     return not _has_belligerency(world, nation)
 
 
+def _entry_regions(world, nation: str, entry: dict) -> list:
+    """The provinces an entry still pursues. GE-1 §2.2 reconciliation: an
+    EMERGENT design (the Revanche) drops every province its court SIGNED
+    away while the signing treaty holds (`game_end.reconciled_regions` —
+    zero new fields: the title record names the ceder, `active_treaties`
+    says the treaty stands, a war between them breaks it). Authored decks
+    are never stripped: a signed cession reconciles a grievance, not an
+    ambition."""
+    regions = list(entry.get("regions") or [])
+    if regions and entry.get("emergent"):
+        from backend.game_logic.game_end import reconciled_regions
+        reconciled = reconciled_regions(world, nation)
+        if reconciled:
+            regions = [r for r in regions if r not in reconciled]
+    return regions
+
+
 def _entry_active(world, nation: str, entry: dict) -> bool:
     agenda_type = entry.get("type")
-    regions = list(entry.get("regions") or [])
+    regions = _entry_regions(world, nation, entry)
     if agenda_type == "acquire_regions":
         return _acquire_active(world, nation, regions)
     if agenda_type == "deny_regions":
@@ -271,7 +288,8 @@ def _entry_active(world, nation: str, entry: dict) -> bool:
     return False
 
 
-def _view_from_entry(nation: str, entry: dict) -> AgendaView:
+def _view_from_entry(nation: str, entry: dict,
+                     regions: Optional[list] = None) -> AgendaView:
     params = {
         k: v for k, v in entry.items()
         if k not in ("id", "type", "title", "blurb", "regions")
@@ -282,7 +300,8 @@ def _view_from_entry(nation: str, entry: dict) -> AgendaView:
         type=str(entry.get("type", "")),
         title=str(entry.get("title", "")),
         blurb=str(entry.get("blurb", "")),
-        regions=tuple(entry.get("regions") or ()),
+        regions=tuple(regions if regions is not None
+                      else (entry.get("regions") or ())),
         params=params,
     )
 
@@ -329,7 +348,9 @@ def get_active_agenda(nation: str, world) -> Optional[AgendaView]:
                                           str(entry.get("id") or "")):
                         continue
                     if _entry_active(world, nation, entry):
-                        view = _view_from_entry(nation, entry)
+                        view = _view_from_entry(
+                            nation, entry,
+                            regions=_entry_regions(world, nation, entry))
                         break
 
     cache[nation] = view
@@ -359,8 +380,14 @@ def _entry_satisfied(world, nation: str, entry: dict) -> bool:
     never satisfy."""
     agenda_type = entry.get("type")
     if agenda_type == "acquire_regions":
-        # Exact complement: all targets self-or-vassal controlled.
-        return not _acquire_active(world, nation, list(entry.get("regions") or []))
+        # Exact complement: all targets self-or-vassal controlled. GE-1: a
+        # Revanche whose every province was signed away is RECONCILED, not
+        # achieved — never read satisfied (that would hand the court the
+        # NA-3 +10 resolve and an early separate peace for winning nothing).
+        _regions = _entry_regions(world, nation, entry)
+        if not _regions and entry.get("regions"):
+            return False
+        return not _acquire_active(world, nation, _regions)
     if agenda_type == "deny_regions":
         # SATISFACTION IS A STATEMENT ABOUT THE PROVINCES, NOT ABOUT BLOC
         # RANKINGS. Britain's design is the Scheldt; whether Austria has

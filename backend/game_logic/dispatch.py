@@ -69,6 +69,10 @@ A_LOST_SATELLITE_CAN_LEAD = True      # FA-38
 IDLE_NUDGE_READS_THE_LIVE_MISSION = True   # IQ-4 review: a completed mission record no longer silences Talleyrand's idle nudge
 
 HEADLINE_WEIGHTS: Dict[str, int] = {
+    # GE-1 "The Eagle Falls" (Sept 25, 2026): the Emperor killed at the head
+    # of his corps — the one event graver than his capture. Added ABOVE
+    # `sovereign_captured` rather than renumbering it (its 101 is pinned).
+    "sovereign_dead": 102,
     # NP-4 (NAPOLEON_SPEC §7.2): the Eagle in Chains outranks even a
     # fallen homeland province — the Empire is a PERSON, and the person is
     # in an enemy cell (the Malet coup ran on a rumor of less).
@@ -366,6 +370,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # PC15-1: both destruction arms composed backend-side (field and
     # victor are optional keys on the event).
     "marshal_destroyed": "Sire — {line}",
+    "sovereign_dead": "{line}",
     "enemy_marshal_destroyed": "Sire — {line}",
     # CA8-9: the joined arc. The whole sentence is composed backend-side by
     # `_compose_reversal_line` because its shape varies with how many acts
@@ -559,6 +564,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # PC15-1: the fall is permanent — the note answers with the recovery
     # path that actually exists (the bench; PT-J4's commission arm rides it).
     "marshal_destroyed": "France does not replace such men by decree, Sire. The army fights one corps short until another is raised.",
+    "sovereign_dead": "There is no order left to give. The Empire was a man, and the man is dead.",
     "enemy_marshal_destroyed": "Their order of battle is one commander shorter — permanently, Sire. Press the advantage while their line is headless.",
     # CA8-9: Berthier closes on the man, not the ledger — the note answers
     # the arc the headline opened.
@@ -912,7 +918,18 @@ def _build_headline(world, player_nation: str,
             des_victor = e.get("victor", "")
             des_marshal = humanize_entity_name(e.get("marshal", "?"))
             des_at = (f" at {e['location']}" if e.get("location") else "")
-            if des_nation == player_nation:
+            if des_nation == player_nation and e.get("sovereign"):
+                # GE-1 "The Eagle Falls": not a corps lost — the Emperor.
+                # Its own class, above `sovereign_captured`; the page
+                # speaks of nothing else first.
+                _killer = (f" by {with_definite_article(formed_display_name(world, des_victor))}"
+                           if des_victor else "")
+                _add("sovereign_dead",
+                     f"sovereign_dead:{e.get('marshal', '?')}",
+                     line=(f"THE EMPEROR IS DEAD. He fell{des_at} at the head of "
+                           f"his corps, which was annihilated{_killer}. France "
+                           f"has no heir; the Empire dies with him."))
+            elif des_nation == player_nation:
                 if e.get("cause") == "attrition":
                     des_line = (f"Marshal {des_marshal}'s corps has wasted "
                                 f"away{des_at} — starved out to the last "
@@ -4139,6 +4156,8 @@ def _build_defeat_imminent_warning(world, player_nation: str) -> Optional[Dict[s
             "living_marshals": list(warning["living_marshals"]),
             "controlled_region_count": int(warning["controlled_region_count"]),
             "controlled_regions": list(warning["controlled_regions"]),
+            # GE-1: the clock and its exits, structured (armed worlds only).
+            **({"fall": warning["fall"]} if warning.get("fall") else {}),
         },
     ))
 
@@ -4156,6 +4175,12 @@ def _build_defeat_imminent_warning(world, player_nation: str) -> Optional[Dict[s
     # dict is byte-identical.
     if warning.get("heading"):
         result["heading"] = str(warning["heading"])
+    # GE-1 R1: the fall clock and its exits ride the warning, structured —
+    # the clock line GE-2 renders on three surfaces reads this, and the
+    # message already names both in prose (so no client change is needed
+    # for the words to reach the player today).
+    if warning.get("fall"):
+        result["fall"] = warning["fall"]
     return result
 
 
@@ -4678,6 +4703,13 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
 
     threat = int(world.threat_level)
     if threat < THREAT_TENSION_MIN:
+        return None
+    # GE-1 E2: a coalition gauge for a Europe with no court left in it is a
+    # lie in any tier — the section is hidden (the client already hides a
+    # None section).
+    from backend.game_logic import coalition as _c_e2
+    if (_c_e2.NOBODY_LEFT_TO_ALARM_IS_SILENT
+            and _c_e2.no_court_left_to_alarm(world, player_nation)):
         return None
 
     _player = getattr(world, "player_nation", "France")

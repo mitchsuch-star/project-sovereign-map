@@ -3481,6 +3481,12 @@ class DiplomaticExecutor:
                         region.controller = player
                         region.stability = 50
                         transferred.append(rname)
+                        # GE-1: a province YIELDED to an ultimatum is signed
+                        # away — titled at once, like any cession (§2.2).
+                        from backend.game_logic import game_end as _ge
+                        _ge.record_province_title(
+                            world, rname, _ge.TITLE_TREATY,
+                            target_nation, player)
                 if transferred:
                     world.invalidate_active_nations_cache()
                     add_threat(world, 8 * len(transferred), "ultimatum_annex",

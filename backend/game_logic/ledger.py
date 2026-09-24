@@ -61,8 +61,11 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     collapse_fields = {}
     if _collapse.THE_COLLAPSE_IS_LEGIBLE and getattr(world, "sandbox_mode", False):
         _state = _collapse.get_collapse_state(world)
+        # GE-1 R9: the tail is the clock and its exits where the rules are
+        # authored (`fall.scope_sentence`); IQ-2's sentence elsewhere.
+        from backend.game_logic import fall as _fall
         collapse_fields["collapse_note"] = (
-            f"{_collapse.summary_line(world, _state)} {_collapse.CAMPAIGN_CONTINUES}"
+            f"{_collapse.summary_line(world, _state)} {_fall.scope_sentence(world)}"
             if _state else "")
 
     # IQ-4 S3a: THE CABINET — Talleyrand's mission, from the one source every

@@ -181,6 +181,8 @@ THE_BOURSE_READS_THE_DEFICIT = True
 # arm is retired by construction — it existed only because the arms were
 # ranked by log order.
 _SPECIAL_WEIGHTS = {
+    # GE-1 "The Eagle Falls": the one edition graver than his capture.
+    "THE EMPEROR IS DEAD": 105,
     "THE EMPEROR TAKEN": 100,
     # IQ-2 D3(d): the loss that leaves the realm at the collapse ceiling. One
     # caption per tier; they cannot both fire (the candidate pass keeps only
@@ -193,6 +195,7 @@ _SPECIAL_WEIGHTS = {
     "a crown struck from the map": 90,
     "a nation proclaimed": 85,
     "a crowned head taken": 80,
+    "a crowned head struck down": 80,
     "war between the great powers": 70,
     "peace between the great powers": 65,
     "a capital stormed": 60,
@@ -309,6 +312,15 @@ def _special_candidates(world, turn_events: List[Dict]):
                     _add("THE CAPITAL HAS FALLEN", region)
                 else:
                     _add("a capital stormed", region)
+        if etype == "marshal_destroyed" and event.get("sovereign"):
+            # GE-1: a sovereign killed with his corps — never also "one more
+            # marshal lost" below.
+            if str(event.get("nation") or "") == player:
+                _add("THE EMPEROR IS DEAD", str(event.get("marshal") or ""))
+                continue
+            if str(event.get("victor") or "") == player:
+                _add("a crowned head struck down", str(event.get("marshal") or ""))
+                continue
         if etype == "marshal_captured" and event.get("sovereign"):
             # NP-4 (NAPOLEON_SPEC §9): the Eagle in Chains outranks every
             # other cause on this page — by weight now, and the sovereign's

@@ -8260,6 +8260,23 @@ def declaration_alarm(casus_belli: bool = False) -> int:
     return 10 if casus_belli else 20
 
 
+# GE-1 E3 lever: False restores the pre-GE-1 declaration on a dead court.
+DEAD_COURTS_CANNOT_BE_FOUGHT = True
+
+
+def _court_is_dead(world, nation: str) -> bool:
+    """No province held and no free corps in the field — the dead court,
+    stricter than `_is_nation_eliminated` (no provinces), which a fixture
+    world's region-less armies would trip."""
+    if world.get_nation_regions(nation):
+        return False
+    for m in getattr(world, "marshals", {}).values():
+        if (m.nation == nation and int(getattr(m, "strength", 0) or 0) > 0
+                and not getattr(m, "captured_by", "")):
+            return False
+    return True
+
+
 def declare_war(
     world,
     aggressor: str,
@@ -8286,6 +8303,18 @@ def declare_war(
     # Deep audit fix 7: Prevent self-war
     if aggressor == target:
         return {"success": False, "message": "A nation cannot declare war on itself."}
+
+    # GE-1 E3 "the dead stay dead": a court that no longer holds a province
+    # or fields a corps cannot be declared upon — measured, a declaration on
+    # an eliminated Britain set the pair to WAR and put its surviving
+    # 100-sail fleet back on blockade. Europe worlds (the legacy fixtures
+    # field region-less marshals on purpose).
+    if (DEAD_COURTS_CANNOT_BE_FOUGHT and getattr(world, "sandbox_mode", False)
+            and _court_is_dead(world, target)):
+        from backend.game_logic.formations import formed_display_name
+        return {"success": False,
+                "message": (f"{formed_display_name(world, target)} no longer "
+                            f"exists — there is no court left to declare war on.")}
 
     diplo_key = world._make_diplo_key(aggressor, target)
     current_state = world.diplomatic_states.get(diplo_key, "PEACE")

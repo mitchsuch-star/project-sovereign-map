@@ -506,6 +506,18 @@ class MetaExecutor:
         if turn_result.get("victory_check", {}).get("game_over"):
             result["game_over"] = True
             result["victory"] = turn_result["victory_check"].get("result")
+        # GE-1: the endings stamped this turn ride the result (the Fall,
+        # the Verdict, a Humbled Peace ratified in transit), and the
+        # message names them — the reason text was otherwise lost here.
+        if turn_result.get("ending"):
+            result["ending"] = turn_result["ending"]
+            result["endings_recorded"] = list(
+                turn_result.get("endings_recorded") or [])
+            for _ending in result["endings_recorded"]:
+                _line = f"{_ending.get('title')}: {_ending.get('cause_line')}"
+                if _ending.get("tier_title"):
+                    _line += f" — {_ending.get('tier_title')}"
+                result["message"] = f"{result.get('message') or ''}\n{_line}".strip()
 
         # Add Independent Command Report for autonomous marshals (Phase 2.5)
         if turn_result.get("show_independent_command_report"):

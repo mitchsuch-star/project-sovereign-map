@@ -184,6 +184,11 @@ CAMPAIGN_LOG_TYPES = {
     "marshal_released",
     # PC15-1: corps annihilation — the fall was silent before this type
     "marshal_destroyed",
+    # GE-1 (Sept 25, 2026): the campaign's own endings — the Fall, the
+    # Verdict of History, a Humbled Peace — each leave ONE chronicle line
+    # (`game_end.record_ending`). 165 -> 166 flipped consciously; the
+    # census `test_no_silent_drops` requires the producer's type be here.
+    "campaign_ending",
     # WIN-D3 "The Road Home": the evacuation corridor a peace grants, and
     # the countdown when a corps dawdles on soil that is no longer its own.
     # (Internment itself rides PC15-1's `marshal_destroyed` with
@@ -473,6 +478,7 @@ CATEGORY_MAP = {
     "order_voided_by_battle": "command",
     "marshal_captured": "combat",
     "marshal_destroyed": "combat",
+    "campaign_ending": "command",
     "evacuation_granted": "diplomacy",
     # The clock is the treaty's, but the decision it demands is an order to a
     # marshal — so it files with the command traffic the player must answer.
@@ -1940,6 +1946,15 @@ def format_event_oneliner(event: dict) -> str:
             return f"{marshal} objected to {action}"
         return f"{marshal} objected to order"
 
+    if event_type == "campaign_ending":
+        # GE-1: "THE VERDICT OF HISTORY — The reign, unfinished, is judged
+        # as it stands. (An Empire Contested)"
+        title = str(event.get("title") or "THE END OF THE CAMPAIGN")
+        line = str(event.get("cause_line") or "")
+        tier = str(event.get("tier_title") or "")
+        tail = f" ({tier.title()})" if tier else ""
+        return f"{title} — {line}{tail}" if line else f"{title}{tail}"
+
     if event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).
         return event.get("message", "A literal marshal held to his orders.")
@@ -1994,6 +2009,12 @@ def format_event_oneliner(event: dict) -> str:
         location = event.get("location", "the field")
         victor = event.get("victor") or ""
         cause = event.get("cause") or ""
+        # GE-1 "The Eagle Falls": the sovereign killed with his corps is a
+        # man, not a corps — the event carries `sovereign` because the
+        # formatter has no world to look him up in.
+        if event.get("sovereign"):
+            return (f"THE EMPEROR {marshal} FALLS at {location}"
+                    + (f" — his corps annihilated by {victor}" if victor else ""))
         if cause == "attrition":
             return (f"Marshal {marshal}'s corps DESTROYED at {location} — "
                     f"starved out by supply attrition")

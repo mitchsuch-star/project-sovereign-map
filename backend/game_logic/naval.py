@@ -924,8 +924,16 @@ def ship_upkeep(world, nation: str) -> int:
 def trade_dominance_nation(world) -> Optional[str]:
     """The authored trade_dominance holder (Britain on the shipped scenario)
     — GR5: derived from authored data, never a nation literal."""
+    # GE-1 E3: a dead court holds no trade dominance (measured: Britain
+    # eliminated still read as the dominance holder — the Admiralty kept a
+    # Continental System row aimed at a court that no longer existed).
+    # Europe worlds; the store itself is untouched (yards, NV-10).
+    active = (set(world.get_active_nations())
+              if getattr(world, "sandbox_mode", False) else None)
     for nation, rec in get_fleets(world).items():
         if nation == META_KEY or not isinstance(rec, dict):
+            continue
+        if active is not None and nation not in active:
             continue
         if rec.get("trade_dominance"):
             return nation
@@ -3203,7 +3211,12 @@ def fleet_pieces(world) -> List[Dict]:
         if who:
             blockader_of[nation] = who
     out: List[Dict] = []
+    # GE-1 E3: a dead court's fleet is not drawn (display only).
+    _active = (set(world.get_active_nations())
+               if getattr(world, "sandbox_mode", False) else None)
     for nation, rec in iter_fleets(world):
+        if _active is not None and nation not in _active:
+            continue
         yards = controlled_dockyards(world, nation)
         blockading = sorted(n for n, who in blockader_of.items() if who == nation)
         out.append({

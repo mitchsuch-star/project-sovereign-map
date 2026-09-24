@@ -3318,6 +3318,24 @@ def run(args):
         digest.order_progress(response.get("strategic_reports"))
         digest.autonomous_attacks(response.get("jealousy_attacks"))
         drain(transport, digest, answerer, response, args.strict)
+        # GE-1: every ending the turn stamped (the Fall, the Verdict, a
+        # Humbled Peace ratified in transit) is written into the digest.
+        for _ending in (response.get("endings_recorded") or []):
+            if isinstance(_ending, dict):
+                digest.note(
+                    f"ENDING — {_ending.get('title')}: {_ending.get('cause_line')}"
+                    + (f" [{_ending.get('tier_title')}]"
+                       if _ending.get("tier_title") else ""))
+
+        if response.get("success") is False and response.get("game_over"):
+            # GE-1: the war was already over (the Emperor killed by the
+            # turn's own orders) — a game over, not a blocker.
+            _ending = response.get("ending") or {}
+            digest.note("GAME OVER reported — stopping"
+                        + (f" ({_ending.get('title')}: {_ending.get('cause_line')})"
+                           if _ending else ""))
+            status = "game-over"
+            break
 
         if response.get("success") is False:
             # A blocker refused the end turn; the drain above answered

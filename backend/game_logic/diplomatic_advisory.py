@@ -663,13 +663,27 @@ def _assess_situation(world) -> Dict:
     # own state leads, and the scope note is said once, out loud: the
     # collapse is legible, never terminal.
     from backend.game_logic.collapse import (
-        CAMPAIGN_CONTINUES, get_collapse_state, summary_line,
+        get_collapse_state, summary_line,
     )
     from backend.game_logic.formations import formed_display_name as _realm_name
     collapse = get_collapse_state(world, player)
+    # GE-1 R9: where the scenario authors the endings the scope note is the
+    # CLOCK and its exits (`fall.scope_sentence`, the one source), and the
+    # war room also opens on the two arms the collapse never covered (the
+    # Emperor a prisoner; no corps and no commission).
+    from backend.game_logic import fall as _fall
+    _fall_state = _fall.get_fall_state(world, player)
     if collapse is not None:
         lines.append(f"  Our own state: {summary_line(world, collapse)}")
-        lines.append(f"  {CAMPAIGN_CONTINUES}")
+        lines.append(f"  {_fall.scope_sentence(world, player)}")
+        lines.append("")
+    elif _fall_state is not None:
+        for _arm in _fall.ARMS:
+            _view = _fall_state["arms"].get(_arm)
+            if _view is None:
+                continue
+            lines.append(f"  Our own state: {_fall.arm_condition_sentence(world, _view)}")
+            lines.append(f"  {_fall.arm_clock_sentence(world, _view)}")
         lines.append("")
 
     # ── The wars ──
@@ -755,7 +769,14 @@ def _assess_situation(world) -> Dict:
                      f"but the quiet comes after the collapse of the realm, "
                      f"not after a victory.")
     else:
-        lines.append("  France wages no war — a rare and precious quiet.")
+        from backend.game_logic import coalition as _c_e2
+        if (_c_e2.NOBODY_LEFT_TO_ALARM_IS_SILENT
+                and _c_e2.no_court_left_to_alarm(world, player)):
+            # GE-1 E2: the quiet of an empty continent is not a peace.
+            lines.append(f"  {_realm_name(world, player)} wages no war — "
+                         f"there is no court left to fight.")
+        else:
+            lines.append("  France wages no war — a rare and precious quiet.")
     for row in armistice_rows:
         opponent = row.get("opponent", "?")
         remaining = int(row.get("armistice_remaining", 0))
@@ -814,9 +835,16 @@ def _assess_situation(world) -> Dict:
     else:
         posture = str(get_coalition_posture(world))
         lines.append("")
-        lines.append(
-            f"  No coalition stands against us. Europe's alarm reads "
-            f"{threat} ({tier}).")
+        from backend.game_logic import coalition as _c_e2
+        if (_c_e2.NOBODY_LEFT_TO_ALARM_IS_SILENT
+                and _c_e2.no_court_left_to_alarm(world, player)):
+            # GE-1 E2: "Brewing" with nobody left to brew it was a lie.
+            lines.append("  There is no Europe left to alarm — every court "
+                         "that could have stood against us is gone, or ours.")
+        else:
+            lines.append(
+                f"  No coalition stands against us. Europe's alarm reads "
+                f"{threat} ({tier}).")
         # IQ-3: the 60 gate, named. After a spent league the alarm sits in
         # the forties and "No coalition stands against us" read as permanent
         # when one declaration would end it.

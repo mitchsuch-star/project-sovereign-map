@@ -728,6 +728,59 @@ def _validate_threat_level_band(result, data: dict) -> None:
             f"{threat} (the historical seed resolves to it)")
 
 
+# GE-1 (docs/GAME_END_SPEC.md R7): the keys this build READS in the
+# scenario's `campaign_end` block, with their inclusive integer ranges. An
+# unknown key is a WARNING, not an error — GE-3's Congress numbers
+# (ENDGAME_PLAN §2.7) will be authored into the same block, and a scenario
+# written for a newer build must still boot on this one.
+_CAMPAIGN_END_INT_KEYS = {
+    "verdict_turn": (2, 400),
+    "fall_grace_turns": (1, 60),
+    "captivity_grace_turns": (1, 60),
+    "title_turns": (1, 120),
+}
+
+
+def _validate_campaign_end(result, data: dict) -> None:
+    """GE-1 R7: the optional `campaign_end` block — its presence ARMS the
+    campaign's endings (the Fall, the Verdict, the Humbled Peace, the
+    Emperor's death). `verdict_turn` is required when the block is present;
+    every value is an integer in range (booleans rejected); unknown keys
+    warn. Europe worlds only — elsewhere the block would never be read."""
+    if "campaign_end" not in data:
+        return
+    block = data.get("campaign_end")
+    if not isinstance(block, dict):
+        result.add_error(
+            "campaign_end", f"Must be an object, got {type(block).__name__}")
+        return
+    if "verdict_turn" not in block:
+        result.add_error(
+            "campaign_end.verdict_turn",
+            "Required when the block is present — the turn at whose end the "
+            "Verdict of History is rendered")
+    for key, value in block.items():
+        path = f"campaign_end.{key}"
+        if key.startswith("_"):
+            continue
+        if key not in _CAMPAIGN_END_INT_KEYS:
+            result.add_warning(
+                path, f"Not read by this build (known keys: "
+                f"{', '.join(sorted(_CAMPAIGN_END_INT_KEYS))})")
+            continue
+        lo, hi = _CAMPAIGN_END_INT_KEYS[key]
+        if isinstance(value, bool) or not isinstance(value, int):
+            result.add_error(path, f"Must be an integer, got {value!r}")
+            continue
+        if not lo <= value <= hi:
+            result.add_error(path, f"Must be within [{lo}, {hi}], got {value}")
+    if data.get("sovereign_map") not in (None, "europe"):
+        result.add_warning(
+            "campaign_end",
+            "The endings arm on Europe worlds only — this block will never "
+            "be read on a legacy-map scenario")
+
+
 _WARY_OF_MIN = 0.5
 _WARY_OF_MAX = 2.0
 
@@ -1531,6 +1584,7 @@ def validate_scenario(
     # (Deck order_group is validated inside _validate_agenda_deck.)
     _validate_nation_relations(result, data)
     _validate_threat_level_band(result, data)
+    _validate_campaign_end(result, data)
 
     # AI-3r §2.6 (gate ruling R1): the authored statecraft posture block.
     # Rebuilds the known-nations set with the agendas-block recipe (the

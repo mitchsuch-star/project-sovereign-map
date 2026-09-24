@@ -37,8 +37,8 @@
   {
     "id": "FC-6 the goal answer ignores the world's flag",
     "file": "backend/ai/first_contact.py",
-    "old": "        if _is_open_ended(world):",
-    "new": "        if True:",
+    "old": "        elif _is_open_ended(world):",
+    "new": "        elif True:",
     "tests": "tests/test_first_contact_keyless.py::TestTheGoal::test_the_open_ended_line_reads_the_worlds_own_flag"
   },
   {

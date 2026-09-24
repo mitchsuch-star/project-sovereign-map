@@ -15,7 +15,8 @@ corps drawn from the nation's ARM-APPROPRIATE manpower pool (infantry /
 cavalry / artillery — ARTILLERY_GAP_SPEC), sized by arm (the corps then
 costs normal strength-based upkeep — ES-3).
 The new marshal arrives at the nation's capital (or its richest still-held
-homeland province if the capital has fallen), enters the glory ladder at
+homeland province if the capital has fallen — or, with no home soil left,
+on the richest province the nation still holds: GE-1 / WO-D10), enters the glory ladder at
 zero (nobody resents an unproven man — spec §1 ties), and applies his
 authored relationship seeds SYMMETRICALLY to marshals already standing.
 
@@ -92,9 +93,18 @@ def _standing_count(world, nation: str) -> int:
     ])
 
 
+# GE-1 R8 / WO-D10 "the exile commissions": with no home soil left, a
+# court raises its marshals on the richest province it still HOLDS — a
+# France in exile holding a dozen rich conquests could not rebuild its
+# Marshalate at all. Symmetric (GR5: the AI's P1.75 rung reads the same
+# gate). False = home soil only, as before.
+THE_EXILE_COMMISSIONS = True
+
+
 def find_spawn_region(world, nation: str) -> Optional[str]:
     """The capital while held; otherwise the richest still-held homeland
-    province; None when the nation has no soil to raise a corps on."""
+    province; otherwise (WO-D10) the richest province still held at all;
+    None when the nation has no soil to raise a corps on."""
     capital = world.get_nation_capital(nation)
     capital_region = world.regions.get(capital) if capital else None
     if capital_region is not None and capital_region.controller == nation:
@@ -108,6 +118,18 @@ def find_spawn_region(world, nation: str) -> Optional[str]:
         income = int(region.get_effective_income())
         if income > best_income:
             best, best_income = region_name, income
+    if best is None and THE_EXILE_COMMISSIONS:
+        # The cached per-turn index (GR8), never a region scan; ties broken
+        # by name so the choice never rides dict order (conquests often
+        # yield 0 effective income).
+        held = []
+        for region_name in world.get_nation_regions(nation) or []:
+            region = world.regions.get(region_name)
+            if region is None:
+                continue
+            held.append((-int(region.get_effective_income()), region_name))
+        if held:
+            best = min(held)[1]
     return best
 
 
@@ -188,6 +210,13 @@ def _no_home_soil(name: str) -> str:
     # map it was looking at. Name the actual gate. (The mechanic —
     # spawn at the richest held province — is carried to the Victory &
     # Objectives Pass, DESIGN_REFINEMENT §WO-D7..D11.)
+    if THE_EXILE_COMMISSIONS:
+        # GE-1 / WO-D10: the exile road is open, so this refusal now means
+        # the court holds no province at all.
+        return (f"No HOME soil remains on which {name} could raise his "
+                f"corps — a marshal is commissioned at the capital, on a "
+                f"home province, or on the richest province we still hold, "
+                f"and we hold none.")
     return (f"No HOME soil remains on which {name} could raise his "
             f"corps — a marshal is commissioned at the capital or on a "
             f"home province, and we hold neither.")

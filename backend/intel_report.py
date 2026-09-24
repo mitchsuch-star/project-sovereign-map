@@ -155,7 +155,9 @@ def generate_intel_report(world) -> Dict[str, Any]:
     if collapse_state is not None:
         lines.append("STATE OF THE EMPIRE:")
         lines.append(f"  {_collapse.summary_line(world, collapse_state)}")
-        lines.append(f"  {_collapse.CAMPAIGN_CONTINUES}")
+        # GE-1 R9: the clock and its exits where the rules are authored.
+        from backend.game_logic import fall as _fall
+        lines.append(f"  {_fall.scope_sentence(world)}")
         lines.append("")
 
     # Your Forces

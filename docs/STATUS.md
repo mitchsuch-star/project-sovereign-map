@@ -14,21 +14,67 @@
 > (taken ahead of F2 by the user's direction; block below). ~~F2 "The
 > display-name pass" + F5 "Bohemia is not empty" + F6 "Settled once,
 > reopened"~~ ✅ LANDED September 25, 2026 (one commit; block below — **the
-> six fixes F1–F6 are ALL LANDED; all 22 LV rows are CLOSED**). ▶ NEXT SLICE
-> = GE-1 "The Verdict and the Fall"** (`ENDGAME_PLAN.md` §3–§6 + the ending
-> slices in §6, with `docs/GAME_END_SPEC.md` as the spec: R1's two warned
-> defeat clocks + the marked "Humbled Peace", the `province_title` substrate
-> and the Verdict; then GE-2 the screens, GE-3 "The Congress of Paris",
-> GE-V, then the release build). **Three September 25 asks ride GE-1 by
-> user direction:** the Emperor's death as a third defeat arm ("The Eagle
-> Falls" — today `destroy_marshal` converts every sovereign removal to
-> capture), a measured memo on the generals' odds of death (recommend,
-> do not build), and an exile story on the Fall flavored by the
-> campaign's record (`build_exile_story`); the build note =
-> `docs/NEXT_SESSION_PROMPT.md`. ⚠ Still open for the user, not for a
-> session: the in-game feel of F3's six surfaces (frames
-> `docs/audits/IQ10_*_2026_09_24.png`) and now F5's settlement header
+> six fixes F1–F6 are ALL LANDED; all 22 LV rows are CLOSED**). ~~GE-1 "The
+> Verdict and the Fall"~~ ✅ LANDED September 25, 2026 (block below —
+> with the user's three September 25 asks: the Emperor's death, the
+> generals' death-odds memo, the exile story). **▶ NEXT SLICE = GE-2 "the
+> client"** (`ENDGAME_PLAN.md` §6: `campaign_end.tscn` with the four
+> registers and GE-1's exile epilogue on the Fall register, the clock line
+> on three surfaces, the driver arms that reach each ending; the build note
+> = `docs/NEXT_SESSION_PROMPT.md`), then GE-3 "The Congress of Paris",
+> GE-V, the release build. ⚠ Still open for the user, not for a session:
+> **GE-D1 "The Generals' Mortality"** (the memo's recommendation — a
+> bounded wound-or-death roll for a losing lead, no death off the field —
+> is the user's ruling), the in-game feel of F3's six surfaces (frames
+> `docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
+>
+> **▶ ▶ GE-1 "THE VERDICT AND THE FALL" — ✅ LANDED September 25, 2026**
+> (row EP's first ending slice; landing record = `ENDGAME_PLAN.md` §6 GE-1,
+> rules `SYSTEMS_REFERENCE.md` §64; pins
+> `tests/test_ge1_the_verdict_and_the_fall.py` (83, driven)).
+> - **The campaign can end** where the scenario authors it: a
+>   `campaign_end` block in `europe_1805.json` arms the endings through a
+>   NEW derived flag (`game_end.endings_armed`; `sandbox_mode` untouched);
+>   the tutorial and the bare flag world never arm.
+> - **The Fall — two warned clocks** (`fall.py`, one serialized
+>   `fall_clock`): ≤ 1 province, or no free corps and no affordable
+>   commission, for 5 turns of war; the Emperor a prisoner for 10 turns of
+>   war with his captor (a truce pauses it). The warning names the clock
+>   and the exits; Paris alone never triggers. **The captor offers its
+>   terms** on the clock's turns 1, 4 and 7, priced to the purse — R1's
+>   reachability proof; accepting at an empty treasury frees him.
+> - **"The Eagle Falls" (user direction):** a seeded 15% roll at the ONE
+>   removal seam when the Emperor's corps is annihilated on the
+>   battlefield; immediate and terminal, with its own headline, special
+>   edition and log line.
+> - **The Verdict of History** at the end of turn 44 (Early July 1807),
+>   four tiers, marked and continued; **the Humbled Peace** stamped at the
+>   ratify seams (capital, half the homeland, or the crown signed away),
+>   marked and continued.
+> - **`province_title`** (the Congress's substrate) with the Revanche
+>   reconciliation; **`campaign_totals`**; **E2/E3/E4** (no Europe left to
+>   alarm; the dead stay dead; a knocked-out great power counts);
+>   **WO-D10** (the exile commissions on the richest held province);
+>   **saves** (the autosave keeps the pre-fall turn, a "Final" save, Continue
+>   skips it, `/load` carries the ending); **`GET /campaign_end`**; one
+>   chronicle line per ending (`campaign_ending`, log types 166).
+> - **The exile story (user direction):** `game_end.build_exile_story` —
+>   St Helena, Olmütz, Küstrin or Schlüsselburg for a captive, Fontainebleau
+>   and Elba for a deposed Emperor, the funeral for a dead one, "signed"
+>   for a Humbled Peace; the men, the battles and the Verdict from the
+>   record. GE-2 renders it.
+> - **The generals' odds of death (user direction):** memo
+>   `docs/audits/GENERALS_DEATH_ODDS_2026_09_25.md` — 25 campaigns, 884
+>   battles; no general has a personal death roll; France loses generals
+>   to captivity ~15× as often as to death; recommendation filed as
+>   **GE-D1** for the user's ruling. **GE-D2** (the spent Guard's question
+>   never fires) routed to GE-V.
+> - **Measured:** nine driver arms, every one ending legibly — the ambient
+>   historical seed dies on turn 31, three chains Falls (all on arms whose
+>   driver declines the captor's terms), five Verdicts (contested ×4,
+>   eclipse ×1). `BASELINE_SERIES` + M1–M7 byte-identical; sweep 42/42, 0
+>   INERT at close; zero `.gd`.
 >
 > **▶ ▶ F2 "THE DISPLAY-NAME PASS" + F5 "BOHEMIA IS NOT EMPTY" + F6
 > "SETTLED ONCE, REOPENED" — ✅ LANDED September 25, 2026** (row EP's

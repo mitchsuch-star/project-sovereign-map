@@ -1,0 +1,296 @@
+[
+ {
+  "id": "GE1-1 the chains clock never advances",
+  "file": "backend/game_logic/fall.py",
+  "old": "        if chains[\"at_war_with_captor\"]:\n            entry[\"turns\"] = int(entry.get(\"turns\", 0)) + 1",
+  "new": "        if chains[\"at_war_with_captor\"]:\n            entry[\"turns\"] = int(entry.get(\"turns\", 0)) + 0",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheChainsClock::test_falls_on_the_tenth_turn_unfreed"
+ },
+ {
+  "id": "GE1-2 a truce no longer pauses the chains",
+  "file": "backend/game_logic/fall.py",
+  "old": "        if chains[\"at_war_with_captor\"]:",
+  "new": "        if True:",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheChainsClock::test_a_truce_pauses_it_and_never_resets_it"
+ },
+ {
+  "id": "GE1-3 a general peace no longer stops the soil clock",
+  "file": "backend/game_logic/fall.py",
+  "old": "    if soil is None or not _at_war_with_anyone(world, nation):",
+  "new": "    if soil is None:",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_peace_with_every_court_stops_the_clock"
+ },
+ {
+  "id": "GE1-4 the Empire can never fall (lever)",
+  "file": "backend/game_logic/fall.py",
+  "old": "THE_EMPIRE_CAN_FALL = True",
+  "new": "THE_EMPIRE_CAN_FALL = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_falls_on_the_fifth"
+ },
+ {
+  "id": "GE1-5 the arm fires one tick late",
+  "file": "backend/game_logic/fall.py",
+  "old": "        if isinstance(entry, dict) and int(entry.get(\"turns\", 0)) >= _grace(world, arm):",
+  "new": "        if isinstance(entry, dict) and int(entry.get(\"turns\", 0)) > _grace(world, arm):",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_falls_on_the_fifth tests/test_ge1_the_verdict_and_the_fall.py::TestTheChainsClock::test_falls_on_the_tenth_turn_unfreed"
+ },
+ {
+  "id": "GE1-6 the sword disjunct is dropped",
+  "file": "backend/game_logic/fall.py",
+  "old": "    if state is None and not no_sword:\n        return None",
+  "new": "    if state is None:\n        return None",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_no_sword_arm_ticks_and_a_commission_stops_it"
+ },
+ {
+  "id": "GE1-7 the campaign never arms (lever)",
+  "file": "backend/game_logic/game_end.py",
+  "old": "THE_CAMPAIGN_CAN_END = True",
+  "new": "THE_CAMPAIGN_CAN_END = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFlag::test_the_1805_campaign_arms"
+ },
+ {
+  "id": "GE1-8 the Emperor is immortal (lever)",
+  "file": "backend/game_logic/game_end.py",
+  "old": "THE_EMPEROR_IS_MORTAL = True",
+  "new": "THE_EMPEROR_IS_MORTAL = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheEagleFalls::test_a_death_removes_him_and_ends_the_war"
+ },
+ {
+  "id": "GE1-9 attrition becomes a battlefield",
+  "file": "backend/game_logic/game_end.py",
+  "old": "BATTLEFIELD_CAUSES = frozenset({\"battle\", \"charge\", \"bombardment\"})",
+  "new": "BATTLEFIELD_CAUSES = frozenset({\"battle\", \"charge\", \"bombardment\", \"attrition\"})",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheEagleFalls::test_only_the_battlefield_kills"
+ },
+ {
+  "id": "GE1-10 every annihilation kills",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    return seeded_int(seed, namespace, 0, 99) < int(SOVEREIGN_DEATH_CHANCE_PCT)",
+  "new": "    return seeded_int(seed, namespace, 0, 99) < 100",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheEagleFalls::test_the_roll_is_seeded_and_bounded"
+ },
+ {
+  "id": "GE1-11 a terminal ending does not end the war",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    if record[\"terminal\"]:\n        world.game_over = True",
+  "new": "    if False:\n        world.game_over = True",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_falls_on_the_fifth"
+ },
+ {
+  "id": "GE1-12 the Verdict fires at any turn",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    if (vt is not None and int(turn_ended) >= vt",
+  "new": "    if (vt is not None and int(turn_ended) >= 0",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheVerdict::test_fires_once_at_the_authored_turn_and_never_ends_the_war"
+ },
+ {
+  "id": "GE1-13 half the homeland is not humbling",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    half = bool(homeland) and len(ceded_home) * 2 >= len(homeland)",
+  "new": "    half = bool(homeland) and len(ceded_home) * 2 > len(homeland)",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheHumbledPeace::test_half_the_homeland_is_humbling"
+ },
+ {
+  "id": "GE1-14 ceding the capital is not humbling",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    capital_ceded = bool(capital) and capital in ceded",
+  "new": "    capital_ceded = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheHumbledPeace::test_ceding_paris_is_marked_and_the_campaign_continues"
+ },
+ {
+  "id": "GE1-15 a new vassalage is not humbling",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    made_vassal = bool(lord) and not was_vassal",
+  "new": "    made_vassal = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheVassalHumbling::test_a_treaty_that_makes_france_a_vassal_is_humbling"
+ },
+ {
+  "id": "GE1-16 a hostile army does not restart the quiet clock",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if contested:\n            rec[\"since\"] = turn",
+  "new": "        if False:\n            rec[\"since\"] = turn",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestProvinceTitle::test_a_hostile_army_on_it_restarts_the_quiet_clock"
+ },
+ {
+  "id": "GE1-17 a return home keeps the record",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if _is_homeland(world, region, receiver):\n            store.pop(region, None)\n            return",
+  "new": "        if False:\n            store.pop(region, None)\n            return",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestProvinceTitle::test_a_return_home_clears_the_record"
+ },
+ {
+  "id": "GE1-18 a signed cession is never reconciled",
+  "file": "backend/game_logic/game_end.py",
+  "old": "A_SIGNED_CESSION_IS_RECONCILED = True",
+  "new": "A_SIGNED_CESSION_IS_RECONCILED = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestProvinceTitle::test_a_signed_province_is_reconciled_out_of_the_revanche"
+ },
+ {
+  "id": "GE1-19 the Revanche keeps every province",
+  "file": "backend/game_logic/agendas.py",
+  "old": "    if regions and entry.get(\"emergent\"):",
+  "new": "    if False:",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestProvinceTitle::test_a_signed_province_is_reconciled_out_of_the_revanche"
+ },
+ {
+  "id": "GE1-20 the only-the-battlefield filter in the epilogue",
+  "file": "backend/game_logic/game_end.py",
+  "old": "         and t.get(\"cause\") in BATTLEFIELD_CAUSES],",
+  "new": "         and t.get(\"cause\") not in (\"dismissed\", \"nation_eliminated\")],",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheExileStory::test_only_a_battlefield_death_is_called_a_fall"
+ },
+ {
+  "id": "GE1-21 E2 the hegemony producer keeps climbing",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if hegemon == france:\n            if not _nobody_left:",
+  "new": "        if hegemon == france:\n            if True:",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestGlobalElimination::test_e2_the_alarm_is_silent_with_nobody_left"
+ },
+ {
+  "id": "GE1-22 E3 a dead court can be declared upon (lever)",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "DEAD_COURTS_CANNOT_BE_FOUGHT = True",
+  "new": "DEAD_COURTS_CANNOT_BE_FOUGHT = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestGlobalElimination::test_e3_a_dead_court_cannot_be_declared_upon"
+ },
+ {
+  "id": "GE1-23 E3 a dead court keeps its trade dominance",
+  "file": "backend/game_logic/naval.py",
+  "old": "        if active is not None and nation not in active:\n            continue\n        if rec.get(\"trade_dominance\"):",
+  "new": "        if rec.get(\"trade_dominance\"):",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestGlobalElimination::test_e3_trade_dominance_dies_with_its_court"
+ },
+ {
+  "id": "GE1-24 WO-D10 the exile never commissions (lever)",
+  "file": "backend/game_logic/recruitment.py",
+  "old": "THE_EXILE_COMMISSIONS = True",
+  "new": "THE_EXILE_COMMISSIONS = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheExileCommissions::test_no_home_soil_commissions_on_the_richest_held_province"
+ },
+ {
+  "id": "GE1-25 the captor never names his price (lever)",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "THE_CAPTOR_NAMES_HIS_PRICE = True",
+  "new": "THE_CAPTOR_NAMES_HIS_PRICE = False",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheChainsClock::test_the_captor_offers_its_terms_on_the_clock"
+ },
+ {
+  "id": "GE1-26 the captor offers on the wrong cadence",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    return turns >= 1 and (turns - 1) % CAPTOR_OFFER_INTERVAL == 0",
+  "new": "    return turns >= 1 and (turns - 1) % 2 == 0",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheChainsClock::test_the_captor_offers_its_terms_on_the_clock"
+ },
+ {
+  "id": "GE1-28 the autosave is overwritten after a fall",
+  "file": "backend/save_manager.py",
+  "old": "    from backend.game_logic.game_end import terminal_ending\n    if terminal_ending(world) is not None:\n        result = write_final_save(world)",
+  "new": "    from backend.game_logic.game_end import terminal_ending\n    if False:\n        result = write_final_save(world)",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFallDriven::test_the_realm_falls_on_the_fifth_end_turn_and_the_saves_obey_r6"
+ },
+ {
+  "id": "GE1-29 the Final save leads the Continue list",
+  "file": "backend/save_manager.py",
+  "old": "        playable = 0 if (isinstance(ending, dict) and ending.get(\"terminal\")) else 1",
+  "new": "        playable = 1",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFallDriven::test_the_realm_falls_on_the_fifth_end_turn_and_the_saves_obey_r6"
+ },
+ {
+  "id": "GE1-30 the end-turn road drops the ending",
+  "file": "backend/main.py",
+  "old": "    \"ending\",\n    \"endings_recorded\",\n)",
+  "new": "    \"endings_recorded\",\n)",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheMarkedEndingOnTheWire::test_the_verdict_reaches_the_end_turn_response"
+ },
+ {
+  "id": "GE1-31 /mailbox/activate is unguarded",
+  "file": "backend/main.py",
+  "old": "    if world.game_over:\n        return {\"success\": False, \"message\": \"The war is over.\",\n                \"game_over\": True, \"victory\": world.victory,\n                \"activation_blocked\": True}",
+  "new": "    if False:\n        return {\"success\": False, \"message\": \"The war is over.\",\n                \"game_over\": True, \"victory\": world.victory,\n                \"activation_blocked\": True}",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFallDriven::test_the_realm_falls_on_the_fifth_end_turn_and_the_saves_obey_r6"
+ },
+ {
+  "id": "GE1-32 the end turn never ticks the endings",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        _game_end.process_end_of_turn(self.world, turn_ended=old_turn)",
+  "new": "        pass",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheTurnLoop::test_the_fall_clears_the_choices_nobody_can_answer"
+ },
+ {
+  "id": "GE1-33 a fallen campaign keeps turning",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        if _game_end.terminal_ending(self.world) is not None:\n            _vc = _game_end.victory_check(self.world)",
+  "new": "        if False:\n            _vc = _game_end.victory_check(self.world)",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheTurnLoop::test_a_fallen_campaign_does_not_keep_turning"
+ },
+ {
+  "id": "GE1-34 the fall keeps its stale choices",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "            if _game_end.terminal_ending(self.world) is not None:\n                self._clear_game_over_modal_state()",
+  "new": "            if False:\n                self._clear_game_over_modal_state()",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheTurnLoop::test_the_fall_clears_the_choices_nobody_can_answer"
+ },
+ {
+  "id": "GE1-35 the enemy phase marches on a fallen Empire",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "            if _game_end.terminal_ending(self.world) is not None:\n                break",
+  "new": "            if False:\n                break",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheTurnLoop::test_the_enemy_phase_stops_on_a_fallen_empire"
+ },
+ {
+  "id": "GE1-36 the victory check ignores the ending",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    record = terminal_ending(world) if endings_armed(world) else None",
+  "new": "    record = None",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheTurnLoop::test_the_victory_check_reads_the_recorded_ending_only"
+ },
+ {
+  "id": "GE1-37 the warning forgets the clock",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        if _game_end.endings_armed(world):\n            warning = _fall.warning_state(world)",
+  "new": "        if False:\n            warning = _fall.warning_state(world)",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_warns_on_turn_one_with_the_clock_and_the_exits"
+ },
+ {
+  "id": "GE1-38 the dispatch does not lead with the death",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if des_nation == player_nation and e.get(\"sovereign\"):",
+  "new": "            if False:",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheEagleFalls::test_the_dispatch_and_the_moniteur_carry_it"
+ },
+ {
+  "id": "GE1-39 the pipeline never counts a battle",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if _ge_side:\n                from backend.game_logic import game_end as _ge",
+  "new": "            if False:\n                from backend.game_logic import game_end as _ge",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheBattleCount::test_a_battle_is_counted_once_through_the_pipeline"
+ },
+ {
+  "id": "GE1-40 first contact forgets the Verdict",
+  "file": "backend/ai/first_contact.py",
+  "old": "        if _endings_armed(world):\n            goal = _judged_goal(world)",
+  "new": "        if False:\n            goal = _judged_goal(world)",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestFirstContact::test_the_armed_campaign_names_the_verdict_and_the_fall"
+ },
+ {
+  "id": "GE1-41 the load forgets the ending",
+  "file": "backend/main.py",
+  "old": "    if _terminal is not None:\n        response[\"game_over\"] = True\n        response[\"victory\"] = world.victory\n        response[\"ending\"] = _game_end.screen_payload(_terminal)\n    return response",
+  "new": "    if False:\n        response[\"game_over\"] = True\n        response[\"victory\"] = world.victory\n        response[\"ending\"] = _game_end.screen_payload(_terminal)\n    return response",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFallDriven::test_the_realm_falls_on_the_fifth_end_turn_and_the_saves_obey_r6"
+ },
+ {
+  "id": "GE1-42 a pre-GE-1 save stays unarmed",
+  "file": "backend/save_manager.py",
+  "old": "        _backfill_campaign_end(world)\n",
+  "new": "        pass\n",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestPreGE1Saves::test_a_save_without_the_block_is_armed_from_its_scenario"
+ },
+ {
+  "id": "GE1-43 the end screen gets no summary",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    view[\"summary\"] = copy.deepcopy(record.get(\"summary\") or {})",
+  "new": "    view[\"summary\"] = {}",
+  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheMarkedEndingOnTheWire::test_the_verdict_reaches_the_end_turn_response"
+ }
+]
