@@ -1135,7 +1135,7 @@ func _render_talleyrand():
 			# TA5: Remaining turns (the pre-IQ-4 render, kept for an absent key)
 			var remaining = mission.get("remaining_turns")
 			if remaining != null:
-				bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Completes in " + str(int(remaining)) + " turn(s)[/color]\n"
+				bbcode += "  [color=#" + Utils.COLOR_GOLD + "]Completes in " + Utils.plural(int(remaining), "turn") + "[/color]\n"
 			else:
 				bbcode += "  [color=#" + Utils.COLOR_GREY + "]Ongoing[/color]\n"
 	bbcode += "\n"
@@ -1156,7 +1156,7 @@ func _render_talleyrand():
 	# Pending envoys
 	var pending_count = int(t.get("pending_envoy_count", 0))
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]PENDING ENVOYS[/color]\n"
-	bbcode += "  " + str(pending_count) + " envoy(s) awaiting response\n\n"
+	bbcode += "  " + Utils.plural(pending_count, "envoy") + " awaiting response\n\n"
 
 	# Sabotage warnings
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]SABOTAGE WARNINGS[/color]\n"

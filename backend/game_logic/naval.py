@@ -43,6 +43,8 @@ import re
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # CONSTANTS (spec §7 — gate-blessed defaults, in-band tunable; structural
 # changes escalate)
@@ -2600,7 +2602,7 @@ def crossing_line(world, a: str, b: str, verdict: Dict,
         own_rec = (get_fleet(world, player) or {}) if player else {}
         # NV-12: the countdown finally names what the window DOES.
         return (f"{a}–{b}: WINDOW — open "
-                f"{int(own_rec.get('window_turns', 0) or 0)} more turn(s) "
+                f"{_plural(int(own_rec.get('window_turns', 0) or 0), 'more turn')} "
                 "(their coverage halved; the defended-shore rule waived)")
     coverer = verdict.get("coverer")
     coverer_label = (_fleet_label(coverer, get_fleet(world, coverer) or {})
@@ -3263,11 +3265,11 @@ def player_naval_summary(world, verdicts: Optional[List[Dict]] = None) -> Dict:
     if blockading:
         tails.append("blockading " + ", ".join(blockading))
     if window > 0:
-        tails.append(f"a window is open — {window} more turn(s)")
+        tails.append(f"a window is open — {_plural(int(window), 'more turn')}")
     if counts["shut"]:
-        tails.append(f"{counts['shut']} crossing(s) shut to us")
+        tails.append(f"{_plural(int(counts['shut']), 'crossing')} shut to us")
     if counts["landing"]:
-        tails.append(f"{counts['landing']} defended shore(s)")
+        tails.append(f"{_plural(int(counts['landing']), 'defended shore')}")
     return {
         "active": True,
         "ships": ships,

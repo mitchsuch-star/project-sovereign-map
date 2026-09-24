@@ -13,6 +13,8 @@ import copy  # noqa: F401 - used in to_dict() for deepcopy
 import os
 from collections import deque
 from typing import Dict, List, Optional, Tuple, Any, Set
+
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.models.region import Region, create_regions, create_europe_regions, get_europe_starting_controllers, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.nation_config import (
@@ -11273,10 +11275,20 @@ class WorldState:
         if (current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER
                 and _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state)):
             if is_player_treaty:
+                # LV-3 (row EP F2): the same enums, the same tag.
+                from backend.display_names import STATE_DISPLAY, with_definite_article
+                from backend.game_logic.formations import formed_display_name
+                # The OTHER court, whichever side proposed (an AI offer's
+                # `target_nation` is France herself).
+                _other = player_counterpart or target_nation
                 return {
                     "type": "diplomatic_treaty_failed",
                     "target": target_nation,
-                    "message": f"We already have {current_state} with {target_nation}. A {target_state} treaty would be a downgrade.",
+                    "message": (
+                        f"We already have {STATE_DISPLAY.get(current_state, current_state)} with "
+                        f"{with_definite_article(formed_display_name(self, _other))}. "
+                        f"A {STATE_DISPLAY.get(target_state, target_state)} treaty would be a downgrade."
+                    ),
                 }
             return None  # AI-AI: silent skip
 
@@ -12174,13 +12186,21 @@ class WorldState:
                 if len(self.peace_ratification_log) > 5:
                     self.peace_ratification_log = self.peace_ratification_log[-5:]
 
+            # LV-3 (row EP F2, Sept 25 2026): "Treaty signed: PEACE →
+            # OPEN_BORDERS with Prussia." printed the state ENUMS and the
+            # court's tag. The state table and the formed display name
+            # (with its article) are the one source for both (R7).
+            from backend.display_names import STATE_DISPLAY, with_definite_article
+            from backend.game_logic.formations import formed_display_name
+            _court = player_counterpart or target_nation
             result = {
                 "type": "diplomatic_treaty_signed",
                 "target": player_counterpart or target_nation,
                 "treaty_type": proposal_type,
                 "message": (
-                    f"Treaty signed: {current_state} → {target_state} "
-                    f"with {player_counterpart or target_nation}."
+                    f"Treaty signed: {STATE_DISPLAY.get(current_state, current_state)} → "
+                    f"{STATE_DISPLAY.get(target_state, target_state)} "
+                    f"with {with_definite_article(formed_display_name(self, _court))}."
                 ),
             }
             if peace_ratification_summary:
@@ -12496,7 +12516,7 @@ class WorldState:
                             "nation": marshal.nation,
                             "region": occ_region,
                             "turns_left": turns_left,
-                            "message": f"{marshal.name} continues securing {occ_region}... ({turns_left} turn(s) remaining)"
+                            "message": f"{marshal.name} continues securing {occ_region}... ({_plural(int(turns_left), 'turn')} remaining)"
                         })
 
             # ════════════════════════════════════════════════════════════
@@ -13590,7 +13610,9 @@ class WorldState:
                     attacker_participants=_ac_atk_parts,
                     defender_participants=_ac_def_parts,
                     defender_broken=bool(getattr(enemy, "broken", False)),
-                    defer_dispatch=True)
+                    defer_dispatch=True,
+                    # F6 (row EP, LV-17): the field, for the reopened card.
+                    battle_region=auto_charge_battle_region)
                 # A7 (CA9 row 3): the reckless charge reports its own
                 # grievances. The row-3 memo said this site "has no
                 # battle_report in scope" — it does: `combat_result`
@@ -14033,7 +14055,7 @@ class WorldState:
                         "remaining_distance": remaining_distance,
                         "message": f"[Cavalry][!] {marshal.name} rides out seeking battle! (Recklessness: {recklessness})\n"
                                   f"Auto-moved: {old_location} → {next_region} (toward {enemy.name})\n"
-                                  f"[FREE ACTION - {remaining_distance} region(s) to target]"
+                                  f"[FREE ACTION - {_plural(int(remaining_distance), 'region')} to target]"
                     })
 
                     debug_print(f"  [RECKLESS MOVE] {marshal.name} auto-moves {old_location} -> {next_region}")

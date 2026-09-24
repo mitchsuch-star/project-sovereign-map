@@ -20,6 +20,8 @@ from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
+from backend.display_names import humanize_entity_name  # LV-2 (row EP F2)
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # Slice-8 review [B-F4]: the region-fortification defense bonus was six
 # scattered inline copies while the build chip quoted the named constant
@@ -234,7 +236,6 @@ def guessed_target_refusal(world, marshal, command, target,
     if (command or {}).get("_auto_assigned"):
         return None
 
-    from backend.display_names import humanize_entity_name
     from backend.ai.attack_vocabulary import (
         guard_attack_verbs, IDIOM_FILLER_WORDS)
 
@@ -696,7 +697,6 @@ class CombatExecutor:
         same rule). Not a `reinforcement_messages` line (both clients
         colour those by the word "arrived") and not an observation rung
         (the rotation would move unrelated battles)."""
-        from backend.display_names import humanize_entity_name
         lines = []
         for rec in records:
             who = self._faith_visible(world, attacker, defender, rec)
@@ -761,7 +761,6 @@ class CombatExecutor:
         the dedupes are never passed through it."""
         if not self.BOTH_SIDES_NAME_THEIR_SCOPE:
             return name
-        from backend.display_names import humanize_entity_name
         return humanize_entity_name(name)
 
     def _committed_bodies(self, lead, participants) -> int:
@@ -1887,10 +1886,13 @@ class CombatExecutor:
             ceiling = int(preview['attacker'].get('ceiling_strength', 0))
             if ceiling > committed:
                 attacker_display += f", up to {ceiling:,} if every corps arrives"
+        # LV-2 (row EP F2): the header names the men, not their roster keys
+        # ("vs ArchdukeJohn (substantial force)" was the muster's own leak;
+        # the same NPC-12 class the scout report and the covering lines had).
         lines = [
-            f"MUSTER — {preview['attacker']['name']} "
+            f"MUSTER — {humanize_entity_name(preview['attacker']['name'])} "
             f"({attacker_display}) vs "
-            f"{preview['target']['name']} "
+            f"{humanize_entity_name(preview['target']['name'])} "
             f"({preview['target']['strength_display']}) at "
             f"{preview['target']['location']} — the balance of force looks "
             f"{preview['odds_band']}."
@@ -2707,7 +2709,6 @@ class CombatExecutor:
         # battle in a province you keep is the silent case.
         # ══════════════════════════════════════════════════════════════
         if _wrecked and region.controller == world.player_nation:
-            from backend.display_names import humanize_entity_name
             from backend.notifications import (
                 BUILDINGS_DAMAGED, NotificationPriority, create_notification,
             )
@@ -3041,7 +3042,10 @@ class CombatExecutor:
                 attacker_participants=jealousy_atk_parts,
                 defender_participants=jealousy_def_parts,
                 defender_broken=bool(defender and getattr(defender, 'broken', False)),
-                defer_dispatch=True)
+                defer_dispatch=True,
+                # F6 (row EP, LV-17): where it was settled, for the card
+                # that may reopen it next turn.
+                battle_region=battle_region)
             # A7 (CA9 row 3): the shared seam finally reports itself. This
             # is the ONLY composer for the glorious charge (`:_glorious`),
             # which resolves grievances and ships a battle_report and has
@@ -3330,7 +3334,6 @@ class CombatExecutor:
             # excluded with the whole step-13 block (ammunition expenditure
             # is not field-army materiel loss).
             if getattr(world, "sovereign_map", "legacy") == "europe":
-                from backend.display_names import humanize_entity_name
                 from backend.models.world_state import MATERIEL_RATE
                 materiel_parts = []
                 for m_nation, m_cas in ((attacker.nation, int(atk_casualties)),
@@ -3675,7 +3678,7 @@ class CombatExecutor:
                     "new_state": game_state
                 }
 
-            msg += f" Captured: {old_controller} -> {marshal.nation}"
+            msg += f" Captured: {old_controller} → {marshal.nation}"  # LV-19: one arrow
 
             conquest_event = {
                 "type": "conquest",
@@ -4313,7 +4316,6 @@ class CombatExecutor:
                  and m.name in (free_before or set())]
         if not taken:
             return
-        from backend.display_names import humanize_entity_name
         clauses = []
         for m in taken:
             who = humanize_entity_name(m.name)
@@ -5694,7 +5696,14 @@ class CombatExecutor:
             if not target_in_same_region:
                 # S5-2: humanize marshal keys for the player-facing copy so a
                 # camelCase name ("ArchdukeCharles") never leaks into prose.
-                from backend.display_names import humanize_entity_name
+                # LV-2 (row EP F2): the humaniser is the MODULE-level import
+                # now. A function-local import here made the name local to
+                # the whole of `_execute_attack`, so the covering-retreat
+                # lines above it raised UnboundLocalError on every AI attack
+                # against a corps that had just retreated — measured as a
+                # moved BASELINE_SERIES with every F5 lever down (the NPC-12
+                # shadow, one seam over). Never re-add a local import of it
+                # inside this function.
                 enemy_names = [e.name for e in enemies_here]
                 enemy_display = [humanize_entity_name(n) for n in enemy_names]
                 return {
@@ -6180,15 +6189,22 @@ class CombatExecutor:
                 original_target = enemy_marshal
                 enemy_marshal = covering_ally  # Swap defender
 
+                # LV-2 (row EP F2, Sept 25 2026): these two lines rode
+                # `covering_message` into the strategic dialog with the
+                # roster KEY ("ArchdukeCharles is EXPOSED"). The humaniser
+                # is the one source for a man's printed name (R7).
+                _cover_name = humanize_entity_name(covering_ally.name)
+                _covered_name = humanize_entity_name(original_target.name)
                 covering_message = (
-                    f"[Shield] {covering_ally.name} steps forward to cover {original_target.name}'s retreat! "
-                    f"\"{original_target.name} is in no condition to fight - I'll handle this!\"\n\n"
+                    f"[Shield] {_cover_name} steps forward to cover {_covered_name}'s retreat! "
+                    f"\"{_covered_name} is in no condition to fight - I'll handle this!\"\n\n"
                 )
                 print(f"  [ALLY COVER] {covering_ally.name} covers for retreating {original_target.name}")
             else:
                 # No covering ally - target is EXPOSED
                 covering_message = (
-                    f"[!] {enemy_marshal.name} is EXPOSED! (Just retreated, no ally to cover)\n\n"
+                    f"[!] {humanize_entity_name(enemy_marshal.name)} is EXPOSED! "
+                    f"(Just retreated, no ally to cover)\n\n"
                 )
                 print(f"  [EXPOSED] {enemy_marshal.name} retreated and has no cover!")
 
@@ -7446,7 +7462,9 @@ class CombatExecutor:
             defender_participants=get_battle_participants(
                 enemy_marshal, battle_region_name, enemy_marshal.nation, world),
             defender_broken=bool(getattr(enemy_marshal, 'broken', False)),
-            defer_dispatch=True)
+            defer_dispatch=True,
+            # F6 (row EP, LV-17): the field, for the card that may reopen it.
+            battle_region=battle_region_name)
         # [7B-1] Split artillery reinforcements by nation for relationship processing
         atk_artillery = [a for a in artillery_reinforced_adjacent if a.nation == marshal.nation]
         def_artillery = [a for a in artillery_reinforced_adjacent if a.nation == enemy_marshal.nation]
@@ -7763,6 +7781,7 @@ class CombatExecutor:
 
         # ARTILLERY: No advance on win — positional platform stays in place
         pursuit_halted = False
+        advance_losses = 0  # LV-11: the advance's own toll, shown beside the locked figure
         is_artillery_no_advance = getattr(marshal, 'artillery', False) and marshal.location != target_location
         if is_artillery_no_advance:
             if can_advance:
@@ -7800,6 +7819,14 @@ class CombatExecutor:
                     marshal.move_to(target_location)
                     # Movement attrition on post-battle advance (Phase 6.2.F)
                     attrition_info = self._executor._calculate_movement_attrition(marshal, target_location, world)
+                    # LV-11 (row EP F2): the report's strength line and the
+                    # diorama's lead card are LOCKED at the battle figure
+                    # (CO-5 — the war score reads it). The advance bleeds
+                    # a further slice, mentioned only inside the prose, so
+                    # the next diorama opened him ~300 men lighter than the
+                    # last one closed. Recorded here, shown beside the
+                    # locked figure below; the lock point does not move.
+                    advance_losses = int(attrition_info.get("total_losses", 0) or 0)
                     if defender_fled and victor != marshal.name:
                         movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
                     else:
@@ -8069,6 +8096,26 @@ class CombatExecutor:
             **({"faith": _iq5_faith_captions} if _iq5_faith_captions else {}),
         )
         if _bd_payload:
+            # LV-11 (row EP F2): the lead card shows the advance's toll
+            # beside its locked figure. The payload is built BEFORE the
+            # advance (its figures are the battle's), so the stamp is
+            # applied here, on the lead's own contingent, once the advance
+            # has run. Shape-agnostic: any contingent dict marked lead and
+            # named for the attacker takes it.
+            if advance_losses > 0:
+                _stack = [_bd_payload]
+                while _stack:
+                    _node = _stack.pop()
+                    if isinstance(_node, dict):
+                        if (_node.get("lead") is True
+                                and _node.get("name") == marshal.name
+                                and "remaining" in _node):
+                            _node["advance_losses"] = int(advance_losses)
+                            _node["after_advance"] = int(
+                                max(0, int(_node.get("remaining", 0)) - int(advance_losses)))
+                        _stack.extend(_node.values())
+                    elif isinstance(_node, list):
+                        _stack.extend(_node)
             result["battle_diorama"] = _bd_payload
             result["events"][0]["diorama"] = _bd_payload
 
@@ -8096,6 +8143,14 @@ class CombatExecutor:
         # Berthier's After-Action Report
         if battle_result.get("battle_report"):
             result["battle_report"] = battle_result["battle_report"]
+            # LV-11 (row EP F2): the advance's toll beside the locked figure
+            # — "22,181 → 21,863 after the advance". Display only; the
+            # casualty figures the war score reads are untouched.
+            _cs = result["battle_report"].get("casualty_summary")
+            if isinstance(_cs, dict) and advance_losses > 0:
+                _cs["attacker_advance_losses"] = int(advance_losses)
+                _cs["attacker_after_advance"] = int(
+                    max(0, int(_cs.get("attacker_remaining", 0)) - int(advance_losses)))
             # W6-6: the enemy commander's line rides the report.
             if battle_result.get("enemy_voice"):
                 result["battle_report"]["enemy_voice"] = battle_result["enemy_voice"]
@@ -9629,7 +9684,7 @@ class CombatExecutor:
                 "occupation_started": True,
                 "turns_required": turns_required,
                 "message": f"{region_name} is fortified! {marshal.name} must hold for "
-                           f"{turns_required} turn(s) to capture.",
+                           f"{_plural(int(turns_required), 'turn')} to capture.",
             }
         else:
             # INSTANT CAPTURE (existing behavior)
@@ -9871,13 +9926,13 @@ class CombatExecutor:
                     f"No marshals in attack range!\n\n"
                     f"{closest_marshal.name} advances toward {target_enemy.name}:\n"
                     f"  {old_location} -> {next_region}\n"
-                    f"  Distance to enemy: {remaining_distance} region(s)\n\n"
+                    f"  Distance to enemy: {_plural(int(remaining_distance), 'region')}\n\n"
                 )
 
                 if remaining_distance <= 1:
                     message += f"[{closest_marshal.name} will be in attack range next action!]"
                 else:
-                    message += f"[{remaining_distance - 1} more move(s) needed to reach attack range]"
+                    message += f"[{_plural(int(remaining_distance) - 1, 'more move')} needed to reach attack range]"
 
                 if filtered_out:
                     message = f"[NOTE: {', '.join(filtered_out)}]\n\n" + message

@@ -17,6 +17,7 @@ import re
 
 from typing import Dict, List, Optional, Tuple
 from backend.ai.generic_targets import is_generic_target
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.ai.nation_names import (
     nation_not_a_province_message,
     nation_province_list,
@@ -1983,7 +1984,7 @@ class CommandExecutor:
                             return {
                                 "success": False,
                                 "message": f"{marshal_name} is recovering from retreat and cannot adopt aggressive stance. "
-                                          f"Recovery: {recovery_turns} turn(s) remaining.",
+                                          f"Recovery: {_plural(int(recovery_turns), 'turn')} remaining.",
                                 "retreating": True,
                                 "recovery_turns": recovery_turns
                             }
@@ -1996,7 +1997,7 @@ class CommandExecutor:
                         return {
                             "success": False,
                             "message": f"{marshal_name} is recovering from retreat and cannot {action_display}. "
-                                      f"Recovery: {recovery_turns} turn(s) remaining.",
+                                      f"Recovery: {_plural(int(recovery_turns), 'turn')} remaining.",
                             "retreating": True,
                             "recovery_turns": recovery_turns
                         }
@@ -2026,7 +2027,7 @@ class CommandExecutor:
                             "success": False,
                             "message": f"[BROKEN] {marshal_name}'s army is BROKEN and scattered! "
                                       f"Only recruitment is possible while rebuilding. "
-                                      f"Recovery: {turns_remaining} turn(s) remaining.",
+                                      f"Recovery: {_plural(int(turns_remaining), 'turn')} remaining.",
                             "broken": True,
                             "broken_recovery": recovery_stage,
                             "turns_remaining": turns_remaining

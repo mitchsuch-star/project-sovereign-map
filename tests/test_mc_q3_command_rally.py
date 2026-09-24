@@ -341,26 +341,26 @@ class TestReviewPassSurfaces:
         m = make_marshal(name="Blocked A", command=5)
         m.retreating = True
         m.retreat_recovery = 0
-        assert "Recovery: 3 turn(s) remaining" in self._blocked_message(m)
+        assert "Recovery: 3 turns remaining" in self._blocked_message(m)
         m2 = make_marshal(name="Blocked B", command=5)
         m2.retreating = True
         m2.retreat_recovery = 2
         # Pre-fix this surface read a phantom constant-3 attribute
-        assert "Recovery: 1 turn(s) remaining" in self._blocked_message(m2)
+        assert "Recovery: 1 turn remaining" in self._blocked_message(m2)
         m3 = make_marshal(name="Blocked C", command=9)
         m3.retreating = True
         m3.retreat_recovery = 0
-        assert "Recovery: 2 turn(s) remaining" in self._blocked_message(m3)
+        assert "Recovery: 2 turns remaining" in self._blocked_message(m3)
 
     def test_executor_broken_block_command_aware(self):
         m = make_marshal(name="Broken A", command=9)
         m.broken = True
         m.broken_recovery = 0
-        assert "Recovery: 2 turn(s) remaining" in self._blocked_message(m)
+        assert "Recovery: 2 turns remaining" in self._blocked_message(m)
         m2 = make_marshal(name="Broken B", command=5)
         m2.broken = True
         m2.broken_recovery = 0
-        assert "Recovery: 4 turn(s) remaining" in self._blocked_message(m2)
+        assert "Recovery: 4 turns remaining" in self._blocked_message(m2)
 
     def test_forced_retreat_flee_message_command_aware(self):
         """The '(recovering for N turns)' figure tracks rally speed."""

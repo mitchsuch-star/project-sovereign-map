@@ -16,6 +16,8 @@ All coalition logic lives in this file. Functions are called from:
 import contextlib
 from typing import Dict, List, Optional, Tuple
 
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+
 from backend.notifications import (
     create_notification, NotificationPriority,
     COALITION_THREAT_TENSION, COALITION_MURMURS, COALITION_BREWING,
@@ -561,7 +563,7 @@ def _check_hegemony_band_crossing(world, caller: str) -> bool:
                 f"{label_for_title} leads the largest alignment at {share_pct}% "
                 f"of active European bloc power; "
                 f"hostile courts harden into camp, though the last coalition's "
-                f"cooldown still binds them for {int(world.coalition_cooldown)} turn(s)."
+                f"cooldown still binds them for {_plural(int(world.coalition_cooldown), 'turn')}."
             )
         else:
             message = (
@@ -2674,7 +2676,7 @@ def process_coalition_turn(world) -> List[Dict]:
                 world.notifications.add(create_notification(
                     COALITION_BREWING,
                     NotificationPriority.CRITICAL,
-                    f"Coalition Brewing — {int(brewing['turns_remaining'])} turn(s)",
+                    f"Coalition Brewing — {_plural(int(brewing['turns_remaining']), 'turn')}",
                     f"Nations consulting: {', '.join(qualifying)}. "
                     f"{int(brewing['turns_remaining'])} turns until declaration.",
                     int(world.current_turn),

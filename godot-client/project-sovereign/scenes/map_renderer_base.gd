@@ -1526,7 +1526,9 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 
 	for i in range(marshals.size()):
 		var marshal: Dictionary = marshals[i]
-		var marshal_name = str(marshal.get("name", "?"))
+		# LV-2 (row EP F2): the piece label prints the man's name, not the
+		# roster key ("ArchdukeCharles"); hitboxes and lookups keep the key.
+		var marshal_name = Utils.display_marshal_name(str(marshal.get("name", "?")))
 		var nation = str(marshal.get("nation", "Neutral"))
 		var in_collapsed_group := (pieces_active
 				and int(nation_counts.get(nation, 0)) > 3)
@@ -1597,7 +1599,7 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			var lead_name := ""
 			for m in marshals:
 				if str(m.get("nation", "Neutral")) == group_nation:
-					lead_name = str(m.get("name", "?"))
+					lead_name = Utils.display_marshal_name(str(m.get("name", "?")))  # LV-2
 					break
 			var stack_text := "%s +%d" % [lead_name, group_size - 1]
 			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x + 4.0

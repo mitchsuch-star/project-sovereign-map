@@ -10,6 +10,8 @@ Fog-filtered: intel section uses RegionIntel visibility, never raw marshal data.
 import math
 from typing import Dict, Any
 
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+
 from backend.models.intel import (
     FULL, PARTIAL, STALE, UNKNOWN,
     get_strength_band,
@@ -1079,7 +1081,7 @@ def _derive_condition_text(order, world) -> str:
         if order.command_type == "MOVE_TO":
             remaining = len(order.path)
             if remaining > 0:
-                return f"{remaining} region(s) left"
+                return f"{_plural(int(remaining), 'region')} left"
             return "arriving"
         if order.command_type == "PURSUE":
             return "tracking"

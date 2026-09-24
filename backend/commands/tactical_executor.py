@@ -8,6 +8,7 @@ _execute_stance_change, _execute_restrain.
 from typing import Dict
 from backend.models.marshal import Stance
 from backend.display_names import action_display_name as _action_display_name
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.display_names import (STRATEGIC_ORDER_DISPLAY,
                                    get_strategic_display,
                                    humanize_entity_name)
@@ -286,7 +287,7 @@ class TacticalExecutor:
         if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
             return {
                 "success": False,
-                "message": f"Switching {marshal.name} to defensive stance requires {action_cost} action(s), "
+                "message": f"Switching {marshal.name} to defensive stance requires {_plural(int(action_cost), 'action')}, "
                           f"but only {world.actions_remaining} remaining."
             }
 
@@ -839,7 +840,7 @@ class TacticalExecutor:
         if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
             return {
                 "success": False,
-                "message": f"Stance change requires {action_cost} action(s), but only {world.actions_remaining} remaining."
+                "message": f"Stance change requires {_plural(int(action_cost), 'action')}, but only {world.actions_remaining} remaining."
             }
 
         # Execute the stance change

@@ -373,14 +373,18 @@ def build_pending_envoy_popup_from_terms(
         else "balanced"
     )
 
-    if acceptance is not None:
-        acceptance_hint, rejection_hint = build_acceptance_hints(acceptance)
-    elif acceptance_score is not None:
-        acceptance_hint = f"Acceptance score: {int(acceptance_score)}%"
-        rejection_hint = ""
-    else:
-        acceptance_hint = ""
-        rejection_hint = ""
+    # LV-6 (row EP F2, Sept 25 2026): this builder shapes the popup for an
+    # INCOMING envoy — the other court's offer, or its counter to ours —
+    # and the acceptance hints it carried were the FEEDBACK_STRINGS written
+    # from France-as-proposer's viewpoint ("Key obstacle: their diplomat
+    # outmaneuvered us" on Prussia's own open-borders offer, when Talleyrand
+    # had outclassed theirs). Both hints are blanked here, the way the
+    # client-petition arm below already blanks them; the player's OWN
+    # previews (`main.py`'s acceptance-hint route) keep theirs. The
+    # `acceptance` argument is still accepted (callers pass it) and still
+    # unused for display.
+    acceptance_hint = ""
+    rejection_hint = ""
 
     # W6-10 (E-CA-6): the diplomat SPEAKS the proposal and its motive in
     # his Voice Bible register — the decision_reason rendered in-character,
@@ -396,8 +400,28 @@ def build_pending_envoy_popup_from_terms(
         decision_reason=decision_reason,
     )
 
+    # LV-3 (row EP F2): the terminal's echo ("Responding to Ottoman's
+    # proposal: accept") is composed by the client from `from_nation` and
+    # the choice TOKEN. The backend owns the article (the client's prose
+    # repair deliberately skips "Ottoman"), so the payload carries the
+    # printed form and a label per answer the popup can send.
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    from_nation_display = with_definite_article(formed_display_name(world, nation))
+    choice_display = {
+        "accept": "accepted",
+        "reject": "declined",
+        "counter": "countered",
+        "dismiss": "set aside",
+        "grant": "granted",
+        "refuse": "refused",
+        "yield": "yielded to",
+        "defy": "defied",
+    }
     payload = {
         "from_nation": nation,
+        "from_nation_display": from_nation_display,
+        "choice_display": choice_display,
         "diplomat_name": diplomat_name,
         "diplomat_personality": PERSONALITY_DISPLAY.get(personality_raw, personality_raw),
         "proposal_type": terms.get("type", "unknown"),

@@ -629,7 +629,9 @@ def volte_face_courtship(world, power: str, hegemon: str) -> Optional[Dict]:
 
 
 def _turns(n: int) -> str:
-    return f"{int(n)} turn{'' if int(n) == 1 else 's'}"
+    # LV-9 (row EP F2): the one plural source.
+    from backend.display_names import plural
+    return plural(n, "turn")
 
 
 def volte_face_counsel_line(world, power: str, hegemon: str) -> str:

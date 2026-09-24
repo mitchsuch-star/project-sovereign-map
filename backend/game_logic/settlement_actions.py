@@ -2588,8 +2588,9 @@ def _action_pair_peace_substitute(
     war_id: str,
 ) -> Dict[str, Any]:
     # SC-29 / G2-Slice-7 pair-scoped peace substitute CTAs.
+    # F5 (row EP): the per-court chip names ITS court in the params.
     return _handle_pair_peace_substitute_action(
-        world, action=action, dialogue=dialogue,
+        world, action=action, dialogue=dialogue, action_params=action_params,
     )
 
 
@@ -2803,6 +2804,7 @@ def _handle_pair_peace_substitute_action(
     *,
     action: str,
     dialogue: Mapping[str, Any],
+    action_params: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """SC-29 / G2-Slice-7 dialogue handler for `seek_bilateral_peace` and
     `seek_armistice_instead`.
@@ -2824,6 +2826,17 @@ def _handle_pair_peace_substitute_action(
     """
     war_id = str(dialogue.get("war_id") or "")
     selected_target = str(dialogue.get("selected_target_nation") or "")
+    # F5 (row EP, LV-14(a) / LV-D4): the per-court "Separate peace with
+    # <court>" chip names ITS court in the structured params. It outranks
+    # the dialogue's selected target only when it names a COVERED court —
+    # a stale or foreign name falls back to the dialogue's own, so the
+    # eligibility helper below still judges a real pair.
+    _params = action_params if isinstance(action_params, Mapping) else {}
+    _asked = str(_params.get("selected_target_nation") or _params.get("nation") or "").strip()
+    if _asked:
+        _covered = {str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n}
+        if not _covered or _asked in _covered:
+            selected_target = _asked
     actor = str(getattr(world, "player_nation", "France") or "France")
     proposal_type = "armistice" if action == "seek_armistice_instead" else "peace"
 

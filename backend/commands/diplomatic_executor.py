@@ -14,6 +14,7 @@ from backend.models.world_state import WorldState
 
 from backend.display_names import proposal_display_name as _proposal_display_name
 from backend.display_names import ally_entry_block_line
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
 
 # Re-front Slice 2: settlement PROPOSE Tier-2 verbs that ride on per-court rows
@@ -32,6 +33,12 @@ _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
     "settlement_demand_add",
     "settlement_demand_remove",
     "settlement_demand_set_magnitude",
+    # F5 (row EP, LV-14(a) / LV-D4): the per-court "Separate peace with
+    # <court>" chip rides the row's structured-params transport (scope /
+    # nation / selected_target_nation), so the pair-substitute verbs join
+    # the set the structured path resolves directly.
+    "seek_bilateral_peace",
+    "seek_armistice_instead",
 })
 
 
@@ -5876,9 +5883,16 @@ class DiplomaticExecutor:
                 "proposal_type": counter_terms.get("type", "unknown"),
                 "decision_reason": context.get("decision_reason", ""),
             })
+            # LV-3 (row EP F2): the court's printed form, with its article
+            # ("the Ottoman Empire's counter-proposal"), never its tag.
+            from backend.display_names import with_definite_article
+            from backend.game_logic.formations import formed_display_name
             result = {
                 "success": True,
-                "message": f"You have accepted {source_nation}'s counter-proposal. {treaty_msg}",
+                "message": (
+                    f"You have accepted "
+                    f"{with_definite_article(formed_display_name(world, source_nation))}'s "
+                    f"counter-proposal. {treaty_msg}"),
             }
             if treaty_event and treaty_event.get("peace_ratification_summary"):
                 result["peace_ratification_summary"] = treaty_event[
@@ -5912,9 +5926,14 @@ class DiplomaticExecutor:
                 "proposal_type": ptype,
                 "decision_reason": "counterparty_reversal",
             })
+            from backend.display_names import with_definite_article
+            from backend.game_logic.formations import formed_display_name
             return {
                 "success": True,
-                "message": f"You have rejected {source_nation}'s counter-proposal. Relations cooled slightly.",
+                "message": (
+                    f"You have rejected "
+                    f"{with_definite_article(formed_display_name(world, source_nation))}'s "
+                    f"counter-proposal. Relations cooled slightly."),
             }
 
         # ═══════════════════════════════════════════════════════
@@ -6409,7 +6428,7 @@ class DiplomaticExecutor:
             "type": "ultimatum_demand_wizard",
             "target_nation": target_nation,
             "talleyrand_text": (f"Our military superiority permits territorial demands, Sire. "
-                                f"I have identified {len(ranked)} region(s) we could claim."),
+                                f"I have identified {_plural(len(ranked), 'region')} we could claim."),
             "options": [
                 {"label": "Yes, demand territory", "description": "Let me show you the candidates.",
                  "action": "ultimatum_territory_yes"},
@@ -6944,7 +6963,11 @@ class DiplomaticExecutor:
             })
             reason = str(treaty_event.get("message", "")).strip()
             from backend.game_logic.formations import formed_display_name
-            court = formed_display_name(world, source_nation)
+            from backend.display_names import with_definite_article
+            # LV-3 (row EP F2): sentence-initial, with its article ("The
+            # Ottoman Empire's terms could not be ratified").
+            court = with_definite_article(formed_display_name(world, source_nation),
+                                          capitalize=True)
             # Same vocabulary as the sibling counter-offer guard above, which
             # has had this check since G4F-13 — one phrase for one outcome.
             return {
@@ -6996,10 +7019,17 @@ class DiplomaticExecutor:
             "decision_reason": context.get("decision_reason", ""),
         })
 
+        # LV-3 (row EP F2): "You have accepted Ottoman's proposal." — the
+        # tag, which the client's prose repair deliberately skips. The
+        # formed display name with its article is the one source (R7).
+        from backend.display_names import with_definite_article
+        from backend.game_logic.formations import formed_display_name
         result = {
             "success": True,
             "message": (
-                f"You have accepted {source_nation}'s proposal. {treaty_msg}"
+                f"You have accepted "
+                f"{with_definite_article(formed_display_name(world, source_nation))}'s "
+                f"proposal. {treaty_msg}"
             ),
         }
         if treaty_event and treaty_event.get("peace_ratification_summary"):

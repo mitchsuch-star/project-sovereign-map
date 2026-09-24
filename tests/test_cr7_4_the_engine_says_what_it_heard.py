@@ -165,7 +165,8 @@ class TestTheEcho:
     @pytest.mark.parametrize("phrase,expect", [
         ("hold Lorraine until Ney arrives", "(until Ney arrives)"),
         ("hold Lorraine until relieved", "(until relieved)"),
-        ("hold Lorraine for 3 turns", "(for 3 turn(s))"),
+        # LV-9 (row EP F2): the plural agrees with the count; pin re-stated.
+        ("hold Lorraine for 3 turns", "(for 3 turns)"),
         ("hold Lorraine until victory", "(until the battle is won)"),
     ])
     def test_each_condition_is_named_in_the_confirmation(self, shipped, phrase, expect):
@@ -184,7 +185,7 @@ class TestTheEcho:
         ("hold Lorraine for three turns", "read as for 3 turns"),
         ("hold Lorraine until Marshal Ney arrives", "read as until Ney arrives"),
         ("hold Lorraine until relief arrives", "read as until relieved"),
-        ("hold Lorraine until turn 5", "read as for 4 turn(s) from now"),
+        ("hold Lorraine until turn 5", "read as for 4 turns from now"),
     ])
     def test_how_a_clause_was_read_is_said(self, shipped, phrase, note):
         reply = run(shipped, f"Davout, {phrase}")
@@ -205,7 +206,7 @@ class TestTheEcho:
         run(shipped, "Davout, hold Lorraine for 3 turns")
         row = next(r for r in build_strategic_ledger(M.world)["orders"]
                    if r["marshal"] == "Davout")
-        assert row["condition"] == "3 turn(s) remaining"
+        assert row["condition"] == "3 turns remaining"
 
     def test_a_two_armed_condition_renders_both_arms_on_the_ledger(self, shipped):
         """The drift pin's sharp edge: a local copy that names ONE arm
@@ -218,7 +219,7 @@ class TestTheEcho:
         row = next(r for r in build_strategic_ledger(M.world)["orders"]
                    if r["marshal"] == "Davout")
         # CR-7-9: two arms name the word that joins them — none typed = any-of.
-        assert row["condition"] == "3 turn(s) remaining or until Ney arrives — whichever comes first"
+        assert row["condition"] == "3 turns remaining or until Ney arrives — whichever comes first"
         assert row["condition"] == grammar.describe_condition(cond, remaining=3)
 
 
@@ -256,11 +257,11 @@ class TestTheGrammarMovesTogether:
                                   until_relieved=True, until_battle_won=True,
                                   until_marshal_destroyed="Mack")
         text = grammar.describe_condition(cond)
-        for piece in ("for 2 turn(s)", "until Ney arrives", "until relieved",
+        for piece in ("for 2 turns", "until Ney arrives", "until relieved",
                       "until the battle is won", "until Mack is destroyed"):
             assert piece in text
         assert grammar.describe_condition(None) == ""
-        assert grammar.describe_condition({"max_turns": 5}, remaining=2) == "2 turn(s) remaining"
+        assert grammar.describe_condition({"max_turns": 5}, remaining=2) == "2 turns remaining"
 
     def test_refusal_copy_covers_every_kind(self):
         for kind in ("unknown_referent", "enemy_referent", "self_referent",

@@ -18,6 +18,11 @@ signal dismissed
 # Status icons (text-based, no image assets needed)
 const STATUS_ICONS = {
 	"continues": "->",
+	# LV-4 (row EP F2): the two statuses the tick actually sends had no
+	# row, so every standing order rendered the "[ ]" fallback.
+	"active": "->",
+	"consumed": "[-]",
+	"retired": "[-]",
 	"completed": "[OK]",
 	"failed": "[X]",
 	"breaks": "[X]",
@@ -58,8 +63,13 @@ func show_reports(reports: Array, turn: int):
 func _format_report(report: Dictionary) -> String:
 	"""Format a single strategic order report."""
 	var result = ""
-	var marshal = report.get("marshal", "Unknown")
-	var command = report.get("command", "UNKNOWN")
+	var marshal = Utils.display_marshal_name(str(report.get("marshal", "Unknown")))
+	var command = str(report.get("command", "UNKNOWN"))
+	# LV-4 (row EP F2): the order's printed name, which the backend stamps
+	# on every row (`command_display`); the enum is the fallback only.
+	var command_label = str(report.get("command_display", command))
+	if command_label == "":
+		command_label = command
 	var status = report.get("order_status", "unknown")
 	var message = report.get("message", "")
 
@@ -69,7 +79,7 @@ func _format_report(report: Dictionary) -> String:
 
 	# Header line: icon + marshal + order type
 	result += "[color=#" + color + "]" + icon + " " + marshal + "[/color]"
-	result += " [color=#" + Utils.COLOR_INFO + "](" + command + ")[/color]\n"
+	result += " [color=#" + Utils.COLOR_INFO + "](" + command_label + ")[/color]\n"
 
 	# Message line
 	if message:
@@ -78,15 +88,17 @@ func _format_report(report: Dictionary) -> String:
 	# Progress details
 	var regions_moved = report.get("regions_moved", [])
 	if not regions_moved.is_empty():
-		var path_str = " -> ".join(PackedStringArray(regions_moved))
+		var path_str = " → ".join(PackedStringArray(regions_moved))  # LV-19: one arrow
 		result += "[color=#" + Utils.COLOR_INFO + "]   Moved through: " + path_str + "[/color]\n"
 
 	var destination = report.get("destination", "")
-	var turns_remaining = report.get("turns_remaining", -1)
+	# LV-4 (row EP F2): a JSON float rendered raw read "2.0 turns remaining";
+	# the count is an int and the noun agrees with it.
+	var turns_remaining = int(report.get("turns_remaining", -1))
 	if destination and turns_remaining >= 0:
-		result += "[color=#" + Utils.COLOR_INFO + "]   Destination: " + destination
+		result += "[color=#" + Utils.COLOR_INFO + "]   Destination: " + Utils.display_marshal_name(str(destination))
 		if turns_remaining > 0:
-			result += " (" + str(turns_remaining) + " turns remaining)"
+			result += " (" + Utils.plural(turns_remaining, "turn") + " remaining)"
 		result += "[/color]\n"
 
 	# Pursuit target info

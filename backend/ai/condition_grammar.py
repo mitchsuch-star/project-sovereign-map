@@ -48,6 +48,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
 from backend.ai.clause_guards import HONORIFIC, condition_marker_spans
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
 WORD_NUMBERS: Dict[str, int] = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
@@ -224,7 +225,7 @@ def parse_condition(command_lower: str, target: str, *, world=None,
             read.refusal = {"kind": "turn_passed", "turn": wanted, "current": now}
             return read
         cond["max_turns"] = wanted - now
-        read.notes.append(f"'until turn {wanted}' read as for {wanted - now} turn(s) from now")
+        read.notes.append(f"'until turn {wanted}' read as for {_plural(wanted - now, 'turn')} from now")
 
     if BATTLE_WON_RE.search(command_lower):
         cond["until_battle_won"] = True
@@ -337,11 +338,11 @@ def describe_condition(cond, *, remaining: Optional[int] = None,
     if get("max_turns") is not None:
         n = int(get("max_turns"))
         if "max_turns" in met:
-            entries.append(("max_turns", f"{n} turn(s) passed"))
+            entries.append(("max_turns", f"{_plural(n, 'turn')} passed"))
         elif remaining is not None:
-            entries.append(("max_turns", f"{int(remaining)} turn(s) remaining"))
+            entries.append(("max_turns", f"{_plural(int(remaining), 'turn')} remaining"))
         else:
-            entries.append(("max_turns", f"for {n} turn(s)"))
+            entries.append(("max_turns", f"for {_plural(n, 'turn')}"))
     if get("until_marshal_arrives"):
         entries.append(("until_marshal_arrives", f"until {get('until_marshal_arrives')} arrives"))
     if get("until_relieved"):

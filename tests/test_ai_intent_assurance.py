@@ -899,7 +899,7 @@ class TestArmBScriptedFrance:
                    if str(e.get("step", "")).startswith("accept volte-face")]
         assert [e.get("success") for e in accepts] == [True, True], accepts
         assert "conflict_alert" in accepts[1]["step"], accepts
-        assert "ALLIANCE with Russia" in accepts[1]["message"], accepts
+        assert "Alliance with Russia" in accepts[1]["message"], accepts  # F2 LV-3: printed state
         # Beat 5, once, naming the reversed power, the partner and the design.
         faces = scripted_soil["derived"]["volte_faces"]
         assert len(faces) == 1, faces

@@ -14,6 +14,7 @@ never resolve the wrong question.
 from typing import Dict, Optional
 
 from backend.display_names import humanize_entity_name
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.game_logic.formations import formed_display_name
 
 
@@ -171,7 +172,7 @@ class CaptureExecutor:
                 "success": True,
                 "message": (f"{capturer_name} secures {region_name}. "
                             f"Stability set to 25. Order is maintained."
-                            + (f" {damaged_count} building(s) damaged." if damaged_count else "")),
+                            + (f" {_plural(int(damaged_count), 'building')} damaged." if damaged_count else "")),
                 "events": [{
                     "type": "secure",
                     "region": region_name,

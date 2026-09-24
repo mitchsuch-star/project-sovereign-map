@@ -67,7 +67,7 @@ static func standing_lines(war_data: Dictionary) -> Array:
 			lines.append("  " + leader_marker + " " + display_nation_name(nation) + side_note + " — " + standing + " (" + str(int(round(material))) + "%)")
 		var overflow = int(war_data.get("contribution_overflow_count", 0))
 		if overflow > 0:
-			lines.append("  +" + str(overflow) + " more participant(s)")
+			lines.append("  +" + plural(overflow, "more participant"))
 	else:
 		var status_display = str(war_data.get("standing_status_display", ""))
 		if status_display != "":
@@ -322,6 +322,36 @@ static func humanize_entity_name(name: String) -> String:
 			out += " "
 		out += ch
 	return out.replace("_", " ")
+
+
+# LV-2 (row EP F2, Sept 25 2026): the marshal-name sibling of
+# `display_nation_name` — the diorama nameplate and the war-table piece
+# label rendered the roster KEY ("ArchdukeCharles"). One name for the
+# concept, so a new surface reaches for it rather than the raw field.
+static func display_marshal_name(name: String) -> String:
+	return humanize_entity_name(name)
+
+
+# LV-9 (row EP F2): "1 unanswered envoy(s)" — the `(s)` hedge stood at
+# fourteen client sites. The client mirror of `display_names.plural`:
+# the count and the noun, the noun agreeing with the count.
+const _PLURAL_IRREGULAR = {
+	"envoy": "envoys", "man": "men", "corps": "corps", "sail": "sail",
+	"province": "provinces", "turn": "turns", "port": "ports",
+	"region": "regions", "participant": "participants",
+	"petition": "petitions",
+}
+
+static func plural(n: int, noun: String) -> String:
+	if n == 1:
+		return str(n) + " " + noun
+	if _PLURAL_IRREGULAR.has(noun):
+		return str(n) + " " + _PLURAL_IRREGULAR[noun]
+	if noun.ends_with("s") or noun.ends_with("x") or noun.ends_with("ch") or noun.ends_with("sh"):
+		return str(n) + " " + noun + "es"
+	if noun.ends_with("y") and noun.length() > 1 and not ("aeiou".contains(noun[noun.length() - 2])):
+		return str(n) + " " + noun.substr(0, noun.length() - 1) + "ies"
+	return str(n) + " " + noun + "s"
 
 
 static func humanize_nation_keys_in_text(text: String) -> String:

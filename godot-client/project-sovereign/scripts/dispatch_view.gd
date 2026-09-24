@@ -330,7 +330,7 @@ func _on_dispatch_received(response):
 		open_envoys_button.text = "Open Envoys (%d)" % pending_envoy_count
 	if pending_envoys.size() > 0 and pending_envoy_count > 0:
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]ENVOYS AWAITING RESPONSE[/color]\n"
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + str(pending_envoy_count) + " envoy(s) await your reply this turn. Use [b]Open Envoys[/b] below before ending the turn.[/color]\n"
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + Utils.plural(pending_envoy_count, "envoy") + (" awaits" if pending_envoy_count == 1 else " await") + " your reply this turn. Use [b]Open Envoys[/b] below before ending the turn.[/color]\n"
 		for i in range(min(pending_envoys.size(), 3)):
 			var envoy = pending_envoys[i]
 			var envoy_nation = str(envoy.get("nation", "?"))

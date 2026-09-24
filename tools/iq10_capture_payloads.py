@@ -980,18 +980,31 @@ def cap_layout_f3():
         vienna.controller = PLAYER
         world.invalidate_active_nations_cache()
     world.diplomatic_points = max(int(world.diplomatic_points), 5)
+    # F5 (row EP, LV-14(a)): Austria beaten in the field — the pair war
+    # score France reads is +58 (the stored figure is the alphabetically
+    # first court's view) — so the blocker's sentence names London and
+    # Vilna as unbeaten and Vienna as the court to press alone.
+    _key = world._make_diplo_key(PLAYER, "Austria")
+    world.war_scores[_key] = 58 if _key.split("|")[0] == PLAYER else -58
     drafted = cmd(c, "propose common peace with Austria")
     dialogue = drafted.get("diplomatic_dialogue")
     per_court = (dialogue or {}).get("per_court_acceptance") or []
     record("settlement_three_courts", dialogue,
            source="POST /command 'propose common peace with Austria' → diplomatic_dialogue",
            staging="fresh 1805 boot; Vienna's controller WRITTEN to France; DP raised to 5; "
+                   "France's war score against Austria WRITTEN to +58 (F5); "
                    "the typed whole-war settlement draft (settlement_confirm, PROPOSE)",
            facts={"dialogue_type": (dialogue or {}).get("type"),
                   "dialogue_mode": (dialogue or {}).get("dialogue_mode"),
                   "courts": [r.get("nation") for r in per_court if isinstance(r, dict)],
                   "dial_actions": {r.get("nation"): len(r.get("dial_actions") or [])
                                    for r in per_court if isinstance(r, dict)},
+                  "separate_peace_chips": {
+                      r.get("nation"): [a.get("label") for a in (r.get("dial_actions") or [])
+                                        if isinstance(a, dict) and a.get("action") == "seek_bilateral_peace"]
+                      for r in per_court if isinstance(r, dict)},
+                  "legitimacy": [ln for ln in str((dialogue or {}).get("talleyrand_text") or "").splitlines()
+                                 if "unbeaten" in ln or "Press " in ln][:2],
                   "message": str(drafted.get("message"))[:200]})
 
     # LV-16: a log with rows of several categories — Ulm fought, two turns

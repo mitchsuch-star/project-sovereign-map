@@ -1058,8 +1058,16 @@ class TestTheAmbientBoard:
         # the gated board — the standing BASELINE_SERIES — is byte-identical.
         # With the four F4 levers down in the child this arm reads 40+7
         # again (measured, F4's landing record).
-        assert seams == {"_fuzzy_match_enemy": 39,
-                         "_broad_fuzzy_diplomatic_check": 6}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve)
+        # Row EP F5 "Bohemia is not empty" (September 25, 2026): 39+6 -> 63+0.
+        # The walk-in cap re-times the UNGATED board from turn 7 (the
+        # BASELINE_SERIES attribution block): Bavaria's Deroy keeps his corps,
+        # Switzerland's war never reaches the canton, so the six absorber
+        # hits on `Bern` are gone; the collapses are all `Gascony`/
+        # `Champagne`/`Brittany` -> Ney and `Leon` -> Napoleon, off a France
+        # that is overrun earlier (the passive board, FA-D27's caveat). With
+        # the two F5 levers down in the child this arm reads 39+6 again
+        # (measured, `tools/_f5_wo10_attribution.py`).
+        assert seams == {"_fuzzy_match_enemy": 63}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1088,11 +1096,18 @@ class TestTheAmbientBoard:
         # the deed-keyed reward curve (no AI grants): `Guyenne -> Ney`'s four
         # orders are gone, `Gascony -> Ney` 14 -> 18, `Bern -> Brunswick`
         # 14 -> 12; the other three pairs are unchanged.
-        assert dict(pairs) == {("Leon", "Napoleon"): 3,
-                               ("Gascony", "Ney"): 18,
-                               ("Champagne", "Ney"): 9,
-                               ("Bern", "Brunswick"): 12,
-                               ("Maine", "Ney"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4
+        # Row EP F5 "Bohemia is not empty" (September 25, 2026): the ungated
+        # board re-times under the walk-in cap — `Bern -> Brunswick` and
+        # `Maine -> Ney` are gone, `Champagne -> Ney` 9 -> 31, `Gascony ->
+        # Ney` 18 -> 24, `Leon -> Napoleon` 3 -> 7, and `Brittany -> Ney`
+        # collapses once. Every pair is still a PROVINCE collapsing onto a
+        # marshal — the defect's shape, unchanged. With the two F5 levers
+        # down in the child the EP-F4 split returns (measured,
+        # `tools/_f5_wo10_attribution.py`).
+        assert dict(pairs) == {("Leon", "Napoleon"): 7,
+                               ("Gascony", "Ney"): 24,
+                               ("Champagne", "Ney"): 31,
+                               ("Brittany", "Ney"): 1}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1185,7 +1200,16 @@ class TestTheAmbientBoard:
         # IQ-7 record, kept for the diff:
         # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
         #  36, 33, 30, 27, 24, 21, 8, 5, 2, 0, 0, ...]
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 35, 32, 29, 26, 23, 20, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # NUI-2 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
+        #  35, 32, 29, 26, 23, 20, 7, 0, 0, ...]
+        # Re-recorded by row EP F5 "Bohemia is not empty" (September 25,
+        # 2026): the walk-in cap re-times this arm from index [7] exactly as
+        # it re-times the gated one (the BASELINE_SERIES attribution block) —
+        # the Kingdom of Italy leaves France's web at world turn 8 on both
+        # boards now. With the two F5 levers down in the child the NUI-2 list
+        # returns byte-for-byte (measured, `tools/_f5_wo10_attribution.py`).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 46, 44, 41, 38, 35, 22, 19, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1855,8 +1879,16 @@ class TestTheAiIsNotFrozenInstead:
         #     `_fuzzy_match_enemy` count (3 + 18 + 9 + 6 + 3 = 39; the seven
         #     Bern orders became six). The gated count is unchanged. See
         #     TestTheAmbientBoard for the cause.
-        assert cooldowns["ungated"] == 39, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve)
-        assert cooldowns["gated"] == 5, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 across slices (IQ-7: unchanged)
+        #   - Row EP F5 "Bohemia is not empty" (September 25, 2026): 39 -> 75
+        #     ungated, 5 -> 4 gated. The ungated count no longer equals the
+        #     `_fuzzy_match_enemy` collision count (63): a France overrun
+        #     earlier on the re-timed board leaves the AI more refused
+        #     orders of OTHER kinds to record. The gated board moved too —
+        #     it is the standing BASELINE_SERIES board, re-recorded by F5.
+        #     With the two F5 levers down in the child both read 39 / 5
+        #     again (measured, `tools/_f5_wo10_attribution.py`).
+        assert cooldowns["ungated"] == 75, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap)
+        assert cooldowns["gated"] == 4, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 across slices (IQ-7: unchanged; EP F5: the walk-in cap)
 
 
 _COOLDOWN_PROBE = r'''

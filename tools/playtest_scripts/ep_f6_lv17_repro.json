@@ -1,0 +1,15 @@
+{
+  "name": "ep-f6-lv17-repro",
+  "seed": "historical",
+  "llm": "mock",
+  "turns": {
+    "1": ["Ney, attack Mack", "Soult, attack Mack", "Murat, scout Tyrol", "Davout, move to Munich"],
+    "2": ["Ney, march to Vienna"],
+    "3": ["Soult, march to Vienna", "Davout, march to Vienna"],
+    "4": ["Murat, pursue Archduke Charles"],
+    "5": ["Ney, attack Archduke John", "Davout, attack Archduke John", "Lannes, march to Vienna"],
+    "6": ["Soult, attack Vienna", "Murat, attack Vienna", "Ney, attack Vienna"],
+    "7": ["status"]
+  },
+  "policy": {"objection": "insist", "diplomacy": "decline", "petition": "first_enabled"}
+}

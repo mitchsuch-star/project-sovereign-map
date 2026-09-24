@@ -20,6 +20,8 @@ to maintain the Building Blocks principle.
 
 from typing import Dict, List, Optional, Tuple
 
+from backend.display_names import plural as _plural_lv9  # LV-9 (row EP F2)
+
 # NP-V: who SAYS an interrupt line — the marshal himself, or Berthier when
 # the marshal is the sovereign (the Emperor never addresses the player).
 from backend.game_logic.marshal_voice import interrupt_speaker
@@ -176,7 +178,7 @@ def hostile_verb_at_peace(world, marshal, enemy, verb: str) -> str:
     if state == "ARMISTICE":
         turns = int((getattr(world, "armistice_cooldowns", {}) or {}).get(key, 1))
         return (f"We hold an armistice with {nation}, Sire — {who} may not be "
-                f"touched for {turns} more turn(s). Let it lapse, or break it "
+                f"touched for {_plural_lv9(int(turns), 'more turn')}. Let it lapse, or break it "
                 f"by declaring war.")
     return (f"We are not at war with {nation}, Sire — {who} may not be "
             f"attacked while the peace holds. Declare war on {nation} first, "
@@ -1274,27 +1276,32 @@ class StrategicOrderProcessor:
                 remaining = order_turns_remaining(order, int(world.current_turn))
 
                 # Context-appropriate message based on order type and position
+                # LV-4 / LV-9 (row EP F2): "(2 turn(s) remaining)" was the
+                # engine's hedge in the player's report; the plural agrees
+                # with the count now (one source, display_names.plural).
+                from backend.display_names import plural as _plural
+                _left = f"({_plural(remaining, 'turn')} remaining)"
                 if order.command_type == "HOLD":
                     if marshal.location == order.target or not order.target:
                         msg = f"{marshal.name} is holding position at {marshal.location}."
                         if timed:
                             msg = (f"{marshal.name} is holding position at {marshal.location} "
-                                   f"({remaining} turn(s) remaining).")
+                                   f"{_left}.")
                     else:
-                        msg = f"{marshal.name} is marching to hold {order.target} ({remaining} turn(s) remaining)."
+                        msg = f"{marshal.name} is marching to hold {order.target} {_left}."
                 elif order.command_type == "PURSUE":
                     # N27 (CA9): `order.target` is a raw marshal KEY, so
                     # this printed the camelCase key rather than the man.
                     # Same family as the already-filed N42 / S5-2.
                     msg = (f"{marshal.name} is pursuing "
                            f"{_hum(order.target)} "
-                           f"({remaining} turn(s) remaining).")
+                           f"{_left}.")
                 elif order.command_type == "SUPPORT":
                     msg = (f"{marshal.name} is moving to support "
                            f"{_hum(order.target)} "
-                           f"({remaining} turn(s) remaining).")
+                           f"{_left}.")
                 else:  # MOVE_TO
-                    msg = f"{marshal.name} is marching to {order.target} ({remaining} turn(s) remaining)."
+                    msg = f"{marshal.name} is marching to {order.target} {_left}."
 
                 if progress_note:
                     msg = f"{progress_note} {msg}"
@@ -1336,6 +1343,23 @@ class StrategicOrderProcessor:
 
         # Pass 3 (FA-16): the decisions no order raised.
         reports.extend(self._standalone_decision_rows(world))
+
+        # LV-4 (row EP F2, Sept 25 2026): every row carries the order's
+        # printed name beside the enum the client keyed on ("Ney (MOVE_TO)"
+        # was the engine leaking onto the recap). ONE source, at the single
+        # return, so no producer above can forget it; a row without an
+        # order (consumed / retired / a standalone decision) carries "".
+        # `turns_remaining` is already an int on every producer above —
+        # the client's "2.0" came from a JSON float rendered raw.
+        from backend.display_names import get_strategic_display
+        for _row in reports:
+            if not isinstance(_row, dict):
+                continue
+            _cmd = str(_row.get("command") or "")
+            _row.setdefault("command_display",
+                            get_strategic_display(_cmd) if _cmd else "")
+            if "turns_remaining" in _row and _row["turns_remaining"] is not None:
+                _row["turns_remaining"] = int(_row["turns_remaining"])
 
         return reports
 
@@ -2228,7 +2252,7 @@ class StrategicOrderProcessor:
                     "command": order.command_type,
                     "order_status": "paused",
                     "message": f"{marshal.name} is recovering from retreat "
-                               f"({recovery} turn(s) remaining). Order paused."
+                               f"({_plural_lv9(int(recovery), 'turn')} remaining). Order paused."
                 }
 
         # [7A-7] Removed dead code: aggressive HOLD expiry was duplicated here
@@ -2423,7 +2447,7 @@ class StrategicOrderProcessor:
                 "destination": destination,
                 "turns_remaining": int(remaining),
                 "message": f"{marshal.name} marches to {moves_made[-1]}. "
-                           f"{remaining} region(s) to {destination}."
+                           f"{_plural_lv9(int(remaining), 'region')} to {destination}."
             }
 
         # PF-8: a stall on a DIPLOMATIC block used to return a content-free
@@ -2975,7 +2999,7 @@ class StrategicOrderProcessor:
                         world._last_tactical_events.append(target_not_found_event)
                     return self._break_order(marshal, world,
                         f"{marshal.name} arrives at {marshal.location} but finds no sign of "
-                        f"{order.target}. Last intelligence was {intel_age} turn(s) old. "
+                        f"{order.target}. Last intelligence was {_plural_lv9(int(intel_age), 'turn')} old. "
                         f"Awaiting orders, Sire.")
                 # Enemies adjacent — existing personality contact vectors handle
                 # The marshal stays in position; PURSUE continues with fresh intel next turn
@@ -2992,7 +3016,7 @@ class StrategicOrderProcessor:
                 "target_location": pursue_destination,
                 "distance": int(distance),
                 "message": f"{marshal.name} pursues {order.target}. "
-                           f"{distance} region(s) away."
+                           f"{_plural_lv9(int(distance), 'region')} away."
             }
 
         # PF-8: a PURSUE stalled on a DIPLOMATIC block used to return a
@@ -3156,7 +3180,7 @@ class StrategicOrderProcessor:
                             "action": "moving_to_position",
                             "order_status": "continues",
                             "message": f"{marshal.name} moves toward {hold_position}. "
-                                       f"{distance} region(s) away."
+                                       f"{_plural_lv9(int(distance), 'region')} away."
                         }
 
             if HOLD_KEEPS_ITS_ROAD:
@@ -3667,7 +3691,7 @@ class StrategicOrderProcessor:
                 "ally": ally.name,
                 "distance": int(distance),
                 "message": f"{marshal.name} moves to support {ally.name}. "
-                           f"{distance} region(s) away."
+                           f"{_plural_lv9(int(distance), 'region')} away."
             }
 
         if SUPPORT_STALL_SPEAKS:
@@ -3854,7 +3878,7 @@ class StrategicOrderProcessor:
                     # Move toward battle (one step for infantry, up to movement_range for cavalry)
                     steps = min(attack_range, len(path_to_battle) - 1)
                     print(f"[STRATEGIC INTERRUPT] {marshal.name}: Rushing toward battle "
-                          f"({distance} away, {steps} step(s))")
+                          f"({distance} away, {_plural_lv9(int(steps), 'step')})")
                     action_taken = "move"
                     for i in range(steps):
                         next_region = path_to_battle[1 + i]
@@ -3997,9 +4021,10 @@ class StrategicOrderProcessor:
                     else:
                         label = f"{marshal.name} completes the timed hold at {location}."
                 else:
-                    label = f"Order complete after {condition.max_turns} turn(s)"
+                    label = f"Order complete after {_plural_lv9(int(condition.max_turns), 'turn')}"
             arms.append(("max_turns", met, label,
-                         f"The agreed {int(condition.max_turns)} turn(s) have passed."))
+                         f"The agreed {_plural_lv9(int(condition.max_turns), 'turn')} "
+                         f"{'has' if int(condition.max_turns) == 1 else 'have'} passed."))
         if condition.until_marshal_arrives:
             target = world.get_marshal(condition.until_marshal_arrives)
             met = bool(target and target.location == marshal.location)

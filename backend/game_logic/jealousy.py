@@ -1044,6 +1044,16 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         level = get_escalation_level(marshal, target.name)
         key = f"{pair}@L{level}"
         already = key in seen or (level == 0 and pair in seen)
+        # F6 (row EP, LV-17): a card for this pair still standing from
+        # BEFORE a battle settled the quarrel is stale in its body. The
+        # re-fire replaces it — the latch had been blocking the fresh card
+        # and handing the stale one over, which is the contradiction the
+        # review read on consecutive turns.
+        if THE_REOPENED_QUARREL_SAYS_SO and settled_once_clause(world, marshal, target):
+            stale = _pending_confrontation_for_pair(world, marshal.name, target.name)
+            if stale is not None:
+                _retire_pending_petition(world, stale)
+                already = False
         if not already:
             # PC15-10 B0 (F4): occupancy is the CHANNEL's decision now —
             # stamp only on QUEUED, so a blocked key keeps its retry (the
@@ -1287,7 +1297,7 @@ def _action_resolution_event(record: Dict) -> Dict:
 
 def clear_jealousy(world, marshal, resolved_by_action: bool,
                    events: Optional[List[Dict]] = None,
-                   reason: str = "") -> Optional[Dict]:
+                   reason: str = "", where: str = "") -> Optional[Dict]:
     """Clear the grievance. Action resolutions grant the 1-turn surge
     (spec §4); timer expiry grants nothing. The derived -1 restores
     itself the moment jealous_of clears.
@@ -1315,6 +1325,13 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
         "nation": marshal.nation,
         "by_action": bool(resolved_by_action),
         "reason": reason,
+        # F6 "Settled once, reopened" (row EP, LV-17): WHERE it was settled
+        # — the battle region for a battle-time resolution, "" otherwise —
+        # read by `settled_once_clause` when the same pair re-fires within a
+        # turn, so the next card can say "Settled once at Vienna — and
+        # reopened by …" instead of contradicting last turn's report. A key
+        # on the existing event type, never a new log type.
+        "location": str(where or ""),
     })
     record = {
         "marshal": marshal.name,
@@ -1324,6 +1341,7 @@ def clear_jealousy(world, marshal, resolved_by_action: bool,
         "by_action": bool(resolved_by_action),
         "reason": reason,
         "is_player": bool(is_player),
+        "location": str(where or ""),
     }
     if is_player and events is not None:
         if resolved_by_action:
@@ -1497,7 +1515,8 @@ def check_battle_resolution(world, attacker, defender, attacker_won: bool,
                             attacker_participants: Optional[List] = None,
                             defender_participants: Optional[List] = None,
                             defender_broken: bool = False,
-                            defer_dispatch: bool = False) -> List[Dict]:
+                            defer_dispatch: bool = False,
+                            battle_region: Optional[str] = None) -> List[Dict]:
     """Per-personality action resolution, checked at battle time BEFORE the
     Win/Loss relationship step (EC-F: the derived -1 restores before the
     battle's relationship processing when the battle itself resolves the
@@ -1524,7 +1543,8 @@ def check_battle_resolution(world, attacker, defender, attacker_won: bool,
 
     def _clear(m, reason: str) -> None:
         rec = clear_jealousy(world, m, resolved_by_action=True,
-                             events=events, reason=reason)
+                             events=events, reason=reason,
+                             where=str(battle_region or ""))
         if rec is not None:
             records.append(rec)
 
@@ -1956,6 +1976,97 @@ def _push_petition(world, petition: Dict) -> str:
     return PETITION_QUEUED
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# F6 "Settled once, reopened" (row EP, LV-17, September 25 2026).
+#
+# The live review read, one turn apart and in this order: "Davout fought
+# like a man with something to prove — and proved it. His grievance is
+# settled." and then "Marshal Davout seeks an audience … the quarrel may
+# harden further." Both were true of DIFFERENT grievances: the battle
+# resolved the first by action (pipeline step 9.5, `clear_jealousy`), and
+# the end-of-turn pass — whose same-pass suppression set (`cooled_this_pass`)
+# remembers only the coolings IT performed — re-fired the same pair off the
+# rival's fresh laurels. The trigger is legal and untouched (it feeds
+# `jealous_of`, which M7 and `BASELINE_SERIES` read through combat); what
+# was missing was the card saying so.
+#
+# Two rules, one lever:
+#   * a confrontation card built within a turn of a by-action settlement of
+#     the SAME pair opens with "Settled once at <where> — and reopened by
+#     <target>'s laurels since." (`settled_once_clause`, read off the
+#     `jealousy_resolved` event's own `location`);
+#   * a card for that pair still STANDING undelivered from before the
+#     settlement is stale in its body, so the re-fire REPLACES it rather than
+#     letting the old card be delivered over the new grievance (the latch
+#     `jealousy_confrontations_seen` had blocked the fresh card and handed
+#     over the stale one).
+# A card whose grievance no longer stands at all is still retired at
+# delivery by `petition_is_still_live` (FA-S17-D4) — that half predates F6.
+# ═══════════════════════════════════════════════════════════════════════
+THE_REOPENED_QUARREL_SAYS_SO = True
+SETTLED_ONCE_WINDOW_TURNS = 1
+
+
+def _settled_once_record(world, marshal_name: str, target_name: str) -> Optional[Dict]:
+    """The most recent by-action `jealousy_resolved` for this pair within
+    `SETTLED_ONCE_WINDOW_TURNS` of the current turn, else None. Reads the
+    event log from its tail (the pair's settlement is this turn's or last
+    turn's news, never deep in the log)."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for ev in reversed(list(getattr(world, "event_log", []) or [])):
+        if not isinstance(ev, dict):
+            continue
+        ev_turn = int(ev.get("turn", -99) or 0)
+        if ev_turn < turn - SETTLED_ONCE_WINDOW_TURNS:
+            break
+        if (ev.get("type") == "jealousy_resolved"
+                and ev.get("marshal") == marshal_name
+                and ev.get("target") == target_name
+                and bool(ev.get("by_action"))):
+            return ev
+    return None
+
+
+def settled_once_clause(world, marshal, target) -> str:
+    """The card's first sentence when the quarrel it opens was settled by
+    action within the last turn — "" otherwise (lever down: always "")."""
+    if not THE_REOPENED_QUARREL_SAYS_SO:
+        return ""
+    record = _settled_once_record(world, marshal.name, target.name)
+    if record is None:
+        return ""
+    where = str(record.get("location") or "").strip()
+    rival = humanize_entity_name(target.name)
+    if where:
+        return f"Settled once at {where} — and reopened by {rival}'s laurels since."
+    return f"Settled once — and reopened by {rival}'s laurels since."
+
+
+def _pending_confrontation_for_pair(world, marshal_name: str, target_name: str):
+    """The standing, undelivered confrontation card for exactly this pair,
+    else None."""
+    pending = getattr(world, "pending_marshal_petition", None)
+    if not isinstance(pending, dict):
+        return None
+    if str(pending.get("kind") or "") != "jealousy_confrontation":
+        return None
+    ctx = pending.get("context") or {}
+    if (ctx.get("marshal") or pending.get("marshal") or pending.get("speaker")) != marshal_name:
+        return None
+    if (ctx.get("target") or pending.get("target")) != target_name:
+        return None
+    return pending
+
+
+def _retire_pending_petition(world, petition) -> None:
+    """Drop a standing card from the channel (the slot AND the popup queue)."""
+    if getattr(world, "pending_marshal_petition", None) is petition:
+        world.pending_marshal_petition = None
+    queue = getattr(world, "_popup_queue", None)
+    if queue is not None and hasattr(queue, "clear_type"):
+        queue.clear_type("pending_marshal_petition")
+
+
 # FA-S17-12 / ruling FA-S17-D4 (slice 17, Phase 4, September 12 2026) flip
 # lever: a petition whose quarrel has already cooled is RETIRED at the
 # delivery seam instead of being shown. The card is built inside the turn
@@ -2223,6 +2334,12 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
             f"knows it. He asks, plainly, where the Emperor stands."),
     }.get(int(level), "")
     body += escalation_clause
+    # F6 (row EP, LV-17): a quarrel settled by action within the last turn
+    # and now reopened SAYS so, first — the report that called it settled
+    # and the card that reopens it can no longer contradict each other.
+    _reopened = settled_once_clause(world, marshal, target)
+    if _reopened:
+        body = f"{_reopened} {body}"
     return _push_petition(world, {
         "kind": "jealousy_confrontation",
         "title": f"Marshal {marshal.name} seeks an audience",

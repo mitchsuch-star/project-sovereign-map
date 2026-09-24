@@ -1029,8 +1029,16 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # turn France|Switzerland stops being a VASSAL, which covers both. On
         # this board both arms are true rebellions: VASSAL → WAR,
         # `vassal_broke_free` with exit=vassal_rebellion.
-        assert uncapped == 16, uncapped
-        assert capped == 21, capped
+        # Re-measured by row EP F5 "Bohemia is not empty" (September 25,
+        # 2026): the walk-in cap re-times the whole ambient board from turn 7
+        # (see the BASELINE_SERIES attribution block). Uncapped 12, capped
+        # 15 — the cap buys THREE turns; the contract holds. Attribution
+        # measured through THIS runner's `flips`: with the two F5 levers
+        # (`ONE_WALK_IN_PER_CORPS_PER_TURN`,
+        # `THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK`) down in the child
+        # it reads 16 / 21 verbatim.
+        assert uncapped == 12, uncapped
+        assert capped == 15, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1105,8 +1113,20 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # transferring Switzerland at t29 (`vassal_defection` -10, the
         # decay clamped at the floor). The pin never depended on which exit
         # it was, only on the fall.
-        elimination_step = 25
-        assert steps[elimination_step] == -13, steps
+        # Row EP F5 "Bohemia is not empty" (September 25, 2026). The re-recorded
+        # series keeps this pin's general form. Traced with
+        # `tools/_f5_board_events.py`:
+        #   - The elimination MOVED: the Kingdom of Italy leaves France's web
+        #     at world turn 8 (the step from index 6 to 7, 58 -> 46), and at
+        #     that point of the schedule the ordinary decay is -2, so the
+        #     signature is -12 (-2 decay - 10 relief) — the "-12/-13
+        #     signature" the Phase 2 note named, at its -12 end.
+        #   - The capped exit is the unique largest ORDINARY fall, -13
+        #     (28 -> 15, the step from index 13 to 14, world turn 15): -3
+        #     decay - 10 as Switzerland leaves the vassal web.
+        #     `_rebellion_turn(True)` measures 15 = index + 1.
+        elimination_step = 6
+        assert steps[elimination_step] == -12, steps
         ordinary = [s for i, s in enumerate(steps) if i != elimination_step]
         worst = min(ordinary)
         assert ordinary.count(worst) == 1, (

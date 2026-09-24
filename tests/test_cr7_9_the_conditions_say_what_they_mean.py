@@ -127,8 +127,11 @@ class TestTheConnectorIsRead:
 
     def test_the_single_arm_reads_are_byte_identical(self):
         # The one-armed strings every older pin holds must not move.
-        assert grammar.describe_condition({"max_turns": 3}) == "for 3 turn(s)"
-        assert grammar.describe_condition({"max_turns": 3}, remaining=2) == "2 turn(s) remaining"
+        # LV-9 (row EP F2): the plural agrees with the count — "3 turns",
+        # never the "(s)" hedge. Pins re-stated consciously.
+        assert grammar.describe_condition({"max_turns": 3}) == "for 3 turns"
+        assert grammar.describe_condition({"max_turns": 3}, remaining=2) == "2 turns remaining"
+        assert grammar.describe_condition({"max_turns": 1}) == "for 1 turn"
         assert grammar.describe_condition({"until_marshal_arrives": "Davout"}) == "until Davout arrives"
         assert grammar.describe_condition({"until_battle_won": True}) == "until the battle is won"
 
@@ -137,7 +140,7 @@ class TestTheSentenceNamesTheConnector:
 
     def test_any_of_says_whichever_comes_first(self):
         text = grammar.describe_condition({"max_turns": 3, "until_marshal_arrives": "Davout"}, remaining=2)
-        assert text == "2 turn(s) remaining or until Davout arrives — whichever comes first"
+        assert text == "2 turns remaining or until Davout arrives — whichever comes first"
         assert " and " not in text and "," not in text
 
     def test_all_of_says_both_and_ticks_off_a_met_arm(self):
@@ -153,7 +156,7 @@ class TestTheSentenceNamesTheConnector:
                 "require_all": True}
         assert grammar.describe_condition(cond).endswith("— all 3")
         # a met timer arm reads as passed, never as "0 remaining"
-        assert "2 turn(s) passed (met)" in grammar.describe_condition(
+        assert "2 turns passed (met)" in grammar.describe_condition(
             cond, remaining=0, progress=["max_turns"])
 
 
@@ -182,8 +185,8 @@ class TestTheEchoAndTheLedgerAgree:
         order = ney.strategic_order
         assert order.target == here, order.target                      # no "… and"
         assert order.condition.require_all and order.condition.max_turns == 2
-        assert "for 2 turn(s) and until Davout arrives — both" in reply["message"]
-        assert ledger_condition(world, "Ney") == "2 turn(s) remaining and until Davout arrives — both"
+        assert "for 2 turns and until Davout arrives — both" in reply["message"]
+        assert ledger_condition(world, "Ney") == "2 turns remaining and until Davout arrives — both"
 
     def test_an_arrival_referent_already_at_his_side_is_noted(self, shipped):
         _client, world = shipped
@@ -231,7 +234,7 @@ class TestTheTimerCountsTheTurnItWasGiven:
         _client, world = shipped
         ney = world.get_marshal("Ney")
         run(shipped, f"Ney, hold {ney.location} for 1 turn")
-        assert ledger_condition(world, "Ney") == "1 turn(s) remaining"
+        assert ledger_condition(world, "Ney") == "1 turn remaining"
         reply = end_turn(shipped)
         row = report_for(reply, "Ney")
         assert row and row["order_status"] == "completed", row
@@ -244,8 +247,8 @@ class TestTheTimerCountsTheTurnItWasGiven:
         reply = end_turn(shipped)
         row = report_for(reply, "Davout")
         assert row["order_status"] == "active" and row["turns_remaining"] == 1, row
-        assert "(1 turn(s) remaining)" in row["message"]
-        assert ledger_condition(world, "Davout") == "1 turn(s) remaining"
+        assert "(1 turn remaining)" in row["message"]
+        assert ledger_condition(world, "Davout") == "1 turn remaining"
         reply = end_turn(shipped)
         assert report_for(reply, "Davout")["order_status"] == "completed"
 
@@ -260,7 +263,8 @@ class TestTheTimerCountsTheTurnItWasGiven:
         for _ in range(turns + 1):
             if soult.strategic_order is None:
                 break
-            assert ledger_condition(world, "Soult") == f"{turns - _} turn(s) remaining"
+            assert ledger_condition(world, "Soult") == (
+                f"{turns - _} turn{'s' if turns - _ != 1 else ''} remaining")
             end_turn(shipped)
         assert soult.strategic_order is None
 
@@ -360,7 +364,7 @@ class TestTheAllOfLatch:
         reply = end_turn(shipped)
         row = report_for(reply, "Ney")
         assert row["order_status"] == "active", row
-        assert "The agreed 1 turn(s) have passed. Ney holds on — until Davout arrives as well." in row["message"]
+        assert "The agreed 1 turn has passed. Ney holds on — until Davout arrives as well." in row["message"]
         assert "abandons" not in row["message"]
         assert ney.strategic_order is not None
         assert ney.strategic_order.condition_progress == ["max_turns"]

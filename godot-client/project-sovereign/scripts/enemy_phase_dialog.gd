@@ -344,7 +344,13 @@ func _format_action(action: Dictionary) -> String:
 			# IQ-2: both conquest producers stamp `captured_from` (WO-9) — a
 			# province taken from us is a loss, not a victory in green.
 			var conquest_color = COLOR_ERROR if _taken_from_player(event) else Utils.COLOR_CONQUEST
-			result += "[color=#" + conquest_color + "]    Region captured: " + region + choice_str + "[/color]\n"
+			# LV-10 (row EP F2): whom it was taken from — the movement
+			# branch's " (was X)" (FA-N33), the same field, the same words.
+			var conquest_from = str(event.get("captured_from", ""))
+			var conquest_was = ""
+			if conquest_from != "":
+				conquest_was = " (was " + Utils.display_nation_name(conquest_from) + ")"
+			result += "[color=#" + conquest_color + "]    Region captured: " + region + conquest_was + choice_str + "[/color]\n"
 
 	# Berthier's After-Action Report (if battle occurred)
 	if action.has("battle_report"):
@@ -521,7 +527,13 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 		# IQ-2: the same rule when the battle event carries `captured_from`
 		# (absent today on the field-battle event — then unchanged).
 		var battle_capture_color = COLOR_ERROR if _taken_from_player(event) else Utils.COLOR_CONQUEST
-		result += "[color=#" + battle_capture_color + "]    " + region + " CAPTURED!" + battle_choice_str + "[/color]\n"
+		# LV-10 (row EP F2): the field-battle branch says whom it was
+		# taken from too, when the event carries the stamp.
+		var battle_from = str(event.get("captured_from", ""))
+		var battle_was = ""
+		if battle_from != "":
+			battle_was = " (was " + Utils.display_nation_name(battle_from) + ")"
+		result += "[color=#" + battle_capture_color + "]    " + region + " CAPTURED!" + battle_was + battle_choice_str + "[/color]\n"
 
 	# Check for forced retreat
 	if attacker.get("forced_retreat", false):

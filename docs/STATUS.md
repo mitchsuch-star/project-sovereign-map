@@ -11,11 +11,95 @@
 > THE ROUTING AUTHORITY. START THERE. ~~First slice = F1 "The first ten
 > minutes"~~ ✅ LANDED September 23, 2026 (block below). ~~F3 "The client
 > layout pass" + F4 "The fuse is longer"~~ ✅ LANDED September 24, 2026
-> (taken ahead of F2 by the user's direction; block below). ▶ NEXT SLICE =
-> F2 "The display-name pass"** (`ENDGAME_PLAN.md` §1 F2: LV-2, LV-3, LV-4,
-> LV-6, LV-9, LV-10, LV-11, LV-18, LV-19 — NPC-12's first slice; every
-> string pinned by a driven `/command` test; zero `BASELINE_SERIES`
-> movement), **then F5, F6, then GE-1.**
+> (taken ahead of F2 by the user's direction; block below). ~~F2 "The
+> display-name pass" + F5 "Bohemia is not empty" + F6 "Settled once,
+> reopened"~~ ✅ LANDED September 25, 2026 (one commit; block below — **the
+> six fixes F1–F6 are ALL LANDED; all 22 LV rows are CLOSED**). ▶ NEXT SLICE
+> = GE-1 "The Verdict and the Fall"** (`ENDGAME_PLAN.md` §3–§6 + the ending
+> slices in §6, with `docs/GAME_END_SPEC.md` as the spec: R1's two warned
+> defeat clocks + the marked "Humbled Peace", the `province_title` substrate
+> and the Verdict; then GE-2 the screens, GE-3 "The Congress of Paris",
+> GE-V, then the release build). ⚠ Still open for the user, not for a
+> session: the in-game feel of F3's six surfaces (frames
+> `docs/audits/IQ10_*_2026_09_24.png`) and now F5's settlement header
+> (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
+>
+> **▶ ▶ F2 "THE DISPLAY-NAME PASS" + F5 "BOHEMIA IS NOT EMPTY" + F6
+> "SETTLED ONCE, REOPENED" — ✅ LANDED September 25, 2026** (row EP's
+> fourth, fifth and sixth slices, one commit; landing records =
+> `ENDGAME_PLAN.md` §1 F2 / §1 F5 / §1 F6, rules `SYSTEMS_REFERENCE.md`
+> §61 / §62 / §63; rows disposed in `BUG_FIXES.md` §Live Review — **all
+> 22 LV rows are now CLOSED** — plus NPC-12's census note, and
+> `DESIGN_REFINEMENT.md` LV-D2 built + LV-D4's F5 half built).
+> - **F2 — the display-name pass (NPC-12's first slice).** One rule: a
+>   player-facing string names a man, a court, a state and a count the way
+>   the game prints them everywhere else. `display_names.plural` +
+>   `Utils.plural` retire the `(s)` hedge on both sides (census pins);
+>   `humanize_entity_name` at the scout report / adjacent scan / covering
+>   lines / muster header and `Utils.display_marshal_name` on the diorama
+>   nameplate and the piece label; "Treaty signed: Peace → Open Borders with
+>   the Ottoman Empire."; the incoming envoy carries no hint and its payload
+>   carries `from_nation_display` + `choice_display`; every strategic-report
+>   row carries `command_display` + an int `turns_remaining`; the advance
+>   toll beside the locked figure ("22,181 → 21,863 after the advance");
+>   the defence line split into labelled rows whose product IS the modifier;
+>   one arrow; " (was X)" on both enemy-phase capture branches. **Found by
+>   the series:** the first cut moved `BASELINE_SERIES` with every lever
+>   down — a function-local import of the humaniser inside `_execute_attack`
+>   shadowed the module-level name, so the new covering line raised
+>   `UnboundLocalError` on every AI attack against a just-retreated corps;
+>   all six local imports removed, AST-pinned. **Still NPC-12's:**
+>   `combat.py`'s narration and `ledger.py` never import the humaniser.
+>   `tests/test_ep_f2_the_display_name_pass.py` (49, the client half driven
+>   through `tools/ep_f2_display_name_harness.gd`).
+> - **F5 — Bohemia is not empty.** One walk-in per corps per turn
+>   (`movement_range`) and a literal corps takes the cautious strength
+>   check; measured on three seeds, Bavaria takes at most one Austrian
+>   province on turn 1 and the Revanche fires on none (uncapped: Bohemia AND
+>   Carniola in one phase, Revanche the same turn). **`BASELINE_SERIES`
+>   re-recorded ONCE, four-arm attributed** (arm 0 byte-identical; the cap
+>   alone diverges at 7, the check alone at 13, both at 7); `test_wo_slice9`
+>   / `test_wo_slice10` re-measured with their own runners and attributed.
+>   The whole-war blocker names the courts — "London and Vilna are unbeaten
+>   — a whole-war peace needs their consent (Austria 12/50, Britain 4/50,
+>   Russia 4/50). Press Austria alone: the separate peace." ("unbeaten" =
+>   the war score's word; the first cut called Vienna unbeaten while France
+>   held it) — and a covered court at ≥ 50 gets "Separate peace with
+>   <court>" on its row, routed to the pair-substitute tier with ITS court
+>   in the params. No shipped board reaches 50 on the review's staging, so
+>   the gate is pinned through the scorer's stable seam. Frame
+>   `IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png` (+`_X2`).
+>   `tests/test_ep_f5_bohemia_is_not_empty.py` (28).
+> - **F6 — settled once, reopened.** The review's contradiction was two
+>   grievances: the battle settled one by action and the end-of-turn pass
+>   (whose same-pass suppression remembers only its own coolings) re-fired
+>   the pair off the rival's laurels the same turn — the ladder's next rung,
+>   legal. The card now opens "Settled once at Tyrol — and reopened by
+>   Ney's laurels since." (the `jealousy_resolved` event carries
+>   `location`, stamped at all three resolver seams — AST-pinned), a stale
+>   undelivered card for the pair is replaced, a grievance that no longer
+>   stands is still dropped at delivery (FA-S17-D4). Zero series movement.
+>   Trap: a cautious man with a grievance WITHHOLDS from his rival's battle,
+>   so the pin stages the jealous man as the attacker with the rival
+>   reinforcing. `tests/test_ep_f6_settled_once_reopened.py` (10, driven).
+> - **Gates (all three):** ruff clean; parse harness EXIT=0; the real client
+>   booted and driven with 0 `SCRIPT ERROR`; sweep
+>   `tools/_sweep_ep_f2_f5_f6.json` 33/33 killed, 0 INERT at close (the cap
+>   lever was INERT on the first pass — every boot-board pin was masked by
+>   the literal check — and got its own lever-free pin); M1–M7
+>   byte-identical; the series re-recorded once for F5 with the attribution
+>   above. **Pins consciously flipped:** the series; `test_wo_slice9` (12/15,
+>   elimination step 6→7, exit turn 15); `test_wo_slice10`'s ungated
+>   measurements; the `turn(s)` pins in `test_cr7_4`, `test_cr7_9`,
+>   `test_mc_q3_command_rally` — and, found by the hook's full run, nine more
+>   readers of the retired `(s)` / `[HINT]` / raw-state forms (named in the
+>   F2 record) plus `test_iq7_review_round`'s countdown pin, whose second
+>   petition had ridden a falling forecast the pre-F5 ambient board happened
+>   to supply (now staged explicitly; `{6, 15}` in both lever arms). The F5
+>   chip takes the dials' own gate (PROPOSE, the editor caller) — never a
+>   frozen REVIEW row or an observer table.
+> - **NEXT = GE-1 "The Verdict and the Fall"** — `ENDGAME_PLAN.md` §3–§6
+>   with `docs/GAME_END_SPEC.md`.
 >
 > **▶ ▶ F3 "THE CLIENT LAYOUT PASS" + F4 "THE FUSE IS LONGER" — ✅ LANDED
 > September 24, 2026** (row EP's second and third slices, one commit;

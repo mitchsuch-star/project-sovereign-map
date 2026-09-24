@@ -152,6 +152,8 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/nui2_admiralty_harness.gd",
 	# Row EP F3 "The client layout pass", driven (tests/test_ep_f3_the_client_layout_pass.py)
 	"res://../../tools/ep_f3_client_layout_harness.gd",
+	# Row EP F2 "The display-name pass", driven (tests/test_ep_f2_the_display_name_pass.py)
+	"res://../../tools/ep_f2_display_name_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

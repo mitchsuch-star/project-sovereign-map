@@ -1040,9 +1040,33 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #   - test_wo_slice10_enemy_direction_gate: the ungated arm now collides on
 #     `Bern → Bernadotte`.
 # Memo of record: docs/audits/IQ7_SATELLITES_2026_09_16.md §4.
+#
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — row EP slice F5 "Bohemia is not empty"
+# (September 25, 2026; `tools/_f5_series_arms.py`, four arms, every lever
+# set IN THE CHILD):
+#   0.  both F5 levers DOWN ................. the IQ-7 series above, BYTE-FOR-BYTE
+#   1.  ONE_WALK_IN_PER_CORPS_PER_TURN only .. diverges at [7]  (the cap is the first mover)
+#   2.  THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK only .. diverges at [13]
+#   3.  both (shipped) ....................... the series below, diverging at [7]
+# The cap alone is what moves turn 7: Deroy no longer takes Bohemia AND
+# Carniola on turn 1, so Austria's Revanche against Bavaria never promotes
+# and Charles is not drawn into the three-turn punishment — the alarm's
+# whole shape after index 7 follows from that. Passive-France guard, stated
+# honestly: on the shipped arm the UNATTENDED France ends turn 40 with 4
+# provinces (arm 0: 9) while Bavaria keeps 5 (arm 0: 3) and Britain 18
+# (arm 0: 24) — the ambient harness's passive France, NOT a balance claim
+# (FA-D27's standing caveat: a played campaign is the measure).
+# Attribution verified by experiment: the pre-F5 series returns with both
+# levers down. The one non-lever mover found on the way — a function-local
+# humaniser import shadowing the new module-level one in
+# `combat_executor._execute_attack` — was a BUG (every AI attack against a
+# corps that had just retreated raised UnboundLocalError) and is fixed, not
+# attributed: arm 0 reproduces the prior series only with it fixed.
+# ═══════════════════════════════════════════════════════════════════════
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 60, 58, 55, 52, 50, 48, 46, 44, 47, 50, 51, 49,
-    47, 45, 43, 31, 29, 27, 25, 23, 21, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 60, 58, 46, 43, 40, 37, 34, 31, 28, 15, 12, 9,
+    6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
 ]
 

@@ -6921,3 +6921,155 @@ Seven live-review rows on four client surfaces; landing record
   CAMPAIGN_LOG_GLYPHS}_2026_09_24.png` (+`_X2`), the capture group
   `layout_f3` in `tools/iq10_capture_payloads.py`. Pins
   `tests/test_ep_f3_the_client_layout_pass.py`; sweep `tools/_sweep_ep_f3_f4.json`.
+
+## 61. The display-name pass (row EP F2, landed September 25, 2026)
+
+NPC-12's first slice. The rule is one sentence: **a player-facing string
+names a man, a court, a state and a count the way the game prints them
+everywhere else — never the roster key, the tag, the enum or the `(s)`
+hedge.** Landing record `ENDGAME_PLAN.md` §1 F2; pins
+`tests/test_ep_f2_the_display_name_pass.py` (every string driven through
+`/command` or the real client, plus the census pins).
+
+* **The count and the noun agree.** `display_names.plural(n, noun)` is the
+  ONE backend helper ("1 turn" / "2 turns"; irregulars in
+  `_PLURAL_IRREGULAR` — men, corps, sail, envoys); `emergent_designs._turns`
+  and `diplomatic_dialogue._plural` delegate to it. The client mirror is
+  `Utils.plural(n, noun)`. A census pin forbids the `(s)` literal in any
+  backend or client player string (allowlist: the parser eval's report, the
+  provider prompts, the validator, `settlement_helpers`, `formations`).
+* **The humaniser is a MODULE-LEVEL name in `combat_executor.py`.** A
+  function-local `from backend.display_names import humanize_entity_name`
+  inside `_execute_attack` made the name local to the WHOLE function, so a
+  use above that line raised `UnboundLocalError` on every AI attack against
+  a just-retreated corps — found because `BASELINE_SERIES` moved with every
+  lever down. All six local imports are gone; an AST pin fails on any local
+  import of the name that is used before its line, and on ANY local import
+  of it inside `_execute_attack`.
+* **The men are named.** The scout report and the adjacent scan
+  (`movement_executor.py`) print `humanize_entity_name(m.name)` and the
+  controller through `formed_display_name`; the capture hint is a sentence
+  ("Bohemia lies undefended — an attack takes it."); the covering/shield
+  lines and the muster header print the man. The client's diorama
+  nameplate and the war-table piece label pass through
+  `Utils.display_marshal_name`. An AST census over `movement_executor.py`
+  and a string census over the covering builder forbid a raw `{m.name}` /
+  `{enemy_marshal.name}` in a player string. **Still open under NPC-12:**
+  `game_logic/combat.py`'s narration ("ArchdukeCharles holds the line") and
+  `ledger.py` never import the humaniser — the F2 cover pin is scoped to
+  the [Shield] line for that reason.
+* **The states and the courts are printed.** `_ratify_treaty` says "Treaty
+  signed: Peace → Open Borders with the Ottoman Empire." (`STATE_DISPLAY` +
+  `with_definite_article(formed_display_name(...))`); the downgrade guard
+  names the COURT, never "France" (an AI offer's `target_nation` is the
+  player — read `player_counterpart`); a failed ratification opens "The
+  Ottoman Empire's terms could not be ratified: …". The envoy popup payload
+  carries `from_nation_display` and `choice_display`
+  ({accept: "accepted", reject: "declined", counter: "countered", …}), which
+  `main.gd`'s "Responding to" echo renders.
+* **An incoming offer carries no hint.** Both acceptance hints are blank on
+  `build_pending_envoy_popup_from_terms` (the client-petition arm's pattern);
+  the player's OWN previews keep `build_acceptance_hints`.
+* **The strategic report's copy.** Every row from `strategic.py`'s per-turn
+  pass carries `command_display = get_strategic_display(cmd)` and an int
+  `turns_remaining`, stamped once at the pass's return; the report messages
+  read "(2 turns remaining)" / "(1 turn remaining)" and "The agreed 1 turn
+  has passed."; the client's `strategic_report_popup` reads
+  `command_display`, `Utils.plural`, and has icons for active/consumed/
+  retired.
+* **The advance toll stands beside the locked figure.** A victor's advance
+  into the captured province bleeds march attrition; the report's
+  `casualty_summary` carries `attacker_advance_losses` /
+  `attacker_after_advance` and the diorama's lead card `advance_losses` /
+  `after_advance`; the terminal's Strength line and the lead card print
+  "22,181 → 21,863 after the advance". The lock point (the pre-advance
+  figure the war score reads) does not move.
+* **The defence line is split.** `battle_report.defense_personality_components`
+  returns one labelled row per factor the personality modifier multiplies
+  ("Personality (cautious) +5%", "Outnumbered (cautious) +10%", "Immovable
+  (literal hold)"); the product of the rows IS the applied modifier, pinned
+  over every personality × stance × outnumbered × holding cell.
+* **One arrow.** "→" in the materiel capture line and the march route;
+  " -> " is forbidden by pin.
+* **The enemy phase says whom it was taken from.** Both the conquest and the
+  field-battle capture branches of `enemy_phase_dialog.gd` print " (was X)"
+  like the movement branch.
+
+## 62. Bohemia is not empty (row EP F5, landed September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §1 F5; pins
+`tests/test_ep_f5_bohemia_is_not_empty.py`; attribution
+`tools/_f5_series_arms.py` (levers set IN THE CHILD).
+
+* **One walk-in per corps per turn.** P4.5's `_find_undefended_capture`
+  returns nothing for a corps that has already taken `movement_range`
+  undefended provinces this phase (`EnemyAI._walk_ins_this_turn`, reset per
+  nation phase, counted by the action loop off the rung's `walk_in` tag).
+  Lever `enemy_ai.ONE_WALK_IN_PER_CORPS_PER_TURN`.
+* **A literal corps takes the cautious strength check.**
+  `_evaluate_capture_safety` runs the 1.5× counter-attack check for
+  `literal` as well as `cautious` before a walk-in beside a stronger enemy
+  (Deroy at Franconia refuses Bohemia at boot: 74,000 against 22,000). The
+  cautious arm is byte-identical. Lever
+  `enemy_ai.THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK`.
+* **Measured:** with both levers down Bavaria's Deroy took Bohemia AND
+  Carniola in one phase on the historical boot and Austria promoted its
+  Revanche the same turn; with both up Bavaria takes at most one Austrian
+  province on turn 1 on all three seeds (historical, ulm, austerlitz) and
+  the Revanche fires on none. `BASELINE_SERIES` re-recorded ONCE with a
+  four-arm attribution (arm 0 byte-identical to the prior record; the cap
+  alone diverges at index 7, the check alone at 13, both at 7).
+* **The legitimacy sentence names the courts.**
+  `settlement_staging.legitimacy_sentence` — "London and Vilna are unbeaten
+  — a whole-war peace needs their consent (Austria 12/50, Britain 4/50,
+  Russia 4/50). Press Austria alone: the separate peace." — is appended to
+  the whole-war blocker's heading. "Unbeaten" is the WAR's word: a holdout
+  whose pair war score from our side is not positive; a court we hold the
+  capital of and have beaten in the field is a holdout by the arithmetic and
+  still the court to press alone. Lever
+  `settlement_staging.THE_BLOCKER_NAMES_THE_COURTS`. The predicate is
+  unchanged.
+* **"Separate peace with <court>".** A covered court whose row is at or
+  above the threshold with no hard stop gets the chip
+  (`settlement_staging.separate_peace_chip`) in its `dial_actions`, routed
+  to the existing pair-substitute tier (`seek_bilateral_peace`) with ITS
+  court in the structured params; `_handle_pair_peace_substitute_action`
+  honours `selected_target_nation` only when it names a COVERED court (a
+  stale or foreign name falls back to the table's own). The chip takes the
+  dials' own gate — PROPOSE mode, the player's editor caller — so a frozen
+  REVIEW row and an observer table carry none. Availability is
+  the tier block's + eligibility helper's own answer; the client's tier-2
+  renderer honours `available` / `disabled_reason_display`. No shipped
+  board puts a court at 50 on the review's staging, so the gate is pinned
+  through the scorer's stable seam.
+
+## 63. Settled once, reopened (row EP F6, landed September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §1 F6; pins
+`tests/test_ep_f6_settled_once_reopened.py` (driven).
+
+* **The mechanism.** A battle resolves a grievance by action (pipeline step
+  9.5, `clear_jealousy(resolved_by_action=True)`); the end-of-turn jealousy
+  pass's same-pass suppression (`cooled_this_pass`) remembers only the
+  coolings IT performed, so the same pair can re-fire off the rival's fresh
+  laurels the same turn. The trigger is legal and untouched (it feeds
+  `jealous_of`, which combat reads) — what was missing was the card SAYING
+  so. Zero series movement.
+* **The card says so.** A confrontation card built within
+  `SETTLED_ONCE_WINDOW_TURNS` (1) of a by-action settlement of the same pair
+  opens with "Settled once at Tyrol — and reopened by Ney's laurels since."
+  (`jealousy.settled_once_clause`, read off the `jealousy_resolved` event's
+  own `location`, which every `check_battle_resolution` call site now
+  stamps — pinned by an AST census over the three seams). A timer expiry is
+  not a settlement. Lever `jealousy.THE_REOPENED_QUARREL_SAYS_SO`.
+* **A stale card is replaced.** A card for that pair still standing
+  undelivered from before the settlement is stale in its body; the re-fire
+  retires it (`_retire_pending_petition`) and queues the fresh card instead
+  of the latch handing the old one over. Another pair's card is never
+  evicted. A card whose grievance no longer stands at all is still retired
+  at delivery by `petition_is_still_live` (FA-S17-D4) — that half predates
+  F6.
+* **The staging trap.** A cautious man with a live grievance WITHHOLDS from
+  his rival's battle, so he is never on the rival's winning side: the
+  shoulder-to-shoulder resolution is staged with the jealous man as the
+  ATTACKER and the rival reinforcing him.

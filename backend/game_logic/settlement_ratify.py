@@ -1520,7 +1520,7 @@ def ratify_settlement_confirm(
 
     result_message = (
         f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "
-        f"({len(resolved_pairs)} pair(s) resolved)."
+        f"({len(resolved_pairs)} pair{'s' if len(resolved_pairs) != 1 else ''} resolved)."
     )
     # SC-14c: result feedback consumes the staged route id verbatim. The
     # summary event already echoes the staged id, so prefer that path; fall
@@ -1565,7 +1565,7 @@ def ratify_settlement_confirm(
             "war_id": war_id,
             "review_route": review_route,
             "message": (
-                f"{len(resolved_pairs)} hostile pair(s) resolved. "
+                f"{len(resolved_pairs)} hostile pair{'s' if len(resolved_pairs) != 1 else ''} resolved. "
                 "Review the settlement in the diplomatic ledger."
             ),
         },

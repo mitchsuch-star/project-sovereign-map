@@ -21,6 +21,7 @@ The rules are `SYSTEMS_REFERENCE.md` §4 Stage 2c; the module is
 golden corpus reports green in both arms of every fix in this row.
 """
 
+import re
 import os
 import random as _random
 
@@ -149,7 +150,7 @@ class TestTheContradictionIsNamedNotInvited:
         assert soult.strategic_order is not None
         assert reply["relay_kind"] == "moment"
         assert "Bordelais" in reply["relay_note"]
-        assert "turn(s)" in reply["relay_note"]
+        assert re.search(r"\d+ turns?\b", reply["relay_note"]), reply["relay_note"]  # F2 LV-9
         assert "relay_command" not in reply
 
     def test_a_tactical_move_that_completes_now_is_ready(self, shipped):

@@ -22,6 +22,7 @@ from backend.commands.objection_v2 import (
     concern_to_legacy_severity,
 )
 from backend.display_names import action_display_name as _action_display_name, get_strategic_display, humanize_entity_name
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # FA-54: ONE grounding note, shared by the tactical and strategic routes,
 # so `move` and `march` can never again disagree about disclosing the
@@ -530,7 +531,7 @@ class StrategicExecutor:
             turns_left = max(1, int(getattr(marshal, 'retreat_recovery', 0) or 0))
             return {
                 "success": False,
-                "message": f"{marshal.name} is recovering from retreat ({turns_left} turn(s) remaining) and cannot accept strategic orders."
+                "message": f"{marshal.name} is recovering from retreat ({_plural(int(turns_left), 'turn')} remaining) and cannot accept strategic orders."
             }
         if getattr(marshal, 'broken', False):
             return {
@@ -1408,7 +1409,7 @@ class StrategicExecutor:
         if not pursue_handled and strategic_type == "MOVE_TO" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
-            print(f"[STRATEGIC INIT] {marshal.name}: MOVE_TO first step, {steps} step(s) max")
+            print(f"[STRATEGIC INIT] {marshal.name}: MOVE_TO first step, {_plural(int(steps), 'step')} max")
             for i in range(steps):
                 if not order.path:
                     break
@@ -1651,7 +1652,7 @@ class StrategicExecutor:
 
         # ── Build response ────────────────────────────────────────────
         remaining = len(order.path) if order.path else 0
-        route_str = " -> ".join([marshal.location] + (order.path or []))
+        route_str = " → ".join([marshal.location] + (order.path or []))  # LV-19: one arrow
 
         # FA-54: the strategic route was SILENT about an auto-corrected
         # destination while the tactical route disclosed the identical

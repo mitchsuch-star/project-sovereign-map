@@ -628,7 +628,7 @@ func _render_economy():
 				+ "g  (where the charges level the chest off at this rate)[/color]\n"
 
 	if bankruptcy > 0:
-		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + str(bankruptcy) + " turn(s)[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_ERROR + "]BANKRUPT — " + Utils.plural(int(bankruptcy), "turn") + "[/color]\n"
 
 	# Active settlement payment streams (incoming tribute / outgoing
 	# obligations), with turns remaining.
@@ -711,7 +711,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			bbcode += "  Yards: " + ", ".join(PackedStringArray(yards)) + "  (" + str(laid) + "/" + str(rate) + " keels this turn)\n"
 		var window = int(fleet.get("window_turns", 0))
 		if window > 0:
-			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]THE STRAIT LIES OPEN — " + str(window) + " turn(s) remain[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]THE STRAIT LIES OPEN — " + Utils.plural(int(window), "turn") + (" remains" if int(window) == 1 else " remain") + "[/color]\n"
 		var camp_strength = int(fleet.get("camp_strength", 0))
 		var camp_required = int(adm.get("camp_required", 40000))
 		if camp_strength >= camp_required:
@@ -748,7 +748,7 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		bbcode += cs_line + "\n"
 		var next_pct = cs.get("next_tier_pct")
 		if next_pct != null:
-			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Next notch at " + str(int(next_pct)) + "% — " + str(int(cs.get("ports_to_next_tier", 0))) + " more port(s) closed to them.[/color]\n"
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Next notch at " + str(int(next_pct)) + "% — " + Utils.plural(int(cs.get("ports_to_next_tier", 0)), "more port") + " closed to them.[/color]\n"
 	var board = adm.get("blockade_board", [])
 	if board is Array and board.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Blockade Board[/color]\n"
@@ -934,7 +934,7 @@ func _render_intel():
 			bbcode += ", " + str(sregions) + " regions\n"
 
 	if unknown_count > 0:
-		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]" + str(unknown_count) + " region(s) with no intel.[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_GREY + "]" + Utils.plural(int(unknown_count), "region") + " with no intel.[/color]\n"
 
 	# AI-0b: the campaign seed, shown and shareable (top-level ledger key).
 	# Review fix [4]: the seed is a raw user-supplied string (SOVEREIGN_SEED

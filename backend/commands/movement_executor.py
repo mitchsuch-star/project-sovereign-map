@@ -9,7 +9,7 @@ from typing import Dict
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import TERRAIN_DEFENSE_BONUS
-from backend.display_names import display_nation
+from backend.display_names import display_nation, humanize_entity_name
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
@@ -981,10 +981,14 @@ class MovementExecutor:
 
         capture_hint_msg = ""
         if capture_hints:
+            # LV-4 (row EP F2): a sentence, not a tag. "[HINT]" was the
+            # engine's own bracket vocabulary leaking into the order's
+            # answer; Berthier says it as a staff officer would.
             if len(capture_hints) == 1:
-                capture_hint_msg = f"\n[HINT] {capture_hints[0]} is undefended — attack to capture it!"
+                capture_hint_msg = f"\n{capture_hints[0]} lies undefended — an attack takes it."
             else:
-                capture_hint_msg = f"\n[HINT] Undefended regions nearby: {', '.join(capture_hints)} — attack to capture!"
+                capture_hint_msg = (f"\n{', '.join(capture_hints)} lie undefended — "
+                                    f"an attack takes any of them.")
 
         result = {
             "success": True,
@@ -1077,14 +1081,26 @@ class MovementExecutor:
                 terrain_msg += f" (+{defense_pct}% defense)"
 
             # Detailed intel on enemies
+            # LV-2 (row EP F2, Sept 25 2026): the report printed the roster
+            # KEY ("ArchdukeJohn (Austria)") and the controller's tag. The
+            # humaniser and the formed display name are the one source for
+            # a man's and a court's printed forms (R7); the scout report
+            # is the surface that TAUGHT the player the spelling NPC-1
+            # then punished.
+            from backend.game_logic.formations import formed_display_name
             enemy_intel = []
             for m in marshals_there:
                 # strength > 0: a captured marshal parked at his captor's
                 # capital must not show up as a scouted field army.
                 if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation):
-                    enemy_intel.append(f"{m.name} ({m.nation}): ~{m.strength:,} troops")
+                    enemy_intel.append(
+                        f"{humanize_entity_name(m.name)} "
+                        f"({formed_display_name(world, m.nation)}): "
+                        f"~{m.strength:,} troops")
 
-            intel_msg = f"Controlled by {controller}. {terrain_msg}. "
+            controller_display = (formed_display_name(world, controller)
+                                  if target_region.controller else "Unknown")
+            intel_msg = f"Controlled by {controller_display}. {terrain_msg}. "
             if enemy_intel:
                 intel_msg += f"Enemy forces: {'; '.join(enemy_intel)}"
             else:
@@ -1146,8 +1162,13 @@ class MovementExecutor:
                     total_strength=adj_total,
                 )
 
+            # LV-2 (row EP F2): the controller's printed form, never its
+            # tag; the structured `intel` rows keep the raw key.
+            from backend.game_logic.formations import formed_display_name
             intel_summary = ", ".join([
-                f"{info['region']} ({info['controller']}, {info['terrain'].replace('_', ' ').title()}" +
+                f"{info['region']} ("
+                f"{formed_display_name(world, info['controller']) if info['controller'] != 'Unknown' else 'Unknown'}, "
+                f"{info['terrain'].replace('_', ' ').title()}" +
                 (f", {info['enemy_count']} enemies)" if info['enemy_count'] > 0 else ")")
                 for info in adjacent_intel
             ])

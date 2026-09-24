@@ -87,6 +87,7 @@ from collections import deque
 from typing import Dict, List, Optional, Set
 
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
 # ── The flip lever ────────────────────────────────────────────────────────
 # Arm A of the BASELINE_SERIES flip experiment (see the landing record).
@@ -1300,7 +1301,7 @@ def _offer_event(world, offer: Dict, counterpart: str,
             f"{offer['marshal']} is on the wrong side of the frontier at "
             f"{offer['from']}, Sire — the ground changed hands under him. "
             f"Berthier has put him on the road home to {offer['to']}; he has "
-            f"{int(turns_left)} turn(s) of safe passage."),
+            f"{_plural(int(turns_left), 'turn')} of safe passage."),
     }
     world.log_event(dict(event))
     return event
@@ -1321,8 +1322,8 @@ def _warn(world, marshal, nation: str, distance: int, surplus: int) -> Dict:
         # it tracks whether he can still reach home in the time left — so
         # that is what the sentence says.
         "message": (
-            f"{marshal.name} is no nearer home — {distance} march(es) still "
-            f"to go from {marshal.location}, and {surplus} turn(s) of safe "
+            f"{marshal.name} is no nearer home — {_plural(int(distance), 'march')} still "
+            f"to go from {marshal.location}, and {_plural(int(surplus), 'turn')} of safe "
             f"passage left before his corps is interned."),
     }
     world.log_event(dict(event))

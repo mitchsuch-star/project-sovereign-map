@@ -1701,7 +1701,7 @@ func _show_lapse_confirmation():
 	FA-1 — so the player is told before the turn goes, as he is for envoys)."""
 	var parts := PackedStringArray()
 	if _current_lapsing_count > 0:
-		parts.append("You have %d unanswered envoy(s) that will lapse if you end the turn now." % _current_lapsing_count)
+		parts.append("You have %s that will lapse if you end the turn now." % Utils.plural(_current_lapsing_count, "unanswered envoy"))
 		# IQ-7 review R8(d): a petition among them is not a free lapse —
 		# name each with the price the backend quotes (lever-aware).
 		if not _current_lapsing_petitions.is_empty():
@@ -1720,10 +1720,12 @@ func _show_lapse_confirmation():
 				if bool(pet.get("refused", false)):
 					refused = true
 			var verb = "REFUSED" if refused else "left unanswered"
-			parts.append("%d petition(s) will be %s if you end the turn: %s." % [named.size(), verb, ", ".join(named)])
+			parts.append("%s will be %s if you end the turn: %s." % [Utils.plural(named.size(), "petition"), verb, ", ".join(named)])
 	if not _current_decision_names.is_empty():
 		var names := ", ".join(PackedStringArray(_current_decision_names))
-		parts.append("%s await(s) your word — an unanswered last stand is decided for him when the enemy phase begins. Type 'fight to the last' or 'attempt a breakout'." % names)
+		# LV-9: the verb agrees with the count of men, never "await(s)".
+		var awaits := "awaits" if _current_decision_names.size() == 1 else "await"
+		parts.append("%s %s your word — an unanswered last stand is decided for him when the enemy phase begins. Type 'fight to the last' or 'attempt a breakout'." % [names, awaits])
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#e0c060]⚠ %s[/color]" % msg)
@@ -3552,7 +3554,13 @@ func _display_berthier_report(report: Dictionary):
 	var def_label = def_name if def_scope == "" else def_name + "'s " + def_scope
 	# Format with thousands separators
 	add_output("[color=#" + COLOR_REPORT + "]  Casualties: " + atk_label + " " + _format_number(atk_cas) + " | " + def_label + " " + _format_number(def_cas) + "[/color]")
-	add_output("[color=#" + COLOR_REPORT + "]  Strength: " + atk_name + " " + _format_number(atk_orig) + " -> " + _format_number(atk_rem) + " | " + def_name + " " + _format_number(def_orig) + " -> " + _format_number(def_rem) + "[/color]")
+	# LV-11 (row EP F2): the lead's locked figure, then the advance's toll
+	# beside it when the backend recorded one ("22,181 → 21,863 after the
+	# advance"). LV-19: one arrow, the one every other surface uses.
+	var atk_after := ""
+	if casualty.has("attacker_after_advance") and int(casualty.get("attacker_advance_losses", 0)) > 0:
+		atk_after = " → " + _format_number(int(casualty.get("attacker_after_advance", 0))) + " after the advance"
+	add_output("[color=#" + COLOR_REPORT + "]  Strength: " + atk_name + " " + _format_number(atk_orig) + " → " + _format_number(atk_rem) + atk_after + " | " + def_name + " " + _format_number(def_orig) + " → " + _format_number(def_rem) + "[/color]")
 
 	# Berthier's observation
 	var observation = str(report.get("observation", ""))
@@ -4190,7 +4198,7 @@ func _display_morning_dispatch(data: Dictionary):
 	var pending_envoy_count = int(data.get("pending_envoy_count", pending_envoys.size()))
 	if pending_envoys.size() > 0 and pending_envoy_count > 0:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]ENVOYS AWAITING RESPONSE[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + str(pending_envoy_count) + " envoy(s) await your reply this turn. Open [b]Envoys[/b] before ending the turn.[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]  Talleyrand: " + Utils.plural(pending_envoy_count, "envoy") + (" awaits" if pending_envoy_count == 1 else " await") + " your reply this turn. Open [b]Envoys[/b] before ending the turn.[/color]")
 		for i in range(min(pending_envoys.size(), 3)):
 			var envoy = pending_envoys[i]
 			var envoy_nation = str(envoy.get("nation", "?"))
@@ -6054,7 +6062,15 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
-	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [from_nation, choice])
+	# LV-3 (row EP F2): the court's printed form and the answer as a word —
+	# the backend owns both (`from_nation_display`, `choice_display`); the
+	# raw tag and the raw token are the fallback for a payload without them.
+	var responding_court = str(data.get("from_nation_display", Utils.display_nation_name(str(from_nation))))
+	var choice_labels = data.get("choice_display", {})
+	var responding_choice = str(choice)
+	if choice_labels is Dictionary and choice_labels.has(choice):
+		responding_choice = str(choice_labels[choice])
+	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [responding_court, responding_choice])
 	set_input_enabled(false)
 	# W6-0 (BUG-CA-7): answer the proposal this popup RENDERED, not whatever
 	# is on top of the dialogue stack by the time the response arrives.

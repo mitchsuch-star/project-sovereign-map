@@ -1435,6 +1435,37 @@ def with_definite_article(name: str, capitalize: bool = False) -> str:
     return f"{'The' if capitalize else 'the'} {clean}"
 
 
+# LV-9 (row EP F2, Sept 25 2026): "1 unanswered envoy(s)", "1 turns left",
+# "1 more port(s)". The `(s)` hedge was a hand-rolled literal at fourteen
+# client sites and two private backend helpers (`emergent_designs._turns`,
+# `diplomatic_dialogue._plural`), so a count of one read as a form letter.
+# ONE source; `Utils.plural` is its client mirror. Irregulars are the ones
+# the game's own nouns need — add a row rather than a literal.
+_PLURAL_IRREGULAR = {
+    "envoy": "envoys", "man": "men", "corps": "corps", "sail": "sail",
+    "province": "provinces", "turn": "turns", "port": "ports",
+    "region": "regions", "participant": "participants",
+    "petition": "petitions", "funded turn": "funded turns",
+}
+
+
+def plural(n, noun: str) -> str:
+    """"1 turn" / "2 turns" / "1 envoy" / "3 envoys" — the count and the
+    noun, the noun agreeing with the count. Never the `(s)` hedge."""
+    count = int(n)
+    if count == 1:
+        return f"{count} {noun}"
+    word = _PLURAL_IRREGULAR.get(noun)
+    if word is None:
+        if noun.endswith(("s", "x", "ch", "sh")):
+            word = noun + "es"
+        elif noun.endswith("y") and len(noun) > 1 and noun[-2] not in "aeiou":
+            word = noun[:-1] + "ies"
+        else:
+            word = noun + "s"
+    return f"{count} {word}"
+
+
 def proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
     result, raw = _lookup_display_name(PROPOSAL_TYPE_DISPLAY, proposal_type)

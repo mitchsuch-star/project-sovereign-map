@@ -676,7 +676,8 @@ class TestTheLapseWarningCountsOnlyWhatLapses:
         src = _read("godot-client/project-sovereign/scripts/main.gd")
         assert "var _current_lapsing_count" in src
         assert "if _current_lapsing_count > 0:" in src
-        assert "% _current_lapsing_count" in src
+        # F2 (row EP, LV-9): the count rides Utils.plural, never a bare "%d ... envoy(s)".
+        assert 'Utils.plural(_current_lapsing_count, "unanswered envoy")' in src
 
     def test_the_badge_still_reads_the_full_count(self):
         src = _read("godot-client/project-sovereign/scripts/main.gd")

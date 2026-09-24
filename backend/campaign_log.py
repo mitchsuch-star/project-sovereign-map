@@ -19,6 +19,7 @@ from backend.models.intel import FULL, PARTIAL
 from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
 from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
 from backend.display_names import ally_entry_block_line
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.display_names import diplomatic_decision_reason_display
 from backend.display_names import display_nation
 from backend.display_names import humanize_entity_name
@@ -1986,7 +1987,7 @@ def format_event_oneliner(event: dict) -> str:
         location = event.get("location", "the field")
         left = int(event.get("turns_left") or 0)
         return (f"Marshal {marshal}'s safe passage is LAPSING at {location} "
-                f"— {left} turn(s) before internment")
+                f"— {_plural(left, 'turn')} before internment")
 
     if event_type == "marshal_destroyed":
         marshal = event.get("marshal", "Unknown")

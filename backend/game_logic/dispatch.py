@@ -410,7 +410,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # every time the treaty picked somebody up.
     "road_home_mid_treaty": "Sire — under the peace with {other}. {line}",
     "passage_lapsing": ("Sire — {who} {is_are} no nearer home, and the safe "
-                        "passage runs out in {turns_left} turn(s). After "
+                        "passage runs out in {turns_left_phrase}. After "
                         "that {his_their} corps will be interned where "
                         "{it_they}."),
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
@@ -1263,6 +1263,9 @@ def _build_headline(world, player_nation: str,
                   for x in _lapsing]
         _who = (_names[0] if len(_names) == 1
                 else ", ".join(_names[:-1]) + f" and {_names[-1]}")
+        # LV-9 (row EP F2): the count with its noun agreeing.
+        from backend.display_names import plural as _plural_lv9
+        _turns_left = int(_lapsing[0].get("turns_left") or 0)
         _add("passage_lapsing",
              identity="passage_lapsing:" + "|".join(sorted(_names)),
              who=_who,
@@ -1271,7 +1274,8 @@ def _build_headline(world, player_nation: str,
              it_they="it stands" if len(_names) == 1 else "they stand",
              region=_lapsing[0].get("region")
              or _lapsing[0].get("location", "?"),
-             turns_left=int(_lapsing[0].get("turns_left") or 0))
+             turns_left=_turns_left,
+             turns_left_phrase=_plural_lv9(_turns_left, "turn"))
 
     # Enemy army standing on own-controlled soil — state-based, fog-legal
     # (the player's own intel entries only, never omniscient reads — R5).

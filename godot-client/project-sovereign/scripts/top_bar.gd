@@ -450,7 +450,7 @@ func update_mailbox_count(envoy_count: int):
 	_current_envoy_count = envoy_count
 	if envoy_count > 0:
 		mailbox_btn.text = "Envoys (" + str(envoy_count) + ")"
-		mailbox_btn.tooltip_text = str(envoy_count) + " pending envoy(s) await your reply."
+		mailbox_btn.tooltip_text = Utils.plural(envoy_count, "pending envoy") + (" awaits" if envoy_count == 1 else " await") + " your reply."
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
 		mailbox_btn.add_theme_color_override("font_color", Utils.UI_WARNING)

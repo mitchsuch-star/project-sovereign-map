@@ -282,7 +282,9 @@ def mission_effect_text(world, mission_type: str, short: bool = False) -> str:
 
 
 def _plural(n: int, word: str) -> str:
-    return f"{n} {word}{'' if n == 1 else 's'}"
+    # LV-9 (row EP F2): the one plural source.
+    from backend.display_names import plural
+    return plural(n, word)
 
 
 def project_mission_turns(world, status: dict) -> tuple:
@@ -1037,7 +1039,7 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
             if region_names:
                 demand_lines.append(f"  - Cede {', '.join(region_names)}")
             else:
-                demand_lines.append(f"  - Cede {int(value)} region(s)")
+                demand_lines.append(f"  - Cede {_plural(int(value), 'region')}")
         elif dtype in ("manpower_infantry", "manpower_cavalry", "manpower_artillery"):
             unit_label = dtype.replace("manpower_", "")
             demand_lines.append(f"  - {int(value)} {unit_label}")

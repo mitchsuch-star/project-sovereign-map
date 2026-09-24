@@ -1,0 +1,233 @@
+[
+  {
+    "id": "EPF2-1 the plural helper never reads singular",
+    "file": "backend/display_names.py",
+    "old": "    count = int(n)\n    if count == 1:\n        return f\"{count} {noun}\"",
+    "new": "    count = int(n)\n    if False:\n        return f\"{count} {noun}\"",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestThePluralHelper::test_the_count_and_the_noun_agree tests/test_ep_f2_the_display_name_pass.py::TestTheStrategicReportCopy::test_a_single_turn_reads_singular"
+  },
+  {
+    "id": "EPF2-2 the capture hint is the old [HINT] tag",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                capture_hint_msg = f\"\\n{capture_hints[0]} lies undefended — an attack takes it.\"",
+    "new": "                capture_hint_msg = f\"\\n[HINT] {capture_hints[0]} is undefended\"",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheStrategicReportCopy::test_the_hint_is_a_sentence"
+  },
+  {
+    "id": "EPF2-3 the scout report prints the roster key",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                        f\"{humanize_entity_name(m.name)} \"\n                        f\"({formed_display_name(world, m.nation)}): \"",
+    "new": "                        f\"{m.name} \"\n                        f\"({formed_display_name(world, m.nation)}): \"",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheScoutReportNamesTheMan::test_the_targeted_scout_names_the_man_and_the_court tests/test_ep_f2_the_display_name_pass.py::TestTheCensus::test_no_raw_marshal_key_reaches_a_player_string_in_the_movement_executor"
+  },
+  {
+    "id": "EPF2-4 the covering line prints the roster key",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                _cover_name = humanize_entity_name(covering_ally.name)",
+    "new": "                _cover_name = covering_ally.name",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheCoveringLinesNameTheMen::test_the_shield_line_names_both_men"
+  },
+  {
+    "id": "EPF2-5 the shadowing local import returns inside _execute_attack",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                _cover_name = humanize_entity_name(covering_ally.name)",
+    "new": "                from backend.display_names import humanize_entity_name\n                _cover_name = humanize_entity_name(covering_ally.name)",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheCoveringLinesNameTheMen::test_the_humaniser_is_the_module_level_name_in_the_combat_executor"
+  },
+  {
+    "id": "EPF2-6 the advance toll is not recorded",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                _cs[\"attacker_advance_losses\"] = int(advance_losses)",
+    "new": "                _cs[\"attacker_advance_losses\"] = 0",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheAdvanceTollIsBesideTheLockedFigure::test_the_report_records_the_advance"
+  },
+  {
+    "id": "EPF2-7 the report row has no printed order name",
+    "file": "backend/commands/strategic.py",
+    "old": "            _row.setdefault(\"command_display\",\n                            get_strategic_display(_cmd) if _cmd else \"\")",
+    "new": "            pass",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheStrategicReportCopy::test_every_row_carries_the_printed_order_name"
+  },
+  {
+    "id": "EPF2-8 the report's turns_remaining is a float again",
+    "file": "backend/commands/strategic.py",
+    "old": "                _row[\"turns_remaining\"] = int(_row[\"turns_remaining\"])",
+    "new": "                _row[\"turns_remaining\"] = float(_row[\"turns_remaining\"])",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheStrategicReportCopy::test_every_row_carries_the_printed_order_name"
+  },
+  {
+    "id": "EPF2-9 the incoming envoy carries a hint",
+    "file": "backend/game_logic/mailbox_payloads.py",
+    "old": "    acceptance_hint = \"\"\n    rejection_hint = \"\"",
+    "new": "    acceptance_hint = \"Talleyrand: likely to be accepted.\"\n    rejection_hint = \"\"",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheIncomingHintsAreBlank::test_an_incoming_offer_carries_no_acceptance_hints"
+  },
+  {
+    "id": "EPF2-10 the popup payload prints the tag",
+    "file": "backend/game_logic/mailbox_payloads.py",
+    "old": "    from_nation_display = with_definite_article(formed_display_name(world, nation))",
+    "new": "    from_nation_display = nation",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheTreatyProseIsPrinted::test_the_popup_payload_carries_the_printed_court_and_the_answer_labels"
+  },
+  {
+    "id": "EPF2-11 the failed-ratification prefix loses its capital",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            court = with_definite_article(formed_display_name(world, source_nation),\n                                          capitalize=True)",
+    "new": "            court = with_definite_article(formed_display_name(world, source_nation),\n                                          capitalize=False)",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheTreatyProseIsPrinted::test_the_downgrade_guard_names_the_court_not_france"
+  },
+  {
+    "id": "EPF2-12 the treaty line uses the ASCII arrow",
+    "file": "backend/models/world_state.py",
+    "old": "                    f\"Treaty signed: {STATE_DISPLAY.get(current_state, current_state)} → \"",
+    "new": "                    f\"Treaty signed: {STATE_DISPLAY.get(current_state, current_state)} -> \"",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheTreatyProseIsPrinted::test_accepting_an_offer_names_the_court_and_the_states"
+  },
+  {
+    "id": "EPF2-13 the march route uses the ASCII arrow",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "        route_str = \" → \".join([marshal.location] + (order.path or []))  # LV-19: one arrow",
+    "new": "        route_str = \" -> \".join([marshal.location] + (order.path or []))",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheRouteUsesOneArrow::test_the_march_route_is_joined_by_the_one_arrow"
+  },
+  {
+    "id": "EPF2-14 the outnumbered term is folded back into the personality row",
+    "file": "backend/game_logic/battle_report.py",
+    "old": "                rows.append((f\"Outnumbered ({personality})\", v, \"bonus\"))",
+    "new": "                rows.append((f\"Personality ({personality})\", v, \"bonus\"))",
+    "tests": "tests/test_ep_f2_the_display_name_pass.py::TestTheDefenceLineIsSplit::test_the_two_terms_are_their_own_rows"
+  },
+  {
+    "id": "EPF5-1 the walk-in cap lever down",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "ONE_WALK_IN_PER_CORPS_PER_TURN = True",
+    "new": "ONE_WALK_IN_PER_CORPS_PER_TURN = False",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_binds_where_the_check_passes tests/test_ai_intent_threat_migration.py"
+  },
+  {
+    "id": "EPF5-2 the cap is not the corps' range",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "            if _taken >= max(1, int(getattr(marshal, \"movement_range\", 1) or 1)):",
+    "new": "            if _taken >= 99:",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_is_the_corps_movement_range tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_hands_deroy_one"
+  },
+  {
+    "id": "EPF5-3 the loop never counts the walk-in",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                    self._walk_ins_this_turn.get(selected_action[\"marshal\"], 0) + 1)",
+    "new": "                    self._walk_ins_this_turn.get(selected_action[\"marshal\"], 0) + 0)",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_cap_hands_deroy_one"
+  },
+  {
+    "id": "EPF5-4 the literal lever down",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = True",
+    "new": "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = False",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestThreeSeeds::test_at_most_one_province_on_turn_one tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeriesAttribution::test_the_recorded_series_is_the_shipped_tree tests/test_ai_intent_threat_migration.py"
+  },
+  {
+    "id": "EPF5-5 the literal never takes the check",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        _takes_strength_check = personality == \"cautious\" or (\n            THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK and personality == \"literal\")",
+    "new": "        _takes_strength_check = personality == \"cautious\"",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheLiteralTakesTheStrengthCheck::test_a_literal_corps_refuses_the_walk_in_beside_a_stronger_enemy tests/test_ep_f5_bohemia_is_not_empty.py::TestTheWalkInCap::test_the_literal_check_refuses_deroy_bohemia_at_boot"
+  },
+  {
+    "id": "EPF5-6 the blocker lever down",
+    "file": "backend/game_logic/settlement_staging.py",
+    "old": "THE_BLOCKER_NAMES_THE_COURTS = True",
+    "new": "THE_BLOCKER_NAMES_THE_COURTS = False",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheLegitimacySentence::test_the_blocker_names_the_unbeaten_courts_and_the_one_to_press"
+  },
+  {
+    "id": "EPF5-7 every holdout is called unbeaten",
+    "file": "backend/game_logic/settlement_staging.py",
+    "old": "    unbeaten = [n for n in holdouts if get_war_score_for(world, player, n) <= 0]",
+    "new": "    unbeaten = list(holdouts)",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheLegitimacySentence::test_an_unbeaten_court_is_the_wars_word tests/test_ep_f5_bohemia_is_not_empty.py::TestTheLegitimacySentence::test_the_blocker_names_the_unbeaten_courts_and_the_one_to_press"
+  },
+  {
+    "id": "EPF5-8 the chip is never appended",
+    "file": "backend/game_logic/settlement_staging.py",
+    "old": "            and court\n        ):\n            dial_actions.append(separate_peace_chip(",
+    "new": "            and court\n            and False\n        ):\n            dial_actions.append(separate_peace_chip(",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeparatePeaceChip::test_a_court_at_the_threshold_carries_the_chip"
+  },
+  {
+    "id": "EPF5-9 the chip is appended below the threshold",
+    "file": "backend/game_logic/settlement_staging.py",
+    "old": "            and int(row[\"total\"]) >= int(row.get(\"threshold\") or acceptance_threshold)\n            and court\n        ):",
+    "new": "            and court\n        ):",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeparatePeaceChip::test_a_row_at_the_threshold_carries_the_chip_and_only_then tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeparatePeaceChip::test_a_court_at_the_threshold_carries_the_chip"
+  },
+  {
+    "id": "EPF5-10 the chip's court is ignored on the pair tier",
+    "file": "backend/game_logic/settlement_actions.py",
+    "old": "        if not _covered or _asked in _covered:\n            selected_target = _asked",
+    "new": "        if False:\n            selected_target = _asked",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeparatePeaceChip::test_the_chip_reaches_the_pair_tier_naming_its_own_court"
+  },
+  {
+    "id": "EPF5-11 a foreign court re-aims the pair tier",
+    "file": "backend/game_logic/settlement_actions.py",
+    "old": "        if not _covered or _asked in _covered:\n            selected_target = _asked",
+    "new": "        if True:\n            selected_target = _asked",
+    "tests": "tests/test_ep_f5_bohemia_is_not_empty.py::TestTheSeparatePeaceChip::test_a_foreign_name_in_the_params_falls_back_to_the_table"
+  },
+  {
+    "id": "EPF6-1 the reopened lever down",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_REOPENED_QUARREL_SAYS_SO = True",
+    "new": "THE_REOPENED_QUARREL_SAYS_SO = False",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_the_next_rung_opens_with_settled_once"
+  },
+  {
+    "id": "EPF6-2 the window cannot hold last turn's settlement",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "SETTLED_ONCE_WINDOW_TURNS = 1",
+    "new": "SETTLED_ONCE_WINDOW_TURNS = -1",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_the_clause_needs_a_settlement_within_a_turn tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_the_next_rung_opens_with_settled_once"
+  },
+  {
+    "id": "EPF6-3 the stale card is handed over",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                _retire_pending_petition(world, stale)\n                already = False",
+    "new": "                pass",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_the_next_rung_opens_with_settled_once"
+  },
+  {
+    "id": "EPF6-4 the card never says settled once",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if _reopened:\n        body = f\"{_reopened} {body}\"",
+    "new": "    if False:\n        body = f\"{_reopened} {body}\"",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_the_next_rung_opens_with_settled_once"
+  },
+  {
+    "id": "EPF6-5 the battle-time resolver forgets the field",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                             where=str(battle_region or \"\"))",
+    "new": "                             where=\"\")",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheBattleSettlesAndSaysWhere::test_the_shared_victory_settles_the_quarrel_and_stamps_the_field"
+  },
+  {
+    "id": "EPF6-6 a timer expiry counts as a settlement",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                and bool(ev.get(\"by_action\"))):\n            return ev",
+    "new": "                and True):\n            return ev",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_a_timer_expiry_is_not_a_settlement"
+  },
+  {
+    "id": "EPF6-7 the resolved event drops the location",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        \"location\": str(where or \"\"),\n    })",
+    "new": "        \"location\": \"\",\n    })",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheBattleSettlesAndSaysWhere::test_the_shared_victory_settles_the_quarrel_and_stamps_the_field"
+  },
+  {
+    "id": "EPF6-8 another pair's card is evicted",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            stale = _pending_confrontation_for_pair(world, marshal.name, target.name)",
+    "new": "            stale = getattr(world, \"pending_marshal_petition\", None)",
+    "tests": "tests/test_ep_f6_settled_once_reopened.py::TestTheReopenedCardSaysSo::test_a_card_for_another_pair_is_not_replaced"
+  }
+]

@@ -86,7 +86,7 @@ class TestThePeacefulCourtGetsOneAnswer:
         world, ney, mack = self._board(state="ARMISTICE", turns=4)
         line = ST.hostile_verb_at_peace(world, ney, mack, "charge")
         assert "armistice with Austria" in line, line
-        assert "4 more turn(s)" in line, line
+        assert "4 more turns" in line, line  # F2 LV-9: the count and the noun agree
 
     def test_our_own_marshal_is_never_refused_by_this_rule(self):
         world, ney, _ = self._board()

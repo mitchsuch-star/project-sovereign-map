@@ -16,6 +16,7 @@ from backend.commands.objection_v2 import ConcernLevel
 # Player-readable display names — single source in display_names.py (R7)
 from backend.display_names import action_display_name as _action_display_name
 from backend.display_names import proposal_display_name as _proposal_display_name
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
 # Single source of truth — imported by executor.py (P3-1 consolidation)
@@ -232,7 +233,7 @@ class MetaExecutor:
         # PT-6: Warn about unused AP (informational — turn still ends)
         ap_warning = ""
         if world.actions_remaining > 0:
-            ap_warning = f" (Warning: {int(world.actions_remaining)} action(s) unused)"
+            ap_warning = f" (Warning: {_plural(int(world.actions_remaining), 'action')} unused)"
 
         # V2a: Capture mild concerns BEFORE end_turn clears them
         # (advance_turn resets mild_concerns_this_turn at start)
@@ -1444,7 +1445,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             return {
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s cavalry = {marshal.cavalry}\n"
-                          f"Movement range: {marshal.movement_range} (can attack {marshal.movement_range} region(s) away)"
+                          f"Movement range: {marshal.movement_range} (can attack {_plural(int(marshal.movement_range), 'region')} away)"
             }
 
         elif ability == "hold":
@@ -2848,7 +2849,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             return {
                 "success": True,
                 "message": (
-                    f"Seeded {strike_count} active betrayal strike(s) for {player} -> {nation}. "
+                    f"Seeded {_plural(int(strike_count), 'active betrayal strike')} for {player} -> {nation}. "
                     f"{posture_text}"
                 ),
             }

@@ -52,6 +52,8 @@ only be created by the player's own `/command`.
 import math
 from typing import Dict, Optional
 
+from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+
 # executor.py's `strategic_override_actions` — a same-marshal tail in this set
 # ENDS a live standing order (measured: it wipes the order even on a command
 # refused at 0 AP; the wipe is the executor's, this module only NAMES it).
@@ -200,7 +202,7 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
             eta = _eta_turns(marshal, order)
             return done("moment",
                         f"{lead}Sent now it would take {who}'s next turn where he "
-                        f"stands, not at {dest} — he reaches it in ~{eta} turn(s). "
+                        f"stands, not at {dest} — he reaches it in ~{_plural(int(eta), 'turn')}. "
                         f"Give it when he arrives.")
         # Rule 3 — a standing hold or support that the tail would end.
         if (order is not None and order.command_type in STANDING_STRATEGIC_TYPES

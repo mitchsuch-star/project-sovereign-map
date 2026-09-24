@@ -758,7 +758,9 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	var text_w := 150.0 if is_left else 226.0
 
 	var lead_mark := " ◆" if bool(c.get("lead", false)) else ""
-	var name_l := _mk_label(block, str(c.get("name", "")) + lead_mark, 14,
+	# LV-2 (row EP F2): the printed name; the locket keeps the raw key
+	# (its portrait is looked up by it).
+	var name_l := _mk_label(block, Utils.display_marshal_name(str(c.get("name", ""))) + lead_mark, 14,
 			Color(GOLD_HEX))
 	name_l.position = Vector2(text_x, -156.0)
 	name_l.size = Vector2(text_w, 18.0)
@@ -768,9 +770,15 @@ func _make_block(holder: Node2D, c: Dictionary, pos: Vector2,
 	# NV-7: a squadron is counted in sail, and 45 → 38 needs the unit said
 	# out loud or it reads as a rout of thirty-eight men.
 	var unit := " sail" if str(c.get("arm", "")) == "ship" else ""
+	# LV-11 (row EP F2): the lead's locked figure, then the advance's toll
+	# when the backend stamped one — the next diorama opens him at the
+	# number this one closed on.
+	var after_advance := ""
+	if c.has("after_advance") and int(c.get("advance_losses", 0)) > 0:
+		after_advance = " → %s after the advance" % Utils.format_number(int(c.get("after_advance", 0)))
 	var strength_l := _mk_label(
-		block, "%s → %s%s" % [Utils.format_number(committed),
-		Utils.format_number(remaining), unit], 11, Color(BONE_HEX))
+		block, "%s → %s%s%s" % [Utils.format_number(committed),
+		Utils.format_number(remaining), unit, after_advance], 11, Color(BONE_HEX))
 	strength_l.position = Vector2(text_x, -138.0)
 	strength_l.size = Vector2(text_w, 14.0)
 	strength_l.horizontal_alignment = text_align
@@ -909,7 +917,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 		text_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(text_box)
 		var head := Label.new()
-		head.text = "%s — %s" % [str(c.get("name", "")),
+		head.text = "%s — %s" % [Utils.display_marshal_name(str(c.get("name", ""))),
 				str(c.get("absence_reason", "did not march"))]
 		head.add_theme_font_size_override("font_size", 12)
 		head.add_theme_color_override("font_color",

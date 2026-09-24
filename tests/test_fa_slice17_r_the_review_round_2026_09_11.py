@@ -159,7 +159,7 @@ class TestL1TheRecoveryWindowIsReadEverywhere:
         m, victim, region = _stage_recovering_cavalry(world, name="Ney", recovery=2, retreating=True)
         r = _post(client, "Ney, march to Tyrol")
         assert r.get("success") is False
-        assert "2 turn(s) remaining" in str(r.get("message", ""))
+        assert "2 turns remaining" in str(r.get("message", ""))  # F2 LV-9
 
 
 # ═══════════════════════════════════════════════════════════════════════

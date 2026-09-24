@@ -326,6 +326,16 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			btn.custom_minimum_size = Vector2(150, 36)
 			btn.add_theme_font_size_override("font_size", 13)
 			btn.add_theme_color_override("font_color", Color("#80b0e0"))
+			# F5 (row EP, LV-14(a)): a row chip may be honestly unavailable —
+			# the "Separate peace with <court>" chip carries the same
+			# `available` / `disabled_reason_display` pair the rail's
+			# substitute does, and renders shut WITH its reason.
+			if not bool(aff.get("available", true)):
+				btn.disabled = true
+				var aff_reason = str(aff.get("disabled_reason_display", ""))
+				if aff_reason != "":
+					btn.tooltip_text = aff_reason
+				btn.add_theme_color_override("font_disabled_color", Color(COLOR_DIMMED))
 			btn.pressed.connect(_on_settlement_tier2_affordance.bind(aff))
 			line.add_child(btn)
 		tier2_button_container.add_child(line)

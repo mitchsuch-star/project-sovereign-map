@@ -211,7 +211,7 @@ class TestFAN36TheLedgerSeesTheHalt:
         assert forces["strategic_order"] == "March Swabia (1 turns left)"
         orders = next(o for o in ledger["orders"] if o["marshal"] == "Ney")
         assert orders["path_remaining"] == 1
-        assert orders["condition"] == "1 region(s) left"
+        assert orders["condition"] == "1 region left"  # F2 LV-9
 
     def test_dispatch_and_ledger_share_one_word(self):
         w, ney = self._halted()

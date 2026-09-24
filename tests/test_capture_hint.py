@@ -31,7 +31,7 @@ class TestCaptureHint:
     """Test capture hints after successful move."""
 
     def test_hint_shown_for_undefended_enemy_region(self):
-        """Moving next to an undefended enemy region shows [HINT]."""
+        """Moving next to an undefended enemy region names it as undefended."""
         world, gs, executor = _setup()
         # Use Ney, move from Belgium to a region adjacent to an enemy region
         ney = world.marshals["Ney"]
@@ -59,7 +59,9 @@ class TestCaptureHint:
         result = executor._execute_move(ney, "Belgium", world, gs)
 
         assert result["success"] is True
-        assert "[HINT]" in result["message"]
+        # F2 (row EP, LV-4): the hint is a sentence, not a tag.
+        assert "lies undefended — an attack takes it." in result["message"]
+        assert "[HINT]" not in result["message"]
         assert "Netherlands" in result["message"]
         assert "capture_hints" in result
         assert "Netherlands" in result["capture_hints"]

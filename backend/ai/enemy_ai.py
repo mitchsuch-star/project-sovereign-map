@@ -159,6 +159,11 @@ FIELD_PRICES_THE_TARGET_TOO = True       # R1-1: a retreated target is never pri
 ALLY_SUPPORT_PRICES_THE_FIELD = True     # R1-2: "attacking X to join" is priced and thresholded like P4, reads futility + the crossing
 ADMIN_RECRUIT_SPARES_THE_SQUARE = True   # R1-3: the admin recruit never breaks the square the phase just paid for
 STAGNATION_READS_THE_PHASE = True        # R1-4: form_square is meaningful; a corps that acted (or drills) this phase is not forced
+# F5 "Bohemia is not empty" (row EP, Sept 25 2026 — LV-D2 / FA-D13 option (a)).
+# Both down = the pre-F5 walk-in rung byte-for-byte (the BASELINE_SERIES
+# attribution arms, tools/_f5_series_arms.py).
+ONE_WALK_IN_PER_CORPS_PER_TURN = True    # P4.5 hands a corps at most `movement_range` walk-ins a turn
+THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = True  # a literal corps runs the cautious 1.5x counter-attack check before a walk-in
 DRILLING_CORPS_IS_LEFT_TO_DRILL = True   # R1-5: no stance / fortify / supply-move is ordered to a drilling corps
 CAVALRY_AI_READS_THE_LIMIT = True        # R1-7: the cautious rungs never park cavalry in DEFENSIVE or a fort under the cavalry limit
 
@@ -1116,6 +1121,10 @@ class EnemyAI:
         # Bug Fix: Track marshals who are "done" for this turn (waited twice, nothing else to do)
         self._marshals_done_this_turn: set = set()
 
+        # F5 (row EP): successful walk-ins per corps this phase, read by P4.5
+        # against the corps' `movement_range` (one for infantry).
+        self._walk_ins_this_turn: Dict[str, int] = {}
+
         # Fix #2: Track marshals who advanced toward enemy via P7 this turn
         # Prevents P8 from immediately retreating them back (advance→retreat oscillation)
         self._advanced_this_turn: set = set()
@@ -1301,6 +1310,14 @@ class EnemyAI:
                 self._attacked_targets_this_turn.add(
                     (selected_action["marshal"], selected_action["target"])
                 )
+            # F5 (row EP): a SUCCESSFUL walk-in counts against the corps'
+            # per-turn share (`movement_range`), read by
+            # `_find_undefended_capture` before it offers another.
+            if selected_action.get("walk_in"):
+                if not hasattr(self, "_walk_ins_this_turn"):
+                    self._walk_ins_this_turn = {}
+                self._walk_ins_this_turn[selected_action["marshal"]] = (
+                    self._walk_ins_this_turn.get(selected_action["marshal"], 0) + 1)
 
             # Track successful garrison placement (1 per nation per turn cap)
             if selected_action["action"] == "garrison":
@@ -3851,6 +3868,21 @@ class EnemyAI:
         if not marshal_region:
             return None
 
+        # F5 "Bohemia is not empty" (row EP, LV-D2 / FA-D13 option (a),
+        # Sept 25 2026): one walk-in per corps per turn — `movement_range`
+        # of them (one for infantry, two for cavalry). The round-robin
+        # loop had no cap, so Bavaria's single corps took Bohemia and
+        # Carniola on turn 1 of the historical seed (three provinces on the
+        # commanded board) and promoted Austria's Revanche against Bavaria
+        # the same turn. The counter is per-phase state (reset with the
+        # other per-turn sets); a corps that already took its share this
+        # turn finds no capture here and falls through to the rungs below.
+        if ONE_WALK_IN_PER_CORPS_PER_TURN:
+            _taken = int(getattr(self, "_walk_ins_this_turn", {}).get(marshal.name, 0))
+            if _taken >= max(1, int(getattr(marshal, "movement_range", 1) or 1)):
+                ai_debug(f"    {marshal.name} has taken his walk-in this turn ({_taken})")
+                return None
+
         ai_debug(f"    Checking adjacent regions: {marshal_region.adjacent_regions}")
 
         # Track best capture opportunity (prioritize capitals and high-value)
@@ -3952,7 +3984,11 @@ class EnemyAI:
         return {
             "marshal": marshal.name,
             "action": "attack",
-            "target": best_target
+            "target": best_target,
+            # F5: the loop counts a SUCCESSFUL walk-in against the corps'
+            # per-turn share (`_execute_action` reads marshal/action/target
+            # only, so the tag never reaches the executor).
+            "walk_in": True,
         }
 
     def _find_garrison_attack(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
@@ -5499,7 +5535,16 @@ class EnemyAI:
 
         # Additional check for cautious: evaluate strength ratio even with tolerance met
         # BUT: relax threshold if marshal has been fortified and idle too long
-        if personality == "cautious" and adjacent_enemy_strength > 0:
+        # F5 "Bohemia is not empty" (row EP, LV-D2 / FA-D13 option (a)): a
+        # LITERAL marshal takes the same strength check before walking into
+        # a province beside a stronger enemy — Deroy (literal, 22,000)
+        # marched into Bohemia with Archduke Charles's 54,000 next door and
+        # was destroyed for it two turns later. The cautious arm's stale-
+        # fortification relaxation applies to him too (a literal corps sat
+        # fortified reads the same clock).
+        _takes_strength_check = personality == "cautious" or (
+            THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK and personality == "literal")
+        if _takes_strength_check and adjacent_enemy_strength > 0:
             # Stale fortification relaxation: after N turns fortified, accept more risk
             # Stale fortification: idle too long → accept more risk to break deadlock
             # Floor at 0.9 — cautious marshals never ignore a near-equal threat
@@ -5510,7 +5555,7 @@ class EnemyAI:
             counter_attack_threshold = max(0.9, 1.5 - stale_reduction)
 
             if adjacent_enemy_strength > marshal.strength * counter_attack_threshold:
-                return (False, f"Cautious: enemy counter-attack strength too high ({adjacent_enemy_strength} vs {marshal.strength})")
+                return (False, f"{str(personality).title()}: enemy counter-attack strength too high ({adjacent_enemy_strength} vs {marshal.strength})")
             elif stale_reduction > 0:
                 ai_debug(f"    Stale fortification relaxation: threshold reduced to {counter_attack_threshold:.1f}x (fortified {turns_fortified} turns)")
 

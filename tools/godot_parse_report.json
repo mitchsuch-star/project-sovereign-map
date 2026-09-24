@@ -383,7 +383,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/ep_f3_client_layout_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ep_f2_display_name_harness.gd"
     }
   ],
-  "timestamp": "2026-09-24T16:17:38Z"
+  "timestamp": "2026-09-24T18:26:48Z"
 }

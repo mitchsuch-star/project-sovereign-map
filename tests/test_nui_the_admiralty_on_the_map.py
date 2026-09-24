@@ -26,6 +26,7 @@ harness, the real map.gd through `tools/nui_map_capture.gd`) SKIP when the
 engine is absent — and a skip is not a pass.
 """
 
+import re
 import contextlib
 import io
 import json
@@ -219,7 +220,7 @@ class TestThePlayerSummary:
             assert isinstance(summary[key], int), key
         assert "45 sail" in summary["line"]
         assert "BLOCKADED by Britain" in summary["line"]
-        assert "crossing(s) shut" in summary["line"]
+        assert re.search(r"\d+ crossings? shut", summary["line"]), summary["line"]  # F2 LV-9
 
     def test_a_dormant_world_hides_the_chip(self):
         tw = WorldState.from_scenario(str(TUTORIAL))

@@ -531,7 +531,9 @@ class TestDriverRevisionIgnoresLineEndings:
 # ═══════════════════════════════════════════════════════════════════════
 
 _COMMANDED_TURNS = 3
-_UNUSED = re.compile(r"\(Warning: (\d+) action\(s\) unused\)")
+# F2 (row EP, LV-9): "(Warning: 2 actions unused)" / "(Warning: 1 action unused)";
+# the old hedge form is still accepted so a committed pre-F2 digest reads.
+_UNUSED = re.compile(r"\(Warning: (\d+) action(?:s|\(s\))? unused\)")
 
 
 @pytest.fixture(scope="module")

@@ -1265,6 +1265,19 @@ class TestR7TheCardTellsTheTruth:
             card = _card(w, SWISS)
             predictions.append((int(w.current_turn), card["standing"], card["standing_key"],
                                 card["next_petition_in"], card["remission_left"]))
+            if int(w.current_turn) == 13:
+                # Row EP F5 (September 25, 2026): the second cycle's SUBJECT
+                # had been a board accident. Bern adjoins only French homeland,
+                # so THE PROVINCE arm can never fire for the Swiss on this map;
+                # the turn-15 petition was THE RELIEF arm, which needs a
+                # FALLING loyalty forecast — and on the pre-F5 ambient board
+                # France's own state happened to supply one at turn 14. With
+                # Bavaria's walk-ins capped it did not (the card read "nothing
+                # to ask for"; measured in both lever arms). The precondition
+                # is staged explicitly now, not borrowed from the AI board: a
+                # soured lord relation (-60 // 20 = -3) makes the forecast
+                # fall, so the cadence's expiry has something to ask for.
+                _set_rel(w, SWISS, PLAYER, -60)
             _end_turn(client)
             if w.vassals[SWISS].get("petitioned_turn") == w.current_turn:
                 issued.add(int(w.current_turn))
@@ -2021,7 +2034,8 @@ class TestClientSourcePins:
         assert 'diplo_data["pending_lapsing_petitions"] = response.get(' in main_gd
         assert 'diplo_data.get("pending_lapsing_petitions", [])' in main_gd
         assert 'pet.get("price_line", "")' in main_gd
-        assert '"%d petition(s) will be %s if you end the turn: %s."' in main_gd
+        # F2 (row EP, LV-9): the count and the noun agree through Utils.plural.
+        assert '"%s will be %s if you end the turn: %s." % [Utils.plural(named.size(), "petition"), verb, ", ".join(named)]' in main_gd
         assert '"REFUSED" if refused else "left unanswered"' in main_gd
         for name in ("main.gd", "dispatch_view.gd"):
             gd = (GODOT_SCRIPTS / name).read_text(encoding="utf-8")

@@ -20,7 +20,52 @@ from backend.game_logic import battle_scale
 from backend.models.personality_modifiers import (
     get_attack_modifier_for_personality,
     get_defense_modifier_for_personality,
+    get_personality_modifiers,
 )
+
+
+def defense_personality_components(personality: str, stance: str,
+                                   is_outnumbered: bool,
+                                   is_holding: bool) -> List[tuple]:
+    """LV-18 (row EP F2): the defence personality term, one labelled
+    component per factor `get_defense_modifier_for_personality` multiplies.
+
+    Returns `[(label, pct, "bonus"|"penalty"), ...]` in the order the
+    modifier applies them, each percentage read off the SAME table the
+    modifier reads (`get_personality_modifiers`), so the product of
+    `(1 ± pct/100)` over the rows IS the applied multiplier — pinned in
+    `tests/test_ep_f2_the_display_name_pass.py` against the modifier
+    function itself, over every personality × stance × outnumbered ×
+    holding cell.
+    """
+    rows: List[tuple] = []
+    key = str(personality or "").lower()
+    mods = get_personality_modifiers(personality)
+    if key == "aggressive":
+        if stance == "aggressive":
+            v = int(round(mods.get("aggressive_stance_defense_penalty", 0) * 100))
+            if v:
+                rows.append((f"Personality ({personality})", v, "penalty"))
+        if stance == "defensive":
+            v = int(round(mods.get("defensive_stance_defense_penalty", 0) * 100))
+            if v:
+                rows.append((f"Personality ({personality})", v, "penalty"))
+    elif key == "cautious":
+        if stance == "defensive":
+            v = int(round(mods.get("defensive_stance_defense_bonus", 0) * 100))
+            if v:
+                rows.append((f"Personality ({personality})", v, "bonus"))
+        if is_outnumbered:
+            v = int(round(mods.get("outnumbered_defense_bonus", 0) * 100))
+            if v:
+                rows.append((f"Outnumbered ({personality})", v, "bonus"))
+    elif key == "literal":
+        if is_holding:
+            v = int(round(mods.get("hold_position_defense_bonus", 0) * 100))
+            if v:
+                # W6-1 (BUG-CA-5): the doctrine name, not the opaque caption.
+                rows.append(("Immovable (literal hold)", v, "bonus"))
+    return rows
 
 
 def snapshot_attacker_modifiers(
@@ -234,20 +279,16 @@ def snapshot_defender_modifiers(
     is_outnumbered = defender.strength < attacker.strength
     is_holding = getattr(defender, "holding_position", False)
     personality = getattr(defender, "personality", "unknown")
-    pers_mod = get_defense_modifier_for_personality(
-        personality, stance.value, is_outnumbered, is_holding
-    )
-    if pers_mod > 1.001:
-        pct = int(round((pers_mod - 1.0) * 100))
-        # W6-1 (BUG-CA-5): a literal marshal's hold bonus gets its doctrine
-        # name instead of the opaque personality caption. Label only.
-        if personality == "literal" and is_holding:
-            mods.append({"label": "Immovable (literal hold)", "value": pct, "type": "bonus"})
-        else:
-            mods.append({"label": f"Personality ({personality})", "value": pct, "type": "bonus"})
-    elif pers_mod < 0.999:
-        pct = int(round((1.0 - pers_mod) * 100))
-        mods.append({"label": f"Personality ({personality})", "value": pct, "type": "penalty"})
+    # LV-18 (row EP F2, Sept 25 2026): "Personality (cautious) +16%" bundled
+    # TWO terms — the stance-linked +5% and the outnumbered +10% — under one
+    # label, so the same personality read +5% on one line and +16% on the
+    # next. Each component `get_defense_modifier_for_personality` multiplies
+    # is printed with its own label, read off the SAME table (never a
+    # second copy of the numbers); their product is the applied modifier,
+    # which `defense_personality_components` pins.
+    for label, value, kind in defense_personality_components(
+            personality, stance.value, is_outnumbered, is_holding):
+        mods.append({"label": label, "value": value, "type": kind})
 
     # --- Recklessness defense penalty ---
     if getattr(defender, "is_reckless_cavalry", False):

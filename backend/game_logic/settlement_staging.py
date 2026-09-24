@@ -2193,6 +2193,128 @@ def build_settlement_preview(
 SETTLEMENT_EDITOR_CALLER_KIND = "player_editor"
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# F5 "Bohemia is not empty" (row EP, LV-14(a) / LV-D4, September 25 2026):
+# the whole-war blocker NAMES the courts. With Vienna held, Mack captive and
+# the war score at +58, a white peace was refused as "claiming a victory
+# the field has not delivered" — true of the WAR (London and St Petersburg
+# unbeaten), false-sounding of Austria — and nothing on the table said
+# which court could sign now. The predicate is unchanged; the sentence
+# carries the per-court arithmetic the table already holds and points at
+# the separate peace the pair-substitute tier already offers.
+# ═══════════════════════════════════════════════════════════════════════
+THE_BLOCKER_NAMES_THE_COURTS = True
+
+
+def _court_seat(world, court: str) -> str:
+    """"London" for Britain — the capital's name, the court's own metonym;
+    the court's display name when the capital is unknown."""
+    from backend.game_logic.formations import formed_display_name
+    try:
+        seat = world.get_nation_capital(court)
+    except Exception:
+        seat = ""
+    return str(seat or formed_display_name(world, court))
+
+
+def _join_names(names: List[str]) -> str:
+    names = [n for n in names if n]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + f" and {names[-1]}"
+
+
+def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
+                        accept_threshold: int) -> str:
+    """"London and St Petersburg are unbeaten — a whole-war peace needs
+    their consent (Austria 32/50, Britain 24/50, Russia 24/50). Press Austria
+    alone: the separate peace." — "" when nobody holds out (or lever down)."""
+    if not THE_BLOCKER_NAMES_THE_COURTS:
+        return ""
+    from backend.game_logic.diplomacy import get_war_score_for
+    from backend.game_logic.formations import formed_display_name
+    rows = [r for r in (per_court_acceptance or []) if isinstance(r, Mapping)]
+    holdouts = [str(n) for n in (holdout_courts or []) if n]
+    if not rows or not holdouts:
+        return ""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    threshold = int(accept_threshold or 50)
+    # "Unbeaten" is the WAR's word, not the table's: a court the fortunes of
+    # war have not yet turned against (the pair war score from our side is
+    # not positive). A court we hold the capital of and have beaten in the
+    # field is a holdout by the arithmetic and still not "unbeaten" — it is
+    # the court to press alone.
+    unbeaten = [n for n in holdouts if get_war_score_for(world, player, n) <= 0]
+    beaten = [n for n in holdouts if n not in unbeaten]
+    scores: List[str] = []
+    ready: List[str] = []
+    for row in rows:
+        court = str(row.get("nation") or "")
+        total = row.get("total")
+        if not court or total is None:
+            continue
+        row_threshold = int(row.get("threshold") or threshold)
+        scores.append(f"{formed_display_name(world, court)} {int(total)}/{row_threshold}")
+        if int(total) >= row_threshold and not row.get("hard_stops") and court not in holdouts:
+            ready.append(court)
+    press = [formed_display_name(world, n) for n in beaten + [c for c in ready if c not in beaten]]
+    if unbeaten:
+        seats = _join_names([_court_seat(world, n) for n in unbeaten])
+        verb = "is" if len(unbeaten) == 1 else "are"
+        sentence = (f"{seats} {verb} unbeaten — a whole-war peace needs "
+                    f"{'its' if len(unbeaten) == 1 else 'their'} consent")
+    else:
+        sentence = "Every covered court has been beaten in the field — a whole-war peace still needs each one's consent"
+    if scores:
+        sentence += f" ({', '.join(scores)})"
+    sentence += "."
+    if press:
+        sentence += f" Press {_join_names(press)} alone: the separate peace."
+    return sentence
+
+
+def separate_peace_chip(world, court: str, *, war_id: str, staged_terms,
+                        actor: str) -> Dict[str, Any]:
+    """The per-court "Separate peace with <court>" affordance for a covered
+    court at or above the threshold — routed to the EXISTING pair-substitute
+    tier (`seek_bilateral_peace`) with the court named in the structured
+    params. Honest availability: the tier block and the eligibility helper
+    that the rail's own substitute consults decide `available` and say why."""
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.settlement_validation import (
+        evaluate_pair_peace_substitute_eligibility,
+    )
+    chip: Dict[str, Any] = {
+        "label": f"Separate peace with {formed_display_name(world, court)}",
+        "action": "seek_bilateral_peace",
+        "scope": "selected_pair",
+        "nation": court,
+        "selected_target_nation": court,
+        "war_id": war_id,
+        "description": (
+            f"Leave the joint settlement and make peace with "
+            f"{formed_display_name(world, court)} alone; the other courts "
+            f"stay at war."),
+    }
+    tier_block = pair_substitute_settlement_tier_block(
+        list(staged_terms or []), target=court, proposer_leader=actor)
+    if tier_block:
+        chip["available"] = False
+        chip["disabled_reason_display"] = tier_block
+        return chip
+    eligibility = evaluate_pair_peace_substitute_eligibility(
+        world, war_id=war_id, actor_nation=actor, target_nation=court,
+        action="seek_bilateral_peace")
+    if not eligibility.get("eligible"):
+        chip["available"] = False
+        chip["disabled_reason_display"] = str(
+            eligibility.get("disabled_reason_display")
+            or "A separate peace with this court is not open now.")
+    return chip
+
+
 def _scoped_settlement_drafts(world: Any) -> Dict[str, List[Dict[str, Any]]]:
     """Return the SC-5R scoped settlement draft store, creating it lazily.
 
@@ -2549,6 +2671,12 @@ def build_settlement_confirm_dialogue(
             )
             or f"A white peace for {war_label} cannot be ratified now."
         )
+        # F5 (row EP, LV-14(a)): the blocker names the unbeaten courts and
+        # the one that can sign alone.
+        _named = legitimacy_sentence(world, per_court_acceptance,
+                                     holdout_courts, acceptance_threshold)
+        if _named:
+            text = f"{text} {_named}"
     elif can_ratify and leader_consents:
         # FA-3: the accepted-offer review. Their consent is the answer to the
         # question the ordinary heading asks.
@@ -2575,6 +2703,12 @@ def build_settlement_confirm_dialogue(
             war_label=war_label,
             top_blocker=top_blocker_spoken,
         ) or f"This settlement of {war_label} cannot be ratified now."
+        # F5 (row EP, LV-14(a)): the same named sentence on the blocked
+        # authored-terms review.
+        _named = legitimacy_sentence(world, per_court_acceptance,
+                                     holdout_courts, acceptance_threshold)
+        if _named:
+            text = f"{text} {_named}"
     covered = list(preview.get("covered_enemy_participants") or [])
     selected_target = str(selected_target_nation or "").strip()
     if selected_target and selected_target not in covered:
@@ -3034,6 +3168,26 @@ def build_settlement_confirm_dialogue(
                     "draft_key": settlement_draft_key_for_options,
                     "description": f"Ease {court} — applies to this court only.",
                 })
+        # F5 (row EP, LV-14(a) / LV-D4): a covered court at or above the
+        # threshold gets "Separate peace with <court>" on ITS row — the
+        # legible road from "I hold their capital" to "so make them sign
+        # alone" — routed to the pair-substitute tier the rail already
+        # holds. Player's own dialogue only (an observer table gets none);
+        # honest availability decided by the same tier block and
+        # eligibility helper the rail's substitute consults.
+        if (
+            player_nation in all_members
+            and dialogue_mode == "PROPOSE"
+            and str(caller_kind or "") == SETTLEMENT_EDITOR_CALLER_KIND
+            and row.get("total") is not None
+            and not row.get("hard_stops")
+            and int(row["total"]) >= int(row.get("threshold") or acceptance_threshold)
+            and court
+        ):
+            dial_actions.append(separate_peace_chip(
+                world, court, war_id=war_id,
+                staged_terms=staged_terms_for_gate,
+                actor=player_nation))
         row["dial_actions"] = dial_actions
         # GT-Slice-2 (Guided Terms §3.1/§3.3): the per-court authoring
         # payload. Four row states: a hard-stopped court exposes NO
