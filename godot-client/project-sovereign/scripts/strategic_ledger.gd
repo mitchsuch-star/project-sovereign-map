@@ -209,6 +209,39 @@ func _collapse_note_line() -> String:
 	return "[color=#" + Utils.COLOR_ERROR + "]" + note + "[/color]\n\n"
 
 
+func _fall_clock_lines() -> String:
+	# GE-2 (ENDGAME_PLAN §4, the clock line): one line per held arm of the
+	# Fall, the backend's own `clock_line` (`fall.clock_line`, the ONE source
+	# the war room and the end-turn banner print too) — "THE EAGLE IN CHAINS
+	# — 3 of 10 · the regency falls at the end of turn 21 (7 turns remain)".
+	# A paused clock says the clock stands still and names NO date; the
+	# `severity` the backend decided picks the tint. Absent = no arm holds
+	# (or the lever is down) and the tab is the pre-GE-2 tab exactly.
+	var clock = cached_data.get("fall_clock", null)
+	if not (clock is Dictionary):
+		return ""
+	var arms = clock.get("arms", [])
+	if not (arms is Array) or arms.is_empty():
+		return ""
+	var bbcode := ""
+	for arm in arms:
+		if not (arm is Dictionary):
+			continue
+		var line := str(arm.get("clock_line", ""))
+		if line == "":
+			continue
+		var severity := str(arm.get("severity", "warning"))
+		var tint := Utils.COLOR_BATTLE
+		if severity == "critical":
+			tint = Utils.COLOR_ERROR
+		elif severity == "paused":
+			tint = Utils.COLOR_DIMMED
+		bbcode += "[color=#" + tint + "]" + line + "[/color]\n"
+	if bbcode != "":
+		bbcode += "\n"
+	return bbcode
+
+
 func _render_current_tab():
 	if cached_data.is_empty():
 		return
@@ -344,6 +377,7 @@ func _render_territories():
 	bbcode += _dated_line()
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
 	bbcode += _collapse_note_line()
+	bbcode += _fall_clock_lines()
 
 	if territories.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No territories controlled.[/color]\n"

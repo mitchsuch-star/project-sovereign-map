@@ -1,0 +1,163 @@
+[
+  {
+    "id": "GE2-01 the clock-line lever down",
+    "file": "backend/game_logic/fall.py",
+    "old": "THE_CLOCK_HAS_ONE_LINE = True",
+    "new": "THE_CLOCK_HAS_ONE_LINE = False",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_warning_arms_carry_the_line"
+  },
+  {
+    "id": "GE2-02 a paused truce given a date",
+    "file": "backend/game_logic/fall.py",
+    "old": "        return f\"{head} · the clock stands still while the truce holds\"",
+    "new": "        return f\"{head} · the Empire falls at the end of turn {turns + grace}\"",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_a_paused_truce_names_no_date"
+  },
+  {
+    "id": "GE2-03 a captor pause given a date",
+    "file": "backend/game_logic/fall.py",
+    "old": "        return f\"{head} · the clock stands still — no war with his captor\"",
+    "new": "        return f\"{head} · the regency falls at the end of turn {turns + grace}\"",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_a_captor_pause_names_no_date"
+  },
+  {
+    "id": "GE2-04 severity never critical",
+    "file": "backend/game_logic/fall.py",
+    "old": "    if int(view.get(\"turns_left\", 0) or 0) <= 2:\n        return \"critical\"",
+    "new": "    if int(view.get(\"turns_left\", 0) or 0) <= 0:\n        return \"critical\"",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_severity_is_decided_once"
+  },
+  {
+    "id": "GE2-05 the resuming truce undated",
+    "file": "backend/game_logic/fall.py",
+    "old": "        if view.get(\"resuming\"):\n            tail = \"the truce ends this turn and the war resumes; \" + tail\n        return f\"{head} · {tail}\"",
+    "new": "        return f\"{head} · {tail}\"",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_a_resuming_truce_counts_this_turn"
+  },
+  {
+    "id": "GE2-06 the ledger drops the clock",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        if _clock_arms:\n            collapse_fields[\"fall_clock\"] = {\"arms\": _clock_arms}",
+    "new": "        if False:\n            collapse_fields[\"fall_clock\"] = {\"arms\": _clock_arms}",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_ledger_carries_the_clock_only_while_an_arm_holds"
+  },
+  {
+    "id": "GE2-07 the war room prints only the soonest arm again",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "        for _row in _fall.clock_lines(world, player):\n            lines.append(f\"  {_row['clock_line']}\")",
+    "new": "        for _row in []:\n            lines.append(f\"  {_row['clock_line']}\")",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_war_room_prints_every_held_arm"
+  },
+  {
+    "id": "GE2-08 the warning arms lose the line",
+    "file": "backend/game_logic/fall.py",
+    "old": "    if THE_CLOCK_HAS_ONE_LINE:\n        row[\"clock_line\"] = clock_line(world, view)\n        row[\"severity\"] = clock_severity(view)",
+    "new": "    if False:\n        row[\"clock_line\"] = clock_line(world, view)\n        row[\"severity\"] = clock_severity(view)",
+    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_three_surfaces_print_the_same_words"
+  },
+  {
+    "id": "GE2-09 the fourth register unmapped",
+    "file": "backend/game_logic/game_end.py",
+    "old": "    CAUSE_IMPERIAL_PEACE: \"imperial_peace\",\n}",
+    "new": "}",
+    "tests": "tests/test_ge2_the_client.py::TestTheFourthRegister::test_imperial_peace_is_a_marked_gold_register"
+  },
+  {
+    "id": "GE2-10 the digest drops the verdict block",
+    "file": "tools/playtest_driver.py",
+    "old": "    if isinstance(verdict, dict) and verdict.get(\"title\"):\n        lines.append(f\"    ↳ THE VERDICT — {verdict.get('title')}: \"",
+    "new": "    if False:\n        lines.append(f\"    ↳ THE VERDICT — {verdict.get('title')}: \"",
+    "tests": "tests/test_ge2_the_client.py::TestTheDriverRendersTheScreen::test_the_end_screen_block_reads_the_payload"
+  },
+  {
+    "id": "GE2-11 the digest drops the epilogue",
+    "file": "tools/playtest_driver.py",
+    "old": "    for i, para in enumerate(paragraphs or []):\n        lead = (f\"THE EXILE ({epilogue.get('variant')}) — \" if i == 0 else \"\")",
+    "new": "    for i, para in enumerate([]):\n        lead = (f\"THE EXILE ({epilogue.get('variant')}) — \" if i == 0 else \"\")",
+    "tests": "tests/test_ge2_the_client.py::TestTheDriverRendersTheScreen::test_the_end_screen_block_reads_the_payload"
+  },
+  {
+    "id": "GE2-12 the digest lever ignored",
+    "file": "tools/playtest_driver.py",
+    "old": "        if THE_DIGEST_RENDERS_THE_END_SCREEN:\n            for line in _end_screen_lines(row):",
+    "new": "        if True:\n            for line in _end_screen_lines(row):",
+    "tests": "tests/test_ge2_the_client.py::TestTheDriverRendersTheScreen::test_the_lever_keeps_the_ge1_one_liner"
+  },
+  {
+    "id": "GE2-13 the stop flag never stops",
+    "file": "tools/playtest_driver.py",
+    "old": "    return bool(getattr(args, \"stop_on_ending\", False)) and int(seen_after) > int(seen_before)",
+    "new": "    return False",
+    "tests": "tests/test_ge2_the_client.py::TestTheDriverRendersTheScreen::test_the_stop_flag_stops_on_a_new_marked_ending"
+  },
+  {
+    "id": "GE2-14 [gd] the command line reopens after the Fall",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif enabled and _campaign_over:\n\t\tenabled = false",
+    "new": "\tif false and _campaign_over:\n\t\tenabled = false",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_fallen_campaigns_next_response_raises_nothing_new tests/test_ge2_the_client.py::TestTheSceneAndItsWiring::test_the_command_line_never_reopens_after_the_fall"
+  },
+  {
+    "id": "GE2-15 [gd] the control-return tail never raises the ending",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _show_pending_ending():\n\t\treturn  # GE-2: the end screen's own signals own input from here",
+    "new": "\tif false:\n\t\treturn  # GE-2: the end screen's own signals own input from here",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_tail_itself_raises_the_card_when_no_tableau_stands"
+  },
+  {
+    "id": "GE2-16 [gd] a Final save loads onto a silent board",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t_adopt_endings_on_world_swap(response)\n\t_stash_ending(response)\n\n\t# POSITION 7: arm/disarm the School of War from the world's own",
+    "new": "\t_adopt_endings_on_world_swap(response)\n\n\t# POSITION 7: arm/disarm the School of War from the world's own",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_a_final_save_loads_onto_the_end_screen"
+  },
+  {
+    "id": "GE2-17 [gd] the Territories tab drops the clock",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\tvar clock = cached_data.get(\"fall_clock\", null)",
+    "new": "\tvar clock = null",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_clock_line_on_the_banner_and_the_tab_is_the_backends"
+  },
+  {
+    "id": "GE2-18 [gd] the banner drops the clock",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t_add_fall_clock_lines(defeat_imminent_warning)\n\t\t\tadd_output(\"\")",
+    "new": "\t\t\tadd_output(\"\")",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_clock_line_on_the_banner_and_the_tab_is_the_backends tests/test_ge2_the_client.py::TestTheSceneAndItsWiring::test_the_clock_line_reaches_the_banner_and_the_r_screen_and_the_tab"
+  },
+  {
+    "id": "GE2-19 [gd] the humbled peace never fetched",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _ending_fetch_pending or api_client == null or not api_client.has_method(\"get_campaign_end\"):\n\t\treturn",
+    "new": "\tif true:\n\t\treturn",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_humbled_peace_is_fetched_off_the_record_and_raised"
+  },
+  {
+    "id": "GE2-20 [gd] a cancelled load leaves the fallen board silent",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _campaign_over and campaign_end != null:\n\t\tcampaign_end.reraise()\n\t\treturn",
+    "new": "\tif false:\n\t\tcampaign_end.reraise()\n\t\treturn",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_load_steps_the_card_aside_and_a_cancel_brings_it_back"
+  },
+  {
+    "id": "GE2-21 [gd] a cause raised twice",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif cause != \"\" and not (cause in _endings_shown):\n\t\t_endings_shown.append(cause)",
+    "new": "\tif false:\n\t\t_endings_shown.append(cause)",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_verdict_waits_behind_the_enemy_phase_then_continues"
+  },
+  {
+    "id": "GE2-22 [gd] the Fall's buttons swapped for Continue",
+    "file": "godot-client/project-sovereign/scripts/campaign_end.gd",
+    "old": "\t\t\"primary\": \"Load a campaign\",\n\t\t\"secondary\": \"Main Menu\",",
+    "new": "\t\t\"primary\": \"Continue\",\n\t\t\"secondary\": \"\",",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_command_road_death_raises_the_funeral_and_closes_the_line"
+  },
+  {
+    "id": "GE2-23 [gd] the epilogue not rendered",
+    "file": "godot-client/project-sovereign/scripts/campaign_end.gd",
+    "old": "\t\tfor para in epilogue[\"paragraphs\"]:\n\t\t\tbbcode += \"[i]\" + _esc(str(para)) + \"[/i]\\n\\n\"",
+    "new": "\t\tfor para in []:\n\t\t\tbbcode += \"[i]\" + _esc(str(para)) + \"[/i]\\n\\n\"",
+    "tests": "tests/test_ge2_the_client.py::TestTheClientDriven::test_the_command_road_death_raises_the_funeral_and_closes_the_line"
+  }
+]

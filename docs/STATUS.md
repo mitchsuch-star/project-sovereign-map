@@ -17,17 +17,69 @@
 > six fixes F1–F6 are ALL LANDED; all 22 LV rows are CLOSED**). ~~GE-1 "The
 > Verdict and the Fall"~~ ✅ LANDED September 25, 2026 (block below —
 > with the user's three September 25 asks: the Emperor's death, the
-> generals' death-odds memo, the exile story). **▶ NEXT SLICE = GE-2 "the
-> client"** (`ENDGAME_PLAN.md` §6: `campaign_end.tscn` with the four
-> registers and GE-1's exile epilogue on the Fall register, the clock line
-> on three surfaces, the driver arms that reach each ending; the build note
-> = `docs/NEXT_SESSION_PROMPT.md`), then GE-3 "The Congress of Paris",
-> GE-V, the release build. ⚠ Still open for the user, not for a session:
+> generals' death-odds memo, the exile story). ~~GE-2 "the client"~~
+> ✅ LANDED September 25, 2026 (block below — the end screen with its four
+> registers and the exile epilogue, the clock line on three surfaces from one
+> source, the driver arms that reach each ending). **▶ NEXT SLICE = GE-3
+> "The Congress of Paris"** (`ENDGAME_PLAN.md` §2 + §6 GE-3 row; the build
+> note = `docs/NEXT_SESSION_PROMPT.md`), then GE-V, the release build.
+> ⚠ Still open for the user, not for a session: the in-game feel of the end
+> screen's four registers (frames `docs/audits/IQ10_CAMPAIGN_END_*_2026_09_25.png`),
+> **GE-D2** (the Eagle-Falls driver arm reaches the death with NO Guard
+> question asked — measured, the floor not built; the ruling is the user's),
 > **GE-D1 "The Generals' Mortality"** (the memo's recommendation — a
 > bounded wound-or-death roll for a losing lead, no death off the field —
 > is the user's ruling), the in-game feel of F3's six surfaces (frames
 > `docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
+>
+> **▶ ▶ GE-2 "THE CLIENT" — ✅ LANDED September 25, 2026** (landing record
+> = `ENDGAME_PLAN.md` §6 GE-2; rules `SYSTEMS_REFERENCE.md` §65; pins
+> `tests/test_ge2_the_client.py` (60, the client DRIVEN on the real
+> `main.tscn` through `tools/ge2_campaign_end_harness.gd`)).
+> - **The end screen.** `campaign_end.tscn` (CanvasLayer 122) — ONE scene,
+>   FOUR registers, ONE payload (`game_end.screen_payload`): the crimson
+>   **Fall** with THE EXILE / THE FUNERAL, THE RECORD and the eclipse and
+>   **Load a campaign / Main Menu** (the command line closed for good); the
+>   crimson-grey **Humbled Peace** and the parchment **Verdict** with
+>   **Continue**; the gold **Imperial Peace** (GE-3's register, declared now
+>   — `game_end.CAUSE_IMPERIAL_PEACE` — with **Continue the reign / Retire
+>   to the Tuileries**). Cinzel headings, IM Fell body, a cue per register,
+>   fits by clamping at both Interface Scales.
+> - **Raised from every road, never above the report** — the NA-6b
+>   stash-and-raise: `api_client.response_received` sees every 200-OK body
+>   before its handler; an ending named only in the compact list (the
+>   Humbled Peace on the ratify road) is fetched off `GET /campaign_end`;
+>   the six `game_over` roads end at ONE seam (`_on_campaign_over`); each
+>   cause once per session; a world swap adopts marked endings as history
+>   and keeps a terminal one — `/load` of a Final save lands on the card. **The
+>   command-road death (GE1-RV10) is FIXED**: `Napoleon, attack Mack` at 100
+>   raises the funeral register from the `/command` response, pinned driven.
+>   The legacy text is de-legacied (no 13, no French heading) and kept as
+>   the scrollback record and the fallback.
+> - **The clock line, ONE source (`fall.clock_line`)** on the end-turn
+>   banner, the R screen, the Territories tab (`fall_clock`) and the war room
+>   — one line per HELD arm (the war room had named the soonest arm alone);
+>   a paused clock says so and names no date; `severity` decided once.
+> - **The driver:** the digest prints the END SCREEN's blocks under each
+>   ending; `--stop-on-ending`; two STAGED fixtures; **the four arms
+>   archived** (`ge2-eagle-falls` Fall t31 funeral · `ge2-chains` Fall t10 ·
+>   `ge2-soil-or-sword` Fall t5 · `ge2-verdict` Verdict t44 contested).
+>   **GE-D2 measured:** the Eagle-Falls arm dies with no Guard question
+>   asked — recorded on the row, the floor not built (a mechanic; the user's
+>   ruling; GE-V).
+> - **Gates:** ruff clean; parse harness EXIT=0 (60 scripts, 8 scenes);
+>   `main.tscn` driven, 0 `SCRIPT ERROR`; 8 IQ-10 frames × 2 scales
+>   (`IQ10_CAMPAIGN_END_*`, `IQ10_LEDGER_FALL_CLOCK_TERRITORIES`,
+>   `IQ10_DISPATCH_FALL_CLOCK`, dated 2026_09_25); `tools/_sweep_ge2.json`
+>   **23/23 killed, 0 INERT at close** (2 inert on the first pass — the
+>   stop flag's source-only pin and a tail raise masked by the tableau's
+>   own dismissal — both strengthened and killed); `BASELINE_SERIES` +
+>   M1–M7 byte-identical (no mechanic touched); two pins consciously
+>   flipped (`test_ge1_review_round`'s driver-note count; the FA-94 ESC
+>   census — the end screen joins it, Continue on a marked ending, null on
+>   the Fall). The hook's full run: 25,681 passed / 4 skipped with the
+>   census as its one flip.
 >
 > **▶ ▶ GE-1 VERIFICATION ROUND — ✅ LANDED September 25, 2026** (the
 > third GE-1 commit; record = `ENDGAME_PLAN.md` §6, the verification-round

@@ -67,6 +67,15 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         collapse_fields["collapse_note"] = (
             f"{_collapse.summary_line(world, _state)} {_fall.scope_sentence(world)}"
             if _state else "")
+        # GE-2 (ENDGAME_PLAN §4, the clock line): the fall clock, structured,
+        # for the Territories tab — one row per held arm with the one-source
+        # `clock_line` (the same line the war room and the end-turn banner
+        # print). Present only while an arm holds; the collapse note above
+        # carried the soonest arm's sentence alone, so a paused chains clock
+        # behind a ticking soil clock had no line on this tab at all.
+        _clock_arms = _fall.clock_lines(world)
+        if _clock_arms:
+            collapse_fields["fall_clock"] = {"arms": _clock_arms}
 
     # IQ-4 S3a: THE CABINET — Talleyrand's mission, from the one source every
     # surface reads (`diplomatic_dialogue.mission_status`). Its own key, never

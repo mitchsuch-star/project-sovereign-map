@@ -973,7 +973,13 @@ class TestTheDriverReadsTheRecord:
         digest = _D()
         seen = _note_new_endings(_T([row]), digest, 0)
         seen = _note_new_endings(_T([row]), digest, seen)
-        assert seen == 1 and len(digest.notes) == 1
+        # ⚑ GE-2 (Sept 25, 2026) — CONSCIOUS FLIP: the ending's one-liner is
+        # followed by the END SCREEN block (`_end_screen_lines`, each line
+        # "↳ …"); the ending itself is still noted ONCE — the headline count
+        # is what this pin is about.
+        headlines = [n for n in digest.notes if n.startswith("ENDING — ")]
+        assert seen == 1 and len(headlines) == 1
+        assert all(n.lstrip().startswith("↳") for n in digest.notes if n not in headlines)
         assert "The Emperor is dead." in digest.notes[0]
 
 

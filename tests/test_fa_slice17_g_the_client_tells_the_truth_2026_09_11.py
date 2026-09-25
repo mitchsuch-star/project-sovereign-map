@@ -165,11 +165,21 @@ class TestFA94EscapeDismissesOnlyWhatIsReadAndDismiss:
         assert guard.index("return") < guard.index("set_input_as_handled()")
 
     def test_only_the_proclamation_overrides_it(self):
+        # ⚑ GE-2 (Sept 25, 2026) — CONSCIOUS FLIP: the end screen
+        # (`campaign_end.gd`) joins the census. On its MARKED registers (the
+        # Verdict, a Humbled Peace, the Imperial Peace) it is read-and-dismiss
+        # — ESC presses Continue through its handler, exactly the
+        # Proclamation's shape; on the Fall it is a DECISION between two roads
+        # out of the campaign and returns null, so no reflex keypress takes
+        # either. The second half pins that split.
         overriders = sorted(p.name for p in SCRIPTS.glob("*.gd")
                             if "func esc_control()" in _read(p))
-        assert overriders == ["popup_base.gd", "proclamation_popup.gd"], overriders
+        assert overriders == ["campaign_end.gd", "popup_base.gd", "proclamation_popup.gd"], overriders
         body = _func_body(_read(SCRIPTS / "proclamation_popup.gd"), "func esc_control()")
         assert "return acknowledge_btn" in body
+        end_body = _func_body(_read(SCRIPTS / "campaign_end.gd"), "func esc_control()")
+        assert "if is_terminal():" in end_body and "return null" in end_body
+        assert end_body.index("return null") < end_body.index("return primary_btn")
 
     def test_the_decision_popups_inherit_the_null_default(self):
         """The interrupt (the rightmost cannon-fire option is `hold_position`

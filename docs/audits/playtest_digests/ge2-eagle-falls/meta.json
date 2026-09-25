@@ -1,0 +1,118 @@
+{
+  "name": "ge2-eagle-falls",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "grant_autonomy",
+    "petition": "first_enabled",
+    "declare_war": "cancel",
+    "interrupt": "first",
+    "last_stand": "first",
+    "contact": "first",
+    "paradox": "honor",
+    "rebellion": "accept",
+    "sabotage": "confront",
+    "reward": "ignore",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 34,
+  "started": "2026-09-24 22:36",
+  "from_save": "",
+  "scenario": "",
+  "script": "",
+  "cheats": false,
+  "strict": false,
+  "rng": {
+    "deterministic": true,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "pythonhashseed": "0"
+  },
+  "driver_revision": "296621f2139c",
+  "reload_every": 0,
+  "requested": {
+    "seed": "historical",
+    "scenario": "",
+    "from_save": "",
+    "llm": "mock"
+  },
+  "resolved": {
+    "source": "world",
+    "campaign_seed": "historical",
+    "scenario_name": "The Third Coalition, 1805",
+    "sovereign_map": "europe",
+    "regions": 126,
+    "player_nation": "France",
+    "boot_turn": 1,
+    "dice_label": "historical",
+    "env": {
+      "SOVEREIGN_SCENARIO": "",
+      "SOVEREIGN_SMOKE_START": "",
+      "SOVEREIGN_MAP": "europe",
+      "SOVEREIGN_SEED": "historical",
+      "LLM_MODE": "mock",
+      "DEBUG_MODE": "false"
+    }
+  },
+  "platform": {
+    "python": "3.13.12",
+    "implementation": "CPython",
+    "os": "Windows-11-10.0.22000-SP0",
+    "machine": "AMD64",
+    "pythonhashseed": "0"
+  },
+  "engine_revision": {
+    "git_commit": "da91683b56dc69cfc6160d8c9096245613e3a68c",
+    "dirty": true,
+    "dirty_scope": [
+      "backend",
+      "tools/playtest_driver.py",
+      "godot-client/project-sovereign/assets/maps"
+    ],
+    "content_hash": "4fdb803f0fddbf8b4727eb171c567bfd2f60be88811733e847ae00dd82502a3e",
+    "content_files": 133,
+    "content_scope": "backend/**/*.py + the map registry + the 1805 and tutorial scenario JSON, line endings normalised to LF"
+  },
+  "status": "game-over",
+  "counters": {
+    "commands": 31,
+    "popups": 64,
+    "battles": 36,
+    "turns": 31,
+    "ap_available": 124,
+    "ap_spent": 0,
+    "cmd_refused": 0
+  },
+  "unknown_blockers": [],
+  "dispatch_type_counts": {
+    "agenda_shift": 5,
+    "balance_of_europe_shifted": 5,
+    "blockade_begins": 3,
+    "blockade_broken": 1,
+    "design_promoted": 2,
+    "diplomatic_ai_proposal": 27,
+    "diplomatic_auto_downgrade": 1,
+    "diplomatic_coalition_dissolved": 1,
+    "diplomatic_dp_regen": 31,
+    "diplomatic_vassal_courting": 2,
+    "diplomatic_vassal_defected": 1,
+    "diplomatic_vassal_transferred": 1,
+    "diplomatic_vassal_unrest": 2,
+    "diplomatic_we_threshold": 2,
+    "expedition_landed": 3,
+    "intent_eases": 1,
+    "nation_eliminated": 2,
+    "paymaster_subsidy": 17,
+    "settlement_offer_arrival": 6,
+    "sovereign_takes_field": 1,
+    "third_party_peace": 1
+  }
+}

@@ -219,6 +219,14 @@ var reward_dialog = null  # ES-7 second pass (§0.6.8): the Marshal's Reward dia
 var marshal_petition_dialog = null  # Jealousy v3.2: the marshal-petition channel (layer 114)
 var proclamation_popup = null  # NA-6b: The Proclamation, a formation landmark (layer 117)
 var pending_proclamation_data = null  # NA-6b: stashed card, shown when control returns
+# GE-2 (row EP): the end screen — the Fall, the Humbled Peace, the Verdict of
+# History, the Imperial Peace (layer 122). Endings are stashed on arrival and
+# raised at control return (the NA-6b discipline); each cause is raised once.
+var campaign_end = null
+var pending_ending_queue: Array = []     # screen payloads awaiting a control-return tail
+var _endings_shown: Array = []           # causes this client has raised (or adopted as history)
+var _ending_fetch_pending: bool = false  # one GET /campaign_end in flight at a time
+var _campaign_over: bool = false         # a TERMINAL ending stands — the command line never reopens (R3)
 var pending_redemption_data = null  # PT-B1: stashed redemption, shown when control returns
 var _redemption_recheck_turn: int = -1  # PT-B1: once-per-turn recovery poll
 
@@ -385,6 +393,11 @@ func _ready():
 	# Create API client
 	api_client = load("res://scripts/api_client.gd").new()
 	add_child(api_client)
+	# GE-2: every 200-OK body, BEFORE its handler — the one seam that sees the
+	# ratify road and the mailbox roads as well as the command family, so an
+	# ending stamped on any of them is stashed for the handler's own tail.
+	if api_client.has_signal("response_received"):
+		api_client.response_received.connect(_stash_ending)
 
 	# ── Dialog Manager (R16) — centralized dialog instantiation ──
 	dialog_manager = DialogManager.new()
@@ -454,6 +467,16 @@ func _ready():
 	proclamation_popup = dialog_manager.register("proclamation", "res://scenes/proclamation_popup.tscn")
 	if proclamation_popup:
 		proclamation_popup.dismissed.connect(_on_proclamation_dismissed)
+
+	# GE-2 (ENDGAME_PLAN §4): the end screen — the Fall, the Humbled Peace,
+	# the Verdict of History, the Imperial Peace (layer 122). Stashed on
+	# arrival, raised at control return; its signals own input from there:
+	# Continue resumes the tail, the Fall's two roads leave the campaign.
+	campaign_end = dialog_manager.register("campaign_end", "res://scenes/campaign_end.tscn")
+	if campaign_end:
+		campaign_end.continued.connect(_on_campaign_end_continued)
+		campaign_end.load_requested.connect(_on_campaign_end_load_requested)
+		campaign_end.main_menu_requested.connect(_on_campaign_end_main_menu_requested)
 
 	load_dialog = dialog_manager.register("load", "res://scenes/load_dialog.tscn")
 	if load_dialog:
@@ -784,6 +807,12 @@ func _on_connection_test(response):
 		# change that makes the true arm reachable cannot re-open the gap.
 		if response.has("game_state"):
 			_remember_game_state(response.game_state)
+			# GE-2: plain entry / Return to the War Room — the world's stamped
+			# MARKED endings are history; a fallen backend's terminal ending
+			# is fetched off the record and raised (a silent board is not a
+			# road out of the Fall).
+			_adopt_endings_on_world_swap(response)
+			_stash_ending(response)
 
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -2480,6 +2509,214 @@ func _stash_proclamation(response: Dictionary) -> void:
 		pending_proclamation_data = response.nation_proclamation
 
 
+# ── GE-2: the end screen — stash-and-raise (the NA-6b discipline) ───────────
+# An ending arrives on the response that stamped it (`ending`: the end-turn
+# road, /load, a /command that ended the war — and, after a Fall, EVERY
+# response) or only as a cause in the compact list every response carries
+# (`game_state.endings`: a Humbled Peace ratified on the settlement road).
+# Either way it is STASHED the moment the response arrives —
+# `api_client.response_received` sees every 200-OK body before its handler —
+# and raised where control would otherwise return, after the whole response
+# has rendered (the battle that killed the Emperor plays first; the verdict
+# on the reign is the last thing the campaign says). A cause is raised once
+# per client session; a world swap adopts the arriving campaign's MARKED
+# endings as history (a Verdict from an earlier sitting is not news) and
+# keeps only a TERMINAL one to raise (R6: a defeated save loads onto the end
+# screen, never onto a silent board).
+func _stash_ending(response) -> void:
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var ending = response.get("ending")
+	if ending is Dictionary and not ending.is_empty():
+		_consider_ending(ending)
+	var gs = response.get("game_state")
+	if not (gs is Dictionary):
+		return
+	var compact = gs.get("endings")
+	if not (compact is Array):
+		return
+	for row in compact:
+		if row is Dictionary and not _ending_known(str(row.get("cause", ""))):
+			_request_campaign_end()
+			return
+
+
+func _ending_known(cause: String) -> bool:
+	if cause == "" or cause in _endings_shown:
+		return true
+	for queued in pending_ending_queue:
+		if queued is Dictionary and str(queued.get("cause", "")) == cause:
+			return true
+	return false
+
+
+func _consider_ending(payload: Dictionary) -> void:
+	if _ending_known(str(payload.get("cause", ""))):
+		return
+	pending_ending_queue.append(payload)
+
+
+func _request_campaign_end() -> void:
+	"""The compact list names a cause this client has not shown and the
+	response carried no `ending` of its own — ask the record (`GET
+	/campaign_end`) for the summary the screen renders. One request in
+	flight at a time; the answer raises the card at once if control has
+	already come back, else it waits for the next tail."""
+	if _ending_fetch_pending or api_client == null or not api_client.has_method("get_campaign_end"):
+		return
+	_ending_fetch_pending = true
+	api_client.get_campaign_end(_on_campaign_end_received)
+
+
+func _on_campaign_end_received(response) -> void:
+	_ending_fetch_pending = false
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var rows = response.get("endings", [])
+	if not (rows is Array):
+		return
+	for row in rows:
+		if row is Dictionary:
+			_consider_ending(row)
+	# Control already returned (the handler finished before the wire
+	# answered): raise now rather than at a tail that may be a turn away.
+	if not pending_ending_queue.is_empty() and command_input.editable and not _is_modal_dialog_open():
+		_show_pending_ending()
+
+
+func _show_pending_ending() -> bool:
+	"""Raise the next stashed ending. True when shown — the caller must then
+	NOT re-enable input; the card's own signals own it from here
+	(`_on_campaign_end_continued` for a marked ending; after the Fall the
+	command line never reopens)."""
+	if pending_ending_queue.is_empty() or campaign_end == null:
+		return false
+	var payload = pending_ending_queue.pop_front()
+	if not (payload is Dictionary):
+		return false
+	var cause := str(payload.get("cause", ""))
+	if cause != "" and not (cause in _endings_shown):
+		_endings_shown.append(cause)
+	if bool(payload.get("terminal", false)):
+		_campaign_over = true
+		set_input_enabled(false)
+		# The scrollback keeps the record beneath the card (R4: the terminal
+		# text stays as the fallback surface).
+		_show_game_over_screen(_last_game_state_for_ending(), payload)
+	else:
+		var tier := str(payload.get("tier_title", "")).strip_edges()
+		add_output("")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]" + str(payload.get("title", "AN ENDING"))
+			+ (" — " + tier if tier != "" else "") + "[/color]")
+		var cause_line := str(payload.get("cause_line", "")).strip_edges()
+		if cause_line != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "][i]" + Utils.humanize_nation_keys_in_text(cause_line) + "[/i][/color]")
+		add_output("")
+	if top_bar:
+		top_bar.close_all_screens()
+	campaign_end.show_ending(payload)
+	return true
+
+
+func _last_game_state_for_ending() -> Dictionary:
+	if _last_command_response is Dictionary:
+		var gs = _last_command_response.get("game_state")
+		if gs is Dictionary:
+			return gs
+	return {}
+
+
+func _on_campaign_over(response) -> void:
+	"""Every road that reads `game_state.game_over` ends here (GE-2): the war
+	is over, the command line closes for good (R3), and the ending stamped
+	on the response is raised — or, with no ending to raise (a legacy
+	world's game over; the scene failed to load), the terminal record
+	prints on its own."""
+	set_input_enabled(false)
+	_campaign_over = true
+	_stash_ending(response)
+	if _show_pending_ending():
+		return
+	if campaign_end != null and campaign_end.visible:
+		return  # already up (a second road reporting the same Fall)
+	var gs = response.get("game_state") if response is Dictionary else null
+	var ending = response.get("ending") if response is Dictionary else null
+	_show_game_over_screen(gs if gs is Dictionary else {}, ending)
+
+
+func _on_campaign_end_continued() -> void:
+	"""A MARKED ending acknowledged — the reign goes on; the tail the card
+	interrupted resumes, and anything stashed behind it gets its turn."""
+	_return_control_to_player()
+
+
+func _on_campaign_end_load_requested() -> void:
+	"""The Fall: Load a campaign. The card steps aside for the Load dialog
+	(layer 101 sits UNDER 122); a cancelled load brings it back
+	(`_on_load_cancelled`), and a load swaps the world."""
+	_show_load_dialog()
+
+
+func _on_campaign_end_main_menu_requested() -> void:
+	_on_pause_main_menu_requested()
+
+
+func _adopt_endings_on_world_swap(response) -> void:
+	"""A world arrives (Begin, Continue, Load, plain entry): its already-
+	stamped MARKED endings are history, not news — adopted as shown. A
+	TERMINAL one is left to raise (R6), whether the response carries it as
+	`ending` (/load) or only in the compact list (plain entry onto a fallen
+	backend), where `_stash_ending` fetches its summary."""
+	_endings_shown.clear()
+	pending_ending_queue.clear()
+	_ending_fetch_pending = false
+	_campaign_over = false
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	var carried := ""
+	var ending = response.get("ending")
+	if ending is Dictionary:
+		carried = str(ending.get("cause", ""))
+	var gs = response.get("game_state")
+	var compact = gs.get("endings") if gs is Dictionary else null
+	if not (compact is Array):
+		return
+	for row in compact:
+		if not (row is Dictionary):
+			continue
+		var cause := str(row.get("cause", ""))
+		if cause == "" or cause == carried or bool(row.get("terminal", false)):
+			continue
+		_endings_shown.append(cause)
+
+
+func _add_fall_clock_lines(warning: Dictionary) -> void:
+	"""GE-2 (ENDGAME_PLAN §4, the clock line): one line per held arm of the
+	Fall, the backend's own `clock_line` — the same words the war room and
+	the Strategic Ledger's Territories tab print (`fall.clock_line`, one
+	source). A paused clock says the clock stands still and names NO date;
+	the backend's `severity` picks the tint."""
+	var fall = warning.get("fall", null)
+	if not (fall is Dictionary):
+		return
+	var arms = fall.get("arms", [])
+	if not (arms is Array):
+		return
+	for arm in arms:
+		if not (arm is Dictionary):
+			continue
+		var line := str(arm.get("clock_line", ""))
+		if line == "":
+			continue
+		var severity := str(arm.get("severity", "warning"))
+		var tint := Utils.COLOR_BATTLE
+		if severity == "critical":
+			tint = Utils.COLOR_ERROR
+		elif severity == "paused":
+			tint = Utils.COLOR_DIMMED
+		add_output("[color=#" + tint + "]  " + line + "[/color]")
+
+
 # ── PT-B1: the redemption stash ───────────────────────────────────────────
 # `_route_response_ui` returns on the FIRST match and `redemption_event` is
 # the LAST of twelve routes, so any of the eleven above it — measured with
@@ -2644,6 +2881,8 @@ func _on_battle_diorama_dismissed():
 	if not _diorama_standalone:
 		return  # opened over another surface (enemy dialog / terminal link)
 	_diorama_standalone = false
+	if _show_pending_ending():
+		return  # GE-2: the fatal battle's tableau first, then the Fall
 	if _show_pending_proclamation():
 		return
 	if _show_pending_envoy_digest():
@@ -2700,6 +2939,8 @@ func _on_marshal_petition_deferred():
 	not return. Follows the Proclamation's tail so anything stashed behind
 	the petition still gets its turn.
 	"""
+	if _show_pending_ending():
+		return  # GE-2
 	if _show_pending_proclamation():
 		return
 	if _show_pending_envoy_digest():
@@ -2715,6 +2956,8 @@ func _on_proclamation_dismissed():
 	# A second formation on the same tick queues behind the first.
 	if _show_pending_proclamation():
 		return
+	if _show_pending_ending():
+		return  # GE-2: an ending stashed late (the record's answer) takes the tail
 	if _show_pending_envoy_digest():
 		return  # _on_mailbox_panel_closed re-enables input
 	if _show_pending_redemption():
@@ -2738,6 +2981,8 @@ func _return_control_to_player() -> void:
 	"""
 	if _show_pending_diorama():
 		return  # BD: _on_battle_diorama_dismissed re-enables input
+	if _show_pending_ending():
+		return  # GE-2: the end screen's own signals own input from here
 	if _show_pending_proclamation():
 		return  # _on_proclamation_dismissed re-enables input
 	if _show_pending_envoy_digest():
@@ -3021,6 +3266,7 @@ func _on_command_result(response):
 		_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline
 		_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition
 		_stash_relay(response)  # CR-7-3: the relayed tail, filled at control return
+		_stash_ending(response)  # GE-2: the campaign's ending — raised at control return, never above the report
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry
@@ -3174,7 +3420,7 @@ func _on_command_result(response):
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
-				_show_game_over_screen(response.game_state)
+				_on_campaign_over(response)  # GE-2: the end screen (the terminal text is its fallback)
 				return  # Don't auto-focus input
 
 		# Morning Dispatch — displayed last, right before player gets control
@@ -3193,6 +3439,11 @@ func _on_command_result(response):
 	# continues the chain.
 	if _show_pending_diorama():
 		return  # _on_battle_diorama_dismissed re-enables input
+
+	# GE-2: a marked ending stamped on this response (a Humbled Peace on the
+	# ratify road, fetched off the record) — after the response has rendered.
+	if _show_pending_ending():
+		return  # the card's own signals own input from here
 
 	# NA-6b: the landmark comes LAST, after the whole response has
 	# rendered — never above it. An earlier version returned before this
@@ -4236,6 +4487,10 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + Utils.COLOR_BERTHIER + "]" + diw_heading + "[/color]")
 			var diw_color = Utils.COLOR_ERROR if diw_sev == "critical" else Utils.COLOR_BATTLE
 			add_output("[color=#" + diw_color + "]  " + diw_msg + "[/color]")
+			# GE-2 (ENDGAME_PLAN §4): the clock LINE — one per held arm, the
+			# backend's own words (the war room and the Territories tab print
+			# the same line); a paused clock says so and names no date.
+			_add_fall_clock_lines(defeat_imminent_warning)
 			add_output("")
 
 	# â•â•â• TALLEYRAND REPORT â•â•â•
@@ -4339,79 +4594,86 @@ func _display_turn_advance(action_info: Dictionary):
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
 
-func _show_game_over_screen(game_state: Dictionary):
-	"""Display dramatic game over screen with final statistics."""
-	# Disable input permanently
+func _show_game_over_screen(game_state: Dictionary, ending = null):
+	"""The terminal record of an ending, printed to the scrollback — and the
+	FALLBACK surface when the end screen itself cannot be raised (GE-2).
+
+	De-legacied (GAME_END_SPEC R4): the ending's own register title and cause
+	line lead — no French-only heading; the figures are the ending's summary
+	(`game_end.screen_payload`, the same payload the card renders), never a
+	hard-coded thirteen-province board; with no summary at all (a legacy
+	world's game over) it prints what `game_state` carries and claims no
+	more."""
 	set_input_enabled(false)
 
-	# Add spacing for dramatic effect
+	var summary: Dictionary = {}
+	if ending is Dictionary and ending.get("summary") is Dictionary:
+		summary = ending.get("summary")
+	var is_victory := str(game_state.get("victory", "defeat")) == "victory" \
+		or (ending is Dictionary and str(ending.get("kind", "")) == "victory")
+	var heading_color = Utils.COLOR_GOLD if is_victory else Utils.COLOR_ERROR
+	var title := ""
+	if ending is Dictionary:
+		title = str(ending.get("title", "")).strip_edges()
+	if title == "":
+		title = "THE EMPIRE TRIUMPHANT" if is_victory else "THE FALL OF THE EMPIRE"
+
 	add_output("")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[center][color=#" + heading_color + "][b][font_size=24]" + title + "[/font_size][/b][/color][/center]")
+	if ending is Dictionary:
+		var date_bits: Array = []
+		var cal := str(ending.get("calendar_label", "")).strip_edges()
+		if cal != "":
+			date_bits.append(cal)
+		var turn := int(ending.get("turn", 0))
+		if turn > 0:
+			date_bits.append("turn " + str(turn))
+		if not date_bits.is_empty():
+			add_output("[center][color=#" + Utils.COLOR_DIMMED + "]" + " · ".join(date_bits) + "[/color][/center]")
+		var cause := str(ending.get("cause_line", "")).strip_edges()
+		if cause != "":
+			add_output("[center][color=#" + Utils.COLOR_INFO + "][i]" + Utils.humanize_nation_keys_in_text(cause) + "[/i][/color][/center]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
 
-	# Dramatic separator
-	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("")
-
-	# Victory or defeat title
-	var victory_status = game_state.get("victory", "defeat")
-	if victory_status == "victory":
-		add_output("[center][color=#" + Utils.COLOR_GOLD + "][b][font_size=28]⚜ VICTOIRE! ⚜[/font_size][/b][/color][/center]")
-		add_output("")
-		add_output("[center][color=#" + Utils.COLOR_SUCCESS + "]The Empire Triumphant![/color][/center]")
-		add_output("")
-		add_output("[color=#" + Utils.COLOR_INFO + "]Europe bends the knee before the French Eagle.[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals have conquered all who opposed them.[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]History will remember this as the height of Imperial glory![/color]")
+	add_output("[color=#" + Utils.COLOR_GOLD + "]         THE RECORD[/color]")
+	if not summary.is_empty():
+		var totals = summary.get("totals", {})
+		if not (totals is Dictionary):
+			totals = {}
+		var held := int(summary.get("provinces_held", 0))
+		var total := int(summary.get("total_regions", 0))
+		if total > 0:
+			add_output("[color=#" + Utils.COLOR_INFO + "]The realm at the end: " + Utils.plural(held, "province") + " of " + str(total) + ".[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Battles fought: " + str(int(totals.get("battles_fought", 0)))
+			+ " — won " + str(int(totals.get("battles_won", 0))) + ", lost " + str(int(totals.get("battles_lost", 0))) + ".[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Men lost: " + _format_number(int(totals.get("men_lost", 0)))
+			+ " · men inflicted: " + _format_number(int(totals.get("men_inflicted", 0))) + ".[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Provinces taken: " + str(int(totals.get("provinces_taken", 0)))
+			+ " · lost: " + str(int(totals.get("provinces_lost", 0)))
+			+ " · coalitions faced: " + str(int(totals.get("coalitions_faced", 0))) + ".[/color]")
+		var verdict = summary.get("verdict", {})
+		if verdict is Dictionary and str(verdict.get("closing", "")) != "":
+			add_output("[color=#" + Utils.COLOR_OBSERVATION + "]" + str(verdict.get("closing")) + "[/color]")
 	else:
-		add_output("[center][color=#" + Utils.COLOR_ERROR + "][b][font_size=28]⚔ DÉFAITE ⚔[/font_size][/b][/color][/center]")
-		add_output("")
-		add_output("[center][color=#" + Utils.COLOR_ERROR + "]The Empire Has Fallen[/color][/center]")
-		add_output("")
-		add_output("[color=#" + Utils.COLOR_INFO + "]The enemies of France have prevailed.[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]Your marshals fought bravely, but it was not enough.[/color]")
-		add_output("[color=#" + Utils.COLOR_INFO + "]The eagles are furled. The Grande Armée is no more.[/color]")
-
-	add_output("")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]─────────────────────────────────────[/color]")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]         FINAL STATISTICS[/color]")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]─────────────────────────────────────[/color]")
-
-	# Display final statistics
-	var final_turn = int(game_state.get("turn", current_turn))
-	var regions_controlled = int(game_state.get("regions_controlled", 0))
-	var total_regions = int(game_state.get("total_regions", 13))
-	var final_gold = int(game_state.get("gold", gold))
-
-	add_output("[color=#" + Utils.COLOR_INFO + "]Campaign Duration: " + str(final_turn) + " turns[/color]")
-	add_output("[color=#" + Utils.COLOR_INFO + "]Regions Controlled: " + str(regions_controlled) + "/" + str(total_regions) + "[/color]")
-	add_output("[color=#" + Utils.COLOR_INFO + "]Imperial Treasury: " + _format_number(final_gold) + " gold[/color]")
-
-	# Marshal status if available
-	if game_state.has("marshals"):
-		var marshals = game_state.marshals
-		add_output("")
-		add_output("[color=#" + Utils.COLOR_MARSHAL + "]Marshal Status:[/color]")
-		for marshal_name in marshals:
-			var marshal = marshals[marshal_name]
-			var strength = int(marshal.get("strength", 0))
-			var location = marshal.get("location", "Unknown")
-			if strength > 0:
-				add_output("[color=#" + Utils.COLOR_INFO + "]  • " + marshal_name + ": " + _format_number(strength) + " troops at " + location + "[/color]")
-			else:
-				add_output("[color=#" + Utils.COLOR_ERROR + "]  • " + marshal_name + ": Destroyed[/color]")
-
-	add_output("")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+		# No summary: a legacy world's game over. Say only what the state says.
+		var final_turn = int(game_state.get("turn", current_turn))
+		add_output("[color=#" + Utils.COLOR_INFO + "]Campaign duration: " + Utils.plural(final_turn, "turn") + ".[/color]")
+		if game_state.has("regions_controlled"):
+			var held_line := "Provinces held: " + str(int(game_state.get("regions_controlled", 0)))
+			if int(game_state.get("total_regions", 0)) > 0:
+				held_line += " of " + str(int(game_state.get("total_regions", 0)))
+			add_output("[color=#" + Utils.COLOR_INFO + "]" + held_line + ".[/color]")
+		add_output("[color=#" + Utils.COLOR_INFO + "]Imperial treasury: " + _format_number(int(game_state.get("gold", gold))) + " gold.[/color]")
 	add_output("")
 
-	# Closing message
-	if victory_status == "victory":
+	if ending is Dictionary and bool(ending.get("terminal", false)):
+		add_output("[center][color=#" + Utils.COLOR_INFO + "]The campaign is over. Load another, or return to the Main Menu.[/color][/center]")
+	elif is_victory:
 		add_output("[center][color=#" + Utils.COLOR_GOLD + "]Vive l'Empereur![/color][/center]")
 	else:
-		add_output("[center][color=#" + Utils.COLOR_INFO + "]The game is over, but the legend endures...[/color][/center]")
-
+		add_output("[center][color=#" + Utils.COLOR_INFO + "]The war is over.[/color][/center]")
 	add_output("")
 
 func _show_action_cost(action_info: Dictionary):
@@ -4659,6 +4921,11 @@ func _trim_old_messages():
 
 func set_input_enabled(enabled: bool):
 	"""Enable or disable command input and buttons."""
+	# GE-2 (R3): after the Fall the command line never reopens — every
+	# control-return tail passes here, and the war is over on all of them.
+	# Only a world swap (Load / New Campaign) lifts it.
+	if enabled and _campaign_over:
+		enabled = false
 	command_input.editable = enabled
 	send_button.disabled = not enabled
 	end_turn_button.disabled = not enabled
@@ -4891,7 +5158,7 @@ func _on_objection_response(response):
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
-				_show_game_over_screen(response.game_state)
+				_on_campaign_over(response)  # GE-2
 				return
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
@@ -5115,7 +5382,7 @@ func _on_enemy_phase_dismissed():
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
 				pending_enemy_phase_response = null
-				_show_game_over_screen(response.game_state)
+				_on_campaign_over(response)  # GE-2: the Fall, after the enemy phase that dealt it
 				return  # Don't re-enable input
 
 		# Check for strategic reports (show after enemy phase)
@@ -5265,7 +5532,7 @@ func _on_capture_choice_response(response):
 
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
-				_show_game_over_screen(response.game_state)
+				_on_campaign_over(response)  # GE-2
 				return
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
@@ -5348,6 +5615,12 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	_redemption_recheck_turn = -1
 	pending_redemption_data = null
 	pending_proclamation_data = null
+	# GE-2: a PREVIOUS campaign's stashed ending, its shown-list and its
+	# closed command line must not outlive the world they belonged to.
+	pending_ending_queue.clear()
+	_endings_shown.clear()
+	_ending_fetch_pending = false
+	_campaign_over = false
 	pending_diorama_data = null
 	last_battle_diorama = null
 	pending_charge_marshal = ""
@@ -5382,6 +5655,12 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	_reset_frontend_state_for_world_swap(true)
 	_sync_response_hud(response)
 	_process_active_wars(response)
+	# GE-2 (R6): the arriving campaign's MARKED endings are history; a
+	# TERMINAL one (`/load` of a Final save carries it as `ending`) is
+	# stashed and raised at this handler's tail — a defeated save never
+	# loads onto a silent board.
+	_adopt_endings_on_world_swap(response)
+	_stash_ending(response)
 
 	# POSITION 7: arm/disarm the School of War from the world's own
 	# scenario_name. This is also the mandatory re-assert after the reset's
@@ -5457,6 +5736,9 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	if _show_pending_redemption():
 		return  # WO-41: the dialog owns input from here
 
+	if _show_pending_ending():
+		return  # GE-2 (R6): the Final save's Fall — the card's roads own input
+
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -5473,6 +5755,11 @@ func _on_load_result(response):
 
 func _on_load_cancelled():
 	"""Player cancelled the load dialog."""
+	# GE-2: after the Fall the card comes back — its two roads are the only
+	# ones left, and the command line stays closed (R3).
+	if _campaign_over and campaign_end != null:
+		campaign_end.reraise()
+		return
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -5612,7 +5899,7 @@ func _on_glorious_charge_response(response):
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
-				_show_game_over_screen(response.game_state)
+				_on_campaign_over(response)  # GE-2
 				return
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
@@ -5737,7 +6024,7 @@ func _on_strategic_report_dismissed():
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
 				pending_strategic_response = null
-				_show_game_over_screen(response.game_state)
+				_on_campaign_over(response)  # GE-2
 				return
 
 		# Check for deferred redemption (cavalry trust penalty from end-turn)

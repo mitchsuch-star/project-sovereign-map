@@ -456,7 +456,29 @@ func _on_dispatch_received(response):
 			if not (diw_heading is String) or diw_heading == "":
 				diw_heading = "DEFEAT WARNING"
 			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]" + diw_heading + "[/color]\n"
-			bbcode += "[color=#" + diw_color + "]  " + diw_msg + "[/color]\n\n"
+			bbcode += "[color=#" + diw_color + "]  " + diw_msg + "[/color]\n"
+			# GE-2 (ENDGAME_PLAN §4): the clock LINE, one per held arm — the
+			# backend's own `clock_line` (the terminal banner, the war room
+			# and the Territories tab print the same words); a paused clock
+			# names no date. Mirrored from main.gd's `_add_fall_clock_lines`
+			# so the R screen and the banner cannot drift (the "one reader
+			# fixed" landmine).
+			var fall = defeat_imminent_warning.get("fall", null)
+			if fall is Dictionary and fall.get("arms", []) is Array:
+				for arm in fall.get("arms", []):
+					if not (arm is Dictionary):
+						continue
+					var clock_line := str(arm.get("clock_line", ""))
+					if clock_line == "":
+						continue
+					var severity := str(arm.get("severity", "warning"))
+					var tint := Utils.COLOR_BATTLE
+					if severity == "critical":
+						tint = Utils.COLOR_ERROR
+					elif severity == "paused":
+						tint = Utils.COLOR_DIMMED
+					bbcode += "[color=#" + tint + "]  " + clock_line + "[/color]\n"
+			bbcode += "\n"
 
 	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
 	# The turn-1 briefing's own section, mirrored from main.gd.

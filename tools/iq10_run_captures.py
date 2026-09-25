@@ -587,6 +587,63 @@ SHOTS: list[dict] = [
         "must_show": "a tinted glyph (sword / flag / coins / scroll / handshake) before each row — "
                      "never a bare letter",
     },
+    # ── Row EP GE-2: the end screen, four registers ─────────────────────────
+    *[
+        {
+            "id": f"campaign_end_{tag}",
+            "surface": f"The end screen — {label}",
+            "payload": f"campaign_end_{tag}",
+            "scene": "res://scenes/campaign_end.tscn",
+            "mode": "call", "method": "show_ending",
+            "must_show": must,
+        }
+        for tag, label, must in (
+            ("fall_funeral", "THE FALL OF THE EMPIRE (the Emperor dead, the command road)",
+             "the crimson register: the title, the date, 'The Emperor is dead.', THE FUNERAL "
+             "paragraphs, THE RECORD, THE VERDICT OF HISTORY — THE ECLIPSE; buttons 'Load a "
+             "campaign' / 'Main Menu'; no raw tag; nothing clipped at scale 2.0"),
+            ("fall_chains", "THE FALL OF THE EMPIRE (the Eagle in chains)",
+             "the crimson register: 'The Emperor, a prisoner these 10 turns, is deposed.', THE "
+             "EXILE naming Olmütz and Metternich's line, the record, the eclipse"),
+            ("fall_abdication", "THE FALL OF THE EMPIRE (no soil — Brittany alone)",
+             "the crimson register: 'The Empire is reduced to Brittany alone — a province, not "
+             "a realm.', THE EXILE naming Fontainebleau and Elba, the record, the eclipse"),
+            ("humbled", "THE HUMBLED PEACE",
+             "the crimson-grey register: 'The Emperor has signed a peace that humbles the "
+             "Empire.', THE PEACE paragraph naming Paris, the record, the eclipse; ONE button "
+             "'Continue'"),
+            ("verdict", "THE VERDICT OF HISTORY",
+             "the parchment register: the tier as the heading with its three lines and the "
+             "closing, then THE RECORD; ONE button 'Continue'"),
+            ("imperial", "THE IMPERIAL PEACE (GE-3's register, STAGED through record_ending)",
+             "the gold register: 'Europe accepts the order of the French Empire.', the record, "
+             "the tier; buttons 'Continue the reign' / 'Retire to the Tuileries'"),
+        )
+    ],
+    # ── Row EP GE-2: the clock line on the two client surfaces ──────────────
+    {
+        "id": "ledger_fall_clock_territories",
+        "surface": "Strategic Ledger — Territories (the fall clock, two arms)",
+        "payload": "ledger_fall_clock",
+        "scene": "res://scenes/strategic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_ledger",
+        "tab": 1,
+        "must_show": "under the collapse note, TWO clock lines: the ticking soil clock dated in "
+                     "amber ('1 of 5 · the Empire falls at the end of turn 5 (4 turns remain)') "
+                     "and the paused chains clock dimmed with NO date ('the clock stands still — "
+                     "no war with his captor')",
+    },
+    {
+        "id": "dispatch_fall_clock",
+        "surface": "Dispatch re-read (the fall clock on the banner)",
+        "payload": "dispatch_fall_clock",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        # The warning sits below the marshal roster — scroll the R screen to it.
+        "steps": [{"scroll_to": {"text": "THE FALL OF THE EMPIRE"}, "then_wait": 4}],
+        "must_show": "THE FALL OF THE EMPIRE heading, the warning's prose, then the clock line — "
+                     "the same words the Territories tab prints",
+    },
 ]
 
 

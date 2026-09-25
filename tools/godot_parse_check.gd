@@ -82,6 +82,10 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# HC-G: Le Moniteur — the Gazette archive screen (XR-1: every touched
 	# script parses in the harness).
 	"res://scripts/gazette_view.gd",
+	# Row EP GE-2 "the client": the end screen (runtime-registered — the
+	# IGR-E gap class) and the API client it fetches the record through.
+	"res://scripts/campaign_end.gd",
+	"res://scripts/api_client.gd",
 ]
 
 # Map Slices 6-7: the map renderer scripts live under scenes/, not
@@ -119,6 +123,8 @@ const SCENE_INSTANTIATION_CHECKS = [
 	"res://scenes/tutorial_overlay.tscn",
 	# HC-G: the Gazette screen (top_bar-registered at runtime).
 	"res://scenes/gazette_view.tscn",
+	# Row EP GE-2: the end screen (dialog_manager-registered at runtime).
+	"res://scenes/campaign_end.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
@@ -154,6 +160,8 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/ep_f3_client_layout_harness.gd",
 	# Row EP F2 "The display-name pass", driven (tests/test_ep_f2_the_display_name_pass.py)
 	"res://../../tools/ep_f2_display_name_harness.gd",
+	# Row EP GE-2 "the client", driven (tests/test_ge2_the_client.py)
+	"res://../../tools/ge2_campaign_end_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

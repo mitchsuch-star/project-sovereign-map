@@ -7398,3 +7398,90 @@ findings.
   Europe left the ledger raises no "courts are recovering" headline. A dead
   court keeps its article ("The court of the Papal States no longer
   exists").
+
+## 65. The End Screen and the Clock Line (row EP GE-2, landed September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §6 GE-2; pins `tests/test_ge2_the_client.py`
+(the client DRIVEN through `tools/ge2_campaign_end_harness.gd` on the real
+`main.tscn`, every payload off the real endpoints).
+
+* **One scene, four registers, one payload.** `scenes/campaign_end.tscn` +
+  `scripts/campaign_end.gd` (CanvasLayer 122, above the diorama and the pause
+  menu) renders `game_end.screen_payload(record)` — the compact view plus the
+  summary taken at the moment — and recomputes nothing. `register` picks the
+  colours, the cue and the buttons: `fall` (crimson; THE EXILE / THE FUNERAL
+  from `summary.epilogue`, THE RECORD, THE VERDICT OF HISTORY; **Load a
+  campaign / Main Menu**), `humbled_peace` (crimson-grey; THE PEACE;
+  **Continue**), `verdict` (parchment; the tier as the heading; **Continue**),
+  `imperial_peace` (gold; **Continue the reign / Retire to the Tuileries** —
+  GE-3's register, declared in `game_end.CAUSE_IMPERIAL_PEACE` /
+  `REGISTERS` / `REGISTER_TITLES` so its stamp needs no client change; marked,
+  never terminal). An unknown register renders on the parchment unless the
+  payload is terminal. ESC presses Continue on a marked ending and nothing on
+  the Fall. The card fits by `Utils.clamp_centered_panel` and a scrolling
+  body; the title block and the buttons stay pinned.
+* **Stash-and-raise (the NA-6b discipline).** `api_client.response_received`
+  emits every 200-OK body BEFORE its callback; `main._stash_ending` queues
+  the response's own `ending` and, for a cause the compact list
+  (`game_state.endings`) names that the client has not shown, fetches the
+  record (`api_client.get_campaign_end` → `GET /campaign_end`) — the Humbled
+  Peace ratified on the settlement road arrives so. `main._show_pending_ending`
+  raises the next queued ending where control would otherwise return
+  (`_return_control_to_player` after the diorama and before the Proclamation;
+  the diorama's, the Proclamation's and the petition's dismissals; the command
+  path's tail; the world-swap tail), and the record's late answer raises at
+  once when control has already come back. **A cause is raised once per
+  client session** (`_endings_shown`); a world swap
+  (`_adopt_endings_on_world_swap`, from `_apply_world_swap_response` and the
+  plain-entry `_on_connection_test`) adopts the arriving campaign's MARKED
+  endings as history and leaves only a TERMINAL one to raise — `/load` of a
+  Final save raises its Fall (R6), a plain entry onto a fallen backend
+  fetches and raises it, a Verdict seen in an earlier sitting is not news.
+* **The Fall closes the command line for good (R3).** Every road that reads
+  `game_state.game_over` ends at `main._on_campaign_over`: `_campaign_over`
+  is set, `set_input_enabled(true)` is refused while it stands (only the
+  world swap's reset lifts it), the ending raises, and with nothing to raise
+  the terminal record prints alone. **Load a campaign** hides the card for
+  the Load dialog and `_on_load_cancelled` re-raises it (`reraise()` — no
+  second cue); **Main Menu** is the pause menu's road. **Continue** on a
+  marked ending resumes the interrupted tail (`_return_control_to_player`).
+  A second response of the fallen campaign (the "The war is over." refusal
+  carries `game_over` and the same `ending`) raises nothing new.
+* **The terminal record.** `_show_game_over_screen(game_state, ending)` prints
+  the register's title, date and cause line, THE RECORD from the ending's
+  summary and the Verdict's closing — beneath the card, and ALONE when the
+  card cannot be raised. De-legacied (GAME_END_SPEC R4): no French-only
+  heading, no hard-coded thirteen-province board; without a summary it prints
+  what `game_state` carries and claims no more. A marked ending prints one
+  gold line (its title and tier) and the cause.
+* **The clock line — ONE source, three surfaces.** `fall.clock_line(world,
+  view)`: `"<ARM TITLE> — <turns> of <grace> · <clause>"` — ticking: "the
+  Empire falls at the end of turn N (K turns remain)" / "the regency falls
+  …"; at nought: "the clock starts at this end turn — … after N turns of
+  war"; paused by a truce: "the clock stands still while the truce holds";
+  paused by the captor: "the clock stands still — no war with his captor";
+  a truce ending in peace: "…and the peace frees him"; `resuming`: "the
+  truce ends this turn and the war resumes; …" dated. **Never a date while
+  the clock stands still** (`falls_at_end_of_turn` is None exactly then).
+  `fall.clock_severity`: `critical` (counting, ≤ 2 turns left), `warning`
+  (counting), `paused`. `fall._arm_payload` stamps `clock_line` + `severity`
+  on the warning's `fall.arms[]` (the end-turn banner,
+  `main._add_fall_clock_lines`, and the R screen, `dispatch_view.gd`, print
+  them under THE FALL OF THE EMPIRE); `fall.clock_lines(world, nation)` gives
+  the Strategic Ledger its `fall_clock` (`ledger.build_strategic_ledger`,
+  sandbox worlds only, present only while an arm holds; the Territories tab
+  prints it under the collapse note, `strategic_ledger._fall_clock_lines`)
+  and the war room its lines — one per HELD arm in the ARMS order, after "Our
+  own state" and before the long sentence with the exits. Lever
+  `fall.THE_CLOCK_HAS_ONE_LINE`; False is the GE-1 payloads byte for byte.
+  GE-3's Congress gate line joins the same readers.
+* **The driver.** `_note_new_endings` prints the END SCREEN's blocks under
+  each new ending (`_end_screen_lines`: the date and register, THE VERDICT
+  and its closing, THE RECORD, THE EXILE's paragraphs; lever
+  `THE_DIGEST_RENDERS_THE_END_SCREEN`), so a headless arm is evidence about
+  the screen's content. `--stop-on-ending` ends a run at a MARKED ending
+  (status `ending-reached`; a Fall reports `game-over` as before).
+  `tools/gen_ge2_ending_fixtures.py` writes the two STAGED saves the
+  clocks' arms start from (`fixture_ge2_soil_or_sword.json`,
+  `fixture_ge2_chains.json`); the four ending arms and their commands are in
+  `docs/PLAYTESTING.md`.

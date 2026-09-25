@@ -89,6 +89,15 @@ ARM_TITLES = {
 # tick, no warning, no Fall — which is the pre-GE-1 sandbox byte-for-byte.
 THE_EMPIRE_CAN_FALL = True
 
+# GE-2 "the client" (ENDGAME_PLAN §4, the clock line): ONE compact line per
+# held arm — "THE EAGLE IN CHAINS — 3 of 10 · the regency falls at the end of
+# turn 21 (7 turns remain)" — composed HERE and read by all three surfaces
+# (the war room, the Strategic Ledger's Territories tab, the end-turn banner),
+# so they cannot disagree. Never a date while the clock stands still. False
+# = no `clock_line` / `severity` on the warning's arms, no `fall_clock` on
+# the ledger, no line in the war room: the GE-1 payloads byte for byte.
+THE_CLOCK_HAS_ONE_LINE = True
+
 
 # ════════════════════════════════════════════════════════════════════════
 # Predicates — pure reads (GR5: any nation).
@@ -556,6 +565,89 @@ def _remain(n: int) -> str:
     return f"{plural(n, 'turn')} {'remains' if int(n) == 1 else 'remain'}"
 
 
+def clock_line(world, view: Dict[str, Any]) -> str:
+    """GE-2: the clock in ONE line, the same words on every surface.
+
+    "THE EAGLE IN CHAINS — 3 of 10 · the regency falls at the end of turn 21
+    (7 turns remain)". A paused clock names no date ("… · the clock stands
+    still while the truce holds" — `falls_at_end_of_turn` is None exactly
+    then, and the review round's sliding date must never come back); a truce
+    that collapses into war at this advance counts this turn and is dated
+    (`resuming`); a clock at nought that ticks says when it starts. The long
+    form with the exits stays `arm_clock_sentence` (the dispatch prose and the
+    war room); this is the line a reader scans."""
+    from backend.display_names import plural
+    title = str(view.get("title") or ARM_TITLES.get(view.get("arm"), "")).upper()
+    turns, grace = int(view.get("turns", 0) or 0), int(view.get("grace", 0) or 0)
+    chains = view.get("arm") == ARM_CHAINS
+    what = "the regency falls" if chains else "the Empire falls"
+    head = f"{title} — {turns} of {grace}"
+    date = view.get("falls_at_end_of_turn")
+    counting = bool(view.get("ticking") or view.get("resuming"))
+    if counting and date is not None:
+        tail = (f"{what} at the end of turn {int(date)} "
+                f"({_remain(int(view.get('turns_left', 0) or 0))})")
+        if view.get("resuming"):
+            tail = "the truce ends this turn and the war resumes; " + tail
+        return f"{head} · {tail}"
+    if counting:
+        unit = "of captivity at war" if chains else "of war"
+        lead = ("the truce ends this turn and the war resumes — "
+                if view.get("resuming") else "the clock starts at this end turn — ")
+        return f"{head} · {lead}{what} after {plural(grace, 'turn')} {unit}"
+    truce_ends = str(view.get("truce_ends") or "")
+    if chains:
+        if truce_ends == "peace":
+            return f"{head} · the truce ends in peace this turn, and the peace frees him"
+        return f"{head} · the clock stands still — no war with his captor"
+    if view.get("paused_by") == "truce":
+        return f"{head} · the clock stands still while the truce holds"
+    return f"{head} · at peace, no clock runs against the Empire"
+
+
+def clock_severity(view: Dict[str, Any]) -> str:
+    """'critical' (counting, two turns or fewer left), 'warning' (counting),
+    'paused' — the tint every surface gives the line, decided once."""
+    counting = bool(view.get("ticking") or view.get("resuming"))
+    if not counting:
+        return "paused"
+    if int(view.get("turns_left", 0) or 0) <= 2:
+        return "critical"
+    return "warning"
+
+
+def _arm_payload(world, view: Dict[str, Any]) -> Dict[str, Any]:
+    """The structured arm every surface reads (the warning's `fall.arms[]`,
+    the ledger's `fall_clock.arms[]`)."""
+    row = {"arm": view["arm"], "title": view["title"], "turns": int(view["turns"]),
+           "grace": int(view["grace"]), "turns_left": int(view["turns_left"]),
+           "ticking": bool(view["ticking"]),
+           "paused_by": str(view.get("paused_by") or ""),
+           "truce_ends": str(view.get("truce_ends") or ""),
+           "resuming": bool(view.get("resuming")),
+           "falls_at_end_of_turn": (int(view["falls_at_end_of_turn"])
+                                    if view["falls_at_end_of_turn"] is not None
+                                    else None),
+           "exits": list(view["exits"])}
+    if THE_CLOCK_HAS_ONE_LINE:
+        row["clock_line"] = clock_line(world, view)
+        row["severity"] = clock_severity(view)
+    return row
+
+
+def clock_lines(world, nation: Optional[str] = None) -> List[Dict[str, Any]]:
+    """GE-2: every held arm as `_arm_payload` (with its `clock_line`), in the
+    ARMS order — [] when no arm holds, the rules are not armed, or the lever
+    is down. The ledger's `fall_clock` and the war room read this; the
+    dispatch warning carries the same rows under `fall.arms`."""
+    if not THE_CLOCK_HAS_ONE_LINE:
+        return []
+    state = get_fall_state(world, nation)
+    if state is None:
+        return []
+    return [_arm_payload(world, state["arms"][a]) for a in ARMS if a in state["arms"]]
+
+
 def scope_sentence(world, nation: Optional[str] = None) -> str:
     """The tail every collapse surface ends on (IQ-2's `CAMPAIGN_CONTINUES`,
     re-pointed by R9): the clock and its exits where the rules are authored,
@@ -617,18 +709,8 @@ def warning_state(world) -> Optional[Dict[str, Any]]:
         "notification_title": title,
         "heading": "THE FALL OF THE EMPIRE",
         "fall": {
-            "arms": [
-                {"arm": v["arm"], "title": v["title"], "turns": int(v["turns"]),
-                 "grace": int(v["grace"]), "turns_left": int(v["turns_left"]),
-                 "ticking": bool(v["ticking"]),
-                 "paused_by": str(v.get("paused_by") or ""),
-                 "truce_ends": str(v.get("truce_ends") or ""),
-                 "resuming": bool(v.get("resuming")),
-                 "falls_at_end_of_turn": (int(v["falls_at_end_of_turn"])
-                                          if v["falls_at_end_of_turn"] is not None
-                                          else None),
-                 "exits": list(v["exits"])}
-                for v in arms
-            ],
+            # GE-2: each arm carries its one-source `clock_line` + `severity`
+            # (`_arm_payload`) — the end-turn banner prints them.
+            "arms": [_arm_payload(world, v) for v in arms],
         },
     }

@@ -62,7 +62,9 @@ game's own counsel names; `off`, the default, mirrors `--diplomacy` — see
 [the Cabinet arm](#--missions-advisor--the-cabinet-arm-iq-4-september-14-2026))
 (there is no `--ultimatum` flag — `defy` is the policy default, stamped into
 every run's `meta.json`)
-· `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
+· `--stop-on-ending` (GE-2: stop at a MARKED ending — the Verdict, a Humbled
+Peace — with status `ending-reached`; a Fall stops the run as `game-over`
+regardless) · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
 (unknown blocking shapes fail the run, exit 3) · `--verbose` (backend
 console to stdout instead of `server_console.log`) · `--archive` (copy
 `digest.md` + `meta.json` to `docs/audits/playtest_digests/<name>/` — the
@@ -667,7 +669,7 @@ types with an applied tick on every seed**; the control arm (no
   > fogged arm and `actions=[…]` on the visible one, under the same `kind`.)
   > A fog block longer than the cap says how many courts it did not list.
 - `meta.json` — args, policy, counters, `unknown_blockers`, finish
-  status (`completed` / `blocked` / `game-over`), and the run's WORLD:
+  status (`completed` / `blocked` / `game-over` / `ending-reached`), and the run's WORLD:
   `scenario`, `script`, `cheats`, `strict` (added by FA-N89 — 52 archived
   runs record none of them, so their board cannot be reconstructed), and
   `dispatch_type_counts` — every diplomatic row the run's dispatches
@@ -691,6 +693,8 @@ types with an applied tick on every seed**; the control arm (no
 |---|---|---|
 | `fixture_t10_ambient.json` | turn 10, seed `historical`, ambient France — the boot war developed on its own | `1aa005a2` (Aug 15, 2026), `tools/gen_playtest_fixtures.py` |
 | `fixture_t20_ambient.json` | turn 20, same run — late-war shape (blockade bite, exhaustion, offers) | `1aa005a2` (Aug 15, 2026), same run |
+| `fixture_ge2_soil_or_sword.json` | turn 1, seed `historical`, **STAGED** (a direct controller write, not played): every French province but Brittany handed to Austria; France at war with the coalition from the boot, so the soil clock ticks from the first end turn and the Empire falls on the fifth | GE-2 (Sept 25, 2026), `tools/gen_ge2_ending_fixtures.py` |
+| `fixture_ge2_chains.json` | turn 1, seed `historical`, **STAGED** through the real `capture_marshal` seam: the Emperor a prisoner of Austria; the chains clock ticks from the first end turn, the captor offers its terms on the clock's turns 1, 4 and 7, and under `--diplomacy decline` the regency falls on the tenth | GE-2 (Sept 25, 2026), same tool |
 
 Not a measurement — a starting state. It is dated by the commit that
 generated it because a regeneration changes it: a fixture is the board of the
@@ -706,6 +710,32 @@ Regenerate (after a `FORMAT_VERSION` bump or a serialization change
 ```
 
 Commit the refreshed JSONs together with whatever motivated the refresh.
+
+### The endings on the driver (row EP GE-2, September 25, 2026)
+
+Every ending the campaign can reach has a driver arm, and the digest prints
+the END SCREEN's own blocks under it — the date and register, THE VERDICT's
+tier and three lines, THE RECORD, THE EXILE's paragraphs — read off the same
+payload the client renders (`GET /campaign_end`), so a headless run is
+evidence about what the screen says, not only that it fired. The four arms,
+archived under `docs/audits/playtest_digests/ge2-*`:
+
+| ending | command | reached |
+|---|---|---|
+| **The Eagle Falls** (the Emperor dead) | `.venv/Scripts/python.exe tools/playtest_driver.py --seed historical --turns 34 --name ge2-eagle-falls --fresh` | the Fall on turn 31 — the Emperor's remnant annihilated at Burgundy by Britain; the funeral epilogue; status `game-over` |
+| **The Eagle in Chains** | `.venv/Scripts/python.exe tools/playtest_driver.py --from-save tests/fixtures/playtest_saves/fixture_ge2_chains.json --turns 13 --name ge2-chains --fresh` | the Fall on turn 10 — Olmütz, Metternich's line; `game-over` |
+| **The Empire Without Soil or Sword** | `.venv/Scripts/python.exe tools/playtest_driver.py --from-save tests/fixtures/playtest_saves/fixture_ge2_soil_or_sword.json --turns 8 --name ge2-soil-or-sword --fresh` | the Fall on turn 5 — Fontainebleau and Elba; `game-over` |
+| **The Verdict of History** | `.venv/Scripts/python.exe tools/playtest_driver.py --seed austerlitz --turns 46 --name ge2-verdict --fresh --stop-on-ending` | the Verdict on turn 44 — an empire contested; status `ending-reached` |
+
+The two clocks are not reached by the ambient board inside a campaign's
+length (GE-1 measured 0 soil-or-sword Falls in nine 46-turn runs), so their
+arms start from the STAGED fixtures above — starting states for the ending's
+surfaces, not measurements of the game's balance. `--stop-on-ending` ends a
+run at a MARKED ending (the Verdict, a Humbled Peace) with status
+`ending-reached`; a Fall reports `game-over` as before. A Humbled Peace has no
+arm of its own: it is stamped by a settlement the player signs, which no
+unattended policy does on purpose (`--diplomacy accept` may, and the digest
+prints it the same way when it does).
 
 ---
 

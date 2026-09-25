@@ -46,6 +46,10 @@ class_name DialogManager
 #   121: battle_diorama (BD — above enemy_phase so "⚔ View the field" opens
 #        over it; pause cannot stack above it because a visible modal blocks
 #        the ESC ladder, so 120-vs-121 never actually contest)
+#   122: campaign_end (row EP GE-2 — the end screen: the Fall, the Humbled
+#        Peace, the Verdict of History, the Imperial Peace. Above the
+#        diorama so the tableau of the fatal battle plays first and the
+#        verdict on the reign is the last thing the campaign says)
 # =============================================================================
 
 var _dialogs: Dictionary = {}  # name -> {node, modal}

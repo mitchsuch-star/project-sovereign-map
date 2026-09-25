@@ -2998,11 +2998,67 @@ def peace_overture(status_payload, turn_index):
     return f"propose peace with {court}"
 
 
+# GE-2 "the client": the digest prints the END SCREEN's own blocks under each
+# ending — the date and register, the Verdict's tier and three lines, the
+# record, the exile epilogue — read off the SAME payload the client renders
+# (`game_end.screen_payload` via GET /campaign_end). A headless arm that
+# reaches an ending is then evidence about what the screen says, not only
+# that it fired. False = the GE-1 one-liner alone.
+THE_DIGEST_RENDERS_THE_END_SCREEN = True
+
+
+def _end_screen_lines(row: dict) -> list:
+    """The end screen's blocks, one digest line each (GE-2)."""
+    summary = row.get("summary") or {}
+    lines = [
+        f"    ↳ {row.get('calendar_label') or 'undated'} (turn {row.get('turn')}) · "
+        f"register `{row.get('register')}`"
+        + (" · TERMINAL — Load / Main Menu" if row.get("terminal")
+           else " · marked — the campaign continues")
+    ]
+    verdict = summary.get("verdict") or {}
+    if isinstance(verdict, dict) and verdict.get("title"):
+        lines.append(f"    ↳ THE VERDICT — {verdict.get('title')}: "
+                     + " / ".join(str(ln) for ln in (verdict.get("lines") or [])))
+        if verdict.get("closing"):
+            lines.append(f"    ↳ {verdict['closing']}")
+    totals = summary.get("totals") or {}
+    if isinstance(totals, dict) and totals:
+        def _n(key):
+            try:
+                return int(totals.get(key, 0) or 0)
+            except (TypeError, ValueError):
+                return 0
+        lines.append(
+            f"    ↳ THE RECORD — battles {_n('battles_fought')} "
+            f"({_n('battles_won')} won, {_n('battles_lost')} lost) · "
+            f"men lost {_n('men_lost'):,}, inflicted {_n('men_inflicted'):,} · "
+            f"provinces taken {_n('provinces_taken')}, lost {_n('provinces_lost')} · "
+            f"marshals fallen {_n('marshals_fallen')}, taken {_n('own_marshals_taken')} · "
+            f"coalitions faced {_n('coalitions_faced')} · peaces signed {_n('peaces_signed')}")
+    since = summary.get("record_since_turn")
+    if since is not None:
+        lines.append(f"    ↳ (the record was kept from turn {since} only)")
+    epilogue = summary.get("epilogue") or {}
+    paragraphs = epilogue.get("paragraphs") if isinstance(epilogue, dict) else None
+    for i, para in enumerate(paragraphs or []):
+        lead = (f"THE EXILE ({epilogue.get('variant')}) — " if i == 0 else "")
+        lines.append(f"    ↳ {lead}{para}")
+    return lines
+
+
+def _ending_stop_due(args, seen_before: int, seen_after: int) -> bool:
+    """GE-2 `--stop-on-ending`: a MARKED ending stamped since the last read
+    ends the run (a Fall stops it as `game-over` before this is asked)."""
+    return bool(getattr(args, "stop_on_ending", False)) and int(seen_after) > int(seen_before)
+
+
 def _note_new_endings(transport, digest, seen: int) -> int:
     """GE-1 review round: the campaign's endings, read off `GET
     /campaign_end` (the one record), each new one noted once. Returns the
     new count. Never raises — a missing endpoint (an older server on the
-    Mode-B road) keeps the prior count."""
+    Mode-B road) keeps the prior count. GE-2: each new ending is followed by
+    the end screen's blocks (`_end_screen_lines`)."""
     try:
         payload = transport.get("/campaign_end") or {}
     except Exception:
@@ -3012,6 +3068,9 @@ def _note_new_endings(transport, digest, seen: int) -> int:
         digest.note(
             f"ENDING — {row.get('title')}: {row.get('cause_line')}"
             + (f" [{row.get('tier_title')}]" if row.get("tier_title") else ""))
+        if THE_DIGEST_RENDERS_THE_END_SCREEN:
+            for line in _end_screen_lines(row):
+                digest.note(line)
     return max(seen, len(rows))
 
 
@@ -3346,6 +3405,7 @@ def run(args):
         # response alone (review round: an Emperor killed on an answered
         # interrupt, or a Humbled Peace ratified in the drain, was stamped
         # OUTSIDE the end-turn window and never reached the digest).
+        _endings_before_turn = _endings_seen
         _endings_seen = _note_new_endings(transport, digest, _endings_seen)
 
         if response.get("success") is False and response.get("game_over"):
@@ -3474,6 +3534,15 @@ def run(args):
         if response.get("game_over"):
             digest.note("GAME OVER reported — stopping")
             status = "game-over"
+            break
+
+        # GE-2: `--stop-on-ending` — a MARKED ending (the Verdict, a Humbled
+        # Peace) ends the run too, so an arm can be told "play until the
+        # campaign is judged" without guessing the turn count. A Fall still
+        # reports `game-over` above.
+        if _ending_stop_due(args, _endings_before_turn, _endings_seen):
+            digest.note("ENDING reached — stopping (--stop-on-ending)")
+            status = "ending-reached"
             break
 
         # FA-102: the save/load round trip at the TURN BOUNDARY — after every
@@ -3977,6 +4046,9 @@ def main():
                          "province or relief from tribute). Absent mirrors "
                          "--diplomacy: accept/first/propose grant, decline "
                          "refuses")
+    ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
+                    help="GE-2: stop the run when a MARKED ending (the Verdict, "
+                         "a Humbled Peace) is stamped; a Fall stops it anyway")
     ap.add_argument("--reload-every", dest="reload_every", type=int, default=0,
                     help="FA-102: save+load every N turns at the turn boundary "
                          "(Mode A only); the re-raised questions are digested")

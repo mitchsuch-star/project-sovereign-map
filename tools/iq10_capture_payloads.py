@@ -1024,7 +1024,108 @@ def cap_layout_f3():
            facts={"categories": cats})
 
 
+def cap_campaign_end():
+    """Row EP GE-2 — the end screen's four registers (the three GE-1 causes of
+    the Fall, the Humbled Peace, the Verdict, and GE-3's Imperial Peace
+    STAGED through the real `record_ending`) and the clock line's two client
+    surfaces. The boards are the row's own test stagings
+    (`tests/test_ge2_the_client.py`), so a frame is of the state the pins are
+    about; every payload is what the endpoint or `game_end.screen_payload`
+    returned, unedited."""
+    from backend.game_logic import game_end
+    T = test_module("test_ge2_the_client")
+
+    def _facts(payload):
+        summary = payload.get("summary") or {}
+        return {"register": payload.get("register"), "title": payload.get("title"),
+                "cause_line": payload.get("cause_line"),
+                "calendar_label": payload.get("calendar_label"), "turn": payload.get("turn"),
+                "terminal": payload.get("terminal"),
+                "tier_title": payload.get("tier_title"),
+                "epilogue_variant": (summary.get("epilogue") or {}).get("variant"),
+                "epilogue_first_sentence": ((summary.get("epilogue") or {}).get("paragraphs")
+                                            or [""])[0][:120],
+                "battles_fought": (summary.get("totals") or {}).get("battles_fought"),
+                "provinces_held": summary.get("provinces_held")}
+
+    world, c = fresh()
+    r = T.stage_funeral(c, world)
+    record("campaign_end_fall_funeral", r["ending"], source="POST /command → ending",
+           staging="1805 boot; Napoleon alone at Lorraine (60 men), the other French corps "
+                   "moved to Brittany; `Napoleon, attack Mack` at SOVEREIGN_DEATH_CHANCE_PCT "
+                   "= 100 — the death INSIDE the player's own command (no dispatch, no "
+                   "Moniteur special: the end screen is its only surface)",
+           facts=_facts(r["ending"]))
+
+    world, c = fresh()
+    payload = T.stage_chains_payload(world)
+    record("campaign_end_fall_chains", payload, source="game_end.screen_payload(terminal_ending)",
+           staging="1805 boot; the Emperor taken by Austria on turn 1 through the real "
+                   "capture seam, then ten ticks of the ONE per-turn caller "
+                   "(game_end.process_end_of_turn) at war with the captor — the chains Fall",
+           facts=_facts(payload))
+
+    world, c = fresh()
+    responses = T.stage_soil_fall(c, world)
+    fallen = responses[-1]
+    record("campaign_end_fall_abdication", fallen["ending"], source="POST /command end turn → ending",
+           staging="1805 boot; every French province but Brittany handed to Austria (a direct "
+                   "controller write), then five REAL end turns — the soil clock's Fall",
+           facts=_facts(fallen["ending"]))
+    # The R screen re-reads the LAST dispatch, and a fallen campaign's last
+    # dispatch carries no clock (the war is over), so the clock frame is shot
+    # one end turn into the same staging — the briefing of turn 2, the clock
+    # at 1 of 5.
+    world, c = fresh()
+    T.stage_soil_fall_one_turn(c, world)
+    dispatch = get(c, "/dispatch")
+    body = dispatch.get("dispatch") or {}
+    record("dispatch_fall_clock", dispatch, source="GET /dispatch",
+           staging="1805 boot; every French province but Brittany handed to Austria (a direct "
+                   "controller write), ONE real end turn — the turn-2 briefing the R screen "
+                   "re-reads, its fall clock at 1 of 5 in `defeat_imminent_warning.fall.arms`",
+           facts={"clock_lines": [a.get("clock_line") for a in
+                                  ((body.get("defeat_imminent_warning") or {}).get("fall") or {})
+                                  .get("arms", [])]})
+
+    world, c = fresh()
+    T.stage_humbled(c, world)
+    ce = get(c, "/campaign_end")
+    humbled = next(e for e in ce["endings"] if e["cause"] == game_end.CAUSE_HUMBLED)
+    record("campaign_end_humbled", humbled, source="GET /campaign_end → endings[humbled_peace]",
+           staging="1805 boot; a peace ceding Paris ratified through the real `_ratify_treaty` "
+                   "— the Humbled Peace stamped at the ratify seam, read back off the record",
+           facts=_facts(humbled))
+
+    world, c = fresh()
+    r = T.stage_verdict(c, world)
+    record("campaign_end_verdict", r["ending"], source="POST /command end turn → ending",
+           staging="1805 boot with current_turn set to the authored verdict turn (44), one "
+                   "REAL end turn — the Verdict of History on the end-turn road",
+           facts=_facts(r["ending"]))
+
+    world, c = fresh()
+    rec = game_end.record_ending(world, "victory", game_end.CAUSE_IMPERIAL_PEACE)
+    payload = game_end.screen_payload(rec)
+    record("campaign_end_imperial", payload, source="game_end.screen_payload(record_ending)",
+           staging="1805 boot; GE-3's register STAGED through the real `record_ending` (no "
+                   "Congress exists yet) — a preview of the fourth register the scene takes; "
+                   "GE-3 will add its own blocks to the summary",
+           facts=_facts(payload))
+
+    world, c = fresh()
+    ledger = T.stage_ledger_clock(c, world)
+    clock = (ledger.get("ledger") or {}).get("fall_clock") or {}
+    record("ledger_fall_clock", ledger, source="GET /ledger",
+           staging="1805 boot; France reduced to Brittany (the soil clock ticking against "
+                   "Britain and Russia) AND the Emperor taken by Austria under a truce (the "
+                   "chains clock paused), one tick — two arms, two tints, one dated",
+           facts={"clock_lines": [a.get("clock_line") for a in clock.get("arms", [])],
+                  "severities": [a.get("severity") for a in clock.get("arms", [])]})
+
+
 CAPTURES = {
+    "campaign_end": cap_campaign_end,
     "layout_f3": cap_layout_f3,
     "boot": cap_boot,
     "spent": cap_spent,

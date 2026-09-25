@@ -4,6 +4,11 @@ extends Node
 # (default 8005; SOVEREIGN_PORT env overrides both sides at once).
 var API_URL: String = Utils.backend_url()
 
+# GE-2: every 200-OK JSON body, emitted BEFORE its callback runs — the one
+# seam that sees every road (the command family, the ratify road, the
+# mailbox roads, the loads). main.gd stashes an ending off it.
+signal response_received(data)
+
 var http_request: HTTPRequest
 var _request_in_flight: bool = false
 var pending_callback: Callable
@@ -118,6 +123,15 @@ func get_ledger(callback: Callable):
 
 func get_diplomatic_ledger(callback: Callable):
 	_send_get("/diplomatic_ledger", callback)
+
+
+func get_campaign_end(callback: Callable):
+	"""GE-2: every ending stamped on the campaign, each with the summary the
+	end screen renders (`GET /campaign_end`, read-only, alive after the war
+	is over). The client asks for it when a response's `game_state.endings`
+	names a cause it has not shown and the response carried no `ending` of
+	its own (a Humbled Peace ratified on the settlement road)."""
+	_send_get("/campaign_end", callback)
 
 
 func get_marshal_overview(callback: Callable):
@@ -288,6 +302,11 @@ func _on_request_completed(result, response_code, _headers, body):
 		var parse_result = json.parse(response_text)
 		if parse_result == OK:
 			_adopt_formation_overrides(json.data)
+			# GE-2: every 200-OK body passes here BEFORE its handler — the one
+			# seam that sees the ratify road, the mailbox roads and the
+			# command family alike. main.gd stashes an ending off it, so the
+			# handler's own control-return tail can raise the end screen.
+			response_received.emit(json.data)
 			if callback:
 				callback.call(json.data)
 		else:

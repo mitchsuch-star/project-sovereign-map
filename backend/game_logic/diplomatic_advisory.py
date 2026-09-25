@@ -675,6 +675,13 @@ def _assess_situation(world) -> Dict:
     _fall_state = _fall.get_fall_state(world, player)
     if collapse is not None:
         lines.append(f"  Our own state: {summary_line(world, collapse)}")
+        # GE-2 (ENDGAME_PLAN §4): the clock LINE, one per held arm, the same
+        # words the Territories tab and the end-turn banner print
+        # (`fall.clock_line`, one source). The scope sentence below carried
+        # the soonest arm alone, so a paused chains clock behind a ticking
+        # soil clock was never named here.
+        for _row in _fall.clock_lines(world, player):
+            lines.append(f"  {_row['clock_line']}")
         lines.append(f"  {_fall.scope_sentence(world, player)}")
         lines.append("")
     elif _fall_state is not None:
@@ -683,6 +690,8 @@ def _assess_situation(world) -> Dict:
             if _view is None:
                 continue
             lines.append(f"  Our own state: {_fall.arm_condition_sentence(world, _view)}")
+            if _fall.THE_CLOCK_HAS_ONE_LINE:
+                lines.append(f"  {_fall.clock_line(world, _view)}")
             lines.append(f"  {_fall.arm_clock_sentence(world, _view)}")
         lines.append("")
 

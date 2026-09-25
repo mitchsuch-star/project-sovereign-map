@@ -128,6 +128,12 @@ CAUSE_CHAINS = "chains"
 CAUSE_EAGLE_FALLS = "eagle_falls"
 CAUSE_HUMBLED = "humbled_peace"
 CAUSE_VERDICT = "verdict"
+# GE-3's victory (ENDGAME_PLAN §2.6, D7 mark-and-continue): the register and
+# its title are declared HERE so the end screen (GE-2) takes the fourth
+# register from the same table the other three ride, and GE-3's
+# `record_ending(world, "victory", CAUSE_IMPERIAL_PEACE)` needs no client
+# change. Nothing stamps it before GE-3 lands the Congress.
+CAUSE_IMPERIAL_PEACE = "imperial_peace"
 
 TERMINAL_CAUSES = frozenset({CAUSE_SOIL, CAUSE_CHAINS, CAUSE_EAGLE_FALLS})
 
@@ -137,12 +143,14 @@ REGISTERS = {
     CAUSE_EAGLE_FALLS: "fall",
     CAUSE_HUMBLED: "humbled_peace",
     CAUSE_VERDICT: "verdict",
+    CAUSE_IMPERIAL_PEACE: "imperial_peace",
 }
 
 REGISTER_TITLES = {
     "fall": "THE FALL OF THE EMPIRE",
     "humbled_peace": "THE HUMBLED PEACE",
     "verdict": "THE VERDICT OF HISTORY",
+    "imperial_peace": "THE IMPERIAL PEACE",
 }
 
 
@@ -189,6 +197,8 @@ def _cause_line(world, cause: str, detail: Dict[str, Any]) -> str:
         return "The Emperor has signed a peace that humbles the Empire."
     if cause == CAUSE_VERDICT:
         return "The reign, unfinished, is judged as it stands."
+    if cause == CAUSE_IMPERIAL_PEACE:
+        return "Europe accepts the order of the French Empire."
     return ""
 
 
