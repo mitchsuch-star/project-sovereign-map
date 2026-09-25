@@ -658,6 +658,7 @@ def _build_headline(world, player_nation: str,
     _enemy_routs: Dict[str, str] = {}
     # WIN-D3: every corps whose safe passage is running out this turn.
     _lapsing: List[Dict[str, Any]] = []
+    _home_zone: Optional[set] = None   # derived once, only if a row needs it
 
     def _add(cls: str, identity: str = "", **fields):
         text = _HEADLINE_TEMPLATES[cls].format(**fields)
@@ -1218,7 +1219,21 @@ def _build_headline(world, player_nation: str,
             # was interned having never appeared in a briefing, while the
             # design promises three explicit warnings before that happens.
             # One beat, every name, the soonest deadline.
-            if e.get("nation") == player_nation:
+            # GE-1 verification round: never for a marshal already home
+            # (the Emperor escorted home in the same advance kept the
+            # warning "no nearer home … 0 turns" beside his return) or no
+            # longer standing abroad at all.
+            # "Home" is the body of his realm (the corridor's own home zone
+            # — a corps cut off in a French enclave is still stranded).
+            _lm = world.marshals.get(str(e.get("marshal", "")))
+            if _lm is not None and not getattr(_lm, "captured_by", ""):
+                if _home_zone is None:
+                    from backend.game_logic.withdrawal import get_home_zone
+                    _home_zone = set(get_home_zone(world, player_nation) or [])
+                _abroad = _lm.location not in _home_zone
+            else:
+                _abroad = False
+            if e.get("nation") == player_nation and _abroad:
                 _lapsing.append(e)
         elif etype == "crisis_brewing":
             _add("europe_crisis",
@@ -3573,6 +3588,9 @@ _DISPATCH_EVENT_TYPES = {
     "marshal_captured",
     "last_stand",
     "marshal_released",
+    # GE-1 verification round: the Emperor escorted home from a lapsed
+    # passage — his corps interned — reached no surface but the terminal.
+    "sovereign_escorted_home",
     # PC15-1: annihilation reaches the briefing's turn-events rail too.
     "marshal_destroyed",
     # Jealousy v3.2 (docs/JEALOUSY_SPEC.md §11): the grievance arc — from
@@ -3661,7 +3679,7 @@ def _build_turn_events(
                           "capital_proximity_alert", "auto_glorious_charge",
                           "reckless_move", "reckless_no_target",
                           "marshal_captured", "last_stand",
-                          "marshal_destroyed",
+                          "marshal_destroyed", "sovereign_escorted_home",
                           "jealousy_fired", "jealousy_autonomous_warning",
                           "jealousy_autonomous_attack",
                           "jealousy_autonomous_refused",   # WO-28: same register as its siblings

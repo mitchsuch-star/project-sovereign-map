@@ -1,0 +1,373 @@
+[
+ {
+  "id": "GV-0a the checker asks after the Fall",
+  "file": "backend/commands/disobedience.py",
+  "old": "        # (the net, the attack, the erosion tick, the hoist) inherits it.\n        if _war_is_over(world):\n            return None",
+  "new": "        # (the net, the attack, the erosion tick, the hoist) inherits it.\n        if False:\n            return None",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-0b the standing question survives the Fall",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if _war_is_over(world):\n        world.pending_redemption = None\n        return None",
+  "new": "    if False:\n        world.pending_redemption = None\n        return None",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-0c the hoist lifts after the Fall",
+  "file": "backend/commands/disobedience.py",
+  "old": "    if _war_is_over(world):\n        return None\n    for te in tactical_events or []:",
+  "new": "    if False:\n        return None\n    for te in tactical_events or []:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-0d main writes the question back",
+  "file": "backend/main.py",
+  "old": "    if redemption_event and _war_is_over(world):\n        return",
+  "new": "    if False:\n        return",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-0e the envelope keeps a staged question",
+  "file": "backend/main.py",
+  "old": "    response.pop(\"redemption_event\", None)\n    if response.get(\"state\") == \"awaiting_redemption_choice\":",
+  "new": "    pass\n    if response.get(\"state\") == \"awaiting_redemption_choice\":",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-0f a closed record never clears again",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        except Exception:\n            pass\n    clear_unanswerable(world)\n    return record",
+  "new": "        except Exception:\n            pass\n        clear_unanswerable(world)\n    return record",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-1a the pass marches after the Emperor",
+  "file": "backend/commands/strategic.py",
+  "old": "            if getattr(world, \"game_over\", False):\n                break\n            order = marshal.strategic_order",
+  "new": "            if False:\n                break\n            order = marshal.strategic_order",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-1b the grievance pass after an own-order death",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "        _fallen = _game_end.terminal_ending(self.world) is not None\n        if not _fallen:\n            _jealousy_pass.process_turn(self.world)",
+  "new": "        if not _fallen:\n            _jealousy_pass.process_turn(self.world)",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-2 a legacy Final save is copied on load",
+  "file": "backend/save_manager.py",
+  "old": "            _fallen[\"final_save\"] = str(filepath)",
+  "new": "            pass",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-3 the lever comment",
+  "file": "backend/game_logic/game_end.py",
+  "old": "# are left standing. It does NOT restore the pre-review /command-only attach",
+  "new": "# are left standing. It restores the pre-review /command-only attach",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-4a a truce on its last turn stands still",
+  "file": "backend/game_logic/fall.py",
+  "old": "    resuming = bool(not ticking and truce_ends == \"war\")",
+  "new": "    resuming = False",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-4b the truce never resolves",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    remaining = int(max(0, ARMISTICE_DURATION - elapsed))\n    if remaining > 1:\n        return \"\"\n    relation = int((getattr(world, \"nation_relations\", {}) or {}).get(key, 0) or 0)",
+  "new": "    remaining = int(max(0, ARMISTICE_DURATION - elapsed))\n    if remaining > 0:\n        return \"\"\n    relation = int((getattr(world, \"nation_relations\", {}) or {}).get(key, 0) or 0)",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-4c a resuming clock is not critical",
+  "file": "backend/game_logic/fall.py",
+  "old": "    critical = bool(soonest and (soonest[\"ticking\"] or soonest.get(\"resuming\"))",
+  "new": "    critical = bool(soonest and (soonest[\"ticking\"])",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-4d the paused count in turns later",
+  "file": "backend/game_logic/fall.py",
+  "old": "                        f\"{plural(view['turns_left'], 'more turn')} of war \"",
+  "new": "                        f\"{plural(view['turns_left'], 'turn')} later \"",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-4e the chains truce ends in peace unsaid",
+  "file": "backend/game_logic/fall.py",
+  "old": "            if truce_ends == \"peace\":\n                return (f\"{title}: {turns} of {grace} — the truce with {captor} \"",
+  "new": "            if False:\n                return (f\"{title}: {turns} of {grace} — the truce with {captor} \"",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-8 a truce at nought reads at peace",
+  "file": "backend/game_logic/fall.py",
+  "old": "        if view.get(\"paused_by\") == \"truce\":\n            # A truce is not a peace",
+  "new": "        if view.get(\"paused_by\") == \"truce\" and turns > 0:\n            # A truce is not a peace",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-5a the fallback takes a court at peace",
+  "file": "backend/models/world_state.py",
+  "old": "        if _game_end.endings_armed(self):\n            pool = at_war\n        else:",
+  "new": "        if False:\n            pool = at_war\n        else:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-5b no court at war: removed",
+  "file": "backend/models/world_state.py",
+  "old": "                if _game_end.endings_armed(self):\n                    self._set_sovereign_down_at_home(marshal, cause)",
+  "new": "                if False:\n                    self._set_sovereign_down_at_home(marshal, cause)",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-5c the spent Guard pays the toll",
+  "file": "backend/commands/strategic.py",
+  "old": "                    if (int(marshal.strength) - toll\n                            < int(getattr(combat, \"GUARD_RUBBLE_FLOOR\", 50))):",
+  "new": "                    if (False\n                            and int(getattr(combat, \"GUARD_RUBBLE_FLOOR\", 50))):",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-6 a vassal captor keeps him",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if new_state not in (\"WAR\", \"ARMISTICE\"):\n        from backend.game_logic.fall import free_captive_sovereigns",
+  "new": "    if False:\n        from backend.game_logic.fall import free_captive_sovereigns",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-6b the rule frees ordinary prisoners",
+  "file": "backend/game_logic/fall.py",
+  "old": "        sov = sovereign_of(world, nation)\n        if sov is None or (getattr(sov, \"captured_by\", \"\") or \"\") != captor:\n            continue",
+  "new": "        sov = next((m for m in world.marshals.values() if m.nation == nation and m.captured_by == captor), None)\n        if sov is None or (getattr(sov, \"captured_by\", \"\") or \"\") != captor:\n            continue",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-7a the escort off the briefing",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    \"sovereign_escorted_home\",\n    # PC15-1: annihilation",
+  "new": "    # PC15-1: annihilation",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-7b a lapse warning for a man at home",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if e.get(\"nation\") == player_nation and _abroad:",
+  "new": "            if e.get(\"nation\") == player_nation:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-7c the escort reads as a restoration",
+  "file": "backend/campaign_log.py",
+  "old": "        if event.get(\"reason\") == \"escorted_home\":",
+  "new": "        if False:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-7d the road stays offered",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "        marshal.road_home_offered = False\n        clear_order_bound_interrupt(marshal)  # NPC-2: the question dies with it",
+  "new": "        clear_order_bound_interrupt(marshal)  # NPC-2: the question dies with it",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-10a the escort names the tag",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "            f\"{marshal.name} failed to quit {nation_adjective(host)} soil before \"",
+  "new": "            f\"{marshal.name} failed to quit {host} soil before \"",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-10b the sibling lines name the tag",
+  "file": "backend/game_logic/withdrawal.py",
+  "old": "    return nation_adjective(host) or str(host or \"\")",
+  "new": "    return str(host or \"\")",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-11 a satellite war unsigns",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if {str(rec.get(\"from\") or \"\"), _house(world, rec)} == pair:",
+  "new": "        if {world._top_overlord(str(rec.get(\"from\") or \"\")), world._top_overlord(str(rec.get(\"holder\") or \"\"))} == {world._top_overlord(nation_a), world._top_overlord(nation_b)}:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-12 the bookkeeping hop breaks it",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        if reason != \"common_peace_vassalage_ratification\":",
+  "new": "        if True:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-13a a reclaim pops the record",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                    and (new_top == rec.get(\"house\")\n                         or new_top == world._top_overlord(",
+  "new": "                    and (False\n                         or new_top == world._top_overlord(",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-13b a reclaim reads held",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                   and _house(world, rec) != leader):",
+  "new": "                   and True):",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-14 no carve record",
+  "file": "backend/game_logic/formations.py",
+  "old": "    record_carve_titles(world, cc_provinces, cc_from, cc_tag, cc_to)",
+  "new": "    pass",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-15 a repudiation leaves it signed",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if other:\n        from backend.game_logic.game_end import break_signed_titles\n        break_signed_titles(world, breaker_nation, other)",
+  "new": "    if False:\n        from backend.game_logic.game_end import break_signed_titles\n        break_signed_titles(world, breaker_nation, other)",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-17a courts ranked by captures",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    partial = bool(data.get(\"lost_regions_partial\")) or any(",
+  "new": "    partial = True or any(",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-17b no last capturer recorded",
+  "file": "backend/game_logic/game_end.py",
+  "old": "            data.setdefault(\"lost_region_to\", {})[str(region)] = str(capturing_nation)",
+  "new": "            pass",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-25 a partial record reads as distinct",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        data[\"lost_regions_partial\"] = True",
+  "new": "        pass",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-28 a battle without its article",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    if not low.startswith(\"the \") and \"battle of \" in low:",
+  "new": "    if False:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-18a a Fall is graded by score",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    if not inputs[\"humbled\"] and not inputs.get(\"fallen\"):",
+  "new": "    if not inputs[\"humbled\"]:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-18b the captive eclipse says no greater",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        elif emperor == \"captive\":\n            out[0] = (\"The Empire has lost its Emperor to his captors, whatever \"",
+  "new": "        elif False:\n            out[0] = (\"The Empire has lost its Emperor to his captors, whatever \"",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-18c the contested line ignores the capital",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        elif qualifier:\n            out[0] = (f\"The Empire holds {'more than' if held > opening else 'as much as'} \"",
+  "new": "        elif False:\n            out[0] = (f\"The Empire holds {'more than' if held > opening else 'as much as'} \"",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-18d the ascendant line ignores the chains",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if qualifier:\n            out[0] = (f\"The Empire stands larger than it began, though {qualifier}.\"",
+  "new": "        if False:\n            out[0] = (f\"The Empire stands larger than it began, though {qualifier}.\"",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-19 the abdication says no soil",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        soil = (f\"with only {held[0]} left to govern\" if held",
+  "new": "        soil = (\"with no soil left to govern\" if held",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-20a the attacker taken is silent",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if getattr(marshal, \"is_sovereign\", False) and _was_free:\n                destroyed_msg += self._fall_clause(world, marshal, _removed)",
+  "new": "            if False:\n                destroyed_msg += self._fall_clause(world, marshal, _removed)",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-20b the report omits the taking",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        elif taken:\n            clause = cls._sovereign_taken_clause(taken[0])",
+  "new": "        elif False:\n            clause = cls._sovereign_taken_clause(taken[0])",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-20c the diorama says he watched",
+  "file": "backend/game_logic/battle_diorama.py",
+  "old": "            and \"The Emperor himself\" not in payload[\"observation\"]):",
+  "new": "            and \"himself fell on that field\" not in payload[\"observation\"]):",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-21a the fate is appended to the scale verdict",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if not observation.startswith(clause):\n            report[\"observation\"] = clause",
+  "new": "        if clause not in observation:\n            report[\"observation\"] = (observation + \" \" + clause).strip()",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-21b the capture stamp appends the sovereign",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if sovereign_clause and not observation.startswith(sovereign_clause):\n            observation = sovereign_clause",
+  "new": "        if sovereign_clause and sovereign_clause not in observation:\n            observation = (observation + \" \" + sovereign_clause).strip()",
+  "tests": "tests/test_ge1_verification_round.py tests/test_fa_s17_phase4a_2026_09_12.py"
+ },
+ {
+  "id": "GV-22a the goal names the authored turn",
+  "file": "backend/ai/first_contact.py",
+  "old": "        when = f\"{v_label} (turn {v_turn})\" if v_label else f\"turn {v_turn}\"",
+  "new": "        when = when",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-22b str.title()",
+  "file": "backend/ai/first_contact.py",
+  "old": "    return \" \".join(w if (i and w in _SMALL_WORDS) else w[:1].upper() + w[1:]",
+  "new": "    return \" \".join(w[:1].upper() + w[1:]",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-23a a late clock claims its count at war",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if held_for > grace and paused > 0 and held_for == grace + paused:",
+  "new": "        if held_for > grace:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-23b the pauses are not counted",
+  "file": "backend/game_logic/fall.py",
+  "old": "            entry[\"paused_turns\"] = int(entry.get(\"paused_turns\", 0) or 0) + 1",
+  "new": "            pass",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-26 courts recover with no Europe left",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    if _no_europe_left and headline_case == \"COOLDOWN\":",
+  "new": "    if False:",
+  "tests": "tests/test_ge1_verification_round.py"
+ },
+ {
+  "id": "GV-27 the dead court loses its article",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    return (f\"The court of {with_definite_article(formed_display_name(world, target))} \"",
+  "new": "    return (f\"The court of {formed_display_name(world, target)} \"",
+  "tests": "tests/test_ge1_verification_round.py"
+ }
+]

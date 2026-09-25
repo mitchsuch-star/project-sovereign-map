@@ -29,6 +29,38 @@
 > `docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
 >
+> **▶ ▶ GE-1 VERIFICATION ROUND — ✅ LANDED September 25, 2026** (the
+> third GE-1 commit; record = `ENDGAME_PLAN.md` §6, the verification-round
+> addendum; rules `SYSTEMS_REFERENCE.md` §64.2; pins
+> `tests/test_ge1_verification_round.py`). Four lenses attacked the review
+> round's FIXES at `e5d67800`: **29 filed, 27 survived the refuter — ALL
+> FIXED.**
+> - **No question after the Fall** — a redemption staged by the fatal turn's
+>   trust net was hoisted and written back AFTER the close; the checker, the
+>   standing read, the hoist and every writer are gated, and the close clears
+>   on every response. **Nothing moves after an own-order death** — the
+>   strategic pass breaks on `game_over`. **A legacy Final save is adopted**,
+>   not copied on every load.
+> - **The clocks** — a truce on its LAST turn that collapses into war is a
+>   ticking, dated, critical clock (the Empire had fallen at the end of a
+>   turn that said "the clock stands still"); a truce at nought is never "at
+>   peace". **No court out of war holds the Emperor** — a vassal treaty with
+>   his captor, a forced alliance or a satellite's release frees him at the
+>   one setter; an emptied corps with no court at war to take him is set
+>   down at home; a spent Guard's breakout keeps its escort.
+> - **The signature belongs to the courts that signed it** — every title
+>   record carries its `house`; a satellite's own war, the settlement's
+>   bookkeeping hop and a satellite's reclaim no longer unsign or drop a
+>   cession; a repudiation without war does; a Tilsit carve is a treaty
+>   record for the carved provinces only, and outlives the client's release.
+> - **The words** — the courts ranked in the same unit as the count; a Fall
+>   is always the eclipse, and the Verdict's lines name the capital and the
+>   Emperor; the abdication names the province still held; the Emperor TAKEN
+>   in his own attack is named, and his fate replaces the verdict about
+>   scale (FA-S17-11's sovereign pin flipped consciously); the goal names the
+>   turn history judged; the escort home is on the briefing and the chronicle.
+> - **Gates:** ruff clean; `tools/_sweep_ge1_verification.json` **53/53 killed, 0 INERT at close** (5 inert on the first pass — four pins that never reached the branch they guarded, each strengthened and killed, and one DEAD line removed: the second `_fallen` re-read before the autonomous marshals, which nothing between it and the first can change); twelve anchors in older sweeps broken by this round (`_sweep_ge1_review.json` GR-04/07/08/17/18/26/27/28/43/51, `_sweep_fa_slice3.json` FA-68/a) re-anchored and re-swept, 12/12 killed; full suite **25,621 passed / 4 skipped**; `BASELINE_SERIES` + M1–M7 byte-identical; zero `.gd`.
+>
 > **▶ ▶ GE-1 REVIEW ROUND — ✅ LANDED September 25, 2026** (the commit
 > after `975f1f13`; record = `ENDGAME_PLAN.md` §6, the review-round
 > addendum under GE-1's landing record; rules `SYSTEMS_REFERENCE.md` §64.1;

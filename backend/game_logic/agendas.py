@@ -256,8 +256,9 @@ def _entry_regions(world, nation: str, entry: dict) -> list:
     """The provinces an entry still pursues. GE-1 §2.2 reconciliation: an
     EMERGENT design (the Revanche) drops every province its court SIGNED
     away while the signing treaty holds (`game_end.reconciled_regions` —
-    zero new fields: the title record names the ceder, `active_treaties`
-    says the treaty stands, a war between them breaks it). Authored decks
+    zero new fields: the TREATY title record names the ceder and the court
+    that signed; a renewed war between them, or a treaty repudiated without
+    war, breaks it; a Tilsit carve is such a record too). Authored decks
     are never stripped: a signed cession reconciles a grievance, not an
     ambition."""
     regions = list(entry.get("regions") or [])

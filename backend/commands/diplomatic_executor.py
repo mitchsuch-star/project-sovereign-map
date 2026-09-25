@@ -6141,6 +6141,10 @@ class DiplomaticExecutor:
             # Also remove active treaty
             active_treaties = getattr(world, 'active_treaties', {})
             active_treaties.pop(diplo_key, None)
+            # GE-1 verification round: the paradox's forced repudiation ends
+            # what the pair signed, as a manual `break treaty` does.
+            from backend.game_logic.game_end import break_signed_titles
+            break_signed_titles(world, player, defender_nation)
             if breach_preview:
                 _record_treaty_breach(
                     world,

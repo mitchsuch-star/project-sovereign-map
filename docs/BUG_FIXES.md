@@ -112,6 +112,42 @@
 ---
 
 
+## GE-1 Verification Round — September 25, 2026 (**29 filed · 27 survived the refuter — ALL FIXED · 2 NOT TAKEN (refuted)**; record: `docs/ENDGAME_PLAN.md` §6, the verification-round addendum; rules `SYSTEMS_REFERENCE.md` §64.2; pins `tests/test_ge1_verification_round.py`)
+
+Four lenses at `e5d67800` — the review round's own fix commit — attacking the FIX, not the finding (the close · the clocks · the titles · the words); every finding reproduced by probe on a read-only snapshot and sent to a refuter. The row id is the check's own index.
+
+| Row | Lens | Sev | Finding | Disposition |
+|---|---|---|---|---|
+| GE1-VR0 | close | P2 | A fall on the end-turn road still asks a redemption question that cannot be answered. clear_unanswerable runs once, then a question is re-seeded after the close. This contradicts #23/#4. | FIXED |
+| GE1-VR1 | close | P3 | When the Emperor falls in his own standing order during end turn, later standing orders, the grievance pass and the autonomous marshals still run afterwards | FIXED — the pass breaks on `game_over`; `_fallen` is re-read after it |
+| GE1-VR2 | close | P3 | Every /load of a Final save written by GE-1 (975f1f13) now writes another Final save: (2), (3), (4)… | FIXED |
+| GE1-VR3 | close | P4 | THE_WAR_IS_CLOSED_AT_ONE_SEAM = False does not restore the pre-review behaviour its comment names: the ending is still attached and saved on every POST | FIXED as corrected copy — the lever's comment and §64.2 say it gates the CLOSE only; the /command-only attach it named was deleted, not kept behind it (pinned) |
+| GE1-VR4 | clocks | P2 | A paused clock hides a certain fall: the Empire falls at the end of the very turn the warning says 'the clock stands still' (and the paused soil sentence's 'falls N turns later' is one turn too many) | FIXED |
+| GE1-VR5 | clocks | P2 | 'No court at peace holds the Emperor' is false — the attrition sweep's captor fallback hands a starved-out Emperor to the strongest court at PEACE, and the chains clock then stands still forever with no offer | FIXED |
+| GE1-VR6 | clocks | P2 | Subjugating (or later releasing) the captor never frees the Emperor: WAR→VASSAL and VASSAL→PEACE leave him in the cells, the chains clock paused forever | FIXED |
+| GE1-VR7 | clocks | P3 | The Emperor's interned corps never reaches the briefing or the chronicle; the chronicle records only a 'restoration' from a captivity that never happened | FIXED |
+| GE1-VR8 | clocks | P3 | Soil arm counted 0 under a truce says 'at peace' — the round's own rule is that a truce is not a peace | FIXED |
+| GE1-VR9 | clocks | P3 | With no French-held province the escort 'sends him home' into an enemy-held Paris at war | NOT TAKEN — refuted: `_intern` runs only while `distance_home` returns a road, so a realm with no province never reaches the escort |
+| GE1-VR10 | clocks | P4 | New escort sentence uses the nation tag as an adjective ('failed to quit Prussia soil') | FIXED |
+| GE1-VR11 | titles | P2 | A satellite's war unsigns a France–Austria cession while France and Austria stay at peace, and the demotion is permanent | FIXED |
+| GE1-VR12 | titles | P2 | The Tilsit carve is broken at birth when a settlement vassalizes the loser out of a truce (the ARMISTICE->WAR bookkeeping hop counts as a renewed war) | FIXED |
+| GE1-VR13 | titles | P2 | 'A reclaim carries the record' is false: a VS-3 rebellion reclaim pops the treaty title, leaving the province permanently 'held' and the ceder's Revanche awake | FIXED |
+| GE1-VR14 | titles | P2 | The carve arm of reconciled_regions reconciles the client's whole live territory, including ceder provinces it was never signed | FIXED |
+| GE1-VR15 | titles | P3 | Removing the active_treaties check: a treaty repudiated without war (break_treaty / the paradox pop) no longer ends the reconciliation; docstrings still say active_treaties decides | FIXED |
+| GE1-VR16 | titles | P3 | A carved client released in peace loses its reconciliation (no war anywhere), unlike a signed cession given to a satellite | FIXED — a carve is a treaty title record now (`record_carve_titles`), which outlives the client's release |
+| GE1-VR17 | words | P2 | Record paragraph: court attribution counts CAPTURES while the headline counts DISTINCT provinces, so 'took the most', 'as many to A as to B' and 'One province was lost, to X' are false | FIXED |
+| GE1-VR18 | words | P2 | Verdict tier lines contradict the realm on a Fall: an eclipse says 'no greater than it began' about a larger Empire; a contested reign 'holds what it held' without Paris; an ascendant Verdict closes the Emperor's funeral | FIXED |
+| GE1-VR19 | words | P2 | Realm-arm abdication epilogue still says 'with no soil left to govern' while Paris is French — the falsehood #40 removed from the cause line — and the #40 pin is vacuous | FIXED |
+| GE1-VR20 | words | P2 | The Emperor TAKEN in his own attack is silent on every battle surface, and the diorama says 'The Emperor watched this field' | FIXED (pre-existing) — the attacker and participant arms name a capture; the report and diorama say 'taken' |
+| GE1-VR21 | words | P3 | #8 fix appends the death to a report that still says 'Hardly an engagement … and the day moved on' | FIXED |
+| GE1-VR22 | words | P3 | Goal answer after the Verdict names the AUTHORED turn rather than the turn history judged, and title-cases the tier ('A Reign Of Triumph', 'at the end of Early July 1807') | FIXED |
+| GE1-VR23 | words | P3 | Chains cause line claims only '10 of them at war with his captor' when the clock merely started late (pre-GE-1 save with a captive Emperor) | FIXED |
+| GE1-VR24 | words | P3 | A backfilled pre-GE-1 save's Verdict line says France was never beaten ('can be made to yield') although the save's own log records six lost battles | NOT TAKEN — refuted: not reproducible on a reachable board, and the line it named is not false |
+| GE1-VR25 | words | P3 | A save from 975f1f13 (no lost_regions) played on under this commit: 'One province was lost, to Austria.' after six were lost | FIXED |
+| GE1-VR26 | words | P4 | E2 regression: the turn the last court falls, the ledger reads 'recovering from the last coalition … no new coalition gathers below 60' beside 'There is no Europe left to alarm' | FIXED — with no Europe left the COOLDOWN headline (and its gate note) is not raised |
+| GE1-VR27 | words | P4 | Dead-court refusal drops the article: 'Papal States no longer exists' | FIXED |
+| GE1-VR28 | words | P4 | Battle names open epilogue sentences without their article: 'Battle of Swabia was the worst day.' | FIXED |
+
 ## GE-1 Review Round — September 25, 2026 (**50 filed · 38 survived both refuters, 4 P1 — ALL FIXED · 8 of the 10 split verdicts taken on merit · 1 OWNED by GE-2 · 3 NOT TAKEN**; record: `docs/ENDGAME_PLAN.md` §6, the review-round addendum; rules `SYSTEMS_REFERENCE.md` §64.1; pins `tests/test_ge1_review_round.py`)
 
 Seven lenses at `975f1f13` (clocks · the death · titles and the Humbled Peace · saves and endpoints · E2/E3/WO-D10/the captor · the exile story and the Verdict · the tests), two refuters per finding on a read-only snapshot. The row id is the review's own index.

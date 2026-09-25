@@ -168,7 +168,13 @@ class TestTheCaptureIsOnTheReport:
     def _report():
         return {"battle_report": {"observation": "Scarcely an action, Sire."}}
 
-    def test_a_sovereigns_capture_is_appended(self):
+    def test_a_sovereigns_capture_leads_the_report(self):
+        """Flipped consciously by the GE-1 verification round (V21): the
+        Emperor's fate REPLACES the verdict about scale rather than being
+        appended to it — every skirmish verdict denies the day mattered
+        ("too small a scale to signify"), which is false of the field that
+        took the Emperor. An ordinary marshal's capture is still appended
+        (the FA-S17-11 ruling, pinned below)."""
         nap = MarshalFactory.infantry(name="Napoleon", location="Belgium", strength=0,
                                       personality="sovereign")
         mack = MarshalFactory.enemy(name="Mack", location="Belgium", nation="Austria",
@@ -177,9 +183,8 @@ class TestTheCaptureIsOnTheReport:
         br = self._report()
         CombatExecutor._stamp_capture_on_report(br, nap, mack, {"Napoleon", "Mack"})
         obs = br["battle_report"]["observation"]
-        assert "Scarcely an action" in obs
-        assert "the Emperor himself was taken on that field" in obs
-        assert "Britain holds him" in obs
+        assert obs == "The Emperor himself was taken on that field — Britain holds him."
+        assert "Scarcely an action" not in obs
 
     def test_an_ordinary_marshal_is_named(self):
         soult = MarshalFactory.infantry(name="Soult", location="Belgium", strength=0)

@@ -230,6 +230,17 @@ def _is_open_ended(world) -> bool:
         return True
 
 
+_SMALL_WORDS = frozenset({"a", "an", "the", "of", "and", "in", "on", "at"})
+
+
+def _tier_title_case(text: str) -> str:
+    """'A REIGN OF TRIUMPH' → 'A Reign of Triumph' (never `str.title()`,
+    which gives 'A Reign Of Triumph' — verification round)."""
+    words = str(text or "").lower().split()
+    return " ".join(w if (i and w in _SMALL_WORDS) else w[:1].upper() + w[1:]
+                    for i, w in enumerate(words))
+
+
 def _judged_goal(world) -> str:
     """GE-1: the goal answer on a world whose endings are armed — the
     Verdict and the Fall, named with the scenario's own numbers."""
@@ -255,11 +266,17 @@ def _judged_goal(world) -> str:
     verdict = next((r for r in game_end.endings(world)
                     if r.get("cause") == game_end.CAUSE_VERDICT), None)
     if verdict is not None:
-        # Rendered already: name what history said, in the past tense.
+        # Rendered already: name what history said, in the past tense — on
+        # the date it was SAID (verification round: a pre-GE-1 save loaded
+        # after the authored turn is judged when it is next ended, and the
+        # answer named the authored date the end screen contradicted).
+        v_turn = int(verdict.get("turn", vt) or vt)
+        v_label = str(verdict.get("calendar_label") or "")
+        when = f"{v_label} (turn {v_turn})" if v_label else f"turn {v_turn}"
         tier = str(((verdict.get("summary") or {}).get("verdict") or {})
                    .get("title") or "").strip()
         judged = (f"History has judged the reign, Sire, at the end of {when}: "
-                  f"{tier.title() if tier.isupper() else tier}. "
+                  f"{_tier_title_case(tier) if tier.isupper() else tier}. "
                   if tier else
                   f"History rendered its Verdict at the end of {when}, Sire. ")
         return (f"{judged}The campaign goes on, and the Empire can still "

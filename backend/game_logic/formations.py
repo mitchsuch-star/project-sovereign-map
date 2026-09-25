@@ -1145,6 +1145,13 @@ def apply_create_client_clause(world, term: Mapping[str, Any]) -> Optional[Dict]
     cc_payload = create_client_nation(world, cc_tag, cc_to, ceded_from=cc_from)
     if cc_payload is None:
         return None
+    # GE-1 verification round: a carve is a cession — each carved province
+    # gets a treaty title record (from the ceder, held by the client, signed
+    # by the carver), so the ceder's Revanche reads it reconciled exactly as
+    # a signed cession, for those provinces only, through the client's
+    # release, and until a renewed war between the signatories breaks it.
+    from backend.game_logic.game_end import record_carve_titles
+    record_carve_titles(world, cc_provinces, cc_from, cc_tag, cc_to)
     clause = dict(term)
     clause["provinces"] = list(cc_provinces)
     clause["client_display_name"] = str(

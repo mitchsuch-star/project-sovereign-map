@@ -2759,6 +2759,14 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     # expiry — every road to PEACE sends the prisoners home.
     if new_state == "PEACE" and old_state in ("WAR", "ARMISTICE"):
         world.release_mutual_prisoners(nation_a, nation_b)
+    # GE-1 verification round: no court out of war with a sovereign's realm
+    # holds him — a vassal treaty with his captor (WAR→VASSAL), a forced
+    # alliance, a satellite released in peace (VASSAL→PEACE) each left the
+    # Emperor in the cells with his clock paused forever. Sovereigns only:
+    # the wider W6-7 prisoner rule is unchanged.
+    if new_state not in ("WAR", "ARMISTICE"):
+        from backend.game_logic.fall import free_captive_sovereigns
+        free_captive_sovereigns(world, nation_a, nation_b)
 
     # PT-J2 review round [P1-2/P3-4] (August 14, 2026): the campaign
     # ledger demobilizes HERE, at the one centralized setter, when the
@@ -2886,8 +2894,13 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         # GE-1 review round: a renewed war breaks what either side SIGNED
         # away to the other — the province is a conquest again, its quiet
         # clock restarting now (§2.2), and the ceder's Revanche wakes.
-        from backend.game_logic.game_end import break_signed_titles
-        break_signed_titles(world, nation_a, nation_b)
+        # Verification round: the settlement's ARMISTICE→WAR→VASSAL hop is
+        # the treaty's own bookkeeping (`validate_transition` refuses
+        # ARMISTICE→VASSAL), never a renewed war — it had broken the very
+        # carve the same ratification had just signed.
+        if reason != "common_peace_vassalage_ratification":
+            from backend.game_logic.game_end import break_signed_titles
+            break_signed_titles(world, nation_a, nation_b)
 
     # WPS-C §9.5: Clear forced alliance origin when state leaves ALLIANCE,
     # enters WAR, or becomes VASSAL.
@@ -4153,6 +4166,29 @@ def armistice_projected_relation(relation_now: int, remaining_turns: int) -> int
     if not THE_TRUCE_PROJECTION_COUNTS_THE_THAW:
         return int(relation_now)
     return int(relation_now) + int(ARMISTICE_THAW_PER_TURN) * int(max(0, remaining_turns))
+
+
+def armistice_resolves_this_turn(world, nation_a: str, nation_b: str) -> str:
+    """'war' / 'peace' when the truce between the two runs out at THIS end
+    turn's advance (`_process_armistice_expiration`), else ''.
+
+    The same arithmetic the war panel shows (`armistice_remaining` and
+    `armistice_projected_outcome` in `war_status.build_active_wars`), read
+    for one pair: the truce ends on the advance that brings its count to
+    `ARMISTICE_DURATION`, and the relation after that turn's thaw decides.
+    GE-1 verification round: a fall clock paused by a truce said "the clock
+    stands still" on the very turn the truce collapsed back into war and
+    the Empire fell."""
+    key = world._make_diplo_key(nation_a, nation_b)
+    if (getattr(world, "diplomatic_states", {}) or {}).get(key) != "ARMISTICE":
+        return ""
+    elapsed = int((getattr(world, "armistice_turns", {}) or {}).get(key, 0) or 0)
+    remaining = int(max(0, ARMISTICE_DURATION - elapsed))
+    if remaining > 1:
+        return ""
+    relation = int((getattr(world, "nation_relations", {}) or {}).get(key, 0) or 0)
+    return ("peace" if armistice_projected_relation(relation, remaining)
+            >= ARMISTICE_AUTO_PEACE_RELATION else "war")
 
 HARSHNESS_LABELS = [
     (0.10, "generous"),
@@ -8291,9 +8327,12 @@ def dead_court_refusal(world, target: str) -> Optional[str]:
     if not (DEAD_COURTS_CANNOT_BE_FOUGHT and getattr(world, "sandbox_mode", False)
             and _court_is_dead(world, target)):
         return None
+    from backend.display_names import with_definite_article
     from backend.game_logic.formations import formed_display_name
-    return (f"{formed_display_name(world, target)} no longer exists — there is "
-            f"no court left to declare war on.")
+    # With its article (verification round: "Papal States no longer
+    # exists"), and a verb that fits a plural name as well as a single one.
+    return (f"The court of {with_definite_article(formed_display_name(world, target))} "
+            f"no longer exists — there is nobody left to declare war on.")
 
 
 def declare_war(
@@ -10775,6 +10814,14 @@ def break_treaty(
     current_state = world.diplomatic_states.get(pair_key, "PEACE")
     new_state = post_break_map.get(current_state, "PEACE")
     set_diplomatic_state(world, breaker_nation, other, new_state, "treaty_break")
+    # GE-1 verification round: a treaty repudiated WITHOUT a war ends the
+    # signature as a renewed war does — "breaking the treaty re-arms" the
+    # ceder's Revanche (ENDGAME_PLAN §2.2). The review round keyed the
+    # reconciliation on the title record alone, and only an entry into WAR
+    # touched it, so a typed `break treaty` left the province reconciled.
+    if other:
+        from backend.game_logic.game_end import break_signed_titles
+        break_signed_titles(world, breaker_nation, other)
 
     # Deep audit fix 3: Clean up war data if breaking from WAR/ARMISTICE
     if current_state in ("WAR", "ARMISTICE"):

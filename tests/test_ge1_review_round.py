@@ -208,9 +208,14 @@ class TestTheFinishedField:
         assert tomb["location"] == "Swabia"
         assert "at Swabia, the Emperor was killed" in " ".join(
             summary["epilogue"]["paragraphs"])
-        # #8: Berthier's report and the diorama say he fell.
+        # #8: Berthier's report and the diorama say he fell — and (the
+        # verification round's V21, flipped consciously) his fate REPLACES
+        # the verdict about scale: "Hardly an engagement … and the day moved
+        # on" was false of the field that ended the Empire.
         report = r.get("battle_report") or {}
-        assert "the Emperor himself fell on that field" in report.get("observation", "")
+        obs = report.get("observation", "")
+        assert obs == "The Emperor himself fell on that field."
+        assert "moved on" not in obs and "Hardly" not in obs
         diorama = r.get("battle_diorama") or {}
         if diorama:
             assert "watched this field" not in diorama.get("observation", "")
@@ -526,7 +531,9 @@ class TestTitlesAndTheRevanche:
         assert "Posen" not in game_end.reconciled_regions(w, "Prussia")
         _set(w, "Prussia", "France", "ARMISTICE")
         assert "Posen" not in game_end.reconciled_regions(w, "Prussia")
-        assert w.vassals["DuchyOfWarsaw"]["carve_broken"] is True
+        # (Verification round: the carve is a treaty title record now —
+        # broken into a conquest — not a `carve_broken` mark on the row.)
+        assert w.province_title["Posen"]["kind"] == game_end.TITLE_CONQUEST
         assert w.vassals["DuchyOfWarsaw"]["carved_from"] == "Prussia"
 
     def test_a_renewed_war_breaks_the_signature_and_a_truce_does_not_mend_it(self):
@@ -776,8 +783,12 @@ class TestTheWords:
         _tick(w, 5)
         rec = game_end.terminal_ending(w)
         assert rec["cause_line"].startswith("The Empire is reduced to Paris alone")
-        assert "no soil left" not in " ".join(rec["summary"]["epilogue"]["paragraphs"]) \
-            or "Paris" in rec["cause_line"]
+        # (Verification round V19: the `or "Paris" in cause_line` arm made
+        # this pin vacuous on its own Paris board — the epilogue said "with no
+        # soil left to govern" beside "reduced to Paris alone", and it passed.)
+        epilogue = " ".join(rec["summary"]["epilogue"]["paragraphs"])
+        assert "no soil left" not in epilogue
+        assert "with only Paris left to govern" in epilogue
 
 
 # ════════════════════════════════════════════════════════════════════════

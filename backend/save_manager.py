@@ -229,6 +229,16 @@ def load_game(filepath: Path) -> Dict:
         # the numbers here. A scenario that authors no block stays unarmed.
         _backfill_campaign_end(world)
 
+        # GE-1 verification round: a fallen campaign's save that does not
+        # name its own Final file — written by 975f1f13, which stamped
+        # `final_save` only AFTER the write — ADOPTS the file it was loaded
+        # from, so the response seam's Final-save write does not mint
+        # "(2)", "(3)", "(4)" on every load.
+        from backend.game_logic.game_end import terminal_ending as _terminal
+        _fallen = _terminal(world)
+        if _fallen is not None and not _fallen.get("final_save"):
+            _fallen["final_save"] = str(filepath)
+
         # NUI-2 (Sept 24, 2026): a save written before the coast audit
         # carries the old coastal flags and the three inland dockyards
         # (Amsterdam, Flanders, Estonia) in its fleet records. Registry

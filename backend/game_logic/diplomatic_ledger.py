@@ -1089,6 +1089,18 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     else:
         coalition_state = "NO_HEGEMON"
         headline_case = "NO_HEGEMON"
+    # GE-1 verification round: with no court left to alarm there are no
+    # courts "recovering from the last coalition" — the cooldown headline
+    # (and the IQ-3 gate note it carries, "no new coalition gathers below
+    # 60") read beside "There is no Europe left to alarm" the turn the last
+    # members fell together.
+    if _no_europe_left and headline_case == "COOLDOWN":
+        if hegemon and band > 0:
+            coalition_state = "NO_COALITION"
+            headline_case = "HEGEMON_NO_COALITION"
+        else:
+            coalition_state = "NO_HEGEMON"
+            headline_case = "NO_HEGEMON"
 
     members = []
     leader = ""

@@ -1208,6 +1208,12 @@ class StrategicOrderProcessor:
         deferred_marshals = []
 
         for marshal in marshals_with_orders:
+            # GE-1 verification round: the Emperor killed in his OWN
+            # standing order ends the war inside this pass — no later
+            # order marches after him (Soult fought a whole new battle,
+            # counted on the end screen, after the Emperor had fallen).
+            if getattr(world, "game_over", False):
+                break
             order = marshal.strategic_order
 
             # ═══════════════════════════════════════════════════════════
@@ -1337,6 +1343,8 @@ class StrategicOrderProcessor:
         # question, and the client queues every `requires_input` row, so the
         # break protected nothing.
         for marshal in deferred_marshals:
+            if getattr(world, "game_over", False):
+                break
             report = self._execute_strategic_turn(marshal, world, game_state)
             if report:
                 reports.append(report)
@@ -1564,11 +1572,22 @@ class StrategicOrderProcessor:
                 toll_note = ""
                 if getattr(marshal, "is_sovereign", False):
                     toll = int(marshal.strength * combat.GUARD_ESCAPE_TOLL)
-                    if toll > 0:
-                        marshal.take_casualties(toll)
-                    toll_note = (f" The Guard bought the road with its own "
-                                 f"ranks — {toll:,} men fall covering the "
-                                 f"escape.")
+                    # GE-1 verification round: a SPENT Guard (the question's
+                    # own word — "men cannot buy another road") has no toll
+                    # left to pay. Paying it anyway rubbled the corps to 0
+                    # under the words "cuts his way out", and the next
+                    # attrition sweep handed a standing, zero-strength
+                    # Emperor to whatever court the fallback found.
+                    if (int(marshal.strength) - toll
+                            < int(getattr(combat, "GUARD_RUBBLE_FLOOR", 50))):
+                        toll_note = (" The Guard is spent — the Emperor cuts "
+                                     "his way out with the last of his escort.")
+                    else:
+                        if toll > 0:
+                            marshal.take_casualties(toll)
+                        toll_note = (f" The Guard bought the road with its own "
+                                     f"ranks — {toll:,} men fall covering the "
+                                     f"escape.")
                 # Aug 30, 2026 review: NOT `_apply_forced_retreat_or_break`.
                 # This interrupt is only ever raised for an ENCIRCLED marshal
                 # (the producer sets it when `get_safe_retreat_destination`

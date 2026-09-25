@@ -1345,21 +1345,29 @@ def _escort_sovereign_home(world, marshal, host: str, location: str) -> Dict:
     cleared), so no second copy of that rule exists. He keeps at most the
     released prisoner's escort (`RANSOM_RETURN_STRENGTH`), never more than
     he brought."""
-    kept = min(int(getattr(marshal, "strength", 0) or 0),
-               int(getattr(world, "RANSOM_RETURN_STRENGTH", 5000)))
+    had = int(getattr(marshal, "strength", 0) or 0)
+    kept = min(had, int(getattr(world, "RANSOM_RETURN_STRENGTH", 5000)))
     marshal.captured_by = host
     marshal.captured_turn = int(getattr(world, "current_turn", 0) or 0)
-    released = world.release_captured_marshal(marshal.name,
-                                              reason="escorted_home")
+    # The chronicle's row says what happened (verification round): his CORPS
+    # was interned — never "restored to France" from a captivity that never
+    # was.
+    released = world.release_captured_marshal(
+        marshal.name, reason="escorted_home",
+        detail={"interned_at": location,
+                "corps_interned": max(0, had - max(1, kept)),
+                "message": (f"{marshal.name}'s corps is interned at {location} "
+                            f"by {_soil(host)} authorities; the Emperor is "
+                            f"escorted home.")})
     if released:
         marshal.strength = max(1, kept)
         marshal.strategic_order = None
+        marshal.road_home_offered = False
         clear_order_bound_interrupt(marshal)  # NPC-2: the question dies with it
     else:  # the release refused (cannot happen for a live realm's sovereign)
         marshal.captured_by = ""
         marshal.captured_turn = -1
-    from backend.game_logic.formations import formed_display_name
-    host_name = formed_display_name(world, host)
+    from backend.display_names import nation_adjective
     return {
         "type": "sovereign_escorted_home",
         "marshal": marshal.name,
@@ -1367,10 +1375,18 @@ def _escort_sovereign_home(world, marshal, host: str, location: str) -> Dict:
         "location": location,
         "host": host,
         "message": (
-            f"{marshal.name} failed to quit {host_name} soil before his safe "
-            f"passage expired. His corps is interned; the Emperor himself is "
-            f"escorted to the frontier and sent home to {marshal.location}."),
+            f"{marshal.name} failed to quit {nation_adjective(host)} soil before "
+            f"his safe passage expired. His corps is interned at {location}; "
+            f"the Emperor himself is escorted to the frontier and sent home "
+            f"to {marshal.location}."),
     }
+
+
+def _soil(host: str) -> str:
+    """'Prussian', 'Papal' — the nation is not an adjective (PR-2): the
+    internment lines printed the raw tag ("PapalStates soil")."""
+    from backend.display_names import nation_adjective
+    return nation_adjective(host) or str(host or "")
 
 
 def _intern(world, marshal, nation: str) -> Dict:
@@ -1413,8 +1429,8 @@ def _intern(world, marshal, nation: str) -> Dict:
             "location": location,
             "host": host,
             "message": (
-                f"{name} failed to quit {host} soil before his safe passage "
-                f"expired — the Emperor is taken."),
+                f"{name} failed to quit {_soil(host)} soil before his safe "
+                f"passage expired — the Emperor is taken."),
         }
     return {
         "type": "marshal_interned",
@@ -1423,6 +1439,6 @@ def _intern(world, marshal, nation: str) -> Dict:
         "location": location,
         "host": host,
         "message": (
-            f"{name}'s corps failed to quit {host} soil before its safe "
-            f"passage expired. It has been disarmed and interned."),
+            f"{name}'s corps failed to quit {_soil(host)} soil before its "
+            f"safe passage expired. It has been disarmed and interned."),
     }

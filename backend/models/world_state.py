@@ -3191,6 +3191,15 @@ class WorldState:
                     self.capture_marshal(marshal, captor,
                                          context=f"death_guard:{cause}")
                     return False
+                # GE-1 verification round: on an ARMED world no court at
+                # peace takes him (`_sovereign_captor_fallback` offers only
+                # courts at war there). A corps emptied with no enemy at war
+                # to claim him is set down at home, at the head of the
+                # escort a released prisoner keeps — never handed to a
+                # court that played no part and would hold him forever.
+                if _game_end.endings_armed(self):
+                    self._set_sovereign_down_at_home(marshal, cause)
+                    return False
             # No other armed court exists to take him — unreachable in
             # shipped content (every road here implies a live enemy);
             # fall through to the normal removal rather than leave a
@@ -5375,7 +5384,10 @@ class WorldState:
     def _sovereign_captor_fallback(self, marshal) -> str:
         """NP-4 §7.1: no live captor on the field (pure attrition, nation
         teardown) — the strongest at-war nation takes him; failing that,
-        the strongest other armed court."""
+        the strongest other armed court. On an ARMED world (GE-1
+        verification round) at-war courts only: a court at peace that took
+        him held him forever, his clock paused, no offer ever due — the
+        caller sets him down at home instead."""
         def _nation_strength(nation: str) -> int:
             return sum(int(m.strength) for m in self.marshals.values()
                        if m.nation == nation and not m.captured_by)
@@ -5386,13 +5398,51 @@ class WorldState:
             if not getattr(m, "captured_by", "")}
         courts.discard(marshal.nation)
         at_war = [n for n in courts if self.is_at_war(marshal.nation, n)]
-        pool = at_war or [n for n in courts if _nation_strength(n) > 0]
+        from backend.game_logic import game_end as _game_end
+        if _game_end.endings_armed(self):
+            pool = at_war
+        else:
+            pool = at_war or [n for n in courts if _nation_strength(n) > 0]
         if not pool:
             return ""
         return max(pool, key=lambda n: (_nation_strength(n), n))
 
+    def _set_sovereign_down_at_home(self, marshal, cause: str) -> None:
+        """GE-1 verification round: a sovereign whose corps is emptied with
+        no court at war to take him — the release seam's hygiene without a
+        captor: home (the capital, or the nearest province his realm holds),
+        at the head of the escort a released prisoner keeps, orders ended,
+        his question with them."""
+        home = (self.find_safe_spawn(marshal)
+                or self.get_nation_capital(marshal.nation)
+                or marshal.location)
+        marshal.location = home
+        marshal.strength = int(self.RANSOM_RETURN_STRENGTH)
+        marshal.morale = 50
+        marshal.strategic_order = None
+        from backend.commands.strategic import clear_order_bound_interrupt
+        clear_order_bound_interrupt(marshal)
+        marshal.clear_iron_resolve()
+        from backend.models.marshal import Stance
+        marshal.fortified = False
+        marshal.defense_bonus = 0
+        marshal.turns_fortified = 0
+        marshal.stance = Stance.NEUTRAL
+        self.log_event({
+            "type": "marshal_released",
+            "marshal": marshal.name,
+            "nation": marshal.nation,
+            "captor": "",
+            "reason": "set_down_at_home",
+            "sovereign": True,
+            "message": (f"{marshal.name}'s corps is gone ({str(cause).replace('_', ' ')}), "
+                        f"and no court at war stands to take him — he returns "
+                        f"to {home} with an escort."),
+        })
+
     def release_captured_marshal(self, marshal_name: str,
-                                 reason: str = "ransom") -> bool:
+                                 reason: str = "ransom",
+                                 detail: Optional[Dict] = None) -> bool:
         """W6-7 §9.2: return a captured marshal to his own capital at
         5,000 strength / morale 50, capture state cleared. Returns True
         when a release actually happened."""
@@ -5446,7 +5496,7 @@ class WorldState:
         marshal.defense_bonus = 0
         marshal.turns_fortified = 0
         marshal.stance = Stance.NEUTRAL
-        self.log_event({
+        _row = {
             "type": "marshal_released",
             "marshal": marshal.name,
             "nation": marshal.nation,
@@ -5458,7 +5508,14 @@ class WorldState:
                 f"Marshal {marshal.name} is released by {captor} and "
                 f"returns to {home} ({reason.replace('_', ' ')})."
             ),
-        })
+        }
+        # GE-1 verification round: a caller whose release is not a captivity
+        # ending (the escort home from a lapsed passage) says what it was.
+        if isinstance(detail, dict):
+            _row.update({k: v for k, v in detail.items()
+                         if k not in ("type", "marshal", "nation", "captor",
+                                      "reason", "sovereign")})
+        self.log_event(_row)
         return True
 
     def release_mutual_prisoners(self, nation_a: str, nation_b: str,

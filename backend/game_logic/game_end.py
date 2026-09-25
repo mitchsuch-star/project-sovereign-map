@@ -170,11 +170,18 @@ def _cause_line(world, cause: str, detail: Dict[str, Any]) -> str:
     if cause == CAUSE_CHAINS:
         grace = int(cfg(world, "captivity_grace_turns", fall.CAPTIVITY_GRACE_TURNS))
         held_for = int(detail.get("held_turns") or 0)
+        paused = int(detail.get("paused_turns") or 0)
         # The clock counts turns at WAR with the captor; a truce pauses it.
-        # Say what is true when the two differ (review round).
-        if held_for > grace:
+        # Say what is true when the two differ (review round) — and name the
+        # turns at war only when the truces account for the rest
+        # (verification round: a clock that merely STARTED late, on a
+        # pre-GE-1 save loaded with the Emperor already a prisoner, never
+        # paused, and "10 of them at war" was false of 19 turns of war).
+        if held_for > grace and paused > 0 and held_for == grace + paused:
             return (f"The Emperor, a prisoner these {held_for} turns — "
                     f"{grace} of them at war with his captor — is deposed.")
+        if held_for > grace:
+            return f"The Emperor, a prisoner these {held_for} turns, is deposed."
         return (f"The Emperor, a prisoner these {grace} turns, is deposed.")
     if cause == CAUSE_EAGLE_FALLS:
         return "The Emperor is dead."
@@ -302,9 +309,12 @@ def screen_payload(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]
     return view
 
 
-# Flip lever (review round, Sept 25): False restores the pre-review
-# behaviour — the terminal summary frozen at the stamp, the unanswerable
-# questions left standing, the ending attached on the main /command road only.
+# Flip lever (review round, Sept 25): False skips the CLOSE — the terminal
+# summary stays as it was built at the stamp, and the unanswerable questions
+# are left standing. It does NOT restore the pre-review /command-only attach
+# (verification round): that attach was deleted, not kept behind this switch,
+# so every response of a fallen campaign carries `game_over`/`ending` and
+# the Final save either way.
 THE_WAR_IS_CLOSED_AT_ONE_SEAM = True
 
 
@@ -319,17 +329,21 @@ def close_campaign(world) -> Optional[Dict[str, Any]]:
     battle is counted, before the province it takes changes hands; a summary
     built at the stamp said "0 battles" and laid him in state in a Paris
     that fell in the same fight. Rebuilt here, it reads the finished field.
-    Returns the terminal record, or None."""
+    Returns the terminal record, or None.
+
+    The summary is rebuilt ONCE; the clearing runs on EVERY call
+    (verification round): a pause save taken after the Fall, or a question
+    re-seeded by a road that runs after the response seam, would otherwise
+    raise a card nobody can answer on every later response and load."""
     record = terminal_ending(world)
     if record is None or not THE_WAR_IS_CLOSED_AT_ONE_SEAM:
         return record
-    if record.get("closed"):
-        return record
-    record["closed"] = True
-    try:
-        record["summary"] = build_campaign_summary(world, record)
-    except Exception:
-        pass
+    if not record.get("closed"):
+        record["closed"] = True
+        try:
+            record["summary"] = build_campaign_summary(world, record)
+        except Exception:
+            pass
     clear_unanswerable(world)
     return record
 
@@ -415,6 +429,8 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
                     # war with the captor — a truce pauses it).
                     detail["captured_turn"] = taken
                     detail["held_turns"] = max(0, int(turn_ended) - taken + 1)
+                    entry = (getattr(world, "fall_clock", {}) or {}).get(fall.ARM_CHAINS) or {}
+                    detail["paused_turns"] = int(entry.get("paused_turns", 0) or 0)
             else:
                 detail["realm"] = bool(d.get("realm"))
                 detail["sword"] = bool(d.get("sword"))
@@ -504,9 +520,18 @@ def totals(world) -> Dict[str, Any]:
         world.campaign_totals = data
     for key in _COUNTERS:
         data.setdefault(key, 0)
+    # A record kept before the distinct list existed (a 975f1f13 save that
+    # had already lost provinces): the distinct count and its courts cannot
+    # be recovered, so the epilogue counts the LOSSES instead — the unit the
+    # old record kept (verification round: "One province was lost, to
+    # Austria." after six were lost, the one listed to Britain).
+    if ("lost_regions" not in data
+            and int(data.get("provinces_lost", 0) or 0) > 0):
+        data["lost_regions_partial"] = True
     data.setdefault("lost_to", {})
     data.setdefault("taken_from", {})
     data.setdefault("lost_regions", [])
+    data.setdefault("lost_region_to", {})
     data.setdefault("coalition_names", [])
     data.setdefault("treaties", [])
     data.setdefault("greatest_victory", None)
@@ -559,7 +584,10 @@ def count_capture(world, old_controller: str, capturing_nation: str,
                   region: str = "") -> None:
     """A province changing hands by force with the player on one side.
     `lost_regions` keeps the DISTINCT provinces lost (a province lost twice
-    is one province — the epilogue says so), bounded by the map."""
+    is one province — the epilogue says so), bounded by the map, and
+    `lost_region_to` the court that took each LAST (verification round: the
+    courts were ranked by capture events against a distinct count, so a
+    province lost three times to Austria outweighed two lost to Britain)."""
     player = _player(world)
     if not player or old_controller == capturing_nation:
         return
@@ -577,6 +605,7 @@ def count_capture(world, old_controller: str, capturing_nation: str,
             lost_regions = data.setdefault("lost_regions", [])
             if region not in lost_regions:
                 lost_regions.append(str(region))
+            data.setdefault("lost_region_to", {})[str(region)] = str(capturing_nation)
 
 
 def count_marshal_captured(world, marshal_nation: str, captor: str) -> None:
@@ -649,7 +678,19 @@ def backfill_record(world) -> None:
         if not holder or _is_homeland(world, name, holder):
             continue
         store[name] = {"kind": TITLE_CONQUEST, "since": turn,
-                       "from": owners.get(name, ""), "holder": holder}
+                       "from": owners.get(name, ""), "holder": holder,
+                       "house": str(world._top_overlord(holder) or holder)}
+    # A carve made before the upgrade is a cession like one made after it
+    # (verification round): its provinces the client still holds take the
+    # carve's treaty record.
+    for tag, row in (getattr(world, "vassals", {}) or {}).items():
+        if not isinstance(row, dict) or not row.get("carved_from"):
+            continue
+        carved = [p for p in (row.get("regions") or [])
+                  if getattr((getattr(world, "regions", {}) or {}).get(p),
+                             "controller", "") == tag]
+        record_carve_titles(world, carved, str(row.get("carved_from")), tag,
+                            str(row.get("lord") or ""))
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -673,13 +714,18 @@ def _is_homeland(world, region: str, nation: str) -> bool:
 
 
 def record_province_title(world, region: str, kind: str, from_nation: str,
-                          receiver: str) -> None:
+                          receiver: str, house: str = "") -> None:
     """Write (or clear) the title record when `region` changes hands.
 
-    GR5: written for every nation. A province returning to its own homeland
-    court needs no record (homeland is title by construction) — the record
-    is popped. Never raises (a title is display substrate, never a reason to
-    fail a capture)."""
+    `house` (verification round) is the court the title belongs to — the
+    SIGNATORY of a treaty, the conquering bloc's leader for a conquest
+    (default: the receiver's top overlord). It is what survives a hand-off:
+    the record follows the province to any holder of the same house (a
+    satellite given it, the lord reclaiming it), and a signature is broken
+    only by the two courts that signed it. GR5: written for every nation. A
+    province returning to its own homeland court needs no record (homeland
+    is title by construction) — the record is popped. Never raises (a title
+    is display substrate, never a reason to fail a capture)."""
     if not region or not receiver:
         return
     try:
@@ -692,9 +738,50 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
             "since": int(getattr(world, "current_turn", 0) or 0),
             "from": str(from_nation or ""),
             "holder": str(receiver),
+            "house": str(house or world._top_overlord(receiver) or receiver),
         }
     except Exception:
         return
+
+
+def record_carve_titles(world, provinces: Iterable[str], ceder: str,
+                        client: str, carver: str) -> None:
+    """A Tilsit carve is a cession (verification round): each carved province
+    gets a TREATY record — from the ceder, held by the client, signed by the
+    carver — so it reconciles, re-homes and breaks exactly like a province
+    signed away by treaty, and outlives the client's release. Written
+    directly: the client's homeland IS the carve (`create_client_nation`
+    seeds its starting regions), so `record_province_title`'s homeland pop
+    would erase the very record. Only the provinces carved — never whatever
+    else the client later holds."""
+    if not ceder or not client:
+        return
+    try:
+        store = _title_store(world)
+        turn = int(getattr(world, "current_turn", 0) or 0)
+        for name in provinces or []:
+            if not name:
+                continue
+            store[str(name)] = {
+                "kind": TITLE_TREATY,
+                "since": turn,
+                "from": str(ceder),
+                "holder": str(client),
+                "house": str(carver or world._top_overlord(client) or client),
+                "carve": True,
+            }
+    except Exception:
+        return
+
+
+def _house(world, rec: Dict[str, Any]) -> str:
+    """The court a record's title belongs to (a record written before the
+    key existed reads its holder's lord)."""
+    house = str(rec.get("house") or "")
+    if house:
+        return house
+    holder = str(rec.get("holder") or "")
+    return str(world._top_overlord(holder) or holder) if holder else ""
 
 
 def title_signed_cessions(world, terms: Iterable[Dict[str, Any]]) -> None:
@@ -725,41 +812,40 @@ def title_signed_cessions(world, terms: Iterable[Dict[str, Any]]) -> None:
                     or world._top_overlord(region.controller)
                     == world._top_overlord(receiver)):
                 record_province_title(world, region_name, TITLE_TREATY,
-                                      ceder, region.controller)
+                                      ceder, region.controller,
+                                      house=world._top_overlord(receiver))
 
 
 def break_signed_titles(world, nation_a: str, nation_b: str) -> None:
-    """A renewed WAR between a ceder and the court holding what it signed
-    away breaks the signature (§2.2's renewed-war restart): the treaty record
-    becomes a conquest record whose quiet clock starts now. A later treaty
-    that re-signs the province re-titles it (`title_signed_cessions`); a
-    truce or a white peace that does not, no longer reconciles it (review
-    round: an armistice inside the very war that broke the cession had read
-    as "the treaty stands" and silenced the Revanche again). A carve is
-    broken the same way — `carve_broken` on the client's vassal row, its
-    `carved_from` origin kept. Called from the ONE diplomatic-state setter
-    on every entry into WAR."""
+    """A renewed WAR between the two courts that SIGNED a cession breaks the
+    signature (§2.2's renewed-war restart): the treaty record becomes a
+    conquest record whose quiet clock starts now. A later treaty that
+    re-signs the province re-titles it (`title_signed_cessions`); a truce or
+    a white peace that does not, no longer reconciles it (review round: an
+    armistice inside the very war that broke the cession had read as "the
+    treaty stands" and silenced the Revanche again). A carve is a treaty
+    record like any other (`record_carve_titles`), broken the same way.
+
+    The signatories are the ceder (`from`) and the record's `house` —
+    never the two courts' BLOCS (verification round: a French satellite's
+    own war with Austria, France and Austria still allied, unsigned
+    France's Tyrol; a satellite's war pauses the reconciliation through
+    `reconciled_regions`' at-war read instead). Called from the ONE
+    diplomatic-state setter on every entry into WAR (the settlement's
+    vassalage bookkeeping hop excepted), and from the two roads that
+    repudiate a treaty without war (`diplomacy.break_treaty`, the paradox
+    choice)."""
     store = getattr(world, "province_title", None)
+    if not isinstance(store, dict):
+        return
     turn = int(getattr(world, "current_turn", 0) or 0)
-    pair = {world._top_overlord(nation_a), world._top_overlord(nation_b)}
-    if isinstance(store, dict):
-        for rec in store.values():
-            if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
-                continue
-            ceder_top = world._top_overlord(str(rec.get("from") or ""))
-            holder_top = world._top_overlord(str(rec.get("holder") or ""))
-            if {ceder_top, holder_top} == pair or (
-                    {str(rec.get("from") or ""), str(rec.get("holder") or "")}
-                    == {nation_a, nation_b}):
-                rec["kind"] = TITLE_CONQUEST
-                rec["since"] = turn
-    for tag, row in (getattr(world, "vassals", {}) or {}).items():
-        if not isinstance(row, dict) or not row.get("carved_from"):
+    pair = {str(nation_a or ""), str(nation_b or "")}
+    for rec in store.values():
+        if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
             continue
-        ceder = str(row.get("carved_from"))
-        if ({world._top_overlord(ceder), world._top_overlord(tag)} == pair
-                or {ceder, tag} == {nation_a, nation_b}):
-            row["carve_broken"] = True
+        if {str(rec.get("from") or ""), _house(world, rec)} == pair:
+            rec["kind"] = TITLE_CONQUEST
+            rec["since"] = turn
 
 
 def reconcile_province_titles(world) -> None:
@@ -779,31 +865,40 @@ def reconcile_province_titles(world) -> None:
         if not isinstance(rec, dict) or region is None:
             store.pop(region_name, None)
             continue
+        # The house is stamped while the holder's allegiance is still the
+        # one that titled it (a record written before the key existed).
+        if not rec.get("house"):
+            rec["house"] = _house(world, rec)
         if region.controller != rec.get("holder"):
-            # A hand-off INSIDE the holder's bloc (a VS-3 grant to a
-            # satellite, the IQ-7 petition's province, a reclaim) carries
-            # the record — kind, clock and ceder — to the new holder (review
-            # round: the grant made a treaty province permanently "held" and
-            # woke the ceder's Revanche while the treaty stood). A province
-            # returned to its new holder's own homeland needs no record.
+            # A hand-off to another holder of the same HOUSE — a VS-3 grant
+            # to a satellite, the IQ-7 petition's province, and the lord's
+            # reclaim of a grant from a rebel — carries the record (kind,
+            # clock and ceder) to the new holder (review round: the grant
+            # made a treaty province permanently "held"; verification round:
+            # the reclaim ran after the rebel had left the bloc, so a bloc
+            # test popped the record and the ceder's Revanche woke while the
+            # treaty stood). A province returned to its new holder's own
+            # homeland needs no record.
             new_holder = str(region.controller or "")
+            new_top = world._top_overlord(new_holder) if new_holder else ""
             if (new_holder
-                    and world._top_overlord(new_holder)
-                    == world._top_overlord(str(rec.get("holder") or ""))
+                    and (new_top == rec.get("house")
+                         or new_top == world._top_overlord(
+                             str(rec.get("holder") or "")))
                     and not _is_homeland(world, region_name, new_holder)):
                 rec["holder"] = new_holder
             else:
                 store.pop(region_name, None)
                 continue
         if rec.get("kind") == TITLE_TREATY:
-            # The backup to the setter's `break_signed_titles`: a war at the
-            # BLOC level (the ceder's lord against the holder's) breaks the
-            # signature too. Bloc level only — a satellite's own leftover
-            # sub-war, older than the cession, pauses the reconciliation
+            # The backup to the setter's `break_signed_titles`: the two
+            # courts that signed (or their lords) at war breaks the
+            # signature too. Never a satellite's own leftover sub-war, older
+            # than the cession — that pauses the reconciliation
             # (`reconciled_regions` reads it) without unsigning the treaty.
             former = str(rec.get("from") or "")
             if former and world.is_at_war(world._top_overlord(former),
-                                          world._top_overlord(region.controller)):
+                                          world._top_overlord(rec["house"])):
                 rec["kind"] = TITLE_CONQUEST
                 rec["since"] = turn
             continue
@@ -841,9 +936,11 @@ def province_title_kind(world, region_name: str, leader: str) -> str:
         row = (getattr(world, "vassals", {}) or {}).get(holder) or {}
         return "homeland" if int(row.get("loyalty", 0) or 0) >= 40 else "held"
     rec = (getattr(world, "province_title", {}) or {}).get(region_name) or {}
-    if not rec or world._top_overlord(str(rec.get("holder") or "")) != leader:
-        # (A hand-off inside the bloc keeps its record even before the
-        # per-turn pass re-homes it.)
+    if not rec or (world._top_overlord(str(rec.get("holder") or "")) != leader
+                   and _house(world, rec) != leader):
+        # (A hand-off inside the bloc — or back to the house that titled it,
+        # a reclaim — keeps its record even before the per-turn pass
+        # re-homes it.)
         return "held"
     if rec.get("kind") == TITLE_TREATY:
         return "treaty"
@@ -873,9 +970,17 @@ def titled_provinces(world, leader: str) -> Dict[str, List[str]]:
 
 def reconciled_regions(world, nation: str) -> set:
     """§2.2 rider: the provinces `nation` has SIGNED away while the treaty
-    still holds — its Revanche reads them 0. Zero new fields: the title
-    record names the ceder; `active_treaties` says the treaty stands; war
-    between the ceder and the holder breaks it."""
+    still holds — its Revanche reads them 0. Zero new world fields: the
+    TREATY title record names the ceder, and "the treaty stands" is the
+    record staying `treaty` — broken into a conquest by a renewed war
+    between the signatories, or by a treaty repudiated without war
+    (`break_signed_titles`); the `active_treaties` row is NOT read (review
+    round: the armistice's own row had counted as "the treaty stands"). A
+    Tilsit carve is a treaty record too (`record_carve_titles` —
+    verification round: read off the client's vassal row, it reconciled the
+    client's whole live territory, and lapsed when the client was released
+    in peace). A war between the ceder and the province's holder, or the
+    holder's lord, or the house that signed, PAUSES the reconciliation."""
     if not A_SIGNED_CESSION_IS_RECONCILED:
         return set()
     out = set()
@@ -890,23 +995,12 @@ def reconciled_regions(world, nation: str) -> set:
             if not holder:
                 continue
             holder_top = world._top_overlord(holder)
-            if world.is_at_war(nation, holder) or world.is_at_war(nation, holder_top):
+            house = _house(world, rec)
+            if (world.is_at_war(nation, holder)
+                    or world.is_at_war(nation, holder_top)
+                    or (house and world.is_at_war(nation, house))):
                 continue
-            # "The treaty stands" is the record itself staying `treaty`:
-            # every entry into war breaks it (`break_signed_titles`), so a
-            # truce or a white peace inside that war no longer re-reconciles
-            # a province the war was fought over (review round).
             out.add(region_name)
-    # A Tilsit carve is a cession too (review round): the client erected
-    # out of `nation`'s soil holds it by treaty while the carve stands.
-    for tag, row in (getattr(world, "vassals", {}) or {}).items():
-        if (not isinstance(row, dict) or row.get("carved_from") != nation
-                or row.get("carve_broken")):
-            continue
-        tag_top = world._top_overlord(tag)
-        if world.is_at_war(nation, tag) or world.is_at_war(nation, tag_top):
-            continue
-        out.update(world.get_nation_regions(tag) or [])
     return out
 
 
@@ -1132,6 +1226,12 @@ def verdict_inputs(world) -> Dict[str, Any]:
         "satellites_kept": kept,
         "treasury": int(getattr(world, "gold", 0) or 0),
         "humbled": has_ending(world, CAUSE_HUMBLED),
+        # A Fall forces the eclipse, as a Humbled Peace does (verification
+        # round: a reign that had doubled its provinces and knocked out two
+        # great powers closed the Emperor's funeral with "an empire
+        # ascendant … a rising star", a paragraph after the Senate declared
+        # the Empire at an end).
+        "fallen": terminal_ending(world) is not None,
     }
 
 
@@ -1173,7 +1273,7 @@ def verdict_tier(world, inputs: Optional[Dict[str, Any]] = None) -> Dict[str, An
     if inputs["treasury"] < 0:
         score -= 1
     tier_id, title, lines = VERDICT_TIERS[-1][0], VERDICT_TIERS[-1][2], VERDICT_TIERS[-1][3]
-    if not inputs["humbled"]:
+    if not inputs["humbled"] and not inputs.get("fallen"):
         for tid, floor, ttitle, tlines in VERDICT_TIERS:
             if floor is None or score >= floor:
                 tier_id, title, lines = tid, ttitle, tlines
@@ -1188,8 +1288,11 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
     """The tier's three lines, each chosen from what is TRUE (review round:
     the fixed lines told a France that lost every battle "the coalition is
     beaten in the field", and one that had ceded eleven provinces "the
-    Empire holds what it held"). The first line reads the provinces, the
-    second the field; the third is History's judgement and always stands.
+    Empire holds what it held"). The first line reads the provinces — and
+    the capital and the Emperor, the losses the count cannot see
+    (verification round) — the second the field; the third is History's
+    judgement and always stands. A Fall, like a Humbled Peace, is always
+    the eclipse (`verdict_tier`).
     `VERDICT_TIERS` keeps the canonical lines — the ones a reign that fits
     its tier exactly reads."""
     out = list(lines)
@@ -1199,13 +1302,28 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
     held = int(inputs.get("provinces_held", 0) or 0)
     opening = int(inputs.get("opening_provinces", 0) or 0)
     knocked = list(inputs.get("great_powers_knocked_out") or [])
-    beaten_somewhere = bool(lost) or not inputs.get("capital_held", True) or (
-        inputs.get("emperor") in ("captive", "dead"))
+    emperor = str(inputs.get("emperor") or "")
+    capital = str(inputs.get("capital") or "")
+    capital_lost = bool(capital) and not inputs.get("capital_held", True)
+    beaten_somewhere = bool(lost) or capital_lost or emperor in ("captive", "dead")
+    # The loss the province count cannot see (verification round: a
+    # contested reign "holds what it held" with Paris in Austrian hands; an
+    # ascendant one "stands surer" with its Emperor in chains).
+    qualifier = ("its Emperor is a prisoner" if emperor == "captive" else
+                 f"{capital} is in enemy hands" if capital_lost else "")
     if tier_id == "triumph":
         if not knocked:
             out[1] = "The great powers still stand, but none of them as tall as in 1805."
+        if qualifier:
+            out[0] = f"Europe has been remade, and it knows it — though {qualifier}."
     elif tier_id == "ascendant":
-        if held < opening:
+        if qualifier:
+            out[0] = (f"The Empire stands larger than it began, though {qualifier}."
+                      if held > opening else
+                      f"The Empire stands where it began, though {qualifier}."
+                      if held == opening else
+                      f"The Empire stands, though {qualifier}.")
+        elif held < opening:
             out[0] = "The Empire stands surer than it began, if not larger."
         elif held == opening:
             out[0] = "The Empire stands where it began, and surer of itself."
@@ -1213,6 +1331,9 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
         if held < opening:
             out[0] = ("The Empire has given ground it held in 1805, and Europe "
                       "has not accepted the rest.")
+        elif qualifier:
+            out[0] = (f"The Empire holds {'more than' if held > opening else 'as much as'} "
+                      f"it held, though {qualifier}, and Europe has not accepted it.")
         elif held > opening:
             out[0] = "The Empire holds more than it held, and Europe has not accepted it."
         if lost > won:
@@ -1235,6 +1356,18 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
             out[0] = f"The Empire is {adj} than it began."
         elif inputs.get("humbled"):
             out[0] = "The Empire signed away what its armies had not lost."
+        # Name the loss that DROVE the eclipse when the provinces cannot
+        # (verification round: "no greater than it began" of an Empire
+        # holding 34 provinces of its 28, its Emperor dead or in chains).
+        elif emperor == "dead":
+            out[0] = "The Empire has lost its Emperor, whatever ground it holds."
+        elif emperor == "captive":
+            out[0] = ("The Empire has lost its Emperor to his captors, whatever "
+                      "ground it holds.")
+        elif capital_lost:
+            out[0] = f"The Empire has lost {capital}, whatever ground it holds."
+        elif held > opening:
+            out[0] = "The Empire holds more than it began, and is losing its wars."
         else:
             out[0] = "The Empire is no greater than it began, and no longer feared."
         if not beaten_somewhere:
@@ -1450,9 +1583,14 @@ def build_exile_story(world, ending: Dict[str, Any],
         if victor:
             facts["courts"].append(victor)
         realm, sword = bool(detail.get("realm")), bool(detail.get("sword"))
-        why = ("with no soil left to govern and no sword left to hold it"
+        # Worded by the count, as the cause line is (verification round:
+        # "with no soil left to govern" beside "reduced to Paris alone").
+        held = [str(r) for r in (detail.get("held") or []) if r]
+        soil = (f"with only {held[0]} left to govern" if held
+                else "with no soil left to govern")
+        why = (f"{soil} and no sword left to hold it"
                if (realm and sword) else
-               "with no soil left to govern" if realm else
+               soil if realm else
                "with no army left to hold the realm" if sword else
                "with the war lost")
         paragraphs.append(
@@ -1548,37 +1686,66 @@ def build_exile_story(world, ending: Dict[str, Any],
     best = data.get("greatest_victory")
     if isinstance(best, dict) and best.get("name"):
         facts["battles"].append(best["name"])
-        record.append(f"{_cap(best['name'])} ({_date_of(world, best.get('turn', 0))}) "
+        record.append(f"{_battle_subject(best['name'])} "
+                      f"({_date_of(world, best.get('turn', 0))}) "
                       f"was the high-water mark.")
     worst = data.get("worst_defeat")
     if isinstance(worst, dict) and worst.get("name"):
         facts["battles"].append(worst["name"])
-        record.append(f"{_cap(worst['name'])} was the worst day.")
+        record.append(f"{_battle_subject(worst['name'])} was the worst day.")
     lost_regions = list(data.get("lost_regions") or [])
-    lost = len(lost_regions) or int(data.get("provinces_lost", 0))
-    lost_to = {n: int(c) for n, c in (data.get("lost_to") or {}).items() if int(c) > 0}
-    if lost and lost_to:
-        # Distinct provinces (a province lost twice is one province), and
+    region_to = {str(r): str(c) for r, c in
+                 (data.get("lost_region_to") or {}).items() if c}
+    # The courts are ranked in the SAME unit as the count (verification
+    # round): distinct provinces, each credited to the court that took it
+    # last. A record that cannot say that — kept before the distinct list or
+    # its attribution existed — counts the losses instead, the unit it kept.
+    partial = bool(data.get("lost_regions_partial")) or any(
+        r not in region_to for r in lost_regions)
+    if partial:
+        losses = int(data.get("provinces_lost", 0) or 0)
+        counts = {n: int(c) for n, c in (data.get("lost_to") or {}).items()
+                  if int(c) > 0}
+    else:
+        losses = len(lost_regions)
+        counts = {}
+        for region_name in lost_regions:
+            court = region_to[region_name]
+            counts[court] = counts.get(court, 0) + 1
+    if losses and counts:
         # "most of them" only when one court truly took most (review round:
         # "1 province … most of them", and a 2–2 tie named one court).
-        ranked = sorted(lost_to, key=lambda n: (-lost_to[n], n))
-        best_count = lost_to[ranked[0]]
-        leaders = [n for n in ranked if lost_to[n] == best_count]
+        ranked = sorted(counts, key=lambda n: (-counts[n], n))
+        best_count = counts[ranked[0]]
+        leaders = [n for n in ranked if counts[n] == best_count]
         facts["courts"].extend(leaders)
-        if lost == 1:
+        if losses == 1:
             record.append(f"One province was lost, to {_court(world, ranked[0])}.")
-        elif len(lost_to) == 1:
-            record.append(f"{lost} provinces were lost to the enemy, all of them "
+        elif partial:
+            head = f"Provinces were lost to the enemy {losses} times"
+            if len(counts) == 1:
+                record.append(f"{head}, every time to {_court(world, ranked[0])}.")
+            elif len(leaders) == 1:
+                record.append(f"{head}, most often to {_court(world, ranked[0])}.")
+            elif len(leaders) == 2:
+                record.append(f"{head}, as often to {_court(world, leaders[0])} "
+                              f"as to {_court(world, leaders[1])}.")
+            else:
+                record.append(f"{head}, to "
+                              f"{_join_names([_court(world, n) for n in leaders])} "
+                              f"alike.")
+        elif len(counts) == 1:
+            record.append(f"{losses} provinces were lost to the enemy, all of them "
                           f"to {_court(world, ranked[0])}.")
         elif len(leaders) == 1:
-            record.append(f"{lost} provinces were lost to the enemy; "
+            record.append(f"{losses} provinces were lost to the enemy; "
                           f"{_court(world, ranked[0])} took the most.")
         elif len(leaders) == 2:
-            record.append(f"{lost} provinces were lost to the enemy, as many to "
+            record.append(f"{losses} provinces were lost to the enemy, as many to "
                           f"{_court(world, leaders[0])} as to "
                           f"{_court(world, leaders[1])}.")
         else:
-            record.append(f"{lost} provinces were lost to the enemy, shared among "
+            record.append(f"{losses} provinces were lost to the enemy, shared among "
                           f"{_join_names([_court(world, n) for n in leaders])}.")
     names = list(data.get("coalition_names") or [])
     faced = int(data.get("coalitions_faced", 0))
@@ -1641,3 +1808,16 @@ def _cap(text: str) -> str:
     mid-sentence phrases)."""
     text = str(text or "")
     return text[:1].upper() + text[1:]
+
+
+def _battle_subject(name: str) -> str:
+    """A battle's name as the subject of a sentence: capitalised, and with
+    its article (verification round: `compose_battle_name` gives "Battle of
+    Swabia" / "Second Battle of X" bare, so "Battle of Munich was the worst
+    day." sat beside "The Great Battle of Swabia … was the high-water
+    mark.")."""
+    text = _cap(name)
+    low = text.lower()
+    if not low.startswith("the ") and "battle of " in low:
+        return "The " + text
+    return text

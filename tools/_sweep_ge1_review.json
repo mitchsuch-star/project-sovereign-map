@@ -23,8 +23,8 @@
  {
   "id": "GR-04 the close rebuilds no summary",
   "file": "backend/game_logic/game_end.py",
-  "old": "    try:\n        record[\"summary\"] = build_campaign_summary(world, record)\n    except Exception:\n        pass\n    clear_unanswerable(world)",
-  "new": "    clear_unanswerable(world)",
+  "old": "    if not record.get(\"closed\"):\n        record[\"closed\"] = True\n        try:\n            record[\"summary\"] = build_campaign_summary(world, record)\n        except Exception:\n            pass\n",
+  "new": "    if not record.get(\"closed\"):\n        record[\"closed\"] = True\n",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
@@ -44,14 +44,14 @@
  {
   "id": "GR-07 a paused arm ranks as soonest",
   "file": "backend/game_logic/fall.py",
-  "old": "(not a[\"ticking\"], a[\"turns_left\"],",
-  "new": "(a[\"turns_left\"],",
+  "old": "not (a[\"ticking\"] or a[\"resuming\"]),",
+  "new": "",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
   "id": "GR-08 a paused arm keeps a fall date",
   "file": "backend/game_logic/fall.py",
-  "old": "if turns and ticking else None),",
+  "old": "if turns and counting else None),",
   "new": "if turns else None),",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
@@ -113,16 +113,16 @@
  },
  {
   "id": "GR-17 a carve reconciles nothing",
-  "file": "backend/game_logic/game_end.py",
-  "old": "        out.update(world.get_nation_regions(tag) or [])",
-  "new": "        pass",
+  "file": "backend/game_logic/formations.py",
+  "old": "    record_carve_titles(world, cc_provinces, cc_from, cc_tag, cc_to)",
+  "new": "    pass",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
   "id": "GR-18 a renewed war does not break the carve",
   "file": "backend/game_logic/game_end.py",
-  "old": "            row[\"carve_broken\"] = True",
-  "new": "            pass",
+  "old": "        if {str(rec.get(\"from\") or \"\"), _house(world, rec)} == pair:",
+  "new": "        if {str(rec.get(\"from\") or \"\"), _house(world, rec)} == pair and not rec.get(\"carve\"):",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
@@ -177,22 +177,22 @@
  {
   "id": "GR-26 a sentence opens lower-case",
   "file": "backend/game_logic/game_end.py",
-  "old": "        record.append(f\"{_cap(best['name'])} (",
-  "new": "        record.append(f\"{best['name']} (",
+  "old": "        record.append(f\"{_battle_subject(best['name'])} \"",
+  "new": "        record.append(f\"{best['name']} \"",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
   "id": "GR-27 one province is 'most of them'",
   "file": "backend/game_logic/game_end.py",
-  "old": "        if lost == 1:",
+  "old": "        if losses == 1:",
   "new": "        if False:",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
   "id": "GR-28 a tie names one court",
   "file": "backend/game_logic/game_end.py",
-  "old": "        elif len(leaders) == 2:",
-  "new": "        elif False:",
+  "old": "        elif len(leaders) == 2:\n            record.append(f\"{losses} provinces were lost to the enemy, as many to \"",
+  "new": "        elif False:\n            record.append(f\"{losses} provinces were lost to the enemy, as many to \"",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
@@ -296,8 +296,8 @@
  {
   "id": "GR-43 the attacker falls at his origin",
   "file": "backend/commands/combat_executor.py",
-  "old": "                                      location=battle_region_name)\n                    and getattr(marshal, \"is_sovereign\", False)):",
-  "new": "                                      )\n                    and getattr(marshal, \"is_sovereign\", False)):",
+  "old": "                                             victor=enemy_marshal.nation,\n                                             location=battle_region_name)",
+  "new": "                                             victor=enemy_marshal.nation)",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
@@ -352,7 +352,7 @@
  {
   "id": "GR-51 the diorama says he watched",
   "file": "backend/game_logic/battle_diorama.py",
-  "old": "            and \"himself fell on that field\" not in payload[\"observation\"]):",
+  "old": "            and \"The Emperor himself\" not in payload[\"observation\"]):",
   "new": "            ):",
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },

@@ -177,8 +177,8 @@
  {
   "id": "FA-68/a every deferred marshal gets his turn",
   "file": "backend/commands/strategic.py",
-  "old": "        for marshal in deferred_marshals:\n            report = self._execute_strategic_turn(marshal, world, game_state)\n            if report:\n                reports.append(report)\n",
-  "new": "        for marshal in deferred_marshals:\n            report = self._execute_strategic_turn(marshal, world, game_state)\n            if report:\n                reports.append(report)\n                if report.get(\"requires_input\"):\n                    break\n",
+  "old": "        for marshal in deferred_marshals:\n            if getattr(world, \"game_over\", False):\n                break\n            report = self._execute_strategic_turn(marshal, world, game_state)\n            if report:\n                reports.append(report)\n",
+  "new": "        for marshal in deferred_marshals:\n            if getattr(world, \"game_over\", False):\n                break\n            report = self._execute_strategic_turn(marshal, world, game_state)\n            if report:\n                reports.append(report)\n                if report.get(\"requires_input\"):\n                    break\n",
   "tests": "tests/test_fa_slice3_the_order_tells_the_truth_2026_09_04.py::TestEveryDeferredMarshalGetsHisTurn"
  }
 ]

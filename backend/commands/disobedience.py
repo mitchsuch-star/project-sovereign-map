@@ -660,6 +660,15 @@ OBJECTION_TEMPLATES = {
 REDEMPTION_LATCH_AT_GENERATION_ACTIVE = True
 
 
+def _war_is_over(world) -> bool:
+    """A TERMINAL ending is recorded (GE-1): no audience can be granted."""
+    try:
+        from backend.game_logic.game_end import terminal_ending
+        return world is not None and terminal_ending(world) is not None
+    except Exception:
+        return False
+
+
 def standing_redemption(world) -> Optional[Dict]:
     """The redemption question the world is still waiting on, or ``None``.
 
@@ -675,6 +684,12 @@ def standing_redemption(world) -> Optional[Dict]:
     """
     event = getattr(world, "pending_redemption", None)
     if not isinstance(event, dict):
+        return None
+    # GE-1 verification round: after the Fall no question stands — the
+    # redemption endpoint refuses ("The war is over."), so a stored one is
+    # a card nobody can answer (cleared on read, like any stale question).
+    if _war_is_over(world):
+        world.pending_redemption = None
         return None
     getter = getattr(world, "get_marshal", None)
     marshal = getter(event.get("marshal", "")) if callable(getter) else None
@@ -792,7 +807,13 @@ def hoist_tactical_redemption(tactical_events, world=None) -> Optional[Dict]:
     that tripped a cavalry/fortify redemption dropped the audience with no
     save involved). First wins, and since the generation seam latches only
     the first marshal of a tick, the first IS the world's standing question.
+
+    GE-1 verification round: nothing is hoisted once the war is over — the
+    tick's net can stage a question BEFORE the fall is stamped in the same
+    end turn, and the hoist ran after the close had cleared it.
     """
+    if _war_is_over(world):
+        return None
     for te in tactical_events or []:
         if isinstance(te, dict) and te.get("redemption_event"):
             return te["redemption_event"]
@@ -1736,6 +1757,10 @@ class DisobedienceSystem:
         if getattr(marshal, 'administrative', False):
             return None
         if getattr(marshal, 'nation', '') != getattr(world, 'player_nation', 'France'):
+            return None
+        # GE-1 verification round: no audience after the Fall — every seam
+        # (the net, the attack, the erosion tick, the hoist) inherits it.
+        if _war_is_over(world):
             return None
         # Cooldown: skip if recently resolved
         cooldown = getattr(marshal, 'redemption_cooldown_until', 0)

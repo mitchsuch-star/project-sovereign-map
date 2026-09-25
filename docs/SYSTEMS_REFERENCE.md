@@ -7251,8 +7251,8 @@ Landing record `ENDGAME_PLAN.md` §6 GE-1 (the review-round addendum); pins
 * **The war is closed at ONE seam.** `game_end.close_campaign(world)` runs at
   the head of `main.build_base_response` — every POST — and, for an
   enemy-phase death, in `TurnManager`'s `_attach_endings`, and in
-  `save_manager.write_final_save`. Once per campaign (`closed` on the
-  terminal record): the terminal summary is rebuilt on the FINISHED field
+  `save_manager.write_final_save`. The terminal summary is rebuilt ONCE
+  (`closed` on the terminal record) on the FINISHED field
   (the battle that killed him counted, the province it took lost) and
   `game_end.clear_unanswerable` — the ONE list — empties every question
   nobody can answer (the dialogue and popup queues, the capture choice, both
@@ -7279,9 +7279,9 @@ Landing record `ENDGAME_PLAN.md` §6 GE-1 (the review-round addendum); pins
 * **Titles.** A renewed WAR breaks what either side signed to the other:
   `game_end.break_signed_titles`, from the ONE diplomatic-state setter on
   every entry into WAR, turns the treaty record into a conquest record (quiet
-  clock from now) and marks a carve `carve_broken` (its `carved_from` origin
-  kept); the per-turn pass backs it at the bloc level. `reconciled_regions`
-  reads a standing treaty record — or a standing carve — not "any active
+  clock from now) — only between the courts that SIGNED it (§64.2) — and a
+  carve is a treaty record too (§64.2). `reconciled_regions`
+  reads a standing treaty record, not "any active
   treaty" (an armistice had re-reconciled the very province its war was over).
   A hand-off inside the holder's bloc carries the record to the new holder; a
   signed province occupied by the receiver's satellite is titled.
@@ -7311,3 +7311,90 @@ Landing record `ENDGAME_PLAN.md` §6 GE-1 (the review-round addendum); pins
   eliminated inside the enemy phase gets no row (the roster read live). The
   goal answer after the Verdict is in the past tense and says the Empire can
   still fall.
+
+### 64.2 The verification round (September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §6 GE-1 (the verification-round addendum);
+pins `tests/test_ge1_verification_round.py` (55), each named for its
+finding. Four lenses attacked the review round's FIXES (`e5d67800`), not its
+findings.
+
+* **The close clears on every response.** `game_end.close_campaign` rebuilds
+  the terminal summary ONCE (`closed`) but runs `clear_unanswerable` on EVERY
+  call, so a question left in a pause save written after the Fall, or
+  re-seeded by a road that runs after the response seam, is never raised.
+  The redemption is gated at every producer: the checker
+  (`DisobedienceSystem.check_redemption_threshold`), the standing read
+  (`disobedience.standing_redemption`), the end-turn hoist
+  (`hoist_tactical_redemption`), `main._include_command_redemption_event`
+  and the two endpoint writers — and `main._attach_terminal_ending` drops a
+  question the result staged BEFORE the stamp. Lever
+  `game_end.THE_WAR_IS_CLOSED_AT_ONE_SEAM` gates the close (the rebuild and
+  the clearing) ONLY: the /command-only attach it once named was deleted, not
+  kept behind the switch.
+* **After an own-order death nothing moves.** The strategic pass breaks on
+  `game_over` (both passes), and `TurnManager.end_turn` re-reads the terminal
+  ending after it — the Emperor can fall in his OWN standing order, not only
+  in the enemy phase.
+* **A legacy Final save is adopted.** `save_manager.load_game` stamps a
+  terminal record that does not name its Final file with the file it was
+  loaded from, so a 975f1f13 Final save no longer mints "(2)", "(3)"… on
+  every load.
+* **A truce on its last turn.** `diplomacy.armistice_resolves_this_turn` —
+  the war panel's own projection (`armistice_remaining`,
+  `armistice_projected_outcome`), read for one pair — says whether a truce
+  runs out at THIS end turn's advance and how. A fall arm paused by a truce
+  that ends in war this turn is `resuming`: it carries its fall date, ranks
+  as ticking for `soonest`, and raises `critical` severity; its sentence says
+  "the truce ends this turn and the war resumes". A chains arm whose truce
+  ends in peace says the peace frees him. A paused count is stated in turns
+  OF WAR still to come ("falls after 2 more turns of war"). A truce at a count
+  of nought is never "at peace" ("no clock runs while the truce holds").
+* **No court out of war with his realm holds the Emperor.** Every
+  diplomatic-state change that leaves a pair outside WAR and ARMISTICE —
+  peace, a vassal treaty with his captor, a forced alliance, a captor
+  satellite's release — frees a sovereign held by the other side
+  (`fall.free_captive_sovereigns`, from the ONE setter; sovereigns only, the
+  W6-7 prisoner rule unchanged). On an armed world the death guard's captor
+  fallback offers only courts AT WAR, and a corps emptied with none to take
+  him is set down at home at the head of the released prisoner's escort
+  (`WorldState._set_sovereign_down_at_home`). A SPENT Guard's successful
+  breakout pays no toll it cannot — the Emperor keeps his last men.
+* **The escort home is on the record.** `sovereign_escorted_home` is on the
+  dispatch whitelist (a warning); the release row carries `interned_at` and
+  `corps_interned` (`release_captured_marshal(..., detail=)`) and the
+  chronicle reads "THE EMPEROR …'s corps INTERNED at …"; a lapse warning is
+  dropped for a marshal already inside his realm's home zone; every
+  internment line names the soil by its adjective (`nation_adjective`).
+* **The signature belongs to the courts that signed it.** Every title record
+  carries its `house` — the court the title belongs to (the signatory of a
+  treaty, the conquering bloc's leader for a conquest). A hand-off follows
+  the house (a grant, and the lord's reclaim from a rebel); a signature is
+  broken only by a renewed war between `from` and `house` — never a
+  satellite's own war, never the settlement's ARMISTICE→WAR→VASSAL
+  bookkeeping hop (`reason="common_peace_vassalage_ratification"`) — or by a
+  treaty repudiated without war (`diplomacy.break_treaty`, the paradox
+  choice). A Tilsit carve writes a `treaty` record with `carve: true` for
+  each CARVED province (`game_end.record_carve_titles`, from
+  `formations.apply_create_client_clause`) — `carve_broken` and the vassal-row
+  carve arm are retired — so a carve reconciles only what was carved, and
+  outlives the client's release.
+* **The words.** The epilogue ranks the courts in the same unit as the count
+  — distinct provinces, each credited to the court that took it last
+  (`campaign_totals.lost_region_to`); a record kept before the distinct list
+  (`lost_regions_partial`) counts the losses instead. A battle opens its
+  sentence with its article (`game_end._battle_subject`). A Fall, like a
+  Humbled Peace, is always the eclipse (`verdict_inputs["fallen"]`), and the
+  Verdict's first line names the loss the province count cannot see — the
+  Emperor dead or in chains, the capital lost. The abdication names the
+  province still held. The chains cause line names "N of them at war" only
+  when the counted pauses (`fall_clock.chains.paused_turns`) account for the
+  rest. The Emperor TAKEN in his own attack (or as a participant) is named on
+  the message, and his fate — fallen or taken — REPLACES Berthier's verdict
+  about scale rather than being appended to it (an ordinary marshal's capture
+  is still appended, as FA-S17-11 ruled); the diorama never says he
+  "watched" such a field. The goal answer names the turn history judged
+  (the stamped Verdict's own date) and title-cases the tier properly. With no
+  Europe left the ledger raises no "courts are recovering" headline. A dead
+  court keeps its article ("The court of the Papal States no longer
+  exists").

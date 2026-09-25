@@ -537,6 +537,12 @@ def _attach_terminal_ending(response: dict, world, record: dict) -> None:
     response["game_over"] = True
     response["victory"] = world.victory
     response.setdefault("ending", _game_end.screen_payload(record))
+    # A redemption the result staged BEFORE the stamp — the same command's
+    # trust dock, then the death — rode the envelope's `extra` past the
+    # world's clearing (verification round). The endpoint refuses it now.
+    response.pop("redemption_event", None)
+    if response.get("state") == "awaiting_redemption_choice":
+        response.pop("state", None)
     from backend.save_manager import write_final_save
     write_final_save(world)
 
@@ -978,9 +984,20 @@ def _include_command_bombardment_result(response: dict, result: dict) -> None:
         response["action"] = "bombardment"
 
 
+def _war_is_over(world) -> bool:
+    """A TERMINAL ending is recorded (GE-1): no question can be answered."""
+    from backend.game_logic.game_end import terminal_ending
+    return world is not None and terminal_ending(world) is not None
+
+
 def _include_command_redemption_event(response: dict, result: dict, world) -> None:
     """Surface redemption choice state and persist it for the follow-up endpoint."""
     redemption_event = result.get("redemption_event")
+    # GE-1 verification round: runs AFTER `build_base_response` closed a
+    # fallen campaign, so it must not write the question back — the
+    # redemption endpoint refuses once the war is over.
+    if redemption_event and _war_is_over(world):
+        return
     if redemption_event:
         # R1-9 (slice-9 review): the question is minted before the rest of
         # the tick runs (an autonomous battle can dock the same man again),
@@ -4335,8 +4352,9 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
             response["pending_interrupt"] = result["pending_interrupt"]
             response["requires_input"] = True
 
-        # Redemption event: trust dropped to critical level
-        if result.get("redemption_event"):
+        # Redemption event: trust dropped to critical level (never after
+        # the Fall — GE-1 verification round)
+        if result.get("redemption_event") and not _war_is_over(world):
             response["state"] = "awaiting_redemption_choice"
             response["redemption_event"] = result["redemption_event"]
             world.pending_redemption = result["redemption_event"]
@@ -4842,8 +4860,9 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         # (formation-latched: it never re-fires) delivered here was lost
         # FOREVER. Held in the queue instead; it rides the next /command.
         response = _build_result_response(result, world, drain_popups=False)
-        # Redemption event from strategic trust penalty
-        if result.get("redemption_event"):
+        # Redemption event from strategic trust penalty (never after the
+        # Fall — GE-1 verification round)
+        if result.get("redemption_event") and not _war_is_over(world):
             response["state"] = "awaiting_redemption_choice"
             response["redemption_event"] = result["redemption_event"]
             world.pending_redemption = result["redemption_event"]

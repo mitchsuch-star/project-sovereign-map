@@ -417,8 +417,9 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
               + defender_side.get("contingents", []))
     if (any(c.get("sovereign") for c in _shown) and payload["observation"]
             # GE-1 review round: never "watched" the field he fell on — the
-            # report's own death clause says what became of him.
-            and "himself fell on that field" not in payload["observation"]):
+            # report's own death clause says what became of him; nor the one
+            # he was TAKEN on (verification round).
+            and "The Emperor himself" not in payload["observation"]):
         payload["observation"] = (
             "The Emperor watched this field. " + payload["observation"])
     return payload

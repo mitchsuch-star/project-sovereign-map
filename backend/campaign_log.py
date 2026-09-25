@@ -2042,6 +2042,18 @@ def format_event_oneliner(event: dict) -> str:
         marshal = event.get("marshal", "Unknown")
         captor = event.get("captor", "captivity")
         reason = (event.get("reason") or "release").replace("_", " ")
+        # GE-1 verification round: two sovereign "releases" are not the end
+        # of a captivity, and the chronicle said they were.
+        if event.get("reason") == "escorted_home":
+            lost = int(event.get("corps_interned", 0) or 0)
+            where = str(event.get("interned_at") or "the frontier")
+            return (f"THE EMPEROR {marshal}'s corps INTERNED at {where} by "
+                    f"{display_nation(captor)}"
+                    + (f" ({lost:,} men)" if lost else "")
+                    + " — the Emperor himself escorted home")
+        if event.get("reason") == "set_down_at_home":
+            return (f"THE EMPEROR {marshal}'s corps is gone, with no court at "
+                    f"war to take him — he returns home with an escort")
         if event.get("sovereign"):  # NP-V: see marshal_captured above
             return (f"THE EMPEROR {marshal} is restored to France by "
                     f"{captor} ({reason})")

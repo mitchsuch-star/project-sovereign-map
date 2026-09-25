@@ -582,6 +582,9 @@ class TurnManager:
         # nations — Building Blocks, spec §9b.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic import jealousy as _jealousy_pass
+        # Re-read (verification round): the Emperor can fall in his OWN
+        # standing order in the pass above, not only in the enemy phase.
+        _fallen = _game_end.terminal_ending(self.world) is not None
         if not _fallen:
             _jealousy_pass.process_turn(self.world)
 
@@ -626,6 +629,9 @@ class TurnManager:
         # Each gets 1 action using Enemy AI decision tree
         # ════════════════════════════════════════════════════════════
         autonomous_report = None
+        # (`_fallen` was re-read after the strategic pass, above the grievance
+        # pass: nothing between here and there can end the war — the advance
+        # never kills the Emperor, attrition is not a battlefield cause.)
         if game_state and not _fallen:
             autonomous_report = self._process_autonomous_marshals(game_state)
 
