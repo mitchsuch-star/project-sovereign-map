@@ -122,9 +122,13 @@ class TestTheValidator:
         assert any("fall_grace_turns" in e.path for e in result.errors)
 
     def test_an_unknown_key_warns_for_forward_compatibility(self):
-        result = self._v({"verdict_turn": 44, "hold_titled": 50})
+        # Flipped consciously (GE-3, Sept 25, 2026): `hold_titled` was the
+        # "newer build" key this pin used — GE-3 now READS it (the Congress
+        # of Paris), so the forward-compatibility arm is pinned on a key no
+        # build reads.
+        result = self._v({"verdict_turn": 44, "a_key_no_build_reads": 50})
         assert result.is_valid
-        assert any("hold_titled" in e.path for e in result.warnings)
+        assert any("a_key_no_build_reads" in e.path for e in result.warnings)
 
     def test_a_non_object_is_an_error(self):
         result = self._v([44])

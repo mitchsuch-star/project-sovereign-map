@@ -738,6 +738,20 @@ _CAMPAIGN_END_INT_KEYS = {
     "fall_grace_turns": (1, 60),
     "captivity_grace_turns": (1, 60),
     "title_turns": (1, 120),
+    # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.7) — all in-band
+    # tunable; percentages are integers (the block is int-only).
+    "hold_titled": (1, 126),
+    "congress_turns": (1, 40),
+    "recognition_threshold": (0, 200),
+    "refuser_weight_per_turn": (0, 100),
+    "congress_alarm_gate": (0, 100),
+    "hold_alarm_ceiling": (1, 100),
+    "cs_shutout_pct": (1, 100),
+    "sue_score": (-100, 0),
+    "sweetener_per_1000": (0, 100),
+    "sweetener_cap": (0, 100),
+    "dissolve_alarm": (0, 100),
+    "congress_cooldown": (0, 60),
 }
 
 

@@ -48,7 +48,11 @@ SCRIPT = "../../tools/iq10_surface_screenshot.gd"
 # `payload` names a capture in the payload manifest. `tab` presses a ledger
 # sub-tab after the screen has rendered (the ledger's own `_switch_tab`).
 LEDGER_TABS = ["Forces", "Territories", "Economy", "Intel", "Manpower", "Orders", "Admiralty"]
-DIPLO_TABS = ["Nations", "Treaties", "Balance", "Talleyrand", "Vassals"]
+# The Diplomatic Ledger's books IN ORDER (the scene's SubTabRow). GE-3 (Sept
+# 25, 2026): index 4 is WAR BARGAINS — the old list named it "Vassals", so
+# every "…_vassals" shot below it pressed tab 4 and photographed the War
+# Bargains book; VASSALS is 5 and the new CONGRESS book is 6.
+DIPLO_TABS = ["Nations", "Treaties", "Balance", "Talleyrand", "Bargains", "Vassals", "Congress"]
 
 SHOTS: list[dict] = [
     # ── S1–S6 the Strategic Ledger, boot (every tab) ────────────────────────
@@ -127,7 +131,7 @@ SHOTS: list[dict] = [
         "surface": "Diplomatic Ledger — Vassals (no province left)",
         "payload": "diplo_ledger_collapse_none",
         "scene": "res://scenes/diplomatic_ledger.tscn",
-        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 4,
+        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 5,
         "must_show": "the IQ-7 Vassals tab: the petition standing column, the honest chips",
     },
     # ── S19 Generals ────────────────────────────────────────────────────────
@@ -331,7 +335,7 @@ SHOTS: list[dict] = [
         "surface": "Diplomatic Ledger — Vassals after a granted petition",
         "payload": "diplo_ledger_petition_granted",
         "scene": "res://scenes/diplomatic_ledger.tscn",
-        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 4,
+        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 5,
         "must_show": "the bond and the standing after the grant — not 'N turns until it may ask' "
                      "while the ask is answered",
     },
@@ -422,7 +426,7 @@ SHOTS: list[dict] = [
             "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": i,
             "must_show": f"the {t} tab on a played board",
         }
-        for i, t in [(0, "Nations"), (1, "Treaties"), (2, "Balance"), (4, "Vassals")]
+        for i, t in [(0, "Nations"), (1, "Treaties"), (2, "Balance"), (5, "Vassals")]
     ],
     {
         "id": "generals_t20",
@@ -643,6 +647,112 @@ SHOTS: list[dict] = [
         "steps": [{"scroll_to": {"text": "THE FALL OF THE EMPIRE"}, "then_wait": 4}],
         "must_show": "THE FALL OF THE EMPIRE heading, the warning's prose, then the clock line — "
                      "the same words the Territories tab prints",
+    },
+    # ═══ Row EP GE-3 "The Congress of Paris" (September 25, 2026) ════════════
+    # The capture group is `congress` (tools/iq10_capture_payloads.py
+    # `cap_congress`, whose staging notes say what was written and what was
+    # played). The wizard rows render the captured nation list through the
+    # SAME `_render_nations` the wire response reaches (the F3 idiom).
+    *[
+        {
+            "id": f"diplo_congress_{tag}",
+            "surface": f"Diplomatic Ledger — CONGRESS ({label})",
+            "payload": f"diplo_ledger_congress_{payload}",
+            "scene": "res://scenes/diplomatic_ledger.tscn",
+            "mode": "api_stub", "method": "open_to_congress", "api_method": "get_diplomatic_ledger",
+            **({"steps": [{"scroll_to": {"text": scroll}, "then_wait": 4}]} if scroll else {}),
+            "must_show": must,
+        }
+        for tag, payload, label, scroll, must in (
+            ("gate", "gate", "the gate at the 1805 boot", "",
+             "the CONGRESS tab lit as the 7th book; the clock line in gold ('35 of 50 titled'); "
+             "THE SUMMONS with each term ✓/• and the cost; 'Not yet: …' naming the 15 "
+             "provinces; THE TABLE opening under it"),
+            ("sitting", "sitting", "the sitting, turn 2 of 8", "",
+             "the clock line in amber ('THE CONGRESS SITS — turn 2 of 8 …'); THE SITTING "
+             "strip (day 1 ✓, day 2 gilded with its answer to come '…', the rest dots; "
+             "'Signed 1/4'); THE HOLD's seven "
+             "conditions all ✓"),
+            ("sitting_table", "sitting", "the sitting — the table", "THE TABLE",
+             "the four courts, flags and seats: Britain REFUSES (crimson), Russia SUES "
+             "(amber), Austria RECOGNIZES (green), Prussia REFUSES with its reckoning, price, "
+             "'takes up arms against us at this end turn unless it signs' and the typed order; "
+             "each card's 'Open the Cabinet at …' link"),
+        )
+    ],
+    *[
+        {
+            "id": f"wizard_step1_congress_{tag}",
+            "surface": f"Diplomacy wizard — step 1, the Congress row ({label})",
+            "payload": f"wizard_nations_congress_{tag}",
+            "scene": "res://scenes/diplomacy_wizard.tscn",
+            "mode": "call", "method": "show", "args": [],
+            "steps": [
+                {"set_path": "_current_step", "value": 1},
+                {"set_path": "title_label.text", "value": "DIPLOMACY"},
+                {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
+                {"call": "_lay_out_prompt", "args": [1]},
+                {"call": "_render_nations", "args": ["$payload"]},
+                {"call": "refit", "args": []},
+                {"wait": 4},
+            ],
+            "must_show": must,
+        }
+        for tag, label, must in (
+            ("gate", "the gate",
+             "'The Congress of Paris' at the TOP of the list, above Formable Nations: the gold "
+             "clock line, the seven terms ✓/• with '50 titled provinces (35 of 50)' dotted, "
+             "the Summon button DISABLED with its reason beneath, 'View the table'"),
+            ("ready", "every term met",
+             "every term ✓ and the Summon button ENABLED in gold with its cost "
+             "('2 diplomatic points + 1 administrative action')"),
+            ("sitting", "the Congress sitting",
+             "the amber sitting line, no terms, the Summon button disabled with 'The Congress "
+             "already sits — turn 2 of 8.', and 'View the table — the courts' answers, the "
+             "hold, the days'"),
+        )
+    ],
+    {
+        "id": "campaign_end_imperial_congress",
+        "surface": "The end screen — THE IMPERIAL PEACE through a real Congress",
+        "payload": "campaign_end_imperial_congress",
+        "scene": "res://scenes/campaign_end.tscn",
+        "mode": "call", "method": "show_ending",
+        "must_show": "the gold register: 'Europe accepts the order of the French Empire.'; THE "
+                     "CONGRESS OF PARIS with the four flags — Britain, Russia, Austria, Prussia "
+                     "SIGNED in green; '50 of 50 titled provinces.'; THE SITTING strip (days 1–8, "
+                     "✓ each, 4/4); THE RECORD; THE VERDICT OF HISTORY; the Moniteur's final line "
+                     "in gold italic; buttons 'Continue the reign' / 'Retire to the Tuileries'; "
+                     "no EXILE block; nothing clipped at scale 2.0",
+    },
+    {
+        "id": "ledger_congress_clock_territories",
+        "surface": "Strategic Ledger — Territories (the Congress clock)",
+        "payload": "ledger_congress_clock",
+        "scene": "res://scenes/strategic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_ledger",
+        "tab": 1,
+        "must_show": "under the dateline, the Congress clock line in amber — 'THE CONGRESS SITS — "
+                     "turn 2 of 8 · 50 of 50 titled · …' — the same words the banner prints",
+    },
+    {
+        "id": "dispatch_congress_clock",
+        "surface": "Dispatch re-read (the Congress clock on the banner)",
+        "payload": "dispatch_congress_clock",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"scroll_to": {"text": "THE CONGRESS OF PARIS"}, "then_wait": 4}],
+        "must_show": "THE CONGRESS OF PARIS heading, then the sitting's clock line in amber — the "
+                     "same words the Territories tab prints",
+    },
+    {
+        "id": "gazette_congress",
+        "surface": "Le Moniteur — the Congress column",
+        "payload": "gazette_congress",
+        "scene": "res://scenes/gazette_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_gazette",
+        "must_show": "the paper's '— THE CONGRESS OF PARIS —' section after THE COURTS: the "
+                     "sitting's day and each court's answer in the paper's voice",
     },
 ]
 

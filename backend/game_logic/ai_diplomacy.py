@@ -1509,6 +1509,44 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         proposal = _make_proposal(nation, ptype, 8, terms, world)
         proposal["captor_terms"] = True
 
+    # ── GE-3: THE CONGRESS OF PARIS — a beaten great power sues (§2.4) ──
+    # While the Congress sits, a great power at war with the summoner whose
+    # pair war score has fallen to `sue_score` (−40), or whose capital the
+    # summoner's bloc holds, SUES — its peace carries the recognition clause,
+    # and ratifying ANY war-ending treaty with it latches the recognition
+    # (`congress.note_ratification`). Sited above P1 so the coalition-loyalty
+    # hold (a member keeps fighting at −45) cannot make §2.4's −40 false; a
+    # PEACE (never an armistice — a truce ends no war); `_force_send` past
+    # the acceptance filter (the captor-rung idiom). One offer per
+    # `congress.SUE_CADENCE` turns. Dormant: `court_must_sue` is False at
+    # once when no Congress sits.
+    if proposal is None and is_at_war:
+        from backend.game_logic import congress as _congress
+        _one_envoy_blocked = False
+        if THE_COURT_SENDS_ONE_ENVOY_PER_WAR and _congress.court_must_sue(world, nation):
+            # GE-3 review #21: FA-S17-15's one-envoy rule binds this rung
+            # too — a settlement offer already on the desk for this war
+            # carries the peace (its ratification latches through
+            # `note_ratification` all the same).
+            _war = _find_war_instance_for_pair(world, nation, world.player_nation)
+            _war_id = str((_war or {}).get("war_id") or "")
+            if _war_id:
+                _pending = getattr(world, "pending_settlement_dialogues", None) or []
+                _one_envoy_blocked = bool(
+                    _settlement_offer_already_pending(_pending, war_id=_war_id)
+                    or _settlement_offer_already_promoted(world, war_id=_war_id))
+        if (not _one_envoy_blocked
+                and _congress.court_must_sue(world, nation)
+                and _congress.sue_due(world, nation)):
+            terms = _build_proposal_terms(nation, "peace", int(war_score),
+                                          world, gold_mult=gold_mult)
+            terms.setdefault("clauses", []).append("congress_recognition")
+            terms["congress_recognition"] = True
+            proposal = _make_proposal(nation, "peace", 8, terms, world)
+            proposal["_force_send"] = True
+            proposal["congress_recognition"] = True
+            _congress.note_sued(world, nation)
+
     # ── P1: Losing badly (war_score < effective threshold) ──
     # GE-1 review round: `proposal is None` — the one rung of the wartime
     # ladder that lacked it, so a LOSING captor's P1 armistice (which only
@@ -2309,9 +2347,7 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     # key failing _is_prose_safe_nation_key, which names "Holland" outright.
     from backend.game_logic.formations import formed_display_name
     sender = formed_display_name(world, nation)
-    from backend.game_logic.vassal import (
-        AN_UNANSWERED_PETITION_IS_REFUSED, CLIENT_PETITION_TYPE,
-    )
+    from backend.game_logic.vassal import CLIENT_PETITION_TYPE
     if proposal.get("proposal_type") == "ultimatum":
         # NA-5 §8: an ultimatum announces itself as one.
         world.notifications.add(create_notification(
@@ -2334,28 +2370,19 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         # lever so the lever-down copy stays honest ("costs nothing").
         _petition = (proposal.get("terms") or {}).get("petition")
         _petition = _petition if isinstance(_petition, dict) else {}
-        _dp = int(_petition.get("dp_cost", 1) or 1)
-        if bool(_petition.get("lapse_counts_as_refusal",
-                              AN_UNANSWERED_PETITION_IS_REFUSED)):
-            _loy = int(_petition.get("refusal_loyalty", 10) or 10)
-            _rel = int(_petition.get("relation_refusal_step", 20) or 20)
-            _lapse = (f"Left unanswered it counts as a refusal: −{_loy} "
-                      f"loyalty, −{_rel} bond.")
-        else:
-            _lapse = (str(_petition.get("lapse_line") or "").strip()
-                      or "Left unanswered it lapses at the end of the turn.")
-        from backend.display_names import with_definite_article
         # IQ-7 review pass 3 (R3-8): the rail / mailbox TITLE is a sentence
         # fragment, so the court takes its article as the body always has —
         # "Petition from the Kingdom of Italy". (The mailbox HEADING form,
         # "Kingdom of Italy — Client's Petition", is a label and stays bare.)
+        # GE-3 review #37: title and body from ONE builder, which the
+        # Congress re-states when it doubles (or lifts) the stakes.
+        from backend.game_logic.vassal import client_petition_notice
+        _title, _body = client_petition_notice(sender, _petition)
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
-            f"Petition from {with_definite_article(sender)}",
-            f"An envoy from {with_definite_article(sender)} has arrived with "
-            f"a petition. Grant it (keep {_dp} DP in hand), or refuse it — "
-            f"it lapses at the end of the turn. {_lapse}",
+            _title,
+            _body,
             int(world.current_turn),
         ))
     else:

@@ -254,7 +254,15 @@ def _attach_endings(result: Dict, world: WorldState, before: int) -> None:
             if isinstance(report, dict):
                 report.pop("requires_input", None)
     result["endings_recorded"] = [_game_end.compact(r) for r in stamped]
-    result["ending"] = _game_end.screen_payload(stamped[-1])
+    # GE-3: the card the client raises FIRST is the one this payload names
+    # (the rest arrive through `game_state.endings`). A Fall leads; then the
+    # Imperial Peace — a Verdict stamped the same end turn follows the gold
+    # card instead of hiding it; otherwise the last stamped, as before.
+    lead = next((r for r in stamped if r.get("terminal")), None)
+    if lead is None:
+        lead = next((r for r in stamped
+                     if r.get("cause") == _game_end.CAUSE_IMPERIAL_PEACE), None)
+    result["ending"] = _game_end.screen_payload(lead or stamped[-1])
 
 
 class TurnManager:
@@ -288,6 +296,12 @@ class TurnManager:
             game_state: Game state dict for executor (required for enemy AI)
         """
         old_turn = self.world.current_turn
+        # GE-3: every recognition the player won at the Congress's table this
+        # turn is signed BEFORE the enemy phase and the advance move relations
+        # (a signature holds for the sitting — `congress.take_the_signatures`;
+        # nothing while no Congress sits).
+        from backend.game_logic import congress as _congress
+        _congress.take_the_signatures(self.world)
 
         # C3 fix: Prevent double end_turn when auto-advance already processed this turn.
         # Scenario: auto-advance fires on last AP (executor.py), ending turn N → N+1.

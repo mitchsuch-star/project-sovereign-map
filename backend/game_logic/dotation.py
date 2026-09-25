@@ -320,12 +320,17 @@ def is_decisive_victory(outcome: str, winner_casualties: int,
     return is_decisive_exchange(int(winner_casualties), int(loser_casualties))
 
 
-def expectation_rise_blocked(marshal, world) -> str:
+def expectation_rise_blocked(marshal, world, ignore_cooldown: bool = False) -> str:
     """Why a rise would NOT happen for this man now ('' = it would).
 
     The three gates in the order they are said: the sovereign never
     expects, nobody expects before EXPECTATION_FIRST_TURN, one rise per
     EXPECTATION_RISE_COOLDOWN turns, and the cap is the cap.
+
+    GE-3 §2.6: `ignore_cooldown` bypasses the one-rise-per-N-turns arm ONLY
+    (a dissolved Congress raises every marshal one rung — they were promised
+    the peace — whatever his last deed-rise). The sovereign, first-turn and
+    cap arms always hold.
     """
     if getattr(marshal, "is_sovereign", False):
         return "the Empire is his estate"
@@ -333,7 +338,7 @@ def expectation_rise_blocked(marshal, world) -> str:
     if turn < EXPECTATION_FIRST_TURN:
         return f"no claim is felt before turn {EXPECTATION_FIRST_TURN}"
     last = int(getattr(marshal, "last_expectation_rise_turn", -1) or -1)
-    if (EXPECTATION_RISE_COOLDOWN_ACTIVE and last >= 0
+    if (EXPECTATION_RISE_COOLDOWN_ACTIVE and not ignore_cooldown and last >= 0
             and turn - last < EXPECTATION_RISE_COOLDOWN):
         return (f"his expectation rose on turn {last} — one rise per "
                 f"{EXPECTATION_RISE_COOLDOWN} turns")
@@ -342,16 +347,24 @@ def expectation_rise_blocked(marshal, world) -> str:
     return ""
 
 
-def raise_expectation(marshal, world, cause: str = "") -> bool:
+def raise_expectation(marshal, world, cause: str = "",
+                      ignore_cooldown: bool = False) -> bool:
     """F4: the ONE write that raises a reward expectation. Returns True when
     it rose. Both deeds — the decisive victory as lead (combat_executor's
     post-combat tail, player and AI alike) and the earned rank rise
     (jealousy.process_turn) — come through here, so the floor, the cooldown
     and the cap are checked in one place and stamped once.
+
+    GE-3 §2.6: a dissolved Congress (`congress._dissolve`, cause "congress")
+    passes `ignore_cooldown=True` — the promise of the peace is not a deed
+    and does not wait on the last one. Only the cooldown arm is bypassed
+    (`expectation_rise_blocked`); the rise still stamps the turn, so the
+    NEXT deed-rise waits its cooldown from here.
     """
     if not EXPECTATION_RISES_ON_DEEDS:
         return False
-    if marshal is None or expectation_rise_blocked(marshal, world):
+    if marshal is None or expectation_rise_blocked(
+            marshal, world, ignore_cooldown=ignore_cooldown):
         return False
     marshal.expectation_steps = int(getattr(marshal, "expectation_steps", 0) or 0) + 1
     marshal.last_expectation_rise_turn = int(world.current_turn)
@@ -662,15 +675,43 @@ def compute_investiture_fee(marshal) -> int:
 
 # ═══════════════════ THE RENTE (§0.6.8, second pass) ═══════════════════════
 
-def get_rente_cost(face: int) -> int:
+def peace_dividend(world, nation: Optional[str]) -> float:
+    """GE-3 §2.5 "the peace dividend": the multiplier the Congress of Paris
+    lays on a nation's rentes while it sits (`congress.peace_dividend` —
+    ×1.5 for the summoner, 1.0 for everyone else and whenever no Congress
+    sits). 1.0 without a world (a bare cost query)."""
+    if world is None:
+        return 1.0
+    from backend.game_logic import congress
+    return float(congress.peace_dividend(world, nation))
+
+
+def get_rente_cost(face: int, world=None, nation: Optional[str] = None) -> int:
     """Treasury cost of a rente: ceil(RENTE_PREMIUM × face).
 
     The premium is the arrears-and-fees of paying honor in paper — the
-    structural reason an available estate usually beats a rente on rate."""
+    structural reason an available estate usually beats a rente on rate.
+
+    GE-3 §2.5: with `world` + `nation` the Congress's peace dividend rides
+    the same ceil — ceil(RENTE_PREMIUM × dividend × face), ×1.5 while the
+    Congress sits for the summoner ("they were promised the peace"). EVERY
+    surface that charges, refunds, quotes or displays a PLAYER rente passes
+    both, or shown ≠ applied: the income-phase bill
+    (`get_nation_rente_bill`), the ESP-4 refund, the rail's button
+    (`rente_action_keys`), the expectation row, the offer
+    (`build_rente_offer` and every reader), the collective petition's bill
+    and concede arm, the marshal card, the treasury report and the revoke.
+    The AI's own rung prices at 1.0 (GR5 — the dividend is the summoner's
+    bill alone, and never reaches an AI nation anyway). Dormant: 1.0 when
+    no Congress sits, so the product is byte-identical."""
     face = int(face)
     if face <= 0:
         return 0
-    return int(math.ceil(RENTE_PREMIUM * face))
+    premium = RENTE_PREMIUM
+    dividend = peace_dividend(world, nation)
+    if dividend != 1.0:
+        premium = RENTE_PREMIUM * dividend
+    return int(math.ceil(premium * face))
 
 
 def compute_rente_face(marshal, world) -> int:
@@ -769,19 +810,25 @@ def build_rente_offer(marshal, world) -> Dict:
     """The reward surface's rente line: face + true treasury cost stated
     together (§0.6.8 item 6 — every option explains its instrument)."""
     face = compute_rente_face(marshal, world)
-    return {"face": int(face), "cost": int(get_rente_cost(face))}
+    return {"face": int(face),
+            "cost": int(get_rente_cost(face, world, marshal.nation))}
 
 
 def get_nation_rente_bill(world, nation: str) -> int:
     """Per-turn treasury cost of a nation's rentes (marshal-count loop,
-    GR8). A captured marshal's rente neither pays nor counts (W6-7)."""
+    GR8). A captured marshal's rente neither pays nor counts (W6-7).
+
+    GE-3: priced per marshal through `get_rente_cost(face, world, nation)`
+    — the peace dividend while the Congress sits — the SAME per-man ceil
+    the ESP-4 refund reverses, so a bounced rente refunds exactly what it
+    was charged."""
     if not is_dotation_world(world):
         return 0
     total = 0
     for marshal in world.marshals.values():
         if marshal.nation != nation or getattr(marshal, "captured_by", ""):
             continue
-        total += get_rente_cost(int(getattr(marshal, "pension", 0)))
+        total += get_rente_cost(int(getattr(marshal, "pension", 0)), world, nation)
     return int(total)
 
 
@@ -1197,9 +1244,11 @@ def rente_action_keys(marshal, world) -> Dict:
 
     Three rules the row must not break:
 
-    * **Shown = applied.** The figure is `get_rente_cost(compute_rente_face())`
-      — the exact pair `_execute_grant_pension` prices the grant with, and the
-      same pair the row's own message quotes.
+    * **Shown = applied.** The figure is `get_rente_cost(compute_rente_face(),
+      world, nation)` — the exact pair `_execute_grant_pension` prices the
+      grant with (through `build_rente_offer`), the same pair the row's own
+      message quotes, and (GE-3) the income phase's per-man charge, the
+      Congress's peace dividend included.
     * **Never offer what the executor refuses.** Gated on `rente_would_change`,
       the GR1 predicate the executor, the marshal card and the AI rung all
       read. (A row only exists on a live shortfall, so this is true in
@@ -1234,7 +1283,9 @@ def rente_action_keys(marshal, world) -> Dict:
     if not rente_would_change(marshal, world):
         return {}
     face = compute_rente_face(marshal, world)
-    cost = get_rente_cost(face)
+    # GE-3: priced with the peace dividend (the income phase charges the
+    # same `get_rente_cost(face, world, nation)`), and the row SAYS so.
+    cost = get_rente_cost(face, world, marshal.nation)
     held = int(getattr(marshal, "pension", 0))
     verb = "Re-size rente" if held > 0 else "Grant rente"
     return {
@@ -1246,11 +1297,24 @@ def rente_action_keys(marshal, world) -> Dict:
         # free undo; `revoke_pension` is itself an ADMIN action.
         "action_detail": (
             f"{face}g/turn to his household; {cost}g/turn from the treasury "
-            f"for as long as he is at liberty, and 1 administrative action "
-            f"now. Revocable with \"revoke {marshal.name}'s rente\" — for "
-            f"another administrative action."
+            f"for as long as he is at liberty"
+            f"{peace_dividend_note(world, marshal.nation)}, and 1 "
+            f"administrative action now. Revocable with \"revoke "
+            f"{marshal.name}'s rente\" — for another administrative action."
         ),
     }
+
+
+def peace_dividend_note(world, nation: Optional[str], *, bare: bool = False) -> str:
+    """The clause every rente quote carries while the Congress's peace
+    dividend is in force — '' otherwise (dormant copy byte-identical).
+    Parenthesised with a leading space by default; `bare=True` returns the
+    words alone, for a sentence already inside parentheses."""
+    dividend = peace_dividend(world, nation)
+    if dividend == 1.0:
+        return ""
+    words = f"×{dividend:g} while the Congress of Paris sits — the peace dividend"
+    return words if bare else f" ({words})"
 
 
 def post_expectation_notice(world, marshal, expectation, satisfaction,
@@ -1281,7 +1345,10 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     # Shown = applied: quoted off the SAME two functions the executor prices
     # the grant with, so the figure on the rail is the figure the treasury
     # pays if the player acts on it.
-    rente_cost = get_rente_cost(compute_rente_face(marshal, world))
+    # GE-3: and with the peace dividend while the Congress sits — the same
+    # `get_rente_cost(face, world, nation)` the income phase charges.
+    rente_cost = get_rente_cost(compute_rente_face(marshal, world), world,
+                                marshal.nation)
     # Honest availability, the same rule the erosion notice has carried since
     # §0.6.8 item 4d — applied here too, because THIS is the first thing the
     # player is ever told about the reward economy. France holds ZERO
@@ -1296,6 +1363,10 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     estate_clause = ""
     if list_paying_estates(world, marshal.nation):
         estate_clause = ", or endow him with an estate"
+    # GE-3: the quote names the peace dividend while it is in force.
+    dividend_clause = ""
+    if peace_dividend_note(world, marshal.nation):
+        dividend_clause = ", " + peace_dividend_note(world, marshal.nation, bare=True)
     world.notifications.refresh(create_notification(
         notification_type=DOTATION_EXPECTATION,
         priority=NotificationPriority.NORMAL,
@@ -1311,8 +1382,8 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
             # auto-sized to the gap, so the short form is the whole action.
             f"Marshal {marshal.name} looks for {expectation}g/turn and holds "
             f"{satisfaction}g. {patience} — settle it now with "
-            f"\"pension {marshal.name}\" (a rente, {rente_cost}g/turn)"
-            f"{estate_clause}."
+            f"\"pension {marshal.name}\" (a rente, {rente_cost}g/turn"
+            f"{dividend_clause}){estate_clause}."
         ),
         turn_created=int(world.current_turn),
         details={"marshal": marshal.name,

@@ -7,7 +7,7 @@
       "utterance": "Ney, deal with Mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "580159ace96d9c87527f7c36c68f6546b43b2931aea9c7eeeb39e026dc62db96",
+      "prompt_sha256": "7d6ddb78ca93321d15dea7daf176e2948ceed3973ea1e6cc9ce4d370f69cc84b",
       "drift": null
     },
     "cr5-deleg-cautious-davout-resolves-live": {
@@ -15,7 +15,7 @@
       "utterance": "Davout, deal with Mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "98e18a4497e46fc24b55c97fd3f323f22db3846f6412e0e26d863c238c1f3ec9",
+      "prompt_sha256": "856ca4706198b73688152d40c96359ef5319066f18ce70b03e9f56fb6c3f40da",
       "drift": null
     },
     "cr5-deleg-literal-soult-asks": {
@@ -23,7 +23,7 @@
       "utterance": "Soult, deal with Mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "c493403bbe722b176229460e882ddd7429f93618ad0a10dc8ce60964cc13e28e",
+      "prompt_sha256": "4ff38c6bce572bfd5fa2f330fd749c6f942cdb47c226fc06ddade9d5fa53d2a9",
       "drift": null
     },
     "fa73-live-cover-the-retreat-is-not-a-retreat.1805": {
@@ -31,7 +31,7 @@
       "utterance": "Ney, cover the retreat",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "b0ecb32fea670ba995f62eaccbedf34df7f13697a24da08ddcbfcd70f478fb11",
+      "prompt_sha256": "342902834e69cd54f64c8f7c199cda65aef0d28b63ef147350169ebe27adc635",
       "drift": null
     },
     "fa73-live-cover-the-retreat-is-not-a-retreat.legacy": {
@@ -39,7 +39,7 @@
       "utterance": "Ney, cover the retreat",
       "world": "legacy",
       "provenance": "authored",
-      "prompt_sha256": "4364a24931a2e14157af529c372a2da33357058414c8ac0ec54f5f71b8cb20e5",
+      "prompt_sha256": "f8d8ce958446505d3da9d94c138edbd12688930b599af2345ac34ade41b3ce4a",
       "drift": null
     },
     "fa73-live-fix-bayonets-is-not-a-repair.1805": {
@@ -47,7 +47,7 @@
       "utterance": "Ney, fix bayonets",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "72aebab0cabb0b0ff95e523d0de2564b4c8a2359cbd1cf638997ab65c5453e4b",
+      "prompt_sha256": "6967dedba31bdd2f0f83911fdac6cda07d5356747394520c88374edf62f21133",
       "drift": null
     },
     "fa73-live-fix-bayonets-is-not-a-repair.legacy": {
@@ -55,7 +55,7 @@
       "utterance": "Ney, fix bayonets",
       "world": "legacy",
       "provenance": "authored",
-      "prompt_sha256": "1a671ccad122bdc42f32c3f57d9bd156575b4e069242289b7448f9d98ccb190b",
+      "prompt_sha256": "59854972c6cbc5e042c45ddf76d843e6850ed9eb7c2e74187e623c7e22a494d4",
       "drift": null
     },
     "cr2-retry-hunt-down-mack": {
@@ -63,7 +63,7 @@
       "utterance": "hunt down mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "f20ea862335878bf637d17420557520c010896f79a1c7416a18c9090253f51b2",
+      "prompt_sha256": "d961025fddd74a435577cf37be03dc28b2e38bdcd8a405d2286fa2f31bb2d5c2",
       "drift": null
     },
     "below-gate-get-after": {
@@ -71,7 +71,7 @@
       "utterance": "Ney, get after Mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "816797ba4c0a1690b653843f34cd5e3afa711208756e37310d735adcfabdf0c2",
+      "prompt_sha256": "696324f3a590d2abc335ea230aaafda89eda9885740569ae04ba7c62a505ecd8",
       "drift": null
     },
     "below-gate-keep-an-eye": {
@@ -79,7 +79,7 @@
       "utterance": "Davout, keep an eye on Mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "fb28b0badf98ea1719344e59f2a6bc416eff81dd86ebf6571f48c3b71f5a78ba",
+      "prompt_sha256": "d8e923d73dee44fbad6dd3eff5e57ef6f867b3859773b01754bb111a816ffba4",
       "drift": null
     },
     "backlog-make-your-way": {
@@ -87,7 +87,7 @@
       "utterance": "Lannes, make your way to Swabia",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "7815131e4accd45b5e5d8afce191570063e459993d044a3c5c0650d9f9a18903",
+      "prompt_sha256": "e0be5b1add9bf47a889e45c427cf857d803be72a1feca2cc8ce0c6a5809c7705",
       "drift": null
     },
     "diplomatic-ask-austria": {
@@ -95,7 +95,7 @@
       "utterance": "ask Austria what they want",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "27788d8af6224deb70cda56758395113fbf0cac40af8046f482c4d8ada073009",
+      "prompt_sha256": "c7d11a4af2023a4d8dd134e7e67ad9510801b9caee412fcbf4a8ddad0c6c9a77",
       "drift": null
     },
     "cr2-unresolved-address": {
@@ -103,7 +103,7 @@
       "utterance": "Zorglub, attack Mack",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "5011249179396cebcd7cce10800beb583d5d054ddd66e00bf542cc176902087f",
+      "prompt_sha256": "84db4c0af487c9803ab818d51dfe8bbda97e3cdf342ab8af106ad9788acab202",
       "drift": null
     },
     "demonym-harass": {
@@ -111,7 +111,7 @@
       "utterance": "Murat, harass the Austrians",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "31673b2eef1127bc9f4e48edf0465df730f78a0352585a41170d261b9951c557",
+      "prompt_sha256": "a2523a13e4b343c204809a75cff96c41e18897832971733db6f95ae5d417fca1",
       "drift": null
     },
     "gibberish-berthier": {
@@ -119,7 +119,7 @@
       "utterance": "flurble the wibble",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "c7ec225de630bb49a94f829d97c15ab9ef7e5322c69ec157d1b73ad2e35ded5d",
+      "prompt_sha256": "b27d698650dd6d385791e45194254a14d0326a6b94be51d3f255fa38e59a9bc6",
       "drift": null
     },
     "gibberish-berthier.recovery": {
@@ -127,7 +127,7 @@
       "utterance": "flurble the wibble",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "a8b06270519023485a9988f965d9a64caf162f2d0605e24e5f4261903144b5a9",
+      "prompt_sha256": "582b90ffac45f4b90d3240c9a7129fa16e1a6c561acbdb69f6307de646400a34",
       "drift": null
     },
     "aggressive-plain": {
@@ -135,7 +135,7 @@
       "utterance": "Ney, hit the Prussians hard",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "024f4db17f1555c9a2829ed5b326f71debee4b845180f8afc5ca9fcd58dfc040",
+      "prompt_sha256": "8ba998ba818f6915c48f0007519e4abca1fbbe6a0fd6ec32d253e6154047fb1a",
       "drift": null
     }
   }

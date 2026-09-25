@@ -189,6 +189,14 @@ CAMPAIGN_LOG_TYPES = {
     # (`game_end.record_ending`). 165 -> 166 flipped consciously; the
     # census `test_no_silent_drops` requires the producer's type be here.
     "campaign_ending",
+    # GE-3 "The Congress of Paris" (Sept 25, 2026): ONE chronicle type for
+    # the whole sitting, told apart by its `phase` — summoned, recognized,
+    # withdrew, war, warning, subsidy, sweetener, dissolved (congress.py
+    # writes every one literally, with the player's `nation`, so the fog
+    # filter's player arm passes it). The Imperial Peace itself rides
+    # GE-1's `campaign_ending` (cause "imperial_peace"). 166 -> 167 flipped
+    # consciously; no inert type was retired in exchange.
+    "congress",
     # WIN-D3 "The Road Home": the evacuation corridor a peace grants, and
     # the countdown when a corps dawdles on soil that is no longer its own.
     # (Internment itself rides PC15-1's `marshal_destroyed` with
@@ -479,6 +487,9 @@ CATEGORY_MAP = {
     "marshal_captured": "combat",
     "marshal_destroyed": "combat",
     "campaign_ending": "command",
+    # GE-3: the Congress is diplomacy — recognitions, refusals, a London
+    # purse, a sweetener at the table, the War of the Congress, the end.
+    "congress": "diplomacy",
     "evacuation_granted": "diplomacy",
     # The clock is the treaty's, but the decision it demands is an order to a
     # marshal — so it files with the command traffic the player must answer.
@@ -1458,6 +1469,148 @@ def _collapsed_refusal_line(event: dict, ptype: str, count: int) -> str:
     return f"{count} approaches rebuffed among the courts ({ptype})"
 
 
+# ════════════════════════════════════════════════════════════════════════
+# GE-3 "The Congress of Paris" — the chronicle's words for the sitting.
+# Shared with the morning dispatch and Le Moniteur (one sentence per fact).
+# ════════════════════════════════════════════════════════════════════════
+
+def and_join(names: list) -> str:
+    """"Austria", "Austria and Russia", "Austria, Prussia and Russia"."""
+    names = [str(n) for n in names if n]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _paren(text: str) -> str:
+    """The parenthetical a hold condition carries — "(48 of 50)",
+    "(we declared on Austria)" — without its brackets, or ""."""
+    if "(" not in text or ")" not in text:
+        return ""
+    return text[text.find("(") + 1:text.rfind(")")].strip()
+
+
+def congress_dissolve_reason(key: str, text: str) -> str:
+    """Why the Congress dissolved, as a FAILURE.
+
+    The dissolution records the hold condition that failed in the words the
+    TABLE uses for it — which state the CONDITION ("Paris held", "the
+    Emperor free", "no war declared since the summons"), not its breach. A
+    reader shown "The Congress dissolves — Paris held." is told the opposite
+    of what happened, so the chronicle, the dispatch and the paper all turn
+    the condition into what broke through this one function, keyed on the
+    condition's `key` (congress.hold_conditions)."""
+    key = str(key or "")
+    text = str(text or "")
+    # A condition may carry its cause after an em dash ("… (44 of 50) —
+    # Hanover's war reopened what it ceded (Kalenberg)"): the parenthetical
+    # is read from the condition, the cause is kept whole.
+    head, _, cause = text.partition(" — ")
+    inside = _paren(head)
+    if key == "titled":
+        return ("the titled provinces fell short"
+                + (f" ({inside})" if inside else "")
+                + (f" — {cause}" if cause else ""))
+    if key == "capital":
+        capital = text[:-len(" held")] if text.endswith(" held") else "the capital"
+        return f"{capital or 'the capital'} was lost"
+    if key == "emperor":
+        return "the Emperor was taken"
+    if key == "satellites":
+        # The hold's own clause already says how each was lost ("Saxony rose
+        # in rebellion" / "Saxony defected to Britain").
+        return inside or "a satellite was lost"
+    if key == "lost":
+        return "a titled province fell" + (f" ({inside})" if inside else "")
+    if key == "declared":
+        return "the Emperor drew the sword" + (f" ({inside})" if inside else "")
+    if key == "alarm":
+        return "Europe's alarm rose too high" + (f" ({inside})" if inside else "")
+    return text or "the hold broke"
+
+
+def coalition_phrase(name: str) -> str:
+    """"Third Coalition" / "The Fourth Austrian Coalition" as the object of
+    a sentence — "joins the Third Coalition"."""
+    name = str(name or "").strip()
+    if not name:
+        return ""
+    if name.lower().startswith("the "):
+        return "the " + name[4:]
+    return "the " + name
+
+
+def _congress_court(event: dict, key: str = "court") -> str:
+    court = str(event.get(key) or "")
+    return display_nation(court) if court else "A great power"
+
+
+def _format_congress_event(event: dict) -> str:
+    """One line per `phase` of the GE-3 `congress` event — never the raw
+    `message`, which the producer writes in the table's metonyms."""
+    phase = str(event.get("phase") or "")
+    if phase == "summoned":
+        number = int(event.get("number") or 1)
+        head = ("The Emperor summons the powers to Paris"
+                + (" again" if number > 1 else ""))
+        ends = event.get("ends_turn")
+        if ends is not None:
+            return f"{head} — the Congress sits until turn {int(ends)}."
+        return f"{head}."
+    if phase == "recognized":
+        court = _congress_court(event)
+        if str(event.get("stance") or "") == "SHUT OUT":
+            return (f"{court} is shut out of the Congress of Paris — the "
+                    f"ports of the Continent are closed to her.")
+        return f"{court} signs at the Congress of Paris."
+    if phase == "withdrew":
+        court = _congress_court(event)
+        reason = str(event.get("reason") or "")
+        if reason.startswith("it withdrew: "):
+            reason = reason[len("it withdrew: "):]
+        if str(event.get("was") or "") == "SHUT OUT":
+            return (f"{court} is no longer shut out of the Congress of Paris"
+                    + (f" — {reason}" if reason else "") + ".")
+        return (f"{court} withdraws its signature from the Congress of Paris"
+                + (f" — {reason}" if reason else "") + ".")
+    if phase == "war":
+        court = _congress_court(event)
+        coalition = str(event.get("coalition") or "")
+        if coalition:
+            return (f"{court} answers the Congress with cannon, and joins "
+                    f"{coalition_phrase(coalition)}.")
+        return f"{court} answers the Congress with cannon."
+    if phase == "warning":
+        court = _congress_court(event)
+        return (f"{court} warns the Congress: one more turn of refusal, and "
+                f"it answers with cannon.")
+    if phase == "subsidy":
+        payer = _congress_court(event, "payer")
+        court = _congress_court(event)
+        amount = int(event.get("amount") or 0)
+        return f"{payer} pays {court} {amount:,}g a turn to refuse the Congress."
+    if phase == "sweetener":
+        court = _congress_court(event)
+        amount = int(event.get("amount") or 0)
+        if str(event.get("stance") or "") == "RECOGNIZES":
+            return (f"{amount:,}g laid before {court} at the Congress — "
+                    f"{court} now recognizes the order.")
+        return f"{amount:,}g laid before {court} at the Congress."
+    if phase == "dissolved":
+        key = str(event.get("key") or "")
+        reason = congress_dissolve_reason(key, str(event.get("reason") or ""))
+        line = f"The Congress of Paris dissolves — {reason}."
+        refusers = [display_nation(r) for r in (event.get("refusers") or []) if r]
+        if refusers and key != "unsigned":
+            # A broken hold ends the sitting before its answer: the courts
+            # had not signed; they were not asked to the end.
+            line += f" {and_join(refusers)} had not signed."
+        return line
+    return "A dispatch from the Congress of Paris."
+
+
 def _name_tag(name: str, nation: str) -> str:
     """Format 'Name (Nation)' when nation is available, else just 'Name'.
 
@@ -1954,6 +2107,10 @@ def format_event_oneliner(event: dict) -> str:
         tier = str(event.get("tier_title") or "")
         tail = f" ({tier.title()})" if tier else ""
         return f"{title} — {line}{tail}" if line else f"{title}{tail}"
+
+    if event_type == "congress":
+        # GE-3: one arm per phase (`_format_congress_event`).
+        return _format_congress_event(event)
 
     if event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).

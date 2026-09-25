@@ -299,9 +299,39 @@ def what_can_i_do(world, nation: Optional[str] = None,
     nation = nation or getattr(world, "player_nation", None)
     if not nation:
         return []
-    lines = military_counsel(world, nation, limit=max(1, limit - 2))
+    # GE-3: the summons LEADS when it would be carried out — it is the win.
+    lines = congress_counsel(world, nation)
+    lines.extend(military_counsel(world, nation,
+                                  limit=max(1, limit - 2 - len(lines))))
     lines.extend(economy_counsel(world, nation, limit=2))
     return lines[:limit]
+
+
+def congress_counsel(world, nation: str) -> List[str]:
+    """GE-3 "The Congress of Paris": `summon the congress — …`, only when
+    the summons would be carried out THIS morning — every gate term met,
+    the administrative action and the two diplomatic points included — read
+    off the executor's own refusal (`congress.summon_refusal`), so the
+    counsel can never offer a summons the executor would refuse. Empty on a
+    world whose scenario arms no Congress, and for any nation but the one
+    that summons (GR5: the Congress is the player's verb)."""
+    if not COUNSEL_IS_DERIVED_FROM_THE_BOARD or world is None:
+        return []
+    try:
+        from backend.game_logic import congress
+        if nation != getattr(world, "player_nation", None):
+            return []
+        if not congress.armed(world):
+            return []
+        if congress.summon_refusal(world, skip_admin=False) is not None:
+            return []
+        from backend.display_names import plural
+        return [f"{congress.SUMMON_COMMAND} — "
+                f"{plural(congress.SUMMON_DP_COST, 'diplomatic point')} and "
+                f"1 administrative action; it cannot be undone"]
+    except Exception:
+        # The counsel must never break the surface that calls it.
+        return []
 
 
 # ───────────────────────────────────────────────────────────────────────────
@@ -320,6 +350,9 @@ _SURFACE_FOR_KIND = {
     "marshals": ("the Generals screen", "press G"),
     "diplomacy": ("the Cabinet", "press F1"),
     "courts": ("the Diplomatic Ledger", "press D"),
+    # GE-3: the Congress of Paris — the table of the great powers' answers,
+    # their reasons and their prices (ENDGAME_PLAN §4).
+    "congress": ("the Diplomatic Ledger's Congress tab", "press D, then 7"),
     "war": ("the war banner on the left", "click the war"),
     "gazette": ("Le Moniteur", "press N"),
     "log": ("the campaign log", "press L"),

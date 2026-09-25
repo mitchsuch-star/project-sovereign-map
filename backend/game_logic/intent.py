@@ -397,6 +397,14 @@ def _derive_weight(nation: str, agenda: AgendaView,
             if any(e.get("type") == "mediation"
                    for e in get_refused_asks(world, nation, against)):
                 weight += WEIGHT_MEDIATION_REBUFFED
+        # GE-3 §2.5: refusal has teeth — a great power refusing the Congress
+        # of Paris hardens against the summoner every end turn it refuses
+        # (+15 a turn, a per-turn READING that resets the turn it signs), and
+        # its Revanche against the summoner hardens with it. 0 unless the
+        # Congress sits (the ambient board never summons — boot-byte-neutral).
+        from backend.game_logic.congress import refusal_weight, revanche_weight
+        weight += refusal_weight(world, nation, against)
+        weight += revanche_weight(world, nation, agenda, against)
         # AI-3r §2.2 — the moment. All four are per-turn readings that
         # decay the moment the world improves for the holder (§3.1a).
         if _holder_allies_committed(nation, against, world):

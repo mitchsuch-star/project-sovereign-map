@@ -82,6 +82,13 @@ PLAYER_NEVER_LEAVES_THE_ROSTER = True
 # False = the prior rule (every COUNTER_OFFER skipped the restore).
 COUNTER_OFFER_RETURN_RESTORES_HIM = True
 
+# GE-3 review #11 (Sept 25, 2026): a siege is lifted when the besieger is no
+# longer at war with the province's holder — the occupation tick had no war
+# check, so a court that signed its peace completed the siege on the next
+# advance and annexed a province at PEACE. Flip lever (the series arms read
+# it in a child process).
+SIEGE_ENDS_WITH_THE_WAR = True
+
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     "mode": "direct_only",
     "qualifying_treaty_states": {
@@ -1438,6 +1445,11 @@ class WorldState:
             "sponsor_design": 0,
             "buy_off_design": 0,
             "guarantee_nation": 0,
+            # GE-3 The Congress of Paris: the summons is an act of state —
+            # 1 ADMIN action (ADMIN_ACTIONS) + 2 DP in-executor; the
+            # sweetener rides the instrument verbs (0 AP, 1 DP + the gold).
+            "summon_congress": 1,
+            "recognition_sweetener": 0,
             # DEF-5 naval (NAVAL_SPEC §9): build_fleet is 1 ADMIN AP
             # (ADMIN_ACTIONS) + 400g in-executor; the posture order is a
             # cheap command; the expedition is a real commitment (the
@@ -2182,6 +2194,13 @@ class WorldState:
         self.endings: List[Dict[str, Any]] = []
         self.campaign_totals: Dict[str, Any] = {}
         self.province_title: Dict[str, Dict[str, Any]] = {}
+        # GE-3 "The Congress of Paris" (docs/ENDGAME_PLAN.md §2) — the ONE
+        # new serialized field: None until a great power signs a war-ending
+        # treaty with the player or the Congress is first summoned; then
+        # {status, number, summoned_turn, ends_turn, answers, strip, the
+        # latches, sweeteners, signed, …} (`backend/game_logic/congress.py`
+        # is its only writer besides the latch seams it names).
+        self.congress: Optional[Dict[str, Any]] = None
 
         self._apply_smoke_start_preset()
 
@@ -4517,6 +4536,11 @@ class WorldState:
             return False
 
         old_controller = region.controller
+        # GE-3: was it one of the bloc's TITLED provinces? Read before the
+        # controller changes (the capture overwrites what the kind reads).
+        # Dormant: False at once unless the Congress sits.
+        from backend.game_logic import congress as _congress
+        _was_titled = _congress.was_titled(self, region_name)
         region.controller = capturing_nation
         self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
@@ -4535,6 +4559,10 @@ class WorldState:
             old_controller, capturing_nation)
         _game_end.count_capture(self, old_controller, capturing_nation,
                                 region_name)
+        # GE-3: a capture by force — the hold's "no titled province lost"
+        # and the recognizers' flip-back (§2.4/§2.5).
+        _congress.note_capture(self, region_name, old_controller or "",
+                               capturing_nation, was_titled=_was_titled)
 
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation:
@@ -7116,7 +7144,9 @@ class WorldState:
                     break
                 defaulter = max(pensioners, key=lambda m: int(m.pension))
                 face = int(defaulter.pension)
-                refund = get_rente_cost(face)
+                # GE-3: the same per-man price the bill charged (the
+                # Congress's peace dividend included) — refund == charge.
+                refund = get_rente_cost(face, self, nation)
                 defaulter.pension = 0
                 self.nation_gold[nation] = self.nation_gold.get(nation, 0) + refund
                 # Shown = applied (Aug 2026 health-check audit): the charge
@@ -7760,6 +7790,9 @@ class WorldState:
             "endings": copy.deepcopy(getattr(self, "endings", []) or []),
             "campaign_totals": copy.deepcopy(getattr(self, "campaign_totals", {}) or {}),
             "province_title": copy.deepcopy(getattr(self, "province_title", {}) or {}),
+            # GE-3: the Congress (None until one exists).
+            "congress": (copy.deepcopy(self.congress)
+                         if isinstance(getattr(self, "congress", None), dict) else None),
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
@@ -8261,6 +8294,10 @@ class WorldState:
             for k, v in (data.get("province_title") or {}).items()
             if isinstance(v, dict)
         }
+        # GE-3: the Congress — a pre-GE-3 save carries none (None).
+        _congress = data.get("congress")
+        world.congress = (copy.deepcopy(dict(_congress))
+                          if isinstance(_congress, dict) else None)
 
         # ═══════ CORE GAME STATE ═══════
         # 1805 pre-slice item 3: omitted-key fallbacks read the WORLD'S OWN
@@ -12696,7 +12733,26 @@ class WorldState:
             # ════════════════════════════════════════════════════════════
             if getattr(marshal, 'occupation_region', None):
                 occ_region = marshal.occupation_region
-                if marshal.location != occ_region:
+                _occ = self.regions.get(occ_region)
+                _occ_holder = getattr(_occ, "controller", None) if _occ is not None else None
+                if (SIEGE_ENDS_WITH_THE_WAR and marshal.location == occ_region
+                        and _occ_holder and _occ_holder != marshal.nation
+                        and not self.is_at_war(marshal.nation, _occ_holder)):
+                    # GE-3 review #11: a siege does not outlive its war — a
+                    # court that signed the peace cannot complete the siege
+                    # the next advance and annex a province at PEACE.
+                    marshal.occupation_region = None
+                    marshal.occupation_turns_held = 0
+                    marshal.occupation_turns_required = 0
+                    events.append({
+                        "type": "occupation_abandoned",
+                        "marshal": marshal.name,
+                        "nation": marshal.nation,
+                        "region": occ_region,
+                        "message": (f"{marshal.name} lifts the siege of {occ_region} "
+                                    f"— the war that began it is over.")
+                    })
+                elif marshal.location != occ_region:
                     # Left the region — abandon occupation
                     marshal.occupation_region = None
                     marshal.occupation_turns_held = 0
@@ -14035,6 +14091,9 @@ class WorldState:
                                 cap_region.controller, marshal.nation,
                                 auto_charge_battle_region)
                             _charge_from = cap_region.controller or ""
+                            from backend.game_logic import congress as _cg
+                            _cg_titled = _cg.was_titled(
+                                self, auto_charge_battle_region)
                             cap_region.controller = marshal.nation
                             self.invalidate_active_nations_cache()
                             # GE-1: the one conquest outside
@@ -14048,6 +14107,10 @@ class WorldState:
                             _ge.count_capture(self, _charge_from,
                                               marshal.nation,
                                               auto_charge_battle_region)
+                            # GE-3: the mirrored capture latch.
+                            _cg.note_capture(self, auto_charge_battle_region,
+                                             _charge_from, marshal.nation,
+                                             was_titled=_cg_titled)
                             # IQ-2 review round: the one conquest in the game
                             # that logged NO region_captured row — so an AI
                             # reckless charge that took a French province left

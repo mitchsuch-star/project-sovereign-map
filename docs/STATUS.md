@@ -20,9 +20,13 @@
 > generals' death-odds memo, the exile story). ~~GE-2 "the client"~~
 > ✅ LANDED September 25, 2026 (block below — the end screen with its four
 > registers and the exile epilogue, the clock line on three surfaces from one
-> source, the driver arms that reach each ending). **▶ NEXT SLICE = GE-3
-> "The Congress of Paris"** (`ENDGAME_PLAN.md` §2 + §6 GE-3 row; the build
-> note = `docs/NEXT_SESSION_PROMPT.md`), then GE-V, the release build.
+> source, the driver arms that reach each ending). ~~GE-3 "The Congress of
+> Paris"~~ ✅ LANDED September 25, 2026 (block below — the summons, the
+> recognition table, the eight-turn sitting, THE IMPERIAL PEACE; the
+> Pressburg arm wins on 4 of 4 seeds, the Premature arm loses on 3 of 3, both
+> pinned DRIVEN; a 69-finding review round, all fixed). **▶ NEXT SLICE =
+> GE-V "the played campaign"** (`ENDGAME_PLAN.md` §6 GE-V row + §2.8; the
+> build note = `docs/NEXT_SESSION_PROMPT.md`), then the release build.
 > ⚠ Still open for the user, not for a session: the in-game feel of the end
 > screen's four registers (frames `docs/audits/IQ10_CAMPAIGN_END_*_2026_09_25.png`),
 > **GE-D2** (the Eagle-Falls driver arm reaches the death with NO Guard
@@ -32,6 +36,47 @@
 > is the user's ruling), the in-game feel of F3's six surfaces (frames
 > `docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
+>
+> **▶ ▶ GE-3 "THE CONGRESS OF PARIS" — ✅ LANDED September 25, 2026**
+> (landing record + review-round addendum = `ENDGAME_PLAN.md` §6 GE-3; rules
+> `SYSTEMS_REFERENCE.md` §66; pins `tests/test_congress_of_paris.py` (117),
+> `tests/test_congress_review_round.py` (118 — the review's findings by
+> number and the two arms DRIVEN through the real driver),
+> `tests/test_ge3_the_client.py` (9 — the client DRIVEN on the real
+> `main.tscn`)).
+> - **The mechanic.** `backend/game_logic/congress.py`, ONE serialized field
+>   `world.congress`. With 50 TITLED provinces the Emperor summons the
+>   Congress (`summon the congress` or the Cabinet's step-1 row: 2 DP + 1
+>   administrative action, and every rente ×1.5 from that end turn — priced on
+>   the summons). Every great power answers every turn on a public table —
+>   RECOGNIZES / REFUSES / SUES / SHUT OUT / GONE — with its reason and its
+>   PRICE (each lever the formula's own move when applied). The sitting lasts
+>   eight turns under a seven-condition HOLD; refusal has teeth (the refuser's
+>   intent, the coalition's gate at 40, the War of the Congress, London's
+>   purse), the marshals and satellites present their bills; on the eighth
+>   turn with every court signed, shut out or gone → THE IMPERIAL PEACE (the
+>   gold card GE-2 declared). Otherwise it dissolves (alarm, a cooldown, the
+>   refusers' grudge, the marshals' expectation) and can be summoned again.
+>   E1: no great power left → the Universal Monarchy.
+> - **The arms (§2.8), staged and DRIVEN:** Pressburg (turn 28, 55 titled) →
+>   THE IMPERIAL PEACE on turn 36, ascendant, on historical / ulm /
+>   austerlitz / marengo; Premature (exactly 50 on turn 1) → dissolved on
+>   turns 4–6 on 3 of 3 seeds. The played reach from the boot is GE-V's.
+> - **The review round (69 findings, all fixed; `BUG_FIXES.md` §GE-3 Review
+>   Round).** The P1s: a treaty latch that pre-signed the ending for any peace
+>   at any time (now only a peace signed while it sits, or a beaten court's);
+>   the Congress marching courts that had signed (now spared while it sits);
+>   a siege completed after the peace (`SIEGE_ENDS_WITH_THE_WAR`, every
+>   nation); pressure readers reading last tick's answers (now live); a
+>   marshal's order that mentioned the summons making it (now read only at the
+>   head of a line); the Pressburg fixture unable to win.
+> - **Gates:** ruff clean; the sweep `tools/_sweep_ge3.json` 0 INERT at close;
+>   the parse harness EXIT=0 and 0 SCRIPT ERROR on the driven client; IQ-10
+>   frames `IQ10_*CONGRESS*_2026_09_25.png`; `BASELINE_SERIES` and M1–M7
+>   byte-identical (no re-record — the arms count 0 Congress writes on the
+>   ambient board); the full suite green in the hook.
+> - ⚠ **Open for the user:** the in-game feel of the Congress's surfaces;
+>   GE-D1 and GE-D2 (unchanged).
 >
 > **▶ ▶ GE-2 "THE CLIENT" — ✅ LANDED September 25, 2026** (landing record
 > = `ENDGAME_PLAN.md` §6 GE-2; rules `SYSTEMS_REFERENCE.md` §65; pins

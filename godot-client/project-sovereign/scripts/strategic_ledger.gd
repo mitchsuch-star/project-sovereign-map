@@ -242,6 +242,32 @@ func _fall_clock_lines() -> String:
 	return bbcode
 
 
+func _congress_clock_line() -> String:
+	# GE-3 (ENDGAME_PLAN §4, the clock line): the Congress of Paris — the
+	# gate before a summons ("THE CONGRESS OF PARIS — 43 of 50 titled …"),
+	# the sitting's turn and table while it sits, the cooldown after a
+	# dissolution. The backend's ONE line (`congress.state_line` — the same
+	# words the war room and the end-turn banner print); its `severity` picks
+	# the tint. Absent on a world whose ending is not authored, and after the
+	# Imperial Peace: the tab is the pre-GE-3 tab exactly.
+	var clock = cached_data.get("congress_clock", null)
+	if not (clock is Dictionary):
+		return ""
+	var line = clock.get("line", "")
+	if not (line is String) or line == "":
+		return ""
+	var severity = clock.get("severity", "gate")
+	var tint := Utils.COLOR_GOLD
+	if severity is String:
+		if severity == "critical":
+			tint = Utils.COLOR_ERROR
+		elif severity == "warning":
+			tint = Utils.COLOR_BATTLE
+		elif severity == "paused":
+			tint = Utils.COLOR_DIMMED
+	return "[color=#" + tint + "]" + line + "[/color]\n\n"
+
+
 func _render_current_tab():
 	if cached_data.is_empty():
 		return
@@ -378,6 +404,7 @@ func _render_territories():
 	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The provinces of the Empire — who holds each, what it pays, how quietly it sits under you.[/color]\n\n"
 	bbcode += _collapse_note_line()
 	bbcode += _fall_clock_lines()
+	bbcode += _congress_clock_line()
 
 	if territories.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No territories controlled.[/color]\n"

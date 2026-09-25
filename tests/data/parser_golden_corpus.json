@@ -6071,6 +6071,225 @@
       "mock_only": true,
       "source": "tests/test_first_contact_keyless.py",
       "notes": "First contact: 'is X strong' is the how_many strength answer. The question mark keeps it a question under BOTH arms of the CX-1 lever (the corpus is measured with the lever down too)."
+    },
+    {
+      "id": "ge3-summon-the-congress",
+      "utterance": "summon the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress",
+        "target": null,
+        "strategic_type": null
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "The typed summons (§2.3). Unparseable before GE-3 ('Unknown action'). At boot the executor refuses it on the titled gate at no cost — the parse is what this row pins."
+    },
+    {
+      "id": "ge3-summon-the-congress-of-paris",
+      "utterance": "Summon the Congress of Paris",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress",
+        "target": null,
+        "strategic_type": null
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "'of Paris' is the Congress's name, never a march target: the route rides the Cabinet's diplomatic early return, so no region scan and no strategic upgrade ever reads it."
+    },
+    {
+      "id": "ge3-convene-the-congress",
+      "utterance": "convene the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "The summons' verb family: summon / convene / call — never 'hold', which is the sitting's own word and a marshal's order."
+    },
+    {
+      "id": "ge3-call-the-congress",
+      "utterance": "call the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "ge3-i-summon-the-congress",
+      "utterance": "I summon the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "The first person is the Emperor speaking, not an addressee (clause_guards: 'I' is never an address)."
+    },
+    {
+      "id": "ge3-emperor-summon-the-congress",
+      "utterance": "Emperor, summon the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "ge3-talleyrand-summon-the-congress",
+      "utterance": "Talleyrand, summon the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "summon_congress",
+        "not_action": "diplomatic_proposal"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "REGRESSION PIN: before GE-3 the Talleyrand route swallowed this whole and opened a nation-less PROPOSAL. The Congress route is sited above it."
+    },
+    {
+      "id": "ge3-question-can-we-summon",
+      "utterance": "can we summon the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "A QUESTION FAILS CLOSED — the strong clause_guards.is_question on what was typed; it is answered (the gate terms) and never summons."
+    },
+    {
+      "id": "ge3-question-should-we-summon",
+      "utterance": "should we summon the congress?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "ge3-question-could-i-convene",
+      "utterance": "could I convene the congress",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "No question mark: the first-person subject after the modal lead is what makes it a question."
+    },
+    {
+      "id": "ge3-question-talleyrand-should-we-summon",
+      "utterance": "Talleyrand, should we summon the congress?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "A question put to the foreign minister is answered at the same desk (the gate terms) — never the summons, and never \"Did you mean 'Ney'?\": the parser reads the minister as the desk's addressee."
+    },
+    {
+      "id": "ge3-negation-dont-summon",
+      "utterance": "don't summon the congress",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "PARSE-NEG refuses it before the Congress route reads a word."
+    },
+    {
+      "id": "ge3-negation-do-not-summon",
+      "utterance": "do not summon the congress",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "summon_congress"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "ge3-sweetener-offer-prussia",
+      "utterance": "offer Prussia 1000 gold for recognition",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recognition_sweetener",
+        "target": "Prussia"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "§2.4's sweetener. The court rides target; the GOLD stays in the raw text, where the executor scans it (the buy-off idiom). Refused at boot ('summon the Congress first') at no cost."
+    },
+    {
+      "id": "ge3-sweetener-offer-gold-to-austria",
+      "utterance": "offer 2000 gold to Austria for recognition",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recognition_sweetener",
+        "target": "Austria"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "ge3-sweetener-pay-russia",
+      "utterance": "pay Russia 1500 gold to recognize the congress",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recognition_sweetener",
+        "target": "Russia"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "Names the Congress and is a PAYMENT, never a summons — the sweetener is read first."
+    },
+    {
+      "id": "ge3-sweetener-sweeten-prussia",
+      "utterance": "sweeten Prussia with 1000 gold",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recognition_sweetener",
+        "target": "Prussia"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "ge3-sweetener-talleyrand-offer",
+      "utterance": "Talleyrand, offer Prussia 1000 gold for recognition",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recognition_sweetener",
+        "target": "Prussia",
+        "not_action": "diplomatic_proposal"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "REGRESSION PIN: the Talleyrand route read this as a proposal to Prussia before GE-3."
+    },
+    {
+      "id": "ge3-question-can-we-offer-sweetener",
+      "utterance": "can we offer Prussia 1000 gold for recognition",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "recognition_sweetener"
+      },
+      "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
+      "notes": "A sweetener question fails closed exactly like a summons question — answered, nothing paid."
     }
   ]
 }

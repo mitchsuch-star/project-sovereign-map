@@ -1200,6 +1200,11 @@ def record_vassal_break(
     board it is the exit BOTH big satellites take, because they cascade-joined
     France's war and hit the war-instance side conflict.
     """
+    # GE-3 §2.5: a satellite breaking free during the Congress breaks the
+    # hold — latched here, ahead of the briefing lever, so every exit counts
+    # whatever the rail says (dormant when no Congress sits).
+    from backend.game_logic.congress import note_rebellion as _congress_rebellion
+    _congress_rebellion(world, vassal, lord)
     if not THE_BREAK_IS_BRIEFED_TRUTHFULLY:
         return
     from backend.game_logic.dispatch import queue_dispatch_event
@@ -2305,6 +2310,48 @@ def _bond_step(relation: int) -> int:
     return max(0, min(PETITION_RELATION_STEP, PETITION_BOND_CAP - int(relation)))
 
 
+# ─── GE-3 §2.5: the Congress doubles a client petition's loyalty stakes ────
+#
+# While the Congress of Paris sits for the lord (`congress.petition_stakes`,
+# ×2 for the summoner, ×1 everywhere else and whenever no Congress sits) a
+# client's petition carries DOUBLE LOYALTY STAKES both ways: a refusal (or a
+# lapse, which is a refusal) costs twice the loyalty, and a granted RELIEF
+# gains twice the loyalty. Read LIVE at every site that prices or charges
+# (the subject builder, `_price_petition`, `grant_petition`,
+# `refuse_petition`, `lapse_forecast`), so quote == applied. Deliberately
+# NOT multiplied: the bond (relation) step — the stakes are the client's
+# LOYALTY — and a PROVINCE grant's gain, which is VS-3's own worth-scaled
+# figure applied by `grant_region_to_vassal` for every road that cedes land
+# (the typed `cede`, the F1 wizard), not a petition price. Dormant: ×1.
+
+def _petition_stakes(world, lord: Optional[str]) -> int:
+    from backend.game_logic import congress
+    return max(1, int(congress.petition_stakes(world, lord)))
+
+
+def _refusal_loyalty(world, lord: Optional[str]) -> int:
+    """The loyalty a refused or lapsed petition costs, before the floor
+    clamp: PETITION_REFUSAL_LOYALTY × the Congress's stakes."""
+    return int(PETITION_REFUSAL_LOYALTY) * _petition_stakes(world, lord)
+
+
+def _relief_gain_raw(world, lord: Optional[str]) -> int:
+    """The loyalty a granted relief is worth, before the ceiling clamp:
+    PETITION_RELIEF_LOYALTY blunted by the lord's grip (exactly as invest
+    is), × the Congress's stakes."""
+    return (int(PETITION_RELIEF_LOYALTY * get_authority_lever_multiplier(world, lord))
+            * _petition_stakes(world, lord))
+
+
+def _stakes_clause(world, lord: Optional[str]) -> str:
+    """' (×2 while the Congress of Paris sits)' while the stakes are raised,
+    else '' (dormant copy byte-identical)."""
+    stakes = _petition_stakes(world, lord)
+    if stakes <= 1:
+        return ""
+    return f" (×{stakes} while the Congress of Paris sits)"
+
+
 # `modify_nation_relation` clamps every relation to this band; the refusal's
 # quoted step and after-figure are computed through the same clamp so a
 # client at −90 is quoted the −10 it will actually lose, not −20.
@@ -2393,8 +2440,8 @@ def petition_subject(world, vassal_name: str) -> Optional[dict]:
                 "tribute_per_turn": int(tribute),
                 "collections": int(REMISSION_COLLECTIONS),
                 "price": int(tribute * REMISSION_COLLECTIONS),
-                "loyalty_gain": int(PETITION_RELIEF_LOYALTY
-                                    * get_authority_lever_multiplier(world, lord)),
+                # GE-3: × the Congress's stakes (`_relief_gain_raw`).
+                "loyalty_gain": int(_relief_gain_raw(world, lord)),
                 "forecast": int(forecast.get("forecast", 0)),
             }
     return None
@@ -2633,7 +2680,13 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
     relation_after_refusal = max(_RELATION_FLOOR, relation - PETITION_RELATION_STEP)
     refusal_step_applied = relation - relation_after_refusal
     standing_after_refusal = _standing(relation_after_refusal)
-    refusal_loyalty_applied = loyalty - max(LOYALTY_MIN, loyalty - PETITION_REFUSAL_LOYALTY)
+    # GE-3 §2.5: the Congress's stakes (×2 while it sits for the lord) —
+    # the same `_refusal_loyalty` `refuse_petition` charges and
+    # `lapse_forecast` forecasts, so the quote is the charge.
+    stakes = _petition_stakes(world, lord)
+    stakes_clause = _stakes_clause(world, lord)
+    refusal_loyalty = _refusal_loyalty(world, lord)
+    refusal_loyalty_applied = loyalty - max(LOYALTY_MIN, loyalty - refusal_loyalty)
     vassal_display = _court_name(world, vassal_name)
     lord_display = _court_name(world, lord)
     vassal_the = _court_name(world, vassal_name, article=True)
@@ -2654,7 +2707,8 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
         terms["tribute_per_turn"] = tribute
         terms["collections"] = int(REMISSION_COLLECTIONS)
         terms["price"] = int(tribute * REMISSION_COLLECTIONS)
-        gain_raw = int(PETITION_RELIEF_LOYALTY * get_authority_lever_multiplier(world, lord))
+        # GE-3: × the Congress's stakes — `grant_petition` applies the same.
+        gain_raw = int(_relief_gain_raw(world, lord))
         terms["forecast"] = int(forecast_vassal_loyalty(world, lord, vassal_name)
                                 .get("forecast", 0))
         design_note = ""
@@ -2671,8 +2725,9 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
         "loyalty_gain": int(gain),
         "loyalty_gain_raw": int(gain_raw),
         "loyalty_full": bool(gain_raw > 0 and gain <= 0 and loyalty >= LOYALTY_MAX),
-        "refusal_loyalty": int(PETITION_REFUSAL_LOYALTY),
+        "refusal_loyalty": int(refusal_loyalty),
         "refusal_loyalty_applied": int(refusal_loyalty_applied),
+        "loyalty_stakes": int(stakes),
         "relation_now": int(relation),
         "relation_step": int(step),
         "relation_after_grant": int(relation_after_grant),
@@ -2700,6 +2755,9 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
         loyalty_clause = "loyalty +0 (its loyalty is already full)"
     elif gain < gain_raw:
         loyalty_clause = f"loyalty +{gain} (to the 100 ceiling)"
+    elif kind != "province":
+        # GE-3: a relief's gain carries the Congress's stakes — say so.
+        loyalty_clause += stakes_clause
     bond_refuse = (f"its bond with us falls {refusal_step_applied} "
                    f"({relation} → {relation_after_refusal}: worth "
                    f"{standing_after_refusal:+d} a turn in loyalty, now "
@@ -2731,14 +2789,15 @@ def _price_petition(world, lord: str, vassal_name: str, subject: dict, *,
             f"{loyalty_clause}, {bond_grant}, for {terms['dp_cost']} DP.")
     if not fulfilled:
         terms["refuse_line"] = (
-            f"Refuse it, and {vassal_the} loses {refusal_loyalty_applied} loyalty "
-            f"and {bond_refuse}; nothing is charged.")
+            f"Refuse it, and {vassal_the} loses {refusal_loyalty_applied} loyalty"
+            f"{stakes_clause} and {bond_refuse}; nothing is charged.")
         if AN_UNANSWERED_PETITION_IS_REFUSED:
             terms["lapse_line"] = (
                 "Left unanswered at the turn's end, the petition lapses — and a "
                 "lapse is a refusal.")
             terms["lapse_price_line"] = (
-                f"A lapse costs {vassal_the} {refusal_loyalty_applied} loyalty and "
+                f"A lapse costs {vassal_the} {refusal_loyalty_applied} loyalty"
+                f"{stakes_clause} and "
                 f"{refusal_step_applied} bond — the same as a refusal.")
         else:
             terms["lapse_line"] = (
@@ -3091,7 +3150,8 @@ _GATE_COPY = {
 
 
 def _petition_gate(world, lord: str, vassal_name: str, *, turn: int,
-                   projected: bool, disrupted=None) -> tuple:
+                   projected: bool, disrupted=None,
+                   waive_timing: bool = False) -> tuple:
     """Gates (a)–(g) in the producer's own order. Returns
     `(reason_key, turns_until, terms)`: `reason_key` is the FIRST failing
     gate ("eligible" when none fails), `turns_until` the number of END TURNS
@@ -3107,6 +3167,13 @@ def _petition_gate(world, lord: str, vassal_name: str, *, turn: int,
     ask comes at the (r+1)th end turn — the [20] off-by-one), and gate (e)
     is skipped because DP regenerates BEFORE the producer runs (a card that
     read today's spent DP would forecast a block the advance never sees).
+
+    GE-3 `waive_timing=True` (`present_pending_asks`, the summons of the
+    Congress of Paris): the TIMED gates (b) grace and (c) cadence are waived
+    — a satellite with a pending ask presents it at the summons whatever
+    its clock. Every other gate holds except (e), which the summons also
+    waives (see `present_pending_asks` for why); (f) a standing remission
+    is DATA, not a clock, and still blocks.
     """
     row = (getattr(world, "vassals", {}) or {}).get(vassal_name)
     if not row or str(row.get("lord") or "") != lord:
@@ -3124,9 +3191,9 @@ def _petition_gate(world, lord: str, vassal_name: str, *, turn: int,
     remission = int(row.get("remission_left", 0) or 0)
     remission_n = 0 if remission <= 0 else (remission + 1 if projected else remission)
     timed = max(0, grace_n, cadence_n, remission_n)
-    if grace_n > threshold:
+    if grace_n > threshold and not waive_timing:
         return ("grace", timed, None)
-    if cadence_n > threshold:
+    if cadence_n > threshold and not waive_timing:
         return ("cadence", timed, None)
     # (d) no disrupted province
     if disrupted is None:
@@ -3134,7 +3201,9 @@ def _petition_gate(world, lord: str, vassal_name: str, *, turn: int,
     if any(r in disrupted for r in world.get_nation_regions(vassal_name)):
         return ("disrupted", timed, None)
     # (e) the lord can pay — the producer's live read; skipped by the card
-    if not projected and _dp_available(world, lord) < PETITION_DP_COST:
+    # and at the Congress's summons (`waive_timing`, see present_pending_asks)
+    if (not projected and not waive_timing
+            and _dp_available(world, lord) < PETITION_DP_COST):
         return ("dp", timed, None)
     # (f) no remission standing
     if remission_n > threshold:
@@ -3406,8 +3475,8 @@ def grant_petition(world, vassal_name: str, lord: str, petition: dict) -> dict:
                                f"{PETITION_DP_COST} DP to grant it, or refuse it.")
             return _withdrawn(f"{ld_cap} cannot spare the diplomatic point — the "
                               f"petition is withdrawn.")
-        gain_raw = int(PETITION_RELIEF_LOYALTY
-                       * get_authority_lever_multiplier(world, lord))
+        # GE-3: × the Congress's stakes — the figure `_price_petition` quoted.
+        gain_raw = int(_relief_gain_raw(world, lord))
         row["loyalty"] = int(min(LOYALTY_MAX, loyalty_before + gain_raw))
         row["remission_left"] = int(REMISSION_COLLECTIONS)
         remitted_price = int(tribute_now * REMISSION_COLLECTIONS)
@@ -3514,8 +3583,10 @@ def refuse_petition(world, vassal_name: str, lord: str, petition: dict,
     loyalty_before = int(row.get("loyalty", 0) or 0)
     relation_before = _lord_relation(world, vassal_name, lord)
     if penalty:
+        # GE-3: × the Congress's stakes — the figure `_price_petition` and
+        # `lapse_forecast` quoted (`_refusal_loyalty`, read live).
         row["loyalty"] = int(max(LOYALTY_MIN,
-                                 loyalty_before - PETITION_REFUSAL_LOYALTY))
+                                 loyalty_before - _refusal_loyalty(world, lord)))
         world.modify_nation_relation(vassal_name, lord, -PETITION_RELATION_STEP)
     loyalty_after = int(row.get("loyalty", 0) or 0)
     relation_after = _lord_relation(world, vassal_name, lord)
@@ -3595,12 +3666,78 @@ def lapse_forecast(world, vassal_name: str, lord: str, petition: dict) -> dict:
                               f"{PETITION_INTERVAL_TURNS} turns before asking again."}
     loyalty = int(row.get("loyalty", 0) or 0)
     relation = _lord_relation(world, vassal_name, lord)
-    loyalty_loss = loyalty - max(LOYALTY_MIN, loyalty - PETITION_REFUSAL_LOYALTY)
+    # GE-3: × the Congress's stakes — the same `_refusal_loyalty` the lapse
+    # charges through `refuse_petition` (forecast == applied).
+    loyalty_loss = loyalty - max(LOYALTY_MIN, loyalty - _refusal_loyalty(world, lord))
     bond_loss = relation - max(_RELATION_FLOOR, relation - PETITION_RELATION_STEP)
+    stakes = _petition_stakes(world, lord)
+    raised = (f"; the loyalty stakes are ×{stakes} while the Congress of "
+              f"Paris sits" if stakes > 1 else "")
     return {**base, "outcome": "refused", "penalised": True,
             "loyalty_loss": int(loyalty_loss), "bond_loss": int(bond_loss),
             "price_line": (f"{vd_cap} — −{loyalty_loss} loyalty / −{bond_loss} bond "
-                           f"(a lapse is a refusal)")}
+                           f"(a lapse is a refusal{raised})")}
+
+
+def client_petition_notice(sender: str, petition: dict) -> tuple:
+    """The rail row a client petition raises on arrival — (title, body).
+    IQ-7 review R8(a): the rail is the ONE surface every player sees on
+    arrival, so it states the rule and the price the lapse applies, from the
+    petition's own terms (the SAME figures `refuse_petition` charges), gated
+    on the lever so the lever-down copy stays honest ("costs nothing")."""
+    from backend.display_names import with_definite_article
+    petition = petition if isinstance(petition, dict) else {}
+    dp = int(petition.get("dp_cost", 1) or 1)
+    if bool(petition.get("lapse_counts_as_refusal", AN_UNANSWERED_PETITION_IS_REFUSED)):
+        loy = int(petition.get("refusal_loyalty", 10) or 10)
+        rel = int(petition.get("relation_refusal_step", 20) or 20)
+        stakes = int(petition.get("loyalty_stakes", 1) or 1)
+        raised = (f" (×{stakes} while the Congress of Paris sits)" if stakes > 1 else "")
+        lapse = (f"Left unanswered it counts as a refusal: −{loy} "
+                 f"loyalty{raised}, −{rel} bond.")
+    else:
+        lapse = (str(petition.get("lapse_line") or "").strip()
+                 or "Left unanswered it lapses at the end of the turn.")
+    who = with_definite_article(sender)
+    return (f"Petition from {who}",
+            f"An envoy from {who} has arrived with a petition. Grant it (keep "
+            f"{dp} DP in hand), or refuse it — it lapses at the end of the "
+            f"turn. {lapse}")
+
+
+def restate_petition_notices(world, lord: str) -> int:
+    """GE-3 review #37: re-state every desk petition's rail row at its LIVE
+    stakes — the summons doubles the lapse's loyalty cost and the
+    dissolution halves it, and the row had kept the figure it was issued
+    with (the end-turn gate, reading `lapse_forecast`, contradicted it).
+    Mutates the standing row in place (its id, so no second bell). Returns
+    the rows re-stated."""
+    dm = getattr(world, "dialogue_manager", None)
+    collector = getattr(world, "notifications", None)
+    if dm is None or collector is None:
+        return 0
+    from backend.game_logic.formations import formed_display_name
+    restated = 0
+    for d in [dm.peek()] + list(dm.iter_queue()):
+        if not isinstance(d, dict) or not is_client_petition(d):
+            continue
+        vassal, petition_lord = _petition_dialogue_parties(world, d)
+        if not vassal or petition_lord != lord:
+            continue
+        terms = (d.get("context") or {}).get("proposal") or {}
+        petition = terms.get("petition") if isinstance(terms, dict) else None
+        if not isinstance(petition, dict):
+            continue
+        live = dict(petition)
+        live["refusal_loyalty"] = int(_refusal_loyalty(world, lord))
+        live["loyalty_stakes"] = int(_petition_stakes(world, lord))
+        title, body = client_petition_notice(formed_display_name(world, vassal), live)
+        for row in collector.get_pending():
+            if row.get("type") == "diplomatic_proposal" and (
+                    row.get("base_title") or row.get("title")) == title:
+                row["message"] = body
+                restated += 1
+    return restated
 
 
 def lapsing_petitions(world, lord: str) -> List[dict]:
@@ -3656,7 +3793,6 @@ def process_vassal_petitions(world) -> List[dict]:
         return []
     events: List[dict] = []
     turn = int(getattr(world, "current_turn", 0) or 0)
-    player = getattr(world, 'player_nation', 'France')
     disrupted = world.get_disrupted_regions()
     asked_lords: set = set()
 
@@ -3672,64 +3808,137 @@ def process_vassal_petitions(world) -> List[dict]:
         if key != "eligible" or terms is None:
             continue
 
-        row["petitioned_turn"] = int(turn)
         asked_lords.add(lord)
+        event = _issue_petition(world, vassal_name, lord, terms)
+        if event is not None:
+            events.append(event)
+    return events
 
-        if lord == player:
-            from backend.game_logic.ai_diplomacy import deliver_ai_proposal
-            deliver_ai_proposal({
-                "source": vassal_name,
-                "recipient": lord,
-                "proposal_type": CLIENT_PETITION_TYPE,
-                "terms": {
-                    "type": CLIENT_PETITION_TYPE,
-                    "proposer_nation": vassal_name,
-                    "target_nation": lord,
-                    "demands": [],
-                    "sweeteners": [],
-                    "petition": terms,
-                },
-                "talleyrand_assessment": (
-                    f"{terms['grant_line']} {terms['refuse_line']}"),
-                "decision_reason": "client_petition",
-                "_force_send": True,
-            }, world)
-            continue
 
-        # GR5 — an AI lord answers in place: no dialogue, notification or
-        # mailbox. It grants what it can pay for, unless the province lies
-        # in its own active acquire design.
-        grant = True
-        if terms["subject"] == "province":
-            from backend.game_logic.agendas import get_active_agenda
-            view = get_active_agenda(lord, world)
-            if (view is not None and not view.survival
-                    and view.type == "acquire_regions"
-                    and terms["region"] in set(view.regions)):
-                grant = False
-        if grant:
-            result = grant_petition(world, vassal_name, lord, terms)
-            # An AI lord has no turn to let a petition STAND through (R2's
-            # outcome for a lord who cannot make good on a Grant); GR5
-            # maps it to the refusal at the same price the player would pay.
-            if str(result.get("outcome") or "") == "stands":
-                result = refuse_petition(world, vassal_name, lord, terms,
-                                         how="refused")
-        else:
+def _issue_petition(world, vassal_name: str, lord: str, terms: dict) -> Optional[dict]:
+    """The producer's issuing block — ONE road for a petition to go out,
+    shared by `process_vassal_petitions` (the end turn) and
+    `present_pending_asks` (the Congress's summons, GE-3). The cadence is
+    stamped whatever the answer; the player lord receives it through the
+    incoming-proposal transport (returns None — the executor logs the
+    answer); an AI lord answers in place (GR5 — grant when payable, unless
+    the province lies in the lord's OWN active acquire design; otherwise
+    refuse, at the same prices) and the `client_petition_answered` event
+    dict is returned."""
+    row = world.vassals[vassal_name]
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    player = getattr(world, 'player_nation', 'France')
+    row["petitioned_turn"] = int(turn)
+
+    if lord == player:
+        from backend.game_logic.ai_diplomacy import deliver_ai_proposal
+        deliver_ai_proposal({
+            "source": vassal_name,
+            "recipient": lord,
+            "proposal_type": CLIENT_PETITION_TYPE,
+            "terms": {
+                "type": CLIENT_PETITION_TYPE,
+                "proposer_nation": vassal_name,
+                "target_nation": lord,
+                "demands": [],
+                "sweeteners": [],
+                "petition": terms,
+            },
+            "talleyrand_assessment": (
+                f"{terms['grant_line']} {terms['refuse_line']}"),
+            "decision_reason": "client_petition",
+            "_force_send": True,
+        }, world)
+        return None
+
+    # GR5 — an AI lord answers in place: no dialogue, notification or
+    # mailbox. It grants what it can pay for, unless the province lies
+    # in its own active acquire design.
+    grant = True
+    if terms["subject"] == "province":
+        from backend.game_logic.agendas import get_active_agenda
+        view = get_active_agenda(lord, world)
+        if (view is not None and not view.survival
+                and view.type == "acquire_regions"
+                and terms["region"] in set(view.regions)):
+            grant = False
+    if grant:
+        result = grant_petition(world, vassal_name, lord, terms)
+        # An AI lord has no turn to let a petition STAND through (R2's
+        # outcome for a lord who cannot make good on a Grant); GR5
+        # maps it to the refusal at the same price the player would pay.
+        if str(result.get("outcome") or "") == "stands":
             result = refuse_petition(world, vassal_name, lord, terms,
                                      how="refused")
-        events.append({
-            "type": "client_petition_answered",
-            "vassal": vassal_name,
-            "lord": lord,
-            # `nation` keys the dispatch relevance filter — the lord's.
-            "nation": lord,
-            "subject": terms["subject"],
-            "region": terms.get("region"),
-            "outcome": str(result.get("outcome") or ""),
-            "message": str(result.get("message") or ""),
-        })
-    return events
+    else:
+        result = refuse_petition(world, vassal_name, lord, terms,
+                                 how="refused")
+    return {
+        "type": "client_petition_answered",
+        "vassal": vassal_name,
+        "lord": lord,
+        # `nation` keys the dispatch relevance filter — the lord's.
+        "nation": lord,
+        "subject": terms["subject"],
+        "region": terms.get("region"),
+        "outcome": str(result.get("outcome") or ""),
+        "message": str(result.get("message") or ""),
+    }
+
+
+def present_pending_asks(world, lord: str) -> List[str]:
+    """GE-3 §2.3 — "every satellite with a pending ask presents it" at the
+    summons of the Congress of Paris. Returns the vassals that presented a
+    petition NOW (sorted), for the summons' own report.
+
+    For every satellite of `lord`, in `sorted(world.vassals)` order: the
+    IQ-7 gate (`_petition_gate`) with `waive_timing=True`, and each eligible
+    ask goes out through the producer's own issuing block
+    (`_issue_petition`), which stamps `petitioned_turn` — so the end-turn
+    producer skips these clients by cadence and nobody is asked twice.
+
+    Deliberate waivers, recorded:
+    - the TIMED gates (b) grace and (c) cadence: the summons is the moment
+      the bills come due, whatever each client's clock says;
+    - the producer's ONE-PETITION-PER-LORD rule: at the summons every
+      client with an ask presents it at once — that is the bill, and it is
+      the player's own act that calls them in;
+    - gate (e), the lord can pay the DP. `congress.summon` presents the
+      bills BEFORE the executor charges the summons' 2 DP, so the live read
+      would be of a purse the summons is about to spend; and with the
+      one-per-lord rule waived a per-client read of one purse proves
+      nothing (N asks, one DP). THE_LORD_PAYS_TO_GRANT already makes a
+      DP-short Grant STAND (nothing charged, nothing consumed) rather than
+      withdraw, and a refusal costs no DP — so every ask presented has an
+      answer with a stated price. The summons is the Emperor's choice of
+      moment; keeping DP in hand for the bills is part of the preparation.
+    A client whose petition is already ON THE DESK (issued at the last end
+    turn, unanswered) is not asked again. (f) a standing remission, (a) the
+    standing to petition, (d) a disrupted province and (g) a subject all
+    hold. Dormant where petitions are not live (the lever, the School).
+    """
+    if not petitions_live(world):
+        return []
+    vassals = getattr(world, "vassals", None) or {}
+    if not vassals or not lord:
+        return []
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    disrupted = world.get_disrupted_regions()
+    presented: List[str] = []
+    for vassal_name in sorted(vassals):
+        row = vassals.get(vassal_name)
+        if not row or str(row.get("lord") or "") != lord:
+            continue
+        if petition_on_the_desk(world, vassal_name, lord):
+            continue
+        key, _turns, terms = _petition_gate(world, lord, vassal_name, turn=turn,
+                                            projected=False, disrupted=disrupted,
+                                            waive_timing=True)
+        if key != "eligible" or terms is None:
+            continue
+        _issue_petition(world, vassal_name, lord, terms)
+        presented.append(vassal_name)
+    return presented
 
 
 # ─── IQ-7 R3: the Garrison option, in one voice ────────────────────────────
@@ -4768,6 +4977,10 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
                 "briber": nation,
                 "outcome": outcome,
             })
+        # GE-3: a satellite bought away during the Congress breaks the hold
+        # (both outcomes — the transfer never passes `record_vassal_break`).
+        from backend.game_logic.congress import note_rebellion as _congress_lost
+        _congress_lost(world, vassal_name, lord, defected_to=nation)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(
             world, "diplomatic_vassal_defected",

@@ -69,6 +69,33 @@ A_LOST_SATELLITE_CAN_LEAD = True      # FA-38
 IDLE_NUDGE_READS_THE_LIVE_MISSION = True   # IQ-4 review: a completed mission record no longer silences Talleyrand's idle nudge
 
 HEADLINE_WEIGHTS: Dict[str, int] = {
+    # ── GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.5 beats 1–4) ───────
+    # Beat 4, the eighth turn: THE IMPERIAL PEACE (or E1, the Universal
+    # Monarchy) — the campaign's victory, the gravest news the page can
+    # carry that is not a death. It stands ALONE (below, beside
+    # `sovereign_dead`). The two cannot share a page: `record_ending`
+    # refuses a second ending once a terminal one has closed the war.
+    "imperial_peace": 103,
+    # Beat 1, the summons: an act of state the player chose, above every
+    # triumph (a stormed capital is one court; the summons is Europe).
+    "congress_summoned": 94,
+    # The dissolution ends the sitting: graver than a refuser's cannon on
+    # the same page (the war outlives the Congress; the Congress does not
+    # outlive the dissolution). One above `congress_war`, deliberately —
+    # the plan's "~86" would let a same-turn declaration bury the end.
+    "congress_dissolved": 89,
+    # Beat 2, the War of the Congress: a refuser marches. A wound to the
+    # sitting, below a broken corps of our own (at equal scale the wound to
+    # our own body still leads).
+    "congress_war": 88,
+    # A signature taken back — the hold is not broken, but the eighth turn
+    # now reads one court short. Above a routine lost province (75): it
+    # costs the ending, not a province.
+    "congress_withdrawn": 77,
+    # Beat 3, a recognition won; and beat 2's fore-warning one turn ahead of
+    # the cannon (the price is named while it can still be paid).
+    "congress_recognized": 71,
+    "congress_warning": 70,
     # GE-1 "The Eagle Falls" (Sept 25, 2026): the Emperor killed at the head
     # of his corps — the one event graver than his capture. Added ABOVE
     # `sovereign_captured` rather than renumbering it (its 101 is pinned).
@@ -348,6 +375,18 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
 }
 
 _HEADLINE_TEMPLATES: Dict[str, str] = {
+    # GE-3 (ENDGAME_PLAN §2.5 beats 1–4). Composed backend-side (the
+    # `war_touches_us` idiom) because each line's shape varies with the
+    # live table: who refuses today, the reason a Congress broke, the courts
+    # that signed the peace. Seats are the metonyms the table uses
+    # (`congress.seat`) — "Vienna answers the Congress with cannon".
+    "imperial_peace": "{line}",
+    "congress_summoned": "Sire — {line}",
+    "congress_dissolved": "Sire — {line}",
+    "congress_war": "Sire — {line}",
+    "congress_withdrawn": "Sire — {line}",
+    "congress_recognized": "Sire — {line}",
+    "congress_warning": "Sire — {line}",
     # NP-4: Berthier writes to the imperial government the cell cannot
     # reach — the style holds (the campaign log's chronicle rule is
     # untouched; this is the staff's own dispatch).
@@ -541,6 +580,17 @@ def _crisis_cause_headline(cause: str) -> str:
 
 # Headline-aware Berthier closing notes (W6-3 §5.4) — one per class.
 _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
+    # GE-3: every note is true for every instance of its class, and closes
+    # on the decision the beat creates (the table's rule since WO-D6).
+    # True of both routes: a Europe that signed, and E1's Europe with no
+    # great power left to sign.
+    "imperial_peace": "The order is made, Sire, and no court stands against it. What remains is to reign — and to keep it.",
+    "congress_summoned": "The powers have been asked, Sire; every turn now is an answer. Hold what we have, and declare no war.",
+    "congress_dissolved": "Not a defeat, Sire — a peace postponed. The marshals were promised it, and they will ask what became of it.",
+    "congress_war": "The Congress forbids the war we declare, Sire, not the one declared on us — though a court that ceded us provinces reopens them by taking up arms. Beat them to the table, and lose no titled province doing it.",
+    "congress_withdrawn": "A signature given can be taken back, Sire. Every province we take by force is read at every table in Europe.",
+    "congress_recognized": "One signature is not yet a peace, Sire — but it is one court fewer that must be beaten, bought or shut out.",
+    "congress_warning": "A warning is a price named while it can still be paid, Sire. Pay it, or be ready for the cannon.",
     # NP-4: the Brétigny counsel — the fastest road home is the table.
     "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
     # IQ-2: the census fallback. `_pick_berthier_note` answers this class
@@ -621,6 +671,241 @@ def _headline_keys(candidate: Dict[str, Any]) -> tuple:
     for both the seen-set and every eligibility test."""
     return ((candidate["class"], candidate["identity"]),
             ("", candidate["text"]))
+
+
+# ════════════════════════════════════════════════════════════════════════
+# GE-3 "The Congress of Paris" — the headline beats (ENDGAME_PLAN §2.5).
+# Every beat except the summons is stamped at the TICK (post-advance, the
+# `third_party_peace` shape), so it carries the current-news gate and
+# renders once. The summons is the player's own act, stamped in his turn,
+# and the one-turn event window already renders it exactly once.
+# ════════════════════════════════════════════════════════════════════════
+
+_CONGRESS_NUMBER_WORDS = {0: "None", 1: "One", 2: "Two", 3: "Three",
+                          4: "Four", 5: "Five", 6: "Six"}
+
+
+def _seats(world, courts) -> List[str]:
+    from backend.game_logic import congress as _congress
+    return [_congress.seat(world, c) for c in courts if c]
+
+
+def _congress_candidate(world, e: Dict[str, Any], _add) -> None:
+    """Add the headline candidate one `congress` event earns, if any."""
+    from backend.campaign_log import and_join, congress_dissolve_reason
+    from backend.game_logic import congress as _congress
+    phase = str(e.get("phase") or "")
+    now = int(world.current_turn)
+    court = str(e.get("court") or "")
+    record = _congress.record(world) or {}
+    sits = _congress.sitting(world)
+    if phase == "summoned":
+        # Only while THIS Congress still sits — a summons whose sitting
+        # already broke at its first end turn is told by the dissolution,
+        # never as "the Congress sits eight turns".
+        if not sits or int(record.get("number", 0) or 0) != int(e.get("number", 0) or 0):
+            return
+        ends = int(e.get("ends_turn", 0) or 0)
+        turns = (ends - int(e.get("turn", now) or now)) if ends else \
+            _congress.congress_turns(world)
+        refusers = _seats(world, _congress.stored_refusers(world))
+        today = (f"{and_join(refusers)} refuse{'s' if len(refusers) == 1 else ''} today."
+                 if refusers else "No court refuses today.")
+        _add("congress_summoned", f"congress_summoned:{e.get('number', 0)}",
+             line=(f"THE EMPEROR SUMMONS THE POWERS TO PARIS. The Congress "
+                   f"sits {turns} turns, to the end of turn {ends}; every "
+                   f"great power must sign, be shut out, or be gone. {today}"))
+        return
+    if int(e.get("turn", -1)) != now:
+        return  # the current-news gate: a tick beat renders once
+    if phase == "dissolved":
+        key = str(e.get("key") or "")
+        refusers = _seats(world, e.get("refusers") or [])
+        if key == "unsigned":
+            sued = _seats(world, e.get("sued") or [])
+            parts = [f"{and_join(refusers)} would not sign"] if refusers else []
+            if sued:
+                parts.append(f"{and_join(sued)} sued, and the Emperor did not "
+                             f"sign {'its' if len(sued) == 1 else 'their'} peace")
+            head = "; ".join(parts) or "the courts would not sign"
+            tail = ""
+        else:
+            # A hold that broke dissolved the sitting before its answer:
+            # the courts HAD not signed — they were not asked to the end.
+            head = congress_dissolve_reason(key, str(e.get("reason") or ""))
+            tail = (f" {and_join(refusers)} had not signed." if refusers else "")
+        from backend.display_names import plural
+        from backend.game_logic import game_end
+        from backend.game_logic.coalition import displayed_threat
+        # Review #16/#50a: the cooldown the gate reads THIS morning (the
+        # dissolving end turn already spent one) and the alarm after the rise.
+        cooldown = _congress.cooldown_left(world)
+        alarm = int(game_end.cfg(world, "dissolve_alarm", _congress.DISSOLVE_ALARM))
+        _add("congress_dissolved", f"congress_dissolved:{now}",
+             line=(f"THE CONGRESS OF PARIS DISSOLVES — {head}.{tail} "
+                   f"Europe's alarm rises by {alarm}, to {int(displayed_threat(world))}, "
+                   f"and the powers will not answer another summons for "
+                   f"{plural(cooldown, 'turn')}."))
+        return
+    if not court or phase not in ("war", "recognized", "withdrew", "warning"):
+        return  # the London purse and a sweetener are the chronicle's, not the lead's
+    where = _congress.seat(world, court)
+    if phase == "war":
+        # A court the EMPEROR declared on did not "answer with cannon" —
+        # the hold's own line (and the dissolution beside it) tells that.
+        if court in (record.get("declared") or []):
+            return
+        # Told once per sitting: a court that joined the coalition at one
+        # tick is re-read as newly at war by the next tick's answers (its
+        # stored answer still says "formula"), and the page must not announce
+        # the same cannon twice.
+        if _congress_war_told_before(world, court, record, now):
+            return
+        coalition = str(e.get("coalition") or "")
+        from backend.campaign_log import coalition_phrase
+        _add("congress_war", f"congress_war:{court}",
+             line=(f"{where} answers the Congress with cannon"
+                   + (f" — it joins {coalition_phrase(coalition)}."
+                      if coalition else ".")))
+        return
+    if not sits:
+        return  # a signature, a warning or a withdrawal is moot once it ends
+    live = _congress.answer(world, court)
+    if phase == "recognized":
+        if live.get("stance") not in _congress.SATISFIED:
+            return
+        if live.get("stance") == _congress.SHUT_OUT:
+            said = (f"{where} is shut out of the Congress — the ports of the "
+                    f"Continent are closed to her, and she need not sign.")
+        elif live.get("by") == "treaty":
+            said = (f"{where} signs: the peace it made with us is the order "
+                    f"it recognizes.")
+        else:
+            said = f"{where} signs at the Congress of Paris."
+        answers = record.get("answers") or {}
+        powers = _congress.great_powers(world)
+        # Review #50b: the count AT this signature (stamped in logging
+        # order), so two courts signing on one tick do not both read "four
+        # of the four".
+        standing = (int(e["standing"]) if e.get("standing") is not None else
+                    sum(1 for p in powers
+                        if (answers.get(p) or {}).get("stance") in _congress.SATISFIED))
+        word = _CONGRESS_NUMBER_WORDS.get(standing, str(standing))
+        total = _CONGRESS_NUMBER_WORDS.get(len(powers), str(len(powers))).lower()
+        _add("congress_recognized", f"congress_recognized:{court}",
+             line=(f"{said} {word} of the {total} great powers now "
+                   f"stand{'s' if standing == 1 else ''} with the peace."))
+        return
+    if phase == "withdrew":
+        if live.get("stance") in _congress.SATISFIED:
+            return
+        reason = str(e.get("reason") or "")
+        if reason.startswith("it withdrew: "):
+            reason = reason[len("it withdrew: "):]
+        if str(e.get("was") or "") == _congress.SHUT_OUT:
+            # She never signed — she was shut out, and no longer is.
+            _add("congress_withdrawn", f"congress_withdrawn:{court}",
+                 line=(f"{where} is no longer shut out of the Congress"
+                       + (f" — {reason}." if reason else ".")))
+            return
+        _add("congress_withdrawn", f"congress_withdrawn:{court}",
+             line=(f"{where} withdraws its signature"
+                   + (f" — {reason}." if reason else ".")))
+        return
+    if phase == "warning":
+        if live.get("stance") != _congress.REFUSES:
+            return
+        price = str(_congress.price(world, court, live).get("text") or "")
+        _add("congress_warning", f"congress_warning:{court}",
+             line=(f"{where} warns: one more turn of refusal, and it answers "
+                   f"the Congress with cannon." + _congress_price_clause(price)))
+        return
+
+
+def _congress_war_logged(world, court: str) -> bool:
+    """Whether the sitting's chronicle holds `court` answering the Congress
+    with cannon (this sitting only — bounded back to the summons)."""
+    from backend.game_logic import congress as _congress
+    record = _congress.record(world) or {}
+    if record.get("summoned_turn") is None:
+        return False
+    since = int(record.get("summoned_turn") or 0)
+    for ev in reversed(getattr(world, "event_log", []) or []):
+        if not isinstance(ev, dict):
+            continue
+        if int(ev.get("turn", 0) or 0) < since:
+            break
+        if (ev.get("type") == "congress" and ev.get("phase") == "war"
+                and ev.get("court") == court):
+            return True
+    return False
+
+
+def _congress_war_told_before(world, court: str, record: Dict[str, Any],
+                              now: int) -> bool:
+    """Whether an earlier turn of THIS sitting already logged `court`
+    answering with cannon. Bounded: walks the log back only to the summons."""
+    since = int(record.get("summoned_turn", now) or now)
+    for ev in reversed(getattr(world, "event_log", []) or []):
+        if not isinstance(ev, dict):
+            continue
+        turn = int(ev.get("turn", 0) or 0)
+        if turn < since:
+            break
+        if (turn < now and ev.get("type") == "congress"
+                and ev.get("phase") == "war" and ev.get("court") == court):
+            return True
+    return False
+
+
+def _congress_price_clause(price: str) -> str:
+    """The price a warning names — the table's own lever text
+    (`congress.price`, display-only counsel), turned into Berthier's
+    sentence. Every shape `price` writes for an at-peace refuser is read."""
+    price = str(price or "").strip()
+    if not price:
+        return ""
+    if "more than this table can buy" in price:
+        return " No price at this table will turn it."
+    if price.startswith("none at this sitting"):
+        return " It has withdrawn; no price turns it at this sitting."
+    if price.startswith("needs +") and ": " in price:
+        return f" The table names its price: {price.split(': ', 1)[1]}."
+    return f" The table names its price: {price}."
+
+
+def _imperial_peace_line(world) -> str:
+    """Beat 4 — composed from the STAMPED ending record (its detail carries
+    the route and the courts as they stood on the eighth turn)."""
+    from backend.campaign_log import and_join
+    from backend.game_logic import game_end
+    rec = next((r for r in game_end.endings(world)
+                if r.get("cause") == game_end.CAUSE_IMPERIAL_PEACE), None)
+    if rec is None:
+        return ""
+    detail = rec.get("detail") or {}
+    if str(detail.get("route") or "") == "universal_monarchy":
+        return ("THE UNIVERSAL MONARCHY — no great power remains to contest "
+                "the order, Sire. The Emperor's peace needs no Congress.")
+    courts = [c for c in (detail.get("courts") or []) if isinstance(c, dict)]
+
+    def _named(stance: str) -> List[str]:
+        return [str(c.get("display") or c.get("nation") or "")
+                for c in courts if c.get("stance") == stance]
+
+    parts = []
+    signed = _named("SIGNED")
+    if signed:
+        parts.append(f"{and_join(signed)} sign{'s' if len(signed) == 1 else ''}")
+    shut = _named("SHUT OUT")
+    if shut:
+        parts.append(f"{and_join(shut)} {'is' if len(shut) == 1 else 'are'} shut out")
+    gone = _named("GONE")
+    if gone:
+        parts.append(f"{and_join(gone)} {'is' if len(gone) == 1 else 'are'} gone")
+    table = ("; ".join(parts) + ". ") if parts else ""
+    return (f"THE IMPERIAL PEACE — Europe signs at Paris. {table}The order "
+            f"the Emperor made is the order Europe recognizes.")
 
 
 def _build_headline(world, player_nation: str,
@@ -1126,6 +1411,11 @@ def _build_headline(world, player_nation: str,
             aggressor = e.get("aggressor") or e.get("nation", "")
             target = e.get("target", "")
             if player_nation in (aggressor, target):
+                # GE-3 review #50d: a War-of-the-Congress declaration is told
+                # ONCE — by the Congress's own beat ("Berlin answers the
+                # Congress with cannon"), never again as a bare war headline.
+                _congress_told = (aggressor != player_nation
+                                  and _congress_war_logged(world, aggressor))
                 other = target if aggressor == player_nation else aggressor
                 # FA-S17-D3 (Phase 4): the cause, when the record holds one.
                 _cause = ("" if aggressor == player_nation
@@ -1133,7 +1423,8 @@ def _build_headline(world, player_nation: str,
                 _line = f"{formed_display_name(world, other)} and France are at war."
                 if _cause:
                     _line = f"{_line} {_cause}"
-                _add("war_touches_us", line=_line)
+                if not _congress_told:
+                    _add("war_touches_us", line=_line)
             elif etype == "war_declaration" and aggressor and target:
                 # AI-3 (Stage D): a war between other powers may lead the
                 # dispatch — with its STATED REASON (pin 4: no unexplained
@@ -1256,6 +1547,23 @@ def _build_headline(world, player_nation: str,
                 _add("europe_congress",
                      proposer=formed_display_name(world, e.get("proposer", "?")),
                      accepter=formed_display_name(world, e.get("accepter", "?")))
+        elif etype == "congress" and e.get("nation") == player_nation:
+            # GE-3 beats 1–3 + the dissolution (ENDGAME_PLAN §2.5/§2.6).
+            # NOT the `europe_congress` class above: that is beat 6 of AI
+            # Intent, a third-party peace. These are the Emperor's own
+            # Congress of Paris.
+            _congress_candidate(world, e, _add)
+        elif (etype == "campaign_ending"
+              and e.get("cause") == "imperial_peace"
+              and e.get("nation") == player_nation
+              and int(e.get("turn", -1)) == int(world.current_turn)):
+            # Beat 4, the eighth turn. Stamped at the tick (post-advance),
+            # so the current-news gate renders it once. The log row carries
+            # no detail; the route and the courts are read off the stamped
+            # ending record itself (never re-derived from live state).
+            _line = _imperial_peace_line(world)
+            if _line:
+                _add("imperial_peace", "imperial_peace", line=_line)
         elif etype in ("coalition_formed", "coalition_brewing_started"):
             # Stage D review fix [r1/r6]: an ECLIPSE coalition's events
             # carry target_nation != player — those must never render as
@@ -1765,7 +2073,9 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     # GE-1 review round: the Emperor's death stands ALONE on the page — no
     # sub-beat advises a garrison or a commission to an Empire that has
     # ended (the class's own note: "There is no order left to give").
-    _alone = top["class"] == "sovereign_dead"
+    # GE-3: THE IMPERIAL PEACE stands alone too — the day Europe signs, the
+    # page speaks of nothing else (the reign continues; tomorrow's does not).
+    _alone = top["class"] in ("sovereign_dead", "imperial_peace")
     while not _alone and len(sub_beats) < SUB_BEAT_SLOTS:
         eligible = [c for c in candidates[1:]
                     if not any(k in seen_keys for k in _headline_keys(c))]
@@ -2861,6 +3171,14 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         defeat_imminent_warning = _build_defeat_imminent_warning(world, player_nation)
         if defeat_imminent_warning:
             dispatch["defeat_imminent_warning"] = defeat_imminent_warning
+
+        # GE-3 (ENDGAME_PLAN §4): the Congress's clock on the end-turn
+        # banner and the R screen — the gate, the sitting, or the cooldown,
+        # from the one source (`congress.state_line`). Armed worlds only.
+        from backend.game_logic import congress as _congress
+        _congress_clock = _congress.clock_payload(world)
+        if _congress_clock:
+            dispatch["congress_clock"] = _congress_clock
 
     # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
     # LV-1: the report writes its trigger cooldowns — a once-per-N-turns
@@ -4741,7 +5059,9 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
     _formed = bool(
         is_coalition_active(world)
         and (world.active_coalition.get("target_nation") or _player) == _player)
-    tier = get_threat_tier(threat, coalition_formed=_formed)
+    from backend.game_logic.coalition import brewing_gate as _brewing_gate
+    tier = get_threat_tier(threat, coalition_formed=_formed,
+                           brewing_at=_brewing_gate(world))
     section = {
         "threat_level": threat,
         "tier": tier,

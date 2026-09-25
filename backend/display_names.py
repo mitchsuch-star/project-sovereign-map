@@ -57,6 +57,8 @@ ACTION_DISPLAY = {
     "set_fleet_posture": "orders the fleet to",       # DEF-5 naval (NV-0)
     "naval_expedition": "embarks an expedition to",   # DEF-5 naval (NV-2)
     "naval_diversion": "orders the grand diversion",  # DEF-5 naval (NV-3)
+    "summon_congress": "summons the Congress of Paris",      # GE-3 (ENDGAME_PLAN §2.3)
+    "recognition_sweetener": "lays a sweetener before",     # GE-3 (ENDGAME_PLAN §2.4)
 }
 
 # ============================================================================
@@ -220,6 +222,8 @@ OBJECTION_DISPLAY = {
     "set_fleet_posture": "re-tasking the fleet",    # DEF-5 naval (no objections in v1)
     "naval_expedition": "embarking on the transports",  # DEF-5 naval (no objections in v1)
     "naval_diversion": "the grand diversion",       # DEF-5 naval (no objections in v1)
+    "summon_congress": "summoning the Congress of Paris",  # GE-3 (the Emperor's own act — no objections)
+    "recognition_sweetener": "offering a sweetener for recognition",  # GE-3 (no objections)
 }
 
 # ============================================================================
@@ -271,6 +275,8 @@ DEFIANCE_DISPLAY = {
     "set_fleet_posture": "re-tasked the fleet",    # DEF-5 naval (no defiance in v1)
     "naval_expedition": "embarked an expedition",  # DEF-5 naval (no defiance in v1)
     "naval_diversion": "ordered the diversion",    # DEF-5 naval (no defiance in v1)
+    "summon_congress": "summoned the Congress of Paris",   # GE-3 (no defiance)
+    "recognition_sweetener": "offered a sweetener for recognition",  # GE-3 (no defiance)
 }
 
 # ============================================================================
@@ -341,6 +347,11 @@ PROPOSAL_TYPE_DISPLAY = {
     # their own ("an a client's petition proposal", "Switzerland's a
     # client's petition offer"). The popup header keeps its own string.
     "client_petition": "Client's Petition",
+    # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.4): a great power's
+    # answer to the summons is read through the acceptance formula for a
+    # proposal type `recognition` — the order the Emperor asks Europe to
+    # sign. NO article, the `client_petition` rule above.
+    "recognition": "Recognition of the Order",
 }
 
 # ============================================================================
@@ -417,6 +428,11 @@ CLAUSE_TYPE_DISPLAY = {
     # misleading about what happens.
     "vassal_transfer": "Vassal transferred",
     "create_client": "Client state erected",
+    # GE-3: a beaten great power's peace offer during the sitting carries
+    # the recognition clause (`ai_diplomacy`, the Congress sue arm) — the
+    # popup reads "Clause: Recognition of the Congress of Paris", never the
+    # title-cased key.
+    "congress_recognition": "Recognition of the Congress of Paris",
 }
 
 PROPOSAL_TYPE_SUMMARY_DISPLAY = {

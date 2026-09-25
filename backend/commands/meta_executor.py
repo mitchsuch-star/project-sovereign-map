@@ -35,7 +35,9 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  "recall_marshal",
                  # IQ-1 SW-1: buying substitutes is an administrative act.
                  "purchase_levy",
-                 "build_fleet"}
+                 "build_fleet",
+                 # GE-3: the summons of the Congress of Paris.
+                 "summon_congress"}
 
 
 def collapse_turn_end_fields(world) -> Dict:
@@ -951,6 +953,28 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
 
   Press D for the Diplomatic Ledger - all twenty nations of Europe,
   treaties, wars, and the Balance of Europe.
+
+THE CONGRESS OF PARIS (how the reign is WON - the table of the
+great powers is the Diplomatic Ledger's Congress tab, press D then 7):
+  summon     - "summon the congress" (1 Admin AP + 2 DP), or the
+               Congress of Paris row atop the Cabinet (F1). It needs
+               50 TITLED provinces - homeland, ceded by treaty, a
+               client's soil, or held 12 quiet turns - with Paris
+               held, the Emperor free and no satellite on the brink.
+               It cannot be undone. For 8 turns every great power
+               answers - RECOGNIZES, REFUSES, SUES, SHUT OUT or GONE -
+               with its reason and its PRICE. Keep the 50, Paris and
+               the Emperor's freedom, and declare no war: on the
+               eighth turn, with every great power won over, shut out
+               or gone, the Imperial Peace is signed. Otherwise the
+               Congress dissolves, and may be summoned again after
+               10 turns.
+  sweetener  - "offer Prussia 1000 gold for recognition" - offer
+               <court> <gold> gold for recognition, at the table
+               while the Congress sits (1 DP): +10 for every 1,000
+               gold, at most +20 a court. Gold past that is not taken.
+  Ask before you act - "can we summon the congress?" names every
+  term still unmet, and nothing is spent.
 
 SCREENS & HOTKEYS:
   F1 diplomacy wizard | T strategic ledger | G marshals
@@ -2353,7 +2377,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         action = command.get("action", "unknown")
 
         # Check action economy
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "recognition_sweetener"]
         action_costs_point = action not in free_actions
 
         # THE THIRD AP GATE — and the one a cautious marshal's counter-punch

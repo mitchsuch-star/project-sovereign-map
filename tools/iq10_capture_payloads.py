@@ -1124,7 +1124,247 @@ def cap_campaign_end():
                   "severities": [a.get("severity") for a in clock.get("arms", [])]})
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# Row EP GE-3 "The Congress of Paris" — the client surfaces (ENDGAME_PLAN §4)
+# ═══════════════════════════════════════════════════════════════════════
+#
+# The staged Pressburg: Austria cedes six provinces through the REAL
+# `_ratify_treaty` (its signature is the Congress's treaty latch — Vienna
+# RECOGNIZES), and nine more are handed to France as treaty title (a direct
+# write — the scripted Pressburg arm's own terms are GE-V's), so the bloc
+# stands at exactly the 50 titled provinces the summons asks. The sitting's
+# days are advanced through the ONE per-turn caller
+# (`game_end.process_end_of_turn`), not played: a played end turn on this
+# board sends Kutuzov into ceded Moravia on the first night and the hold
+# breaks (measured) — which is the crisis GE-V plays, not the table this
+# frame is of. `tools/ge3_congress_harness.gd` reads these same payload
+# files (its header names the command).
+
+CONGRESS_PRESSBURG = ["Tyrol", "Carniola", "Croatia", "Hungary", "Moravia", "Bohemia"]
+CONGRESS_EXTRA_TITLE = [
+    ("Hanover", "Brunswick"), ("Hanover", "East Frisia"), ("Hanover", "Oldenburg"),
+    ("Hanover", "Osnabruck"), ("Hanover", "Westphalia"), ("Hesse", "Nassau"),
+    ("Denmark", "Holstein"), ("Denmark", "Schleswig"), ("Sweden", "Stralsund"),
+]
+
+
+def stage_congress_board(world) -> dict:
+    """The Pressburg and the extra title (see the block comment above).
+    Returns what was done, for the staging note."""
+    from backend.game_logic import game_end
+    with _quiet():
+        ratified = world._ratify_treaty({
+            "proposer_nation": PLAYER, "target_nation": "Austria", "type": "peace",
+            "demands": [{"type": "territory_cede", "regions": list(CONGRESS_PRESSBURG)}],
+            "sweeteners": []})
+    for owner, region in CONGRESS_EXTRA_TITLE:
+        world.regions[region].controller = PLAYER
+        game_end.record_province_title(world, region, "treaty", owner, PLAYER)
+    world.invalidate_active_nations_cache()
+    world.diplomatic_points = max(int(world.diplomatic_points), 5)
+    world.admin_actions_remaining = max(int(world.admin_actions_remaining), 1)
+    # The cession itself raises Europe's alarm 70 → 100 (measured), and the
+    # hold's own ceiling is 80: a Congress summoned on that board dissolves
+    # at its first end turn (the summons' gate terms do not read the
+    # alarm — reported to the GE-3 core). The frame is of a sitting, so the
+    # alarm is WRITTEN back to 60.
+    alarm_after_cession = int(world.threat_level)
+    world.threat_level = min(alarm_after_cession, 60)
+    return {"pressburg_ratified": bool(ratified), "alarm_after_cession": alarm_after_cession,
+            "alarm_written": int(world.threat_level)}
+
+
+def summon_congress(client, world) -> dict:
+    """The summons — the typed verb when the parser takes it, else the
+    executor's own `_execute_summon_congress` (2 DP) plus the administrative
+    action the executor's generic ADMIN arm charges on success."""
+    from backend.game_logic import congress
+    response = cmd(client, congress.SUMMON_COMMAND)
+    if congress.sitting(live_world()):
+        return {"road": "POST /command", "message": response.get("message")}
+    world = live_world()
+    with _quiet():
+        result = M.executor._diplomatic._execute_summon_congress(
+            {"action": "summon_congress", "raw_input": congress.SUMMON_COMMAND}, M.game_state)
+    if result.get("success"):
+        world.admin_actions_remaining = int(world.admin_actions_remaining) - 1
+    return {"road": "executor._diplomatic._execute_summon_congress",
+            "message": result.get("message")}
+
+
+def sit_congress(world, days: int) -> None:
+    """Advance `days` end turns through the ONE per-turn caller — the GE-2
+    `_tick` idiom (the turn advances, then the turn just ended is ticked)."""
+    from backend.game_logic import game_end
+    for _ in range(int(days)):
+        world.current_turn += 1
+        with _quiet():
+            game_end.process_end_of_turn(world, turn_ended=world.current_turn - 1)
+
+
+def cap_congress():
+    """Row EP GE-3 — the Congress of Paris on its client surfaces: the
+    Diplomatic Ledger's CONGRESS tab (the gate at boot, the sitting), the
+    wizard's step-1 row (the gate, ready, sitting), the clock line on the
+    Territories tab and the R screen, Le Moniteur's Congress column, and the
+    gold end screen reached through a REAL Congress."""
+    from backend.game_logic import congress, game_end
+    from backend.game_logic.dispatch import build_morning_dispatch
+
+    def _congress_facts(payload):
+        cg = payload if isinstance(payload, dict) else {}
+        return {"phase": cg.get("phase"), "state_line": cg.get("state_line"),
+                "severity": cg.get("severity"), "available": cg.get("available"),
+                "unavailable_reason": cg.get("unavailable_reason"),
+                "titled": cg.get("titled"), "titled_needed": cg.get("titled_needed"),
+                "courts": [(c.get("nation"), c.get("stance"), c.get("reason"),
+                            c.get("price"), c.get("war_in"))
+                           for c in (cg.get("courts") or []) if isinstance(c, dict)],
+                "gate_terms": [(t.get("text"), t.get("met"))
+                               for t in (cg.get("gate_terms") or []) if isinstance(t, dict)],
+                "hold": [(h.get("text"), h.get("met"))
+                         for h in (cg.get("hold") or []) if isinstance(h, dict)],
+                "day": cg.get("day"), "turns": cg.get("turns")}
+
+    # 1. The gate at boot — the wizard row, unavailable, its terms.
+    world, c = fresh()
+    record("congress_map_topology", get(c, "/map_topology"), source="GET /map_topology",
+           staging="fresh 1805 boot — the topology the driven harness hands the map before "
+                   "a response carrying map_data renders (tools/ge3_congress_harness.gd)")
+    nations = get(c, "/diplomatic_preview")
+    record("wizard_nations_congress_gate", nations,
+           source="GET /diplomatic_preview (nation list mode) → congress",
+           staging="fresh 1805 boot — 35 of 50 titled, the summons refused with its terms",
+           facts=_congress_facts(nations.get("congress")))
+
+    # 2. Ready — the staged Pressburg, before the summons.
+    world, c = fresh()
+    staged = stage_congress_board(world)
+    ready = get(c, "/diplomatic_preview")
+    record("wizard_nations_congress_ready", ready,
+           source="GET /diplomatic_preview (nation list mode) → congress",
+           staging="1805 boot; the staged Pressburg — Austria cedes Tyrol, Carniola, Croatia, "
+                   "Hungary, Moravia and Bohemia through the REAL `_ratify_treaty` "
+                   f"({staged}); nine more provinces handed to France as treaty title (a "
+                   "direct write) — 50 of 50 titled, every term met, the summons available",
+           facts=_congress_facts(ready.get("congress")))
+
+    # 3. The sitting, day 2 — Russia beaten in the field (war score written
+    #    to −45, so it SUES), Prussia refusing two turns (one from war).
+    key = world._make_diplo_key(PLAYER, "Russia")
+    world.war_scores[key] = 45 if key.split("|")[0] == PLAYER else -45
+    summoned = summon_congress(c, world)
+    world = live_world()
+    # The summons presents the satellites' bills (§2.3): their petitions sit
+    # in the dialogue slot, and a pending envoy gates the wizard's whole
+    # step 1 (PL-30). The slot is emptied — as if they were answered — so
+    # the frames show the Congress, not the envoy gate.
+    clear_dialogues(world)
+    sit_congress(world, 2)
+    world = live_world()
+    with _quiet():
+        build_morning_dispatch(world)      # stores last_morning_dispatch (a real builder)
+        from backend.game_logic import gazette
+        gazette.process_gazette(world)
+    sitting_note = ("the staged Pressburg board (above); France's war score against Russia "
+                    "WRITTEN to +45 (Russia sues); the Congress summoned through "
+                    f"{summoned['road']}; the satellites' petitions it presented emptied from "
+                    "the dialogue slot (as if answered); two sitting days advanced through the ONE per-turn "
+                    "caller (game_end.process_end_of_turn) — no AI moved (a played end turn "
+                    "sends Kutuzov into ceded Moravia and the hold breaks)")
+    dl = get(c, "/diplomatic_ledger")
+    record("diplo_ledger_congress_sitting", dl, source="GET /diplomatic_ledger → congress",
+           staging=sitting_note,
+           facts=_congress_facts((dl.get("ledger") or {}).get("congress")))
+    sitting_preview = get(c, "/diplomatic_preview")
+    record("wizard_nations_congress_sitting", sitting_preview,
+           source="GET /diplomatic_preview (nation list mode) → congress",
+           staging=sitting_note, facts=_congress_facts(sitting_preview.get("congress")))
+    led = get(c, "/ledger")
+    record("ledger_congress_clock", led, source="GET /ledger → congress_clock",
+           staging=sitting_note,
+           facts={"congress_clock": (led.get("ledger") or {}).get("congress_clock"),
+                  "fall_clock": (led.get("ledger") or {}).get("fall_clock")})
+    disp = get(c, "/dispatch")
+    record("dispatch_congress_clock", disp, source="GET /dispatch (the stored morning dispatch)",
+           staging=sitting_note + "; `dispatch.build_morning_dispatch` run once on that board "
+                                  "(the real builder — it stores the briefing the R screen "
+                                  "re-reads)",
+           facts={"congress_clock": (disp.get("dispatch") or {}).get("congress_clock")})
+    gz = get(c, "/gazette")
+    issues = gz.get("issues") or []
+    record("gazette_congress", gz, source="GET /gazette",
+           staging=sitting_note + "; `gazette.process_gazette` run once (the summons is the "
+                                  "paper's special — the Congress column rides it)",
+           facts={"issues": len(issues),
+                  "congress_column": (issues[-1].get("congress") if issues else None)})
+
+    # 4. THE IMPERIAL PEACE through a REAL Congress: the staged Pressburg;
+    #    peace signed with Russia and Britain through the REAL `_ratify_treaty`
+    #    (each signature latches its recognition); Prussia's relation WRITTEN
+    #    to +40 and a 2,000g sweetener laid through the executor's own verb
+    #    (+20 — it recognizes by the formula); the eighth day by a REAL end
+    #    turn, so the gold card rides the end-turn road.
+    world, c = fresh()
+    stage_congress_board(world)
+    summon_congress(c, world)
+    world = live_world()
+    for court in ("Russia", "Britain"):
+        with _quiet():
+            world._ratify_treaty({"proposer_nation": PLAYER, "target_nation": court,
+                                  "type": "peace", "demands": [], "sweeteners": []})
+    world.nation_relations[world._make_diplo_key(PLAYER, "Prussia")] = 40
+    world.nation_gold[PLAYER] = max(int(world.nation_gold.get(PLAYER, 0)), 20000)
+    world.diplomatic_points = max(int(world.diplomatic_points), 3)
+    with _quiet():
+        sweet = M.executor._diplomatic._execute_recognition_sweetener(
+            {"action": "recognition_sweetener", "target": "Prussia",
+             "raw_input": "offer prussia 2000 gold for recognition"}, M.game_state)
+    stances_before = {k: congress.answer(world, k)["stance"] for k in congress.great_powers(world)}
+    record_turn = int((world.congress or {}).get("ends_turn", 0))
+    sit_congress(world, max(0, record_turn - int(world.current_turn)))
+    world = live_world()
+    held = congress.sitting(world)
+    response = end_turn(c)
+    ending = response.get("ending")
+    imperial_note = ("the staged Pressburg board; the Congress summoned; peace signed with "
+                     "Russia and Britain through the REAL `_ratify_treaty`; Prussia's relation "
+                     "WRITTEN to +40 and a 2,000g sweetener laid through "
+                     "`_execute_recognition_sweetener` "
+                     f"({'ok' if sweet.get('success') else sweet.get('message')}); the sitting's "
+                     "days advanced through the ONE per-turn caller to the eighth, which was "
+                     f"a REAL end turn (the Congress still sat before it: {held}) — stances "
+                     f"before the last day {stances_before}")
+    record("campaign_end_imperial_congress_response", response,
+           source="POST /command end turn (the eighth day) → ending",
+           staging=imperial_note,
+           facts={"ending_cause": (ending or {}).get("cause"),
+                  "register": (ending or {}).get("register"),
+                  "congress": ((ending or {}).get("summary") or {}).get("congress")})
+    if isinstance(ending, dict):
+        record("campaign_end_imperial_congress", ending,
+               source="POST /command end turn → ending (game_end.screen_payload)",
+               staging=imperial_note,
+               facts={"register": ending.get("register"), "title": ending.get("title"),
+                      "cause_line": ending.get("cause_line"),
+                      "congress": (ending.get("summary") or {}).get("congress"),
+                      "moniteur_line": (ending.get("summary") or {}).get("moniteur_line")})
+    ce = get(c, "/campaign_end")
+    record("campaign_end_congress_record", ce, source="GET /campaign_end",
+           staging=imperial_note,
+           facts={"causes": [e.get("cause") for e in (ce.get("endings") or [])]})
+
+    # 5. The CONGRESS tab at boot — the gate, the table as it would answer.
+    world, c = fresh()
+    boot_dl = get(c, "/diplomatic_ledger")
+    record("diplo_ledger_congress_gate", boot_dl, source="GET /diplomatic_ledger → congress",
+           staging="fresh 1805 boot — the gate (35 of 50 titled), the table as each court "
+                   "would answer today",
+           facts=_congress_facts((boot_dl.get("ledger") or {}).get("congress")))
+
+
 CAPTURES = {
+    "congress": cap_congress,
     "campaign_end": cap_campaign_end,
     "layout_f3": cap_layout_f3,
     "boot": cap_boot,

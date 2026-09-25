@@ -198,6 +198,12 @@ def _cause_line(world, cause: str, detail: Dict[str, Any]) -> str:
     if cause == CAUSE_VERDICT:
         return "The reign, unfinished, is judged as it stands."
     if cause == CAUSE_IMPERIAL_PEACE:
+        # GE-3 E1: with no great power left standing, nobody signs — the
+        # order simply stands (ENDGAME_PLAN §2.6). The Congress's own arm,
+        # and a detail-less stamp, keep the declared line.
+        if detail.get("route") == "universal_monarchy":
+            return ("No great power remains to contest the order of the "
+                    "French Empire.")
         return "Europe accepts the order of the French Empire."
     return ""
 
@@ -267,6 +273,10 @@ def record_ending(world, kind: str, cause: str,
     if record["terminal"]:
         world.game_over = True
         world.victory = "defeat"
+        # GE-3 review #49: a Fall ends a sitting Congress with it — no
+        # dissolution, no proclamation, and no surface left saying it sits.
+        from backend.game_logic import congress as _congress
+        _congress.close_on_fall(world, stamp_turn)
     try:
         verdict = (record.get("summary") or {}).get("verdict") or {}
         world.log_event({
@@ -450,6 +460,17 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
                             turn=int(turn_ended))
         if rec is not None:
             stamped.append(rec)
+    # GE-3: E1 and the Congress's tick — after the fall clocks (a Fall this
+    # turn ends everything: no dissolution, no proclamation) and BEFORE the
+    # Verdict, so a Verdict on the same turn grades the Imperial Peace.
+    if terminal_ending(world) is None:
+        from backend.game_logic import congress as _congress
+        stamped.extend(_congress.process_end_of_turn(world, int(turn_ended)))
+        # The morning's Moniteur went to press inside the advance, before
+        # this tick — its Congress column is re-set from the answers just
+        # taken (review #42; dormant without a summons).
+        from backend.game_logic import gazette as _gazette
+        _gazette.recompose_congress_column(world)
     vt = verdict_turn(world)
     if (vt is not None and int(turn_ended) >= vt
             and terminal_ending(world) is None
@@ -856,6 +877,11 @@ def break_signed_titles(world, nation_a: str, nation_b: str) -> None:
         if {str(rec.get("from") or ""), _house(world, rec)} == pair:
             rec["kind"] = TITLE_CONQUEST
             rec["since"] = turn
+            # Display only (GE-3 review #12): which court's war reopened the
+            # cession, so the Congress's hold can name it rather than read
+            # "the titled provinces fell short" with no cause.
+            rec["reopened_by"] = str(rec.get("from") or "")
+            rec["reopened_turn"] = turn
 
 
 def reconcile_province_titles(world) -> None:
@@ -1104,6 +1130,22 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
     }
     data["treaties"].append(row)
     del data["treaties"][:-TREATY_MEMORY]
+    # GE-3 §2.4: a great power that signs a war-ending treaty with the
+    # Emperor recognizes the order it signed (the Congress's treaty latch).
+    # Only a SITTING Congress's peace, or the peace of a court that ceded
+    # to the Emperor's bloc in this treaty, latches (review round #0).
+    beaten = set()
+    for term in signed + applied:
+        if term.get("type") not in ("territory_cede", "territory"):
+            continue
+        if term.get("to") != player or not term.get("from"):
+            continue
+        if any(_ours(r) for r in _territory_term_regions(term)):
+            giver = str(term.get("from"))
+            beaten.add(giver)
+            beaten.add(str(world._top_overlord(giver) or giver))
+    from backend.game_logic import congress as _congress
+    _congress.note_ratification(world, parties, bool(war_ending), beaten=beaten)
     if not THE_HUMBLED_PEACE_IS_MARKED:
         return None
     homeland = list((getattr(world, "nation_starting_regions", {}) or {}).get(player, []) or [])
@@ -1154,6 +1196,11 @@ VERDICT_TIERS = (
         "History will call it the beginning of the end.",
     )),
 )
+# GE-3 (D7): the Imperial Peace floors the Verdict at "ascendant" (the
+# ascendant tier's minimum score) — a Humbled Peace or a Fall still forces
+# the eclipse, whenever it came.
+IMPERIAL_PEACE_TIER_FLOOR = 2
+
 TIER_LINE_CLOSINGS = {
     "triumph": "The Verdict of History: a reign of triumph.",
     "ascendant": "The Verdict of History: an empire ascendant.",
@@ -1242,6 +1289,15 @@ def verdict_inputs(world) -> Dict[str, Any]:
         # ascendant … a rising star", a paragraph after the Senate declared
         # the Empire at an end).
         "fallen": terminal_ending(world) is not None,
+        # GE-3 (D7): the Verdict still grades after the Imperial Peace —
+        # and a reign Europe signed for is never read "contested" ("Europe
+        # has not accepted it"): the tier floors at ascendant.
+        "imperial_peace": has_ending(world, CAUSE_IMPERIAL_PEACE),
+        # GE-3 review #46: HOW it was won — "congress" (the powers signed at
+        # Paris) or "universal_monarchy" (none was left to sign).
+        "imperial_peace_route": next(
+            (str((r.get("detail") or {}).get("route") or "congress")
+             for r in endings(world) if r.get("cause") == CAUSE_IMPERIAL_PEACE), ""),
     }
 
 
@@ -1284,6 +1340,11 @@ def verdict_tier(world, inputs: Optional[Dict[str, Any]] = None) -> Dict[str, An
         score -= 1
     tier_id, title, lines = VERDICT_TIERS[-1][0], VERDICT_TIERS[-1][2], VERDICT_TIERS[-1][3]
     if not inputs["humbled"] and not inputs.get("fallen"):
+        # The floor holds a SETTLED peace (review #17): never a reign whose
+        # Emperor sits in a cell or whose capital another court holds.
+        if (inputs.get("imperial_peace") and inputs.get("capital_held", True)
+                and inputs.get("emperor") not in ("captive", "dead")):
+            score = max(score, IMPERIAL_PEACE_TIER_FLOOR)
         for tid, floor, ttitle, tlines in VERDICT_TIERS:
             if floor is None or score >= floor:
                 tier_id, title, lines = tid, ttitle, tlines
@@ -1321,12 +1382,21 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
     # ascendant one "stands surer" with its Emperor in chains).
     qualifier = ("its Emperor is a prisoner" if emperor == "captive" else
                  f"{capital} is in enemy hands" if capital_lost else "")
+    signed = bool(inputs.get("imperial_peace"))
+    monarchy = inputs.get("imperial_peace_route") == "universal_monarchy"
+    signed_line = ("No great power remained to contest the order."
+                   if monarchy else "The great powers signed the order at Paris.")
     if tier_id == "triumph":
-        if not knocked:
-            out[1] = "The great powers still stand, but none of them as tall as in 1805."
+        if not knocked or (signed and monarchy):
+            out[1] = (signed_line
+                      if signed else
+                      "The great powers still stand, but none of them as tall as in 1805.")
         if qualifier:
             out[0] = f"Europe has been remade, and it knows it — though {qualifier}."
     elif tier_id == "ascendant":
+        if signed:
+            out[1] = ("No great power remained to contest the order." if monarchy
+                      else "The great powers have signed the order at Paris.")
         if qualifier:
             out[0] = (f"The Empire stands larger than it began, though {qualifier}."
                       if held > opening else
@@ -1415,6 +1485,15 @@ def build_campaign_summary(world, ending: Dict[str, Any]) -> Dict[str, Any]:
     }
     if ending.get("register") in ("fall", "humbled_peace"):
         summary["epilogue"] = build_exile_story(world, ending, verdict=verdict)
+    elif ending.get("register") == "imperial_peace":
+        # GE-3: the gold card's own blocks — the four flags SIGNED / SHUT OUT
+        # / GONE, the titled count, the sitting's strip, the final Moniteur
+        # line — built from the ending's OWN detail (the summary is
+        # persisted at the stamp; the live Congress moves on).
+        from backend.game_logic import congress as _congress
+        block = _congress.summary_block(ending.get("detail") or {})
+        summary["congress"] = block
+        summary["moniteur_line"] = block.get("moniteur_line", "")
     return summary
 
 

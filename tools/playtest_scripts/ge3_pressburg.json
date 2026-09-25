@@ -1,0 +1,38 @@
+{
+ "name": "ge3-pressburg",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_ge3": "GE-3 'The Congress of Paris' (ENDGAME_PLAN §2.8): the PRESSBURG arm. Start it from the STAGED fixture tests/fixtures/playtest_saves/fixture_ge3_pressburg.json (turn 28, after Pressburg and Tilsit, 51 titled; tools/gen_ge3_congress_fixtures.py) with --diplomacy accept --stop-on-ending. Loop 1 summons the Congress and pays Prussia the price the table names (a 1,200g sweetener — 'offer Prussia 1200 gold for recognition'); every turn it invests in Saxony, the newest satellite, which Russia and Austria court (a prepared player's upkeep of the hold); the rest ends turns and lets the sitting run. It must WIN inside the sitting (the Imperial Peace on the eighth turn, turn 36). The played REACH to 50 titled is GE-V's measurement, not this arm's.",
+ "turns": {
+  "1": [
+   "summon the congress",
+   "offer Prussia 1200 gold for recognition",
+   "invest in saxony",
+   "status"
+  ],
+  "2": [
+   "invest in saxony"
+  ],
+  "3": [
+   "invest in saxony"
+  ],
+  "4": [
+   "invest in saxony"
+  ],
+  "5": [
+   "invest in saxony"
+  ],
+  "6": [
+   "invest in saxony"
+  ],
+  "7": [
+   "invest in saxony"
+  ],
+  "8": [
+   "invest in saxony"
+  ],
+  "9": [
+   "invest in saxony"
+  ]
+ }
+}

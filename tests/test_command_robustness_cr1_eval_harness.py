@@ -65,6 +65,9 @@ MOCK_REACHABLE_ACTIONS = [
     "naval_diversion",
     # FA-S9-D1 (slice 14): recalling a marshal from administrative duty.
     "recall_marshal",
+    # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.3–§2.4): the summons and
+    # the sweetener — the Congress route above the Talleyrand route.
+    "summon_congress", "recognition_sweetener",
 ]
 
 

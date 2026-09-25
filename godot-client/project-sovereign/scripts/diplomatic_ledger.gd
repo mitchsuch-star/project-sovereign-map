@@ -3,14 +3,21 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Diplomatic Ledger Screen (Session 8B)
 # =============================================================================
-# 6-section sub-tabbed screen. CanvasLayer 50.
-# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND, WAR BARGAINS, VASSALS
-# Number keys 1-6 switch sub-tabs (guarded by visible check).
+# 7-section sub-tabbed screen. CanvasLayer 50.
+# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND, WAR BARGAINS, VASSALS,
+# CONGRESS
+# Number keys 1-7 switch sub-tabs (guarded by visible check).
 # Pattern follows strategic_ledger.gd.
 # UI-6: the VASSALS tab renders per-vassal cards with honest-availability
 # action chips (invest / autonomy / cede / release) — the chips send the same
 # typed commands the parser accepts, or hand off to the F1 wizard for the
 # cede province picker.
+# GE-3 (ENDGAME_PLAN §2.4/§4): the CONGRESS tab renders the Congress of Paris's
+# table from ONE backend payload (`congress.build_congress_payload`, the
+# ledger's `congress` key) — the clock line, the summons' gate terms, the
+# sitting's days and its hold, and every great power's stance, reason and
+# price. It recomputes nothing and sends nothing: a court's card opens the
+# Cabinet at that court (the existing `open_diplomacy_for` road).
 # =============================================================================
 
 signal closed
@@ -18,7 +25,8 @@ signal closed
 # (history + terminal echo + refresh this ledger on result).
 signal vassal_command(command: String)
 # UI-6: [Cede Province…] — open the F1 wizard at this nation (its picker
-# states each province's terms).
+# states each province's terms). GE-3: a CONGRESS-tab court card rides it too
+# ("Open the Cabinet at Vienna").
 signal open_diplomacy_for(nation: String)
 # UI-6: Talleyrand tab [Assess the Situation] — the W6-9 counsel verb; main.gd
 # closes the ledger first so the war room renders in the terminal.
@@ -36,6 +44,7 @@ signal assess_requested
 @onready var talleyrand_tab = $PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab
 @onready var bargains_tab = $PanelContainer/VBoxContainer/SubTabRow/BargainsTab
 @onready var vassals_tab = $PanelContainer/VBoxContainer/SubTabRow/VassalsTab
+@onready var congress_tab = $PanelContainer/VBoxContainer/SubTabRow/CongressTab
 
 # File-specific colors (not in Utils)
 const COLOR_AMBER = "d9a520"
@@ -47,7 +56,7 @@ const COLOR_RED = "cd5c5c"
 const AUTHORITY_ARMS_READ_THE_BACKEND := true
 
 # State
-var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains, 5=vassals
+var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains, 5=vassals, 6=congress
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
@@ -78,7 +87,7 @@ func _ready():
 	# before its parent can scroll. PASS keeps meta_clicked chips working.
 	content_area.mouse_filter = Control.MOUSE_FILTER_PASS
 
-	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab, bargains_tab, vassals_tab]
+	tab_buttons = [nations_tab, treaties_tab, threat_tab, talleyrand_tab, bargains_tab, vassals_tab, congress_tab]
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
 
@@ -109,7 +118,7 @@ func _ready():
 
 
 func _input(event):
-	"""Handle number keys 1-6 for sub-tab switching. Only when visible."""
+	"""Handle number keys 1-7 for sub-tab switching. Only when visible."""
 	if not visible:
 		return
 	# Aug 30, 2026 review: `visible` is not the whole question. `Node._input`
@@ -137,6 +146,8 @@ func _input(event):
 				_switch_tab(4)
 			KEY_6:
 				_switch_tab(5)
+			KEY_7:
+				_switch_tab(6)
 			_:
 				switched = false
 		if switched:
@@ -163,6 +174,12 @@ func open_to_war_bargains(api_client):
 func open_to_vassals(api_client):
 	"""Fetch diplomatic ledger and open the Vassals tab (UI-6 deep link)."""
 	_open_with_tab(api_client, 5, "ledger_vassals")
+
+
+func open_to_congress(api_client):
+	"""Fetch diplomatic ledger and open the CONGRESS tab (GE-3 deep link —
+	the wizard's 'View the table' and a `ledger_congress` review target)."""
+	_open_with_tab(api_client, 6, "ledger_congress")
 
 
 func refresh_if_open():
@@ -279,6 +296,8 @@ func _render_current_tab():
 			_render_war_bargains()
 		5:
 			_render_vassals()
+		6:
+			_render_congress()
 
 
 func _format_bloc_stamp(stamp) -> String:
@@ -1600,6 +1619,288 @@ func _format_vassal_action_row(a: Dictionary, v: Dictionary) -> String:
 
 
 # =============================================================================
+# TAB 7: CONGRESS (GE-3 — the Congress of Paris, ENDGAME_PLAN §2.4 / §4)
+# =============================================================================
+# ONE payload (`congress.build_congress_payload`): every figure and sentence
+# here is the backend's. Null-safe on every key — a present-but-null value
+# survives `.get(key, default)`, and bool(null) / int(null) / `for x in null`
+# are Godot runtime errors (TUT-F1/F3's class).
+
+const COLOR_SLATE = "8fa3b8"
+# The stances the Imperial Peace counts as answered (`congress.SATISFIED`).
+const CONGRESS_SATISFIED = ["RECOGNIZES", "SHUT OUT", "GONE"]
+
+
+static func congress_stance_color(stance: String) -> String:
+	"""RECOGNIZES green · REFUSES crimson · SUES amber · SHUT OUT slate ·
+	GONE grey (the end screen's SIGNED reads as RECOGNIZES)."""
+	match stance:
+		"RECOGNIZES", "SIGNED":
+			return Utils.COLOR_SUCCESS
+		"REFUSES":
+			return Utils.COLOR_ERROR
+		"SUES":
+			return COLOR_AMBER
+		"SHUT OUT":
+			return COLOR_SLATE
+	return Utils.COLOR_GREY
+
+
+static func congress_severity_tint(severity: String) -> String:
+	"""The clock line's tint — the backend decided the severity once
+	(`congress.clock_severity`); the fall clock's tints, gold for the gate."""
+	match severity:
+		"critical":
+			return Utils.COLOR_ERROR
+		"warning":
+			return Utils.COLOR_BATTLE
+		"paused":
+			return Utils.COLOR_DIMMED
+	return Utils.COLOR_GOLD
+
+
+func _cstr(d: Dictionary, key: String) -> String:
+	var v = d.get(key, "")
+	if v == null:
+		return ""
+	return str(v)
+
+
+func _cint(d: Dictionary, key: String, fallback: int = 0) -> int:
+	var v = d.get(key, fallback)
+	if v is int or v is float:
+		return int(v)
+	return fallback
+
+
+func _ctrue(v) -> bool:
+	return v is bool and v
+
+
+func _bb_safe(text: String) -> String:
+	# A sentence from the world must not open a bbcode tag.
+	return text.replace("[", "[lb]")
+
+
+func _render_congress():
+	var c = cached_data.get("congress", null)
+	var bbcode := ""
+	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ THE CONGRESS OF PARIS ═══[/color]\n"
+	if not (c is Dictionary) or c.is_empty() or not _ctrue(c.get("armed", false)):
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]There is no Congress of Paris in this campaign — the rules of the ending are not authored here.[/color]\n"
+		content_area.text = bbcode
+		return
+	var needed := _cint(c, "titled_needed")
+	var turns := _cint(c, "turns")
+	# R159: the screen names the mechanic it shows — in the payload's numbers.
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]Europe must RECOGNIZE the new order. With " + str(needed)
+	bbcode += " titled provinces the Emperor may summon the great powers to Paris; each answers at every end turn, with its reason and its price, and the Congress sits "
+	bbcode += Utils.plural(turns, "turn") + ". If on the last day every court recognizes, is shut out or is gone, and the hold never broke, the Imperial Peace is proclaimed.[/color]\n\n"
+	var line := _cstr(c, "state_line")
+	if line != "":
+		bbcode += "[color=#" + congress_severity_tint(_cstr(c, "severity")) + "][b]" + _bb_safe(line) + "[/b][/color]\n\n"
+	var phase := _cstr(c, "phase")
+	if phase == "sitting":
+		bbcode += _congress_sitting_block(c)
+	elif phase == "concluded":
+		bbcode += "[color=#" + Utils.COLOR_GOLD + "]The Imperial Peace is signed — the powers of Europe recognize the order of the Empire.[/color]\n\n"
+	else:
+		bbcode += _congress_gate_block(c)
+	bbcode += _congress_table_block(c)
+	content_area.text = bbcode
+
+
+func _congress_gate_block(c: Dictionary) -> String:
+	var out := "[color=#" + Utils.COLOR_HEADER + "]THE SUMMONS[/color]\n"
+	var terms = c.get("gate_terms", [])
+	if terms is Array:
+		for t in terms:
+			if not (t is Dictionary):
+				continue
+			var met := _ctrue(t.get("met", false))
+			var mark: String = "✓" if met else "•"
+			var col: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_GREY
+			out += "  [color=#" + col + "]" + mark + " " + _bb_safe(_cstr(t, "text")) + "[/color]\n"
+	var cost := _cstr(c, "cost_text")
+	if cost != "":
+		out += "  [color=#" + Utils.COLOR_INFO + "]Cost: " + cost + " — once summoned, it cannot be recalled.[/color]\n"
+	if _ctrue(c.get("available", false)):
+		var command := _cstr(c, "command")
+		out += "  [color=#" + Utils.COLOR_SUCCESS + "]The powers may be summoned — the Cabinet (F1), 'The Congress of Paris'"
+		if command != "":
+			out += ", or type '" + command + "'"
+		out += ".[/color]\n"
+	else:
+		var why := _cstr(c, "unavailable_reason")
+		if why != "":
+			out += "  [color=#" + Utils.COLOR_GREY + "]Not yet: " + _bb_safe(why) + "[/color]\n"
+	var held = c.get("held_unsettled", [])
+	if held is Array and held.size() > 0:
+		var names: Array = []
+		for h in held:
+			if names.size() >= 8:
+				break
+			names.append(str(h))
+		var shown := ", ".join(PackedStringArray(names))
+		if held.size() > names.size():
+			shown += " and " + str(held.size() - names.size()) + " more"
+		out += "  [color=#" + Utils.COLOR_INFO + "]Held but not yet titled (" + str(held.size()) + "): " + _bb_safe(shown) + " — a conquest counts once a treaty cedes it or it is held in quiet possession.[/color]\n"
+	if _cstr(c, "phase") == "cooldown":
+		var reason := _cstr(c, "dissolve_reason")
+		if reason != "":
+			out += "  [color=#" + COLOR_AMBER + "]The last Congress dissolved — " + _bb_safe(reason) + ".[/color]\n"
+		var refusers = c.get("refusers", [])
+		if refusers is Array and refusers.size() > 0:
+			var shown_r: Array = []
+			for r in refusers:
+				shown_r.append(Utils.display_nation_name(str(r)))
+			out += "  [color=#" + Utils.COLOR_GREY + "]The courts that would not sign: " + ", ".join(PackedStringArray(shown_r)) + ".[/color]\n"
+	return out + "\n"
+
+
+func _congress_sitting_block(c: Dictionary) -> String:
+	var day := _cint(c, "day")
+	var turns := _cint(c, "turns")
+	var ends := _cint(c, "ends_turn")
+	var out := "[color=#" + Utils.COLOR_HEADER + "]THE SITTING[/color]\n"
+	if day >= 1:
+		out += "  Turn " + str(day) + " of " + str(turns) + " — the Congress resolves at the end of turn " + str(ends) + ".\n"
+	else:
+		out += "  The powers gather — the sitting opens at this end turn and resolves at the end of turn " + str(ends) + ".\n"
+	out += congress_strip_table(c.get("strip", []), turns, day) + "\n"
+	out += "[color=#" + Utils.COLOR_HEADER + "]THE HOLD[/color] [color=#" + Utils.COLOR_DIMMED + "]— every condition, at every end turn; one broken, and the Congress dissolves[/color]\n"
+	var hold = c.get("hold", [])
+	if hold is Array:
+		for h in hold:
+			if not (h is Dictionary):
+				continue
+			var met := _ctrue(h.get("met", false))
+			var mark: String = "✓" if met else "✗"
+			var col: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_ERROR
+			out += "  [color=#" + col + "]" + mark + " " + _bb_safe(_cstr(h, "text")) + "[/color]\n"
+	return out + "\n"
+
+
+static func congress_strip_table(strip, turns: int, today: int) -> String:
+	"""The sitting as a strip — one cell per day: whether the hold stood at
+	that end turn and how many courts had answered (recognizes / shut out /
+	gone), read off the backend's per-turn record. A day not yet reached is
+	a dot; today's number is gilded and its answer is still to come (…)."""
+	if turns <= 0:
+		return ""
+	var by_day := {}
+	if strip is Array:
+		for row in strip:
+			if row is Dictionary and (row.get("day") is int or row.get("day") is float):
+				by_day[int(row.get("day"))] = row
+	var out := "[table=" + str(turns + 1) + "]"
+	out += "[cell][color=#" + Utils.COLOR_DIMMED + "]Day  [/color][/cell]"
+	for d in range(1, turns + 1):
+		var day_col: String = Utils.COLOR_GOLD if d == today else Utils.COLOR_DIMMED
+		out += "[cell][color=#" + day_col + "] " + str(d) + " [/color][/cell]"
+	out += "[cell][color=#" + Utils.COLOR_DIMMED + "]Hold  [/color][/cell]"
+	for d in range(1, turns + 1):
+		var row = by_day.get(d, null)
+		if row is Dictionary:
+			var held: bool = row.get("held") is bool and row.get("held")
+			out += "[cell][color=#" + (Utils.COLOR_SUCCESS if held else Utils.COLOR_ERROR) + "] " + ("✓" if held else "✗") + " [/color][/cell]"
+		elif d == today:
+			# Today's answer is taken at this end turn (its day number is
+			# gilded in the row above).
+			out += "[cell][color=#" + Utils.COLOR_GOLD + "] … [/color][/cell]"
+		else:
+			out += "[cell][color=#" + Utils.COLOR_DIMMED + "] · [/color][/cell]"
+	out += "[cell][color=#" + Utils.COLOR_DIMMED + "]Signed  [/color][/cell]"
+	for d in range(1, turns + 1):
+		var row2 = by_day.get(d, null)
+		var stances = row2.get("stances", {}) if row2 is Dictionary else null
+		if stances is Dictionary and not stances.is_empty():
+			var answered := 0
+			for court in stances:
+				if str(stances[court]) in CONGRESS_SATISFIED:
+					answered += 1
+			out += "[cell][color=#" + Utils.COLOR_INFO + "] " + str(answered) + "/" + str(stances.size()) + " [/color][/cell]"
+		else:
+			out += "[cell] [/cell]"
+	return out + "[/table]\n"
+
+
+func _congress_table_block(c: Dictionary) -> String:
+	var courts = c.get("courts", [])
+	if not (courts is Array) or courts.is_empty():
+		return ""
+	var sitting := _cstr(c, "phase") == "sitting"
+	var out := "[color=#" + Utils.COLOR_HEADER + "]THE TABLE[/color] [color=#" + Utils.COLOR_DIMMED + "]— "
+	if sitting:
+		out += "every great power answers again at every end turn"
+	else:
+		out += "how each great power would answer today"
+	out += "[/color]\n"
+	for ct in courts:
+		if ct is Dictionary:
+			out += _format_congress_court(ct, sitting)
+	return out
+
+
+func _format_congress_court(ct: Dictionary, sitting: bool) -> String:
+	var nation := _cstr(ct, "nation")
+	var display := _cstr(ct, "display")
+	if display == "":
+		display = Utils.display_nation_name(nation)
+	var seat := _cstr(ct, "seat")
+	var stance := _cstr(ct, "stance")
+	var out := "  " + Utils.bb_flag(nation, 18)
+	out += "[color=#" + Utils.COLOR_GOLD + "][b]" + display + "[/b][/color]"
+	if seat != "" and seat != display:
+		out += "  [color=#" + Utils.COLOR_GREY + "](" + seat + ")[/color]"
+	out += "   [color=#" + congress_stance_color(stance) + "][b]" + stance + "[/b][/color]\n"
+	var reason := _cstr(ct, "reason")
+	if reason != "":
+		out += "    [color=#" + Utils.COLOR_INFO + "]" + _bb_safe(reason) + "[/color]\n"
+	var score = ct.get("score", null)
+	if (score is int or score is float) and _cstr(ct, "by") == "formula":
+		out += "    [color=#" + Utils.COLOR_GREY + "]Its reckoning: " + str(int(score)) + " — it signs at " + str(_cint(ct, "threshold")) + "[/color]\n"
+	var price := _cstr(ct, "price")
+	if price != "":
+		out += "    [color=#" + Utils.COLOR_GREY + "]Price: " + _bb_safe(price) + "[/color]\n"
+	# The War of the Congress: the backend sends `war_in` ONLY when the join
+	# would really fire (`congress.march_blocker` empty), else the blocker —
+	# a court in a truce, an ally, or no coalition to join is never promised
+	# a declaration that cannot come (GE-3 review).
+	if ct.get("war_in") is int or ct.get("war_in") is float:
+		var war_in := _cint(ct, "war_in")
+		var refusing := _cint(ct, "refusing_turns")
+		var threat := "    [color=#" + Utils.COLOR_ERROR + "]Refusing " + Utils.plural(refusing, "turn") + " — "
+		if war_in > 1:
+			threat += "it takes up arms against us in " + Utils.plural(war_in, "turn") + " unless it signs."
+		else:
+			threat += "it takes up arms against us at this end turn unless it signs."
+		out += threat + "[/color]\n"
+	elif _cstr(ct, "march_blocker") != "":
+		out += "    [color=#" + Utils.COLOR_GREY + "]Refusing " + Utils.plural(_cint(ct, "refusing_turns"), "turn") + " — it will not march: " + _bb_safe(_cstr(ct, "march_blocker")) + ".[/color]\n"
+	# The price's levers that are typed orders — the backend names the command
+	# (`levers[].command`). Gold is laid at the table only while it sits.
+	var orders: Array = []
+	var levers = ct.get("levers", [])
+	if levers is Array:
+		for lv in levers:
+			if not (lv is Dictionary):
+				continue
+			var order := _cstr(lv, "command")
+			if order == "":
+				continue
+			if _cstr(lv, "key") == "sweetener" and not sitting:
+				continue
+			orders.append("'" + _bb_safe(order) + "'")
+	if not orders.is_empty():
+		out += "    [color=#" + Utils.COLOR_DIMMED + "]Type " + " or ".join(PackedStringArray(orders)) + ".[/color]\n"
+	if stance != "GONE" and nation != "":
+		var where: String = seat if seat != "" else display
+		out += "    [url=congress_court:" + nation + "][color=#" + Utils.COLOR_GOLD + "]Open the Cabinet at " + where + " →[/color][/url]\n"
+	return out + "\n"
+
+
+# =============================================================================
 # CRITICAL PULSE (flashing red for CRITICAL threat tier)
 # =============================================================================
 
@@ -1650,6 +1951,13 @@ func _on_content_meta_clicked(meta):
 		_expanded_settlements[meta_key] = not s_expanded
 		if current_tab == 1:
 			_render_treaties()
+	elif meta_key.begins_with("congress_court:"):
+		# GE-3: a court's card opens the Cabinet at that court — the wizard
+		# states each instrument's terms (buy off its design, an alliance, a
+		# peace); this tab itself sends nothing.
+		var court = meta_key.substr("congress_court:".length())
+		if court != "":
+			open_diplomacy_for.emit(court)
 	elif meta_key.begins_with("vassal_cede:"):
 		# UI-6: [Cede Province…] — the wizard owns the province picker.
 		var cede_nation = meta_key.substr("vassal_cede:".length())

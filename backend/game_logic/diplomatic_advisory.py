@@ -357,6 +357,28 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
     ONE suggestion, never a list. `kind` decides the executable option:
     open_proposal rides the existing expand_options arm; request_terms and
     invest_vassal ride the W6-9 execute_suggestion arm."""
+    # 0. GE-3 (ENDGAME_PLAN §2.5): while the Congress of Paris sits,
+    #    Talleyrand names the biggest blocker and its price — the court the
+    #    Imperial Peace is waiting on. `open_proposal` rides the always-
+    #    reachable expand_options arm (the price is counsel, never a bargain).
+    from backend.game_logic import congress as _congress
+    _blocker = _congress.counsel(world)
+    if _blocker is not None:
+        from backend.display_names import display_nation as _dn
+        _who = _dn(_blocker["court"])
+        # Review #50c: " — reason", never "(at war with us (war score 0))".
+        _why = f" — {_blocker['reason']}" if _blocker.get("reason") else ""
+        _price = (f" The price: {_blocker['price']}."
+                  if _blocker.get("price") else "")
+        return {
+            "kind": "open_proposal",
+            "target_nation": _blocker["court"],
+            "label": f"Win over {_who}",
+            "description": "The court the Imperial Peace is waiting on.",
+            "text": (f"The Congress waits on {_who}, Sire — it "
+                     f"{_blocker['stance'].lower()}{_why}.{_price}"),
+        }
+
     # 1. A war the player should be seeking terms in — losing, or gone
     #    still — read PER COURT and ranked by what the game's own scorer
     #    says each court would meet. See `_settlement_candidates`, which
@@ -695,6 +717,23 @@ def _assess_situation(world) -> Dict:
             lines.append(f"  {_fall.arm_clock_sentence(world, _view)}")
         lines.append("")
 
+    # ── GE-3: THE CONGRESS OF PARIS — the gate, the sitting, the cooldown ──
+    # The same one-source line the Territories tab and the end-turn banner
+    # print (`congress.state_line`); while the Congress sits, one row per
+    # court with its stance, its reason and its price (the CONGRESS tab's
+    # rows). Armed worlds only; nothing after the Imperial Peace.
+    from backend.game_logic import congress as _congress
+    _congress_line = _congress.state_line(world)
+    if _congress_line:
+        lines.append(f"  {_congress_line}")
+        if _congress.sitting(world):
+            _table = _congress.build_congress_payload(world) or {}
+            for _row in _table.get("courts") or []:
+                _tail = (f" Price: {_row['price']}." if _row.get("price") else "")
+                _why = f" — {_row['reason']}" if _row.get("reason") else ""
+                lines.append(f"    {_row['display']}: {_row['stance']}{_why}.{_tail}")
+        lines.append("")
+
     # ── The wars ──
     wars_context: List[Dict] = []
     if war_rows:
@@ -800,11 +839,13 @@ def _assess_situation(world) -> Dict:
     active_coalition = getattr(world, "active_coalition", None)
     # CA8-18: Talleyrand does not call a standing coalition "Brewing".
     _player = getattr(world, "player_nation", "France")
+    from backend.game_logic.coalition import brewing_gate as _brewing_gate
     tier = str(get_threat_tier(
         threat,
         coalition_formed=bool(
             active_coalition
-            and (active_coalition.get("target_nation") or _player) == _player)))
+            and (active_coalition.get("target_nation") or _player) == _player),
+        brewing_at=_brewing_gate(world)))
     if active_coalition:
         posture = str(active_coalition.get("strategic_posture")
                       or get_coalition_posture(world))
@@ -858,8 +899,11 @@ def _assess_situation(world) -> Dict:
         # the forties and "No coalition stands against us" read as permanent
         # when one declaration would end it.
         from backend.game_logic import coalition as _coal
+        # GE-3 review #22: the gate the MECHANIC reads (lowered to 40 while
+        # the Congress sits and two courts refuse), never the literal 60.
+        _gate = _coal.brewing_gate(world)
         if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM
-                and threat < _coal.THREAT_BREWING_MIN
+                and threat < _gate
                 and not getattr(world, "coalition_brewing", None)):
             from backend.game_logic.diplomacy import (
                 declaration_alarm, declaration_relation_penalties,
@@ -873,7 +917,7 @@ def _assess_situation(world) -> Dict:
                 from backend.game_logic.diplomatic_ledger import courts_display
                 _projection = int(min(100, threat + declaration_alarm()))
                 lines.append(
-                    f"  No league gathers below {_coal.THREAT_BREWING_MIN}; a "
+                    f"  No league gathers below {_gate}; a "
                     f"declaration of war would carry the alarm to "
                     f"{_projection}, and {courts_display(world, _courts)} "
                     f"would stand ready to join one.")

@@ -235,10 +235,18 @@ func _render(style: Dictionary) -> void:
 	var verdict_block := _verdict_block(verdict, style)
 	if _register == "verdict":
 		bbcode += verdict_block
+	# 2b. GE-3: the Imperial Peace's own block — the four courts with SIGNED /
+	#     SHUT OUT / GONE, the titled count, the sitting's days (or the
+	#     Universal Monarchy's line), from the ending's own detail.
+	if _register == "imperial_peace":
+		bbcode += _congress_block(summary.get("congress"), style)
 	# 3. The record — the campaign's totals, taken at the moment.
 	bbcode += _record_block(summary, style)
 	if _register != "verdict":
 		bbcode += verdict_block
+	# 3b. GE-3: Le Moniteur's final line — the proclamation as printed.
+	if _register == "imperial_peace":
+		bbcode += _moniteur_line(summary)
 	# 4. What comes next, in one line.
 	bbcode += _what_now_line()
 	content_label.text = ""
@@ -347,6 +355,110 @@ func _record_block(summary: Dictionary, style: Dictionary) -> String:
 	if worst is Dictionary and not worst.is_empty():
 		out += "Worst defeat: " + _battle_line(worst, "suffered") + "\n"
 	return out + "\n"
+
+
+# GE-3: the stances the Imperial Peace counts as answered, and their ink on
+# the gold card (the ledger's CONGRESS tab uses the same colours).
+const CONGRESS_SATISFIED := ["RECOGNIZES", "SHUT OUT", "GONE"]
+
+
+func _congress_stance_hex(stance: String) -> String:
+	match stance:
+		"SIGNED", "RECOGNIZES":
+			return Utils.COLOR_SUCCESS
+		"SHUT OUT":
+			return "8fa3b8"
+		"REFUSES":
+			return Utils.COLOR_ERROR
+	return Utils.COLOR_GREY
+
+
+func _congress_block(congress, style: Dictionary) -> String:
+	"""GE-3 (ENDGAME_PLAN §4): the Imperial Peace's block — built by the
+	backend from the ending's OWN detail (`congress.summary_block`), never
+	from live state. A Peace with no Congress behind it (the GE-2 staged
+	preview: no courts, no route) renders nothing here."""
+	if not (congress is Dictionary):
+		return ""
+	var route_v = congress.get("route")
+	var route: String = route_v if route_v is String else "congress"
+	var courts = congress.get("courts")
+	var have_courts: bool = courts is Array and not (courts as Array).is_empty()
+	if not have_courts and route != "universal_monarchy":
+		return ""
+	var out := ""
+	if route == "universal_monarchy":
+		out += _heading("THE UNIVERSAL MONARCHY", style)
+		out += "No great power remains to contest the order.\n"
+	else:
+		out += _heading("THE CONGRESS OF PARIS", style)
+		var number := _n(congress, "number")
+		if number > 1:
+			out += Utils.bbcode_color("Summoned " + str(number) + " times before Europe signed.", Utils.COLOR_DIMMED) + "\n"
+		for row in courts:
+			if not (row is Dictionary):
+				continue
+			var nation_v = row.get("nation")
+			var nation: String = nation_v if nation_v is String else ""
+			var display_v = row.get("display")
+			var display: String = display_v if display_v is String and display_v != "" else Utils.display_nation_name(nation)
+			var stance_v = row.get("stance")
+			var stance: String = stance_v if stance_v is String else ""
+			out += Utils.bb_flag(nation, 18) + _esc(display) + " — " \
+				+ Utils.bbcode_color(stance, _congress_stance_hex(stance)) + "\n"
+	var hold := _n(congress, "hold_titled")
+	if hold > 0:
+		# GE-3 review #59: the titled count is the BLOC's (the Empire and its
+		# satellites), while THE RECORD's realm line counts France alone —
+		# the card says so rather than print 50 beside 43 unexplained.
+		out += str(_n(congress, "titled")) + " of " + str(hold) + " titled provinces in the Empire and its satellites.\n"
+	var sitting = congress.get("sitting")
+	if sitting is Array and not (sitting as Array).is_empty():
+		out += "\n" + _heading("THE SITTING", style)
+		out += _sitting_strip(sitting)
+	return out + "\n"
+
+
+func _sitting_strip(rows: Array) -> String:
+	"""The sitting's days as a strip — one cell per day: the hold (✓ held /
+	✗ broke) and how many courts had answered (recognizes / shut out / gone)
+	at that end turn, off the backend's per-turn record."""
+	var days: Array = []
+	for row in rows:
+		if row is Dictionary:
+			days.append(row)
+	if days.is_empty():
+		return ""
+	var out := "[table=" + str(days.size() + 1) + "]"
+	out += "[cell]" + Utils.bbcode_color("Day  ", Utils.COLOR_DIMMED) + "[/cell]"
+	for row in days:
+		out += "[cell] " + str(_n(row, "day")) + " [/cell]"
+	out += "[cell]" + Utils.bbcode_color("Hold  ", Utils.COLOR_DIMMED) + "[/cell]"
+	for row in days:
+		var held: bool = row.get("held") is bool and row.get("held")
+		out += "[cell]" + Utils.bbcode_color(" ✓ " if held else " ✗ ",
+			Utils.COLOR_SUCCESS if held else Utils.COLOR_ERROR) + "[/cell]"
+	out += "[cell]" + Utils.bbcode_color("Signed  ", Utils.COLOR_DIMMED) + "[/cell]"
+	for row in days:
+		var stances = row.get("stances")
+		if stances is Dictionary and not (stances as Dictionary).is_empty():
+			var answered := 0
+			for court in stances:
+				if str(stances[court]) in CONGRESS_SATISFIED:
+					answered += 1
+			out += "[cell] " + str(answered) + "/" + str((stances as Dictionary).size()) + " [/cell]"
+		else:
+			out += "[cell] [/cell]"
+	return out + "[/table]\n"
+
+
+func _moniteur_line(summary: Dictionary) -> String:
+	"""GE-3: Le Moniteur's final line — the proclamation as the paper printed
+	it (`summary.moniteur_line`, stamped with the ending)."""
+	var line = summary.get("moniteur_line")
+	if not (line is String) or line == "":
+		return ""
+	return "[i]" + Utils.bbcode_color(_esc(line), Utils.COLOR_GOLD) + "[/i]\n\n"
 
 
 func _battle_line(row: Dictionary, key: String) -> String:

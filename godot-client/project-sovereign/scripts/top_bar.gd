@@ -264,6 +264,8 @@ func open_diplomatic_ledger_review(review_target: String, route_id: String = "",
 		node.open_to_settlements(api_client, route_id, war_id)
 	elif review_target == "ledger_vassals" and node.has_method("open_to_vassals"):
 		node.open_to_vassals(api_client)
+	elif review_target == "ledger_congress" and node.has_method("open_to_congress"):
+		node.open_to_congress(api_client)
 	elif node.has_method("open"):
 		node.open(api_client)
 	else:

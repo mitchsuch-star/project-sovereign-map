@@ -112,6 +112,10 @@ VALID_ACTIONS: Set[str] = {
     "set_fleet_posture",  # "blockade the enemy" / "guard home waters"
     "naval_expedition",  # "land Soult in Munster" — the H4 gamble, marshal-carried
     "naval_diversion",   # "order the diversion" — the §5.3 Grand Diversion
+    # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.3–§2.4) — the victory
+    # arm's two player verbs, nation-level, no marshal:
+    "summon_congress",        # "summon the congress" — 2 DP + 1 admin action
+    "recognition_sweetener",  # "offer Prussia 1000 gold for recognition" — 1 DP
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -168,6 +172,10 @@ META_ACTIONS: Set[str] = {
     # SC-30 / Slice G1 — ask the enemy war leader to name settlement
     # terms (the Request Terms lifecycle). No marshal needed.
     "request_terms",
+    # GE-3 "The Congress of Paris" — the summons and the sweetener are the
+    # Emperor's own acts of state. No marshal needed.
+    "summon_congress",
+    "recognition_sweetener",
 }
 
 # FA slice 7 (FA-N9): ONE list. parser.py kept a THIRD hand-copied "needs no
@@ -235,6 +243,12 @@ DIPLOMATIC_ACTION_ALLOWLIST: Set[str] = {
     "propose_common_peace",
     "propose_white_peace",
     "request_terms",
+    # GE-3: the mock parser's Congress route rides the Cabinet idiom
+    # (command_type "diplomatic" + diplomatic_data) — without these two the
+    # payload is thrown away here and the parse dies as "Unknown diplomatic
+    # action".
+    "summon_congress",
+    "recognition_sweetener",
 }
 
 # CR-3(d) review fix: the fields a PARSE may legitimately mint on

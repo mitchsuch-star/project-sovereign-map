@@ -995,6 +995,115 @@ def _mentions_treaty_break(command_lower: str) -> bool:
     return bool(_TREATY_BREAK_RE.search(command_lower))
 
 
+# GE-3 "THE CONGRESS OF PARIS" (docs/ENDGAME_PLAN.md §2.3–§2.4): the victory
+# arm's two typed verbs. The summons is a verb + "congress" (or the
+# Moniteur's own "summon the powers"); "hold" is NEVER a keyword — it is the
+# sitting's own word for keeping the provinces, and a marshal's order. The
+# sweetener is a PAYMENT verb, gold (a figure or the word), and the thing it
+# buys — recognition — or the word the plan gives it ("sweeten").
+#
+# ⚠ CX-R1: `tools/gen_routed_order_words.py` harvests the words a routing
+# branch opens on from what these predicates RETURN. Each predicate therefore
+# returns ONLY its verb pattern and tests the object words beforehand, so the
+# addressee rule learns `summon` / `convene` / `call` / `offer` / `pay` /
+# `sweeten` and never the nouns (`congress`, `recognition`, `gold`).
+_CONGRESS_NOUN_RE = re.compile(r"\bcongress\b|\bpowers\b")
+_CONGRESS_SUMMONS_RE = re.compile(
+    r"\b(?:summon|convene|call)\s+(?:the\s+|a\s+)?(?:great\s+)?"
+    r"(?:congress|powers(?:\s+of\s+europe)?)\b")
+# GE-3 review #27/#32: the summons is an ORDER only at the head of the line
+# — after an address (the Emperor's own, or the minister's) and a word of
+# filler — never a clause that merely MENTIONS it ("Ney, attack Mack so we
+# can summon the congress" had summoned and dropped the attack). Tested
+# BEFORE the verb pattern so the order-word harvest learns only the verbs.
+_CONGRESS_HEAD_RE = re.compile(
+    r"^\s*(?:(?:sire|emperor|napoleon|your\s+majesty|majesty|talleyrand|diplomat|envoy|"
+    r"foreign\s+minister|minister|ambassador)\s*,?\s+)?"
+    r"(?:(?:please|now|then|very\s+well|well)\s*,?\s+)?"
+    r"(?:(?:i|we)\s+(?:will\s+|shall\s+|must\s+|now\s+)?|let\s+us\s+|let's\s+)?")
+# An irreversible act of state FAILS CLOSED on a hedge, a musing, a request
+# for instructions or a deferral the PARSE-NEG guards do not read (review
+# #32): the line is answered as a question and nothing is spent.
+_CONGRESS_HEDGE_RE = re.compile(
+    r"\b(?:perhaps|maybe|might|could|would|ought|wonder(?:ing)?|whether|"
+    r"thinking|unsure|explain|advise|what\s+if|not\s+sure|remind\s+me|"
+    r"tell\s+me|how\s+(?:do|does|to|can|would|should)|"
+    r"in\s+(?:\d+|a|one|two|three|four|five|six|seven|eight|nine|ten|a\s+few|"
+    r"several)\s+turns?)\b")
+_EMPEROR_LEAD_RE = re.compile(
+    r"^\s*(?:the\s+)?(?:emperor|napoleon|sire|your\s+majesty|majesty)\b")
+_DIPLOMAT_LEAD_RE = re.compile(
+    r"^\s*(?:talleyrand|diplomat|envoy|foreign\s+minister|minister|ambassador)\b")
+_RECOGNITION_WORD_RE = re.compile(
+    r"\brecogni(?:tion|[sz](?:e|es|ed|ing))\b|\bsweeten(?:er|ers)?\b")
+# Gold named as gold, or a figure attached to it ("1000 gold", "800g") — a
+# bare number is not a payment (review #29/#33: "the treaty of 1805").
+_GOLD_WORD_RE = re.compile(
+    r"\bgold\b|\bducats?\b|(?<![\w.])\d[\d,]*\s*g\b")
+# Review #31: a line that names a TREATY is the Cabinet's — "offer Prussia an
+# alliance in recognition of …" is an alliance proposal, never gold.
+_TREATY_WORD_RE = re.compile(
+    r"\b(?:alliance|allied|pact|non[-\s]aggression|open\s+borders|peace|"
+    r"guarantee|armistice|truce|treaty|marriage|subsid(?:y|ies|ize))\b")
+_SWEETENER_VERB_RE = re.compile(r"\b(?:offer|pay|sweeten)\b")
+
+
+def _summons_mentioned(command_lower: str) -> bool:
+    """The summons named ANYWHERE in the line (the hedge and question read)."""
+    if not _CONGRESS_NOUN_RE.search(command_lower):
+        return False
+    return bool(_CONGRESS_SUMMONS_RE.search(command_lower))
+
+
+def _summons_the_congress(command_lower: str) -> bool:
+    """"summon the congress" / "convene the congress of Paris" / "call the
+    congress" / "summon the great powers to Paris" — at the HEAD of the
+    line (review #27)."""
+    if not _CONGRESS_NOUN_RE.search(command_lower):
+        return False
+    head = _CONGRESS_HEAD_RE.match(command_lower)
+    rest = command_lower[head.end():] if head else command_lower
+    return bool(_CONGRESS_SUMMONS_RE.match(rest))
+
+
+def _offers_a_recognition_sweetener(command_lower: str) -> bool:
+    """"offer Prussia 1000 gold for recognition" / "pay Russia 1500 gold to
+    recognize the congress" / "sweeten Prussia with 1000 gold" / "offer
+    Prussia an 800g sweetener". Checked BEFORE the summons, so "pay Russia …
+    to recognize the congress" is a payment and never a summons."""
+    if not (_RECOGNITION_WORD_RE.search(command_lower)
+            and _GOLD_WORD_RE.search(command_lower)):
+        return False
+    if _TREATY_WORD_RE.search(command_lower):
+        return False
+    return bool(_SWEETENER_VERB_RE.search(command_lower))
+
+
+def _congress_hedged(command_lower: str) -> bool:
+    return bool(_CONGRESS_HEDGE_RE.search(command_lower))
+
+
+def _leads_with_marshal_word(command_lower: str, marshal_names) -> bool:
+    """The unmarked address ("Ney attack Mack …"): the line's first word is
+    a marshal's name."""
+    first = re.match(r"\s*([a-z][a-z'-]*)", command_lower)
+    if not first:
+        return False
+    word = first.group(1)
+    return any(word == str(n).lower() or word == str(n).lower().split()[0]
+               for n in (marshal_names or []) if n)
+
+
+# A QUESTION about the Congress, beyond the two verbs ("what is the congress
+# of Paris?", "how does the congress work?"). Read only after the strong
+# `clause_guards.is_question` has said the line is a question.
+_CONGRESS_QUESTION_RE = re.compile(r"\bcongress\b|\bimperial\s+peace\b")
+
+
+def _asks_about_the_congress(command_lower: str) -> bool:
+    return bool(_CONGRESS_QUESTION_RE.search(command_lower))
+
+
 # Slice-11 review round: the peace-intent and treaty-break EARLY routes
 # select the diplomatic parser on keyword presence alone, before marshal
 # parsing — so `Ney, end the war of attrition` and `Ney, make peace
@@ -1900,6 +2009,56 @@ class LLMClient:
         _request_terms_keywords = ["request terms", "request their terms"]
         if any(kw in command_lower for kw in _request_terms_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
+
+        # ════════════════════════════════════════════════════════════
+        # GE-3 "THE CONGRESS OF PARIS" (docs/ENDGAME_PLAN.md §2.3–§2.4) —
+        # the summons and the sweetener, the Emperor's own acts of state.
+        #
+        # Sited ABOVE the Talleyrand route, which swallowed "Talleyrand,
+        # summon the congress" whole and opened a nation-less PROPOSAL
+        # (measured before this block), and above every family that reads
+        # "peace" — FINAL-21's which-nation ask would otherwise answer
+        # "summon the Congress for the Imperial Peace" with a court picker.
+        # The sweetener is read FIRST: "pay Russia 1500 gold to recognize the
+        # congress" names the Congress and is a payment, never a summons.
+        #
+        # A QUESTION FAILS CLOSED. The strong `clause_guards.is_question` is
+        # read on what the player TYPED (the Cabinet's own weak test lets
+        # "can we request terms from Austria" execute) — "can we summon the
+        # congress" is answered with the gate terms and never summons. A
+        # negated summons never reaches here: PARSE-NEG refused it above.
+        # ════════════════════════════════════════════════════════════
+        # Review round (#27): a line LED by a marshal is a marshal order —
+        # the Congress route stands down for it, as the peace-intent and
+        # treaty-break routes do (a reason clause that MENTIONS the summons
+        # had summoned and dropped the order). Review #28: a line put to
+        # the minister and ending in "?" is a question, as it is for every
+        # other Cabinet verb. Review #32: a hedge fails closed.
+        # The Emperor is the one marshal who IS the summoner — "Emperor,
+        # summon the congress" / "Napoleon, summon …" is the act itself.
+        _congress_marshal_led = ((_addressed_marshal
+                                  or _leads_with_marshal_word(command_lower, _player_roster))
+                                 and not _EMPEROR_LEAD_RE.match(command_lower))
+        _congress_named = (_summons_mentioned(command_lower)
+                           or _offers_a_recognition_sweetener(command_lower))
+        if not _congress_marshal_led and (
+                (_congress_named or _asks_about_the_congress(command_lower))
+                and (is_question(original_text, _question_subjects(game_state))
+                     or (_DIPLOMAT_LEAD_RE.match(command_lower)
+                         and original_text.rstrip().endswith("?")))):
+            return self._congress_question(original_text)
+        if not _congress_marshal_led and _congress_named and _congress_hedged(command_lower):
+            return self._congress_question(original_text)
+        if not _congress_marshal_led and _offers_a_recognition_sweetener(command_lower):
+            action = "recognition_sweetener"
+            return self._parse_congress_command(
+                action, command_text, command_lower, known_nations,
+                game_state)
+        if not _congress_marshal_led and _summons_the_congress(command_lower):
+            action = "summon_congress"
+            return self._parse_congress_command(
+                action, command_text, command_lower, known_nations,
+                game_state)
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         if any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES):
@@ -3039,6 +3198,114 @@ class LLMClient:
             key_source=self.key_source,
             raw_command=command_text,
             diplomatic_data=diplomatic_data,
+        )
+
+    def _parse_congress_command(self, action: str, command_text: str,
+                                command_lower: str,
+                                known_nations: Dict[str, str],
+                                game_state: Optional[Dict] = None) -> ParseResult:
+        """GE-3: the summons or the sweetener, in the Cabinet's own idiom
+        (command_type "diplomatic" + an allowlisted diplomatic_data), so it
+        rides the parser's diplomatic early return — no marshal scan, no
+        strategic upgrade, and "of Paris" can never become a march target.
+
+        The sweetener's COURT rides `target`; its GOLD stays in the raw text,
+        where the executor scans it (`_scan_amount`, the buy-off idiom) —
+        a figure the parser never re-writes is a figure it can never alter.
+        """
+        target = None
+        if action == "recognition_sweetener":
+            world = (game_state or {}).get("world") if isinstance(
+                game_state, dict) else None
+            player = str(getattr(world, "player_nation", "") or "").lower()
+            courts = {form: key for form, key in (known_nations or {}).items()
+                      if key.lower() != player}
+            if courts:
+                form = _match_known_name(command_lower, courts.keys())
+                if form:
+                    target = courts[form]
+            if target is None:
+                # Review #33: the surfaces name a court by its SEAT ("laid
+                # before Berlin", "Open the Cabinet at Vienna").
+                from backend.game_logic.congress import COURT_SEATS
+                for court, seat_name in COURT_SEATS.items():
+                    forms = {seat_name.lower()}
+                    if seat_name == "St Petersburg":
+                        forms |= {"st. petersburg", "saint petersburg", "petersburg"}
+                    if any(re.search(r"\b" + re.escape(f) + r"\b", command_lower)
+                           for f in forms):
+                        target = court
+                        break
+            if target is None:
+                from backend.game_logic.diplomatic_dialogue import (
+                    extract_nation_from_command,
+                )
+                target = extract_nation_from_command(command_text)
+            if target is None and player and re.search(
+                    r"\b" + re.escape(player) + r"\b", command_lower):
+                # The player's own court: the executor refuses it in its own
+                # words ("cannot treat with itself"), never "name the court".
+                target = str(getattr(world, "player_nation", "") or "") or None
+        if action == "summon_congress":
+            interpretation = "The Congress of Paris — the summons"
+        else:
+            interpretation = (f"The Congress of Paris — a sweetener for "
+                              f"{target or 'an unnamed court'}")
+        diplomatic_data = {
+            "action": action,
+            "diplomat": "Talleyrand",
+            "target_nation": target,
+            "proposal_type": None,
+            "clauses": [],
+            "mission_type": None,
+            "is_question": False,
+            "has_diplomatic_keywords": True,
+            "tone": "propose",
+            "raw_text": command_text,
+        }
+        named = action == "summon_congress" or bool(target)
+        return ParseResult(
+            matched=True,
+            command_type="diplomatic",
+            marshals=[],
+            action=action,
+            target=target,
+            ambiguity=5 if named else 15,
+            strategic_score=0,
+            interpretation=interpretation,
+            confidence=0.95 if named else 0.8,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+            diplomatic_data=diplomatic_data,
+        )
+
+    def _congress_question(self, original_text: str) -> ParseResult:
+        """GE-3: a question about the Congress FAILS CLOSED — it is answered
+        (`first_contact.answer_first_contact("congress", …)`: the gate terms
+        before a summons, the table while it sits) and nothing executes.
+        `help` is free and is what every question the order chain declines
+        already routes to.
+
+        One answer for every addressee: a question put to the foreign
+        minister ("Talleyrand, can we summon the congress?") gets the same
+        gate terms — `parser.py` reads the minister as the addressee of the
+        desk, not as a marshal typo to clarify — where the Cabinet's weaker
+        test had read the unpunctuated form as a nation-less PROPOSAL."""
+        return ParseResult(
+            matched=True,
+            command_type="tactical",
+            marshals=[],
+            action="help",
+            target=None,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation="Question — the Congress of Paris",
+            confidence=0.9,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=original_text,
+            question={"kind": "congress", "asked": original_text},
         )
 
     def _parse_diplomatic_command(self, command_text: str, command_lower: str) -> ParseResult:

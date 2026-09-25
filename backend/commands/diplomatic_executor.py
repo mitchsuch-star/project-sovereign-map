@@ -525,6 +525,61 @@ class DiplomaticExecutor:
         return {"success": True, "message": message,
                 "bargain": dict(result["record"]), "new_state": game_state}
 
+    # ════════════════════════════════════════════════════════════
+    # GE-3 "THE CONGRESS OF PARIS" (docs/ENDGAME_PLAN.md §2)
+    # ════════════════════════════════════════════════════════════
+
+    def _execute_summon_congress(self, command: Dict, game_state: Dict) -> Dict:
+        """The summons — 2 DP here (after `congress.summon` succeeds) and
+        1 administrative action (charged by the executor's generic ADMIN
+        arm, only on success). Refused with the first unmet gate term, at no
+        cost. The player's verb only (GR5 — the AI never summons)."""
+        from backend.game_logic import congress
+        world = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+        acting = command.get("_acting_nation")
+        if acting not in (None, "", getattr(world, "player_nation", None)):
+            return {"success": False,
+                    "message": "Only the Emperor summons the Congress of Paris."}
+        result = congress.summon(world)
+        if not result.get("success"):
+            return {"success": False, "message": result.get("message", "")}
+        world.diplomatic_points = int(world.diplomatic_points) - congress.SUMMON_DP_COST
+        result["new_state"] = game_state
+        return result
+
+    def _execute_recognition_sweetener(self, command: Dict, game_state: Dict) -> Dict:
+        """§2.4's sweetener — gold laid before a great power at the table:
+        +10 per 1,000g, capped at +20, on the instrument verbs' transport
+        (1 DP, the named court resolved like every instrument, the treasury
+        transfer idiom). Gold past the cap is not taken."""
+        from backend.game_logic import congress
+        world, target, error = self._instrument_preflight(command, game_state)
+        if error:
+            return error
+        if not target:
+            return {"success": False,
+                    "message": ("Name the court and the gold, Sire — e.g. "
+                                "'offer Prussia 1000 gold for recognition'.")}
+        raw_text = (command.get("raw_input")
+                    or command.get("original_command")
+                    or command.get("raw_command") or "")
+        # GE-3 review #29: the figure attached to gold in the GUARDED line
+        # (`congress.sweetener_amount`), never the first number in the raw
+        # text — a negated figure, a turn count or a year was paid as gold.
+        amount, refusal = congress.sweetener_amount(raw_text)
+        if refusal:
+            return {"success": False, "message": refusal}
+        if amount is None:
+            amount = int(command.get("amount") or 0)
+        result = congress.pay_sweetener(world, target, int(amount or 0))
+        if not result.get("success"):
+            return {"success": False, "message": result.get("message", "")}
+        world.diplomatic_points = int(world.diplomatic_points) - congress.SWEETENER_DP_COST
+        result["new_state"] = game_state
+        return result
+
     def _execute_guarantee_nation(self, command: Dict, game_state: Dict) -> Dict:
         """D5-3: pledge to defend a court. Deters its coveters (their
         intent weight drops, shown in the ledger); stakes France's
@@ -2511,6 +2566,24 @@ class DiplomaticExecutor:
                     f"would carry it to {_projection['to']}, {_gathers} "
                     f"Europe keeps the accounts; I should not care to hand it "
                     f"the next league.")
+        # GE-3 (ENDGAME_PLAN §2.5): while the Congress of Paris sits, a new
+        # war is the one act that dissolves it outright — the Emperor who
+        # summons the Congress and then draws the sword has answered for
+        # Europe. Talleyrand says so BEFORE the declaration, whatever else he
+        # objects to (the hold's own words, the dissolution's own price).
+        if current_state != "WAR" and not confirmed_objection:
+            from backend.game_logic import congress as _congress
+            if _congress.sitting(world):
+                _congress_warning = (
+                    f"Sire, the Congress of Paris is sitting. A declaration "
+                    f"on {target_nation} now would answer for Europe: the "
+                    f"hold breaks and the Congress dissolves at this end turn "
+                    f"— Europe's alarm +{_congress.dissolve_alarm(world)}, and "
+                    f"{_congress.cooldown_turns(world)} turns before the "
+                    f"powers will answer another summons.")
+                _objection_text = (_congress_warning if not _objects
+                                   else f"{_congress_warning} {_objection_text}")
+                _objects = True
         if _objects:
             # Check if objection already pending (don't double-fire)
             if not world.diplomatic_objection_popup:

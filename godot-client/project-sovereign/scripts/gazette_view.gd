@@ -117,6 +117,10 @@ func _render_issue():
 
 	bbcode += _section("THE WAR", issue.get("war", []))
 	bbcode += _section("THE COURTS", issue.get("courts", []))
+	# GE-3: the Congress column — the table in the paper's voice every issue
+	# of the sitting, the proclamation on the Imperial Peace's own edition
+	# (`gazette._congress_column`). Absent / empty → no section.
+	bbcode += _section("THE CONGRESS OF PARIS", issue.get("congress", []))
 	bbcode += _section("THE ARMY", issue.get("army", []))
 
 	var bourse = str(issue.get("bourse", ""))

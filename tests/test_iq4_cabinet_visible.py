@@ -1503,7 +1503,7 @@ class TestTheLogRecordsTheEnd:
     def test_the_type_is_registered(self):
         assert "diplomatic_mission_ended" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["diplomatic_mission_ended"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 166  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — a loyal satellite's petition (THE PROVINCE / THE RELIEF) is the web's first non-rebellion decision, and its answer — granted, refused, or left to lapse — had no persistent surface (no inert diplomacy type was retired in exchange: the six producerless ones are the FA-R5 census's, not this slice's)  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 167  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — a loyal satellite's petition (THE PROVINCE / THE RELIEF) is the web's first non-rebellion decision, and its answer — granted, refused, or left to lapse — had no persistent surface (no inert diplomacy type was retired in exchange: the six producerless ones are the FA-R5 census's, not this slice's)  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)
 
     def test_lever_down_logs_no_end(self):
         DD.MISSION_LOG_ENDS = False

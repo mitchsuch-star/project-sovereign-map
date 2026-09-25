@@ -480,6 +480,26 @@ func _on_dispatch_received(response):
 					bbcode += "[color=#" + tint + "]  " + clock_line + "[/color]\n"
 			bbcode += "\n"
 
+	# ═══ THE CONGRESS OF PARIS (GE-3, ENDGAME_PLAN §4 — the clock line) ═══
+	# Mirrored from main.gd's `_add_congress_clock_line` so the R screen and
+	# the end-turn banner cannot drift: the backend's ONE line
+	# (`congress.state_line`), its `severity` picking the tint.
+	var congress_clock = data.get("congress_clock", null)
+	if congress_clock is Dictionary:
+		var cc_line = congress_clock.get("line", "")
+		if cc_line is String and cc_line != "":
+			var cc_sev = congress_clock.get("severity", "gate")
+			var cc_tint := Utils.COLOR_GOLD
+			if cc_sev is String:
+				if cc_sev == "critical":
+					cc_tint = Utils.COLOR_ERROR
+				elif cc_sev == "warning":
+					cc_tint = Utils.COLOR_BATTLE
+				elif cc_sev == "paused":
+					cc_tint = Utils.COLOR_DIMMED
+			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]THE CONGRESS OF PARIS[/color]\n"
+			bbcode += "[color=#" + cc_tint + "]  " + cc_line + "[/color]\n\n"
+
 	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
 	# The turn-1 briefing's own section, mirrored from main.gd.
 	var today = data.get("today", null)

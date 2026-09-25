@@ -707,7 +707,46 @@ def standing_redemption(world) -> Optional[Dict]:
                 and getattr(marshal, "redemption_pending", False)):
             marshal.redemption_pending = False
         return None
+    # GE-3 review #34: the settle arm's rente is priced at the READ, not the
+    # build — a summons (×1.5, the peace dividend) or a dissolution between
+    # the two had left the button quoting a price the answer did not charge.
+    options = event.get("options")
+    if isinstance(options, list) and any(
+            isinstance(o, dict) and o.get("id") == "settle_account" for o in options):
+        fresh = settle_account_option(marshal, world)
+        event["options"] = [
+            (fresh if fresh is not None else o)
+            if isinstance(o, dict) and o.get("id") == "settle_account" else o
+            for o in options]
     return event
+
+
+def settle_account_option(marshal, world) -> Optional[Dict]:
+    """FA-D5: the audience's rente arm, priced by the same builder the rail
+    quotes (`build_rente_offer` — the Congress's peace dividend included).
+    None when no shortfall is open or a rente would not help."""
+    from backend.game_logic import dotation as _dot
+    if not (_dot.is_dotation_world(world)
+            and _dot.get_shortfall(marshal, world) > 0
+            and not _dot.rente_grant_would_not_help(marshal, world)):
+        return None
+    _offer = _dot.build_rente_offer(marshal, world)
+    _face = int(_offer.get("face", 0) or 0)
+    _cost = int(_offer.get("cost", 0) or 0)
+    return {
+        'id': 'settle_account',
+        'text': f"Settle {marshal.name}'s account — a rente of {_face:,}g a turn",
+        'description': (
+            f"His claim is {_dot.get_shortfall(marshal, world):,}g a turn in arrears; "
+            f"a rente of {_face:,}g closes it and the erosion stops. The treasury "
+            f"pays {_cost:,}g a turn"
+            # GE-3: `_cost` carries the Congress's peace dividend
+            # (`build_rente_offer`); the arm names it while in force.
+            f"{_dot.peace_dividend_note(world, marshal.nation)}"
+            f". Costs 1 administrative action; the audience "
+            f"stands if the action or the gold is wanting."),
+        'effect': 'grant_pension_via_the_executor',
+    }
 
 
 # ── FA-26 / FA-N1 (September 5, 2026): the question is asked ──────────────
@@ -1606,23 +1645,9 @@ class DisobedienceSystem:
         # open and a rente would actually help, the FIRST arm is the rente,
         # priced by the same builder the rail quotes.
         if THE_AUDIENCE_NAMES_ITS_CAUSE:
-            from backend.game_logic import dotation as _dot
-            if (_dot.is_dotation_world(world)
-                    and _dot.get_shortfall(marshal, world) > 0
-                    and not _dot.rente_grant_would_not_help(marshal, world)):
-                _offer = _dot.build_rente_offer(marshal, world)
-                _face = int(_offer.get("face", 0) or 0)
-                _cost = int(_offer.get("cost", 0) or 0)
-                options.append({
-                    'id': 'settle_account',
-                    'text': f"Settle {marshal.name}'s account — a rente of {_face:,}g a turn",
-                    'description': (
-                        f"His claim is {_dot.get_shortfall(marshal, world):,}g a turn in arrears; "
-                        f"a rente of {_face:,}g closes it and the erosion stops. The treasury "
-                        f"pays {_cost:,}g a turn. Costs 1 administrative action; the audience "
-                        f"stands if the action or the gold is wanting."),
-                    'effect': 'grant_pension_via_the_executor',
-                })
+            _settle = settle_account_option(marshal, world)
+            if _settle is not None:
+                options.append(_settle)
 
         # Get counts using world_state helpers
         field_marshals = world.get_field_marshals()

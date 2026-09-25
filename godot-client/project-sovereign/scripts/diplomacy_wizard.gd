@@ -12,6 +12,15 @@ extends CanvasLayer
 signal command_selected(command: String)
 signal structured_command_selected(command: String, data: Dictionary)
 signal open_envoys_requested
+# GE-3: "View the table" — main.gd opens the Diplomatic Ledger on its
+# CONGRESS tab (top_bar.open_diplomatic_ledger_review("ledger_congress")).
+signal open_congress_requested
+
+# GE-3 (ENDGAME_PLAN §2.3): the summons is the typed verb the backend's own
+# payload names (`congress.SUMMON_COMMAND`); main.gd sends it through the
+# ordinary typed pipeline (history, terminal echo). It names no court, so it
+# is NOT a `_build_command` arm (every arm there echoes a court — CN-4).
+const CONGRESS_SUMMON_COMMAND := "summon the congress"
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -282,6 +291,12 @@ func _render_nations(data: Dictionary):
 		_add_dialogue_gate_notice(pending_envoy_count)
 		return
 
+	# GE-3 (ENDGAME_PLAN §2.3): "The Congress of Paris" — the ending's
+	# summons, at the very top, with its honest-availability gate terms. The
+	# backend sends the row only on a world whose ending is authored (the
+	# tutorial and the bare flag world send null — no row).
+	_add_congress_row(data.get("congress"))
+
 	# NA-6d §11.6-8: the Formables button — the assured, always-reachable
 	# browser for the formable world. Top of the list, never hidden.
 	_add_formables_button()
@@ -372,6 +387,118 @@ func _on_nation_selected(nation: String):
 	_clear_content_list()
 	_add_loading_label()
 	_fetch_preview(nation)
+
+
+# =============================================================================
+# STEP 1: THE CONGRESS OF PARIS (GE-3 — ENDGAME_PLAN §2.3)
+# =============================================================================
+# A slice of the ONE payload (`congress.build_congress_payload`, carried on
+# /diplomatic_preview's nation list as `congress`). Null-safe on every key:
+# bool(null) / int(null) / `for x in null` are Godot runtime errors, and a
+# present-but-null key survives `.get(key, default)`.
+
+func _congress_tint(severity: String) -> String:
+	match severity:
+		"critical":
+			return Utils.COLOR_ERROR
+		"warning":
+			return Utils.COLOR_BATTLE
+		"paused":
+			return Utils.COLOR_DIMMED
+	return Utils.COLOR_GOLD
+
+
+func _add_congress_row(congress) -> void:
+	if not (congress is Dictionary) or congress.is_empty():
+		return
+	var phase = congress.get("phase")
+	var phase_s: String = phase if phase is String else ""
+	var sitting: bool = congress.get("sitting") is bool and congress.get("sitting")
+	var available: bool = congress.get("available") is bool and congress.get("available")
+
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	# The nation list's own size (its buttons are 13) — the row sits above
+	# them and must not shout over them.
+	lbl.add_theme_font_size_override("normal_font_size", 13)
+	lbl.add_theme_font_size_override("bold_font_size", 13)
+	var bbcode := "[color=#" + Utils.COLOR_GOLD + "][b]The Congress of Paris[/b][/color]"
+	bbcode += " [color=#" + Utils.COLOR_GREY + "]— make Europe recognize the new order[/color]"
+	# The clock line where it says something the terms do not — the sitting's
+	# turn and table, the cooldown. At the gate the terms below say it all
+	# (and the line's "summon from the Cabinet (F1)" would point at the very
+	# screen the player is on).
+	var line = congress.get("state_line")
+	if phase_s != "gate" and line is String and line != "":
+		var severity = congress.get("severity")
+		bbcode += "\n    [color=#" + _congress_tint(severity if severity is String else "") + "]" + line.replace("[", "[lb]") + "[/color]"
+	# Before a summons the terms the summons is refused on, ✓ met / • not;
+	# while it sits the table holds the story ("View the table" below).
+	if not sitting and phase_s != "concluded":
+		var gate_terms = congress.get("gate_terms")
+		if not (gate_terms is Array):
+			gate_terms = []
+		for term in gate_terms:
+			if not (term is Dictionary):
+				continue
+			var met: bool = term.get("met") is bool and term.get("met")
+			var mark: String = "✓" if met else "•"
+			var term_color: String = Utils.COLOR_SUCCESS if met else Utils.COLOR_GREY
+			var text = term.get("text")
+			bbcode += "\n    [color=#" + term_color + "]" + mark + " " + (str(text) if text != null else "") + "[/color]"
+	lbl.text = bbcode
+	content_list.add_child(lbl)
+
+	# The summons — always present; disabled, with the backend's own reason
+	# beneath it, when any term is unmet (the _add_action_button idiom).
+	var btn = Button.new()
+	var cost = congress.get("cost_text")
+	btn.text = "Summon the Congress of Paris"
+	if cost is String and cost != "":
+		btn.text += " (" + cost + ")"
+	btn.custom_minimum_size = Vector2(0, 40)
+	btn.add_theme_font_size_override("font_size", 12)
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.disabled = not available
+	if available:
+		btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+		btn.pressed.connect(_on_congress_summon_pressed)
+	content_list.add_child(btn)
+	var reason = congress.get("unavailable_reason")
+	if not available and reason is String and reason != "":
+		btn.tooltip_text = reason
+		var reason_label = Label.new()
+		reason_label.text = "    " + reason
+		reason_label.add_theme_font_size_override("font_size", 11)
+		reason_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
+		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_list.add_child(reason_label)
+
+	# The table — every great power's answer, reason and price, on the
+	# Diplomatic Ledger's CONGRESS tab.
+	var view = Button.new()
+	if sitting:
+		view.text = "    ↳ View the table — the courts' answers, the hold, the days"
+	else:
+		view.text = "    ↳ View the table — how each great power would answer today"
+	view.custom_minimum_size = Vector2(0, 32)
+	view.add_theme_font_size_override("font_size", 12)
+	view.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+	view.pressed.connect(_on_congress_table_pressed)
+	content_list.add_child(view)
+
+
+func _on_congress_summon_pressed():
+	_close_wizard()
+	command_selected.emit(CONGRESS_SUMMON_COMMAND)
+
+
+func _on_congress_table_pressed():
+	_close_wizard()
+	open_congress_requested.emit()
 
 
 # =============================================================================

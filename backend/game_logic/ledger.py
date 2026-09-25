@@ -76,6 +76,15 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         _clock_arms = _fall.clock_lines(world)
         if _clock_arms:
             collapse_fields["fall_clock"] = {"arms": _clock_arms}
+    # GE-3 (ENDGAME_PLAN §4): the Congress's clock — the gate before a
+    # summons ("43 of 50 titled …"), the sitting's turn and table while it
+    # sits, the cooldown after a dissolution. The same one-source line the
+    # war room and the end-turn banner print (`congress.state_line`).
+    # Armed worlds only; absent after the Imperial Peace.
+    from backend.game_logic import congress as _congress
+    _congress_clock = _congress.clock_payload(world)
+    if _congress_clock:
+        collapse_fields["congress_clock"] = _congress_clock
 
     # IQ-4 S3a: THE CABINET — Talleyrand's mission, from the one source every
     # surface reads (`diplomatic_dialogue.mission_status`). Its own key, never

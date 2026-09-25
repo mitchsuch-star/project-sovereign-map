@@ -695,6 +695,8 @@ types with an applied tick on every seed**; the control arm (no
 | `fixture_t20_ambient.json` | turn 20, same run — late-war shape (blockade bite, exhaustion, offers) | `1aa005a2` (Aug 15, 2026), same run |
 | `fixture_ge2_soil_or_sword.json` | turn 1, seed `historical`, **STAGED** (a direct controller write, not played): every French province but Brittany handed to Austria; France at war with the coalition from the boot, so the soil clock ticks from the first end turn and the Empire falls on the fifth | GE-2 (Sept 25, 2026), `tools/gen_ge2_ending_fixtures.py` |
 | `fixture_ge2_chains.json` | turn 1, seed `historical`, **STAGED** through the real `capture_marshal` seam: the Emperor a prisoner of Austria; the chains clock ticks from the first end turn, the captor offers its terms on the clock's turns 1, 4 and 7, and under `--diplomacy decline` the regency falls on the tenth | GE-2 (Sept 25, 2026), same tool |
+| `fixture_ge3_pressburg.json` | turn 28, seed `historical`, **STAGED**: after Pressburg and Tilsit — Austria and Russia at peace with France AND every satellite (both latched as beaten courts), Austria's cessions titled by treaty, Hanover/Naples/Portugal held fifteen quiet turns, Bavaria/Saxony/Hesse clients, Prussia allied at relation 30, Britain's ports closed; 55 titled, the Congress summonable | GE-3 (Sept 25, 2026), `tools/gen_ge3_congress_fixtures.py` |
+| `fixture_ge3_premature.json` | turn 1, seed `historical`, **STAGED**: exactly 50 titled on the boot war (treaty titles written directly), three great powers at war, no preparation | GE-3 (Sept 25, 2026), same tool |
 
 Not a measurement — a starting state. It is dated by the commit that
 generated it because a regeneration changes it: a fixture is the board of the
@@ -736,6 +738,23 @@ run at a MARKED ending (the Verdict, a Humbled Peace) with status
 arm of its own: it is stamped by a settlement the player signs, which no
 unattended policy does on purpose (`--diplomacy accept` may, and the digest
 prints it the same way when it does).
+
+### The Congress on the driver (row EP GE-3, September 25, 2026)
+
+The digest prints the Congress's clock line (`- CONGRESS …`) every turn it
+sits, while it cools down, and once the titled count reaches the summons —
+open, or blocked by a named term; the END SCREEN block prints THE IMPERIAL
+PEACE with its Congress block. The two §2.8 arms, archived under
+`docs/audits/playtest_digests/ge3-*` and pinned DRIVEN in
+`tests/test_congress_review_round.py::TestTheArmsDriven`:
+
+| arm | command | reached |
+|---|---|---|
+| **Pressburg** (win) | `.venv/Scripts/python.exe tools/playtest_driver.py --name ge3-pressburg-historical --seed historical --script tools/playtest_scripts/ge3_pressburg.json --from-save tests/fixtures/playtest_saves/fixture_ge3_pressburg.json --diplomacy accept --stop-on-ending --turns 12 --fresh` | THE IMPERIAL PEACE on turn 36 on seeds historical / ulm / austerlitz / marengo — ascendant; `ending-reached` |
+| **Premature** (lose) | `.venv/Scripts/python.exe tools/playtest_driver.py --name ge3-premature-historical --seed historical --script tools/playtest_scripts/ge3_premature.json --from-save tests/fixtures/playtest_saves/fixture_ge3_premature.json --diplomacy decline --turns 10 --fresh` | dissolved on turns 4–6 (a titled province lost; Berlin at war after its warning) on seeds historical / ulm / austerlitz |
+
+Both start from STAGED fixtures — the road to them from the 1805 boot is
+GE-V's measurement. Add `--archive` to replace the committed digest.
 
 ---
 

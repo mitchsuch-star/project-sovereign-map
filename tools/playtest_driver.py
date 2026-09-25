@@ -867,6 +867,13 @@ COURTS_DISPATCH_TYPES = ("intent_hardens", "intent_eases",
 # bit is appended LAST, so a lever-up row minus it IS the lever-down row.
 THE_DIGEST_SEES_THE_WEB = True
 
+# GE-3 "The Congress of Paris": one CONGRESS line a turn off the Strategic
+# Ledger's `congress_clock` (the one-source `congress.state_line`) — while
+# the Congress sits, while it is cooling down, or once the gate OPENS (50
+# titled). A board that never reaches the gate (every pre-GE-3 arm, 35
+# titled) prints nothing, so its digest is byte-identical. False = no line.
+THE_DIGEST_SEES_THE_CONGRESS = True
+
 
 def fog_sentences(phase):
     """The "there is something you cannot see" sentences the CLIENT renders
@@ -2010,6 +2017,39 @@ class Digest:
                     target_display=last.get("target_display"),
                     reason=last.get("reason"), beat=beat)
 
+    def congress_line(self, clock):
+        """GE-3: the Congress's clock, one line a turn while it matters —
+        sitting (every turn: the stances move), cooling down, or the gate
+        reached (titled at the summons' count — open, or blocked by a term,
+        which the line names). A closed gate (titled below the summons)
+        prints nothing.
+
+        Review #50f/#67: the dedupe is reset whenever the phase changes, so
+        a gate that REOPENS after a dissolution prints again (the first cut
+        kept one seen-set for the whole run and went silent), and a gate
+        blocked by alarm, the capital, the Emperor or a satellite prints its
+        blocker (the first cut printed only an OPEN gate — blind exactly
+        where a fiat or over-alarmed arm stands)."""
+        if not THE_DIGEST_SEES_THE_CONGRESS or not isinstance(clock, dict):
+            return
+        line = str(clock.get("line") or "")
+        phase = str(clock.get("phase") or "")
+        if not line:
+            return
+        if (phase == "gate" and "may be summoned" not in line
+                and line.endswith("summon from the Cabinet (F1)")):
+            return   # titled below the summons' count: the gate is closed
+        seen = _seen(self, "_seen_congress_lines")
+        if getattr(self, "_last_congress_phase", None) != phase:
+            seen.clear()
+            self._last_congress_phase = phase
+        if phase != "sitting" and line in seen:
+            return
+        seen.add(line)
+        self._md(f"- CONGRESS {line}")
+        self.record("congress", phase=phase, line=line,
+                    severity=clock.get("severity"))
+
     def unknown_blocker(self, key, payload):
         self.unknown_blockers.append(key)
         self._md(f"  - ⚠ UNKNOWN BLOCKER `{key}` — answered nothing; "
@@ -3039,6 +3079,23 @@ def _end_screen_lines(row: dict) -> list:
     since = summary.get("record_since_turn")
     if since is not None:
         lines.append(f"    ↳ (the record was kept from turn {since} only)")
+    # GE-3: the gold card's own blocks — the four courts, the titled count,
+    # the sitting's eight turns, the final Moniteur line.
+    congress_block = summary.get("congress") or {}
+    if isinstance(congress_block, dict) and congress_block:
+        courts = " · ".join(f"{c.get('display') or c.get('nation')} {c.get('stance')}"
+                            for c in (congress_block.get("courts") or [])
+                            if isinstance(c, dict))
+        route = congress_block.get("route") or "congress"
+        lines.append(f"    ↳ THE CONGRESS ({route}) — {courts or 'no great power remains'}"
+                     f" · {congress_block.get('titled')} of "
+                     f"{congress_block.get('hold_titled')} titled")
+        days = [d for d in (congress_block.get("sitting") or []) if isinstance(d, dict)]
+        if days:
+            lines.append("    ↳ THE SITTING — " + " ".join(
+                f"t{d.get('turn')}{'✓' if d.get('held') else '✗'}" for d in days))
+    if summary.get("moniteur_line"):
+        lines.append(f"    ↳ {summary['moniteur_line']}")
     epilogue = summary.get("epilogue") or {}
     paragraphs = epilogue.get("paragraphs") if isinstance(epilogue, dict) else None
     for i, para in enumerate(paragraphs or []):
@@ -3492,6 +3549,10 @@ def run(args):
         # Prints nothing while the desk is idle (every pre-IQ-4 arm).
         digest.mission_line((body or {}).get("cabinet") if isinstance(body, dict) else None,
                             beat=_mission_beat(response))
+        # GE-3: the Congress's clock off the same ledger (prints nothing
+        # below the gate — every pre-GE-3 arm's digest is unchanged).
+        digest.congress_line((body or {}).get("congress_clock")
+                             if isinstance(body, dict) else None)
         try:
             digest.dispatch(dig(morning, "text", "content", "message",
                                 default=""),

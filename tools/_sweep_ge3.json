@@ -1,0 +1,513 @@
+[
+  {
+    "id": "GE3-01 the summons costs one DP",
+    "file": "backend/game_logic/congress.py",
+    "old": "SUMMON_DP_COST = 2",
+    "new": "SUMMON_DP_COST = 1",
+    "tests": "tests/test_congress_of_paris.py::TestTheSummonsDriven::test_accepted_at_fifty_for_two_dp_and_one_admin_action"
+  },
+  {
+    "id": "GE3-02 a court signs above the threshold, not at it",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if scored[\"score\"] >= scored[\"threshold\"]:\n        row.update(stance=RECOGNIZES, by=\"formula\",",
+    "new": "    if scored[\"score\"] > scored[\"threshold\"]:\n        row.update(stance=RECOGNIZES, by=\"formula\",",
+    "tests": "tests/test_congress_of_paris.py::TestWhatTheArmsFound::test_a_signature_at_the_table_holds_through_the_drift"
+  },
+  {
+    "id": "GE3-03 the hold's titled count off by one",
+    "file": "backend/game_logic/congress.py",
+    "old": "        {\"key\": \"titled\", \"met\": view[\"count\"] >= view[\"needed\"],",
+    "new": "        {\"key\": \"titled\", \"met\": view[\"count\"] > view[\"needed\"],",
+    "tests": "tests/test_congress_of_paris.py::TestTheHold::test_the_seven_conditions"
+  },
+  {
+    "id": "GE3-04 the Imperial Peace on a refusing court",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if all(row[\"stance\"] in SATISFIED for row in table.values()):",
+    "new": "        if any(row[\"stance\"] in SATISFIED for row in table.values()):",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_9_a_suing_court_at_the_end_is_named_apart_and_bears_no_grudge"
+  },
+  {
+    "id": "GE3-05 the dissolution adds no alarm",
+    "file": "backend/game_logic/congress.py",
+    "old": "    add_threat(world, dissolve_alarm(world), \"congress_dissolved\")",
+    "new": "    add_threat(world, 0, \"congress_dissolved\")",
+    "tests": "tests/test_congress_of_paris.py::TestTheHold::test_a_broken_condition_dissolves_at_the_tick"
+  },
+  {
+    "id": "GE3-06 every war-ending peace latches",
+    "file": "backend/game_logic/congress.py",
+    "old": "               and (now_sitting or p in beaten_set)]",
+    "new": "               and True]",
+    "tests": "tests/test_congress_of_paris.py::TestTheTable::test_a_white_peace_before_the_summons_does_not_latch"
+  },
+  {
+    "id": "GE3-07 a beaten court's peace does not latch",
+    "file": "backend/game_logic/game_end.py",
+    "old": "        if any(_ours(r) for r in _territory_term_regions(term)):\n            giver",
+    "new": "        if False:\n            giver",
+    "tests": "tests/test_congress_of_paris.py::TestTheTable::test_the_beaten_courts_peace_latches"
+  },
+  {
+    "id": "GE3-08 the truce's peace lever dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if state == \"ARMISTICE\" and sitting(world):\n        # Review #2/#14",
+    "new": "    if False and sitting(world):\n        # Review #2/#14",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_2_a_truce_leads_with_the_signed_peace"
+  },
+  {
+    "id": "GE3-09 a recogniser is marched",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if stance == RECOGNIZES:\n        return \"it recognizes the Congress\"",
+    "new": "    if False:\n        return \"it recognizes the Congress\"",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_10_a_signed_court_is_never_marched_by_the_lowered_gate"
+  },
+  {
+    "id": "GE3-10 a truce court is marched",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if str(world.get_diplomatic_state(nation, tgt) or \"\") == \"ARMISTICE\":\n        return \"in a truce with us\"",
+    "new": "    if False:\n        return \"in a truce with us\"",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_19_a_court_in_a_truce_is_never_marched_while_it_sits"
+  },
+  {
+    "id": "GE3-11 the refuser arm reads a stale answer",
+    "file": "backend/game_logic/congress.py",
+    "old": "    return answer(world, nation)[\"stance\"] == REFUSES\n\n\ndef grudge_contributions",
+    "new": "    return True\n\n\ndef grudge_contributions",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_18_a_court_turned_mid_turn_is_not_marched"
+  },
+  {
+    "id": "GE3-12 no coalition, a countdown anyway",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if coalition.get(\"target_nation\") != player:\n        from backend.game_logic.coalition import brewing_gate",
+    "new": "    if False:\n        from backend.game_logic.coalition import brewing_gate",
+    "tests": "tests/test_congress_review_round.py::TestTheWarOfTheCongress::test_no_coalition_no_countdown_and_no_warning"
+  },
+  {
+    "id": "GE3-13 the warning a turn late",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if turns >= WAR_AFTER_REFUSALS - 1 and court not in (c.get(\"warned\") or []):",
+    "new": "        if turns >= WAR_AFTER_REFUSALS and court not in (c.get(\"warned\") or []):",
+    "tests": "tests/test_congress_review_round.py::TestTheWarOfTheCongress::test_the_warning_comes_one_turn_before_the_war_and_never_with_it"
+  },
+  {
+    "id": "GE3-14 an ally is promised a war",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if state in (\"ALLIANCE\", \"DEFENSIVE_ALLIANCE\"):\n        return \"our alliance holds it\"",
+    "new": "    if False:\n        return \"our alliance holds it\"",
+    "tests": "tests/test_congress_review_round.py::TestTheWarOfTheCongress::test_a_court_that_cannot_march_is_never_promised_a_war"
+  },
+  {
+    "id": "GE3-15 the war_in counts from the refusal alone",
+    "file": "backend/game_logic/congress.py",
+    "old": "    return max(1, WAR_AFTER_REFUSALS - 1 - turns) + 1",
+    "new": "    return max(0, WAR_AFTER_REFUSALS - turns)",
+    "tests": "tests/test_congress_review_round.py::TestWhatTheSweepFound::test_war_in_after_a_blocker_lifts"
+  },
+  {
+    "id": "GE3-16 the treaty lever ignores the relation gate",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if not check_relation_requirement(state, target, rel):\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_1_the_treaty_lever_is_one_the_court_can_ratify"
+  },
+  {
+    "id": "GE3-17 the arbiter is never priced",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if not (reading.get(\"concerns\")\n                or reading.get(\"active_type\") == \"contain_hegemon\"):",
+    "new": "        if not reading.get(\"concerns\"):",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_6_the_arbiter_can_be_bought"
+  },
+  {
+    "id": "GE3-18 no ports lever at peace",
+    "file": "backend/game_logic/congress.py",
+    "old": "    ports = _ports_lever(row)\n    if ports is not None:\n        levers.append(ports)\n    out[\"levers\"] = levers\n    if gap <= 0:",
+    "new": "    ports = None\n    out[\"levers\"] = levers\n    if gap <= 0:",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_6_the_ports_are_a_lever_at_peace"
+  },
+  {
+    "id": "GE3-19 the quote ignores the part-paid remainder",
+    "file": "backend/game_logic/congress.py",
+    "old": "    return max(0, int(math.ceil((have + points) * 1000 / per)) - paid)",
+    "new": "    return int(math.ceil(points * 1000 / per))",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_7_quote_charge_receipt_and_score_agree_on_a_part_paid_court"
+  },
+  {
+    "id": "GE3-20 a withdrawn court takes the gold",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if by == \"withdrawn\":\n        return (f\"{_display(court)} withdrew from this sitting",
+    "new": "    if False:\n        return (f\"{_display(court)} withdrew from this sitting",
+    "tests": "tests/test_congress_review_round.py::TestTheSweetenerRefuses::test_a_withdrawn_court"
+  },
+  {
+    "id": "GE3-21 a signed court takes the gold",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if by in (\"treaty\", \"table\"):\n        return f\"{_display(court)} has signed",
+    "new": "    if False:\n        return f\"{_display(court)} has signed",
+    "tests": "tests/test_congress_review_round.py::TestTheSweetenerRefuses::test_a_signed_court"
+  },
+  {
+    "id": "GE3-22 a shut-out court takes the gold",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if row[\"stance\"] == SHUT_OUT:\n        return (f\"{_display(court)} is shut out of the Congress",
+    "new": "    if False:\n        return (f\"{_display(court)} is shut out of the Congress",
+    "tests": "tests/test_congress_review_round.py::TestTheSweetenerRefuses::test_a_shut_out_court"
+  },
+  {
+    "id": "GE3-23 gold that buys nothing is taken",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if _sweetener_points(paid, sweetener_charge(world, court, amount), per, cap) <= 0:",
+    "new": "    if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheSweetenerRefuses::test_gold_that_buys_nothing"
+  },
+  {
+    "id": "GE3-24 the negated figure is paid",
+    "file": "backend/game_logic/congress.py",
+    "old": "    guarded, _ = strip_negated_clauses(str(text or \"\"))",
+    "new": "    guarded = str(text or \"\")",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_29_the_amount_reader"
+  },
+  {
+    "id": "GE3-25 a year is paid as gold",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if _NOT_GOLD_BEFORE_RE.search(before) or 1700 <= value <= 1899:",
+    "new": "        if _NOT_GOLD_BEFORE_RE.search(before):",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_29_the_amount_reader"
+  },
+  {
+    "id": "GE3-26 the war score read from the court's side",
+    "file": "backend/game_logic/congress.py",
+    "old": "    ours = -int(court_score)\n    text = f\"our war score {_signed(ours)}\"",
+    "new": "    ours = int(court_score)\n    text = f\"our war score {_signed(ours)}\"",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_8_the_war_score_reads_from_the_emperors_side"
+  },
+  {
+    "id": "GE3-27 before a summons the envoy comes",
+    "file": "backend/game_logic/congress.py",
+    "old": "                reason += \" — it would sue once the Congress sits\"",
+    "new": "                reason += \"\"",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_9_before_a_summons_a_beaten_court_would_sue"
+  },
+  {
+    "id": "GE3-28 a suing court bears the refusers' grudge",
+    "file": "backend/game_logic/congress.py",
+    "old": "    refusers = sorted(k for k, v in table.items() if v[\"stance\"] == REFUSES)\n    sued = ",
+    "new": "    refusers = sorted(k for k, v in table.items() if v[\"stance\"] not in SATISFIED)\n    sued = ",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_9_a_suing_court_at_the_end_is_named_apart_and_bears_no_grudge"
+  },
+  {
+    "id": "GE3-29 a withdrawn court's cause is a formula term",
+    "file": "backend/game_logic/congress.py",
+    "old": "        return f\"withdrew: {m.group(1)}\" if m else \"withdrew\"",
+    "new": "        return \"\"",
+    "tests": "tests/test_congress_review_round.py::TestTheTableTellsTheTruth::test_47_a_withdrawn_court_names_its_withdrawal_on_the_clock"
+  },
+  {
+    "id": "GE3-30 a satellite's capture unsigns",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if capturing_nation != player:\n        return\n    if not (c.get(\"signed\") or sitting(world)):",
+    "new": "    if capturer_top != player:\n        return\n    if not (c.get(\"signed\") or sitting(world)):",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_13_a_satellites_own_capture_never_unsigns_a_great_power"
+  },
+  {
+    "id": "GE3-31 a court at war withdraws",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if state in (\"WAR\", \"ARMISTICE\"):\n        return False\n    stored = ",
+    "new": "    if False:\n        return False\n    stored = ",
+    "tests": "tests/test_congress_review_round.py::TestWhatTheSweepFound::test_14_a_court_in_a_truce_never_withdraws"
+  },
+  {
+    "id": "GE3-32 a recogniser seizing our province keeps signing",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if taker in great_powers(world) and not court_gone(world, taker):",
+    "new": "        if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_63_a_recogniser_that_takes_a_titled_province_withdraws"
+  },
+  {
+    "id": "GE3-33 joining an ally's offensive draws no sword",
+    "file": "backend/game_logic/congress.py",
+    "old": "    c.setdefault(\"joined\", {}).setdefault(target, ally)",
+    "new": "    pass",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_15_joining_an_allys_offensive_draws_the_sword"
+  },
+  {
+    "id": "GE3-34 E1 from a cell",
+    "file": "backend/game_logic/congress.py",
+    "old": "            and _capital_held(world) and _emperor_free(world)):",
+    "new": "            and True):",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_17_e1_waits_for_paris_and_the_emperor"
+  },
+  {
+    "id": "GE3-35 the floor lifts a captive reign",
+    "file": "backend/game_logic/game_end.py",
+    "old": "                and inputs.get(\"emperor\") not in (\"captive\", \"dead\")):",
+    "new": "                and True):",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_17_the_floor_never_lifts_a_captive_reign"
+  },
+  {
+    "id": "GE3-36 the Universal Monarchy told as a signature",
+    "file": "backend/ai/first_contact.py",
+    "old": "            if congress.imperial_peace_route(world) == \"universal_monarchy\":\n                return (\"The reign is WON, Sire: no great power remains",
+    "new": "            if False:\n                return (\"The reign is WON, Sire: no great power remains",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_46_the_universal_monarchy_is_never_told_as_a_signature"
+  },
+  {
+    "id": "GE3-37 a dissolved strip on the monarchy's card",
+    "file": "backend/game_logic/congress.py",
+    "old": "             if (route == \"congress\" or c.get(\"status\") == SITTING) else [])",
+    "new": "             if True else [])",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_56_the_universal_monarchy_carries_no_dissolved_strip"
+  },
+  {
+    "id": "GE3-38 the siege outlives the war",
+    "file": "backend/models/world_state.py",
+    "old": "SIEGE_ENDS_WITH_THE_WAR = True",
+    "new": "SIEGE_ENDS_WITH_THE_WAR = False",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_11_a_siege_is_lifted_by_the_peace"
+  },
+  {
+    "id": "GE3-39 the reopened cession unnamed",
+    "file": "backend/game_logic/game_end.py",
+    "old": "            rec[\"reopened_by\"] = str(rec.get(\"from\") or \"\")",
+    "new": "            pass",
+    "tests": "tests/test_congress_review_round.py::TestTheSitting::test_12_a_ceders_war_names_what_it_reopened"
+  },
+  {
+    "id": "GE3-40 the rail left at x1.5 after the dissolution",
+    "file": "backend/game_logic/congress.py",
+    "old": "    c[\"expectation_raised\"] = raised\n    _restate_the_bills(world)",
+    "new": "    c[\"expectation_raised\"] = raised",
+    "tests": "tests/test_congress_review_round.py::TestTheBills::test_20_62_the_rail_is_restated_when_the_congress_ends"
+  },
+  {
+    "id": "GE3-41 the collective petition priced at build",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if petition.get(\"kind\") == \"fontainebleau\":\n        # GE-3 review #34",
+    "new": "    if False:\n        # GE-3 review #34",
+    "tests": "tests/test_congress_review_round.py::TestTheBills::test_34_the_collective_petition_is_priced_at_delivery"
+  },
+  {
+    "id": "GE3-42 the settle arm priced at build",
+    "file": "backend/commands/disobedience.py",
+    "old": "    if isinstance(options, list) and any(\n            isinstance(o, dict) and o.get(\"id\") == \"settle_account\" for o in options):",
+    "new": "    if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheBills::test_34_the_redemption_settle_arm_is_priced_at_the_read"
+  },
+  {
+    "id": "GE3-43 the owed bill survives the dissolution",
+    "file": "backend/game_logic/congress.py",
+    "old": "              \"refusers\": refusers, \"sued_at_the_end\": sued,\n              \"petition_owed\": False})",
+    "new": "              \"refusers\": refusers, \"sued_at_the_end\": sued})",
+    "tests": "tests/test_congress_review_round.py::TestTheBills::test_36_the_owed_bill_never_arrives_on_the_tick_that_ends_it"
+  },
+  {
+    "id": "GE3-44 the summons unpriced in rentes",
+    "file": "backend/game_logic/congress.py",
+    "old": "    extra = rente_surcharge(world)\n    if extra > 0:",
+    "new": "    extra = rente_surcharge(world)\n    if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheBills::test_38_the_summons_prices_the_rentes"
+  },
+  {
+    "id": "GE3-45 the dissolution raises no expectation",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if dotation.raise_expectation(marshal, world, \"congress\",\n                                      ignore_cooldown=True):",
+    "new": "        if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheBills::test_65_the_dissolution_raises_each_eligible_marshal_one_rung"
+  },
+  {
+    "id": "GE3-46 the Emperor's declaration told as Berlin's cannon",
+    "file": "backend/game_logic/congress.py",
+    "old": "                    and court not in _france_drew_the_sword(c)):",
+    "new": "                    and True):",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_44_the_emperors_declaration_is_never_the_courts_cannon"
+  },
+  {
+    "id": "GE3-47 the dissolution counts the configured cooldown",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        cooldown = _congress.cooldown_left(world)",
+    "new": "        cooldown = _congress.cooldown_turns(world)",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_16_the_dissolution_counts_the_cooldown_the_gate_reads"
+  },
+  {
+    "id": "GE3-48 every signature reads the end state",
+    "file": "backend/game_logic/congress.py",
+    "old": "                                 \"standing\": sum(1 for v in standing.values() if v),",
+    "new": "                                 \"standing\": len(great_powers(world)),",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_50b_two_signatures_on_one_tick_count_in_order"
+  },
+  {
+    "id": "GE3-49 the gate line states the condition",
+    "file": "backend/game_logic/congress.py",
+    "old": "                f\"{blocker.get('breach') or blocker['text']}\")",
+    "new": "                f\"{blocker['text']}\")",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_52_the_gate_line_names_the_breach"
+  },
+  {
+    "id": "GE3-50 the tab prints the hold's own words",
+    "file": "backend/game_logic/congress.py",
+    "old": "        payload[\"dissolve_reason\"] = congress_dissolve_reason(\n            c.get(\"dissolve_key\"), c.get(\"dissolve_reason\"))",
+    "new": "        payload[\"dissolve_reason\"] = str(c.get(\"dissolve_reason\") or \"\")",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_53_the_tab_says_what_broke"
+  },
+  {
+    "id": "GE3-51 the concluded table read live",
+    "file": "backend/game_logic/congress.py",
+    "old": "    concluded = _concluded_courts(world) if ph == \"concluded\" else None",
+    "new": "    concluded = None",
+    "tests": "tests/test_congress_review_round.py::TestWhatTheSweepFound::test_55_a_court_that_signed_with_gold_stays_signed_on_the_card"
+  },
+  {
+    "id": "GE3-52 a spent action outranks the sitting",
+    "file": "backend/game_logic/congress.py",
+    "old": "    for key in (\"fallen\", \"signed\", \"sitting\", \"monarchy\"):",
+    "new": "    for key in ():",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_60_a_terminal_term_outranks_a_spent_action"
+  },
+  {
+    "id": "GE3-53 the Moniteur keeps the pre-tick column",
+    "file": "backend/game_logic/game_end.py",
+    "old": "        _gazette.recompose_congress_column(world)",
+    "new": "        pass",
+    "tests": "tests/test_congress_review_round.py::TestTheNarration::test_42_the_moniteur_prints_the_answer_the_tick_took"
+  },
+  {
+    "id": "GE3-54 the Fall leaves the Congress sitting",
+    "file": "backend/game_logic/game_end.py",
+    "old": "        _congress.close_on_fall(world, stamp_turn)",
+    "new": "        pass",
+    "tests": "tests/test_congress_of_paris.py::TestTheResolution::test_a_fall_this_turn_ends_everything_no_dissolution"
+  },
+  {
+    "id": "GE3-55 a marshal's purpose clause summons",
+    "file": "backend/ai/llm_client.py",
+    "old": "        _congress_marshal_led = ((_addressed_marshal",
+    "new": "        _congress_marshal_led = False and ((_addressed_marshal",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_27_a_marshals_order_that_mentions_the_summons_never_summons"
+  },
+  {
+    "id": "GE3-56 a question to the minister summons",
+    "file": "backend/ai/llm_client.py",
+    "old": "                     or (_DIPLOMAT_LEAD_RE.match(command_lower)\n                         and original_text.rstrip().endswith(\"?\")))):",
+    "new": "                     or False)):",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_28_32_a_question_or_a_hedge_never_summons"
+  },
+  {
+    "id": "GE3-57 a hedge summons",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if not _congress_marshal_led and _congress_named and _congress_hedged(command_lower):",
+    "new": "        if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_28_32_a_question_or_a_hedge_never_summons"
+  },
+  {
+    "id": "GE3-58 an alliance line pays gold",
+    "file": "backend/ai/llm_client.py",
+    "old": "    if _TREATY_WORD_RE.search(command_lower):\n        return False",
+    "new": "    if False:\n        return False",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_31_an_alliance_in_recognition_stays_the_cabinets"
+  },
+  {
+    "id": "GE3-59 a seat names no court",
+    "file": "backend/ai/llm_client.py",
+    "old": "                    if any(re.search(r\"\\b\" + re.escape(f) + r\"\\b\", command_lower)\n                           for f in forms):",
+    "new": "                    if False:",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_29_33_the_gold_is_the_gold_the_line_names"
+  },
+  {
+    "id": "GE3-60 the summons anywhere in the line",
+    "file": "backend/ai/llm_client.py",
+    "old": "    return bool(_CONGRESS_SUMMONS_RE.match(rest))",
+    "new": "    return bool(_CONGRESS_SUMMONS_RE.search(command_lower))",
+    "tests": "tests/test_congress_review_round.py::TestTheVerbs::test_28_32_a_question_or_a_hedge_never_summons"
+  },
+  {
+    "id": "GE3-61 London funds a court at war with her",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if world.is_at_war(payer, court) or court in bought:",
+    "new": "        if court in bought:",
+    "tests": "tests/test_congress_review_round.py::TestThePurseAndTheEnvoys::test_24_london_never_funds_a_court_it_is_at_war_with"
+  },
+  {
+    "id": "GE3-62 London spends below her floor",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if int(gold.get(payer, 0) or 0) - LONDON_SUBSIDY < floor:",
+    "new": "        if int(gold.get(payer, 0) or 0) < LONDON_SUBSIDY:",
+    "tests": "tests/test_congress_review_round.py::TestThePurseAndTheEnvoys::test_24_london_keeps_her_floor"
+  },
+  {
+    "id": "GE3-63 London funds a court the Emperor bought",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if world.is_at_war(payer, court) or court in bought:",
+    "new": "        if world.is_at_war(payer, court):",
+    "tests": "tests/test_congress_review_round.py::TestThePurseAndTheEnvoys::test_24_london_never_funds_a_court_the_emperor_bought"
+  },
+  {
+    "id": "GE3-64 a second envoy for one war",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "        if (not _one_envoy_blocked\n                and _congress.court_must_sue(world, nation)",
+    "new": "        if (True\n                and _congress.court_must_sue(world, nation)",
+    "tests": "tests/test_congress_review_round.py::TestThePurseAndTheEnvoys::test_21_the_sue_rung_leaves_a_pending_settlement_to_carry_the_peace"
+  },
+  {
+    "id": "GE3-65 the war room says 60",
+    "file": "backend/game_logic/diplomatic_advisory.py",
+    "old": "                    f\"  No league gathers below {_gate}; a \"",
+    "new": "                    f\"  No league gathers below 60; a \"",
+    "tests": "tests/test_congress_review_round.py::TestThePurseAndTheEnvoys::test_22_the_war_room_names_the_gate_the_mechanic_reads"
+  },
+  {
+    "id": "GE3-66 the joiner's letters stay",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    voided = _void_for_joiner(world, nation)",
+    "new": "    voided = None",
+    "tests": "tests/test_congress_review_round.py::TestTheWarOfTheCongress::test_the_join_clears_the_joiners_letters"
+  },
+  {
+    "id": "GE3-67 one refuser lowers the gate",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if len(live_refusers(world)) < 2:",
+    "new": "    if len(live_refusers(world)) < 1:",
+    "tests": "tests/test_congress_review_round.py::TestTheBoundaries::test_one_refuser_never_lowers_the_gate"
+  },
+  {
+    "id": "GE3-68 the alarm ceiling inclusive",
+    "file": "backend/game_logic/congress.py",
+    "old": "        {\"key\": \"alarm\", \"met\": alarm < ceiling,",
+    "new": "        {\"key\": \"alarm\", \"met\": alarm <= ceiling,",
+    "tests": "tests/test_congress_review_round.py::TestTheBoundaries::test_the_alarm_ceiling_is_strict"
+  },
+  {
+    "id": "GE3-69 the sue cadence two turns",
+    "file": "backend/game_logic/congress.py",
+    "old": "SUE_CADENCE = 3 ",
+    "new": "SUE_CADENCE = 2 ",
+    "tests": "tests/test_congress_review_round.py::TestTheBoundaries::test_the_sue_cadence_is_three_turns"
+  },
+  {
+    "id": "GE3-70 the grudge twenty turns",
+    "file": "backend/game_logic/congress.py",
+    "old": "GRUDGE_TURNS = 10 ",
+    "new": "GRUDGE_TURNS = 20 ",
+    "tests": "tests/test_congress_review_round.py::TestTheBoundaries::test_the_grudge_is_ten_turns"
+  },
+  {
+    "id": "GE3-71 the driver's dedupe lives for the run",
+    "file": "tools/playtest_driver.py",
+    "old": "        if getattr(self, \"_last_congress_phase\", None) != phase:\n            seen.clear()",
+    "new": "        if False:\n            seen.clear()",
+    "tests": "tests/test_congress_review_round.py::TestTheDriverLine::test_a_blocked_gate_and_a_reopened_gate_both_print"
+  },
+  {
+    "id": "GE3-72 the gold card's count unqualified",
+    "file": "godot-client/project-sovereign/scripts/campaign_end.gd",
+    "old": " titled provinces in the Empire and its satellites.\\n\"",
+    "new": " titled provinces.\\n\"",
+    "tests": "tests/test_ge3_the_client.py::TestTheCongressDriven::test_the_gold_card_is_the_imperial_peace"
+  },
+  {
+    "id": "GE3-73 the Congress's war told twice",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                if not _congress_told:\n                    _add(\"war_touches_us\", line=_line)",
+    "new": "                if True:\n                    _add(\"war_touches_us\", line=_line)",
+    "tests": "tests/test_congress_review_round.py::TestToldOnce::test_50d_the_war_of_the_congress_is_never_a_bare_war_headline_too"
+  }
+]

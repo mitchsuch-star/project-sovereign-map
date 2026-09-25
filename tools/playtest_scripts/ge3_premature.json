@@ -1,0 +1,12 @@
+{
+ "name": "ge3-premature",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_ge3": "GE-3 'The Congress of Paris' (ENDGAME_PLAN §2.8): the PREMATURE arm. Start it from the STAGED fixture tests/fixtures/playtest_saves/fixture_ge3_premature.json (turn 1, exactly 50 titled, Britain/Russia/Austria at war and Prussia refusing) with --turns 10. Loop 1 summons the Congress with no preparation; the rest end turns. It must LOSE the Congress on 3 of 3 seeds (the fuse is the player's judgement).",
+ "turns": {
+  "1": [
+   "summon the congress",
+   "status"
+  ]
+ }
+}

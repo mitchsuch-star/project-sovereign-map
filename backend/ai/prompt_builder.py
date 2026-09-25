@@ -351,6 +351,39 @@ FEW_SHOT_TEMPLATES = [
                                 "target_nation": "{nation}"},
         },
     },
+    # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.3–§2.4): the victory
+    # arm's two verbs ride diplomatic_data like every Cabinet verb, so the
+    # parser's diplomatic early return carries them (no marshal scan; "of
+    # Paris" is never a march target). The sweetener's gold stays in the
+    # player's own words — the executor reads the figure from the text.
+    {
+        "input": "summon the Congress of Paris",
+        "output": {
+            "matched": True,
+            "command_type": "diplomatic",
+            "marshals": [],
+            "action": "summon_congress",
+            "target": None,
+            "is_strategic": False,
+            "ambiguity": 5,
+            "diplomatic_data": {"action": "summon_congress",
+                                "target_nation": None},
+        },
+    },
+    {
+        "input": "offer {nation} 1000 gold for recognition",
+        "output": {
+            "matched": True,
+            "command_type": "diplomatic",
+            "marshals": [],
+            "action": "recognition_sweetener",
+            "target": "{nation}",
+            "is_strategic": False,
+            "ambiguity": 5,
+            "diplomatic_data": {"action": "recognition_sweetener",
+                                "target_nation": "{nation}"},
+        },
+    },
 ]
 
 
@@ -540,6 +573,10 @@ Diplomatic action types:
 - diplomatic_mission: Send Talleyrand on a long-term mission
 - make_amends: Offer reparations to repair relations
 - request_terms: Ask an enemy war leader to name settlement terms
+- summon_congress: Summon the Congress of Paris (the Emperor's bid for the
+  Imperial Peace; no target nation). A QUESTION about it is NOT a summons.
+- recognition_sweetener: Offer a great power gold for its recognition at
+  the Congress (target: that nation; the gold stays in the player's words)
 - propose_common_peace: Open a multi-party war settlement
 
 For every diplomatic command, ALSO fill diplomatic_data with at least

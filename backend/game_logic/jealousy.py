@@ -2190,6 +2190,17 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
             option.pop("unavailable_reason", None)
         refreshed.append(option)
     petition = dict(petition)
+    if petition.get("kind") == "fontainebleau":
+        # GE-3 review #34: the concede arm's bill is priced at DELIVERY —
+        # the Congress's peace dividend may have begun or ended since the
+        # card was built.
+        names = ((petition.get("context") or {}).get("marshals") or [])
+        men = [world.marshals.get(n) for n in names]
+        men = [m for m in men if m is not None]
+        if men:
+            refreshed = [dict(o, detail=fontainebleau_concede_detail(world, men))
+                         if isinstance(o, dict) and o.get("id") == "concede" else o
+                         for o in refreshed]
     petition["options"] = refreshed
     return petition
 
@@ -2509,54 +2520,49 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
     })
 
 
-def queue_fontainebleau_petition(world, eroding: List) -> str:
+def queue_fontainebleau_petition(world, eroding: List, reason: str = "") -> str:
     """ESP-1: the collective petition — the moment the parallel silent
-    trust bleeds find one voice."""
+    trust bleeds find one voice.
+
+    GE-3 §2.3 (`reason="congress"`): the SAME petition, presented at the
+    summons of the Congress of Paris ("the peace dividend": estates before
+    the peace). Only the title and the body speak of the Congress — the
+    options, the pricing, the log event and the return status are the ESP-1
+    petition's own, so the concede arm pays exactly what it quotes."""
     names = [m.name for m in eroding]
     roll = ", ".join(names[:-1]) + f" and {names[-1]}" if len(names) > 1 else names[0]
     total_shortfall = sum(dotation.get_shortfall(m, world) for m in eroding)
-    # Shown = applied (Aug 2026 health-check audit): the concede arm grants
-    # via compute_rente_face — the EWC-F2 rule, which ignores disruption and
-    # subtracts estate worth, NOT get_shortfall. Price the quoted bill off
-    # the executor's own predicate so the card promises what the arm pays.
-    #
-    # Aug 30, 2026 review: and the arm's gate is `rente_grant_would_not_help`,
-    # not `face > 0` — so the preview must ask the same question or it is back
-    # to promising what the arm will not pay. A marshal whose estate is
-    # disrupted has a positive face the arm now (correctly) declines, and the
-    # old count promised him a rente anyway.
-    _payable = [m for m in eroding
-                if not dotation.rente_grant_would_not_help(m, world)]
-    granted_count = len(_payable)
-    rente_bill = sum(
-        dotation.get_rente_cost(dotation.compute_rente_face(m, world))
-        for m in _payable)
-    # Aug 30, 2026 review: this log_event used to sit AFTER the return below,
-    # so the collective petition's ARRIVAL never reached the campaign log —
-    # the most dramatic beat the reward economy produces was invisible in the
-    # chronicle. Moved above the return, where it runs.
-    world.log_event({
-        "type": "fontainebleau_petition",
-        "marshals": names,
-        "nation": world.player_nation,
-    })
-    return _push_petition(world, {
+    if reason == "congress":
+        # The summons fires on ANY eroding marshal (not the ESP-1 three), so
+        # the Congress copy agrees with a single petitioner too.
+        title = "The marshals petition the Emperor before the peace"
+        if len(names) > 1:
+            who = (f"the marshals come together: {roll} stand unrewarded "
+                   f"while Europe is asked to recognize what their victories "
+                   f"won. They ask")
+        else:
+            who = (f"Marshal {roll} comes before you: he stands unrewarded "
+                   f"while Europe is asked to recognize what his victories "
+                   f"won. He asks")
+        body = (f"Sire, the Congress is summoned and {who} for estates "
+                f"before the peace is signed at Paris, or rentes in their "
+                f"place — {total_shortfall}g/turn of expectation stands "
+                f"unmet. The army does not march on glory alone.")
+    else:
+        title = "The marshals petition the Emperor"
+        body = (f"Sire, the marshals come together: {roll} stand unrewarded "
+                f"while the Empire feeds on their victories. They ask for "
+                f"estates, rentes, or peace — {total_shortfall}g/turn of "
+                f"expectation stands unmet. The army does not march on "
+                f"glory alone.")
+    status = _push_petition(world, {
         "kind": "fontainebleau",
-        "title": "The marshals petition the Emperor",
-        "body": (f"Sire, the marshals come together: {roll} stand unrewarded "
-                 f"while the Empire feeds on their victories. They ask for "
-                 f"estates, rentes, or peace — {total_shortfall}g/turn of "
-                 f"expectation stands unmet. The army does not march on "
-                 f"glory alone."),
+        "title": title,
+        "body": body,
         "speaker": names[0],
         "options": [
             {"id": "concede", "label": "\"I will find the means\"",
-             "detail": (
-                 (f"{granted_count} of {len(eroding)} petitioners receive a "
-                  if granted_count < len(eroding) else "Every petitioner receives a ")
-                 + f"rente at the gap his estates leave "
-                 + f"(+{FONTAINEBLEAU_CONCEDE_TRUST} trust to each man granted). "
-                 + f"The treasury will carry ~{rente_bill}g/turn."),
+             "detail": fontainebleau_concede_detail(world, eroding),
              "cost_note": "", "enabled": True},
             {"id": "refuse", "label": "\"The Empire does not beg\"",
              "detail": f"Trust {FONTAINEBLEAU_REFUSE_TRUST} on every "
@@ -2571,6 +2577,46 @@ def queue_fontainebleau_petition(world, eroding: List) -> str:
         "context": {"marshals": names},
         "turn": int(world.current_turn),
     })
+    # Aug 30, 2026 review moved this log above the return so the ARRIVAL
+    # reached the chronicle at all; GE-3 review #39 gates it on the push —
+    # the Congress retries an owed bill every end turn while the one slot
+    # is taken, and each blocked retry logged another "The marshals
+    # petitioned the Emperor" for a card that was never presented.
+    if status == PETITION_QUEUED:
+        world.log_event({
+            "type": "fontainebleau_petition",
+            "marshals": names,
+            "nation": world.player_nation,
+        })
+    return status
+
+
+def fontainebleau_concede_detail(world, marshals: List) -> str:
+    """The concede arm's terms — priced LIVE (GE-3 review #34: a quote baked
+    at build kept its ×1.0 across a summons that made every rente ×1.5, and
+    its ×1.5 across the dissolution that lifted it). Built here AND re-built
+    at delivery (`refresh_petition_affordability`).
+
+    Shown = applied (Aug 2026 health-check audit): the concede arm grants
+    via compute_rente_face — the EWC-F2 rule, which ignores disruption and
+    subtracts estate worth, NOT get_shortfall — and its gate is
+    `rente_grant_would_not_help` (Aug 30, 2026 review), so the preview asks
+    the executor's own questions. The bill rides the Congress's peace
+    dividend through `get_rente_cost(face, world, nation)`, the income
+    phase's own price."""
+    payable = [m for m in marshals
+               if not dotation.rente_grant_would_not_help(m, world)]
+    rente_bill = sum(
+        dotation.get_rente_cost(dotation.compute_rente_face(m, world),
+                                world, m.nation)
+        for m in payable)
+    return ((f"{len(payable)} of {len(marshals)} petitioners receive a "
+             if len(payable) < len(marshals) else "Every petitioner receives a ")
+            + "rente at the gap his estates leave "
+            + f"(+{FONTAINEBLEAU_CONCEDE_TRUST} trust to each man granted). "
+            + f"The treasury will carry ~{rente_bill}g/turn"
+            + dotation.peace_dividend_note(world, world.player_nation)
+            + ".")
 
 
 def check_fontainebleau(world, events: List[Dict]) -> None:
@@ -3302,7 +3348,7 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
                 "marshal": marshal.name,
                 "nation": marshal.nation,
                 "face": int(face),
-                "cost": int(dotation.get_rente_cost(face)),
+                "cost": int(dotation.get_rente_cost(face, world, marshal.nation)),
                 "source": "fontainebleau",
             })
         if granted:

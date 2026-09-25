@@ -514,7 +514,9 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
         "estate_title": title,
         "eligible_estates": eligible,
         "pension": pension,
-        "pension_cost": int(get_rente_cost(pension)),
+        # GE-3: the income phase's own per-man price — the Congress's peace
+        # dividend included while it sits (shown = applied).
+        "pension_cost": int(get_rente_cost(pension, world, marshal.nation)),
         "rente_offer": rente_offer,
         "investiture_fee": int(compute_investiture_fee(marshal)),
         "eligible_estate_details": details,

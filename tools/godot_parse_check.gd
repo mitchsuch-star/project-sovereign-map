@@ -125,6 +125,9 @@ const SCENE_INSTANTIATION_CHECKS = [
 	"res://scenes/gazette_view.tscn",
 	# Row EP GE-2: the end screen (dialog_manager-registered at runtime).
 	"res://scenes/campaign_end.tscn",
+	# Row EP GE-3: the Diplomatic Ledger gained its CONGRESS tab node
+	# (top_bar-registered at runtime).
+	"res://scenes/diplomatic_ledger.tscn",
 ]
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
@@ -162,6 +165,8 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/ep_f2_display_name_harness.gd",
 	# Row EP GE-2 "the client", driven (tests/test_ge2_the_client.py)
 	"res://../../tools/ge2_campaign_end_harness.gd",
+	# Row EP GE-3 "The Congress of Paris" — the client surfaces, driven
+	"res://../../tools/ge3_congress_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

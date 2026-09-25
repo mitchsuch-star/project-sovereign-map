@@ -7485,3 +7485,205 @@ Landing record `ENDGAME_PLAN.md` §6 GE-2; pins `tests/test_ge2_the_client.py`
   clocks' arms start from (`fixture_ge2_soil_or_sword.json`,
   `fixture_ge2_chains.json`); the four ending arms and their commands are in
   `docs/PLAYTESTING.md`.
+
+## 66. The Congress of Paris (row EP GE-3, landed September 25, 2026)
+
+Landing record `ENDGAME_PLAN.md` §6 GE-3 (with its review round); design
+`ENDGAME_PLAN.md` §2 and §4 (RULED); pins `tests/test_congress_of_paris.py`,
+`tests/test_congress_review_round.py` (the review's findings, numbered, and
+the two arms DRIVEN through the real driver) and `tests/test_ge3_the_client.py`
+(the client, driven on the real `main.tscn`). One module,
+`backend/game_logic/congress.py`, and ONE serialized field, `world.congress`
+(`SAVE_FORMAT_REFERENCE.md`).
+
+* **Title is the count.** The summons and the hold read
+  `game_end.titled_provinces(world, player)` (GE-1's `province_title`:
+  homeland — a satellite's only at loyalty ≥ 40 — a treaty cession, a
+  conquest held `title_turns` quiet turns, a client's soil). The count is the
+  BLOC's (the Empire and its satellites); the gold card says so. The 1805 boot
+  holds 35; `hold_titled` is 50. Every number is read through
+  `game_end.cfg(world, key, DEFAULT)` from the scenario's `campaign_end` block
+  (the validator knows the twelve keys; a GE-1 save's four-key block falls
+  back to the defaults).
+* **The summons.** `summon the congress` (typed; the Cabinet's step-1 row) —
+  1 administrative action (the executor's ADMIN arm) + 2 DP (charged after
+  `congress.summon` succeeds) + the peace dividend on every rente already on
+  the books from its own end turn (`summons_cost_text` prices it:
+  "+Ng a turn"). The gate terms (`congress.gate_terms`, in executor order —
+  the ONE list the wizard, the desk, the clock line and `summon_refusal`
+  read; each carries its condition `text`, its `breach` for the clock line
+  and its `refusal`): an administrative action · (conditional: the campaign
+  has ended · the Imperial Peace already signed · a Congress already sitting
+  · no great power left) · `hold_titled` titled provinces · the capital held
+  · the Emperor free · no satellite at loyalty ≤ 10 · Europe's alarm below
+  `hold_alarm_ceiling` (a summons the hold would break at its first end turn
+  is refused) · no Congress dissolved within `congress_cooldown` turns · 2 DP.
+  A refusal names the first unmet term and costs nothing; a TERMINAL term
+  outranks a spent action on the wizard's disabled button.
+* **The verb reads only an order.** The summons is recognized at the HEAD of
+  the line — after an address (the Emperor's own, "Sire", or the minister's)
+  and a word of filler — never in a clause that merely mentions it. A line led
+  by a marshal is that marshal's order (the Congress route stands down; the
+  Emperor is the one marshal who IS the summoner). A question fails closed
+  (the strong `is_question`, and any line put to the minister that ends in
+  "?"), and so does a hedge, a musing, a request for instructions or a
+  deferral (`perhaps`, `could`, `whether`, `explain`, `advise`, `in two
+  turns` …): answered, nothing spent. The sweetener line must name gold
+  (`1000 gold`, `800g`, `a sweetener of 800 gold`), and a line naming a
+  treaty (alliance, pact, peace …) is the Cabinet's. A court may be named by
+  its seat ("Berlin"). The gold charged is the figure attached to gold in
+  the GUARDED line (`congress.sweetener_amount`: negated and deferred clauses
+  blanked; a year or a turn count never paid; two different sums refuse,
+  naming both).
+* **The table.** `congress.answer(world, court)` — the ONE derivation the
+  tick, the table, the surfaces and the price finder read. Precedence: GONE
+  (eliminated, or in the player's vassal chain) · RECOGNIZES BY TREATY (the
+  latch) · SHUT OUT · at WAR: SUES at the pair war score ≤ `sue_score`
+  or with its capital in the player's bloc, else REFUSES · withdrawn this
+  sitting · RECOGNIZES AT THE TABLE (latched) · the at-peace formula. The
+  war score is PRINTED from the Emperor's side ("our war score +30 — it sues
+  at +40"), the number every other war surface prints; the predicate reads
+  the score reckoned at the last end turn, and the clause names today's field
+  when it already reads otherwise. Before a summons, a beaten court's SUES is
+  a projection ("it would sue once the Congress sits") — no envoy comes until
+  the Congress sits.
+* **The treaty latch.** Only a SIGNED peace latches, and only two kinds
+  (`congress.note_ratification`, from `game_end.note_ratification` in the two
+  top-level ratifiers): a peace ratified while the Congress SITS (the sue
+  rung's, or any peace signed at the table's time — it also lifts a
+  withdrawal), or the peace of a BEATEN court (one that ceded provinces to
+  the Emperor's bloc in that treaty — Pressburg, Tilsit). Any other peace
+  feeds the formula. A truce that runs out into peace is not a signature.
+  Broken by a new war between them, or by the EMPEROR's own capture from its
+  bloc or of its covets (never a satellite's autonomous war).
+* **SHUT OUT** (the authored trade-dominance court, GR5): Continental System
+  closure ≥ `cs_shutout_pct` at every end turn of the sitting — the first end
+  turn the PORTS fall short spends it for this Congress — and no corps of hers
+  on THE CONTINENT, read live (`congress.mainland`: the land component of the
+  summoner's capital, sea links removed — 92 of 126 provinces; a corps France
+  can march to and drive off; Copenhagen and Stockholm are not on it).
+* **The formula** (`recognition_score`, pure, counterfactual through
+  `overrides`): raw relation + the design term (±12: an active design on the
+  player's bloc's soil −12; a design bought off by the player or the
+  highest-priority design satisfied +12; survival 0) + hegemony fear
+  (−(bloc share − floor) × 100, 0 inside the player's bloc or allied; the
+  floor is an active contain design's `share_floor` — Russia's arbiter 0.33
+  — else 0.45) + war weariness ≥ 60 (+10) + beaten by the player within 15
+  turns (+10) + the treaty (alliance +20, defensive +10, pact/open borders
+  +5) + the sweetener (+10 per 1,000g, cap +20) + seeded jitter ±3 per
+  Congress (0 on the historical seed; before a summons the table projects
+  the NEXT Congress's mood, so the summons never re-rolls it). ≥
+  `recognition_threshold` recognizes.
+* **A signature holds.** A court that recognizes at the table is latched for
+  the rest of the sitting (`take_the_signatures`, at the START of every end
+  turn and at the tick — never on a read). The flip-backs: a French
+  declaration (which breaks the hold anyway), the Emperor's capture by force
+  from its bloc, the annexation of what it covets — and only a court that was
+  SIGNING (recognizing or shut out, at peace) withdraws; a court at war or in
+  a truce never does. A great power that seizes a titled province of the
+  Emperor's bloc (at war with a satellite) withdraws too, and is counted
+  among the courts that would not sign.
+* **The price** (`congress.price`) — display-only counsel, never a bargain,
+  and TRUE and PAYABLE: each lever's value is the score the formula moves by
+  when that lever is applied, side effects included; the treaty lever is the
+  best treaty the court's CURRENT relation lets `_ratify_treaty` accept
+  (`STATE_RELATION_REQUIREMENTS`), else an alliance with the courtship it
+  needs folded in; the design lever walks the chain, contain designs included
+  (the arbiter's buy-off), and says a chain takes one order per design; the
+  sweetener's gold is the smallest that buys the points given what is already
+  laid down (quote = charge = receipt = the score's move). The bundle — gold,
+  the design, the treaty, then relations, pruned to the cheapest — is verified
+  by the formula. Alternatives lead it: in a truce, signing the peace; for
+  the trade-dominance court, shutting the ports. At war: the sue score, the
+  capital, a peace, the ports.
+* **The sweetener refuses free** a court the formula does not answer for:
+  one that withdrew, one that has signed, one shut out, one that already
+  recognizes, and gold that buys nothing.
+* **The sitting.** `game_end.process_end_of_turn` → `congress.
+  process_end_of_turn` after the fall clocks and before the Verdict; then
+  `gazette.recompose_congress_column` re-sets the morning's Moniteur column
+  from the answers just taken (the paper goes to press inside the advance).
+  Day 0 is the summons turn; the end of turn `summoned + congress_turns` is
+  the eighth answer. Each tick: E1 first; the signatures; the answers (beats:
+  a signature — counted in logging order — a withdrawal, "no longer shut
+  out"); London's purse; the War of the Congress; the shut-out latch; the
+  HOLD; the strip; the resolution; then, if it still sits, the owed petition
+  and every standing quote re-stated.
+* **The hold** (`hold_conditions`, seven, at every end turn): titled ≥
+  `hold_titled` (a ceder's war on the Emperor reopens its cessions —
+  GE-1's rule — and the condition names that war) · the capital held · the
+  Emperor free · no satellite lost to rebellion OR defection (latched at
+  `vassal.record_vassal_break` and at the VS-6 defection) · no titled
+  province lost by force (latched at the capture seams BEFORE the controller
+  changes) · no war declared OR JOINED by the Emperor since the summons (his
+  declarations, and his entry into an ally's offensive war) · Europe's alarm
+  below `hold_alarm_ceiling`. A failed condition dissolves the Congress that
+  tick. A siege is lifted when its war ends (`SIEGE_ENDS_WITH_THE_WAR`, every
+  nation) — no court completes a siege at peace.
+* **Refusal has teeth** (all read through `congress`, dormant unless the
+  Congress sits; every reader asks the LIVE answer, never last tick's): the
+  refuser's intent against the summoner +`refuser_weight_per_turn` per end
+  turn refusing, and its Revanche +10; the brewing gate
+  `coalition.brewing_gate` (`congress_alarm_gate` while two great powers
+  refuse — the ONE source every reader, mechanical and displayed, asks); a
+  refusing great power at peace qualifies for the coalition whatever its
+  relation; while it sits, a great power that ANSWERS the Congress
+  (recognizes, shut out) or is in a truce with the Emperor is never marched
+  into a new coalition (`congress.spared_from_coalition`, read first by
+  `qualifies_for_coalition`). The War of the Congress: a refuser at peace
+  JOINS the standing coalition (`coalition.join_coalition`, with
+  `form_coalition`'s housekeeping for the joiner) one end turn after its
+  fore-warning, which comes at its second refusing end turn — both only when
+  `congress.march_blocker` is empty (a coalition stands, the court is not
+  allied, in a truce, a vassal, freshly at peace, cooldown-bound, already a
+  member); otherwise the table names what holds it. London's purse: a
+  refusing trade-dominance court pays every other refuser `LONDON_SUBSIDY` a
+  turn under the paymaster's rules (its authored treasury floor, never a
+  court it is at war with or one the Emperor bought off, the war subsidy's
+  recipient not twice, the Emperor's standing sponsorship outbids it). The
+  sue rung above P1 sends a PEACE with the `congress_recognition` clause
+  every `SUE_CADENCE` turns — unless a settlement offer for that war is
+  already on the desk (FA-S17-15's one envoy per war).
+* **The bills.** At the summons: the marshals' collective petition if any
+  marshal is eroding (its arrival logged only when a card is queued; a
+  blocked slot owes it to the next end turn the Congress still sits) and every
+  satellite's ask. While it sits: every rente is ×1.5 from the summons' own
+  end turn (`congress.peace_dividend`); a client petition's loyalty stakes ×2
+  from day 1. Every quote is shown = applied: the reward rail and the desk's
+  petition rows are re-stated at the summons, at every sitting tick and when
+  the Congress ends; the collective petition's concede arm and the redemption
+  audience's settle arm are priced at DELIVERY.
+* **Resolution.** On the last tick, hold intact, every great power
+  RECOGNIZES / SHUT OUT / GONE → the Imperial Peace (`record_ending(world,
+  "victory", CAUSE_IMPERIAL_PEACE)`, marked, never terminal, stamped once);
+  after it the CONGRESS tab shows the ending's own table. Otherwise the
+  Congress DISSOLVES: alarm +`dissolve_alarm`, the cooldown, each REFUSER's
+  grudge (+1 threat a turn for 10 turns — a court still suing is named apart,
+  "it sued, and the Emperor did not sign its peace", and bears none), every
+  marshal's expectation one rung up. Not a defeat (D8). A Fall ends a
+  sitting Congress with it (`close_on_fall`: status `ended`; no surface says
+  it sits).
+* **E1, the Universal Monarchy.** With no great power standing, the first end
+  turn with the capital held and the Emperor free stamps the Imperial Peace
+  with route `universal_monarchy` — told as "no great power remained to
+  contest the order", never as a signature; its card carries no dissolved
+  Congress's strip. The Verdict's ascendant floor never lifts a captive
+  Emperor's reign or one whose capital another court holds.
+* **Surfaces — one payload, one line.** `congress.build_congress_payload`
+  (the CONGRESS tab, `GET /congress`, the wizard row, the war room's rows —
+  the countdown `war_in` only where the war can come, else `march_blocker`);
+  `congress.state_line` / `clock_payload` (the end-turn dispatch and the R
+  screen, the Territories tab, the war room). Talleyrand's rung 0 names the
+  biggest blocker and its price; the declare-war objection warns that a
+  declaration dissolves the sitting. Beats: congress_summoned, _warning,
+  _war (told once — never again as a bare war headline, never for a war the
+  Emperor began), _recognized, _withdrawn, _dissolved (the cooldown the gate
+  reads that morning, the alarm after the rise), imperial_peace; the
+  `congress` chronicle type (167); Le Moniteur's specials and a column every
+  turn of the sitting, re-set after the tick.
+* **Dormancy (D15).** `tools/_ge3_series_arms.py`: three arms (all levers
+  down / the Congress alone / shipped) reproduce `BASELINE_SERIES`
+  byte-for-byte and count ZERO writes to `world.congress` — the ambient board
+  never summons or ratifies a France–great-power peace, so the arms measure
+  DORMANCY, not an attribution of the live hooks (those are pinned by the
+  driven arms). No re-record.

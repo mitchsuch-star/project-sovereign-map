@@ -134,6 +134,10 @@ _THREAT_SOURCE_LABELS = {
     "schemer_peace_rejection": "Scorned a peace overture",
     # IQ-3: the alarm a treaty-dissolved league leaves behind is spent
     "league_spent": "The last coalition made its peace",
+    # GE-3 §2.6: a Congress of Paris that dissolves costs Europe's alarm
+    # once, and each court that would not sign keeps a ten-turn grudge.
+    "congress_dissolved": "Summoned a Congress that failed",
+    "congress_grudge": "Courts that would not sign at Paris",
 }
 
 
@@ -194,7 +198,16 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         # AI-3r (§2.5-3): France's own exposure — display only, never a
         # gate on the player's orders (gate Q5). None on legacy/bare.
         "france_exposure": _build_france_exposure(world),
+        # GE-3 (ENDGAME_PLAN §4): the CONGRESS tab — the table (stance /
+        # reason / price per court), the gate or the sitting's clock and the
+        # hold. None on unarmed worlds (renderers omit).
+        "congress": _congress_payload(world),
     }
+
+
+def _congress_payload(world):
+    from backend.game_logic import congress
+    return congress.build_congress_payload(world)
 
 
 # ============================================================================
@@ -1189,8 +1202,12 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     # Threat projection (IQ-3: the declaration's alarm from its single source)
     from backend.game_logic.diplomacy import declaration_alarm
     next_war_projection = int(min(100, threat_level + declaration_alarm()))
+    # GE-3: the brewing gate from its one source (40 while the Congress of
+    # Paris sits and two great powers refuse it; 60 otherwise).
+    from backend.game_logic.coalition import brewing_gate as _brewing_gate
+    _gate = int(_brewing_gate(world))
     wars_until_brewing = (
-        int(max(0, (60 - threat_level + 19) // 20)) if threat_level < 60 else 0
+        int(max(0, (_gate - threat_level + 19) // 20)) if threat_level < _gate else 0
     )
     wars_until_instant = (
         int(max(0, (80 - threat_level + 19) // 20)) if threat_level < 80 else 0
@@ -1198,7 +1215,7 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     threat_projection = {
         "current": int(threat_level),
         "after_next_war": int(next_war_projection),
-        "brewing_threshold": int(60),
+        "brewing_threshold": int(_gate),
         "instant_threshold": int(80),
         "wars_until_brewing": int(wars_until_brewing),
         "wars_until_instant": int(wars_until_instant),
@@ -1256,9 +1273,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     from backend.game_logic import coalition as _coal
     if (_coal.THE_LEAGUE_SPENDS_ITS_ALARM and headline_case == "COOLDOWN"
             and _collapse is None
-            and int(threat_level) < _coal.THREAT_BREWING_MIN):
+            and int(threat_level) < _coal.brewing_gate(world)):
         _gate = (f"Europe's alarm stands at {int(threat_level)}; no new "
-                 f"coalition gathers below {_coal.THREAT_BREWING_MIN}.")
+                 f"coalition gathers below {_coal.brewing_gate(world)}.")
         headline_note = f"{headline_note} {_gate}".strip()
 
     result = {

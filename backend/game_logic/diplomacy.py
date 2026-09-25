@@ -2901,6 +2901,10 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         if reason != "common_peace_vassalage_ratification":
             from backend.game_logic.game_end import break_signed_titles
             break_signed_titles(world, nation_a, nation_b)
+            # GE-3: a new war between the Emperor and a great power breaks
+            # that court's treaty recognition (the Congress's latch).
+            from backend.game_logic.congress import note_war_entry
+            note_war_entry(world, nation_a, nation_b)
 
     # WPS-C §9.5: Clear forced alliance origin when state leaves ALLIANCE,
     # enters WAR, or becomes VASSAL.
@@ -8561,6 +8565,12 @@ def declare_war(
         "offensive_joiners": war_preview["offensive_joiners"],
     })
 
+    # GE-3 §2.5: the Emperor who summons the Congress and then draws the
+    # sword has answered for Europe — every French declaration during the
+    # sitting is latched for the hold (dormant when no Congress sits).
+    from backend.game_logic.congress import note_declaration as _congress_decl
+    _congress_decl(world, aggressor, target)
+
     # ── R12: ALLIANCE PARADOX CHECK (must run BEFORE cascade) ──
     # If both aggressor and target are allied with the player, the player
     # faces a paradox: honoring one alliance means breaking the other.
@@ -9232,6 +9242,11 @@ def _process_war_cascade(
                     "aggressor": aggressor,
                     "against": target,
                 })
+                # GE-3 review #15: the Emperor joining an ally's offensive
+                # war during the sitting has drawn the sword as surely as a
+                # declaration (dormant when no Congress sits).
+                from backend.game_logic.congress import note_joined as _congress_join
+                _congress_join(world, nation, target, aggressor)
 
                 from backend.notifications import (
                     create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,

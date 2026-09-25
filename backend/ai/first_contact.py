@@ -48,7 +48,15 @@ CABINET_DOOR = "For any matter of state, press F1 for the Cabinet."
 # The kinds the help executor answers here; `options` is answered by the
 # question desk (`question_desk._answer_options`) so the counsel stays ONE
 # source with Berthier's shrug and the "what can I do" question.
-FIRST_CONTACT_HELP_KINDS = frozenset({"greeting", "escape_menu", "undo", "goal"})
+#
+# GE-3: `congress` is minted by the mock chain's Congress route, not by
+# `first_contact_route` — a QUESTION about the Congress of Paris ("can we
+# summon the congress?") fails closed into `help`, and this desk is where the
+# help executor's answer for it lives, beside the goal it completes. Read off
+# `backend.game_logic.congress`'s own public API, so the answer and the
+# executor's refusal are the same sentence.
+FIRST_CONTACT_HELP_KINDS = frozenset({"greeting", "escape_menu", "undo", "goal",
+                                      "congress"})
 FIRST_CONTACT_KINDS = FIRST_CONTACT_HELP_KINDS | {"options"}
 
 _ADDRESS_RE = re.compile(
@@ -241,9 +249,46 @@ def _tier_title_case(text: str) -> str:
                     for i, w in enumerate(words))
 
 
+def _congress_goal_clause(world) -> tuple[str, bool]:
+    """GE-3: the WIN, named beside the Verdict and the Fall with the
+    scenario's own numbers — the Congress of Paris and the Imperial Peace
+    (ENDGAME_PLAN §2). Returns `(clause, signed)`; the clause is '' where no
+    Congress is armed (the bare flag world, the tutorial), so those answers
+    are byte-unchanged."""
+    try:
+        from backend.game_logic import congress, game_end
+        if not congress.armed(world):
+            return "", False
+        if congress.imperial_peace_signed(world):
+            if congress.imperial_peace_route(world) == "universal_monarchy":
+                return ("The reign is WON, Sire: no great power remains to "
+                        "contest the order — the Universal Monarchy stands, "
+                        "and the Imperial Peace is proclaimed. "), True
+            return ("The reign is WON, Sire: Europe recognized the new order "
+                    "at the Congress of Paris, and the Imperial Peace is "
+                    "signed. "), True
+        need = int(congress.hold_titled(world))
+        have = int(congress.titled(world)["count"])
+        quiet = int(game_end.cfg(world, "title_turns",
+                                 game_end.TITLE_TURNS_DEFAULT))
+        turns = int(congress.congress_turns(world))
+        capital = world.get_nation_capital(
+            getattr(world, "player_nation", "")) or "the capital"
+    except Exception:
+        return "", False
+    return (f"The reign is WON at the Congress of Paris, Sire: hold {need} "
+            f"TITLED provinces — homeland, ceded by treaty, a client's soil, or "
+            f"held {quiet} quiet turns ({have} today) — summon the Congress "
+            f"('{congress.SUMMON_COMMAND}', or the Cabinet, F1), and for its "
+            f"{turns} turns keep them, {capital} and the Emperor's freedom, "
+            f"declare no war, and win every great power's recognition: that is "
+            f"the Imperial Peace. "), False
+
+
 def _judged_goal(world) -> str:
     """GE-1: the goal answer on a world whose endings are armed — the
-    Verdict and the Fall, named with the scenario's own numbers."""
+    Verdict and the Fall, named with the scenario's own numbers. GE-3: and
+    the win before both — the Congress of Paris."""
     from backend.game_logic import fall, game_end
     from backend.game_logic.calendar import calendar_label
     vt = game_end.verdict_turn(world) or 0
@@ -263,6 +308,10 @@ def _judged_goal(world) -> str:
     tail = (" Take provinces, keep the Emperor free and the marshals loyal, "
             "and make peace on your own terms. The Strategic Ledger (press T) "
             "keeps the score and the Cabinet (F1) holds every court.")
+    # GE-3: the win leads — the Congress of Paris — and the Verdict and the
+    # Fall follow it; "Sire" is said once.
+    won, signed = _congress_goal_clause(world)
+    sire = "" if won else ", Sire"
     verdict = next((r for r in game_end.endings(world)
                     if r.get("cause") == game_end.CAUSE_VERDICT), None)
     if verdict is not None:
@@ -275,19 +324,140 @@ def _judged_goal(world) -> str:
         when = f"{v_label} (turn {v_turn})" if v_label else f"turn {v_turn}"
         tier = str(((verdict.get("summary") or {}).get("verdict") or {})
                    .get("title") or "").strip()
-        judged = (f"History has judged the reign, Sire, at the end of {when}: "
+        judged = (f"History has judged the reign{sire}, at the end of {when}: "
                   f"{_tier_title_case(tier) if tier.isupper() else tier}. "
                   if tier else
-                  f"History rendered its Verdict at the end of {when}, Sire. ")
-        return (f"{judged}The campaign goes on, and the Empire can still "
+                  f"History rendered its Verdict at the end of {when}{sire}. ")
+        return (f"{won}{judged}The campaign goes on, and the Empire can still "
                 f"fall — {fall_clause}.{tail}")
-    return (f"The reign will be judged, Sire: at the end of {when} history "
+    head = ("The reign will be judged, Sire:" if not won else
+            "The reign will still be judged:" if signed else
+            "Short of that, the reign will be judged:")
+    return (f"{won}{head} at the end of {when} history "
             f"renders its Verdict, and the campaign goes on after it. At any "
             f"time the Empire can fall — {fall_clause}.{tail}")
 
 
+_SWEETENER_ASKED_RE = re.compile(r"\brecogni[sz]|\brecognition\b|\bsweeten")
+
+
+def _named_court(world, asked: str) -> Optional[str]:
+    """The great power a Congress question names — by key, printed name or
+    seat ("London", "St Petersburg") — or None."""
+    from backend.display_names import display_nation
+    from backend.game_logic import congress
+    low = (asked or "").lower()
+    for court in congress.great_powers(world):
+        forms = {court.lower(), display_nation(court).lower(),
+                 congress.seat(world, court).lower()}
+        if any(form and re.search(r"\b" + re.escape(form) + r"\b", low)
+               for form in forms):
+            return court
+    return None
+
+
+def _congress_answer(asked: str, world) -> str:
+    """GE-3: a question about the Congress of Paris, ANSWERED and never
+    executed — the gate terms before a summons, the table while it sits.
+    Every figure and every refusal is read off `game_logic.congress`'s own
+    public API, so this answer and the executor's refusal are the same
+    sentence (shown = applied)."""
+    from backend.game_logic import congress
+    relayed = " Nothing has been relayed."
+    if world is None:
+        return (f"The Congress of Paris, Sire, is how the reign is won: with "
+                f"{congress.HOLD_TITLED} titled provinces the Emperor may "
+                f"summon the powers ('{congress.SUMMON_COMMAND}', or the "
+                f"Cabinet, F1), and for {congress.CONGRESS_TURNS} turns every "
+                f"great power answers.{relayed}")
+    if not congress.armed(world):
+        return ("There is no Congress of Paris in this campaign, Sire — its "
+                "rules are not authored here." + relayed)
+    from backend.ai.counsel import surface_pointer
+    from backend.display_names import display_nation
+    pointer = surface_pointer("congress")
+    table = f" The table is on {pointer}." if pointer else ""
+    phase = congress.phase(world)
+    if phase == "concluded":
+        if congress.imperial_peace_route(world) == "universal_monarchy":
+            return ("The Imperial Peace is proclaimed, Sire — no great power "
+                    "remained to contest the order, and there is no Congress "
+                    "left to summon." + relayed)
+        return ("The Imperial Peace is signed, Sire — Europe recognized the "
+                "new order at the Congress of Paris, and there is no Congress "
+                "left to summon." + relayed)
+    if phase == "ended":
+        return ("The campaign has ended, Sire — no Congress will sit." + relayed)
+    from backend.game_logic import game_end
+    per = int(game_end.cfg(world, "sweetener_per_1000",
+                           congress.SWEETENER_PER_1000))
+    cap = int(game_end.cfg(world, "sweetener_cap", congress.SWEETENER_CAP))
+    from backend.display_names import plural
+    sweetener = (f"A sweetener is laid at the table — 'offer <court> <gold> "
+                 f"gold for recognition': +{per} for every 1,000 gold, at most "
+                 f"+{cap} a court, and "
+                 f"{plural(congress.SWEETENER_DP_COST, 'diplomatic point')} "
+                 f"to carry it.")
+    if phase == "sitting":
+        parts = [f"{congress.state_line(world)}."]
+        court = _named_court(world, asked)
+        if court:
+            row = congress.answer(world, court)
+            line = (f"{congress.seat(world, court)}: {display_nation(court)} "
+                    f"{row['stance']}")
+            if row.get("reason"):
+                line += f" — {row['reason']}"
+            if row["stance"] not in congress.SATISFIED:
+                price = (congress.price(world, court, row) or {}).get("text")
+                if price:
+                    line += f"; the price: {price}"
+            parts.append(line + ".")
+        else:
+            blocker = congress.counsel(world)
+            if blocker:
+                line = (f"The greatest blocker is {display_nation(blocker['court'])}, "
+                        f"which {blocker['stance']}")
+                if blocker.get("reason"):
+                    line += f" — {blocker['reason']}"
+                if blocker.get("price"):
+                    line += f"; the price: {blocker['price']}"
+                parts.append(line + ".")
+            else:
+                ends = int((congress.record(world) or {}).get("ends_turn") or 0)
+                parts.append("Every great power recognizes, is shut out or is "
+                             "gone — hold, and the Imperial Peace is signed at "
+                             f"the end of turn {ends}.")
+        # The BREACH, never the condition ("The hold is failing: Paris held").
+        from backend.campaign_log import congress_dissolve_reason
+        broken = [congress_dissolve_reason(t["key"], t["text"])
+                  for t in congress.hold_conditions(world) if not t.get("met")]
+        if broken:
+            parts.append("The hold is failing: " + "; ".join(broken) + ".")
+        parts.append(sweetener)
+        return " ".join(parts) + table + relayed
+    terms = congress.gate_terms(world)
+    listed = "; ".join(("✓ " if t["met"] else "✗ ") + str(t["text"])
+                       for t in terms)
+    refusal = congress.summon_refusal(world, skip_admin=False)
+    if refusal is None:
+        verdict = (f"It can be summoned this morning, Sire: "
+                   f"'{congress.SUMMON_COMMAND}' — "
+                   f"{plural(congress.SUMMON_DP_COST, 'diplomatic point')} "
+                   f"and 1 administrative action, and it cannot be undone.")
+    else:
+        verdict = f"Not yet, Sire: {refusal}"
+    text = f"The Congress of Paris — {listed}. {verdict}"
+    if _SWEETENER_ASKED_RE.search((asked or "").lower()):
+        text += (" A sweetener is paid only at the table, while the Congress "
+                 "sits.")
+    return text + table + relayed
+
+
 def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
     """Berthier's answer for a `FIRST_CONTACT_HELP_KINDS` kind, or None."""
+    if str(kind or "") == "congress":
+        # GE-3 — the question desk for the Congress; needs no counsel lines.
+        return _congress_answer(asked, world)
     kind = str(kind or "")
     counsel = _counsel(world)
     first = f" This morning, '{counsel[0]}' would be carried out at once." if counsel else ""

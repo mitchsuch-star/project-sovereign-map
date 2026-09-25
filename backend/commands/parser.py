@@ -12,6 +12,7 @@ from backend.ai.llm_client import (
     LLMClient,
     ADDRESS_TOKEN_RE,
     ADDRESS_NON_NAME_WORDS,
+    DIPLOMAT_ADDRESS_NAMES,
     SUPPORT_OBJECT_PREFIX_RE,
     CONDITION_CLAUSE_RE,
 )
@@ -982,6 +983,9 @@ class CommandParser:
             "set_fleet_posture",  # "blockade the enemy" / "guard home waters"
             "naval_expedition",  # "land Soult in Munster" — the H4 gamble
             "naval_diversion",   # "order the diversion" — §5.3
+            # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.3–§2.4)
+            "summon_congress",        # "summon the congress" — 2 DP + 1 admin
+            "recognition_sweetener",  # "offer Prussia 1000 gold for recognition"
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -1282,6 +1286,18 @@ class CommandParser:
                 if (ADMIRAL_IS_AN_ADDRESSEE and addressed
                         and llm_result.get("action") in _NAVAL_META_VERBS
                         and _names_the_admiral(addressed, world)):
+                    addressed = None
+                # GE-3: a question about the Congress of Paris put to the
+                # foreign minister ("Talleyrand, can we summon the
+                # congress?") is answered at the desk like any other —
+                # the minister is its addressee, never a marshal typo to
+                # clarify ("Did you mean 'Ney'?"). Scoped to that one
+                # answer: every other addressed `help` keeps CR-2.
+                if (addressed
+                        and (llm_result.get("question") or {}).get("kind")
+                        == "congress"
+                        and any(name in addressed.lower()
+                                for name in DIPLOMAT_ADDRESS_NAMES)):
                     addressed = None
                 if (addressed
                         and addressed.lower() not in known_target_words

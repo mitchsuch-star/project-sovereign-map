@@ -567,6 +567,68 @@ def _court_design_satisfied(world, nation: str) -> bool:
     return bool(deck and _entry_satisfied(world, nation, deck[0]))
 
 
+def recognition_design_reading(world, court: str, hegemon: str,
+                               skip_design_ids=()) -> dict:
+    """GE-3 (ENDGAME_PLAN §2.4) — how a court's design reads the order a
+    hegemon asks it to RECOGNIZE. Pure and UNCACHED (the Congress's price
+    finder asks counterfactuals through `skip_design_ids`: "and if this
+    design were bought off, what wakes?" — buying Austria's Italian design
+    wakes its German one, so one purchase is not always the price).
+
+    Walks the deck exactly as `get_active_agenda` does (a design bought off
+    by ANY payer is suspended), plus the extra skips. Returns:
+      survival       — the court fights for its life (no design voice)
+      active_id/title/type — the first live design after the skips
+      concerns       — that design's provinces held by the hegemon's bloc
+                       (acquire: unmet targets; deny: listed provinces)
+      bought         — [(design_id, payer)] walked past as bought off
+      satisfied_first — the deck's highest-priority design is satisfied
+      contain_floor  — the active contain design's share floor, else None
+    Never read by any AI decision — the Congress table only (dormant: its
+    only callers sit behind a sitting or an armed Congress surface)."""
+    out = {"survival": False, "active_id": None, "active_title": "",
+           "active_type": "", "concerns": [], "bought": [],
+           "satisfied_first": False, "contain_floor": None}
+    if _is_vassal(world, court) or court not in world.get_active_nations():
+        return out
+    if survival_override_active(world, court):
+        out["survival"] = True
+        return out
+    deck = (getattr(world, "agendas", {}) or {}).get(court) or []
+    skips = set(str(s) for s in (skip_design_ids or ()))
+    bloc = set(world.get_bloc_members(hegemon))
+    payers = {}
+    for rec in getattr(world, "compensation_bargains", []) or []:
+        if rec.get("recipient") == court:
+            payers[str(rec.get("design_id") or "")] = str(rec.get("payer") or "")
+    for entry in deck:
+        design_id = str(entry.get("id") or "")
+        if design_id in skips or design_id in payers:
+            out["bought"].append((design_id, payers.get(design_id, hegemon)))
+            continue
+        if not _entry_active(world, court, entry):
+            continue
+        regions = _entry_regions(world, court, entry)
+        agenda_type = str(entry.get("type") or "")
+        out["active_id"] = design_id
+        out["active_title"] = str(entry.get("title") or design_id)
+        out["active_type"] = agenda_type
+        if agenda_type == "acquire_regions":
+            out["concerns"] = [
+                r for r in regions
+                if not _controlled_by_self_or_vassal(world, court, r)
+                and _region_controller(world, r) in bloc]
+        elif agenda_type == "deny_regions":
+            out["concerns"] = [r for r in regions
+                               if _region_controller(world, r) in bloc]
+        elif agenda_type == "contain_hegemon":
+            out["contain_floor"] = float(
+                entry.get("share_floor") or HEGEMON_BLOC_SHARE_FLOOR)
+        break
+    out["satisfied_first"] = bool(deck) and _entry_satisfied(world, court, deck[0])
+    return out
+
+
 def get_agenda_resolve_delta(nation: str, opponent: str, world) -> int:
     """Pure NA-3 feeder for effective_p1_threshold (spec §5.5) — NOT yet
     consumed at NA-0..NA-2 (no consumer changes before NA-3).

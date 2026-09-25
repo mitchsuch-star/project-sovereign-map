@@ -536,6 +536,9 @@ func _ready():
 		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
 		if diplomacy_wizard.has_signal("open_envoys_requested"):
 			diplomacy_wizard.open_envoys_requested.connect(_on_wizard_open_envoys_requested)
+		# GE-3: the Congress row's "View the table" — the ledger's CONGRESS tab.
+		if diplomacy_wizard.has_signal("open_congress_requested"):
+			diplomacy_wizard.open_congress_requested.connect(_on_wizard_open_congress_requested)
 
 	# War Status Panel (N4: HUD Layer 25 + Detail Layer 30) — not modal
 	war_status_panel = dialog_manager.register("war_status_panel", "res://scenes/war_status_panel.tscn", false)
@@ -2717,6 +2720,35 @@ func _add_fall_clock_lines(warning: Dictionary) -> void:
 		add_output("[color=#" + tint + "]  " + line + "[/color]")
 
 
+static func congress_clock_tint(severity: String) -> String:
+	"""GE-3: the Congress clock's tint — the fall clock's tints (warning
+	amber, critical crimson, paused grey), gold for the gate. The backend
+	decided the severity once (`congress.clock_severity`)."""
+	match severity:
+		"critical":
+			return Utils.COLOR_ERROR
+		"warning":
+			return Utils.COLOR_BATTLE
+		"paused":
+			return Utils.COLOR_DIMMED
+	return Utils.COLOR_GOLD
+
+
+func _add_congress_clock_line(clock) -> void:
+	"""GE-3 (ENDGAME_PLAN §4): the Congress's clock on the end-turn banner,
+	under its own heading — `{line, severity, phase}` from the one source.
+	dispatch_view.gd mirrors this block (the R screen re-reads the banner)."""
+	if not (clock is Dictionary):
+		return
+	var line = clock.get("line", "")
+	if not (line is String) or line == "":
+		return
+	var severity = clock.get("severity", "gate")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]THE CONGRESS OF PARIS[/color]")
+	add_output("[color=#" + congress_clock_tint(severity if severity is String else "") + "]  " + line + "[/color]")
+	add_output("")
+
+
 # ── PT-B1: the redemption stash ───────────────────────────────────────────
 # `_route_response_ui` returns on the FIRST match and `redemption_event` is
 # the LAST of twelve routes, so any of the eleven above it — measured with
@@ -4492,6 +4524,14 @@ func _display_morning_dispatch(data: Dictionary):
 			# the same line); a paused clock says so and names no date.
 			_add_fall_clock_lines(defeat_imminent_warning)
 			add_output("")
+
+	# ═══ THE CONGRESS OF PARIS (GE-3, ENDGAME_PLAN §4 — the clock line) ═══
+	# The gate before a summons, the sitting's turn and table while it sits,
+	# the cooldown after a dissolution — the backend's ONE line
+	# (`congress.state_line`, the same words the war room and the Territories
+	# tab print); its `severity` picks the tint. Absent on a world whose ending
+	# is not authored, and after the Imperial Peace.
+	_add_congress_clock_line(data.get("congress_clock", null))
 
 	# â•â•â• TALLEYRAND REPORT â•â•â•
 	# Talleyrand report
@@ -6500,6 +6540,13 @@ func _on_open_envoys_button_pressed():
 
 func _on_wizard_open_envoys_requested():
 	_on_envoy_clicked()
+
+
+func _on_wizard_open_congress_requested():
+	"""GE-3: the wizard's Congress row → the Diplomatic Ledger on its
+	CONGRESS tab (the same review-target road a notification takes)."""
+	if top_bar and top_bar.has_method("open_diplomatic_ledger_review"):
+		top_bar.open_diplomatic_ledger_review("ledger_congress")
 
 
 func _on_dispatch_open_envoys_requested():

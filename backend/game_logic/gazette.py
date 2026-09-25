@@ -88,6 +88,10 @@ _COURT_TYPES = {
     # FA-N52 (slice 17): `vassal_created` retired for `vassal_transferred`,
     # the only client-status type the log carries beside the break.
     "coalition_dissolved", "vassal_transferred", "vassal_broke_free",
+    # GE-3: the Congress of Paris's own chronicle — a summons, a court
+    # signing or withdrawing, the London purse, the War of the Congress, the
+    # dissolution (congress.py writes each with a literal `log_event`).
+    "congress",
 }
 _ARMY_TYPES = {
     # FA-N52 (slice 17): `glory_crown_lost` is LIVE now (jealousy.py logs
@@ -183,6 +187,12 @@ THE_BOURSE_READS_THE_DEFICIT = True
 _SPECIAL_WEIGHTS = {
     # GE-1 "The Eagle Falls": the one edition graver than his capture.
     "THE EMPEROR IS DEAD": 105,
+    # GE-3 "The Congress of Paris": beat 4, the victory — just below the
+    # Emperor's death (the two cannot share an issue: no ending is stamped
+    # after a terminal one), above every other edition. E1's variant when no
+    # great power remained to sign.
+    "THE IMPERIAL PEACE": 104,
+    "THE UNIVERSAL MONARCHY": 104,
     "THE EMPEROR TAKEN": 100,
     # IQ-2 D3(d): the loss that leaves the realm at the collapse ceiling. One
     # caption per tier; they cannot both fire (the candidate pass keeps only
@@ -193,7 +203,12 @@ _SPECIAL_WEIGHTS = {
     REALM_WITHOUT_A_PROVINCE: 97,
     "THE CAPITAL HAS FALLEN": 95,
     "a crown struck from the map": 90,
+    # GE-3 beat 1: the summons is Europe called to one table — graver than
+    # a nation proclaimed, below a crown struck. The dissolution just under
+    # it (the sitting's end, never a defeat — D8).
+    "THE EMPEROR SUMMONS THE POWERS TO PARIS": 88,
     "a nation proclaimed": 85,
+    "THE CONGRESS OF PARIS DISSOLVES": 84,
     "a crowned head taken": 80,
     "a crowned head struck down": 80,
     "war between the great powers": 70,
@@ -335,6 +350,27 @@ def _special_candidates(world, turn_events: List[Dict]):
             if str(event.get("nation") or "") == player:
                 _add("a marshal of France lost",
                      str(event.get("marshal") or ""))
+        # GE-3 "The Congress of Paris". The summons is the player's act,
+        # stamped in his own turn; the dissolution and the Imperial Peace are
+        # stamped at the Congress's tick — which runs in the end-turn tail
+        # AFTER `process_gazette` (game_end.process_end_of_turn follows the
+        # advance), so their edition is the NEXT issue, one turn later. That
+        # is accepted: the end screen carries its own Moniteur line the turn
+        # the peace is signed, and the paper of record prints it the morning
+        # after. Keyed by the event (the summons' number, the turn of the
+        # tick) so WO-44's identity dedupe never prints one twice.
+        if etype == "congress" and str(event.get("nation") or "") == player:
+            _phase = str(event.get("phase") or "")
+            if _phase == "summoned":
+                _add("THE EMPEROR SUMMONS THE POWERS TO PARIS",
+                     f"summons#{int(event.get('number') or 0)}")
+            elif _phase == "dissolved":
+                _add("THE CONGRESS OF PARIS DISSOLVES",
+                     f"dissolved@{event.get('turn')}")
+        if (etype == "campaign_ending"
+                and str(event.get("cause") or "") == "imperial_peace"
+                and str(event.get("nation") or "") == player):
+            _add(_imperial_peace_caption(world), "imperial_peace")
     if reduced is not None:
         # Keyed by the EVENT — the province and the turn its loss was
         # stamped — so WO-44's identity dedupe never prints the same fall
@@ -347,6 +383,112 @@ def _special_candidates(world, turn_events: List[Dict]):
              f"{reduced[1]}@{reduced[2]}" if reduced[2] is not None
              else reduced[1])
     return found
+
+
+def _imperial_peace_record(world) -> Optional[Dict]:
+    """The stamped Imperial Peace, or None (never re-derived from live
+    state — the ending's own detail is the record)."""
+    from backend.game_logic import game_end
+    return next((r for r in game_end.endings(world)
+                 if r.get("cause") == game_end.CAUSE_IMPERIAL_PEACE), None)
+
+
+def _imperial_peace_caption(world) -> str:
+    """"THE IMPERIAL PEACE", or E1's "THE UNIVERSAL MONARCHY" — the route
+    rides the stamped record's detail; the log row carries none."""
+    rec = _imperial_peace_record(world) or {}
+    route = str((rec.get("detail") or {}).get("route") or "")
+    return ("THE UNIVERSAL MONARCHY" if route == "universal_monarchy"
+            else "THE IMPERIAL PEACE")
+
+
+def _congress_column(world, special_reason: Optional[str]) -> List[str]:
+    """Le Moniteur's Congress column (GE-3, ENDGAME_PLAN §2.5): the table in
+    the paper's voice every turn of the sitting (`congress.gazette_rows`,
+    [] when no Congress sits), and on the Imperial Peace's own edition the
+    proclamation — the stamped `moniteur_line`, without the masthead it
+    would repeat."""
+    from backend.game_logic import congress as _congress
+    lines = list(_congress.gazette_rows(world))
+    if _congress.sitting(world):
+        # The ordering hazard, stated: the paper goes to press inside the
+        # advance (post-increment), BEFORE the Congress takes that turn's
+        # answer (`game_end.process_end_of_turn` follows the advance). The
+        # column's own header counts days off the NEW turn, so on the
+        # resolution advance it printed "turn 9 of 8" above a table the tick
+        # was about to dissolve or proclaim. The paper therefore dates its
+        # column by the day just CLOSED — the day whose business it reports —
+        # and says the answer is awaited; the answer itself is the next
+        # morning's edition (the dissolution / Imperial Peace specials). The
+        # table's rows are `congress.gazette_rows`, unchanged.
+        record = _congress.record(world) or {}
+        total = _congress.congress_turns(world)
+        now = int(getattr(world, "current_turn", 0) or 0)
+        closed = now - 1 - int(record.get("summoned_turn", now - 1) or 0)
+        closed = max(0, min(total, closed))
+        if closed <= 0:
+            header = (f"The powers gather at Paris — the Congress opens a "
+                      f"sitting of {total} turns.")
+        elif closed >= total:
+            header = (f"The Congress of Paris has sat all {total} of its "
+                      f"turns; Europe's answer is awaited.")
+        else:
+            header = f"The Congress of Paris has sat {closed} of its {total} turns."
+        lines = [header] + lines
+    else:
+        record = _congress.record(world) or {}
+        now = int(getattr(world, "current_turn", 0) or 0)
+        if (record.get("status") == _congress.DISSOLVED
+                and int(record.get("dissolved_turn", -99) or -99) >= now - 1):
+            from backend.campaign_log import congress_dissolve_reason
+            lines = [f"The Congress of Paris dissolves — "
+                     f"{congress_dissolve_reason(record.get('dissolve_key'), record.get('dissolve_reason'))}."]
+    if special_reason in ("THE IMPERIAL PEACE", "THE UNIVERSAL MONARCHY"):
+        rec = _imperial_peace_record(world) or {}
+        proclaimed = str((rec.get("detail") or {}).get("moniteur_line") or "")
+        if ": " in proclaimed:
+            proclaimed = proclaimed.split(": ", 1)[1]
+        if proclaimed:
+            lines.insert(0, proclaimed)
+    return lines
+
+
+def recompose_congress_column(world) -> None:
+    """GE-3 review #42: the paper goes to press INSIDE the advance, before
+    the Congress takes that end turn's answers (`game_end.process_end_of_turn`
+    follows the advance), so the morning's column described the table as it
+    stood BEFORE the tick while the dispatch and the clock, built after it,
+    described the result — a war begun, a dissolution, the Imperial Peace.
+    Re-set this morning's column from the post-tick state, and move a
+    dissolution or an Imperial Peace stamped at this tick onto this same
+    edition when it carries no special of its own. Dormant: returns at once
+    when no Congress was ever summoned, or no issue went to press today."""
+    from backend.game_logic import congress as _congress
+    record = _congress.record(world)
+    if not isinstance(record, dict) or not record.get("number"):
+        return
+    issues = getattr(world, "gazette_issues", None)
+    if not issues:
+        return
+    issue = issues[-1]
+    now = int(getattr(world, "current_turn", 0) or 0)
+    if int(issue.get("turn", -1)) != now:
+        return
+    special, key = None, ""
+    if _congress.imperial_peace_signed(world):
+        rec = _imperial_peace_record(world) or {}
+        if int(rec.get("turn", -99)) >= now - 1:
+            special, key = _imperial_peace_caption(world), "imperial_peace"
+    elif (record.get("status") == _congress.DISSOLVED
+          and int(record.get("dissolved_turn", -99) or -99) >= now - 1):
+        special, key = "THE CONGRESS OF PARIS DISSOLVES", f"dissolved@{now}"
+    if special and not issue.get("special"):
+        issue["special"] = True
+        issue["special_reason"] = special
+        issue["special_key"] = key
+    reason = (special if special in ("THE IMPERIAL PEACE", "THE UNIVERSAL MONARCHY")
+              else (issue.get("special_reason") or None))
+    issue["congress"] = _congress_column(world, reason)
 
 
 def _capital_in_other_hands(world):
@@ -584,6 +726,10 @@ def compose_issue(world, since_turn: int,
         "courts": _section(court_rows, "courts"),
         "army": _section(army_rows, "army"),
         "bourse": _bourse_line(world),
+        # GE-3: the Congress column — [] whenever no Congress sits (and no
+        # Imperial Peace edition), so every other issue is unchanged in
+        # substance. The table's own state, read at publication.
+        "congress": _congress_column(world, special_reason),
     }
     return issue
 
@@ -636,6 +782,14 @@ def process_gazette(world) -> Optional[Dict]:
                    if candidates else "")
     due = (turn - last_turn) >= ISSUE_INTERVAL if issues \
         else turn >= ISSUE_INTERVAL
+    # GE-3 (ENDGAME_PLAN §2.5): "The Moniteur runs a Congress column every
+    # turn of the sitting" — an issue is DUE every turn the Congress sits
+    # (the one-issue-per-turn guard above still holds). Dormant otherwise:
+    # `congress.sitting` is an attribute read and a key compare, False on
+    # every world that never summoned, so the five-turn cadence is untouched.
+    if not due:
+        from backend.game_logic import congress as _congress
+        due = _congress.sitting(world)
     if not special and not due:
         return None
 

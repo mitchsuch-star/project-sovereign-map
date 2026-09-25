@@ -211,10 +211,15 @@ class TestFontainebleauSurfacePricesOffTheExecutorPredicate:
         import inspect
         from backend.game_logic import jealousy
 
-        src = inspect.getsource(jealousy.queue_fontainebleau_petition)
+        # GE-3 review #34 (flipped consciously, Sept 25, 2026): the concede
+        # arm is priced by ONE builder, `fontainebleau_concede_detail`, read
+        # at the build AND at delivery — the census follows it there.
+        src = inspect.getsource(jealousy.fontainebleau_concede_detail)
         assert "compute_rente_face" in src, (
             "the petition surface must price via the executor's own "
             "predicate (Aug 2026 audit)")
+        assert "fontainebleau_concede_detail(world, eroding)" in inspect.getsource(
+            jealousy.queue_fontainebleau_petition)
 
 
 class TestBargainFeasibilityReadsRealStrength:

@@ -1194,8 +1194,21 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
     relation = _get_relation(world, tgt, nation) + int(relation_shift)
     is_vassal = nation in getattr(world, 'vassals', {})
     already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
-    if relation >= -10 or is_vassal or already_at_war:
+    if is_vassal or already_at_war:
         return False
+    # GE-3 review #10/#19/#41: while the Congress sits, a great power that
+    # answers it (recognizing, shut out) or holds a truce with the Emperor is
+    # never marched into a NEW coalition ('' — dormant — when none sits).
+    from backend.game_logic.congress import spared_from_coalition
+    if spared_from_coalition(world, nation, tgt):
+        return False
+    if relation >= -10:
+        # GE-3 §2.5: a great power refusing the Congress of Paris qualifies
+        # whatever its relation — a court refusing out of fear alone would
+        # otherwise never march (False at once when no Congress sits).
+        from backend.game_logic.congress import refuser_qualifies
+        if not refuser_qualifies(world, nation, tgt):
+            return False
     # PR-1: a court that signed yesterday is not marched back out today.
     return not peace_with_target_is_fresh(nation, world, tgt)
 
@@ -1875,6 +1888,68 @@ def form_coalition(qualifying_nations: List[str], world,
     return result
 
 
+def join_coalition(world, nation: str) -> Dict:
+    """A court joins the STANDING coalition against its target — declares
+    war on the target, takes the united cause (+10 relation with every
+    member) and the coalition's war objective. Generic (GR5); its one caller
+    is the Congress of Paris's "War of the Congress" (a refuser at peace,
+    refusing while a coalition already stands — §16.2: player-targeted war
+    is the coalition's, never a unilateral design war)."""
+    coalition = getattr(world, "active_coalition", None)
+    if not coalition:
+        return {"success": False, "message": "No coalition stands."}
+    target = coalition.get("target_nation") or world.player_nation
+    members = list(coalition.get("members") or [])
+    if nation in members or nation == target:
+        return {"success": False, "message": f"{nation} is already in it."}
+    if nation in getattr(world, "vassals", {}):
+        return {"success": False, "message": f"{nation} is a vassal."}
+    from backend.game_logic.diplomacy import (
+        assign_coalition_war_objective,
+        declare_war,
+    )
+    result = declare_war(world, nation, target)
+    if not result.get("success"):
+        return {"success": False, "message": result.get("message", "")}
+    for member in members:
+        world.modify_nation_relation(nation, member, 10)
+    coalition["members"] = sorted(set(members + [nation]))
+    assign_coalition_war_objective(world, nation, target)
+    # GE-3 review #26: the enrolment housekeeping `form_coalition` does for
+    # its members — a joiner's letters leave the desk (R51/R12C), and an
+    # envoy on the road to it is recalled with his DP refunded (EC-2).
+    voided = _void_for_joiner(world, nation)
+    out = {"success": True, "coalition": coalition.get("name", ""),
+           "war_event": result}
+    if voided:
+        out["voided_proposal"] = voided
+    return out
+
+
+def _void_for_joiner(world, nation: str) -> Optional[str]:
+    """The joiner's half of `form_coalition`'s steps 2b + R51 (kept as its
+    own copy so the formation path stays byte-identical)."""
+    voided = None
+    pit = getattr(world, 'proposal_in_transit', None)
+    if pit and pit.get("target", "") == nation:
+        voided = nation
+        world.proposal_in_transit = None
+        if getattr(world, 'talleyrand_state', '') == "IN_TRANSIT":
+            mission = getattr(world, 'active_diplomatic_mission', None)
+            if mission and not mission.get("completed"):
+                world.talleyrand_state = "ON_MISSION"
+                mission["paused"] = False
+            else:
+                world.talleyrand_state = "IDLE"
+        dp_cost = pit.get("dp_cost", 0)
+        if dp_cost > 0:
+            world.diplomatic_points = getattr(world, 'diplomatic_points', 0) + int(dp_cost)
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is not None:
+        dm.remove_matching(lambda d: d.get("target_nation", "") == nation)
+    return voided
+
+
 # ════════════════════════════════════════════════════════════════
 # §7. DISSOLUTION
 # ════════════════════════════════════════════════════════════════
@@ -2007,11 +2082,13 @@ def league_spent_clause(world, target: str, spent: Dict[str, int]) -> str:
         from backend.display_names import humanize_entity_name
         whose = f"Europe's alarm against {humanize_entity_name(target)}"
     moved = f"{whose} falls from {frm} to {to}" if frm > to else f"{whose} stands at {to}"
-    if to < THREAT_BREWING_MIN:
+    # GE-3 review #22: the gate the mechanic reads (the Congress lowers it).
+    gate = brewing_gate(world, target)
+    if to < gate:
         return (f"The league is spent — {moved}; no new coalition gathers "
-                f"below {THREAT_BREWING_MIN}.")
+                f"below {gate}.")
     return (f"The league is spent — {moved}, but the peace's own terms keep "
-            f"it at the {THREAT_BREWING_MIN} at which a coalition gathers.")
+            f"it at the {gate} at which a coalition gathers.")
 
 
 def declaration_would_gather_a_league(world, aggressor: str,
@@ -2296,7 +2373,19 @@ def is_coalition_active(world) -> bool:
     return world.active_coalition is not None
 
 
-def get_threat_tier(threat_level: int, coalition_formed: bool = False) -> str:
+def brewing_gate(world, target: Optional[str] = None) -> int:
+    """The alarm at which a coalition starts to brew against `target` — the
+    ONE source every mechanical and displayed reader asks (GE-3 §2.5: while
+    the Congress of Paris sits and two great powers refuse it, the gate
+    drops from THREAT_BREWING_MIN to the Congress's `congress_alarm_gate`).
+    THREAT_BREWING_MIN whenever no Congress sits."""
+    from backend.game_logic.congress import coalition_gate
+    lowered = coalition_gate(world, target)
+    return int(lowered) if lowered is not None else THREAT_BREWING_MIN
+
+
+def get_threat_tier(threat_level: int, coalition_formed: bool = False,
+                    brewing_at: int = THREAT_BREWING_MIN) -> str:
     """Get the threat tier name for a given threat level.
 
     CA8-18 (creative audit, Aug 4 2026): there was no FORMED arm, so the
@@ -2311,7 +2400,7 @@ def get_threat_tier(threat_level: int, coalition_formed: bool = False) -> str:
     """
     if coalition_formed:
         return "Formed"
-    if threat_level >= THREAT_BREWING_MIN:
+    if threat_level >= brewing_at:
         return "Brewing"
     elif threat_level >= THREAT_MURMURS_MIN:
         return "Murmurs"
@@ -2525,8 +2614,19 @@ def process_coalition_turn(world) -> List[Dict]:
     from backend.game_logic.formations import (
         get_formation_grudge_contributions,
     )
+    _grudge_spent = int(agenda_grudge_threat)
     for _contribution in get_formation_grudge_contributions(
             world, budget=_GRUDGE_CAP - agenda_grudge_threat):
+        if int(_contribution.get("amount", 0)) > 0:
+            add_threat(world, int(_contribution["amount"]),
+                       str(_contribution["source"]))
+            _grudge_spent += int(_contribution["amount"])
+    # GE-3 §2.6: the courts that would not sign a dissolved Congress keep a
+    # 10-turn grudge — the same budget split (this family takes what the
+    # agenda and formation grudges leave), its own source key.
+    from backend.game_logic.congress import grudge_contributions
+    for _contribution in grudge_contributions(
+            world, budget=_GRUDGE_CAP - _grudge_spent):
         if int(_contribution.get("amount", 0)) > 0:
             add_threat(world, int(_contribution["amount"]),
                        str(_contribution["source"]))
@@ -2621,11 +2721,12 @@ def process_coalition_turn(world) -> List[Dict]:
             # IQ-3: after a spent league the alarm sits below the gate, and
             # "if threat remains high" read as if a league were imminent.
             _alarm = int(world.threat_by_target.get(world.player_nation, 0) or 0)
-            if THE_LEAGUE_SPENDS_ITS_ALARM and _alarm < THREAT_BREWING_MIN:
+            _gate = brewing_gate(world)
+            if THE_LEAGUE_SPENDS_ITS_ALARM and _alarm < _gate:
                 _cooldown_copy = (
                     f"The courts' cooldown is over, but Europe's alarm stands "
                     f"at {_alarm}; a new coalition gathers only at "
-                    f"{THREAT_BREWING_MIN}.")
+                    f"{_gate}.")
             world.notifications.add(create_notification(
                 COALITION_COOLDOWN_ENDED,
                 NotificationPriority.NORMAL,
@@ -2644,7 +2745,7 @@ def process_coalition_turn(world) -> List[Dict]:
     # process can actually PROCEED (≥1 qualifying court) — otherwise 6a
     # dissolving + 7b re-brewing every cycle would oscillate forever and
     # starve the eclipse coalition of its war.
-    _france_can_coalesce = (world.threat_level >= THREAT_BREWING_MIN
+    _france_can_coalesce = (world.threat_level >= brewing_gate(world)
                             and bool(get_qualifying_nations(world)))
     if world.active_coalition and _france_can_coalesce:
         _active_target = world.active_coalition.get("target_nation") or france
@@ -2763,8 +2864,9 @@ def process_coalition_turn(world) -> List[Dict]:
                         "message": f"{result['coalition_name']} declared! (Instant — threat {threat})",
                         "coalition": result,
                     })
-            elif threat >= THREAT_BREWING_MIN and qualifying:
-                # §3c: Start brewing at 60+
+            elif threat >= brewing_gate(world) and qualifying:
+                # §3c: Start brewing at 60+ (GE-3: 40 while the Congress sits
+                # and two great powers refuse it)
                 world.coalition_brewing = {
                     "qualifying_nations": qualifying,
                     "turns_remaining": BREWING_COUNTDOWN,

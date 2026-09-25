@@ -51,6 +51,12 @@
       "instantiate_ok": true,
       "load_ok": true,
       "path": "res://scenes/campaign_end.tscn"
+    },
+    {
+      "errors": [],
+      "instantiate_ok": true,
+      "load_ok": true,
+      "path": "res://scenes/diplomatic_ledger.tscn"
     }
   ],
   "scripts": [
@@ -413,7 +419,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/ge2_campaign_end_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/ge3_congress_harness.gd"
     }
   ],
-  "timestamp": "2026-09-25T03:08:29Z"
+  "timestamp": "2026-09-25T17:00:12Z"
 }

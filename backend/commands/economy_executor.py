@@ -965,18 +965,23 @@ class EconomyExecutor:
 
         # ES-7 second pass (§0.6.8): rentes — treasury pensions at premium
         if rente_cost > 0:
-            from backend.game_logic.dotation import get_rente_cost
+            from backend.game_logic.dotation import (
+                get_rente_cost, peace_dividend_note,
+            )
             pensioned = [
                 m for m in world.marshals.values()
                 if m.nation == nation and int(getattr(m, "pension", 0)) > 0
                 and not getattr(m, "captured_by", "")
             ]
+            # GE-3: each line prices with the Congress's peace dividend —
+            # the SAME per-man figure the income phase sums into the total.
             lines.append(f"\n  Rentes: -{rente_cost}g  "
-                         f"({len(pensioned)} pensioned marshals)")
+                         f"({len(pensioned)} pensioned marshals)"
+                         f"{peace_dividend_note(world, nation)}")
             for m in pensioned:
                 lines.append(
                     f"    Marshal {m.name}: {int(m.pension)}g/turn face "
-                    f"-> -{get_rente_cost(int(m.pension))}g with fees"
+                    f"-> -{get_rente_cost(int(m.pension), world, nation)}g with fees"
                 )
 
         # EC-W5b: infrastructure maintenance line (was missing entirely —
@@ -2501,7 +2506,11 @@ class EconomyExecutor:
         # France's own council speaking. A foreign court gets the same facts
         # without either.
         if acting_nation == getattr(world, "player_nation", "France"):
-            gloss = (f"{cost}g/turn — paper is dearer than land, Sire, and "
+            # GE-3: `cost` carries the Congress's peace dividend (from
+            # `build_rente_offer`); the decree says so while it is in force.
+            from backend.game_logic.dotation import peace_dividend_note
+            gloss = (f"{cost}g/turn{peace_dividend_note(world, acting_nation)}"
+                     f" — paper is dearer than land, Sire, and "
                      f"it buys no title. It holds his loyalty for exactly "
                      f"as long as it is paid.")
         else:
@@ -2571,7 +2580,9 @@ class EconomyExecutor:
                 "message": f"Marshal {marshal.name} holds no rente, Sire."
             }
 
-        saved = get_rente_cost(previous)
+        # GE-3: what the treasury stops paying — the peace dividend included
+        # while the Congress sits (the bill it no longer charges).
+        saved = get_rente_cost(previous, world, marshal.nation)
         marshal.pension = 0
 
         world.log_event({

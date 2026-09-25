@@ -6006,6 +6006,11 @@ def get_diplomatic_preview_endpoint(
                 "pending_marshal_decisions": _pending_marshal_decisions(world),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
+                # GE-3: the wizard's top row — "The Congress of Paris" with
+                # its honest gate terms (the executor's own list, in its
+                # order) or, while it sits, the table's clock. None on an
+                # unarmed world (the row is omitted).
+                "congress": _wizard_congress(world),
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -6203,6 +6208,36 @@ def get_marshal_overview():
         "recruitment": build_recruitment_payload(world),
     }
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
+    return payload
+
+
+def _wizard_congress(world):
+    """GE-3: the Diplomacy wizard's step-1 Congress row — a slice of the
+    ONE payload (`congress.build_congress_payload`)."""
+    from backend.game_logic import congress
+    payload = congress.build_congress_payload(world)
+    if not payload:
+        return None
+    return {key: payload.get(key) for key in (
+        "phase", "sitting", "available", "unavailable_reason", "gate_terms",
+        "cost_text", "command", "state_line", "severity", "titled",
+        "titled_needed", "day", "turns", "cooldown_left")
+        if key in payload}
+
+
+@app.get("/congress")
+def get_congress():
+    """GE-3 (ENDGAME_PLAN §2.4/§4): the Congress of Paris's table — every
+    great power's stance, reason and price; the gate before a summons; the
+    sitting's clock and the hold while it sits. Read-only; `{"armed": false}`
+    where the campaign authors no endings."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    from backend.game_logic import congress
+    active_world = game_state["world"]
+    payload = congress.build_congress_payload(active_world) or {"armed": False}
+    payload["success"] = True
+    _attach_nation_identity_overrides(payload, active_world)
     return payload
 
 
