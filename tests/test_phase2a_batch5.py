@@ -90,6 +90,7 @@ class TestReconcileVassalDiplomacy:
         # Fix 13: Conquest requires WAR state
         fs_key = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[fs_key] = "WAR"
+        world.war_scores[fs_key] = 40  # GE-V: the court is BEATEN (war score -40) — a bare WAR no longer subjugates
         create_vassal_conquest(world, "France", "Saxony")
         # Saxony-Britain should be broken to PEACE
         assert world.diplomatic_states[bs_key] == "PEACE"

@@ -254,17 +254,20 @@ class TestTheGuardCountsItsRoads:
         assert "cannot buy another road" not in note
 
     def test_the_last_road_is_named_while_he_still_has_a_choice(self):
-        # 100 men: the toll takes 30, leaving 70; the NEXT toll would leave 49
-        nap = self._cornered(100)
+        # Flipped consciously (GE-V / GE-D2, Sept 25, 2026): the floor the
+        # toll respects is GUARD_SPENT_FLOOR (1,000 men) — a 100-man Guard is
+        # now ASKED, not paid. 1,500 men: the toll takes 450, leaving 1,050;
+        # the NEXT toll would leave 735, under the floor.
+        nap = self._cornered(1500)
         note = getattr(nap, "_sovereign_toll_note", "")
         assert "bought the road" in note
         assert "cannot buy another road" in note
-        assert "70 men about him now" in note
-        assert nap.strength == 70
+        assert "1,050 men about him now" in note
+        assert nap.strength == 1050
 
     def test_lever_down_keeps_the_silent_note(self, monkeypatch):
         monkeypatch.setattr(CombatExecutor, "THE_GUARD_COUNTS_ITS_ROADS", False)
-        nap = self._cornered(100)
+        nap = self._cornered(1500)
         assert "cannot buy another road" not in getattr(nap, "_sovereign_toll_note", "")
 
 

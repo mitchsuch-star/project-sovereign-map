@@ -103,6 +103,8 @@ _ARMY_TYPES = {
     "glory_crowned", "glory_crown_lost", "dotation_granted",
     "estate_confiscated", "marshal_captured", "last_stand",
     "marshal_destroyed",
+    # VP-M1 "The Fortunes of War": a marshal carried from the field.
+    "marshal_wounded",
     "fontainebleau_petition",
 }
 
@@ -215,6 +217,8 @@ _SPECIAL_WEIGHTS = {
     "peace between the great powers": 65,
     "a capital stormed": 60,
     "a marshal of France lost": 50,
+    # VP-M1 "The Fortunes of War": a wound is a setback, below a loss.
+    "a marshal of France wounded": 40,
 }
 
 
@@ -349,6 +353,11 @@ def _special_candidates(world, turn_events: List[Dict]):
         if etype in ("marshal_captured", "last_stand", "marshal_destroyed"):
             if str(event.get("nation") or "") == player:
                 _add("a marshal of France lost",
+                     str(event.get("marshal") or ""))
+        if etype == "marshal_wounded":
+            # VP-M1: the column reports the wound; the corps is not lost.
+            if str(event.get("nation") or "") == player:
+                _add("a marshal of France wounded",
                      str(event.get("marshal") or ""))
         # GE-3 "The Congress of Paris". The summons is the player's act,
         # stamped in his own turn; the dissolution and the Imperial Peace are

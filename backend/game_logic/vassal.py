@@ -537,13 +537,73 @@ def create_vassal_treaty(
     }
 
 
-def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0) -> dict:
+# GE-V (September 25, 2026): a court is SUBJUGATED by fiat only once it is
+# BEATEN. The played campaign's first probe typed `vassalize Austria` on
+# turn 1 with no battle fought and a great power at war — 126,000 men
+# under three archdukes — became a French puppet for a turn (Mack, Charles
+# and John assimilated, Austria out of the coalition), because the typed
+# road's only gates were WAR and the power cap. The peace table needs the
+# court's SIGNATURE (the settlement's `subjugation` clause is scored by the
+# court that signs it); the unilateral verb needs the war to have decided
+# it. One of three proofs, single source `subjugation_refusal`: the lord's
+# bloc holds the court's capital; the court's war score against the lord is
+# at or below SUBJUGATION_WAR_SCORE (the Congress's own `sue_score`, the
+# point at which a court sues); or the court has no corps left standing.
+# The ratify seam passes `by_treaty=True` (the court signed).
+A_COURT_IS_SUBJUGATED_ONLY_WHEN_BEATEN = True
+SUBJUGATION_WAR_SCORE = -40
+
+
+def subjugation_refusal(world, lord: str, vassal: str) -> str:
+    """The reason a unilateral subjugation of `vassal` by `lord` is refused
+    today, or "" when the court is beaten. Never raises."""
+    if not A_COURT_IS_SUBJUGATED_ONLY_WHEN_BEATEN:
+        return ""
+    try:
+        top = getattr(world, "_top_overlord", None)
+        lord_top = top(lord) if callable(top) else lord
+        capital = world.get_nation_capital(vassal)
+        region = getattr(world, "regions", {}).get(capital) if capital else None
+        holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+        if holder and (holder == lord
+                       or (callable(top) and top(holder) == lord_top)):
+            return ""
+        from backend.game_logic.diplomacy import get_war_score_for
+        if get_war_score_for(world, vassal, lord) <= SUBJUGATION_WAR_SCORE:
+            return ""
+        standing = [
+            m for m in getattr(world, "marshals", {}).values()
+            if getattr(m, "nation", "") == vassal
+            and int(getattr(m, "strength", 0) or 0) > 0
+            and not getattr(m, "captured_by", "")
+        ]
+        if not standing:
+            return ""
+        vd_cap = _court_name(world, vassal, article=True, capitalize=True)
+        cap_text = f"{capital} is its own" if capital else "its capital is its own"
+        score = get_war_score_for(world, vassal, lord)
+        return (f"{vd_cap} still stands — {cap_text} and "
+                f"{len(standing)} of its corps are in the field (its war score "
+                f"{score:+d}; it submits at {SUBJUGATION_WAR_SCORE:+d}). Take the "
+                f"capital, beat it in the field, or demand vassalage at the "
+                f"peace table.")
+    except Exception:
+        return ""
+
+
+def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0,
+                           *, by_treaty: bool = False) -> dict:
     """
     Create a vassal via conquest path.
 
     Loyalty = 20 + (garrison_size // 5000), capped at 100.
     Threat += 25.
     Autonomy defaults to PUPPET.
+
+    `by_treaty` (GE-V): the court SIGNED a subjugation clause at the peace
+    table — the beaten gate is the ratifier's, not this function's. The
+    unilateral typed road passes nothing and must find the court beaten
+    (`subjugation_refusal`).
 
     Returns result dict with success/message.
     """
@@ -585,6 +645,13 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
             "message": (f"{vd_cap} submits, but {ld} cannot impose vassalage on so large "
                         f"a nation. Demand terms at the peace table instead."),
         }
+
+    # GE-V: the unilateral road needs the court BEATEN (see
+    # `subjugation_refusal`); a signed clause arrives with `by_treaty`.
+    if not by_treaty:
+        refusal = subjugation_refusal(world, lord, vassal)
+        if refusal:
+            return {"success": False, "message": refusal}
 
     loyalty = min(LOYALTY_MAX, 20 + (garrison_size // 5000))
 

@@ -484,6 +484,9 @@ class TestFix13ConquestRequiresWar:
         world = WorldState()
         diplo_key = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[diplo_key] = "WAR"
+        # GE-V (Sept 25, 2026): the court must be BEATEN — a bare WAR no
+        # longer subjugates ("France|Saxony" at +40 = Saxony at -40).
+        world.war_scores[diplo_key] = 40
 
         result = create_vassal_conquest(world, "France", "Saxony")
         assert result["success"] is True

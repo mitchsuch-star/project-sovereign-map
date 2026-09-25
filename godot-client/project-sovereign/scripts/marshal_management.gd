@@ -621,6 +621,11 @@ func _render_card(m: Dictionary, index: int) -> String:
 		flags.append("[color=#" + Utils.COLOR_ERROR + "]BROKEN (recovery: " + str(int(m.get("broken_recovery", 0))) + ")[/color]")
 	if m.get("is_retreating", false):
 		flags.append("[color=#" + Utils.COLOR_ERROR + "]RETREATING (stage: " + str(int(m.get("retreat_recovery", 0))) + ")[/color]")
+	# VP-M1 "The Fortunes of War" (GE-V, Sept 25 2026): the wound and the turn
+	# it heals — the backend's own field (shown = applied; the executor refuses
+	# his attack until then, the corps stands and marches).
+	if m.get("is_wounded", false):
+		flags.append("[color=#" + Utils.COLOR_ERROR + "]WOUNDED (until turn " + str(int(m.get("wounded_until_turn", 0))) + ")[/color]")
 	if m.get("is_fortified", false):
 		var def_bonus = int(m.get("defense_bonus", 0))
 		flags.append("[color=#" + Utils.COLOR_BLUE + "]FORTIFIED +" + str(def_bonus) + "%[/color]")

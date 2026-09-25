@@ -1578,8 +1578,11 @@ class StrategicOrderProcessor:
                     # under the words "cuts his way out", and the next
                     # attrition sweep handed a standing, zero-strength
                     # Emperor to whatever court the fallback found.
+                    # GE-D2 (GE-V): the SPENT floor is the one the toll
+                    # respects — the same line `_check_marshal_fate` asks at.
                     if (int(marshal.strength) - toll
-                            < int(getattr(combat, "GUARD_RUBBLE_FLOOR", 50))):
+                            < int(getattr(combat, "GUARD_SPENT_FLOOR",
+                                          getattr(combat, "GUARD_RUBBLE_FLOOR", 50)))):
                         toll_note = (" The Guard is spent — the Emperor cuts "
                                      "his way out with the last of his escort.")
                     else:
@@ -2287,6 +2290,24 @@ class StrategicOrderProcessor:
                     "message": f"{marshal.name} is recovering from retreat "
                                f"({_plural_lv9(int(recovery), 'turn')} remaining). Order paused."
                 }
+
+        # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): a WOUNDED man
+        # keeps a march (MOVE_TO / SUPPORT — the corps marches under its
+        # colonels) but a PURSUE or a HOLD, which must attack or fortify,
+        # pauses until he is fit, exactly as the recovery pause above.
+        from backend.game_logic.fortunes_of_war import is_wounded as _is_wounded
+        if (_is_wounded(marshal, world)
+                and order.command_type not in ("MOVE_TO", "SUPPORT")):
+            _left = max(1, int(getattr(marshal, "wounded_until_turn", 0) or 0)
+                        - int(getattr(world, "current_turn", 0) or 0))
+            return {
+                "marshal": marshal.name,
+                "command": order.command_type,
+                "order_status": "paused",
+                "message": f"{marshal.name} is wounded "
+                           f"({_plural_lv9(_left, 'turn')} until he is fit to lead). "
+                           f"Order paused.",
+            }
 
         # [7A-7] Removed dead code: aggressive HOLD expiry was duplicated here
         # and in _execute_hold(). The _execute_hold handler handles all personalities.

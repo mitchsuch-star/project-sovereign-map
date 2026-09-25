@@ -2069,7 +2069,7 @@ class TestT21CampaignLog:
     def test_the_type_is_registered(self):
         assert "client_petition_answered" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["client_petition_answered"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 167  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 168  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`
 
     def test_every_count_pin_moved_with_the_rationale(self):
         """The census over the flips: every file that pins the count reads
@@ -2079,7 +2079,10 @@ class TestT21CampaignLog:
         and GE-1, with IQ-7's own flip still on the line before it. ⚑ GE-3
         (Sept 25, 2026) moved it 166 -> 167 (`congress`, the Congress of
         Paris's chronicle) — flipped consciously: the census now reads 167
-        and GE-3, with IQ-7's and GE-1's flips still on the line before it."""
+        and GE-3, with IQ-7's and GE-1's flips still on the line before it.
+        ⚑ GE-V / VP-M1 (Sept 25, 2026) moved it 167 -> 168 (`marshal_wounded`,
+        the generals' mortality) — flipped consciously: the census now reads
+        168 and VP-M1, with the three earlier flips still on the line."""
         pinned = {}
         for path in sorted((REPO / "tests").glob("test_*.py")):
             for line in path.read_text(encoding="utf-8").splitlines():
@@ -2087,11 +2090,11 @@ class TestT21CampaignLog:
                 if m:
                     pinned[path.name] = (int(m.group(1)), m.group(2))
         assert len(pinned) >= 14, sorted(pinned)
-        stale = {name: value for name, (value, _) in pinned.items() if value != 167}
+        stale = {name: value for name, (value, _) in pinned.items() if value != 168}
         assert stale == {}, stale
         unexplained = [name for name, (_, tail) in pinned.items()
                        if "IQ-7" not in tail or "GE-1" not in tail
-                       or "GE-3" not in tail]
+                       or "GE-3" not in tail or "VP-M1" not in tail]
         assert unexplained == [], unexplained
 
     def test_the_one_liners(self):

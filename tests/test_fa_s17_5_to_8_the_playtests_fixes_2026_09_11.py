@@ -193,9 +193,13 @@ class TestTheGuardCannotBuyARoadItCannotPay:
         return nap, msg
 
     def test_a_guard_that_can_pay_buys_the_road(self):
-        nap, msg = self._cornered_sovereign(1000)
+        # Flipped consciously (GE-V / GE-D2, Sept 25, 2026): the floor the
+        # toll respects is GUARD_SPENT_FLOOR (1,000 men), not the 50-man
+        # rubble line — a 1,000-man Guard paying 300 would be left under it
+        # and is ASKED instead; a 3,000-man Guard still buys the road.
+        nap, msg = self._cornered_sovereign(3000)
         assert msg is None
-        assert nap.strength == 700
+        assert nap.strength == 2100
         assert nap.pending_interrupt is None
         assert "bought the road" in getattr(nap, "_sovereign_toll_note", "")
 

@@ -784,6 +784,21 @@ def _extract_known_nations(game_state: Optional[Dict]) -> Dict[str, str]:
             controller = info.get("controller")
             if controller and controller != "Neutral":
                 _add(controller)
+    # GE-V (September 25, 2026): a court the board has ELIMINATED holds no
+    # province and fields no marshal, so it vanished from this map the turn
+    # it fell — and `invest in Bavaria`, typed the turn after Austria
+    # swallowed Bavaria, was read as an order for a marshal ("which marshal
+    # should act? Try: 'Ney, attack Bavaria'"). Every court the scenario
+    # authored stays a NAME the nation-keyed verbs recognise; the executor
+    # then answers honestly that the court is gone. The player is never a
+    # target of these verbs.
+    world = game_state.get("world") if isinstance(game_state, dict) else None
+    authored = getattr(world, "nation_starting_regions", None) if world is not None else None
+    if isinstance(authored, dict):
+        player = getattr(world, "player_nation", "")
+        for nation in authored:
+            if nation and nation != player:
+                _add(nation)
     return nations
 
 

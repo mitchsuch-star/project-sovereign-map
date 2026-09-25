@@ -506,6 +506,7 @@ Reserved future `event_log` payloads:
   "counter_punch_turns": 0,
   "counter_punch_ready": false,
   "iron_resolve_stacks": 0,
+  "wounded_until_turn": 0,
 
   "holding_position": false,
   "hold_region": "",
@@ -692,6 +693,7 @@ Reserved future `event_log` payloads:
 | `counter_punch_turns` | int | Turns to use counter-punch |
 | `counter_punch_ready` | bool | Davout Counter-Punch Mastery: +20% next attack after defending |
 | `iron_resolve_stacks` | int | Iron Resolve (MC-1c): coiled fortify stacks, max 3 — next attack consumes all for +8% each; survive unfortify, clear on move/retreat/broken. Load default 0 |
+| `wounded_until_turn` | int | VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): the campaign turn the wound heals; 0 = unwounded. While `current_turn` is below it the marshal cannot attack, charge, bombard, pursue or take a PURSUE/HOLD order (the corps stands, defends and marches). Load default 0 |
 | `holding_position` | bool | Grouchy Immovable active |
 | `hold_region` | string | Region where holding |
 

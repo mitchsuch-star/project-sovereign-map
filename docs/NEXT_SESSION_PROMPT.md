@@ -1,57 +1,52 @@
-# NEXT SESSION PROMPT — GE-V "the played campaign": the Congress arc measured from the 1805 boot, the ending re-scored
+# NEXT SESSION PROMPT — THE RELEASE BUILD (ROADMAP 10): part 1 un-parked, the export, the clean-machine run
 
 > Overwritten each time a session hands off. Current hand-off: **September 25,
-> 2026.** Row EP's GE-3 "The Congress of Paris" is landed (the commit that
-> carries `ENDGAME_PLAN.md` §6's GE-3 landing record and its review-round
-> addendum): `backend/game_logic/congress.py`, the `summon_congress` and
-> `recognition_sweetener` verbs, the recognition table, the eight-turn sitting,
-> THE IMPERIAL PEACE through the declared register, the CONGRESS ledger tab,
-> the beats, the two arms (Pressburg wins turn 36 on 4 of 4 seeds, Premature
-> loses on 3 of 3) pinned DRIVEN; a 69-finding review round, all fixed.
-> Pushed, hook green. The next slice is GE-V, the measurement the ending was
-> built to be measured by.
+> 2026.** Row EP is COMPLETE through GE-V (the commit that carries
+> `ENDGAME_PLAN.md` §6's GE-V landing record): the played reach measured and
+> found not on the road (`hold_titled` 45, GEV-D1 filed for the user), GE-D1
+> and GE-D2 both ruled and built, a P1 subjugation hole closed. Pushed, hook
+> green. The next slice is the release build — the plan's next line after GE-V.
 >
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-Row EP, the Endgame Program: **run GE-V "the played campaign" — play (or drive the client through) a France/1805 campaign from the boot to a Congress, measure the arc §2.8 asks for, publish the measurements, and re-score the pillar "the ending" (3.0 → target ≥ 7). Commit and push when done.** Work directly on master per `CLAUDE.md`'s workflow; read its Golden Rules first.
+**Row: THE RELEASE BUILD (ROADMAP position 10) — un-park part 1, finish the export, run it on a clean machine, and hand the user a zip a stranger can unzip and play in mock mode. Commit and push when done.** Work directly on master per `CLAUDE.md`'s workflow; read its Golden Rules first.
 
-**Repo state:** master (the GE-3 commit), pushed, suite green. Routing = `docs/STATUS.md` ▶ NEXT UP (top block) → `docs/ENDGAME_PLAN.md` (§6's GE-V row is the contract; GE-3's landing record and review-round addendum sit after GE-2's).
+**Repo state:** master (the GE-V commit), pushed, suite green. Routing = `docs/STATUS.md` ▶ NEXT UP (top block) → `docs/ROADMAP.md` position 10 → the September 23 plan block in STATUS ("THE PLAN") for the build's own contract.
 
 ## Reading order
 
-1. `docs/STATUS.md` ▶ NEXT UP, the top block.
-2. `docs/ENDGAME_PLAN.md` §2 (THE CONGRESS OF PARIS — read §2.4–§2.6 WITH the GE-3 landing record's amendments: only a peace signed while the Congress sits, or a beaten court's, latches; the peace dividend runs from the summons' own end turn; the War of the Congress only where `march_blocker` is empty), §2.8 (the measurement), §6 (the GE-V row; GE-3's landing record), §8 (done-when — items 2 and 3 are discharged on staged fixtures; the played reach is GE-V's).
-3. `docs/SYSTEMS_REFERENCE.md` §66 (the Congress — what every surface reads and why), §64 (title), §65 (the end screen).
-4. `docs/PLAYTESTING.md` (Mode A the driver, Mode C the client; the GE-3 arm commands).
-5. `docs/DESIGN_REFINEMENT.md` GE-D1 and GE-D2 (the two rulings still open for the user).
+1. `docs/STATUS.md` ▶ NEXT UP — the top block and the "THE PLAN — September 23, 2026" block (the build's part 1 is written and SAVED: the local `git stash` "release-build part 1 …" and the committed patch `deploy/parked/release_build_part1.patch`; apply the patch first).
+2. `docs/ROADMAP.md` position 10 (the shippable build) and position 14 (the keys ship — call C1).
+3. `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §9 + the pre-build fix pass entry in STATUS (August 15, 2026): launcher mock-default + health poll, cheats gated on explicit debug, saves under `%APPDATA%\InkAndIron\saves` when frozen, README_TESTER.
+4. `deploy/` — the existing pipeline (predates the July-18 SDK migration; regenerate its spec) and the March-10 build that proves the export runs end to end.
+5. `docs/PLAYTESTING.md` (Mode B on `SOVEREIGN_PORT=8006` for the live-key smoke; the driver's new `--settlement` / `--decline-from` dials).
 
-## GE-V — the contract (ENDGAME_PLAN §6 row + §2.8)
+## The contract
 
-- **The reach, played.** From the 1805 boot (not a staged fixture), a campaign that gets to 50 titled provinces and summons the Congress. §2.8: the Pressburg shape (Ulm → Vienna → a Pressburg that cedes and vassalizes → Hanover held twelve quiet turns → summon) reaches 50 titled between turns 25 and 40 and wins between turns 33 and 48. **If it cannot reach 50 by turn 40, `hold_titled` comes down to 45 before anything else moves.** Measure it on the driver (a scripted commanded arm; `--diplomacy accept`; three seeds) and, if possible, in the client (Mode C on `SOVEREIGN_PORT=8006`).
-- **The table reads, the prices are true, the sitting is a crisis.** In the played sitting: at least one declaration of war (the War of the Congress, or a refuser's), one bill (the collective petition, a satellite's ask, the ×1.5 rentes), one flip (a court turned by a price the table named). Record each with its surface.
-- **The D1 band.** The AI-3 ladder's council wars measured on a played board (arm (a) of the AI-V memo) — the Congress's refusal term is a new input to it.
-- **The naval pillar.** The Continental System's SHUT OUT arm played: does closing 16 of 26 ports feel reachable; does a British landing on the mainland, answered, restore it?
-- **GE-D2.** On any arm that reaches "The Eagle Falls", was the Guard's question asked before the fatal battle? Record the answer; the ruling is the user's.
-- **The re-score.** The pillar "the ending" from 3.0; publish the memo `docs/audits/GE_V_PLAYED_CAMPAIGN_<date>.md`.
+- **Part 1 (parked):** PB-1's fix — the frozen server could not find `europe_1805.json` because PyInstaller's entry-script `__file__` is `_internal\main.py` — the runtime log + transcript, the build stamp, the API-key check + `key_status` + parser notice (keys SHIP), `launch.bat`, the help/debug copy. Apply `deploy/parked/release_build_part1.patch`, reconcile against master (GE-1..GE-V landed since), commit it as its own step.
+- **The rest:** boot help + README + `build.bat` (frozen boot + release export) + the verify JSONs in the `.pck` + tests + the live-key smoke → the clean-machine run → the user uploads to itch.io.
+- **Done when:** a stranger unzips it and plays in mock mode; the frozen server boots the 1805 campaign; the Godot export carries every JSON the boot reads; the licence notices ship (FA-43/FA-N84).
 
-## What GE-3 hands GE-V
+## What GE-V leaves the build
 
-- The two arms' fixtures and scripts (`tests/fixtures/playtest_saves/fixture_ge3_{pressburg,premature}.json`, `tools/playtest_scripts/ge3_{pressburg,premature}.json`, `tools/gen_ge3_congress_fixtures.py`) — STAGED starting states; GE-V's job is the road to them from the boot.
-- The driver prints the Congress's clock line every sitting turn (`- CONGRESS …`), a gate line once 50 are titled (blocked or open), the END SCREEN block for THE IMPERIAL PEACE, and `--stop-on-ending`.
-- `GET /congress` is the table's one payload; the CONGRESS tab (Diplomatic Ledger, key 7) renders it; the wizard's step-1 row summons.
+- `hold_titled` is **45** (`congress.HOLD_TITLED` + `europe_1805.json`); the Congress fixtures were regenerated.
+- **VP-M1 "The Fortunes of War"** is live on both boards (`fortunes_of_war.py`, `SYSTEMS_REFERENCE.md` §67): a wounded marshal cannot attack for 3 turns; a general may be killed (1%). The Godot client renders the card's `is_wounded` / `wounded_until_turn` only through whatever the marshal card already shows — **no `.gd` was touched**; the release build should confirm the wound reads on the card (a "WOUNDED — until turn N" line on the marshal card is the one client touch owed, if the card does not already surface `retreat_recovery`-style status generically).
+- `GUARD_SPENT_FLOOR` 1,000 — the Emperor is asked before the fatal battle.
+- `vassalize <court>` needs the court BEATEN.
+- **Open for the user (rulings, not sessions):** **GEV-D1 "The Road to Forty-Five"** (`DESIGN_REFINEMENT.md` — the two cheap reach levers: the muster preview quotes the EXPECTED arrival; a garrison default on the coast; then re-measure), the in-game feel of the Congress surfaces and the end screen's registers (frames in `docs/audits/IQ10_*_2026_09_25.png`), GEV-5/GEV-6 (two Congress copy nits).
 
 ## Gates
 
-- The four-file rule (`STATUS` ▶ NEXT UP, `ENDGAME_PLAN.md` §6 + the GE-V record, the rows disposed, `CLAUDE.md` LIVE STATE). Overwrite this prompt file at hand-off.
-- Any mechanic moved by a measurement (e.g. `hold_titled` 50 → 45): a pin for it, `BASELINE_SERIES` + M1–M7 byte-identical (the Congress is dormant on the ambient board — measured, `tools/_ge3_series_arms.py`), the mutation sweep if code changes.
+- The four-file rule on every slice (`STATUS` ▶ NEXT UP, the owning spec's landing record, the rows disposed, `CLAUDE.md` LIVE STATE). Overwrite this prompt file at hand-off.
+- `BASELINE_SERIES` + M1–M7 byte-identical unless a mechanic moves (none should in a build slice); the mutation sweep if code changes.
 - The full suite runs in the pre-commit hook (~17 min) — commit in the background and read the log; stage by name.
 
 ## Hazards (verbatim constraints)
 
-The Bash tool mangles quotes and backslashes in heredocs — write scripts with the Write tool and run them by path (it planted a literal backspace byte in a regex this session); files in this repo have MIXED line endings (some CRLF, some LF) — an exact-string edit must try both; `PYTHONIOENCODING` is forbidden; every `/command` staging under the suite needs `tests._chip_census.board_env(monkeypatch)` and a function-scoped fixture that restores `M.world` / `M.game_state["world"]` / `M.parser`; the campaign log's type count is 167 (`congress`); never run anything beside `tools/mutation_sweep.py` (it mutates the tree in place); a user's live game may hold port 8005 — test on `SOVEREIGN_PORT=8006`.
+The Bash tool mangles quotes and backslashes in heredocs — write scripts with the Write tool and run them by path; files in this repo have MIXED line endings — an exact-string edit must try both; `PYTHONIOENCODING` is forbidden; every `/command` staging under the suite needs `tests._chip_census.board_env(monkeypatch)` and a fixture that restores `M.world` / `M.game_state["world"]` / `M.parser`; the campaign log's type count is **168** (`marshal_wounded`); never run anything beside `tools/mutation_sweep.py`; a user's live game may hold port 8005 — test on `SOVEREIGN_PORT=8006`; the scratchpad path's session id has a near-twin — check `ls` before writing there.
 
 ## Finish
 
-Commit, `git push origin master`, then report where we are and what the next session opens (the release build, ROADMAP 10 — its part 1 is parked in `git stash` "release-build part 1 …" and `deploy/parked/release_build_part1.patch`). Still open for the user: GE-D1 (the generals' mortality — recommended, not built), GE-D2 (the Guard's question), the in-game feel of the end screen's registers and the Congress's surfaces (`docs/audits/IQ10_*CONGRESS*_2026_09_25.png`).
+Commit, `git push origin master`, then report where we are and what the next session opens (Updates 1–5 in the plan's order; Update 1 also carries GEV-D1's levers if the user rules for them).

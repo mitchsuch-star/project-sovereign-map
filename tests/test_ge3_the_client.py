@@ -114,13 +114,13 @@ class TestTheCongressDriven:
     def test_the_gate_tab_and_the_number_key(self, driven):
         s = driven["ledger_gate"]
         assert s["current_tab"] == 6
-        assert "35 of 50 titled" in s["text"]
+        assert "35 of 45 titled" in s["text"]
         assert driven["key_7_selects_tab"] == 6
 
     def test_the_wizard_row_in_its_three_phases(self, driven):
         assert driven["wizard_gate_summon_disabled"] is True
         gate = json.dumps(driven["wizard_gate"], ensure_ascii=False)
-        assert "35 of 50" in gate
+        assert "35 of 45" in gate
         assert driven["wizard_ready_summon_disabled"] is False
         sent = json.dumps(driven["wizard_ready_sent"]).lower()
         assert "summon the congress" in sent

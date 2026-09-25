@@ -2828,6 +2828,23 @@ class CombatExecutor:
         self._stamp_capture_on_report(battle_result, attacker, defender,
                                       _free_before)
 
+        # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): the ONE roll
+        # for the losing side's lead, at the seam both combat copies share
+        # (the attack and the glorious charge both come through here), AFTER
+        # the rout and the capture have had their say — a man taken or
+        # rubbled on the field never rolls; a man who walked off it beaten
+        # may be carried off it wounded, or not at all.
+        try:
+            from backend.game_logic import fortunes_of_war
+            fate = fortunes_of_war.roll(
+                world, battle_result, attacker, defender,
+                field=str(getattr(defender, "location", "") or ""))
+        except Exception:
+            fate = None
+        if fate and fate.get("message"):
+            battle_result["fortunes_of_war"] = dict(fate)
+            retreat_messages.append(str(fate["message"]))
+
         if retreat_messages:
             return "\n" + "\n".join(retreat_messages)
         return ""
@@ -3863,6 +3880,19 @@ class CombatExecutor:
     # the army that beat him. False = the prior toll.
     THE_GUARD_CANNOT_BUY_A_ROAD_IT_CANNOT_PAY = True
     GUARD_RUBBLE_FLOOR = 50
+    # GE-D2 "The Guard is Spent" (GE-V, September 25, 2026 — RULED under the
+    # user's delegated grant: build the floor). Measured on 80 sovereign fate
+    # checks: the toll paid the Guard down 30% at a time to a 55–255-man
+    # remnant and the NEXT defeat annihilated it before this function could
+    # ask anything — the question fired 0 times, and since GE-1 that
+    # annihilation is where the Emperor may DIE (15%). The floor the toll
+    # respects is now a corps that can still fight: when paying the toll
+    # would leave the Guard under GUARD_SPENT_FLOOR men, the toll is refused
+    # and the player is ASKED (fight to the last / cut our way out), so the
+    # death roll only ever meets a corps the player chose to keep in the
+    # field. `rout_survivors`' own floor; in-band tunable. GUARD_RUBBLE_FLOOR
+    # stays the annihilation line `take_casualties` reads.
+    GUARD_SPENT_FLOOR = 1000
     # FA-S17-11 (slice 17, Phase 4, September 12 2026) flip lever: the battle
     # report of an engagement that CAPTURED a commander says so, whatever its
     # scale. ⚠ The row's own evidence was half wrong and is corrected on it:
@@ -4006,7 +4036,10 @@ class CombatExecutor:
             _guard_spent = False
             if not encircled and self.THE_GUARD_CANNOT_BUY_A_ROAD_IT_CANNOT_PAY:
                 _toll = int(marshal.strength * self.GUARD_ESCAPE_TOLL)
-                _guard_spent = (int(marshal.strength) - _toll) < self.GUARD_RUBBLE_FLOOR
+                # GE-D2: spent when the toll would leave him under the
+                # SPENT floor (a corps that can still fight), not the
+                # 50-man rubble line — see GUARD_SPENT_FLOOR.
+                _guard_spent = (int(marshal.strength) - _toll) < self.GUARD_SPENT_FLOOR
             if not encircled and not _guard_spent:
                 toll = int(marshal.strength * self.GUARD_ESCAPE_TOLL)
                 if toll > 0:
@@ -4023,7 +4056,7 @@ class CombatExecutor:
                 _left = int(marshal.strength)
                 if (self.THE_GUARD_COUNTS_ITS_ROADS
                         and _left - int(_left * self.GUARD_ESCAPE_TOLL)
-                        < self.GUARD_RUBBLE_FLOOR):
+                        < self.GUARD_SPENT_FLOOR):
                     marshal._sovereign_toll_note += (
                         f" {marshal.name} has {_left:,} men about him now, "
                         f"Sire — the Guard cannot buy another road. Bring "
@@ -4063,21 +4096,33 @@ class CombatExecutor:
                         MARSHAL_LAST_STAND, NotificationPriority,
                         create_notification,
                     )
+                    # GE-D2: the rail row and the report line say WHICH
+                    # question it is — a spent Guard is not a surrounded one.
                     world.notifications.add(create_notification(
                         notification_type=MARSHAL_LAST_STAND,
                         priority=NotificationPriority.CRITICAL,
-                        title=f"{marshal.name} is encircled",
+                        title=(f"{marshal.name}'s Guard is spent" if _guard_spent
+                               else f"{marshal.name} is encircled"),
                         message=(
-                            f"The Emperor is surrounded at "
-                            f"{marshal.location} — type 'fight to the "
-                            f"last' or 'attempt breakout' before he is "
-                            f"taken."
+                            (f"The Guard cannot buy another road at "
+                             f"{marshal.location} — type 'fight to the "
+                             f"last' or 'attempt breakout' before the next "
+                             f"battle decides it.")
+                            if _guard_spent else
+                            (f"The Emperor is surrounded at "
+                             f"{marshal.location} — type 'fight to the "
+                             f"last' or 'attempt breakout' before he is "
+                             f"taken.")
                         ),
                         turn_created=int(getattr(world, "current_turn", 0)),
                         details={"marshal": marshal.name},
                     ))
                 except Exception:
                     pass
+                if _guard_spent:
+                    return (f"[!] {marshal.name}'s Guard is SPENT at "
+                            f"{marshal.location} — awaiting your word: fight "
+                            f"to the last, or cut our way out.")
                 return (f"[!] {marshal.name} is ENCIRCLED at "
                         f"{marshal.location} — awaiting your word: fight "
                         f"to the last, or cut our way out.")

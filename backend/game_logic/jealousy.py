@@ -805,6 +805,11 @@ def update_literal_hold_counters(world) -> None:
                          or getattr(order, "command_type", "") == "HOLD")
             if marshal.name in engaged_names:
                 sidelined = False
+            # VP-M1 (GE-D1): a WOUNDED man is not sidelined — he is not fit
+            # to be sent; the counter neither climbs nor resets on him.
+            from backend.game_logic.fortunes_of_war import is_wounded as _is_wounded
+            if _is_wounded(marshal, world):
+                continue
             others_engaged = bool(engaged_names - {marshal.name})
             if sidelined and others_engaged:
                 marshal.consecutive_hold_turns += 1

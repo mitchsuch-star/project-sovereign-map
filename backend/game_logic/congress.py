@@ -6,7 +6,8 @@ RECOGNIZE the conquest. The ending is that problem made playable:
 1. **Title** (GE-1, `game_end.titled_provinces`): conquests count only when
    settled — homeland, ceded by a treaty the loser signed, held twelve quiet
    turns, or a client's soil.
-2. **The summons** (`summon`): with `hold_titled` (50) titled provinces the
+2. **The summons** (`summon`): with `hold_titled` (45 — 50 until GE-V, see
+   ENDGAME_PLAN 2.8) titled provinces the
    Emperor may summon the Congress — 2 diplomatic points and 1
    administrative action, and it cannot be undone.
 3. **The table** (`answer`, `price`): every great power answers — RECOGNIZES
@@ -65,7 +66,7 @@ THE_UNIVERSAL_MONARCHY = True         # E1 — no great power left to answer
 # All in-band tunable; the SHAPE is the ruling.
 # ════════════════════════════════════════════════════════════════════════
 
-HOLD_TITLED = 50
+HOLD_TITLED = 45  # GE-V (Sept 25, 2026): 50 -> 45 by ENDGAME_PLAN 2.8's rule — the played reach measured 41 at best
 CONGRESS_TURNS = 8
 RECOGNITION_THRESHOLD = 50
 REFUSER_WEIGHT_PER_TURN = 15

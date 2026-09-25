@@ -11,7 +11,7 @@
         "fall_grace_turns": 5,
         "captivity_grace_turns": 10,
         "title_turns": 12,
-        "hold_titled": 50,
+        "hold_titled": 45,
         "congress_turns": 8,
         "recognition_threshold": 50,
         "refuser_weight_per_turn": 15,

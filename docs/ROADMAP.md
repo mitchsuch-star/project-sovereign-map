@@ -820,7 +820,7 @@ Example: Metternich as Austria's advisor gives Diplomacy +2 (better peace terms,
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Marshal Death | Casualties in battle (% chance per major defeat) | Medium | Planned |
+| Marshal Death | Casualties in battle (% chance per major defeat) | Medium | ✅ **LANDED September 25, 2026 as VP-M1 "The Fortunes of War"** (GE-D1 RULED (a) during GE-V under the user's grant: the LOSING side's lead in a real battle rolls once through the campaign seed — killed 1% / wounded 8% (3 turns, the corps standing); a death passes the men to the nearest corps; the sovereign excluded; both boards; `SYSTEMS_REFERENCE.md` §67) |
 | Marshal Pool | Historical marshals waiting activation | Low | Planned |
 | Recruit Marshals | Activate from pool (costs gold + manpower) | Low | ✅ **LANDED July 11, 2026** — `MARSHAL_RECRUITMENT_SPEC.md` (the Marshalate: authored `marshal_pool`, shared executor, AI commission rung) |
 | All-Dead Loss | If all marshals die, game over | Low | Planned |

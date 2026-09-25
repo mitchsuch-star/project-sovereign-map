@@ -220,8 +220,14 @@ class TestTheCommandedArmExists:
         the fallback took options[0]."""
         src = (ROOT / "tools" / "playtest_driver.py").read_text(encoding="utf-8")
         arm = src.index('if policy_key == "declare_war":')
-        generic = src.index('mode = self.policy["diplomacy"]\n        if mode in ("accept", "propose")')
+        # GE-V (Sept 25, 2026): the generic block's head is `mode = self.
+        # policy["diplomacy"]`; the --settlement / --decline-from overrides
+        # now sit between that read and `if mode in ("accept", "propose")`,
+        # so the needle is the head line alone (same assertion: the
+        # declare-war arm is read BEFORE the generic block).
+        generic = src.index('mode = self.policy["diplomacy"]\n')
         assert arm < generic
+        assert 'if mode in ("accept", "propose")' in src[generic:generic + 1500]
 
 
 # ═══════════════════════════════════════════════════════════════════════

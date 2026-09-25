@@ -109,7 +109,7 @@ class TestTheFlagAndTheRecord:
         w = _boot()
         assert congress.armed(w)
         block = w.campaign_end
-        for key, value in (("hold_titled", 50), ("congress_turns", 8),
+        for key, value in (("hold_titled", 45), ("congress_turns", 8),
                            ("recognition_threshold", 50),
                            ("refuser_weight_per_turn", 15),
                            ("congress_alarm_gate", 40), ("hold_alarm_ceiling", 80),
@@ -191,10 +191,10 @@ class TestTheGate:
         assert congress.titled(w)["count"] == 35
         assert congress.phase(w) == "gate"
         line = congress.state_line(w)
-        assert line.startswith("THE CONGRESS OF PARIS — 35 of 50 titled")
+        assert line.startswith("THE CONGRESS OF PARIS — 35 of 45 titled")
         assert line.endswith(congress.CABINET_HINT)
         refusal = congress.summon_refusal(w)
-        assert "35 titled provinces" in refusal and "50 are needed" in refusal
+        assert "35 titled provinces" in refusal and "45 are needed" in refusal
 
     def test_the_held_unsettled_provinces_are_named(self):
         w = _boot()
@@ -207,7 +207,7 @@ class TestTheGate:
     def test_at_fifty_titled_it_may_be_summoned(self):
         w = _boot()
         _stage_titles(w)
-        assert congress.titled(w)["count"] == 50
+        assert congress.titled(w)["count"] == 45
         assert congress.summon_refusal(w) is None
         assert "the powers may be summoned" in congress.state_line(w)
 
@@ -838,7 +838,7 @@ class TestTheHold:
         assert "the powers gather" in congress.state_line(w)
         _tick(w, 3)
         line = congress.state_line(w)
-        assert line.startswith("THE CONGRESS SITS — turn 3 of 8 · 50 of 50 titled")
+        assert line.startswith("THE CONGRESS SITS — turn 3 of 8 · 45 of 45 titled")
         assert congress.clock_payload(w)["phase"] == "sitting"
 
 

@@ -21,6 +21,25 @@ class VassalExecutor:
     def __init__(self, parent_executor):
         self._executor = parent_executor
 
+    @staticmethod
+    def _eliminated_court_refusal(world, target: str) -> str:
+        """GE-V (September 25, 2026): the sentence for a court the board has
+        eliminated — authored on this scenario (`nation_starting_regions`)
+        but no longer among the active nations. "" for a living court or a
+        name the scenario never authored (those fall to the domain
+        function's own refusals)."""
+        try:
+            authored = getattr(world, "nation_starting_regions", {}) or {}
+            if target not in authored:
+                return ""
+            if target in set(world.get_active_nations()):
+                return ""
+            return (f"{_court(world, target, capitalize=True)} no longer "
+                    f"exists as a court — it was eliminated. Nothing can be "
+                    f"invested in it.")
+        except Exception:
+            return ""
+
     def _execute_invest_vassal(self, command: Dict, game_state: Dict) -> Dict:
         """Invest in a vassal: 1 DP + 200g → +10 loyalty."""
         from backend.models.world_state import WorldState
@@ -36,6 +55,12 @@ class VassalExecutor:
         # with _acting_nation; the domain function validates lordship + pays
         # from the actor's own DP/gold pools.
         actor = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
+
+        # GE-V: a court the board has eliminated is answered as gone, not as
+        # "not a vassal" (and never, upstream, as a marshal's name).
+        gone = self._eliminated_court_refusal(world, target)
+        if gone:
+            return {"success": False, "message": gone}
 
         from backend.game_logic.vassal import invest_in_vassal
         result = invest_in_vassal(world, target, actor=actor)

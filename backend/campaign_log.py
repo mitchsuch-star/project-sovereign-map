@@ -184,6 +184,12 @@ CAMPAIGN_LOG_TYPES = {
     "marshal_released",
     # PC15-1: corps annihilation — the fall was silent before this type
     "marshal_destroyed",
+    # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): a general carried
+    # from the field wounded — out WOUND_TURNS turns, the corps standing.
+    # A general KILLED rides `marshal_destroyed` with cause
+    # "killed_in_action" (one removal seam, one tombstone). 167 -> 168
+    # flipped consciously; no inert type was retired in exchange.
+    "marshal_wounded",
     # GE-1 (Sept 25, 2026): the campaign's own endings — the Fall, the
     # Verdict of History, a Humbled Peace — each leave ONE chronicle line
     # (`game_end.record_ending`). 165 -> 166 flipped consciously; the
@@ -486,6 +492,7 @@ CATEGORY_MAP = {
     "order_voided_by_battle": "command",
     "marshal_captured": "combat",
     "marshal_destroyed": "combat",
+    "marshal_wounded": "combat",
     "campaign_ending": "command",
     # GE-3: the Congress is diplomacy — recognitions, refusals, a London
     # purse, a sweetener at the table, the War of the Congress, the end.
@@ -931,8 +938,10 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                     filtered.append(event)
             continue
 
-        # Retreat / marshal_broken / marshal_recovered: player marshal OR PARTIAL+
-        if event_type in ("retreat", "marshal_broken", "marshal_recovered"):
+        # Retreat / marshal_broken / marshal_recovered / marshal_wounded
+        # (VP-M1): player marshal OR PARTIAL+
+        if event_type in ("retreat", "marshal_broken", "marshal_recovered",
+                          "marshal_wounded"):
             if _player_marshal_involved(event, world_state):
                 filtered.append(event)
                 continue
@@ -2161,11 +2170,24 @@ def format_event_oneliner(event: dict) -> str:
         return (f"Marshal {marshal}'s safe passage is LAPSING at {location} "
                 f"— {_plural(left, 'turn')} before internment")
 
+    if event_type == "marshal_wounded":
+        # VP-M1 "The Fortunes of War": the man, not the corps.
+        marshal = event.get("marshal", "Unknown")
+        location = event.get("location", "the field")
+        until = int(event.get("until_turn") or 0)
+        tail = f" — out until turn {until}" if until else ""
+        return f"Marshal {marshal} WOUNDED at {location}{tail}; the corps stands"
+
     if event_type == "marshal_destroyed":
         marshal = event.get("marshal", "Unknown")
         location = event.get("location", "the field")
         victor = event.get("victor") or ""
         cause = event.get("cause") or ""
+        if cause == "killed_in_action":
+            # VP-M1: struck down at the head of his corps — the corps lives.
+            return (f"Marshal {marshal} KILLED at {location}"
+                    + (f" — struck down by {victor}'s guns" if victor else "")
+                    + "; the corps passes to another hand")
         # GE-1 "The Eagle Falls": the sovereign killed with his corps is a
         # man, not a corps — the event carries `sovereign` because the
         # formatter has no world to look him up in.

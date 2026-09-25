@@ -13,6 +13,7 @@ from typing import Dict, Any, List
 from backend.models.marshal import Marshal
 from backend.display_names import PERSONALITY_DISPLAY, STANCE_DISPLAY
 from backend.game_logic.formations import formed_display_name
+from backend.game_logic import fortunes_of_war as _fortunes
 from backend.display_names import with_definite_article
 from backend.models.world_state import (_drill_refusal_short,
                                         _fortify_refusal_short)
@@ -201,6 +202,10 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
 
         # ═══════ CURRENT STATUS ═══════
         **_build_current_status(marshal),
+        # VP-M1 "The Fortunes of War": the wound and the turn it heals
+        # (shown = applied — the executor reads the same field).
+        "is_wounded": bool(_fortunes.is_wounded(marshal, world)),
+        "wounded_until_turn": int(getattr(marshal, "wounded_until_turn", 0) or 0),
         # CN-4: the Drill chip's reason — the executor's own gates
         # (`tactical_executor.drill_refusal`), "" when the drill would begin.
         "drill_refusal": _drill_refusal_short(world, marshal),

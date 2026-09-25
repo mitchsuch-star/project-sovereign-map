@@ -225,6 +225,7 @@ class TestThreatPlayerScoped:
         key = world._make_diplo_key("Prussia", "Saxony")
         world.diplomatic_states[key] = "WAR"
 
+        world.war_scores[world._make_diplo_key("Prussia", "Saxony")] = 40  # GE-V: the court is BEATEN (war score -40) — a bare WAR no longer subjugates
         with patch("backend.game_logic.diplomacy.check_vassalage_power_cap",
                    return_value=self._CAP_OK):
             result = create_vassal_conquest(world, "Prussia", "Saxony")

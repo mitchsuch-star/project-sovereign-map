@@ -76,6 +76,7 @@ class TestCalculateNationalPower:
     def test_vassal_contribution_half(self):
         world = _fresh_world()
         set_diplomatic_state(world, "France", "Saxony", "WAR", "test")
+        world.war_scores[world._make_diplo_key("France", "Saxony")] = 40  # GE-V: the court is BEATEN (war score -40) — a bare WAR no longer subjugates
         base = _power("France", world)
         create_vassal_conquest(world, "France", "Saxony")
         with_vassal = _power("France", world)
@@ -339,6 +340,7 @@ class TestVassalCreationGates:
     def test_conquest_vassalage_allowed_for_minor(self):
         world = _fresh_world()
         set_diplomatic_state(world, "France", "Saxony", "WAR", "test")
+        world.war_scores[world._make_diplo_key("France", "Saxony")] = 40  # GE-V: the court is BEATEN (war score -40) — a bare WAR no longer subjugates
         result = create_vassal_conquest(world, "France", "Saxony")
         assert result["success"] is True
 

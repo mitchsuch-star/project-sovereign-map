@@ -24,18 +24,60 @@
 > Paris"~~ ✅ LANDED September 25, 2026 (block below — the summons, the
 > recognition table, the eight-turn sitting, THE IMPERIAL PEACE; the
 > Pressburg arm wins on 4 of 4 seeds, the Premature arm loses on 3 of 3, both
-> pinned DRIVEN; a 69-finding review round, all fixed). **▶ NEXT SLICE =
-> GE-V "the played campaign"** (`ENDGAME_PLAN.md` §6 GE-V row + §2.8; the
-> build note = `docs/NEXT_SESSION_PROMPT.md`), then the release build.
-> ⚠ Still open for the user, not for a session: the in-game feel of the end
-> screen's four registers (frames `docs/audits/IQ10_CAMPAIGN_END_*_2026_09_25.png`),
-> **GE-D2** (the Eagle-Falls driver arm reaches the death with NO Guard
-> question asked — measured, the floor not built; the ruling is the user's),
-> **GE-D1 "The Generals' Mortality"** (the memo's recommendation — a
-> bounded wound-or-death roll for a losing lead, no death off the field —
-> is the user's ruling), the in-game feel of F3's six surfaces (frames
-> `docs/audits/IQ10_*_2026_09_24.png`) and F5's settlement header
-> (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`).
+> pinned DRIVEN; a 69-finding review round, all fixed). ~~GE-V "the played
+> campaign"~~ ✅ RUN September 25, 2026 (block below). **▶ NEXT = THE
+> RELEASE BUILD (ROADMAP 10)** — its part 1 is parked in `git stash`
+> "release-build part 1 …" and `deploy/parked/release_build_part1.patch`;
+> the build note = `docs/NEXT_SESSION_PROMPT.md`. ⚠ Still open for the
+> user, not for a session: **GEV-D1 "The Road to Forty-Five"** (the reach
+> gate — the two cheap levers, `DESIGN_REFINEMENT.md`), the in-game feel of
+> the end screen's four registers (frames
+> `docs/audits/IQ10_CAMPAIGN_END_*_2026_09_25.png`), of F3's six surfaces
+> (`docs/audits/IQ10_*_2026_09_24.png`) and of F5's settlement header
+> (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`). GE-D1 and GE-D2 are
+> RULED and BUILT (below) — no longer open.
+>
+> **▶ ▶ GE-V "THE PLAYED CAMPAIGN" — ✅ RUN September 25, 2026** (landing
+> record `ENDGAME_PLAN.md` §6 after GE-3's; memo of record
+> `docs/audits/GE_V_PLAYED_CAMPAIGN_2026_09_25.md`; rules
+> `SYSTEMS_REFERENCE.md` §66 (45) + §67; pins `tests/test_gev_played_campaign.py`
+> (31) + `tests/test_ge_d1_generals_mortality.py` (22); archives
+> `docs/audits/playtest_digests/gev-*`, 17 runs). Run under the user's grant.
+> - **The reach is not on the road.** Two hand-played openings (chunks of 1–3
+>   turns through the real `/command`) and three scripted arms all stalled at
+>   **35 titled by turn 12** with the army at about half of 189k; best 41.
+>   **§2.8's rule fired: `hold_titled` 50 → 45** (constant, scenario, fixtures
+>   regenerated, pins re-staged). The blocker is the campaign layer — six
+>   measured mechanics (the muster preview overstates arrival by ~⅓; four AP
+>   for eight corps; the supply cap taxes concentration; the marshals' own
+>   systems cost a third of the army by turn 8; 3–5k landings take undefended
+>   homeland; a losing lord's satellites bleed −6 a turn) — recommended as
+>   **GEV-D1** with two cheap levers (the muster preview quotes the EXPECTED
+>   arrival; a garrison default on the coast). The user's ruling.
+> - **The Congress reads:** table arithmetic checks, the named price flipped
+>   Berlin the turn it was paid, the Premature arm gave the declaration and
+>   the Pressburg arm the flip and the bills. Two copy nits filed (GEV-5/6).
+> - **Found by play, fixed:** **GEV-1 P1** `vassalize Austria` on turn 1 with
+>   no battle subjugated a great power and assimilated Mack, Charles and John
+>   → `vassal.subjugation_refusal` (beaten = capital held · war score ≤ −40 ·
+>   no corps standing; the signed clause bypasses at the ratify seam; GR5);
+>   **GEV-2** `invest in <eliminated court>` read as a marshal's order;
+>   **GEV-3** the spent Guard's ask said ENCIRCLED; **GEV-4** the driver's
+>   `--settlement` + `--decline-from` dials.
+> - **The rulings, taken and built:** **GE-D2 = YES** (`GUARD_SPENT_FLOOR`
+>   1,000 — the Emperor is asked before the fatal battle); **GE-D1 = (a) YES**
+>   as **VP-M1 "The Fortunes of War"** (`fortunes_of_war.py`: the losing lead
+>   of a real battle at ≥ 25% lost rolls once through the campaign seed,
+>   killed 1% / wounded 8% for 3 turns on ONE field `wounded_until_turn`; a
+>   death passes the men to the nearest corps through the ONE removal seam;
+>   the sovereign excluded; both boards; log 167 → 168 flipped consciously).
+>   `BASELINE_SERIES` byte-identical with the lever up (39 seams reached, no
+>   qualifying draw in forty ambient turns — `tools/_vpm1_series_arms.py`);
+>   M1–M7 byte-identical.
+> - **The re-score: the ending 3.0 → 5.5; ≥ 7 NOT met.** There is an ending
+>   and it is legible; it is not on the road.
+> - **Not measured:** the D1 band, the naval SHUT OUT arm, the Eagle-Falls
+>   road under the new floor.
 >
 > **▶ ▶ GE-3 "THE CONGRESS OF PARIS" — ✅ LANDED September 25, 2026**
 > (landing record + review-round addendum = `ENDGAME_PLAN.md` §6 GE-3; rules

@@ -1,0 +1,120 @@
+# Playtest digest — gev-played-c6
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "insist", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "declare_war": "proceed", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "client_petition": "grant", "settlement": "decline", "decline_from": "Hanover"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 8 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `7f6e67358f01` (dirty) · content `ccdea5f5afcf` · driver `196c4ee545c1`
+  - loaded save `save_c5.json` → Loaded: Autosave - Turn 8
+
+## Turn 8 — Early January 1806
+  - MAILBOX #12 Hanover incoming_proposal: Hanover — Armistice → activated
+  - POPUP diplomatic_dialogue: Hanover, armistice_losing #18 → reject
+  - POPUP proposal_result: You have rejected Hanover's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP marshal_petition: shadow_command, Marshal Davout asks for a command → detach
+  -     ↳ Davout straightens. "You will not regret it, Sire." March him to Lyonnais and the front is his — the order is…
+- CMD `invest in Saxony` → ✓ Invested in Saxony: +10 loyalty (48 → 58). Cost: 1 DP + 200g. Cooldown: 3 turns.
+- CMD `Soult, attack Hanover` → ✓ Soult assaults the Hanover garrison! Garrison collapses (7,000 -> 0). Soult loses 1,521 troops in the assault. Soult marches into Hanover! (463 lost to march)
+  - POPUP capture_choice[capture]: Hanover, Soult → secure
+- CMD `Deroy, move to Hungary` → ✓ Deroy moves from Bohemia to Hungary. Hungary falls to France! (was Austria) (178 lost to march)
+  - POPUP capture_choice[capture]: Hungary, Deroy → secure
+- CMD `Bernadotte, attack Archduke John` → ✓ MUSTER — Bernadotte (16,532) vs Archduke John (small force) at Carniola — the balance of force looks favorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Bernadotte (lost 910) vs Archduke John (lost 2020) — Where was Deroy? Bernadotte held the field alone — reinforcement never came.
+  - POPUP capture_choice[capture]: Carniola, Bernadotte → secure
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 8 ended. (Warning: 1 action unused) Turn 9 begins!
+- SPENT 200g on this turn's orders
+- enemy phase: 2 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Piedmont into Provence unopposed! (156 lost to march) Captured: France → Austria · ArchdukeCharles marches from Provence into Lyonnais unopposed! (154 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Piedmont into Provence unopposed! (156 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Provence into Lyonnais unopposed! (154 lost to march) Captured: France → Austria
+  - verbs: attack×2
+- ENVOYS WAITING 2 · Denmark non aggression · Britain settlement offer
+- LEDGER treasury 16571 · net +1428 · threat 97 · provinces 30 · ceiling 26349 · army 113623 · vassals Bavaria 94 · Hesse 50 · Holland 97 · Saxony 57 · Switzerland 96
+  - NET income 3259 · trade 387 · admin 50 · tribute 1267 · upkeep 880 · charges 2127 · occupation 244 · blockade 194 · admiralty 90
+- DISPATCH: Sire — Provence has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc…
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL settlement_offer_arrival: Britain has offered terms to settle France vs Britain.
+  - RAIL design_promoted: REVANCHE: Austria will not forgive France the loss of Bohemia and 2 more provinces. A new design hardens in their court.
+  - RAIL design_promoted: REVANCHE: Hanover will not forgive France the loss of Oldenburg and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 8
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as an ultimatum.
+- DIPLO +3 medium/low (diplomatic_dp_regen, agenda_shift ×2)
+  - LOG ai_ai_proposal_refused: 3 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+  - LOG ai_proposal_rejected: We rejected Hanover's armistice proposal
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: Austria rebuffs Prussia (open borders agreement)
+  - LOG nation_eliminated: KingdomOfItaly has been eliminated from the war.
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: Denmark rebuffs Austria and Prussia (open borders agreement)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 10 approaches rebuffed, chiefly from Denmark (defensive alliance)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 20 approaches rebuffed, chiefly from Denmark (open borders agreement)
+  - LOG ai_ai_proposal_refused: 3 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)
+  - LOG ai_proposal_rejected: We rejected Denmark's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's open borders agreement proposal
+
+## Turn 9 — Late January 1806
+  - MAILBOX #13 Denmark incoming_proposal: Denmark — Non-Aggression Pact → activated
+  - MAILBOX #14 Britain incoming_settlement_offer: Britain — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: Denmark, non_aggression #22 → accept
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Britain. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #23 → reject_settlement_offer
+  - POPUP diplomatic_dialogue: Denmark, non_aggression #22 → accept
+  -     ↳ refused: Denmark's terms could not be ratified: Relations with France are insufficient for NON_AGGRESSION.
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #23 → reject_settlement_offer
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `Soult, move to Brunswick` → ✓ Soult moves from Hanover to Brunswick. Brunswick falls to France! (was Hanover) (432 lost to march)
+  - POPUP capture_choice[capture]: Brunswick, Soult → secure
+- CMD `Bernadotte, move to Carniola` → ✗ Bernadotte is already in Carniola.
+- CMD `Deroy, move to Moravia` → ✓ Deroy moves from Hungary to Moravia. Moravia falls to France! (was Austria) (177 lost to march)
+  - POPUP capture_choice[capture]: Moravia, Deroy → secure
+- CMD `Murat, move to Lorraine` → ✓ Murat moves from Franche-Comte to Lorraine
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 9 ended. (Warning: 1 action unused) Turn 10 begins!
+- enemy phase: 3 actions, 2 attacks — Britain, Austria, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — Buxhowden faces a difficult fight. Buxhowden gains the advantage over Deroy. Casualties: Buxhowden's army 2,107, Deroy … · Kutuzov holds them at Moravia while allies attack from Ukraine! (+1 coordination)
+  - 🏴 Russia: Casualties: Kutuzov's army 887, Deroy 6,630. Both armies remain in the field. Moravia has been captured by Russia!
+  - ⚔ Buxhowden (lost 1054, own corps) vs Deroy (lost 5315) — The toll on Deroy's forces is heavy, Sire. This defeat will be felt.
+  - ⚔ Kutuzov (lost 451, own corps) vs Deroy (lost 6630) — Deroy's army has been badly mauled. Kutuzov proved the stronger force today.
+  - verbs: attack×2, fortify×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Ney seeks an audience → acknowledge
+  -     ↳ Ney's grievance runs its course.
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #26 → accept
+  - POPUP proposal_result: You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia. → display-only
+  - POPUP diplomatic_dialogue: Denmark, non_aggression #27 → accept
+  -     ↳ refused: Denmark's terms could not be ratified: Relations with France are insufficient for NON_AGGRESSION.
+  - POPUP diplomatic_dialogue: Hanover, armistice_losing #28 → reject
+  - POPUP proposal_result: You have rejected Hanover's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Holland, client_petition #29 → grant the petition
+  - POPUP proposal_result: Brunswick is ceded to Holland. Loyalty +6 (94 → 100); bond -15 → 5 (+0 a turn). Cost: 1 DP. Our net rises by 43g a turn — 37g of income forfeited, 52g of occupation relieved, 28g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only
+- ENVOYS WAITING 4 · Russia armistice losing · Denmark non aggression · Hanover armistice losing · Holland client petition
+- LEDGER treasury 17436 · net +1271 · threat 97 · provinces 30 (+0) · ceiling 25375 · army 100410 · vassals Bavaria 94 · Hesse 43 · Holland 100 · Saxony 50 · Switzerland 92
+  - NET income 3311 · trade 387 · admin 50 · tribute 1265 · upkeep 760 · charges 2469 · occupation 229 · blockade 194 · admiralty 90
+- DISPATCH: Sire — Deroy, crowned five turns ago, has been beaten in the field — and the laurels have passed to another.
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hanover has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - TURN EVENTS 9
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Prussia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 8 approaches rebuffed, chiefly from Denmark (defensive alliance)
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG ai_proposal_rejected: We rejected Hanover's armistice proposal
+  - LOG sponsorship_granted: Russia sponsors Prussia against France (300g/turn)
+  - LOG ai_ai_proposal_refused: 6 approaches rebuffed, chiefly from Prussia and Russia (defensive alliance)
+  - LOG design_promoted: REVANCHE: Austria swears to retake Bohemia and 2 more — France is not forgiven
+  - LOG design_promoted: REVANCHE: Hanover swears to retake Oldenburg and 1 more — France is not forgiven
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: 7 courts rebuff Prussia (defensive alliance)
+  - LOG design_promoted: REVANCHE: Spain swears to retake Aragon and 1 more — Britain is not forgiven
+  - LOG sponsorship_granted: Russia sponsors Britain against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 3 approaches from Austria and Prussia are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: 17 approaches from Prussia and Denmark are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: 4 approaches from Prussia and Naples are rebuffed (defensive alliance)
+
+---
+finished: **completed** · commands 12 · popups 21 · battles 3

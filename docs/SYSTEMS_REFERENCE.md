@@ -7501,7 +7501,7 @@ the two arms DRIVEN through the real driver) and `tests/test_ge3_the_client.py`
   homeland — a satellite's only at loyalty ≥ 40 — a treaty cession, a
   conquest held `title_turns` quiet turns, a client's soil). The count is the
   BLOC's (the Empire and its satellites); the gold card says so. The 1805 boot
-  holds 35; `hold_titled` is 50. Every number is read through
+  holds 35; `hold_titled` is 45 (50 until GE-V, Sept 25 2026 — the played reach measured 41 at best, so ENDGAME_PLAN §2.8's rule fired). Every number is read through
   `game_end.cfg(world, key, DEFAULT)` from the scenario's `campaign_end` block
   (the validator knows the twelve keys; a GE-1 save's four-key block falls
   back to the defaults).
@@ -7687,3 +7687,76 @@ the two arms DRIVEN through the real driver) and `tests/test_ge3_the_client.py`
   never summons or ratifies a France–great-power peace, so the arms measure
   DORMANCY, not an attribution of the live hooks (those are pinned by the
   driven arms). No re-record.
+
+
+## 67. The Fortunes of War — the generals' mortality (VP-M1, GE-D1 RULED + landed September 25, 2026 in GE-V)
+
+* **The roll.** `backend/game_logic/fortunes_of_war.py` — ONE roll at the
+  post-battle seam both combat copies share (`CombatExecutor.
+  _handle_forced_retreat`, after the rout and the capture have had their
+  say): only the LEADING marshal of the LOSING side (`attacker_won` /
+  `defender_won` decided; a stalemate rolls nobody) of a real battle
+  (`battle_scale.is_a_battle` on both sides' dead) whose corps lost at least
+  `LOSS_SHARE` (25%) of what it brought. A man taken or rubbled on the field
+  never reaches it. The sovereign never rolls here — GE-1's "The Eagle Falls"
+  owns him at the removal seam. One deterministic draw through the campaign
+  seed (`seeded_int`, namespace `fortunes::<turn>::<name>::<nth battle this
+  turn>`; the historical seed still rolls; no module RNG is consumed): killed
+  `KILLED_PCT` 1%, wounded `WOUNDED_PCT` 8%, in-band tunable. GR5: both
+  boards, the same odds. Lever `THE_GENERALS_ARE_MORTAL`.
+* **A wound.** ONE serialized field, `Marshal.wounded_until_turn` (0 =
+  unwounded; heals `WOUND_TURNS` = 3 turns on). While `current_turn` is below
+  it: the executor refuses attack / bombard / charge / garrison assault
+  BEFORE the objection battery (`wound_refusal` — no marshal objects to an
+  order the executor is about to refuse); a PURSUE or HOLD order pauses
+  (`strategic.py`, the recovery-pause idiom) while a MOVE_TO / SUPPORT
+  marches on; the AI's P0 rung stands the wounded man down (defensive
+  stance, then wait); the card carries `is_wounded` / `wounded_until_turn`
+  (shown = applied); a wounded literal is neither sidelined nor reset
+  (`jealousy.update_literal_hold_counters`). The corps stands, defends and
+  marches under its colonels. Beat `marshal_wounded` (dispatch weight 84,
+  own nation only; log type 167 → 168 flipped consciously; Le Moniteur's
+  "a marshal of France wounded").
+* **A death.** The corps lives: its men pass to the nearest friendly corps
+  within `TRANSFER_RANGE` = 3 regions (`find_nearest_marshal_within_range`,
+  the dismissal transfer) or disperse; then `WorldState.destroy_marshal(cause
+  ="killed_in_action")` — the ONE removal seam, so the reward rows, the
+  standing ask, the campaign totals, the bench note and the chronicle line
+  all follow; the tombstone carries `men` and `men_to`. The dispatch's
+  `marshal_destroyed` arm and the log one-liner read the cause ("KILLED at …
+  — struck down at the head of his corps; 20,000 men pass to Davout").
+* **What did not move.** `BASELINE_SERIES` byte-identical with the lever up
+  (`tools/_vpm1_series_arms.py`: the seam reached 39 times in forty ambient
+  turns, no qualifying draw produced an outcome) — no re-record. M1–M7
+  byte-identical. Pins `tests/test_ge_d1_generals_mortality.py` (22 — the
+  design row's nine named pins and the surfaces).
+
+### 67.1 The Guard is Spent (GE-D2, RULED + landed the same day)
+
+`CombatExecutor.GUARD_SPENT_FLOOR` = 1,000 (the 50-man `GUARD_RUBBLE_FLOOR`
+stays the annihilation line `take_casualties` reads). The Guard's 30% escape
+toll is refused — and the player ASKED (fight to the last / cut our way out)
+— when paying it would leave the Emperor under the spent floor; before, the
+toll paid the Guard down to a 55–255-man remnant and the next defeat
+annihilated it with no question ever asked (0 asks in 80 sovereign fate
+checks), so the player met GE-1's death roll without having chosen to fight
+on. The breakout copy in `strategic.py` reads the same floor. The rail row
+and the report line say WHICH question it is ("the Guard is SPENT" is not
+"ENCIRCLED"). Pin `tests/test_gev_played_campaign.py::TestTheGuardIsSpent::
+test_the_guard_asks_before_the_last_battle` (the design row's named pin).
+
+### 67.2 A court is subjugated by fiat only once beaten (GE-V, September 25, 2026)
+
+`vassal.subjugation_refusal(world, lord, vassal)` — the unilateral
+`vassalize` / `subjugate` / `make vassal` road (a WAR-state target) needs the
+war to have DECIDED it: the lord's bloc holds the court's capital, or the
+court's war score against the lord is at or below `SUBJUGATION_WAR_SCORE`
+(−40, the Congress's own sue line), or the court has no corps left standing
+(captives do not count). Otherwise refused, naming all three roads and the
+peace table. The settlement's signed `subjugation` clause arrives at
+`create_vassal_conquest(..., by_treaty=True)` (the court signed — the
+ratifier's gate). GR5: any lord. Measured before the fix: `vassalize
+Austria` on turn 1 of the 1805 boot with no battle fought subjugated a great
+power and assimilated Mack, Charles and John (`gev-probe1`). Lever
+`A_COURT_IS_SUBJUGATED_ONLY_WHEN_BEATEN`; pins
+`tests/test_gev_played_campaign.py::TestACourtIsSubjugatedOnlyWhenBeaten`.

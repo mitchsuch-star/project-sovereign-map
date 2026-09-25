@@ -515,6 +515,11 @@ class Marshal:
         # Starts at -45% effectiveness, recovers over 3 turns
         self.retreating: bool = False        # Currently in retreat recovery
         self.retreat_recovery: int = 0       # 0-3, current recovery stage
+        # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): the campaign
+        # turn his wound heals — 0 = unwounded. While `current_turn` is
+        # below it he cannot attack, charge, bombard, pursue or take a
+        # strategic order; the corps stands, defends and marches.
+        self.wounded_until_turn: int = 0
         # Recovery stages: 0 = -45%, 1 = -30%, 2 = -15%, 3 = 0% (recovered)
         self.retreated_this_turn: bool = False  # True if retreated this turn (for ally cover)
         self._recovery_destination: Optional[str] = None  # AI retreat destination cache (cleared on full recovery)
@@ -1833,6 +1838,8 @@ class Marshal:
             "retreat_recovery": int(self.retreat_recovery),
             "retreated_this_turn": self.retreated_this_turn,
             "_recovery_destination": self._recovery_destination,
+            # VP-M1: the wound's healing turn (0 = unwounded).
+            "wounded_until_turn": int(getattr(self, "wounded_until_turn", 0) or 0),
 
             # ═══════ BROKEN STATE ═══════
             "broken": self.broken,
@@ -2053,6 +2060,8 @@ class Marshal:
         marshal.retreat_recovery = data.get("retreat_recovery", 0)
         marshal.retreated_this_turn = data.get("retreated_this_turn", False)
         marshal._recovery_destination = data.get("_recovery_destination", None)
+        # VP-M1: a pre-mortality save carries no wound.
+        marshal.wounded_until_turn = int(data.get("wounded_until_turn", 0) or 0)
 
         # ═══════ BROKEN STATE ═══════
         marshal.broken = data.get("broken", False)

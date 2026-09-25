@@ -89,6 +89,7 @@ class TestVassagePaths:
         # Fix 13: Conquest requires WAR state
         key = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[key] = "WAR"
+        world.war_scores[key] = 40  # GE-V: the court is BEATEN (war score -40) — a bare WAR no longer subjugates
         result = create_vassal_conquest(world, "France", "Saxony", garrison_size=15000)
         assert result["success"]
         assert world.vassals["Saxony"]["loyalty"] == 23  # 20 + 15000//5000
@@ -110,6 +111,7 @@ class TestVassagePaths:
         # Fix 13: Conquest requires WAR state
         key = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[key] = "WAR"
+        world.war_scores[key] = 40  # GE-V: the court is BEATEN (war score -40) — a bare WAR no longer subjugates
         create_vassal_conquest(world, "France", "Saxony")
         assert world.threat_level == 35
 

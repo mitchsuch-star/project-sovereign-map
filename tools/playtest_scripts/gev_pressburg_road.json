@@ -1,0 +1,28 @@
+{
+ "name": "gev-pressburg-road",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_gev": "GE-V (ENDGAME_PLAN 2.8): the played REACH from the 1805 boot to the Congress, on typed orders only. Ulm on day one (Mack at Swabia); Bavaria vassalized by treaty (its ALLIANCE qualifies); the main body kept together Munich -> Tyrol -> Bohemia -> Vienna; Massena holds Milan and Deroy Munich against Charles; Soult and Bernadotte take Hanover from the north; Hesse and Saxony vassalized off the pacts they offer themselves; a bilateral peace pressed on Austria once Vienna falls so the conquest clocks run. Run with --diplomacy accept --settlement decline --declare-war proceed --client-petition grant --stop-on-ending: the league's turn-4 settlement is refused (it would end every war on nothing), every pact and bilateral sue is signed.",
+ "turns": {
+  "1": ["declare war on Hanover", "vassalize Bavaria", "Ney, attack Mack", "Davout, attack Mack", "Lannes, attack Mack", "Murat, attack Mack"],
+  "2": ["vassalize Saxony", "Soult, move to Brabant", "Bernadotte, move to Swabia", "Massena, fortify", "Deroy, move to Munich", "status"],
+  "3": ["vassalize Saxony", "vassalize Hesse", "Soult, move to Flanders", "Ney, move to Munich", "Davout, move to Munich", "Lannes, move to Munich"],
+  "4": ["vassalize Hesse", "Soult, move to Oldenburg", "Ney, attack Archduke John", "Davout, attack Archduke John", "Murat, move to Munich", "status"],
+  "5": ["vassalize Hesse", "Soult, attack Hanover", "Ney, move to Tyrol", "Davout, move to Tyrol", "Lannes, move to Tyrol", "status"],
+  "6": ["vassalize Hesse", "Soult, attack Hanover", "Ney, move to Bohemia", "Davout, move to Bohemia", "Bernadotte, move to Rhineland", "status"],
+  "7": ["vassalize Hesse", "Soult, move to Brunswick", "Ney, attack Vienna", "Davout, attack Vienna", "Lannes, move to Bohemia", "status"],
+  "8": ["Soult, move to Osnabruck", "Ney, attack Vienna", "Davout, attack Vienna", "Lannes, attack Vienna", "status"],
+  "9": ["Ney, attack Vienna", "Davout, attack Vienna", "Lannes, attack Vienna", "Bernadotte, move to Brabant", "status"],
+  "10": ["propose peace with Austria", "Ney, move to Vienna", "Davout, move to Hungary", "Murat, move to Bohemia", "Bernadotte, move to Flanders", "status"],
+  "11": ["propose peace with Austria", "Davout, move to Moravia", "Ney, fortify", "Murat, move to Carniola", "Bernadotte, move to Westphalia", "status"],
+  "12": ["propose peace with Austria", "Bernadotte, move to East Frisia", "Murat, move to Croatia", "Davout, fortify", "Lannes, fortify", "status"],
+  "13": ["propose peace with Austria", "Soult, move to Hanover", "Murat, fortify", "Deroy, fortify", "status"],
+  "14": ["propose peace with Austria", "invest in Bavaria", "Soult, fortify", "Bernadotte, move to Flanders", "status"],
+  "15": ["propose peace with Austria", "invest in Saxony", "Bernadotte, fortify", "Massena, drill", "status"],
+  "16": ["propose peace with Austria", "invest in Hesse", "status"],
+  "17": ["propose peace with Austria", "invest in Bavaria", "status"],
+  "18": ["propose peace with Austria", "invest in Saxony", "status"],
+  "19": ["propose peace with Austria", "invest in Hesse", "status"],
+  "20": ["propose peace with Austria", "status"]
+ }
+}

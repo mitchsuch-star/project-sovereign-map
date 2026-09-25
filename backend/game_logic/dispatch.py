@@ -129,6 +129,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # a destroyed corps is gone for good. One above marshal_captured.
     "marshal_destroyed": 96,
     "marshal_captured": 95,     # W6-7 capture events (top-weight per spec)
+    # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): a wound is a
+    # setback, not a loss — below a capture, above a broken corps.
+    "marshal_wounded": 84,
     # ── CA8-26 / gate CA8-D6 (close-out gate 10.2, Aug 7 2026) ──────────
     # The dispatch finally has headline classes for a FRENCH SUCCESS. The
     # measured campaign produced 14 of 14 misfortune headlines, and on the
@@ -411,6 +414,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "marshal_destroyed": "Sire — {line}",
     "sovereign_dead": "{line}",
     "enemy_marshal_destroyed": "Sire — {line}",
+    "marshal_wounded": "Sire — {line}",
     # CA8-9: the joined arc. The whole sentence is composed backend-side by
     # `_compose_reversal_line` because its shape varies with how many acts
     # the campaign actually produced (crowned / endowed / beaten /
@@ -614,6 +618,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # PC15-1: the fall is permanent — the note answers with the recovery
     # path that actually exists (the bench; PT-J4's commission arm rides it).
     "marshal_destroyed": "France does not replace such men by decree, Sire. The army fights one corps short until another is raised.",
+    "marshal_wounded": "His corps stands and will march, Sire — it will not attack until he can lead it. Hold it, or give its ground to another man.",
     "sovereign_dead": "There is no order left to give. The Empire was a man, and the man is dead.",
     "enemy_marshal_destroyed": "Their order of battle is one commander shorter — permanently, Sire. Press the advantage while their line is headless.",
     # CA8-9: Berthier closes on the man, not the ledger — the note answers
@@ -1195,6 +1200,19 @@ def _build_headline(world, player_nation: str,
                            f"{_of} is taken{_at} — he "
                            f"is our prisoner, and their order of battle is "
                            f"one commander shorter."))
+        elif etype == "marshal_wounded":
+            # VP-M1 "The Fortunes of War": the player's man carried from
+            # the field (an enemy's wound is his court's business — log only).
+            if e.get("nation") == player_nation:
+                _w_marshal = humanize_entity_name(e.get("marshal", "?"))
+                _w_at = (f" at {e['location']}" if e.get("location") else "")
+                _w_until = int(e.get("until_turn") or 0)
+                _add("marshal_wounded",
+                     f"marshal_wounded:{e.get('marshal', '?')}",
+                     line=(f"Marshal {_w_marshal} is WOUNDED{_w_at} — carried "
+                           f"from the field"
+                           + (f", out until turn {_w_until}" if _w_until else "")
+                           + f". His corps stands under its colonels."))
         elif etype == "marshal_destroyed":
             # ── PC15-1: annihilation gets the same direction ladder the
             # capture split earned (CA9 F12 + N2): own loss / our kill /
@@ -1233,6 +1251,19 @@ def _build_headline(world, player_nation: str,
                                 f"{des_at}{_by} — its safe passage had "
                                 f"expired and it had not come home. The men "
                                 f"are disarmed and the colours are lost.")
+                elif e.get("cause") == "killed_in_action":
+                    # VP-M1: the man fell, the corps lives — its men passed
+                    # to another hand (the tombstone says whose).
+                    _stone = (getattr(world, "fallen_marshals", {}) or {}).get(
+                        e.get("marshal", ""), {}) or {}
+                    _to = str(_stone.get("men_to") or "")
+                    _men = int(_stone.get("men") or 0)
+                    _passage = (f" {_men:,} men pass to {humanize_entity_name(_to)}."
+                                if _to and _men else
+                                (f" {_men:,} men disperse." if _men else ""))
+                    des_line = (f"Marshal {des_marshal} has been KILLED{des_at} "
+                                f"— struck down at the head of his corps.{_passage} "
+                                f"He will not return to the order of battle.")
                 else:
                     des_line = (f"Marshal {des_marshal}'s corps has been "
                                 f"DESTROYED{des_at}. He will not return to "

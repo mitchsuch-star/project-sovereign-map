@@ -57,6 +57,14 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 
 Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
 `--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose` · `--declare-war cancel|proceed`
+· `--settlement accept|decline` (GE-V, Sept 25 2026: the league's common-peace
+table — `incoming_settlement_offer` + its `settlement_confirm` — on its own
+dial; absent it mirrors `--diplomacy`. An arm that signs the pacts and the
+bilateral sues it is handed can still refuse the turn-4 table that ends every
+war at once) · `--decline-from Hanover,Naples` (GE-V: envoys from the named
+courts are refused whatever `--diplomacy` says — the arm conquering Hanover
+refuses Hanover's armistice; read off the dialogue's own court fields, so the
+player's own confirms are never touched)
 · `--missions off|advisor` (IQ-4: `advisor` sends Talleyrand on the missions the
 game's own counsel names; `off`, the default, mirrors `--diplomacy` — see
 [the Cabinet arm](#--missions-advisor--the-cabinet-arm-iq-4-september-14-2026))

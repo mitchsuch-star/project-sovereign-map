@@ -1862,6 +1862,25 @@ class EnemyAI:
             print(f"  [P0 ENGAGEMENT] {marshal.name} vs {weakest_enemy.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
             print(f"  [P0 ENGAGEMENT] {marshal.name} fortified={getattr(marshal, 'fortified', False)}, drilling={getattr(marshal, 'drilling', False)}")
 
+            # VP-M1 (GE-D1, Sept 25, 2026): a WOUNDED commander cannot lead
+            # an attack — the executor would refuse it (GR5: the same field
+            # the player's marshals carry), so the rung stands down instead
+            # of spending the court's action on a refusal.
+            from backend.game_logic.fortunes_of_war import is_wounded as _is_wounded
+            if _is_wounded(marshal, world):
+                ai_debug(f"  P0: {marshal.name} is wounded - cannot lead an attack")
+                print(f"  [P0 ENGAGEMENT] {marshal.name} WOUNDED - the corps holds under its colonels")
+                if getattr(marshal, 'stance', None) != Stance.DEFENSIVE:
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "stance_change",
+                        "target": "defensive"
+                    }, 0)
+                return ({
+                    "marshal": marshal.name,
+                    "action": "wait"
+                }, 0)
+
             # Check if in retreat recovery (cannot attack while recovering)
             retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
             if retreat_recovery > 0:

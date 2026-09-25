@@ -685,6 +685,7 @@ def _resolve_pair_state_transitions(
                     vassal_result = create_vassal_conquest(
                         world, vassal_lord, vassal_target,
                         garrison_size=int(term.get("garrison_size", 0) or 0),
+                        by_treaty=True,  # GE-V: the court signed the clause
                     )
                 else:
                     vassal_result = create_vassal_treaty(

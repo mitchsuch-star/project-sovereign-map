@@ -1965,6 +1965,23 @@ class CommandExecutor:
                         return _refusal
 
                 # ═══════════════════════════════════════════════════════════
+                # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): a WOUNDED
+                # man cannot lead an attack — the corps stands, defends and
+                # marches under its colonels. One predicate
+                # (`fortunes_of_war.wound_refusal`), read here before the
+                # objection battery so no marshal objects to an order the
+                # executor is about to refuse (the PF-4 idiom). The AI's P0
+                # rung reads the same field (GR5).
+                # ═══════════════════════════════════════════════════════════
+                if action in ('attack', 'bombard', 'glorious_charge', 'charge',
+                              'garrison_assault'):
+                    from backend.game_logic.fortunes_of_war import wound_refusal
+                    _wounded = wound_refusal(marshal, world, action.replace('_', ' '))
+                    if _wounded:
+                        return {"success": False, "message": _wounded,
+                                "wounded": True}
+
+                # ═══════════════════════════════════════════════════════════
                 # RETREAT STATE: Simplified - No personality objections during recovery
                 # Certain actions blocked, others allowed without objection dialog
                 # ═══════════════════════════════════════════════════════════

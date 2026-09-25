@@ -2,7 +2,7 @@
   "metadata": {
     "format_version": 3,
     "save_name": "GE-3 staged \u2014 after Pressburg and Tilsit (turn 28, 55 titled)",
-    "saved_at": "2026-09-25T16:38:03.524698+00:00",
+    "saved_at": "2026-09-25T18:25:13.260928+00:00",
     "turn": 28,
     "calendar_label": "Early November 1806",
     "player_nation": "France",
@@ -20,7 +20,7 @@
       "fall_grace_turns": 5,
       "captivity_grace_turns": 10,
       "title_turns": 12,
-      "hold_titled": 50,
+      "hold_titled": 45,
       "congress_turns": 8,
       "recognition_threshold": 50,
       "refuser_weight_per_turn": 15,
@@ -8080,7 +8080,7 @@
     "gazette_issues": [],
     "notifications": [
       {
-        "id": "e0ac0d26-8ac0-4810-803a-5c7c501fea1a",
+        "id": "ae717d50-5e76-4131-b5f1-25f0ea813696",
         "type": "coalition_member_peaced",
         "priority": 0,
         "title": "Austria Left Coalition",
@@ -8091,7 +8091,7 @@
         "repeat_count": 1
       },
       {
-        "id": "0654d4e9-a5b0-42dd-8ec3-0453f1a85310",
+        "id": "241884c5-653a-4f56-bd22-7d79fe136377",
         "type": "nation_eliminated",
         "priority": 1,
         "title": "Hanover Eliminated!",
@@ -8102,7 +8102,7 @@
         "repeat_count": 1
       },
       {
-        "id": "2f8cc4f0-fa37-4dc8-90a8-4dd33d116dc7",
+        "id": "336f7cf3-09ba-4749-8c88-e19fb067002e",
         "type": "nation_eliminated",
         "priority": 1,
         "title": "Naples Eliminated!",
@@ -8113,7 +8113,7 @@
         "repeat_count": 1
       },
       {
-        "id": "58a0b98e-c650-4ab6-b717-2aff848869ea",
+        "id": "4725effa-e947-4ff9-b33c-6d12f5f801e0",
         "type": "nation_eliminated",
         "priority": 1,
         "title": "Portugal Eliminated!",
@@ -8124,7 +8124,7 @@
         "repeat_count": 1
       },
       {
-        "id": "4c012349-31ba-4830-b9cf-aae3b5a59686",
+        "id": "62cd476a-6d4e-4e92-bb72-78c3159c3919",
         "type": "balance_of_europe_shifted",
         "priority": 2,
         "title": "Balance of Europe Shifts",
@@ -8164,7 +8164,7 @@
         "repeat_count": 1
       },
       {
-        "id": "195f4fe5-0eec-4946-8134-40e12519f1aa",
+        "id": "4408c1c3-46b8-4e83-8bca-6622de272822",
         "type": "coalition_member_peaced",
         "priority": 0,
         "title": "Russia Left Coalition",
@@ -8175,7 +8175,7 @@
         "repeat_count": 1
       },
       {
-        "id": "82917041-187d-49cc-9b6b-44c362a2170c",
+        "id": "3913767f-eb8a-4626-97f0-f0ab009be53c",
         "type": "coalition_dissolved",
         "priority": 0,
         "title": "Coalition Dissolved",

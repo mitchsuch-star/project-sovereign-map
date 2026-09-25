@@ -2840,6 +2840,8 @@ class Answerer:
         if (not dtype and not options
                 and dialogue.get("from_nation")
                 and dialogue.get("proposal_type")):
+            if _court_of(dialogue) in declined_courts(self.policy):
+                return "reject"
             return ("accept"
                     if self.policy["diplomacy"] in ACCEPTING_DIPLOMACY_MODES
                     else "reject")
@@ -2919,6 +2921,22 @@ class Answerer:
                     return picked
 
         mode = self.policy["diplomacy"]
+        # GE-V (September 25, 2026): the SETTLEMENT dial. The coalition's
+        # common-peace offer (`incoming_settlement_offer` + its
+        # `settlement_confirm`) is answered from `--settlement` when set,
+        # so an arm can sign the pacts and the bilateral sues it is handed
+        # (`--diplomacy accept`) while refusing the league's turn-4 table
+        # that would end every war at once — absent, it mirrors
+        # `--diplomacy`, so every archived arm is byte-identical.
+        if dtype in SETTLEMENT_DIALOGUE_TYPES:
+            mode = settlement_mode(self.policy)
+        # GE-V: `--decline-from`. An envoy from a named court is refused
+        # whatever the mode — the arm conquering Hanover does not sign
+        # Hanover's armistice because the dial that signs Austria's peace
+        # is up. Read off the dialogue's own court fields; a dialogue that
+        # names no court (the player's own confirms) is never touched.
+        if _court_of(dialogue) in declined_courts(self.policy):
+            mode = "decline"
         if mode in ("accept", "propose"):
             # NOT the constant: `first` keeps its own "take options[0]"
             # meaning here, which is the whole point of the mode.
@@ -2938,7 +2956,7 @@ class Answerer:
                 and DIALOGUE_TYPE_ANSWERS[dtype] != "missions" and any_enabled):
             # Known-answerable family with no options list: the endpoint
             # accepts a keyword — "decline" is the family's safe word.
-            picked = "decline" if self.policy["diplomacy"] == "decline" else "1"
+            picked = "decline" if mode == "decline" else "1"
         return picked
 
     def _advisor_mission_choice(self, dialogue, options, find):
@@ -3680,6 +3698,47 @@ def missions_mode(policy) -> str:
 CLIENT_PETITION_MODES = ("grant", "refuse")
 
 
+# GE-V (September 25, 2026) — `--settlement`: the coalition's common-peace
+# table answered from its own dial. The two dialogue types of that road;
+# a bilateral peace/armistice envoy is NOT here (it rides
+# `incoming_proposal`/the bare shape and stays `--diplomacy`'s).
+SETTLEMENT_DIALOGUE_TYPES = ("incoming_settlement_offer", "settlement_confirm")
+SETTLEMENT_MODES = ("accept", "decline")
+
+
+def declined_courts(policy) -> frozenset:
+    """GE-V: the courts whose envoys are refused whatever `--diplomacy`
+    says — `--decline-from Hanover,Naples`. Empty by default, so every
+    existing arm is byte-identical."""
+    raw = str((policy or {}).get("decline_from") or "")
+    return frozenset(c.strip() for c in raw.split(",") if c.strip())
+
+
+def _court_of(dialogue) -> str:
+    """The court an incoming dialogue speaks for, off its own fields (the
+    producers stamp `nation` / `from_nation` / `proposer_nation` /
+    `source_nation` depending on the transport); "" when it names none —
+    the player's own confirms, which the decline list must never touch."""
+    if not isinstance(dialogue, dict):
+        return ""
+    for key in ("from_nation", "proposer_nation", "source_nation", "nation"):
+        value = dialogue.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return ""
+
+
+def settlement_mode(policy) -> str:
+    """`accept` or `decline` for the league's settlement table. Explicit
+    dial when set; otherwise the diplomacy dial's own direction, so every
+    pre-GE-V arm answers the table the way it answered everything else."""
+    mode = str((policy or {}).get("settlement") or "")
+    if mode in SETTLEMENT_MODES:
+        return mode
+    diplomacy = str((policy or {}).get("diplomacy") or "decline")
+    return "accept" if diplomacy in ACCEPTING_DIPLOMACY_MODES else "decline"
+
+
 def client_petition_mode(policy) -> str:
     """`grant` or `refuse`. Explicit dial when set; otherwise the diplomacy
     dial's own direction (an accepting run grants, a declining run refuses),
@@ -4021,7 +4080,8 @@ class MissionAdvisor:
 # IQ-7: `client_petition` — same rule as `missions` (absent unless passed).
 POLICY_FLAG_KEYS = ("redemption", "petition", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
-                    "declare_war", "missions", "client_petition")
+                    "declare_war", "missions", "client_petition",
+                    "settlement", "decline_from")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -4107,6 +4167,16 @@ def main():
                          "province or relief from tribute). Absent mirrors "
                          "--diplomacy: accept/first/propose grant, decline "
                          "refuses")
+    ap.add_argument("--settlement", dest="settlement", default="",
+                    choices=["", *SETTLEMENT_MODES],
+                    help="GE-V: answer the league's common-peace table "
+                         "(incoming_settlement_offer + settlement_confirm) "
+                         "on its own dial. Absent mirrors --diplomacy. A "
+                         "bilateral envoy stays --diplomacy's")
+    ap.add_argument("--decline-from", dest="decline_from", default="",
+                    help="GE-V: comma-separated courts whose envoys are "
+                         "refused whatever --diplomacy says (the arm "
+                         "conquering Hanover refuses Hanover's armistice)")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")
