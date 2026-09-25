@@ -1,0 +1,115 @@
+# Playtest digest — vpr1-played-b2
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "insist", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "declare_war": "proceed", "interrupt": "first", "last_stand": "breakout", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "settlement": "decline", "decline_from": "Hanover"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 5 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `08ed3d374c35` (dirty) · content `ac2f6d51ede2` · driver `196c4ee545c1`
+  - loaded save `vpr1-played-b-c1.save.json` → Loaded: Autosave - Turn 5
+
+## Turn 5 — Late November 1805
+- CMD `vassalize Hesse` → ✓ Hesse has become a Satellite vassal of France (loyalty: 60).
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- CMD `vassalize Saxony` → ✓ Saxony has become a Satellite vassal of France (loyalty: 60).
+- CMD `declare war on Hanover` → ✓ Choose your war purpose against Hanover.
+  - POPUP diplomatic_dialogue: war_purpose_selection #9 → 1
+  - POPUP proposal_result: Sire, I must strongly advise against declaring war on Hanover. Our threat level stands at 93 — the courts of Europe already whisper of coalition. Another war will only hasten their union against us. → display-only
+  - POPUP diplomatic_objection: diplomatic_declare_war, Hanover → proceed
+  - POPUP diplomatic_dialogue: proposal_confirm #10 → ally_entry_proceed_without
+  - POPUP proposal_result: France declares war on Hanover! Holland follows France into the war against Hanover! KingdomOfItaly follows France into the war against Hanover! Switzerland follows France into the war against Hanover! Bavaria follows France into the war against Hanover! Hesse follows France into the war against Hanover! Saxony follows France into the war against Hanover! → display-only
+- CMD `Soult, move to Franconia` → ✓ Soult moves from Munich to Franconia (558 lost to march)
+- CMD `Bernadotte, move to Franconia` → ✓ Bernadotte moves from Munich to Franconia (156 lost to march)
+- CMD `Ney, move to Franconia` → ✓ Ney moves from Munich to Franconia (166 lost to march)
+- CMD `Lannes, move to Franconia` → ✓ Lannes moves from Munich to Franconia (126 lost to march)
+- CMD `end turn` → ✓ Turn 5 ended. Turn 6 begins!
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeJohn strikes back after successfully defending!
+  - ⚔ Archduke John (lost 6212) vs Massena (lost 1048) — An exemplary engagement by Massena. The outcome was never in doubt.
+  - verbs: move×1, attack×1, wait×1
+  - ⚡ AUTONOMOUS: [Combat] Murat leads the charge! (Aggressive: +15% attack)
+  - ⚔ Murat (lost 1332, own corps) vs Archduke John (lost 2055) — Reinforcements from Ney and Lannes bolstered Murat's position — though Soult and Deroy never arrived, Sire.
+- ENVOYS WAITING 1 · Switzerland client petition
+- LEDGER treasury 12426 · net +2880 · threat 97 · provinces 28 · ceiling 61070 · army 159751 · vassals Bavaria 85 · Hesse 58 · Holland 100 · Kingdom of Italy 100 · Saxony 57 · Switzerland 92
+  - NET income 3400 · trade 437 · admin 50 · tribute 1625 · upkeep 1706 · charges 617 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Marshal Massena holds the field at Piedmont — Archduke John's corps is broken and flees.
+  - RAIL diplomatic_war_declared: France has declared war on Hanover, with 1 allied court poised to follow.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 6
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as service to the strong.
+- DIPLO +4 medium/low (diplomatic_carved_vassal_created ×2, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 6 approaches from Austria and Prussia are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: 7 courts rebuff Prussia (defensive alliance)
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Bavaria joined France's war.
+  - LOG vassal_auto_join_war: Vassal Hesse joined France's war.
+  - LOG vassal_auto_join_war: Vassal Saxony joined France's war.
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Prussia and Naples (open borders agreement)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 17 approaches rebuffed, chiefly from Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: Naples rebuffs Prussia (defensive alliance)
+  - LOG ai_ai_proposal_refused: 2 approaches from Prussia and Spain are rebuffed (open borders agreement)
+
+## Turn 6 — Early December 1805
+  - MAILBOX #9 Switzerland incoming_proposal: Switzerland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #11 → grant the petition
+  - POPUP proposal_result: Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +8 (92 → 100); bond -15 → 5 (+0 a turn). Cost: 1 DP. → display-only
+- CMD `Soult, move to Brunswick` → ✓ Soult begins marching to Brunswick (distance: 2). Moved to Frankfurt. Route: Frankfurt -> Brunswick.
+- CMD `Bernadotte, move to Brunswick` → ✓ Bernadotte begins marching to Brunswick (distance: 2). Moved to Frankfurt. Route: Frankfurt -> Brunswick.
+- CMD `Ney, attack Archduke John` → ✓ MUSTER — Ney (14,741; expect about 26,689 with the corps likely to arrive, up to 34,839 if all march) vs Archduke John (10,417 men) at Tyrol — the balance of force looks…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 396, own corps) vs Archduke John (lost 6450) — Reinforcements from Lannes bolstered Ney's position — though Murat and Deroy never arrived, Sire.
+  - POPUP capture_choice[capture]: Tyrol, Ney → secure
+- CMD `Deroy, move to Franconia` → ✗ Not enough actions! Need 1, have 0.
+- CMD `end turn` → ✓ Turn 6 ended. Turn 7 begins!
+- enemy phase: 4 actions, 3 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles strikes back after successfully defending! · ArchdukeCharles launches a decisive assault. ArchdukeCharles gains the advantage over Ney. Casualties: ArchdukeCharles … · ArchdukeCharles holds them at Tyrol while allies attack from Milan! (+1 coordination)
+  - ⚔ Archduke Charles (lost 2745) vs Ney (lost 1820, own corps) — Murat and Deroy never reached the guns. The battle was decided without them, Sire.
+  - ⚔ Archduke Charles (lost 2170) vs Ney (lost 1900, own corps) — Ney fought without Murat and Deroy's support. The roads, or the will, proved insufficient.
+  - ⚔ Archduke Charles (lost 1557) vs Lannes (lost 1456, own corps) — Lannes fought without Deroy's support. The roads, or the will, proved insufficient.
+  - verbs: attack×3, unfortify×1
+- ORDER Bernadotte [active]: Bernadotte is marching to Brunswick (2 turns remaining).
+- ORDER Soult [active]: Soult is marching to Brunswick (2 turns remaining).
+  - ⚡ AUTONOMOUS: [Shield] Archduke Charles steps forward to cover Archduke John's retreat! "Archduke John is in no condition to fight - I'll handle this!"
+  - ⚔ Murat (lost 2276, own corps) vs Archduke Charles (lost 4198) — Reinforcements from Massena bolstered Murat's position — though Ney and Deroy never arrived, Sire.
+- ENVOYS WAITING 1 · Bavaria client petition
+- LEDGER treasury 14324 · net +2484 · threat 97 · provinces 29 (+1) · ceiling 37494 · army 139419 · vassals Bavaria 86 · Hesse 54 · Holland 96 · Kingdom of Italy 96 · Saxony 50 · Switzerland 95
+  - NET income 3400 · trade 437 · admin 50 · tribute 1406 · upkeep 1104 · charges 1321 · occupation 75 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Ney, crowned last turn, has been beaten in the field.
+  - RAIL diplomatic_ai_proposal: An envoy from Bavaria has arrived with a petition.
+  - TURN EVENTS 8
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+
+## Turn 7 — Late December 1805
+  - MAILBOX #10 Bavaria incoming_proposal: Bavaria — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Bavaria, client_petition #13 → grant the petition
+  - POPUP proposal_result: Tyrol is ceded to Bavaria. Loyalty +10 (86 → 96); bond 45 → 45 (+2 a turn). Cost: 1 DP. Our net rises by 63g a turn — 0g of income forfeited, 75g of occupation relieved, 0g returned as tribute at today's 75% rate, the force limit falls 2,500 (+12g surcharge). → display-only
+- CMD `Soult, attack Hanover` → ✗ Soult cannot reach Hanover from Frankfurt! Range: 1, Distance: 2
+- CMD `Bernadotte, move to Osnabruck` → ✓ Bernadotte begins marching to Osnabruck (distance: 2). Moved to Brunswick. Route: Brunswick -> Osnabruck.
+- CMD `Murat, move to Franconia` → ✓ Murat moves from Munich to Franconia (129 lost to march)
+- CMD `Lannes, attack Archduke John` → ✗ Cannot attack elsewhere while engaged with enemy forces! Archduke Charles must be dealt with first.
+- CMD `end turn` → ✓ Turn 7 ended. (Warning: 1 action unused) Turn 8 begins!
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles's forces stumble badly! ArchdukeCharles gains the advantage over Lannes. Casualties: ArchdukeCharles 92…
+  - ⚔ Archduke Charles (lost 925) vs Lannes (lost 1671, own corps) — Murat and Deroy failed to arrive in time. Lannes's army fought without expected support.
+  - verbs: attack×1, wait×1, recruit×1
+- ORDER Bernadotte [active]: Bernadotte is marching to Osnabruck (2 turns remaining).
+- ORDER Lannes [awaiting_response]: Lannes is cornered at Tyrol with 4,725 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+  - POPUP strategic_interrupt: Lannes, last_stand, Lannes is cornered at Tyrol with 4,725 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → attempt_breakout
+  - POPUP marshal_petition: rivalry_confrontation, A rivalry among the marshals → accept_breach
+  -     ↳ Murat and Lannes: They settle into cold war.
+  - POPUP diplomatic_dialogue: Holland, client_petition #14 → grant the petition
+  - POPUP proposal_result: Brunswick is ceded to Holland. Loyalty +5 (95 → 100); bond -15 → 5 (+0 a turn). Cost: 1 DP. Our net rises by 31g a turn — 37g of income forfeited, 52g of occupation relieved, 28g returned as tribute at today's 75% rate, the force limit falls 2,500 (+12g surcharge). → display-only
+- ENVOYS WAITING 1 · Holland client petition
+- LEDGER treasury 16701 · net +2748 · threat 97 · provinces 28 (-1) · ceiling 49571 · army 134233 · vassals Bavaria 100 · Hesse 53 · Holland 100 · Kingdom of Italy 95 · Saxony 46 · Switzerland 93
+  - NET income 3400 · trade 437 · admin 50 · tribute 1439 · upkeep 1040 · charges 1229 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Ney, crowned two turns ago, has been beaten in the field.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - TURN EVENTS 8
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+
+---
+finished: **completed** · commands 18 · popups 16 · battles 8

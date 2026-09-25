@@ -492,7 +492,16 @@ class NavalExecutor:
                     garrison_result["landed"] = True
                     garrison_result["odds"] = int(outcome["odds"])
                     return garrison_result
-                if not defenders:
+                from backend.commands.movement_executor import (
+                    raiding_party_holds_no_ground, raiding_party_refusal)
+                if (not defenders
+                        and raiding_party_holds_no_ground(marshal, target_region, world)):
+                    # VP-R1 (b): Shrapnel's 3,000 took Corsica on every GE-V
+                    # arm. The corps is ashore; the homeland is not held.
+                    message += " " + raiding_party_refusal(marshal, target)
+                    capture = {"captured": False, "occupation_started": False,
+                               "capture_refused_raiding_party": True}
+                elif not defenders:
                     # The existing land game takes over (§4.3): undefended
                     # soil falls through the SAME capture pipeline every
                     # march uses (capture-choice, estates, EC-W1 — all free).

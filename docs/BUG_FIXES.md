@@ -13419,3 +13419,12 @@ triage, `COMMAND_ROBUSTNESS_SPEC.md` §12 — "CR-6 proper" is retired).
 | **GEV-6** | Britain's gate-page price leads with *"or take London"* before the ports lever — a Descent most campaigns cannot mount. | P4 | Lead with the ports (the reachable lever), the Descent last. | filed — the next Congress copy pass |
 
 **Design findings (not defects — the campaign layer the Congress sits on; the memo §2):** the muster preview overstates arrival by ~⅓; four action points for eight corps; the supply cap taxes concentration; the marshals' own systems (autonomous charges, the "trust" objection arm, the cautious auto-fortify) cost a third of the army by turn 8; 3–5k British landings take undefended homeland; a losing lord's satellites bleed −6 a turn. Routed to `DESIGN_REFINEMENT.md` GEV-D1 (the reach gate).
+
+## VP-R1 "The Road to Forty-Five" — found while building (September 25, 2026)
+
+> Landing record = `DESIGN_REFINEMENT.md` GEV-D1; probes memo `docs/audits/VP_R1_PROBES_2026_09_25.md`; rules `SYSTEMS_REFERENCE.md` §68.
+
+| ID | Priority | Status | Summary |
+|---|---|---|---|
+| **VP-R1-X1** | P3 | OPEN — owner: the next objection/legibility slice (CRT-7 "the desk answers what the order would do" is the nearest home) | `DisobedienceSystem._generate_alternative` builds the aggressive marshal's attack alternative from `get_enemies_in_range(marshal, game_state)`, which returns the nearest FOREIGN corps in range — an ALLY's included. Measured staging VP-R1 (d): Ney at Munich, `Ney, fortify` objected with the alternative `attack Deroy` (Bavaria's corps at Franconia, a French satellite); the executor refuses the friendly fire, so the trust option offered — now legibly, "attack Deroy at Franconia" — an order the game will not take, and a trust answer executes nothing. Fix shape: filter the candidate list on `world.is_at_war(marshal.nation, m.nation)` at the ONE source, then re-run the Master-Rule-#2 exhaustion demotion (an alternative that resolves to nothing must demote to MILD, never show a fake choice). Reproduce first: the VP-R1 (d) pin moves Deroy to Vienna to stage around it. |
+

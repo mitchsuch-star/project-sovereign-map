@@ -1,0 +1,140 @@
+# Playtest digest — vpr1-played-b5
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "insist", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "declare_war": "proceed", "interrupt": "first", "last_stand": "breakout", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "settlement": "decline", "decline_from": "Hanover,Austria"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 14 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `08ed3d374c35` (dirty) · content `ac2f6d51ede2` · driver `196c4ee545c1`
+  - loaded save `vpr1-played-b4.save.json` → Loaded: Autosave - Turn 14
+
+## Turn 14 — Early April 1806
+  - MAILBOX #16 Britain incoming_settlement_offer: Britain — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #27 → reject_settlement_offer
+- CMD `invest in Hesse` → ✓ Invested in Hesse: +10 loyalty (26 → 36). Cost: 1 DP + 200g. Cooldown: 3 turns.
+- CMD `Soult, move to Swabia` → ✓ Soult moves from Rhineland to Swabia (260 lost to march)
+- CMD `Davout, fortify` → ✓ Davout fortifies position at Bohemia. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortif…
+- CMD `Napoleon, move to Orleanais` → ✓ Napoleon moves from Lorraine to Orleanais
+- CMD `end turn` → ✓ Turn 14 ended. (Warning: 1 action unused) Turn 15 begins!
+- SPENT 200g on this turn's orders
+- enemy phase: 4 actions, 0 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: move×2, defend×1, wait×1
+- ORDER Massena [completed]: Massena arrives at Franche-Comte. Massena: "Accomplished. The men want a battle, not another road."
+- ENVOYS WAITING 1 · Switzerland client petition
+- LEDGER treasury 22036 · net +619 · threat 78 · provinces 33 · ceiling 25814 · army 80508 · vassals Bavaria 100 · Hesse 28 · Holland 98 · Switzerland 78
+  - NET income 3631 · trade 461 · admin 50 · tribute 908 · upkeep 624 · charges 3277 · occupation 209 · blockade 231 · admiralty 90
+- DISPATCH: Sire — the enemy has stood on our ground 5 turns. Every turn of it is worth a province to their recruiting sergeants.
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 5
+- DIPLO +4 medium/low (diplomatic_vassal_courting, diplomatic_dp_regen, diplomatic_vassal_unrest, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 9 courts rebuff Austria (defensive alliance)
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+  - LOG british_subsidy: Britain's gold: 200g reaches Russia
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+  - LOG design_promoted: REVANCHE: Austria swears to retake Bohemia and 1 more — France is not forgiven
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Britain and Austria (defensive alliance)
+  - LOG nation_eliminated: Hanover has been eliminated from the war.
+  - LOG british_subsidy: Britain's gold: 200g reaches Russia
+  - LOG sponsorship_granted: Britain sponsors Prussia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Spain rebuffs Hanover (non-aggression pact)
+  - LOG ai_proposal_rejected: We rejected Hanover's armistice proposal
+  - LOG ai_proposal_rejected: We rejected Hanover's armistice proposal
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG design_promoted: REVANCHE: Hanover swears to retake Brunswick and 1 more — France is not forgiven
+  - LOG nation_eliminated: KingdomOfItaly has been eliminated from the war.
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Sardinia against France (300g/turn)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Britain and Austria (defensive alliance)
+  - LOG sponsorship_granted: Russia sponsors Britain against France (200g/turn)
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Bavaria joined France's war.
+  - LOG vassal_auto_join_war: Vassal Hesse joined France's war.
+  - LOG vassal_auto_join_war: Vassal Saxony joined France's war.
+
+## Turn 15 — Late April 1806
+  - MAILBOX #17 Switzerland incoming_proposal: Switzerland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #28 → grant the petition
+  - POPUP proposal_result: Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (78 → 88); bond 5 → 25 (+1 a turn). Cost: 1 DP. → display-only
+- CMD `invest in Hesse` → ✗ Investment in Hesse on cooldown (2 turns remaining).
+- CMD `Bernadotte, move to Hanover` → ✓ Bernadotte begins marching to Hanover (distance: 2). Moved to Oldenburg. Route: Oldenburg -> Hanover.
+- CMD `Napoleon, move to Paris` → ✓ Napoleon begins marching to Paris (distance: 3). Moved to Burgundy. Route: Burgundy -> Limousin -> Paris.
+- CMD `Murat, move to Paris` → ✗ Not enough actions for a strategic march! Need 2, have 1.
+- CMD `end turn` → ✓ Turn 15 ended. (Warning: 1 action unused) Turn 16 begins!
+- enemy phase: 8 actions, 2 attacks — Britain, Russia, Prussia and 4 other courts stirred as well, but their formations remain beyond our sight. — Castanos engages in solid combat. Castanos gains the advantage over Shrapnel. Casualties: Castanos 19, Shrapnel 242. Bo… · Castanos's forces press forward aggressively. Castanos decisively defeats Paget! Paget's army is destroyed. Castanos su…
+  - 🏴 Spain: [!] MARSHAL CAPTURED — Shrapnel is taken by Spain at Berry!
+  - ⚔ Castanos (lost 19) vs Shrapnel (lost 242) — Shrapnel was driven from the field. His men are scattered. And Shrapnel was taken on that field — Spain holds him.
+  - ⚔ Castanos (lost 4) vs Paget (lost 84) — Hardly an engagement, Sire — a brush between Paget and Castanos, and the day moved on.
+  - verbs: unfortify×2, recruit×2, attack×2, fortify×1, move×1
+- ORDER Bernadotte [active]: Bernadotte is marching to Hanover (2 turns remaining).
+- ORDER Napoleon [active]: Napoleon is marching to Paris (3 turns remaining).
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+  - POPUP diplomatic_dialogue: Britain, armistice_losing #29 → accept
+  - POPUP proposal_result: You have accepted Britain's proposal. Treaty signed: At War → Armistice with Britain. → display-only
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #30 → accept
+  - POPUP proposal_result: You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia. → display-only
+  - POPUP diplomatic_dialogue: Holland, client_petition #31 → grant the petition
+  - POPUP proposal_result: East Frisia is ceded to Holland. Loyalty +2 (98 → 100); bond 5 → 25 (+1 a turn). Cost: 1 DP. Our net rises by 1g a turn — 37g of income forfeited, 10g of occupation relieved, 28g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only
+- ENVOYS WAITING 3 · Britain armistice losing · Russia armistice losing · Holland client petition
+- LEDGER treasury 22391 · net +2380 · threat 76 · provinces 32 (-1) · ceiling 51987 · army 80380 · vassals Bavaria 100 · Hesse 20 · Holland 100 · Switzerland 87
+  - NET income 3613 · trade 461 · admin 50 · tribute 711 · upkeep 624 · charges 1639 · occupation 192
+- DISPATCH: Sire — Davout and Deroy are no nearer home, and the safe passage runs out in 2 turns. After that their corps will be interned where they stand.
+  - RAIL diplomatic_ai_proposal: An envoy from Britain has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - RAIL third_party_peace: THE CONGRESS: Britain and Spain have made their peace without France. Both courts are spent; their side of the war ends while the greater war goes on.
+  - TURN EVENTS 5
+- DIPLO +4 medium/low (diplomatic_dp_regen, diplomatic_vassal_unrest, paymaster_subsidy, blockade_broken)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Austria (defensive alliance)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Austria (defensive alliance)
+
+## Turn 16 — Early May 1806
+- CMD `invest in Hesse` → ✗ Investment in Hesse on cooldown (1 turns remaining).
+- CMD `Napoleon, recruit infantry` → ✓ Napoleon recruits 3,000 infantry at Burgundy (field levy — no depot; capped at 3,000) - Cost: 170 gold (Napoleon's intendance: -15%). Morale: 0% -> 29%
+- CMD `Massena, move to Paris` → ✓ Massena begins marching to Paris (distance: 4). Moved to Nivernais. Route: Nivernais -> Burgundy -> Limousin -> Paris.
+- CMD `Soult, drill` → ✓ Soult drills his corps with Boulogne-camp precision at Swabia. Sharpen today, strike tomorrow — bonus ready turn 17, and he remains at your orders (though he cannot shif…
+- CMD `end turn` → ✓ Turn 16 ended. (Warning: 1 action unused) Turn 17 begins!
+- SPENT 170g on this turn's orders
+- enemy phase: 5 actions, 1 attacks — Britain, Russia, Prussia and 4 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Franconia into Swabia unopposed! (191 lost to march) Captured: Bavaria → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Franconia into Swabia unopposed! (191 lost to march) Captured: Bavaria → Austria
+  - verbs: wait×3, attack×1, unfortify×1
+- ORDER Bernadotte [completed]: Bernadotte arrives at Hanover. Bernadotte: "Accomplished as ordered. The army is intact."
+- ORDER Massena [active]: Massena is marching to Paris (4 turns remaining).
+- ORDER Napoleon [continues]: Napoleon marches to Limousin. 1 region to Paris.
+- ENVOYS WAITING 1 · Saxony open borders
+- LEDGER treasury 24662 · net +2269 · threat 64 · provinces 32 (+0) · ceiling 52883 · army 82800 · vassals Hesse 12 · Holland 99 · Switzerland 86
+  - NET income 3676 · trade 473 · admin 50 · tribute 712 · upkeep 648 · charges 1822 · occupation 172
+- DISPATCH: Sire — Bavaria is no longer ours. Conquered — the satellite is gone.
+  - RAIL peace_ratified: Peace ratified between Britain and France.
+  - RAIL peace_ratified: Peace ratified between Russia and France.
+  - RAIL expedition_landed: THE LANDING: Shrapnel has put 5,000 men ashore at East Frisia.
+  - RAIL nation_eliminated: Bavaria has been eliminated from the war.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL allegiance_in_play: The allegiance of Sardinia is in play — every court with gold or standing now bids for the flip.
+  - RAIL +3 more
+  - TURN EVENTS 6
+- COURTS: The court of Russia eases over Arbiter of Europe — an ultimatum is now the length of its tether.
+- COURTS: The court of Sweden eases over Scourge of the Usurper — an ultimatum is now the length of its tether.
+- COURTS: And 4 other courts stir at their own designs.
+- DIPLO +7 medium/low (diplomatic_treaty_signed ×2, diplomatic_vassal_courting, diplomatic_dp_regen, diplomatic_vassal_unrest, paymaster_subsidy, blockade_broken)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (300g/turn)
+  - LOG ai_ai_proposal_refused: 8 courts rebuff Britain (defensive alliance)
+  - LOG sponsorship_expired: The compact between Britain and Sardinia lapses
+  - LOG british_subsidy: Britain's gold: 200g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Britain against France (300g/turn)
+  - LOG third_party_peace: THE CONGRESS: Britain and Spain make peace without France
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG ai_ai_proposal_refused: Spain and Denmark rebuff Hanover (non-aggression pact)
+
+---
+finished: **completed** · commands 15 · popups 10 · battles 2

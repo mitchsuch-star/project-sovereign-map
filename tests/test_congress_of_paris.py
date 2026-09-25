@@ -113,7 +113,7 @@ class TestTheFlagAndTheRecord:
                            ("recognition_threshold", 50),
                            ("refuser_weight_per_turn", 15),
                            ("congress_alarm_gate", 40), ("hold_alarm_ceiling", 80),
-                           ("cs_shutout_pct", 60), ("sue_score", -40),
+                           ("cs_shutout_pct", 50), ("sue_score", -40),
                            ("sweetener_per_1000", 10), ("sweetener_cap", 20),
                            ("dissolve_alarm", 15), ("congress_cooldown", 10)):
             assert block[key] == value, key
@@ -564,7 +564,7 @@ class TestTheTable:
 
 
 class TestShutOut:
-    def _close(self, w, n=16):
+    def _close(self, w, n=13):
         from backend.game_logic import naval
         # Shut ports by putting Continental coast courts at war with Britain.
         for nation in ("Portugal", "Denmark", "Sweden", "Ottoman", "Naples",
@@ -574,15 +574,19 @@ class TestShutOut:
             w.diplomatic_states[w._make_diplo_key(nation, "Britain")] = "WAR"
         w.invalidate_active_nations_cache()
 
-    def test_london_is_shut_out_at_sixty_percent_with_no_corps_abroad(self):
+    def test_london_is_shut_out_at_fifty_percent_with_no_corps_abroad(self):
+        # VP-R1 P2 (Sept 25, 2026): 60% = 16 of 26 was unreachable from play
+        # (the Pressburg shape closes 11; every signatory in the System 15);
+        # the line is 50% = 13. Pin consciously flipped, the probe memo
+        # `docs/audits/VP_R1_PROBES_2026_09_25.md` is the record.
         w = _boot()
         row = congress.answer(w, "Britain")
         assert row["stance"] == congress.REFUSES
-        assert row["shut_out"]["needed"] == 16
+        assert row["shut_out"]["needed"] == 13
         self._close(w)
         row = congress.answer(w, "Britain")
         assert row["stance"] == congress.SHUT_OUT
-        assert "16 of 26 ports" in row["reason"] or "of 26 ports" in row["reason"]
+        assert "13 of 26 ports" in row["reason"] or "of 26 ports" in row["reason"]
 
     def test_a_british_corps_on_the_continent_keeps_her_at_the_table(self):
         w = _boot()
@@ -595,8 +599,15 @@ class TestShutOut:
     def test_once_the_ports_fall_short_in_a_sitting_she_is_not_shut_out_again(self):
         w = _boot()
         _sit(w)
+        # VP-R1 P2 (Sept 25, 2026): at the 50% line the staged titles alone
+        # (port-nation capitals held by a France at war with Britain) close
+        # 13 of 26, so the ports no longer fall short by themselves. The
+        # sitting's first end turn is ticked with the line raised to 100 —
+        # the ports fall short — and the line restored before the close.
+        w.campaign_end = dict(getattr(w, "campaign_end", None) or {}, cs_shutout_pct=100)
         _tick(w)                       # the ports fall short at an end turn
         assert w.congress["shut_out_broken"] is True
+        w.campaign_end["cs_shutout_pct"] = congress.CS_SHUTOUT_PCT
         self._close(w)
         assert congress.answer(w, "Britain")["stance"] != congress.SHUT_OUT
 
@@ -875,6 +886,10 @@ class TestTheResolution:
     def test_the_eighth_turn_unsigned_dissolves_naming_the_courts(self):
         w = _boot()
         _sit(w)
+        # VP-R1 P2 (Sept 25, 2026): the staged titles close 13 of 26 ports,
+        # which at the 50% line reads Britain SHUT OUT (satisfied); this
+        # pin is about the four REFUSERS, so the line is raised to 100 here.
+        w.campaign_end = dict(getattr(w, "campaign_end", None) or {}, cs_shutout_pct=100)
         _tick(w, 9)
         c = w.congress
         assert c["status"] == congress.DISSOLVED and c["dissolve_key"] == "unsigned"

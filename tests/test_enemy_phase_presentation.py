@@ -288,11 +288,15 @@ class TestMusterOneVoiceOdds:
         # campaign fought Franconia at 18,101 under a preview of 54,408, and
         # the unqualified past-tense phrasing read as a promise. What is
         # pinned is unchanged: the header names the figure its verdict uses.
-        assert "41,000 if all march" in text, (
+        # VP-R1 (a) (Sept 25, 2026), pin consciously flipped: "expect about
+        # 41,000 with the corps likely to arrive" — the figure is the
+        # arrival-weighted mean and the header now says what it is.
+        assert "expect about 41,000 with the corps likely to arrive" in text, (
             "the odds band is priced on the committed force — the header "
             "must name the figure its verdict uses")
 
     def test_header_stays_legacy_for_a_solo_muster(self):
         text = self._muster_lines(committed=24000)
         assert "if all march" not in text
+        assert "expect about" not in text
         assert "MUSTER — Ney (24,000) vs" in text

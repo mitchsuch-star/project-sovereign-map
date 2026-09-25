@@ -1064,9 +1064,29 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # corps that had just retreated raised UnboundLocalError) and is fixed, not
 # attributed: arm 0 reproduces the prior series only with it fixed.
 # ═══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — row EP follow-on VP-R1 "The Road to Forty-Five"
+# (September 25, 2026; `tools/_vpr1_series_arms.py`, four arms, every lever
+# set IN THE CHILD, counts recorded per arm):
+#   0.  all three VP-R1 levers DOWN ........ the F5 series above, BYTE-FOR-BYTE
+#   1.  RAIDING_PARTY_HOLDS_NO_HOMELAND only  diverges at [8]  (212 refusals of 325 checks)
+#   2.  GLORY_ATTACK_OBEYS_THE_ODDS only ..... BYTE-IDENTICAL (0 glory checks — no jealous
+#                                             aggressive AI marshal ever finds a target here)
+#   3.  all three (shipped) ................. the series below, = arm 1 exactly
+# The coast lever is the SOLE mover: from turn 8 the raiding parties that
+# used to strip the passive France's interior — the GE-V measured shape,
+# Wellesley's 3,782 through nine provinces — are refused, and the alarm
+# decays more slowly because France is not being dismembered. Passive-
+# France guard, stated honestly: on the shipped arm the UNATTENDED France
+# ends turn 40 with 17 provinces (arm 0: 4) while Britain holds 14 (arm 0:
+# 18), Austria 16 (23), Spain 10 (15) — the ambient harness's passive
+# France, NOT a balance claim (FA-D27's standing caveat), but the first
+# time since slice 4 that a France issuing no orders is not overrun by
+# raids. The muster-preview lever is display and arm 3 = arm 1 proves it.
+# ═══════════════════════════════════════════════════════════════════════
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 60, 58, 46, 43, 40, 37, 34, 31, 28, 15, 12, 9,
-    6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 60, 58, 46, 44, 41, 38, 35, 22, 19, 16, 13, 10,
+    7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0,
 ]
 

@@ -444,6 +444,33 @@ SOVEREIGN_PRESENCE_ACTIVE = True
 AUTONOMOUS_CHARGE_GUARD_ACTIVE = True
 SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE = True
 
+# ═══════ VP-R1 (a) — "The Road to Forty-Five": THE MUSTER ROWS NAME THEIR ODDS ═══════
+#
+# GE-V read the muster as "a lottery the preview overstates by about a third".
+# The P1 probe (`docs/audits/VP_R1_PROBES_2026_09_25.md`) measured 74 supported
+# strikes on the GE-V boards and found the committed figure is an honest
+# EXPECTATION — within 20% of the Monte-Carlo mean on 74 of 74 — and that two
+# things around it lie: the label ("X if all march" is neither the ceiling
+# nor a promise; it is the arrival-weighted mean, and the memo compared the
+# CEILING to the field) and the rows — 35 of 100 strikes printed "WILL JOIN —
+# will march to the sound of the guns" for a corps the same arithmetic priced
+# at ZERO (46 of 248 candidates, every one departing from mountains: Ney and
+# Murat at logistics 3–4 score 55 and 50 against a 65 threshold, ±8).
+#
+# So the RULE is untouched (`_calculate_reinforcements`, the spec's §7
+# departing-terrain penalty, M1/M1b/M4, the series) and the PREVIEW says what
+# its own arithmetic knows: the headline names the figure as the expected
+# arrival and keeps "if all march" for the ceiling, and every WILL JOIN row
+# off the field carries its odds in words and — at nothing — the lever the
+# game already has (a written SUPPORT order is +10 to the score and a 60
+# threshold; 40 of the 46 zero-odds corps become reachable under it).
+#
+# Flip lever for the attribution idiom: False restores the pre-slice text
+# byte-for-byte (the odds keys are not stamped, the labels revert). Display
+# only — `committed_strength` / `ceiling_strength` and the odds band are
+# unchanged, so nothing that reads the band can move.
+MUSTER_ROWS_NAME_THEIR_ODDS = True
+
 
 def _attack_is_unordered(command) -> bool:
     """An attack the player did not order THIS INSTANT: a jealousy-
@@ -1334,6 +1361,45 @@ class CombatExecutor:
             return True, "aggressive_marches"
         return True, "answers_the_guns"
 
+    def muster_odds(self, marshal, enemy_marshal, world) -> dict:
+        """VP-R1 (c): the odds band `_build_muster_preview` would print for
+        this attack, without building the preview — the same ladder
+        (`_muster_reason`), the same two committed terms (ours arrival-
+        weighted, theirs through `_defender_muster`) and the same band
+        function, so a gate that reads it cannot disagree with the screen.
+        Returns {"band", "ratio", "committed_attacker", "committed_defender",
+        "joining"}; drift against the preview is pinned."""
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio, inferred_attack_odds_band)
+        battle_region = enemy_marshal.location
+        nation = marshal.nation
+        region = world.get_region(battle_region)
+        adjacent = set(region.adjacent_regions) if region else set()
+        joining = []
+        for m in world.marshals.values():
+            if m.nation != nation or m.name == marshal.name or m.strength <= 0:
+                continue
+            if m.location != battle_region and m.location not in adjacent:
+                continue
+            will_join, _code = self._muster_reason(
+                m, marshal, battle_region, nation, world)
+            if will_join:
+                joining.append(m)
+        committed = self._committed_reinforcement_strength(
+            marshal, joining, world, expected_at=battle_region)
+        _joiners, committed_defender = self._defender_muster(enemy_marshal, world)
+        game_state = {"world": world}
+        band = inferred_attack_odds_band(
+            marshal, enemy_marshal, game_state,
+            committed_attacker=committed, committed_defender=committed_defender)
+        ratio = inferred_attack_effective_ratio(
+            marshal, enemy_marshal, game_state,
+            committed_attacker=committed, committed_defender=committed_defender)
+        return {"band": band, "ratio": float(ratio),
+                "committed_attacker": float(committed),
+                "committed_defender": float(committed_defender),
+                "joining": [m.name for m in joining]}
+
     def _defender_muster(self, enemy_marshal, world):
         """CA9-F1: the DEFENDER's muster, read off the same ladder as ours.
 
@@ -1505,6 +1571,15 @@ class CombatExecutor:
                             f"odds; he will bring NOTHING to the fighting")
                 elif _scale < 1.0:
                     row["withholds"] = self._half_weight_clause(marshal, m)
+            # VP-R1 (a): the row says what the arithmetic below already
+            # priced him at. Off the field only — a co-located corps makes
+            # no march and no roll; a gun never relocates (its weight is 0
+            # in the sum and a coordination bonus instead).
+            if (MUSTER_ROWS_NAME_THEIR_ODDS and will_join
+                    and m.location != battle_region
+                    and not getattr(m, "artillery", False)):
+                row.update(self._arrival_odds_row(marshal, m, battle_region,
+                                                  world, code))
             rows.append(row)
 
         # CO-2: the odds band reflects the TOTAL committed force (lead + the
@@ -1874,8 +1949,16 @@ class CombatExecutor:
             # muster ladder says WILL happen, not what has happened. The
             # unqualified number read as a promise; the played campaign
             # fought Franconia at 18,101 under a preview of 54,408.
-            attacker_display += (
-                f"; {committed:,} if all march")
+            if MUSTER_ROWS_NAME_THEIR_ODDS:
+                # VP-R1 (a): the figure is the arrival-WEIGHTED expectation
+                # (PT-A2), so say so — "if all march" is the CEILING's label
+                # now, below. The P1 probe: 74 of 74 within 20% of the mean.
+                attacker_display += (
+                    f"; expect about {committed:,} with the corps likely "
+                    f"to arrive")
+            else:
+                attacker_display += (
+                    f"; {committed:,} if all march")
             # FA-61: and what it is NOT. The figure above is
             # arrival-weighted and omits the sovereign aura, so the resolver
             # can exceed it — measured, 84,266 resolved against 78,676
@@ -1885,7 +1968,10 @@ class CombatExecutor:
             # is what keeps them green.
             ceiling = int(preview['attacker'].get('ceiling_strength', 0))
             if ceiling > committed:
-                attacker_display += f", up to {ceiling:,} if every corps arrives"
+                if MUSTER_ROWS_NAME_THEIR_ODDS:
+                    attacker_display += f", up to {ceiling:,} if all march"
+                else:
+                    attacker_display += f", up to {ceiling:,} if every corps arrives"
         # LV-2 (row EP F2): the header names the men, not their roster keys
         # ("vs ArchdukeJohn (substantial force)" was the muster's own leak;
         # the same NPC-12 class the scout report and the covering lines had).
@@ -1906,6 +1992,9 @@ class CombatExecutor:
             # named on the one screen the player reads before committing.
             if row.get("withholds"):
                 line += f" {row['withholds']}"
+            # VP-R1 (a): and his odds of getting there at all.
+            if row.get("arrival_note"):
+                line += f" {row['arrival_note']}"
             lines.append(line)
         if preview["target"].get("reinforcement_note"):
             lines.append(f"  {preview['target']['reinforcement_note']}")
@@ -1941,6 +2030,13 @@ class CombatExecutor:
     _ARRIVAL_VARIANCE = 8          # random.randint(-8, +8): 17 outcomes
     _ARRIVAL_FUMBLE_ABOVE = 80     # scores above this carry the 5% fumble
     _ARRIVAL_FUMBLE_CHANCE = 0.05
+    # VP-R1 (a): the DEPARTING-terrain penalty (MULTI_MARSHAL_SPEC §7) as ONE
+    # table, read by the score and by the row that explains it. Values
+    # unchanged from the local dict `_arrival_deterministic` used to hold.
+    _ARRIVAL_TERRAIN_PENALTY = {
+        "plains": 0, "forest": -10, "hills": -5,
+        "mountains": -20, "urban": 0, "river_crossing": -5,
+    }
 
     def _arrival_threshold(self, reinforcing_marshal, primary_combatant,
                            battle_region, world) -> int:
@@ -1961,6 +2057,45 @@ class CombatExecutor:
                 if pursue_tgt and pursue_tgt.location == battle_region:
                     has_explicit_order = True
         return 60 if has_explicit_order else 65
+
+    def _arrival_odds_row(self, lead, m, battle_region, world, code) -> dict:
+        """VP-R1 (a): one WILL JOIN row's arrival odds, in the words the
+        player reads and the numbers the resolver rolls.
+
+        `arrival_odds` is P(arrive) × 100 off the SAME deterministic sum,
+        threshold and jitter as `_calculate_reinforcements` (shown = applied by
+        construction — `_expected_arrival_weight` is what prices him into
+        `committed_strength`). `arrival_odds_with_support` is the same roll
+        under a written SUPPORT order (+10, threshold 60); the note names
+        that lever only when it would help and he is not already under one.
+        The departing terrain is named when it is the thing dragging him
+        down, because "he will not make it" without a cause reads as a
+        slur on the man."""
+        det = self._arrival_deterministic(m, lead, world)
+        thr = self._arrival_threshold(m, lead, battle_region, world)
+        p = self._arrival_probability(det, thr)
+        p_support = self._arrival_probability(det + 10, 60)
+        pct = int(round(p * 100))
+        pct_support = int(round(p_support * 100))
+        dep = world.get_region(m.location) if world else None
+        terrain = getattr(dep, "terrain", "plains") if dep else "plains"
+        cause = ""
+        if self._ARRIVAL_TERRAIN_PENALTY.get(terrain, 0) < 0:
+            cause = f" from the {terrain} at {m.location}"
+        if pct <= 0:
+            note = f"— he will NOT make it{cause} in time"
+        elif p < 0.35:
+            note = f"— unlikely to make it{cause} in time (about {pct}%)"
+        elif p < 0.7:
+            note = f"— may make it{cause} in time (about {pct}%)"
+        else:
+            note = f"— likely to make it in time (about {pct}%)"
+        if (code != "has_support_order" and pct_support >= pct + 15):
+            note += (f"; order '{m.name}, support {lead.name}' and it "
+                     f"rises to about {pct_support}%")
+        return {"arrival_odds": pct,
+                "arrival_odds_with_support": pct_support,
+                "arrival_note": note}
 
     def _arrival_probability(self, deterministic: int, threshold: int) -> float:
         """P(this reinforcer actually arrives), over the jitter alone.
@@ -2025,11 +2160,7 @@ class CombatExecutor:
 
         departing_region = world.get_region(reinforcing_marshal.location)
         terrain = departing_region.terrain if departing_region else "plains"
-        TERRAIN_PENALTY = {
-            "plains": 0, "forest": -10, "hills": -5,
-            "mountains": -20, "urban": 0, "river_crossing": -5,
-        }
-        terrain_mod = TERRAIN_PENALTY.get(terrain, 0)
+        terrain_mod = self._ARRIVAL_TERRAIN_PENALTY.get(terrain, 0)
 
         PERSONALITY_MOD = {
             "aggressive": +5, "cautious": -5, "literal": 0,
@@ -6053,6 +6184,24 @@ class CombatExecutor:
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
                         target_region.garrison_strength = 0
                         target_region.garrison_detachment = False
+
+                    # VP-R1 (b): a raiding party takes no homeland by an
+                    # unopposed "attack" either — the same predicate the
+                    # MOVE walk-in reads, refused BEFORE the march so the
+                    # corps is not stood on ground it cannot hold by a
+                    # verb that promised conquest. The remedy is named.
+                    from backend.commands.movement_executor import (
+                        raiding_party_holds_no_ground, raiding_party_refusal,
+                        RAIDING_PARTY_FLOOR)
+                    if raiding_party_holds_no_ground(marshal, target_region, world):
+                        return {
+                            "success": False,
+                            "capture_refused_raiding_party": True,
+                            "message": (
+                                raiding_party_refusal(marshal, resolved_target)
+                                + f" March him in with 'move to {resolved_target}' "
+                                  f"to stand there, or bring {RAIDING_PARTY_FLOOR:,}."),
+                        }
 
                     # UNDEFENDED - Capture attempt (may start occupation if fortified)
                     old_controller = target_region.controller

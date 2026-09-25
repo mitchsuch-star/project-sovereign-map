@@ -1037,8 +1037,15 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # (`ONE_WALK_IN_PER_CORPS_PER_TURN`,
         # `THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK`) down in the child
         # it reads 16 / 21 verbatim.
-        assert uncapped == 12, uncapped
-        assert capped == 15, capped
+        # Re-measured by VP-R1 "The Road to Forty-Five" (September 25,
+        # 2026): the coast lever (a raiding party holds no homeland) re-times
+        # the ambient board from turn 8 (the BASELINE_SERIES attribution
+        # block). Uncapped 11, capped 13 — the cap buys TWO turns; the
+        # contract holds. Attribution measured through THIS runner's
+        # `flips`: with `RAIDING_PARTY_HOLDS_NO_HOMELAND` down in the child
+        # it reads 12 / 15 verbatim.
+        assert uncapped == 11, uncapped
+        assert capped == 13, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 

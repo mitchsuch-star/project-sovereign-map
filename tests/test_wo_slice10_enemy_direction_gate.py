@@ -1067,7 +1067,14 @@ class TestTheAmbientBoard:
         # that is overrun earlier (the passive board, FA-D27's caveat). With
         # the two F5 levers down in the child this arm reads 39+6 again
         # (measured, `tools/_f5_wo10_attribution.py`).
-        assert seams == {"_fuzzy_match_enemy": 63}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap)
+        # VP-R1 "The Road to Forty-Five" (September 25, 2026): 63 -> 64.
+        # The coast lever (a raiding party holds no homeland) re-times the
+        # UNGATED board from turn 8 (the BASELINE_SERIES attribution block):
+        # the raids that stripped France's interior are refused, France
+        # keeps more soil, and the AI's collapsing orders shift by one.
+        # With the three VP-R1 levers down in the child this arm reads 63
+        # again (`tools/_vpr1_series_arms.py`, arm 0 byte-identical).
+        assert seams == {"_fuzzy_match_enemy": 64}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1104,10 +1111,16 @@ class TestTheAmbientBoard:
         # marshal — the defect's shape, unchanged. With the two F5 levers
         # down in the child the EP-F4 split returns (measured,
         # `tools/_f5_wo10_attribution.py`).
+        # VP-R1 "The Road to Forty-Five" (September 25, 2026): the ungated
+        # board re-times under the coast lever — `Gascony -> Ney` 24 -> 23,
+        # `Champagne -> Ney` 31 -> 33; the other two pairs are unchanged.
+        # Every pair is still a PROVINCE collapsing onto a marshal — the
+        # defect's shape, unchanged. With the three VP-R1 levers down in the
+        # child the EP-F5 split returns (`tools/_vpr1_series_arms.py`).
         assert dict(pairs) == {("Leon", "Napoleon"): 7,
-                               ("Gascony", "Ney"): 24,
-                               ("Champagne", "Ney"): 31,
-                               ("Brittany", "Ney"): 1}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5
+                               ("Gascony", "Ney"): 23,
+                               ("Champagne", "Ney"): 33,
+                               ("Brittany", "Ney"): 1}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1887,8 +1900,13 @@ class TestTheAiIsNotFrozenInstead:
         #     it is the standing BASELINE_SERIES board, re-recorded by F5.
         #     With the two F5 levers down in the child both read 39 / 5
         #     again (measured, `tools/_f5_wo10_attribution.py`).
-        assert cooldowns["ungated"] == 75, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap)
-        assert cooldowns["gated"] == 4, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 across slices (IQ-7: unchanged; EP F5: the walk-in cap)
+        # VP-R1 "The Road to Forty-Five" (September 25, 2026): 75 / 4 ->
+        # 76 / 3. The coast lever re-times both boards from turn 8 (the
+        # BASELINE_SERIES attribution block; the gated board IS the standing
+        # series board, re-recorded once). With the three VP-R1 levers down
+        # in the child both read 75 / 4 again (`tools/_vpr1_series_arms.py`).
+        assert cooldowns["ungated"] == 76, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever)
+        assert cooldowns["gated"] == 3, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever)
 
 
 _COOLDOWN_PROBE = r'''

@@ -171,6 +171,14 @@ func _describe_order(order: Dictionary) -> String:
 	if not order:
 		return "unknown"
 
+	# VP-R1 (d): the backend stamps `description` — the enemy's printed
+	# name and the province he stands on ("attack Archduke Charles at
+	# Tyrol") — so the trust button says what trusting him DOES. The
+	# local fallbacks below stay for a payload without it.
+	var described = str(order.get("description", ""))
+	if described != "":
+		return described
+
 	var action = order.get("action", "act")
 	var target = order.get("target", "")
 

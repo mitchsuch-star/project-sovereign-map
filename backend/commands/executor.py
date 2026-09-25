@@ -2424,6 +2424,23 @@ class CommandExecutor:
                                 trust_gain = damp_objection_trust_gain(
                                     world, calculate_trust_gain(concern, trust_tier))
 
+                                # VP-R1 (d): the trust option says what
+                                # trusting him DOES. Stamped beside the
+                                # alternative (display only — the executor
+                                # reads `action`/`target`), and the objection
+                                # sentence carries the same clause so the
+                                # typed route and the digest read it too.
+                                _alt_desc = world.disobedience_system.describe_alternative(
+                                    suggested_alt, world) if suggested_alt else ""
+                                if suggested_alt and _alt_desc:
+                                    suggested_alt["description"] = _alt_desc
+                                    message = f"{message} (Trust him and he will {_alt_desc} instead.)"
+                                if compromise_action:
+                                    _comp_desc = world.disobedience_system.describe_alternative(
+                                        compromise_action, world)
+                                    if _comp_desc:
+                                        compromise_action["description"] = _comp_desc
+
                                 objection = {
                                     # V2 fields
                                     "type": "major_objection",

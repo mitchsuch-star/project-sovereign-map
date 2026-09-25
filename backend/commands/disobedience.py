@@ -1458,6 +1458,37 @@ class DisobedienceSystem:
 
         return message
 
+    def describe_alternative(self, order: Optional[Dict], world=None) -> str:
+        """VP-R1 (d) (`docs/audits/VP_R1_PROBES_2026_09_25.md`): what
+        trusting the marshal DOES, in the player's words — the enemy's
+        printed name and the province he stands on. GE-V played a "trust"
+        answer to Ney's fortify objection that sent him at Charles and broke
+        him, and the button had read "attack ArchdukeCharles": a roster key,
+        no place. Display only — the alternative's `action`/`target` are the
+        mechanic and are not touched; this is stamped beside them as
+        `description` and rendered by the objection dialog's trust button,
+        the objection message and the typed route."""
+        if not order:
+            return ""
+        from backend.display_names import humanize_entity_name
+        action = (order.get('action') or '').lower()
+        target = order.get('target') or ''
+        if action in ('attack', 'move', 'advance', 'probe', 'scout') and target and world is not None:
+            marshals = getattr(world, "marshals", {}) or {}
+            enemy = marshals.get(target)
+            if enemy is None:
+                for m in marshals.values():
+                    if m.name.lower() == str(target).lower():
+                        enemy = m
+                        break
+            if enemy is not None:
+                shown = humanize_entity_name(enemy.name)
+                where = getattr(enemy, "location", "") or ""
+                verb = {"attack": "attack", "move": "march on", "advance": "advance on",
+                        "probe": "probe", "scout": "scout toward"}[action]
+                return f"{verb} {shown} at {where}" if where else f"{verb} {shown}"
+        return self._describe_order(order)
+
     def _describe_order(self, order: Dict) -> str:
         """Generate human-readable order description."""
         action = order.get('action', 'unknown')

@@ -854,7 +854,11 @@ class TestF1SymmetricCommittedDefender:
             "rows": [],
             "shared_casualty_note": "",
         })
-        assert "41,000 if all march" in text, (
+        # VP-R1 (a) (Sept 25, 2026), pin consciously flipped: the figure IS
+        # the arrival-weighted expectation (PT-A2; the P1 probe measured it
+        # within 20% of the Monte-Carlo mean on 74 of 74 strikes), so the
+        # header says so, and "if all march" moved to the ceiling clause.
+        assert "expect about 41,000 with the corps likely to arrive" in text, (
             "the committed figure read as a promise; the played campaign "
             "fought Franconia at 18,101 under a preview of 54,408")
 

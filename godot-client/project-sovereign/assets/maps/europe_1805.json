@@ -17,7 +17,7 @@
         "refuser_weight_per_turn": 15,
         "congress_alarm_gate": 40,
         "hold_alarm_ceiling": 80,
-        "cs_shutout_pct": 60,
+        "cs_shutout_pct": 50,
         "sue_score": -40,
         "sweetener_per_1000": 10,
         "sweetener_cap": 20,

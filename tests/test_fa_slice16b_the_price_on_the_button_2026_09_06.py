@@ -212,8 +212,12 @@ class TestTheMusterStatesItsCeiling:
             "target": {"name": "Mack", "strength_display": "large force",
                        "location": "Swabia"},
             "odds_band": "favorable", "rows": []})
-        assert "78,676 if all march" in line
-        assert "up to 96,789 if every corps arrives" in line
+        # VP-R1 (a) (Sept 25, 2026), pin consciously flipped: the expected
+        # figure is labelled as such and "if all march" is the CEILING's
+        # label — the brief's own placement ("keep 'if all march' as the
+        # ceiling").
+        assert "expect about 78,676 with the corps likely to arrive" in line
+        assert "up to 96,789 if all march" in line
 
     def test_a_preview_without_the_key_is_byte_identical(self):
         """The three standing pins on this phrase hand-build a preview with
@@ -225,7 +229,7 @@ class TestTheMusterStatesItsCeiling:
             "target": {"name": "Mack", "strength_display": "large force",
                        "location": "Swabia"},
             "odds_band": "favorable", "rows": []})
-        assert "41,000 if all march" in line
+        assert "expect about 41,000 with the corps likely to arrive" in line
         assert "up to" not in line
 
     def test_a_ceiling_equal_to_the_expectation_says_nothing(self):

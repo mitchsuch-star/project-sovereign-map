@@ -72,7 +72,14 @@ RECOGNITION_THRESHOLD = 50
 REFUSER_WEIGHT_PER_TURN = 15
 CONGRESS_ALARM_GATE = 40
 HOLD_ALARM_CEILING = 80
-CS_SHUTOUT_PCT = 60
+# VP-R1 P2 (September 25, 2026, `docs/audits/VP_R1_PROBES_2026_09_25.md`):
+# 60 was unreachable from play. The Continent has 26 authored ports and the
+# Pressburg shape minus the fixture's gifts closes 11 (42%); every Congress
+# signatory in the System would close 15 (58%), and 16 needs a war on the
+# Pope or on Denmark. 50% = 13 is reachable from a beaten Austria's forced
+# alliance plus one walk-in, or two signatories' ports. The scenario key
+# `campaign_end.cs_shutout_pct` carries the same number (in-band tunable).
+CS_SHUTOUT_PCT = 50
 SUE_SCORE = -40
 SWEETENER_PER_1000 = 10
 SWEETENER_CAP = 20
@@ -1577,8 +1584,9 @@ def _unsigned_reason(table: Dict[str, Dict[str, Any]]) -> str:
 
 
 def _latch_shut_out(world, table: Dict[str, Dict[str, Any]]) -> None:
-    """"The Continental System closure is ≥ 60% for EVERY turn of the
-    sitting" (§2.4): the first end turn the PORTS fall short, SHUT OUT is
+    """"The Continental System closure is ≥ cs_shutout_pct (50% since VP-R1
+    P2, September 25, 2026 — 60% was unreachable from play) for EVERY turn
+    of the sitting" (§2.4): the first end turn the PORTS fall short, SHUT OUT is
     spent for this Congress. The other half — "no British corps stands on
     the Continent" — is a LIVE reading, never latched: a landing is answered
     by driving it into the sea before the eighth turn (the price says so).

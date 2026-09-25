@@ -25,17 +25,71 @@
 > recognition table, the eight-turn sitting, THE IMPERIAL PEACE; the
 > Pressburg arm wins on 4 of 4 seeds, the Premature arm loses on 3 of 3, both
 > pinned DRIVEN; a 69-finding review round, all fixed). ~~GE-V "the played
-> campaign"~~ ✅ RUN September 25, 2026 (block below). **▶ NEXT = THE
+> campaign"~~ ✅ RUN September 25, 2026 (block below). ~~VP-R1 "The Road
+> to Forty-Five"~~ ✅ LANDED September 25, 2026 (the GEV-D1 follow-on, taken
+> ahead of the build by the user's direction; block below — the four levers
+> built, the shut-out line 60 → 50, the re-measure NOT reaching 45 and the
+> deeper gate recorded for the user). **▶ NEXT = THE
 > RELEASE BUILD (ROADMAP 10)** — its part 1 is parked in `git stash`
 > "release-build part 1 …" and `deploy/parked/release_build_part1.patch`;
 > the build note = `docs/NEXT_SESSION_PROMPT.md`. ⚠ Still open for the
-> user, not for a session: **GEV-D1 "The Road to Forty-Five"** (the reach
-> gate — the two cheap levers, `DESIGN_REFINEMENT.md`), the in-game feel of
+> user, not for a session: **the deeper reach gate** (`SYSTEMS_REFERENCE.md`
+> §68.6 — an action point for every corps, the supply cap on ally soil, the
+> capture cascade, the accepting dial; GEV-D1's 45 line stands, not moved a
+> second time), the in-game feel of VP-R1's muster rows and objection copy,
+> the in-game feel of
 > the end screen's four registers (frames
 > `docs/audits/IQ10_CAMPAIGN_END_*_2026_09_25.png`), of F3's six surfaces
 > (`docs/audits/IQ10_*_2026_09_24.png`) and of F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`). GE-D1 and GE-D2 are
 > RULED and BUILT (below) — no longer open.
+>
+> **▶ ▶ VP-R1 "THE ROAD TO FORTY-FIVE" — ✅ LANDED September 25, 2026**
+> (the GEV-D1 follow-on, taken ahead of the release build by the user's
+> direction; landing record `DESIGN_REFINEMENT.md` GEV-D1; probes memo of
+> record `docs/audits/VP_R1_PROBES_2026_09_25.md`; rules
+> `SYSTEMS_REFERENCE.md` §68; pins `tests/test_vp_r1_the_road_to_forty_five.py`
+> (33 + 1 strict xfail); series attribution `tools/_vpr1_series_arms.py` +
+> `.json`; archives `docs/audits/playtest_digests/vpr1-played-*`, fifteen runs).
+> - **Three probes before any code; two overrode the brief.** P1: the muster's
+>   committed figure was ALREADY the honest expectation (within 20% of the
+>   Monte-Carlo mean on 74 of 74 supported strikes) — GE-V's "overstates by a
+>   third" compared the CEILING clause to the field; what lied was the label
+>   and the rows (35 of 100 strikes printed WILL JOIN for a corps priced at
+>   0%, all departing from mountains). P2: 60% = 16 of 26 ports was
+>   unreachable from play (the Pressburg shape minus the fixture's gifts closes
+>   11; every signatory in the System 15) → **`cs_shutout_pct` 60 → 50 moved
+>   FIRST** (both homes, the two Congress fixtures regenerated; a save keeps
+>   the line it was authored under). P3: two of three autonomous glory charges
+>   fired at `unfavorable` (0.198, 0.279) below the floor a delegation-inferred
+>   attack obeys — a defect.
+> - **Built, each behind a lever:** (a) `MUSTER_ROWS_NAME_THEIR_ODDS` — "expect
+>   about X with the corps likely to arrive, up to Y if all march" + every
+>   row's `arrival_odds`/`arrival_note` off the resolver's own sum, the SUPPORT
+>   lever named at zero; (b) `RAIDING_PARTY_HOLDS_NO_HOMELAND` — a corps under
+>   5,000 (`MARCH_HALTS_AT_GARRISON`; the brief's 3,000 stopped neither measured
+>   raid) holds no province that is its holder's homeland, at the walk-in, the
+>   attack's undefended exit, the landing and the AI's own rungs; (c)
+>   `GLORY_ATTACK_OBEYS_THE_ODDS` — ONE predicate over the preview's band, the
+>   player processor and the AI's P3.9 rung, the WO-28 beat names the odds; (d)
+>   the objection's trust option says "attack Archduke Charles at Tyrol".
+> - **The re-measure did NOT reach 45.** Opening B 40 at turn 8 (archive 39),
+>   36 at turn 40; opening A 41 at 7, 39 at 13 (archive 35), the Emperor and
+>   four marshals captured by 14, the Fall. The levers moved the early count
+>   +2..+4 and removed two of the six measured mechanics; **the number is NOT
+>   moved a second time — the deeper gate is the user's** (four action points
+>   for eight corps; the 37,500 supply cap; the capture cascade; the harness's
+>   `--diplomacy accept` signing every armistice). `BASELINE_SERIES` re-recorded
+>   ONCE, four-arm attributed — the coast lever the sole mover (the passive
+>   France ends turn 40 with 17 provinces instead of 4: a harness fact).
+> - **Pins consciously flipped:** the five muster-phrase pins; FA-9's two
+>   lever-down arms (both levers down); the Congress shut-out pins (16 → 13)
+>   and two staged pins raised to 100 in their staging; the enemy-direction
+>   gate's four ambient-board measurements; the courting cap's rebellion
+>   turns (12/15 → 11/13, the lever-down arm reading 12/15 verbatim).
+>   **Filed:** VP-R1-X1 (the objection's
+>   attack alternative can name an ally's corps). M1–M7 byte-identical; ruff
+>   clean; parse harness EXIT=0; boot 0 SCRIPT ERROR; `tools/_sweep_vpr1.json`.
 >
 > **▶ ▶ GE-V "THE PLAYED CAMPAIGN" — ✅ RUN September 25, 2026** (landing
 > record `ENDGAME_PLAN.md` §6 after GE-3's; memo of record

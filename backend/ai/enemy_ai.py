@@ -1699,12 +1699,15 @@ class EnemyAI:
                 # Validate intent is still valid (region still undefended and enemy-controlled)
                 region = world.get_region(intent_target)
                 from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+                from backend.commands.movement_executor import raiding_party_holds_no_ground
                 if (region and region.controller != nation
                         and world.is_at_war(nation, region.controller)
                         # July 2026 AI audit: garrisoned regions need P4.25's
                         # ratio-gated assault, never a blind intent attack
                         and getattr(region, 'garrison_strength', 0) < MARCH_HALTS_AT_GARRISON
-                        and not getattr(region, 'garrison_detachment', None)):
+                        and not getattr(region, 'garrison_detachment', None)
+                        # VP-R1 (b): a raiding party takes no homeland
+                        and not raiding_party_holds_no_ground(marshal, region, world)):
                     defenders = world.get_live_visible_enemies_in_region(intent_target, nation)
                     if not defenders:
                         # Still undefended - execute the capture!
@@ -1754,7 +1757,10 @@ class EnemyAI:
             # Region with garrison >= 5000 is NOT undefended — requires assault via P4
             from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
             has_garrison = current_region.garrison_strength >= MARCH_HALTS_AT_GARRISON
-            if not enemies_here and not has_garrison:
+            from backend.commands.movement_executor import raiding_party_holds_no_ground
+            if (not enemies_here and not has_garrison
+                    # VP-R1 (b): a raiding party takes no homeland
+                    and not raiding_party_holds_no_ground(marshal, current_region, world)):
                 # Standing on undefended enemy territory - capture it!
                 # Must unfortify first if fortified
                 if getattr(marshal, 'fortified', False):
@@ -2235,6 +2241,16 @@ class EnemyAI:
                                             glory_enemy.location):
                         ai_debug("  -> P3.9 skipped: the crossing is barred")
                         glory_target = None
+            if glory_target is not None:
+                # VP-R1 (c): the same odds gate the player's man obeys —
+                # ONE predicate (`jealousy.glory_attack_held_by_the_odds`),
+                # the muster's own band. GR5: an AI glory hunt at
+                # `unfavorable` odds is held exactly as a French one is.
+                from backend.game_logic.jealousy import glory_attack_held_by_the_odds
+                if glory_attack_held_by_the_odds(world, self.executor, marshal,
+                                                 glory_enemy) is not None:
+                    ai_debug("  -> P3.9 held by the odds")
+                    glory_target = None
             if glory_target is not None:
                 ai_debug(f"  -> P3.9 Jealousy Glory Attack: {marshal.name} "
                          f"-> {glory_enemy.name} (weakest adjacent)")
@@ -3969,6 +3985,14 @@ class EnemyAI:
                 ai_debug(f"        -> Skip: detachment garrison ({adj_region.garrison_strength:,} troops)")
                 continue
 
+            # VP-R1 (b): a raiding party takes no homeland — the executor
+            # would refuse the capture, and a refused attack is a two-turn
+            # ban in `_record_failed_action`; read the rule here instead.
+            from backend.commands.movement_executor import raiding_party_holds_no_ground
+            if raiding_party_holds_no_ground(marshal, adj_region, world):
+                ai_debug(f"        -> Skip: {marshal.strength:,} men are a raiding party on homeland")
+                continue
+
             ai_debug("        -> UNDEFENDED enemy territory!")
 
             # WIN-D2 "The Spoils of War" — do not take a province out from
@@ -5690,9 +5714,13 @@ class EnemyAI:
 
             # Garrisoned regions are P4.25's job (personality ratio gate) —
             # the intent path has no ratio check, so never target them here
-            from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+            from backend.commands.movement_executor import (
+                MARCH_HALTS_AT_GARRISON, raiding_party_holds_no_ground)
             if (getattr(adj_region, 'garrison_strength', 0) >= MARCH_HALTS_AT_GARRISON
                     or getattr(adj_region, 'garrison_detachment', None)):
+                continue
+            # VP-R1 (b): a raiding party takes no homeland
+            if raiding_party_holds_no_ground(marshal, adj_region, world):
                 continue
 
             # Check if undefended

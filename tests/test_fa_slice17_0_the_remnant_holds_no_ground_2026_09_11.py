@@ -206,6 +206,12 @@ class TestTheRecoveringCorpsHoldsNoGround:
 
     def test_the_ai_lever_down_reproduces_the_row_verbatim(self, monkeypatch):
         monkeypatch.setattr(MV, "RECOVERING_CORPS_TAKES_NO_GROUND", False)
+        # VP-R1 (b) (Sept 25, 2026), pin consciously flipped: the row's
+        # 1,218-man remnant is ALSO a raiding party onto French homeland,
+        # and a second lever now refuses that annexation on its own. The
+        # pre-FA-9 board is reproduced with BOTH levers down; each lever's
+        # own arm is pinned in its own file.
+        monkeypatch.setattr(MV, "RAIDING_PARTY_HOLDS_NO_HOMELAND", False)
         w, k, ex, gs = self._ai_geometry()
         r = _quiet(ex._movement._execute_move, k, "Lorraine", w, gs)
         assert w.regions["Lorraine"].controller == "Austria"
@@ -254,6 +260,11 @@ class TestTheAiCaptureRungsReadTheWindow:
 
     def test_the_lever_down_lets_the_remnant_annex(self, monkeypatch):
         monkeypatch.setattr(EA, "RECOVERING_AI_CORPS_TAKES_NO_GROUND", False)
+        # VP-R1 (b) (Sept 25, 2026), pin consciously flipped: the AI's
+        # capture rungs now also read the raiding-party rule, and a 1,218-man
+        # remnant onto French homeland is one. Both levers down = the row.
+        from backend.commands import movement_executor as _MV
+        monkeypatch.setattr(_MV, "RAIDING_PARTY_HOLDS_NO_HOMELAND", False)
         w, k = self._on_open_lorraine()
         action, _prio = _quiet(EnemyAI(CommandExecutor())._evaluate_marshal, k, "Austria", w)
         assert action == {"marshal": "Kienmayer", "action": "attack", "target": "Lorraine"}, (

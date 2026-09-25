@@ -228,6 +228,65 @@ JEALOUSY_SUPPRESS_SAME_PASS_REFIRE = True
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
 AUTONOMOUS_REFUSAL_RESTORES_ORDER_ACTIVE = True
 
+# ═══════ VP-R1 (c) — "The Road to Forty-Five": THE GLORY ATTACK OBEYS THE ODDS ═══════
+#
+# The P3 probe (`docs/audits/VP_R1_PROBES_2026_09_25.md`) replayed the ambient
+# board and both GE-V openings under the real driver: three autonomous glory
+# attacks fired, and TWO were at `unfavorable` odds by the muster's own
+# reading — Murat at Tyrol, ratio 0.198 against a fortified John with
+# Charles's 52,000 committed behind him (−9,891, "Murat stood alone"), and
+# Murat at Franconia, 0.279 (−2,127). A delegation-inferred attack has been
+# stopped at the same 0.7 floor since CR-5 (`_inferred_attack_gate`,
+# `_inferred_first_step_gate`); the attack nobody ordered obeyed no gate at
+# all. That is a defect, not character: an aggressive man charging bad odds
+# UNASKED is in character when the PLAYER sent him (CA9 row 2's ruling), and
+# the glory hunt is the one road where nobody did.
+#
+# ONE predicate, both boards (GR5): the player processor and the AI's P3.9
+# rung read `glory_attack_odds` — `CombatExecutor.muster_odds`, the band the
+# preview would print — and at `unfavorable` the attack does not go in. The
+# player's man keeps his grievance, his warning is spent, his standing order
+# is untouched (the gate runs BEFORE the order is voided), and the WO-28
+# refusal beat names the odds. "Fires WITH the muster" was already true — the
+# resolver rolled his reinforcements; from the mountains they were priced at
+# nothing — so the gate is the half that was missing.
+#
+# Flip lever for the BASELINE_SERIES attribution: False reproduces the
+# pre-slice board byte-for-byte. Not a config surface.
+GLORY_ATTACK_OBEYS_THE_ODDS = True
+
+
+def glory_attack_odds(world, executor, marshal, enemy) -> Dict:
+    """{"band", "ratio", ...} the muster preview would print for
+    `marshal` attacking `enemy` now — the ONE reading the player processor
+    and the AI's P3.9 rung gate on. Read-only."""
+    combat = getattr(executor, "_combat", None)
+    if combat is None or not hasattr(combat, "muster_odds"):
+        return {"band": "favorable", "ratio": 1.0}
+    return combat.muster_odds(marshal, enemy, world)
+
+
+def glory_attack_held_by_the_odds(world, executor, marshal, enemy) -> Optional[Dict]:
+    """The odds reading when the gate REFUSES the glory attack, else None."""
+    if not GLORY_ATTACK_OBEYS_THE_ODDS:
+        return None
+    from backend.commands.objection_v2 import MUSTER_GATE_BAND
+    odds = glory_attack_odds(world, executor, marshal, enemy)
+    return odds if odds.get("band") == MUSTER_GATE_BAND else None
+
+
+def _odds_words(ratio: float) -> str:
+    """"1 to 5" for 0.198 — the odds against, in the words a marshal uses."""
+    try:
+        r = float(ratio)
+    except (TypeError, ValueError):
+        return "long odds"
+    if r <= 0:
+        return "no odds at all"
+    if r < 1:
+        return f"1 to {max(2, int(round(1.0 / r)))}"
+    return f"{r:.1f} to 1"
+
 
 def jealousy_dormant(world) -> bool:
     """TUT-F5 (Aug 8, 2026 tutorial live report): the School of War keeps the
@@ -4056,6 +4115,35 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             })
             continue
         enemy, _region = target_info
+        # VP-R1 (c): the odds gate — the same floor a delegation-inferred
+        # attack obeys — read BEFORE anything is voided, so a held attack
+        # leaves the standing order, the hold and the interrupt exactly as
+        # they were. The warning is spent (above); the grievance persists.
+        _held = glory_attack_held_by_the_odds(world, executor, marshal, enemy)
+        if _held is not None:
+            _pending_events(world).append({
+                "type": "jealousy_autonomous_refused",
+                "nation": marshal.nation,
+                "marshal": marshal.name,
+                "message": (
+                    f"{humanize_entity_name(marshal.name)} meant to go at "
+                    f"{humanize_entity_name(enemy.name)} on his own "
+                    f"initiative, but the odds held him — "
+                    f"{_odds_words(_held.get('ratio'))} against "
+                    f"{humanize_entity_name(enemy.name)}'s position at "
+                    f"{_region} — he stands where he was, and his orders "
+                    f"are unchanged."),
+                "held_by_odds": True,
+                "ratio": round(float(_held.get("ratio") or 0.0), 3),
+            })
+            world.log_event({
+                "type": "jealousy_autonomous",
+                "marshal": marshal.name,
+                "target": enemy.name,
+                "nation": marshal.nation,
+                "held_by_odds": True,
+            })
+            continue
         # He acts on his own initiative — clears any standing order (EC-B).
         #
         # PT-F9: SAY SO. This is the exact case CA9-F13's own comment

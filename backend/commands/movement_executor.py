@@ -97,6 +97,64 @@ RECOVERING_CORPS_TAKES_NO_GROUND = True
 # quotes it, so it has ONE home.
 MARCH_HALTS_AT_GARRISON = 5000
 
+# ═══════ VP-R1 (b) — "The Road to Forty-Five": A RAIDING PARTY HOLDS NO HOMELAND ═══════
+#
+# GE-V §2.5: a 3,000–5,000-man British landing took undefended homeland —
+# Wellesley's 3,782 men walked through NINE interior French provinces
+# (Ile-de-France, Orleanais, Champagne, Artois, Burgundy, Savoy, Rhineland,
+# Brabant, Gelderland) and Shrapnel's 3,000 took Corsica on every arm — and
+# every province taken came straight off the titled count. The brief's
+# recommended floor of 3,000 would have stopped NEITHER (3,000 is not
+# "fewer than 3,000"; 3,782 is more). The number that already governs this
+# seam is MARCH_HALTS_AT_GARRISON: a garrison of 5,000 halts a march, so a
+# corps of fewer than 5,000 is, by the movement law's own scale, a raiding
+# party — and a raiding party takes no HOMELAND province by walking onto it.
+#
+# The rule is read at every unopposed-occupation seam (the MOVE walk-in
+# beside FA-9, the attack's undefended exit, the naval landing's undefended
+# arm) and by the AI's own capture rungs (P-1, the stored intent, P4.5, the
+# unfortify-intent path, the expedition's open-beach candidate), so the AI
+# never marches a corps for a province the executor then refuses (GR5 — a
+# refused attack is a two-turn ban in its own bookkeeping). "Homeland" is
+# the ES-2 idiom: the province opened the campaign as its CURRENT
+# controller's own (`nation_starting_regions`), Europe worlds only (N1 —
+# the legacy fixture keeps its walk-ins). Conquered ground stays contested:
+# a small corps may still liberate or re-take a province that is not its
+# holder's homeland, and a BATTLE won takes the ground whatever the size —
+# only the unopposed walk-in is refused. The march itself stays legal; the
+# corps stands there and is told why it holds nothing (the FA-9 shape).
+#
+# Flip lever for the BASELINE_SERIES attribution: False reproduces the
+# pre-slice board byte-for-byte. Not a config surface.
+RAIDING_PARTY_HOLDS_NO_HOMELAND = True
+RAIDING_PARTY_FLOOR = MARCH_HALTS_AT_GARRISON
+
+
+def raiding_party_holds_no_ground(marshal, region, world) -> bool:
+    """True when `marshal` may stand on `region` but may not annex it by
+    walking on: fewer than RAIDING_PARTY_FLOOR men onto a province that
+    opened the campaign as its current controller's own homeland."""
+    if not RAIDING_PARTY_HOLDS_NO_HOMELAND or region is None or world is None:
+        return False
+    if int(getattr(marshal, "strength", 0) or 0) >= RAIDING_PARTY_FLOOR:
+        return False
+    controller = getattr(region, "controller", None)
+    if not controller or controller == getattr(marshal, "nation", None):
+        return False
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return False
+    homeland = (getattr(world, "nation_starting_regions", None) or {}).get(controller) or []
+    return getattr(region, "name", None) in homeland
+
+
+def raiding_party_refusal(marshal, region_name: str) -> str:
+    """The one sentence every seam prints when the rule refuses."""
+    from backend.display_names import humanize_entity_name
+    return (f"{region_name} lies open, but {humanize_entity_name(marshal.name)}'s "
+            f"{int(marshal.strength):,} men are a raiding party, not an army — "
+            f"a corps under {RAIDING_PARTY_FLOOR:,} holds no homeland province "
+            f"it walks onto.")
+
 
 SCOUT_BASE_RANGE = 2
 
@@ -807,6 +865,7 @@ class MovementExecutor:
                          or (dest_region.garrison_detachment
                              and dest_region.garrison_strength > 0)))
         capture_refused_recovering = False
+        capture_refused_raiding_party = False
         if walk_in_open and corps_takes_no_ground(marshal):
             # FA-9: the province lies open and the corps may stand on it,
             # but a corps still rallying from a rout annexes nothing. Said
@@ -816,7 +875,15 @@ class MovementExecutor:
                 move_message += (f". {target_name} lies open, but {marshal.name}'s "
                                  f"men are still rallying from the rout — a corps "
                                  f"in recovery holds no ground it walks onto.")
-        if walk_in_open and not capture_refused_recovering:
+        if (walk_in_open and not capture_refused_recovering
+                and raiding_party_holds_no_ground(marshal, dest_region, world)):
+            # VP-R1 (b): the province lies open and the corps may stand on
+            # it, but a raiding party annexes no homeland. Said once, here.
+            capture_refused_raiding_party = True
+            if marshal.nation == world.player_nation:
+                move_message += ". " + raiding_party_refusal(marshal, target_name)
+        if (walk_in_open and not capture_refused_recovering
+                and not capture_refused_raiding_party):
             _old_controller = dest_region.controller
             # PF-3 review fix: an earlier marshal's still-pending choice must
             # survive this capture (the single-slot pending_capture_choice is
@@ -1005,6 +1072,8 @@ class MovementExecutor:
             # a pin) can tell "walked on and did not take" from "no capture
             # was possible" without parsing prose.
             result["capture_refused_recovering"] = True
+        if capture_refused_raiding_party:
+            result["capture_refused_raiding_party"] = True   # VP-R1 (b)
         if capture_hints:
             result["capture_hints"] = capture_hints
         # PF-3: surface the plunder/secure popup for a player's move-capture,

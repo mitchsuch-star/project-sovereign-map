@@ -3582,6 +3582,14 @@ def find_ai_expedition(world, nation: str) -> Optional[Dict]:
     for _rank, _income, target in candidates:
         if target == marshal.location:
             continue
+        # VP-R1 (b): an open enemy BEACH is worth sailing for only if the
+        # corps can hold it — a raiding party takes no homeland, and the
+        # landing seam reads the same rule. A HOST shore (rank 0) is a
+        # door into the war, not a conquest, and stays.
+        if _rank == 2:
+            from backend.commands.movement_executor import raiding_party_holds_no_ground
+            if raiding_party_holds_no_ground(marshal, world.regions.get(target), world):
+                continue
         quote = expedition_slip_odds(world, nation, target,
                                      int(marshal.strength))
         if int(quote["odds"]) < AI_EXPEDITION_MIN_ODDS:
