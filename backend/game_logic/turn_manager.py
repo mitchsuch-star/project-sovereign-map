@@ -942,24 +942,43 @@ class TurnManager:
                 _gold_clause = f" Offering {offered} gold."
             else:
                 _gold_clause = ""
-            message = (
-                f"{proposer} has offered terms to settle {war_label}."
-                + _gold_clause
-            )
+            # SR-2d (SR-2-X5): the Arbiter's Offer names its mediator on the
+            # rail and the dispatch line — "Russia offers her good offices:
+            # Britain's terms to settle France vs Britain." — where it had
+            # read exactly like Britain's own letter.
+            from backend.game_logic.settlement_offers import good_offices_clause
+            mediator = str(offer.get("mediator") or popup_payload.get("mediator") or "")
+            _offices = good_offices_clause(mediator)
+            if _offices:
+                from backend.display_names import humanize_entity_name
+                title = f"{humanize_entity_name(mediator)} offers good offices"
+                message = (
+                    f"{proposer}'s terms to settle {war_label}, {_offices}."
+                    + _gold_clause
+                )
+            else:
+                title = f"Settlement offer from {proposer}"
+                message = (
+                    f"{proposer} has offered terms to settle {war_label}."
+                    + _gold_clause
+                )
+            _details = {
+                "war_id": str(offer.get("war_id") or ""),
+                "offer_id": str(offer.get("offer_id") or ""),
+                "proposer_nation": proposer,
+                "amount": amount,
+                "review_target": "incoming_settlement_offer_popup",
+            }
+            if _offices:
+                _details["mediator"] = mediator
             world.notifications.add(
                 create_notification(
                     notification_type=INCOMING_SETTLEMENT_OFFER,
                     priority=NotificationPriority.HIGH,
-                    title=f"Settlement offer from {proposer}",
+                    title=title,
                     message=message,
                     turn_created=int(getattr(world, "current_turn", 0)),
-                    details={
-                        "war_id": str(offer.get("war_id") or ""),
-                        "offer_id": str(offer.get("offer_id") or ""),
-                        "proposer_nation": proposer,
-                        "amount": amount,
-                        "review_target": "incoming_settlement_offer_popup",
-                    },
+                    details=_details,
                 )
             )
             # Push the popup payload to the popup queue so the very
@@ -976,6 +995,8 @@ class TurnManager:
             # other settlement family beats.
             dispatch_events = getattr(world, "pending_dispatch_events", None)
             if isinstance(dispatch_events, list):
+                # (A LITERAL dict, on purpose: FA-N30's producer census reads
+                # the `"type"` off the dict appended here.)
                 dispatch_events.append({
                     "type": "settlement_offer_arrival",
                     "war_id": str(offer.get("war_id") or ""),
@@ -986,6 +1007,8 @@ class TurnManager:
                     "message": message,
                     "turn": int(getattr(world, "current_turn", 0)),
                     "event_family": "diplomatic",
+                    # SR-2d (SR-2-X5): the arbiter rides the event too.
+                    **({"mediator": mediator} if _offices else {}),
                 })
 
         return delivered

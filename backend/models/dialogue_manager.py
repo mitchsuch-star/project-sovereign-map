@@ -517,6 +517,7 @@ class DialogueManager:
             ctx = d.get("context", {})
             dtype = d.get("type", "unknown")
             turn = d.get("turn_created", 0)
+            _offices = ""  # SR-2d (SR-2-X5): set by the settlement arm
             # Settlement offers store the proposer at top level (not in
             # `context.source`) because they are produced outside the
             # ordinary AI-proposal pipeline.
@@ -530,6 +531,16 @@ class DialogueManager:
                     f"{self.MAILBOX_SUMMARY_LABELS.get(dtype, 'Settlement offer')}"
                     + (f": {war_label}" if war_label else "")
                 )
+                # SR-2d (SR-2-X5): the Arbiter's Offer names its mediator on
+                # the mailbox row too — "Settlement offer: France vs Britain,
+                # under Russia's good offices" — where it read exactly like
+                # the belligerent's own letter.
+                from backend.game_logic.settlement_offers import good_offices_clause
+                _offices = good_offices_clause(d.get("mediator"))
+                if _offices:
+                    # Clause FIRST: the row is cut at 72 characters below and
+                    # the mediator must survive the cut on a long war label.
+                    summary = f"{_offices[0].upper()}{_offices[1:]} — {summary}"
             elif dtype == "ally_settlement_petition":
                 source = d.get("ally_nation", "Unknown")
                 ptype = str(d.get("petition_type", "ally_petition"))
@@ -564,7 +575,11 @@ class DialogueManager:
                 "proposal_type": ptype,
                 "arrival_turn": int(turn),
                 "summary_text": summary,
-                "summary": f"{_nation_display(source)} — {_proposal_display(ptype)}",
+                # SR-2d (SR-2-X5): "Britain — Settlement Offer, under Russia's
+                # good offices" — the source stays the belligerent, the
+                # mediation rides the label.
+                "summary": (f"{_nation_display(source)} — {_proposal_display(ptype)}"
+                            + (f", {_offices}" if _offices else "")),
             }
 
         # Active mailbox item first

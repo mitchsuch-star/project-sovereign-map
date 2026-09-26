@@ -72,8 +72,36 @@
 > requested price moving 5,406 → 5,398 between letter and review, the mediator invisible on
 > the rail. The volte-face beat did not print on the courted arm (IQ-6's T2 drives it with
 > SR-1d's lever DOWN; the shipped ladder alliance lands ~29–31) — a Chunk 7 question, said.
-> **NEXT = SR-2d (the four rows, ≈0.4 — take it at the head of Chunk 3 or bank it), then
-> Chunk 3 FIRST CONTACT & COMMAND, or SR-D3's AP/DP gate first — the user's call.**
+> ~~**NEXT = SR-2d (the four rows, ≈0.4 — take it at the head of Chunk 3 or bank it), then
+> Chunk 3 FIRST CONTACT & COMMAND, or SR-D3's AP/DP gate first — the user's call.**~~
+> ~~**SR-2d "The letter tells the truth"**~~ ✅ **LANDED September 26, 2026** at the head of Chunk 3
+> (the user's direction; landing record `SCORE_MANDATE_PLAN.md` §2 Chunk 2 SR-2d; rules
+> `SYSTEMS_REFERENCE.md` §71.5; rows `BUG_FIXES.md` §Score Mandate Chunk 2 exit; pins
+> `test_sr2d_the_letter_tells_the_truth.py` 26; sweep `tools/_sweep_sr2d.json` 18/18 killed,
+> 0 INERT; `BASELINE_SERIES` + M1–M7 byte-identical — display only by construction; zero
+> `.gd`). **Reproduced first** on a re-driven loser arm (the exit's own offer series to the
+> gold) and hand-driven at the wire from the turn-30 save. **X2** the letter subtracts what
+> it carves (`_derive_status_quo_lines(world, war, settlement_terms)` — the ratifier's
+> after-the-appliers read, at the letter); **X3** the PL-14 net names the settlement off the
+> ratifier's own feedback ("Settlement Ratified" / ACCEPT / the war label — it had read
+> "Diplomatic Action Rejected" over the ratification sentence), **plus a rider found while
+> reproducing it: the letter's own rail row ("Settlement offer from Britain (x5)") outlived
+> the ratified settlement — it leaves with the letter on every consuming road**; **X4 NOT
+> REPRODUCED and CLOSED with its invariant pinned** — Δ = 0 between letter and review on the
+> accept route, the revision route and a delayed activation; the exit's 5,406 → 5,398 were
+> two RUNS' letters (an unseeded probe turn moves the payer's chest the EC-W4 price reads),
+> the row's diagnosis corrected; **X5** ONE clause `good_offices_clause` names the mediator
+> on the rail row, the dispatch event (the driver's digest can now tell), the mailbox row and
+> the review the letter opens, the Arbiter's Offer pinned through the REAL AI diplomatic
+> phase. Every rule has a lever whose down arm reproduces the exit's reading. One pin
+> re-seated consciously, found by the pre-commit hook and not by the slice's own family
+> run: FA slice 10's `_mounted_settlement_dialogue` caller census names X5's review stamp
+> as its fifth caller. The diplomacy row stays 6.75 FOR USER CONFIRMATION — Chunk 3's
+> exit re-reads it.
+> **NEXT = Chunk 3 FIRST CONTACT & COMMAND: SR-3a (CRT-3 + CRT-7 + CX5-L5-F2 + CQ-30; L-D
+> SKIPPED — it sits behind a user gate the prompt left unfilled) → SR-3b (CRT-2) → SR-3c
+> (L-1 + IQ9-X1/X3) → the reserve → the exit re-score. SR-D3 stays DEFERRED (nothing under
+> §4 is built before its gate returns).**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

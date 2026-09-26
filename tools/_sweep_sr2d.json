@@ -1,0 +1,128 @@
+[
+ {
+  "id": "SR-2d/X2 the letter stops subtracting what it carves",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "            held.extend(r for r in occupier_regions\n                        if r in victim_home and r not in moved)",
+  "new": "            held.extend(r for r in occupier_regions\n                        if r in victim_home)",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLetterSubtractsWhatItCarves"
+ },
+ {
+  "id": "SR-2d/X2 the popup call site drops the terms",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    status_quo = _derive_status_quo_lines(world, war, settlement_terms)",
+  "new": "    status_quo = _derive_status_quo_lines(world, war)",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLetterSubtractsWhatItCarves::test_the_popup_agrees_with_itself"
+ },
+ {
+  "id": "SR-2d/X2 the moved set reads only carves, never cessions",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        if isinstance(term, Mapping):\n            moved.update(cession_shaped_regions(term))",
+  "new": "        if isinstance(term, Mapping) and term.get(\"type\") == \"create_client\":\n            moved.update(cession_shaped_regions(term))",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLetterSubtractsWhatItCarves::test_a_cession_in_the_same_letter_is_subtracted_too"
+ },
+ {
+  "id": "SR-2d/X3 the net stops naming the settlement",
+  "file": "backend/main.py",
+  "old": "                _settled = _settlement_proposal_result_fields(result)\n                if _settled:\n                    proposal_result.update(_settled)",
+  "new": "                _settled = {}\n                if _settled:\n                    proposal_result.update(_settled)",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheRatifiedSettlementNamesItself"
+ },
+ {
+  "id": "SR-2d/X3 the rail ignores the result's own title",
+  "file": "backend/main.py",
+  "old": "        _title or f\"{proposal_type} {outcome_word}\",",
+  "new": "        f\"{proposal_type} {outcome_word}\",",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheRatifiedSettlementNamesItself::test_the_rail_row_reads_settlement_ratified"
+ },
+ {
+  "id": "SR-2d/X3 the fields helper reads a refused ratification as a settlement",
+  "file": "backend/main.py",
+  "old": "            or not isinstance(feedback, dict) or not result.get(\"success\")):\n        return {}",
+  "new": "            or not isinstance(feedback, dict)):\n        return {}",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheRatifiedSettlementNamesItself::test_the_fields_are_read_off_the_ratifiers_own_feedback"
+ },
+ {
+  "id": "SR-2d/X3 rider — the accept road keeps the letter's rail row",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    dm.remove_matching(_is_this_offer)\n    _dismiss_offer_rail_row(world, offer_id)",
+  "new": "    dm.remove_matching(_is_this_offer)",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLettersRailRowLeavesWithIt::test_accepting_the_letter_retires_its_row"
+ },
+ {
+  "id": "SR-2d/X3 rider — the reject road keeps the letter's rail row",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "            world.dialogue_manager.pop()\n        _dismiss_offer_rail_row(world, offer_id)  # SR-2d (SR-2-X3 rider)\n        # AI-5c (§12.5): refusing a MEDIATED offer scorns the arbiter, not",
+  "new": "            world.dialogue_manager.pop()\n        # AI-5c (§12.5): refusing a MEDIATED offer scorns the arbiter, not",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLettersRailRowLeavesWithIt::test_rejecting_the_letter_retires_its_row"
+ },
+ {
+  "id": "SR-2d/X3 rider — the deferred consumption keeps the row",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    if removed:\n        _dismiss_offer_rail_row(world, offer_id)  # SR-2d (SR-2-X3 rider)",
+  "new": "    if False:\n        _dismiss_offer_rail_row(world, offer_id)  # SR-2d (SR-2-X3 rider)",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLettersRailRowLeavesWithIt::test_the_deferred_consumption_retires_it_too"
+ },
+ {
+  "id": "SR-2d/X3 rider — the dismissal keys on the court, not the letter",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        lambda n, _oid=offer_id: (\n            str(((n.get(\"details\") or {}).get(\"offer_id\")) or \"\") == _oid),",
+  "new": "        lambda n, _oid=offer_id: True,",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheLettersRailRowLeavesWithIt::test_another_letters_row_stands"
+ },
+ {
+  "id": "SR-2d/X5 the clause goes silent",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    shown = with_definite_article(display_nation(name))\n    possessive = shown + (\"'\" if shown.endswith(\"s\") else \"'s\")\n    return f\"under {possessive} good offices\"",
+  "new": "    return \"\"",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheGoodOfficesClause tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface"
+ },
+ {
+  "id": "SR-2d/X5 the rail title forgets the mediator",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                title = f\"{humanize_entity_name(mediator)} offers good offices\"",
+  "new": "                title = f\"Settlement offer from {proposer}\"",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_rail_row_names_the_mediator"
+ },
+ {
+  "id": "SR-2d/X5 the rail details drop the mediator",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "            if _offices:\n                _details[\"mediator\"] = mediator",
+  "new": "            if False:\n                _details[\"mediator\"] = mediator",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_rail_row_names_the_mediator"
+ },
+ {
+  "id": "SR-2d/X5 the dispatch event drops the mediator",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                    **({\"mediator\": mediator} if _offices else {}),",
+  "new": "                    **{},",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_dispatch_event_carries_the_mediator"
+ },
+ {
+  "id": "SR-2d/X5 the mailbox summary_text forgets the mediator",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "                    summary = f\"{_offices[0].upper()}{_offices[1:]} — {summary}\"",
+  "new": "                    summary = summary",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_mailbox_row_names_the_mediator"
+ },
+ {
+  "id": "SR-2d/X5 the mailbox summary forgets the mediator",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "                            + (f\", {_offices}\" if _offices else \"\")),",
+  "new": "                            + \"\"),",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_mailbox_row_names_the_mediator"
+ },
+ {
+  "id": "SR-2d/X5 the review drops the provenance",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "            for _staged in (result.get(\"diplomatic_dialogue\"),\n                            _mounted_settlement_dialogue(world)):",
+  "new": "            for _staged in ():",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_review_carries_the_provenance"
+ },
+ {
+  "id": "SR-2d/X5 the review header forgets the good offices",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "                if _text and _offices.lower() not in _text.lower():\n                    result[_key] = f\"{_lead}, {_text}\"",
+  "new": "                if False:\n                    result[_key] = f\"{_lead}, {_text}\"",
+  "tests": "tests/test_sr2d_the_letter_tells_the_truth.py::TestTheMediatorIsNamedOnEverySurface::test_the_review_carries_the_provenance"
+ }
+]

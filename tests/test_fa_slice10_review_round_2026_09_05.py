@@ -487,6 +487,13 @@ class TestTheSeamsTheSliceDidNotPin:
         `settlement_offers.lapse_ally_petitions_without_a_table` reads the
         mounted draft through the same predicate — a petition expires with
         the table it was filed against (`SCORE_MANDATE_PLAN.md` §2 Chunk 2).
+
+        SR-2d (SR-2-X5, September 26, 2026) names the fifth, in the same
+        file: `handle_incoming_settlement_offer_action`'s accept arm stamps
+        the mediator's provenance on the review the letter opened — the
+        staged dialogue AND the mounted one, read through this predicate
+        (`SYSTEMS_REFERENCE.md` §71.5). Found by the pre-commit hook, not by
+        the slice's own family run.
         """
         import ast
         callers = []
@@ -499,6 +506,7 @@ class TestTheSeamsTheSliceDidNotPin:
                     callers.append(path.name)
         assert sorted(callers) == [
             "settlement_offers.py",      # SR-2a / AAR-26, the fourth (named)
+            "settlement_offers.py",      # SR-2d / SR-2-X5, the fifth (named)
             "settlement_routes.py",
             "settlement_staging.py",
             "settlement_validation.py",

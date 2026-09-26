@@ -1949,6 +1949,36 @@ def _derive_proposal_result_outcome(result: dict) -> str:
     return "REJECT"
 
 
+def _settlement_proposal_result_fields(result: dict) -> dict:
+    """SR-2d (SR-2-X3): the proposal-result fields a RATIFIED settlement
+    declares for itself, read off the ratifier's own feedback — or ``{}`` for
+    any other result.
+
+    `settlement_ratify` returns ``dialogue_type == "settlement_confirm"`` with a
+    ``settlement_result_feedback`` block (title "Settlement Ratified", the
+    war label, the resolved-pair count). Those are the facts; the PL-14 net's
+    message scan is not. The rail title is the ratifier's own title, the
+    outcome is ACCEPT (nothing was refused — the treaty applied), and the
+    counterparty is the war's label, so the per-counterparty dedupe keys on
+    the WAR rather than on an empty string.
+    """
+    if not isinstance(result, dict):
+        return {}
+    feedback = result.get("settlement_result_feedback")
+    if (str(result.get("dialogue_type") or "") != "settlement_confirm"
+            or not isinstance(feedback, dict) or not result.get("success")):
+        return {}
+    war_label = str(feedback.get("war_label") or result.get("war_id") or "")
+    title = str(feedback.get("title") or "Settlement Ratified")
+    return {
+        "proposal_type": "Settlement",
+        "outcome": "ACCEPT",
+        "title": title,
+        "target_nation": war_label,
+        "resolved_pair_count": int(feedback.get("resolved_pair_count") or 0),
+    }
+
+
 def _queue_informational_diplomacy_notices(response: dict, world) -> None:
     """Mirror informational diplomacy outcomes into the persistent notice rail."""
     proposal_result = response.get("proposal_result")
@@ -1980,10 +2010,14 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
         DIPLOMATIC_PROPOSAL_RESULT,
         filter_fn=lambda n, t=target_nation: (
             n.get("details", {}).get("target_nation") == t))
+    # SR-2d (SR-2-X3): a result that names its own title (the ratified
+    # settlement's "Settlement Ratified") keeps it; the composed
+    # "<type> <outcome>" is the fallback for results that do not.
+    _title = str(proposal_result.get("title") or "").strip()
     world.notifications.add(create_notification(
         DIPLOMATIC_PROPOSAL_RESULT,
         NotificationPriority.NORMAL,
-        f"{proposal_type} {outcome_word}",
+        _title or f"{proposal_type} {outcome_word}",
         message or f"{target_nation} has responded to our {proposal_type.lower()}.",
         int(world.current_turn),
         details={
@@ -4556,6 +4590,18 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
                     "feedback": "",
                     "decision_reason": result.get("decision_reason", ""),
                 }
+                # SR-2d (SR-2-X3, Score Mandate Chunk 2 exit): a RATIFIED
+                # settlement rode this net as `Diplomatic Action` / `REJECT`
+                # — the ratifier's result carries no proposal fields and its
+                # sentence ("Settlement Ratified: …") holds none of the
+                # accept words the message scan looks for, so the rail read
+                # "Diplomatic Action Rejected" over a peace France had just
+                # signed (IQ7-X4's mislabel, one road over). The net now
+                # names the settlement and reads the outcome off the
+                # ratification's own feedback, never off absent fields.
+                _settled = _settlement_proposal_result_fields(result)
+                if _settled:
+                    proposal_result.update(_settled)
                 if result.get("peace_ratification_summary"):
                     proposal_result["peace_ratification_summary"] = result[
                         "peace_ratification_summary"

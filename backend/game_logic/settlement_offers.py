@@ -218,6 +218,8 @@ def consume_offer_by_id(world: Any, *, offer_id: str, war_id: str) -> bool:
     if _remove_pending_settlement_offer(
             world, offer_id=offer_id, war_id=str(war_id or "")) is not None:
         removed += 1
+    if removed:
+        _dismiss_offer_rail_row(world, offer_id)  # SR-2d (SR-2-X3 rider)
     return removed > 0
 
 
@@ -252,6 +254,36 @@ def _consume_offer_dialogue(world: Any, dialogue: Mapping[str, Any]) -> None:
         return bool(offer_id) and str(entry.get("offer_id") or "") == offer_id
 
     dm.remove_matching(_is_this_offer)
+    _dismiss_offer_rail_row(world, offer_id)
+
+
+# SR-2d (SR-2-X3's rider, September 26, 2026): the letter's own rail row —
+# "Settlement offer from Britain (x5) · Britain has offered terms …" — was
+# never dismissed when the letter was answered. Measured at the wire on the
+# loser arm: the row stood on the rail AFTER the settlement it announced had
+# been ratified and the war was over. A letter's row leaves with the letter,
+# on every road that consumes it (accept, reject, the revision route's
+# deferred consumption). Flip lever: False leaves the row standing.
+THE_LETTERS_RAIL_ROW_LEAVES_WITH_IT = True
+
+
+def _dismiss_offer_rail_row(world: Any, offer_id: str) -> int:
+    """Dismiss the INCOMING_SETTLEMENT_OFFER rail row(s) whose details name
+    THIS offer. Keyed on `offer_id` alone: `NotificationCollector.add`
+    refreshes a repeated row's details to the newest letter's, so the row
+    that stands names the letter that was answered. Returns the count."""
+    offer_id = str(offer_id or "")
+    if not THE_LETTERS_RAIL_ROW_LEAVES_WITH_IT or not offer_id:
+        return 0
+    notifications = getattr(world, "notifications", None)
+    if notifications is None or not hasattr(notifications, "dismiss_by_type"):
+        return 0
+    from backend.notifications import INCOMING_SETTLEMENT_OFFER
+    return int(notifications.dismiss_by_type(
+        INCOMING_SETTLEMENT_OFFER,
+        lambda n, _oid=offer_id: (
+            str(((n.get("details") or {}).get("offer_id")) or "") == _oid),
+    ) or 0)
 
 
 def _live_covered_for_offer(
@@ -2479,14 +2511,49 @@ def _incoming_offer_summary_text(offer: Mapping[str, Any]) -> str:
     return " ".join(parts)
 
 
-def _derive_status_quo_lines(world: Any, war: Any) -> List[str]:
+# SR-2d (SR-2-X2, Score Mandate Chunk 2 exit, September 26, 2026): the letter's
+# status-quo line is derived from the MAP, and the map still shows the carved
+# province under its occupier — so Britain's requested package named "Austria
+# retains … Normandy …" beside "Britain erects the Duchy of Normandy out of
+# France" in the same letter. The ratifier never lied: its retention pass reads
+# the map AFTER the appliers have run, when the carve has already moved the
+# province. The letter now does what the ratifier does — a province the same
+# letter carves or cedes is not "retained" by anybody. Flip lever: False
+# restores the map-only read.
+THE_LETTER_SUBTRACTS_WHAT_IT_CARVES = True
+
+
+def _provinces_the_terms_move(
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]],
+) -> set:
+    """Every province a clause of THIS package takes out of a court's control
+    (`cession_shaped_regions` — cessions and carves, all three dialects)."""
+    if not THE_LETTER_SUBTRACTS_WHAT_IT_CARVES or not settlement_terms:
+        return set()
+    from backend.game_logic.settlement_scoring import cession_shaped_regions
+    moved: set = set()
+    for term in settlement_terms:
+        if isinstance(term, Mapping):
+            moved.update(cession_shaped_regions(term))
+    return moved
+
+
+def _derive_status_quo_lines(
+    world: Any, war: Any,
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
+) -> List[str]:
     """W6-10 (E-CA-5): who keeps what, derived from current controller vs
     `nation_starting_regions` across the war's opposing participants.
-    One clause per occupier holding enemy homeland soil."""
+    One clause per occupier holding enemy homeland soil.
+
+    SR-2d (SR-2-X2): a province the SAME package carves or cedes is left
+    out — the treaty moves it, so nobody "retains" it (the ratified line
+    already reads that way; the letter now agrees with it)."""
     if not isinstance(war, Mapping):
         return []
     side_by_nation = war.get("side_by_nation") or {}
     participants = list(side_by_nation)
+    moved = _provinces_the_terms_move(settlement_terms)
     lines: List[str] = []
     for occupier in participants:
         occupier_side = side_by_nation.get(occupier)
@@ -2499,10 +2566,36 @@ def _derive_status_quo_lines(world: Any, war: Any) -> List[str]:
                 continue
             victim_home = set(
                 world.nation_starting_regions.get(victim, []) or [])
-            held.extend(r for r in occupier_regions if r in victim_home)
+            held.extend(r for r in occupier_regions
+                        if r in victim_home and r not in moved)
         if held:
             lines.append(f"{occupier} retains {', '.join(sorted(held))}")
     return lines
+
+
+# SR-2d (SR-2-X5, Score Mandate Chunk 2 exit, September 26, 2026): the
+# Arbiter's Offer (AI-5c) named its mediator only inside the letter's voice —
+# the rail said "Britain has offered terms", the mailbox "Britain — Settlement
+# Offer", and the review it opened carried `mediator: null`. Measured on the
+# Tilsit arm: the offer fired on turn 21 and the driver's digest could not
+# tell whose offices it rode. ONE clause for every surface that names the
+# good offices. Flip lever: False restores the mediator-blind rows.
+THE_MEDIATOR_IS_NAMED_ON_EVERY_SURFACE = True
+
+
+def good_offices_clause(mediator: Any) -> str:
+    """"under Russia's good offices" — the ONE phrase the rail row, the
+    mailbox row, the dispatch line and the review header share for a
+    mediated offer. Empty for an unmediated one (or with the lever down)."""
+    name = str(mediator or "")
+    if not name or not THE_MEDIATOR_IS_NAMED_ON_EVERY_SURFACE:
+        return ""
+    # R7: the printed court, with its article where it takes one ("the
+    # Papal States' good offices", "Russia's good offices").
+    from backend.display_names import display_nation, with_definite_article
+    shown = with_definite_article(display_nation(name))
+    possessive = shown + ("'" if shown.endswith("s") else "'s")
+    return f"under {possessive} good offices"
 
 
 def build_incoming_settlement_offer_popup(
@@ -2704,7 +2797,10 @@ def build_incoming_settlement_offer_popup(
     # Amsterdam"). Pure display — the ratification math is untouched.
     # GR8: cached get_nation_regions x homeland sets, never a region
     # scan; diplomacy has no fog (project rule).
-    status_quo = _derive_status_quo_lines(world, war)
+    # SR-2d (SR-2-X2): a province this same letter carves or cedes is not
+    # "retained" — the terms are passed so the line reads as the ratified
+    # line will.
+    status_quo = _derive_status_quo_lines(world, war, settlement_terms)
     if status_quo:
         terms_summary.append("Status quo: " + "; ".join(status_quo) + ".")
 
@@ -2923,6 +3019,7 @@ def handle_incoming_settlement_offer_action(
         _remove_pending_settlement_offer(world, offer_id=offer_id, war_id=war_id)
         if _is_offer_active_dialogue(world, dialogue):
             world.dialogue_manager.pop()
+        _dismiss_offer_rail_row(world, offer_id)  # SR-2d (SR-2-X3 rider)
         # AI-5c (§12.5): refusing a MEDIATED offer scorns the arbiter, not
         # only the belligerent — derived consequence ONLY: the pin-8
         # refusal record (which the mediator's own intent weight reads,
@@ -3445,6 +3542,35 @@ def handle_incoming_settlement_offer_action(
         world.modify_nation_relation(
             actor, mediator, MEDIATION_CREDIT_RELATIONS)
         result["mediator"] = mediator
+        # SR-2d (SR-2-X5): the REVIEW the letter opens carries the arbiter's
+        # provenance — the staged dialogue (the one the client renders and
+        # the one the manager mounted) reads `mediator` / `mediator_interest`,
+        # and the header says under whose offices the table was laid. The
+        # exit measured `mediator: null` on the review of the Tilsit arm's
+        # mediated offer: the provenance was dropped between the letter and
+        # the table.
+        _offices = good_offices_clause(mediator)
+        if _offices:
+            interest = str(dialogue.get("mediator_interest") or "")
+            for _staged in (result.get("diplomatic_dialogue"),
+                            _mounted_settlement_dialogue(world)):
+                if isinstance(_staged, dict) and str(
+                        _staged.get("war_id") or "") == war_id:
+                    _staged["mediator"] = mediator
+                    _staged["mediator_interest"] = interest
+            # The clause leads and the sentence follows UNCHANGED — it may
+            # open on a vocative ("Sire, …") or a court's name, never to be
+            # lowercased.
+            _lead = _offices[0].upper() + _offices[1:]
+            for _key in ("message", "talleyrand_text"):
+                _text = str(result.get(_key) or "")
+                if _text and _offices.lower() not in _text.lower():
+                    result[_key] = f"{_lead}, {_text}"
+            _staged = result.get("diplomatic_dialogue")
+            if isinstance(_staged, dict):
+                _voice = str(_staged.get("talleyrand_text") or "")
+                if _voice and _offices.lower() not in _voice.lower():
+                    _staged["talleyrand_text"] = f"{_lead}, {_voice}"
     return result
 
 
