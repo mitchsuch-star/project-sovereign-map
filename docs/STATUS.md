@@ -4,8 +4,57 @@
 
 ## ▶ NEXT UP
 
-> **▶ ▶ THE PLAN — September 23, 2026 (revised twice the same day). THIS BLOCK
-> IS THE ROUTING AUTHORITY. A FRESH SESSION STARTS HERE.**
+> **▶ ▶ ▶ NEXT = ROW SR "THE SCORE MANDATE" — `docs/SCORE_MANDATE_PLAN.md` IS
+> THE ROUTING AUTHORITY (RULED September 26, 2026, by the user's direction).
+> A FRESH SESSION STARTS THERE.** The user's brief: *"is it included in this
+> plan a way to get the Congress of Paris to work — you mentioned not getting
+> there? make the mandate raising the score in all sections, especially the
+> weakest, and order the chunks by category, leaving bandwidth for
+> score-increasing quick wins; then a section after this: technology,
+> asymmetry / national flavor, AP and DP gaps — needs design."* The honest
+> answer to the first question was NO — the reach sat as a parked "user's
+> gate" line — and the plan's **Chunk 1 is now that road**: SR-1a status quo
+> is a cession (a ratified status-quo retention titles the province — +4 on
+> the AAR road at turn 9), SR-1b the client's war is the lord's war (AAR-1,
+> the P1), SR-1c the gate line teaches every held province's road to title
+> and the DP price of the counsel, SR-1d PR-D1b + PB-7 (Update 1 absorbed),
+> SR-1e the re-measure against the standing xfail — and if a played road
+> still stops short, the §68.6 levers (an AP for every corps, the supply cap,
+> the capture cascade) become the FIRST questions of the AP/DP design gate,
+> by name. **The mandate (§0):** every pillar rises and none falls; weakest
+> first (the ending 5.5, diplomacy 6.0, then the 6.5s); chunks by category
+> with **30% of every chunk reserved for quick wins** from the standing bank
+> (§3); player reports still jump the queue; nothing under §4 is built
+> before its gate. **The chunks (§2), in order:** 1 THE ENDING (≈3.0) → 2
+> DIPLOMACY (≈2.5: the settlement editor's one verdict, the revision
+> consent, the identical menu, the Talleyrand verbs, WO-32 + PR-D1c/d) → 3
+> FIRST CONTACT & COMMAND (≈2.5: CRT-3 + CRT-7 + L-D + CX5-L5-F2 + CQ-30,
+> CRT-2, L-1) → 4 COMBAT LEGIBILITY & MARSHAL DRAMA (≈3.0: the field's
+> price, the standing-order pass with CRT-4/5, the drama's fuse + the
+> petition Antechamber B1–B5) → 5 ECONOMY & NAVAL (≈2.0: the admin-AP gate,
+> question (c) + IGR-X9 at one gate, the EC-2 pass-2 residue, the second
+> road at sea) → 6 NARRATION, DISPATCH & COPY (≈1.0) → 7 AI ALIVENESS &
+> LIVING BALANCE (≈2.0: the garrison grind and the odds gate, the long peace
+> measured then gated, dispersion) → 8 VASSALS & AGENDAS (≈1.5: VD-C the
+> Contingent, the formables on a played road) → 9 UI/UX (≈1.0 + the user's
+> eyes) → 3b the rest of the CRT queue (≈4.0) → the ROADMAP spine unchanged
+> (Round 0 → the Victory & Objectives gate → Steam → CR-6 → Pre-EA → Trailer
+> → EA). **§4 NEEDS DESIGN, after the chunks:** SR-D1 Technology ("reforms,
+> not research" — five to eight authored 1805 acts per nation, priced in a
+> currency the game already has; slot after Chunk 5), SR-D2 Asymmetry &
+> national flavor (three doctrines first — Russia's depth + the General
+> Winter with HC-6, Britain's irreplaceable army, France's staff/corps
+> doctrine; authored, AI-playable; slot after Chunk 7), SR-D3 the AP and DP
+> gaps (four AP for eight corps; one client petition costing the Austrian
+> peace a turn; standing orders made reliable BEFORE new points are minted;
+> slot right after Chunk 1 if SR-1e says the road stops short). **Updates
+> 1–5 are absorbed by category, nothing dropped (§6).** The scoreboard (§1)
+> is re-scored at every chunk's exit; done when every pillar meets its
+> target on a dated arm and the directional reads ≥ 7.5.
+>
+> **▶ ▶ THE PLAN — September 23, 2026 (revised twice the same day). ⚑ SUPERSEDED
+> September 26, 2026 by row SR above (`docs/SCORE_MANDATE_PLAN.md` §6 absorbs
+> Updates 1–5 by category); this block is the record.**
 >
 > **▶ ▶ ▶ NEXT = ROW EP "THE ENDGAME PROGRAM" — `docs/ENDGAME_PLAN.md` IS
 > THE ROUTING AUTHORITY. START THERE. ~~First slice = F1 "The first ten
