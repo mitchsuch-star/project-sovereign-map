@@ -310,19 +310,26 @@ def _recruit_block_reason(world) -> str:
     reasons and discarded them. This states them, and names the rule.
     """
     return _recruit_block_reason_from(
-        list(getattr(world, "_last_nearest_marshal_block", None) or []))
+        list(getattr(world, "_last_nearest_marshal_block", None) or []),
+        remedy=recruit_remedy(world))
 
 
-def _recruit_block_reason_from(blocked: List[str]) -> str:
+def _recruit_block_reason_from(blocked: List[str], remedy: str = "") -> str:
     """The sentence `_recruit_block_reason` states, from an explicit list —
-    CN-1's quote reads the pure selector and has no stash to read."""
+    CN-1's quote reads the pure selector and has no stash to read.
+
+    PB-2 (the release build, Sept 25 2026): the remedy is DERIVED
+    (`recruit_remedy`) — an order the board takes today, or the price gap
+    said plainly — never the old hard-coded "recruit 10000 infantry with
+    Ney", which the treasury refused in the next breath on turn 1 of the
+    shipped campaign (1,003 gold against 800)."""
     if not blocked:
         return ""
     shown = "; ".join(blocked[:3])
     more = f" (and {len(blocked) - 3} others)" if len(blocked) > 3 else ""
+    tail = remedy or "March a corps within range, or name one directly."
     return (f" Recruits join a marshal who can reach the depot: {shown}"
-            f"{more}. March a corps within range, or name one directly "
-            f"(\"recruit 10000 infantry with Ney\").")
+            f"{more}. {tail}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -361,11 +368,12 @@ def _levy_arm_constants(arm: str):
     return INFANTRY_RECRUIT_AMOUNT, INFANTRY_RECRUIT_GOLD_COST_BASE
 
 
-def _msg_no_recipient(location: Optional[str], blocked: List[str]) -> str:
+def _msg_no_recipient(location: Optional[str], blocked: List[str],
+                      remedy: str = "") -> str:
     where = f" at {location}" if location else ""
     return (f"Berthier scans the dispatches. 'No marshal is available to "
             f"receive reinforcements{where}, Sire.'"
-            f"{_recruit_block_reason_from(blocked)}")
+            f"{_recruit_block_reason_from(blocked, remedy)}")
 
 
 def _msg_not_controlled(location: str) -> str:
@@ -547,6 +555,63 @@ def recruit_ground_refusal(world, location: str, nation: str) -> Tuple[str, str]
     return "", ""
 
 
+def recruit_remedy(world, nation: Optional[str] = None) -> str:
+    """PB-2 (the release build, Sept 25 2026): what a player refused for want
+    of a receiver can type INSTEAD — derived from the board (CQ-19's rule: a
+    remedy names an order the game takes). The cheapest levy a standing corps
+    of ours can raise today, as the order that raises it and what it costs;
+    failing that, the price gap — the treasury against the cheapest levy —
+    said plainly, so turn 1's `recruit` refusal (800 gold against 872) no
+    longer hands out an order the treasury refuses in the next breath.
+
+    Memoised per board state (turn, chest, the roster's positions and
+    strengths): the map summary quotes every province each response, and on
+    the boot most of them have no receiver."""
+    nation = nation or world.player_nation
+    roster = tuple(sorted(
+        (m.name, str(m.location), int(m.strength))
+        for m in world.marshals.values()
+        if m.nation == nation and m.strength >= 1000
+        and not getattr(m, "captured_by", "")))
+    key = (nation, int(getattr(world, "current_turn", 0) or 0),
+           int(world.nation_gold.get(nation, 0)), roster)
+    cached = getattr(world, "_recruit_remedy_cache", None)
+    if cached and cached[0] == key:
+        return cached[1]
+    affordable = []
+    priced = []
+    seen = set()
+    for name, location, _strength in roster:
+        if location in seen or location not in world.regions:
+            continue
+        seen.add(location)
+        q = _recruit_quote_core(world, location, None, nation, with_remedy=False)
+        if q.get("ok"):
+            affordable.append((int(q["price"]), int(q["amount"]),
+                               str(q["arm"]), str(q["recipient"])))
+        elif q.get("kind") == "treasury":
+            priced.append((int(q["price"]), int(q["amount"]), str(q["arm"]),
+                           str(q["recipient"]), int(q.get("have") or 0)))
+    if affordable:
+        price, amount, arm, name = min(affordable)
+        noun = _ARM_NOUN.get(arm, arm)
+        text = (f"March a corps within range, or raise them where one stands: "
+                f"\"{name}, recruit {arm}\" — {amount:,} {noun} for {price:,} gold.")
+    elif priced:
+        price, amount, arm, name, have = min(priced)
+        noun = _ARM_NOUN.get(arm, arm)
+        text = (f"March a corps within range. The treasury holds {have:,} gold; "
+                f"the cheapest levy, {amount:,} {noun} with {name} "
+                f"(\"{name}, recruit {arm}\"), costs {price:,}.")
+    else:
+        text = "March a corps within range, or name one directly."
+    try:
+        world._recruit_remedy_cache = (key, text)
+    except Exception:  # a frozen/proxy world object — the cache is optional
+        pass
+    return text
+
+
 def recruit_arm_remedy(world, nation: str, arm: str,
                        region_name: Optional[str] = None) -> str:
     """CN-2: the way to an arm nobody in range commands — DERIVED from the
@@ -671,7 +736,7 @@ def _recruit_quote_display(quote: Dict, arm: Optional[str]):
 
 
 def _recruit_quote_core(world, region_name: str, arm: Optional[str],
-                        nation: Optional[str]) -> Dict:
+                        nation: Optional[str], with_remedy: bool = True) -> Dict:
     nation = nation or world.player_nation
     quote = {"ok": False, "kind": "", "reason": "", "arm_requested": arm,
              "recipient": None, "arm": None, "distance": None,
@@ -704,8 +769,13 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
             return quote
         ready = of_arm
     if not ready:
+        # PB-2: the remedy is derived from the board (`recruit_remedy`,
+        # which quotes each corps's own ground with `with_remedy=False` so
+        # it cannot recurse into itself).
         quote.update(kind="no_recipient",
-                     reason=_msg_no_recipient(region_name, blocked))
+                     reason=_msg_no_recipient(
+                         region_name, blocked,
+                         remedy=recruit_remedy(world, nation) if with_remedy else ""))
         return quote
     marshal, distance = ready[0]
     levy_arm = recruit_arm_of(marshal)
@@ -1170,7 +1240,8 @@ class EconomyExecutor:
                                         location, ready)
         return _msg_no_recipient(location if say_where else None,
                                  list(getattr(world, "_last_nearest_marshal_block",
-                                              None) or []))
+                                              None) or []),
+                                 remedy=recruit_remedy(world, world.player_nation))
 
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
         """Recruit new troops with manpower pools, morale dilution, stability gates, and cost modifiers.

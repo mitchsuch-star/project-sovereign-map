@@ -47,12 +47,23 @@ if not exist "ink_iron_server.exe" (
     exit /b 1
 )
 
-:: If a server is already answering on port 8005, reuse it rather than
-:: silently starting a second one underneath it.
+:: If a server is already answering on port 8005, reuse it ONLY if it is this
+:: build's own (PB-4, the release build): a different build - an older zip, a
+:: developer's source server - would play a different game under this client.
+set "BUILD_STAMP="
+if exist "build_stamp.txt" set /p BUILD_STAMP=<build_stamp.txt
 curl -s --fail -o nul http://127.0.0.1:8005/test 2>nul
 if not errorlevel 1 (
-    echo [WARN] A server is already running on port 8005 - reusing it.
-    echo        ^(If the game acts stale, close everything and relaunch.^)
+    set "RUNNING_STAMP="
+    for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "try { (Invoke-RestMethod -Uri 'http://127.0.0.1:8005/test' -TimeoutSec 5).version } catch { '' }"`) do set "RUNNING_STAMP=%%v"
+    if defined BUILD_STAMP if not "!RUNNING_STAMP!"=="!BUILD_STAMP!" (
+        echo [ERROR] Another Ink and Iron server is already running on port 8005,
+        echo         and it is a different build ^(!RUNNING_STAMP!, this one is !BUILD_STAMP!^).
+        echo         Close its window ^(or restart the PC^) and run launch.bat again.
+        pause
+        exit /b 1
+    )
+    echo [INFO] This build's server is already running - reusing it.
     goto server_up
 )
 
@@ -60,27 +71,28 @@ if not errorlevel 1 (
 echo [INFO] Starting server...
 start "Ink and Iron Server" /min ink_iron_server.exe
 
-:: Wait until the server actually answers (up to ~30s) instead of hoping
-:: a fixed 3s was enough. curl ships with Windows 10/11.
+:: Wait until the server actually answers (up to ~60s - a first launch on a
+:: slow disk, or under an antivirus scan of the new exe, can take well over
+:: 30) instead of hoping a fixed 3s was enough. curl ships with Windows 10/11.
 echo [INFO] Waiting for the server to come up...
 set /a TRIES=0
 :wait_server
 curl -s --fail -o nul http://127.0.0.1:8005/test 2>nul
 if not errorlevel 1 goto server_up
 set /a TRIES+=1
-if !TRIES! geq 30 goto server_dead
+if !TRIES! geq 60 goto server_dead
 timeout /t 1 /nobreak >nul
 goto wait_server
 
 :server_dead
 echo.
-echo [ERROR] The server did not come up after 30 seconds.
+echo [ERROR] The server did not come up after 60 seconds.
 echo.
-echo   - Check the "Ink and Iron Server" window in the taskbar for
-echo     an error message ^(it stays open when something goes wrong^).
-echo   - If it closed instantly, run ink_iron_server.exe from a
-echo     command prompt to see the error.
-echo   - Port 8005 may be blocked by another program or a firewall.
+echo   - Its log records why: %APPDATA%\InkAndIron\logs\server.log
+echo     ^(please send that file with a report^).
+echo   - Windows Defender or another antivirus may have blocked
+echo     ink_iron_server.exe - allow it and try again.
+echo   - Port 8005 may be in use by another program or blocked by a firewall.
 echo.
 pause
 exit /b 1

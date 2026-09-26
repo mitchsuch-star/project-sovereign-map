@@ -115,6 +115,19 @@ static func set_tutorial_done(done: bool) -> void:
 	_config().save(PATH)
 
 
+# --- C1 (the release build): the once-ever keyless Smarter Parsing hint ---
+# Per-machine, like the School's latch: Berthier's line is said on the first
+# keyless campaign start and never again (reactive-but-discoverable, never a
+# nag; the line itself lives in main.gd `_maybe_print_parser_hint`).
+static func get_parser_hint_seen() -> bool:
+	return bool(_config().get_value("parser", "hint_seen", false))
+
+
+static func set_parser_hint_seen(seen: bool) -> void:
+	_config().set_value("parser", "hint_seen", seen)
+	_config().save(PATH)
+
+
 # --- Bus volumes (Music & Sound Core: Master / Music / SFX / UI) ---
 # Linear 0..1, applied by AudioManager (linear→dB); pause-menu sliders write here.
 const AUDIO_VOLUME_DEFAULTS := {

@@ -832,6 +832,12 @@ func _on_connection_test(response):
 
 		# Show instructions
 		_print_boot_help()
+		# PB-4 (the release build): the war office's build stamp, for the
+		# pause menu's version line.
+		MenuBoot.server_version = str(response.get("version", ""))
+		# C1 (the release build): the once-ever Smarter Parsing hint, on a
+		# keyless campaign start only.
+		_maybe_print_parser_hint(response)
 
 		set_input_enabled(true)
 
@@ -863,12 +869,28 @@ func _print_boot_help() -> void:
 	add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
-	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"what can I do\" (Berthier names the orders the board takes today) or \"end turn\"[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
 	add_output("")
 	_add_separator()
+
+
+func _maybe_print_parser_hint(response) -> void:
+	"""C1 (the release build): ONE non-modal Berthier line, said once ever on
+	this machine, on a campaign start with no key anywhere — neither the
+	launcher's (`/test` says whether the war office parses live) nor a stored
+	one (pushed right after this). Latched in UiSettings; never a nag, never a
+	modal — the reactive-but-discoverable discipline of the Reward gate."""
+	if bool(response.get("smarter_parsing", false)):
+		return
+	if UiSettings.get_api_key() != "":
+		return
+	if UiSettings.get_parser_hint_seen():
+		return
+	UiSettings.set_parser_hint_seen(true)
+	add_output("[color=#" + Utils.COLOR_DIMMED + "]Berthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"[/color]")
 
 
 func _push_stored_llm_key() -> void:
@@ -3299,6 +3321,13 @@ func _on_command_result(response):
 		_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition
 		_stash_relay(response)  # CR-7-3: the relayed tail, filled at control return
 		_stash_ending(response)  # GE-2: the campaign's ending — raised at control return, never above the report
+		# C1 (the release build): the once-per-session Smarter Parsing notice
+		# (the live parser failed; the offline parser read the order). Printed
+		# BEFORE routing — an early-returning route must not swallow a line
+		# the backend will not say twice.
+		var _parser_notice = response.get("parser_notice", null)
+		if _parser_notice is String and _parser_notice != "":
+			add_output("[color=#" + Utils.COLOR_DIMMED + "]" + _parser_notice + "[/color]")
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry

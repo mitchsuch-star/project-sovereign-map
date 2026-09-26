@@ -10,10 +10,12 @@ class_name SettingsPanel
 #   • INTERFACE — the global Interface Scale slider (UI-2 semantics: live-apply
 #     every step, persist on drag end) + reset + hint
 #   • SOUND     — Battle sounds toggle + the four bus volume sliders
-#   • THE PARSER — the in-client Anthropic API key (BYOK). Stored locally in
-#     user://ui_settings.cfg, pushed to the player's OWN backend at
-#     127.0.0.1:8005 (/config/llm); an empty key reverts the backend to its
-#     .env configuration. The key is never sent anywhere else.
+#   • SMARTER PARSING — the player's own Anthropic API key (BYOK). Stored
+#     locally in user://ui_settings.cfg, pushed to the player's OWN backend
+#     (/config/llm), which checks it with Anthropic and sends hard phrasings
+#     to Anthropic with it. An empty key reverts the backend to its launcher
+#     configuration. C1 (the release build, Sept 23 2026): the copy says where
+#     the key goes, and the status line says what the check found.
 #   • SPOKEN ORDERS — the Voice-to-Text v1 hint (Road-to-EA position 8):
 #     OS dictation (Win+H) into the command line. Display-only by design —
 #     dictation types text; the SAME deterministic parser reads it (GR6).
@@ -169,7 +171,7 @@ func _build_sound_section() -> void:
 # ── THE PARSER (BYOK) ───────────────────────────────────────────────────────
 
 func _build_parser_section() -> void:
-	_add_header("THE PARSER (AI)")
+	_add_header("SMARTER PARSING (OPTIONAL)")
 	_parser_status = Label.new()
 	_parser_status.add_theme_font_size_override("font_size", 12)
 	_parser_status.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
@@ -185,23 +187,25 @@ func _build_parser_section() -> void:
 	var btn_row := HBoxContainer.new()
 	btn_row.add_theme_constant_override("separation", 8)
 	var apply := Button.new()
-	apply.text = "Apply key"
+	apply.text = "Connect"
 	apply.custom_minimum_size = Vector2(0, 32)
 	apply.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	apply.pressed.connect(_on_apply_key)
 	btn_row.add_child(apply)
 	var clear := Button.new()
-	clear.text = "Clear (use .env)"
+	clear.text = "Disconnect"
 	clear.custom_minimum_size = Vector2(0, 32)
 	clear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clear.pressed.connect(_on_clear_key)
 	btn_row.add_child(clear)
 	add_child(btn_row)
 
-	_add_hint("Typed orders are read by a fast offline parser; an Anthropic API "
-		+ "key lets Berthier's aide handle the hard phrasings live. The key is "
-		+ "stored locally (user://ui_settings.cfg) and sent only to your own "
-		+ "backend on this machine — never anywhere else.")
+	_add_hint("Your orders are read by a fast offline parser that needs no key. "
+		+ "Connect your own Anthropic account and the orders it is unsure of are "
+		+ "also read by Claude: create an API key at console.anthropic.com and "
+		+ "paste it here. Anthropic bills your account — under a cent for each "
+		+ "order it reads. The key is stored on this PC (user://ui_settings.cfg) "
+		+ "and sent to Anthropic through the game's own local server — to no one else.")
 	_show_stored_parser_state()
 
 
@@ -234,9 +238,9 @@ func _show_stored_parser_state() -> void:
 		return
 	var stored := UiSettings.get_api_key()
 	if stored == "":
-		_parser_status.text = "No key stored — the backend uses its .env configuration."
+		_parser_status.text = "No key connected — the offline parser reads your orders."
 	else:
-		_parser_status.text = "Your key (ends …" + stored.right(4) + ") is stored and pushed when a campaign starts."
+		_parser_status.text = "Your key (ends …" + stored.right(4) + ") is stored on this PC and connected when a campaign starts."
 
 
 func _push_key(key: String) -> void:
@@ -272,20 +276,16 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 	var data = JSON.parse_string(body.get_string_from_utf8())
 	if not (data is Dictionary):
 		return
-	var provider := str(data.get("provider", "?"))
-	var key_source := str(data.get("key_source", "none"))
-	var live := bool(data.get("live", false))
-	var line: String
-	if not live:
-		line = "Live parser: OFF — offline mock parser (deterministic keywords only)."
-	elif key_source == "byok":
-		line = "Live parser: %s — using YOUR key." % provider.to_upper()
-	elif key_source == "inhouse":
-		line = "Live parser: %s — key from the backend's .env." % provider.to_upper()
+	# C1: the backend checked the key with Anthropic (a free Models-API GET)
+	# and says what it found; a later live parse keeps the line honest.
+	var line := str(data.get("key_status_text", ""))
+	if line == "":
+		line = "Smarter Parsing: on." if bool(data.get("live", false)) else "Not connected — the offline parser reads your orders."
+	var status := str(data.get("key_status", ""))
+	if status == "rejected" or status == "no_model":
+		_parser_status.add_theme_color_override("font_color", Color(Utils.COLOR_ERROR))
 	else:
-		line = "Live parser: %s — but NO key found; falls back to the offline parser." % provider.to_upper()
-	if mode == "push":
-		line = "Applied. " + line
+		_parser_status.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	_parser_status.text = line
 
 

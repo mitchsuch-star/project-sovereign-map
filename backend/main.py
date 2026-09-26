@@ -9,12 +9,21 @@ import asyncio  # noqa: E402 - 3A-1: state_lock (async middleware)
 import contextvars  # noqa: E402 - FA-39: per-request parse provenance
 import weakref  # noqa: E402 - 3A-1: per-event-loop state locks
 from pathlib import Path
+import functools
 from typing import Optional
 
 from dotenv import load_dotenv
 
 # Load .env BEFORE any imports that might read env vars
 load_dotenv()
+
+# PB-4 (the release build, Sept 23 2026): an emoji must never crash a turn on
+# a cp1252 console, and the shipped build tees everything it prints into
+# %APPDATA%\InkAndIron\logs\server.log — the file a player can send. Off in the
+# dev repo unless INK_IRON_LOG_DIR is set. Installed before the first print.
+from backend import runtime_log  # noqa: E402
+runtime_log.install()
+from backend.build_info import build_version  # noqa: E402
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,8 +55,11 @@ print("PROJECT SOVEREIGN - Server Starting")
 print("=" * 60)
 llm_mode = os.getenv("LLM_MODE", "mock")
 api_key = os.getenv("ANTHROPIC_API_KEY", "")
+print(f"BUILD: {build_version()}")
 print(f"LLM_MODE: {llm_mode}")
-print(f"ANTHROPIC_API_KEY: {'SET (' + api_key[:10] + '...)' if api_key else 'NOT SET'}")
+# PB-4: never print any part of the key — this line now reaches server.log,
+# the file players are asked to send with a bug report.
+print(f"ANTHROPIC_API_KEY: {'SET' if api_key else 'NOT SET'}")
 print("=" * 60)
 
 # Initialize game
@@ -104,11 +116,19 @@ def _resolve_sovereign_map() -> str:
 
 
 # Map Slice 7 default-boot flip: the shipped campaign IS the 1805 scenario.
-# Absolute (repo-root-derived) so the boot works regardless of CWD.
-_DEFAULT_SCENARIO_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
-)
+# Absolute so the boot works regardless of CWD.
+#
+# PB-1 (Sept 23, 2026): the maps folder is derived from region.py's registry
+# path, NEVER from this file's own __file__. This module is PyInstaller's ENTRY
+# script, and an entry script's __file__ is <bundle>\_internal\main.py
+# (measured with a 6.19 onedir probe build) — so the old parents[1] resolved to
+# the bundle root, outside _internal, while ink_iron.spec ships the maps inside
+# it, and the frozen server died at import. region.py is an IMPORTED module, so
+# its __file__ mirrors the repo layout inside _internal in both worlds.
+from backend.models.region import EUROPE_REGISTRY_PATH  # noqa: E402
+
+MAPS_DIR = Path(EUROPE_REGISTRY_PATH).parent
+_DEFAULT_SCENARIO_PATH = MAPS_DIR / "europe_1805.json"
 # Explicit opt-out sentinel: with a scenario as the default, tests/devs need an
 # env value that means "no scenario — boot the bare flag-resolved world".
 SCENARIO_NONE_SENTINEL = "none"
@@ -116,10 +136,7 @@ SCENARIO_NONE_SENTINEL = "none"
 # POSITION 7: named scenarios a client may request over HTTP (/new_game).
 # Names map to repo-root-derived paths (the _DEFAULT_SCENARIO_PATH idiom) —
 # a raw path is NEVER accepted over the wire.
-TUTORIAL_SCENARIO_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "godot-client" / "project-sovereign" / "assets" / "maps" / "tutorial_1805.json"
-)
+TUTORIAL_SCENARIO_PATH = MAPS_DIR / "tutorial_1805.json"  # PB-1: see MAPS_DIR
 SCENARIO_ALLOWLIST = {"tutorial": TUTORIAL_SCENARIO_PATH}
 
 
@@ -655,6 +672,12 @@ def build_base_response(world, success: bool = True, message: str = "",
         _PARSE_PROVENANCE.set(None)
         response.setdefault("parse_mode", _provenance[0])
         response.setdefault("parse_confidence", _provenance[1])
+    # C1 (the release build): a live parse that FAILED is said once per
+    # session, quietly — the offline parser read the order — and its kind
+    # feeds the Settings status line ("Key rejected").
+    _notice = _live_parser_outcome_notice()
+    if _notice:
+        response.setdefault("parser_notice", _notice)
     # FA-49: what each button on an interrupt popup COSTS. Stamped on a
     # SHALLOW COPY, not on `marshal.pending_interrupt` itself — the stored
     # dict is handed out by reference from a dozen sites and is serialized
@@ -2745,6 +2768,12 @@ def test_connection():
         "success": True,
         "status": "ok",
         "message": "Backend is running",
+        # PB-4: the build stamp — the main menu prints it and launch.bat
+        # refuses to reuse a server whose stamp is not the zip's own.
+        "version": build_version(),
+        # C1 (the release build): whether hard phrasings go to the live
+        # parser — the client's once-ever keyless hint reads it at boot.
+        "smarter_parsing": bool(getattr(parser.llm, "use_real_api", False)),
         "turn": int(world.current_turn),
         "gold": int(world.gold),
         "manpower_pools": {
@@ -2810,9 +2839,30 @@ def get_map_topology():
     return payload
 
 
+def _records_transcript(fn):
+    """PB-4 (the release build): the one door every typed order walks through
+    records it in the transcript — a no-op unless logging is on.
+
+    A decorator, not a wrapper function around a renamed body: `execute_command`
+    keeps its whole pipeline under its own name (three source pins read it,
+    and the suite's direct in-process calls go through it), and
+    `functools.wraps` lets FastAPI read the original signature. The
+    provenance key is read HERE, in main.py — the FA slice-15b census allows
+    no other reader of it (GR6: display only)."""
+    @functools.wraps(fn)
+    def _recorded(request: CommandRequest):
+        response = fn(request)
+        runtime_log.append_transcript(
+            world, getattr(request, "command", ""), response,
+            parser=response.get("parse_mode") if isinstance(response, dict) else None)
+        return response
+    return _recorded
+
+
 @app.post("/command")
+@_records_transcript
 def execute_command(request: CommandRequest):
-    """Execute a game command and return result."""
+    """Execute a game command and return result; every road returns a response dict."""
     # print(f"\n{'=' * 60}")
     # print(f"📨 COMMAND RECEIVED: '{request.command}'")
     # print(f"   Current turn: {world.current_turn}")
@@ -5319,14 +5369,97 @@ async def list_saves_endpoint():
 # LLM CONFIG (Main Menu pass, position 6 — the in-client API key)
 # ════════════════════════════════════════════════════════════
 
+# C1 (the release build, Sept 23 2026): players connect their OWN Anthropic
+# key, so the key is CHECKED when they connect it, and what the check — or a
+# later live parse — found is said plainly in Settings. None = derive the
+# state from the live client (an unchecked launcher key reads "configured").
+KEY_STATUS_TEXT = {
+    "not_connected": "Not connected — the offline parser reads your orders.",
+    "configured": "A key is set in config.txt — it is checked on the first hard phrasing.",
+    "connected": "Connected — hard phrasings go to Anthropic with your key.",
+    "rejected": ("Key rejected by Anthropic — check it at console.anthropic.com. "
+                 "The offline parser reads your orders."),
+    "no_model": ("Your key works, but it cannot use the parser's model — "
+                 "the offline parser reads your orders."),
+    "unreachable": ("Anthropic could not be reached — the offline parser reads "
+                    "your orders until it can."),
+}
+_key_status = {"state": None}
+# The live-parse failure notice is spoken once per session (and once more
+# after a new key is connected) — a quiet line, never a modal.
+_parser_notice = {"spoken": False}
+_LIVE_FAILURE_STATE = {
+    "auth": "rejected", "permission": "rejected", "model": "no_model",
+    "timeout": "unreachable", "network": "unreachable",
+}
+_LIVE_FAILURE_NOTICE = {
+    "rejected": "Smarter Parsing: Anthropic rejected the key, so the offline parser read that order. Fix the key under Settings → Smarter Parsing. (Said once.)",
+    "no_model": "Smarter Parsing: the key cannot use the parser's model, so the offline parser read that order. (Said once.)",
+    "unreachable": "Smarter Parsing: Anthropic could not be reached, so the offline parser read that order. (Said once.)",
+}
+_LIVE_FAILURE_NOTICE_DEFAULT = ("Smarter Parsing could not answer just now, so the "
+                                "offline parser read that order. (Said once.)")
+
+
 def _llm_config_payload() -> dict:
     llm = parser.llm
+    state = _key_status["state"]
+    if state is None:
+        state = ("configured" if llm.use_real_api and getattr(llm, "api_key", None)
+                 else "not_connected")
     return {
         "success": True,
         "provider": llm.provider_name,
         "key_source": llm.key_source,
         "live": llm.use_real_api,
+        "key_status": state,
+        "key_status_text": KEY_STATUS_TEXT[state],
     }
+
+
+def _check_anthropic_key(key: str) -> str:
+    """One free, authenticated GET — the Models API — confirms the key AND its
+    access to the parser's pinned model. Costs nothing, never raises, and never
+    retries: a player waits on this click."""
+    import anthropic
+    from backend.ai.providers import ANTHROPIC_PARSE_MODEL
+    try:
+        client = anthropic.Anthropic(
+            api_key=key, timeout=anthropic.Timeout(6.0, connect=3.0),
+            max_retries=0)
+        client.models.retrieve(ANTHROPIC_PARSE_MODEL)
+        return "connected"
+    except (anthropic.AuthenticationError, anthropic.PermissionDeniedError):
+        return "rejected"
+    except anthropic.NotFoundError:
+        return "no_model"
+    except anthropic.RateLimitError:
+        return "connected"  # a 429 is an authenticated answer
+    except anthropic.APIError:
+        return "unreachable"  # connection, timeout, 5xx — could not confirm
+    except Exception as e:  # the Settings click must never 500
+        print(f"[WARN] key check failed unexpectedly: {type(e).__name__}")
+        return "unreachable"
+
+
+def _live_parser_outcome_notice() -> Optional[str]:
+    """Read the last live request's outcome (providers.py) into the key status,
+    and return the once-per-session failure notice when one is due."""
+    from backend.ai.providers import API_OUTCOME_OK, pop_last_api_outcome
+    outcome = pop_last_api_outcome()
+    if not outcome:
+        return None
+    if outcome == API_OUTCOME_OK:
+        if _key_status["state"] in (None, "configured", "unreachable"):
+            _key_status["state"] = "connected"
+        return None
+    state = _LIVE_FAILURE_STATE.get(outcome)
+    if state:
+        _key_status["state"] = state
+    if _parser_notice["spoken"]:
+        return None
+    _parser_notice["spoken"] = True
+    return _LIVE_FAILURE_NOTICE.get(state, _LIVE_FAILURE_NOTICE_DEFAULT)
 
 
 @app.get("/config/llm")
@@ -5347,12 +5480,25 @@ async def set_llm_config(request: LLMConfigRequest):
     """
     from backend.ai.llm_client import LLMClient
     key = (request.api_key or "").strip()
+    # C1: a new key (or none) earns a fresh once-per-session notice.
+    _parser_notice["spoken"] = False
+    state = _check_anthropic_key(key) if key else None
     try:
+        if state in ("rejected", "no_model"):
+            # A key Anthropic refuses is never installed: every hard phrasing
+            # would pay a failed round-trip before the offline parser answered.
+            parser.llm = LLMClient.create(None)
+            _key_status["state"] = state
+            payload = _llm_config_payload()
+            payload["success"] = False
+            payload["message"] = KEY_STATUS_TEXT[state]
+            return payload
         parser.llm = LLMClient.create(key if key else None)
+        _key_status["state"] = state
         return _llm_config_payload()
     except Exception as e:  # a bad key string must never take the server down
-        print(f"[ERROR] /config/llm: {e}")
-        return {"success": False, "message": f"Could not configure parser: {e}"}
+        print(f"[ERROR] /config/llm: {type(e).__name__}")
+        return {"success": False, "message": "Could not configure the parser."}
 
 
 @app.post("/delete_save")

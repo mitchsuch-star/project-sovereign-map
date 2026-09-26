@@ -214,7 +214,7 @@ class TestSharedSettingsPanel:
     def test_panel_scene_exists_and_owns_the_four_sections(self):
         assert (SCENES / "settings_panel.tscn").exists()
         panel = _read(SCRIPTS / "settings_panel.gd")
-        for marker in ("INTERFACE", "SOUND", "THE PARSER (AI)", "CREDITS"):
+        for marker in ("INTERFACE", "SOUND", "SMARTER PARSING (OPTIONAL)", "CREDITS"):
             assert marker in panel, f"settings panel missing section {marker}"
         # the four bus sliders + battle toggle + the scale contract
         assert '["Master", "Music", "SFX", "UI"]' in panel

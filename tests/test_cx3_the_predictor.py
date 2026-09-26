@@ -283,8 +283,12 @@ class TestTheGameCanReadWhatItPrints:
         and a parser-level census calls that green."""
         body = self._help_body()
         quoted = sorted(set(re.findall(r'"([^"\n]{3,70})"', body)))
+        # PB-2 (the release build, Sept 25, 2026): `Soult, move to Bavaria`
+        # survived this census for six days — the executor answers "Bavaria
+        # is a nation, not a province", a name error this list did not name.
         refusals = ("not found", "cannot parse", "Unknown target",
-                    "I cannot interpret", "no such", "eludes me")
+                    "I cannot interpret", "no such", "eludes me",
+                    "is a nation, not a province")
         failures = []
         for phrase in quoted:
             if phrase in self.NOT_COMMANDS:

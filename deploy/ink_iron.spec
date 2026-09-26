@@ -1,6 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for Ink & Iron backend server
-# Build with: pyinstaller deploy/ink_iron.spec --distpath deploy/dist --workpath deploy/build --clean
+# PyInstaller spec for the Ink & Iron backend server (the release build,
+# regenerated September 25, 2026 — it had predated the July-18 SDK migration).
+#
+# Build with (deploy/build.bat does all of this, plus the export and the smoke):
+#   pyinstaller deploy/ink_iron.spec --distpath deploy/dist --workpath deploy/build --clean --noconfirm
+#
+# What the frozen server needs beyond what a static import scan finds:
+#   - the three map JSONs the boot HARD-REQUIRES (see the datas block);
+#   - the build stamp (PB-4) — written by tools/build_stamp.py before the
+#     build, shipped at the bundle's _MEIPASS root (= _internal\), read by
+#     backend/build_info.py;
+#   - uvicorn / fastapi / starlette submodules, which are imported by name at
+#     runtime (collect_all);
+#   - the Anthropic SDK (July-18 migration: the live parser goes through the
+#     official `anthropic` package, not raw HTTP) and its transport stack —
+#     httpx / httpcore / h11 / anyio / sniffio / jiter / distro — all static
+#     imports, listed as hidden imports anyway so a lazy import inside the SDK
+#     cannot drop one.
 
 import os
 from PyInstaller.utils.hooks import collect_all, collect_submodules
@@ -14,6 +30,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))
 uvicorn_datas, uvicorn_binaries, uvicorn_hiddenimports = collect_all('uvicorn')
 fastapi_datas, fastapi_binaries, fastapi_hiddenimports = collect_all('fastapi')
 starlette_datas, starlette_binaries, starlette_hiddenimports = collect_all('starlette')
+anthropic_datas, anthropic_binaries, anthropic_hiddenimports = collect_all('anthropic')
 
 # Hidden imports PyInstaller commonly misses
 hidden_imports = [
@@ -44,18 +61,23 @@ hidden_imports = [
     'anyio',
     'anyio._backends',
     'anyio._backends._asyncio',
+    'sniffio',
     # Pydantic v2
     'pydantic',
     'pydantic.deprecated',
     'pydantic.deprecated.decorator',
     'pydantic_core',
-    # HTTP / API clients
+    # HTTP / the Anthropic SDK's transport
     'httpx',
     'httpx._transports',
     'httpx._transports.default',
     'httpcore',
     'h11',
+    'certifi',
+    'jiter',
+    'distro',
     'anthropic',
+    'anthropic.types',
     # Dotenv
     'dotenv',
     # Fuzzy matching
@@ -63,50 +85,16 @@ hidden_imports = [
     'fuzzywuzzy.fuzz',
     'fuzzywuzzy.process',
     'Levenshtein',
-    # Backend package (ensure all submodules found)
+    # The backend package — every submodule, collected below as well
     'backend',
     'backend.main',
-    'backend.commands',
-    'backend.commands.parser',
-    'backend.commands.executor',
-    'backend.commands.disobedience',
-    'backend.commands.objection_v2',
-    'backend.commands.defiance',
-    'backend.commands.strategic',
-    'backend.commands.vindication',
-    'backend.commands.diplomatic_defiance',
-    'backend.models',
-    'backend.models.marshal',
-    'backend.models.world_state',
-    'backend.models.region',
-    'backend.models.personality',
-    'backend.models.personality_modifiers',
-    'backend.models.diplomat',
-    'backend.models.intel',
-    'backend.game_logic',
-    'backend.game_logic.combat',
-    'backend.game_logic.battle_report',
-    'backend.game_logic.relationship',
-    'backend.game_logic.turn_manager',
-    'backend.game_logic.diplomacy',
-    'backend.game_logic.ai_diplomacy',
-    'backend.game_logic.diplomatic_advisory',
-    'backend.game_logic.coalition',
-    'backend.game_logic.diplomatic_ledger',
-    'backend.game_logic.vassal',
-    'backend.game_logic.dispatch',
-    'backend.game_logic.ledger',
-    'backend.game_logic.marshal_overview',
-    'backend.ai',
-    'backend.ai.llm_client',
-    'backend.ai.enemy_ai',
-    'backend.ai.strategic_parser',
-    'backend.ai.validation',
-    'backend.ai.prompt_builder',
+    'backend.build_info',
+    'backend.runtime_log',
+    'backend.save_manager',
     'backend.campaign_log',
     'backend.intel_report',
     'backend.notifications',
-    'backend.save_manager',
+    'backend.display_names',
 ]
 
 # Merge all collected hidden imports
@@ -115,6 +103,7 @@ all_hidden = list(set(
     + uvicorn_hiddenimports
     + fastapi_hiddenimports
     + starlette_hiddenimports
+    + anthropic_hiddenimports
     + collect_submodules('backend')
     + collect_submodules('anthropic')
     + collect_submodules('httpx')
@@ -122,22 +111,32 @@ all_hidden = list(set(
 ))
 
 # Data files
-all_datas = uvicorn_datas + fastapi_datas + starlette_datas
+all_datas = uvicorn_datas + fastapi_datas + starlette_datas + anthropic_datas
 
 # Aug 2026 health-check audit (shippable-build P0-1): since the July-2 map
 # cutover the backend HARD-REQUIRES three JSONs at repo-relative paths —
 # europe.json (the region registry, backend/models/region.py) plus the
 # europe_1805.json default scenario and tutorial_1805.json (backend/main.py).
-# Under PyInstaller, Path(__file__)-derived paths resolve inside _internal/,
-# so without these datas the frozen server CRASHES ON BOOT (the March 2026
-# build only worked because the pre-cutover game needed no scenario file).
+# Under PyInstaller they resolve inside _internal/ from region.py's own
+# __file__ (PB-1: main.py is the ENTRY script, whose __file__ is
+# _internal\main.py, so the maps folder is derived from region.py, an
+# IMPORTED module whose __file__ mirrors the repo layout in both worlds).
 _MAPS_SRC = os.path.join(
     PROJECT_ROOT, 'godot-client', 'project-sovereign', 'assets', 'maps')
 _MAPS_DST = os.path.join(
     'godot-client', 'project-sovereign', 'assets', 'maps')
 for _map_file in ('europe.json', 'europe_1805.json', 'tutorial_1805.json'):
     all_datas.append((os.path.join(_MAPS_SRC, _map_file), _MAPS_DST))
-all_binaries = uvicorn_binaries + fastapi_binaries + starlette_binaries
+
+# PB-4: the build stamp, at the _MEIPASS root. Absent in a hand-run
+# PyInstaller (build_info then reports "unknown" and the smoke refuses it) —
+# deploy/build.bat writes it first.
+_STAMP = os.path.join(PROJECT_ROOT, 'deploy', 'build_stamp.json')
+if os.path.exists(_STAMP):
+    all_datas.append((_STAMP, '.'))
+
+all_binaries = (uvicorn_binaries + fastapi_binaries + starlette_binaries
+                + anthropic_binaries)
 
 a = Analysis(
     [os.path.join(PROJECT_ROOT, 'backend', 'main.py')],
@@ -152,6 +151,7 @@ a = Analysis(
         'pytest', 'pytest_cov', 'ruff',
         'tkinter', 'matplotlib', 'numpy', 'pandas',
         'PIL', 'scipy', 'IPython', 'notebook',
+        'tests', 'tools',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

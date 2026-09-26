@@ -51,6 +51,9 @@ var _tex_cache: Dictionary = {}        # slide index -> Texture2D (current + nex
 # (console error on every campaign start). Children die with the scene.
 var _slide_timer: Timer
 var _poll_timer: Timer
+# PB-4 (the release build): the war office's build stamp, from GET /test —
+# printed beside the version so a bug report names the exact build.
+var _server_version := ""
 var _kb_tweens: Array = []
 
 var _backend_up := false
@@ -515,6 +518,10 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 	if mode == "test":
 		if result == HTTPRequest.RESULT_SUCCESS and code == 200:
 			_backend_up = true
+			var test_data = JSON.parse_string(body.get_string_from_utf8())
+			if test_data is Dictionary:
+				_server_version = str(test_data.get("version", ""))
+				MenuBoot.server_version = _server_version
 			_apply_backend_state()
 			# now learn what there is to continue
 			_http_mode = "saves"
@@ -539,6 +546,9 @@ func _apply_backend_state() -> void:
 	if _backend_up:
 		_status_label.text = "✓ The war office answers.  ·  " + Utils.backend_origin_label()
 		_status_label.add_theme_color_override("font_color", Color(0.55, 0.72, 0.55, 0.9))
+		var version_line := get_node_or_null("VersionLine") as Label
+		if version_line != null and _server_version != "" and _server_version != "dev":
+			version_line.text = "Ink & Iron — " + Utils.build_label() + "  ·  build " + _server_version
 	else:
 		# FA-29: the instruction depends on WHICH build is running. In a
 		# source checkout it is the backend command; in the zip a tester

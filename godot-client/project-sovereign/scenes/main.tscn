@@ -230,6 +230,7 @@ bbcode_enabled = true
 fit_content = true
 scroll_active = false
 scroll_following = true
+selection_enabled = true
 
 [node name="InputSection" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
 layout_mode = 2

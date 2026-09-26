@@ -29,10 +29,11 @@
 > to Forty-Five"~~ ✅ LANDED September 25, 2026 (the GEV-D1 follow-on, taken
 > ahead of the build by the user's direction; block below — the four levers
 > built, the shut-out line 60 → 50, the re-measure NOT reaching 45 and the
-> deeper gate recorded for the user). **▶ NEXT = THE
-> RELEASE BUILD (ROADMAP 10)** — its part 1 is parked in `git stash`
-> "release-build part 1 …" and `deploy/parked/release_build_part1.patch`;
-> the build note = `docs/NEXT_SESSION_PROMPT.md`. ⚠ Still open for the
+> deeper gate recorded for the user). ~~THE RELEASE
+> BUILD (ROADMAP 10)~~ ✅ **LANDED September 25, 2026** (block below — the
+> zip built, smoked, exported and verified; the parked patch and stash
+> retired). **▶ NEXT = UPDATE 1 — PR-D1b + the PB-7 doc housekeeping** (the
+> plan's next line; build note = `docs/NEXT_SESSION_PROMPT.md`). ⚠ Still open for the
 > user, not for a session: **the deeper reach gate** (`SYSTEMS_REFERENCE.md`
 > §68.6 — an action point for every corps, the supply cap on ally soil, the
 > capture cascade, the accepting dial; GEV-D1's 45 line stands, not moved a
@@ -43,6 +44,73 @@
 > (`docs/audits/IQ10_*_2026_09_24.png`) and of F5's settlement header
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`). GE-D1 and GE-D2 are
 > RULED and BUILT (below) — no longer open.
+>
+> **▶ ▶ THE RELEASE BUILD (ROADMAP position 10) — ✅ LANDED September 25,
+> 2026** (ONE commit — the one that carries this record; the parked part 1 was never suite-green on its own, see below;
+> landing record `ROADMAP.md` position 10; rules `SYSTEMS_REFERENCE.md`
+> §69; rows `BUG_FIXES.md` §Pre-Build Review PB-1 … PB-6 FIXED (PB-7 stays
+> Update 1's); pins `tests/test_release_build_2026_09_25.py` (86);
+> the zip `deploy/dist/ink_iron_<VERSION>.zip` (293 MB, gitignored — the
+> user uploads it to itch.io).
+> - **Part 1 un-parked.** `git apply --reject` landed every hunk of the
+>   Sept-23 patch but ONE (main.gd — GE-2's `_stash_ending` had taken its
+>   trailing context; placed by hand), the patch file deleted and the stash
+>   dropped. PB-1 (the maps derive from `region.py`, never the entry
+>   script's `__file__`), the runtime log + transcript, the build stamp on
+>   `/test`, the key check + `key_status` + the once-per-session
+>   `parser_notice`, the honest Settings copy, the launcher's 60 s.
+> - **The pipeline boots what it built.** `deploy/build.bat` is the whole
+>   build now: `tools/build_stamp.py` (ONE stamp `<yyyymmdd>-<sha>` — json inside the
+>   frozen server for `/test`, txt beside launch.bat for its mismatch
+>   refusal) → PyInstaller from the regenerated `ink_iron.spec` (the SDK
+>   migration's transport stack, the stamp, `--noconfirm`) →
+>   **`tools/release_smoke.py`** starts the frozen exe from a foreign folder
+>   with the developer's key/DEBUG_MODE/scenario stripped, on port 8099 with
+>   throw-away saves and logs, and PLAYS: `/test` (stamp checked), `/new_game`,
+>   `status`, `Ney, attack Mack`, `end turn` (turn 1 → 2), the log and the
+>   transcript written — exit 1 stops the build before the zip → the Godot
+>   import pass + a **RELEASE** export (the March build was a DEBUG export of
+>   the deleted 19-region world; its 337 KB .pck held no scenario) →
+>   **`tools/list_pck.py`** reads the pack's own directory and requires the
+>   maps, the tutorial scenario and the scenes (881 files,
+>   253 MB) → the stale March zips removed, one versioned zip.
+> - **Measured on the dev PC:** the frozen server answered `/test` in
+>   under 1 second and played the smoke; the live-key smoke
+>   (`--anthropic-key-from-env`, the user's own key from `.env`) put one hard
+>   phrasing through the live parser: `key_status` `configured` at the time of the read, `parse_mode`
+>   `anthropic`; the clean-folder run (the bundle copied under %TEMP%, PATH
+>   stripped to System32, no venv, no repo) booted in under a second and took an order;
+>   the exported client booted windowed against that server with 0 SCRIPT
+>   ERROR. **The no-Python confirmation on another machine is the first
+>   outside player's launch** (ROADMAP row 10's own clause); a fresh Windows
+>   account was NOT created (a system-settings change — the user's).
+> - **PB-2 measured first, then fixed.** Of the 55 quoted examples in `help`,
+>   25 were refused on a fresh boot — six of them ability NAMES the regex
+>   caught, one the Bavaria lie, the rest honest board reasons (the treasury,
+>   an enemy nearby, no intelligence) — so the rule is: README and boot-help
+>   examples EXECUTE (driven, each on a fresh campaign), `help` examples are
+>   READ (a parse failure or an unknown name is the defect). The boot help's
+>   bare `recruit` (refused at boot: 872 against 800) became `what can I do`;
+>   the README's `Davout, move to Bavaria` became `Davout, scout Swabia` and
+>   `Lannes, move to Munich`; the recruit refusal's remedy is DERIVED
+>   (`economy_executor.recruit_remedy`, both roads, the CN-1 drift pin held).
+> - **The v1 Smarter-Parsing touchpoints all land** (the row owned the memo's
+>   §5 list): the renamed section with the three-fears copy and the live
+>   status line (part 1); the once-ever non-modal Berthier hint on a keyless
+>   campaign start (`/test` `smarter_parsing` + the `UiSettings` latch —
+>   reactive-but-discoverable); the quiet once-per-session notice on a live
+>   failure (part 1). Nothing is sold; no purchase surface exists.
+> - **Also:** the build stamp on the pause menu; the terminal text selectable
+>   (`selection_enabled`); README regenerated (SmartScreen, three windows, the
+>   logs, the ending as it ships); `deploy/build_stamp.json` gitignored.
+> - **Gates:** ruff clean; parse harness EXIT=0 (61 scripts, report
+>   refreshed); windowed boot 0 SCRIPT ERROR; `BASELINE_SERIES` + M1–M7
+>   byte-identical (no game rule moved — the recruit remedy is a refusal's
+>   sentence, the AI's recruit producers all name a marshal); the full suite
+>   green in the hook.
+> - **Open for the user:** upload the zip; the first outside launch; the
+>   in-game look at the new Settings copy, the menu's build line and the
+>   once-ever hint (screens, not sessions).
 >
 > **▶ ▶ VP-R1 "THE ROAD TO FORTY-FIVE" — ✅ LANDED September 25, 2026**
 > (the GEV-D1 follow-on, taken ahead of the release build by the user's

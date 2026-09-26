@@ -23,12 +23,21 @@ SETUP:
   1. Unzip this folder anywhere (Desktop is fine)
   2. Double-click launch.bat
 
-  Two windows open:
-    - A server window (minimized in the taskbar) — DON'T close it
+  Windows may show a blue "Windows protected your PC" screen the
+  first time — this build is not code-signed. Click "More info",
+  then "Run anyway". (If you downloaded the zip in a browser,
+  right-click it -> Properties -> Unblock BEFORE extracting, and
+  the prompt appears only once.)
+
+  Three windows open:
+    - The launcher window — it waits for the game and shuts the
+      server down when you quit
+    - A server window ("Ink and Iron Server", minimized in the
+      taskbar) — DON'T close it
     - The game window
 
-  When you're done, close the game window. The server shuts
-  down automatically.
+  When you're done, close the game window. The launcher shuts
+  the server down and closes itself.
 
 SMARTER PARSING (OPTIONAL):
   If you connect your own Anthropic account, unusually-phrased
@@ -37,12 +46,16 @@ SMARTER PARSING (OPTIONAL):
   cannot invent actions or change outcomes, it only reads.
 
   Two ways to enable it:
-    - In the game: Main Menu -> Settings -> THE PARSER (AI)
+    - In the game: Main Menu -> Settings -> SMARTER PARSING
+      (OPTIONAL). The status line there says what the check
+      found: Connected, Not connected, or Key rejected.
     - Or open config.txt in Notepad and paste a key there
 
   Typical cost: under $2 for an entire campaign, billed by
-  Anthropic to you. Stored only on this PC. If it's ever
-  unreachable, the game just continues on the built-in parser.
+  Anthropic to you. The key stays on this PC and is sent only to
+  Anthropic, through the game's own local server. If Anthropic
+  is ever unreachable, or the key is refused, the game says so
+  once and just continues on the built-in parser.
 
 SAVES:
   Saved games live in %APPDATA%\InkAndIron\saves — they survive
@@ -50,10 +63,27 @@ SAVES:
   every turn; "Continue" on the main menu resumes the newest
   save.
 
+LOGS (please send these with any bug report):
+  %APPDATA%\InkAndIron\logs\server.log      — everything the
+     server printed, including a crash and why
+  %APPDATA%\InkAndIron\logs\transcript.jsonl — every order you
+     typed, who read it, and the reply
+  The build number is printed at the bottom of the main menu and
+  in the launcher window; quote it in the report.
+
 FIRST TIME?
   Take "The School of War — a guided campaign" on the main
   menu. Berthier walks you through movement, battle, and the
   court in a short scripted lesson on the Danube.
+
+HOW A CAMPAIGN ENDS:
+  The Verdict of History is read on turn 44 (Tilsit, summer
+  1807): the campaign is judged as it stands. Before that, hold
+  45 provinces by title and summon the Congress of Paris (F1) —
+  every court answers on a public table with its price, and full
+  recognition is THE IMPERIAL PEACE. Lose Paris and the army, or
+  lose the Emperor to captivity, and the campaign FALLS. The
+  end-turn banner's clock line names each of these as it nears.
 
 ================================================================
   CONTROLS
@@ -63,10 +93,15 @@ TYPE ORDERS in the terminal at the bottom of the screen, in
 plain language, then press Enter:
 
     "Ney, attack Mack"
-    "Davout, move to Bavaria"
+    "Davout, scout Swabia"
+    "Lannes, move to Munich"
     "Soult, hold Lorraine"
     "Talleyrand, assess our situation"
     "end turn"
+
+  Lost? Type "help" for every order the game takes, or
+  "what can I do" and Berthier names what the board offers this
+  turn. Click any province for a panel of the actions it allows.
 
 SPEAK COMMANDS (optional):
   Click the command line, press Win+H, and dictate. Windows
@@ -102,7 +137,8 @@ THE MAP:
   terminal prints which view you landed on. Click any province
   for a panel of actions there — recruit, build, negotiate, and
   orders for marshals present. Click a marshal's piece for their
-  orders.
+  orders. The terminal text can be selected and copied (drag,
+  then Ctrl+C) for a report.
 
 ================================================================
   YOUR MARSHALS
@@ -188,6 +224,10 @@ A few things worth knowing:
     province starves them — watch the dispatch's warnings.
   - Broken armies flee and need time to rally. Pursue them
     or let them go — both are choices.
+  - Recruits cost gold you will not have on turn 1: the
+    treasury opens at 800 and a levy of foot costs more. Take
+    a province or two, then click a province of yours for the
+    priced recruit row.
 
 THE NAVY:
   Britannia rules the waves — her blockade bleeds your ports
@@ -224,15 +264,21 @@ and likelihood — nothing is a mystery roll.
 ================================================================
 
 "The launcher says the server did not come up"
-  - Check the "Ink and Iron Server" window in the taskbar for
-    the actual error message
-  - Run ink_iron_server.exe directly from a command prompt to
-    see it in full
+  - Its log records why: %APPDATA%\InkAndIron\logs\server.log
+    (send it with your report)
+  - Windows Defender or another antivirus may have quarantined
+    ink_iron_server.exe — allow it and run launch.bat again
   - Something else may be using port 8005
 
 "Game window opens but can't connect"
   - The main menu names the launch command when the server is
     down; use launch.bat rather than starting the exe alone
+
+"The game says the war office is not answering"
+  - The server window closed (a crash). Close the game and run
+    launch.bat again — your campaign is autosaved every turn,
+    and Continue or Load restores it. server.log holds the
+    crash; please send it.
 
 "Commands aren't understood"
   - The built-in parser reads plain orders best: start with
@@ -241,9 +287,10 @@ and likelihood — nothing is a mystery roll.
     it is optional and costs pennies, billed by Anthropic
 
 "Game crashes or freezes"
-  - Note what you were doing and tell Mitch. The autosave in
-    %APPDATA%\InkAndIron\saves means you rarely lose more
-    than a turn.
+  - Note what you were doing and tell Mitch, with server.log
+    and transcript.jsonl from %APPDATA%\InkAndIron\logs. The
+    autosave in %APPDATA%\InkAndIron\saves means you rarely
+    lose more than a turn.
 
 ================================================================
   FEEDBACK — WHAT TO TELL MITCH
@@ -261,6 +308,8 @@ Just play and have fun. Anything you notice is useful:
 
 Don't worry about being thorough. Even a few sentences like
 "I liked X, Y was confusing" is valuable. Screenshots welcome.
+For anything broken, the two log files above and the build
+number turn a guess into a fix.
 
 ================================================================
   CREDITS

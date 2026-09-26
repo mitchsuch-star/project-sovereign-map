@@ -3,12 +3,14 @@
 ; The full game works WITHOUT this file being edited - no account,
 ; no key, no internet. Orders are read by the built-in parser.
 ;
-; Smarter Parsing (optional): if you add an Anthropic key below,
-; unusually-phrased orders the built-in parser can't confidently
-; read are interpreted by Claude. Typical cost: under $2 for an
-; entire campaign, billed by Anthropic to you.
+; Smarter Parsing (optional): if you add your own Anthropic key
+; below, orders the built-in parser is unsure of are also read by
+; Claude. Anthropic bills your account - under a cent for each
+; order it reads. The key stays on this PC and is sent only to
+; Anthropic, through the game's own local server.
 ; Get a key at: https://console.anthropic.com/
 ;
-; You can also do this in-game instead: Main Menu -> Settings.
+; You can also do this in-game instead: Main Menu -> Settings ->
+; Smarter Parsing, which also tells you if the key was rejected.
 ;
 ANTHROPIC_API_KEY=your_key_here

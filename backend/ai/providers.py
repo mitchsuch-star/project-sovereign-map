@@ -114,6 +114,32 @@ REQUEST_TIMEOUT_SECONDS = 5.0
 # do not raise it without re-measuring that ceiling.
 MAX_RETRIES = 1
 
+# C1 (the release build, Sept 23 2026): the outcome of the most recent live
+# request -- "ok" or a failure kind -- so the server can say ONCE per session
+# that the live parser failed and why, and the Settings panel can say "Key
+# rejected". Read-and-cleared by `pop_last_api_outcome()`; display only, never
+# read by game mechanics (GR6).
+# The parser's pinned model, ONE source: the provider sends it and the
+# release build's key check (main.py) confirms a player's key can use it.
+ANTHROPIC_PARSE_MODEL = "claude-haiku-4-5"
+
+API_OUTCOME_OK = "ok"
+API_FAILURE_KINDS = ("auth", "permission", "model", "bad_request", "rate",
+                     "timeout", "network", "server", "other")
+_LAST_API_OUTCOME: Optional[str] = None
+
+
+def _record_api_outcome(kind: str) -> None:
+    global _LAST_API_OUTCOME
+    _LAST_API_OUTCOME = kind
+
+
+def pop_last_api_outcome() -> Optional[str]:
+    """The last live request's outcome since the previous pop, then cleared."""
+    global _LAST_API_OUTCOME
+    kind, _LAST_API_OUTCOME = _LAST_API_OUTCOME, None
+    return kind
+
 
 # =============================================================================
 # PARSE TOOL (CR-3): forced tool-use structured output
@@ -481,7 +507,7 @@ class AnthropicProvider(BaseProvider):
             # CR-3 pin refresh: claude-3-haiku-20240307 is deprecated
             # (retires Apr 19, 2026); claude-haiku-4-5 is its documented
             # drop-in replacement — same fast/cheap tier this parser needs.
-            model="claude-haiku-4-5",
+            model=ANTHROPIC_PARSE_MODEL,
             # 1000, not 500 (CR-3 review fix): measured tool-call outputs
             # already reach ~300 tokens; a verbose interpretation +
             # suggestion could truncate the forced tool call mid-input at
@@ -698,16 +724,19 @@ class AnthropicProvider(BaseProvider):
         # only that "the LLM failed" — the whole point of the typed
         # exceptions is that the log names WHICH failure.
         except anthropic.AuthenticationError:
+            _record_api_outcome("auth")
             print("AnthropicProvider: ERROR 401 - Invalid API key")
             return None, "Invalid API key"
 
         except anthropic.PermissionDeniedError:
+            _record_api_outcome("permission")
             print("AnthropicProvider: ERROR 403 - API key lacks permission")
             return None, "API key lacks permission for this model"
 
         except anthropic.NotFoundError:
             # Almost always a bad/retired model id — name the pin, since that
             # is the one thing an operator has to change.
+            _record_api_outcome("model")
             print(f"AnthropicProvider: ERROR 404 - unknown model "
                   f"'{body.get('model')}'")
             return None, f"Unknown model '{body.get('model')}'"
@@ -717,26 +746,31 @@ class AnthropicProvider(BaseProvider):
             # rejects, or a schema the API refused. Surface the message: this
             # is the failure a model migration produces, and a generic string
             # would send the reader hunting.
+            _record_api_outcome("bad_request")
             print(f"AnthropicProvider: ERROR 400 - {e}")
             return None, "Invalid request (see server log)"
 
         except anthropic.RateLimitError:
             # Already retried with backoff by the SDK, honoring `retry-after`.
+            _record_api_outcome("rate")
             print("AnthropicProvider: ERROR 429 - Rate limited (retries exhausted)")
             return None, "Rate limited - too many requests"
 
         except anthropic.APITimeoutError:
+            _record_api_outcome("timeout")
             print(f"AnthropicProvider: ERROR - Timed out after "
                   f"{REQUEST_TIMEOUT_SECONDS}s (retries exhausted)")
             return None, f"Request timed out after {REQUEST_TIMEOUT_SECONDS}s"
 
         except anthropic.APIConnectionError as e:
+            _record_api_outcome("network")
             print(f"AnthropicProvider: ERROR - Connection failed: {e}")
             return None, "Connection failed - check internet"
 
         except anthropic.APIStatusError as e:
             # Any other non-2xx, including 5xx and 529 overloaded — both
             # already retried by the SDK.
+            _record_api_outcome("server")
             print(f"AnthropicProvider: ERROR {e.status_code} - server error")
             return None, f"Server error ({e.status_code})"
 
@@ -744,6 +778,7 @@ class AnthropicProvider(BaseProvider):
             # The provider contract is absolute: NEVER raise to the caller.
             # A parse failure degrades to the fast parser; an exception here
             # would 500 the player's whole command.
+            _record_api_outcome("other")
             print(f"AnthropicProvider: ERROR - Unexpected: {type(e).__name__}: {e}")
             return None, f"Unexpected error: {type(e).__name__}"
 
@@ -751,6 +786,7 @@ class AnthropicProvider(BaseProvider):
         # wire shape, and the test suite mocks THIS method with dicts — so the
         # typed Message is converted back to a dict here. That keeps the
         # transport swap invisible to every caller and every existing mock.
+        _record_api_outcome(API_OUTCOME_OK)
         response_json = message.to_dict()
 
         request_id = getattr(message, "_request_id", None)

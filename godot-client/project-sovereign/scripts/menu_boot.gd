@@ -32,6 +32,11 @@ static var pending_action := ""
 # live world still sits in the backend's memory) instead of only Continue.
 static var came_from_game := false
 
+# PB-4 (the release build): the war office's build stamp as GET /test reports
+# it — set by the main menu's poll and by the game's connection test, read by
+# the pause menu's version line so a mid-game report can quote the build.
+static var server_version := ""
+
 
 static func take_action() -> String:
 	var action := pending_action

@@ -291,7 +291,7 @@ func _on_request_completed(result, response_code, _headers, body):
 	if result != HTTPRequest.RESULT_SUCCESS:
 		push_error("HTTP request failed with result: " + str(result))
 		if callback:
-			callback.call({"success": false, "message": "Connection failed"})
+			callback.call({"success": false, "message": Utils.server_lost_hint()})
 		_start_next_request()
 		return
 
@@ -316,7 +316,7 @@ func _on_request_completed(result, response_code, _headers, body):
 	else:
 		push_error("Bad response code: " + str(response_code))
 		if callback:
-			callback.call({"success": false, "message": "Server error (code " + str(response_code) + ")"})
+			callback.call({"success": false, "message": Utils.server_error_hint(response_code)})
 
 	_start_next_request()
 

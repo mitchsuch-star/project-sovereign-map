@@ -113,6 +113,30 @@ static func launch_hint() -> String:
 			+ "(it starts the war office first, and must stay open)")
 
 
+static func server_lost_hint() -> String:
+	"""PB-4 (the release build, Sept 23 2026): what to do when the war office
+	stops answering mid-game. The zip has no console to read, so the line names
+	the remedy and the log a report should carry."""
+	if OS.has_feature("editor"):
+		return "The war office is not answering — restart it with " + launch_hint() + "."
+	return ("The war office (the server window) is not answering. If that window "
+		+ "has closed, close the game and start it again with launch.bat — your "
+		+ "campaign is autosaved every turn (Load). Its log is "
+		+ SERVER_LOG_PATH + " — please send it with a report.")
+
+
+static func server_error_hint(code: int) -> String:
+	"""PB-4: a 500 is a bug, and the log holds its traceback."""
+	if OS.has_feature("editor"):
+		return "Server error (code " + str(code) + ") — see the backend console."
+	return ("The war office hit an error (code " + str(code) + "). Your last turn "
+		+ "is autosaved. The details are in " + SERVER_LOG_PATH
+		+ " — please send it with a report.")
+
+
+const SERVER_LOG_PATH = "%APPDATA%\\InkAndIron\\logs\\server.log"
+
+
 static func build_label() -> String:
 	"""The version line. `application/config/version` is authored in
 	project.godot; the fallback is what a source checkout without one reads."""

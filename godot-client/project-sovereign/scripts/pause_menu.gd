@@ -37,6 +37,7 @@ signal ui_scale_changed(value, persist)
 @onready var quit_button = $PanelContainer/VBoxContainer/QuitButton
 
 var _settings_panel: SettingsPanel = null
+var _version_line: Label = null  # PB-4: the build stamp line
 
 func _ready():
 	save_button.pressed.connect(_on_save)
@@ -58,6 +59,16 @@ func _ready():
 	_settings_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_settings_panel)
 	_settings_panel.ui_scale_changed.connect(func(v, p): ui_scale_changed.emit(v, p))
+	# PB-4 (the release build): the build stamp on the pause menu too, so a
+	# player reporting from mid-game can quote it without leaving the campaign.
+	_version_line = Label.new()
+	_version_line.name = "VersionLine"
+	_version_line.add_theme_font_size_override("font_size", 11)
+	_version_line.add_theme_color_override("font_color", Color(0.65, 0.63, 0.58, 0.8))
+	_version_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_version_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$PanelContainer/VBoxContainer.add_child(_version_line)
+	_refresh_version_line()
 	_set_new_game_confirmation_visible(false)
 	hide()
 
@@ -68,9 +79,22 @@ func open_menu():
 	# "Text Size" +/- buttons write the same UiSettings scale value.
 	if _settings_panel:
 		_settings_panel.refresh()
+	_refresh_version_line()
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	Utils.clamp_centered_panel($PanelContainer)
+
+func _refresh_version_line() -> void:
+	"""PB-4: `MenuBoot.server_version` arrives with the connection test, which
+	may land after this menu's `_ready` — re-read it on every open."""
+	if _version_line == null:
+		return
+	var text := "Ink & Iron — " + Utils.build_label()
+	var stamp := MenuBoot.server_version
+	if stamp != "" and stamp != "dev":
+		text += "  ·  build " + stamp
+	_version_line.text = text
+
 
 func close_menu():
 	_reset_menu_state()

@@ -162,6 +162,17 @@ def _resolve_cheat_name(raw_name: str, valid_names) -> str | None:
 # reads +8.
 MISSION_HELP_BLOCK = True
 _MISSIONS_HELP_ANCHOR = "[Request Terms] to make the enemy name a price.\n"
+
+# PB-2 (the release build, Sept 23 2026): spliced into `help` only when debug
+# mode is on, so a player's reference never lists orders that answer "not
+# available in this build".
+DEBUG_HELP_BLOCK = """DEBUG COMMANDS (for testing):
+  /debug counter_punch <marshal> - Enable free attack
+  /debug restless <marshal>      - Trigger restlessness
+  /debug cavalry <marshal>       - Toggle 2-tile attacks
+  /debug hold <marshal>          - Enable Immovable
+
+"""
 _MISSIONS_HELP_ORDER = ("IMPROVE_RELATIONS", "COURT_NATION", "REASSURE_ALLY",
                         "UNDERMINE_ALLIANCE", "GATHER_INTEL")
 
@@ -764,7 +775,7 @@ MILITARY COMMANDS:
                "Davout, defend" / "hold" (alias)
 
   move       - Move to adjacent region
-               "Soult, move to Bavaria"
+               "Lannes, move to Munich"
 
   retreat    - Fall back toward friendly territory (FREE)
                "Ney, retreat" - Aggressive marshals may object!
@@ -1013,18 +1024,23 @@ GLORY AND GRIEVANCE (the ladder on the Generals screen):
 
 FREE ACTIONS: help, end turn, wait, retreat, economy
 
-DEBUG COMMANDS (for testing):
-  /debug counter_punch <marshal> - Enable free attack
-  /debug restless <marshal>      - Trigger restlessness
-  /debug cavalry <marshal>       - Toggle 2-tile attacks
-  /debug hold <marshal>          - Enable Immovable
-
 RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
   After retreating, marshals are demoralized.
   BLOCKED: attack, fortify, drill, scout
   ALLOWED: move, recruit, defend, wait, change stance
 
 ═══════════════════════════════════════"""
+        # PB-2 (the release build): the debug commands are listed only where
+        # they work — a player's `help` never teaches an order that answers
+        # "disabled".
+        # (`game_state` is a dict on every production road; the legacy help
+        # pins hand this method the WorldState itself — read it defensively,
+        # never `.get` on whatever arrived.)
+        _debug_help = (bool(game_state.get("debug_mode"))
+                       if isinstance(game_state, dict) else False)
+        if _debug_help:
+            help_text = help_text.replace(
+                "RETREAT RECOVERY", DEBUG_HELP_BLOCK + "RETREAT RECOVERY", 1)
 
         # IQ-4 S3g: the missions, spliced after the `war terms` entry of the
         # Cabinet block — every figure the tick's own, read at call time.
@@ -1072,7 +1088,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         if not debug_mode:
             return {
                 "success": False,
-                "message": "Debug commands are disabled. Set DEBUG_MODE = True in main.py to enable."
+                "message": "Debug commands are not available in this build."
             }
 
         target = command.get("target", "")

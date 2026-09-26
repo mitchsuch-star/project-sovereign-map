@@ -91,3 +91,7 @@ tools/playtest_runs/
 # UX23-R9 audition renders — derived from the gitignored audio assets by
 # tools/ux23_r9_audition_render.gd; regenerate rather than commit.
 audition/
+
+# The release build's stamp (PB-4) is written by tools/build_stamp.py at
+# build time and shipped inside the frozen server; never committed.
+deploy/build_stamp.json
