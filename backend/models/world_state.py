@@ -97,6 +97,11 @@ COUNTER_OFFER_RETURN_RESTORES_HIM = True
 # it in a child process).
 SIEGE_ENDS_WITH_THE_WAR = True
 
+# SR-4a (Score Mandate Chunk 4, AAR-24): what a capital garrison regains each
+# turn — ONE home for the regen loop and every surface that quotes it (the
+# assault's muster line, the scout). Was a bare `+ 2000` in the loop.
+CAPITAL_GARRISON_REGEN_PER_TURN = 2000
+
 DEFAULT_CASCADE_PROFILE: Dict[str, Any] = {
     "mode": "direct_only",
     "qualifying_treaty_states": {
@@ -2981,6 +2986,18 @@ class WorldState:
         if getattr(self, "sovereign_map", "legacy") == "europe":
             return int(get_europe_capital_garrison(nation))
         return int(LEGACY_CAPITAL_GARRISON)
+
+    def capital_garrison_regen(self, region) -> int:
+        """SR-4a: what `region`'s garrison regains at the next advance — the
+        ONE rule the regen loop applies and the assault line quotes (shown =
+        applied). A capital held by a nation, never a detachment, up to the
+        holder's tier target; 0 otherwise."""
+        if not (region is not None and region.is_capital and region.controller
+                and not region.garrison_detachment):
+            return 0
+        cap = self.get_capital_garrison_target(region.controller)
+        return max(0, min(CAPITAL_GARRISON_REGEN_PER_TURN,
+                          cap - int(region.garrison_strength)))
 
     @property
     def sandbox_mode(self) -> bool:
@@ -10633,12 +10650,12 @@ class WorldState:
         # by a nation (any nation).
         # ════════════════════════════════════════════════════════════
         for region in self.regions.values():
-            if not (region.is_capital and region.controller and not region.garrison_detachment):
-                continue
-            garrison_cap = self.get_capital_garrison_target(region.controller)
-            if region.garrison_strength < garrison_cap:
+            # SR-4a: ONE rule (`capital_garrison_regen`) — the assault line
+            # quotes it. Same arithmetic as the old inline `+ 2000`.
+            gain = self.capital_garrison_regen(region)
+            if gain > 0:
                 old = region.garrison_strength
-                region.garrison_strength = min(garrison_cap, region.garrison_strength + 2000)
+                region.garrison_strength = int(region.garrison_strength + gain)
                 if region.garrison_strength > old:
                     tactical_events.append({
                         "type": "garrison_regen",

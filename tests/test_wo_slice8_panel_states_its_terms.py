@@ -852,9 +852,19 @@ class TestReviewRoundFixes:
 
     def test_resolver_and_chip_read_the_same_name(self, world):
         from backend.commands import combat_executor as ce
+        from backend.game_logic import garrison_report as gr
         src = Path(ce.__file__).read_text(encoding="utf-8")
-        assert src.count("REGION_FORTIFICATION_DEFENSE_BONUS") >= 5, (
+        # SR-4a (Sept 26, 2026) — CONSCIOUS RE-SEAT: the resolver's three
+        # copies of the garrison formula became ONE helper,
+        # `garrison_report.garrison_effective`, which reads the named
+        # constant through `works_bonus`; the pin's point — no bare
+        # literal at the resolver — now holds across the two files.
+        assert src.count("REGION_FORTIFICATION_DEFENSE_BONUS") >= 2, (
             "the resolver sites stopped reading the named constant")
+        assert src.count("_garrison_report.garrison_effective(") >= 3, (
+            "the resolver's garrison sites stopped reading the ONE formula")
+        gr_src = Path(gr.__file__).read_text(encoding="utf-8")
+        assert "REGION_FORTIFICATION_DEFENSE_BONUS" in gr_src
         from backend.commands.objection_v2 import (
             REGION_FORTIFICATION_DEFENSE_BONUS,
         )

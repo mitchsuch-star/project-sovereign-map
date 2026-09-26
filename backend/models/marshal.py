@@ -1274,11 +1274,12 @@ class Marshal:
 
         modifier = 1.0
 
-        # Stance modifiers (base)
+        # Stance modifiers (base) — SR-4a: ONE home, `STANCE_ATTACK_FACTOR`
+        # (the muster's posture note names the defensive cost from it).
         if self.stance == Stance.AGGRESSIVE:
-            modifier *= 1.15  # +15%
+            modifier *= self.STANCE_ATTACK_FACTOR["aggressive"]  # +15%
         elif self.stance == Stance.DEFENSIVE:
-            modifier *= 0.90  # -10%
+            modifier *= self.STANCE_ATTACK_FACTOR["defensive"]  # -10%
 
         # Drill/shock bonus (from completed drill training)
         shock = self.shock_bonus
@@ -1385,13 +1386,20 @@ class Marshal:
 
         return modifier
 
-    def get_defense_modifier(self, is_outnumbered: bool = False) -> float:
+    def get_defense_modifier(self, is_outnumbered: bool = False,
+                             consume: bool = True) -> float:
         """
         Get defense modifier from stance, personality, fortify, and drill status.
 
-        WARNING: This method has SIDE EFFECTS. It consumes (zeroes out):
+        WARNING: This method has SIDE EFFECTS when consume=True. It consumes
+        (zeroes out):
         - strategic_defense_bonus (one-time clear-order defense bonus)
         This is read-then-clear by design — call only ONCE per combat.
+
+        SR-4a (Score Mandate Chunk 4, AAR-32): pass consume=False for a
+        READ-ONLY snapshot — the muster band weighs the defender's standing
+        modifiers without spending his clear-order bonus (mirrors
+        `get_attack_modifier(consume=False)`).
 
         Args:
             is_outnumbered: Whether marshal is outnumbered (for Davout bonus)
@@ -1419,7 +1427,8 @@ class Marshal:
         strategic_def_bonus = self.strategic_defense_bonus
         if strategic_def_bonus > 0:
             modifier *= (1.0 + strategic_def_bonus / 100.0)  # 10 → +10%
-            self.strategic_defense_bonus = 0  # Consume after use
+            if consume:
+                self.strategic_defense_bonus = 0  # Consume after use
 
         # Drilling penalty (caught drilling = vulnerable)
         if self.drilling or self.drilling_locked:
@@ -1499,6 +1508,11 @@ class Marshal:
     # constants — shown = applied.
     SOVEREIGN_PRESENCE_ATTACK = 0.10
     SOVEREIGN_PRESENCE_DEFENSE = 0.10
+
+    # SR-4a (Score Mandate Chunk 4, AAR-32): the stance's own ATTACK factor —
+    # ONE home, read by `get_attack_modifier` and by the muster's posture note
+    # ("Massena attacks from a defensive stance (−10%)" — shown = applied).
+    STANCE_ATTACK_FACTOR = {"aggressive": 1.15, "defensive": 0.90}
 
     # MC-1 (July 10, 2026 gate): Habsburg Resolve's personal rout threshold —
     # in-band tunable, ~10 morale points of extra staying power vs the global 25.

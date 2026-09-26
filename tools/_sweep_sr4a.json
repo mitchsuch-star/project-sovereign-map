@@ -1,0 +1,233 @@
+[
+  {
+    "id": "SR-4a scout lever down",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "THE_SCOUT_NAMES_THE_GARRISON = True\n",
+    "new": "THE_SCOUT_NAMES_THE_GARRISON = False\n",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_the_capital_garrison_is_named"
+  },
+  {
+    "id": "SR-4a the capital's regrowth is unsaid",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "        if getattr(region, \"is_capital\", False):\n            cap = world.get_capital_garrison_target(holder)\n            kind += (",
+    "new": "        if False:\n            cap = world.get_capital_garrison_target(holder)\n            kind += (",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_the_capital_garrison_is_named"
+  },
+  {
+    "id": "SR-4a the works are unsaid",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    works_clause = (f\"; its works add +{int(round(works * 100))}% to the defense\"\n                    if works > 0 else \"\")",
+    "new": "    works_clause = \"\"",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_the_works_are_named"
+  },
+  {
+    "id": "SR-4a a damaged work counts",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if region is None or not region.has_building(\"fortification\"):\n        return 0.0",
+    "new": "    if region is None or not any(b.get(\"type\") == \"fortification\" for b in region.buildings):\n        return 0.0",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_a_damaged_work_is_not_counted"
+  },
+  {
+    "id": "SR-4a a detachment reads as a garrison",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if getattr(region, \"garrison_detachment\", False):\n        kind = \"a detachment",
+    "new": "    if False:\n        kind = \"a detachment",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_a_detachment_fights_to_the_last"
+  },
+  {
+    "id": "SR-4a a weak garrison must be assaulted",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    elif strength >= MARCH_HALTS_AT_GARRISON:\n",
+    "new": "    elif True:\n",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_a_weak_garrison_gives_way"
+  },
+  {
+    "id": "SR-4a an ally's garrison is to be stormed",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if not (holder and world.is_at_war(viewer, holder)):\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_an_allied_garrison_is_not_to_be_stormed"
+  },
+  {
+    "id": "SR-4a our own garrison reads as foreign",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if holder == viewer:\n        return f\"Our garrison: {strength:,}{works_clause}.\"",
+    "new": "    if False:\n        return f\"Our garrison: {strength:,}{works_clause}.\"",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_our_own_garrison"
+  },
+  {
+    "id": "SR-4a the scan leaks the figure at PARTIAL",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if form == \"band\":\n        return f\", garrison: {value}\"",
+    "new": "    if form == \"band\":\n        return f\", garrison {int(world.get_region(region_name).garrison_strength):,}\"",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScanCountsOnlyEnemiesAndBandsTheGarrison::test_an_ally_is_not_an_enemy_and_the_garrison_is_banded"
+  },
+  {
+    "id": "SR-4a the view reads FULL as a band",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if visibility == FULL:\n        return (\"exact\", strength) if strength > 0 else (None, 0)",
+    "new": "    if visibility == FULL:\n        return (\"band\", get_strength_band(strength)) if strength > 0 else (None, 0)",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestOneFogRule::test_the_view_agrees_with_the_map_summary"
+  },
+  {
+    "id": "SR-4a the effective garrison ignores the works",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    return int(s * (1.0 + terrain) * (1.0 + works_bonus(region)))",
+    "new": "    return int(s * (1.0 + terrain))",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestOneFogRule::test_the_resolver_fights_the_one_formula"
+  },
+  {
+    "id": "SR-4a nobody beside him is named",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "              and (m.location == marshal.location or m.location == region.name\n                   or m.location in adjacent)]",
+    "new": "              and False]",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheAssaultNamesItsTerms::test_the_line_says_alone_and_who_does_not_join"
+  },
+  {
+    "id": "SR-4a the hold's regrowth is unsaid",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    gain = int(world.capital_garrison_regen(region))\n    if gain <= 0:\n        return \"\"",
+    "new": "    gain = 0\n    if gain <= 0:\n        return \"\"",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheAssaultNamesItsTerms::test_the_hold_names_the_regen"
+  },
+  {
+    "id": "SR-4a desk lever down",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "THE_DESK_READS_THE_GARRISON_FOG = True\n",
+    "new": "THE_DESK_READS_THE_GARRISON_FOG = False\n",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheDeskReadsTheFog::test_safe_at_partial_is_a_band"
+  },
+  {
+    "id": "SR-4a the scan counts an ally",
+    "file": "backend/commands/movement_executor.py",
+    "old": "                               if m.nation != world.player_nation and m.strength > 0\n                               and world.is_at_war(world.player_nation, m.nation)]",
+    "new": "                               if m.nation != world.player_nation]",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScanCountsOnlyEnemiesAndBandsTheGarrison::test_an_ally_is_not_an_enemy_and_the_garrison_is_banded"
+  },
+  {
+    "id": "SR-4a assault lever down",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    AN_ASSAULT_NAMES_ITS_TERMS = True\n",
+    "new": "    AN_ASSAULT_NAMES_ITS_TERMS = False\n",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheAssaultNamesItsTerms::test_the_line_says_alone_and_who_does_not_join"
+  },
+  {
+    "id": "SR-4a the AI's assault is prefixed",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if (self.AN_ASSAULT_NAMES_ITS_TERMS\n                and marshal.nation == world.player_nation):",
+    "new": "        if (self.AN_ASSAULT_NAMES_ITS_TERMS):",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheAssaultNamesItsTerms::test_the_ai_reads_no_line"
+  },
+  {
+    "id": "SR-4a the line prints the men, not the reckoning",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                world, marshal, target_region, attacker_effective,\n                garrison_effective, _assault_coordination)",
+    "new": "                world, marshal, target_region, int(marshal.strength * 1.5),\n                garrison_effective, _assault_coordination)",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheAssaultNamesItsTerms::test_shown_is_applied"
+  },
+  {
+    "id": "SR-4a muster_odds reads the men only",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            committed_attacker=committed, committed_defender=committed_defender,\n            fold_modifiers=True)\n        ratio",
+    "new": "            committed_attacker=committed, committed_defender=committed_defender,\n            fold_modifiers=False)\n        ratio",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheMusterReadsTheFold::test_the_preview_and_the_glory_gate_agree"
+  },
+  {
+    "id": "SR-4a the preview reads the men only",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            committed_defender=committed_defender,\n            fold_modifiers=True)\n\n",
+    "new": "            committed_defender=committed_defender,\n            fold_modifiers=False)\n\n",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheMusterReadsTheFold::test_the_muster_line_says_the_folded_band"
+  },
+  {
+    "id": "SR-4a the stance goes unnamed",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if (marshal.stance == Stance.DEFENSIVE\n                and not int(getattr(marshal, \"iron_resolve_stacks\", 0) or 0)):\n            cost",
+    "new": "        if (False\n                and not int(getattr(marshal, \"iron_resolve_stacks\", 0) or 0)):\n            cost",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestThePostureNoteNamesWhatHurts::test_the_stance_and_the_mountains_are_named"
+  },
+  {
+    "id": "SR-4a the net cost goes unnamed",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if attack_mod < 0.995:\n            parts.append(f\"all told",
+    "new": "        if attack_mod < 0.0:\n            parts.append(f\"all told",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestThePostureNoteNamesWhatHurts::test_the_net_cost_is_named_when_it_hurts"
+  },
+  {
+    "id": "SR-4a the enemy's stack is named in the fog",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if world.get_region_intel(enemy_marshal.location).visibility == FULL:\n            defense_mod",
+    "new": "        if True:\n            defense_mod",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestThePostureNoteNamesWhatHurts::test_the_enemys_stack_only_at_full"
+  },
+  {
+    "id": "SR-4a the note is produced but not printed",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if preview.get(\"posture_note\"):\n            lines.append(f\"  {preview['posture_note']}\")",
+    "new": "        if False:\n            lines.append(f\"  {preview['posture_note']}\")",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestThePostureNoteNamesWhatHurts::test_the_muster_prints_the_note"
+  },
+  {
+    "id": "SR-4a fold lever down",
+    "file": "backend/commands/objection_v2.py",
+    "old": "THE_BAND_WEIGHS_THE_STANDING_MODIFIERS = True\n",
+    "new": "THE_BAND_WEIGHS_THE_STANDING_MODIFIERS = False\n",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheBandWeighsTheStandingModifiers::test_a_defensive_kutuzov_is_no_longer_favorable"
+  },
+  {
+    "id": "SR-4a the fold forgets the defender",
+    "file": "backend/commands/objection_v2.py",
+    "old": "        return (attacker * attack_mod) / (effective_defender * max(0.01, defense_mod))",
+    "new": "        return (attacker * attack_mod) / effective_defender",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheBandWeighsTheStandingModifiers::test_the_fold_is_the_single_sources"
+  },
+  {
+    "id": "SR-4a the fold spends the bonus",
+    "file": "backend/commands/objection_v2.py",
+    "old": "        defense_mod = float(enemy.get_defense_modifier(\n            defender < lead_attacker, consume=False))",
+    "new": "        defense_mod = float(enemy.get_defense_modifier(\n            defender < lead_attacker, consume=True))",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheBandWeighsTheStandingModifiers::test_the_fold_spends_nothing"
+  },
+  {
+    "id": "SR-4a the fortified works count twice",
+    "file": "backend/commands/objection_v2.py",
+    "old": "    if getattr(enemy, \"fortified\", False) and not fold:",
+    "new": "    if getattr(enemy, \"fortified\", False):",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheBandWeighsTheStandingModifiers::test_a_fortified_defender_is_not_counted_twice"
+  },
+  {
+    "id": "SR-4a the defense read consumes",
+    "file": "backend/models/marshal.py",
+    "old": "            if consume:\n                self.strategic_defense_bonus = 0  # Consume after use",
+    "new": "            if True:\n                self.strategic_defense_bonus = 0  # Consume after use",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheBandWeighsTheStandingModifiers::test_the_fold_spends_nothing"
+  },
+  {
+    "id": "SR-4a the stance factor is a second copy",
+    "file": "backend/models/marshal.py",
+    "old": "    STANCE_ATTACK_FACTOR = {\"aggressive\": 1.15, \"defensive\": 0.90}",
+    "new": "    STANCE_ATTACK_FACTOR = {\"aggressive\": 1.15, \"defensive\": 0.85}",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestThePostureNoteNamesWhatHurts::test_the_stance_and_the_mountains_are_named"
+  },
+  {
+    "id": "SR-4a the regen reads a literal",
+    "file": "backend/models/world_state.py",
+    "old": "        return max(0, min(CAPITAL_GARRISON_REGEN_PER_TURN,\n                          cap - int(region.garrison_strength)))",
+    "new": "        return max(0, min(2000,\n                          cap - int(region.garrison_strength)))",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheRegenIsOneRule::test_the_loop_applies_the_rule"
+  },
+  {
+    "id": "SR-4a a detachment regrows",
+    "file": "backend/models/world_state.py",
+    "old": "        if not (region is not None and region.is_capital and region.controller\n                and not region.garrison_detachment):",
+    "new": "        if not (region is not None and region.is_capital and region.controller):",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheRegenIsOneRule::test_the_rule"
+  },
+  {
+    "id": "SR-4a the desk names no garrison at FULL",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if _form == \"exact\":\n            lines.append(",
+    "new": "        if False:\n            lines.append(",
+    "tests": "tests/test_sr4a_the_fields_price.py::TestTheDeskReadsTheFog::test_who_is_at_vienna_names_the_garrison"
+  }
+]

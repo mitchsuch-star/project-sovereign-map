@@ -1415,6 +1415,53 @@ class CombatExecutor:
             return True, "aggressive_marches"
         return True, "answers_the_guns"
 
+    def _posture_note(self, marshal, enemy_marshal, world) -> str:
+        """SR-4a (AAR-32): the standing modifiers the muster band weighs,
+        named when they HURT the attack — the attacker's own posture (its
+        stance named when it is the defensive one), the ground (public), and
+        the defender's stack only where we see him at FULL. Every figure is
+        the single source's own (`get_attack_modifier` /
+        `get_defense_modifier`, consume=False). '' when nothing hurts."""
+        from backend.commands.objection_v2 import THE_BAND_WEIGHS_THE_STANDING_MODIFIERS
+        if not THE_BAND_WEIGHS_THE_STANDING_MODIFIERS:
+            return ""
+        from backend.display_names import humanize_entity_name
+        from backend.models.intel import FULL
+        from backend.models.marshal import Stance
+        from backend.models.region import TERRAIN_DEFENSE_BONUS
+        parts = []
+        name = humanize_entity_name(marshal.name)
+        lead_a = max(1, int(getattr(marshal, "strength", 0) or 0))
+        lead_d = max(1, int(getattr(enemy_marshal, "strength", 0) or 0))
+        # The stance is named whenever it costs him — his character may make
+        # up the difference, but the stance itself still bleeds the attack
+        # (the AAR's Massena, left DEFENSIVE, read "even" in silence). Iron
+        # Resolve's release cancels the fortify-mandated penalty (CO-7).
+        if (marshal.stance == Stance.DEFENSIVE
+                and not int(getattr(marshal, "iron_resolve_stacks", 0) or 0)):
+            cost = int(round((1.0 - Marshal.STANCE_ATTACK_FACTOR["defensive"]) * 100))
+            parts.append(f"{name} attacks from a defensive stance (−{cost}%)")
+        attack_mod = float(marshal.get_attack_modifier(lead_a / lead_d, consume=False))
+        if attack_mod < 0.995:
+            parts.append(f"all told, {name}'s own modifiers weigh "
+                         f"{int(round((1.0 - attack_mod) * 100))}% against the attack")
+        region = world.get_region(enemy_marshal.location)
+        terrain = (TERRAIN_DEFENSE_BONUS.get(getattr(region, "terrain", None), 0.0)
+                   if region is not None else 0.0)
+        if terrain > 0:
+            ground = str(region.terrain).replace("_", " ")
+            parts.append(f"the ground favors the defender (+{int(round(terrain * 100))}%, {ground})")
+        if world.get_region_intel(enemy_marshal.location).visibility == FULL:
+            defense_mod = float(enemy_marshal.get_defense_modifier(
+                lead_d < lead_a, consume=False))
+            if defense_mod > 1.005:
+                parts.append(f"{humanize_entity_name(enemy_marshal.name)} stands "
+                             f"+{int(round((defense_mod - 1.0) * 100))}% on the defense "
+                             f"(his stance, his character and his works)")
+        if not parts:
+            return ""
+        return "The band weighs more than the men: " + "; ".join(parts) + "."
+
     def muster_odds(self, marshal, enemy_marshal, world) -> dict:
         """VP-R1 (c): the odds band `_build_muster_preview` would print for
         this attack, without building the preview — the same ladder
@@ -1445,10 +1492,12 @@ class CombatExecutor:
         game_state = {"world": world}
         band = inferred_attack_odds_band(
             marshal, enemy_marshal, game_state,
-            committed_attacker=committed, committed_defender=committed_defender)
+            committed_attacker=committed, committed_defender=committed_defender,
+            fold_modifiers=True)
         ratio = inferred_attack_effective_ratio(
             marshal, enemy_marshal, game_state,
-            committed_attacker=committed, committed_defender=committed_defender)
+            committed_attacker=committed, committed_defender=committed_defender,
+            fold_modifiers=True)
         return {"band": band, "ratio": float(ratio),
                 "committed_attacker": float(committed),
                 "committed_defender": float(committed_defender),
@@ -1697,7 +1746,8 @@ class CombatExecutor:
         odds_band = inferred_attack_odds_band(
             marshal, enemy_marshal, game_state,
             committed_attacker=committed_attacker,
-            committed_defender=committed_defender)
+            committed_defender=committed_defender,
+            fold_modifiers=True)
 
         # The hedge row, fog-honest: it names only corps the player can
         # already SEE, and says "at least", because the band above may be
@@ -1874,6 +1924,13 @@ class CombatExecutor:
                 preview["presence_note"] = (
                     f"The Emperor commands in person{_dims} — every corps "
                     f"on this field fights +{_pct}% harder{_hedge}.")
+
+        # SR-4a (AAR-32): the standing modifiers the band now weighs, named
+        # when they hurt — ours always, the ground always (public), the
+        # enemy's stack only at FULL visibility.
+        _posture = self._posture_note(marshal, enemy_marshal, world)
+        if _posture:
+            preview["posture_note"] = _posture
 
         # First-use tutorial line about standing orders — latch-on-surface
         # (shown once per campaign, even if this attack is then cancelled).
@@ -2059,6 +2116,9 @@ class CombatExecutor:
         # said the Emperor was on the field. This is the render.
         if preview.get("presence_note"):
             lines.append(f"  {preview['presence_note']}")
+        # SR-4a (AAR-32): what weighs on the band besides the men.
+        if preview.get("posture_note"):
+            lines.append(f"  {preview['posture_note']}")
         # WO slice 8: the price and the G3 design sentence — rendered, not
         # just produced (the NP-V lesson three comments up). `.get()`
         # because two test fixtures build literal preview dicts without
@@ -3644,11 +3704,10 @@ class CombatExecutor:
         Returns:
             Result dict with success, message, events
         """
-        # Calculate garrison effective defense
-        terrain_bonus = TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0)
-        fort_bonus = (REGION_FORTIFICATION_DEFENSE_BONUS
-                      if target_region.has_building("fortification") else 0.0)
-        garrison_effective = int(target_region.garrison_strength * (1.0 + terrain_bonus) * (1.0 + fort_bonus))
+        # Calculate garrison effective defense — SR-4a: ONE formula
+        # (`garrison_report.garrison_effective`), the one the assault line says.
+        from backend.game_logic import garrison_report as _garrison_report
+        garrison_effective = _garrison_report.garrison_effective(target_region)
 
         # Recompute coordination for the attacker's current region before reading
         # the modifier — unlike the marshal-vs-marshal paths, garrison assault has
@@ -3677,9 +3736,22 @@ class CombatExecutor:
             iron_note = (f" (Iron Resolve: {iron_stacks_fired} coiled "
                          f"stack{'s' if iron_stacks_fired != 1 else ''} released — "
                          f"+{_iron_pct}% attack)")
+        # SR-4a (AAR-24): the coordination share the corps at his side lend —
+        # read BEFORE the modifier is taken, from the stamp just computed.
+        _assault_coordination = float(
+            getattr(marshal, "total_coordination_attack_bonus", 0.0) or 0.0)
         # Attacker effective strength (uses single-source modifier from marshal.py)
         attacker_modifier = marshal.get_attack_modifier()
         attacker_effective = int(marshal.strength * attacker_modifier)
+        # SR-4a (AAR-24): the assault's one-line muster — the resolver's own
+        # terms, prepended at both exits; the player's assaults only (GR5:
+        # the AI reads no message).
+        assault_line = ""
+        if (self.AN_ASSAULT_NAMES_ITS_TERMS
+                and marshal.nation == world.player_nation):
+            assault_line = _garrison_report.assault_muster_line(
+                world, marshal, target_region, attacker_effective,
+                garrison_effective, _assault_coordination) + "\n"
 
         # Calculate losses — proportional exchange
         # Garrison damage to attacker: ratio of garrison_effective to attacker_effective
@@ -3799,10 +3871,11 @@ class CombatExecutor:
 
         # Check if garrison collapsed
         # Capital garrisons collapse below 5k threshold; detachment garrisons fight to destruction
+        from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
         if target_region.garrison_detachment:
             garrison_collapsed = target_region.garrison_strength <= 0
         else:
-            garrison_collapsed = target_region.garrison_strength < 5000
+            garrison_collapsed = target_region.garrison_strength < MARCH_HALTS_AT_GARRISON
 
         # ── FA-R5 (slice 14): the assault goes ON THE RECORD ───────────────
         # Until now this resolver contained ZERO `log_event` calls, so two of
@@ -3869,8 +3942,8 @@ class CombatExecutor:
 
             # Custom garrison authority (uses garrison_effective, not standard outnumbered check)
             if marshal.nation == world.player_nation:
-                garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
-                                         * (1.0 + (REGION_FORTIFICATION_DEFENSE_BONUS if target_region.has_building("fortification") else 0.0)))
+                garrison_effective = _garrison_report.garrison_effective(
+                    target_region, old_garrison)
                 if pre_battle_atk_strength < garrison_effective:
                     world.authority_tracker.modify_authority(+5)
                 if getattr(target_region, 'is_capital', False):
@@ -3886,7 +3959,7 @@ class CombatExecutor:
             capture_result = self._attempt_region_capture(
                 marshal, target_region.name, world, game_state, had_garrison=False)
 
-            msg = (
+            msg = assault_line + (
                 f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
                 f"Garrison collapses ({old_garrison:,} -> 0). "
                 f"{marshal.name} loses {attacker_losses:,} troops in the assault. "
@@ -3954,13 +4027,15 @@ class CombatExecutor:
             return result
         else:
             # Garrison holds — attacker stays in place
-            msg = (
+            msg = assault_line + (
                 f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
                 f"Garrison: {old_garrison:,} -> {target_region.garrison_strength:,} "
                 f"(-{garrison_losses:,}). "
                 f"{marshal.name} loses {attacker_losses:,} troops. "
                 f"Garrison holds — {target_region.garrison_strength:,} defenders remain."
             )
+            if assault_line:
+                msg += _garrison_report.assault_regen_clause(world, target_region)
             if target_region.has_building("fortification"):
                 msg += " Fortifications bolster the defense."
 
@@ -3994,8 +4069,8 @@ class CombatExecutor:
 
             # Custom garrison authority (uses garrison_effective)
             if marshal.nation == world.player_nation:
-                garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
-                                         * (1.0 + (REGION_FORTIFICATION_DEFENSE_BONUS if target_region.has_building("fortification") else 0.0)))
+                garrison_effective = _garrison_report.garrison_effective(
+                    target_region, old_garrison)
                 if pre_battle_atk_strength > garrison_effective:
                     world.authority_tracker.modify_authority(-5)
 
@@ -4122,6 +4197,11 @@ class CombatExecutor:
     # campaign log and the morning briefing. False writes no `event_log` row
     # on any of the three exits, which is the pre-slice behaviour.
     THE_GARRISON_ASSAULT_IS_RECORDED = True
+    # SR-4a (Score Mandate Chunk 4, AAR-24): a player's assault is
+    # prefixed with its one-line muster — alone, the corps beside him not
+    # joining, the garrison's line of collapse, and (on the hold) what
+    # the works regain by morning. False reproduces the bare message.
+    AN_ASSAULT_NAMES_ITS_TERMS = True
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,
@@ -6223,12 +6303,14 @@ class CombatExecutor:
                     # garrisons (garrison_detachment) fight to destruction.
                     # ════════════════════════════════════════════════════════════
                     garrison_fights = False
+                    from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
                         if target_region.garrison_detachment:
                             # Detachment garrisons always fight (no collapse threshold)
                             garrison_fights = True
-                        elif target_region.garrison_strength >= 5000:
-                            # Capital garrisons fight above 5k
+                        elif target_region.garrison_strength >= MARCH_HALTS_AT_GARRISON:
+                            # Capital garrisons fight above 5k (SR-4a: the
+                            # one threshold, `MARCH_HALTS_AT_GARRISON`)
                             garrison_fights = True
 
                     if garrison_fights:

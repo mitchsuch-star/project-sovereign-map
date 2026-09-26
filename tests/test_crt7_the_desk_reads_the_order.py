@@ -193,12 +193,22 @@ class TestIsItSafe:
         assert "so far as our intelligence reaches" in message, message
 
     def test_the_garrison_gate_reads_the_fog(self, shipped):
+        """⚠ CONSCIOUS PIN FLIP, September 26, 2026 (Score Mandate SR-4a,
+        AAR-4's family): at PARTIAL the desk named the exact garrison — more
+        than the map allows (the region panel's fog sentinel shows a band).
+        The desk now reads the ONE fog rule (`garrison_report.garrison_view`):
+        nothing in the fog, a band at PARTIAL, the figure at FULL."""
         _, world = shipped
+        from backend.models.intel import FULL, get_strength_band
         fogged = QD._answer_safe(world, "France", "Vienna")
         see(world, "Vienna")
         seen = QD._answer_safe(world, "France", "Vienna")
         garrison = int(world.get_region("Vienna").garrison_strength)
-        assert f"{garrison:,}" not in fogged and f"{garrison:,}" in seen, (fogged, seen)
+        assert f"{garrison:,}" not in fogged and f"{garrison:,}" not in seen, (fogged, seen)
+        assert f"held by a garrison ({get_strength_band(garrison)})" in seen, seen
+        world.get_region_intel("Vienna").visibility = FULL
+        scouted = QD._answer_safe(world, "France", "Vienna")
+        assert f"{garrison:,}" in scouted, scouted
 
 
 class TestWhatDoesHeHave:

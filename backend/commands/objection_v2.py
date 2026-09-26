@@ -819,6 +819,18 @@ def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
 # is no fortification/terrain, so it is a pure superset (CR-5 Phase 3).
 INFERRED_ATTACK_FAVORABLE_RATIO = 0.7
 
+# SR-4a (Score Mandate Chunk 4, AAR-32): "'Favorable' is an army-size
+# verdict." The muster band compared MEN — two strikes on Kutuzov read
+# "favorable" into brutal stalemates against his defensive stance +15%, his
+# character and the outnumbered +10%; Massena's assault on Tyrol read "even"
+# without naming his own leftover DEFENSIVE stance (-10%). With
+# `fold_modifiers=True` (the muster preview and `muster_odds` only — the
+# CR-5 gates keep their lead-only read) the ratio carries both leads'
+# standing modifiers through the SINGLE sources (`get_attack_modifier` /
+# `get_defense_modifier`, both with consume=False — a pure read) as the
+# resolver applies them to the whole side. Lever False: the men-only band.
+THE_BAND_WEIGHS_THE_STANDING_MODIFIERS = True
+
 # Region fortification BUILDING bonus — the exact value combat_executor folds
 # into the defender's effective strength: `fort_bonus = 0.25 if
 # region.has_building("fortification")`, then combat.resolve_battle does
@@ -866,7 +878,8 @@ def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
 
 def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
                                     committed_attacker: float = 0.0,
-                                    committed_defender: float = 0.0) -> float:
+                                    committed_defender: float = 0.0,
+                                    fold_modifiers: bool = False) -> float:
     """The fortification/terrain-aware attacker/effective-defender ratio —
     the SINGLE odds formula (see inferred_attack_favorable's docstring).
     W6-4 extracts it so the muster preview's odds band reads the same
@@ -905,8 +918,13 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
     defender = max(1, getattr(enemy, "strength", 0) or 0)
 
     bonus = 0.0
-    # (1) Personal fortify earthworks (casualty-channel; see docstring).
-    if getattr(enemy, "fortified", False):
+    fold = bool(fold_modifiers and THE_BAND_WEIGHS_THE_STANDING_MODIFIERS
+                and hasattr(marshal, "get_attack_modifier")
+                and hasattr(enemy, "get_defense_modifier"))
+    # (1) Personal fortify earthworks (casualty-channel; see docstring). Under
+    #     the SR-4a fold the defender's own modifier carries it (x(1+bonus)),
+    #     so it is not counted twice.
+    if getattr(enemy, "fortified", False) and not fold:
         bonus += max(0.0, getattr(enemy, "defense_bonus", 0.0) or 0.0)
 
     # (2) Region terrain + fortification building — the deterministic strength
@@ -926,12 +944,23 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
 
     effective_defender = (defender + max(0.0, committed_defender)) * (
         1.0 + bonus)
+    if fold:
+        # SR-4a: the leads' standing modifiers, as the resolver applies them
+        # to the whole side (the solo raw ratio and the solo outnumbered
+        # test, as `combat.py` passes them). consume=False: a pure read.
+        lead_attacker = max(1, getattr(marshal, "strength", 0) or 0)
+        attack_mod = float(marshal.get_attack_modifier(
+            lead_attacker / defender, consume=False))
+        defense_mod = float(enemy.get_defense_modifier(
+            defender < lead_attacker, consume=False))
+        return (attacker * attack_mod) / (effective_defender * max(0.01, defense_mod))
     return attacker / effective_defender
 
 
 def inferred_attack_odds_band(marshal, enemy, game_state=None,
                               committed_attacker: float = 0.0,
-                              committed_defender: float = 0.0) -> str:
+                              committed_defender: float = 0.0,
+                              fold_modifiers: bool = False) -> str:
     """W6-4 muster preview: three-way display band over the single odds
     formula. `favorable` (ratio >= 1.0), `even` (the CR-5 0.7 floor up to
     parity) and `unfavorable` (< 0.7).
@@ -945,7 +974,7 @@ def inferred_attack_odds_band(marshal, enemy, game_state=None,
     CA9-F1: `committed_defender` does the same for the other side."""
     ratio = inferred_attack_effective_ratio(
         marshal, enemy, game_state, committed_attacker=committed_attacker,
-        committed_defender=committed_defender)
+        committed_defender=committed_defender, fold_modifiers=fold_modifiers)
     if ratio >= 1.0:
         return "favorable"
     if ratio >= INFERRED_ATTACK_FAVORABLE_RATIO:

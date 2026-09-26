@@ -491,11 +491,12 @@ class NavalExecutor:
                 # garrison gate: a detachment always fights, a capital
                 # garrison fights above the 5,000 collapse threshold.
                 garrison_fights = False
+                from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
                 if (getattr(target_region, "garrison_strength", 0) > 0
                         and target_region.controller != marshal.nation):
                     if getattr(target_region, "garrison_detachment", False):
                         garrison_fights = True
-                    elif target_region.garrison_strength >= 5000:
+                    elif target_region.garrison_strength >= MARCH_HALTS_AT_GARRISON:
                         garrison_fights = True
                 if not defenders and garrison_fights:
                     garrison_result = (

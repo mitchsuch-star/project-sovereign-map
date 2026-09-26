@@ -791,13 +791,18 @@ class TestF1SymmetricCommittedDefender:
         _, def_committed = combat._defender_muster(mack, world)
         assert def_committed > 0, "board precondition broken"
 
+        # SR-4a (Sept 26, 2026) — CONSCIOUS RE-SEAT: the preview's band now
+        # folds both leads' standing modifiers (AAR-32), so the shared
+        # formula it must equal is the FOLDED one; the pin's point — both
+        # committed terms, the defender's half never dropped — is unchanged.
         assert preview["odds_band"] == inferred_attack_odds_band(
             ney, mack, gs, committed_attacker=atk_committed,
-            committed_defender=def_committed)
+            committed_defender=def_committed, fold_modifiers=True)
         # …and it is NOT the band the attacker-only formula would give, or
         # this test could not tell the two apart.
         assert preview["odds_band"] != inferred_attack_odds_band(
-            ney, mack, gs, committed_attacker=atk_committed), (
+            ney, mack, gs, committed_attacker=atk_committed,
+            fold_modifiers=True), (
             "the preview still reports the attacker-only band")
         # The omission was never neutral — it always flattered the attacker.
         with_def = inferred_attack_effective_ratio(

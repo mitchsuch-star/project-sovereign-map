@@ -328,6 +328,15 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
                          f"{band}{when}.")
     elif vis == UNKNOWN and not own:
         return f"No word from {region_name}, Sire — it has not been scouted."
+    # SR-4a (AAR-4's family): a known garrison is named — "No army stands in
+    # Vienna that we know of" was said over a 25,000 garrison at FULL.
+    from backend.game_logic import garrison_report as _garrison_report
+    if _garrison_report.THE_DESK_READS_THE_GARRISON_FOG:
+        _form, _value = _garrison_report.garrison_view(world, region_name, player)
+        if _form == "exact":
+            lines.append(f"{'Our garrison' if own_soil else 'Garrison'}: {int(_value):,}.")
+        elif _form == "band":
+            lines.append(f"Garrison: {_value}.")
     if not lines:
         return f"No army stands in {region_name} that we know of, Sire ({holder} holds it)."
     return f"{region_name} ({holder}): " + " ".join(lines)
@@ -1309,6 +1318,15 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
     # in view (PARTIAL+), exactly as the region panel's fog sentinel does.
     in_view = ours or bool(world.get_region_intel(region_name).visibility_at_least(PARTIAL))
     garrison = int(getattr(region, "garrison_strength", 0) or 0) if in_view else 0
+    # SR-4a (AAR-4's family): the garrison is read through the ONE fog rule —
+    # a figure on our soil or at FULL, a band at PARTIAL (the map's sentinel);
+    # it printed the exact figure at PARTIAL, more than the map allows.
+    garrison_words = f"a garrison of {garrison:,}"
+    from backend.game_logic import garrison_report as _garrison_report
+    if _garrison_report.THE_DESK_READS_THE_GARRISON_FOG and garrison > 0:
+        _form, _value = _garrison_report.garrison_view(world, region_name, player)
+        if _form == "band":
+            garrison_words = f"a garrison ({_value})"
     adjacent = list(getattr(region, "adjacent_regions", None) or [])
     two_off = set()
     for name in adjacent:
@@ -1342,9 +1360,9 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
         parts.append(f"{region_name} is {whose}, Sire; "
                      + _join([f"{_display(m.name)}'s {int(m.strength):,}" for m in own])
                      + " stand there"
-                     + (f" beside a garrison of {garrison:,}" if garrison > 0 else "") + ".")
+                     + (f" beside {garrison_words}" if garrison > 0 else "") + ".")
     elif garrison > 0:
-        parts.append(f"{region_name} is {whose}, Sire, held by a garrison of {garrison:,}.")
+        parts.append(f"{region_name} is {whose}, Sire, held by {garrison_words}.")
     elif not in_view:
         parts.append(f"{region_name} is {whose}, Sire; we have no intelligence "
                      f"on what holds it.")

@@ -1184,9 +1184,19 @@ class MovementExecutor:
 
             controller_display = (formed_display_name(world, controller)
                                   if target_region.controller else "Unknown")
+            # SR-4a (AAR-4): the scout names the garrison and the works — a
+            # targeted scout IS a FULL read, so the figure is the map's own.
+            from backend.game_logic import garrison_report as _garrison_report
+            garrison_clause = (
+                _garrison_report.describe_garrison(world, target_region, marshal.nation)
+                if _garrison_report.THE_SCOUT_NAMES_THE_GARRISON else "")
             intel_msg = f"Controlled by {controller_display}. {terrain_msg}. "
             if enemy_intel:
                 intel_msg += f"Enemy forces: {'; '.join(enemy_intel)}"
+                if garrison_clause:
+                    intel_msg += f". {garrison_clause}"
+            elif garrison_clause:
+                intel_msg += f"No field army stands there. {garrison_clause}"
             else:
                 intel_msg += "No enemy forces detected."
 
@@ -1205,20 +1215,36 @@ class MovementExecutor:
                         "terrain": terrain,
                         "terrain_display": terrain_display,
                         "defense_bonus": defense_pct,
-                        "enemies": enemy_intel
+                        "enemies": enemy_intel,
+                        # SR-4a (AAR-4): the garrison the report names.
+                        "garrison": (int(getattr(target_region, "garrison_strength", 0) or 0)
+                                     if garrison_clause else 0),
+                        "garrison_detachment": bool(
+                            garrison_clause and getattr(target_region, "garrison_detachment", False)),
+                        "works_bonus": (int(round(_garrison_report.works_bonus(target_region) * 100))
+                                        if garrison_clause else 0),
                     }
                 }],
                 "new_state": game_state
             }
         else:
             # Scout all adjacent regions
+            from backend.game_logic import garrison_report as _garrison_report
             adjacent_intel = []
             for region_name in current_region.adjacent_regions:
                 region = world.get_region(region_name)
                 controller = region.controller or "Unknown"
                 terrain = getattr(region, 'terrain', 'plains')
-                enemies = [m for m in world.get_marshals_in_region(region_name)
-                          if m.nation != world.player_nation]
+                # SR-4a (AAR-4): only a corps AT WAR with us is an enemy — the
+                # scan counted our ally Deroy (Bavaria) as "1 enemies", and a
+                # prisoner parked at his captor's capital too.
+                if _garrison_report.THE_SCOUT_NAMES_THE_GARRISON:
+                    enemies = [m for m in world.get_marshals_in_region(region_name)
+                               if m.nation != world.player_nation and m.strength > 0
+                               and world.is_at_war(world.player_nation, m.nation)]
+                else:
+                    enemies = [m for m in world.get_marshals_in_region(region_name)
+                               if m.nation != world.player_nation]
                 adjacent_intel.append({
                     "region": region_name,
                     "controller": controller,
@@ -1249,11 +1275,19 @@ class MovementExecutor:
             # LV-2 (row EP F2): the controller's printed form, never its
             # tag; the structured `intel` rows keep the raw key.
             from backend.game_logic.formations import formed_display_name
+            # SR-4a (AAR-4): each province's garrison, at the scan's own fog
+            # (PARTIAL: a band; ours or an already-FULL cell: the figure).
+            _scan_garrison = (
+                (lambda name: _garrison_report.garrison_scan_clause(
+                    world, name, world.player_nation))
+                if _garrison_report.THE_SCOUT_NAMES_THE_GARRISON
+                else (lambda name: ""))
             intel_summary = ", ".join([
                 f"{info['region']} ("
                 f"{formed_display_name(world, info['controller']) if info['controller'] != 'Unknown' else 'Unknown'}, "
                 f"{info['terrain'].replace('_', ' ').title()}" +
-                (f", {info['enemy_count']} enemies)" if info['enemy_count'] > 0 else ")")
+                (f", {info['enemy_count']} enemies" if info['enemy_count'] > 0 else "") +
+                _scan_garrison(info['region']) + ")"
                 for info in adjacent_intel
             ])
 
