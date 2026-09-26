@@ -56,6 +56,7 @@ from backend.game_logic.settlement_routes import (
 )
 from backend.game_logic.settlement_staging import (
     SETTLEMENT_EDITOR_CALLER_KIND,
+    consent_kwargs_for_restage,
     _DEMAND_CLAUSE_CAP_REASON,
     _build_pair_substitute_confirm_dialogue,
     _demand_hard_stop_reason,
@@ -1704,6 +1705,9 @@ def _action_submit_settlement_for_review(
         actor_nation=str(getattr(world, "player_nation", "France") or "France"),
         caller_kind="player_editor",
         dialogue_mode="REVIEW",
+        # SR-2a (AAR-3): the offered package submitted unchanged keeps its
+        # authors' consent through the review gate.
+        **consent_kwargs_for_restage(dialogue, terms),
     )
 
 
@@ -1738,6 +1742,8 @@ def _action_return_to_settlement_terms(
         actor_nation=str(getattr(world, "player_nation", "France") or "France"),
         caller_kind="player_editor",
         dialogue_mode="PROPOSE",
+        # SR-2a (AAR-3): back to shaping with the same package keeps consent.
+        **consent_kwargs_for_restage(dialogue, terms),
     )
 
 

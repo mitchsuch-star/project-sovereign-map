@@ -2965,7 +2965,8 @@ class DiplomaticExecutor:
             _settlement_offer_opposing_side_leader(war, player_side=player_side)
             or ""
         )
-        war_label = _settlement_request_war_label(war, requested_war_id)
+        war_label = _settlement_request_war_label(
+            war, requested_war_id, player=player)
 
         world.diplomatic_points -= dp_cost
         requests = getattr(world, "settlement_terms_requests", None)
@@ -4459,38 +4460,24 @@ class DiplomaticExecutor:
             if not suggested.get("type"):
                 suggested["type"] = proposal_type
 
-            # PL-6: Type-aware escalation — friendship vs war/coercive categories
-            _FRIENDSHIP_TYPES = {"non_aggression", "open_borders", "defensive_alliance", "alliance"}
-            _is_friendship = proposal_type in _FRIENDSHIP_TYPES
-
-            # Escalate existing demands by 1.5x
-            for d in suggested.get("demands", []):
-                if d.get("type") not in ("territory_cede",):
-                    d["value"] = int(d.get("value", 0) * 1.5)
-
-            # Add a gold demand if none exist
-            if not suggested.get("demands"):
-                gold_amount = 100 if _is_friendship else 300
-                suggested["demands"] = [{"type": "gold_per_turn", "value": gold_amount}]
-
-            # Strip territory demands from friendship types (nonsensical)
-            if _is_friendship:
-                suggested["demands"] = [d for d in suggested.get("demands", []) if d.get("type") not in ("territory_cede", "territory")]
-            else:
-                # War/coercive: Round 2 escalation — add territory demand if not already present
-                context_pre = dict(dialogue.get("context", {}))
-                round_num = context_pre.get("modify_count", 0) + 1
-                if round_num >= 2:
-                    has_territory = any(d.get("type") in ("territory_cede", "territory") for d in suggested.get("demands", []))
-                    if not has_territory:
-                        suggested["demands"].append({"type": "territory_cede", "value": 2})
-
-            # Remove sweeteners (harsh = no sweeteners)
-            suggested["sweeteners"] = []
-
-            # Bug 5 fix: Use nation-specific smart commentary
-            from backend.game_logic.diplomatic_templates import _get_smart_commentary
-            suggested["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_harsh")
+            # SR-2a (AAR-7): ONE harsh transform — `harden_proposal_terms`
+            # is the PL-6 escalation this block used to hold (×1.5 demands,
+            # the gold demand, the friendship strip / round-2 cession, no
+            # sweeteners, the "modified_harsh" commentary), moved to the
+            # templates module so the "Harsh demands" MENU option applies
+            # the same arithmetic instead of sending the generous package.
+            from backend.game_logic.diplomatic_templates import (
+                HARSH_FRIENDSHIP_TYPES, harden_proposal_terms,
+            )
+            suggested = harden_proposal_terms(
+                suggested,
+                proposal_type=proposal_type,
+                round_num=int(dict(dialogue.get("context", {})).get("modify_count", 0) or 0) + 1,
+                target_nation=target_nation,
+            )
+            # The cap arms below (friendship 1 / war 2 modifications) read
+            # the same classification the transform used.
+            _is_friendship = proposal_type in HARSH_FRIENDSHIP_TYPES
 
             # ── PL-23: Drafting pushback — roll BEFORE incrementing modify_count (AM-23.2) ──
             context = dict(dialogue.get("context", {}))

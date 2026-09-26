@@ -165,7 +165,9 @@ def test_request_revision_remains_only_counter_flow_for_incoming_offers():
         "covered_enemy_participants"
     ]
     assert "counterproposal_origin_offer_id" not in result
-    assert world.pending_settlement_dialogues == []
+    # SR-2a (AAR-3, September 26, 2026): the letter stands behind the
+    # counter draft until the draft changes (was `== []`).
+    assert len(world.pending_settlement_dialogues) == 1
 
 
 def test_no_counterproposal_constants_or_voice_families_in_code():

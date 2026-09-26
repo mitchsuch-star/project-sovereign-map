@@ -1,0 +1,156 @@
+[
+ {
+  "id": "SR-2a/AAR-2 the covered-leader arm reverts to the side leader",
+  "file": "backend/game_logic/settlement_validation.py",
+  "old": "    if not covered or (leader and str(leader) in covered):\n        return leader\n    for nation in (war_instance.get(accepting_side) or []):",
+  "new": "    return leader\n    for nation in (war_instance.get(accepting_side) or []):",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-2 the per-court gate stops being THE gate",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    if THE_TABLE_TELLS_ONE_TRUTH and not white_peace:\n        # SR-2a (AAR-2): ONE verdict per screen",
+  "new": "    if False and not white_peace:\n        # SR-2a (AAR-2): ONE verdict per screen",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-2 the blocker stops being the table's own verdict",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "        elif THE_TABLE_TELLS_ONE_TRUTH and not white_peace and not per_court_carries:",
+  "new": "        elif False:",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-2 ratification re-seats the side leader",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "        accepting_leader=accepting_leader_for_coverage(\n            war_instance, accepting_side, covered,\n        ),\n        proposer_side_leader=_side_leader(war_instance, proposer_side),",
+  "new": "        accepting_leader=_side_leader(war_instance, accepting_side),\n        proposer_side_leader=_side_leader(war_instance, proposer_side),",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 the revision route drops the consent trio",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        if THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES and covered_enemies:\n            # SR-2a (AAR-3): the covered courts WROTE this package.",
+  "new": "        if False:\n            # SR-2a (AAR-3): the covered courts WROTE this package.",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 the letter is consumed at staging again",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "            if not THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES:\n                _consume_offer_dialogue(world, dialogue)",
+  "new": "            if True:\n                _consume_offer_dialogue(world, dialogue)",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 consent never rides a restage",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    consent = consent_kwargs_for_restage(dialogue, terms)\n    preview = build_settlement_preview(",
+  "new": "    consent = {}\n    preview = build_settlement_preview(",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 consent equality stops ignoring provenance",
+  "file": "backend/game_logic/settlement_validation.py",
+  "old": "            {k: v for k, v in dict(t).items() if k not in CONSENT_PROVENANCE_KEYS}",
+  "new": "            dict(t)",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 a changed draft no longer consumes the letter",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    elif _prior_offer_id:\n        # The package changed: the counter is the player's now, and the",
+  "new": "    elif False:\n        # The package changed: the counter is the player's now, and the",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 ratification no longer retires the letter",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    if _consent_offer_id:\n        from backend.game_logic.settlement_offers import consume_offer_by_id",
+  "new": "    if False:\n        from backend.game_logic.settlement_offers import consume_offer_by_id",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-3 submit for review drops the consent",
+  "file": "backend/game_logic/settlement_actions.py",
+  "old": "        dialogue_mode=\"REVIEW\",\n        # SR-2a (AAR-3): the offered package submitted unchanged keeps its\n        # authors' consent through the review gate.\n        **consent_kwargs_for_restage(dialogue, terms),\n    )",
+  "new": "        dialogue_mode=\"REVIEW\",\n    )",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-7 the harsh transform stops escalating demands",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "        if d.get(\"type\") not in (\"territory_cede\",):\n            d[\"value\"] = int(d.get(\"value\", 0) * 1.5)",
+  "new": "        if d.get(\"type\") not in (\"territory_cede\",):\n            d[\"value\"] = int(d.get(\"value\", 0) * 1.0)",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-7 the menu sends the generous package under the harsh label again",
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "                if opt.get(\"variant\") == \"harsh\":\n                    # SR-2a (AAR-7): \"Harsh demands\" HARDENS the package",
+  "new": "                if False:\n                    # SR-2a (AAR-7): \"Harsh demands\" HARDENS the package",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-7 identical packages stop collapsing",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "        if sibling is not None and same_package(harsh_terms, sibling.get(\"terms\") or {}):",
+  "new": "        if False:",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-7 an eased harsh package keeps the harsh label",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "        if harsh_terms.get(\"suggestion_eased_to_estimate\"):\n            opt = dict(opt)",
+  "new": "        if False:\n            opt = dict(opt)",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-26 the Grant arm is baked available again",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "            opt[\"available\"] = open_table\n            if open_table:",
+  "new": "            opt[\"available\"] = True\n            if open_table:",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-26 the refusal stops routing to the settlement",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        court = _petition_reopen_court(world, str(war_id or \"\"), dialogue)\n        if court:",
+  "new": "        court = _petition_reopen_court(world, str(war_id or \"\"), dialogue)\n        if False:",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-26 petitions stop lapsing with their table",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "    if not A_PETITION_LAPSES_WITH_ITS_TABLE:\n        return []",
+  "new": "    if True:\n        return []",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-26 a mounted table no longer keeps its petition",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        if war_live and war_id and war_id == mounted_war_id:\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-26 the wire serves the cached payload again",
+  "file": "backend/main.py",
+  "old": "            popup = refresh_ally_petition_availability(world, current)\n            result[\"diplomatic_dialogue\"] = popup",
+  "new": "            popup = current.get(\"popup_payload\") or build_ally_settlement_petition_popup(current)\n            result[\"diplomatic_dialogue\"] = popup",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-27 the label names courts at peace again",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            theirs = [n for n in theirs_raw if _pair_is_war(player, n)]",
+  "new": "            theirs = list(theirs_raw)",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ },
+ {
+  "id": "SR-2a/AAR-27 the request seam drops the player",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        war_label = _settlement_request_war_label(\n            war, requested_war_id, player=player)",
+  "new": "        war_label = _settlement_request_war_label(war, requested_war_id)",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py"
+ }
+]

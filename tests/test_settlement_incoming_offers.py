@@ -579,9 +579,10 @@ def test_incoming_offer_request_revision_opens_counter_editor_seeded_from_offere
     counter editor by staging `settlement_confirm` in player-editor
     mode seeded with the offered settlement_terms,
     covered_enemy_participants, and a deterministic
-    selected_target_nation. The original offer entry is removed so
-    the mailbox no longer renders it and the one-active-offer-per-war
-    producer guard re-opens for the next AI tick. The staged
+    selected_target_nation. SR-2a (AAR-3, September 26, 2026): the
+    original offer entry STANDS — queued behind the counter draft, kept
+    answerable, and consumed only when the draft first changes or the
+    consented draft ratifies (`consume_offer_by_id`). The staged
     settlement_confirm carries the request-revision Voice Bible
     family so the popup heading reads as "answering with a counter
     draft", not the outgoing `Will they accept?` framing."""
@@ -610,9 +611,13 @@ def test_incoming_offer_request_revision_opens_counter_editor_seeded_from_offere
     assert staged["type"] == "settlement_confirm"
     assert staged["war_id"] == offer["war_id"]
     assert "counter draft" in str(staged.get("talleyrand_text", "")).lower()
-    # Pending entry is removed because the player has explicitly chosen
-    # to counter rather than leaving the offer in the mailbox.
-    assert len(world.pending_settlement_dialogues) == 0
+    # SR-2a (AAR-3): the pending entry STANDS while the counter draft is
+    # still the offered package — the player has opened a table on it, not
+    # torn the letter up. (Was `== 0`; consumption now follows the first
+    # changed term or the ratification, pinned in
+    # `test_sr2a_one_verdict_per_screen.py`.)
+    assert len(world.pending_settlement_dialogues) == 1
+    assert staged.get("consent_offer_id") == offer["offer_id"]
     # The dialogue_manager now holds the staged settlement_confirm,
     # not the original incoming offer.
     current = world.dialogue_manager.peek()

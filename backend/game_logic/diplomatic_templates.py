@@ -9,7 +9,7 @@ Architecture:
   Each template has text (with {slots}), options, and recommendation index.
 """
 
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from backend.nation_config import get_player_nation
 
@@ -688,6 +688,10 @@ DIPLOMATIC_TEMPLATES = {
                 "description": "Press our advantage — demand territory and tribute.",
                 "action": "execute_proposal",
                 "proposal_type": "peace",
+                # SR-2a (AAR-7): the menu HARDENS this package (the
+                # executor's own transform) instead of sending the generous
+                # one under a harsh label — see `harden_proposal_terms`.
+                "variant": "harsh",
             },
             {
                 "label": "Continue fighting",
@@ -3823,6 +3827,143 @@ def _ease_suggestion_until_not_rejected(
     # display stays honest.)
     eased["demands"] = []
     return eased
+
+
+# SR-2a (AAR-7, Score Mandate Chunk 2, September 26, 2026). Measured on the
+# AAR (turn 5, "Talleyrand, assess Austria"): both "Generous peace" and
+# "Harsh demands" carried the IDENTICAL package — the template built both
+# from the same `generate_suggested_terms` call, and the harsh one promised
+# "demand territory and tribute" while sending the eased generous draft.
+# ONE transform now: the executor's `modify_harsh` arithmetic, extracted
+# verbatim, applied by the menu too; then the estimator convergence every
+# suggested peace already takes (G4F-9), so the verdict beside the option is
+# the verdict of the package it sends. If the eased harsh package coincides
+# with the generous one, the menu COLLAPSES to one option and says so; an
+# eased harsh package is never labelled "Harsh demands".
+PEACE_FAMILY_FOR_EASING = (
+    "peace", "armistice", "armistice_winning", "armistice_losing",
+)
+HARSH_EASED_LABEL = "Firmer terms"
+HARSH_EASED_DESCRIPTION = (
+    "The hardest package they would not refuse outright — eased from the "
+    "harsh draft to what they will bear today."
+)
+HARSH_FRIENDSHIP_TYPES = frozenset(
+    {"non_aggression", "open_borders", "defensive_alliance", "alliance"})
+
+
+def harden_proposal_terms(
+    suggested: Dict,
+    *,
+    proposal_type: str,
+    round_num: int,
+    target_nation: str,
+) -> Dict:
+    """The harsh transform — the executor's `modify_harsh` arithmetic, moved
+    here so the button and the menu cannot drift (mutates and returns
+    `suggested`; callers pass their own copy). Byte-identical to the
+    executor's block it replaced: non-territory demands ×1.5; a gold demand
+    (100 friendship / 300 war) when there is none; territory stripped from
+    friendship types, a 2-province cession added on round ≥ 2 for the war
+    and coercive types; sweeteners removed; the "modified_harsh" commentary."""
+    _is_friendship = proposal_type in HARSH_FRIENDSHIP_TYPES
+
+    # Escalate existing demands by 1.5x
+    for d in suggested.get("demands", []):
+        if d.get("type") not in ("territory_cede",):
+            d["value"] = int(d.get("value", 0) * 1.5)
+
+    # Add a gold demand if none exist
+    if not suggested.get("demands"):
+        gold_amount = 100 if _is_friendship else 300
+        suggested["demands"] = [{"type": "gold_per_turn", "value": gold_amount}]
+
+    # Strip territory demands from friendship types (nonsensical)
+    if _is_friendship:
+        suggested["demands"] = [
+            d for d in suggested.get("demands", [])
+            if d.get("type") not in ("territory_cede", "territory")]
+    else:
+        # War/coercive: Round 2 escalation — add territory demand if not
+        # already present
+        if int(round_num) >= 2:
+            has_territory = any(
+                d.get("type") in ("territory_cede", "territory")
+                for d in suggested.get("demands", []))
+            if not has_territory:
+                suggested["demands"].append({"type": "territory_cede", "value": 2})
+
+    # Remove sweeteners (harsh = no sweeteners)
+    suggested["sweeteners"] = []
+
+    # Bug 5 fix: Use nation-specific smart commentary
+    suggested["talleyrand_commentary"] = _get_smart_commentary(
+        target_nation, "modified_harsh")
+    return suggested
+
+
+def ease_suggested_terms(terms: Dict, *, target_nation: str,
+                         player_nation: str, world) -> Dict:
+    """The G4F-9 estimator convergence, as a public name for the menu."""
+    return _ease_suggestion_until_not_rejected(
+        terms, target_nation=target_nation, player_nation=player_nation,
+        world=world)
+
+
+def _package_signature(terms: Dict) -> str:
+    """What a package IS to the court: its demands, sweeteners and clauses —
+    never the commentary or the easing flag."""
+    import json
+    return json.dumps(
+        {
+            "demands": list((terms or {}).get("demands") or []),
+            "sweeteners": list((terms or {}).get("sweeteners") or []),
+            "clauses": list((terms or {}).get("clauses") or []),
+        },
+        sort_keys=True, default=str,
+    )
+
+
+def same_package(a: Dict, b: Dict) -> bool:
+    return _package_signature(a) == _package_signature(b)
+
+
+def collapse_identical_packages(options: List[Dict], talleyrand_text: str,
+                                target_nation: str) -> Tuple[List[Dict], str]:
+    """A harsh option whose eased package coincides with its generous sibling
+    is dropped and the sentence says so; a harsh option that survived easing
+    is labelled for what it is. Pure: returns a new list and the text."""
+    from backend.display_names import display_nation
+    kept: List[Dict] = []
+    said = False
+    for opt in options:
+        if opt.get("variant") != "harsh" or opt.get("action") != "execute_proposal":
+            kept.append(opt)
+            continue
+        harsh_terms = opt.get("terms") or {}
+        ptype = harsh_terms.get("proposal_type") or opt.get("proposal_type")
+        sibling = next(
+            (o for o in options
+             if o is not opt and o.get("action") == "execute_proposal"
+             and not o.get("variant")
+             and (o.get("terms") or {}).get("proposal_type") == ptype),
+            None,
+        )
+        if sibling is not None and same_package(harsh_terms, sibling.get("terms") or {}):
+            if not said:
+                talleyrand_text = (
+                    f"{talleyrand_text} "
+                    f"{display_nation(target_nation)} will sign nothing "
+                    f"harsher today."
+                ).strip()
+                said = True
+            continue
+        if harsh_terms.get("suggestion_eased_to_estimate"):
+            opt = dict(opt)
+            opt["label"] = HARSH_EASED_LABEL
+            opt["description"] = HARSH_EASED_DESCRIPTION
+        kept.append(opt)
+    return kept, talleyrand_text
 
 
 def _build_base_terms(target_nation: str, proposal_type: str, world, deterministic: bool = False) -> Dict:

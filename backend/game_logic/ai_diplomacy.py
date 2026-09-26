@@ -4272,7 +4272,7 @@ def _resolve_settlement_terms_requests(
             if isinstance(war, dict)
             else "war_archived"
         )
-        war_label = _settlement_request_war_label(war, war_id)
+        war_label = _settlement_request_war_label(war, war_id, player=player)
         leader = str(entry.get("answering_leader") or "")
         if structural in (None, "cooldown_active", "war_too_young") and (
             _settlement_offer_already_pending(pending, war_id=str(war_id))
@@ -4441,14 +4441,48 @@ def _resolve_settlement_terms_requests(
     return granted
 
 
-def _settlement_request_war_label(war, war_id: str) -> str:
+def _settlement_request_war_label(war, war_id: str, *, player: str = None) -> str:
     # PR-2: this label reaches the settlement rail verbatim — measured,
     # "Settlement of France + Spain + Holland + Bavaria + KingdomOfItaly
     # vs Britain + Austria + Russia".
+    #
+    # SR-2a (AAR-27, September 26, 2026): with `player` given, the label
+    # names the courts still AT WAR — a court that signed a peace or holds a
+    # truce with the player has left the table (measured: the Request Terms
+    # message named Austria four turns after its peace and Russia while it
+    # stood in armistice). The player's side is the player plus every ally
+    # still holding a `war` pair with a court that is still at war with the
+    # player; the other side is every court whose pair with the player is
+    # `war`. A bare roster dict (no pair record, no player) keeps the full
+    # join, player side first.
     from backend.display_names import display_nation
     if isinstance(war, dict):
-        attackers = [display_nation(str(n)) for n in (war.get("attackers") or [])]
-        defenders = [display_nation(str(n)) for n in (war.get("defenders") or [])]
+        attackers_raw = [str(n) for n in (war.get("attackers") or [])]
+        defenders_raw = [str(n) for n in (war.get("defenders") or [])]
+        side_by_nation = war.get("side_by_nation") or {}
+        meta = war.get("diplo_key_meta") or {}
+        player = str(player or "")
+        our_side = side_by_nation.get(player) if player else None
+        if our_side in ("attackers", "defenders") and meta:
+            ours_raw = attackers_raw if our_side == "attackers" else defenders_raw
+            theirs_raw = defenders_raw if our_side == "attackers" else attackers_raw
+
+            def _pair_is_war(a: str, b: str) -> bool:
+                key = "|".join(sorted((a, b)))
+                return str((meta.get(key) or {}).get("pair_status") or "") == "war"
+
+            theirs = [n for n in theirs_raw if _pair_is_war(player, n)]
+            ours = [player] + [
+                n for n in ours_raw
+                if n != player and any(_pair_is_war(n, t) for t in theirs)
+            ]
+            if ours and theirs:
+                return (
+                    f"{' + '.join(display_nation(n) for n in ours)} vs "
+                    f"{' + '.join(display_nation(n) for n in theirs)}"
+                )
+        attackers = [display_nation(n) for n in attackers_raw]
+        defenders = [display_nation(n) for n in defenders_raw]
         if attackers and defenders:
             return f"{' + '.join(attackers)} vs {' + '.join(defenders)}"
     return str(war_id) or "the war"

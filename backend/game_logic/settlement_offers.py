@@ -28,6 +28,7 @@ from typing import (
 from backend.game_logic.settlement_scoring import MAX_SETTLEMENT_CLAUSE_COUNT
 from backend.game_logic.settlement_routes import (
     _error_display,
+    _mounted_settlement_dialogue,
     _no_reopen_target_payload,
     _safe_reopen_response,
     _war_label,
@@ -181,6 +182,43 @@ def _is_offer_active_dialogue(world: Any, dialogue: Mapping[str, Any]) -> bool:
     if str(current.get("offer_id") or "") and str(current.get("offer_id") or "") == str(dialogue.get("offer_id") or ""):
         return True
     return str(current.get("war_id") or "") == str(dialogue.get("war_id") or "")
+
+
+# SR-2a (AAR-3, Score Mandate Chunk 2, September 26, 2026): "Request
+# Revision" lays the offered package on the player's own table WITH the
+# offering courts' consent (the accept route's FA-3 trio), and the letter
+# STANDS in the mailbox until the draft actually changes or the consented
+# draft ratifies — Accept / Decline stay answerable and a Back Out loses
+# nothing. Measured (the AAR): Britain's own turn-4 offer scored -32/50 on
+# the revision table against 13/50 "consents" on the accept route, and after
+# Back Out the letter was gone. False restores consume-at-staging.
+THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES = True
+
+
+def consume_offer_by_id(world: Any, *, offer_id: str, war_id: str) -> bool:
+    """Remove ONE incoming offer — by its id — from the mailbox (current or
+    queued) and from the pending store. The seam the revision route's
+    deferred consumption uses (`settlement_staging` on the first term change;
+    `settlement_ratify` when the consented draft ratifies). True when
+    anything was removed."""
+    offer_id = str(offer_id or "")
+    if not offer_id:
+        return False
+    removed = 0
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is not None and hasattr(dm, "remove_matching"):
+        removed += int(dm.remove_matching(
+            lambda entry: (
+                isinstance(entry, Mapping)
+                and str(entry.get("type") or entry.get("dialogue_type") or "")
+                == "incoming_settlement_offer"
+                and str(entry.get("offer_id") or "") == offer_id
+            )
+        ) or 0)
+    if _remove_pending_settlement_offer(
+            world, offer_id=offer_id, war_id=str(war_id or "")) is not None:
+        removed += 1
+    return removed > 0
 
 
 def _consume_offer_dialogue(world: Any, dialogue: Mapping[str, Any]) -> None:
@@ -1388,7 +1426,9 @@ def build_ally_settlement_petition_dialogue(
                 context.get("consequence_display") or ""
             )
     dialogue["summary_text"] = _ally_petition_summary_text(dialogue)
-    dialogue["popup_payload"] = build_ally_settlement_petition_popup(dialogue)
+    # SR-2a (AAR-26): the Grant / Honor arm's availability is derived from
+    # the live table at the build too — never baked True.
+    refresh_ally_petition_availability(world, dialogue)
     return dialogue
 
 
@@ -1725,10 +1765,156 @@ def _mounted_propose_settlement_dialogue(
     return current
 
 
-def _petition_table_not_mounted_response(
-    action: str, war_id: str
+# SR-2a (AAR-26, Score Mandate Chunk 2, September 26, 2026). Measured on
+# the AAR: Bavaria's claim to Tyrol (turn 4) and Spain's to Leon (turn 8)
+# arrived with "Grant the Claim" `available: True` baked at build time;
+# pressing it answered "The settlement table for this war is not open", and
+# both stood in ENVOYS AWAITING RESPONSE through turn 18. Two rules now:
+# (1) the Grant / Honor arm's availability is DERIVED at every read from the
+# same two predicates the handler refuses on (a mounted PROPOSE table or a
+# suspended scoped draft for the war), and a refusal ROUTES to the
+# settlement (`must_reopen` + `reopen_target`, the client's existing road);
+# (2) a petition expires with the table it was filed against — at turn's end
+# the drafts are set aside, and a petition whose settlement is not MOUNTED
+# lapses with them, as does one over a war that ended. Lever below.
+A_PETITION_LAPSES_WITH_ITS_TABLE = True
+
+
+def _petition_table_is_open(world: Any, war_id: str) -> bool:
+    """The handler's own two predicates, as one honest read."""
+    if _mounted_propose_settlement_dialogue(world, war_id) is not None:
+        return True
+    return _suspended_draft_for_war(world, war_id) is not None
+
+
+def _petition_reopen_court(world: Any, war_id: str,
+                           dialogue: Optional[Mapping[str, Any]] = None) -> str:
+    """The court the settlement opens FOR when a refused petition routes to
+    it: the petition's own target enemy while it is coverable, else the war's
+    first coverable court; '' when the war has no table to open."""
+    coverable = _default_coverage_for_war(world, war_id)
+    if not coverable:
+        return ""
+    wanted = str((dialogue or {}).get("target_enemy") or "")
+    return wanted if wanted in coverable else coverable[0]
+
+
+def _petition_table_closed_display(world: Any, war_id: str) -> str:
+    war_label = _war_label_for_id(world, war_id)
+    return (
+        f"Open the settlement of {war_label} first (War Detail → Open "
+        "Settlement, or Return to Terms if it is under review), then answer "
+        "the petition."
+    )
+
+
+def refresh_ally_petition_availability(
+    world: Any, dialogue: Any,
 ) -> Dict[str, Any]:
-    return {
+    """SR-2a (AAR-26): re-derive the Grant / Honor arm's availability from
+    the live table state and write it back into the dialogue's options and
+    its `popup_payload`, so every read seam (the pending-envoy poll, the
+    mailbox activation) serves the answer the handler will give. Returns
+    the refreshed popup payload."""
+    if not isinstance(dialogue, dict):
+        return build_ally_settlement_petition_popup(dialogue)
+    war_id = str(dialogue.get("war_id") or "")
+    war = (getattr(world, "war_instances", {}) or {}).get(war_id)
+    war_live = isinstance(war, Mapping) and war.get("ended_turn") is None
+    open_table = bool(war_live and _petition_table_is_open(world, war_id))
+    if not war_live:
+        reason = "The war this petition was filed against has ended."
+    else:
+        reason = _petition_table_closed_display(world, war_id)
+    for opt in dialogue.get("options") or []:
+        if not isinstance(opt, dict):
+            continue
+        if opt.get("action") in (
+            ALLY_SETTLEMENT_PETITION_GRANT_ACTION,
+            ALLY_SETTLEMENT_PETITION_HONOR_ACTION,
+        ):
+            opt["available"] = open_table
+            if open_table:
+                opt.pop("disabled_reason_display", None)
+            else:
+                opt["disabled_reason_display"] = reason
+    popup = build_ally_settlement_petition_popup(dialogue)
+    dialogue["popup_payload"] = popup
+    return popup
+
+
+def lapse_ally_petitions_without_a_table(world: Any) -> List[Dict[str, Any]]:
+    """SR-2a (AAR-26): at turn's end, retire every ally settlement petition
+    whose war has ended or whose settlement table is not MOUNTED (the
+    scoped drafts are set aside on the same tick, so an unmounted table is
+    gone with them). Returns one notice per lapsed petition, in the shape
+    of the draft-discard notices it rides beside."""
+    if not A_PETITION_LAPSES_WITH_ITS_TABLE:
+        return []
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None or not hasattr(dm, "remove_matching"):
+        return []
+    mounted = _mounted_settlement_dialogue(world)
+    mounted_war_id = str((mounted or {}).get("war_id") or "")
+    current = dm.peek() if hasattr(dm, "peek") else None
+    queued = list(dm.iter_queue()) if hasattr(dm, "iter_queue") else []
+    petitions = [
+        d for d in ([current] + queued)
+        if isinstance(d, Mapping)
+        and d.get("type") == ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE
+    ]
+    notices: List[Dict[str, Any]] = []
+    war_instances = getattr(world, "war_instances", {}) or {}
+    for petition in petitions:
+        war_id = str(petition.get("war_id") or "")
+        war = war_instances.get(war_id)
+        war_live = isinstance(war, Mapping) and war.get("ended_turn") is None
+        if war_live and war_id and war_id == mounted_war_id:
+            continue
+        key = str(petition.get("petition_key") or "")
+        removed = _remove_ally_petition_dialogue(world, key) if key else 0
+        if not removed:
+            continue
+        ally = str(petition.get("ally_nation") or "an ally")
+        claim = str(petition.get("claim_region") or "its claim")
+        from backend.display_names import display_nation
+        if war_live:
+            message = (
+                f"{display_nation(ally)}'s petition over {claim} lapses with "
+                "the settlement it was filed against, set aside at turn's end."
+            )
+        else:
+            message = (
+                f"{display_nation(ally)}'s petition over {claim} lapses with "
+                "the war it was filed against."
+            )
+        petition_id = str(petition.get("petition_id") or "")
+        notifications = getattr(world, "notifications", None)
+        if notifications is not None and hasattr(notifications, "dismiss_by_type"):
+            from backend.notifications import ALLY_SETTLEMENT_PETITION
+            notifications.dismiss_by_type(
+                ALLY_SETTLEMENT_PETITION,
+                lambda n, _pid=petition_id: (
+                    str(((n.get("details") or {}).get("petition_id")) or "")
+                    == _pid
+                ),
+            )
+        notices.append({
+            "war_id": war_id,
+            "turn_discarded": int(getattr(world, "current_turn", 0) or 0),
+            "petition_lapsed": True,
+            "ally_nation": ally,
+            "petition_id": petition_id,
+            "message_display": message,
+        })
+    return notices
+
+
+def _petition_table_not_mounted_response(
+    action: str, war_id: str, *, world: Any = None,
+    dialogue: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    result = {
         "success": False,
         "dialogue_type": ALLY_SETTLEMENT_PETITION_DIALOGUE_TYPE,
         "action": action,
@@ -1743,6 +1929,25 @@ def _petition_table_not_mounted_response(
         "petition_retained": True,
         "suppress_proposal_result_popup": True,
     }
+    # SR-2a (AAR-26): the refusal ROUTES to the door it names — the client's
+    # existing `must_reopen` road opens the settlement for the court, with
+    # the petition retained in the mailbox to be answered once it is open.
+    if world is not None:
+        court = _petition_reopen_court(world, str(war_id or ""), dialogue)
+        if court:
+            result["must_reopen"] = True
+            result["reopen_target"] = {
+                "surface": "war_detail",
+                "target": "war_detail",
+                "war_id": str(war_id or ""),
+                "nation": court,
+                "target_nation": court,
+            }
+            result["error_display"] = (
+                f"{result['error_display']} Opening the settlement for "
+                f"{court} now — the petition waits in the mailbox."
+            )
+    return result
 
 
 def _suspended_draft_for_war(
@@ -1908,7 +2113,8 @@ def _handle_grant_ally_petition(
         draft_terms = _suspended_draft_for_war(world, war_id)
         if draft_terms is None:
             return _petition_table_not_mounted_response(
-                ALLY_SETTLEMENT_PETITION_GRANT_ACTION, war_id
+                ALLY_SETTLEMENT_PETITION_GRANT_ACTION, war_id,
+                world=world, dialogue=dialogue,
             )
         terms = draft_terms
         covered = _default_coverage_for_war(world, war_id)
@@ -2095,7 +2301,8 @@ def _handle_honor_bargain_in_settlement(
         draft_terms = _suspended_draft_for_war(world, war_id)
         if draft_terms is None:
             return _petition_table_not_mounted_response(
-                ALLY_SETTLEMENT_PETITION_HONOR_ACTION, war_id
+                ALLY_SETTLEMENT_PETITION_HONOR_ACTION, war_id,
+                world=world, dialogue=dialogue,
             )
         terms = draft_terms
         covered = _default_coverage_for_war(world, war_id)
@@ -2884,6 +3091,19 @@ def handle_incoming_settlement_offer_action(
             "caller_kind": "player_editor",
             "dialogue_mode": "PROPOSE",
         }
+        if THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES and covered_enemies:
+            # SR-2a (AAR-3): the covered courts WROTE this package. Laid back
+            # verbatim on the player's table it carries their consent — the
+            # accept route's FA-3 trio — so the offering leader is never
+            # re-scored as a stranger to its own terms. Consent is granted to
+            # THIS package (`consent_terms`): the first changed term lapses
+            # it, and the letter is consumed at that moment (the redraw seam
+            # in `settlement_staging`) or when the consented draft ratifies.
+            stage_kwargs["consenting_courts"] = list(covered_enemies)
+            stage_kwargs["consent_terms"] = [
+                dict(term) for term in offered_terms if isinstance(term, Mapping)
+            ]
+            stage_kwargs["consent_offer_id"] = offer_id
         if offered_terms:
             stage_kwargs["settlement_terms"] = offered_terms
         if covered_enemies:
@@ -2956,9 +3176,17 @@ def handle_incoming_settlement_offer_action(
             result.setdefault("diplomatic_dialogue", dict(dialogue))
             result["awaiting_diplomatic_response"] = True
         else:
-            _consume_offer_dialogue(world, dialogue)
-            _remove_pending_settlement_offer(
-                world, offer_id=offer_id, war_id=war_id)
+            # SR-2a (AAR-3): the letter STANDS while the counter draft is
+            # still the offered package (queued behind the draft by the
+            # staging tail's preempt; promoted the moment the player backs
+            # out). `consume_offer_by_id` retires it on the first changed
+            # term or at ratification. Lever down = the old consume-here.
+            if not THE_LETTER_STANDS_UNTIL_THE_DRAFT_CHANGES:
+                _consume_offer_dialogue(world, dialogue)
+                _remove_pending_settlement_offer(
+                    world, offer_id=offer_id, war_id=war_id)
+            else:
+                result["letter_stands"] = True
             if departed_courts:
                 result["departed_courts"] = list(departed_courts)
                 result["departed_courts_note"] = _departed_courts_note(

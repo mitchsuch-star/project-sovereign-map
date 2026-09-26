@@ -53,6 +53,8 @@ from backend.game_logic.settlement_validation import (
     _side_leader,
     _term_lists_equal,
     _territory_term_regions,
+    accepting_leader_for_coverage,
+    consent_terms_equal,
     validate_settlement_terms,
 )
 
@@ -88,7 +90,9 @@ def consenting_courts_for_ratification(dialogue: Mapping[str, Any]) -> List[str]
     ]
     if not consenting:
         return []
-    if not _term_lists_equal(
+    # SR-2a (AAR-3): equality over the package's SUBSTANCE — provenance
+    # stamps (`authored_by`) are not terms.
+    if not consent_terms_equal(
         dialogue.get("consent_terms") or [],
         dialogue.get("settlement_terms") or [],
     ):
@@ -1232,7 +1236,10 @@ def ratify_settlement_confirm(
         war_instance=war_instance,
         proposer_side=proposer_side,
         accepting_side=accepting_side,
-        accepting_leader=_side_leader(war_instance, accepting_side),
+        # SR-2a (AAR-2): the same covered leader the review seated.
+        accepting_leader=accepting_leader_for_coverage(
+            war_instance, accepting_side, covered,
+        ),
         proposer_side_leader=_side_leader(war_instance, proposer_side),
         covered_enemy_participants=covered,
         settlement_terms=settlement_terms,
@@ -1249,7 +1256,8 @@ def ratify_settlement_confirm(
     consenting_courts = consenting_courts_for_ratification(dialogue)
     accepting_leader_consents = bool(
         consenting_courts
-        and str(_side_leader(war_instance, accepting_side) or "")
+        and str(accepting_leader_for_coverage(
+            war_instance, accepting_side, covered) or "")
         in set(consenting_courts)
     )
 
@@ -1593,6 +1601,13 @@ def ratify_settlement_confirm(
 
     world.dialogue_manager.pop()
     _discard_scoped_settlement_draft_for_dialogue(world, dialogue)
+    # SR-2a (AAR-3): a consented draft ratified verbatim retires the letter
+    # it answered (the accept route consumed it at staging; the revision
+    # route leaves it standing until the draft changes or ratifies).
+    _consent_offer_id = str(dialogue.get("consent_offer_id") or "")
+    if _consent_offer_id:
+        from backend.game_logic.settlement_offers import consume_offer_by_id
+        consume_offer_by_id(world, offer_id=_consent_offer_id, war_id=war_id)
 
     result_message = (
         f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "

@@ -481,7 +481,13 @@ class TestTheSeamsTheSliceDidNotPin:
 
     def test_the_helper_has_exactly_three_callers(self):
         """A census, so the next reader of the record is not surprised the way
-        this round was. If a fourth appears, the record must name it."""
+        this round was. If a fourth appears, the record must name it.
+
+        SR-2a (AAR-26, September 26, 2026) names the fourth:
+        `settlement_offers.lapse_ally_petitions_without_a_table` reads the
+        mounted draft through the same predicate — a petition expires with
+        the table it was filed against (`SCORE_MANDATE_PLAN.md` §2 Chunk 2).
+        """
         import ast
         callers = []
         for path in sorted((ROOT / "backend").rglob("*.py")):
@@ -492,6 +498,7 @@ class TestTheSeamsTheSliceDidNotPin:
                         and node.func.id == "_mounted_settlement_dialogue"):
                     callers.append(path.name)
         assert sorted(callers) == [
+            "settlement_offers.py",      # SR-2a / AAR-26, the fourth (named)
             "settlement_routes.py",
             "settlement_staging.py",
             "settlement_validation.py",

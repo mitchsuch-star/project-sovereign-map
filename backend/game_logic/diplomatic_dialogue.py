@@ -872,6 +872,8 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
     """
     from backend.game_logic.diplomatic_templates import (
         get_template, resolve_template_text, generate_suggested_terms,
+        harden_proposal_terms, ease_suggested_terms,
+        collapse_identical_packages, PEACE_FAMILY_FOR_EASING,
     )
 
     target_nation = parsed_command.get("target_nation")
@@ -907,10 +909,30 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
             # Generate terms for execute options
             ptype = opt.get("proposal_type", proposal_type)
             if ptype:
-                resolved_opt["terms"] = generate_suggested_terms(
-                    target_nation, ptype, world)
+                _terms = generate_suggested_terms(target_nation, ptype, world)
+                if opt.get("variant") == "harsh":
+                    # SR-2a (AAR-7): "Harsh demands" HARDENS the package —
+                    # the executor's own transform — then takes the same
+                    # estimator convergence every suggested peace takes, so
+                    # the verdict beside it is the verdict of what it sends.
+                    _terms = harden_proposal_terms(
+                        _terms, proposal_type=ptype, round_num=1,
+                        target_nation=target_nation)
+                    if ptype in PEACE_FAMILY_FOR_EASING:
+                        _terms = ease_suggested_terms(
+                            _terms, target_nation=target_nation,
+                            player_nation=player_nation, world=world)
+                    resolved_opt["variant"] = "harsh"
+                resolved_opt["terms"] = _terms
                 resolved_opt["terms"]["proposal_type"] = ptype
         options.append(resolved_opt)
+
+    # SR-2a (AAR-7): identical eased packages collapse to ONE honest option
+    # (and the sentence says the court will sign nothing harsher today); an
+    # eased harsh package is never labelled "Harsh demands".
+    if target_nation:
+        options, talleyrand_text = collapse_identical_packages(
+            options, talleyrand_text, target_nation)
 
     # Context-aware option descriptions for war proposals
     if target_nation and intent_type == "proposal_confirm":

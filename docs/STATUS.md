@@ -4,7 +4,33 @@
 
 ## ▶ NEXT UP
 
-> **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — IN PROGRESS, September 26, 2026.**
+> **▶ ▶ ▶ ROW SR CHUNK 2 "THE TABLE TELLS ONE TRUTH" — IN PROGRESS, September 26, 2026**
+> (`SCORE_MANDATE_PLAN.md` §2 Chunk 2; the user: *"do SR, Chunk 1 … and chunk 2 if
+> you have bandwidth"*). ~~**SR-2a One verdict per screen**~~ ✅ LANDED — **AAR-2**
+> the settlement table seats the senior COVERED court and the per-court table
+> the player reads IS the ratify gate (the root was two scorers keyed on two
+> different courts: the dropped war leader gated an Austria-only draft that
+> every covered court carried); **AAR-3** the revision route carries the
+> offering courts' consent for the unchanged package (a court is never scored
+> as a stranger to its own terms) and the letter STANDS behind the draft until
+> the draft changes or ratifies; **AAR-7** ONE harsh transform
+> (`harden_proposal_terms`, the executor's own arithmetic, now applied by the
+> menu too), identical eased packages collapse with "will sign nothing harsher
+> today", an eased package is never labelled "Harsh demands"; **AAR-26** the
+> ally petition's Grant arm is derived at every read, its refusal routes to the
+> settlement, and the petition lapses with its table at turn's end; **AAR-27**
+> the request's war label names the courts still at war. Landing record plan §2
+> Chunk 2; rules `SYSTEMS_REFERENCE.md` §71.1; pins
+> `test_sr2a_one_verdict_per_screen.py` 47; sweep `tools/_sweep_sr2a.json`
+> 22/22 killed, 0 INERT (two pins found inert on the first sweep and replaced: the summary-vs-table disagreement, and consent riding a same-magnitude re-dial — which surfaced that the dial stamps provenance, so consent equality now ignores `authored_by`); `BASELINE_SERIES` + M1–M7 byte-identical (the passive France
+> opens no table); four pins re-seated consciously (three consumption pins +
+> the FA-slice-10 caller census, which asked to be told of a fourth caller);
+> residue SR-2a-X1 recorded (a white peace's header vs its leader gate).
+> **NEXT = SR-2b The Talleyrand verbs** (AAR-20 / AAR-21 / CRT-8's mission
+> half), then SR-2c (WO-32 + PR-D1c/D1d), the reserve, the exit re-score.
+>
+> **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
+> (commits `759414f9` + `f023d0b3`, pushed).**
 > ~~SR-1a~~ ✅ + ~~SR-1b~~ ✅ LANDED (one commit, with the AAR-12 quick win):
 > **status quo is a cession** — `game_end.title_status_quo_retentions` at the ONE
 > state setter on every SIGNED road (uti possidetis, both directions, a

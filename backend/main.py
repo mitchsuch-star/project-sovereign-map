@@ -5753,6 +5753,7 @@ def get_pending_envoy():
     """
     from backend.game_logic.settlement_offers import (
         build_ally_settlement_petition_popup,
+        refresh_ally_petition_availability,
         build_incoming_settlement_offer_popup,
         promote_pending_settlement_offers,
     )
@@ -5788,10 +5789,9 @@ def get_pending_envoy():
         elif dtype == "ally_settlement_petition":
             result["has_pending"] = True
             result["dialogue_type"] = dtype
-            popup = current.get("popup_payload")
-            if not isinstance(popup, dict) or not popup:
-                popup = build_ally_settlement_petition_popup(current)
-                current["popup_payload"] = popup
+            # SR-2a (AAR-26): the Grant / Honor arm is re-derived on every
+            # read from the live table, never served from the cached payload.
+            popup = refresh_ally_petition_availability(world, current)
             result["diplomatic_dialogue"] = popup
         elif dtype in ("incoming_proposal", "counter_offer",
                        "counter_offer_response", "incoming_ultimatum"):
@@ -5856,6 +5856,7 @@ def activate_mailbox_item(request: MailboxActivateRequest):
     """
     from backend.game_logic.settlement_offers import (
         build_ally_settlement_petition_popup,
+        refresh_ally_petition_availability,
         build_incoming_settlement_offer_popup,
         promote_pending_settlement_offers,
     )
@@ -5938,10 +5939,8 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         dialogue["popup_payload"] = popup
         result["incoming_settlement_offer"] = popup
     elif dtype == "ally_settlement_petition":
-        popup = dialogue.get("popup_payload")
-        if not isinstance(popup, dict) or not popup:
-            popup = build_ally_settlement_petition_popup(dialogue)
-            dialogue["popup_payload"] = popup
+        # SR-2a (AAR-26): re-derived on activation as on the poll.
+        popup = refresh_ally_petition_availability(world, dialogue)
         result["diplomatic_dialogue"] = popup
 
     return result

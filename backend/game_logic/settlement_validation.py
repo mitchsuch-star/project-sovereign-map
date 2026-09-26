@@ -249,6 +249,37 @@ def _side_leader(war_instance: Mapping[str, Any], side: str) -> Optional[str]:
     return None
 
 
+# SR-2a (AAR-2, Score Mandate Chunk 2, September 26, 2026): the table's
+# accepting leader is the senior COVERED court. The war's side leader is
+# seated only while it is on the table; a coverage drop used to leave the
+# dropped leader (Britain, 32/50) gating an Austria-only draft that every
+# covered court carried — "Term harshness" under a "Will carry" table.
+# Flip lever: False restores the side leader on every table.
+THE_TABLE_SEATS_THE_COVERED_LEADER = True
+
+
+def accepting_leader_for_coverage(
+    war_instance: Mapping[str, Any],
+    accepting_side: str,
+    covered_enemy_participants: Optional[Iterable[str]],
+) -> Optional[str]:
+    """The court the leader-level scorer seats for a settlement of THIS
+    coverage: the war's side leader while it is covered, otherwise the
+    senior covered court in the side's own order (the war's list order —
+    leader first, then the joiners). Empty coverage (an eligibility read
+    before the set is chosen) keeps the side leader."""
+    leader = _side_leader(war_instance, accepting_side)
+    if not THE_TABLE_SEATS_THE_COVERED_LEADER:
+        return leader
+    covered = {str(n) for n in (covered_enemy_participants or []) if n}
+    if not covered or (leader and str(leader) in covered):
+        return leader
+    for nation in (war_instance.get(accepting_side) or []):
+        if str(nation) in covered:
+            return str(nation)
+    return sorted(covered)[0]
+
+
 def _side_for_nation(war_instance: Mapping[str, Any], nation: str) -> Optional[str]:
     nation_name = str(nation or "")
     if nation_name in set(war_instance.get("attackers") or []):
@@ -491,6 +522,27 @@ def _terms_equal(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
         if a.get(key) != b.get(key):
             return False
     return True
+
+
+# SR-2a (AAR-3, September 26, 2026): the fields that are NOT a term — the
+# guided dials stamp `authored_by` on a clause they touch, and a magnitude
+# re-set to the SAME figure must not read as a changed package.
+CONSENT_PROVENANCE_KEYS = frozenset({"authored_by"})
+
+
+def consent_terms_equal(
+    left: Iterable[Mapping[str, Any]],
+    right: Iterable[Mapping[str, Any]],
+) -> bool:
+    """`_term_lists_equal` over the SUBSTANCE of each clause — every field
+    but provenance. A court's consent is to what the package does, not to
+    who last touched the line."""
+    def _strip(terms):
+        return [
+            {k: v for k, v in dict(t).items() if k not in CONSENT_PROVENANCE_KEYS}
+            for t in (terms or []) if isinstance(t, Mapping)
+        ]
+    return _term_lists_equal(_strip(left), _strip(right))
 
 
 def _territory_term_regions(term: Mapping[str, Any]) -> List[str]:

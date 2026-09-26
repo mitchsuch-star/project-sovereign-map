@@ -310,7 +310,9 @@ class TestTheOfferIsMailNeverADraft:
         staged = world.dialogue_manager.peek()
         assert staged.get("type") == "settlement_confirm"
         assert staged.get("dialogue_mode") == "PROPOSE"
-        assert offer.get("offer_id") not in _offer_ids(world)
+        # SR-2a (AAR-3, September 26, 2026): the letter answered by a
+        # counter draft STANDS until the draft changes (was `not in`).
+        assert offer.get("offer_id") in _offer_ids(world)
         assert second["offer_id"] in _offer_ids(world)
 
     def test_submit_for_review_no_longer_collides_with_the_mail_behind_it(

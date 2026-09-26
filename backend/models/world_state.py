@@ -10412,6 +10412,22 @@ class WorldState:
                     "message_display": message_display,
                 })
         self.pending_settlement_drafts_by_key = {}
+        # SR-2a (AAR-26): a petition expires with the table it was filed
+        # against — the drafts above are set aside on this tick, so an ally
+        # settlement petition whose settlement is not MOUNTED lapses with
+        # them (and one over a war that ended lapses with the war), with a
+        # notice beside the draft's own.
+        from backend.game_logic.settlement_offers import (
+            lapse_ally_petitions_without_a_table,
+        )
+        _lapsed_petitions = lapse_ally_petitions_without_a_table(self)
+        if _lapsed_petitions:
+            _petition_notices = getattr(
+                self, "pending_settlement_draft_notices", None)
+            if _petition_notices is None:
+                self.pending_settlement_draft_notices = []
+                _petition_notices = self.pending_settlement_draft_notices
+            _petition_notices.extend(_lapsed_petitions)
         # G2-Slice-3 SC-14b: per-turn reset of reopen attempts so the
         # SC-14b player escape is restored each turn (a new turn can
         # legitimately change war eligibility / acceptance / hard stops).

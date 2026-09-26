@@ -88,6 +88,8 @@ from backend.game_logic.settlement_validation import (
     _has_material_concession_terms,
     _side_leader,
     _term_lists_equal,
+    accepting_leader_for_coverage,
+    consent_terms_equal,
     evaluate_liberation_eligibility,
     evaluate_create_client_eligibility,
     evaluate_vassal_transfer_eligibility,
@@ -103,6 +105,10 @@ from backend.game_logic.formations import (
     get_template_identity,
     template_provinces,
 )
+
+# SR-2a (AAR-2, September 26, 2026): the per-court table the player reads is
+# the ratify gate. False restores the leader-level scorer's veto.
+THE_TABLE_TELLS_ONE_TRUTH = True
 
 
 SETTLEMENT_COOLDOWN_TURNS = 3
@@ -1760,6 +1766,32 @@ def _settlement_remaining_war_courts(
     return ignored, remaining
 
 
+def consent_kwargs_for_restage(
+    dialogue: Mapping[str, Any],
+    terms: Iterable[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """SR-2a (AAR-3): the consent a mounted draft carries, for a restage of
+    the SAME package — `consenting_courts` / `consent_terms` /
+    `consent_offer_id` when the dialogue holds consent and `terms` is still
+    the consented package (`_term_lists_equal`), else `{}`: a changed package
+    is a counter, scored normally for every court."""
+    consenting = [str(n) for n in (dialogue.get("consenting_courts") or []) if n]
+    if not consenting:
+        return {}
+    consent_terms = [
+        dict(t) for t in (dialogue.get("consent_terms") or [])
+        if isinstance(t, Mapping)
+    ]
+    live_terms = [dict(t) for t in (terms or []) if isinstance(t, Mapping)]
+    if not consent_terms_equal(consent_terms, live_terms):
+        return {}
+    return {
+        "consenting_courts": consenting,
+        "consent_terms": consent_terms,
+        "consent_offer_id": str(dialogue.get("consent_offer_id") or ""),
+    }
+
+
 def _restage_settlement_after_redraw(
     world: Any,
     dialogue: Mapping[str, Any],
@@ -1824,6 +1856,10 @@ def _restage_settlement_after_redraw(
             "mutated": False,
             "suppress_proposal_result_popup": True,
         }
+    # SR-2a (AAR-3): consent rides the redraw only while the package is
+    # still the one the courts offered; the moment it changes the draft is a
+    # counter, scored normally, and the letter it answered is consumed.
+    consent = consent_kwargs_for_restage(dialogue, terms)
     preview = build_settlement_preview(
         world,
         war_id=war_id,
@@ -1833,6 +1869,7 @@ def _restage_settlement_after_redraw(
         actor_nation=actor,
         ignore_active_dialogue=True,
         previous_bands=previous_bands,
+        consenting_courts=consent.get("consenting_courts"),
     )
     if not preview.get("success"):
         return {
@@ -1856,6 +1893,16 @@ def _restage_settlement_after_redraw(
     )
     if extra:
         new_dialogue.update(extra)
+    _prior_offer_id = str(dialogue.get("consent_offer_id") or "")
+    if consent:
+        new_dialogue["consent_terms"] = consent["consent_terms"]
+        if consent.get("consent_offer_id"):
+            new_dialogue["consent_offer_id"] = consent["consent_offer_id"]
+    elif _prior_offer_id:
+        # The package changed: the counter is the player's now, and the
+        # letter it answered is retired from the mailbox.
+        from backend.game_logic.settlement_offers import consume_offer_by_id
+        consume_offer_by_id(world, offer_id=_prior_offer_id, war_id=war_id)
     # PF-2 / CH-3: the scoped store is the ONE draft store for the PROPOSE
     # authoring lifecycle (dial → suspend → reopen). The legacy war_id-keyed
     # dual-write is gone — reopen never read it, and the two-stores-one-reader
@@ -1932,7 +1979,12 @@ def build_settlement_preview(
     covered = sorted(
         {str(n) for n in (covered_enemy_participants or eligibility["coverable_enemy_participants"])}
     )
-    accepting_leader = eligibility["accepting_leader"]
+    # SR-2a (AAR-2): the leader-level scorer seats the senior COVERED court,
+    # never a court the player dropped from coverage — the eligibility read
+    # names the war's side leader, which is only right while it is covered.
+    accepting_leader = accepting_leader_for_coverage(
+        instance, accepting_side, covered,
+    ) or eligibility["accepting_leader"]
     proposer_leader = eligibility["proposer_leader"]
 
     baseline_generated = False
@@ -2002,6 +2054,8 @@ def build_settlement_preview(
         "covered_enemy_participants": covered,
         "proposer_side": side,
         "accepting_side": accepting_side,
+        # SR-2a (AAR-2): the covered leader the leader-level score is about.
+        "accepting_leader": str(accepting_leader or ""),
         "proposer_side_participants": list(instance.get(side) or []),
         "accepting_side_participants": list(instance.get(accepting_side) or []),
         "standing": {},
@@ -2485,6 +2539,12 @@ def build_settlement_confirm_dialogue(
         "attackers": war_instance.get("attacker_leader"),
         "defenders": war_instance.get("defender_leader"),
     }
+    # SR-2a (AAR-2): the table's accepting leader is the covered court the
+    # preview scored — the consent check, the heading's "their leader" and
+    # the staged leaders all name a court that is actually on the table.
+    _covered_leader = str(preview.get("accepting_leader") or "")
+    if _covered_leader:
+        leaders[accepting_side] = _covered_leader
     war_label = str(preview.get("war_label") or _war_label(war_id, war_instance))
     # G4F-7 (Gate-4 smoke): a multilateral settlement is labeled by its
     # COVERAGE, not the leader pair — "the settlement of France vs Britain"
@@ -2587,26 +2647,42 @@ def build_settlement_confirm_dialogue(
     leader_consents = bool(
         consenting_courts_set and accepting_leader_name in consenting_courts_set
     )
-    can_ratify = (
-        not hard_stops
-        and (
-            leader_consents
-            or (
-                verdict not in ("reject", "blocked")
-                and (
-                    acceptance_score is not None
-                    and acceptance_score >= acceptance_threshold
-                )
+    leader_gate = bool(
+        leader_consents
+        or (
+            verdict not in ("reject", "blocked")
+            and (
+                acceptance_score is not None
+                and acceptance_score >= acceptance_threshold
             )
         )
-        and not empty_editor_block
-        # Re-front §11.4: the per-covered-court gate. A multi-court settlement
-        # ratifies only when EVERY covered court carries; a single holdout
-        # blocks. n=1 collapses to the leader row, so this is identical to the
-        # legacy single-leader gate for bilateral settlements. White peace is
-        # exempt (it ratifies an empty package by design).
-        and (white_peace or per_court_carries)
     )
+    if THE_TABLE_TELLS_ONE_TRUTH and not white_peace:
+        # SR-2a (AAR-2): ONE verdict per screen — the per-court table the
+        # player reads IS the gate. Every covered court carries (the
+        # covered leader among them, consent-aware — FA-3) and no hard stop
+        # binds: then Ratify is live, whatever a second scorer says. The
+        # leader-level score stays the review's summary; it can no longer
+        # veto a table that carries (the AAR's Austria 51/50 "Will carry"
+        # beside "cannot be ratified now … Term harshness").
+        can_ratify = (
+            not hard_stops
+            and per_court_carries
+            and not empty_editor_block
+        )
+    else:
+        can_ratify = (
+            not hard_stops
+            and leader_gate
+            and not empty_editor_block
+            # Re-front §11.4: the per-covered-court gate. A multi-court
+            # settlement ratifies only when EVERY covered court carries; a
+            # single holdout blocks. n=1 collapses to the leader row, so
+            # this is identical to the legacy single-leader gate for
+            # bilateral settlements. White peace is exempt (it ratifies an
+            # empty package by design).
+            and (white_peace or per_court_carries)
+        )
     # SC-17 / SC-19: humanize the live-review heading. The raw verdict
     # f-string ("Acceptance: near_acceptable (49)") leaked enum strings
     # to player BBCode. Resolve through the settlement voice family so
@@ -3312,6 +3388,14 @@ def build_settlement_confirm_dialogue(
                 )
             else:
                 ratify_blocked_reason = str(first_stop or "")
+        elif THE_TABLE_TELLS_ONE_TRUTH and not white_peace and not per_court_carries:
+            # SR-2a (AAR-2): the blocker is the table's own verdict — the
+            # sentence the header prints ("Will NOT carry as drafted … Holding
+            # out: Britain 32/50"), never a component label from a scorer
+            # the table does not show.
+            ratify_blocked_reason = str(
+                overall_acceptance.get("carry_verdict_display") or ""
+            ) or top_blocker_display
         elif verdict in ("reject", "blocked") or (
             acceptance_score is not None and acceptance_score < acceptance_threshold
         ):
