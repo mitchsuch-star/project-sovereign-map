@@ -195,6 +195,46 @@ _GUARD_FILLER_WORDS = frozenset({
 })
 
 
+# CRT-2's first pin, CQ-30 (SR-3a, September 26, 2026). ESP-EV-4's
+# `auto_resolved` arm DISCLOSES AND PROCEEDS when the parse handed down no
+# target — right for a DESCRIPTION the guard cannot enumerate ("the weakest
+# enemy", "give them hell") and wrong for a near miss of a NAME on the roster:
+# measured at `POST /command`, `Ney, attack Archduke Charls` and `Ney, attack
+# Kutusof` each said "Your words named no foe our maps know, Sire — Ney marches
+# on Mack at Swabia, the nearest in sight" and FOUGHT MACK, while the exact
+# name refused honestly ("No intelligence on Kutuzov's position"). A one-letter
+# slip turned an honest refusal into a battle against a different army — the
+# NPC-1 class, disclosed after the fact. A target run that is a near miss of
+# ANY enemy on the roster — matched omnisciently, answered fog-honestly — takes
+# the ASK arm instead, naming no hidden man and no hidden province. Flip lever:
+# False restores disclose-and-proceed for the near miss.
+A_NEAR_MISS_ASKS = True
+
+
+def _near_miss_of_a_roster_name(raw_words, world, marshal, shared_words=()) -> bool:
+    """CQ-30: does one of the player's OWN target words sit one typed
+    mistake from a foreign commander's name? `_plausible_name_typo` is the
+    parser's own rule (same first letter, an edit or two); a word two
+    commanders share ("archduke") identifies neither and is skipped. Reads
+    every foreign marshal — the ANSWER is fog-honest, the match need not be:
+    a boolean prints nothing."""
+    from backend.commands.parser import _plausible_name_typo
+    words = [w for w in (raw_words or []) if len(w) >= 4]
+    if not words:
+        return False
+    for other in getattr(world, "marshals", {}).values():
+        if getattr(other, "nation", None) == getattr(marshal, "nation", None):
+            continue
+        shown = humanize_entity_name(other.name).lower()
+        tokens = [t for t in re.findall(r"[a-z']+", shown)
+                  if len(t) >= 4 and t not in shared_words]
+        for word in words:
+            for token in tokens:
+                if word == token or _plausible_name_typo(word, token):
+                    return True
+    return False
+
+
 def guessed_target_refusal(world, marshal, command, target,
                            resolved_target=None, enemy_candidates=(),
                            auto_resolved: bool = False) -> Optional[Dict]:
@@ -308,6 +348,14 @@ def guessed_target_refusal(world, marshal, command, target,
         return None
 
     # The player said something specific and it grounds nothing.
+    near_miss = False
+    if auto_resolved and A_NEAR_MISS_ASKS and _near_miss_of_a_roster_name(
+            raw_target_words, world, marshal, _shared_words):
+        # CQ-30: the words are a NEAR MISS of a commander's name — the player
+        # named Charles and slipped a letter. Not a description; never a
+        # different army. The ASK arm below, fog-honest.
+        near_miss = True
+        auto_resolved = False
     if auto_resolved:
         # The ENGINE picked. Proceed, but say so — see the docstring for why
         # refusing here is wrong. Disclosure is stamped on the command so the
@@ -335,8 +383,14 @@ def guessed_target_refusal(world, marshal, command, target,
     # back). It reissues a fully-formed named attack, so the answer runs the
     # ordinary pipeline instead of re-entering the guess just refused.
     from backend.commands.clarification import build_attack_target_clarification
+    # CQ-30: the near miss is answered fog-honestly — no hidden man, no hidden
+    # province — with the visible foes offered.
+    _question = (
+        f"No foe of that name is in sight, Sire — whom shall "
+        f"{marshal.name} engage?" if near_miss else None)
     ask = build_attack_target_clarification(world, marshal, visible,
-                                            (command or {}).get("_raw_input") or "")
+                                            (command or {}).get("_raw_input") or "",
+                                            question=_question)
     if ask is not None:
         return ask
 

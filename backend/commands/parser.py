@@ -1280,6 +1280,18 @@ class CommandParser:
                 # bare meta commands ("charge", "recruit infantry") keep
                 # their marshal-less fast path.
                 addressed = _leading_addressed_token(command_text)
+                # CRT-3 (CXR1-N3, SR-3a September 26, 2026): a question
+                # routes to a META action (`status` / `help`), so this arm
+                # read the hesitation before it — `hmm, why not defend` —
+                # as an officer's name and answered "There is no Marshal
+                # 'hmm' in the order of battle". The ONE rule for what can
+                # never be an address (`clause_guards.never_an_address`:
+                # the interjections, the collectives, the adverbs) is
+                # consulted here as it is at every other addressee seam.
+                if addressed:
+                    from backend.ai.clause_guards import never_an_address
+                    if never_an_address(addressed):
+                        addressed = None
                 # FA slice 7: the fleet's own admiral is a legitimate
                 # addressee of a naval verb ("Villeneuve, order the
                 # diversion"), not a marshal typo — accepted as decoration.

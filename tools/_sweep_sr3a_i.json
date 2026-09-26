@@ -1,0 +1,128 @@
+[
+ {
+  "id": "SR-3a/CRT-3 CX-X1 the Cabinet stops reading the shared verdict",
+  "file": "backend/ai/llm_client.py",
+  "old": "        shared_question = bool(\n            THE_CABINET_READS_THE_SHARED_QUESTION and question)",
+  "new": "        shared_question = False",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtsQuestionReachesTheAdvisory"
+ },
+ {
+  "id": "SR-3a/CRT-3 CX-X1 the mission outranks the question again",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if mission_type and not shared_question:\n            action = \"diplomatic_mission\"",
+  "new": "        if mission_type:\n            action = \"diplomatic_mission\"",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtsQuestionReachesTheAdvisory::test_the_states_and_the_points_do_not_move"
+ },
+ {
+  "id": "SR-3a/CRT-3 CX-X1 the call sites stop handing the verdict down",
+  "file": "backend/ai/llm_client.py",
+  "old": "        _shared_question = is_question(original_text,\n                                       _question_subjects(game_state))",
+  "new": "        _shared_question = False",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtsQuestionReachesTheAdvisory"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-2 any comma tail stands the arm down again",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER:\n        return bool(_TRAILING_CLAUSE_RE.search(rest))\n    match = _TRAILING_TAIL_RE.search(rest)",
+  "new": "    if True:\n        return bool(_TRAILING_CLAUSE_RE.search(rest))\n    match = _TRAILING_TAIL_RE.search(rest)",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestTheTailStandsDownOnlyOnAnOrder"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-2 the tail's order verb no longer stands the arm down",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    tail = match.group(1).strip().strip(\"'\\\"\")\n    return bool(order_verb_re().match(tail))",
+  "new": "    tail = match.group(1).strip().strip(\"'\\\"\")\n    return False",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestTheTailStandsDownOnlyOnAnOrder::test_the_inverted_conditional_still_stands_the_arm_down"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-4 the hedge arm goes silent",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if A_HEDGE_IS_NOT_AN_ORDER and text and _HEDGE_LEAD_RE.match(text):\n        return True",
+  "new": "    if False:\n        return True",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestAHedgeIsNotAnOrder"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-5 the leading run hides the question again",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not lead:\n        # CRT-3 (CXR1-5 / CXR1-N2): \"hmm why not defend\", \"just wondering\n        # why not retreat\", \"Ney why not attack Mack\" — a leading run of up\n        # to three non-order words hides the deliberative opener.\n        return _leading_run_hides_a_question(text)",
+  "new": "    if not lead:\n        return False",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestALeadingRunHidesNoQuestion"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-5 a run carrying an order verb is read as a question",
+  "file": "backend/ai/clause_guards.py",
+  "old": "        if any(not w or verbs.match(w) for w in run):\n            break",
+  "new": "        if any(not w for w in run):\n            break",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestALeadingRunHidesNoQuestion::test_the_run_may_be_longer_than_the_row_measured"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-5 the bare wh-lead is read behind a run (the relative clause)",
+  "file": "backend/ai/clause_guards.py",
+  "old": "_DELIBERATIVE_AFTER_RUN_RE = re.compile(r\"^why\\s+not\\b\", re.IGNORECASE)",
+  "new": "_DELIBERATIVE_AFTER_RUN_RE = re.compile(r\"^(?:why\\s+not|who|whom|whose|why)\\b\", re.IGNORECASE)",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestALeadingRunHidesNoQuestion::test_a_relative_clause_order_is_not_a_question"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-N3 the interjections are addresses again",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    \"hmm hm hmmm um umm er erm uh ah oh eh huh\"\n).split()) | _COLLECTIVE",
+  "new": "    \"\"\n).split()) | _COLLECTIVE",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestALeadingRunHidesNoQuestion::test_the_interjections_are_never_an_address"
+ },
+ {
+  "id": "SR-3a/CRT-3 CXR1-N3 the parser's meta-addressee seam stops consulting the rule",
+  "file": "backend/commands/parser.py",
+  "old": "                if addressed:\n                    from backend.ai.clause_guards import never_an_address\n                    if never_an_address(addressed):\n                        addressed = None",
+  "new": "                if False:\n                    addressed = None",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestALeadingRunHidesNoQuestion::test_nothing_moves"
+ },
+ {
+  "id": "SR-3a/CRT-3 L2-7b the courts leave the subject roster",
+  "file": "backend/ai/llm_client.py",
+  "old": "    if A_COURT_IS_A_SUBJECT:\n        try:\n            from backend.display_names import nation_adjective",
+  "new": "    if False:\n        try:\n            from backend.display_names import nation_adjective",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtIsASubject"
+ },
+ {
+  "id": "SR-3a/CRT-3 L2-7b the subject loses its article",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if A_COURT_IS_A_SUBJECT and opening.startswith(\"the \"):\n        opening = opening[4:].lstrip()",
+  "new": "    if False:\n        opening = opening[4:].lstrip()",
+  "tests": "tests/test_crt3_a_question_never_orders.py::TestACourtIsASubject"
+ },
+ {
+  "id": "SR-3a/CX5-L5-F2 the narrow noun rule returns",
+  "file": "backend/ai/llm_client.py",
+  "old": "    noun_re = (_RETREAT_NOUN_WIDE_RE if THE_RETREAT_NOUN_TAKES_A_POSSESSIVE\n               else _RETREAT_NOUN_RE)",
+  "new": "    noun_re = _RETREAT_NOUN_RE",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py"
+ },
+ {
+  "id": "SR-3a/CX5-L5-F2 the order verbs stop carrying out the retreat",
+  "file": "backend/ai/llm_client.py",
+  "old": "    if _ORDER_THE_RETREAT_RE.search(command_lower):\n        return False\n    noun_re",
+  "new": "    if False:\n        return False\n    noun_re",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestSomebodyElsesRetreatIsNotAnOrderToRetreat::test_his_own_retreat_is_still_an_order"
+ },
+ {
+  "id": "SR-3a/CQ-30 the near miss discloses and proceeds again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    if auto_resolved and A_NEAR_MISS_ASKS and _near_miss_of_a_roster_name(\n            raw_target_words, world, marshal, _shared_words):",
+  "new": "    if False:",
+  "tests": "tests/test_crt2_the_name_is_never_replaced.py"
+ },
+ {
+  "id": "SR-3a/CQ-30 the near-miss test reads only exact names",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if word == token or _plausible_name_typo(word, token):\n                    return True",
+  "new": "                if word == token:\n                    return True",
+  "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANearMissOfARosterNameAsks::test_the_two_that_fought_take_the_near_miss_arm"
+ },
+ {
+  "id": "SR-3a/CQ-30 the ASK keeps the substitution's words for a near miss",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        f\"{marshal.name} engage?\" if near_miss else None)",
+  "new": "        f\"{marshal.name} engage?\" if False else None)",
+  "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANearMissOfARosterNameAsks::test_the_two_that_fought_take_the_near_miss_arm"
+ }
+]

@@ -168,6 +168,13 @@ def lists(gd) -> dict:
         "address_exempt": _extract_gd_list(
             "DIPLO_ADDRESS_EXEMPT_WORDS", gd),
         "advisory_starts": _extract_gd_list("DIPLO_ADVISORY_STARTS", gd),
+        # CRT-3 (SR-3a, September 26, 2026): the parser's subject rule,
+        # mirrored at the door — a modal lead with a first-person subject
+        # asks; the copular / perfect leads ask whatever follows.
+        "modal_starts": _extract_gd_list("DIPLO_MODAL_QUESTION_STARTS", gd),
+        "never_imperative_starts": _extract_gd_list(
+            "DIPLO_NEVER_IMPERATIVE_STARTS", gd),
+        "first_person": _extract_gd_list("DIPLO_FIRST_PERSON_SUBJECTS", gd),
         "autonomy_verbs": _extract_gd_list("DIPLO_AUTONOMY_VERBS", gd),
         "autonomy_levels": _extract_gd_list("DIPLO_AUTONOMY_LEVELS", gd),
     }
@@ -214,6 +221,14 @@ def _redirect_verdict(command: str, lists: dict, forms: list) -> str:
         body = body[comma + 1:].strip()
     words = body.split()
     if words and words[0] in lists["advisory_starts"]:
+        return ""
+    # CRT-3 (SR-3a): the door's two new arms, re-run verbatim — a modal
+    # lead with a first-person subject asks ("should we declare war on
+    # Prussia"); a copular / perfect lead asks whatever follows.
+    if words and words[0] in lists["never_imperative_starts"]:
+        return ""
+    if (len(words) > 1 and words[0] in lists["modal_starts"]
+            and words[1] in lists["first_person"]):
         return ""
     # No-home verbs first — precedence mirrors the parser's own.
     for keyword in lists["no_home"]:

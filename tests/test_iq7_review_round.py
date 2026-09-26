@@ -3780,9 +3780,34 @@ class TestIQ7X7TheDeferralLimitOnOtherFamilies:
 
     @pytest.mark.parametrize("line", [
         "accept the offer later", "accept it next turn", "yes, later",
-        "if we accept", "accept the offer, but not now", "maybe accept"])
+        "if we accept", "accept the offer, but not now"])
     def test_a_deferred_answer_still_answers_an_ordinary_letter(self, line):
         assert DR.match_dialogue_answer(self.LETTER, line) is not None
+
+    def test_a_hedged_answer_is_closed_by_crt3(self):
+        """⚠ CONSCIOUS PIN FLIP, on this class's own instruction, September
+        26, 2026 (Score Mandate SR-3a). `maybe accept` was in the deferral
+        list above and signed the treaty. CRT-5's ruling (the CR-6 triage,
+        `COMMAND_ROBUSTNESS_SPEC.md` §12.5-6) is that a HEDGED answer is not
+        a plain answer and fails closed — and CRT-3's hedge arm
+        (`clause_guards.A_HEDGE_IS_NOT_AN_ORDER`: `perhaps build ships` laid
+        a keel) reads a hedge as a question, so pass 3's
+        `A_QUESTION_NEVER_ANSWERS` closes this line one slice early, with
+        no change to the dialogue layer.
+
+        ⚠ IQ7-X7 is only PARTLY closed by this. The five lines above are
+        real deferrals ("accept it next turn"), carry neither an
+        interrogative lead nor a hedge, and stay CRT-5's."""
+        assert DR.match_dialogue_answer(self.LETTER, "maybe accept") is None
+        assert DR.match_dialogue_answer(self.LETTER, "perhaps accept") is None
+        from backend.ai import clause_guards as _CG
+        original = _CG.A_HEDGE_IS_NOT_AN_ORDER
+        try:
+            _CG.A_HEDGE_IS_NOT_AN_ORDER = False
+            assert DR.match_dialogue_answer(
+                self.LETTER, "maybe accept") is not None, "lever off = the old reading"
+        finally:
+            _CG.A_HEDGE_IS_NOT_AN_ORDER = original
 
     def test_is_that_a_yes_is_closed_by_cx_slice_1(self):
         """⚠ CONSCIOUS PIN FLIP, on this class's own instruction ("when that

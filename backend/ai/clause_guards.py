@@ -1225,7 +1225,14 @@ _NEVER_AN_ADDRESS = frozenset((
     "next also just still again immediate once "
     # CRT-1: the negative indefinites — nobody is called Nobody, with or
     # without a comma. (They left `_COLLECTIVE`; see the note there.)
-    "nobody noone none no-one"
+    "nobody noone none no-one "
+    # CRT-3 (CXR1-N3, SR-3a September 26, 2026): the interjections. `hmm,
+    # why not defend` was answered "There is no 'hmm' in the order of
+    # battle, Sire. Whom did you intend?" — the unknown-officer clarification
+    # claimed the hesitation before the question guard could read the
+    # question behind it. Nobody is called Hmm. (`hey` is deliberately NOT
+    # here: it is one keystroke from Ney, and the typo repair owns it.)
+    "hmm hm hmmm um umm er erm uh ah oh eh huh"
 ).split()) | _COLLECTIVE
 
 # ... and the BARE arm's list adds what may legitimately appear INSIDE an
@@ -1540,6 +1547,97 @@ _ADDRESSED_LINE_RE = re.compile(
 # ", <at least one more word>" — the tail of an inverted conditional.
 _TRAILING_CLAUSE_RE = re.compile(r",\s*\S")
 
+# ───────────────────────────────────────────────────────────────────────────
+# CRT-3 (SR-3a, September 26, 2026) — the residue of the question arms.
+# Re-measured at `POST /command` on a fresh 1805 boot before a line was
+# written: `can Ney attack Mack, Berthier` FOUGHT (a vocative tail stood the
+# subject arm down as if it were the inverted conditional); `perhaps build
+# ships` laid a 400-gold keel; `hmm why not defend` DEFENDED the whole army
+# and `Ney why not attack Mack` fought (a leading run hid the deliberative
+# opener); `can Bavaria attack Mack` fought (no court was a subject). Four
+# rules, each behind its own lever whose down arm reproduces the row.
+# ───────────────────────────────────────────────────────────────────────────
+# CXR1-2: the subject arms stand down before a trailing clause ONLY when the
+# clause opens with an order verb — that is the inverted conditional ("Ney,
+# should Mack advance, fortify"); a vocative ("…, Berthier") or an aside
+# ("…, tell me") is not an order and the question stands. Measured shape:
+# 18/18 closed, 0 of 22 controls moved. (The filed "tail contains a verb"
+# shape closed 7/10 and is NOT built.)
+THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER = True
+# CXR1-4: a HEDGE is a question, not an order. `time to …` is deliberately
+# not a hedge (the triage's ruling: it would make "time to march on Vienna"
+# a question).
+A_HEDGE_IS_NOT_AN_ORDER = True
+# CXR1-5 / CXR1-N2: a leading run of up to three words that are not order
+# verbs — an interjection, a filler, "just wondering", "tell me", or a name
+# without its comma — hides no DELIBERATIVE question (arms (a)/(b) only;
+# without that condition the shape turns comma-free relative-clause orders
+# into questions, measured).
+A_LEADING_RUN_HIDES_NO_QUESTION = True
+# L2-7b: a COURT is a subject — "can Bavaria attack Mack" asks about
+# Bavaria, exactly as "can Ney attack Mack" asks about Ney; and the subject
+# may take its article ("could the Prussians attack").
+A_COURT_IS_A_SUBJECT = True
+
+_HEDGE_LEAD_RE = re.compile(
+    r"^\s*(?:so\s+|and\s+|but\s+|ok(?:ay)?\s*,?\s*|well\s*,?\s*)?"
+    r"(?:(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*\s*,\s*)?"
+    r"(?:perhaps|maybe|possibly|worth\s+\w+ing|it\s+(?:might|may|could)\s+be\s+worth"
+    r"|might\s+as\s+well|i\s+suppose|i\s+guess|i\s+wonder\s+(?:if|whether))\b",
+    re.IGNORECASE)
+_TRAILING_TAIL_RE = re.compile(r",\s*(\S.*)$")
+# Only the DELIBERATIVE forms are read behind a run — `why not …` here, the
+# `what about / how about / is it time to` openers through
+# `_DELIBERATIVE_OPENER_RE`. The bare subject-WH leads (`who`, `why`) are
+# deliberately NOT: "Davout who is at Paris attack Mack" is a comma-free
+# relative clause, and the row measured that shape being turned into a
+# question when the condition is loosened.
+_DELIBERATIVE_AFTER_RUN_RE = re.compile(r"^why\s+not\b", re.IGNORECASE)
+# The run's ceiling. The row measured one to three words; "I was just
+# wondering why not retreat" (four) ordered a GENERAL RETREAT at the wire
+# with a cap of three, so the ceiling is six — the no-order-verb condition,
+# not the count, is what keeps an order an order.
+_LEADING_RUN_MAX = 6
+
+
+def _trailing_clause_stands_the_arm_down(rest: str) -> bool:
+    """CXR1-2: whether the text after the lead carries a trailing clause that
+    stands the subject arms down. Lever down: any comma-and-clause does (the
+    pre-CRT-3 read); lever up: only a clause that OPENS with an order verb —
+    the inverted conditional's second half."""
+    if not THE_TAIL_STANDS_DOWN_ONLY_ON_AN_ORDER:
+        return bool(_TRAILING_CLAUSE_RE.search(rest))
+    match = _TRAILING_TAIL_RE.search(rest)
+    if not match:
+        return False
+    tail = match.group(1).strip().strip("'\"")
+    return bool(order_verb_re().match(tail))
+
+
+def _leading_run_hides_a_question(text: str) -> bool:
+    """CXR1-5 / CXR1-N2: after up to three leading words that are not order
+    verbs (and carry no negation marker), the sentence opens with a
+    deliberative opener or a subject-WH lead — a question."""
+    if not A_LEADING_RUN_HIDES_NO_QUESTION:
+        return False
+    words = (text or "").split()
+    if len(words) < 2:
+        return False
+    verbs = order_verb_re()
+    for count in range(1, _LEADING_RUN_MAX + 1):
+        if len(words) <= count:
+            break
+        run = [w.strip(",.;:!?\"'") for w in words[:count]]
+        if any(not w or verbs.match(w) for w in run):
+            break
+        if negation_marker_spans(" ".join(run)):
+            break
+        rest = " ".join(words[count:])
+        if (_DELIBERATIVE_OPENER_RE.match(rest)
+                or _DELIBERATIVE_AFTER_RUN_RE.match(rest)):
+            return True
+    return False
+
 
 
 # CX-7. The roster arm read ONE token after the lead, so a MULTI-WORD name
@@ -1561,6 +1659,10 @@ THE_SUBJECT_MAY_HAVE_TWO_NAMES = True
 def _names_a_subject(rest: str, subjects) -> bool:
     """Whether the run after the lead OPENS with a name on the roster."""
     opening = rest.strip().lower()
+    # CRT-3 (L2-7b): a subject may take its article — "could the Prussians
+    # attack", "can the Austrian army retreat".
+    if A_COURT_IS_A_SUBJECT and opening.startswith("the "):
+        opening = opening[4:].lstrip()
     for name in subjects:
         low = name.strip().lower()
         if not low:
@@ -1620,11 +1722,20 @@ def is_question(command_text: str,
             and not _line_is_addressed(text, subjects)
             and not is_bare_end_turn(text)):
         return True
+    # CRT-3 (CXR1-4): a hedge is a question — "perhaps build ships" laid a
+    # keel. Read before the lead: a hedge has none.
+    if A_HEDGE_IS_NOT_AN_ORDER and text and _HEDGE_LEAD_RE.match(text):
+        return True
     _lead_re = (_INTERROGATIVE_LEAD_RE if MODAL_LEADS_ARE_QUESTIONS
                 else _INTERROGATIVE_LEAD_RE_LEGACY)
     lead = _lead_re.match(text)
-    if not text or not lead:
+    if not text:
         return False
+    if not lead:
+        # CRT-3 (CXR1-5 / CXR1-N2): "hmm why not defend", "just wondering
+        # why not retreat", "Ney why not attack Mack" — a leading run of up
+        # to three non-order words hides the deliberative opener.
+        return _leading_run_hides_a_question(text)
     lead_word = lead.group("lead").lower()
     if lead_word in _MODAL_LEADS:
         # FA slice 7 review round (R1-8 / R2-9): an English sentence that
@@ -1656,11 +1767,14 @@ def is_question(command_text: str,
     # advance, fortify" means "if Mack advances, fortify" and must reach the
     # condition guard's refusal, which `test_parse_negation` pins. A question
     # of this shape does not carry a trailing main clause.
+    # CRT-3 (CXR1-2): the arms stand down only before a clause that OPENS
+    # with an order verb — the inverted conditional — never before a
+    # vocative ("…, Berthier") or an aside ("…, tell me").
     if (A_QUESTION_NEVER_ORDERS and lead_word in _NEVER_IMPERATIVE_LEADS
-            and not _TRAILING_CLAUSE_RE.search(rest)):
+            and not _trailing_clause_stands_the_arm_down(rest)):
         return True
     if (A_QUESTION_NEVER_ORDERS and lead_word not in _WH_WORDS
-            and not _TRAILING_CLAUSE_RE.search(rest)):
+            and not _trailing_clause_stands_the_arm_down(rest)):
         subj = _SUBJECT_AFTER_LEAD_RE.match(rest)
         if subj:
             word = subj.group("subj").lower()

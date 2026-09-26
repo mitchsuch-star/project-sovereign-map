@@ -595,6 +595,25 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
     # The map already paints every province name, so this is public by the
     # same rule the question desk states for a province's holder.
     names += list(_game_state_dict(game_state, "map_data"))
+    # CRT-3 (L2-7b, SR-3a September 26, 2026): a COURT is a subject too —
+    # measured, `can Bavaria attack Mack` mustered and FOUGHT (6,010 French
+    # lost) and `can Prussia retreat` retreated eight corps, because the
+    # roster held only marshals and provinces (Hanover and Naples reached it
+    # by being both). The courts the parser already knows, with the
+    # adjective and its plural ("Prussian", "Prussians") so the demonym
+    # reads too. Diplomacy has no fog: naming a court leaks nothing.
+    from .clause_guards import A_COURT_IS_A_SUBJECT
+    if A_COURT_IS_A_SUBJECT:
+        try:
+            from backend.display_names import nation_adjective
+            for court in _known_nation_names(game_state):
+                names.append(court)
+                adjective = str(nation_adjective(court) or "")
+                if adjective and adjective != court:
+                    names.append(adjective)
+                    names.append(adjective + "s")
+        except Exception:
+            pass
     # CX-7. The roster held the KEY and the game prints the DISPLAY form, so
     # the commanders the player can actually see named — "Archduke Charles",
     # printed everywhere, keyed `ArchdukeCharles` — were exactly the ones the
@@ -920,6 +939,33 @@ _RETREAT_NOUN_RE = re.compile(
     r"|\bretreating\b",
     re.IGNORECASE)
 
+# CRT-3 (CX-X1, SR-3a September 26, 2026): the Cabinet's parser reads the
+# SHARED question verdict (`clause_guards.is_question` over the roster)
+# instead of its own weak test. Flip lever: False restores the weak test
+# alone — `why not declare war on Prussia` stages the chooser again.
+THE_CABINET_READS_THE_SHARED_QUESTION = True
+
+# CRT-6's first pin, CX5-L5-F2 (SR-3a, September 26, 2026): the noun rule
+# above takes only a bare determiner and ONE modifier, so a proper
+# possessive, a demonstrative, two adjectives, or the "line of" bridge all
+# escaped it — measured at `POST /command`: `Lannes, cut off Mack's line of
+# retreat` RETREATED Lannes; `Davout, cover Ney's retreat` retreated Davout;
+# `Ney, block that retreat` retreated Ney (480 of 480 third-party cells). The
+# wide rule takes a demonstrative, a proper possessive ("Mack's"), up to two
+# modifiers and the "line / route / path / road / avenue of" bridge. The
+# ORDER verbs ("sound / begin / continue the retreat") still carry it out.
+# Flip lever: False restores the narrow rule byte-for-byte.
+THE_RETREAT_NOUN_TAKES_A_POSSESSIVE = True
+_RETREAT_NOUN_WIDE_RE = re.compile(
+    r"\b(?:the|our|his|her|their|its|an?|enemy|enemy['’]s"
+    r"|this|that|these|those|[a-z]+['’]s)\s+"
+    r"(?:(?!retreat|withdrawal)\w+\s+){0,2}"
+    r"(?:(?:line|lines|route|routes|path|paths|road|roads|avenue|avenues)"
+    r"\s+of\s+)?"
+    r"(?:retreat|retreats|withdrawal|withdrawals)\b"
+    r"|\bretreating\b",
+    re.IGNORECASE)
+
 # …unless the verb in front of it means CARRY OUT the retreat.
 _ORDER_THE_RETREAT_RE = re.compile(
     r"\b(?:sound|order|begin|start|commence|call|signal|blow|announce|make"
@@ -934,7 +980,9 @@ def _retreat_is_a_noun(command_lower: str) -> bool:
         return False
     if _ORDER_THE_RETREAT_RE.search(command_lower):
         return False
-    return bool(_RETREAT_NOUN_RE.search(command_lower))
+    noun_re = (_RETREAT_NOUN_WIDE_RE if THE_RETREAT_NOUN_TAKES_A_POSSESSIVE
+               else _RETREAT_NOUN_RE)
+    return bool(noun_re.search(command_lower))
 
 
 # ═══════ Row WO slice 11 — the typed-route residue ═══════
@@ -1834,6 +1882,12 @@ class LLMClient:
         original_text = command_text
         stand_down = False
         negation_applied = False
+        # CRT-3 (CX-X1): the ONE question verdict — computed here and handed
+        # to every Cabinet route below, which used to keep a weaker test of
+        # its own (a trailing "?" or four openers) and let a question declare
+        # war, downgrade an alliance or send a mission.
+        _shared_question = is_question(original_text,
+                                       _question_subjects(game_state))
         # A QUESTION is exempt from every guard below. The guards exist to stop
         # an ORDER being mis-issued; blanking a question's clauses only destroys
         # the words the routes downstream need — it took
@@ -2017,13 +2071,15 @@ class LLMClient:
             "open settlement with", "settle with",
         ]
         if any(kw in command_lower for kw in _common_peace_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # SC-30 / Slice G1: Request Terms lifecycle keywords route to
         # diplomacy without requiring "Talleyrand".
         _request_terms_keywords = ["request terms", "request their terms"]
         if any(kw in command_lower for kw in _request_terms_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # ════════════════════════════════════════════════════════════
         # GE-3 "THE CONGRESS OF PARIS" (docs/ENDGAME_PLAN.md §2.3–§2.4) —
@@ -2077,7 +2133,8 @@ class LLMClient:
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         if any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # Break/downgrade treaty commands route to diplomacy even without "Talleyrand"
         _break_keywords = [
@@ -2090,7 +2147,8 @@ class LLMClient:
                                "lower relations", "cool relations"]
         if (any(kw in command_lower for kw in _break_keywords + _downgrade_keywords)
                 or (_mentions_treaty_break(command_lower) and not _addressed_marshal)):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # WO slice 11 (§2 H-15): a peace overture routes to diplomacy BEFORE
         # the war keywords below can read "end the war ON any terms" as a
@@ -2098,7 +2156,8 @@ class LLMClient:
         # round: never for a marshal-addressed order (`Ney, end the war of
         # attrition` is Ney's business, not Talleyrand's).
         if _mentions_peace_intent(command_lower) and not _addressed_marshal:
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # War declaration commands route to diplomacy (R10)
         _war_keywords = [
@@ -2109,7 +2168,8 @@ class LLMClient:
             "invade ", "launch war",
         ]
         if any(kw in command_lower for kw in _war_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # Ultimatum commands route to diplomacy (R21)
         _ultimatum_keywords = [
@@ -2120,7 +2180,8 @@ class LLMClient:
             "surrender or", "submit or",
         ]
         if any(kw in command_lower for kw in _ultimatum_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # Memory and Pressure v2.4.3 — B-B7 Make Amends keywords route to
         # diplomacy without requiring "Talleyrand" (spec §8.6.1).
@@ -2129,7 +2190,8 @@ class LLMClient:
             "repair relations", "offer reparations", "send reparations",
         ]
         if any(kw in command_lower for kw in _amends_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # Alliance keywords route to diplomacy (R137)
         _ally_keywords = [
@@ -2138,7 +2200,8 @@ class LLMClient:
             "unite with", "unite against",
         ]
         if any(kw in command_lower for kw in _ally_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # Proposal keywords route to diplomacy (without Talleyrand)
         _proposal_keywords = [
@@ -2160,7 +2223,8 @@ class LLMClient:
         # first), so guarding it is safe.
         if (any(kw in command_lower for kw in _proposal_keywords)
                 and not _addressed_marshal):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # Mission keywords route to diplomacy (without Talleyrand)
         # V2-62: "court" uses word boundary to prevent matching "court martial"
@@ -2176,9 +2240,11 @@ class LLMClient:
             "reassure ", "send envoy to", "send diplomat to",
         ]
         if any(kw in command_lower for kw in _mission_keywords):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
         if re.search(r'\bcourt\b(?!\s+martial)', command_lower):
-            return self._parse_diplomatic_command(command_text, command_lower)
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # ════════════════════════════════════════════════════════════
         # PARSE-NEG: A QUESTION IS NOT AN ORDER.
@@ -3323,11 +3389,23 @@ class LLMClient:
             question={"kind": "congress", "asked": original_text},
         )
 
-    def _parse_diplomatic_command(self, command_text: str, command_lower: str) -> ParseResult:
+    def _parse_diplomatic_command(self, command_text: str, command_lower: str,
+                                  question: Optional[bool] = None) -> ParseResult:
         """Parse a diplomatic command addressed to Talleyrand.
 
         Returns a ParseResult with diplomatic action type and metadata.
         Called when "talleyrand" is detected in the command text.
+
+        ``question`` (CRT-3 / CX-X1, SR-3a September 26, 2026): the SHARED
+        verdict — `clause_guards.is_question` over the roster — computed once
+        by the mock chain and handed down. This parser used to keep its own
+        weak test (a trailing "?" or four fixed openers), so `why not declare
+        war on Prussia` staged the war-purpose chooser against a court at
+        PEACE, `why not downgrade relations with Spain` downgraded a real
+        alliance for 1 DP with no confirm, and `should we court Bavaria?`
+        staged a courting mission, question mark and all. A question reaches
+        the ADVISORY and never the chooser, a downgrade or a mission.
+        ``None`` (the direct callers) keeps the weak test alone.
         """
         from backend.game_logic.diplomatic_dialogue import (
             extract_nation_from_command, extract_proposal_type,
@@ -3340,6 +3418,10 @@ class LLMClient:
         mission_type = extract_mission_type(command_text)
         is_question = command_text.strip().endswith("?") or any(
             kw in command_lower for kw in ["what about", "who", "how is", "status of"])
+        shared_question = bool(
+            THE_CABINET_READS_THE_SHARED_QUESTION and question)
+        if shared_question:
+            is_question = True
 
         # Check for military keywords directed at Talleyrand (error case)
         military_keywords = ["attack", "charge", "move to", "march to", "defend",
@@ -3441,7 +3523,9 @@ class LLMClient:
                 )
 
         # Determine diplomatic action type
-        if mission_type:
+        # CRT-3 (CX-X1): under the shared verdict a QUESTION outranks the
+        # mission words — "should we court Bavaria?" is asked, not sent.
+        if mission_type and not shared_question:
             action = "diplomatic_mission"
         elif is_question and any(kw in command_lower for kw in FEASIBILITY_KEYWORDS):
             action = "diplomatic_feasibility"

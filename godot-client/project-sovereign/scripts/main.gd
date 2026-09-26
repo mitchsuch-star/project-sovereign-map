@@ -2194,6 +2194,26 @@ const DIPLO_ADVISORY_STARTS = [
 	"why",
 	"which",
 ]
+# CRT-3 (SR-3a, September 26, 2026): the backend now answers a modal
+# question about an act of state ("should we declare war on Prussia",
+# "can we make peace with Austria") at Talleyrand's advisory desk instead of
+# staging the chooser — so the door must SEND it, not claim it. The rule is
+# the parser's own subject rule (`clause_guards.is_question`): a modal lead
+# followed by a FIRST-PERSON subject asks; "will you declare war on Prussia"
+# is the polite imperative and stays a Cabinet order. The copular and perfect
+# leads have no imperative form at all and ask whatever follows ("is it wise
+# to declare war"). `do` is deliberately absent from both lists: "do declare
+# war on Prussia" is the emphatic order. The Python mirror in
+# tests/test_wo_slice7_cabinet_door.py re-runs these two lists verbatim.
+const DIPLO_MODAL_QUESTION_STARTS = [
+	"should", "can", "could", "shall", "may", "might", "would", "will",
+]
+const DIPLO_NEVER_IMPERATIVE_STARTS = [
+	"is", "are", "was", "were", "am", "does", "did", "has", "had",
+]
+const DIPLO_FIRST_PERSON_SUBJECTS = [
+	"we", "i",
+]
 
 func _redirect_diplomatic_command(command: String) -> bool:
 	"""G1: true when the typed sentence is a diplomatic order — Berthier
@@ -2254,7 +2274,18 @@ func _is_advisory_question(lower: String) -> bool:
 	var words := body.split(" ", false)
 	if words.size() == 0:
 		return false
-	return str(words[0]) in DIPLO_ADVISORY_STARTS
+	var first := str(words[0])
+	if first in DIPLO_ADVISORY_STARTS:
+		return true
+	# CRT-3: the parser's subject rule, mirrored — a modal lead with a
+	# first-person subject asks ("should we declare war on Prussia"); the
+	# copular / perfect leads ask whatever follows ("is it wise to …").
+	if first in DIPLO_NEVER_IMPERATIVE_STARTS:
+		return true
+	if first in DIPLO_MODAL_QUESTION_STARTS and words.size() > 1 \
+			and str(words[1]) in DIPLO_FIRST_PERSON_SUBJECTS:
+		return true
+	return false
 
 func _matches_cabinet_family(lower: String) -> bool:
 	for keyword in DIPLO_FAMILY_KEYWORDS:

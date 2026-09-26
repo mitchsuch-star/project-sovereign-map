@@ -98,10 +98,37 @@
 > run: FA slice 10's `_mounted_settlement_dialogue` caller census names X5's review stamp
 > as its fifth caller. The diplomacy row stays 6.75 FOR USER CONFIRMATION — Chunk 3's
 > exit re-reads it.
-> **NEXT = Chunk 3 FIRST CONTACT & COMMAND: SR-3a (CRT-3 + CRT-7 + CX5-L5-F2 + CQ-30; L-D
+> ~~**NEXT = Chunk 3 FIRST CONTACT & COMMAND: SR-3a (CRT-3 + CRT-7 + CX5-L5-F2 + CQ-30; L-D
 > SKIPPED — it sits behind a user gate the prompt left unfilled) → SR-3b (CRT-2) → SR-3c
 > (L-1 + IQ9-X1/X3) → the reserve → the exit re-score. SR-D3 stays DEFERRED (nothing under
-> §4 is built before its gate returns).**
+> §4 is built before its gate returns).**~~
+>
+> **▶ ▶ ▶ ROW SR CHUNK 3 "THE DESK ANSWERS" — IN PROGRESS, September 26, 2026**
+> (`SCORE_MANDATE_PLAN.md` §2 Chunk 3). ~~**SR-3a part (i) — CRT-3 "a question never
+> orders" + CX5-L5-F2 + CQ-30**~~ ✅ LANDED (landing record `COMMAND_ROBUSTNESS_SPEC.md`
+> §12.8; rules `SYSTEMS_REFERENCE.md` §72.1; rows `BUG_FIXES.md` CX-X1 / L2-7b / CXR1-2 /
+> CXR1-4 / CXR1-5 / CXR1-N2 / CXR1-N3 / CX5-L5-F2 / CQ-30 FIXED; pins
+> `test_crt3_a_question_never_orders.py` 72 + `test_crt6_the_retreat_is_a_word.py` 21 +
+> `test_crt2_the_name_is_never_replaced.py` 13; sweep `tools/_sweep_sr3a_i.json` 18/18 killed,
+> 0 INERT; corpus 791/791; families 6,394 green; `BASELINE_SERIES` + M1–M7 byte-identical —
+> the AI never parses text; ONE `.gd`, parse harness EXIT=0, boot 0 SCRIPT ERROR).
+> **Re-measured first, every family reproduced at the wire.** The Cabinet's parser reads the
+> SHARED question verdict (`why not declare war on Prussia` had staged the war-purpose
+> chooser against a court at PEACE; `why not downgrade relations with Spain` had downgraded a
+> real alliance for 1 DP) and the client door moved with it (`main.gd` mirrors the parser's
+> subject rule — `should we …` is SENT, `will you …` stays a claimed order; the door's own
+> mirror pin found it); the comma tail stands the arms down only on an order verb; a hedge is
+> a question (`perhaps build ships` had laid a keel); a leading run of up to SIX non-order
+> words hides no deliberative question (three was measured; four ordered a general retreat
+> during the build); the interjections are never an address (the parser's meta-addressee arm
+> now consults the one rule); a court is a subject; the retreat noun takes a possessive
+> (`Lannes, cut off Mack's line of retreat` had retreated Lannes); a near miss of a
+> commander's surname asks fog-honestly (`Ney, attack Archduke Charls` had fought Mack). Two
+> pins flipped consciously, found by the families: IQ7-X7's `maybe accept` (a hedge fails
+> closed — CRT-5's ruling one line early) and the Cabinet door's mirror. **L-D SKIPPED**
+> (behind an unfilled user gate). **NEXT = SR-3a part (ii): CRT-7 "the desk answers what the
+> order would do" + AAR-17 / AAR-19 / AAR-23 / AAR-29 / AAR-31 → SR-3b (CRT-2: CQ-17, CQ-29)
+> → SR-3c (L-1 + IQ9-X1 / IQ9-X3) → the reserve → the exit re-score. SR-D3 stays DEFERRED.**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

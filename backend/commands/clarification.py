@@ -211,7 +211,8 @@ def build_contact_attack_clarification(world, candidates, raw_input: str) -> Opt
 
 
 def build_attack_target_clarification(world, marshal, enemies,
-                                      raw_input: str) -> Optional[Dict]:
+                                      raw_input: str,
+                                      question: Optional[str] = None) -> Optional[Dict]:
     """ESP-EV-4: "Which foe, Sire?" — the answer surface for an attack order
     whose target the player named but our maps do not know.
 
@@ -261,9 +262,13 @@ def build_attack_target_clarification(world, marshal, enemies,
 
     return _clarification_response(
         world,
-        question=(f"Your order names no foe our maps know, Sire — "
-                  f"{marshal.name} will not charge at a guess. Whom shall "
-                  f"he engage?"),
+        # CQ-30 (SR-3a): a caller that knows WHY it is asking may say so —
+        # the near-miss arm asks "No foe of that name is in sight" and names
+        # no hidden man; the default is the substitution refusal as before.
+        question=(question or (
+            f"Your order names no foe our maps know, Sire — "
+            f"{marshal.name} will not charge at a guess. Whom shall "
+            f"he engage?")),
         options=options,
         clarification_kind="attack_target",
         strategic_type=None,
