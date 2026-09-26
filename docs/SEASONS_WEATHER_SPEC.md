@@ -1,5 +1,7 @@
 # Seasons & Weather — "The General Winter" (HC-6)
 
+> **Re-slotted September 26, 2026 (evening) — read this first:** HC-6 is now ruled together with SR-D2 (asymmetry and national flavor) at the Score Mandate's Chunk 7 gate (`SCORE_MANDATE_PLAN.md` §4 SR-D2). It stays unbuilt until that gate rules; the status below is the August 14 record.
+
 > **Status: ✅ GATE RETURNED August 14, 2026 — THE BUILD IS DEFERRED
 > PAST ROUND 0 (user ruling: "push it out").** The system is approved
 > in principle; the slot is not. The session's argued recommendation —

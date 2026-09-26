@@ -1,0 +1,38 @@
+{
+ "name": "sr-exit-first-contact",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "Score Mandate session-exit arm (written September 26, 2026 for Chunk 3; run by the next session's exit, SCORE_MANDATE_PLAN.md §5): the ten-minute test on a fresh boot. Every phrasing is sourced: the Creative AAR's hand-played turn 1 (help / what can I do / who am I fighting and why / Talleyrand, assess our situation / who are we at war with / status / economy), its rows AAR-17 (is Vienna safe / what does Kutuzov have with him / how long until the armistice with Russia expires) and AAR-18 (what can I build), its turn-5 what-if (what are Ney's odds against Vienna), the first-contact memo's families (hello / what now / how do I win / undo / how many men do I have / is Mack strong), the boot help's own examples (Ney, attack Mack / is Paris safe / what happened last turn), and CRT-7's who are my allies / who is winning / how is the war effort. Read each reply against dc297b50 (the tree before SR-3a) on the same seed.",
+ "turns": {
+  "1": [
+   "help",
+   "what can I do",
+   "who am I fighting and why",
+   "who are we at war with",
+   "Talleyrand, assess our situation",
+   "status",
+   "economy",
+   "hello",
+   "what now",
+   "how do I win",
+   "is Paris safe",
+   "is Vienna safe",
+   "how many men do I have",
+   "is Mack strong",
+   "what does Kutuzov have with him",
+   "who are my allies",
+   "what can I build",
+   "what are Ney's odds against Vienna",
+   "what happened last turn",
+   "undo",
+   "Ney, attack Mack"
+  ],
+  "2": [
+   "what happened last turn",
+   "who is winning",
+   "how is the war effort",
+   "how long until the armistice with Russia expires",
+   "what can I do"
+  ]
+ }
+}

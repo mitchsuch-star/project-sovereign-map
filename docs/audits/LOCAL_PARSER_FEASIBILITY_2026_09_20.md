@@ -339,8 +339,10 @@ incidental. The guard was written against the wrong witness.
 > **Landing.** **Update 3** ("the word is the order"), after the release, per `STATUS.md` ▶ NEXT UP, with the §6.4 `done_when` unchanged.
 >
 > **Re-open.** If player transcripts show a keyless delegation producing an attack the tester did not expect, restore the witness. It is a single seam.
+>
+> **✅ CONFIRMED BY THE USER September 26, 2026 (evening)** (the Score Mandate rulings; `SCORE_MANDATE_PLAN.md` §2 Chunk 3): **L-D is APPROVED** — keyless delegation gated on the deterministic `DelegationMatch`, keeping the action-only, objection-first single-modal and personality pre-flight guardrails. It is Chunk 3's remaining slice and builds after SR-2e; §6.4's `done_when` is the contract.
 
-**Do not build L-D on this memo alone.** Guardrail (e) is part of CR-5's
+~~**Do not build L-D on this memo alone.**~~ *(Answered — the user approved L-D on September 26, 2026; the paragraph below is the question as it was put.)* Guardrail (e) is part of CR-5's
 **blessed scope** (`COMMAND_ROBUSTNESS_SPEC.md` §6.3, blessed July 5, 2026), whose
 own language is *"the bias is live-only"*. Flipping it changes what was blessed,
 in a way a player can see. It is small, it is well-argued, and it is still the

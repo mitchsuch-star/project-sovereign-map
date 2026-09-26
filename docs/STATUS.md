@@ -4,6 +4,16 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE SCORE MANDATE RE-RULED — September 26, 2026 (evening), docs only** (the user's rulings; recorded in `SCORE_MANDATE_PLAN.md` header + §0 + §2 + §4 + §5 and `DESIGN_REFINEMENT.md` §Score Mandate rulings; nothing built):
+> - **SR-D3's premise corrected** — the AI pays action points like the player (the same cost table; `nation_actions` 4 for majors, 2–3 for minors; at most two free actions a turn). Every enemy corps moves because its roster is 1–3 corps, while France fields 8 against 4.
+> - **SR-D3 RULED (c) first** — new fix slice **SR-2e "standing orders reliable"** (SUPPORT at 1 action; a march keeps its tail through a reinforcement; SR-4b folded in: AAR-8/9/10/11 + CRT-4 + CRT-5). **No free AP scaling**; new points only through SR-D1's Staff reform (the `bonus_actions` seam), bought by BOTH sides at the same price. Q0 (39 of 45) re-measured after SR-2e and after SR-D1; 45 not moved.
+> - **L-D APPROVED** — Chunk 3's remaining slice (the `DelegationMatch` gate, guardrails kept).
+> - **Measurement re-ruled** — ONE exit per session over every slice it landed (one memo named for the date, one residue slice for what it found); **§1 re-scored ONCE, fully, at the END of the mandate** (the user: a full re-score at the end instead of after every chunk, to save resources). **The Chunk 3 exit re-score was NOT run** — SR-2d, SR-3a (i)+(ii), SR-3b, SR-3c and the Chunk 3 reserve (`11043d2a`) are covered by the next session's exit; its first-contact and command arms are committed as `tools/playtest_scripts/sr_exit_first_contact.json` + `sr_exit_aar_typed.json`.
+> - **Gates re-slotted** — SR-D1 at Chunk 5's gate, SR-D2 (+ HC-6 seasons) at Chunk 7's; Chunk 7 gains the standing-alarm-floor question (PB-D1; recommended default: Brewing while France holds ≥ 40% of the map); Chunk 5 gains SR-5c the Descent's second throw and the Continental System shut-out arc at its session exit.
+> - *The brief's order "SR-2e → SR-2d → Chunk 3" predates SR-2d's and Chunk 3's landing; the order the tree allows is below.*
+>
+> **▶ NEXT = SR-2e → L-D → onward into Chunk 4 as the session allows → ONE session exit over every slice not yet exited (SR-2d, SR-3a (i)+(ii), SR-3b, SR-3c, the reserve, SR-2e, L-D, …) → ONE residue slice. No re-score until the end of the mandate. SR-D1 and SR-D2 stay unbuilt until their chunk gates rule them.**
+>
 > **▶ ▶ ▶ ROW SR CHUNK 2 "THE TABLE TELLS ONE TRUTH" — IN PROGRESS, September 26, 2026**
 > (`SCORE_MANDATE_PLAN.md` §2 Chunk 2; the user: *"do SR, Chunk 1 … and chunk 2 if
 > you have bandwidth"*). ~~**SR-2a One verdict per screen**~~ ✅ LANDED — **AAR-2**
@@ -210,8 +220,8 @@
 > camp free and every man who can earn the strike is cautious — `unfortify_is_free` is now
 > the one source both read. **IQ10-X** closed on evidence (the Sept 23 / 24 frames post-date both
 > fixes, no layout change since, the driven top-bar harness runs every suite).
-> **NEXT = the Chunk 3 exit re-score (first contact on a fresh-boot played arm; command on the
-> corpus + a played arm), §1 FOR USER CONFIRMATION → STOP. SR-D3 stays DEFERRED.**
+> ~~**NEXT = the Chunk 3 exit re-score (first contact on a fresh-boot played arm; command on the
+> corpus + a played arm), §1 FOR USER CONFIRMATION → STOP. SR-D3 stays DEFERRED.**~~ *(Superseded September 26, 2026 (evening) by the re-ruling at the top of this block: no per-chunk re-score; the next session's exit covers Chunk 3.)*
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**
