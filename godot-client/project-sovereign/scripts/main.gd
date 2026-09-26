@@ -870,6 +870,9 @@ func _print_boot_help() -> void:
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"what can I do\" (Berthier names the orders the board takes today) or \"end turn\"[/color]")
+	# SR Chunk 3 reserve (the boot help's own line, AAR-17's first half): the
+	# desk answers questions, free — the first thing a new player wants to ask.
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Ask Berthier: \"who am I fighting\", \"is Paris safe\", \"what happened last turn\" — an answer costs no action[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
@@ -4375,6 +4378,9 @@ func _display_morning_dispatch(data: Dictionary):
 				"awaiting_decision":
 					# FA-N28: a man whose question the player has not answered.
 					icon = "?"
+				"counter_punch":
+					# AAR-25: a free strike, open this turn only.
+					icon = "»"
 				_:
 					icon = "-"
 

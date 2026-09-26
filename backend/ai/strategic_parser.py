@@ -66,6 +66,10 @@ DIRECTION_WORDS = set(DIRECTION_VECTORS.keys()) | set(RELATIVE_KEYWORDS)
 NON_REGION_TARGET_WORDS = frozenset({
     "here", "there", "hither", "thither",
     "lines", "line", "position", "positions", "ranks",
+    # CQ-37 (Score Mandate Chunk 3 reserve): "hold fast", "hold firm", "hold
+    # steady" are the idiom for a bare hold — "fast" was title-cased into a
+    # province and refused ("I could not make out a destination").
+    "fast", "firm", "steady",
 })
 NON_REGION_TARGET_PHRASES = (
     "our lines", "the line", "the lines", "our position", "our positions",

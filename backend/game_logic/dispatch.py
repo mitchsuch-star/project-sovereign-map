@@ -3783,6 +3783,37 @@ def _build_marshal_status(world, player_nation: str) -> List[Dict[str, Any]]:
     return result
 
 
+# AAR-25 (Score Mandate Chunk 3 reserve): the MARSHAL STATUS note for an open
+# counter-punch. False restores the silence until the expiry line.
+THE_COUNTER_PUNCH_IS_ANNOUNCED = True
+
+
+def counter_punch_foe_in_reach(marshal, world):
+    """AAR-25: the nearest foe IN SIGHT the free strike can reach, as
+    ``(display name, province)``, else None. Reach is the attack's own
+    (`CommandExecutor._attack_target_beyond_range`: hops within
+    ``movement_range``); sight is `get_visible_enemies` (at war, standing — a
+    prisoner is not a foe — and fog-visible). None does not mean nothing can
+    be struck: a garrison in reach is a strike too, so the caller's note stays
+    general rather than claim there is no foe."""
+    try:
+        reach = int(getattr(marshal, "movement_range", 1) or 1)
+        here = marshal.location
+        foes = []
+        for enemy in world.get_visible_enemies(marshal.nation):
+            if not enemy.location:
+                continue
+            hops = world.get_distance(here, enemy.location)
+            if hops <= reach:
+                foes.append((hops, enemy.name, enemy.location))
+        if not foes:
+            return None
+        _, name, where = min(foes)
+        return humanize_entity_name(name), where
+    except Exception:
+        return None
+
+
 def _derive_marshal_status(marshal, world) -> tuple:
     """
     Derive display status and note from marshal state.
@@ -3791,6 +3822,7 @@ def _derive_marshal_status(marshal, world) -> tuple:
     Priority order (highest wins):
     1. broken
     2. retreating
+    2b. counter_punch (AAR-25: an open free strike he can throw this turn)
     3. strategic order active
     4. drilling / drilling_locked
     5. fortified
@@ -3834,6 +3866,34 @@ def _derive_marshal_status(marshal, world) -> tuple:
         rally_stages = marshal.get_rally_stages_per_turn()
         recovery_turn = int(world.current_turn + -(-(3 - marshal.retreat_recovery) // rally_stages))
         return "retreating", f"Recovers T{recovery_turn}."
+
+    # AAR-25 (Score Mandate Chunk 3 reserve): the counter-punch is announced
+    # when it OPENS. The AAR's first word of Bernadotte's was "Counter-Punch
+    # opportunity has expired!" — the rail row was the only surface, and the
+    # dispatch said nothing on the turn it could be used. One usable turn
+    # (PT-H6), free even at 0 actions (UX23). A pending question outranks it.
+    # The note promises only what the attack will take: a man locked in drill
+    # is refused EVERY order (executor.py's DRILLING CHECK), so the drill line
+    # below stands for him; a man behind works is refused the attack until he
+    # unfortifies (the FORTIFIED CHECK), so the note says so at the price the
+    # executor charges (`tactical_executor.unfortify_is_free`).
+    if (THE_COUNTER_PUNCH_IS_ANNOUNCED
+            and getattr(marshal, "counter_punch_available", False)
+            and int(getattr(marshal, "counter_punch_turns", 0) or 0) > 0
+            and not getattr(marshal, "pending_interrupt", None)
+            and not getattr(marshal, "drilling_locked", False)):
+        _reach = counter_punch_foe_in_reach(marshal, world)
+        _works = ""
+        if getattr(marshal, "fortified", False):
+            from backend.commands.tactical_executor import unfortify_is_free
+            _price = "free" if unfortify_is_free(marshal) else "1 action"
+            _works = (f" {humanize_entity_name(marshal.name)} must unfortify"
+                      f" first ({_price}).")
+        return ("counter_punch",
+                "Threw back the enemy — may strike once, free, this turn only."
+                + (f" {_reach[0]} stands within reach at {_reach[1]}."
+                   if _reach else "")
+                + _works)
 
     if marshal.in_strategic_mode:
         order = marshal.strategic_order

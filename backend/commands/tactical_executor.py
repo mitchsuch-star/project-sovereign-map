@@ -156,6 +156,16 @@ def insist_terms(world, marshal, action: str):
     return (base, "")
 
 
+def unfortify_is_free(marshal) -> bool:
+    """Phase 2.8 Free Unfortify: a cautious marshal breaks camp for no
+    action. ONE source (AAR-25, Score Mandate Chunk 3 reserve): the executor
+    charges by it and the dispatch's counter-punch note quotes it. (The
+    note's first, unshipped draft priced breaking camp at "(1 action)" —
+    while every marshal who can earn a counter-punch is cautious and pays
+    nothing.)"""
+    return getattr(marshal, "personality", "") == "cautious"
+
+
 def unfortify_refusal(marshal):
     """CX-R2: why `<marshal>, unfortify` would be refused — `(sentence,
     short)`, or `("", "")` when the works would be abandoned. The one gate
@@ -699,8 +709,7 @@ class TacticalExecutor:
         # DAVOUT FREE UNFORTIFY (Phase 2.8)
         # Cautious marshals can efficiently break camp
         # ════════════════════════════════════════════════════════════
-        personality = getattr(marshal, 'personality', '')
-        is_free_unfortify = personality == 'cautious'
+        is_free_unfortify = unfortify_is_free(marshal)
 
         # Remove fortification
         marshal.fortified = False

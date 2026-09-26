@@ -548,6 +548,14 @@ _PURSUE_AFTER_RE = re.compile(r"\b(?:go(?:es|ing)?|went|came|come|run|ran|chase[
                               re.IGNORECASE)
 # "once more" / "once again" mean "repeat", not "at the moment when".
 _ONCE_ADVERB_RE = re.compile(r"^\s*(?:more|again)\b", re.IGNORECASE)
+# CQ-37 (Score Mandate Chunk 3 reserve, September 26, 2026): "at once" is the
+# adverb — immediately — never the conditional "once <X>". Measured: `recruit
+# infantry at once in Lorrain` was refused as a contingency ("I have no way to
+# hold a dispatch until 'once in Lorrain' comes to pass"); a trailing "at once"
+# passed only because nothing followed it. The exemption reads the PRECEDING
+# word (the `_PURSUE_AFTER_RE` idiom). False restores the refusal.
+AT_ONCE_IS_NEVER_A_CONDITION = True
+_AT_ONCE_RE = re.compile(r"\bat\s+$", re.IGNORECASE)
 # A `should` that is not clause-initial is a plain modal in an order the player
 # is giving ("Ney, you should attack Mack"), never a conditional inversion
 # ("Ney, should Mack advance, fortify"). A first- or second-person subject is
@@ -615,6 +623,9 @@ def condition_marker_spans(text: str) -> List[Tuple[int, int]]:
             continue
         if collapsed == "once" and _ONCE_ADVERB_RE.match(text[marker.end():]):
             continue
+        if (collapsed == "once" and AT_ONCE_IS_NEVER_A_CONDITION
+                and _AT_ONCE_RE.search(text[:marker.start()])):
+            continue
         out.append((marker.start(), marker.end()))
     return out
 
@@ -679,6 +690,9 @@ def strip_condition_clauses_with_handoff(
         if collapsed == "after" and _PURSUE_AFTER_RE.search(text[:marker.start()]):
             continue
         if collapsed == "once" and _ONCE_ADVERB_RE.match(text[marker.end():]):
+            continue
+        if (collapsed == "once" and AT_ONCE_IS_NEVER_A_CONDITION
+                and _AT_ONCE_RE.search(text[:marker.start()])):
             continue
         marker_count += 1
 

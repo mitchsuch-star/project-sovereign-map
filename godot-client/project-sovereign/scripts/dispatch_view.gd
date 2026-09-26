@@ -219,6 +219,9 @@ func _on_dispatch_received(response):
 				"awaiting_decision":
 					# FA-N28: a man whose question the player has not answered.
 					icon = "?"
+				"counter_punch":
+					# AAR-25: a free strike, open this turn only.
+					icon = "»"
 				_:
 					icon = "-"
 

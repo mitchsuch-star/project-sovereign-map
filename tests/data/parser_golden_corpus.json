@@ -6445,6 +6445,29 @@
       },
       "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
       "notes": "CQ-29: before, the typo'd ground was dropped and the build answered 'Specify a region'."
+    },
+    {
+      "id": "cq37-recruit-at-once-in-lorrain",
+      "utterance": "recruit infantry at once in Lorrain",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": "Lorrain"
+      },
+      "source": "CQ-37 the idioms (Score Mandate Chunk 3 reserve, September 26, 2026; SYSTEMS_REFERENCE.md §72.5)",
+      "notes": "CQ-37: 'at once' is the adverb, never the conditional 'once <X>' - the clause guard refused the order as a contingency ('once in Lorrain'). The named ground is kept (CRT-2) for the executor to read."
+    },
+    {
+      "id": "cq37-ney-at-once-attack-mack",
+      "utterance": "Ney, at once attack Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack"
+      },
+      "source": "CQ-37 the idioms (Score Mandate Chunk 3 reserve, September 26, 2026; SYSTEMS_REFERENCE.md §72.5)",
+      "notes": "CQ-37: the adverb at the head of the order - 'once attack Mack' was read as a condition and the whole order was blanked."
     }
   ]
 }

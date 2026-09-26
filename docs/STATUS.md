@@ -195,9 +195,23 @@
 > **IQ9-X1:** the retry's live reading of the marshal stands (`hunt down mack` = `pursue mack`).
 > **IQ9-X3:** a failure names the road it came down. **Prompt caching stays OFF** — its obstacle is
 > gone; turning it on is the user's decision. **SR-3 IS COMPLETE.**
-> **NEXT = the Chunk 3 reserve (CQ-37 the idioms, the boot help's "who am I fighting" line,
+> ~~**NEXT = the Chunk 3 reserve (CQ-37 the idioms, the boot help's "who am I fighting" line,
 > AAR-25, the IQ10-X residue) → the Chunk 3 exit re-score (first contact on a fresh-boot played
-> arm; command on the corpus + a played arm), §1 FOR USER CONFIRMATION → STOP. SR-D3 stays DEFERRED.**
+> arm; command on the corpus + a played arm), §1 FOR USER CONFIRMATION → STOP. SR-D3 stays DEFERRED.**~~
+> ~~**The Chunk 3 reserve**~~ ✅ **DRAWN September 26, 2026** (rules `SYSTEMS_REFERENCE.md`
+> §72.5; pins `tests/test_sr3_quick_wins.py` 34; corpus +2 `cq37-*` rows (both fail with the lever down); sweep `tools/_sweep_sr3_reserve.json` 22/22 killed, 0 INERT; `BASELINE_SERIES` + M1–M7 byte-identical (measured — display and parser only, and `unfortify_is_free` is behaviour-identical); TWO `.gd` (`main.gd`, `dispatch_view.gd`), parse harness EXIT=0, boot 0 SCRIPT ERROR). **The boot help teaches the desk** ("Ask Berthier: who am I
+> fighting / is Paris safe / what happened last turn — an answer costs no action"; each the
+> desk's answer at 0 actions). **CQ-37:** "at once" is the adverb in both condition readers;
+> "hold fast / firm / steady" is a bare hold. **AAR-25:** the counter-punch is announced the
+> morning it opens, every word the executor's — free and this turn only, the nearest foe in
+> sight within reach named, a man behind works told to unfortify first at the executor's
+> price, silent for a man locked in drill, a pending question outranking it. **Measured in the
+> building:** the first draft priced unfortifying at "(1 action)", but a cautious marshal breaks
+> camp free and every man who can earn the strike is cautious — `unfortify_is_free` is now
+> the one source both read. **IQ10-X** closed on evidence (the Sept 23 / 24 frames post-date both
+> fixes, no layout change since, the driven top-bar harness runs every suite).
+> **NEXT = the Chunk 3 exit re-score (first contact on a fresh-boot played arm; command on the
+> corpus + a played arm), §1 FOR USER CONFIRMATION → STOP. SR-D3 stays DEFERRED.**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

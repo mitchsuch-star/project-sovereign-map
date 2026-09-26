@@ -1,0 +1,156 @@
+[
+  {
+    "id": "SR-3 reserve/CQ-37 lever down",
+    "file": "backend/ai/clause_guards.py",
+    "old": "AT_ONCE_IS_NEVER_A_CONDITION = True\n",
+    "new": "AT_ONCE_IS_NEVER_A_CONDITION = False\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
+  },
+  {
+    "id": "SR-3 reserve/CQ-37 the adverb pattern never matches",
+    "file": "backend/ai/clause_guards.py",
+    "old": "_AT_ONCE_RE = re.compile(r\"\\bat\\s+$\", re.IGNORECASE)\n",
+    "new": "_AT_ONCE_RE = re.compile(r\"\\bat\\s+zz$\", re.IGNORECASE)\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
+  },
+  {
+    "id": "SR-3 reserve/CQ-37 the spans reader forgets the adverb",
+    "file": "backend/ai/clause_guards.py",
+    "old": "        if (collapsed == \"once\" and AT_ONCE_IS_NEVER_A_CONDITION\n                and _AT_ONCE_RE.search(text[:marker.start()])):\n            continue\n        out.append((marker.start(), marker.end()))\n",
+    "new": "        out.append((marker.start(), marker.end()))\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
+  },
+  {
+    "id": "SR-3 reserve/CQ-37 the refusing reader forgets the adverb",
+    "file": "backend/ai/clause_guards.py",
+    "old": "        if (collapsed == \"once\" and AT_ONCE_IS_NEVER_A_CONDITION\n                and _AT_ONCE_RE.search(text[:marker.start()])):\n            continue\n        marker_count += 1\n",
+    "new": "        marker_count += 1\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestCQ37AtOnceIsNeverACondition"
+  },
+  {
+    "id": "SR-3 reserve/CQ-37 hold fast/firm/steady read as provinces again",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "    \"fast\", \"firm\", \"steady\",\n",
+    "new": "",
+    "tests": "tests/test_sr3_quick_wins.py::TestCQ37HoldFastIsABareHold"
+  },
+  {
+    "id": "SR-3 reserve/CQ-37 hold steady alone read as a province",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "    \"fast\", \"firm\", \"steady\",\n",
+    "new": "    \"fast\", \"firm\",\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestCQ37HoldFastIsABareHold"
+  },
+  {
+    "id": "SR-3 reserve/boot help the desk line removed",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tadd_output(\"[color=#\" + Utils.COLOR_INFO + \"]  • Ask Berthier: \\\"who am I fighting\\\", \\\"is Paris safe\\\", \\\"what happened last turn\\\" — an answer costs no action[/color]\")\n",
+    "new": "",
+    "tests": "tests/test_sr3_quick_wins.py::TestTheBootHelpTeachesTheDesk"
+  },
+  {
+    "id": "SR-3 reserve/boot help the desk line prices an answer",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "an answer costs no action[/color]",
+    "new": "an answer costs one action[/color]",
+    "tests": "tests/test_sr3_quick_wins.py::TestTheBootHelpTeachesTheDesk"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 lever down",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_COUNTER_PUNCH_IS_ANNOUNCED = True\n",
+    "new": "THE_COUNTER_PUNCH_IS_ANNOUNCED = False\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheMorningSaysIt"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 a pending question no longer outranks it",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            and not getattr(marshal, \"pending_interrupt\", None)\n            and not getattr(marshal, \"drilling_locked\", False)):\n",
+    "new": "            and not getattr(marshal, \"drilling_locked\", False)):\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25WhatOutranksIt"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 a man locked in drill is promised a strike",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            and not getattr(marshal, \"pending_interrupt\", None)\n            and not getattr(marshal, \"drilling_locked\", False)):\n",
+    "new": "            and not getattr(marshal, \"pending_interrupt\", None)):\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25WhatOutranksIt"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the foe is never named",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        _reach = counter_punch_foe_in_reach(marshal, world)\n",
+    "new": "        _reach = None\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheFoeItNames"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the omniscient roster names an unseen foe",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        for enemy in world.get_visible_enemies(marshal.nation):\n",
+    "new": "        for enemy in world.get_enemies_of_nation(marshal.nation):\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheFoeItNames"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 reach one march too long",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            if hops <= reach:\n",
+    "new": "            if hops <= reach + 1:\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheFoeItNames"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the farthest foe named",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        _, name, where = min(foes)\n",
+    "new": "        _, name, where = max(foes)\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheFoeItNames"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the works clause dropped",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if getattr(marshal, \"fortified\", False):\n            from backend.commands.tactical_executor import unfortify_is_free\n",
+    "new": "        if False:\n            from backend.commands.tactical_executor import unfortify_is_free\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25ThePriceOfBreakingCamp"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the note prices every camp at an action",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            _price = \"free\" if unfortify_is_free(marshal) else \"1 action\"\n",
+    "new": "            _price = \"1 action\"\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25ThePriceOfBreakingCamp"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the free-unfortify source names the wrong man",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "    return getattr(marshal, \"personality\", \"\") == \"cautious\"\n",
+    "new": "    return getattr(marshal, \"personality\", \"\") == \"aggressive\"\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25ThePriceOfBreakingCamp"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the executor stops reading the free-unfortify source",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "        is_free_unfortify = unfortify_is_free(marshal)\n",
+    "new": "        is_free_unfortify = False\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25ThePriceOfBreakingCamp"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 this turn only: the tick never expires it",
+    "file": "backend/models/world_state.py",
+    "old": "                marshal.counter_punch_turns -= 1\n",
+    "new": "                marshal.counter_punch_turns -= 0\n",
+    "tests": "tests/test_sr3_quick_wins.py::TestAAR25TheMorningSaysIt"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the main.gd glyph arm removed",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t\t\"counter_punch\":\n\t\t\t\t\t# AAR-25: a free strike, open this turn only.\n\t\t\t\t\ticon = \"»\"\n",
+    "new": "",
+    "tests": "tests/test_sr3_quick_wins.py::TestTheRenderersCarryTheIcon"
+  },
+  {
+    "id": "SR-3 reserve/AAR-25 the dispatch_view.gd glyph arm removed",
+    "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+    "old": "\t\t\t\t\"counter_punch\":\n\t\t\t\t\t# AAR-25: a free strike, open this turn only.\n\t\t\t\t\ticon = \"»\"\n",
+    "new": "",
+    "tests": "tests/test_sr3_quick_wins.py::TestTheRenderersCarryTheIcon"
+  }
+]
