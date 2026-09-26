@@ -11709,6 +11709,11 @@ class WorldState:
             assimilate_vassal_marshals(self, target_nation)
 
         # Apply state transition (R2: centralized setter)
+        # SR-1a: drop any retention entry an earlier peace this turn left
+        # unread (an AI-AI pair's), so this treaty's summary speaks only for
+        # its own pair; the setter writes the titles and the stash.
+        from backend.game_logic.game_end import take_status_quo_titled as _take_sq
+        _take_sq(self)
         if self.get_diplomatic_state(proposer, target_nation) != target_state:
             from backend.game_logic.diplomacy import set_diplomatic_state
             set_diplomatic_state(self, proposer, target_nation, target_state, "treaty_ratification")
@@ -12147,6 +12152,16 @@ class WorldState:
                 conclude_objectives=(target_state != "ARMISTICE"),
             )
 
+        # SR-1b: the client's war is the lord's war — every client pair
+        # that follows this treaty (the lord's satellites against the court,
+        # the court's satellites against the lord's bloc) takes the SAME
+        # state by the same road. Read for the summary below.
+        _clients_followed: List[Dict] = []
+        if _is_war_ending:
+            from backend.game_logic.diplomacy import follow_the_lord as _follow
+            _clients_followed = _follow(self, proposer, target_nation,
+                                        target_state, "treaty_ratification")
+
         # WPS-C §9.2: Forced alliance post-cleanup state transition.
         # After cleanup_war_end clears war data, set state to ALLIANCE,
         # reset relation to 0, add to Continental System, set origin tag,
@@ -12423,6 +12438,27 @@ class WorldState:
                 # lie; naming the loss is what lets the player understand
                 # why the nation they drafted is not on the map.
                 applied_penalties = list(applied_penalties)
+                # SR-1b: the clients that followed the lord out of the war
+                # — named on the aftermath so the table says who fights on
+                # (an ally, by its own fallout line) and who does not.
+                if _clients_followed:
+                    from backend.game_logic.formations import formed_display_name as _fdn
+                    _ours = sorted({n for row in _clients_followed for n in row["nations"]
+                                    if n != self.player_nation
+                                    and self._top_overlord(n) == self.player_nation})
+                    _theirs = sorted({n for row in _clients_followed for n in row["nations"]
+                                      if n not in (proposer, target_nation)
+                                      and self._top_overlord(n) != self.player_nation})
+                    _noun = "the truce" if target_state == "ARMISTICE" else "the peace"
+                    if _ours:
+                        applied_penalties.append({"display": (
+                            f"Our clients follow us into {_noun}: "
+                            + ", ".join(_fdn(self, n) for n in _ours)
+                            + " (the client's war is the lord's war)")})
+                    if _theirs:
+                        applied_penalties.append({"display": (
+                            f"Their clients follow them into {_noun}: "
+                            + ", ".join(_fdn(self, n) for n in _theirs))})
                 for _rc in _refused_carves:
                     _rc_name = str(_rc.get("client_display_name")
                                    or _rc.get("tag") or "the client state")
@@ -12440,6 +12476,17 @@ class WorldState:
                     _annotated_for_summary, applied_penalties,
                     _pre_cleanup_cancelled_orders, _pre_cleanup_data,
                 )
+                # SR-1a: the status quo the treaty signed for — what stays
+                # ours (titled) and what stays theirs — on the terms list
+                # the terminal, the ledger and the R screen print.
+                from backend.game_logic.game_end import status_quo_summary_lines
+                _sq_entries = _take_sq(self, [diplo_key])
+                _sq_lines = status_quo_summary_lines(self, _sq_entries, self.player_nation)
+                if _sq_lines:
+                    peace_ratification_summary.setdefault("terms_ratified", []).extend(_sq_lines)
+                peace_ratification_summary["status_quo_titled"] = sorted(
+                    r for e in _sq_entries if e.get("house") == self.player_nation
+                    for rs in (e.get("titled") or {}).values() for r in rs)
                 self.peace_ratification_log.append(peace_ratification_summary)
                 if len(self.peace_ratification_log) > 5:
                     self.peace_ratification_log = self.peace_ratification_log[-5:]

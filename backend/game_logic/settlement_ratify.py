@@ -830,6 +830,29 @@ def _resolve_pair_state_transitions(
             "target_state": target_state,
         })
 
+    # SR-1b: the client's war is the lord's war. The plan already carries
+    # every client pair that sits in THIS war instance; a client's pair
+    # with a covered court that lives in another instance (a satellite's
+    # own older war) follows the lord's peace here by the same road. Pairs
+    # the plan resolved are already at PEACE and are skipped by the read.
+    from backend.game_logic.diplomacy import follow_the_lord as _follow
+    for row in list(resolved_pairs):
+        if str(row.get("final_state") or "") in ("WAR", "ARMISTICE"):
+            continue
+        for moved in _follow(world, row["proposer_member"], row["covered_enemy"],
+                             "PEACE", "common_peace_settlement"):
+            x, y = moved["nations"]
+            resolved_pairs.append({
+                "pair": moved["pair"],
+                "proposer_member": x,
+                "covered_enemy": y,
+                "current_state_before": moved["from"],
+                "pair_status_before": "war" if moved["from"] == "WAR" else "armistice",
+                "final_state": moved["to"],
+                "target_state": "PEACE",
+                "followed_the_lord": row["pair"],
+            })
+
     return resolved_pairs, state_clauses_applied
 
 
@@ -1421,6 +1444,14 @@ def ratify_settlement_confirm(
     # GE-1: the Humbled Peace reads whether THIS ratification made the
     # player a vassal — snapshot before any mutation.
     _player_was_vassal = world.player_nation in (getattr(world, "vassals", {}) or {})
+    # SR-1a: drop any retention entry an earlier peace this turn left
+    # unread; after the pair transitions, read the ones THIS table's pairs
+    # wrote (the setter titles them) for the ratification's own summary.
+    from backend.game_logic.game_end import (
+        take_status_quo_titled as _take_sq,
+        status_quo_summary_lines as _sq_lines_for,
+    )
+    _take_sq(world)
     with treaty_in_flight(world, plan_courts(plan)):
         applied_clauses = _apply_settlement_terms(
             world,
@@ -1432,6 +1463,11 @@ def ratify_settlement_confirm(
             world, plan, settlement_terms,
         )
     applied_clauses.extend(fa_applied)
+    _sq_entries = _take_sq(world, [str(p.get("pair") or "") for p in resolved_pairs])
+    _sq_lines = _sq_lines_for(world, _sq_entries, world.player_nation)
+    _sq_titled = sorted(
+        r for e in _sq_entries if e.get("house") == world.player_nation
+        for rs in (e.get("titled") or {}).values() for r in rs)
     _record_common_peace_treaties(
         world, plan=plan, settlement_terms=settlement_terms,
     )
@@ -1562,6 +1598,8 @@ def ratify_settlement_confirm(
         f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "
         f"({len(resolved_pairs)} pair{'s' if len(resolved_pairs) != 1 else ''} resolved)."
     )
+    if _sq_lines:
+        result_message = result_message + " " + " ".join(_sq_lines)
     # SC-14c: result feedback consumes the staged route id verbatim. The
     # summary event already echoes the staged id, so prefer that path; fall
     # back to the staged dialogue's id (same value) before minting a fresh
@@ -1609,6 +1647,7 @@ def ratify_settlement_confirm(
                 "Review the settlement in the diplomatic ledger."
             ),
         },
+        "status_quo_titled": _sq_titled,
         "mutated": True,
         "message": result_message,
     }

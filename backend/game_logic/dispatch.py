@@ -5414,6 +5414,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "nation_eliminated": "{nation} has been eliminated from the war.",
     # Peace Deals BPH-A + BPH-D
     "peace_ratified": "Peace ratified between {proposer_nation} and {target_nation}.",
+    # SR-1a — a signed peace's status quo titles what we hold (uti possidetis)
+    "status_quo_titled": ("{provinces} — retained by the peace with {ceder}, "
+                          "titled by treaty."),
     # WB-B — war bargain lifecycle
     "bargain_ratified": "{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}.",
     "bargain_triggered": "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active.",
@@ -5549,6 +5552,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "commitment_paradox_resolved": "MEDIUM",
     "nation_eliminated": "HIGH",
     "peace_ratified": "HIGH",
+    "status_quo_titled": "MEDIUM",
     # WB-B — war bargain lifecycle
     "bargain_ratified": "MEDIUM",
     "bargain_triggered": "HIGH",

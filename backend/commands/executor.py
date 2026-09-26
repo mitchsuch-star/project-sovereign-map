@@ -223,6 +223,19 @@ ENEMY_DIRECTION_GATE_ACTIVE = True
 BROAD_DIPLOMATIC_GATE_ACTIVE = True
 MARSHAL_DIRECTION_GATE_ACTIVE = True
 
+# SR quick win AAR-12 (Score Mandate Chunk 1, September 26, 2026): spending
+# the last ADMINISTRATIVE action used to auto-advance the turn the moment
+# both pools read zero — a keel laid or a levy raised with the military pool
+# already spent ended the day mid-thought, with no confirmation and none of
+# the envoy-lapse guard the typed `end turn` road carries (`main.gd`). The
+# military road keeps its auto-advance (a last-AP attack still ends the day,
+# WO-22's defer aside); an administrative spend never does. When it empties
+# the second pool the receipt SAYS so, and the turn ends when the player says
+# so. Flip lever, not a config surface.
+AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY = True
+LAST_ORDER_OF_THE_DAY_NOTICE = ("That was the last order the day could take, "
+                                "Sire — the turn ends when you say so.")
+
 
 def _correction_survives(query: str, match: Optional[str],
                          gate_active: bool) -> bool:
@@ -2869,8 +2882,18 @@ class CommandExecutor:
             if is_admin_action:
                 # Admin actions consume from admin AP pool, not CP
                 world.use_admin_action()
-                # Auto-end turn when BOTH pools are exhausted
+                # Auto-end turn when BOTH pools are exhausted — unless the
+                # spend is administrative (AAR-12): then the day ends when
+                # the player says so, and the receipt says the pools are dry.
                 both_exhausted = (world.actions_remaining <= 0 and world.admin_actions_remaining <= 0)
+                if AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY:
+                    if both_exhausted:
+                        result["last_order_of_the_day"] = True
+                        if result.get("message"):
+                            result["message"] = f"{result['message']} {LAST_ORDER_OF_THE_DAY_NOTICE}"
+                        else:
+                            result["message"] = LAST_ORDER_OF_THE_DAY_NOTICE
+                    both_exhausted = False
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1, "should_end_turn": both_exhausted}
             else:
                 # Check for variable action cost (stance_change returns this)

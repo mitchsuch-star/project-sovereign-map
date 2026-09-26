@@ -82,6 +82,34 @@ THE_HUMBLED_PEACE_IS_MARKED = True
 # Revanche weight read 0 while the treaty holds. Read by agendas.py.
 A_SIGNED_CESSION_IS_RECONCILED = True
 
+# SR-1a "Status quo is a cession" (Score Mandate Chunk 1, September 26,
+# 2026; AAR-D2). A province one signatory HOLDS of the other's — the other's
+# homeland, or ground it captured from the other — that a SIGNED war-ending
+# peace leaves in its hands is titled by treaty at the signature: uti
+# possidetis is a title everywhere in the period's practice, and the AAR's
+# Treaty of Vienna (turn 9) left Vienna, Bohemia, Hungary and Moravia
+# "held, unsettled" while the treaty had been signed for them. Written at
+# the ONE diplomatic-state setter, per pair, after the state write, so every
+# ratifier inherits it (the bilateral treaty, the settlement table, the
+# headless AI-AI peace, the exhausted-pair exit — GR5); a clause the same
+# treaty applies AFTER the setter (the bilateral ratifier) overwrites or
+# pops the record by its own title write, so the ordering is harmless. Only
+# a SIGNED peace titles: the reasons below and nothing else — a truce that
+# runs out into peace, an elimination, a repudiated treaty and the cheat
+# write nothing (the codebase's own rule: a truce is not a signature).
+# A retained title is NOT reconciled (`reconciled_regions` skips it): the
+# loser signed no cession, so its designs still covet the ground and the
+# Congress still has to be won at the table — uti possidetis titles the
+# province for the COUNT, recognition is bought separately. Flip lever.
+STATUS_QUO_IS_A_CESSION = True
+SIGNED_PEACE_REASONS = frozenset({
+    "treaty_ratification",          # the bilateral treaty (player, AI-AI)
+    "common_peace_settlement",      # the settlement table + the third-party peace
+    "mutual_exhaustion",            # the exhausted-pair exit (an AI white peace)
+    "treaty_vassalization",         # a court submitting by signed clause
+    "conquest_vassalization",       # a beaten court subjugated (GEV-1's gate)
+})
+
 # ── Defaults (the scenario's block overrides; `cfg`) ──────────────────────
 TITLE_TURNS_DEFAULT = 12
 
@@ -745,7 +773,8 @@ def _is_homeland(world, region: str, nation: str) -> bool:
 
 
 def record_province_title(world, region: str, kind: str, from_nation: str,
-                          receiver: str, house: str = "") -> None:
+                          receiver: str, house: str = "",
+                          retained: bool = False) -> None:
     """Write (or clear) the title record when `region` changes hands.
 
     `house` (verification round) is the court the title belongs to — the
@@ -756,7 +785,12 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
     only by the two courts that signed it. GR5: written for every nation. A
     province returning to its own homeland court needs no record (homeland
     is title by construction) — the record is popped. Never raises (a title
-    is display substrate, never a reason to fail a capture)."""
+    is display substrate, never a reason to fail a capture).
+
+    `retained` (SR-1a): the title is a status-quo retention — a signed peace
+    left the province in the holder's hands with no clause naming it. It
+    counts as a treaty title and breaks like one, and it is never
+    reconciled (the ceder signed no cession)."""
     if not region or not receiver:
         return
     try:
@@ -764,15 +798,191 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
         if _is_homeland(world, region, receiver):
             store.pop(region, None)
             return
-        store[region] = {
+        rec = {
             "kind": str(kind),
             "since": int(getattr(world, "current_turn", 0) or 0),
             "from": str(from_nation or ""),
             "holder": str(receiver),
             "house": str(house or world._top_overlord(receiver) or receiver),
         }
+        if retained:
+            rec["retained"] = True
+        store[region] = rec
     except Exception:
         return
+
+
+def _bloc_of(world, leader: str) -> List[str]:
+    """The leader plus every court whose top overlord it is — the title
+    rule's bloc (never allies; `titled_provinces`' own definition)."""
+    out = [leader]
+    for name in sorted(getattr(world, "vassals", {}) or {}):
+        if name != leader and world._top_overlord(name) == leader:
+            out.append(name)
+    return out
+
+
+def status_quo_retentions(world, holder_leader: str, ceder: str) -> Dict[str, List[str]]:
+    """The provinces `holder_leader`'s bloc holds of `ceder`'s that a peace
+    between the two leaves in its hands: the ceder's homeland, or ground
+    captured FROM the ceder (a conquest record naming it). Pure read; the
+    map is `{holder: [regions]}`. A holder still at WAR with the ceder on
+    its own account (a satellite whose pair the lord's peace has not yet
+    resolved) retains nothing — the peace is not its yet."""
+    out: Dict[str, List[str]] = {}
+    if not holder_leader or not ceder or holder_leader == ceder:
+        return out
+    home = set((getattr(world, "nation_starting_regions", {}) or {}).get(ceder, []) or [])
+    store = getattr(world, "province_title", None)
+    store = store if isinstance(store, dict) else {}
+    for holder in _bloc_of(world, holder_leader):
+        if world.is_at_war(holder, ceder):
+            continue
+        kept: List[str] = []
+        for region_name in world.get_nation_regions(holder) or []:
+            rec = store.get(region_name) or {}
+            # A live SIGNED title (a cession this holder was ceded, or an
+            # earlier retention) is already a title — never overwritten.
+            if (isinstance(rec, dict) and rec.get("kind") == TITLE_TREATY
+                    and str(rec.get("holder") or "") == holder):
+                continue
+            if region_name in home:
+                kept.append(region_name)
+            elif (isinstance(rec, dict) and rec.get("kind") == TITLE_CONQUEST
+                    and str(rec.get("from") or "") == ceder):
+                kept.append(region_name)
+        if kept:
+            out[holder] = sorted(kept)
+    return out
+
+
+def title_status_quo_retentions(world, nation_a: str, nation_b: str,
+                                old_state: str, new_state: str,
+                                reason: str) -> List[Dict[str, Any]]:
+    """SR-1a — the retention pass at the ONE diplomatic-state setter, after
+    the state write. Fires only when a pair leaves WAR or ARMISTICE for a
+    state above ARMISTICE by a SIGNED road (`SIGNED_PEACE_REASONS`). Both
+    directions: what A's bloc holds of B's is titled to its holders, and
+    what B's bloc holds of A's likewise. Returns the entries written (one
+    per direction that titled anything) and stashes them on the world for
+    the ratifier that is speaking (`take_status_quo_titled`). Never raises
+    (a title is display substrate)."""
+    if not STATUS_QUO_IS_A_CESSION:
+        return []
+    if old_state not in ("WAR", "ARMISTICE") or new_state in ("WAR", "ARMISTICE"):
+        return []
+    if str(reason or "") not in SIGNED_PEACE_REASONS:
+        return []
+    entries: List[Dict[str, Any]] = []
+    try:
+        turn = int(getattr(world, "current_turn", 0) or 0)
+        for holder_leader, ceder in ((nation_a, nation_b), (nation_b, nation_a)):
+            kept = status_quo_retentions(world, holder_leader, ceder)
+            if not kept:
+                continue
+            # The HOUSE is the signatory's lord: a satellite signing its own
+            # pair (SR-1b's cascade, or its own treaty) titles for its lord's
+            # house, so one renewed war between the lords breaks it.
+            house = str(world._top_overlord(holder_leader) or holder_leader)
+            for holder, regions in kept.items():
+                for region_name in regions:
+                    record_province_title(world, region_name, TITLE_TREATY,
+                                          ceder, holder, house=house,
+                                          retained=True)
+            entries.append({
+                "pair": world._make_diplo_key(nation_a, nation_b),
+                "turn": turn,
+                "house": house,
+                "ceder": ceder,
+                "reason": str(reason or ""),
+                "titled": {h: list(r) for h, r in kept.items()},
+            })
+        if entries:
+            stash = getattr(world, "_status_quo_titled", None)
+            if not isinstance(stash, list):
+                stash = []
+            # Entries from an earlier turn nobody read (an AI-AI peace no
+            # ratifier speaks for) are dropped here — the stash is a
+            # same-turn hand-off, never a record (the record is the title).
+            stash = [e for e in stash if int(e.get("turn", -1)) == turn]
+            stash.extend(entries)
+            world._status_quo_titled = stash
+            _announce_status_quo(world, entries)
+    except Exception:
+        return entries
+    return entries
+
+
+def _announce_status_quo(world, entries: List[Dict[str, Any]]) -> None:
+    """The player's own dispatch beat (the morning after, and the rail):
+    only for a retention the player's bloc holds. Never for an AI-AI peace
+    (not the Emperor's business; the fog filter would drop it anyway)."""
+    player = str(getattr(world, "player_nation", "") or "")
+    if not player:
+        return
+    try:
+        from backend.game_logic.dispatch import queue_dispatch_event
+        from backend.game_logic.formations import formed_display_name
+        for entry in entries:
+            if entry.get("house") != player:
+                continue
+            names = sorted(r for rs in (entry.get("titled") or {}).values() for r in rs)
+            if not names:
+                continue
+            queue_dispatch_event(world, "status_quo_titled", {
+                "provinces": _join_names(names),
+                "ceder": formed_display_name(world, str(entry.get("ceder") or "")),
+                "count": len(names),
+            }, "always")
+    except Exception:
+        return
+
+
+def _join_names(names: List[str]) -> str:
+    names = [str(n) for n in names if n]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def take_status_quo_titled(world, pairs: Optional[Iterable[str]] = None) -> List[Dict[str, Any]]:
+    """Read the retention entries a ratifier's own pairs wrote, and CLEAR
+    the stash (state clearing after reading). With `pairs` given, entries
+    for other pairs — an AI-AI peace resolved earlier in the same phase —
+    are dropped rather than handed to the wrong summary."""
+    stash = getattr(world, "_status_quo_titled", None)
+    world._status_quo_titled = []
+    if not isinstance(stash, list):
+        return []
+    if pairs is None:
+        return list(stash)
+    wanted = set(str(p) for p in pairs)
+    return [e for e in stash if str(e.get("pair") or "") in wanted]
+
+
+def status_quo_summary_lines(world, entries: Iterable[Dict[str, Any]],
+                             speaker: str) -> List[str]:
+    """The ratification summary's sentence per direction, from `speaker`'s
+    chair: 'Status quo: Vienna, Bohemia, Hungary and Moravia stay ours by
+    the treaty — titled.' / 'Provence stays British by the treaty.'"""
+    from backend.display_names import nation_adjective
+    from backend.game_logic.formations import formed_display_name
+    lines: List[str] = []
+    for entry in entries or []:
+        names = sorted(r for rs in (entry.get("titled") or {}).values() for r in rs)
+        if not names:
+            continue
+        house = str(entry.get("house") or "")
+        verb = "stays" if len(names) == 1 else "stay"
+        if house == speaker:
+            lines.append(f"Status quo: {_join_names(names)} {verb} ours by the treaty — titled.")
+        else:
+            adj = nation_adjective(house) if house else ""
+            whose = adj if adj and adj != house else f"with {formed_display_name(world, house)}"
+            lines.append(f"Status quo: {_join_names(names)} {verb} {whose} by the treaty.")
+    return lines
 
 
 def record_carve_titles(world, provinces: Iterable[str], ceder: str,
@@ -1026,6 +1236,10 @@ def reconciled_regions(world, nation: str) -> set:
             if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
                 continue
             if rec.get("from") != nation:
+                continue
+            # SR-1a: a status-quo retention is a title for the COUNT, not a
+            # cession the ceder signed — its designs still covet the ground.
+            if rec.get("retained"):
                 continue
             holder = str(rec.get("holder") or "")
             if not holder:

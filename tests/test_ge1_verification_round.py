@@ -591,10 +591,18 @@ class TestTheSignatories:
 
     def test_a_carve_reconciles_only_the_provinces_carved(self):
         """V14 (P2): an unsigned conquest handed to the carved client is
-        not a cession."""
+        not a cession.
+
+        Consciously flipped by SR-1a (September 26, 2026): the same peace
+        that carves Posen LEAVES Silesia in French hands, so uti possidetis
+        titles it — a retention, `kind == treaty` with `retained` — for the
+        Congress's COUNT. The claim this pin exists for is untouched: a
+        retention is not a cession Prussia signed, so Silesia is never
+        reconciled and Berlin's Revanche still reads it."""
         w = _boot()
         _carve_posen(w, also_take=("Silesia",))
-        assert w.province_title["Silesia"]["kind"] == game_end.TITLE_CONQUEST
+        assert w.province_title["Silesia"]["kind"] == game_end.TITLE_TREATY
+        assert w.province_title["Silesia"]["retained"] is True
         w.regions["Silesia"].controller = "DuchyOfWarsaw"
         w.invalidate_active_nations_cache()
         game_end.reconcile_province_titles(w)

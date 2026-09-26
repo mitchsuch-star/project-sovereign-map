@@ -496,6 +496,13 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
 
         set_diplomatic_state(world, a, b, "PEACE", "mutual_exhaustion")
         cleanup_war_end(world, pair_key, conclude_objectives=True)
+        # SR-1b: the client's war is the lord's war — a spent lord's exit
+        # takes its satellites' pairs with the same court out too, on the
+        # same truce floor (a vassal's own pair is never exited on its own
+        # account; it follows).
+        from backend.game_logic.diplomacy import follow_the_lord
+        follow_the_lord(world, a, b, "PEACE", "mutual_exhaustion",
+                        truce_floor=PAIR_EXIT_TRUCE_FLOOR_TURNS)
         # PC15-D4 piece 3 — status-quo-ante-lite: each court returns the
         # OTHER's homeland provinces it holds with no standing army (the
         # measured Moravia shape: a 1-troop detachment, no marshal). The

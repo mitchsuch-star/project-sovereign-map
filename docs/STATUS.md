@@ -4,6 +4,28 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — IN PROGRESS, September 26, 2026.**
+> ~~SR-1a~~ ✅ + ~~SR-1b~~ ✅ LANDED (one commit, with the AAR-12 quick win):
+> **status quo is a cession** — `game_end.title_status_quo_retentions` at the ONE
+> state setter on every SIGNED road (uti possidetis, both directions, a
+> `retained` treaty record that counts and breaks like a signature but is NEVER
+> reconciled: recognition is still bought at the table; the AAR's four Vienna
+> provinces title at the turn-9 peace, 35 → 39 the same turn); **the client's
+> war is the lord's war** — `diplomacy.follow_the_lord` on the four treaty roads
+> (bilateral, settlement, pair exit, armistice expiry — a client's truce thaws or
+> collapses with the lord's), both directions, the surface naming who follows
+> and (AAR-28) an incoming offer's paradox a WARNING that says what it does;
+> **AAR-12** the last admin spend leaves the day to the player. Landing records
+> `SCORE_MANDATE_PLAN.md` §2 Chunk 1; rules `SYSTEMS_REFERENCE.md` §70; pins
+> `test_sr1a_status_quo_is_a_cession.py` 31 + `test_sr1b_the_clients_war_is_the_lords_war.py`
+> 21 + `test_sr1_quick_wins.py` 4; **`BASELINE_SERIES` byte-identical on a
+> four-arm attribution (`tools/_sr1_series_arms.py`) with the counts measured**
+> (one retention the AI cannot read; the cascade fired twice and moved nothing);
+> M1–M7 byte-identical; one pin consciously flipped (the Tilsit carve's Silesia
+> is a retained title now). **NEXT = SR-1c the gate line teaches the road → SR-1d
+> PR-D1b + PB-7 → the reserve (AAR-15, the GE-V §4 nits, the School card) →
+> SR-1e the re-measure.**
+>
 > **▶ ▶ ▶ NEXT = ROW SR "THE SCORE MANDATE" — `docs/SCORE_MANDATE_PLAN.md` IS
 > THE ROUTING AUTHORITY (RULED September 26, 2026, by the user's direction).
 > A FRESH SESSION STARTS THERE.** The user's brief: *"is it included in this

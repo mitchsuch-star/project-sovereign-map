@@ -13,7 +13,7 @@ Single source of truth for diplomatic mechanics:
 
 import copy
 import random  # noqa: F401 — used in _process_mission_effects
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Mapping, Optional, Tuple
 
 from backend.display_names import (
     FEEDBACK_STRINGS,
@@ -2916,6 +2916,16 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         alliance_origins.pop(key, None)
         world.alliance_origins = alliance_origins
 
+    # SR-1a "Status quo is a cession" (Score Mandate Chunk 1): a SIGNED
+    # war-ending peace titles what each signatory's bloc holds of the
+    # other's — the ONE seam every ratifier passes, after the state write.
+    # Gated inside on the reason (only the signed roads) and the states
+    # (out of WAR/ARMISTICE, into a state above them); never raises.
+    if old_state != new_state:
+        from backend.game_logic.game_end import title_status_quo_retentions
+        title_status_quo_retentions(world, nation_a, nation_b,
+                                    old_state, new_state, reason)
+
     debug_print(f"DIPLO STATE: {nation_a}-{nation_b}: {old_state} -> {new_state}"
                 f"{' (' + reason + ')' if reason else ''}")
 
@@ -2959,6 +2969,183 @@ def _flush_hegemony_signal_defer(world, caller: str) -> None:
         _check_hegemony_band_crossing(world, caller=caller)
     except Exception as exc:
         debug_print(f"[HEGEMONY] deferred band-crossing check failed after {caller}: {exc}")
+
+
+# ═══════════════════════════════════════════════════════
+# SR-1b "The client's war is the lord's war" (Score Mandate Chunk 1,
+# September 26, 2026; AAR-1 P1 / AAR-D1 ruled at default (a)).
+#
+# The AAR's Treaty of Vienna (turn 9) resolved the France–Austria pair
+# only; the merged war instance kept `Austria|KingdomOfItaly` active, and
+# Austria — at PEACE with France — took Piedmont, Tyrol and Milan and
+# eliminated the client by turn 18. The client's contingent is the lord's
+# roster (VS-4), so it had no defender of its own, and nothing at the table
+# said its war would go on. Historically Pressburg bound the Kingdom of
+# Italy with France: a lord's PEACE or ARMISTICE resolves its satellites'
+# pairs with the same court — and the court's satellites' pairs with the
+# lord's bloc — to the same state, through the same setter and the same
+# cleanup the lord's pair took. GR5: any lord, any board. ONE helper,
+# called from the four treaty roads (the bilateral ratifier, the settlement
+# table's pair transitions — which already carry same-instance clients —
+# the exhausted-pair exit, and armistice expiry, where a client's truce
+# follows the lord's outcome); NOT from the state setter, which elimination,
+# the cheat and direct test writes also pass through.
+# ═══════════════════════════════════════════════════════
+
+THE_CLIENTS_WAR_IS_THE_LORDS_WAR = True
+
+# The states a client's pair may be in when the lord signs — the truce
+# and the war. A client already at peace has nothing to follow.
+_CLIENT_FOLLOWS_FROM = ("WAR", "ARMISTICE")
+
+
+def _clients_of(world, lord: str) -> List[str]:
+    """Every court whose TOP overlord is `lord` (a puppet's puppet follows
+    too), never the lord itself."""
+    out: List[str] = []
+    for name in sorted((getattr(world, "vassals", {}) or {}).keys()):
+        if name != lord and world._top_overlord(name) == lord:
+            out.append(name)
+    return out
+
+
+def client_pairs_that_follow(world, nation_a: str, nation_b: str,
+                             new_state: str) -> List[Tuple[str, str]]:
+    """Pure read: the cross pairs that would follow a treaty between
+    `nation_a` and `nation_b` into `new_state` — each client of either
+    court against the other court and against the other court's clients —
+    that stand in WAR (or, for a peace, in ARMISTICE) today. The offer
+    surface reads it to say who follows; the cascade acts on it."""
+    if not THE_CLIENTS_WAR_IS_THE_LORDS_WAR or not nation_a or not nation_b:
+        return []
+    followed = "ARMISTICE" if new_state == "ARMISTICE" else "PEACE"
+    from_states = ("WAR",) if followed == "ARMISTICE" else _CLIENT_FOLLOWS_FROM
+    clients_a = _clients_of(world, nation_a)
+    clients_b = _clients_of(world, nation_b)
+    candidates: List[Tuple[str, str]] = []
+    candidates += [(v, nation_b) for v in clients_a]
+    candidates += [(nation_a, w) for w in clients_b]
+    candidates += [(v, w) for v in clients_a for w in clients_b]
+    out: List[Tuple[str, str]] = []
+    seen = set()
+    for x, y in candidates:
+        if x == y:
+            continue
+        key = world._make_diplo_key(x, y)
+        if key in seen:
+            continue
+        seen.add(key)
+        if world.diplomatic_states.get(key, "PEACE") in from_states:
+            out.append((x, y))
+    return out
+
+
+def follow_the_lord(world, nation_a: str, nation_b: str, new_state: str,
+                    reason: str, *, truce_floor: Optional[int] = None) -> List[Dict]:
+    """The cascade: after a treaty between `nation_a` and `nation_b` moved
+    their pair to `new_state`, move every client pair that follows
+    (`client_pairs_that_follow`) to the same state by the same road — the
+    setter with the SAME reason (so SR-1a's retention pass reads it as
+    signed), the armistice cooldown a treaty truce writes (5), and
+    `cleanup_war_end` with the objectives concluded for a peace and left
+    for a truce. `truce_floor` writes the exhausted-pair exit's cooldown on
+    each client pair (the lord's own gets it at the exit). Returns one row
+    per client pair moved, for the summary and the log. Hegemony checks are
+    deferred to one flush."""
+    moved: List[Dict] = []
+    pairs = client_pairs_that_follow(world, nation_a, nation_b, new_state)
+    if not pairs:
+        return moved
+    followed = "ARMISTICE" if new_state == "ARMISTICE" else "PEACE"
+    _begin_hegemony_signal_defer(world)
+    try:
+        for x, y in pairs:
+            key = world._make_diplo_key(x, y)
+            before = world.diplomatic_states.get(key, "PEACE")
+            set_diplomatic_state(world, x, y, followed, reason)
+            if followed == "ARMISTICE":
+                world.armistice_cooldowns[key] = 5
+            if truce_floor is not None:
+                world.armistice_cooldowns[key] = int(truce_floor)
+            cleanup_war_end(world, key, conclude_objectives=(followed != "ARMISTICE"))
+            moved.append({"pair": key, "nations": [x, y], "from": before,
+                          "to": followed, "reason": str(reason or "")})
+    finally:
+        _flush_hegemony_signal_defer(world, f"follow_the_lord:{reason or 'unknown'}")
+    if moved and hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+    return moved
+
+
+def clients_following_line(world, nation_a: str, nation_b: str,
+                           new_state: str, speaker: str) -> str:
+    """The offer surface's sentence from `speaker`'s chair: 'Our clients
+    follow us out of the war: the Kingdom of Italy, Holland.' — or the
+    other side's. Empty when nobody follows."""
+    pairs = client_pairs_that_follow(world, nation_a, nation_b, new_state)
+    if not pairs:
+        return ""
+    from backend.game_logic.formations import formed_display_name
+    ours = sorted({x for x, y in pairs if world._top_overlord(x) == speaker and x != speaker}
+                  | {y for x, y in pairs if world._top_overlord(y) == speaker and y != speaker})
+    theirs = sorted({n for x, y in pairs for n in (x, y)
+                     if n not in (nation_a, nation_b)
+                     and world._top_overlord(n) != speaker})
+    noun = "the truce" if new_state == "ARMISTICE" else "the war"
+    parts: List[str] = []
+    if ours:
+        parts.append("Our clients follow us out of " + noun + ": "
+                     + ", ".join(formed_display_name(world, n) for n in ours) + ".")
+    if theirs:
+        parts.append("Their clients follow them: "
+                     + ", ".join(formed_display_name(world, n) for n in theirs) + ".")
+    return " ".join(parts)
+
+
+def _client_truce_follows_the_lord(world, diplo_key: str) -> bool:
+    """True for a pair in ARMISTICE where one side is a client and the
+    other side's pair with that client's TOP overlord (or with the other
+    client's lord) also stands in ARMISTICE — the lord's expiry decides
+    both (SR-1b)."""
+    if not THE_CLIENTS_WAR_IS_THE_LORDS_WAR:
+        return False
+    parts = str(diplo_key).split("|")
+    if len(parts) != 2:
+        return False
+    x, y = parts
+    for client, other in ((x, y), (y, x)):
+        lord = world._top_overlord(client)
+        if not lord or lord == client:
+            continue
+        other_lord = world._top_overlord(other) or other
+        if other_lord == lord:
+            continue
+        lord_key = world._make_diplo_key(lord, other_lord)
+        if lord_key != diplo_key and world.diplomatic_states.get(lord_key) == "ARMISTICE":
+            return True
+    return False
+
+
+def _client_truce_pairs(world, nation_a: str, nation_b: str) -> List[Tuple[str, str]]:
+    """The client pairs standing in ARMISTICE beside the lords' pair —
+    the ones a collapsed truce takes back to war."""
+    if not THE_CLIENTS_WAR_IS_THE_LORDS_WAR:
+        return []
+    clients_a = _clients_of(world, nation_a)
+    clients_b = _clients_of(world, nation_b)
+    candidates = ([(v, nation_b) for v in clients_a]
+                  + [(nation_a, w) for w in clients_b]
+                  + [(v, w) for v in clients_a for w in clients_b])
+    out: List[Tuple[str, str]] = []
+    seen = set()
+    for x, y in candidates:
+        key = world._make_diplo_key(x, y)
+        if x == y or key in seen:
+            continue
+        seen.add(key)
+        if world.diplomatic_states.get(key) == "ARMISTICE":
+            out.append((x, y))
+    return out
 
 
 # ═══════════════════════════════════════════════════════
@@ -4253,7 +4440,7 @@ def _get_war_score_trend(world, diplo_key: str, player_nation: str, war_score: i
 
 def build_war_context_snapshot(
     world, player_nation: str, target_nation: str, proposal_type: str,
-    terms: Dict = None,
+    terms: Dict = None, incoming: bool = False,
 ) -> Dict:
     """Build the frozen war-context snapshot for a peace-class preview (BPH-B §8.1).
 
@@ -4434,8 +4621,23 @@ def build_war_context_snapshot(
         "fallout_warnings": fallout_warnings,
         "commitment_conflicts": get_peace_commitment_conflicts(
             world, player_nation, target_nation, effective_terms.get("clauses", []),
+            incoming=incoming,
         ),
     }
+
+    # SR-1b: who follows the lord out of the war (the clients), said beside
+    # who fights on (the allies' fallout lines). Both roads — the player's
+    # own preview and the incoming offer — read the same sentence.
+    _followed_state = "ARMISTICE" if str(proposal_type).startswith("armistice") else "PEACE"
+    _clients_line = clients_following_line(
+        world, player_nation, target_nation, _followed_state, player_nation)
+    if _clients_line:
+        snapshot["clients_following"] = _clients_line
+        snapshot["fallout_warnings"].append({
+            "warning_type": "clients_follow",
+            "severity": "INFO",
+            "display": _clients_line,
+        })
 
     # Strategic order cancellation preview
     order_cancellations = _get_order_cancellation_preview(world, player_nation, target_nation)
@@ -4787,12 +4989,20 @@ def build_peace_ratification_summary(
 
 def get_peace_commitment_conflicts(
     world, proposer: str, target: str, clauses: List[Dict],
+    incoming: bool = False,
 ) -> List[Dict]:
     """BPH-C §10.1: Check for commitment conflicts created by a peace proposal.
 
     v0.1 conflict types:
       - paradox: alliance with a nation still at war with the target
       - bloc_opposition: proposer and target on opposing sides of hegemony geometry
+
+    `incoming` (SR-1b / AAR-28): the offer is the OTHER court's, read from
+    the player's chair. The paradox arm stops the player's own outgoing
+    peace (a HARD_STOP the send road honours); accepting an incoming offer
+    it stops nothing — so on that road the label says what the road does:
+    a WARNING naming the ally that fights on alone. The clients that
+    follow the lord out of the war (SR-1b) are named beside it.
     """
     conflicts: List[Dict] = []
 
@@ -4808,14 +5018,25 @@ def get_peace_commitment_conflicts(
         target_key = world._make_diplo_key(nation, target)
         if world.diplomatic_states.get(target_key, "PEACE") != "WAR":
             continue
-        conflicts.append({
-            "conflict_type": "paradox",
-            "severity": "HARD_STOP",
-            "affected_entity": nation,
-            "display": (
+        if incoming:
+            from backend.game_logic.formations import formed_display_name as _fdn
+            _display = (
+                f"{_fdn(world, nation)} stays at war with {_fdn(world, target)} "
+                f"after this peace — an ally, not a client: she fights on alone "
+                f"and views the separate peace unfavorably."
+            )
+            _severity = "WARNING"
+        else:
+            _display = (
                 f"Making peace with {target} while allied with {nation} "
                 f"(who is still at war with {target}) creates a diplomatic contradiction."
-            ),
+            )
+            _severity = "HARD_STOP"
+        conflicts.append({
+            "conflict_type": "paradox",
+            "severity": _severity,
+            "affected_entity": nation,
+            "display": _display,
             "detail": {
                 "ally": nation,
                 "ally_state_vs_target": "WAR",
@@ -10130,6 +10351,14 @@ def _process_armistice_expiration(world) -> List[Dict]:
             armistice_turns.pop(diplo_key, None)
             continue
 
+        # SR-1b: a client's truce follows its lord's. While the lord's own
+        # pair with the same court stands in ARMISTICE, the client's pair
+        # is not decided on its own relation (the boot's −80 thaws to −65
+        # in one truce — the client's war would have resumed alone while
+        # the lord's became peace); the lord's expiry cascades below.
+        if _client_truce_follows_the_lord(world, diplo_key):
+            continue
+
         # Increment turn counter
         armistice_turns[diplo_key] = armistice_turns.get(diplo_key, 0) + 1
         turns = armistice_turns[diplo_key]
@@ -10155,6 +10384,15 @@ def _process_armistice_expiration(world) -> List[Dict]:
             # record counts — the truce itself never was one.
             from backend.game_logic.game_end import count_peace
             count_peace(world, nation_a, nation_b)
+            # SR-1b: the clients' truces thaw with the lord's.
+            for x, y in client_pairs_that_follow(world, nation_a, nation_b, "PEACE"):
+                client_key = world._make_diplo_key(x, y)
+                if world.diplomatic_states.get(client_key) != "ARMISTICE":
+                    continue
+                resolve_pair_to_resolved(world, client_key)
+                set_diplomatic_state(world, x, y, "PEACE", "armistice_expired_peace")
+                cleanup_war_end(world, client_key)
+                count_peace(world, x, y)
             events.append({
                 "type": "armistice_expired_peace",
                 "nations": [nation_a, nation_b],
@@ -10206,6 +10444,16 @@ def _process_armistice_expiration(world) -> List[Dict]:
                     world.log_event(blocked)
                 continue
             set_diplomatic_state(world, nation_a, nation_b, "WAR", "armistice_expired_war")
+            # SR-1b: the clients' truces collapse with the lord's — the
+            # same war instance, the same entry path.
+            for x, y in _client_truce_pairs(world, nation_a, nation_b):
+                client_key = world._make_diplo_key(x, y)
+                client_result = ensure_war_instance_for_pair(
+                    world, x, y, entry_path="armistice_expired_war",
+                    reason="armistice collapse (the lord's)")
+                if not client_result.get("ok"):
+                    continue
+                set_diplomatic_state(world, x, y, "WAR", "armistice_expired_war")
             events.append({
                 "type": "armistice_expired_war",
                 "nations": [nation_a, nation_b],

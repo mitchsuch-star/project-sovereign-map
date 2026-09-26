@@ -486,6 +486,7 @@ def build_pending_envoy_popup_from_terms(
                 nation,
                 proposal_type,
                 terms=preview_terms,
+                incoming=True,
             )
             payload["war_context_snapshot"] = snapshot
             payload["annotated_terms"] = snapshot.get("annotated_terms", [])
