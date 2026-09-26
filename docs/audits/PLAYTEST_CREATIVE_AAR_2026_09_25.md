@@ -120,7 +120,7 @@ Thirty-two rows, filed in `BUG_FIXES.md` §Creative AAR with the producer and th
 
 | Row | Sev | The observation (verified at the wire; producer on the row) |
 |---|---|---|
-| AAR-1 | P1 | A lord's separate peace leaves its vassal at war with no army. The Treaty of Vienna (turn 9) resolved France–Austria only; `Austria|KingdomOfItaly` stayed active; Austria, at peace with France, took Piedmont (turn 10), Tyrol (turns 11–13) and stormed Milan's 10,000-man garrison (turn 17) — "the satellite is gone". The ratification named only Bavaria's displeasure. |
+| AAR-1 | P1 | A lord's separate peace leaves its vassal at war with no army. The Treaty of Vienna (turn 9) resolved France–Austria only; `Austria\|KingdomOfItaly` stayed active; Austria, at peace with France, took Piedmont (turn 10), Tyrol (turns 11–13) and stormed Milan's 10,000-man garrison (turn 17) — "the satellite is gone". The ratification named only Bavaria's displeasure. |
 | AAR-2 | P2 | The settlement editor's two verdicts contradict on the coverage-drop route: Austria 51/50 "Will sign — will carry as drafted" beside "cannot be ratified now: the terms weigh heavier than their defeat", `can_ratify: false`, blocker "Term harshness" — the war-leader scorer (Britain, 32) gating an Austria-only settlement; the only road, "Make peace with Austria only", disabled for DP. |
 | AAR-3 | P2 | "Request Revision" re-prices the proposer's own offer without its consent (Britain's turn-4 offer, laid back verbatim: Britain −32/50, harshness −33) and consumes the original offer. The accept route honours consent ("Their own terms — consents", turn 18). |
 | AAR-4 | P2 | The scout report never mentions a garrison: "Ney scouts Vienna … No enemy forces detected." over 25,000 men. |
