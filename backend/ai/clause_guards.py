@@ -1786,7 +1786,23 @@ def is_question(command_text: str,
         # "where's Ney" — the auxiliary is contracted onto the lead.
         if _CONTRACTED_AUX_RE.match(rest):
             return True
+        # CRT-7 / DESK-14 (SR-3a part (ii), Sept 26 2026): "what happened
+        # last turn" — a WH lead followed by a PAST-TENSE verb has no
+        # auxiliary to find, and fell through to Berthier's raw shrug while
+        # "what is the news" was routed. No imperative opens this way.
+        if A_PAST_TENSE_WH_IS_A_QUESTION and _PAST_TENSE_AFTER_WH_RE.match(rest):
+            return True
     return lead_word in _WH_WORDS and bool(_AUXILIARY_RE.search(rest))
+
+
+# CRT-7 / DESK-14: the past-tense verbs a WH-word question opens with and no
+# auxiliary follows — "what happened", "what became of Ney", "what went
+# wrong". A closed list: "what took Vienna" is an order-shaped sentence
+# ("take Vienna") one word over and stays out.
+A_PAST_TENSE_WH_IS_A_QUESTION = True
+_PAST_TENSE_AFTER_WH_RE = re.compile(
+    r"^\s+(?:happened|occurred|became|befell|transpired|changed"
+    r"|went\s+wrong|came\s+of)\b", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------

@@ -1619,10 +1619,94 @@ class LLMClient:
             if error or not response_text:
                 print(f"[BERTHIER] LLM call failed ({error}), using mock fallback")
                 return self._berthier_mock_response(raw_command, game_state, partial_parse)
-            return response_text
+            # AAR-29 (CRT-7): the model's suggestions are read back through
+            # the game's own parser before the player sees them — an
+            # invented commander, an invented verb, a Cabinet sentence the
+            # client redirects, is replaced by an order the board takes.
+            return self.sanitise_berthier_reply(response_text, game_state)
         except Exception as e:
             print(f"[BERTHIER] Exception in LLM recovery: {e}")
             return self._berthier_mock_response(raw_command, game_state, partial_parse)
+
+    # AAR-29 (Score Mandate Chunk 3, SR-3a part (ii), Sept 26 2026): the live
+    # model's one answer in the Creative AAR proposed "Berthier, conduct a
+    # diplomatic mission to Bennigsen in Hungary" and "Berthier, propose
+    # white peace with Kutuzov in Bohemia" — a verb the game has not, a man
+    # on no roster, and a Cabinet sentence the client redirects (ruling G1).
+    # The prompt now hands the model the counsel's own lines
+    # (`prompt_builder.build_berthier_recovery_prompt`); this is the belt
+    # behind that brace. Lever False returns the reply untouched.
+    BERTHIER_SUGGESTS_ONLY_ORDERS_THE_GAME_TAKES = True
+    _QUOTED_SUGGESTION_RE = re.compile(
+        r"(?P<open>[\"“”‘’'])(?P<body>[A-Za-z][^\"“”‘’']{2,90}?)(?P<close>[\"“”‘’'])")
+
+    def _quoted_order_is_taken(self, text: str, game_state: Optional[Dict]) -> bool:
+        """Whether a quoted suggestion is an order the board takes TODAY:
+        the fast parser reads it (no model), it is a real order — not a
+        shrug, a refusal, a question or a meta verb — and not a diplomatic
+        sentence, which the client redirects to the Cabinet."""
+        try:
+            result = self._parse_with_mock_chain(text, game_state)
+        except Exception:
+            return False
+        if result is None or not getattr(result, "matched", False):
+            return False
+        action = str(getattr(result, "action", "") or "")
+        if action in ("", "unknown", "help", "status", "cheat", "debug"):
+            return False
+        if getattr(result, "refusal", None) or getattr(result, "question", None):
+            return False
+        if str(getattr(result, "command_type", "") or "") == "diplomatic":
+            return False
+        return True
+
+    def sanitise_berthier_reply(self, reply: str, game_state: Optional[Dict]) -> str:
+        """AAR-29: every quoted suggestion in a LIVE Berthier reply that the
+        game would not take is replaced by the counsel's next order, or cut
+        with its introducing clause when there is none. Deterministic,
+        offline, and the reply's prose is otherwise untouched."""
+        if not self.BERTHIER_SUGGESTS_ONLY_ORDERS_THE_GAME_TAKES or not reply:
+            return reply
+        counsel = [c for c in _counsel_lines(game_state) if c]
+        used = 0
+        out = []
+        last = 0
+        for match in self._QUOTED_SUGGESTION_RE.finditer(reply):
+            body = match.group("body").strip()
+            # Only a suggestion that LOOKS like an order is judged: a
+            # quoted word or a quoted address (`"Sire"`) is prose.
+            if " " not in body:
+                continue
+            if self._quoted_order_is_taken(body, game_state):
+                continue
+            out.append(reply[last:match.start()])
+            replacement = None
+            while used < len(counsel):
+                candidate = counsel[used]
+                used += 1
+                if candidate.lower() not in reply.lower():
+                    replacement = candidate
+                    break
+            if replacement:
+                out.append(f"{match.group('open')}{replacement}{match.group('close')}")
+            else:
+                out.append("")
+            last = match.end()
+        if not out:
+            return reply
+        out.append(reply[last:])
+        cleaned = "".join(out)
+        # A cut suggestion can leave " or " / "such as " dangling; the
+        # cheapest honest repair is to tidy the spacing and the doubled
+        # punctuation it leaves.
+        cleaned = re.sub(r"\s+(?:or|and)\s+(?=[.?!,;])", "", cleaned)
+        cleaned = re.sub(r"(?:such\s+as|for\s+example|perhaps|like)\s*(?=[.?!,;])", "",
+                         cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned)
+        cleaned = re.sub(r"\s+([.?!,;])", r"\1", cleaned)
+        if not self._QUOTED_SUGGESTION_RE.search(cleaned) and counsel:
+            cleaned = cleaned.rstrip() + f" A clear order might be '{counsel[0]}'."
+        return cleaned
 
     def _berthier_mock_response(
         self,
@@ -2277,6 +2361,16 @@ class LLMClient:
                 from .question_desk import (classify_board_question,
                                              classify_question)
                 _marshals = list(_game_state_dict(game_state, "marshals"))
+                # CRT-7 / DESK-15: our own FALLEN marshals are askable —
+                # the roster above holds only marshals with strength > 0,
+                # so "where is Ney" after his corps was destroyed fell to
+                # the shrug. No fog on our own dead.
+                try:
+                    from .question_desk import own_fallen_names
+                    _marshals += [n for n in own_fallen_names(
+                        (game_state or {}).get("world")) if n not in _marshals]
+                except Exception:
+                    pass
                 _enemies = _askable_enemy_names(game_state)
                 _regions = list(_game_state_dict(game_state, "map_data"))
                 _question = classify_question(

@@ -909,6 +909,15 @@ _RECOVERY_HIDDEN_ACTIONS = frozenset({
 })
 
 
+# AAR-29 (CRT-7, Score Mandate Chunk 3 SR-3a part (ii), Sept 26 2026): the
+# live recovery prompt hands the model the counsel's own lines ("Orders the
+# board takes this morning", `ai/counsel.what_can_i_do`) and tells it to quote
+# only from them. False restores the pre-slice prompt BYTE FOR BYTE — which is
+# what attributes the authored IQ-9 recovery cassette's re-stamp to this block
+# alone (`tests/test_crt7_the_desk_reads_the_order.py`).
+THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL = True
+
+
 def recovery_action_vocabulary(style: str = "typed"):
     """Single source for the Berthier-recovery action vocabulary.
 
@@ -955,6 +964,19 @@ def build_berthier_recovery_prompt(
     marshals_info = _format_marshals(game_state)
     enemies_info = _format_enemies(game_state)
     actions_list = ", ".join(recovery_action_vocabulary("narrated"))
+    # AAR-29 (CRT-7): the orders the board takes THIS MORNING, from the ONE
+    # counsel source (`ai/counsel.what_can_i_do`) the desk and the shrug
+    # read — the model suggests from this list, verbatim, and nothing else.
+    # The prompt used to hand it the whole verb vocabulary and every name,
+    # and it composed "conduct a diplomatic mission to Bennigsen in Hungary".
+    counsel_lines: list = []
+    if THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL:
+        try:
+            from backend.ai.llm_client import _counsel_lines
+            counsel_lines = [c for c in _counsel_lines(game_state) if c]
+        except Exception:
+            counsel_lines = []
+    counsel_block = "\n".join(f"- {line}" for line in counsel_lines) or "- (none this morning)"
 
     system_prompt = (
         "You are Berthier, Napoleon's meticulous chief of staff. "
@@ -998,7 +1020,16 @@ The Emperor said: "{raw_input}"
 ## Valid Actions
 {actions_list}
 
-Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing using valid actions and real marshal/enemy names, written with spaces exactly as they appear above."""
+"""
+    if THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL:
+        user_prompt += f"""## Orders the board takes this morning
+{counsel_block}
+
+Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing. Any order you suggest must be one of the lines under "Orders the board takes this morning", quoted exactly as written there — never invent a commander, a place, a court or a verb. If that list is empty, suggest "what can I do" instead. Matters of state (peace, alliances, envoys) are not typed: say "press F1 for the Cabinet"."""
+    else:
+        # The pre-CRT-7 tail, byte for byte: the lever down reproduces the
+        # prompt the authored IQ-9 recovery cassette was stamped against.
+        user_prompt += """Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing using valid actions and real marshal/enemy names, written with spaces exactly as they appear above."""
 
     return (system_prompt, user_prompt)
 

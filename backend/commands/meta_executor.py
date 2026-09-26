@@ -9,7 +9,7 @@ Also includes _filter_tactical_events_by_fog (module-level, used by end_turn
 and the auto-end-turn block in executor.py's execute()).
 """
 import random
-from typing import Dict
+from typing import Dict, Optional
 from backend.models.world_state import WorldState
 from backend.commands.objection_v2 import ConcernLevel
 
@@ -667,7 +667,48 @@ class MetaExecutor:
     # a SMALL table of subject words rather than a classifier: a wrong
     # pointer is worse than none, and the tail below is honest when no word
     # matches.
+    # CRT-7 / DESK-8 (SR-3a part (ii), Sept 26 2026): matched as WHOLE
+    # WORDS. As substrings, "effort" contained "fort" and `how is the war
+    # effort` was pointed at the Economy tab; `who are my allies` at nothing
+    # (its screen is the Diplomatic Ledger, not the Cabinet). The rows
+    # below name the screen that HOLDS the answer; the war's own questions
+    # go to the banner, the courts' to the ledger, the acts of state to the
+    # Cabinet. Lever `THE_ROUTER_READS_WHOLE_WORDS` (False = the substring
+    # scan over the pre-slice table).
     _QUESTION_TOPICS = (
+        (("gold", "money", "treasury", "income", "revenue", "cost", "afford",
+          "upkeep", "charge", "charges", "pay", "budget", "finance",
+          "finances", "rich", "poor", "bankrupt"), "economy"),
+        (("build", "depot", "fort", "forts", "fortification", "market",
+          "stable", "stables", "training", "watchtower", "repair", "damage"),
+         "economy"),
+        (("marshal", "marshals", "general", "generals", "trust", "loyal",
+          "loyalty", "glory", "grievance", "grievances", "jealous",
+          "jealousy", "rival", "rivals", "estate", "estates", "rente",
+          "rentes", "reward", "rewards", "commission", "promote"),
+         "marshals"),
+        (("effort", "exhaustion", "weariness", "weary", "exhausted",
+          "ally", "allies", "alliance", "alliances", "treaty", "treaties",
+          "relations", "relation", "design", "designs", "agenda", "agendas",
+          "court", "courts", "coalition"), "courts"),
+        (("war", "wars", "enemy", "enemies", "fighting", "score", "winning",
+          "losing", "armistice", "truce"), "war"),
+        (("peace", "envoy", "envoys", "diplomat", "diplomats", "talleyrand",
+          "vassal", "vassals", "tribute", "autonomy", "propose", "proposal",
+          "offer", "negotiate"), "diplomacy"),
+        (("fleet", "fleets", "ship", "ships", "navy", "naval", "blockade",
+          "sail", "admiral", "admiralty", "crossing", "crossings", "strait",
+          "landing", "expedition"), "admiralty"),
+        (("order", "orders", "standing", "march", "pursue", "cancel",
+          "halt"), "orders"),
+        (("supply", "supplies", "manpower", "recruit", "recruits", "levy",
+          "pool", "conscript", "conscripts", "reinforce", "reinforcements"),
+         "forces"),
+        (("happened", "last turn", "yesterday", "history", "chronicle",
+          "gazette", "moniteur", "news"), "gazette"),
+        (("fail", "failed", "refuse", "refused", "rejected", "why"), "log"),
+    )
+    _QUESTION_TOPICS_LEGACY = (
         (("gold", "money", "treasury", "income", "revenue", "cost", "afford",
           "upkeep", "charge", "pay", "budget", "finance", "rich", "poor",
           "bankrupt"), "economy"),
@@ -689,6 +730,25 @@ class MetaExecutor:
           "gazette", "moniteur", "news"), "gazette"),
         (("fail", "failed", "refuse", "refused", "rejected", "why"), "log"),
     )
+    THE_ROUTER_READS_WHOLE_WORDS = True
+
+    @classmethod
+    def question_topic(cls, asked: str) -> Optional[str]:
+        """The router's ONE read: the first topic whose word appears in
+        `asked` as a whole word (a multi-word entry as a phrase). None when
+        no row claims the question."""
+        import re as _re
+        lowered = (asked or "").lower()
+        if not cls.THE_ROUTER_READS_WHOLE_WORDS:
+            for words, topic in cls._QUESTION_TOPICS_LEGACY:
+                if any(word in lowered for word in words):
+                    return topic
+            return None
+        for words, topic in cls._QUESTION_TOPICS:
+            for word in words:
+                if _re.search(r"(?<![a-z])" + _re.escape(word) + r"(?![a-z])", lowered):
+                    return topic
+        return None
 
     def _route_unanswered_question(self, asked: str, game_state: Dict):
         """Berthier's honest answer to a question the desk cannot take.
@@ -706,12 +766,8 @@ class MetaExecutor:
         world = (game_state or {}).get("world")
         if world is None:
             return None
-        lowered = (asked or "").lower()
-        pointer = None
-        for words, topic in self._QUESTION_TOPICS:
-            if any(word in lowered for word in words):
-                pointer = surface_pointer(topic)
-                break
+        topic = self.question_topic(asked)
+        pointer = surface_pointer(topic) if topic else None
         lines = ["Berthier sets down his pen. \"I cannot answer that from the "
                  "dispatches, Sire.\""]
         if pointer:

@@ -36,6 +36,14 @@ from backend.commands.movement_executor import destination_grounding_note
 # silence; True reads the PRE-break state and states the consequence.
 SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
 
+# AAR-31 (CRT-7, Score Mandate Chunk 3 SR-3a part (ii), Sept 26 2026): a
+# strategic objection names its order and its object — the builder read
+# `move_to` / `pursue` where its arms asked for `move` / `attack`, so a
+# cautious marshal's objection to `march to Provence` was "I have concerns
+# about this order, Sire" (measured: Marmont, turn 13 of the Creative AAR).
+# False reproduces the reasonless line.
+THE_OBJECTION_NAMES_ITS_CONCERN = True
+
 
 def _defiant_verb(action: str) -> str:
     """Slice 17 review round (L2-11): the defiance notice's SECOND clause
@@ -290,6 +298,16 @@ class StrategicExecutor:
         }
         prefix = tone_prefix.get(tone, f"{marshal.name} objects:")
 
+        # AAR-31 (CRT-7, Score Mandate Chunk 3 SR-3a part (ii), Sept 26
+        # 2026): the strategic road hands this builder its ORDER TYPE
+        # lowercased — `move_to`, `pursue` — while every personality arm
+        # below asks for `move` and `attack`, so a cautious marshal's
+        # objection to `march to Provence` fell to "I have concerns about
+        # this order, Sire" with no road, enemy or odds named. The type is
+        # read as the verb it is, and the default names the order.
+        if THE_OBJECTION_NAMES_ITS_CONCERN:
+            action = {"move_to": "move", "pursue": "attack"}.get(action, action)
+
         # Personality + action specific messages
         if personality == 'aggressive':
             if action in ('defend', 'fortify', 'hold', 'wait'):
@@ -320,10 +338,48 @@ class StrategicExecutor:
                 else:
                     return f"{prefix} 'The odds are not in our favor. Perhaps we should reconsider.'"
             elif action == 'move':
+                if THE_OBJECTION_NAMES_ITS_CONCERN:
+                    road = self._road_concern(marshal, order)
+                    return (f"{prefix} 'That road{road} runs through enemy "
+                            f"country, Sire. It is dangerous.'")
                 return f"{prefix} 'That route passes through enemy territory. It is dangerous.'"
 
         # Default objection message
+        if THE_OBJECTION_NAMES_ITS_CONCERN:
+            # AAR-31: name the order and its object, whatever the pairing —
+            # a reasonless objection is the one thing this line must not be.
+            target = str((order or {}).get("target") or "").strip()
+            shown_target = humanize_entity_name(target) if target else ""
+            verb = {
+                "move": "a march", "attack": "an attack", "hold": "a hold",
+                "support": "a support march", "retreat": "a retreat",
+                "scout": "a reconnaissance", "defend": "a defence",
+                "fortify": "the works", "drill": "the drill", "wait": "a wait",
+            }.get(action, action.replace("_", " ") or "this order")
+            object_clause = ""
+            if shown_target and shown_target.lower() not in ("generic", "none"):
+                object_clause = (f" on {shown_target}" if action == "attack"
+                                 else f" to {shown_target}" if action in ("move", "support")
+                                 else f" at {shown_target}")
+            if personality == 'cautious':
+                return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire? "
+                        f"The odds and the ground are against it — I would "
+                        f"sooner hold what we have.'")
+            if personality == 'aggressive':
+                return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire? "
+                        f"There is no battle in it. Give me the enemy.'")
+            return (f"{prefix} '{verb.capitalize()}{object_clause}, Sire — I "
+                    f"have my doubts about that order, and I say so plainly.'")
         return f"{prefix} 'I have concerns about this order, Sire.'"
+
+    def _road_concern(self, marshal, order: Dict) -> str:
+        """AAR-31: " to <destination>" for a march objection, so the road is
+        named — never the enemy behind the fog (the objection is the
+        marshal's judgement of a route, not intelligence)."""
+        target = str((order or {}).get("target") or "").strip()
+        if not target or target.lower() in ("generic", "none"):
+            return ""
+        return f" to {humanize_entity_name(target)}"
 
     def _resolve_generic_target(self, marshal, strategic_type: str, target: str,
                                 world, parsed_command: dict) -> dict:

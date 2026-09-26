@@ -127,7 +127,7 @@
       "utterance": "flurble the wibble",
       "world": "1805",
       "provenance": "authored",
-      "prompt_sha256": "582b90ffac45f4b90d3240c9a7129fa16e1a6c561acbdb69f6307de646400a34",
+      "prompt_sha256": "131836752e1d36fe3066ad9c607dfa63c5b105f6df546ac1066149e2bc0924ee",
       "drift": null
     },
     "aggressive-plain": {

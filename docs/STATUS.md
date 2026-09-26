@@ -126,9 +126,46 @@
 > commander's surname asks fog-honestly (`Ney, attack Archduke Charls` had fought Mack). Two
 > pins flipped consciously, found by the families: IQ7-X7's `maybe accept` (a hedge fails
 > closed — CRT-5's ruling one line early) and the Cabinet door's mirror. **L-D SKIPPED**
-> (behind an unfilled user gate). **NEXT = SR-3a part (ii): CRT-7 "the desk answers what the
+> (behind an unfilled user gate). ~~**NEXT = SR-3a part (ii): CRT-7 "the desk answers what the
 > order would do" + AAR-17 / AAR-19 / AAR-23 / AAR-29 / AAR-31 → SR-3b (CRT-2: CQ-17, CQ-29)
-> → SR-3c (L-1 + IQ9-X1 / IQ9-X3) → the reserve → the exit re-score. SR-D3 stays DEFERRED.**
+> → SR-3c (L-1 + IQ9-X1 / IQ9-X3) → the reserve → the exit re-score. SR-D3 stays DEFERRED.**~~
+> ~~**SR-3a part (ii) — CRT-7 "the desk answers what the order would do" + AAR-17 / AAR-19 /
+> AAR-23 / AAR-29 / AAR-31**~~ ✅ LANDED (landing record `COMMAND_ROBUSTNESS_SPEC.md` §12.9;
+> rules `SYSTEMS_REFERENCE.md` §72.2; rows `BUG_FIXES.md` AAR-17 / 19 / 23 / 29 / 31 FIXED,
+> DESK-1 / 2 / 4 / 5 / 7 / 8 / 9 / 13 / 14 / 15 / 16 FIXED, DESK-11 CLOSED as F2's and pinned,
+> DESK-12's dead half deleted, DESK-6's residue cleaned; pins
+> `test_crt7_the_desk_reads_the_order.py` 110; sweep `tools/_sweep_sr3a_ii.json` 39/39 killed,
+> 0 INERT; `BASELINE_SERIES` + M1–M7 byte-identical — display and parser only; ONE `.gd`
+> (`objection_dialog.gd`), parse harness EXIT=0, boot 0 SCRIPT ERROR). **Re-measured first
+> at the wire on the shipped boot, every row reproduced** — the four war questions, "is Vienna
+> safe?", "what does Kutuzov have with him?", the truce clock and "who are my allies" all drew
+> the shrug; "how is the war effort" was pointed at the Economy tab; "what happened last turn"
+> got the raw shrug; the what-if named Kutuzov's UNSEEN cell and mustered against our Bavarian
+> ally and across a truce; "how much is a gun" quoted 654g with no commander of guns serving;
+> the income sentence summed to 1,120 against a Net of +1,842; "who is winning" read three even
+> scores for one coalition war; "what can I do" at 0 actions offered four refused orders; the
+> boot's own counsel offered `Ney, drill`, which the game refuses. **The rule, sixteen ways,
+> each behind a lever — every desk answer asks the seam that would refuse or charge the
+> order:** seven desk kinds (`wars` off the war banner's rows with our purpose and their
+> designs, `allies`, `safe` with the garrison read only in view, `truce_clock` by the engine's
+> expiry rule, `war_effort`, `news` off the morning dispatch, "what does X have") + the
+> past-tense WH lead; the what-if fog-honest and refusing like the order; the price as
+> `recruit_quote` (capital first, then the cheapest levy as the order that raises it, else the
+> executor's refusal); the income sentence built from `NET_GOLD_COMPONENTS`; who is winning off
+> `build_active_wars`; the router on whole words; the counsel reading the action points (`end
+> turn` named at zero), CN-4's refusals, the crossing gate and spreading its orders; the insist
+> arm's price on the payload, the sentence and the client's button; Berthier's live reply read
+> back through the fast parser + the prompt handed the counsel's lines; the strategic objection
+> naming the order; our own fallen answered in the first person. **Rider:** the attack refusal
+> under a truce printed `armistice_cooldowns` (written once, never decremented) as "turns
+> remaining" — it reads the truce's clock. **Decided:** the odds do NOT rank the counsel (a
+> first cut promoted Soult over Ney and reddened 24 first-contact pins — the counsel offers
+> what the executor takes; the what-if answers the odds). **Two pins re-seated consciously:**
+> the CX-2 levy line on the quote; the session-3 armistice refusal on the truce's clock.
+> **SR-3a is COMPLETE. NEXT = SR-3b (CRT-2 "the name is never replaced": CQ-17 the reward
+> verbs bind the OBJECT marshal, CQ-29 an unresolved `recruit … in <X>` province refuses with
+> the region matcher's answer) → SR-3c (L-1 + IQ9-X1 / IQ9-X3) → the reserve → the exit
+> re-score. SR-D3 stays DEFERRED.**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**
@@ -870,7 +907,7 @@
 > - **Filed:** **LV-22** (a battle that ends in a capture has LV-12's defect on
 >   the capture route; read, not driven) → owner **F3**.
 > - Nine pins consciously flipped or re-scoped (named in the landing record);
->   `BASELINE_SERIES` + M1–M7 byte-identical; mutation sweep 38/38 killed,
+>   `BASELINE_SERIES` + M1–M7 byte-identical; mutation sweep 39/39 killed,
 >   0 INERT; Godot parse harness EXIT=0; boot smoke 0 `SCRIPT ERROR`.
 >
 > **▶ ▶ NUI-2 "THE FLEET RIDES AT ANCHOR" — ✅ LANDED September 24, 2026**

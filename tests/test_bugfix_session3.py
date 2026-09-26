@@ -312,6 +312,13 @@ class TestPT4ArmisticeAttack:
         set_state(world, "France", "Prussia", "ARMISTICE")
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.armistice_cooldowns[diplo_key] = 4
+        # CRT-7 / DESK-4 rider (SR-3a part (ii), Sept 26 2026) — RE-SEATED
+        # CONSCIOUSLY: the refusal's "turns remaining" reads the truce's
+        # clock (`ARMISTICE_DURATION - armistice_turns`, the rule the truce
+        # expires by), not `armistice_cooldowns`, which the engine writes
+        # once at the truce's start and never decrements. One turn elapsed
+        # of five = the four the pin below has always expected.
+        world.armistice_turns[diplo_key] = 1
         return world
 
     def test_attack_during_armistice_diplomatic_error(self):

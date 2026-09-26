@@ -676,10 +676,21 @@ class CommandExecutor:
         diplo_state = world.get_diplomatic_state(from_nation, target_marshal.nation)
         if diplo_state == "ARMISTICE":
             diplo_key = world._make_diplo_key(from_nation, target_marshal.nation)
-            turns_left = int(world.armistice_cooldowns.get(diplo_key, 1))
+            # CRT-7 / DESK-4 rider (SR-3a part (ii), Sept 26 2026): the
+            # figure was `armistice_cooldowns`, which the engine writes ONCE
+            # at the truce's start (5, or the pair-exit floor) and never
+            # decrements — so this refusal said "5 turns remaining" on every
+            # turn of the truce, and "8" under a pair-exit floor. The truce's
+            # clock is `ARMISTICE_DURATION - armistice_turns`, the rule
+            # `_process_armistice_turns` expires it by and the one the
+            # desk's truce clock and the F1 wizard's snapshot read.
+            from backend.game_logic.diplomacy import ARMISTICE_DURATION
+            elapsed = int((getattr(world, "armistice_turns", {}) or {}).get(diplo_key, 0) or 0)
+            turns_left = int(max(0, ARMISTICE_DURATION - elapsed))
+            unit = "turn" if turns_left == 1 else "turns"
             return {
                 "success": False,
-                "message": f"Cannot attack {target_marshal.name} — armistice with {target_marshal.nation} ({turns_left} turns remaining).",
+                "message": f"Cannot attack {target_marshal.name} — armistice with {target_marshal.nation} ({turns_left} {unit} remaining).",
                 "diplomatic_block": "armistice",
             }
         return None  # Non-armistice non-war: let auto-war-declaration handle
@@ -2427,6 +2438,18 @@ class CommandExecutor:
                                                 "neglect — his victories remain "
                                                 "unrewarded.)")
 
+                                # AAR-23 (CRT-7): what INSISTING costs, from
+                                # the executor's own figure (`insist_terms`)
+                                # — the fortify from NEUTRAL charged 2 actions
+                                # and said so only after the fact. Display
+                                # only: the dialog's button and this sentence
+                                # read it; the executor charges as before.
+                                from backend.commands.tactical_executor import insist_terms
+                                _insist_ap, _insist_note = insist_terms(world, marshal, action)
+                                if _insist_note:
+                                    message += (f" (Insisting costs {_insist_ap} "
+                                                f"actions — {_insist_note}.)")
+
                                 # V2 scaled trust values. WO-D9: damped at
                                 # the QUOTE so the figure on the button is the
                                 # figure the marshal is paid.
@@ -2478,6 +2501,12 @@ class CommandExecutor:
                                     "suggested_alternative": suggested_alt,
                                     "compromise": compromise_action,
                                 }
+                                # AAR-23: the insist arm's price, for the
+                                # dialog's button. Absent when the order
+                                # costs its face value (the legacy payload).
+                                if _insist_note:
+                                    objection["insist_ap_cost"] = int(_insist_ap)
+                                    objection["insist_note"] = _insist_note
 
                                 # Store pending objection
                                 world.pending_objection = objection

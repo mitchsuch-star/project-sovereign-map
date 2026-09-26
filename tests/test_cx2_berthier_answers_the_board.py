@@ -553,8 +553,22 @@ class TestTheGuardsWhereTheyBite:
         priced = [line for line in lines if line.startswith("recruit infantry in ")]
         assert priced, lines
         line = priced[0]
-        assert f"{int(levy['infantry_price']):,}g" in line, (line, levy)
-        assert f"{int(levy['infantry_amount']):,} men" in line, (line, levy)
+        # CRT-7 / DESK-2 (SR-3a part (ii), Sept 26 2026) — FLIPPED
+        # CONSCIOUSLY: the line quotes `economy_executor.recruit_quote`, the
+        # figure the ORDER charges, not the ledger's headline levy. The two
+        # differed on this very board (450g for 10,000 in the ledger against
+        # 518g for 10,000 under Ney from the executor) — which is the row's
+        # finding, that the counsel's staged levy line charged more than it
+        # quoted. Shown = applied now; the ledger's headline is pinned
+        # elsewhere as the ledger's.
+        from backend.commands.economy_executor import recruit_quote
+        with _quiet():
+            quote = recruit_quote(world, world.get_nation_capital("France"),
+                                  "infantry", "France")
+        assert quote.get("ok"), quote
+        assert f"{int(quote['price']):,}g" in line, (line, quote)
+        assert f"{int(quote['amount']):,} men" in line, (line, quote)
+        assert str(quote["recipient"]) in line, (line, quote)
 
     def test_the_board_answer_is_actually_reached(self):
         """`answer_board_question` returning None does NOT fall back to the

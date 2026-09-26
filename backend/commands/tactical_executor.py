@@ -130,6 +130,32 @@ def fortify_refusal(world, marshal):
     return "", ""
 
 
+# AAR-23 (CRT-7, Score Mandate Chunk 3 SR-3a part (ii), Sept 26 2026): the
+# insist arm of a fortify objection charged 2 actions — the executor's own
+# auto-shift from NEUTRAL to DEFENSIVE — and said so only AFTER the fact,
+# eating the action another corps needed. ONE source for what insisting
+# costs, read by the objection payload (the dialog's button and the typed
+# route's sentence). Lever False leaves the payload without the terms.
+THE_INSIST_ARM_NAMES_ITS_PRICE = True
+
+
+def insist_terms(world, marshal, action: str):
+    """`(ap_cost, note)` for carrying out `action` as ordered — the figure
+    `_execute_fortify` charges, with the reason when it is more than the
+    order's own price. `(1, "")` for every order that costs its face value;
+    `(2, "he must first go defensive")` for a fortify from NEUTRAL, which is
+    exactly the executor's auto-shift and its message."""
+    if not THE_INSIST_ARM_NAMES_ITS_PRICE:
+        return (0, "")
+    try:
+        base = int(world.get_action_cost(action)) if world is not None else 1
+    except Exception:
+        base = 1
+    if action == "fortify" and getattr(marshal, "stance", Stance.NEUTRAL) == Stance.NEUTRAL:
+        return (base + 1, "he must first go defensive")
+    return (base, "")
+
+
 def unfortify_refusal(marshal):
     """CX-R2: why `<marshal>, unfortify` would be refused — `(sentence,
     short)`, or `("", "")` when the works would be abandoned. The one gate

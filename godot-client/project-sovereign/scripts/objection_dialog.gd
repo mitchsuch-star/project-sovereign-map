@@ -147,7 +147,16 @@ func show_objection(objection_data: Dictionary):
 		else:
 			trust_button.text = "Trust %s's Judgment (%+d trust)" % [current_marshal, trust_gain]
 
-		insist_button.text = "Proceed as Ordered (%+d trust)" % insist_penalty
+		# AAR-23 (CRT-7): the insist arm names its price when the executor
+		# will charge more than the order's face value — a fortify from
+		# NEUTRAL is two actions, the auto-shift first. The backend stamps
+		# `insist_ap_cost` + `insist_note` only in that case.
+		if objection_data.has("insist_note") and str(objection_data.get("insist_note", "")) != "":
+			insist_button.text = "Proceed as Ordered (%d AP — %s, %+d trust)" % [
+				int(objection_data.get("insist_ap_cost", 2)),
+				str(objection_data.get("insist_note", "")), insist_penalty]
+		else:
+			insist_button.text = "Proceed as Ordered (%+d trust)" % insist_penalty
 
 		if has_compromise:
 			var comp = objection_data.compromise

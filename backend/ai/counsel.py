@@ -48,6 +48,32 @@ from typing import Dict, List, Optional
 # consumer keeps the hardcoded copy it had before CX-2.
 COUNSEL_IS_DERIVED_FROM_THE_BOARD = True
 
+# ═══════════════════════════════════════════════════════════════════════════
+# CRT-7 — the counsel reads the action pools and CN-4's refusals (Score
+# Mandate Chunk 3, SR-3a part (ii), September 26, 2026). Measured at the
+# real `POST /command` on the shipped boot before a line was written:
+#   DESK-9   at 0 military actions `what can I do` offered four orders the
+#            game refuses and never named `end turn`;
+#   DESK-16  the boot's first reply offered `Ney, drill`, which the game
+#            refuses ("cannot drill with enemy forces nearby") — the counsel
+#            never asked `tactical_executor.drill_refusal` / `fortify_refusal`;
+#   DESK-13  the counsel named ONE corps of eight, and marched a marshal who
+#            had already moved back the way he came;
+#   AAR-19   `Marmont, attack Moore` across a SHUT crossing — the counsel
+#            never asked the crossing gate the attack itself asks;
+#   DESK-6   `_is_free_to_order` read `is_drilling`, a flag no Marshal has.
+# Each behind its own lever whose down arm reproduces the row.
+THE_COUNSEL_READS_THE_ACTION_POINTS = True     # DESK-9
+THE_COUNSEL_READS_THE_REFUSALS = True          # DESK-16 (+ DESK-6's flag)
+THE_COUNSEL_SPREADS_THE_ORDERS = True          # DESK-13
+THE_COUNSEL_READS_THE_CROSSING = True          # AAR-19
+# DESK-2's counsel half: the levy line quoted the ledger's 654g for 10,000
+# where the order raised 3,000 for 647 — it reads `recruit_quote` now.
+THE_LEVY_LINE_IS_THE_QUOTE = True
+# DESK-9's copy: what the counsel says when the day's military actions are
+# spent. A typed order, like every other line the counsel prints.
+END_TURN_LINE = "end turn — no military actions remain today"
+
 # The Cabinet is the door (user ruling G1): a diplomatic verb is never
 # offered as a sentence to type, because the client redirects it. The counsel
 # names the surface instead.
@@ -66,11 +92,72 @@ def _is_free_to_order(marshal) -> bool:
         return False
     if getattr(marshal, "captured_by", None):
         return False
-    if getattr(marshal, "is_drilling", False):
+    if THE_COUNSEL_READS_THE_REFUSALS:
+        # DESK-6: the flags a Marshal actually carries. `drilling` is turn N
+        # of a drill (the executor refuses an attack, a fortify and a second
+        # drill to him); `drilling_locked` is turn N+1, when he takes no
+        # order at all.
+        if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+            return False
+    elif getattr(marshal, "is_drilling", False):
         return False
     if getattr(marshal, "administrative", False):
         return False
     return True
+
+
+def _military_actions_left(world) -> int:
+    try:
+        return int(getattr(world, "actions_remaining", 0) or 0)
+    except Exception:
+        return 0
+
+
+def _admin_actions_left(world) -> int:
+    try:
+        return int(getattr(world, "admin_actions_remaining", 0) or 0)
+    except Exception:
+        return 0
+
+
+def _crossing_open(world, nation: str, marshal, destination: str) -> bool:
+    """AAR-19: the attack's own crossing gate (`naval.crossing_check_reach`,
+    the single source every ranged strike reads). True when there is no
+    naval layer, or the water is open to this corps."""
+    if not THE_COUNSEL_READS_THE_CROSSING:
+        return True
+    if not getattr(world, "fleets", None):
+        return True
+    try:
+        from backend.game_logic.naval import crossing_check_reach
+        verdict = crossing_check_reach(world, nation, marshal.location,
+                                       destination, int(marshal.strength))
+        return bool(verdict.get("allowed", True))
+    except Exception:
+        return False
+
+
+def _attack_candidates(world, nation: str, marshals, enemies_here):
+    """Every (marshal, enemy) pair the ATTACK would take: co-located or
+    adjacent, a court we are at war with, the crossing open (AAR-19).
+    Co-located pairs first, then adjacent, in roster order — the order the
+    counsel has always used, so the boot's first line stays the one every
+    first-contact surface quotes. The odds are the muster's business (the
+    what-if answers them); the counsel offers what the executor TAKES."""
+    co_located, adjacent = [], []
+    for marshal in marshals:
+        region = world.get_region(marshal.location)
+        for enemy in enemies_here.get(marshal.location, []):
+            if _at_war_with(world, nation, getattr(enemy, "nation", "")):
+                co_located.append((marshal, enemy))
+        for neighbour in (getattr(region, "adjacent_regions", None) or []):
+            for enemy in enemies_here.get(neighbour, []):
+                if not _at_war_with(world, nation, getattr(enemy, "nation", "")):
+                    continue
+                if not _crossing_open(world, nation, marshal, neighbour):
+                    continue
+                adjacent.append((marshal, enemy))
+    return co_located + adjacent
 
 
 def _visible_enemy_map(world, nation: str) -> Dict[str, List]:
@@ -102,8 +189,25 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
     """
     if not COUNSEL_IS_DERIVED_FROM_THE_BOARD or world is None:
         return []
+    # DESK-9: no military action left, no military order offered — every
+    # line below is refused at the AP gate before the marshal is asked.
+    is_player = nation == getattr(world, "player_nation", None)
+    actions_left = _military_actions_left(world) if is_player else 99
+    if THE_COUNSEL_READS_THE_ACTION_POINTS and actions_left <= 0:
+        return []
     lines: List[str] = []
     seen_verbs = set()
+    # DESK-13: one corps per line where the roster allows — a marshal named
+    # for the attack is not the one named for the march, the works or the
+    # drill, so the counsel reads as an army and not as one man's day.
+    used: set = set()
+
+    def _pick(candidates):
+        if not THE_COUNSEL_SPREADS_THE_ORDERS:
+            return list(candidates)
+        fresh = [m for m in candidates if m.name not in used]
+        return fresh + [m for m in candidates if m.name in used]
+
     try:
         marshals = [m for m in world.get_player_marshals() if _is_free_to_order(m)]
     except Exception:
@@ -112,7 +216,8 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
 
     # 1. A battle the player can actually fight — co-located first, then
     #    adjacent, and only against a court we are AT WAR with (FA-80(c)'s
-    #    rule, which the diplomatic templates never inherited).
+    #    rule, which the diplomatic templates never inherited); the crossing
+    #    open (AAR-19); the pair the muster's own band most favours first.
     #
     #    ⚠ The at-war test is REDUNDANT TODAY and is kept deliberately.
     #    `get_visible_enemies` reads `get_enemies_of_nation`, which is
@@ -122,60 +227,78 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
     #    function produces is a target the player is TOLD to attack, and the
     #    cost of an upstream widening is the game proposing a war on a
     #    neutral. It is pinned at the function instead of at the board.
-    for marshal in marshals:
-        for enemy in enemies_here.get(marshal.location, []):
-            if _at_war_with(world, nation, getattr(enemy, "nation", "")):
-                lines.append(f"{_display(marshal.name)}, attack "
-                             f"{_display(enemy.name)}")
-                seen_verbs.add("attack")
-                break
-        if "attack" in seen_verbs:
-            break
-    if "attack" not in seen_verbs:
-        for marshal in marshals:
-            region = world.get_region(marshal.location)
-            for neighbour in (getattr(region, "adjacent_regions", None) or []):
-                hostile = [e for e in enemies_here.get(neighbour, [])
-                           if _at_war_with(world, nation, getattr(e, "nation", ""))]
-                if hostile:
-                    lines.append(f"{_display(marshal.name)}, attack "
-                                 f"{_display(hostile[0].name)}")
-                    seen_verbs.add("attack")
-                    break
-            if "attack" in seen_verbs:
-                break
+    for marshal, enemy in _attack_candidates(world, nation, marshals, enemies_here):
+        lines.append(f"{_display(marshal.name)}, attack {_display(enemy.name)}")
+        seen_verbs.add("attack")
+        used.add(marshal.name)
+        break
 
     # 2. A march the movement law would ALLOW — asked of the executor's own
     #    pure refusal probe, so the counsel can never propose a road the
-    #    order would be refused on (the PF-4 idiom).
-    for marshal in marshals:
+    #    order would be refused on (the PF-4 idiom). DESK-13: a corps that
+    #    has marched today is not marched again, and among the lawful roads
+    #    the one that closes on the nearest enemy we can see is named, not
+    #    the one that leads back where he came from.
+    enemy_places = list(enemies_here.keys())
+    for marshal in _pick(marshals):
+        if THE_COUNSEL_SPREADS_THE_ORDERS and getattr(marshal, "moved_this_turn", False):
+            continue
         region = world.get_region(marshal.location)
-        for neighbour in (getattr(region, "adjacent_regions", None) or [])[:8]:
-            if _move_would_be_refused(world, marshal, neighbour):
-                continue
-            lines.append(f"{_display(marshal.name)}, march to {neighbour}")
-            seen_verbs.add("move")
-            break
-        if "move" in seen_verbs:
-            break
+        roads = [n for n in (getattr(region, "adjacent_regions", None) or [])[:8]
+                 if not _move_would_be_refused(world, marshal, n)]
+        if not roads:
+            continue
+        if THE_COUNSEL_SPREADS_THE_ORDERS and enemy_places:
+            def _closing(name):
+                best = None
+                for place in enemy_places:
+                    try:
+                        d = world.get_distance(name, place)
+                    except Exception:
+                        d = None
+                    if d is not None and d >= 0 and (best is None or d < best):
+                        best = d
+                return best if best is not None else 999
+            roads.sort(key=_closing)
+        lines.append(f"{_display(marshal.name)}, march to {roads[0]}")
+        seen_verbs.add("move")
+        used.add(marshal.name)
+        break
 
-    # 3. The stance verbs, which are what an idle corps is actually for.
-    for marshal in marshals:
+    # 3. The stance verbs, which are what an idle corps is actually for —
+    #    DESK-16: asked of CN-4's single-source refusals first, so the
+    #    counsel never offers a drill beside the enemy or works to a man
+    #    already engaged; a fortify from NEUTRAL needs two actions (the
+    #    executor's own auto-shift) and is not offered on one.
+    from backend.commands.tactical_executor import drill_refusal, fortify_refusal
+    for marshal in _pick(marshals):
+        if len(lines) >= limit:
+            break
         if getattr(marshal, "fortified", False):
             if "unfortify" not in seen_verbs:
                 lines.append(f"{_display(marshal.name)}, unfortify")
                 seen_verbs.add("unfortify")
+                used.add(marshal.name)
         elif "fortify" not in seen_verbs:
+            if THE_COUNSEL_READS_THE_REFUSALS:
+                if fortify_refusal(world, marshal) != ("", ""):
+                    continue
+                stance = getattr(getattr(marshal, "stance", None), "name", "")
+                if stance == "NEUTRAL" and is_player and actions_left < 2:
+                    continue
             lines.append(f"{_display(marshal.name)}, fortify")
             seen_verbs.add("fortify")
-        if len(lines) >= limit:
-            break
-    for marshal in marshals:
+            used.add(marshal.name)
+    for marshal in _pick(marshals):
         if "drill" in seen_verbs or len(lines) >= limit:
             break
-        if not getattr(marshal, "fortified", False):
-            lines.append(f"{_display(marshal.name)}, drill")
-            seen_verbs.add("drill")
+        if getattr(marshal, "fortified", False):
+            continue
+        if THE_COUNSEL_READS_THE_REFUSALS and drill_refusal(world, marshal) != ("", ""):
+            continue
+        lines.append(f"{_display(marshal.name)}, drill")
+        seen_verbs.add("drill")
+        used.add(marshal.name)
     return lines[:limit]
 
 
@@ -210,6 +333,13 @@ def economy_counsel(world, nation: str, limit: int = 3) -> List[str]:
     """
     if not COUNSEL_IS_DERIVED_FROM_THE_BOARD or world is None:
         return []
+    # DESK-9: the purse's orders are ADMINISTRATIVE actions (`recruit`,
+    # `build`, `repair` — `meta_executor.ADMIN_ACTIONS`); none is offered
+    # when the day's administrative actions are spent.
+    if (THE_COUNSEL_READS_THE_ACTION_POINTS
+            and nation == getattr(world, "player_nation", None)
+            and _admin_actions_left(world) <= 0):
+        return []
     lines: List[str] = []
     levy = _levy_terms(world, nation)
     if levy:
@@ -221,7 +351,46 @@ def economy_counsel(world, nation: str, limit: int = 3) -> List[str]:
 def _levy_terms(world, nation: str) -> Optional[str]:
     """`recruit infantry in <Region> — Ng for N men`, on a province where a
     corps of ours actually stands (which is the backend's own condition for
-    pricing it)."""
+    pricing it).
+
+    DESK-2 (CRT-7): the figures are `economy_executor.recruit_quote`'s — the
+    recipient, the men after the field cap, the gold the executor charges —
+    not the ledger's headline levy (measured: the line quoted 654g for
+    10,000 where the order raised 3,000 for 647). Only an order the quote
+    says WILL be made is offered.
+    """
+    if THE_LEVY_LINE_IS_THE_QUOTE:
+        try:
+            from backend.commands.economy_executor import recruit_quote
+        except Exception:
+            return None
+        seen = set()
+        best = None
+        try:
+            marshals = list(world.get_player_marshals())
+        except Exception:
+            return None
+        for marshal in marshals:
+            if int(getattr(marshal, "strength", 0) or 0) <= 0:
+                continue
+            if getattr(marshal, "captured_by", ""):
+                continue
+            where = marshal.location
+            if where in seen or where not in getattr(world, "regions", {}):
+                continue
+            seen.add(where)
+            try:
+                quote = recruit_quote(world, where, "infantry", nation)
+            except Exception:
+                continue
+            if quote.get("ok") and (best is None
+                                    or int(quote["price"]) < int(best[1]["price"])):
+                best = (where, quote)
+        if best is None:
+            return None
+        where, quote = best
+        return (f"recruit infantry in {where} — {int(quote['price']):,}g for "
+                f"{int(quote['amount']):,} men under {_display(str(quote['recipient']))}")
     try:
         from backend.game_logic.ledger import _build_economy
         levy = (_build_economy(world, nation) or {}).get("levy") or {}
@@ -304,6 +473,13 @@ def what_can_i_do(world, nation: Optional[str] = None,
     lines.extend(military_counsel(world, nation,
                                   limit=max(1, limit - 2 - len(lines))))
     lines.extend(economy_counsel(world, nation, limit=2))
+    # DESK-9: with the military actions spent, the order that would be
+    # carried out is `end turn` — named, as the first line when nothing
+    # military survives (the purse's lines may still follow it).
+    if (THE_COUNSEL_READS_THE_ACTION_POINTS
+            and nation == getattr(world, "player_nation", None)
+            and _military_actions_left(world) <= 0):
+        lines.insert(0, END_TURN_LINE)
     return lines[:limit]
 
 
