@@ -45,6 +45,65 @@
 > (`IQ10_SETTLEMENT_THREE_COURTS_2026_09_25.png`). GE-D1 and GE-D2 are
 > RULED and BUILT (below) — no longer open.
 >
+> **▶ ▶ THE CREATIVE AAR PLAYTEST — September 25, 2026 (evening; nothing
+> built).** The user's ask — *play the game, review it, be creative* — was
+> done as **eighteen turns of France/1805 played BY HAND at `POST /command`**
+> on a fresh backend (port 8007, shipped defaults, the live parser
+> configured) through a bespoke terminal that renders what `main.gd` renders
+> and answers every popup through the client's own endpoints: 142 typed
+> orders (102 distinct, 25 refused, 8 questions), nine marshal petitions,
+> eighteen envoys, five captures. **141 of 142 orders were read OFFLINE at
+> 0.80–0.95 — prose included — and the paid model was consulted once.** Ulm
+> on turn 1 and Mack taken by the Emperor in person; Vienna stormed turn 6;
+> the Treaty of Vienna turn 9 (Austria pays 145/turn; four provinces held by
+> status quo and NOT titled); Prussia courted from −10 to a full alliance and
+> a *RECOGNIZES* on the Congress table; a Russian enemy phase that broke two
+> corps in one night; an armistice that thawed into peace on Talleyrand's
+> schedule; Trafalgar (the Irish expedition at 56%: 4,500 men and 24 sail
+> lost); a 5,000-man British raid on Provence and the raid rule taught in
+> the headline; and — under the French peace — **Austria eating the Kingdom
+> of Italy province by province and storming Milan on turn 17, because a
+> lord's separate peace leaves its vassal at war with no army (AAR-1, the
+> P1).** Memo of record **`docs/audits/PLAYTEST_CREATIVE_AAR_2026_09_25.md`**
+> (the AAR diary, the review — *7/10, an empire contested* — the pillar
+> table: directional ≈6.9 held, narration 7.5 ▲, AI aliveness 7.5 ▲, first
+> contact 6.5 ▲, diplomacy 6.0 ▼, combat legibility 7.0 ▼, naval 6.5 ▼,
+> UI/UX unscored). **32 defect rows `BUG_FIXES.md` §Creative AAR Playtest
+> (AAR-1 … AAR-32)**, every producer verified — headlines beside AAR-1: the
+> settlement editor's two verdicts on one screen ("Will sign" beside "cannot
+> be ratified", the war-leader scorer gating an Austria-only settlement,
+> AAR-2); "Request Revision" pricing Britain's OWN offer at Britain −32
+> (AAR-3); the scout report blind to a 25,000-man garrison (AAR-4); the
+> dispatch's intel row a turn stale for a visible enemy (AAR-5); `recruit`
+> refused at zero MILITARY AP though admin-priced (AAR-6); Talleyrand's
+> "Harsh demands" and "Generous peace" carrying identical terms (AAR-7); a
+> destination-blocked question with no interrupt behind it (AAR-8); an
+> aggressive marshal abandoning his march for another court's war (AAR-9);
+> the vindication verdict fired on the wrong battle (AAR-11). **8 design rows
+> `DESIGN_REFINEMENT.md` §Creative AAR (AAR-D1 … AAR-D8)** — the client's
+> war is the lord's war; **status quo is a cession** (the Congress does not
+> title what a signed treaty retains — the road to 45 is four provinces
+> shorter than the count says); the jealousy cadence; dispersion taxed AND
+> punished; DP as the bottleneck; the paying peace (four British offers in
+> seventeen turns — Update 1's PR-D1b from the player's chair); the naval
+> throw; the AI's garrison grind. **Two passive driver arms** measured the
+> quiet years the hand-played campaign could not: `aar-fastforward` (30 turns
+> over the wire) and `aar-verdict-peace` (44 turns in-process, `--stop-on-
+> ending`) both took Britain's turn-4 gold and reached **THE VERDICT OF
+> HISTORY at turn 44 as "AN EMPIRE CONTESTED — the question of 1805, still
+> open"** with 119,401 gold and threat 0 — the right sentence for that board.
+> **Limits, stated:** no client pass (the user was at the machine playing
+> another game; nothing was opened on their screen); the hand-played campaign
+> was LOST at turn 18 by my own error (`tools/playtest_driver.py --http`
+> opens with `POST /new_game` — save first; recorded in memory); the Congress
+> was never summoned (32 titled; alarm 97 → 36); the Fall was read off the
+> archived GE-2 arms. Evidence: `docs/audits/playtest_digests/aar-hand-played/`
+> (diary, every command, trimmed transcript) + the two driver archives. A
+> backend from the September 23 review still listens on port 8006 (a turn-7
+> world, started 9/23) — left alone, the user's to kill. **NEXT stays Update
+> 1 (PR-D1b + PB-7); AAR-1 and AAR-6 are player reports by the plan's own
+> rule and should ride beside it.**
+>
 > **▶ ▶ THE RELEASE BUILD (ROADMAP position 10) — ✅ LANDED September 25,
 > 2026** (ONE commit — the one that carries this record; the parked part 1 was never suite-green on its own, see below;
 > landing record `ROADMAP.md` position 10; rules `SYSTEMS_REFERENCE.md`

@@ -1,0 +1,376 @@
+{"kind": "note", "text": "new game \u2192 New campaign started. Autosave refreshed."}
+{"kind": "turn", "turn": 1, "label": "Late September 1805"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 4258) vs Massena (lost 5585) \u2014 Stalemate. Massena and Archduke Charles glare at each other across the field."}
+{"kind": "enemy_phase", "count": 2, "attacks": 1, "captures": 0, "verbs": {"attack": 1, "wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Massena is at his best with his back to the wall! (Child of Victory: +10% defense when outnumbered)\nArchdukeCharles struggles in a costly engagement. Brutal stalemate between ArchdukeCharles and Massena. Heavy casualties on both sides: ArchdukeCharles 4,258, Massena 5,585.\n[Materiel] Guns, horses and stores lost with the fallen: Austria -212g, France -279g."}, {"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Franconia, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Prussia", "proposal_type": "open borders", "state": "ACTIVE"}, {"nation": "Ottoman", "proposal_type": "open borders", "state": "WAITING"}, {"nation": "Portugal", "proposal_type": "open borders", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 2501, "net": 1961, "threat": 68, "provinces": 28, "ceiling": 54105, "ceiling_state": "bounded", "army": 183415, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 98}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 350, "admin": 50, "tribute": 895, "upkeep": 2450, "charges": 19, "blockade": 175, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Swabia has been taken by Austria."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Prussia has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Ottoman Empire has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Portugal has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Prussia has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Ottoman Empire has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Portugal has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "sovereign_takes_field", "priority": "MEDIUM", "text": "The Emperor has taken the field \u2014 Talleyrand holds the portfolio at the capital."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes France's ports. Trade is halved and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes Holland's ports. Trade is halved and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes Spain's ports. Trade is halved and the fleet is pinned at anchor, where crews rot."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Britain rebuffs Prussia and Bavaria (open borders agreement)", "log_turn": 2}
+{"kind": "turn", "turn": 2, "label": "Early October 1805"}
+{"kind": "envoy_digest_answer", "mailbox_id": 2, "from_nation": "Ottoman", "proposal_type": "friendly_gift", "choice": "accept", "outcome": "answered"}
+{"kind": "envoy_digest_answer", "mailbox_id": 3, "from_nation": "Portugal", "proposal_type": "friendly_gift", "choice": "accept", "outcome": "answered"}
+{"kind": "note", "text": "MAILBOX #1 Prussia incoming_proposal: Prussia \u2014 Open Borders Agreement \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Prussia, open_borders #1", "answer": "accept"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Prussia's proposal. Treaty signed: Peace \u2192 Open Borders with Prussia.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 2 ended. (Warning: 4 actions unused) Turn 3 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 3389) vs Massena (lost 5996) \u2014 Massena was close. A period of drilling could have changed the outcome."}
+{"kind": "battle", "headline": "Mack (lost 4794) vs Lannes (lost 1642, own corps) \u2014 Napoleon's timely arrival aided Lannes. Soult, however, was conspicuously absent."}
+{"kind": "battle", "headline": "Mack (lost 3388) vs Murat (lost 3210, own corps) \u2014 Murat fought without Soult's support. The roads, or the will, proved insufficient."}
+{"kind": "enemy_phase", "count": 3, "attacks": 3, "captures": 0, "verbs": {"attack": 3}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Massena is at his best with his back to the wall! (Child of Victory: +10% defense when outnumbered)\nArchdukeCharles's forces press forward aggressively. ArchdukeCharles gains the advantage over Massena. Casualties: ArchdukeCharles 3,389, Massena 5,996. Both armies remain in the field. ArchdukeCharles advances into Milan. (1,346 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -169g, France -299g."}, {"nation": "Austria", "action": "attack", "marshal": "Mack", "message": "\n[Shield] Lannes's combined arms coordination! (+5% defense)\nMack's forces advance steadily. Brutal stalemate between Mack and Lannes. Heavy casualties on both sides: Mack 4,794, Lannes's army 4,563.\n[Materiel] Guns, horses and stores lost with the fallen: Austria -239g, France -228g.\nNapoleon withdraws to Lorraine after the battle."}, {"nation": "Austria", "action": "attack", "marshal": "Mack", "message": "\n[Alert] Mack's troops are exhausted from repeated attacks! (2nd attack: -10%)\n[Shield] Murat's combined arms coordination! (+5% defense)\nMack engages in solid combat. Mack gains the advantage over Murat. Casualties: Mack 3,388, Murat's army 5,836. Both armies remain in the field. Mack advances into Franche-Comte. (1,267 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -169g, France -291g."}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Denmark", "proposal_type": "non aggression", "state": "ACTIVE"}, {"nation": "Saxony", "proposal_type": "open borders", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 4008, "net": 2097, "threat": 66, "provinces": 28, "ceiling": 28964, "ceiling_state": "bounded", "army": 166245, "vassals": {"Holland": 96, "Kingdom of Italy": 98, "Switzerland": 92}}
+{"kind": "economy", "net_residual": 0, "income": 3362, "trade": 450, "admin": 50, "tribute": 712, "upkeep": 1932, "charges": 168, "contributions": 62, "blockade": 225, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Mack has crossed into Franche-Comte. Lannes and Murat stand in his path."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Denmark has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Saxony has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Ottoman and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Portugal and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Prussia and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Denmark has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Saxony has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Austria \u2014 the subsidy stands at 200 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Austria", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "22 approaches from Prussia and Bavaria are rebuffed (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Naples rebuffs Prussia (defensive alliance)", "log_turn": 3}
+{"kind": "turn", "turn": 3, "label": "Late October 1805"}
+{"kind": "envoy_digest_answer", "mailbox_id": 4, "from_nation": "Denmark", "proposal_type": "non_aggression", "choice": "accept", "outcome": "answered"}
+{"kind": "envoy_digest_answer", "mailbox_id": 5, "from_nation": "Saxony", "proposal_type": "friendly_gift", "choice": "accept", "outcome": "answered"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 3 ended. (Warning: 4 actions unused) Turn 4 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 3059) vs Massena (lost 5173) \u2014 The margin was slim. Training and preparation would serve Massena well."}
+{"kind": "enemy_phase", "count": 3, "attacks": 1, "captures": 0, "verbs": {"attack": 1, "move": 1, "wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Massena is at his best with his back to the wall! (Child of Victory: +10% defense when outnumbered)\n[Combat] Adjacent allies bolster ArchdukeCharles's attack! (+2%)\nArchdukeCharles launches a decisive assault. ArchdukeCharles gains the advantage over Massena. Casualties: ArchdukeCharles 3,059, Massena 5,173. Both armies remain in the field.\n[Materiel] Guns, horses and stores lost with the fallen: Austria -152g, France -258g."}, {"nation": "Bavaria", "action": "move", "marshal": "Deroy", "message": "Deroy moves from Swabia to Rhineland (290 lost to march)"}, {"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Hesse", "proposal_type": "non aggression", "state": "ACTIVE"}, {"nation": "Britain", "proposal_type": "settlement offer", "state": "WAITING"}, {"nation": "PapalStates", "proposal_type": "open borders", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 6295, "net": 2310, "threat": 64, "provinces": 28, "ceiling": 43548, "ceiling_state": "bounded", "army": 159930, "vassals": {"Holland": 94, "Kingdom of Italy": 98, "Switzerland": 88}}
+{"kind": "economy", "net_residual": 0, "income": 3364, "trade": 525, "admin": 50, "tribute": 712, "upkeep": 1722, "charges": 266, "blockade": 263, "admiralty": 90}
+{"kind": "dispatch", "headline": "Supply cost you 1,142 men, at Rhineland."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Hesse has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Papal States has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "settlement_offer_arrival", "text": "Britain has offered terms to settle France vs Britain.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Denmark and France have signed the Non-Aggression Pact."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Saxony and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Hesse has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Papal States has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "settlement_offer_arrival", "priority": "HIGH", "text": "Britain has offered terms to settle France vs Britain."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Austria \u2014 the subsidy stands at 200 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Austria", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Austria against France (200g/turn)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "4 approaches from Prussia and Naples are rebuffed (open borders agreement)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "24 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "3 approaches from Prussia, Bavaria and Spain are rebuffed (open borders agreement)", "log_turn": 2}
+{"kind": "turn", "turn": 4, "label": "Early November 1805"}
+{"kind": "envoy_digest_answer", "mailbox_id": 6, "from_nation": "Hesse", "proposal_type": "non_aggression", "choice": "accept", "outcome": "answered"}
+{"kind": "envoy_digest_answer", "mailbox_id": 7, "from_nation": "PapalStates", "proposal_type": "friendly_gift", "choice": "accept", "outcome": "answered"}
+{"kind": "note", "text": "MAILBOX #8 Britain incoming_settlement_offer: Britain \u2014 Settlement Offer \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_settlement_offer #8", "answer": "accept_settlement_offer"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "settlement_confirm #9", "answer": "confirm_settlement"}
+{"kind": "popup", "key": "proposal_result", "summary": "Settlement Ratified: France vs Austria + Britain + Russia (7 pairs resolved).", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 4 ended. (Warning: 4 actions unused) Turn 5 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 9536, "net": 3098, "threat": 32, "provinces": 28, "ceiling": 267666, "ceiling_state": "bounded", "army": 158834, "vassals": {"Holland": 92, "Kingdom of Italy": 98, "Switzerland": 86}}
+{"kind": "economy", "net_residual": 0, "income": 3366, "trade": 623, "admin": 50, "tribute": 833, "upkeep": 1684, "charges": 90}
+{"kind": "dispatch", "headline": "Supply cost you 1,096 men, at Rhineland."}
+{"kind": "rail", "dtype": "settlement_summary", "text": "Settlement of France + Spain + Holland + Bavaria + Kingdom of Italy vs Britain + Austria + Russia: settlement ratified.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Hesse and France have signed the Non-Aggression Pact."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "PapalStates and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_coalition_dissolved", "priority": "MEDIUM", "text": "The coalition against France has dissolved."}
+{"kind": "dispatch_row", "dtype": "settlement_summary", "priority": "HIGH", "text": "Settlement of France + Spain + Holland + Bavaria + Kingdom of Italy vs Britain + Austria + Russia: settlement ratified."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of France is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of Holland is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of Spain is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Russia eases over Arbiter of Europe \u2014 an ultimatum is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Sweden eases over Scourge of the Usurper \u2014 an ultimatum is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_movement_tail", "priority": "LOW", "text": "And 3 other courts stir at their own designs."}
+{"kind": "campaign_log", "dtype": "coalition_member_left", "text": "Britain has left the coalition.", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "coalition_member_left", "text": "Austria has left the coalition.", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "coalition_dissolved", "text": "Coalition against France has dissolved \u2014 the league is spent; Europe's alarm falls from 64 to 32.", "log_turn": 4}
+{"kind": "turn", "turn": 5, "label": "Late November 1805"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 5 ended. (Warning: 4 actions unused) Turn 6 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Holland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 12663, "net": 3090, "threat": 32, "provinces": 28, "ceiling": 270083, "ceiling_state": "bounded", "army": 157782, "vassals": {"Holland": 90, "Kingdom of Italy": 98, "Switzerland": 84}}
+{"kind": "economy", "net_residual": 0, "income": 3368, "trade": 623, "admin": 50, "tribute": 838, "upkeep": 1662, "charges": 127}
+{"kind": "dispatch", "headline": "Supply cost you 1,052 men, at Rhineland."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Holland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Holland has arrived with a petition."}
+{"kind": "turn", "turn": 6, "label": "Early December 1805"}
+{"kind": "note", "text": "MAILBOX #9 Holland incoming_proposal: Holland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Holland, client_petition #10", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +10 (90 \u2192 100); bond 0 \u2192 20 (+1 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 6 ended. (Warning: 4 actions unused) Turn 7 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Switzerland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 15460, "net": 2763, "threat": 32, "provinces": 28, "ceiling": 245666, "ceiling_state": "bounded", "army": 156771, "vassals": {"Holland": 99, "Kingdom of Italy": 98, "Switzerland": 82}}
+{"kind": "economy", "net_residual": 0, "income": 3370, "trade": 623, "admin": 50, "tribute": 505, "upkeep": 1624, "charges": 161}
+{"kind": "dispatch", "headline": "Supply cost you 1,011 men, at Rhineland."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Switzerland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Switzerland has arrived with a petition."}
+{"kind": "turn", "turn": 7, "label": "Late December 1805"}
+{"kind": "note", "text": "MAILBOX #10 Switzerland incoming_proposal: Switzerland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Switzerland, client_petition #11", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (82 \u2192 92); bond 0 \u2192 20 (+1 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 7 ended. (Warning: 4 actions unused) Turn 8 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 18027, "net": 2536, "threat": 32, "provinces": 28, "ceiling": 229333, "ceiling_state": "bounded", "army": 155798, "vassals": {"Holland": 98, "Kingdom of Italy": 98, "Switzerland": 91}}
+{"kind": "economy", "net_residual": 0, "income": 3372, "trade": 623, "admin": 50, "tribute": 285, "upkeep": 1602, "charges": 192}
+{"kind": "dispatch", "headline": "Supply cost you 973 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Austria against France (300g/turn)", "log_turn": 8}
+{"kind": "turn", "turn": 8, "label": "Early January 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 8 ended. (Warning: 4 actions unused) Turn 9 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 20599, "net": 2541, "threat": 32, "provinces": 28, "ceiling": 232333, "ceiling_state": "bounded", "army": 154861, "vassals": {"Holland": 97, "Kingdom of Italy": 98, "Switzerland": 90}}
+{"kind": "economy", "net_residual": 0, "income": 3374, "trade": 623, "admin": 50, "tribute": 289, "upkeep": 1572, "charges": 223}
+{"kind": "dispatch", "headline": "Supply cost you 937 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 9, "label": "Late January 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 9 ended. (Warning: 4 actions unused) Turn 10 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 23177, "net": 2547, "threat": 32, "provinces": 28, "ceiling": 235416, "ceiling_state": "bounded", "army": 153959, "vassals": {"Holland": 96, "Kingdom of Italy": 98, "Switzerland": 89}}
+{"kind": "economy", "net_residual": 0, "income": 3376, "trade": 623, "admin": 50, "tribute": 294, "upkeep": 1542, "charges": 254}
+{"kind": "dispatch", "headline": "Supply cost you 902 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 10, "label": "Early February 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 10 ended. (Warning: 4 actions unused) Turn 11 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 25738, "net": 2531, "threat": 32, "provinces": 28, "ceiling": 236583, "ceiling_state": "bounded", "army": 153089, "vassals": {"Holland": 95, "Kingdom of Italy": 98, "Switzerland": 88}}
+{"kind": "economy", "net_residual": 0, "income": 3378, "trade": 623, "admin": 50, "tribute": 298, "upkeep": 1534, "charges": 284}
+{"kind": "dispatch", "headline": "Supply cost you 870 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Austria hardens over Redeem Italy \u2014 prepared now to go as far as service to the strong."}
+{"kind": "turn", "turn": 11, "label": "Late February 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 11 ended. (Warning: 4 actions unused) Turn 12 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 28306, "net": 2537, "threat": 32, "provinces": 28, "ceiling": 239666, "ceiling_state": "bounded", "army": 152250, "vassals": {"Holland": 94, "Kingdom of Italy": 98, "Switzerland": 87}}
+{"kind": "economy", "net_residual": 0, "income": 3380, "trade": 623, "admin": 50, "tribute": 303, "upkeep": 1504, "charges": 315}
+{"kind": "dispatch", "headline": "Supply cost you 839 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 12, "label": "Early March 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 12 ended. (Warning: 4 actions unused) Turn 13 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 30879, "net": 2542, "threat": 32, "provinces": 28, "ceiling": 242666, "ceiling_state": "bounded", "army": 151427, "vassals": {"Holland": 93, "Kingdom of Italy": 98, "Switzerland": 86}}
+{"kind": "economy", "net_residual": 0, "income": 3382, "trade": 623, "admin": 50, "tribute": 307, "upkeep": 1474, "charges": 346}
+{"kind": "dispatch", "headline": "Supply cost you 823 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 13, "label": "Late March 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 13 ended. (Warning: 4 actions unused) Turn 14 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 33458, "net": 2885, "threat": 30, "provinces": 28, "ceiling": 273833, "ceiling_state": "bounded", "army": 150621, "vassals": {"Holland": 92, "Kingdom of Italy": 98, "Switzerland": 85}}
+{"kind": "economy", "net_residual": 0, "income": 3384, "trade": 623, "admin": 50, "tribute": 649, "upkeep": 1444, "charges": 377}
+{"kind": "dispatch", "headline": "Supply cost you 806 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Austria lapses", "log_turn": 14}
+{"kind": "turn", "turn": 14, "label": "Early April 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 14 ended. (Warning: 4 actions unused) Turn 15 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Holland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 36371, "net": 3103, "threat": 28, "provinces": 28, "ceiling": 294916, "ceiling_state": "bounded", "army": 149831, "vassals": {"Holland": 91, "Kingdom of Italy": 98, "Switzerland": 84}}
+{"kind": "economy", "net_residual": 0, "income": 3386, "trade": 623, "admin": 50, "tribute": 878, "upkeep": 1422, "charges": 412}
+{"kind": "dispatch", "headline": "Supply cost you 790 men, at Rhineland."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Holland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Holland has arrived with a petition."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Austria against France (500g/turn)", "log_turn": 15}
+{"kind": "turn", "turn": 15, "label": "Late April 1806"}
+{"kind": "note", "text": "MAILBOX #11 Holland incoming_proposal: Holland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Holland, client_petition #12", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +9 (91 \u2192 100); bond 20 \u2192 40 (+2 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 15 ended. (Warning: 4 actions unused) Turn 16 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Switzerland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 39152, "net": 2748, "threat": 26, "provinces": 28, "ceiling": 268083, "ceiling_state": "bounded", "army": 149056, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 83}}
+{"kind": "economy", "net_residual": 0, "income": 3388, "trade": 623, "admin": 50, "tribute": 546, "upkeep": 1414, "charges": 445}
+{"kind": "dispatch", "headline": "Supply cost you 775 men, at Rhineland."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Switzerland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Switzerland has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "diplomatic_auto_downgrade", "priority": "MEDIUM", "text": "Relations between Austria and Russia have collapsed: ALLIANCE \u2192 DEFENSIVE_ALLIANCE."}
+{"kind": "campaign_log", "dtype": "auto_downgrade", "text": "Relations auto-downgraded: Austria\u2013Russia (ALLIANCE \u2192 DEFENSIVE ALLIANCE)", "log_turn": 16}
+{"kind": "turn", "turn": 16, "label": "Early May 1806"}
+{"kind": "note", "text": "MAILBOX #12 Switzerland incoming_proposal: Switzerland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Switzerland, client_petition #13", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (83 \u2192 93); bond 20 \u2192 40 (+2 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 16 ended. (Warning: 4 actions unused) Turn 17 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 41711, "net": 2528, "threat": 24, "provinces": 28, "ceiling": 252333, "ceiling_state": "bounded", "army": 148297, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3390, "trade": 623, "admin": 50, "tribute": 325, "upkeep": 1384, "charges": 476}
+{"kind": "dispatch", "headline": "Supply cost you 759 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 17, "label": "Late May 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 17 ended. (Warning: 4 actions unused) Turn 18 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 44276, "net": 2534, "threat": 22, "provinces": 28, "ceiling": 255416, "ceiling_state": "bounded", "army": 147553, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3392, "trade": 623, "admin": 50, "tribute": 330, "upkeep": 1354, "charges": 507}
+{"kind": "dispatch", "headline": "Supply cost you 744 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Russia and Austria lapses", "log_turn": 18}
+{"kind": "turn", "turn": 18, "label": "Early June 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 18 ended. (Warning: 4 actions unused) Turn 19 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 46838, "net": 2531, "threat": 20, "provinces": 28, "ceiling": 257750, "ceiling_state": "bounded", "army": 146824, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3394, "trade": 623, "admin": 50, "tribute": 334, "upkeep": 1332, "charges": 538}
+{"kind": "dispatch", "headline": "Supply cost you 729 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Austria against France (400g/turn)", "log_turn": 19}
+{"kind": "turn", "turn": 19, "label": "Late June 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 19 ended. (Warning: 4 actions unused) Turn 20 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 49384, "net": 2516, "threat": 18, "provinces": 28, "ceiling": 259000, "ceiling_state": "bounded", "army": 146110, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3396, "trade": 623, "admin": 50, "tribute": 339, "upkeep": 1324, "charges": 568}
+{"kind": "dispatch", "headline": "Supply cost you 714 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 20, "label": "Early July 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 20 ended. (Warning: 4 actions unused) Turn 21 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 51936, "net": 2521, "threat": 16, "provinces": 28, "ceiling": 262000, "ceiling_state": "bounded", "army": 145410, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3398, "trade": 623, "admin": 50, "tribute": 343, "upkeep": 1294, "charges": 599}
+{"kind": "dispatch", "headline": "Supply cost you 700 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 21, "label": "Late July 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 21 ended. (Warning: 4 actions unused) Turn 22 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 54486, "net": 2520, "threat": 14, "provinces": 28, "ceiling": 264416, "ceiling_state": "bounded", "army": 144724, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 348, "upkeep": 1272, "charges": 629}
+{"kind": "dispatch", "headline": "Supply cost you 686 men, at Rhineland."}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Sweden eases over Scourge of the Usurper \u2014 service to the strong is now the length of its tether."}
+{"kind": "turn", "turn": 22, "label": "Early August 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 22 ended. (Warning: 4 actions unused) Turn 23 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 57018, "net": 2838, "threat": 12, "provinces": 28, "ceiling": 293500, "ceiling_state": "bounded", "army": 144052, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 689, "upkeep": 1264, "charges": 660}
+{"kind": "dispatch", "headline": "Supply cost you 672 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 23, "label": "Late August 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 23 ended. (Warning: 4 actions unused) Turn 24 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 59891, "net": 3064, "threat": 10, "provinces": 28, "ceiling": 315166, "ceiling_state": "bounded", "army": 143393, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 919, "upkeep": 1234, "charges": 694}
+{"kind": "dispatch", "headline": "Supply cost you 659 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "turn", "turn": 24, "label": "Early September 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 24 ended. (Warning: 4 actions unused) Turn 25 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 62981, "net": 3053, "threat": 8, "provinces": 28, "ceiling": 317333, "ceiling_state": "bounded", "army": 142747, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 923, "upkeep": 1212, "charges": 731}
+{"kind": "dispatch", "headline": "Supply cost you 646 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_ai_treaty", "priority": "MEDIUM", "text": "Talleyrand reports: Sweden and Austria have signed the Defensive Alliance."}
+{"kind": "campaign_log", "dtype": "diplomatic_ai_ai_treaty", "text": "AI-AI treaty: Sweden and Austria (Defensive Alliance)", "log_turn": 25}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Austria lapses", "log_turn": 25}
+{"kind": "turn", "turn": 25, "label": "Late September 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 25 ended. (Warning: 4 actions unused) Turn 26 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 66047, "net": 3029, "threat": 6, "provinces": 28, "ceiling": 318416, "ceiling_state": "bounded", "army": 142114, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 928, "upkeep": 1204, "charges": 768}
+{"kind": "dispatch", "headline": "Supply cost you 633 men, at Rhineland."}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Austria against France (500g/turn)", "log_turn": 26}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "23 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)", "log_turn": 3}
+{"kind": "turn", "turn": 26, "label": "Early October 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 26 ended. (Warning: 4 actions unused) Turn 27 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 69110, "net": 3026, "threat": 4, "provinces": 28, "ceiling": 321250, "ceiling_state": "bounded", "army": 141494, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 932, "upkeep": 1174, "charges": 805}
+{"kind": "dispatch", "headline": "Supply cost you 620 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "17 approaches rebuffed, chiefly from Bavaria (open borders agreement)", "log_turn": 3}
+{"kind": "turn", "turn": 27, "label": "Late October 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 27 ended. (Warning: 4 actions unused) Turn 28 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 72163, "net": 3017, "threat": 2, "provinces": 28, "ceiling": 323500, "ceiling_state": "bounded", "army": 140886, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 937, "upkeep": 1152, "charges": 841}
+{"kind": "dispatch", "headline": "Supply cost you 608 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "10 courts rebuff Bavaria (open borders agreement)", "log_turn": 3}
+{"kind": "turn", "turn": 28, "label": "Early November 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 28 ended. (Warning: 4 actions unused) Turn 29 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Sweden", "proposal_type": "defensive alliance", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 75180, "net": 2980, "threat": 0, "provinces": 28, "ceiling": 323500, "ceiling_state": "bounded", "army": 140290, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 937, "upkeep": 1152, "charges": 878}
+{"kind": "dispatch", "headline": "Supply cost you 596 men, at Rhineland."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Sweden has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Sweden has arrived with a proposal."}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Russia and Austria lapses", "log_turn": 29}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "9 courts rebuff Bavaria (open borders agreement)", "log_turn": 3}
+{"kind": "turn", "turn": 29, "label": "Late November 1806"}
+{"kind": "note", "text": "MAILBOX #13 Sweden incoming_proposal: Sweden \u2014 Defensive Alliance \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Sweden, defensive_alliance #14", "answer": "accept"}
+{"kind": "note", "text": "    \u21b3 refused: Sweden's terms could not be ratified: Relations with France are insufficient for DEFENSIVE_ALLIANCE."}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 29 ended. (Warning: 4 actions unused) Turn 30 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 78180, "net": 2964, "threat": 0, "provinces": 28, "ceiling": 325166, "ceiling_state": "bounded", "army": 139707, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 937, "upkeep": 1132, "charges": 914}
+{"kind": "dispatch", "headline": "Supply cost you 583 men, at Rhineland."}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Austria against France (500g/turn)", "log_turn": 30}
+{"kind": "campaign_log", "dtype": "ai_proposal_rejected", "text": "We rejected Sweden's defensive alliance proposal", "log_turn": 29}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "8 courts rebuff Bavaria (open borders agreement)", "log_turn": 3}
+{"kind": "turn", "turn": 30, "label": "Early December 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 30 ended. (Warning: 4 actions unused) Turn 31 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Rhineland, awaiting further orders. (Current stance: neutral)"}]}
+{"kind": "ledger", "treasury": 81144, "net": 2929, "threat": 0, "provinces": 28, "ceiling": 325166, "ceiling_state": "bounded", "army": 139136, "vassals": {"Holland": 100, "Kingdom of Italy": 98, "Switzerland": 93}}
+{"kind": "economy", "net_residual": 0, "income": 3400, "trade": 623, "admin": 50, "tribute": 937, "upkeep": 1132, "charges": 949}
+{"kind": "dispatch", "headline": "Supply cost you 571 men, at Rhineland."}
+{"kind": "turn_events", "count": 1}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 5 diplomatic points available (base 3, +1 skill, +1 authority)."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "7 courts rebuff Bavaria (open borders agreement)", "log_turn": 3}
