@@ -647,6 +647,20 @@ class TestTheLeversDownReproduceThePredicate:
 DRIVER = REPO_ROOT / "tools" / "playtest_driver.py"
 SCRIPTS = REPO_ROOT / "tools" / "playtest_scripts"
 
+# SR-1d "The League Treats When Spent" (September 26, 2026): PR-D1b gates
+# the league's turn-4 settlement offer, so the boot war now ends around
+# turn 9-11 and the courtship geometry T7 measures (a peace at t4, the door
+# at t20, the beat at t21) no longer holds on the shipped board -- measured
+# by the pre-commit hook: the 40-turn courted arm carried the beat ZERO
+# times. The ruling's own option, the same one `test_iq6_europe_speaks_its_
+# mind.py` takes for every IQ-6 drive: these arms run with THAT lever down
+# through the driver's `--lever` flag (recorded in meta.json), because they
+# measure the volte-face machinery, not the league's cadence. The board as
+# shipped is measured by SR-1d's own record (the `prd1b-cmd-*` archives).
+_PRE_SR1D_LEAGUE_CLI = [
+    "--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0",
+]
+
 
 def _drive(root: Path, name: str, script: Path):
     env = dict(os.environ)
@@ -660,7 +674,8 @@ def _drive(root: Path, name: str, script: Path):
     proc = subprocess.run(
         [sys.executable, str(DRIVER), "--name", name, "--out", str(root),
          "--fresh", "--script", str(script), "--turns", "40",
-         "--seed", "historical", "--diplomacy", "accept"],
+         "--seed", "historical", "--diplomacy", "accept",
+         *_PRE_SR1D_LEAGUE_CLI],
         env=env, cwd=str(REPO_ROOT), capture_output=True, text=True,
         encoding="utf-8", errors="replace", timeout=900)
     assert proc.returncode == 0, (proc.stdout[-2000:], proc.stderr[-2000:])

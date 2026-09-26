@@ -399,6 +399,19 @@ def evaluate_request_terms_affordance(world: Any, war_id: str) -> Dict[str, Any]
         # direct request (the request cooldown above is the request's own
         # clock); every other refusal is structural — the control is absent.
         return {"state": "absent", "reason": structural}
+    # SR-1d (PR-D1b): the league treats when spent — a temporal block with
+    # its clock (the exhaustion arm's bound; the other arms may open it
+    # sooner), read off the same helper the producer and the answer read.
+    from backend.game_logic.ai_diplomacy import (
+        league_offer_gate, league_offer_gate_display,
+    )
+    gate = league_offer_gate(world, war, player=player)
+    if gate is not None:
+        return {
+            "state": "disabled",
+            "reason": "league_not_spent",
+            "reason_display": league_offer_gate_display(world, gate),
+        }
     return {"state": "available", "reason": ""}
 
 

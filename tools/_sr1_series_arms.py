@@ -19,13 +19,20 @@ IN THE CHILD before the sim boots (the slice-9 idiom) and COUNTS what each
 pass did — retention entries by reason and pair; client pairs moved by
 reason — so "the ambient board never …" is a number, not a sentence.
 
-    .venv/Scripts/python.exe tools/_sr1_series_arms.py [--arms all|0,1,2,3]
+    .venv/Scripts/python.exe tools/_sr1_series_arms.py [--arms all|0,1,2,3,4,5]
+
+SR-1d `ai_diplomacy.THE_LEAGUE_TREATS_WHEN_SPENT` (PR-D1b): the league's
+settlement OFFER is gated on P1's break-ranks clause. The passive France
+answers no offer, so a later offer changes nothing it does — but the
+producer's cooldown writes move, and the spy counts the gate's refusals.
 
 Arms:
-    0  both levers down -> must reproduce the recorded series byte-for-byte
+    0  all levers down -> must reproduce the recorded series byte-for-byte
     1  SR-1a only
     2  SR-1b only
-    3  the shipped tree (both)
+    3  SR-1a + SR-1b
+    4  SR-1d only
+    5  the shipped tree (all three)
 
 Writes tools/_sr1_series_arms.json (committed with the landing record).
 """
@@ -43,22 +50,36 @@ ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests" / "test_ai_intent_threat_migration.py"
 
 ARMS = {
-    0: {"a": False, "b": False},
-    1: {"a": True, "b": False},
-    2: {"a": False, "b": True},
-    3: {"a": True, "b": True},
+    0: {"a": False, "b": False, "c": False},
+    1: {"a": True, "b": False, "c": False},
+    2: {"a": False, "b": True, "c": False},
+    3: {"a": True, "b": True, "c": False},
+    4: {"a": False, "b": False, "c": True},
+    5: {"a": True, "b": True, "c": True},
 }
 
 CHILD = r"""
 import sys, runpy, atexit, collections
 import backend.game_logic.game_end as GE
 import backend.game_logic.diplomacy as DP
+import backend.game_logic.ai_diplomacy as AD
 GE.STATUS_QUO_IS_A_CESSION = {a!r}
 DP.THE_CLIENTS_WAR_IS_THE_LORDS_WAR = {b!r}
+AD.THE_LEAGUE_TREATS_WHEN_SPENT = {c!r}
 _counts = {{"sq_calls": 0, "sq_entries": 0, "sq_titled": 0,
             "sq_by_reason": collections.Counter(), "sq_pairs": collections.Counter(),
             "follow_calls": 0, "follow_moved": 0,
-            "follow_by_reason": collections.Counter(), "follow_pairs": collections.Counter()}}
+            "follow_by_reason": collections.Counter(), "follow_pairs": collections.Counter(),
+            "gate_calls": 0, "gate_refusals": 0, "gate_by_turn": collections.Counter()}}
+_orig_gate = AD.league_offer_gate
+def _gate(world, war, **kw):
+    _counts["gate_calls"] += 1
+    out = _orig_gate(world, war, **kw)
+    if out is not None:
+        _counts["gate_refusals"] += 1
+        _counts["gate_by_turn"][int(getattr(world, "current_turn", 0))] += 1
+    return out
+AD.league_offer_gate = _gate
 _orig_sq = GE.title_status_quo_retentions
 def _sq(world, a, b, old_state, new_state, reason):
     _counts["sq_calls"] += 1
@@ -83,7 +104,7 @@ def _follow(world, a, b, new_state, reason, **kw):
 DP.follow_the_lord = _follow
 def _dump():
     c = dict(_counts)
-    for k in ("sq_by_reason", "sq_pairs", "follow_by_reason", "follow_pairs"):
+    for k in ("sq_by_reason", "sq_pairs", "follow_by_reason", "follow_pairs", "gate_by_turn"):
         c[k] = dict(c[k])
     print("SR1=" + repr(c))
 atexit.register(_dump)

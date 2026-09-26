@@ -411,6 +411,10 @@ def _imperial_peace_caption(world) -> str:
             else "THE IMPERIAL PEACE")
 
 
+# SR-1c: how close to the summons the Moniteur starts counting the road.
+NEAR_MISS_PROVINCES = 5
+
+
 def _congress_column(world, special_reason: Optional[str]) -> List[str]:
     """Le Moniteur's Congress column (GE-3, ENDGAME_PLAN §2.5): the table in
     the paper's voice every turn of the sitting (`congress.gazette_rows`,
@@ -452,6 +456,23 @@ def _congress_column(world, special_reason: Optional[str]) -> List[str]:
             from backend.campaign_log import congress_dissolve_reason
             lines = [f"The Congress of Paris dissolves — "
                      f"{congress_dissolve_reason(record.get('dissolve_key'), record.get('dissolve_reason'))}."]
+        elif _congress.phase(world) == "gate":
+            # SR-1c: the near miss is a story — within NEAR_MISS_PROVINCES
+            # of the summons the paper names the count and the nearest
+            # roads. Empty on the boot (35 of 45), so the column stays quiet
+            # until the reach is close.
+            view = _congress.titled(world)
+            gap = int(view["needed"]) - int(view["count"])
+            if 0 < gap <= NEAR_MISS_PROVINCES:
+                from backend.game_logic import game_end as _ge
+                roads = sorted(_ge.title_roads(world, getattr(world, "player_nation", "France")),
+                               key=lambda r: (r["kind"] != "quiet", r["turns_left"], r["region"]))
+                head = (f"THE CONGRESS OF PARIS — {view['count']} of {view['needed']} "
+                        f"provinces titled; {gap} more and the Emperor may "
+                        f"summon the powers.")
+                if roads:
+                    head += " " + "; ".join(r["short"] for r in roads[:3]) + "."
+                lines = [head]
     if special_reason in ("THE IMPERIAL PEACE", "THE UNIVERSAL MONARCHY"):
         rec = _imperial_peace_record(world) or {}
         proclaimed = str((rec.get("detail") or {}).get("moniteur_line") or "")

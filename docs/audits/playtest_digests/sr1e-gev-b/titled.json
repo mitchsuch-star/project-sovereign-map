@@ -1,0 +1,31 @@
+{
+ "turn": 41,
+ "titled": 16,
+ "hold_titled": 45,
+ "status": "completed",
+ "held": [],
+ "provinces": 8,
+ "note": "SR-1e re-measure (September 26, 2026): read off the run's own save by tools/sr1e_titled_probe.py through congress.titled — the same count the summons reads.",
+ "series": [
+  {
+   "turn": 9,
+   "titled": 39
+  },
+  {
+   "turn": 13,
+   "titled": 37
+  },
+  {
+   "turn": 18,
+   "titled": 37
+  },
+  {
+   "turn": 30,
+   "titled": 35
+  },
+  {
+   "turn": 41,
+   "titled": 16
+  }
+ ]
+}

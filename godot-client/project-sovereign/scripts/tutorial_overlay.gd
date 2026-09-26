@@ -273,18 +273,31 @@ const STEPS := [
 		"advance": "_pred_turn_gte_11",
 	},
 	{
-		"id": "free_books",
+		"id": "congress",
 		"turn_gate": 11,
-		"title": "XVII. The Instruments",
-		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger (seven books — forces, land, treasury, intelligence, manpower, orders, the Admiralty), [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again, [color=#e8d4a8]L[/color] the campaign log, [color=#e8d4a8]N[/color] Le Moniteur. Hold [color=#e8d4a8]Alt[/color] with the letter while you type. The treasury now carries occupation costs and the charges of empire — read them in the ledger. The notice rail at the top collects every matter that waits on you; [color=#e8d4a8]Esc[/color] saves, loads and sets the screen. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
+		"title": "XVII. The Congress of Paris",
+		# SR-1 reserve (September 26, 2026): the reign's ending, taught in the
+		# tutor's voice — the lesson authors no Congress (its rules are not in
+		# this scenario), so this card TEACHES the great campaign's road and
+		# names the surfaces that count it (SR-1c's roads).
+		"body": "The great campaign does not end when the last army breaks, Sire — it ends when EUROPE SIGNS. Hold forty-five provinces by TITLE — your own soil, what a treaty cedes or leaves in your hands (a signed peace titles what you keep of the loser's), a client's loyal homeland, or a conquest held twelve quiet turns — and you may summon the CONGRESS OF PARIS from the Cabinet ([color=#e8d4a8]F1[/color]). Every great power answers at a public table with its reason and its price; it sits eight turns; refusal has teeth, and every titled province, Paris and your own person must be held. The Diplomatic Ledger's CONGRESS tab ([color=#e8d4a8]D[/color], then 7) counts the provinces and names each held one's road to title; the war room prices the roads it counsels. Full recognition is THE IMPERIAL PEACE — the reign's verdict.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_12",
 	},
 	{
-		"id": "handoff",
+		"id": "free_books",
 		"turn_gate": 12,
-		"title": "XVIII. The Lesson Ends",
+		"title": "XVIII. The Instruments",
+		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger (seven books — forces, land, treasury, intelligence, manpower, orders, the Admiralty), [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again, [color=#e8d4a8]L[/color] the campaign log, [color=#e8d4a8]N[/color] Le Moniteur. Hold [color=#e8d4a8]Alt[/color] with the letter while you type. The treasury now carries occupation costs and the charges of empire — read them in the ledger. The notice rail at the top collects every matter that waits on you; [color=#e8d4a8]Esc[/color] saves, loads and sets the screen. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
+		"suggest": "",
+		"suggest_action": "",
+		"advance": "_pred_turn_gte_13",
+	},
+	{
+		"id": "handoff",
+		"turn_gate": 13,
+		"title": "XIX. The Lesson Ends",
 		"body": "That is the whole of the craft, Sire: orders, temper, battle, conquest, coin — and the courts beyond. The real war of 1805 waits at the main menu under BEGIN. Hold this little front as long as it amuses you.",
 		"suggest": "",
 		"suggest_action": "",
@@ -857,6 +870,10 @@ func _pred_turn_gte_11(_response: Dictionary) -> bool:
 
 func _pred_turn_gte_12(_response: Dictionary) -> bool:
 	return _turn >= 12
+
+
+func _pred_turn_gte_13(_response: Dictionary) -> bool:
+	return _turn >= 13
 
 
 func _pred_never(_response: Dictionary) -> bool:

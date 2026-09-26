@@ -1,0 +1,168 @@
+{
+ "name": "sr1e-aar-road",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_sr1e": "SR-1e (September 26, 2026): the Creative AAR's hand-played road (September 25) rebuilt from docs/audits/playtest_digests/aar-hand-played/commands.md — the typed orders of turns 1-18 as the Emperor gave them (prose included; the mock parser read 141 of 142 offline), the popups answered by the driver's dials instead of by hand. The AAR's turn-9 Treaty of Vienna and its four retained provinces are the road SR-1a titles; its turn-18 count was 32.",
+ "turns": {
+  "1": [
+   "Talleyrand, assess our situation",
+   "Marshal Ney, you have the honour of the first blow. Fall upon Mack at Ulm before the Russians can reach him, and do not let him slip away down the Danube.",
+   "Napoleon, attack Mack",
+   "Soult, march to Swabia"
+  ],
+  "2": [
+   "build ships",
+   "court Prussia",
+   "Ney, move to Franconia",
+   "Davout, move to Munich",
+   "Murat, scout Tyrol"
+  ],
+  "3": [
+   "buy off Austria",
+   "recruit",
+   "build market at Paris",
+   "Ney, attack Bohemia",
+   "Massena, fortify",
+   "license Prussia against Hanover",
+   "Lannes, move to Munich",
+   "Massena, fortify",
+   "Davout, fortify",
+   "Davout, fortify"
+  ],
+  "4": [
+   "build supply depot in Bohemia",
+   "build watchtower in Bohemia",
+   "Ney, scout Vienna",
+   "Soult, move to Franconia",
+   "Murat, move to Franconia",
+   "Bernadotte, move to Bohemia"
+  ],
+  "5": [
+   "Talleyrand, assess Austria",
+   "recruit for Lannes",
+   "Soult, move to Bohemia",
+   "Ney, attack Vienna",
+   "Napoleon, move to Franconia",
+   "Davout, fortify",
+   "Davout, go defensive",
+   "buy substitutes for Ney"
+  ],
+  "6": [
+   "Soult, attack Vienna",
+   "Murat, attack Vienna",
+   "Napoleon, move to Bohemia",
+   "Napoleon, move to Bohemia",
+   "Ney, move to Vienna"
+  ],
+  "7": [
+   "Ney, attack Hungary",
+   "Lannes, attack Tyrol",
+   "Napoleon, move to Vienna",
+   "Davout, fortify",
+   "commission Marmont",
+   "Lannes, attack Tyrol",
+   "Napoleon, move to Vienna",
+   "Davout, fortify",
+   "commission Marmont",
+   "Napoleon, move to Vienna",
+   "Davout, fortify",
+   "commission Marmont",
+   "propose common peace with Austria"
+  ],
+  "8": [
+   "Massena, unfortify",
+   "Massena, attack Archduke Charles",
+   "recruit for Marmont",
+   "Lannes, move to Milan",
+   "Soult, move to Vienna",
+   "Lannes, retreat",
+   "Murat, attack Moravia"
+  ],
+  "9": [
+   "Soult, attack Kutuzov",
+   "Massena, march to Vienna",
+   "Bernadotte, move to Vienna",
+   "recruit for Marmont",
+   "recruit for Marmont",
+   "buy substitutes for Soult"
+  ],
+  "10": [
+   "build ships",
+   "recruit 3000 artillery for Marmont at Paris",
+   "Ney, retreat",
+   "Lannes, retreat",
+   "Soult, attack Kutuzov",
+   "Davout, unfortify",
+   "Davout, move to Franconia",
+   "Marmont, move to Normandy",
+   "invest in Switzerland",
+   "propose armistice to Russia",
+   "Soult, drill",
+   "recruit for Marmont"
+  ],
+  "11": [
+   "recall Talleyrand",
+   "improve relations with Russia",
+   "invest in Kingdom of Italy",
+   "recruit for Marmont",
+   "Napoleon, march to Paris",
+   "Soult, move to Dresden",
+   "Bernadotte, move to Dresden",
+   "Talleyrand, cancel mission with Prussia",
+   "improve relations with Russia"
+  ],
+  "12": [
+   "recruit infantry in Vienna",
+   "guarantee Kingdom of Italy",
+   "land Marmont in Munster",
+   "yes",
+   "Massena, move to Munich",
+   "Soult, move to Franconia",
+   "build supply depot in Vienna",
+   "buy substitutes for Murat"
+  ],
+  "13": [
+   "Massena, march to Provence",
+   "Marmont, march to Provence",
+   "Talleyrand, assess our situation",
+   "commission Oudinot"
+  ],
+  "14": [
+   "Ney, drill",
+   "Murat, drill",
+   "Oudinot, march to Provence",
+   "buy substitutes for Ney"
+  ],
+  "15": [
+   "Massena, march to Provence",
+   "Lannes, move to Dresden",
+   "Soult, move to Swabia",
+   "build market in Vienna"
+  ],
+  "16": [
+   "Ney, drill",
+   "Murat, drill",
+   "Bernadotte, move to Franconia",
+   "build training ground at Paris"
+  ],
+  "17": [
+   "Talleyrand, cancel mission with Russia",
+   "improve relations with Britain",
+   "Marmont, attack Wellesley",
+   "Oudinot, attack Wellesley",
+   "Massena, march to Paris"
+  ],
+  "18": [
+   "Oudinot, attack Provence"
+  ]
+ },
+ "policy": {
+  "objection": "insist",
+  "diplomacy": "accept",
+  "settlement": "decline",
+  "capture": "secure",
+  "client_petition": "grant",
+  "declare_war": "cancel",
+  "petition": "first_enabled"
+ }
+}

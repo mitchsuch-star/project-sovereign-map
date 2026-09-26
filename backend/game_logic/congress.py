@@ -307,6 +307,24 @@ def _alarm(world) -> int:
     return int(displayed_threat(world))
 
 
+def alarm_road(world) -> str:
+    """SR-1c: what lowers Europe's alarm, and by how much — the decay the
+    coalition tick applies (`_calculate_threat_decay`: one, plus one for
+    each court at peace with us, at most three, plus one under the
+    Continental System) and the league-spent rule (a treaty that dissolves
+    a league halves it). Read off the same helpers the tick uses."""
+    from backend.game_logic import coalition as _co
+    decay = int(_co._calculate_threat_decay(world))
+    cs = ""
+    if len(getattr(world, "continental_system_members", []) or []) >= 2:
+        cs = ", plus one for the Continental System"
+    parts = [f"it falls {decay} a turn (one, plus one for each court at peace "
+             f"with us, at most three{cs})"]
+    if getattr(_co, "THE_LEAGUE_SPENDS_ITS_ALARM", False):
+        parts.append("a treaty that dissolves a league halves it")
+    return "; ".join(parts)
+
+
 def cooldown_left(world) -> int:
     c = record(world) or {}
     if c.get("status") != DISSOLVED or c.get("dissolved_turn") is None:
@@ -407,8 +425,11 @@ def gate_terms(world) -> List[Dict[str, Any]]:
                               + ") — settle it first.") if brink else ""})
     alarm = _alarm(world)
     ceiling = _int(world, "hold_alarm_ceiling", HOLD_ALARM_CEILING)
+    # SR-1c: the term names what lowers the alarm and by how much.
+    _road = alarm_road(world)
     terms.append({"key": "alarm", "met": alarm < ceiling,
-                  "text": f"Europe's alarm below {ceiling} (now {alarm})",
+                  "text": f"Europe's alarm below {ceiling} (now {alarm} — {_road})",
+                  "road": _road,
                   "breach": (f"Europe's alarm too high ({alarm} — the Congress "
                              f"needs it below {ceiling})"),
                   "refusal": (f"Europe's alarm stands at {alarm} — the Congress "
@@ -1122,15 +1143,26 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     levers: List[Dict[str, Any]] = []
     if row.get("by") == "war":
         score = int(row.get("war_score", 0) or 0)
-        capital = world.get_nation_capital(court) or "its capital"
+        capital = world.get_nation_capital(court) or ""
         levers.append({"key": "war", "value": None,
                        "text": (f"win the war to {_signed(-sue_score(world))} "
                                 f"(now {_signed(-score)})")})
-        levers.append({"key": "capital", "value": None, "text": f"take {capital}"})
+        # GE-V §4 nits (SR quick win, September 26, 2026): the seat is
+        # display and the capital is the map's, so the lever names it as
+        # the capital ("its capital, Vilna" under a "(St Petersburg)" seat);
+        # and for an island court the ports lever comes BEFORE the capital
+        # — a Descent most campaigns cannot mount should not lead the line.
+        capital_lever = {"key": "capital", "value": None,
+                         "text": (f"take its capital, {capital}" if capital
+                                  else "take its capital")}
+        ports = _ports_lever(row)
+        island = bool(capital) and capital not in mainland(world)
+        if island and ports is not None:
+            levers.append(ports)
+        levers.append(capital_lever)
         levers.append({"key": "peace", "value": None,
                        "text": f"sign a peace with {_display(court)}"})
-        ports = _ports_lever(row)
-        if ports is not None:
+        if ports is not None and not island:
             levers.append(ports)
         out["levers"] = levers
         out["text"] = " · or ".join(lv["text"] for lv in levers)
@@ -2462,7 +2494,12 @@ def clock_payload(world) -> Optional[Dict[str, Any]]:
     line = state_line(world)
     if not line:
         return None
-    return {"line": line, "severity": clock_severity(world), "phase": phase(world)}
+    payload = {"line": line, "severity": clock_severity(world), "phase": phase(world)}
+    if payload["phase"] == "gate":
+        # SR-1c: each held province's road to title, for the Territories tab.
+        from backend.game_logic import game_end as _ge
+        payload["held_roads"] = _ge.title_roads(world, _player(world))
+    return payload
 
 
 def build_congress_payload(world) -> Optional[Dict[str, Any]]:
@@ -2524,6 +2561,9 @@ def build_congress_payload(world) -> Optional[Dict[str, Any]]:
         "titled": int(view["count"]),
         "titled_needed": int(view["needed"]),
         "held_unsettled": list(view["held"]),
+        # SR-1c: the road each held province has to title, and the alarm's.
+        "held_roads": [dict(r) for r in _title_roads(world)],
+        "alarm_road": alarm_road(world),
         "state_line": state_line(world) or "",
         "severity": clock_severity(world),
         "courts": courts,
@@ -2552,6 +2592,11 @@ def build_congress_payload(world) -> Optional[Dict[str, Any]]:
             c.get("dissolve_key"), c.get("dissolve_reason"))
         payload["refusers"] = list(c.get("refusers") or [])
     return payload
+
+
+def _title_roads(world) -> List[Dict[str, Any]]:
+    from backend.game_logic import game_end as _ge
+    return _ge.title_roads(world, _player(world))
 
 
 def _concluded_courts(world) -> Dict[str, Dict[str, Any]]:

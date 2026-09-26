@@ -70,7 +70,7 @@ game's own counsel names; `off`, the default, mirrors `--diplomacy` — see
 [the Cabinet arm](#--missions-advisor--the-cabinet-arm-iq-4-september-14-2026))
 (there is no `--ultimatum` flag — `defy` is the policy default, stamped into
 every run's `meta.json`)
-· `--stop-on-ending` (GE-2: stop at a MARKED ending — the Verdict, a Humbled
+· `--lever MODULE:NAME=0|1` (SR-1d, repeatable: set a backend flip lever for the run — recorded in `meta.json` `levers`; how a subprocess arm plays a board a slice's lever has moved off, e.g. IQ-6's volte-face arms with `backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0`) · `--stop-on-ending` (GE-2: stop at a MARKED ending — the Verdict, a Humbled
 Peace — with status `ending-reached`; a Fall stops the run as `game-over`
 regardless) · `--cheats` (arms DEBUG_MODE so `cheat …` commands work) · `--strict`
 (unknown blocking shapes fail the run, exit 3) · `--verbose` (backend
@@ -396,6 +396,7 @@ script's own keys.
 | Sept 16, IQ-7 grant (petitions granted) | 28 | 28 | 29 | Windows 11, CPython 3.13 | the tree landing IQ-7, `7d10e20c` (driver stamp `edb714263e80`, CRLF) | `0` | `--diplomacy accept` | `iq7-grant-historical`, `iq7-grant-austerlitz`, `iq7-grant-marengo` |
 | Sept 16, IQ-7 refuse | 29 | 29 | 29 | Windows 11, CPython 3.13 | as above | `0` | `--diplomacy accept --client-petition refuse` | `iq7-refuse-historical`, `iq7-refuse-austerlitz`, `iq7-refuse-marengo` |
 | **Sept 17, IQ-8** | **28** | **28** | **29** | Windows 11, CPython 3.13.12 | `7d10e20c` + the uncommitted IQ-8 tree (content `457e8f82bc61`, driver `641a9fcf2c43`) | `0` | `--diplomacy accept` | `iq8-cmd-historical`, `iq8-cmd-austerlitz`, `iq8-cmd-marengo` |
+| **Sept 26, SR-1d (PR-D1b)** | **28** | **25** | **28** | Windows 11, CPython 3.13.12 | `759414f9` + the uncommitted SR-1c/1d tree (driver `196c4ee545c1`) | `0` | `--diplomacy accept` | `prd1b-cmd-historical`, `prd1b-cmd-austerlitz`, `prd1b-cmd-marengo` — **the league's offer t4 → t9 / t10 / t11** |
 
 ⚠ **The first row is UNCITABLE, and PR-D4 is CLOSED as "cause unrecoverable, no
 archive"** (`DESIGN_REFINEMENT.md`, IQ-8). No digest, `meta.json` or driver stamp
@@ -763,6 +764,22 @@ PEACE with its Congress block. The two §2.8 arms, archived under
 
 Both start from STAGED fixtures — the road to them from the 1805 boot is
 GE-V's measurement. Add `--archive` to replace the committed digest.
+
+**The titled count is read off the save, not the digest** (SR-1e, September
+26, 2026): the digest prints the Congress clock only once the count reaches the
+summons, so a road's count comes from the run's own autosave (or a `--save-at`
+snapshot) through the game's own `congress.titled`:
+
+```bash
+.venv/Scripts/python.exe tools/sr1e_titled_probe.py <run-name> [<save.json> ...]
+```
+
+It prints `turn / titled / held / hold_titled / provinces / status` and each
+held province's road, and writes `titled.json` beside the archived digest —
+the shape `tests/test_vp_r1_the_road_to_forty_five.py`'s strict xfail reads.
+The three SR-1e roads (`sr1e-aar-road`, `sr1e-gev-a`, `sr1e-gev-b`) and their
+scripts (`tools/playtest_scripts/sr1e_*.json`, rebuilt from the archived
+digests' typed orders) are the standing re-measure of the reach.
 
 ---
 

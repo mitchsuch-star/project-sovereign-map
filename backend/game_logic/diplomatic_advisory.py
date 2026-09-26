@@ -437,12 +437,15 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                     if candidate["stuck"] else
                     f"{situation} and their court would name terms. "
                     f"{prospect}. Ask while asking is still a choice,")
+            # SR-1c: the counsel names the price of the road it recommends
+            # beside what the player has (the request's own 1 DP).
+            _dp_have = int(getattr(world, "diplomatic_points", 0) or 0)
             return {
                 "kind": "request_terms",
                 "target_nation": opponent,
                 "label": f"Seek terms with {display}",
                 "description": ("Ask their court to name settlement terms "
-                                "(1 DP)."),
+                                f"(1 DP; you have {_dp_have})."),
                 "text": (f"{lead} Sire — take the counsel below, or open "
                          f"the war banner and press Request Terms."),
             }
@@ -726,6 +729,17 @@ def _assess_situation(world) -> Dict:
     _congress_line = _congress.state_line(world)
     if _congress_line:
         lines.append(f"  {_congress_line}")
+        if _congress.phase(world) == "gate":
+            # SR-1c: every held province's road to title, the nearest first
+            # (fewest turns), at most four here; the CONGRESS tab lists all.
+            from backend.game_logic import game_end as _ge
+            _roads = sorted(_ge.title_roads(world, player),
+                            key=lambda r: (r["kind"] != "quiet", r["turns_left"], r["region"]))
+            for _road in _roads[:4]:
+                lines.append(f"    {_road['text']}")
+            if len(_roads) > 4:
+                lines.append(f"    … and {len(_roads) - 4} more on the Diplomatic "
+                             f"Ledger's CONGRESS tab.")
         if _congress.sitting(world):
             _table = _congress.build_congress_payload(world) or {}
             for _row in _table.get("courts") or []:

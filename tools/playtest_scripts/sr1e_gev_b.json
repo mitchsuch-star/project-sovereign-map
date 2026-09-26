@@ -1,0 +1,117 @@
+{
+ "name": "sr1e-gev-b",
+ "seed": "historical",
+ "llm": "mock",
+ "_note_sr1e": "SR-1e (September 26, 2026): GE-V/VP-R1 opening B — Ulm, the whole body to Munich, one supported strike a turn — rebuilt from the archived digests vpr1-played-b-c1/b2/b3/b4/b5 (typed orders turns 1-16; the tail is unattended, as the VP-R1 tail was). Run: --diplomacy accept --settlement decline --objection insist --capture secure --client-petition grant --declare-war proceed --turns 40 --stop-on-ending.",
+ "turns": {
+  "1": [
+   "vassalize Bavaria",
+   "Ney, attack Mack",
+   "Lannes, attack Mack",
+   "Davout, attack Mack",
+   "Murat, move to Swabia"
+  ],
+  "2": [
+   "Ney, move to Munich",
+   "Davout, move to Munich",
+   "Lannes, move to Munich",
+   "Murat, move to Munich"
+  ],
+  "3": [
+   "Davout, fortify",
+   "Soult, move to Swabia",
+   "Massena, move to Piedmont"
+  ],
+  "4": [
+   "Soult, move to Munich",
+   "Bernadotte, move to Munich",
+   "Deroy, move to Munich",
+   "Massena, fortify"
+  ],
+  "5": [
+   "vassalize Hesse",
+   "vassalize Saxony",
+   "declare war on Hanover",
+   "Soult, move to Franconia",
+   "Bernadotte, move to Franconia",
+   "Ney, move to Franconia",
+   "Lannes, move to Franconia"
+  ],
+  "6": [
+   "Soult, move to Brunswick",
+   "Bernadotte, move to Brunswick",
+   "Ney, attack Archduke John",
+   "Deroy, move to Franconia"
+  ],
+  "7": [
+   "Soult, attack Hanover",
+   "Bernadotte, move to Osnabruck",
+   "Murat, move to Franconia",
+   "Lannes, attack Archduke John"
+  ],
+  "8": [
+   "Lannes, retreat",
+   "Massena, attack Archduke John",
+   "Soult, move to Brunswick",
+   "Napoleon, move to Franconia"
+  ],
+  "9": [
+   "Soult, attack Hanover",
+   "Bernadotte, attack Hanover",
+   "Massena, move to Milan",
+   "Ney, move to Franconia"
+  ],
+  "10": [
+   "Soult, attack Hanover",
+   "Bernadotte, move to Oldenburg",
+   "Deroy, move to Franconia",
+   "Lannes, move to Franconia"
+  ],
+  "11": [
+   "invest in Hesse",
+   "Deroy, move to Bohemia",
+   "Davout, unfortify",
+   "Soult, move to Franconia",
+   "Napoleon, move to Swabia"
+  ],
+  "12": [
+   "invest in Saxony",
+   "Soult, move to Bohemia",
+   "Davout, move to Tyrol",
+   "Massena, move to Swabia",
+   "Murat, move to Franconia"
+  ],
+  "13": [
+   "Soult, attack Vienna",
+   "Deroy, attack Vienna",
+   "Davout, move to Bohemia",
+   "Napoleon, move to Lorraine"
+  ],
+  "14": [
+   "invest in Hesse",
+   "Soult, move to Swabia",
+   "Davout, fortify",
+   "Napoleon, move to Orleanais"
+  ],
+  "15": [
+   "invest in Hesse",
+   "Bernadotte, move to Hanover",
+   "Napoleon, move to Paris",
+   "Murat, move to Paris"
+  ],
+  "16": [
+   "invest in Hesse",
+   "Napoleon, recruit infantry",
+   "Massena, move to Paris",
+   "Soult, drill"
+  ]
+ },
+ "policy": {
+  "objection": "insist",
+  "diplomacy": "accept",
+  "settlement": "decline",
+  "capture": "secure",
+  "client_petition": "grant",
+  "declare_war": "proceed"
+ }
+}

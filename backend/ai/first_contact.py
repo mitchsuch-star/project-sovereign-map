@@ -447,6 +447,12 @@ def _congress_answer(asked: str, world) -> str:
     else:
         verdict = f"Not yet, Sire: {refusal}"
     text = f"The Congress of Paris — {listed}. {verdict}"
+    # SR-1c: the held provinces and the road each has to title.
+    roads = game_end.title_roads(world, getattr(world, "player_nation", "France"))
+    if roads:
+        text += (" The held provinces and their roads: "
+                 + "; ".join(r["short"] for r in roads[:6])
+                 + (f"; and {len(roads) - 6} more" if len(roads) > 6 else "") + ".")
     if _SWEETENER_ASKED_RE.search((asked or "").lower()):
         text += (" A sweetener is paid only at the table, while the Congress "
                  "sits.")

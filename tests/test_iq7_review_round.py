@@ -424,6 +424,14 @@ def turn6_snapshot():
     prior_save_dir = save_manager.SAVE_DIR
     save_manager.SAVE_DIR = Path(tmp)
     _SNAPSHOT_SANDBOX["dir"] = tmp
+    # SR-1d (September 26, 2026): PR-D1b gates the league's turn-4 offer, so
+    # on the shipped board no settlement offer holds the current slot at
+    # turn 6. This board exists to stage a petition QUEUED behind a letter
+    # (the IQ-7 T2 measurement) — it is staged with that lever down, as the
+    # ruling allows, and says so here.
+    from backend.game_logic import ai_diplomacy as _AD
+    _prior_league = _AD.THE_LEAGUE_TREATS_WHEN_SPENT
+    _AD.THE_LEAGUE_TREATS_WHEN_SPENT = False
     try:
         w = _europe()
         M.world, M.parser = w, _PARSER
@@ -438,6 +446,7 @@ def turn6_snapshot():
         assert head is not pets[0] and head.get("type") == "incoming_settlement_offer"
         snapshot = copy.deepcopy(w.to_dict())
     finally:
+        _AD.THE_LEAGUE_TREATS_WHEN_SPENT = _prior_league
         save_manager.SAVE_DIR = prior_save_dir
         M.world, M.parser = prior_main[0], prior_main[2]
         M.game_state["world"] = prior_main[1]

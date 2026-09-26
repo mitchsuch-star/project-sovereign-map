@@ -320,11 +320,24 @@ def _drive(script, turns, name, levers=(), hooks=True):
     return run
 
 
+# SR-1d "The League Treats When Spent" (September 26, 2026): PR-D1b gates
+# the league's turn-4 settlement offer, so the boot war now ends around
+# turn 9–11 and the courtship geometry these arms measure (a peace at t4,
+# the door at t20, the beat at t21) no longer fits a 23-turn drive. The
+# ruling's own option: these drives run with THAT lever down — they measure
+# the volte-face machinery, not the league's cadence — and every arm,
+# in-process and the subprocess control alike, plays the same board. The
+# board as shipped is measured by SR-1d's own record (the `prd1b-cmd-*`
+# archives: the offer at t9 / t10 / t11).
+_PRE_SR1D_LEAGUE = ((AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False),)
+_PRE_SR1D_LEAGUE_CLI = ["--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0"]
+
+
 @pytest.fixture(scope="module")
 def courted():
     """The committed courting script, to just past the beat (the court
     signs at t21 on the landing measurement)."""
-    return _drive("volte_court_austria.json", 23, "courted")
+    return _drive("volte_court_austria.json", 23, "courted", levers=_PRE_SR1D_LEAGUE)
 
 
 @pytest.fixture(scope="module")
@@ -333,14 +346,15 @@ def courted_unhooked():
     the 'the hooks do not steer' pin (T7). Anything the process carries from
     earlier tests is carried by both arms alike, so the two digests must be
     identical line for line, not merely as multisets."""
-    return _drive("volte_court_austria.json", 23, "courted_unhooked", hooks=False)
+    return _drive("volte_court_austria.json", 23, "courted_unhooked", hooks=False,
+                  levers=_PRE_SR1D_LEAGUE)
 
 
 @pytest.fixture(scope="module")
 def plain():
     """The same commanded arm with no courting — the uncourted negative,
     and N3's `commanded_full40 --diplomacy accept --seed historical`."""
-    return _drive("commanded_full40.json", 23, "plain")
+    return _drive("commanded_full40.json", 23, "plain", levers=_PRE_SR1D_LEAGUE)
 
 
 @pytest.fixture(scope="module")
@@ -348,7 +362,7 @@ def window_down():
     """The courting script with the window lever DOWN, long enough to see
     Austria's own ladder alliance land (t29 when landed)."""
     return _drive("volte_court_austria.json", 29, "window_down",
-                  levers=((ED, "THE_WINDOW_FITS_THE_COURTSHIP", False),))
+                  levers=((ED, "THE_WINDOW_FITS_THE_COURTSHIP", False),) + _PRE_SR1D_LEAGUE)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1010,7 +1024,8 @@ def t7_court(tmp_path_factory):
     proc = subprocess.run(
         [sys.executable, str(DRIVER), "--name", "court", "--out", str(root),
          "--fresh", "--script", str(SCRIPTS / "volte_court_austria.json"),
-         "--turns", "40", "--seed", "historical", "--diplomacy", "accept"],
+         "--turns", "40", "--seed", "historical", "--diplomacy", "accept",
+         *_PRE_SR1D_LEAGUE_CLI],
         env=env, cwd=str(REPO), capture_output=True, text=True,
         encoding="utf-8", errors="replace", timeout=900)
     assert proc.returncode == 0, (proc.stdout[-2000:], proc.stderr[-2000:])

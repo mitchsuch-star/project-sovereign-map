@@ -1149,6 +1149,7 @@ def make_inprocess_transport(args, out_dir):
                 import backend.main as backend_main
     else:
         import backend.main as backend_main
+    _apply_levers(getattr(args, "lever", None) or [])
 
     tx = Transport(TestClient(backend_main.app), "in-process", console_log)
     # IQ-8: the game-shaping environment AFTER the import — what the engine
@@ -3195,6 +3196,24 @@ def drain(transport, digest, answerer, response, strict):
             raise RuntimeError("answer chain cap hit under --strict")
 
 
+def _apply_levers(specs) -> None:
+    """SR-1d: `--lever MODULE:NAME=0|1` — set a backend flip lever for this run
+    (after the backend import, before the first request). A malformed spec
+    is an error, never a silent no-op: an arm that thinks it moved a lever
+    and did not is the s16_d4 lesson."""
+    import importlib
+    for spec in specs or []:
+        try:
+            target, value = str(spec).split("=", 1)
+            module_name, attr = target.split(":", 1)
+        except ValueError as exc:
+            raise SystemExit(f"--lever expects MODULE:NAME=0|1, got {spec!r}") from exc
+        module = importlib.import_module(module_name)
+        if not hasattr(module, attr):
+            raise SystemExit(f"--lever: {module_name} has no lever {attr!r}")
+        setattr(module, attr, value.strip().lower() in ("1", "true", "yes", "on"))
+
+
 def run(args):
     script = {}
     if args.script:
@@ -3280,6 +3299,9 @@ def run(args):
         "scenario": getattr(args, "scenario", None) or "",
         "script": getattr(args, "script", None) or "",
         "cheats": bool(getattr(args, "cheats", False)),
+        # SR-1d: the flip levers this run set (provenance — an arm played
+        # with a lever down says so in its own record).
+        "levers": list(getattr(args, "lever", None) or []),
         "strict": bool(getattr(args, "strict", False)),
         "rng": rng_meta,
         # FA-75/79 (slice 17): the driver revision that produced this run —
@@ -4190,6 +4212,13 @@ def main():
     ap.add_argument("--verbose", action="store_true",
                     help="let the backend console print to stdout instead of "
                          "server_console.log")
+    # SR-1d (September 26, 2026): a flip lever set IN THE RUN, so a subprocess
+    # arm can play a board a slice's lever has moved off — `MODULE:NAME=0|1`,
+    # repeatable, applied right after the backend import and recorded in
+    # meta.json (an instrument's dial, never a game config surface).
+    ap.add_argument("--lever", action="append", default=[], metavar="MODULE:NAME=0|1",
+                    help="set a backend flip lever for this run, e.g. "
+                         "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0")
     ap.add_argument("--fresh", action="store_true",
                     help="delete the run directory first")
     ap.add_argument("--archive", action="store_true",

@@ -471,7 +471,12 @@ class TestTheTableAndItsMirrors:
     def test_eighteen_cards_in_gate_order_with_the_three_new_lessons(self):
         rows = _overlay_steps()
         ids = [r[0] for r in rows]
-        assert len(rows) == 18
+        # 18 → 19, consciously (SR-1 reserve, September 26, 2026): card XVII
+        # "The Congress of Paris" teaches the reign's ending between the
+        # Wooden Wall and the Instruments; the Instruments and the hand-off
+        # each move one gate later.
+        assert len(rows) == 19
+        assert ids.index("congress") == ids.index("naval") + 1
         assert ids.index("cabinet") == ids.index("bombardment") + 1
         assert ids.index("marshalate") == ids.index("first_battle") + 1
         assert ids.index("naval") == ids.index("free_stand") + 1

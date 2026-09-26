@@ -11504,8 +11504,15 @@ class WorldState:
                 and _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state)):
             if is_player_treaty:
                 # LV-3 (row EP F2): the same enums, the same tag.
-                from backend.display_names import STATE_DISPLAY, with_definite_article
+                from backend.display_names import (
+                    STATE_DISPLAY, with_definite_article, with_indefinite_article,
+                )
                 from backend.game_logic.formations import formed_display_name
+
+                def _capitalised(text: str) -> str:
+                    # SR-1d (PR-D1b's rider): "A Armistice treaty" — the
+                    # article helper returns lowercase; the sentence starts here.
+                    return (text[:1].upper() + text[1:]) if text else text
                 # The OTHER court, whichever side proposed (an AI offer's
                 # `target_nation` is France herself).
                 _other = player_counterpart or target_nation
@@ -11515,7 +11522,7 @@ class WorldState:
                     "message": (
                         f"We already have {STATE_DISPLAY.get(current_state, current_state)} with "
                         f"{with_definite_article(formed_display_name(self, _other))}. "
-                        f"A {STATE_DISPLAY.get(target_state, target_state)} treaty would be a downgrade."
+                        f"{_capitalised(with_indefinite_article(STATE_DISPLAY.get(target_state, target_state)))} treaty would be a downgrade."
                     ),
                 }
             return None  # AI-AI: silent skip
@@ -12354,9 +12361,28 @@ class WorldState:
                     "gold_paid": int(_gold_out),
                 }
                 self.log_event(peace_event)
-                queue_dispatch_event(self, "peace_ratified",
-                                    {"proposer_nation": proposer, "target_nation": target_nation},
-                                    "always")
+                if target_state == "ARMISTICE":
+                    # SR quick win AAR-15: a truce is announced as a truce —
+                    # the dispatch's rail row and headline had read "peace
+                    # ratified" / "the war ends" for WAR → ARMISTICE (the
+                    # campaign log's one-liner already said "Armistice
+                    # ratified"). The LOG event keeps its type (no new
+                    # campaign-log type); the dispatch event is the truce's
+                    # own, with its clock and its thaw line.
+                    from backend.game_logic.diplomacy import (
+                        ARMISTICE_AUTO_PEACE_RELATION, ARMISTICE_DURATION,
+                    )
+                    from backend.game_logic.formations import formed_display_name as _fdn
+                    queue_dispatch_event(self, "armistice_ratified", {
+                        "proposer_nation": proposer, "target_nation": target_nation,
+                        "other": _fdn(self, player_counterpart or target_nation),
+                        "turns": int(ARMISTICE_DURATION),
+                        "thaw": int(ARMISTICE_AUTO_PEACE_RELATION),
+                    }, "always")
+                else:
+                    queue_dispatch_event(self, "peace_ratified",
+                                        {"proposer_nation": proposer, "target_nation": target_nation},
+                                        "always")
 
             # BPH-C §9.3: Apply separate-peace relation penalties
             applied_penalties: List[Dict] = []

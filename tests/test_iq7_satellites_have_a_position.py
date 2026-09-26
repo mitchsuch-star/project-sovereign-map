@@ -668,6 +668,16 @@ class TestT6Refuse:
 
 
 class TestT7Lapse:
+    @pytest.fixture(autouse=True)
+    def _pre_sr1d_league(self, monkeypatch):
+        """SR-1d (September 26, 2026): PR-D1b gates the league's turn-4 offer,
+        so on the shipped board no settlement offer holds the current slot at
+        turn 6 — the "ordinary board" pin below stages its queued petition
+        behind that letter and runs with the lever down, as the ruling
+        allows (the class measures the lapse, not the league's cadence)."""
+        from backend.game_logic import ai_diplomacy as _AD
+        monkeypatch.setattr(_AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False)
+
     def test_an_unanswered_petition_lapses_as_a_refusal_through_the_real_end_turn(self, http):
         w, client = http
         dlg = _deliver(w, "Switzerland")

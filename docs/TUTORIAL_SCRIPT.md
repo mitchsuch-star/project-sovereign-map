@@ -381,6 +381,7 @@ mock-parse-verified against the tutorial roster in
 | 8+ | The fog | `Davout, scout Bohemia` | Austria's main body is ALREADY on you — see the FA-63 note below; the fog lesson is where it has gone, not whether it is coming |
 | 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs the Vienna pair (~50k, cautious) — by this turn they have been in contact for six turns. Now also names supply: a province feeds only so many, and the region panel states the limit |
 | 10+ | **The Wooden Wall** (Sept 23, 2026) | *(none — self-releasing, `_pred_turn_gte_11`)* | The naval rule taught, not staged: the lesson authors no `navies` (an Admiralty bill would bankrupt the 900-gold treasury), and the card SAYS there is no fleet in this lesson. Names the Royal Navy's Channel, the crimson SHUT link, THE ADMIRALTY (T, then 7), `build ships`, blockade + the Continental System, expeditions, the Grand Diversion, and where Britain lands (Normandy, Lisbon) |
+| 11+ | **The Congress of Paris** (Sept 26, 2026 — SR-1's reserve) | *(none — self-releasing, `_pred_turn_gte_12`)* | The reign's ending taught, not staged: the lesson authors no Congress, and the card SAYS so. Title by four roads (own soil, a treaty's cession or retention, a client's loyal homeland, twelve quiet turns), the summons at forty-five from the Cabinet (F1), the public table and its prices, the eight-turn sitting and the hold, the CONGRESS tab (D, then 7) that names each held province's road, the war room that prices its counsel, THE IMPERIAL PEACE |
 
 > **FA-63 (Sept 11, 2026) — the reserve's timing, measured.** The scenario
 > file's original `_comment` and this table's rows XII/XIII claimed that
@@ -406,8 +407,8 @@ mock-parse-verified against the tutorial roster in
 > Day Closes · IV Temper (pushback) · V Trust/Insist/Compromise (trust,
 > defiance) · VI Guns · **VII Cabinet** · VIII First Blood · **IX Marshalate**
 > · X Standing Orders · XI Conquest · XII Conqueror's Choice · XIII Depots ·
-> XIV Fog · XV Counter-Blow · **XVI Wooden Wall** · XVII Instruments (now
-> also L, N, Alt+key, the notice rail, Esc) · XVIII Lesson Ends. Card I now
+> XIV Fog · XV Counter-Blow · **XVI Wooden Wall** · **XVII The Congress of Paris** (Sept 26, 2026 — the reign's ending, the road to title, the table) · XVIII Instruments (now
+> also L, N, Alt+key, the notice rail, Esc) · XIX Lesson Ends. Card I now
 > teaches Tab completion, province-click chips and the three first-contact
 > doors (`what can I do` / `status` / `help`).
 

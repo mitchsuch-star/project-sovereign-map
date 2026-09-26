@@ -222,6 +222,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # FA-D12 (slice 17, Phase 2): the player's OWN peace — the mirror of
     # war_touches_us. Below the wounds, above a routine conquest.
     "peace_signed": 70,
+    # SR quick win AAR-15: a truce is not a peace — its own class, a notch
+    # under the peace (the war is paused, not over), with its clock.
+    "truce_signed": 68,
     # The peace's own consequence for the army. Below every direct wound to
     # France, above a routine conquest — it is the answer to "what happens
     # to the men who won it", which the player asks the moment he signs.
@@ -449,6 +452,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
                       "lost in {turns} turns. {remedy}"),
     "war_touches_us": "Sire — {line}",
     "peace_signed": "Sire — peace with {other} is signed. {line}",
+    "truce_signed": "Sire — a truce with {other} is signed. {line}",
     # WIN-D3 §4.3 — the beat names names and the deadline, and when a corps
     # has no land route it says so plainly rather than pretending (§5).
     "road_home": "Sire — the war with {other} is over. {line}",
@@ -654,6 +658,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "levy_open": "The depots are full and the ordinance allows it, Sire. Conscripts do not improve with keeping.",
     "war_touches_us": "Europe stirs against us, Sire. We should look to our alliances.",
     "peace_signed": "A treaty is a breathing space, Sire, not a rest. The next war is already being priced.",
+    "truce_signed": "A truce is a clock, Sire, not a treaty. Use its turns — the war is paused, not over.",
     "ally_broken": "Our ally bleeds, Sire. If we do not steady them, they may seek terms without us.",
     "estate_eroding": "A marshal who feels forgotten fights like one, Sire. The estate rolls want attention.",
     "europe_at_war": "A war we are not in, Sire — for now. Both courts will come asking; the question is what our neutrality is worth.",
@@ -1423,6 +1428,23 @@ def _build_headline(world, player_nation: str,
             _other = (e.get("target_nation") if e.get("proposer_nation") == player_nation
                       else e.get("proposer_nation")) or e.get("target_nation") or ""
             _outcome = str(e.get("war_outcome") or "")
+            if str(e.get("state_transition") or "").endswith("_TO_ARMISTICE"):
+                # SR quick win AAR-15: WAR → ARMISTICE is a truce, not a
+                # peace — its own class, with the clock and the thaw the
+                # player has to plan around ("peace with Russia is signed …
+                # the war ends in a stalemate" had announced a five-turn
+                # ceasefire as the war's end).
+                from backend.game_logic.diplomacy import (
+                    ARMISTICE_AUTO_PEACE_RELATION, ARMISTICE_DURATION,
+                )
+                _truce_line = (f"The fighting stops for {ARMISTICE_DURATION} turns; "
+                               f"peace if relations heal to "
+                               f"{ARMISTICE_AUTO_PEACE_RELATION} or better, else "
+                               f"the war resumes.")
+                if _other:
+                    _add("truce_signed", f"truce_signed:{_other}",
+                         other=formed_display_name(world, _other), line=_truce_line)
+                continue
             _line = {
                 "white_peace": "A white peace — the map stands as it was.",
                 "stalemate": "Terms on both sides; the war ends in a stalemate.",
@@ -5417,6 +5439,10 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # SR-1a — a signed peace's status quo titles what we hold (uti possidetis)
     "status_quo_titled": ("{provinces} — retained by the peace with {ceder}, "
                           "titled by treaty."),
+    # SR quick win AAR-15 — a truce is a truce, with its clock and its thaw
+    "armistice_ratified": ("A truce with {other}: the fighting stops for {turns} "
+                           "turns — peace if relations heal to {thaw} or better, "
+                           "else the war resumes."),
     # WB-B — war bargain lifecycle
     "bargain_ratified": "{promiser} and {beneficiary} ratified a bargain against {target_enemy}: French priority claim on {claim_region}.",
     "bargain_triggered": "{beneficiary} joins against {target_enemy}; the bargain over {claim_region} is now active.",
@@ -5553,6 +5579,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "nation_eliminated": "HIGH",
     "peace_ratified": "HIGH",
     "status_quo_titled": "MEDIUM",
+    "armistice_ratified": "HIGH",
     # WB-B — war bargain lifecycle
     "bargain_ratified": "MEDIUM",
     "bargain_triggered": "HIGH",

@@ -1415,6 +1415,147 @@ def _captor_offer_due(nation: str, player: str, world) -> bool:
     return turns >= 1 and (turns - 1) % CAPTOR_OFFER_INTERVAL == 0
 
 
+# ═══════════════════════════════════════════════════════════════════
+# SR-1d — PR-D1b "The League Treats When Spent" (Score Mandate Chunk 1,
+# September 26, 2026; ruled September 23 under the delegated grant).
+#
+# The AI's multi-party settlement OFFER to the player was gated only
+# structurally (the war live, multi-party, the player in it, a known leader,
+# ≥ 2 turns old, off cooldown) — it read no exhaustion, no war score and no
+# wants-peace term, so every coalition war against the player ended 3–4
+# turns after it started (the commanded arm's turn-4 "Settlement Ratified:
+# France vs Austria + Britain + Russia (7 pairs resolved)", the league then
+# spent for half of France's alarm). The gate is P1's OWN coalition
+# break-ranks clause — NOT `effective_peace_threshold` (that was
+# transcription drift; simulated literally it kept the league at war until
+# turns 26–36 and France collapsed to 9–11 provinces) — extracted here as
+# ONE helper so P1 behaves exactly as before, and applied to the OFFERING
+# LEADER of the active coalition's war against the player only: in the
+# producer loop and at the two `request_terms` checkpoints, never in
+# `_settlement_offer_eligible_for_war` (mediation shares it and stays
+# ungated by construction). The player's own peace PROPOSAL stays open.
+# Measured (the ruling's simulation): the league's first offer t3 → t10,
+# the war's end t4 → t11 on 3 seeds; on this board the gate behaves as a
+# ~10-turn floor because Britain's exhaustion arm (WE ≥ 80 by t10) fires
+# first. Flip lever, not a config surface.
+# ═══════════════════════════════════════════════════════════════════
+
+THE_LEAGUE_TREATS_WHEN_SPENT = True
+
+# P1's four arms, named. The literals were unnamed in the clause; they are
+# the SAME numbers, read from here by both the clause and the offer gate.
+BREAK_RANKS_WAR_SCORE = -50           # war score < -50
+BREAK_RANKS_EXHAUSTION = 80           # war exhaustion > 80
+BREAK_RANKS_LONG_WAR_TURNS = 8        # 8+ turns at war …
+BREAK_RANKS_LONG_WAR_SCORE = -60      # … at war score < -60
+WAR_EXHAUSTION_PER_TURN_AT_WAR = 8    # coalition.py's own tick (+8 a turn at war)
+
+
+def coalition_break_ranks_reason(world, nation: str, *, war_score: int,
+                                 diplo_key: str) -> Optional[str]:
+    """Why a coalition member may sue on its own — P1's break-ranks clause
+    as ONE predicate: `score` (war score < -50), `exhaustion` (WE > 80),
+    `long_war` (8+ turns at war and score < -60), `pressburg` (NA-2 §5.4: a
+    court whose design is satisfied, at score < -30). None = it stays
+    loyal. `diplo_key` is the member's pair with the player (the war
+    duration is pair-keyed, as P1 reads it).
+
+    Kept exactly as P1 wrote it, including a limb that cannot fire: a score
+    under -60 is under -50, so the `long_war` arm is subsumed by `score`
+    and has been dead since it was written (found while extracting; kept
+    so P1 behaves byte-identically, recorded here rather than repaired —
+    changing the clause is a balance question, not this row's)."""
+    from backend.game_logic.agendas import (
+        AGENDA_SEPARATE_PEACE_SCORE, agenda_separate_peace_ready,
+    )
+    war_duration = int(world.current_turn) - int(
+        world.war_start_turns.get(diplo_key, world.current_turn))
+    nation_we = int(world.war_exhaustion.get(nation, 0) or 0)
+    if war_score < BREAK_RANKS_WAR_SCORE:
+        return "score"
+    if nation_we > BREAK_RANKS_EXHAUSTION:
+        return "exhaustion"
+    if war_duration >= BREAK_RANKS_LONG_WAR_TURNS and war_score < BREAK_RANKS_LONG_WAR_SCORE:
+        return "long_war"
+    if war_score < AGENDA_SEPARATE_PEACE_SCORE and agenda_separate_peace_ready(nation, world):
+        return "pressburg"
+    return None
+
+
+def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
+    """The offer gate for ONE war. None = ungated (the war is not the active
+    coalition's war against the player, or the leader may break ranks).
+    Otherwise a dict naming the gate: `{"reason": "league_not_spent",
+    "leader", "war_score", "exhaustion", "turns_at_most"}` — the honest
+    clock is the exhaustion arm's: at +8 a turn at war the leader passes 80
+    in at most ⌈(81 − N) / 8⌉ turns (the other arms may open it sooner)."""
+    if not THE_LEAGUE_TREATS_WHEN_SPENT or not isinstance(war, dict):
+        return None
+    coalition = getattr(world, "active_coalition", None)
+    if not coalition or coalition.get("target_nation") != player:
+        return None
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    if not player_side:
+        return None
+    leader = _settlement_offer_opposing_side_leader(war, player_side=player_side)
+    if not leader or leader not in (coalition.get("members") or []):
+        return None
+    from backend.game_logic.diplomacy import get_war_score_for
+    war_score = int(get_war_score_for(world, leader, player))
+    diplo_key = world._make_diplo_key(leader, player)
+    reason = coalition_break_ranks_reason(world, leader, war_score=war_score,
+                                         diplo_key=diplo_key)
+    if reason is not None:
+        return None
+    exhaustion = int(world.war_exhaustion.get(leader, 0) or 0)
+    turns = max(1, -(-(BREAK_RANKS_EXHAUSTION + 1 - exhaustion) // WAR_EXHAUSTION_PER_TURN_AT_WAR))
+    return {"reason": "league_not_spent", "leader": leader, "war_score": war_score,
+            "exhaustion": exhaustion, "turns_at_most": int(turns)}
+
+
+def league_offer_gate_display(world, gate: Dict) -> str:
+    """The clock the disabled Request Terms button carries."""
+    from backend.game_logic.formations import formed_display_name
+    leader = formed_display_name(world, str(gate.get("leader") or ""))
+    turns = int(gate.get("turns_at_most") or 1)
+    return (f"{leader} leads a league that is not yet spent, Sire — it names no terms "
+            f"while it can still fight (exhaustion {int(gate.get('exhaustion') or 0)} of "
+            f"{BREAK_RANKS_EXHAUSTION}; at most {turns} turn{'s' if turns != 1 else ''}, "
+            f"sooner if the war turns against it).")
+
+
+def _covered_members_envoy_pending(world, war: Dict, *, player: str) -> bool:
+    """The rider: a covered member's own bilateral envoy for THIS war is on
+    the desk (or queued) — the producer waits a turn, so the player is not
+    handed a member's armistice and the league's table in one breath (the
+    "another matter has arrived since" / "would be a downgrade" collision the
+    ruling measured on 2 of 3 seeds)."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return False
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    theirs = {n for n, s in side_by_nation.items() if s and s != player_side}
+    if not theirs:
+        return False
+    queued = []
+    head = dm.peek()
+    if head:
+        queued.append(head)
+    try:
+        queued.extend(dm.iter_queue())
+    except Exception:
+        pass
+    for dlg in queued:
+        if not isinstance(dlg, dict) or dlg.get("type") != "incoming_proposal":
+            continue
+        source = str((dlg.get("context") or {}).get("source_nation") or dlg.get("target_nation") or "")
+        if source in theirs:
+            return True
+    return False
+
+
 def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     """Evaluate whether an AI nation should make a diplomatic proposal to France.
 
@@ -1558,22 +1699,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         from backend.game_logic.coalition import is_coalition_member
         coalition_blocked = False
         if is_coalition_member(nation, world):
-            war_duration = world.current_turn - world.war_start_turns.get(diplo_key, world.current_turn)
-            nation_we = world.war_exhaustion.get(nation, 0)
-            # NA-2 §5.4 the Pressburg arm: a member whose court's design is
-            # SATISFIED (or fighting for survival) breaks ranks earlier —
-            # war_score < AGENDA_SEPARATE_PEACE_SCORE (-30) instead of the
-            # stock -50. A nation that got what it wanted sues to lock it.
-            from backend.game_logic.agendas import (
-                AGENDA_SEPARATE_PEACE_SCORE, agenda_separate_peace_ready,
-            )
-            pressburg_ready = (
-                war_score < AGENDA_SEPARATE_PEACE_SCORE
-                and agenda_separate_peace_ready(nation, world)
-            )
-            if not (war_score < -50 or nation_we > 80
-                    or (war_duration >= 8 and war_score < -60)
-                    or pressburg_ready):
+            # SR-1d: the four arms live in ONE helper (score / exhaustion /
+            # long war / the NA-2 §5.4 Pressburg arm — a member whose design
+            # is SATISFIED breaks ranks at -30 instead of -50), read by this
+            # clause and by the league's settlement-offer gate alike.
+            if coalition_break_ranks_reason(world, nation, war_score=war_score,
+                                            diplo_key=diplo_key) is None:
                 coalition_blocked = True
 
         # FA-S17-15 (slice 17, Phase 4): the same court sent a bilateral
@@ -4151,6 +4282,41 @@ def _resolve_settlement_terms_requests(
             # eligibility function's first-refusal-wins ordering can mask
             # this behind `cooldown_active`) — never double-produce.
             structural = "offer_already_pending"
+        # SR-1d: re-checked at answer time — a league that was spent when
+        # the player asked and is not now (the board moved) declines, with
+        # the same clock the button showed, and the request cools down.
+        _gate = (league_offer_gate(world, war, player=player)
+                 if structural in (None, "cooldown_active", "war_too_young")
+                 and isinstance(war, dict) else None)
+        if _gate is not None:
+            entry["status"] = "refused"
+            entry["resolved_turn"] = int(current_turn)
+            entry["resolve_reason"] = "league_not_spent"
+            entry["cooldown_until_turn"] = int(
+                current_turn + REQUEST_TERMS_COOLDOWN_TURNS
+            )
+            world.notifications.add(create_notification(
+                notification_type=SETTLEMENT_TERMS_REQUEST_RESULT,
+                priority=NotificationPriority.NORMAL,
+                title=f"Terms refused by {_gate['leader']}",
+                message=league_offer_gate_display(world, _gate),
+                turn_created=int(current_turn),
+                details={
+                    "war_id": str(war_id),
+                    "result": "refused",
+                    "resolve_reason": "league_not_spent",
+                },
+            ))
+            if hasattr(world, "log_event"):
+                world.log_event({
+                    "type": "settlement_terms_request_refused",
+                    "nation": player,
+                    "war_id": str(war_id),
+                    "war_label": war_label,
+                    "answering_leader": str(_gate["leader"]),
+                    "turn": int(current_turn),
+                })
+            continue
         if structural in (None, "cooldown_active", "war_too_young"):
             # Structurally answerable. `cooldown_active` is the producer's
             # periodic clock — a direct request bypasses it by design; the
@@ -4336,6 +4502,14 @@ def process_settlement_offer_phase(world) -> List[Dict]:
             world, war, player=player, current_turn=current_turn,
         )
         if refusal is not None:
+            continue
+        # SR-1d: the league treats when spent — its leader names terms only
+        # once it could break ranks by P1's own clause; and never in the
+        # same breath as a covered member's own envoy for this war.
+        if league_offer_gate(world, war, player=player) is not None:
+            continue
+        if THE_LEAGUE_TREATS_WHEN_SPENT and _covered_members_envoy_pending(
+                world, war, player=player):
             continue
 
         produced.append(_emit_settlement_offer_for_war(

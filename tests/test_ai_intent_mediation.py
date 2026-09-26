@@ -77,11 +77,24 @@ def _free_the_arbiter(world, mediator="Russia"):
 
 def _weary_boot_war(world):
     """Age the boot coalition war past the offer floor and make France
-    weary enough to invite good offices."""
+    weary enough to invite good offices.
+
+    SR-1d (September 26, 2026): PR-D1b gates the league's offer on P1's
+    break-ranks clause, so the standard courier fires only once its leader
+    could break ranks — the two pins that need the STANDARD courier seat
+    Britain past the exhaustion arm themselves (`_spend_the_leader`, 81 > 80),
+    exactly the re-seat the ruling named; the floor pin keeps the boot's
+    unspent Britain."""
     for war in world.war_instances.values():
         if isinstance(war, dict) and war.get("ended_turn") is None:
             war["created_turn"] = int(world.current_turn) - 4
     world.war_exhaustion[world.player_nation] = MEDIATION_WE_FLOOR + 20
+
+
+def _spend_the_leader(world):
+    """SR-1d: the league's leader past P1's exhaustion arm, so the standard
+    producer may treat (the ruling's re-seat)."""
+    world.war_exhaustion["Britain"] = 81
 
 
 class TestProducer:
@@ -137,6 +150,7 @@ class TestProducer:
         )
         _free_the_arbiter(world, "Russia")
         _weary_boot_war(world)
+        _spend_the_leader(world)
         standard = process_settlement_offer_phase(world)
         assert standard, "precondition: the standard courier fires first"
         assert "mediator" not in standard[0]
@@ -220,6 +234,7 @@ class TestCourierSurface:
             build_incoming_settlement_offer_popup,
         )
         _weary_boot_war(world)
+        _spend_the_leader(world)
         produced = process_settlement_offer_phase(world)
         assert produced
         offer = produced[0]

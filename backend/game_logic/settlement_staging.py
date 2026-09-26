@@ -2272,6 +2272,15 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
     sentence += "."
     if press:
         sentence += f" Press {_join_names(press)} alone: the separate peace."
+        # SR-1c (AAR-D5): the counsel names the DP price of the road it
+        # recommends — the executor's own quote for a peace with the first
+        # court to press, beside what the player has today.
+        from backend.game_logic.diplomacy import diplomatic_price_quote
+        first = (beaten + [c for c in ready if c not in beaten])[0]
+        quote = diplomatic_price_quote(world, "peace", first)
+        sentence += (f" It costs {quote['cost']} diplomatic "
+                     f"{'point' if quote['cost'] == 1 else 'points'}; you have "
+                     f"{quote['have']}.")
     return sentence
 
 

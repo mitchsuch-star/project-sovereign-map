@@ -1214,6 +1214,103 @@ def titled_provinces(world, leader: str) -> Dict[str, List[str]]:
     return {"titled": sorted(titled), "held": sorted(held)}
 
 
+ROAD_QUIET = "quiet"          # a conquest on its clock, at peace with the ceder
+ROAD_PEACE = "peace"          # a conquest whose ceder is still at war with us
+ROAD_LOYALTY = "loyalty"      # a satellite's own homeland, its loyalty under 40
+ROAD_SIGNATURE = "signature"  # no clock at all — only a treaty titles it
+
+
+def title_roads(world, leader: str) -> List[Dict[str, Any]]:
+    """SR-1c "The gate line teaches the road" (Score Mandate Chunk 1): for
+    every HELD, unsettled province of the bloc, its shortest road to title —
+    derived from the same record `province_title_kind` reads, so the road
+    and the count can never disagree. Four kinds:
+
+    * `quiet` — a conquest on its quiet clock at peace with the ceder: the
+      turns left and the turn it titles on (a hostile army restarts it);
+    * `peace` — a conquest whose ceder is still at WAR with us: a peace that
+      leaves it ours titles it at the signature (SR-1a), else the clock
+      runs from the peace (`reconcile_province_titles` restarts it every
+      turn of the war — "12 quiet turns" is only true at peace);
+    * `loyalty` — a satellite's own homeland while its loyalty is under 40;
+    * `signature` — no record (or another house's): no clock runs at all.
+
+    `short` is the Moniteur's and the desk's clause; `text` the ledger's
+    sentence. Pure read; ints only (GR2)."""
+    from backend.game_logic.formations import formed_display_name
+    view = titled_provinces(world, leader)
+    title_turns = int(cfg(world, "title_turns", TITLE_TURNS_DEFAULT))
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    store = getattr(world, "province_title", None)
+    store = store if isinstance(store, dict) else {}
+    vassals = getattr(world, "vassals", {}) or {}
+    roads: List[Dict[str, Any]] = []
+    for region_name in view.get("held") or []:
+        region = getattr(world, "regions", {}).get(region_name)
+        holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+        rec = store.get(region_name)
+        rec = rec if isinstance(rec, dict) else {}
+        road: Dict[str, Any] = {
+            "region": region_name, "holder": holder, "kind": "", "ceder": "",
+            "turns_left": 0, "titles_on_turn": 0, "at_war": False,
+            "text": "", "short": "",
+        }
+        if holder and holder != leader and _is_homeland(world, region_name, holder):
+            row = vassals.get(holder) if isinstance(vassals.get(holder), dict) else {}
+            loyalty = int(row.get("loyalty", 0) or 0)
+            from backend.display_names import with_definite_article
+            who = with_definite_article(formed_display_name(world, holder))
+            road.update(
+                kind=ROAD_LOYALTY,
+                text=(f"{region_name} — {who}'s own soil; it counts once its "
+                      f"loyalty reaches 40 (now {loyalty}): invest in it, or "
+                      f"grant its petition"),
+                short=f"{region_name} waits on {who}'s loyalty ({loyalty} of 40)",
+            )
+        elif rec.get("kind") not in (TITLE_CONQUEST, TITLE_TREATY):
+            road.update(
+                kind=ROAD_SIGNATURE,
+                text=(f"{region_name} — no clock runs on it; only a treaty "
+                      f"that cedes it titles it"),
+                short=f"{region_name} waits on a treaty",
+            )
+        else:
+            ceder = str(rec.get("from") or "")
+            ceder_top = world._top_overlord(ceder) if ceder else ""
+            at_war = bool(ceder) and (world.is_at_war(ceder, holder)
+                                      or world.is_at_war(ceder_top, leader))
+            since = int(rec.get("since", turn) or 0)
+            left = max(0, title_turns - (turn - since))
+            on = since + title_turns
+            cname = formed_display_name(world, ceder) if ceder else "its former owner"
+            road.update(ceder=ceder, at_war=bool(at_war), turns_left=int(left),
+                        titles_on_turn=int(on))
+            if at_war:
+                road.update(
+                    kind=ROAD_PEACE,
+                    text=(f"{region_name} — a peace with {cname} that leaves it "
+                          f"ours titles it at the signature; otherwise "
+                          f"{title_turns} quiet turns from the peace"),
+                    short=f"{region_name} needs a peace with {cname}",
+                )
+            else:
+                tail = ""
+                if rec.get("reopened_by"):
+                    tail = (f" — the cession {cname} signed was reopened by war on "
+                            f"turn {int(rec.get('reopened_turn') or since)}; a new "
+                            f"peace re-titles it")
+                road.update(
+                    kind=ROAD_QUIET,
+                    text=(f"{region_name} — {left} more quiet "
+                          f"{'turn' if left == 1 else 'turns'} (titled on turn "
+                          f"{on}); a hostile army standing on it restarts the "
+                          f"clock{tail}"),
+                    short=f"{region_name} titles on turn {on}",
+                )
+        roads.append(road)
+    return roads
+
+
 def reconciled_regions(world, nation: str) -> set:
     """§2.2 rider: the provinces `nation` has SIGNED away while the treaty
     still holds — its Revanche reads them 0. Zero new world fields: the

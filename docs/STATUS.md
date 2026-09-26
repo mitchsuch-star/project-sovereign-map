@@ -22,9 +22,49 @@
 > four-arm attribution (`tools/_sr1_series_arms.py`) with the counts measured**
 > (one retention the AI cannot read; the cascade fired twice and moved nothing);
 > M1–M7 byte-identical; one pin consciously flipped (the Tilsit carve's Silesia
-> is a retained title now). **NEXT = SR-1c the gate line teaches the road → SR-1d
-> PR-D1b + PB-7 → the reserve (AAR-15, the GE-V §4 nits, the School card) →
-> SR-1e the re-measure.**
+> is a retained title now). ~~SR-1c~~ ✅ LANDED the same day — **the gate line
+> teaches the road**: ONE derivation `game_end.title_roads` off the same record
+> the count reads (quiet / peace / loyalty / signature, each with the turn it
+> titles on), rendered on the CONGRESS tab, the Territories tab, the war room,
+> the question desk and the Moniteur's near-miss column (within 5 of the
+> summons); the alarm term names its decay; the blocker and the war room's
+> counsel name the DP price of the road they recommend (`diplomatic_price_quote`,
+> the executor's own arithmetic); rules `SYSTEMS_REFERENCE.md` §70.4, pins
+> `test_sr1c_the_gate_line_teaches_the_road.py` 20; two `.gd` renderers, parse
+> harness EXIT=0 (it caught a `:=` on a Variant), boot 0 SCRIPT ERROR. ~~SR-1d~~
+> ✅ LANDED the same day — **PR-D1b "The League Treats When Spent"** as ruled:
+> P1's break-ranks clause extracted as `coalition_break_ranks_reason` (its
+> `long_war` limb found dead — subsumed by `score` — kept and recorded),
+> `league_offer_gate` on the offering leader in the producer loop and both
+> `request_terms` checkpoints (an honest clock; mediation and the player's own
+> proposal untouched), the envoy-pending rider, the article; **measured on the
+> commanded arm: the league's offer t4 → t9 / t10 / t11, France 28 / 25 / 28 at
+> turn 40** (`prd1b-cmd-*`); six arms byte-identical (the gate refused nine
+> ambient offers, turns 3–11); the four pin families re-seated exactly as the
+> ruling listed (IQ-6's drives lever-down through the driver's new `--lever`);
+> **PB-7** eight rows closed with evidence, **CA9-F3 measured still open on the
+> wire → SR-9**, every ownerless row owned by pillar, ROADMAP row 16 corrected;
+> rules §70.5–§70.6, pins `test_sr1d_the_league_treats_when_spent.py` 30.
+> ~~The reserve~~ ✅ DRAWN — AAR-12, **AAR-15** (a truce told as a truce, with its
+> clock: `armistice_ratified` + the `truce_signed` headline), the GE-V §4 nits
+> ("take its capital, Vilna"; an island court's ports lever first), the School's
+> **card XVII "The Congress of Paris"** (18 → 19, the count pin flipped; parse
+> harness EXIT=0, boot 0 SCRIPT ERROR); rules §70.3 + §70.7. ~~SR-1e~~ ✅ RUN —
+> the three roads re-driven with 1a–1d landed, SCRIPTED from the archived typed
+> orders (the chunked hand-play the contract asked for was not possible — the
+> old chunk scripts are gone and a hand-played road answers its popups by hand;
+> said plainly in the record): **the AAR road 35 → 37 at turn 40, opening A 34 →
+> 31 (three titling on turn 44; it fell before 40 on VP-R1), opening B 39 at
+> turn 9 → 16 (its unattended tail lost 27 → 8 provinces)** — the best point on
+> any road is 39 of 45 and every road erodes from its peak; **45 is NOT moved;
+> the §68.6 levers are written as SR-D3's first questions with these numbers**
+> (`SCORE_MANDATE_PLAN.md` §4 Q0); archives `sr1e-*` with `titled.json` series,
+> the probe `tools/sr1e_titled_probe.py`, the xfail reads all five roads.
+> **CHUNK 1 IS CLOSED — the exit re-scored (FOR USER CONFIRMATION): the ending
+> 5.5 → 6.5 (target 7 NOT met, residue → SR-D3), diplomacy 6.0 → 6.25,
+> directional ≈6.9 → ≈7.0.** **NEXT = Chunk 2 DIPLOMACY ("The table tells one
+> truth", plan §2) — or SR-D3's gate first, which §4 slots "immediately after
+> Chunk 1 if SR-1e says the road stops short": the user's call.**
 >
 > **▶ ▶ ▶ NEXT = ROW SR "THE SCORE MANDATE" — `docs/SCORE_MANDATE_PLAN.md` IS
 > THE ROUTING AUTHORITY (RULED September 26, 2026, by the user's direction).

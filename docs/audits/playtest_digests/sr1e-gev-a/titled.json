@@ -1,0 +1,35 @@
+{
+ "turn": 41,
+ "titled": 31,
+ "hold_titled": 45,
+ "status": "completed",
+ "held": [
+  "East Frisia",
+  "Oldenburg",
+  "Westphalia"
+ ],
+ "provinces": 23,
+ "note": "SR-1e re-measure (September 26, 2026): read off the run's own save by tools/sr1e_titled_probe.py through congress.titled — the same count the summons reads.",
+ "series": [
+  {
+   "turn": 9,
+   "titled": 34
+  },
+  {
+   "turn": 13,
+   "titled": 34
+  },
+  {
+   "turn": 18,
+   "titled": 34
+  },
+  {
+   "turn": 30,
+   "titled": 31
+  },
+  {
+   "turn": 41,
+   "titled": 31
+  }
+ ]
+}

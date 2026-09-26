@@ -13,7 +13,7 @@ Single source of truth for diplomatic mechanics:
 
 import copy
 import random  # noqa: F401 — used in _process_mission_effects
-from typing import Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from backend.display_names import (
     FEEDBACK_STRINGS,
@@ -8280,6 +8280,32 @@ def calculate_dp(diplomat, authority: int, controls_capital: bool) -> int:
     authority_bonus = 1 if authority >= 60 else (-1 if authority < 30 else 0)
     capital_penalty = -1 if not controls_capital else 0
     return max(1, min(5, base + skill_bonus + authority_bonus + capital_penalty))
+
+
+_PROPOSAL_STATE_FOR_PRICE = {
+    "peace": "PEACE", "armistice": "ARMISTICE", "alliance": "ALLIANCE",
+    "defensive_alliance": "DEFENSIVE_ALLIANCE", "non_aggression": "NON_AGGRESSION",
+    "open_borders": "OPEN_BORDERS", "vassalage": "VASSAL",
+}
+
+
+def diplomatic_price_quote(world, proposal_type: str, court: str) -> Dict[str, Any]:
+    """SR-1c (AAR-D5's counsel half): the DP a proposal of `proposal_type`
+    to `court` costs the player TODAY — the executor's own arithmetic
+    (`get_dp_cost` over `get_transition_dp_cost` from the live state, the
+    player's diplomat's skill) — beside what the player has, so counsel
+    that names a road names its price: "3 DP; you have 2"."""
+    from backend.nation_config import get_player_diplomat
+    talleyrand = get_player_diplomat(world)
+    skill = int(getattr(talleyrand, "skill", 5) or 5) if talleyrand else 5
+    player = str(getattr(world, "player_nation", "France") or "France")
+    current = world.get_diplomatic_state(player, court) if court else "PEACE"
+    target = _PROPOSAL_STATE_FOR_PRICE.get(str(proposal_type), "PEACE")
+    cost = int(get_dp_cost(f"propose_{proposal_type}", skill,
+                           transition_base=get_transition_dp_cost(current, target)))
+    have = int(getattr(world, "diplomatic_points", 0) or 0)
+    return {"cost": cost, "have": have, "affordable": have >= cost,
+            "text": f"{cost} DP; you have {have}"}
 
 
 def get_dp_cost(action_type: str, diplomat_skill: int = 10, transition_base: int = 0) -> int:

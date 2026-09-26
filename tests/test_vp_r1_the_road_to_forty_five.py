@@ -680,14 +680,42 @@ def _archived_titled(run: str) -> dict:
     reason="VP-R1 (Sept 25, 2026): no hand-played road reached 45 titled by "
            "turn 40 under the levers — opening B ended turn 40 at 36, opening "
            "A fell before turn 40 (the Emperor captive; 14 on the end screen). "
-           "The number is not moved a second time; the deeper gate is the "
-           "user's (SYSTEMS_REFERENCE §68.6). This turns RED the day an "
+           "SR-1e (Sept 26, 2026) re-drove the roads with Chunk 1's four "
+           "slices landed: the AAR road 37, opening A 31 (three more titling "
+           "on turn 44), the scripted opening B 16 — still short. The number "
+           "is not moved a third time; the §68.6 levers are SR-D3's first "
+           "questions (SCORE_MANDATE_PLAN §4). This turns RED the day an "
            "archived road reaches 45 — then retire the xfail and re-record.")
 def test_a_played_arm_reaches_forty_five_by_turn_forty():
-    """GEV-D1's named test over the committed re-measure archives."""
-    tails = [_archived_titled(run) for run in ("vpr1-played-a-tail", "vpr1-played-b-tail")]
+    """GEV-D1's named test over the committed re-measure archives — VP-R1's
+    two played tails and SR-1e's three re-driven roads."""
+    tails = [_archived_titled(run) for run in (
+        "vpr1-played-a-tail", "vpr1-played-b-tail",
+        "sr1e-aar-road", "sr1e-gev-b", "sr1e-gev-a")]
     assert all(t["turn"] >= 40 for t in tails)
     assert any(t["titled"] >= t["hold_titled"] for t in tails), tails
+
+
+class TestTheSR1eReMeasureIsOnTheRecord:
+    """SR-1e (Score Mandate Chunk 1, September 26, 2026): the three roads
+    re-driven with SR-1a..1d landed, each probed off its own save by
+    `tools/sr1e_titled_probe.py` (the same `congress.titled` the summons
+    reads). The AAR road (the hand-played orders of September 25, scripted)
+    ends turn 40 at 37 — five over the hand-played 32 at turn 18 — opening A
+    at 31 with three provinces titling on turn 44 (it FELL before turn 40 on
+    VP-R1), and the scripted opening B at 16 (its hand-played popup answers
+    do not survive a scripted replay; it is recorded as the road it is, not
+    as the played B). None reaches 45."""
+
+    def test_the_archived_roads_say_what_the_record_says(self):
+        aar = _archived_titled("sr1e-aar-road")
+        b = _archived_titled("sr1e-gev-b")
+        a = _archived_titled("sr1e-gev-a")
+        assert aar["status"] == "completed" and aar["titled"] == 37 and aar["turn"] == 41
+        assert a["status"] == "completed" and a["titled"] == 31 and a["turn"] == 41
+        assert a["held"] == ["East Frisia", "Oldenburg", "Westphalia"]
+        assert b["status"] == "completed" and b["titled"] == 16 and b["turn"] == 41
+        assert aar["hold_titled"] == a["hold_titled"] == b["hold_titled"] == 45
 
 
 class TestTheReMeasureIsOnTheRecord:

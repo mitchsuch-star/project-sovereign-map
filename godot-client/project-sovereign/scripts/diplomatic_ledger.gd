@@ -1735,7 +1735,22 @@ func _congress_gate_block(c: Dictionary) -> String:
 		if why != "":
 			out += "  [color=#" + Utils.COLOR_GREY + "]Not yet: " + _bb_safe(why) + "[/color]\n"
 	var held = c.get("held_unsettled", [])
-	if held is Array and held.size() > 0:
+	var roads = c.get("held_roads", [])
+	if roads is Array and roads.size() > 0:
+		# SR-1c: the road each held province has to title (the backend's
+		# `game_end.title_roads` — the same record the count reads).
+		out += "  [color=#" + Utils.COLOR_INFO + "]Held but not yet titled (" + str(roads.size()) + ") — the road to each:[/color]\n"
+		var shown_roads := 0
+		for r in roads:
+			if shown_roads >= 8:
+				break
+			if not (r is Dictionary):
+				continue
+			out += "    [color=#" + Utils.COLOR_GREY + "]• " + _bb_safe(_cstr(r, "text")) + "[/color]\n"
+			shown_roads += 1
+		if roads.size() > shown_roads:
+			out += "    [color=#" + Utils.COLOR_GREY + "]… and " + str(roads.size() - shown_roads) + " more.[/color]\n"
+	elif held is Array and held.size() > 0:
 		var names: Array = []
 		for h in held:
 			if names.size() >= 8:

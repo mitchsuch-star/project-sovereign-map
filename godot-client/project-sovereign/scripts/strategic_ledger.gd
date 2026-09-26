@@ -265,7 +265,23 @@ func _congress_clock_line() -> String:
 			tint = Utils.COLOR_BATTLE
 		elif severity == "paused":
 			tint = Utils.COLOR_DIMMED
-	return "[color=#" + tint + "]" + line + "[/color]\n\n"
+	var out: String = "[color=#" + tint + "]" + str(line) + "[/color]\n"
+	# SR-1c: at the gate, each held province's road to title under the
+	# clock (the backend's `held_roads`; at most four here — the Diplomatic
+	# Ledger's CONGRESS tab lists them all).
+	var roads = clock.get("held_roads", [])
+	if roads is Array and roads.size() > 0:
+		var shown := 0
+		for r in roads:
+			if shown >= 4:
+				break
+			if not (r is Dictionary):
+				continue
+			out += "[color=#" + Utils.COLOR_GREY + "]  • " + str(r.get("text", "")) + "[/color]\n"
+			shown += 1
+		if roads.size() > shown:
+			out += "[color=#" + Utils.COLOR_GREY + "]  … and " + str(roads.size() - shown) + " more on the Diplomatic Ledger's CONGRESS tab (D, then 7).[/color]\n"
+	return out + "\n"
 
 
 func _render_current_tab():
