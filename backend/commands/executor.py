@@ -1227,14 +1227,58 @@ class CommandExecutor:
             # NEXT command.
             self._pending_square_break = None
             self._pending_square_break_msg = ""
+        # SR-2e AAR-11: a NEW order of the player's to a marshal holds his
+        # pending vindication aside while it runs (its own battle must not
+        # answer the old objection) and expires it if it is carried out.
+        _held = (self._hold_aside_vindication(parsed_command, game_state)
+                 if _depth == 0 else None)
+        result = None
         self._execute_depth = _depth + 1
         try:
             result = self._execute_one(parsed_command, game_state)
         finally:
             self._execute_depth = _depth
+            if _held is not None:
+                _marshal_name, _entry, _world = _held
+                _world.vindication_tracker.settle_held(
+                    _marshal_name, _entry,
+                    new_order_ran=bool(isinstance(result, dict)
+                                       and result.get("success")))
         if _depth == 0:
             result = self._attach_square_break(result, game_state)
         return result
+
+    @staticmethod
+    def _hold_aside_vindication(parsed_command, game_state):
+        """SR-2e AAR-11: `(marshal, entry, world)` when the outermost command
+        is the player's ORDER to a field marshal with a pending vindication
+        (the entry is taken off the tracker), else None. A read (`status`,
+        `help`, the desk), an act of state, a reward or a standing order's
+        own step (`_strategic_execution`) holds nothing aside."""
+        from backend.commands import vindication as _vind
+        if not _vind.THE_VERDICT_IS_BOUND_TO_ITS_ORDER:
+            return None
+        world = (game_state or {}).get("world") if isinstance(game_state, dict) else None
+        tracker = getattr(world, "vindication_tracker", None)
+        if tracker is None or not getattr(tracker, "pending", None):
+            return None
+        command = (parsed_command or {}).get("command") or {}
+        if not isinstance(command, dict) or command.get("_strategic_execution"):
+            return None
+        name = str(command.get("marshal") or "")
+        action = str(command.get("action") or "")
+        if not name or name not in tracker.pending:
+            return None
+        from backend.ai.validation import (
+            ADMINISTRATIVE_ACTIONS, NON_ORDER_ACTIONS)
+        if (action in NON_ORDER_ACTIONS or action in ADMINISTRATIVE_ACTIONS
+                or action in ("", "unknown") or action.startswith("diplomatic_")):
+            return None
+        marshal = world.get_marshal(name) if hasattr(world, "get_marshal") else None
+        if marshal is None or getattr(marshal, "nation", None) != getattr(
+                world, "player_nation", None):
+            return None
+        return name, tracker.hold_aside(name), world
 
     def _attach_square_break(self, result, game_state):
         """Prepend the pending square-break notice, if it belongs to the
@@ -1638,8 +1682,10 @@ class CommandExecutor:
                     # NP-1: 1 for the sovereign — the Emperor does not
                     # persuade himself, NAPOLEON_SPEC §4.2)
                     # NP-V: single source on the marshal (GR1).
+                    # SR-2e: the order's type prices it (SUPPORT is one).
                     marshal_for_cost = world.get_marshal(command.get("marshal", ""))
-                    required_actions = (marshal_for_cost.strategic_order_ap()
+                    required_actions = (marshal_for_cost.strategic_order_ap(
+                        order_type=parsed_command.get("strategic_type"))
                                         if marshal_for_cost else 2)
 
                 if world.actions_remaining < required_actions:
@@ -2225,6 +2271,23 @@ class CommandExecutor:
                                 world, marshal, _mv_region,
                                 _mv_region.name) is not None:
                             should_check_objection = False
+                        # SR-2e CRT-4 (CQ-31's remainder): a `move to` beyond
+                        # his reach is the march one verb over, and the march
+                        # refuses a barred crossing or a closed frontier FREE
+                        # — measured, a cautious marshal objected to `move to
+                        # London` and Insist bought "Execution failed: the
+                        # crossing is barred". The road law answers first.
+                        import backend.commands.strategic as _road_law
+                        if (should_check_objection
+                                and _road_law.THE_ROAD_LAW_IS_READ_WHERE_QUOTED
+                                and marshal.nation == world.player_nation
+                                and world.get_distance(
+                                    marshal.location, _mv_region.name)
+                                > getattr(marshal, 'movement_range', 1)):
+                            _mv_road, _mv_refusal, _mv_kind = _road_law.march_road(
+                                world, marshal, _mv_region.name, "MOVE_TO")
+                            if _mv_refusal is not None and _mv_kind != "no_path":
+                                should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # TUT-F6b (PF-4 sibling): an in-range attack the naval

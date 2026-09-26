@@ -9,7 +9,75 @@ Tracks objection outcomes to determine if marshal or player was "right".
 Vindication affects future objection severity and trust changes.
 """
 
+import re
 from typing import Dict, Optional, List
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SR-2e AAR-11 (Score Mandate, September 26, 2026) — THE VERDICT IS BOUND TO
+# ITS ORDER.
+#
+# The Creative AAR: turn 3, Massena objected to `fortify` and the player
+# insisted; turn 8 he ATTACKED Archduke Charles on the player's own order (no
+# objection) and lost — "[Vindication] Massena's concerns were justified." The
+# pending entry was keyed on the marshal's NAME alone, so it judged whatever
+# battle he next fought as the attacker, on any order, any number of turns
+# later (measured: a trust-to-retreat verdict fired on an unrelated victory
+# four turns on; a compromise on a stance change judged his next attack).
+#
+# The rule: the answered order owns the verdict.
+#   * an entry records the order that actually ran (`executed_order`) and
+#     the turn;
+#   * only an order that can FIGHT — an attack, a charge, a pursuit, a march
+#     to a place — can be judged; a fortify, a drill, a stance, a retreat is
+#     never stored (its test is not a battle he leads);
+#   * a battle resolves the entry only when it is that order's own — its
+#     defender is the order's target, or it is fought at the order's
+#     province;
+#   * the player's next successful order to the marshal EXPIRES it (the
+#     executor holds the entry aside while the new order runs, so the new
+#     order's own battle cannot answer the old question);
+#   * a defiance replaces the order, so the entry is cleared;
+#   * a legacy entry (no `executed_order` — a save from before this slice)
+#     is dropped, never resolved.
+# Lever False restores the name-keyed tracker byte for byte.
+# ════════════════════════════════════════════════════════════════════════════
+THE_VERDICT_IS_BOUND_TO_ITS_ORDER = True
+
+# The orders a battle he leads can answer.
+BINDABLE_ACTIONS = frozenset({"attack", "charge", "pursue", "move", "march"})
+
+# A caller that does not bind at all (the tracker's own unit callers, written
+# against the name-keyed API) passes neither the executed order nor the
+# battle's identity; it keeps the name-keyed behaviour. The production record
+# site (`DisobedienceSystem.handle_response`) and the production resolve site
+# (the post-combat pipeline's step 11) always bind — pinned by census in
+# `tests/test_sr2e_standing_orders_reliable.py`.
+_UNBOUND = object()
+
+
+def _squash(text) -> str:
+    """Normalise a name for matching ("Archduke Charles" == "ArchdukeCharles")."""
+    return re.sub(r"[^a-z0-9]", "", str(text or "").lower())
+
+
+def order_can_be_judged(order) -> bool:
+    """True when `order` (a command dict) is one a battle he leads can answer:
+    a fighting verb with a target."""
+    if not isinstance(order, dict):
+        return False
+    action = str(order.get("action") or "").lower()
+    return action in BINDABLE_ACTIONS and bool(_squash(order.get("target")))
+
+
+def battle_answers_order(order, defender_name=None, battle_region=None) -> bool:
+    """True when a battle (its defender's name and its province) is the
+    bound order's own: the defender is the order's target, or the battle is
+    fought at the order's province."""
+    if not order_can_be_judged(order):
+        return False
+    target = _squash(order.get("target"))
+    return target in ({_squash(defender_name), _squash(battle_region)} - {""})
 
 
 class VindicationTracker:
@@ -40,7 +108,10 @@ class VindicationTracker:
         marshal_name: str,
         choice: str,
         original_order: Dict,
-        alternative: Optional[Dict] = None
+        alternative: Optional[Dict] = None,
+        *,
+        executed_order=_UNBOUND,
+        turn: Optional[int] = None,
     ) -> None:
         """
         Record player's choice for later vindication check.
@@ -50,13 +121,48 @@ class VindicationTracker:
             choice: 'trust', 'insist', or 'compromise'
             original_order: The order player gave
             alternative: Marshal's suggested alternative (if any)
+            executed_order: SR-2e AAR-11 — the order the answer actually ran
+                (the original on insist, the alternative on trust, the
+                compromise on compromise). Only an order a battle can answer
+                is stored; any other clears the marshal's entry.
+            turn: the turn the answer was given.
         """
+        if THE_VERDICT_IS_BOUND_TO_ITS_ORDER and executed_order is not _UNBOUND:
+            if not order_can_be_judged(executed_order):
+                self.pending.pop(marshal_name, None)
+                return
+            self.pending[marshal_name] = {
+                'choice': choice,
+                'original_order': original_order,
+                'alternative': alternative,
+                'executed_order': dict(executed_order),
+                'turn_recorded': turn,
+            }
+            return
         self.pending[marshal_name] = {
             'choice': choice,
             'original_order': original_order,
             'alternative': alternative,
             'turn_recorded': None,  # Could track turn number
         }
+
+    def hold_aside(self, marshal_name: str) -> Optional[Dict]:
+        """SR-2e AAR-11: take the marshal's entry off the tracker while a NEW
+        order of the player's runs, so that order's own battle cannot answer
+        the old question. `settle_held` hands it back if the new order was
+        refused, and lets it go if the order was carried out."""
+        if not THE_VERDICT_IS_BOUND_TO_ITS_ORDER:
+            return None
+        return self.pending.pop(marshal_name, None)
+
+    def settle_held(self, marshal_name: str, held: Optional[Dict],
+                    new_order_ran: bool) -> None:
+        """The other half of `hold_aside`: a new order that ran EXPIRES the
+        held entry; a refused one leaves the old order — and its question —
+        standing (unless the refused command recorded a fresh answer)."""
+        if held is None or new_order_ran:
+            return
+        self.pending.setdefault(marshal_name, held)
 
     def has_pending(self, marshal_name: str) -> bool:
         """Check if marshal has pending vindication."""
@@ -70,7 +176,10 @@ class VindicationTracker:
         self,
         marshal_name: str,
         result: str,
-        game_state
+        game_state,
+        *,
+        defender_name=_UNBOUND,
+        battle_region=_UNBOUND,
     ) -> Optional[Dict]:
         """
         Called after battle to update vindication.
@@ -79,12 +188,34 @@ class VindicationTracker:
             marshal_name: Marshal who fought
             result: 'victory', 'defeat', or 'draw'
             game_state: Current game state (for marshal/authority access)
+            defender_name / battle_region: SR-2e AAR-11 — the battle's
+                defender and province; the entry resolves only when this
+                battle is the answered order's own.
 
         Returns:
             Vindication result dict or None if no pending
         """
         if marshal_name not in self.pending:
             return None
+
+        if (THE_VERDICT_IS_BOUND_TO_ITS_ORDER
+                and (defender_name is not _UNBOUND
+                     or battle_region is not _UNBOUND)):
+            if defender_name is _UNBOUND:
+                defender_name = None
+            if battle_region is _UNBOUND:
+                battle_region = None
+            entry = self.pending[marshal_name]
+            order = entry.get('executed_order')
+            if order is None:
+                # A save from before the rule: the entry names no order, so
+                # no battle can be shown to be its own. Let it go unjudged.
+                self.pending.pop(marshal_name, None)
+                return None
+            if not battle_answers_order(order, defender_name, battle_region):
+                # Another battle: the answered order is still out (a
+                # pursuit, a march) and keeps its question.
+                return None
 
         pending = self.pending.pop(marshal_name)
         choice = pending['choice']

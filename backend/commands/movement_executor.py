@@ -471,7 +471,7 @@ class MovementExecutor:
             # NP-V: single source on the marshal (GR1) — the discount used
             # to live at 2 of 4 pricing sites, so the same order priced 1
             # or 2 depending on which verb reached it.
-            strategic_cost = marshal.strategic_order_ap()
+            strategic_cost = marshal.strategic_order_ap(order_type="MOVE_TO")
             if marshal.nation == world.player_nation and world.actions_remaining < strategic_cost:
                 return {
                     "success": False,
@@ -624,7 +624,7 @@ class MovementExecutor:
             # (engaged / AP refusals already cleared by move_refusal_probe)
             # Auto-upgrade to strategic MOVE_TO for distant regions
             # NP-V: single source on the marshal (GR1).
-            strategic_cost = marshal.strategic_order_ap()
+            strategic_cost = marshal.strategic_order_ap(order_type="MOVE_TO")
             # PF-8: prefer a passable corridor for a player's strategic march
             # (AI keeps its omniscient routing). Fall back to the terrain-only
             # path if no passable route exists so the order still forms and the
@@ -639,9 +639,24 @@ class MovementExecutor:
             # walked the corps to Normandy and stalled it there (measured).
             # The AI's road is byte-identical: the verdict is player-only.
             import backend.commands.strategic as _road
-            _road_path, _road_verdict = _road.plot_route(
-                world, marshal, target_name, use_weighted=True,
-                want_verdict=(marshal.nation == world.player_nation))
+            if (_road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED
+                    and marshal.nation == world.player_nation):
+                # SR-2e CRT-4: `move to <X>` is the march one verb over — it
+                # walks the march's own road (the cautious man's avoid-set,
+                # the closed-frontier refusal) and refuses in its words.
+                _march_path, _march_refusal, _march_kind = _road.march_road(
+                    world, marshal, target_name, "MOVE_TO")
+                if _march_refusal is not None and _march_kind != "no_path":
+                    if move_substitution_note and _march_refusal.get("message"):
+                        _march_refusal = dict(_march_refusal)
+                        _march_refusal["message"] = (
+                            str(_march_refusal["message"]) + move_substitution_note)
+                    return _march_refusal
+                _road_path, _road_verdict = _march_path, None
+            else:
+                _road_path, _road_verdict = _road.plot_route(
+                    world, marshal, target_name, use_weighted=True,
+                    want_verdict=(marshal.nation == world.player_nation))
             path = ([marshal.location] + list(_road_path)) if _road_path else None
             if path and len(path) > 1 and _road_verdict is not None:
                 _road_refusal = _road.issuance_road_refusal(

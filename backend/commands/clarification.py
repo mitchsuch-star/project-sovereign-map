@@ -91,10 +91,24 @@ def _answer_is_affordable(world, action: Optional[str], *,
         return True
     remaining = int(getattr(world, "actions_remaining", 0))
     if strategic_type:
-        required = 2
-        if candidates and any(getattr(m, "personality", "") == "literal"
-                              for m in candidates):
-            required = 1
+        # SR-2e: the price is the marshal's own (`strategic_order_ap`, the
+        # one source the charge reads) — a SUPPORT is one action for every
+        # marshal, a literal pays one for any order.
+        prices = []
+        for m in (candidates or []):
+            try:
+                prices.append(int(m.strategic_order_ap(
+                    order_type=strategic_type)))
+            except (AttributeError, TypeError):
+                prices.append(1 if getattr(m, "personality", "") == "literal"
+                              else 2)
+        if prices:
+            required = min(prices)
+        else:
+            from backend.models.marshal import A_SUPPORT_ORDER_IS_ONE_ACTION
+            required = (1 if (A_SUPPORT_ORDER_IS_ONE_ACTION
+                              and str(strategic_type).upper() == "SUPPORT")
+                        else 2)
         return remaining >= required
     try:
         required = int(world.get_action_cost(action)) if action else 1

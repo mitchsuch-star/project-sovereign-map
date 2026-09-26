@@ -1,0 +1,31 @@
+{
+ "turn": 41,
+ "titled": 37,
+ "hold_titled": 45,
+ "status": "completed",
+ "held": [],
+ "provinces": 30,
+ "note": "SR-2e Q0 re-measure (September 26, 2026 — standing orders reliable, part (i): SUPPORT at one action, AAR-8/9/10/11, CRT-4): the SR-1e road re-driven on the same seed, script and popup policy, read off the run's own save by tools/sr1e_titled_probe.py through congress.titled.",
+ "series": [
+  {
+   "turn": 9,
+   "titled": 35
+  },
+  {
+   "turn": 13,
+   "titled": 35
+  },
+  {
+   "turn": 18,
+   "titled": 35
+  },
+  {
+   "turn": 30,
+   "titled": 35
+  },
+  {
+   "turn": 41,
+   "titled": 37
+  }
+ ]
+}

@@ -880,10 +880,10 @@ STANCE COMMANDS:
   defensive  - -10% attack, +15% defense
   neutral    - Balanced (default, FREE to return)
 
-STRATEGIC COMMANDS (2 AP, multi-turn):
+STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):
   march      - "Ney, march to Vienna" - travels over several turns
   pursue     - "Murat, pursue Kutuzov" - chase across the map
-  support    - "Lannes, support Ney" - march to an ally's battles
+  support    - "Lannes, support Ney" - march to an ally's battles (1 AP)
   hold       - "Davout, hold Swabia" - hold ground (artillery auto-fires)
   cancel     - "cancel Ney" / "halt Ney" (1 AP)
 
@@ -2105,6 +2105,12 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             if defiance_roll < defiance_chance:
                 # ═══ DEFIANCE FIRES ═══
                 print(f"  [DEFIANCE] {marshal_name} defies order! (roll={defiance_roll:.2f} < chance={defiance_chance:.2f})")
+                # SR-2e AAR-11: the insisted order never runs — the defiance
+                # replaces it, with its own consequences — so no battle can
+                # judge the insistence.
+                from backend.commands import vindication as _vind
+                if _vind.THE_VERDICT_IS_BOUND_TO_ITS_ORDER:
+                    world.vindication_tracker.clear_pending(marshal_name)
 
                 original_action = (objection.get("original_order") or {}).get("action", "")
                 defiant_action = get_defiant_action(marshal, original_action)

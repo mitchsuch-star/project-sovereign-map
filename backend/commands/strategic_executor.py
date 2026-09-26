@@ -987,7 +987,22 @@ class StrategicExecutor:
                 personality = getattr(marshal, 'personality', 'balanced')
                 import backend.commands.strategic as _road
                 _road_verdict = None
-                if _road.ROAD_LAW_AT_ISSUANCE:
+                if (_road.ROAD_LAW_AT_ISSUANCE
+                        and _road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED):
+                    # SR-2e CRT-4: the ONE road reader the desk, the `move
+                    # to` belt and the objection battery read too.
+                    path, _march_refusal, _march_kind = _road.march_road(
+                        world, marshal, dest, strategic_type)
+                    if _march_refusal is not None:
+                        if _march_kind == "road":
+                            _march_refusal = dict(_march_refusal)
+                            _march_refusal["message"] = (
+                                str(_march_refusal.get("message") or "")
+                                + destination_grounding_note(
+                                    parsed_command.get("raw_input"), dest))
+                        return _march_refusal
+                    path = [marshal.location] + list(path or [])
+                elif _road.ROAD_LAW_AT_ISSUANCE:
                     # FA slice 5 (FA-13/FA-46): issuance plots by the ONE
                     # lawful-first ladder the per-turn march already walks —
                     # it used to plot terrain-only, announce a route through
@@ -1216,7 +1231,12 @@ class StrategicExecutor:
                                 get_trust_tier as _gtt,
                             )
                             _tier = _gtt(marshal.trust.value)
-                            _literal = getattr(marshal, "personality", "") == "literal"
+                            # SR-2e: the order's own price, from the one
+                            # source the charge reads (a SUPPORT is one
+                            # action — the button said 2 for everyone
+                            # but a literal marshal).
+                            _support_ap = marshal.strategic_order_ap(
+                                order_type="SUPPORT")
                             v1_options = [
                                 {
                                     "type": "proceed",
@@ -1229,7 +1249,7 @@ class StrategicExecutor:
                                     # while the engine paid
                                     # `strategic_concern`.
                                     "trust_change": insist_penalty,
-                                    "ap_cost": 1 if _literal else 2,
+                                    "ap_cost": _support_ap,
                                 },
                                 {
                                     "type": "preferred",
@@ -1250,7 +1270,7 @@ class StrategicExecutor:
                                     "text": "Compromise: Timed SUPPORT (3 turns)",
                                     "compromise": {"max_turns": 3},
                                     "trust_change": _CTG,
-                                    "ap_cost": 2,
+                                    "ap_cost": _support_ap,
                                 },
                             ]
 
@@ -1857,8 +1877,9 @@ class StrategicExecutor:
         is_sovereign = getattr(marshal, 'is_sovereign', False)
         is_auto_upgrade = parsed_command.get("auto_upgrade", False)
         # NP-V: single source on the marshal (GR1).
+        # SR-2e: the order's type prices it (a SUPPORT is one action).
         strategic_cost = marshal.strategic_order_ap(
-            auto_upgrade=bool(is_auto_upgrade))
+            auto_upgrade=bool(is_auto_upgrade), order_type=strategic_type)
 
         # W6-5 The Literal Doctrine (§7.2.2 + §7.2.5): a literal marshal
         # acknowledges by quoting the order's own words (the verbatim text
@@ -2243,7 +2264,11 @@ class StrategicExecutor:
                 "strategic_type": strategic_type,
                 "target": target,
                 "path": order.path,  # Updated path after first-step movement
-                "variable_action_cost": 2,
+                # SR-2e: the compromise is the same order, modified — it is
+                # charged the order's own price (a SUPPORT is one action),
+                # the figure its button quotes (`_build_strategic_options`).
+                "variable_action_cost": int(marshal.strategic_order_ap(
+                    order_type=strategic_type)),
                 "trust_change": v2_compromise_gain,
                 "compromise_applied": True,
             }

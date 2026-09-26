@@ -975,6 +975,9 @@ def _answer_reach(world, player: str, marshal_name: str,
     shown = _display(marshal_name)
     if marshal.location == place:
         return f"{shown} already stands at {place}, Sire."
+    import backend.commands.strategic as _road
+    if _road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED:
+        return _answer_reach_by_the_march(world, player, marshal, shown, place)
     lawful = world.find_path(marshal.location, place, passable_for=player)
     if lawful:
         steps = max(0, len(lawful) - 1)
@@ -989,6 +992,51 @@ def _answer_reach(world, player: str, marshal_name: str,
                 f"{CABINET_LINE_FOR_DESK}")
     return (f"There is no road from {marshal.location} to {place}, Sire — "
             f"not by land.")
+
+
+def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
+                               place: str) -> str:
+    """SR-2e CRT-4 (DESK-3 + DESK-10): the reach answer IS the march's.
+    Yes exactly when `<marshal>, march to <place>` would be taken — the same
+    state gates, the same road reader and its refusal in its own words — and
+    the turn count is the march's own clock (`march_turns`): the order takes
+    the first `range` provinces, the issuing turn's tick is skipped, then
+    `range` a turn. A visible enemy standing on the road is named (the march
+    is taken, and meets him)."""
+    import backend.commands.strategic as _road
+    from backend.display_names import plural
+    road, refusal, _kind = _road.march_road(world, marshal, place, "MOVE_TO")
+    if refusal is not None:
+        said = str(refusal.get("message") or "the march is refused.")
+        said = said[:1].lower() + said[1:]
+        return (f"No — {said}" if "Sire" in said else f"No, Sire — {said}")
+    road = list(road or [])
+    turns = _road.march_turns(len(road), getattr(marshal, 'movement_range', 1))
+    route = " -> ".join([marshal.location] + road)
+    if turns == 0:
+        when = "this very turn — the march arrives on the order"
+    else:
+        when = f"in {plural(turns, 'turn')}"
+    answer = f"Yes, Sire — {shown} can reach {place} from {marshal.location} {when}: {route}."
+    from backend.models.intel import FULL, PARTIAL
+    for region in road:
+        try:
+            seen = world.get_region_intel(region).visibility in (FULL, PARTIAL)
+        except Exception:
+            seen = False
+        if not seen:
+            continue
+        foes = [m for m in world.get_enemies_in_region(region, player)
+                if getattr(m, "strength", 0) > 0]
+        if foes:
+            answer += (f" {_display(foes[0].name)} stands on the road at "
+                       f"{region} — the march will meet him there.")
+            break
+    state = _road.march_state_refusal(world, marshal)
+    if state:
+        answer = (f"Not today, Sire — {state} "
+                  + answer.replace("Yes, Sire — ", "Once he can: ", 1))
+    return answer
 
 
 def _answer_what_if(world, player: str, enemy_name: str) -> Optional[str]:

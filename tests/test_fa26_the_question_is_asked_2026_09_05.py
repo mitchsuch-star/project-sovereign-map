@@ -713,7 +713,10 @@ class TestTheReviewRound:
         tracker = board.vindication_tracker
         monkeypatch.setattr(tracker, "has_pending", lambda name: name == "Ney")
 
-        def _dock(marshal_name, result, game_state):
+        # SR-2e AAR-11: the production step now hands the battle's identity
+        # (`defender_name`, `battle_region`) to the resolver; the stub takes
+        # the keywords it does not read (re-seated consciously).
+        def _dock(marshal_name, result, game_state, **_battle_identity):
             game_state.marshals[marshal_name].modify_trust(-5)
             return {"message": "Vindication: the insisted attack cost him."}
         monkeypatch.setattr(tracker, "resolve_battle", _dock)

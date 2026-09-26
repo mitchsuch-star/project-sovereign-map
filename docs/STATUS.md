@@ -4,6 +4,19 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ SR-2e "STANDING ORDERS RELIABLE" PART (i) — LANDED September 26, 2026** (the user's ruling of SR-D3 as (c) first; `SCORE_MANDATE_PLAN.md` §2 Chunk 2 SR-2e landing record; rules `SYSTEMS_REFERENCE.md` §71.6; pins `tests/test_sr2e_standing_orders_reliable.py` 72; sweep `tools/_sweep_sr2e.json` 36/36 killed, 0 INERT). Every row reproduced at `POST /command` first by a six-agent read-only recon:
+> - **SUPPORT costs one action** for every marshal (`Marshal.strategic_order_ap(order_type=…)` — every pricing site and button names the order; the compromise is priced as the order it softens).
+> - **AAR-10 a march keeps its tail through a reinforcement** (the order stands, the reply says what resumes, the pass skips a man who answered the guns this turn, the AI's road home takes the same skip).
+> - **AAR-8 no unanswerable question ships** (the recon reversed the row's order: the cautious man asks FIRST and a colleague's later battle spends it; two nets replace a dead row with an honest "overtaken" row).
+> - **AAR-9 the guns must be our war** (redirect only for a war France is in; a third-party battle is asked, and the ask says whose war; the fail-open arm read a destroyed participant — now his tombstone).
+> - **AAR-11 the verdict is bound to its order** (records the order the answer ran; judged only by that order's own battle; the next order expires it; a legacy entry is dropped).
+> - **CRT-4 the road law read where it is quoted** (ONE `march_road` / `march_state_refusal` / `march_turns`; desk Yes-but-refused 264 → 0; `move to` no longer objects before the road law; CQ-31's remainder closed; CRT-4-X1 filed → SR-6a).
+> - **Q0 re-measured** (`docs/audits/playtest_digests/sr2e-q0-*`): the AAR road 37 and opening A 31 unchanged; opening B's tail HOLDS — 31 titled on 23 provinces at turn 41 (SR-1e: 16 on 8), because Massena's march survived a reinforcement; the best point on any road is still **39 of 45; 45 not moved**.
+> - `BASELINE_SERIES` + M1–M7 + AI-V assurance byte-identical (81 passed). Pins re-seated consciously: the CR-2 clarification price pin, FA slice 14's SUPPORT price, the r1 pipeline's legacy vindication plant, FA-26's `resolve_battle` stub, three cannon-fire pins (invented participants; two `reinforced_this_turn` hacks → a class-level stub). Zero `.gd`.
+>
+> **▶ NEXT = SR-2e part (ii) — CRT-5 "an answer is read closed"** (the recon's census: a deferral signs a letter, cedes an ultimatum, ratifies a settlement or garrisons a vassal on 19 of 20 families; its prototype closed grammar is in the session scratchpad, measured at ~32 pin flips; side findings S1 `accept prussia` signs Portugal's letter, S2/S3 two families that cannot be answered by their own verbs, S4 the objection answers) **→ L-D → onward into Chunk 4 → ONE session exit → ONE residue slice.**
+>
+
 > **▶ ▶ ▶ THE SCORE MANDATE RE-RULED — September 26, 2026 (evening), docs only** (the user's rulings; recorded in `SCORE_MANDATE_PLAN.md` header + §0 + §2 + §4 + §5 and `DESIGN_REFINEMENT.md` §Score Mandate rulings; nothing built):
 > - **SR-D3's premise corrected** — the AI pays action points like the player (the same cost table; `nation_actions` 4 for majors, 2–3 for minors; at most two free actions a turn). Every enemy corps moves because its roster is 1–3 corps, while France fields 8 against 4.
 > - **SR-D3 RULED (c) first** — new fix slice **SR-2e "standing orders reliable"** (SUPPORT at 1 action; a march keeps its tail through a reinforcement; SR-4b folded in: AAR-8/9/10/11 + CRT-4 + CRT-5). **No free AP scaling**; new points only through SR-D1's Staff reform (the `bonus_actions` seam), bought by BOTH sides at the same price. Q0 (39 of 45) re-measured after SR-2e and after SR-D1; 45 not moved.

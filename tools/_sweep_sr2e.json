@@ -1,0 +1,254 @@
+[
+  {
+    "id": "SR-2e/SUPPORT lever down",
+    "file": "backend/models/marshal.py",
+    "old": "A_SUPPORT_ORDER_IS_ONE_ACTION = True\n",
+    "new": "A_SUPPORT_ORDER_IS_ONE_ACTION = False\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestSupportIsOneAction"
+  },
+  {
+    "id": "SR-2e/SUPPORT branch prices two",
+    "file": "backend/models/marshal.py",
+    "old": "                and str(order_type or \"\").upper() == \"SUPPORT\"):\n            return 1\n",
+    "new": "                and str(order_type or \"\").upper() == \"SUPPORT\"):\n            return 2\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestSupportIsOneAction"
+  },
+  {
+    "id": "SR-2e/the pre-check forgets the type",
+    "file": "backend/commands/executor.py",
+    "old": "order_type=parsed_command.get(\"strategic_type\"))",
+    "new": "order_type=None)",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestSupportIsOneAction::test_support_is_accepted_at_one_action"
+  },
+  {
+    "id": "SR-2e/the charge forgets the type",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "auto_upgrade=bool(is_auto_upgrade), order_type=strategic_type)",
+    "new": "auto_upgrade=bool(is_auto_upgrade), order_type=None)",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestSupportIsOneAction::test_support_at_the_wire_charges_one"
+  },
+  {
+    "id": "SR-2e/the option builder forgets the type",
+    "file": "backend/commands/disobedience.py",
+    "old": "proceed_ap = int(marshal.strategic_order_ap(order_type=strategic_type))",
+    "new": "proceed_ap = int(marshal.strategic_order_ap(order_type=None))",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheSupportObjectionQuotesWhatItCharges::test_a_compromise_is_priced_as_the_order_it_softens"
+  },
+  {
+    "id": "SR-2e/the compromise charge is flat two",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                \"variable_action_cost\": int(marshal.strategic_order_ap(\n                    order_type=strategic_type)),\n",
+    "new": "                \"variable_action_cost\": 2,\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheSupportObjectionQuotesWhatItCharges"
+  },
+  {
+    "id": "SR-2e/the relationship buttons say two",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                            _support_ap = marshal.strategic_order_ap(\n                                order_type=\"SUPPORT\")\n",
+    "new": "                            _support_ap = 2\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheSupportObjectionQuotesWhatItCharges::test_the_buttons_quote_one"
+  },
+  {
+    "id": "SR-2e/the clarification forgets the type",
+    "file": "backend/commands/clarification.py",
+    "old": "                prices.append(int(m.strategic_order_ap(\n                    order_type=strategic_type)))\n",
+    "new": "                prices.append(int(m.strategic_order_ap(\n                    order_type=None)))\n",
+    "tests": "tests/test_command_robustness_cr2_clarification.py::TestClarificationBuilders::test_strategic_marshal_choice_costs_two_unless_literal_candidate"
+  },
+  {
+    "id": "SR-2e/the help keeps the old price",
+    "file": "backend/commands/meta_executor.py",
+    "old": "STRATEGIC COMMANDS (multi-turn; 2 AP, support 1 AP):",
+    "new": "STRATEGIC COMMANDS (2 AP, multi-turn):",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestEveryPricingSiteNamesItsOrder::test_the_help_names_the_support_price"
+  },
+  {
+    "id": "SR-2e/AAR-11 lever down",
+    "file": "backend/commands/vindication.py",
+    "old": "THE_VERDICT_IS_BOUND_TO_ITS_ORDER = True\n",
+    "new": "THE_VERDICT_IS_BOUND_TO_ITS_ORDER = False\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder"
+  },
+  {
+    "id": "SR-2e/AAR-11 an unjudgeable order is stored",
+    "file": "backend/commands/vindication.py",
+    "old": "            if not order_can_be_judged(executed_order):\n                self.pending.pop(marshal_name, None)\n                return\n",
+    "new": "            pass\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_an_insisted_fortify_stores_no_verdict"
+  },
+  {
+    "id": "SR-2e/AAR-11 any battle answers",
+    "file": "backend/commands/vindication.py",
+    "old": "            if not battle_answers_order(order, defender_name, battle_region):\n",
+    "new": "            if False:\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_another_battle_leaves_the_question_standing"
+  },
+  {
+    "id": "SR-2e/AAR-11 a legacy entry is judged",
+    "file": "backend/commands/vindication.py",
+    "old": "            if order is None:\n                # A save from before the rule",
+    "new": "            if False:\n                # A save from before the rule",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_a_legacy_entry_is_dropped_unjudged"
+  },
+  {
+    "id": "SR-2e/AAR-11 nothing is held aside",
+    "file": "backend/commands/executor.py",
+    "old": "        return name, tracker.hold_aside(name), world\n",
+    "new": "        return None\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_a_new_order_expires_the_entry"
+  },
+  {
+    "id": "SR-2e/AAR-11 a refusal never hands back",
+    "file": "backend/commands/vindication.py",
+    "old": "        if held is None or new_order_ran:\n            return\n",
+    "new": "        return\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_a_refused_new_order_hands_the_entry_back"
+  },
+  {
+    "id": "SR-2e/AAR-11 the battle's identity is dropped",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                    defender_name=getattr(defender, 'name', None),\n",
+    "new": "                    defender_name=None,\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder::test_an_insisted_attack_is_judged_by_its_own_battle"
+  },
+  {
+    "id": "SR-2e/AAR-9 lever down",
+    "file": "backend/commands/strategic.py",
+    "old": "THE_GUNS_MUST_BE_OUR_WAR = True\n",
+    "new": "THE_GUNS_MUST_BE_OUR_WAR = False\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar"
+  },
+  {
+    "id": "SR-2e/AAR-9 every battle is lawful",
+    "file": "backend/commands/strategic.py",
+    "old": "    nation = getattr(marshal, \"nation\", \"\")\n    for side in (battle.get(\"attacker\"), battle.get(\"defender\")):\n        other = _cannon_fire_nation(world, side)\n        if other and other != nation and world.is_at_war(nation, other):\n            return True\n",
+    "new": "    return True\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar"
+  },
+  {
+    "id": "SR-2e/AAR-9 the tombstone is not read",
+    "file": "backend/commands/strategic.py",
+    "old": "    fallen = (getattr(world, \"fallen_marshals\", None) or {}).get(text)\n    if isinstance(fallen, dict):\n        return fallen.get(\"nation\")\n    return None\n",
+    "new": "    return None\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar::test_a_destroyed_participant_is_read_off_his_tombstone"
+  },
+  {
+    "id": "SR-2e/AAR-9 the ask names nobody's war",
+    "file": "backend/commands/strategic.py",
+    "old": "    if len(names) != 2:\n        return \"\"\n",
+    "new": "    return \"\"\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar"
+  },
+  {
+    "id": "SR-2e/AAR-9 the step loop forgets the refusal",
+    "file": "backend/commands/strategic.py",
+    "old": "                            if (THE_GUNS_MUST_BE_OUR_WAR\n                                    and not action_result):\n",
+    "new": "                            if (False\n                                    and not action_result):\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheGunsMustBeOurWar::test_a_refused_step_names_its_own_reason"
+  },
+  {
+    "id": "SR-2e/AAR-10 lever down",
+    "file": "backend/commands/strategic.py",
+    "old": "A_MARCH_KEEPS_ITS_TAIL = True\n",
+    "new": "A_MARCH_KEEPS_ITS_TAIL = False\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail"
+  },
+  {
+    "id": "SR-2e/AAR-10 the pass marches him again",
+    "file": "backend/commands/strategic.py",
+    "old": "            if A_MARCH_KEEPS_ITS_TAIL and getattr(marshal, \"reinforced_this_turn\", False):\n",
+    "new": "            if False:\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail::test_he_does_not_march_twice_and_then_arrives"
+  },
+  {
+    "id": "SR-2e/AAR-10 the AI road home walks twice",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                and not (_KEEP_TAIL and getattr(marshal, \"reinforced_this_turn\", False))):\n",
+    "new": "                and True):\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail::test_the_ai_road_home_takes_the_same_skip"
+  },
+  {
+    "id": "SR-2e/AAR-10 the reply says nothing",
+    "file": "backend/commands/combat_executor.py",
+    "old": " + sovereign_prestige_msg + forced_retreat_msg + kept_order_msg\n",
+    "new": " + sovereign_prestige_msg + forced_retreat_msg\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail::test_the_order_stands_through_a_victory"
+  },
+  {
+    "id": "SR-2e/AAR-10 the pursuit takes no pause",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                            _kept.last_combat_enemy = _foe.name\n                            _kept.last_combat_turn = world.current_turn\n",
+    "new": "                            pass\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAMarchKeepsItsTail::test_a_pursuit_that_fought_its_quarry_takes_its_pause"
+  },
+  {
+    "id": "SR-2e/AAR-8 lever down",
+    "file": "backend/commands/strategic.py",
+    "old": "A_QUESTION_ROW_IS_ANSWERABLE = True\n",
+    "new": "A_QUESTION_ROW_IS_ANSWERABLE = False\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAQuestionRowIsAnswerable"
+  },
+  {
+    "id": "SR-2e/AAR-8 an orderless question is live",
+    "file": "backend/commands/strategic.py",
+    "old": "    if stored_type in STANDALONE_DECISION_TYPES:\n        return True\n    return bool(getattr(marshal, \"strategic_order\", None))\n",
+    "new": "    return True\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAQuestionRowIsAnswerable::test_an_order_bound_question_without_its_order_is_dead"
+  },
+  {
+    "id": "SR-2e/AAR-8 the pass net is gone",
+    "file": "backend/commands/strategic.py",
+    "old": "        reports = reconcile_question_rows(world, reports)\n",
+    "new": "        pass\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAQuestionRowIsAnswerable::test_the_pass_reconciles_its_own_rows"
+  },
+  {
+    "id": "SR-2e/AAR-8 the end-turn net is gone",
+    "file": "backend/game_logic/turn_manager.py",
+    "old": "            strategic_reports = reconcile_question_rows(\n                self.world, strategic_reports)\n",
+    "new": "            pass\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestAQuestionRowIsAnswerable::test_the_end_turn_reconciles_what_the_pass_shipped"
+  },
+  {
+    "id": "SR-2e/CRT-4 lever down",
+    "file": "backend/commands/strategic.py",
+    "old": "THE_ROAD_LAW_IS_READ_WHERE_QUOTED = True\n",
+    "new": "THE_ROAD_LAW_IS_READ_WHERE_QUOTED = False\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheDeskReadsTheMarch"
+  },
+  {
+    "id": "SR-2e/CRT-4 the clock forgets the issuing turn",
+    "file": "backend/commands/strategic.py",
+    "old": "    return 1 + -(-(length - reach) // reach)\n",
+    "new": "    return -(-(length - reach) // reach)\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheDeskQuotesTheMarchsClock"
+  },
+  {
+    "id": "SR-2e/CRT-4 the desk forgets the foe on the road",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if foes:\n            answer += (",
+    "new": "        if False:\n            answer += (",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheDeskQuotesTheMarchsClock::test_a_visible_foe_on_the_road_is_named"
+  },
+  {
+    "id": "SR-2e/CRT-4 the desk forgets the state",
+    "file": "backend/ai/question_desk.py",
+    "old": "    state = _road.march_state_refusal(world, marshal)\n    if state:\n",
+    "new": "    state = _road.march_state_refusal(world, marshal)\n    if False:\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheDeskQuotesTheMarchsClock::test_the_state_speaks"
+  },
+  {
+    "id": "SR-2e/CRT-4 the battery objects first",
+    "file": "backend/commands/executor.py",
+    "old": "                            if _mv_refusal is not None and _mv_kind != \"no_path\":\n                                should_check_objection = False\n",
+    "new": "                            pass\n",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestMoveToAsksTheRoadFirst::test_no_objection_before_the_road_law"
+  },
+  {
+    "id": "SR-2e/CRT-4 the belt walks its own road",
+    "file": "backend/commands/movement_executor.py",
+    "old": "            if (_road.THE_ROAD_LAW_IS_READ_WHERE_QUOTED\n                    and marshal.nation == world.player_nation):\n                # SR-2e CRT-4",
+    "new": "            if (False\n                    and marshal.nation == world.player_nation):\n                # SR-2e CRT-4",
+    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestMoveToAsksTheRoadFirst::test_move_to_walks_the_marchs_road"
+  }
+]

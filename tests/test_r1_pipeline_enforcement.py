@@ -254,14 +254,16 @@ class TestPipelineVindication:
         assert world.vindication_tracker.has_pending("Ney")
 
     def test_vindication_msg_in_output(self):
+        # SR-2e AAR-11 (Score Mandate, Sept 26 2026) re-seated CONSCIOUSLY:
+        # the hand-planted entry named no executed order, so the production
+        # step now drops it unjudged (a legacy entry cannot be shown to be
+        # this battle's own). Planted through `record_choice`, bound to the
+        # attack on Bluecher, the step still speaks.
         world = _setup_war_world()
-        world.vindication_tracker.pending["Ney"] = {
-            "concern": "Reckless orders",
-            "turn": world.current_turn,
-            "action": "attack",
-            "target": "Bluecher",
-            "choice": "proceed",
-        }
+        world.vindication_tracker.record_choice(
+            "Ney", "insist", {"action": "attack", "target": "Bluecher"},
+            executed_order={"action": "attack", "target": "Bluecher"},
+            turn=world.current_turn)
         executor = CommandExecutor()
         ctx = _make_basic_ctx(world)
         out = executor._post_combat_pipeline(ctx, world)

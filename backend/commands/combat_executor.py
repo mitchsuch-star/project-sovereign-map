@@ -3381,10 +3381,13 @@ class CombatExecutor:
                     vind_outcome = "defeat"
                 else:
                     vind_outcome = "draw"
+                # SR-2e AAR-11: only this battle's own order is judged.
                 vindication_result = world.vindication_tracker.resolve_battle(
                     marshal_name=attacker.name,
                     result=vind_outcome,
-                    game_state=world
+                    game_state=world,
+                    defender_name=getattr(defender, 'name', None),
+                    battle_region=battle_region,
                 )
                 if vindication_result:
                     pipeline_out['vindication_msg'] = f"\n\n[Vindication] {vindication_result['message']}"
@@ -5933,7 +5936,8 @@ class CombatExecutor:
                     # gate and the charge cannot disagree again.
                     priced_as_auto_upgrade = False
                     strategic_cost = marshal.strategic_order_ap(
-                        auto_upgrade=priced_as_auto_upgrade)
+                        auto_upgrade=priced_as_auto_upgrade,
+                        order_type="PURSUE")
                     if world.actions_remaining < strategic_cost:
                         return {
                             "success": False,
@@ -7883,10 +7887,33 @@ class CombatExecutor:
         # NOW clear strategic orders for arrived reinforcements (A-C2 step 5).
         # Deferred to here so Hostile+SUPPORT marshals participate in
         # relationship checks above (W-1 fix, Session 62 post-review).
-        for results_list in [attacker_reinforcements, defender_reinforcements]:
+        from backend.commands.strategic import (
+            A_MARCH_KEEPS_ITS_TAIL as _KEEP_TAIL,
+        )
+        _kept_order_names = []   # SR-2e AAR-10: the player's, for the reply
+        for _side_idx, results_list in enumerate(
+                [attacker_reinforcements, defender_reinforcements]):
             for result in results_list:
                 if result["arrived"]:
                     arriving = world.marshals.get(result["marshal"])
+                    if (arriving and _KEEP_TAIL
+                            and arriving.strategic_order is not None):
+                        # SR-2e AAR-10: a march keeps its tail. The path was
+                        # emptied at arrival and is re-plotted from wherever
+                        # he stands; his order-bound QUESTION is spent (he
+                        # has just fought at or beside the ground it asked
+                        # about). A pursuit that fought its own quarry here
+                        # takes the pursuit's own one-turn pause.
+                        clear_order_bound_interrupt(arriving)  # NPC-2
+                        _kept = arriving.strategic_order
+                        _foe = enemy_marshal if _side_idx == 0 else marshal
+                        if (_kept.command_type == "PURSUE" and _foe is not None
+                                and _kept.target == getattr(_foe, "name", None)):
+                            _kept.last_combat_enemy = _foe.name
+                            _kept.last_combat_turn = world.current_turn
+                        if arriving.nation == world.player_nation:
+                            _kept_order_names.append(arriving.name)
+                        continue
                     if arriving:
                         # CA9-F13, second half: a standing order died here
                         # SILENTLY. Murat's MOVE_TO Vienna was cancelled by
@@ -8366,7 +8393,17 @@ class CombatExecutor:
             auto_bombard_preamble = "\n".join(auto_bombardment_messages) + "\n\n"
 
         # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
-        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + materiel_msg + sovereign_prestige_msg + forced_retreat_msg
+        # SR-2e AAR-10: a reinforcer whose order stood through the battle
+        # (and the withdrawal and rout blocks above) is told what resumes.
+        kept_order_msg = ""
+        for _kept_name in _kept_order_names:
+            _km = world.marshals.get(_kept_name)
+            _ko = getattr(_km, "strategic_order", None) if _km else None
+            if _km is None or _ko is None or getattr(_km, "strength", 0) <= 0:
+                continue
+            from backend.commands.strategic import kept_order_line
+            kept_order_msg += "\n" + kept_order_line(_km, _ko)
+        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + materiel_msg + sovereign_prestige_msg + forced_retreat_msg + kept_order_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
         # W6-4: the muster block rides every resolved player attack —

@@ -1908,7 +1908,8 @@ class TestCannonFireSystem:
         assert battle["defender"] == "Wellington"
         assert battle["location"] == "Waterloo"
 
-    def test_end_to_end_cannon_fire_from_real_combat(self, world, executor, strategic_executor, game_state):
+    def test_end_to_end_cannon_fire_from_real_combat(self, world, executor, strategic_executor, game_state,
+                                                     monkeypatch):
         """Full flow: combat → record_battle → cannon fire interrupt on next strategic process."""
         # Set up: Ney attacks Wellington at Waterloo
         ney = world.get_marshal("Ney")
@@ -1921,8 +1922,14 @@ class TestCannonFireSystem:
         davout.location = "Belgium"
         davout.strategic_order = _make_order("MOVE_TO", "Rhineland",
                                               path=["Netherlands", "Rhineland"])
-        # Prevent Davout from being pulled as reinforcement into Ney's battle
-        davout.reinforced_this_turn = True
+        # Prevent Davout from being pulled as reinforcement into Ney's battle.
+        # SR-2e (Sept 26 2026) re-seated CONSCIOUSLY: this used to set
+        # `davout.reinforced_this_turn = True`, which now means he answered
+        # the guns this turn — the end-turn pass does not march him again
+        # (AAR-10), so he never heard the guns. Nobody reinforces instead.
+        from backend.commands.combat_executor import CombatExecutor
+        monkeypatch.setattr(CombatExecutor, "_calculate_reinforcements",
+                            lambda self, *a, **k: [])
 
         # Execute combat
         executor.execute({

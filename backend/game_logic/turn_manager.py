@@ -694,6 +694,12 @@ class TurnManager:
             result["ai_proposal"] = ai_proposal_delivered
 
         # Add strategic order reports (Phase 5.2-C)
+        # SR-2e AAR-8: the advance, the grievance pass and the autonomous
+        # marshals can each spend a question after its row was written.
+        if strategic_reports:
+            from backend.commands.strategic import reconcile_question_rows
+            strategic_reports = reconcile_question_rows(
+                self.world, strategic_reports)
         if strategic_reports:
             result["strategic_reports"] = strategic_reports
             # Surface cannon fire and other interrupts into main events list
@@ -705,7 +711,11 @@ class TurnManager:
                         "type": "cannon_fire_redirect",
                         "marshal": report.get("marshal", "Unknown"),
                         "battle_location": report.get("battle_location", report.get("to", "")),
-                        "action_taken": report.get("action_taken", "redirect"),
+                        # SR-2e AAR-9 rider: an ASK row carries no
+                        # `action_taken`, and the event called it a redirect.
+                        "action_taken": (report.get("action_taken")
+                                         or ("ask" if report.get("requires_input")
+                                             else "redirect")),
                         "message": report.get("message", ""),
                     })
                 elif report.get("order_status") in ("active", "continues", "completed"):

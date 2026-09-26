@@ -2586,7 +2586,14 @@ class TestAggressiveRedirectActuallyMoves:
         ney.movement_range = 1  # Override to infantry for this test
 
         # Battle at Rhine (distance 2: Paris -> Lyon -> Rhine or Paris -> Belgium -> Rhine)
-        world.record_battle("Rhineland", "SomeAttacker", "SomeDefender", "ongoing")
+        # SR-2e AAR-9 (Sept 26 2026) re-seated CONSCIOUSLY: the invented
+        # participants passed only through the concern filter's fail-open
+        # arm; an aggressive marshal now abandons his order only for a war
+        # his nation is IN, so the battle names a real enemy at war.
+        _at_war = next(m.name for m in world.marshals.values()
+                       if m.nation != world.player_nation
+                       and world.is_at_war(world.player_nation, m.nation))
+        world.record_battle("Rhineland", _at_war, "SomeDefender", "ongoing")
 
         # No enemies at Rhine to attack
         # Move all enemies away from Rhine
@@ -2612,17 +2619,26 @@ class TestAggressiveRedirectActuallyMoves:
 class TestCannonFireEventInFrontendEvents:
     """Bug 2: Cannon fire redirects should appear in the main events list."""
 
-    def test_cannon_fire_event_in_frontend_events(self, world, game_state):
+    def test_cannon_fire_event_in_frontend_events(self, world, game_state,
+                                                  monkeypatch):
         """Strategic reports with cannon_fire should be surfaced as events."""
+        from backend.commands.combat_executor import CombatExecutor
         from backend.game_logic.turn_manager import TurnManager
 
         ney = world.get_marshal("Ney")
         ney.location = "Belgium"
-        # Prevent Ney from being pulled as reinforcement during AI attacks
-        ney.reinforced_this_turn = True
+        # Prevent Ney from being pulled as reinforcement during AI attacks.
+        # SR-2e (Sept 26 2026) re-seated CONSCIOUSLY: this used to set
+        # `ney.reinforced_this_turn = True`, which now means what it says —
+        # he answered the guns this turn and the end-turn pass does not
+        # march him again (AAR-10). Nobody reinforces instead (class-level
+        # patch: the singleton-shadow rule).
+        monkeypatch.setattr(CombatExecutor, "_calculate_reinforcements",
+                            lambda self, *a, **k: [])
 
-        # Record a battle nearby (not involving Ney)
-        world.record_battle("Waterloo", "SomeAttacker", "SomeDefender", "ongoing")
+        # Record a battle nearby (not involving Ney) — a war France is in
+        # (SR-2e AAR-9: invented participants are nobody's war).
+        world.record_battle("Waterloo", "Wellington", "SomeDefender", "ongoing")
 
         # Give Ney a strategic order (issued previous turn so it gets processed)
         _set_strategic_order(ney, "MOVE_TO", "Netherlands", path=["Netherlands"])

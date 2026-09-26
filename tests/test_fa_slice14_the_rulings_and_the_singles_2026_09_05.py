@@ -730,20 +730,25 @@ class TestAStandingOrderIsPricedByTheOrder:
     a cost of 1.
     """
 
-    @pytest.mark.parametrize("sentence", [
-        "Davout, hold Rhineland and wait",
-        "Ney, march to Lorraine and wait there",
-        "Davout, support Ney and wait",
-        "Ney, wait, march to Lorraine",
-        "Davout, hold Rhineland, wait for orders",
-        "Davout, support Ney and stand by",
-        "Ney, march to Lorraine and wait for reinforcements",
+    @pytest.mark.parametrize("sentence,price", [
+        ("Davout, hold Rhineland and wait", 2),
+        ("Ney, march to Lorraine and wait there", 2),
+        # SR-2e (Score Mandate, Sept 26 2026) re-seated CONSCIOUSLY: a
+        # SUPPORT order now costs ONE action for every marshal
+        # (`Marshal.strategic_order_ap`). The ruling this pin exists for —
+        # the ORDER prices the sentence, never the free verb riding it —
+        # holds; the order's price moved.
+        ("Davout, support Ney and wait", 1),
+        ("Ney, wait, march to Lorraine", 2),
+        ("Davout, hold Rhineland, wait for orders", 2),
+        ("Davout, support Ney and stand by", 1),
+        ("Ney, march to Lorraine and wait for reinforcements", 2),
     ])
-    def test_the_order_is_charged(self, sentence):
+    def test_the_order_is_charged(self, sentence, price):
         """Seven shapes, not the two the row names — and it is not a
         trailing suffix: a LEADING wait fires too."""
         before, after, orders, _ok = _drive(sentence)
-        assert before - after == 2, sentence
+        assert before - after == price, sentence
         assert orders == 1, sentence
 
     @pytest.mark.parametrize("sentence", [

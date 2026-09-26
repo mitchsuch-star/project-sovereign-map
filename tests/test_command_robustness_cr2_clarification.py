@@ -422,17 +422,26 @@ class TestClarificationBuilders:
             partial_action="wait") is not None
 
     def test_strategic_marshal_choice_costs_two_unless_literal_candidate(self):
+        # SR-2e (Score Mandate, Sept 26 2026) re-seated this pin CONSCIOUSLY:
+        # it used SUPPORT as its example of a two-action order, and a
+        # SUPPORT now costs ONE action for every marshal
+        # (`Marshal.strategic_order_ap`). The two-unless-literal rule it
+        # exists for is kept, on a PURSUE of the same shape; the SUPPORT
+        # arm now asserts the new price.
         world = self._world()
         parsed = {"success": True, "is_strategic": True,
-                  "strategic_type": "SUPPORT",
+                  "strategic_type": "PURSUE",
                   "command": {"action": "move", "target": "Ney"}}
         world.actions_remaining = 1
-        # Davout (cautious) is the only candidate — strategic costs 2
-        assert build_marshal_choice_clarification(world, parsed, "support ney") is None
+        # Davout (cautious) is the only candidate — a pursuit costs 2
+        assert build_marshal_choice_clarification(world, parsed, "pursue ney") is None
         world.marshals["Davout"].personality = "literal"
         # A literal candidate can execute a strategic order for 1 AP
-        assert build_marshal_choice_clarification(world, parsed, "support ney") is not None
+        assert build_marshal_choice_clarification(world, parsed, "pursue ney") is not None
         world.marshals["Davout"].personality = "cautious"
+        # SR-2e: a SUPPORT is one action for the cautious candidate too.
+        support = dict(parsed, strategic_type="SUPPORT")
+        assert build_marshal_choice_clarification(world, support, "support ney") is not None
 
 
 class TestAnswerInterpreter:

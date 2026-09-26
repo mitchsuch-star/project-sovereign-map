@@ -684,14 +684,19 @@ def _archived_titled(run: str) -> dict:
            "slices landed: the AAR road 37, opening A 31 (three more titling "
            "on turn 44), the scripted opening B 16 — still short. The number "
            "is not moved a third time; the §68.6 levers are SR-D3's first "
-           "questions (SCORE_MANDATE_PLAN §4). This turns RED the day an "
+           "questions (SCORE_MANDATE_PLAN §4). SR-2e (Sept 26, 2026 — "
+           "standing orders reliable) re-drove them again: the AAR road 37, "
+           "opening A 31, opening B 31 (its tail held — Massena's march "
+           "survived a reinforcement) — the best point on any road is still "
+           "39. This turns RED the day an "
            "archived road reaches 45 — then retire the xfail and re-record.")
 def test_a_played_arm_reaches_forty_five_by_turn_forty():
     """GEV-D1's named test over the committed re-measure archives — VP-R1's
-    two played tails and SR-1e's three re-driven roads."""
+    two played tails, SR-1e's three re-driven roads and SR-2e's Q0 re-drive."""
     tails = [_archived_titled(run) for run in (
         "vpr1-played-a-tail", "vpr1-played-b-tail",
-        "sr1e-aar-road", "sr1e-gev-b", "sr1e-gev-a")]
+        "sr1e-aar-road", "sr1e-gev-b", "sr1e-gev-a",
+        "sr2e-q0-aar-road", "sr2e-q0-gev-b", "sr2e-q0-gev-a")]
     assert all(t["turn"] >= 40 for t in tails)
     assert any(t["titled"] >= t["hold_titled"] for t in tails), tails
 
@@ -715,6 +720,29 @@ class TestTheSR1eReMeasureIsOnTheRecord:
         assert a["status"] == "completed" and a["titled"] == 31 and a["turn"] == 41
         assert a["held"] == ["East Frisia", "Oldenburg", "Westphalia"]
         assert b["status"] == "completed" and b["titled"] == 16 and b["turn"] == 41
+        assert aar["hold_titled"] == a["hold_titled"] == b["hold_titled"] == 45
+
+
+class TestTheSR2eQ0ReMeasureIsOnTheRecord:
+    """SR-2e (Score Mandate, September 26, 2026 — SR-D3 ruled (c) first:
+    standing orders reliable) re-measures Q0 on SR-1e's three roads, same
+    seed, script and popup policy. The AAR road and opening A are unchanged
+    (37 and 31 at turn 41); opening B peaks at the same 39 on turn 9 and its
+    unattended tail HOLDS — 31 titled on 23 provinces at turn 41 where SR-1e
+    ended on 16 and 8 — because Massena's march survived a reinforcement at
+    Munich (AAR-10: a march keeps its tail) instead of being voided. None
+    reaches 45; 45 is not moved (§4 SR-D3: re-measured again after SR-D1)."""
+
+    def test_the_archived_roads_say_what_the_record_says(self):
+        aar = _archived_titled("sr2e-q0-aar-road")
+        a = _archived_titled("sr2e-q0-gev-a")
+        b = _archived_titled("sr2e-q0-gev-b")
+        assert aar["titled"] == 37 and aar["turn"] == 41
+        assert a["titled"] == 31 and a["turn"] == 41
+        assert b["titled"] == 31 and b["provinces"] == 23 and b["turn"] == 41
+        assert [s["titled"] for s in b["series"]] == [39, 37, 37, 34, 31]
+        assert max(max(s["titled"] for s in r["series"])
+                   for r in (aar, a, b)) == 39
         assert aar["hold_titled"] == a["hold_titled"] == b["hold_titled"] == 45
 
 

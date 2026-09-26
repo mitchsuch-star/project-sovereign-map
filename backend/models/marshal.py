@@ -31,6 +31,13 @@ from typing import Optional, Dict, List, Mapping, Sequence
 from backend.models.trust import SovereignTrust, Trust
 
 
+# SR-2e "standing orders reliable" (Score Mandate, September 26, 2026 — the
+# user's ruling of SR-D3 as (c) first): a SUPPORT order costs one action for
+# every marshal (`Marshal.strategic_order_ap`). Lever False restores the
+# two-action price everywhere the method is read.
+A_SUPPORT_ORDER_IS_ONE_ACTION = True
+
+
 # ════════════════════════════════════════════════════════════════════════════════
 # STRATEGIC ORDER DATA STRUCTURES (Phase 5.2)
 # ════════════════════════════════════════════════════════════════════════════════
@@ -953,7 +960,8 @@ class Marshal:
         """
         return self.personality == "sovereign"
 
-    def strategic_order_ap(self, auto_upgrade: bool = False) -> int:
+    def strategic_order_ap(self, auto_upgrade: bool = False,
+                           order_type: Optional[str] = None) -> int:
         """AP a STRATEGIC order from this marshal costs (GR1: one source).
 
         NP-V (adversarial review, confirmed): the 1-AP discount lived at
@@ -968,10 +976,23 @@ class Marshal:
         (W6-5); the sovereign does not persuade himself (NP-1 §4.2); an
         auto-upgrade was never the player's request, so it is not charged
         for one.
+
+        SR-2e "standing orders reliable" (Score Mandate, SR-D3 ruled (c)
+        first, September 26, 2026): a SUPPORT order costs ONE action for
+        every marshal — the multiplier the design intends (a corps that
+        marches to its colleague's guns) made cheap enough to use before
+        any new action point is minted. `order_type` is the strategic type
+        ("MOVE_TO" / "PURSUE" / "HOLD" / "SUPPORT"); every pricing site and
+        every button that quotes a strategic order passes it, so the price
+        a player reads is the price he pays (lever
+        `A_SUPPORT_ORDER_IS_ONE_ACTION`).
         """
         if auto_upgrade:
             return 1
         if getattr(self, "personality", "") == "literal" or self.is_sovereign:
+            return 1
+        if (A_SUPPORT_ORDER_IS_ONE_ACTION
+                and str(order_type or "").upper() == "SUPPORT"):
             return 1
         return 2
 

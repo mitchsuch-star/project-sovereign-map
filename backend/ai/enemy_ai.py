@@ -2000,8 +2000,12 @@ class EnemyAI:
         # recovery (a broken corps reforms first) and above everything
         # else, because a treaty's clock outranks opportunism.
         # ════════════════════════════════════════════════════════════
-        if withdrawal.is_road_home_order(
-                getattr(marshal, "strategic_order", None)):
+        # SR-2e AAR-10 (GR5): a corps that answered a battle's guns this
+        # turn has moved this turn — the road home resumes next turn.
+        from backend.commands.strategic import A_MARCH_KEEPS_ITS_TAIL as _KEEP_TAIL
+        if (withdrawal.is_road_home_order(
+                getattr(marshal, "strategic_order", None))
+                and not (_KEEP_TAIL and getattr(marshal, "reinforced_this_turn", False))):
             step = withdrawal.next_step_home(world, marshal)
             if step:
                 if _fortified_corps_never_marches() and getattr(marshal, 'fortified', False):

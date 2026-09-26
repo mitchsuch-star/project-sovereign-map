@@ -1609,12 +1609,16 @@ class DisobedienceSystem:
             message = "Order proceeds as given."
 
         # Record for vindication tracking
+        # SR-2e AAR-11: the entry is bound to the order the answer RUNS
+        # (`final_order`) and the turn — see `vindication.py`.
         if vindication_tracker:
             vindication_tracker.record_choice(
                 marshal_name,
                 choice,
                 objection['original_order'],
-                objection['suggested_alternative']
+                objection['suggested_alternative'],
+                executed_order=final_order,
+                turn=getattr(game_state, 'current_turn', None),
             )
 
         # ════════════════════════════════════════════════════════════
@@ -2632,7 +2636,15 @@ def _build_strategic_options(
                                       trust_tier)
     # `strategic_executor.py:1424` — a literal marshal's strategic order is
     # priced at 1, and the button said 2 for everyone.
-    proceed_ap = 1 if getattr(marshal, "personality", "") == "literal" else 2
+    # SR-2e: the one source the charge reads, with the order's type (a
+    # SUPPORT is one action for every marshal). The compromise is the same
+    # order modified, so it is priced the same — it can never cost more
+    # than insisting on the order it softens.
+    try:
+        proceed_ap = int(marshal.strategic_order_ap(order_type=strategic_type))
+    except (AttributeError, TypeError):
+        proceed_ap = (1 if getattr(marshal, "personality", "") == "literal"
+                      else 2)
 
     options = []
 
@@ -2687,7 +2699,8 @@ def _build_strategic_options(
             "description": f"Find middle ground with {marshal.name}.",
             # The one number that was already honest — it is flat.
             "trust_change": COMPROMISE_TRUST_GAIN,
-            "ap_cost": 2,
+            # SR-2e: the order's own price (the handler charges the same).
+            "ap_cost": proceed_ap,
             "compromise": compromise,
         })
 
