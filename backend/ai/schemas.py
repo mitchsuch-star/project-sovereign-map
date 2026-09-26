@@ -105,6 +105,11 @@ class ParseResult:
     # must not fire a second blocking LLM call in the same request (the
     # Berthier recovery call stacked ~5s on top of the ~5s parse timeout).
     llm_error: bool = False
+    # IQ9-X3 (SR-3c): True when a live provider was CONSULTED and the result
+    # is nevertheless the offline reading (the live answer was unmatched or
+    # failed validation). `mode` stays "mock" — whose reading this is — and
+    # the parser's failure road reads this to name the road it came down.
+    live_consulted: bool = False
     target_stance: Optional[str] = None
     raw_command: str = ""
     type: Optional[str] = None  # Special type marker (e.g., "debug")
@@ -204,6 +209,9 @@ class ParseResult:
         # the dict shape unchanged for the overwhelmingly common case.
         if self.llm_error:
             result["llm_error"] = True
+        # IQ9-X3: emitted only when a live call was consulted and discarded.
+        if self.live_consulted:
+            result["live_consulted"] = True
 
         return result
 
@@ -245,6 +253,7 @@ class ParseResult:
             interpretation_reason=data.get("interpretation_reason"),
             alternatives=data.get("alternatives", []),
             llm_error=data.get("llm_error", False),
+            live_consulted=data.get("live_consulted", False),
             refusal=data.get("refusal"),
             refusal_phrase=data.get("refusal_phrase"),
         )

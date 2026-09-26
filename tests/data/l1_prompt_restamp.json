@@ -1,0 +1,98 @@
+{
+  "aggressive-plain": {
+    "recorded_chars": 17491,
+    "recorded_sha256": "8ba998ba818f6915c48f0007519e4abca1fbbe6a0fd6ec32d253e6154047fb1a",
+    "static_first_chars": 17674,
+    "static_first_sha256": "948a2bb22cae2aa656efeeb52ce186cc60ca3b7baddcd4eb1295a8009e5a71eb"
+  },
+  "backlog-make-your-way": {
+    "recorded_chars": 17495,
+    "recorded_sha256": "e0be5b1add9bf47a889e45c427cf857d803be72a1feca2cc8ce0c6a5809c7705",
+    "static_first_chars": 17681,
+    "static_first_sha256": "d133f9c873be39acabcb3d5b53bcc776c0eff258ac5db673aab3d956bcedf527"
+  },
+  "below-gate-get-after": {
+    "recorded_chars": 17483,
+    "recorded_sha256": "696324f3a590d2abc335ea230aaafda89eda9885740569ae04ba7c62a505ecd8",
+    "static_first_chars": 17666,
+    "static_first_sha256": "b242d738c64f76087f9a9c14b933a4f1dd036629dec8b7428a9c88bcb16ec331"
+  },
+  "below-gate-keep-an-eye": {
+    "recorded_chars": 17491,
+    "recorded_sha256": "d8e923d73dee44fbad6dd3eff5e57ef6f867b3859773b01754bb111a816ffba4",
+    "static_first_chars": 17675,
+    "static_first_sha256": "a0f99f92302a3a31f1825264f5e385cb835b58d54b099a593f48390c5abb0d24"
+  },
+  "cr2-retry-hunt-down-mack": {
+    "recorded_chars": 17478,
+    "recorded_sha256": "d961025fddd74a435577cf37be03dc28b2e38bdcd8a405d2286fa2f31bb2d5c2",
+    "static_first_chars": 17614,
+    "static_first_sha256": "ebc95eddd92cc6bf771270238799a41d3b4d3000c6caf39394e5b2aa73bd7031"
+  },
+  "cr2-unresolved-address": {
+    "recorded_chars": 17484,
+    "recorded_sha256": "84db4c0af487c9803ab818d51dfe8bbda97e3cdf342ab8af106ad9788acab202",
+    "static_first_chars": 17620,
+    "static_first_sha256": "56781bf358b7ddcd125c6ea761013df9079be0424ea79bc1db91b6422211f210"
+  },
+  "cr5-deleg-aggressive-ney-resolves-live": {
+    "recorded_chars": 17483,
+    "recorded_sha256": "7d6ddb78ca93321d15dea7daf176e2948ceed3973ea1e6cc9ce4d370f69cc84b",
+    "static_first_chars": 17666,
+    "static_first_sha256": "ab8682e4555bf580a8f69f68d8ae2bfbb00405638680f73cf5ef92c738703929"
+  },
+  "cr5-deleg-cautious-davout-resolves-live": {
+    "recorded_chars": 17486,
+    "recorded_sha256": "856ca4706198b73688152d40c96359ef5319066f18ce70b03e9f56fb6c3f40da",
+    "static_first_chars": 17670,
+    "static_first_sha256": "76cf73d56bd392f4e467bd1673c7c2532340a4cadd965de3c64a5630bf872c7c"
+  },
+  "cr5-deleg-literal-soult-asks": {
+    "recorded_chars": 17485,
+    "recorded_sha256": "4ff38c6bce572bfd5fa2f330fd749c6f942cdb47c226fc06ddade9d5fa53d2a9",
+    "static_first_chars": 17667,
+    "static_first_sha256": "a86fb7624ed091e1dd3970543be9a6bc536e5659fd38acf23872e88508aeeb0c"
+  },
+  "demonym-harass": {
+    "recorded_chars": 17491,
+    "recorded_sha256": "a2523a13e4b343c204809a75cff96c41e18897832971733db6f95ae5d417fca1",
+    "static_first_chars": 17676,
+    "static_first_sha256": "e9782a6c716899fae6d378c4eda953000a20cdededeec1fe2f67a01c2436fc56"
+  },
+  "diplomatic-ask-austria": {
+    "recorded_chars": 17490,
+    "recorded_sha256": "c7d11a4af2023a4d8dd134e7e67ad9510801b9caee412fcbf4a8ddad0c6c9a77",
+    "static_first_chars": 17626,
+    "static_first_sha256": "8a81dde21651693e0dc3adc1fd2c8139c9ae84dbc8ccc857be8e5df49369463f"
+  },
+  "fa73-live-cover-the-retreat-is-not-a-retreat.1805": {
+    "recorded_chars": 17486,
+    "recorded_sha256": "342902834e69cd54f64c8f7c199cda65aef0d28b63ef147350169ebe27adc635",
+    "static_first_chars": 17669,
+    "static_first_sha256": "2ede8bd01da99a6982a7cf415028a20f94a5b4c289f927311b489e869df7928f"
+  },
+  "fa73-live-cover-the-retreat-is-not-a-retreat.legacy": {
+    "recorded_chars": 15725,
+    "recorded_sha256": "f8d8ce958446505d3da9d94c138edbd12688930b599af2345ac34ade41b3ce4a",
+    "static_first_chars": 15932,
+    "static_first_sha256": "f6eda73a272db8eb702490cdc68fd5297b7ed37f4210527e22fa1a22ef182ab2"
+  },
+  "fa73-live-fix-bayonets-is-not-a-repair.1805": {
+    "recorded_chars": 17481,
+    "recorded_sha256": "6967dedba31bdd2f0f83911fdac6cda07d5356747394520c88374edf62f21133",
+    "static_first_chars": 17664,
+    "static_first_sha256": "2d93bcfbfb1960d3e8f21469bddd6575f5722f8c5280badbbf1a47c1f8360439"
+  },
+  "fa73-live-fix-bayonets-is-not-a-repair.legacy": {
+    "recorded_chars": 15720,
+    "recorded_sha256": "59854972c6cbc5e042c45ddf76d843e6850ed9eb7c2e74187e623c7e22a494d4",
+    "static_first_chars": 15927,
+    "static_first_sha256": "e70a213b99c597d9ae402d2ac40bba970fa5c50037ace0cf23c2120eaa8efb96"
+  },
+  "gibberish-berthier": {
+    "recorded_chars": 17482,
+    "recorded_sha256": "b27d698650dd6d385791e45194254a14d0326a6b94be51d3f255fa38e59a9bc6",
+    "static_first_chars": 17618,
+    "static_first_sha256": "0d69125b3edc4095240db575f8c6ec60dace64d14e0dd77722fe42e24bc3d42b"
+  }
+}

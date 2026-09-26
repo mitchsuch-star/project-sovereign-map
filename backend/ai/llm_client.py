@@ -1649,6 +1649,8 @@ class LLMClient:
                 # LLM call already timed out or errored.
                 if llm_result.llm_error:
                     fast_result.llm_error = True
+                # IQ9-X3: the live road was taken and answered nothing usable.
+                fast_result.live_consulted = True
                 return fast_result
 
             # Validate LLM result against game rules
@@ -1669,6 +1671,8 @@ class LLMClient:
             if not validated.matched:
                 print(f"LLM result failed validation: {validated.suggestion}")
                 print("Falling back to fast parser result")
+                # IQ9-X3: the live road was taken; its answer was discarded.
+                fast_result.live_consulted = True
                 return fast_result
 
             # Success! Return validated LLM result.

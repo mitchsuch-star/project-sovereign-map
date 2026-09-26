@@ -180,10 +180,24 @@
 > refused free; `in Franche-Comté` = `in Franche-Comte`). **Rider:** a hold the game placed no
 > longer says "Our maps read Rhineland…". **Filed:** CQ-37 → the reserve, CQ-38 → CRT-11.
 > **Drive-by:** a pre-existing 1-in-300 dice flake in `test_estate_second_pass.py` pinned.
-> **NEXT = SR-3c (L-1: the static-first parse prompt + the dead `marshal_name`/`personality`
+> ~~**NEXT = SR-3c (L-1: the static-first parse prompt + the dead `marshal_name`/`personality`
 > params wired; riders IQ9-X1 + IQ9-X3 — every parse cassette will drift: lever + re-stamp via
 > the replay, NEVER `--refresh-drifted`) → the Chunk 3 reserve (CQ-37, the boot help's "who am
-> I fighting" line, AAR-25, the IQ10-X residue) → the exit re-score. SR-D3 stays DEFERRED.**
+> I fighting" line, AAR-25, the IQ10-X residue) → the exit re-score. SR-D3 stays DEFERRED.**~~
+> ~~**SR-3c L-1 "the prompt turns around"**~~ ✅ **LANDED September 26, 2026** (landing record
+> `COMMAND_ROBUSTNESS_SPEC.md` §12.11 + the L-1 memo §7; rules `SYSTEMS_REFERENCE.md` §72.4; pins
+> `tests/test_l1_the_prompt_turns_around.py` (29, incl. the 16-cassette attribution) + `tests/test_cr6_retry_rescues_the_word_scan.py` (14); sweep `tools/_sweep_sr3c.json` 18/18 killed, 0 INERT at close;
+> corpus 791/791 + replay 6/6; `BASELINE_SERIES` + M1–M7 byte-identical; zero `.gd`). The parse
+> prompt is static first — the same order one battle apart shares **84 → 15,771** characters
+> (≈4,381 tokens, estimated) and ≥ 15,921 over twelve turns once the examples were made
+> board-independent (they had decayed it to 12,199); lever down = the shipped prompt byte for
+> byte (42 of 42), which attributes the re-stamp of 16 IQ-9 cassettes; the addressee params wired.
+> **IQ9-X1:** the retry's live reading of the marshal stands (`hunt down mack` = `pursue mack`).
+> **IQ9-X3:** a failure names the road it came down. **Prompt caching stays OFF** — its obstacle is
+> gone; turning it on is the user's decision. **SR-3 IS COMPLETE.**
+> **NEXT = the Chunk 3 reserve (CQ-37 the idioms, the boot help's "who am I fighting" line,
+> AAR-25, the IQ10-X residue) → the Chunk 3 exit re-score (first contact on a fresh-boot played
+> arm; command on the corpus + a played arm), §1 FOR USER CONFIRMATION → STOP. SR-D3 stays DEFERRED.**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**
@@ -12459,7 +12473,7 @@ Suite 14,206 → **14,218/3**, corpus 453/453, ruff clean, live-verified in `LLM
 
 - **GR6 holds.** Traced every mechanically-dangerous field: cheats are unreachable (`cheat` is in neither META_ACTIONS nor VALID_ACTIONS, so validation discards the whole result); `debug` is hard-gated on `debug_mode`; the `diplomatic_data` allowlist + field-strip correctly runs BEFORE the META bypass; hallucinated marshals are set-checked and the invented-marshal guard strips them. No LLM output reaches a mechanical effect without a deterministic gate.
 - Model pin `claude-haiku-4-5` is current and correctly aliased; no deprecated parameters (`output_format`, `budget_tokens`, assistant prefill) anywhere; `temperature: 0` is valid on this model.
-- **Prompt caching assessed and REJECTED, with the reason recorded** so it is not re-litigated: tools+system is ~700 tokens, below Haiku 4.5's 2048-token minimum cacheable prefix, and the volatile game state sits at the TOP of the ~3.7K-token user prompt. Making it cacheable needs a prompt restructure whose regression risk outweighs the saving on a call that only fires for sub-0.7 parses.
+- **Prompt caching assessed and REJECTED, with the reason recorded** so it is not re-litigated: tools+system is ~700 tokens, below Haiku 4.5's 2048-token minimum cacheable prefix, and the volatile game state sits at the TOP of the ~3.7K-token user prompt. Making it cacheable needs a prompt restructure whose regression risk outweighs the saving on a call that only fires for sub-0.7 parses. **⚑ September 26, 2026 (Score Mandate SR-3c, L-1): that restructure has now landed for its own reasons** — the board no longer sits at the top, and the prefix fixed across orders and boards is ~15,800 characters (≈4,400 tokens, estimated). The rejection's structural premise is gone; caching is still OFF, and turning it on is a fresh decision for the user, not taken by that slice.
 
 **Live-verified** on the real API: `"Ney, deal with Mack"` → 2.7s, correct delegation parse with a flavor line; `"Ney, make it so"` → Berthier recovery in character. Both log `request_id` and token usage.
 

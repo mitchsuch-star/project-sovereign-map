@@ -1,0 +1,128 @@
+[
+  {
+    "id": "SR-3c/L-1 the lever is down",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "THE_PROMPT_IS_STATIC_FIRST = True\n",
+    "new": "THE_PROMPT_IS_STATIC_FIRST = False\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections"
+  },
+  {
+    "id": "SR-3c/L-1 the board leads again",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "        prompt = (_S_HEAD + _S_ACTIONS + _S_REGIONS + _S_STANCES\n",
+    "new": "        prompt = (_S_HEAD + _S_MARSHALS + _S_ACTIONS + _S_REGIONS + _S_STANCES\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections"
+  },
+  {
+    "id": "SR-3c/L-1 the personality rule points above",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "    _marshals_where = \"below\" if THE_PROMPT_IS_STATIC_FIRST else \"above\"\n",
+    "new": "    _marshals_where = \"above\"\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections::test_the_personality_rule_points_below"
+  },
+  {
+    "id": "SR-3c/L-1 the addressee line is dropped",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "                    if marshal_name else \"\")\n",
+    "new": "                    if False else \"\")\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheAddressee"
+  },
+  {
+    "id": "SR-3c/L-1 the helper finds no addressee",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "            return name, _marshal_personality(game_state, name)\n",
+    "new": "            return None, None\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheAddressee"
+  },
+  {
+    "id": "SR-3c/L-1 the static examples teach the enemy templates twice",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "        if part == \"static\" and _names_an_enemy(template):\n            continue\n",
+    "new": "        if False:\n            continue\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheExamplesAreHonest tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared::test_over_eight_turns_of_play"
+  },
+  {
+    "id": "SR-3c/L-1 the stable province is the enemy's current one",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "        names[\"region\"] = capital\n",
+    "new": "        pass\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared::test_over_eight_turns_of_play"
+  },
+  {
+    "id": "SR-3c/L-1 the board examples vanish",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "    _S_BOARD_EXAMPLES = (\"## Examples on This Board\\n\" + _examples_board + \"\\n\\n\"\n                         if _examples_board else \"\")\n",
+    "new": "    _S_BOARD_EXAMPLES = \"\"\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheExamplesAreHonest::test_the_board_examples_name_only_a_foe_in_view"
+  },
+  {
+    "id": "SR-3c/L-1 the geography stays in the rules",
+    "file": "backend/ai/prompt_builder.py",
+    "old": "                  + _S_CARDINAL_HEAD_NEW + _S_CARDINAL_TAIL + _S_DIPLOMATIC\n",
+    "new": "                  + _S_CARDINAL_HEAD_OLD + _S_GEOGRAPHY_OLD + _S_CARDINAL_TAIL + _S_DIPLOMATIC\n",
+    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections::test_the_geography_rides_the_board tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared"
+  },
+  {
+    "id": "SR-3c/IQ9-X1 the retry lever is down",
+    "file": "backend/commands/parser.py",
+    "old": "THE_RETRY_READS_THE_MARSHAL = True\n",
+    "new": "THE_RETRY_READS_THE_MARSHAL = False\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheRetryReadsTheMarshal"
+  },
+  {
+    "id": "SR-3c/IQ9-X1 the retry does not trust its reading",
+    "file": "backend/commands/parser.py",
+    "old": "                        game_state=game_state, trust_marshal_reading=True)\n",
+    "new": "                        game_state=game_state)\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheRetryReadsTheMarshal"
+  },
+  {
+    "id": "SR-3c/IQ9-X1 the word scan always runs",
+    "file": "backend/commands/parser.py",
+    "old": "            words = ([] if (trust_marshal_reading\n                            and THE_RETRY_READS_THE_MARSHAL)\n",
+    "new": "            words = ([] if (False\n                            and THE_RETRY_READS_THE_MARSHAL)\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheRetryReadsTheMarshal"
+  },
+  {
+    "id": "SR-3c/IQ9-X3 the failure lever is down",
+    "file": "backend/commands/parser.py",
+    "old": "A_FAILURE_NAMES_ITS_ROAD = True\n",
+    "new": "A_FAILURE_NAMES_ITS_ROAD = False\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestAFailureNamesItsRoad"
+  },
+  {
+    "id": "SR-3c/IQ9-X3 a consulted retry is not named",
+    "file": "backend/commands/parser.py",
+    "old": "        if consulted and consulted != \"mock\":\n            return consulted\n",
+    "new": "        if False:\n            return consulted\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestAFailureNamesItsRoad::test_a_discarded_retry_names_the_live_road"
+  },
+  {
+    "id": "SR-3c/IQ9-X3 the marker is not read",
+    "file": "backend/commands/parser.py",
+    "old": "                               or (llm_result or {}).get(\"live_consulted\")):\n",
+    "new": "                               or False):\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestAFailureNamesItsRoad::test_a_live_failure_names_the_live_road"
+  },
+  {
+    "id": "SR-3c/IQ9-X3 the unmatched fallback is not marked",
+    "file": "backend/ai/llm_client.py",
+    "old": "                # IQ9-X3: the live road was taken and answered nothing usable.\n                fast_result.live_consulted = True\n",
+    "new": "                # IQ9-X3: the live road was taken and answered nothing usable.\n                pass\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheFallbackIsMarked::test_an_unmatched_live_answer tests/test_cr6_retry_rescues_the_word_scan.py::TestAFailureNamesItsRoad::test_a_live_failure_names_the_live_road"
+  },
+  {
+    "id": "SR-3c/IQ9-X3 the validation fallback is not marked",
+    "file": "backend/ai/llm_client.py",
+    "old": "                # IQ9-X3: the live road was taken; its answer was discarded.\n                fast_result.live_consulted = True\n",
+    "new": "                # IQ9-X3: the live road was taken; its answer was discarded.\n                pass\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestTheFallbackIsMarked::test_a_live_answer_that_fails_validation"
+  },
+  {
+    "id": "SR-3c/IQ9-X3 the marker does not ride the dict",
+    "file": "backend/ai/schemas.py",
+    "old": "        if self.live_consulted:\n            result[\"live_consulted\"] = True\n",
+    "new": "        if False:\n            result[\"live_consulted\"] = True\n",
+    "tests": "tests/test_cr6_retry_rescues_the_word_scan.py::TestAFailureNamesItsRoad"
+  }
+]

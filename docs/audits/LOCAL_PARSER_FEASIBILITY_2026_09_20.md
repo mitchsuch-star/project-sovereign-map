@@ -430,3 +430,7 @@ unrunnable as written, the licence table, and the headline that decides the row:
 was never the answer to *"make the game just work"* — the Command-Road Queue's
 first four slices are. This section only makes the row's one real prize
 reachable without it.
+
+### §7 L-1 LANDING RECORD ✅ LANDED September 26, 2026 (Score Mandate Chunk 3, SR-3c — with the triage's riders IQ9-X1 + IQ9-X3)
+
+The done-when above is MET and exceeded: same utterance, boards one battle apart, **84 → 15,771 shared characters** (≥ 14,000); the invariant prefix 15,771 characters ≈ 4,381 tokens by the memo's own 3.6 chars/token (> 4,096 — an estimate, no local tokenizer); the corpus unchanged (791/791); every cassette still replays (the key is never the prompt). Two findings beyond the contract: the few-shot examples were board-dependent (the prefix decayed to 12,199 characters by turn 8 of play) and are now split into a board-independent static part and a board part; and the 16 parse cassettes' recorded prompt fingerprints had to be re-stamped — attributed by the lever (down = the recorded fingerprint, byte for byte). Prompt caching is NOT turned on by this slice. The full record is `docs/COMMAND_ROBUSTNESS_SPEC.md` §12.11; the rules are `docs/SYSTEMS_REFERENCE.md` §72.4.

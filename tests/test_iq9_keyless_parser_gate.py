@@ -654,16 +654,19 @@ class TestBelowGatePhrasings:
         assert int(world.actions_remaining) == 4
         assert replay.call_kinds() == ["parse"]
 
-    def test_a_live_road_failure_still_stamps_mock_provenance(self, endpoint):
-        """FILED, NOT FIXED (main.py is another builder's file today): the
-        parser's failure dicts carry no `mode`, so `_PARSE_PROVENANCE` reads
-        "mock" on a request that DID make a live call. Pinned as current
-        behaviour so the fix is a conscious flip."""
+    def test_a_live_road_failure_names_the_live_road(self, endpoint):
+        """IQ9-X3 — FLIPPED CONSCIOUSLY by SR-3c (September 26, 2026,
+        `COMMAND_ROBUSTNESS_SPEC.md` §12.11). This pin used to record the
+        defect as current behaviour: the parser's failure dicts carried no
+        `mode`, so `_PARSE_PROVENANCE` read "mock" on a request that DID make
+        a live call. A failure now names the road it came down
+        (`parser.A_FAILURE_NAMES_ITS_ROAD`); the full rule is pinned in
+        `tests/test_cr6_retry_rescues_the_word_scan.py`."""
         utt = "flurble the wibble"
         world, replay = endpoint(FILE_CASSETTES.values())
         data = endpoint.post(utt)
         assert replay.call_kinds() == ["parse", "berthier"]
-        assert data["parse_mode"] == "mock"
+        assert data["parse_mode"] == "anthropic"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1014,21 +1017,22 @@ class TestCR2Retry:
         assert utterance_of(replay.calls[0]) == RETRY_UTT
         assert replay.served == ["cr2-retry-hunt-down-mack"]
 
-    def test_retry_cannot_rescue_the_word_scan_family_today(self, parse_worlds):
-        """IQ9-X1 (recon F2), pinned as CURRENT behaviour by name: the retried
-        live parse (marshal-less `pursue Mack`) is re-run through the fuzzy
-        pass, whose marshal WORD-SCAN re-reads 'down' → Davout and re-fires,
-        so the one live call is discarded and the original error stands.
-        Owner: CR-6 proper (ROADMAP 15). Flip this pin consciously when the
-        retried parse is adopted."""
+    def test_the_retry_rescues_the_word_scan_family(self, parse_worlds):
+        """IQ9-X1 — FLIPPED CONSCIOUSLY by SR-3c (September 26, 2026,
+        `COMMAND_ROBUSTNESS_SPEC.md` §12.11). This pin used to record the
+        defect as current behaviour: the retried live parse (marshal-less
+        `pursue Mack`) was re-run through the fuzzy pass, whose marshal WORD
+        SCAN re-read 'down' → Davout, so the one live call was discarded and
+        the original error stood. The retry's marshal reading now stands
+        (`parser.THE_RETRY_READS_THE_MARSHAL`); the full rule is pinned in
+        `tests/test_cr6_retry_rescues_the_word_scan.py`."""
         world, gs = parse_worlds["1805"]
         parser, replay = arm(list(FILE_CASSETTES.values()), "1805", MANIFEST)
         r = parse(parser, RETRY_UTT, gs, world)
         assert len(replay.calls) == 1
-        assert r["success"] is False
-        assert "'down' not found" in r["error"]
-        assert r.get("kind") == "marshal_suggest"
-        assert r.get("candidates") == ["Davout"]
+        assert r["success"] is True
+        assert r["command"].get("marshal") is None
+        assert r["command"].get("target") == "Mack"
         assert not r.get("llm_error")
 
     def test_retry_api_failure_reaches_the_failure_dict_and_silences_berthier(

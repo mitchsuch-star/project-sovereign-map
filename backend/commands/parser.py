@@ -510,6 +510,26 @@ def normalize_sovereign_address(command_text: str,
 A_REWARD_GOES_TO_ITS_OBJECT = True
 REWARD_VERBS = frozenset({"grant_pension", "revoke_pension", "grant_dotation"})
 
+# IQ9-X1 (Score Mandate Chunk 3, SR-3c, September 26, 2026): THE RETRY READS
+# THE MARSHAL. `hunt down Mack` — the fast pass's marshal WORD SCAN read
+# "down" as a typo of Davout ("Did you mean 'Davout'? ('down' not found)");
+# CR-2's one live retry answered correctly (no marshal named, pursue Mack),
+# and the retry's own fuzzy pass re-ran the same word scan on the same words,
+# so the live call was spent and discarded and the wrong question stood. The
+# live model read the whole sentence: on the RETRY its marshal reading stands
+# — the word scan is skipped, a marshal it NAMES is still validated, and the
+# primary road is unchanged. False restores the discard.
+THE_RETRY_READS_THE_MARSHAL = True
+
+# IQ9-X3 (SR-3c): A FAILURE NAMES ITS ROAD. The parser's failure dicts
+# carried no `mode`, so `main._PARSE_PROVENANCE` stamped "mock" on a request
+# that DID make a live call ("flurble the wibble": one live parse, its
+# response stamped as the offline road). Every failure now carries the road
+# it came down — the
+# live provider when a live call was made (answered, discarded or failed at
+# the API), else the offline parser. False restores the bare dicts.
+A_FAILURE_NAMES_ITS_ROAD = True
+
 
 def reward_recipient_from_text(command_text: str, roster,
                                world=None) -> Optional[str]:
@@ -1206,8 +1226,22 @@ class CommandParser:
             "candidates": [],
         }
 
+    def _failure_road(self, llm_result: Optional[Dict],
+                      consulted: Optional[str] = None) -> str:
+        """IQ9-X3: the road a parse failure came down — the live provider
+        when a live call was made (a retry consulted, the result's own live
+        mode, or a live call that failed at the API), else "mock"."""
+        if consulted and consulted != "mock":
+            return consulted
+        mode = (llm_result or {}).get("mode") or "mock"
+        if mode == "mock" and ((llm_result or {}).get("llm_error")
+                               or (llm_result or {}).get("live_consulted")):
+            return getattr(self.llm, "provider_name", None) or "mock"
+        return mode
+
     def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str, world=None,
-                              game_state=None) -> tuple:
+                              game_state=None,
+                              trust_marshal_reading: bool = False) -> tuple:
         """
         Apply fuzzy matching to correct typos in marshal and target names.
 
@@ -1476,8 +1510,13 @@ class CommandParser:
             condition_start = (condition_match.start() if condition_match
                                else len(command_text) + 1)
 
-            words = [(w.group(0), w.start())
-                     for w in re.finditer(r'\S+', command_text)]
+            # IQ9-X1: on the CR-2 retry the live model's "no marshal named"
+            # stands — its reading of the sentence is not re-scanned word by
+            # word (see THE_RETRY_READS_THE_MARSHAL).
+            words = ([] if (trust_marshal_reading
+                            and THE_RETRY_READS_THE_MARSHAL)
+                     else [(w.group(0), w.start())
+                           for w in re.finditer(r'\S+', command_text)])
             for word_index, (word, word_pos) in enumerate(words):
                 if word_pos >= condition_start:
                     continue
@@ -2134,7 +2173,7 @@ class CommandParser:
                 enemy_refusal = self._enemy_addressee_refusal(
                     effective_text, world, game_state)
                 if enemy_refusal is not None:
-                    return {
+                    _refused = {
                         "success": False,
                         "error": enemy_refusal["error"],
                         "suggestion": enemy_refusal.get("suggestion"),
@@ -2143,6 +2182,9 @@ class CommandParser:
                         "unknown_name": enemy_refusal["unknown_name"],
                         "candidates": [],
                     }
+                    if A_FAILURE_NAMES_ITS_ROAD:
+                        _refused["mode"] = self._failure_road(llm_result)
+                    return _refused
                 diplomatic_data = llm_result["diplomatic_data"]
                 action = diplomatic_data.get("action", "diplomatic_proposal")
 
@@ -2198,6 +2240,7 @@ class CommandParser:
             # live LLM never saw this command — and the fuzzy pass just
             # proved the fast parse wrong. One deliberate LLM retry before
             # surfacing the error (no-op in mock mode).
+            _consulted_mode = None  # IQ9-X3: the road the retry took, if any
             if fuzzy_error and llm_result.get("mode", "mock") == "mock":
                 retried, retry_llm_error = self.llm.reparse_with_llm(
                     effective_text, game_state, llm_result)
@@ -2207,9 +2250,10 @@ class CommandParser:
                 if retry_llm_error:
                     llm_result["llm_error"] = True
                 if retried is not None:
+                    _consulted_mode = retried.get("mode") or None
                     retried, retry_error = self._apply_fuzzy_matching(
                         retried, effective_text, world=world,
-                        game_state=game_state)
+                        game_state=game_state, trust_marshal_reading=True)
                     if retry_error is None:
                         llm_result, fuzzy_error = retried, None
 
@@ -2224,6 +2268,9 @@ class CommandParser:
                     # clarification builder cost the would-be reissue
                     "partial_action": llm_result.get("action"),
                 }
+                if A_FAILURE_NAMES_ITS_ROAD:
+                    failure["mode"] = self._failure_road(
+                        llm_result, _consulted_mode)
                 # CR-3(c): main.py's Berthier recovery must not fire a second
                 # blocking LLM call when this request's parse call already
                 # failed at the API layer.
@@ -2422,7 +2469,7 @@ class CommandParser:
                     # turn behind us — is answered at 0 AP with its cause,
                     # never minted into an order that can never complete.
                     if strategic and strategic.get("condition_refusal"):
-                        return {
+                        _refused = {
                             "success": False,
                             "error": "That condition is not one I can hold, Sire.",
                             "raw_input": command_text,
@@ -2433,6 +2480,9 @@ class CommandParser:
                             "partial_target": strategic.get("target"),
                             "dropped_sequel": dropped_sequel,
                         }
+                        if A_FAILURE_NAMES_ITS_ROAD:
+                            _refused["mode"] = self._failure_road(llm_result)
+                        return _refused
                     # FA slice 7: a BARE retreat verb is a retreat. "Ney, fall
                     # back" / "Ney, withdraw" parsed as `retreat` and were then
                     # upgraded by the strategic table's bare "fall back" /
@@ -2559,6 +2609,8 @@ class CommandParser:
                     "partial_marshal": llm_result.get("marshal"),
                     "partial_target": llm_result.get("target"),
                 }
+                if A_FAILURE_NAMES_ITS_ROAD:
+                    failure["mode"] = self._failure_road(llm_result)
                 # PARSE-NEG: this is not a failure to understand — the parser
                 # read the sentence exactly and there is no order in it. main.py
                 # answers with a specific Berthier line instead of the generic

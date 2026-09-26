@@ -77,7 +77,7 @@ from typing import Dict, Optional, Tuple
 import anthropic
 
 from .schemas import ParseResult, ProviderConfig
-from .prompt_builder import build_parse_prompt, build_system_prompt
+from .prompt_builder import addressed_marshal, build_parse_prompt, build_system_prompt
 
 
 # =============================================================================
@@ -644,9 +644,15 @@ class AnthropicProvider(BaseProvider):
         world = game_state.get("world") if game_state else None
         command_history = world.get_command_history_for_prompt() if world else []
 
+        # L-1 (SR-3c): the addressee and his personality ride the prompt's
+        # board block (the params were declared and never passed).
+        _addressed, _personality = addressed_marshal(
+            command_text, game_state or {})
         user_prompt = build_parse_prompt(
             raw_input=command_text,
             game_state=game_state or {},
+            marshal_name=_addressed,
+            personality=_personality,
             command_history=command_history,
         )
 
@@ -990,9 +996,15 @@ class GroqProvider(BaseProvider):
         world = game_state.get("world") if game_state else None
         command_history = world.get_command_history_for_prompt() if world else []
 
+        # L-1 (SR-3c): the addressee and his personality ride the prompt's
+        # board block (the params were declared and never passed).
+        _addressed, _personality = addressed_marshal(
+            command_text, game_state or {})
         user_prompt = build_parse_prompt(
             raw_input=command_text,
             game_state=game_state or {},
+            marshal_name=_addressed,
+            personality=_personality,
             command_history=command_history,
         )
 

@@ -84,7 +84,7 @@ New Marshals/Regions:
 
 import json
 import math
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 from .validation import VALID_ACTIONS, VALID_STANCES
 
@@ -440,16 +440,27 @@ def build_parse_prompt(
         "  (no map orientation data — resolve a direction only when the "
         "target region is obvious; otherwise set target to \"generic\")")
 
-    # Build the prompt with Markdown headers (cross-provider compatible)
-    prompt = f"""# Command Parser - Napoleonic Wars
+    # ── L-1 (Score Mandate Chunk 3, SR-3c): the prompt turns around ──
+    # The ONE prompt, cut at its own headers into sections that are the
+    # shipped text byte for byte; `THE_PROMPT_IS_STATIC_FIRST` chooses the
+    # order. Down = the pre-slice order (byte-identical — the IQ-9
+    # cassette re-stamp is attributed by it); up = every rule, the output
+    # contract and the examples FIRST, then the board (our marshals, the
+    # order's addressee, the enemy, the map orientation), then the order —
+    # so two prompts one battle apart share the whole static prefix.
+    _marshals_where = "below" if THE_PROMPT_IS_STATIC_FIRST else "above"
+    _S_HEAD = """# Command Parser - Napoleonic Wars
 
-## Your Marshals (French)
+"""
+    _S_MARSHALS = f"""## Your Marshals (French)
 {marshals_info}
 
-## Enemy Forces
+"""
+    _S_ENEMIES = f"""## Enemy Forces
 {enemies_info}
 
-## Valid Actions
+"""
+    _S_ACTIONS = f"""## Valid Actions
 {actions_list}
 An order naming a DEED that no listed action models — screening or covering a
 retreat, fixing bayonets, drilling a specific manoeuvre, restoring order in the
@@ -458,13 +469,16 @@ nearest listed action because a word in the sentence resembles one: "cover the
 retreat" is not `retreat`, "fix bayonets" is not `repair`, and neither is a
 cavalry `charge`. The game asks the Emperor what he meant.
 
-## Valid Regions
+"""
+    _S_REGIONS = f"""## Valid Regions
 {regions_list}
 
-## Valid Stances (for stance_change)
+"""
+    _S_STANCES = f"""## Valid Stances (for stance_change)
 {stances_list}
 
-## Personality Rules (CR-5 delegation-verb resolution)
+"""
+    _S_PERSONALITY = f"""## Personality Rules (CR-5 delegation-verb resolution)
 An EXPLICIT verb (attack, scout, move, hold, defend, fortify, ...) is ALWAYS
 obeyed exactly. Personality NEVER overrides a named action and never changes the
 target the player gave.
@@ -474,7 +488,7 @@ without naming the method. ALL of these phrasings are equivalent delegations and
 must be treated the SAME way: "deal with", "handle", "see to", "take care of",
 "sort out", "attend to", "do something about" (+ their obvious variants). Read
 the addressed marshal's personality (shown beside his name under "Your Marshals"
-above) and pick ONE intent action:
+{_marshals_where}) and pick ONE intent action:
 - CAUTIOUS marshal -> he looks before he leaps. For EVERY delegated phrasing
   above, resolve to action "scout". A cautious marshal never launches an assault
   on a vague order — if in doubt, he scouts.
@@ -490,7 +504,8 @@ Resolve to the INTENT action only — the game decides the rest (an immediate bl
 vs. an advance to contact) from the live map. Never invent a target the order
 did not name.
 
-## Flavor Line (CR-5b — the `flavor` field)
+"""
+    _S_FLAVOR = """## Flavor Line (CR-5b — the `flavor` field)
 Fill the `flavor` field ONLY for a method-free DELEGATION order (one of the
 delegation phrasings above, where the player cedes HOW to solve the problem).
 For ANY explicit order (attack, move to, scout, hold, charge, defend named
@@ -517,7 +532,8 @@ BAD (parrots the verb): 'Ney will deal with Mack!'
 BAD (names the action): 'Ney will attack Mack.'
 BAD (modern register): "Ney's got this one, Sire!"
 
-## Strategic Commands (Multi-Turn Orders)
+"""
+    _S_STRATEGIC = """## Strategic Commands (Multi-Turn Orders)
 Commands that imply ongoing, multi-turn execution are STRATEGIC, not tactical.
 Set is_strategic=true and strategic_type to one of: MOVE_TO, PURSUE, HOLD, SUPPORT.
 
@@ -541,7 +557,8 @@ Conditions (set in strategic_condition dict):
 IMPORTANT: "move to [region]" (2 words) = tactical (immediate). "march to [region]" = strategic (multi-turn).
 If the command implies an ongoing campaign or uses strategic keywords above, set is_strategic=true.
 
-## Cardinal Directions & Generic Targets
+"""
+    _S_CARDINAL_HEAD_OLD = """## Cardinal Directions & Generic Targets
 Players may use directions instead of region names. Resolve to the actual region:
 - "march north/south/east/west" → resolve to the adjacent region in that direction from the marshal's position
 - "advance to the front" / "march forward" → nearest region with enemy presence
@@ -550,12 +567,26 @@ Players may use directions instead of region names. Resolve to the actual region
 - "pursue the enemy" → target the nearest enemy marshal (set target to generic)
 
 Map orientation (compass directions of each marshal's adjacent regions):
-{geography_info}
+"""
+    _S_GEOGRAPHY_OLD = f"""{geography_info}
 
-If you can resolve a direction to a specific region, set the target to that region name (low ambiguity).
+"""
+    _S_CARDINAL_HEAD_NEW = """## Cardinal Directions & Generic Targets
+Players may use directions instead of region names. Resolve to the actual region:
+- "march north/south/east/west" → resolve to the adjacent region in that direction from the marshal's position
+- "advance to the front" / "march forward" → nearest region with enemy presence
+- "fall back" / "retreat south" → direction toward Paris (French capital)
+- "support whoever needs it" → target the most threatened ally (set target to generic)
+- "pursue the enemy" → target the nearest enemy marshal (set target to generic)
+
+Map orientation: each marshal's adjacent regions and their compass directions are listed under "Map Orientation" below.
+
+"""
+    _S_CARDINAL_TAIL = """If you can resolve a direction to a specific region, set the target to that region name (low ambiguity).
 If you cannot determine the specific region, set target to "generic" and ambiguity to 60+.
 
-## Diplomatic Commands (Talleyrand / Nation-Level Actions)
+"""
+    _S_DIPLOMATIC = """## Diplomatic Commands (Talleyrand / Nation-Level Actions)
 Diplomatic commands target NATIONS, not marshals. They are routed to the diplomat (Talleyrand), NOT to military marshals.
 
 CRITICAL RULE: If the command mentions a NATION name (Prussia, Austria, Britain, Saxony) WITHOUT a marshal name,
@@ -580,7 +611,7 @@ Diplomatic action types:
 - propose_common_peace: Open a multi-party war settlement
 
 For every diplomatic command, ALSO fill diplomatic_data with at least
-{{"action": <the diplomatic action>, "target_nation": <nation or null>}} —
+{"action": <the diplomatic action>, "target_nation": <nation or null>} —
 the game dispatches diplomatic commands on diplomatic_data.action.
 Leave diplomatic_data null for all military commands.
 
@@ -592,14 +623,16 @@ Examples:
 - "How is the war going" → NOT diplomatic (no nation target, no diplomatic verb)
 - "March to war" → MILITARY move (no nation target)
 
-## Cancel Command (Clears Strategic Orders)
+"""
+    _S_CANCEL = """## Cancel Command (Clears Strategic Orders)
 Cancel keywords: "halt", "stop", "cancel", "abort", "stand down", "belay that"
 When detected, set action="cancel". This clears the marshal's current strategic order.
 Example: "Ney, halt" → action: cancel, marshal: Ney
 Example: "Cancel Davout's orders" → action: cancel, marshal: Davout
 Example: "Stop everything" → action: cancel (marshal inferred from context)
 
-## Ambiguity Scoring (0-100)
+"""
+    _S_AMBIGUITY = """## Ambiguity Scoring (0-100)
 - 0-20: Crystal clear ("Attack Wellington at Waterloo", "March to Vienna")
 - 21-40: Clear but minor gaps ("March to Vienna" — no condition specified)
 - 41-60: Somewhat vague ("Push toward the enemy", "Handle the flank")
@@ -609,27 +642,67 @@ Generic targets like "the enemy", "them", "hostile forces" = ambiguity 60+
 Specific names like "Wellington", "Blücher" = ambiguity under 30
 No marshal specified = +20 ambiguity
 
-## Strategic Score (0-100)
+"""
+    _S_STRATEGIC_SCORE = """## Strategic Score (0-100)
 - 0-20: Simple immediate action ("Attack", "Move to Belgium")
 - 21-50: Tactical decision ("Fortify and hold the line")
 - 51-100: Campaign-level ("March to Vienna and crush resistance", "Pursue until destroyed")
 
-## Command to Parse
+"""
+    _S_COMMAND = f"""## Command to Parse
 "{raw_input}"
 
-## Output
+"""
+    _S_OUTPUT = f"""## Output
 Call the submit_parsed_command tool exactly once. Field semantics follow
 this annotated example:
 ```json
 {OUTPUT_SCHEMA}
 ```
 
-## Examples
-{_format_examples(game_state)}
+"""
+    _EXAMPLES_HEAD = "## Examples\n"
+    _EXAMPLES_TAIL = """
 (Examples are abridged — your tool call must include every required field,
 including interpretation and strategic_score.)
 
-Respond only with the tool call — no prose."""
+"""
+    _S_EXAMPLES = _EXAMPLES_HEAD + _format_examples(game_state) + _EXAMPLES_TAIL
+    # L-1 (b): up, the static prefix carries only board-independent examples
+    # and the two that name an enemy ride after the board (see
+    # `_format_examples`'s `part`).
+    _S_EXAMPLES_STATIC = (_EXAMPLES_HEAD
+                          + _format_examples(game_state, part="static")
+                          + _EXAMPLES_TAIL) if THE_PROMPT_IS_STATIC_FIRST else ""
+    _examples_board = (_format_examples(game_state, part="board")
+                       if THE_PROMPT_IS_STATIC_FIRST else "")
+    _S_BOARD_EXAMPLES = ("## Examples on This Board\n" + _examples_board + "\n\n"
+                         if _examples_board else "")
+    _S_CLOSE = """Respond only with the tool call — no prose."""
+    _S_ADDRESSED = (f"""## The Order Is Addressed To
+{marshal_name} ({personality or 'unknown'})
+
+"""
+                    if marshal_name else "")
+    _S_MAP_ORIENTATION = f"""## Map Orientation (compass directions of each marshal's adjacent regions)
+{geography_info}
+
+"""
+    if THE_PROMPT_IS_STATIC_FIRST:
+        prompt = (_S_HEAD + _S_ACTIONS + _S_REGIONS + _S_STANCES
+                  + _S_PERSONALITY + _S_FLAVOR + _S_STRATEGIC
+                  + _S_CARDINAL_HEAD_NEW + _S_CARDINAL_TAIL + _S_DIPLOMATIC
+                  + _S_CANCEL + _S_AMBIGUITY + _S_STRATEGIC_SCORE + _S_OUTPUT
+                  + _S_EXAMPLES_STATIC
+                  + _S_MARSHALS + _S_ADDRESSED + _S_ENEMIES + _S_MAP_ORIENTATION
+                  + _S_BOARD_EXAMPLES
+                  + _S_COMMAND + _S_CLOSE)
+    else:
+        prompt = (_S_HEAD + _S_MARSHALS + _S_ENEMIES + _S_ACTIONS + _S_REGIONS
+                  + _S_STANCES + _S_PERSONALITY + _S_FLAVOR + _S_STRATEGIC
+                  + _S_CARDINAL_HEAD_OLD + _S_GEOGRAPHY_OLD + _S_CARDINAL_TAIL
+                  + _S_DIPLOMATIC + _S_CANCEL + _S_AMBIGUITY + _S_STRATEGIC_SCORE
+                  + _S_COMMAND + _S_OUTPUT + _S_EXAMPLES + _S_CLOSE)
 
     # Add repetition context if history exists
     if command_history and len(command_history) > 0:
@@ -665,6 +738,16 @@ def build_system_prompt() -> str:
 # HELPER FUNCTIONS
 # =============================================================================
 
+def _marshal_personality(game_state: Dict[str, Any], name: str) -> str:
+    """The personality the marshals block prints for `name` (map_data's
+    marshal rows), "unknown" when none is recorded."""
+    for region_data in (game_state.get("map_data", {}) or {}).values():
+        for m in region_data.get("marshals", []):
+            if m.get("name") == name:
+                return m.get("personality", "unknown")
+    return "unknown"
+
+
 def _format_marshals(game_state: Dict[str, Any]) -> str:
     """
     Format player marshals for prompt.
@@ -685,12 +768,7 @@ def _format_marshals(game_state: Dict[str, Any]) -> str:
         strength_k = f"{strength // 1000}K" if strength >= 1000 else str(strength)
 
         # Try to get personality from map_data
-        personality = "unknown"
-        for region_data in map_data.values():
-            for m in region_data.get("marshals", []):
-                if m.get("name") == name:
-                    personality = m.get("personality", "unknown")
-                    break
+        personality = _marshal_personality(game_state, name)
 
         lines.append(f"- {name} ({personality}) at {location}, {strength_k} troops")
 
@@ -816,16 +894,63 @@ def _fill_placeholders(value: Any, names: Dict[str, str]) -> Any:
     return value
 
 
-def _format_examples(game_state: Optional[Dict[str, Any]] = None) -> str:
+def _example_names_stable(game_state: Dict[str, Any]) -> Dict[str, str]:
+    """L-1 (b): example names that do not move with the board — our first two
+    marshals (as the live rule), the first court at war with us in sorted
+    order (else the first court we know of), and that court's capital. Who we
+    are at war with and where its capital lies are public; no enemy
+    commander is named (the static examples that would need one are the
+    board part's). Falls back to the live rule where no world rides."""
+    names = dict(_example_names(game_state))
+    world = (game_state or {}).get("world")
+    if world is None:
+        return names
+    player = getattr(world, "player_nation", None)
+    courts = sorted(world.get_nations_at_war_with(player)) if player else []
+    if not courts:
+        courts = sorted(n for n in world.get_known_nations() if n != player)
+    if not courts:
+        return names
+    nation = courts[0]
+    names["nation"] = nation
+    capital = world.get_nation_capital(nation)
+    map_data = (game_state or {}).get("map_data") or {}
+    if capital and (not map_data or capital in map_data):
+        names["region"] = capital
+        names["region2"] = next((r for r in sorted(map_data) if r != capital),
+                                names["region2"])
+    names["enemy"], names["enemy_target"] = "the enemy", "generic"
+    return names
+
+
+def _names_an_enemy(template: Dict[str, Any]) -> bool:
+    """Whether a few-shot template names an enemy commander."""
+    return "{enemy" in json.dumps(template)
+
+
+def _format_examples(game_state: Optional[Dict[str, Any]] = None,
+                     part: Optional[str] = None) -> str:
     """
     Format few-shot examples rendered against the live rosters (CR-3).
 
     Covers tactical, strategic (incl. live_phrasing_backlog forms), and
     diplomatic commands — one compact line each.
+
+    `part` (L-1, SR-3c): None = every template on the live names (the
+    pre-slice list, byte for byte); "static" = the templates that name no
+    enemy, on the board-independent names; "board" = only the templates that
+    name an enemy, on the live (visible) names.
     """
-    names = _example_names(game_state or {})
+    if part == "static":
+        names = _example_names_stable(game_state or {})
+    else:
+        names = _example_names(game_state or {})
     lines = []
     for template in FEW_SHOT_TEMPLATES:
+        if part == "static" and _names_an_enemy(template):
+            continue
+        if part == "board" and not _names_an_enemy(template):
+            continue
         # Single-marshal worlds: skip pair examples ("X, link up with X"
         # would teach a self-support order the executor rejects).
         if (names["m1"] == names["m2"]
@@ -916,6 +1041,36 @@ _RECOVERY_HIDDEN_ACTIONS = frozenset({
 # what attributes the authored IQ-9 recovery cassette's re-stamp to this block
 # alone (`tests/test_crt7_the_desk_reads_the_order.py`).
 THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL = True
+
+# L-1 (Score Mandate Chunk 3, SR-3c, September 26, 2026): THE PROMPT IS
+# STATIC FIRST. The board (our marshals, the enemy, the per-marshal compass
+# lines) sat at the TOP of the parse prompt, so two prompts for the same
+# order one battle apart shared 84 characters (measured on the shipped boot)
+# and nothing above the command could be reused. Up: rules, the output
+# contract and the examples first, then the board, then the order — the
+# shipped sections byte for byte, re-ordered. Down: the pre-slice prompt
+# byte for byte. Prompt caching stays OFF (its rejection is recorded in
+# STATUS); this lever makes it possible, it does not turn it on.
+THE_PROMPT_IS_STATIC_FIRST = True
+
+
+def addressed_marshal(raw_input: str,
+                      game_state: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    """(name, personality) of the one of our marshals the order is addressed
+    to, as the parse prompt's `marshal_name` / `personality` — or
+    (None, None). The address token is the parser's own
+    (`_leading_addressed_token`); the personality is the one the marshals
+    block prints (`_marshal_personality`)."""
+    from backend.ai.llm_client import name_match_patterns
+    from backend.commands.parser import _leading_addressed_token
+    token = _leading_addressed_token(raw_input or "")
+    if not token:
+        return None, None
+    low = token.lower()
+    for name in (game_state or {}).get("marshals", {}) or {}:
+        if low in name_match_patterns(name):
+            return name, _marshal_personality(game_state, name)
+    return None, None
 
 
 def recovery_action_vocabulary(style: str = "typed"):
