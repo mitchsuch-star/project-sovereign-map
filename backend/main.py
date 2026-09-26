@@ -2980,10 +2980,10 @@ def execute_command(request: CommandRequest):
         )
         from backend.commands.delegation import (
             build_delegation_clarification,
+            delegation_witness,
             describe_cautious_delegation,
             detect_delegation,
             maybe_delegation_hint,
-            parse_resolved_to_action,
             resolve_delegation_flavor,
             resolve_live_cautious_prefix,
             route_arm,
@@ -3359,8 +3359,9 @@ def execute_command(request: CommandRequest):
         #     delegation-INFERRED strategic PURSUE; every auto-attack seam it can
         #     reach is covered by the Phase-3/4 fortification-aware bad-odds gate,
         #     so a dug-in superior force still routes through the one-modal
-        #     confirm. Only reached on a genuine LIVE resolution (guardrail e —
-        #     a mock/unresolved parse degrades to ASK via route_arm).
+        #     confirm. Reached on a LIVE resolution or, since L-D, on a
+        #     keyless DelegationMatch (`delegation_witness`); the incidental
+        #     mock resolution still degrades to ASK (guardrail e).
         # Guarded by _consumed_as_dialogue_answer so a hard-stop dialogue answer
         # is never hijacked; runs AFTER CR-4 carryover + history recording.
         # ════════════════════════════════════════════════════════════
@@ -3397,8 +3398,12 @@ def execute_command(request: CommandRequest):
                         hist[-1]["marshal"] = _deleg.marshal
                         hist[-1]["target"] = _deleg.target
 
+                # L-D (the boolean road): the witness is the deterministic
+                # DelegationMatch, not the parse's mode — a keyless player's
+                # delegation takes the marshal's own arm; the incidental
+                # parse (`deal with the attack on Mack`) still asks.
                 _arm = route_arm(_deleg.personality,
-                                 parse_resolved_to_action(parsed))
+                                 delegation_witness(parsed, _deleg))
                 if _arm == "cautious":
                     # Deterministic: a cautious marshal observes first (§6.2).
                     # Re-issue an explicit scout at the OBSERVE target (the
@@ -3431,9 +3436,9 @@ def execute_command(request: CommandRequest):
                     # marshal never NAMED the attack, his CHARACTER inferred it.
                     # A bare one-shot "attack" would be ungated AND could not
                     # march him to a non-adjacent enemy. The player's verbatim
-                    # words become the order record (rider d, §6.4). Only reached
-                    # in live mode — a mock/unresolved parse degrades to ASK
-                    # above via route_arm (guardrail e).
+                    # words become the order record (rider d, §6.4). Reached
+                    # live or keyless (L-D, `delegation_witness`); the
+                    # incidental mock resolution degrades to ASK (guardrail e).
                     _delegation_phrase = command_text
                     _reissue = f"{_deleg.marshal} pursue {_deleg.target}"
                     parsed = parser.parse(_reissue, llm_game_state, world=world)

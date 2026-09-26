@@ -359,8 +359,10 @@ def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
     - literal, neutral (balanced/loyal), unset, OR any personality whose parse
       did NOT resolve to a real action (mock mode / LLM failure) -> ASK.
 
-    This single rule delivers guardrail (e): mock never produces a bias, it
-    degrades to the ASK clarification.
+    Guardrail (e) is decided by the WITNESS the router passes: since L-D
+    (September 26, 2026) that is `delegation_witness` — a live resolution, or
+    a deterministic DelegationMatch whose words carried no order of their
+    own. The incidental mock resolution still degrades to the ASK.
     """
     p = (personality or "").lower()
     if parse_resolved_to_action and p == "aggressive":
@@ -392,13 +394,61 @@ def parse_resolved_to_action(parsed: Dict) -> bool:
     and confidence >= 0.7 short-circuits the live call even in anthropic mode. In
     BOTH cases the LLM never applied the §6.2 table, so there is no bias to act
     on — the delegation must degrade to the ASK clarification. Only the live
-    providers stamp mode anthropic/groq; the fast parser stamps "mock"."""
+    providers stamp mode anthropic/groq; the fast parser stamps "mock".
+
+    L-D (September 26, 2026): the router no longer reads this predicate
+    ALONE — `delegation_witness` also admits a keyless DelegationMatch. This
+    function is unchanged and still answers "did the LIVE parse resolve?"."""
     if not parsed or not parsed.get("success"):
         return False
     if (parsed.get("mode") or "").lower() == "mock":
         return False
     action = (parsed.get("command") or {}).get("action")
     return bool(action) and action in VALID_ACTIONS and action != "unknown"
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# L-D "THE BOOLEAN ROAD" (Score Mandate, APPROVED by the user September 26,
+# 2026 (evening); contract `docs/audits/LOCAL_PARSER_FEASIBILITY_2026_09_20.md`
+# §6.4). The three-way split — Ney charges, Davout scouts, Soult asks — was
+# gated on ONE boolean, `parse_resolved_to_action`, a MODE gate, while every
+# input the arms need is computed deterministically (`detect_delegation`: the
+# verb, the marshal, the target; the world: the personality). Measured at
+# `POST /command` under LLM_MODE=mock: seven of seven delegations ASKED. The
+# obvious fix — delete the `mock` clause — is a NO-OP (a mock delegation's
+# parse FAILS at clauses 1 and 3; the mode is never read). So the WITNESS is
+# re-keyed from the parse to the DelegationMatch.
+#
+# The guardrail is kept exactly where it was written: the INCIDENTAL case —
+# `deal with the attack on Mack`, where the fast parser reads an order of its
+# own (`attack`) out of the delegation's object — still degrades to the ASK.
+# That verdict is the parser's own (an action resolved from the words), so no
+# second keyword list exists. The literal arm still asks; the personality
+# pre-flight and the objection-first single modal are the arms' own; the
+# CR-5b flavor line stays live-only (a keyless player hears the deterministic
+# floor). Lever False restores the mode gate.
+# ════════════════════════════════════════════════════════════════════════════
+KEYLESS_DELEGATION_READS_THE_MATCH = True
+
+
+def delegation_witness(parsed: Dict, match: Optional[DelegationMatch]) -> bool:
+    """L-D: may the personality arm act on this delegation?
+
+    True for a LIVE parse that resolved a real action (the §6.2 prompt table
+    applied — unchanged), or for a deterministic `DelegationMatch` whose words
+    carried no order of their own: the fast parser resolved NO action from
+    the sentence, so the delegation verb IS the order. A parse that resolved
+    an action without the live model is the incidental case (`deal with the
+    attack on Mack` -> attack) and keeps the ASK."""
+    if parse_resolved_to_action(parsed):
+        return True
+    if not KEYLESS_DELEGATION_READS_THE_MATCH or match is None:
+        return False
+    if parsed and parsed.get("success"):
+        action = (parsed.get("command") or {}).get("action")
+        if action and action != "unknown":
+            return False
+    return True
 
 
 def describe_cautious_delegation(match: DelegationMatch,
@@ -596,8 +646,9 @@ _AGGRESSIVE_FLOORS = (
 
 def describe_aggressive_delegation(match: DelegationMatch) -> str:
     """The AGGRESSIVE arm's deterministic FLOOR — the live-mode fallback shown
-    when the LLM flavor line is empty/errored/register-dropped (mock never
-    reaches this arm; guardrail e routes it to ASK). Target-anchored ATTITUDE
+    when the LLM flavor line is empty/errored/register-dropped — and, since
+    L-D, the line every keyless player hears (no model composes one). Target-
+    anchored ATTITUDE
     only: the pursue-order confirmation / bad-odds modal owns the deed, so this
     NEVER names a mechanical action or echoes the raw delegation verb (§6.4
     non-parroting contract). Deterministic + mock-safe (no LLM echo — that is

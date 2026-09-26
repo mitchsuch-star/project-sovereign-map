@@ -298,27 +298,45 @@ class TestAskArmEndpoint:
             data.get("message", "").lower())
 
     def test_mock_delegation_degrades_to_ask_for_every_personality(
-            self, endpoint1805):
-        # Guardrail (e): in mock mode NO personality produces a bias — all
-        # delegation verbs degrade to the ASK.
+            self, endpoint1805, monkeypatch):
+        """⚠ CONSCIOUS PIN FLIP, September 26, 2026 — Score Mandate L-D "the boolean road" (approved by the user; `LOCAL_PARSER_FEASIBILITY_2026_09_20.md` §6.4): a keyless delegation is witnessed by its deterministic DelegationMatch, not the parse's mode, so the marshal takes his own arm. The name is kept so the history reads; the lever-down arm reproduces the old ASK."""
         client, m = endpoint1805
-        # Each post pops any prior pending clarification (main.py:1046) before
-        # routing, so a fresh delegation ASK is produced every iteration.
-        for marshal in ("Ney", "Davout", "Soult"):
+        # Ney (aggressive) pursues Mack, Davout (cautious) scouts him, Soult
+        # (literal) asks — the three-way split, keyless.
+        data = client.post(
+            "/command", json={"command": "Ney, deal with Mack"}).json()
+        assert data.get("clarification_kind") != "delegation"
+        order = m.world.get_marshal("Ney").strategic_order
+        assert order is not None and order.delegation_inferred is True
+        data = client.post(
+            "/command", json={"command": "Davout, deal with Mack"}).json()
+        assert data["message"].startswith("Davout scouts Swabia")
+        data = client.post(
+            "/command", json={"command": "Soult, deal with Mack"}).json()
+        assert data["clarification_kind"] == "delegation"
+        # Lever down: the old mode gate — every personality asks.
+        import backend.commands.delegation as _D
+        monkeypatch.setattr(_D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
+        for marshal in ("Lannes", "Bernadotte"):
             data = client.post(
                 "/command",
                 json={"command": f"{marshal}, deal with Mack"}).json()
-            assert data["clarification_kind"] == "delegation", (
-                f"{marshal} should degrade to ask in mock mode")
+            assert data["clarification_kind"] == "delegation", marshal
 
     def test_no_mis_route_to_diplomacy(self, endpoint1805):
         # AC-3: a marshal-addressed "deal with" (no Talleyrand) must not hit
-        # the diplomatic router — it is a delegation ASK, not a proposal.
+        # the diplomatic router — it is a delegation, not a proposal.
+        # ⚠ CONSCIOUS PIN FLIP, September 26, 2026 — Score Mandate L-D "the boolean road" (approved by the user; `LOCAL_PARSER_FEASIBILITY_2026_09_20.md` §6.4): a keyless delegation is witnessed by its deterministic DelegationMatch, not the parse's mode, so the marshal takes his own arm. The name is kept so the history reads; the lever-down arm reproduces the old ASK.
         client, m = endpoint1805
         data = client.post(
-            "/command", json={"command": "Ney, deal with Mack"}).json()
+            "/command", json={"command": "Soult, deal with Mack"}).json()
         assert data["clarification_kind"] == "delegation"
         assert "diplomat" not in data.get("message", "").lower()
+        data = client.post(
+            "/command", json={"command": "Ney, deal with Mack"}).json()
+        assert not data.get("diplomatic_dialogue")
+        assert "diplomat" not in data.get("message", "").lower()
+        assert m.world.get_marshal("Ney").strategic_order.delegation_inferred
 
     def test_typed_answer_resolves_and_clears_dialogue(self, endpoint1805):
         client, m = endpoint1805

@@ -155,17 +155,29 @@ class TestEndpointMockAsk:
              main_module.game_state) = orig
 
     def test_nation_delegation_asks_for_every_personality(self,
-                                                          endpoint1805):
+                                                          endpoint1805,
+                                                          monkeypatch):
+        """⚠ CONSCIOUS PIN FLIP, September 26, 2026 — Score Mandate L-D "the boolean road" (approved by the user; `LOCAL_PARSER_FEASIBILITY_2026_09_20.md` §6.4): a keyless delegation is witnessed by its deterministic DelegationMatch, not the parse's mode, so the marshal takes his own arm. The name is kept so the history reads; the lever-down arm reproduces the old ASK. The nation phrasing resolves to Mack and each marshal acts to
+        his character: Soult asks, Ney pursues, Davout scouts."""
         client, m = endpoint1805
-        for marshal in ("Soult", "Ney", "Davout"):
-            data = client.post(
-                "/command",
-                json={"command": f"{marshal}, deal with the Austrians"}
-            ).json()
-            assert data.get("clarification_kind") == "delegation", (
-                f"{marshal}: the nation phrasing must reach the CR-5 ASK, "
-                f"got: {str(data.get('message'))[:120]!r}")
-            assert "Mack" in data.get("message", "")
+        data = client.post(
+            "/command", json={"command": "Soult, deal with the Austrians"}).json()
+        assert data.get("clarification_kind") == "delegation", (
+            str(data.get("message"))[:120])
+        assert "Mack" in data.get("message", "")
+        data = client.post(
+            "/command", json={"command": "Ney, deal with the Austrians"}).json()
+        order = m.world.get_marshal("Ney").strategic_order
+        assert order is not None and order.target == "Mack"
+        assert "Mack" in data.get("message", "")
+        data = client.post(
+            "/command", json={"command": "Davout, deal with the Austrians"}).json()
+        assert data["message"].startswith("Davout scouts Swabia")
+        import backend.commands.delegation as _D
+        monkeypatch.setattr(_D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
+        data = client.post(
+            "/command", json={"command": "Lannes, deal with the Austrians"}).json()
+        assert data.get("clarification_kind") == "delegation"
 
     def test_no_battle_executes_from_the_flagship_phrase(self,
                                                          endpoint1805):

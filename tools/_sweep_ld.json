@@ -1,0 +1,44 @@
+[
+  {
+    "id": "L-D lever down",
+    "file": "backend/commands/delegation.py",
+    "old": "KEYLESS_DELEGATION_READS_THE_MATCH = True\n",
+    "new": "KEYLESS_DELEGATION_READS_THE_MATCH = False\n",
+    "tests": "tests/test_ld_the_boolean_road.py::TestTheSevenRowsTakeTheirOwnArm::test_the_marshal_acts_to_his_character"
+  },
+  {
+    "id": "L-D the incidental case takes the arm",
+    "file": "backend/commands/delegation.py",
+    "old": "        if action and action != \"unknown\":\n            return False\n",
+    "new": "        if False:\n            return False\n",
+    "tests": "tests/test_ld_the_boolean_road.py::TestTheIncidentalCaseStillAsks"
+  },
+  {
+    "id": "L-D no match still takes the arm",
+    "file": "backend/commands/delegation.py",
+    "old": "    if not KEYLESS_DELEGATION_READS_THE_MATCH or match is None:\n        return False\n",
+    "new": "    if not KEYLESS_DELEGATION_READS_THE_MATCH:\n        return False\n",
+    "tests": "tests/test_ld_the_boolean_road.py::TestTheIncidentalCaseStillAsks::test_the_witness"
+  },
+  {
+    "id": "L-D the live road is lost",
+    "file": "backend/commands/delegation.py",
+    "old": "    if parse_resolved_to_action(parsed):\n        return True\n    if not KEYLESS",
+    "new": "    if False:\n        return True\n    if not KEYLESS",
+    "tests": "tests/test_ld_the_boolean_road.py::TestTheIncidentalCaseStillAsks::test_the_witness"
+  },
+  {
+    "id": "L-D a failed parse never witnesses",
+    "file": "backend/commands/delegation.py",
+    "old": "    if parsed and parsed.get(\"success\"):\n        action = (parsed.get(\"command\") or {}).get(\"action\")\n",
+    "new": "    if True:\n        action = \"attack\"\n",
+    "tests": "tests/test_ld_the_boolean_road.py::TestTheSevenRowsTakeTheirOwnArm::test_the_marshal_acts_to_his_character"
+  },
+  {
+    "id": "L-D the router reads the parse again",
+    "file": "backend/main.py",
+    "old": "                                 delegation_witness(parsed, _deleg))",
+    "new": "                                 bool(parsed.get('success') and parsed.get('mode') not in (None, 'mock')))",
+    "tests": "tests/test_ld_the_boolean_road.py::TestTheSevenRowsTakeTheirOwnArm::test_the_marshal_acts_to_his_character"
+  }
+]

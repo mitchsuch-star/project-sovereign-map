@@ -569,17 +569,27 @@ class TestScopeBoundaries:
             (main_module.parser, main_module.world,
              main_module.game_state) = orig
 
-    def test_mock_delegation_still_routes_to_ask_unchanged(self, mock_endpoint):
-        """Guardrail e: every mock delegation degrades to ASK, whose clause-quote
-        is already 'the game heard me'. CR-5b adds no floor here."""
+    def test_mock_delegation_still_routes_to_ask_unchanged(self, mock_endpoint,
+                                                           monkeypatch):
+        """⚠ CONSCIOUS PIN FLIP, September 26, 2026 — Score Mandate L-D "the boolean road" (approved by the user; `LOCAL_PARSER_FEASIBILITY_2026_09_20.md` §6.4): a keyless delegation is witnessed by its deterministic DelegationMatch, not the parse's mode, so the marshal takes his own arm. The name is kept so the history reads; the lever-down arm reproduces the old ASK. On the keyless road Ney's arm meets the bad-odds modal, which
+        withholds the floor (CR-5b's modal guard, unchanged); the ASK arm
+        (Soult) still quotes the clause and adds no floor."""
         client, m = mock_endpoint
         floor = _agg_floor(m.world)
         data = client.post(
             "/command", json={"command": "Ney, deal with Mack"}).json()
+        assert data.get("clarification_kind") != "delegation"
+        assert data.get("pending_interrupt")
+        assert floor not in (data.get("message") or "")
+        data = client.post(
+            "/command", json={"command": "Soult, deal with Mack"}).json()
         assert data.get("clarification_kind") == "delegation"
         assert '"deal with Mack"' in (data.get("message") or "")
-        # no aggressive floor leaked into the mock ASK
-        assert floor not in (data.get("message") or "")
+        import backend.commands.delegation as _D
+        monkeypatch.setattr(_D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
+        data = client.post(
+            "/command", json={"command": "Lannes, deal with Mack"}).json()
+        assert data.get("clarification_kind") == "delegation"
 
     def test_explicit_order_produces_no_flavor_echo(self, mock_endpoint):
         client, m = mock_endpoint
