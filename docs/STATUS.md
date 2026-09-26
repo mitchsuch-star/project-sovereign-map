@@ -48,9 +48,20 @@
 > (historical 15 → 22, austerlitz 16 → 25, marengo 13 → 20 and the revolving door closed) — **lever (c) chosen**: a war France declared is gated on its
 > leader's break-ranks clause like the league's, `war_not_spent` named on every
 > surface. Rules §71.3; pins 7 + 7 + 24; sweep 18/18 killed, 0 INERT.
-> **NEXT = the Chunk 2 reserve** (≈0.75 from the §3 bank), then the exit re-score on a
-> played arm (the settlement table as victor and as loser, a mediation answered, a
-> court courted to a treaty).
+> ~~**the Chunk 2 reserve**~~ ✅ DRAWN — six bank rows: **AAR-22** (the raw vassal tag on the
+> guarantee refusal, "the British squadrons", "takes Bohemia where he stands"), **AAR-16**
+> (a foreign court's completed work names its owner — terminal, campaign log, Gazette),
+> **AAR-30** (the capital discount is OURS only, the AI same-priced), **AAR-18** ("what can
+> I build" answers from the executor's own gate with no corps on our soil), **AAR-14** (the
+> supply remedy never names the soil of a court we are at war with), **AAR-13** (the
+> Starving/Crowded flag follows the province). Rules §71.4; pins `test_sr2_quick_wins.py`
+> 32; sweep `tools/_sweep_sr2_reserve.json` 16/16 killed, 0 INERT; series + M1–M7
+> byte-identical; zero `.gd`; one pin re-seated consciously (IQ1-3A2's host's-capital pin —
+> AAR-30 closes its case on both arms; the lever pin runs with AAR-30 down).
+> **NEXT = the Chunk 2 EXIT re-score** on a played arm (the settlement table as victor and
+> as loser, a mediation answered, a court courted to a treaty), the §1 scoreboard re-scored
+> FOR USER CONFIRMATION (diplomacy 6.25 → target 7.0); then Chunk 3 FIRST CONTACT & COMMAND,
+> or SR-D3's AP/DP gate first — the user's call.
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

@@ -6234,7 +6234,13 @@ class CombatExecutor:
                     capture_result = self._attempt_region_capture(
                         marshal, resolved_target, world, game_state, had_garrison=False)
 
-                    capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed!"
+                    if old_location == resolved_target:
+                        # AAR-22 (SR Chunk 2 reserve): a corps already
+                        # standing on the province does not march
+                        # "from Bohemia into Bohemia".
+                        capture_message = f"{marshal.name} takes {resolved_target} where he stands!"
+                    else:
+                        capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed!"
                     if attrition_info["total_losses"] > 0:
                         capture_message += f" ({attrition_info['march_losses']:,} lost to march"
                         if attrition_info.get("depot_bonus"):

@@ -1,0 +1,114 @@
+[
+ {
+  "id": "SR-2 reserve/AAR-22a the guarantee refusal prints the raw tag again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                \"message\": (f\"{_display_nation(target)} is already under \"",
+  "new": "                \"message\": (f\"{target} is already under \"",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-22b the covering court is a noun again",
+  "file": "backend/commands/naval_executor.py",
+  "old": "    coverer = nation_adjective(str(outcome.get(\"coverer\") or \"\")) or \"enemy\"",
+  "new": "    coverer = str(outcome.get(\"coverer\") or \"\") or \"enemy\"",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-22c from Bohemia into Bohemia again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if old_location == resolved_target:\n                        # AAR-22",
+  "new": "                    if False:\n                        # AAR-22",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-16 the foreign work drops its owner",
+  "file": "backend/models/world_state.py",
+  "old": "        if (FOREIGN_WORKS_NAME_THEIR_OWNER and owner\n                and owner != self.player_nation):",
+  "new": "        if False:",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-16 the watchtower arm bypasses the builder",
+  "file": "backend/models/world_state.py",
+  "old": "                        \"message\": self._construction_complete_message(\n                            region, \"watchtower\"),",
+  "new": "                        \"message\": f\"Construction complete: Watchtower in {region.name}!\",",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-16 the log's foreign row loses its owner",
+  "file": "backend/campaign_log.py",
+  "old": "        if player_nation and owner and owner != player_nation:",
+  "new": "        if False:",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-16 the route stops passing the player",
+  "file": "backend/main.py",
+  "old": "                world, format_event_oneliner(\n                    event, player_nation=world.player_nation), event),",
+  "new": "                world, format_event_oneliner(event), event),",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-30 any capital is discounted again",
+  "file": "backend/commands/economy_executor.py",
+  "old": "                             and capital_is_the_nations_own(region, world, nation))",
+  "new": "                             and True)",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-30 the event flag reads the region type again",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        is_capital_discount = \"capital discount\" in price_terms",
+  "new": "        is_capital_discount = region.region_type == \"capital\"",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-18 the desk stops breaking ground without a corps",
+  "file": "backend/ai/question_desk.py",
+  "old": "                where = _first_own_region_that_can_build(world, player)",
+  "new": "                where = None",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-18 the capital no longer leads",
+  "file": "backend/ai/question_desk.py",
+  "old": "        return (0 if name == capital else 1, -income, name)",
+  "new": "        return (1, -income, name)",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-14 the scan stops asking whether the ground is contested",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if THE_REMEDY_NAMES_ONLY_OPEN_GROUND and _ground_is_contested(",
+  "new": "            if False and _ground_is_contested(",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-14 enemy soil reads as open",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    return bool(holder and holder != player_nation\n                and world.is_at_war(player_nation, holder))",
+  "new": "    return False",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-13 the run is counted wherever he was",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        _raw = _raw.get(marshal.location, [])",
+  "new": "        _raw = sorted({t for ts in _raw.values() for t in ts})",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-13 the collector keys the marshal again",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE:\n            result.setdefault(name, {}).setdefault(",
+  "new": "        if False:\n            result.setdefault(name, {}).setdefault(",
+  "tests": "tests/test_sr2_quick_wins.py"
+ },
+ {
+  "id": "SR-2 reserve/AAR-13 the cause is read anywhere he was",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "        if region is not None and str(e.get(\"region\") or \"\") != region:\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_sr2_quick_wins.py"
+ }
+]

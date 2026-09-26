@@ -273,7 +273,15 @@ class TestWhatTheGranaryActuallyBuys:
 
 
 class TestTheHostsPriceIsNotDiscounted:
-    def test_the_capital_discount_is_suppressed_on_foreign_soil(self, world):
+    def test_the_capital_discount_is_suppressed_on_foreign_soil(self, world, monkeypatch):
+        """IQ1-3A2's own lever binds. Re-seated September 26, 2026 (SR Chunk 2
+        reserve, AAR-30): the capital discount now needs the recruiting
+        nation's OWN authored capital, so on the shipped board Milan — the
+        host's seat — is priced at the ordinary rate on BOTH arms (the next
+        test). With AAR-30's rule DOWN the ally's capital would discount our
+        recruiting again, and `foreign_soil` is what suppresses it."""
+        import backend.commands.economy_executor as EC
+        monkeypatch.setattr(EC, "THE_CAPITAL_DISCOUNT_IS_OURS_ONLY", False)
         ex = EconomyExecutor(None)
         milan = world.get_region("Milan")
         assert milan.region_type == "capital", "fixture precondition"
@@ -286,6 +294,22 @@ class TestTheHostsPriceIsNotDiscounted:
             "the host's capital is still discounting our recruiting")
         # The discount is 25%, so suppressing it is a 1/0.75 rise.
         assert host == pytest.approx(own / 0.75, rel=0.02)
+
+    def test_the_hosts_capital_is_not_ours_to_discount_at_all(self, world):
+        """AAR-30 (SR Chunk 2 reserve, Sept 26, 2026): on the shipped board
+        the host's capital is priced at the ordinary rate on BOTH arms — the
+        25% discount needs France's own authored capital, whoever holds it."""
+        ex = EconomyExecutor(None)
+        milan = world.get_region("Milan")
+        base = levy_substitute_price(world, "France")
+        own = ex._calculate_recruit_cost(milan, world, base_cost=base,
+                                        nation="France", foreign_soil=False)
+        host = ex._calculate_recruit_cost(milan, world, base_cost=base,
+                                         nation="France", foreign_soil=True)
+        assert host == own
+        _, terms = ex._recruit_cost_terms(milan, world, base_cost=base,
+                                          nation="France")
+        assert "capital discount" not in terms
 
     def test_every_existing_call_site_is_byte_identical_by_default(self, world):
         """`foreign_soil` defaults False, so the nine pre-existing callers

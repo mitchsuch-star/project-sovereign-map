@@ -419,6 +419,15 @@ def answer_question(world, question: Optional[Dict]) -> Optional[str]:
 # Flip lever: False returns the desk to its five kinds byte-for-byte.
 THE_DESK_ANSWERS_THE_BOARD = True
 
+# AAR-18 (Score Mandate Chunk 2 reserve, Sept 26 2026): "what can I
+# build" answered "nowhere" whenever no corps stood on our own soil,
+# while `build market at Paris` succeeded — the executor's build gate
+# (`region.can_build`) needs no corps. With no corps to point at, the
+# desk now answers from that same gate: the capital first, then the
+# richest province where something can be raised. False restores the
+# corps-only answer.
+THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS = True
+
 # The nouns a PRICE question may name. An allowlist rather than a free
 # capture, because "how much ..." otherwise swallows "how many men does Ney
 # have" — which the desk above already answers better.
@@ -826,6 +835,31 @@ def _answer_price(world, player: str, what: str) -> Optional[str]:
     return None
 
 
+def _first_own_region_that_can_build(world, player: str) -> Optional[str]:
+    """AAR-18: the first of our provinces where the executor's own gate
+    (`region.can_build`) allows SOMETHING — the capital first, then by
+    income. None when nothing can be built anywhere we hold."""
+    from backend.models.region import BUILDING_TYPES, can_build
+    getter = getattr(world, "get_nation_capital", None)
+    capital = getter(player) if callable(getter) else None
+
+    def _rank(name):
+        region = world.get_region(name)
+        income = int(getattr(region, "income_value", 0) or 0) if region else 0
+        return (0 if name == capital else 1, -income, name)
+
+    for name in sorted(world.get_nation_regions(player), key=_rank):
+        region = world.get_region(name)
+        if region is None:
+            continue
+        for key in BUILDING_TYPES:
+            verdict = can_build(world, region, key, player)
+            ok = verdict[0] if isinstance(verdict, (tuple, list)) else bool(verdict)
+            if ok:
+                return name
+    return None
+
+
 def _first_own_region_with_a_corps(world, player: str) -> Optional[str]:
     for marshal in world.get_player_marshals():
         if int(getattr(marshal, "strength", 0) or 0) <= 0:
@@ -918,6 +952,15 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_what_if(world, player, subject)
         if kind == "can_build":
             where = subject or _first_own_region_with_a_corps(world, player)
+            if not where and THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS:
+                # AAR-18: the executor's gate needs no corps.
+                where = _first_own_region_that_can_build(world, player)
+                if where:
+                    return ("No corps of ours stands on our own soil, "
+                            "Sire, but ground is broken without one. "
+                            + _answer_can_build(world, player, where))
+                if world.get_nation_regions(player):
+                    return "Nothing can be built on our soil today, Sire."
             if not where:
                 return ("No corps of ours stands on our own soil, Sire — "
                         "there is nowhere to break ground.")

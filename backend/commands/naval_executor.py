@@ -11,6 +11,7 @@ import re
 from typing import Dict, Optional
 
 from backend.game_logic import naval
+from backend.display_names import nation_adjective  # AAR-22
 
 
 # FA slice 7 (FA-N9 / FA-N24 — FA-11's optional half): the marshal-free
@@ -95,6 +96,19 @@ def _detachment_echo(command: Dict) -> str:
         return ""
     return (f" You asked for {match.group(1)} — there is no verb to embark "
             f"part of a corps; the transports take whole formations.")
+
+
+def intercepted_at_sea_line(outcome: Dict, marshal_name: str, target: str,
+                            sea_line: str = "") -> str:
+    """AAR-22 (SR Chunk 2 reserve): the covering court speaks as an
+    adjective — "the British squadrons", never "the Britain squadrons".
+    ONE sentence for the interception, so the copy cannot drift from the
+    outcome it reports."""
+    coverer = nation_adjective(str(outcome.get("coverer") or "")) or "enemy"
+    return (f"INTERCEPTED AT SEA: the {coverer} squadrons "
+            f"catch the transports off {target}. {marshal_name} loses "
+            f"{int(outcome.get('troops_lost', 0) or 0):,} men to the guns "
+            f"and the water before the convoy scatters home.{sea_line}")
 
 
 class NavalExecutor:
@@ -547,11 +561,8 @@ class NavalExecutor:
                     f" — {naval.losses_sentence(action, marshal.nation)}.")
             result = {
                 "success": True, "landed": False, "odds": int(outcome["odds"]),
-                "message": (
-                    f"INTERCEPTED AT SEA: the {outcome['coverer']} squadrons "
-                    f"catch the transports off {target}. {marshal.name} loses "
-                    f"{outcome['troops_lost']:,} men to the guns and the water "
-                    f"before the convoy scatters home.{sea_line}"),
+                "message": intercepted_at_sea_line(
+                    outcome, marshal.name, target, sea_line),
                 "events": [{"type": "expedition_intercepted",
                             "marshal": marshal.name, "target": target}]}
             # NV-7: the escort was brought to action — the player watches it.

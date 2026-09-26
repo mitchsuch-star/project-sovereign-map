@@ -5541,7 +5541,8 @@ def get_campaign_log():
             # entry would read under the dead name. History before the
             # proclamation is left alone (see the helper's docstring).
             "display": _formations_history_names(
-                world, format_event_oneliner(event), event),
+                world, format_event_oneliner(
+                    event, player_nation=world.player_nation), event),
             "category": CATEGORY_MAP.get(event.get("type", ""), "unknown"),
         })
 

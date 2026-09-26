@@ -1658,7 +1658,7 @@ def _holdings_left_clause(event: dict) -> str:
     return ""
 
 
-def format_event_oneliner(event: dict) -> str:
+def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     """
     Produce a human-readable one-liner for a campaign log event.
 
@@ -1862,6 +1862,13 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "building_completed":
         building = (event.get("building") or "building").replace("_", " ").title()
         region = event.get("region", "unknown region")
+        owner = str(event.get("nation") or "")
+        if player_nation and owner and owner != player_nation:
+            # AAR-16: a foreign court's work names its owner in the log
+            # too; the player's own row is byte-identical.
+            article = "" if building.endswith("s") else "a "
+            return (f"{display_nation(owner)} completes {article}"
+                    f"{building.lower()} in {region}")
         return f"Construction complete: {building} in {region}"
 
     if event_type == "building_damaged":

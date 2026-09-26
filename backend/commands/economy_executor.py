@@ -145,6 +145,26 @@ LEVY_FEEDS_ON_ALLY_SOIL = True
 # at 1,074. Suppressing it moved receipts 65,916 → 67,572 for identical men.
 LEVY_PAYS_THE_HOSTS_PRICE = True
 
+# AAR-30 (Score Mandate Chunk 2 reserve, Sept 26 2026): the capital
+# discount is OURS only. `region_type == "capital"` is true of every
+# court's seat whoever holds it, so a levy raised at an occupied enemy
+# capital was priced "(capital discount)" — "Lannes recruits 10,000
+# infantry for Vienna — 450 gold (capital discount)". The discount now
+# needs the province to be the recruiting nation's OWN authored capital
+# (`get_nation_capital`), for the AI through the same pricer (GR5).
+# `nation=None` (the legacy direct-call sites) keeps the region-type
+# rule. False restores it everywhere.
+THE_CAPITAL_DISCOUNT_IS_OURS_ONLY = True
+
+
+def capital_is_the_nations_own(region, world, nation) -> bool:
+    """AAR-30: is this capital-type province `nation`'s own seat?"""
+    if not THE_CAPITAL_DISCOUNT_IS_OURS_ONLY or not nation:
+        return True
+    getter = getattr(world, "get_nation_capital", None)
+    own = getter(nation) if callable(getter) else None
+    return bool(own) and own == getattr(region, "name", None)
+
 # IQ1-3B: bought men are not punished twice. False writes the bare
 # LEVY_MORALE_BASE and prints no warning; every existing levy pin is
 # byte-identical.
@@ -1195,7 +1215,8 @@ class EconomyExecutor:
         # construction; only the levy's ally-soil arm passes True.
         _capital_discount = (region.region_type == "capital"
                              and not (foreign_soil
-                                      and LEVY_PAYS_THE_HOSTS_PRICE))
+                                      and LEVY_PAYS_THE_HOSTS_PRICE)
+                             and capital_is_the_nations_own(region, world, nation))
         terms: List[str] = []
         # Capital discount: 25% off (checked first — always wins)
         if _capital_discount:
@@ -1523,8 +1544,11 @@ class EconomyExecutor:
         world.record_gold_spent(acting_nation, gold_cost)
 
         # --- Build result message ---
-        is_capital_discount = region.region_type == "capital"
-        is_stability_premium = (51 <= region.stability <= 75) and not is_capital_discount
+        # AAR-30: the event's flags are the terms the pricer APPLIED
+        # (shown = applied) — a capital-type province the levy was not
+        # discounted at no longer flags the discount.
+        is_capital_discount = "capital discount" in price_terms
+        is_stability_premium = "unstable region premium" in price_terms
 
         # CN-3 rider 5: the note names every term the pricer applied — the
         # SAME list `_recruit_cost_terms` priced with — so the ×3 war and the

@@ -2556,6 +2556,33 @@ THE_FALLEN_PROVINCE_NAMES_THE_COUNTER = True
 # FA-D9 (slice 17, Phase 2) flip lever: the wavering-morale row names the
 # drill and its figure. False = the bare line.
 THE_WAVERING_LINE_NAMES_THE_DRILL = True
+
+# AAR-13 (Score Mandate Chunk 2 reserve, Sept 26 2026): the roster's
+# Starving/Crowded flag follows the PROVINCE, not the man. The run was
+# counted over every attrition event of the marshal's and printed
+# against wherever he now stood — "Lannes — Munich — Starving — supply
+# has failed at Munich two turns running" the morning after he left
+# starving Swabia for a fed Munich. The collector keys (marshal,
+# province) and the flag reads the run where he STANDS. False restores
+# the per-marshal run.
+THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE = True
+
+# AAR-14 (same reserve): the supply-strain remedy names only ground a
+# corps can MARCH into — never the soil of a court we are at war with
+# ("Vienna can feed 50,000 more", with 16,967 Austrians in the garrison)
+# nor a province where an enemy corps is in view. False restores the
+# headroom-only scan.
+THE_REMEDY_NAMES_ONLY_OPEN_GROUND = True
+
+
+def _ground_is_contested(world, player_nation: str, name: str, region) -> bool:
+    """AAR-14: a march there is an attack, not a dispersal — the holder is
+    at war with us, so its garrison stands there. (A province with an
+    enemy CORPS on it is already refused by the executor's own move probe,
+    which the scan consults next; no second rule for that.)"""
+    holder = str(getattr(region, "controller", "") or "")
+    return bool(holder and holder != player_nation
+                and world.is_at_war(player_nation, holder))
 # FA-D12 (slice 17, Phase 2) flip lever: the player's own peace has a
 # headline class. False = the peace leads only through `road_home`.
 THE_PEACE_LEADS_THE_BRIEFING = True
@@ -2776,7 +2803,15 @@ def _derive_danger(marshal, world, player_nation: str,
     # running" beside a headline that says "3 turns". Two honest numbers
     # from two windows is strictly better than one false one, but it is
     # not agreement — that window belongs to the headline's own row.
-    turns = sorted(set(supply_turns.get(marshal.name, [])))
+    _raw = supply_turns.get(marshal.name) or []
+    _cause_region = None
+    if isinstance(_raw, dict):
+        # AAR-13: the collector's (marshal, province) shape — the run is
+        # counted where he STANDS. A per-marshal list (the legacy shape
+        # the fixtures pass) still reads as "wherever he was".
+        _raw = _raw.get(marshal.location, [])
+        _cause_region = marshal.location
+    turns = sorted(set(_raw))
     if turns and turns[-1] >= world.current_turn - 1:
         run = 1
         for i in range(len(turns) - 1, 0, -1):
@@ -2787,7 +2822,8 @@ def _derive_danger(marshal, world, player_nation: str,
             # WO-12 (slice 12): the under-capacity concentration tax is not
             # starvation — the province feeds him; the press of corps on
             # one road does the killing. The event carries the cause.
-            if _latest_supply_cause(world, marshal.name) == "concentration":
+            if _latest_supply_cause(world, marshal.name,
+                                    region=_cause_region) == "concentration":
                 return (f"Crowded — {marshal.location} carries more corps "
                         f"than its roads can bear, "
                         f"{_COUNT_WORDS.get(run, str(run))} turns running.")
@@ -2833,9 +2869,13 @@ def _mauled_proportion(casualties: int, pre_battle: int) -> str:
     return "a quarter"
 
 
-def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
-    """Recent supply_attrition events per marshal (event-log window)."""
-    result: Dict[str, List[int]] = {}
+def _collect_supply_attrition_turns(world) -> Dict[str, Any]:
+    """Recent supply_attrition events per marshal (event-log window).
+
+    AAR-13: keyed on (marshal, PROVINCE) — `{name: {region: [turns]}}` —
+    so the roster's danger flag follows the province the corps stands
+    on. The lever down returns the legacy `{name: [turns]}` shape."""
+    result: Dict[str, Any] = {}
     window_start = world.current_turn - 5
     for e in world.event_log:
         if e.get("type") != "supply_attrition":
@@ -2843,20 +2883,30 @@ def _collect_supply_attrition_turns(world) -> Dict[str, List[int]]:
         if e.get("turn", 0) < window_start:
             continue
         name = e.get("marshal", "")
-        if name:
-            result.setdefault(name, []).append(int(e.get("turn", 0)))
+        if not name:
+            continue
+        turn = int(e.get("turn", 0))
+        if THE_DANGER_FLAG_FOLLOWS_THE_PROVINCE:
+            result.setdefault(name, {}).setdefault(
+                str(e.get("region") or ""), []).append(turn)
+        else:
+            result.setdefault(name, []).append(turn)
     return result
 
 
-def _latest_supply_cause(world, marshal_name: str) -> str:
+def _latest_supply_cause(world, marshal_name: str,
+                         region: Optional[str] = None) -> str:
     """WO-12: the cause stamped on the marshal's most recent attrition
     event in the same window `_collect_supply_attrition_turns` reads
     ("shortage" / "concentration"; an unstamped legacy row reads
-    "shortage")."""
+    "shortage"). AAR-13: `region` narrows it to the province the flag
+    is about."""
     window_start = world.current_turn - 5
     cause, latest = "shortage", -1
     for e in world.event_log:
         if e.get("type") != "supply_attrition" or e.get("marshal") != marshal_name:
+            continue
+        if region is not None and str(e.get("region") or "") != region:
             continue
         turn = int(e.get("turn", 0) or 0)
         if turn < window_start or turn < latest:
@@ -2985,6 +3035,9 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
         for adj_name in getattr(region, "adjacent_regions", []) or []:
             adj_region = world.get_region(adj_name)
             if adj_region is None:
+                continue
+            if THE_REMEDY_NAMES_ONLY_OPEN_GROUND and _ground_is_contested(
+                    world, player_nation, adj_name, adj_region):
                 continue
             adj_cap = int(world.get_effective_supply_cap(
                 player_nation, adj_region))

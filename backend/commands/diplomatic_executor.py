@@ -15,6 +15,10 @@ from backend.models.world_state import WorldState
 from backend.display_names import proposal_display_name as _proposal_display_name
 from backend.display_names import ally_entry_block_line
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
+from backend.display_names import (  # AAR-22 (SR Chunk 2 reserve)
+    display_nation as _display_nation,
+    nation_adjective as _nation_adjective,
+)
 
 
 # Re-front Slice 2: settlement PROPOSE Tier-2 verbs that ride on per-court rows
@@ -610,10 +614,13 @@ class DiplomaticExecutor:
             }
         vassal_record = (getattr(world, "vassals", {}) or {}).get(target)
         if vassal_record and vassal_record.get("lord") == player:
+            # AAR-22 (SR Chunk 2 reserve): the court's printed name,
+            # never the raw tag ("KingdomOfItaly is already ...").
             return {
                 "success": False,
-                "message": (f"{target} is already under French "
-                            f"protection as a vassal."),
+                "message": (f"{_display_nation(target)} is already under "
+                            f"{_nation_adjective(player)} protection "
+                            f"as a vassal."),
             }
 
         result = pledge_guarantee(world, guarantor=player, protected=target)

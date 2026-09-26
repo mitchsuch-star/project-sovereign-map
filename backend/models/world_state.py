@@ -76,6 +76,14 @@ ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 # exactly zero, it adds no new AI geometry. BASELINE_SERIES never reaches 0.
 PLAYER_NEVER_LEAVES_THE_ROSTER = True
 
+# AAR-16 (Score Mandate Chunk 2 reserve, Sept 26 2026): a FOREIGN court's
+# completed work names its owner in the player's terminal ("Austria
+# completes a market at Vienna."); our own keeps the receipt it always
+# had. The event rides `tactical_events` at FULL visibility (PT-E6) with
+# no owner in its text, so a Habsburg market read as ours. False restores
+# the ownerless line.
+FOREIGN_WORKS_NAME_THEIR_OWNER = True
+
 # IQ-4 (probe-found, pre-existing): `_process_proposal_in_transit` restores
 # Talleyrand after a COUNTER_OFFER too — a live mission resumes, and a failed
 # counter no longer strands him IN_TRANSIT with nothing in transit.
@@ -7505,7 +7513,8 @@ class WorldState:
                         "region": region.name,
                         "building": completed_type,
                         "nation": region.controller or "",   # PT-E6
-                        "message": f"Construction complete: {completed_type.replace('_', ' ').title()} in {region.name}!"
+                        "message": self._construction_complete_message(
+                            region, completed_type),
                     })
                     # Log building_completed event
                     self.log_event({
@@ -7538,7 +7547,8 @@ class WorldState:
                         # its type whitelist entry and `severity="good"`
                         # were both dead code.
                         "nation": region.controller or "",
-                        "message": f"Construction complete: Watchtower in {region.name}!"
+                        "message": self._construction_complete_message(
+                            region, "watchtower"),
                     })
                     self.log_event({
                         "type": "building_completed",
@@ -7547,6 +7557,20 @@ class WorldState:
                         "nation": region.controller or "",
                     })
         return events
+
+    def _construction_complete_message(self, region, building_type: str) -> str:
+        """AAR-16: the completion line. A foreign owner's work names the
+        owner; ours keeps its receipt. `region.controller` is the same
+        value the event's `nation` carries (PT-E6)."""
+        words = str(building_type or "building").replace("_", " ")
+        owner = region.controller or ""
+        if (FOREIGN_WORKS_NAME_THEIR_OWNER and owner
+                and owner != self.player_nation):
+            from backend.display_names import display_nation
+            article = "" if words.endswith("s") else "a "
+            return (f"{display_nation(owner)} completes {article}{words} "
+                    f"at {region.name}.")
+        return f"Construction complete: {words.title()} in {region.name}!"
 
     @staticmethod
     def region_has_detached_garrison(region) -> bool:
