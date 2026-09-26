@@ -259,10 +259,15 @@ class TestR89DPFailureDialogueState:
         assert result["awaiting_diplomatic_response"] is False
 
     def test_mission_dp_failure_includes_dialogue_fields(self, executor, world, game_state):
-        """Mission DP failure includes dialogue state fields."""
+        """Mission DP failure includes dialogue state fields.
+
+        SR-2b (September 26, 2026): the court is Austria (PEACE) — Prussia
+        boots at WAR, and the Cabinet's war rule now speaks BEFORE the price
+        on the typed road (`mission_state_refusal`), so the DP refusal this
+        pin measures needs a court the mission is offered to."""
         world.diplomatic_points = 0
         result = executor._execute_diplomatic_mission(
-            {"mission_type": "improve_relations", "target_nation": "Prussia"}, world
+            {"mission_type": "improve_relations", "target_nation": "Austria"}, world
         )
         assert result["success"] is False
         assert "Insufficient" in result["message"]

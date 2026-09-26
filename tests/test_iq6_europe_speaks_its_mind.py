@@ -474,12 +474,30 @@ class TestT2TheOrdinaryGeometry:
     def test_courted_through_the_executor_every_turn(self, courted):
         """The courting is typed at `/command` on every loop from 5 and
         answered by the real mission pipeline: the mission is live on every
-        turn from the first order to the courier's turn."""
+        turn from the first order to the courier's turn.
+
+        SR-2b (September 26, 2026): the Cabinet's rules are read on the typed
+        road too — once the volte-face ALLIANCE has ratified (the turn after
+        the courier), "improve relations with Austria" is refused: an ally is
+        reassured, not courted. The script keeps typing it, so the orders that
+        must succeed are the ones up to the courier's turn; the tail is the
+        honest refusal, and the mission already running stays live (IQ-4's
+        rule — the state is read at the start)."""
         orders = [r for r in courted.records
                   if r.get("kind") == "command" and r.get("text") == COURTING_ORDER]
-        assert orders and all(o.get("success") is not False for o in orders), orders
-        first = next(r for r in courted.rows if r["mission"])
+        assert orders
         courier = courted.volte_rows()[0]
+        script = json.loads((SCRIPTS / "volte_court_austria.json").read_text(encoding="utf-8"))
+        first_loop = min(int(k) for k, v in script["turns"].items() if COURTING_ORDER in v)
+        through_courier = orders[: courier["turn"] - first_loop + 1]
+        after_the_alliance = orders[courier["turn"] - first_loop + 1:]
+        assert through_courier and all(
+            o.get("success") is not False for o in through_courier), through_courier
+        assert after_the_alliance, "the script types the order past the alliance"
+        assert all(o.get("success") is False
+                   and "reassured, not courted" in str(o.get("message", ""))
+                   for o in after_the_alliance), after_the_alliance
+        first = next(r for r in courted.rows if r["mission"])
         for row in courted.rows:
             if first["turn"] <= row["turn"] <= courier["turn"]:
                 assert row["mission"].get("type") == "IMPROVE_RELATIONS", row

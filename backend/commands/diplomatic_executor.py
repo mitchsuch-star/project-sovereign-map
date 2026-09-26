@@ -939,6 +939,22 @@ class DiplomaticExecutor:
                 "diplomatic_dialogue": dialogue,
             }
 
+        # SR-2b (AAR-21 / CRT-8's mission half, September 26, 2026): the
+        # Cabinet's rules on the typed road — the ground before the price.
+        # `mission_state_refusal` mirrors the wizard's per-state rows so a
+        # mission is offered on both roads or neither; measured, this road
+        # courted a court AT WAR ("Talleyrand begins efforts to improve
+        # relations with Britain", the AAR turn 17).
+        from backend.game_logic.diplomatic_dialogue import mission_state_refusal
+        _state_refusal = mission_state_refusal(world, target_nation, mission_type)
+        if _state_refusal:
+            return {
+                "success": False,
+                "message": _state_refusal,
+                "diplomatic_dialogue": None,
+                "awaiting_diplomatic_response": False,
+            }
+
         # Cancel mission (the pre-IQ-4 recall — lever down)
         if mission_type == "CANCEL":
             existing = getattr(world, 'active_diplomatic_mission', None)
@@ -3973,7 +3989,12 @@ class DiplomaticExecutor:
                     choice.lower(), options)
                 for opt in options:
                     label_lower = opt.get("label", "").lower()
-                    if choice_lower in label_lower or label_lower in choice_lower:
+                    # SR-2b (AAR-20b): whole-word containment — "russia" is
+                    # inside "prussia" as letters, not as a court (measured:
+                    # the typed "Russia" selected Prussia, the alphabetical
+                    # first).
+                    if (_phrase_within(choice_lower, label_lower)
+                            or _phrase_within(label_lower, choice_lower)):
                         selected = opt
                         break
                 # Try matching keyword against option terms values
@@ -7515,3 +7536,15 @@ class DiplomaticExecutor:
             "message": world.pending_diplomatic_dialogue["talleyrand_text"],
             "diplomatic_dialogue": world.pending_diplomatic_dialogue,
         }
+
+
+
+def _phrase_within(needle: str, hay: str) -> bool:
+    """SR-2b (AAR-20b): `needle` occurs in `hay` as whole words — the resolver's
+    containment arms used bare substrings, so "russia" selected Prussia."""
+    import re as _re
+    needle = str(needle or "").strip()
+    hay = str(hay or "")
+    if not needle or not hay:
+        return False
+    return _re.search(r"(?<![a-z])" + _re.escape(needle) + r"(?![a-z])", hay) is not None

@@ -1,0 +1,58 @@
+[
+ {
+  "id": "SR-2b/AAR-20a the recall words stop being the cancel mission",
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    if _RECALL_RE.search(text_lower):\n        return \"CANCEL\"",
+  "new": "    if False:\n        return \"CANCEL\"",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-20b the nation list claims an order again (arm 1)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        if action == \"expand_options\" and not _line_is_only_the_court(raw_lower, label):\n            continue\n        # Aug 30, 2026 review: arm 1 is bare-substring containment, so a",
+  "new": "        # Aug 30, 2026 review: arm 1 is bare-substring containment, so a",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-20b the nation list claims an order again (arm 3)",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "        # SR-2b (AAR-20b): same rule as arm 1 for the nation list.\n        if action == \"expand_options\" and not _line_is_only_the_court(raw_lower, label):\n            continue\n",
+  "new": "",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-20b the resolver matches courts as substrings again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                    if (_phrase_within(choice_lower, label_lower)\n                            or _phrase_within(label_lower, choice_lower)):",
+  "new": "                    if choice_lower in label_lower or label_lower in choice_lower:",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-21 the typed road stops reading the Cabinet's rules",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        _state_refusal = mission_state_refusal(world, target_nation, mission_type)\n        if _state_refusal:",
+  "new": "        _state_refusal = mission_state_refusal(world, target_nation, mission_type)\n        if False:",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-21 WAR offers every mission",
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    \"WAR\": frozenset({\"GATHER_INTEL\", \"UNDERMINE_ALLIANCE\"}),",
+  "new": "    \"WAR\": frozenset({\"GATHER_INTEL\", \"UNDERMINE_ALLIANCE\", \"IMPROVE_RELATIONS\", \"COURT_NATION\"}),",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-21 a vassal may be courted",
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    if target_nation in (getattr(world, \"vassals\", {}) or {}):\n        return (f\"Sire, {name} is our client",
+  "new": "    if False:\n        return (f\"Sire, {name} is our client",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ },
+ {
+  "id": "SR-2b/AAR-21 the state gate falls after the price",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "        from backend.game_logic.diplomatic_dialogue import mission_state_refusal\n        _state_refusal = mission_state_refusal(world, target_nation, mission_type)\n        if _state_refusal:\n            return {\n                \"success\": False,\n                \"message\": _state_refusal,\n                \"diplomatic_dialogue\": None,\n                \"awaiting_diplomatic_response\": False,\n            }\n\n        # Cancel mission (the pre-IQ-4 recall — lever down)\n        if mission_type == \"CANCEL\":",
+  "new": "        # Cancel mission (the pre-IQ-4 recall — lever down)\n        if mission_type == \"CANCEL\":",
+  "tests": "tests/test_sr2b_the_talleyrand_verbs.py"
+ }
+]

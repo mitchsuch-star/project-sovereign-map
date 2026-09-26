@@ -26,8 +26,20 @@
 > opens no table); four pins re-seated consciously (three consumption pins +
 > the FA-slice-10 caller census, which asked to be told of a fourth caller);
 > residue SR-2a-X1 recorded (a white peace's header vs its leader gate).
-> **NEXT = SR-2b The Talleyrand verbs** (AAR-20 / AAR-21 / CRT-8's mission
-> half), then SR-2c (WO-32 + PR-D1c/D1d), the reserve, the exit re-score.
+> ~~**SR-2b The Talleyrand verbs**~~ ✅ LANDED — **the recon overturned AAR-20's
+> diagnosis** (the running mission was never the cause: no recall word existed,
+> and the open nation list claimed the order by substring, the resolver then
+> matching "russia" inside "Prussia"); the recall vocabulary is the CANCEL
+> mission inside the diplomat-addressed parse (the button's own label is
+> typable), the nation list claims only the court and the resolver matches
+> whole words, and **AAR-21** the Cabinet's per-state mission rows are ONE
+> table read on the typed road BEFORE the price (`mission_state_refusal`; a
+> both-roads-or-neither census; CRT-8's mission half). Rules §71.2; pins
+> `test_sr2b_the_talleyrand_verbs.py` 26; sweep 8/8 killed, 0 INERT; two pins
+> re-seated (the phase-4 0-DP pin to a court at PEACE; IQ-6 T2's all-orders-succeed
+> assertion scoped to the courier's turn — the three re-issues typed after the
+> volte-face alliance ratified are the honest "reassured, not courted" refusal).
+> **NEXT = SR-2c** (WO-32 + PR-D1c/D1d), the reserve, the exit re-score.
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

@@ -957,6 +957,25 @@ def _dialogue_subject_words(dialogue: Optional[dict]) -> set:
     return set(re.findall(r"[a-z']+", " ".join(blob).lower()))
 
 
+# SR-2b (AAR-20b, September 26, 2026): the words a player uses to PICK a row
+# off the open nation list — anything else on the line is an order.
+_COURT_PICK_WORDS = frozenset({"choose", "pick", "select", "approach", "try",
+                               "go", "yes"})
+
+
+def _line_is_only_the_court(raw_lower: str, label: str) -> bool:
+    """True when the line names the court and nothing else (filler and a
+    picking verb aside). The proposal picker's nation list may claim a line
+    only then: `improve relations with Russia` is an ORDER for Russia."""
+    label_words = set(re.findall(r"[a-z]+", (label or "").lower()))
+    if not label_words:
+        return False
+    rest = [w for w in re.findall(r"[a-z']+", raw_lower)
+            if w not in label_words and w not in _ANSWER_FILLER_WORDS
+            and w not in _COURT_PICK_WORDS]
+    return not rest
+
+
 def _carries_military_content(raw_lower: str, keyword: str,
                               world_regions=None,
                               dialogue: Optional[dict] = None) -> bool:
@@ -1187,6 +1206,14 @@ def match_dialogue_answer(dialogue: Optional[dict],
         action = (opt.get("action") or "").lower().strip()
         if addressed and not _names_a_marshal(label, marshal_names):
             continue
+        # SR-2b (AAR-20b): the open NATION LIST (the proposal picker's
+        # `expand_options` rows) may claim a line only when the line IS the
+        # court. `improve relations with Russia` is an order for Russia —
+        # measured, the list claimed it by substring, the resolver matched
+        # "russia" inside "Prussia", and the player was answered with
+        # PRUSSIA's proposal menu.
+        if action == "expand_options" and not _line_is_only_the_court(raw_lower, label):
+            continue
         # Aug 30, 2026 review: arm 1 is bare-substring containment, so a
         # ONE-WORD label is as loose as the keyword scan below — measured, the
         # label `Cancel` claimed "cancel the march", an order to break a
@@ -1211,6 +1238,9 @@ def match_dialogue_answer(dialogue: Optional[dict],
         label = (opt.get("label") or "").lower().strip()
         action = (opt.get("action") or "").lower().strip()
         label_words = set(re.findall(r"[a-z]+", label))
+        # SR-2b (AAR-20b): same rule as arm 1 for the nation list.
+        if action == "expand_options" and not _line_is_only_the_court(raw_lower, label):
+            continue
         if label_words and label_words <= raw_words:
             # Aug 30, 2026 review: the same order-vs-answer rule as arm 4.
             # A ONE-WORD label makes this arm as loose as a bare-substring

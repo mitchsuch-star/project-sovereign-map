@@ -10,6 +10,7 @@ Entry points:
   - get_game_bucket() → determines game situation for template selection
 """
 
+import re
 from typing import Dict, Optional
 
 from backend.display_names import (
@@ -769,6 +770,22 @@ def extract_proposal_type(raw_text: str) -> Optional[str]:
     return None
 
 
+# SR-2b (AAR-20a, Score Mandate Chunk 2, September 26, 2026): the recall's
+# own words. The rail's and the Cabinet's button is labelled "Recall
+# Talleyrand" (`MISSION_RECALL_LABEL`) and the sentence it printed was not
+# one the parser accepted — it fell through to the proposal arm and asked
+# "Sire, which nation shall I approach?" (the AAR, turn 10). Read only
+# inside the diplomat-addressed parse, so `recall Murat` (a marshal, FA-S9-D1)
+# and `recall the fleet` (a posture) never reach it.
+_RECALL_RE = re.compile(
+    r"\brecall\b"
+    r"|\bcome home\b"
+    r"|\bbring (?:him|talleyrand|our (?:envoy|minister|ambassador|diplomat)) (?:back|home)\b"
+    r"|\breturn to paris\b"
+    r"|\bcall (?:him|talleyrand) back\b"
+)
+
+
 def extract_mission_type(raw_text: str) -> Optional[str]:
     """Extract mission type from command text."""
     text_lower = raw_text.lower()
@@ -776,6 +793,8 @@ def extract_mission_type(raw_text: str) -> Optional[str]:
     # Check cancel first
     if any(kw in text_lower for kw in ["cancel mission", "halt mission", "stop mission",
                                         "cancel diplomatic", "abort mission"]):
+        return "CANCEL"
+    if _RECALL_RE.search(text_lower):
         return "CANCEL"
 
     for mtype, keywords in MISSION_TYPE_KEYWORDS.items():
@@ -1853,6 +1872,88 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         "turn_created": int(world.current_turn),
         "blocking": False,
     }
+
+
+# SR-2b (AAR-21 / CRT-8's mission half, September 26, 2026): the Cabinet's
+# rules on every road. The wizard's per-state rows (`get_available_
+# diplomatic_actions`) had a written decision — "you do not court a
+# belligerent" — that the typed road never read: `Talleyrand, improve
+# relations with Britain` started a relations mission with a court AT WAR
+# (the AAR, turn 17: "Relations with Britain −82, net +8 a turn"). ONE table
+# mirrors the rows, ONE predicate refuses on the typed road BEFORE the DP
+# check (the ground before the price — CN-3's rule), and a census pins that
+# a mission is offered on both roads or neither. A mission already RUNNING
+# when a war starts is kept (IQ-4's pin): the rule is read at the start.
+THE_CABINETS_RULES_ON_EVERY_ROAD = True
+
+MISSION_ROWS_BY_STATE = {
+    "WAR": frozenset({"GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
+    "ARMISTICE": frozenset({"IMPROVE_RELATIONS", "COURT_NATION",
+                            "GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
+    "PEACE": frozenset({"IMPROVE_RELATIONS", "COURT_NATION",
+                        "GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
+    "OPEN_BORDERS": frozenset({"IMPROVE_RELATIONS", "COURT_NATION",
+                               "GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
+    "NON_AGGRESSION": frozenset({"IMPROVE_RELATIONS", "COURT_NATION",
+                                 "GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
+    "DEFENSIVE_ALLIANCE": frozenset({"IMPROVE_RELATIONS",
+                                     "GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
+    "ALLIANCE": frozenset({"REASSURE_ALLY", "GATHER_INTEL",
+                           "UNDERMINE_ALLIANCE"}),
+}
+
+
+def mission_rows_for_state(state: str):
+    """The mission types the Cabinet offers at `state`, or None for a state
+    the table does not know (the typed road then keeps its old answer)."""
+    key = str(state or "").upper()
+    rows = MISSION_ROWS_BY_STATE.get(key)
+    if rows is None:
+        return None
+    if key == "DEFENSIVE_ALLIANCE":
+        from backend.game_logic.diplomacy import REASSURE_ONLY_AT_ALLIANCE
+        if not REASSURE_ONLY_AT_ALLIANCE:
+            rows = rows | {"REASSURE_ALLY"}
+    return rows
+
+
+def mission_state_refusal(world, target_nation: Optional[str],
+                          mission_type: Optional[str]) -> Optional[str]:
+    """Why the Cabinet would not offer this mission to this court — None
+    when it would. A recall is never refused here."""
+    if not THE_CABINETS_RULES_ON_EVERY_ROAD:
+        return None
+    mission = str(mission_type or "").upper()
+    if not target_nation or mission in ("", "CANCEL"):
+        return None
+    from backend.display_names import display_nation
+    name = display_nation(target_nation)
+    if target_nation in (getattr(world, "vassals", {}) or {}):
+        return (f"Sire, {name} is our client — a satellite is governed from "
+                f"the vassal ledger, not courted by a mission.")
+    player = get_player_nation(world)
+    state = str(world.get_diplomatic_state(player, target_nation) or "").upper()
+    allowed = mission_rows_for_state(state)
+    if allowed is None or mission in allowed:
+        return None
+    if state == "WAR":
+        if mission == "REASSURE_ALLY":
+            return f"Sire, {name} is a belligerent, not an ally to reassure."
+        return (f"Sire, we do not court a belligerent — {name} is at war with "
+                f"us. The armistice and the settlement table are the war-time "
+                f"levers; intelligence and undermining are the missions a war "
+                f"allows.")
+    if mission == "REASSURE_ALLY":
+        return (f"Sire, reassurance is for a full alliance only; {name} is not "
+                f"our ally.")
+    if state == "ALLIANCE":
+        return (f"Sire, an ally is reassured, not courted — the Reassure "
+                f"mission is the maintenance of our alliance with {name}.")
+    if state == "DEFENSIVE_ALLIANCE" and mission == "COURT_NATION":
+        return (f"Sire, a defensive ally is improved or reassured, not courted; "
+                f"{name} is already bound to us.")
+    return (f"Sire, that mission is not one the Cabinet offers {name} while we "
+            f"stand at {state.replace('_', ' ').title()}.")
 
 
 def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:

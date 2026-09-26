@@ -405,6 +405,36 @@
       "notes": "Asserts only diplomatic_data.mission_type == 'CANCEL'; action not asserted."
     },
     {
+      "id": "sr2b-recall-talleyrand",
+      "utterance": "recall Talleyrand",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_mission",
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "CANCEL",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_sr2b_the_talleyrand_verbs.py::TestRecallTalleyrand::test_the_recall_words_are_the_cancel_mission",
+      "notes": "SR-2b (AAR-20a): the Cabinet's own button label is typable — the recall vocabulary is the CANCEL mission inside the diplomat-addressed parse."
+    },
+    {
+      "id": "sr2b-talleyrand-come-home",
+      "utterance": "Talleyrand, come home",
+      "world": "any",
+      "expected": {
+        "action": "diplomatic_mission",
+        "type": "diplomatic",
+        "diplo": {
+          "mission_type": "CANCEL",
+          "tone": "propose"
+        }
+      },
+      "source": "tests/test_sr2b_the_talleyrand_verbs.py::TestRecallTalleyrand::test_the_recall_words_are_the_cancel_mission",
+      "notes": "SR-2b (AAR-20a): a plain-speech recall."
+    },
+    {
       "id": "talleyrand-deal-with-england",
       "utterance": "Talleyrand, deal with England",
       "world": "any",
