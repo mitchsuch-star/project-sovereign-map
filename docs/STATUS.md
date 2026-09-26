@@ -58,10 +58,22 @@
 > 32; sweep `tools/_sweep_sr2_reserve.json` 16/16 killed, 0 INERT; series + M1–M7
 > byte-identical; zero `.gd`; one pin re-seated consciously (IQ1-3A2's host's-capital pin —
 > AAR-30 closes its case on both arms; the lever pin runs with AAR-30 down).
-> **NEXT = the Chunk 2 EXIT re-score** on a played arm (the settlement table as victor and
-> as loser, a mediation answered, a court courted to a treaty), the §1 scoreboard re-scored
-> FOR USER CONFIRMATION (diplomacy 6.25 → target 7.0); then Chunk 3 FIRST CONTACT & COMMAND,
-> or SR-D3's AP/DP gate first — the user's call.
+> ~~**the Chunk 2 EXIT re-score**~~ ✅ RUN — **CHUNK 2 CLOSED** (memo
+> `docs/audits/SR_CHUNK2_EXIT_2026_09_26.md`; archives `sr2-exit-*`): the settlement table read
+> at the wire as VICTOR (Britain's white peace on the AAR road, one verdict, ratify open) and
+> as LOSER (the beaten France's requested package — 5,406 gold, a Duchy of Normandy carved,
+> nine provinces retained — reviewed with consent and RATIFIED), a MEDIATION answered (the
+> Tilsit arm: Russia at peace from turn 8 offers her good offices on turn 21), a court COURTED
+> to a treaty (Austria proposes her own way up to an ALLIANCE by turn 31). **Re-scored FOR USER
+> CONFIRMATION: diplomacy 6.25 → 6.75 (target 7.0 NOT met); directional ≈7.0 (98.25 / 14).**
+> Four legibility residues found by the exit → SR-2-X2..X5 (`BUG_FIXES.md` §Score Mandate
+> Chunk 2 exit; the §3 bank as **SR-2d** ≈0.4): the letter's status quo naming a carved
+> province, a ratified settlement riding the rail as REJECT / "Diplomatic Action", the
+> requested price moving 5,406 → 5,398 between letter and review, the mediator invisible on
+> the rail. The volte-face beat did not print on the courted arm (IQ-6's T2 drives it with
+> SR-1d's lever DOWN; the shipped ladder alliance lands ~29–31) — a Chunk 7 question, said.
+> **NEXT = SR-2d (the four rows, ≈0.4 — take it at the head of Chunk 3 or bank it), then
+> Chunk 3 FIRST CONTACT & COMMAND, or SR-D3's AP/DP gate first — the user's call.**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**
