@@ -1,0 +1,142 @@
+[
+  {
+    "id": "SR-3b/CRT-2 CQ-17 the recipient is bound again to the addressee",
+    "file": "backend/commands/parser.py",
+    "old": "                llm_result[\"marshal\"] = _recipient\n",
+    "new": "                pass\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestARewardGoesToItsObject"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-17 the helper names no object",
+    "file": "backend/commands/parser.py",
+    "old": "    return _earliest_named(text[match.end():].lower(), names)\n",
+    "new": "    return None\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestARewardGoesToItsObject"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-17 rider the fallen refusal is dropped",
+    "file": "backend/commands/parser.py",
+    "old": "            if _fallen is not None:\n                return (llm_result, _fallen)\n",
+    "new": "            if False:\n                return (llm_result, _fallen)\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAFallenObjectIsNamedAsFallen"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-17 rider the unaddressed fallen object is not scanned",
+    "file": "backend/commands/parser.py",
+    "old": "        name = _earliest_named(rest.lower(), list(tombs))\n",
+    "new": "        name = None\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAFallenObjectIsNamedAsFallen"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-17 rider the fallen refusal is not rendered verbatim",
+    "file": "backend/main.py",
+    "old": "VERBATIM_PARSE_REFUSAL_KINDS = frozenset({\"enemy_addressee\", \"fallen_recipient\"})",
+    "new": "VERBATIM_PARSE_REFUSAL_KINDS = frozenset({\"enemy_addressee\"})",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAFallenObjectIsNamedAsFallen"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the named ground is dropped again",
+    "file": "backend/ai/llm_client.py",
+    "old": "            if _ground:\n                target = _ground\n",
+    "new": "            if _ground:\n                pass\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 accents hide a name again",
+    "file": "backend/ai/llm_client.py",
+    "old": "    command_lower = _fold(command_lower)\n",
+    "new": "    command_lower = command_lower\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_the_accented_province_resolves_as_the_plain_one tests/test_crt2_the_name_is_never_replaced.py::TestAccentsNeverHideAName tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround::test_the_accented_build_resolves tests/test_command_robustness_cr1_eval_harness.py::test_corpus_entry"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 a manner is read as a place",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if not words or any(w in _NOT_A_PLACE for w in words):\n            continue\n        found = phrase\n    if found is None",
+    "new": "        if not words:\n            continue\n        found = phrase\n    if found is None",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_manner_is_not_a_place tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_clause_after_the_province_ends_it"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 repair's object is not read",
+    "file": "backend/ai/llm_client.py",
+    "old": "    if found is None and verb == \"repair\":\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the thing mended is read as a province",
+    "file": "backend/ai/llm_client.py",
+    "old": "            if not words or any(w in _NOT_A_PLACE or w in _REPAIR_OBJECT_WORDS\n",
+    "new": "            if not words or any(w in _NOT_A_PLACE\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround::test_the_thing_mended_is_never_a_province"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 a further in/at no longer ends a place",
+    "file": "backend/ai/llm_client.py",
+    "old": "    r\"|in|at|on|near|toward|towards)\\b.*)?\"\n",
+    "new": "    r\")\\b.*)?\"\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_manner_is_not_a_place tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_clause_after_the_province_ends_it"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the recruit re-read is skipped",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED and not marshal_specified\n",
+    "new": "        if (False and not marshal_specified\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the reading is not disclosed",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        note = destination_grounding_note(raw_text, region.name)\n",
+    "new": "        note = \"\"\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the typed line does not reach the recruit",
+    "file": "backend/commands/executor.py",
+    "old": "            result = self._economy._execute_recruit(\n                command, game_state,\n                raw_text=parsed_command.get(\"raw_input\") or \"\")\n",
+    "new": "            result = self._economy._execute_recruit(\n                command, game_state,\n                raw_text=\"\")\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestANamedProvinceIsNeverReplaced::test_a_read_province_that_succeeds_discloses_the_reading"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the build re-read is skipped",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        # the name as typed (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED\n",
+    "new": "        # the name as typed (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (False\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
+  },
+  {
+    "id": "SR-3b/CRT-2 CQ-29 the repair re-read refuses unknown instead of the matcher",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        # CRT-2 / CQ-29 (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED\n",
+    "new": "        # CRT-2 / CQ-29 (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).\n        if (False\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestBuildAndRepairReadTheirGround"
+  },
+  {
+    "id": "SR-3b/CRT-2 rider a generic hold discloses a reading again",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "            or (strategic_type == \"HOLD\" and is_generic))\n",
+    "new": "            or False)\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAHoldTheGamePlacedReadsNoName"
+  },
+  {
+    "id": "SR-3b/CRT-2 rider the strategic parser stops marking its default",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "                    \"target_placed_by_the_game\": True,\n",
+    "new": "                    \"target_placed_by_the_game\": False,\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAHoldTheGamePlacedReadsNoName"
+  },
+  {
+    "id": "SR-3b/CRT-2 rider the parser drops the mark",
+    "file": "backend/commands/parser.py",
+    "old": "                        result[\"target_placed_by_the_game\"] = bool(\n                            strategic.get(\"target_placed_by_the_game\"))\n",
+    "new": "                        result[\"target_placed_by_the_game\"] = False\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAHoldTheGamePlacedReadsNoName"
+  },
+  {
+    "id": "SR-3b/CRT-2 rider the executor ignores the mark",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                   + (\"\" if (THE_DEFAULT_HOLD_READS_NO_NAME\n                             and _hold_placed_by_the_game)\n",
+    "new": "                   + (\"\" if (THE_DEFAULT_HOLD_READS_NO_NAME\n                             and False)\n",
+    "tests": "tests/test_crt2_the_name_is_never_replaced.py::TestAHoldTheGamePlacedReadsNoName"
+  }
+]

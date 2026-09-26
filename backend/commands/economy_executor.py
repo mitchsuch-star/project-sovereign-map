@@ -376,6 +376,19 @@ def _recruit_block_reason_from(blocked: List[str], remedy: str = "") -> str:
 # Flip lever: False restores the arm-blind choice byte-for-byte.
 THE_ARM_CHOOSES_THE_MAN = True
 
+# CRT-2 / CQ-29 (Score Mandate Chunk 3, SR-3b, September 26, 2026): A NAMED
+# PROVINCE IS NEVER REPLACED. A recruit / build / repair whose named province
+# does not resolve exactly is read through the executor's REGION MATCHER
+# (`CommandExecutor._fuzzy_match_region`, the march road's own): a typed
+# mistake is read as the province it meant and the reading is SAID on every
+# answer that comes back; a nation is answered with its provinces; a place
+# the map does not hold is refused free. A recruit is never raised at the
+# capital in its stead. Measured before: `recruit infantry in Swabbia` and
+# `in Atlantis` raised 10,000 men at Paris for 654 gold; `build … in
+# Brittanny` answered "Specify a region". An exact name (every AI order)
+# never reaches the matcher. False restores "Unknown region" and the capital.
+A_NAMED_PROVINCE_IS_NEVER_REPLACED = True
+
 _ARM_NOUN = {"infantry": "foot", "cavalry": "horse", "artillery": "guns"}
 
 
@@ -1264,7 +1277,34 @@ class EconomyExecutor:
                                               None) or []),
                                  remedy=recruit_remedy(world, world.player_nation))
 
-    def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
+    def _reread_named_province(self, command: Dict, world, typed: str,
+                               raw_text: str, rerun) -> Dict:
+        """CRT-2 / CQ-29: the answer for a named province that did not
+        resolve exactly. The region matcher's refusal is returned as it
+        stands (free); a province it reads is handed back to the verb by
+        `rerun(command_with_the_read_name)`, and the reading is disclosed on
+        WHATEVER that answer is (FA-54's grounding note, the march road's
+        own words) — so no exit of the verb can act on a province the player
+        did not type without saying which one it read."""
+        from backend.commands.movement_executor import (
+            destination_grounding_note)
+        region, error = self._executor._fuzzy_match_region(typed, world)
+        if error or region is None:
+            refused = dict(error or {})
+            refused["success"] = False
+            refused.setdefault("message", f"Unknown region: {typed}")
+            return refused
+        resolved = dict(command)
+        resolved["target"] = region.name
+        result = rerun(resolved)
+        note = destination_grounding_note(raw_text, region.name)
+        if note and isinstance(result, dict) and result.get("message"):
+            result = dict(result)
+            result["message"] = str(result["message"]) + note
+        return result
+
+    def _execute_recruit(self, command: Dict, game_state: Dict,
+                         raw_text: str = "") -> Dict:
         """Recruit new troops with manpower pools, morale dilution, stability gates, and cost modifiers.
 
         Phase 6: Manpower Pools — recruit type auto-determined from marshal.cavalry.
@@ -1300,6 +1340,18 @@ class EconomyExecutor:
                       if (THE_ARM_CHOOSES_THE_MAN and not marshal_specified
                           and requested_type in RECRUIT_ARMS)
                       else None)
+
+        # CRT-2 / CQ-29: a named province that does not resolve is read by
+        # the region matcher, never replaced by the capital (see
+        # `A_NAMED_PROVINCE_IS_NEVER_REPLACED`). A named MARSHAL keeps PF-7's
+        # road: he levies where he stands.
+        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED and not marshal_specified
+                and location_specified
+                and world.get_region(location_specified) is None):
+            return self._reread_named_province(
+                command, world, location_specified, raw_text,
+                lambda cmd: self._execute_recruit(
+                    cmd, game_state, raw_text=raw_text))
 
         # Determine which marshal gets the troops and where recruitment happens
         if marshal_specified:
@@ -2737,7 +2789,8 @@ class EconomyExecutor:
             "new_state": game_state
         }
 
-    def _execute_build(self, command: Dict, game_state: Dict) -> Dict:
+    def _execute_build(self, command: Dict, game_state: Dict,
+                       raw_text: str = "") -> Dict:
         """Build a building at a region. Costs admin AP + gold.
 
         Phase 6.2.E: supply_depot (300g/2t), fortification (400g/3t), training_ground (250g/2t).
@@ -2756,6 +2809,15 @@ class EconomyExecutor:
             return {"success": False,
                     "message": ("Specify a region. Example: 'build supply "
                                 f"depot at {example_region(world)}'")}
+
+        # CRT-2 / CQ-29: read before the watchtower branch, which is handed
+        # the name as typed (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).
+        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED
+                and world.get_region(region_name) is None):
+            return self._reread_named_province(
+                command, world, region_name, raw_text,
+                lambda cmd: self._execute_build(
+                    cmd, game_state, raw_text=raw_text))
 
         # ════════════════════════════════════════════════════════════
         # WATCHTOWER: Dedicated field, bypasses slot system (Phase 6 Fog - Session 35)
@@ -2899,7 +2961,8 @@ class EconomyExecutor:
             "new_state": game_state
         }
 
-    def _execute_repair(self, command: Dict, game_state: Dict) -> Dict:
+    def _execute_repair(self, command: Dict, game_state: Dict,
+                        raw_text: str = "") -> Dict:
         """Repair war damage or a damaged building. Costs admin AP + 150 gold.
 
         Phase 6.2.E: 1 admin AP + 150 gold.
@@ -2918,6 +2981,14 @@ class EconomyExecutor:
             return {"success": False,
                     "message": ("Specify a region. Example: "
                                 f"'repair {example_region(world)}'")}
+
+        # CRT-2 / CQ-29 (see `A_NAMED_PROVINCE_IS_NEVER_REPLACED`).
+        if (A_NAMED_PROVINCE_IS_NEVER_REPLACED
+                and world.get_region(region_name) is None):
+            return self._reread_named_province(
+                command, world, region_name, raw_text,
+                lambda cmd: self._execute_repair(
+                    cmd, game_state, raw_text=raw_text))
 
         region = world.get_region(region_name)
         if not region:

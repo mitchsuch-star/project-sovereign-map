@@ -162,10 +162,28 @@
 > first cut promoted Soult over Ney and reddened 24 first-contact pins — the counsel offers
 > what the executor takes; the what-if answers the odds). **Two pins re-seated consciously:**
 > the CX-2 levy line on the quote; the session-3 armistice refusal on the truce's clock.
-> **SR-3a is COMPLETE. NEXT = SR-3b (CRT-2 "the name is never replaced": CQ-17 the reward
+> **SR-3a is COMPLETE.** ~~**NEXT = SR-3b (CRT-2 "the name is never replaced": CQ-17 the reward
 > verbs bind the OBJECT marshal, CQ-29 an unresolved `recruit … in <X>` province refuses with
 > the region matcher's answer) → SR-3c (L-1 + IQ9-X1 / IQ9-X3) → the reserve → the exit
-> re-score. SR-D3 stays DEFERRED.**
+> re-score. SR-D3 stays DEFERRED.**~~
+> ~~**SR-3b CRT-2 "the name is never replaced"**~~ ✅ **LANDED September 26, 2026** (landing
+> record `COMMAND_ROBUSTNESS_SPEC.md` §12.10; rules `SYSTEMS_REFERENCE.md` §72.3; pins
+> `tests/test_crt2_the_name_is_never_replaced.py` (49 new, 62 in the file with CQ-30's 13); corpus +11 `crt2-*` rows,
+> 791/791 mock — the eight defect rows fail on the pre-slice tree; sweep `tools/_sweep_sr3b.json` 20/20 killed, 0 INERT at close;
+> `BASELINE_SERIES` + M1–M7 byte-identical; zero `.gd`). **CQ-17:** an addressed reward goes
+> to its OBJECT (`Davout, grant Ney a rente` pensions Ney; the estate arm no longer endows
+> the addressee, irreversibly); a fallen object is answered with the desk's own sentence.
+> **CQ-29:** accents never hide a name; the named ground of recruit / build / repair is KEPT
+> (repair's direct object too); the executor reads an unresolved province through the march
+> road's region matcher, re-runs on it and discloses the reading on every answer — a recruit
+> is never raised at the capital in its stead (`in Swabbia` / `in Atlantis` / `in Austria`
+> refused free; `in Franche-Comté` = `in Franche-Comte`). **Rider:** a hold the game placed no
+> longer says "Our maps read Rhineland…". **Filed:** CQ-37 → the reserve, CQ-38 → CRT-11.
+> **Drive-by:** a pre-existing 1-in-300 dice flake in `test_estate_second_pass.py` pinned.
+> **NEXT = SR-3c (L-1: the static-first parse prompt + the dead `marshal_name`/`personality`
+> params wired; riders IQ9-X1 + IQ9-X3 — every parse cassette will drift: lever + re-stamp via
+> the replay, NEVER `--refresh-drifted`) → the Chunk 3 reserve (CQ-37, the boot help's "who am
+> I fighting" line, AAR-25, the IQ10-X residue) → the exit re-score. SR-D3 stays DEFERRED.**
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

@@ -25,6 +25,7 @@ See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 6 for keywords to add:
 import os
 import random
 import re
+import unicodedata
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
@@ -520,6 +521,141 @@ def unique_name_tokens(names) -> Dict[str, str]:
             for token, holders in owners.items() if len(holders) == 1}
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# CRT-2 / CQ-29 (Score Mandate Chunk 3, SR-3b, September 26, 2026). A typed,
+# accented `Franche-Comté` never matched the registry key `Franche-Comte` in
+# the fast parser's name matcher, so `recruit infantry in Franche-Comté` lost
+# its province and was raised at the CAPITAL (and `build … in Franche-Comté`
+# answered "Specify a region"), while the march road — whose phrase reaches
+# the executor's region matcher — resolved it. The name matcher reads both
+# sides with their accents folded, one character for one character, so the
+# position-aware scoring below is untouched. False restores the exact read.
+ACCENTS_NEVER_HIDE_A_NAME = True
+
+
+def fold_accents(text: str) -> str:
+    """`text` with each accented Latin letter replaced by its base letter —
+    ONE character for ONE character, so every index into the folded string
+    is an index into the original. Characters with no base-letter
+    decomposition (ß, æ, ø, the dashes) are kept as they are."""
+    if not text:
+        return text
+    out = []
+    for ch in text:
+        if ord(ch) < 128:
+            out.append(ch)
+            continue
+        decomposed = unicodedata.normalize("NFKD", ch)
+        base = decomposed[:1]
+        if (base and ord(base) < 128
+                and all(unicodedata.combining(c) for c in decomposed[1:])):
+            out.append(base)
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+# CRT-2 / CQ-29 (b): A NAMED PROVINCE IS NEVER REPLACED. `recruit infantry in
+# Swabbia` (one typed letter) and `in Atlantis` (no such place) became a bare
+# `recruit infantry` and were raised AT THE CAPITAL and charged — measured with
+# Soult stood at Paris and 20,000 gold: "Soult recruits 10,000 infantry
+# (nearest to capital) - Cost: 654 gold" for all of them, while `recruit
+# infantry in Swabia` — the province the typo meant — is refused ("We do not
+# control Swabia"). The mock matched a province only by its exact name, so the
+# executor's no-location branch could not tell "no province named" from "a
+# province named that did not resolve". The spoken ground is now KEPT for the
+# three verbs that take one (recruit / build / repair), exactly as Sweep-5 kept
+# the march's destination, so the executor's region matcher owns the verdict.
+# A manner or a generic place ("at once", "in haste", "in the capital") is not
+# a province and is never kept. False restores the dropped clause.
+A_NAMED_GROUND_IS_KEPT = True
+_NAMED_GROUND_VERBS = frozenset({"recruit", "build", "repair"})
+_GROUND_PLACE_AND_TAIL = (
+    r"(?:the\s+)?"
+    r"(?P<place>[^\W\d_][\w'\-]*(?:\s+[^\W\d_][\w'\-]*){0,2}?)"
+    # A comma ends the place ("… in Swabbia, Sire"), as does a clause word —
+    # including a further "in" / "at", so "in Swabbia at once" keeps Swabbia.
+    r"(?:\s*,.*|\s+(?:for|with|under|by|to|and|then|using|from|so|because|if"
+    r"|when|once|before|after|immediately|now|today|please|this|next"
+    r"|in|at|on|near|toward|towards)\b.*)?"
+    r"[.!?]?\s*$")
+_NAMED_GROUND_RE = re.compile(r"(?:in|at)\s+" + _GROUND_PLACE_AND_TAIL,
+                              re.IGNORECASE)
+# `repair <province>` is the repair verb's own example form ("repair
+# Paris"): its ground is the direct OBJECT. Read only when no "in" / "at"
+# names a place, and never when the object is the thing mended.
+_REPAIR_OBJECT_RE = re.compile(r"repair\s+" + _GROUND_PLACE_AND_TAIL,
+                               re.IGNORECASE)
+_REPAIR_OBJECT_WORDS = frozenset({
+    "damage", "damages", "war", "wars", "harm", "ruin", "ruins", "works",
+    "fort", "forts", "fortress", "fortification", "fortifications",
+    "depot", "depots", "supply", "supplies", "wall", "walls", "market",
+    "markets", "stable", "stables", "watchtower", "watchtowers", "tower",
+    "towers", "training", "ground", "grounds", "building", "buildings",
+    "road", "roads", "bridge", "bridges", "everything", "it", "them",
+})
+_NOT_A_PLACE = frozenset({
+    "once", "haste", "earnest", "force", "strength", "numbers", "number",
+    "bulk", "full", "total", "reserve", "reserves", "person", "time",
+    "turn", "support", "addition", "return", "exchange", "kind", "secret",
+    "capital", "home", "rear", "front", "here", "there", "depot", "depots",
+    "field", "camp", "barracks", "garrison", "line", "lines", "place",
+    "position", "north", "south", "east", "west", "centre", "center",
+    "border", "frontier", "coast", "provinces", "province", "region",
+    "all", "last", "least", "most", "first", "best",
+    # a formation is not a place ("recruit infantry in Ney's corps")
+    "corps", "army", "armies", "division", "brigade", "regiment",
+    "regiments", "men", "troops", "guard",
+    # a determiner or possessive opens a description, never a map name
+    "our", "my", "his", "her", "their", "its", "this", "that", "these",
+    "those", "each", "every", "any", "some", "a", "an",
+})
+
+
+def _title_place(phrase: str) -> str:
+    """Each word's first letter raised, and nothing else touched — so
+    "franche-comte" reads "Franche-Comte" and an apostrophe never raises the
+    letter after it (str.title() gives "Ney'S")."""
+    return re.sub(r"(^|[\s\-])([^\W\d_])",
+                  lambda m: m.group(1) + m.group(2).upper(), phrase)
+
+
+def named_ground_phrase(command_lower: str,
+                        verb: Optional[str] = None) -> Optional[str]:
+    """The province a recruit / build / repair line names after "in" / "at",
+    with each word's first letter raised, or None when it names no place (a
+    manner, a generic, a description, a formation). The LAST preposition
+    that yields a place wins — the Sweep-5 destination rule — so "recruit
+    at once in Swabbia" reads Swabbia. For `repair`, whose own example form
+    is "repair Paris", the direct object is read when no preposition names
+    a place, unless it is the thing mended ("repair the damage")."""
+    if not command_lower:
+        return None
+    found = None
+    for prep in re.finditer(r"\b(?:in|at)\b", command_lower):
+        match = _NAMED_GROUND_RE.match(command_lower, prep.start())
+        if not match:
+            continue
+        phrase = match.group("place").strip(" .!?,;:'\"")
+        words = phrase.split()
+        if not words or any(w in _NOT_A_PLACE for w in words):
+            continue
+        found = phrase
+    if found is None and verb == "repair":
+        for rep in re.finditer(r"\brepair\b", command_lower):
+            match = _REPAIR_OBJECT_RE.match(command_lower, rep.start())
+            if not match:
+                continue
+            phrase = match.group("place").strip(" .!?,;:'\"")
+            words = phrase.split()
+            if not words or any(w in _NOT_A_PLACE or w in _REPAIR_OBJECT_WORDS
+                                for w in words):
+                continue
+            found = phrase
+            break
+    return _title_place(found) if found else None
+
+
 def _match_known_name(command_lower: str, names,
                       allow_last_name: bool = False) -> Optional[str]:
     """Find the best roster-name match in the command (word-boundary).
@@ -538,6 +674,10 @@ def _match_known_name(command_lower: str, names,
     """
     best_key = None
     best_name = None
+    # CRT-2 / CQ-29 (a): both sides folded, one character for one, so the
+    # positions `_offer` scores are the typed line's own positions.
+    _fold = fold_accents if ACCENTS_NEVER_HIDE_A_NAME else (lambda s: s)
+    command_lower = _fold(command_lower)
 
     def _offer(name, pattern, start, is_token):
         nonlocal best_key, best_name
@@ -553,10 +693,12 @@ def _match_known_name(command_lower: str, names,
     names = list(names)
     for name in names:
         for pattern in _name_match_patterns(name):
+            pattern = _fold(pattern)
             for m in re.finditer(r'\b' + re.escape(pattern) + r'\b', command_lower):
                 _offer(name, pattern, m.start(), False)
     if best_name is None and allow_last_name:
         for token, owner in unique_name_tokens(names).items():
+            token = _fold(token)
             for m in re.finditer(r'\b' + re.escape(token) + r'\b', command_lower):
                 _offer(owner, token, m.start(), True)
     return best_name
@@ -3236,6 +3378,15 @@ class LLMClient:
                            "coast", "border", "position", "positions"}
                 if phrase not in generic:
                     target = phrase.title()
+
+        # CRT-2 / CQ-29 (b): the spoken ground of a recruit / build / repair
+        # is kept when no known name matched it, so the executor's region
+        # matcher answers — never the capital (see `named_ground_phrase`).
+        if (A_NAMED_GROUND_IS_KEPT and target is None
+                and action in _NAMED_GROUND_VERBS):
+            _ground = named_ground_phrase(command_lower, action)
+            if _ground:
+                target = _ground
 
         # Build interpretation string
         if marshal and action != "unknown":

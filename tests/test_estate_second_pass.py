@@ -705,10 +705,18 @@ class TestBattleReportExpectationNote:
         # F4 "The fuse is longer": no claim is felt before turn 6, so the
         # deed is done on the first turn a rise is possible.
         world.current_turn = max(int(world.current_turn), 6)
+        # The dice are pinned (Score Mandate SR-3b drive-by, September 26,
+        # 2026): "dies whatever the rolls" was false once in 300 — measured
+        # replaying this staging under `random.seed(0..299)`, seed 261 leaves
+        # Mack standing at Swabia with 69 men, so no decisive victory and no
+        # note, identically on the pre-slice tree; the unseeded helper
+        # failed a regression run once in five. 1805 is a winning roll.
+        import random
+        random.seed(1805)
         ney = world.marshals["Ney"]
         mack = world.marshals["Mack"]
         mack.location = ney.location
-        mack.strength = 900  # dies whatever the rolls — the win is certain
+        mack.strength = 900
         mack.fortified = False
         result = _execute(world, {"marshal": "Ney", "action": "attack",
                                   "target": "Mack", "type": "specific",

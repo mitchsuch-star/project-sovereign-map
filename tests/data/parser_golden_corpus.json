@@ -6320,6 +6320,131 @@
       },
       "source": "GE-3 \"The Congress of Paris\" (docs/ENDGAME_PLAN.md §2.3–§2.4) — new-action corpus coverage (checklist step 12).",
       "notes": "A sweetener question fails closed exactly like a summons question — answered, nothing paid."
+    },
+    {
+      "id": "crt2-davout-grant-ney-a-rente",
+      "utterance": "Davout, grant Ney a rente",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Ney"
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-17: a reward goes to its OBJECT. Before, the addressee took it (\"Marshal Davout is granted a rente\")."
+    },
+    {
+      "id": "crt2-davout-revoke-neys-rente",
+      "utterance": "Davout, revoke Ney's rente",
+      "world": "1805",
+      "expected": {
+        "action": "revoke_pension",
+        "marshal": "Ney"
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-17: before, Davout's own rente was withdrawn."
+    },
+    {
+      "id": "crt2-davout-endow-ney-with-swabia",
+      "utterance": "Davout, endow Ney with Swabia",
+      "world": "1805",
+      "expected": {
+        "action": "grant_dotation",
+        "marshal": "Ney",
+        "target": "Swabia"
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-17: before, DAVOUT was endowed for 200 gold, irreversibly (no verb takes an estate back)."
+    },
+    {
+      "id": "crt2-ney-take-a-rente-control",
+      "utterance": "Ney, take a rente",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Ney"
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-17 control: an address that names no other marshal is the recipient."
+    },
+    {
+      "id": "crt2-recruit-in-swabbia-keeps-the-ground",
+      "utterance": "recruit infantry in Swabbia",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": "Swabbia",
+        "marshal": null
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29: the typed ground is KEPT so the executor's region matcher reads it (Swabia, refused); before, the clause was dropped and 10,000 men were raised at Paris for 654 gold."
+    },
+    {
+      "id": "crt2-recruit-in-atlantis-keeps-the-ground",
+      "utterance": "recruit infantry in Atlantis",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": "Atlantis",
+        "marshal": null
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29: a place the map does not hold reaches the matcher and is refused free; before, raised at the capital."
+    },
+    {
+      "id": "crt2-recruit-accented-franche-comte",
+      "utterance": "recruit infantry in Franche-Comté",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": "Franche-Comte",
+        "marshal": null
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29: accents never hide a name (the registry key is Franche-Comte); before, the accented spelling matched nothing."
+    },
+    {
+      "id": "crt2-recruit-at-once-is-no-place",
+      "utterance": "recruit infantry at once",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": null
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29 negative guard: a manner is not a place; the bare levy still goes to the capital."
+    },
+    {
+      "id": "crt2-repair-lorrain-keeps-the-object",
+      "utterance": "repair Lorrain",
+      "world": "1805",
+      "expected": {
+        "action": "repair",
+        "target": "Lorrain"
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29: `repair <province>` is the verb's own example form; a typo'd object is kept for the matcher (Lorraine, disclosed); before, 'Specify a region'."
+    },
+    {
+      "id": "crt2-repair-the-damage-is-no-place",
+      "utterance": "repair the damage",
+      "world": "1805",
+      "expected": {
+        "action": "repair",
+        "target": null
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29 negative guard: the thing mended is never read as a province."
+    },
+    {
+      "id": "crt2-build-depot-in-brittanny",
+      "utterance": "build supply depot in Brittanny",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Brittanny"
+      },
+      "source": "CRT-2 \"the name is never replaced\" (Score Mandate Chunk 3, SR-3b, September 26, 2026; COMMAND_ROBUSTNESS_SPEC.md §12.10)",
+      "notes": "CQ-29: before, the typo'd ground was dropped and the build answered 'Specify a region'."
     }
   ]
 }

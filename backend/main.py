@@ -456,6 +456,11 @@ REFUSAL_ARMS_NEVER_DRAIN = True          # FA-N67: a refusal whose client callba
 CANCEL_BUTTON_READS_THE_HARD_STOP = True  # FA-N62: the Orders-tab cancel blocks on the hard stop the typed cancel blocks on
 LOAD_KEEPS_THE_DRAFT_NOTICES = True      # FA-99: /load never drains the draft notices the world swap never renders
 PETITION_RIDES_THE_END_TURN = True       # FA-5: the standing petition rides the end-turn response under its own key
+# The parser refusals that reach the player VERBATIM (WO-1's arm): an
+# enemy addressee (WO-1), and a reward whose object is one of our fallen
+# (CRT-2 / CQ-17, SR-3b) — both carry candidates=[], so without this arm
+# they fall through to the generic Berthier recovery.
+VERBATIM_PARSE_REFUSAL_KINDS = frozenset({"enemy_addressee", "fallen_recipient"})
 DISMISSAL_IS_NOT_A_DEATH = True          # FA-47: a marshal the player DISMISSED is not mourned as destroyed
 THE_FOG_IS_ONE_SENTENCE = True           # LV-13: a wholly fogged enemy phase is ONE sentence naming the courts, not one per court
 
@@ -3681,7 +3686,7 @@ def execute_command(request: CommandRequest):
             # production-dead on the wire (review finding, Aug 21 2026).
             # ════════════════════════════════════════════════════════════
             if (not parsed.get("success")
-                    and parsed.get("kind") == "enemy_addressee"):
+                    and parsed.get("kind") in VERBATIM_PARSE_REFUSAL_KINDS):
                 refusal_message = parsed.get("error") or (
                     "That commander serves the enemy, Sire — he does not "
                     "answer to us.")

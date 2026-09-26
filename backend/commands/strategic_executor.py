@@ -44,6 +44,17 @@ SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
 # False reproduces the reasonless line.
 THE_OBJECTION_NAMES_ITS_CONCERN = True
 
+# CRT-2 (Score Mandate Chunk 3, SR-3b, September 26, 2026): A HOLD THE GAME
+# PLACED IS NO READING. A bare `Ney, hold` holds his own province (Bug #7's
+# default), and FA-54's grounding note then claimed a substitution that never
+# happened — "Ney will hold Rhineland. (Our maps read Rhineland as the
+# province nearest your order, Sire.)" — on every bare hold, measured on the
+# pre-slice tree. A note that fires when no name was typed teaches the player
+# to skip the one that matters (CQ-29's). The note is kept for a hold that
+# NAMED a province (`Soult, hold Mainz` still discloses Maine). False
+# restores the note on the defaulted hold.
+THE_DEFAULT_HOLD_READS_NO_NAME = True
+
 
 def _defiant_verb(action: str) -> str:
     """Slice 17 review round (L2-11): the defiance notice's SECOND clause
@@ -854,9 +865,16 @@ class StrategicExecutor:
                 target_type = "marshal"
 
         # ── HOLD: default target to current location (Bug #7) ─────────
+        # CRT-2: remember that the GAME placed it — no name was read: the
+        # strategic parser's own default, a deictic the executor resolved
+        # above ("here", "our lines" — `is_generic`), or this default.
+        _hold_placed_by_the_game = bool(
+            parsed_command.get("target_placed_by_the_game")
+            or (strategic_type == "HOLD" and is_generic))
         if strategic_type == "HOLD" and (not target or target == "generic"):
             target = marshal.location
             target_type = "region"
+            _hold_placed_by_the_game = True
 
         # ── HOLD: Check if already holding the same location ──────────
         # Block redundant HOLD orders to prevent accidental AP waste
@@ -1749,8 +1767,10 @@ class StrategicExecutor:
             # substituted province contradicting each other in one
             # sentence.
             msg = (f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
-                   + destination_grounding_note(
-                       parsed_command.get("raw_input"), hold_loc))
+                   + ("" if (THE_DEFAULT_HOLD_READS_NO_NAME
+                             and _hold_placed_by_the_game)
+                      else destination_grounding_note(
+                          parsed_command.get("raw_input"), hold_loc)))
         elif strategic_type == "SUPPORT":
             ally_m = world.get_marshal(target)
             loc = ally_m.location if ally_m else "unknown"

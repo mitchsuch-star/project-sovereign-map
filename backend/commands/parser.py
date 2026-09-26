@@ -489,6 +489,107 @@ def normalize_sovereign_address(command_text: str,
     return command_text
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# CRT-2 / CQ-17 (Score Mandate Chunk 3, SR-3b, September 26, 2026) — A REWARD
+# GOES TO ITS OBJECT. The three reward verbs carry their RECIPIENT in the
+# `marshal` slot (the executor's own rule, `CommandExecutor.
+# _MARSHAL_IS_THE_OBJECT`), but both extraction roads bound the ADDRESSEE
+# there — the mock chain takes the FIRST player marshal named, the live model
+# the man addressed. Measured on a fresh 1805 boot: `Davout, grant Ney a
+# rente` answered "Marshal Davout's expectation is already met", `Davout,
+# revoke Ney's rente` answered "Marshal Davout holds no rente", and with a
+# conquered Swabia staged, `Davout, endow Ney with Swabia` ENDOWED DAVOUT for
+# 200 gold and an administrative action — irreversibly, since no verb takes
+# an estate back. The rule, read at the parser's shared fuzzy pass so the
+# mock and the live road agree: an ADDRESSED reward goes to the first of our
+# marshals named AFTER the address; the addressee is decoration (and an
+# address that names nobody of ours is still CX-R1's to refuse free). A
+# fallen man named there is answered as fallen (`fallen_reward_object_
+# refusal`). Flip lever False restores the addressee binding byte-for-byte.
+# ═══════════════════════════════════════════════════════════════════════
+A_REWARD_GOES_TO_ITS_OBJECT = True
+REWARD_VERBS = frozenset({"grant_pension", "revoke_pension", "grant_dotation"})
+
+
+def reward_recipient_from_text(command_text: str, roster,
+                               world=None) -> Optional[str]:
+    """The marshal an ADDRESSED reward names as its object: the first of our
+    marshals named after the address — else None (the caller keeps what the
+    parse bound). `roster` is the player's marshal names; our own fallen are
+    added from `world` so a fallen object is never replaced by the man
+    addressed (the fallen-object refusal then answers for him). The sweep
+    measured the narrower forms — "only when the addressee is ours", "never
+    the addressee himself" — as unobservable on every road, so the rule is
+    this one sentence."""
+    if not A_REWARD_GOES_TO_ITS_OBJECT:
+        return None
+    text = command_text or ""
+    match = ADDRESS_TOKEN_RE.match(text)
+    if not match or not _leading_addressed_token(text):
+        return None
+    names = [str(n) for n in (roster or []) if n]
+    if world is not None:
+        player = getattr(world, "player_nation", None)
+        for name, tomb in (getattr(world, "fallen_marshals", None) or {}).items():
+            if (tomb or {}).get("nation") == player and name not in names:
+                names.append(name)
+    return _earliest_named(text[match.end():].lower(), names)
+
+
+def _earliest_named(text_lower: str, names) -> Optional[str]:
+    """The name among `names` whose earliest mention (by any of its match
+    patterns, whole words, accents folded) comes first in `text_lower`."""
+    from backend.ai.llm_client import fold_accents, name_match_patterns
+    folded = fold_accents(text_lower)
+    best = None
+    for name in names:
+        for pattern in name_match_patterns(name):
+            found = re.search(r"\b" + re.escape(fold_accents(pattern)) + r"\b",
+                              folded)
+            if found and (best is None or found.start() < best[0]):
+                best = (found.start(), name)
+    return best[1] if best else None
+
+
+def fallen_reward_object_refusal(command_text: str, bound: Optional[str],
+                                 roster, world) -> Optional[Dict]:
+    """CRT-2 / CQ-17 rider: the refusal when a REWARD names one of our own
+    FALLEN marshals as its object — the desk's own sentence for the fallen
+    (DESK-15, which keeps FA-47's rule that a dismissed man was never
+    destroyed), never a did-you-mean onto a living marshal and never
+    "Whose household…?". `bound` is the marshal the parse holds after the
+    recipient rule; a living marshal of ours there means the sentence named
+    him, so nothing is refused. None when no fallen man is the object."""
+    if not A_REWARD_GOES_TO_ITS_OBJECT or world is None:
+        return None
+    player = getattr(world, "player_nation", None)
+    tombs = {name: (tomb or {})
+             for name, tomb in (getattr(world, "fallen_marshals", None) or {}).items()
+             if (tomb or {}).get("nation") == player}
+    if not tombs:
+        return None
+    living = set(str(n) for n in (roster or []) if n)
+    if bound and bound in living:
+        return None
+    if bound and bound in tombs:
+        name = bound
+    else:
+        text = command_text or ""
+        match = ADDRESS_TOKEN_RE.match(text)
+        rest = text[match.end():] if match else text
+        name = _earliest_named(rest.lower(), list(tombs))
+    if not name:
+        return None
+    from backend.ai.question_desk import _answer_own_fallen
+    return {
+        "error": _answer_own_fallen(world, name, tombs[name]),
+        "suggestion": None,
+        "kind": "fallen_recipient",
+        "unknown_name": name,
+        "candidates": [],
+    }
+
+
 def _leading_addressed_token(command_text: str) -> Optional[str]:
     """The leading comma-addressed token ("Murat, charge" → "Murat"), or
     None when the command has no address prefix or it is an interjection /
@@ -1156,6 +1257,19 @@ class CommandParser:
             command_text, world, game_state)
         if enemy_refusal is not None:
             return (llm_result, enemy_refusal)
+        # CRT-2 / CQ-17: a reward goes to its OBJECT, on both roads — the
+        # recipient named after the address replaces the addressee the
+        # extraction bound (see `reward_recipient_from_text`).
+        if (A_REWARD_GOES_TO_ITS_OBJECT
+                and llm_result.get("action") in REWARD_VERBS):
+            _recipient = reward_recipient_from_text(
+                command_text, valid_marshals, world)
+            if _recipient:
+                llm_result["marshal"] = _recipient
+            _fallen = fallen_reward_object_refusal(
+                command_text, llm_result.get("marshal"), valid_marshals, world)
+            if _fallen is not None:
+                return (llm_result, _fallen)
         # Marshal Recruitment (Jealousy v3.2): a recruit_marshal "marshal"
         # is a POOL CANDIDATE, not a roster marshal — "recruit marshal
         # Suchet" must not die in the roster validation below. Move the
@@ -2336,6 +2450,9 @@ class CommandParser:
                         result["is_strategic"] = True
                         result["strategic_type"] = strategic["strategic_type"]
                         result["target_snapshot_location"] = strategic.get("target_snapshot_location")
+                        # CRT-2 (SR-3b): a hold the game placed reads no name.
+                        result["target_placed_by_the_game"] = bool(
+                            strategic.get("target_placed_by_the_game"))
                         result["strategic_condition"] = strategic.get("condition")
                         result["attack_on_arrival"] = strategic.get("attack_on_arrival", False)
                         # CR-7-6: the arrival order's OBJECT; CR-7-4: how the

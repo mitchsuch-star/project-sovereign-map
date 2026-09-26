@@ -398,6 +398,10 @@ def detect_strategic_command(
                     "strategic_type": "HOLD",
                     "target": marshal.location,
                     "target_type": "region",
+                    # CRT-2 (SR-3b): the GAME placed this province — no name
+                    # was read, so no reading is disclosed (the executor's
+                    # THE_DEFAULT_HOLD_READS_NO_NAME).
+                    "target_placed_by_the_game": True,
                     "target_snapshot_location": None,
                     "condition": _c,
                     "attack_on_arrival": False,

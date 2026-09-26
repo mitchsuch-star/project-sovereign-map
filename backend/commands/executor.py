@@ -2669,7 +2669,11 @@ class CommandExecutor:
         elif action == "help":
             result = self._meta._execute_help(command, game_state)
         elif action == "recruit":
-            result = self._economy._execute_recruit(command, game_state)
+            # CRT-2 / CQ-29: the typed line rides so a province read by the
+            # region matcher is disclosed (the grant_dotation idiom).
+            result = self._economy._execute_recruit(
+                command, game_state,
+                raw_text=parsed_command.get("raw_input") or "")
         elif action == "purchase_levy":
             result = self._economy._execute_purchase_levy(command, game_state)
         elif action == "recruit_marshal":
@@ -2677,9 +2681,17 @@ class CommandExecutor:
         elif action == "recall_marshal":
             result = self._economy._execute_recall_marshal(command, game_state)
         elif action == "build":
-            result = self._economy._execute_build(command, game_state)
+            # CRT-2 / CQ-29: the typed line rides so a province read by the
+            # region matcher is disclosed (the grant_dotation idiom).
+            result = self._economy._execute_build(
+                command, game_state,
+                raw_text=parsed_command.get("raw_input") or "")
         elif action == "repair":
-            result = self._economy._execute_repair(command, game_state)
+            # CRT-2 / CQ-29: the typed line rides so a province read by the
+            # region matcher is disclosed (the grant_dotation idiom).
+            result = self._economy._execute_repair(
+                command, game_state,
+                raw_text=parsed_command.get("raw_input") or "")
         elif action in ("economy", "treasury", "finances"):
             result = self._economy._execute_economy(command, game_state)
         elif action == "garrison":
