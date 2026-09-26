@@ -499,6 +499,11 @@ class TestSensitivity:
 
     def test_the_vocabulary_lever_is_what_keeps_the_treaty_unsigned(self, shipped, monkeypatch):
         monkeypatch.setattr(CG, "WHAT_THE_SENTENCE_FORBIDS_IS_NEVER_THE_ORDER", False)
+        # SR-2e part (ii): CRT-5's closed answer grammar ALSO refuses `I would
+        # not accept` (`not` is no answer word) — lowered with it to reproduce
+        # the old reading, so this pin still binds CRT-1's vocabulary lever.
+        import backend.commands.dialogue_routing as _DR
+        monkeypatch.setattr(_DR, "AN_ANSWER_IS_READ_CLOSED", False)
         client, world = shipped
         prussian_letter(world)
         post(client, "I would not accept")

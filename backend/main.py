@@ -3157,7 +3157,15 @@ def execute_command(request: CommandRequest):
                 w for w in ("trust", "insist", "compromise")
                 if re.search(rf"(?<![a-z]){w}(?![a-z])", _answer_text)
             ]
-            if len(_spoken) == 1:
+            # SR-2e part (ii) — CRT-5 (S4): the answer word must stand with
+            # plain words only — `trust him tomorrow` and `insist once Mack
+            # moves` carried out an order; now they claim nothing and the
+            # objection block names the words.
+            from backend.commands.dialogue_routing import (
+                objection_answer_is_plain,
+            )
+            if len(_spoken) == 1 and objection_answer_is_plain(
+                    _answer_text, _spoken[0], _player_marshal_names(world)):
                 print(f"[PENDING-QUESTION] Plain-English objection answer "
                       f"'{command_text}' -> {_spoken[0]}")
                 return _respond_to_objection_sync(_spoken[0],
@@ -3584,7 +3592,9 @@ def execute_command(request: CommandRequest):
                 #     route's nation picker OVER the petition, and the next
                 #     plain answer was refused.
                 from backend.commands.dialogue_routing import (
+                    court_mismatch_refusal_for_a_line,
                     court_mismatch_refusal_for_a_petition,
+                    dialogue_line_reprompt,
                     matter_mismatch_refusal,
                     petition_line_reprompt,
                 )
@@ -3603,6 +3613,36 @@ def execute_command(request: CommandRequest):
                     _matter = petition_line_reprompt(
                         world.pending_diplomatic_dialogue, command_text,
                         _player_marshal_names(world), world=world)
+                    # SR-2e part (ii) — CRT-5, for every other family, in the
+                    # petition's own order AFTER the matter guard: the court
+                    # guard; then, for a line that carries one of THIS
+                    # letter's answer words, the matter guard read whole (a
+                    # line aimed at a waiting matter gets its Envoys
+                    # pointer); then the in-place re-prompt — never an order
+                    # read over the letter.
+                    if _matter is None:
+                        _matter = court_mismatch_refusal_for_a_line(
+                            world, world.pending_diplomatic_dialogue,
+                            command_text)
+                    if _matter is None:
+                        from backend.commands.dialogue_routing import (
+                            AN_ANSWER_IS_READ_CLOSED as _CLOSED,
+                            addresses_a_marshal as _addresses,
+                            closed_line_tried_to_answer as _tried,
+                        )
+                        if (_CLOSED and _tried(
+                                world.pending_diplomatic_dialogue, command_text)
+                                and not _addresses(
+                                    command_text.lower(),
+                                    _player_marshal_names(world))):
+                            _matter = matter_mismatch_refusal(
+                                world, world.pending_diplomatic_dialogue,
+                                command_text)
+                    if _matter is None:
+                        _matter = dialogue_line_reprompt(
+                            world.pending_diplomatic_dialogue, command_text,
+                            _player_marshal_names(world), world=world,
+                            world_regions=list(world.regions.keys()))
                 if _matter is not None:
                     print(f"[DIPLOMATIC] Matter-noun refusal: {raw_lower}")
                     _dialogue_took_the_line = True

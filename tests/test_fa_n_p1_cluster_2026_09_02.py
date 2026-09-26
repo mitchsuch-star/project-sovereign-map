@@ -113,12 +113,21 @@ class TestFAN2NegatedAnswers:
         assert match_dialogue_answer(
             PROPOSAL, line, ROSTER, world_regions=[]) == expected
 
-    def test_a_bare_not_is_a_documented_limit_not_a_claim(self):
+    def test_a_bare_not_is_a_documented_limit_not_a_claim(self, monkeypatch):
         """``strip_negated_clauses`` deliberately excludes a bare ``not`` (it
         collides with CR-4's ``not you, Davout`` rewrite), so ``not accept``
-        is NOT caught. Recorded here rather than discovered later: this row's
-        scope is the marker vocabulary PARSE-NEG already ships, and widening
-        it is a PARSE-NEG change."""
+        was NOT caught — a documented limit of this row.
+
+        ⚠ CONSCIOUS PIN FLIP, September 26, 2026 (Score Mandate SR-2e part
+        (ii), CRT-5 "an answer is read closed"): the limit closes WITHOUT
+        widening PARSE-NEG's vocabulary — the closed grammar admits only an
+        answer phrase and a written-out allowlist, and `not` is in neither,
+        so ``not accept`` claims nothing. The lever-down arm is the old
+        limit."""
+        assert match_dialogue_answer(
+            PROPOSAL, "not accept", ROSTER, world_regions=[]) is None
+        import backend.commands.dialogue_routing as _DR
+        monkeypatch.setattr(_DR, "AN_ANSWER_IS_READ_CLOSED", False)
         assert match_dialogue_answer(
             PROPOSAL, "not accept", ROSTER, world_regions=[]) == "accept"
 

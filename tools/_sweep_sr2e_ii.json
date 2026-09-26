@@ -1,0 +1,142 @@
+[
+  {
+    "id": "SR-2e ii/CRT-5 lever down",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "AN_ANSWER_IS_READ_CLOSED = True\n",
+    "new": "AN_ANSWER_IS_READ_CLOSED = False\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the line may say more",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "            return None                           # the line says more\n",
+    "new": "            pass\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly::test_a_deferral_or_a_condition_claims_nothing"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 a negation made of answer words answers",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    if negation_marker_spans(negation_text):\n        return None                               # FA-N2: a negated answer\n",
+    "new": "    pass\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly::test_a_negation_made_of_answer_words_is_no_answer"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 two answers answer",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    if not hits or len({idx for idx, _ in hits}) != 1:\n",
+    "new": "    if not hits:\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly::test_two_answers_claim_nothing"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the inverted modal answers",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "        if token in _CLOSED_MODAL_AUXILIARIES and not consumed[n] and not after_subject:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly::test_the_statement_order_rule_stands_without_the_question_guard"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 another court's slot is never blanked",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    for form in _closed_known_court_forms():\n        if form in keep:\n            continue\n        esc = re.escape(form)\n",
+    "new": "    for form in []:\n        if form in keep:\n            continue\n        esc = re.escape(form)\n",
+    "tests": "tests/test_iq7_review_round.py::TestP45TheCourtGuardNamesTheMatterAndThePlace"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the court label is blanked",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "                   if f and f not in label_forms]\n",
+    "new": "                   if f]\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_a_court_that_is_the_option_is_the_answer"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 another matter's dismissal is a second answer",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "        text = _NEVER_MIND_ANOTHER_MATTER_RE.sub(\" \", text)\n",
+    "new": "        pass\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_another_matter_dismissed_is_no_second_answer"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the instrument nouns are gone",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    \"gold\", \"money\", \"land\", \"territory\", \"matter\", \"question\", \"idea\",\n    \"advice\", \"suggestion\", \"counsel\", \"plan\",\n",
+    "new": "",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 gibberish is told it deferred",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "    return any(t in words for t in _closed_normalised(typed).split())\n",
+    "new": "    return True\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_gibberish_is_not_told_it_deferred"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 objection lever down",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "AN_OBJECTION_ANSWER_IS_READ_CLOSED = True\n",
+    "new": "AN_OBJECTION_ANSWER_IS_READ_CLOSED = False\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheObjectionAnswerIsPlain"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 any word stands beside the objection answer",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "        if token == answer or token in _OBJECTION_ANSWER_FILLER or token in names:\n",
+    "new": "        if True:\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheObjectionAnswerIsPlain"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the button road keeps its open arms",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "                elif (_routing.AN_ANSWER_IS_READ_CLOSED\n                        and not (_routing.A_QUESTION_NEVER_ANSWERS\n",
+    "new": "                elif (False\n                        and not (_routing.A_QUESTION_NEVER_ANSWERS\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestAtTheWire::test_the_button_road_is_read_closed"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the router never re-prompts",
+    "file": "backend/main.py",
+    "old": "                    if _matter is None:\n                        _matter = dialogue_line_reprompt(\n",
+    "new": "                    if False:\n                        _matter = dialogue_line_reprompt(\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestAtTheWire::test_the_line_is_reprompted_in_place"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the router court guard is gone",
+    "file": "backend/main.py",
+    "old": "                    if _matter is None:\n                        _matter = court_mismatch_refusal_for_a_line(\n",
+    "new": "                    if False:\n                        _matter = court_mismatch_refusal_for_a_line(\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheRouterSeam::test_an_answer_shaped_line_to_another_court_meets_the_court_guard"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the whole matter guard is gone",
+    "file": "backend/main.py",
+    "old": "                        if (_CLOSED and _tried(\n",
+    "new": "                        if (False and _tried(\n",
+    "tests": "tests/test_iq7_review_round.py::TestR9TheMatterNounIsAnAddressee"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the objection router takes any line",
+    "file": "backend/main.py",
+    "old": "            if len(_spoken) == 1 and objection_answer_is_plain(\n                    _answer_text, _spoken[0], _player_marshal_names(world)):\n",
+    "new": "            if len(_spoken) == 1:\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheObjectionAtTheWire::test_a_deferred_trust_carries_out_nothing"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 the inverted do answers",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "        if (token == _PLAIN_DO_AUXILIARY and not consumed[n]\n                and not after_subject and (n + 1) not in answered):\n",
+    "new": "        if (False and token == _PLAIN_DO_AUXILIARY and not consumed[n]\n                and not after_subject and (n + 1) not in answered):\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestTheLetterIsAnsweredPlainly::test_the_statement_order_rule_stands_without_the_question_guard"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 a label's court is blanked",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "        if form in keep:\n            continue\n",
+    "new": "",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_a_court_the_label_names_is_part_of_the_answer"
+  },
+  {
+    "id": "SR-2e ii/CRT-5 label-court lever down",
+    "file": "backend/commands/dialogue_routing.py",
+    "old": "A_LABEL_COURT_IS_THE_ANSWER = True\n",
+    "new": "A_LABEL_COURT_IS_THE_ANSWER = False\n",
+    "tests": "tests/test_crt5_an_answer_is_read_closed.py::TestWhatTheFamiliesTaughtIt::test_a_court_the_label_names_is_part_of_the_answer"
+  }
+]

@@ -3963,6 +3963,32 @@ class DiplomaticExecutor:
                         if str(opt.get("action") or "") == choice:
                             selected = opt
                             break
+                elif (_routing.AN_ANSWER_IS_READ_CLOSED
+                        and not (_routing.A_QUESTION_NEVER_ANSWERS
+                                 and _routing.line_asks_a_question(choice, options))):
+                    # SR-2e part (ii) — CRT-5: the button road's free text is
+                    # read by the same closed grammar as the typed road (a
+                    # button sends an id, a digit or an exact label — all
+                    # resolved above or claimed whole here; a label's head
+                    # word is admitted on THIS road only, `honor` / `break`).
+                    # A question keeps its own copy, just below.
+                    _token = _routing.closed_answer(
+                        dialogue, choice.lower(), any_head_word=True)
+                    if not _token:
+                        if _routing.closed_line_tried_to_answer(dialogue, choice):
+                            return _unresolved_choice_failure(
+                                _routing.closed_reprompt_message(dialogue))
+                        from backend.commands.dialogue_routing import (
+                            format_numbered_options,
+                        )
+                        return _unresolved_choice_failure(
+                            "I don't understand that choice, Sire. Options: "
+                            f"{format_numbered_options(dialogue)}")
+                    choice = str(_token)
+                    for opt in options:
+                        if str(opt.get("action") or "") == choice:
+                            selected = opt
+                            break
             # ══════════════════════════════════════════════════════════
             # IQ-7 review pass 3 (R3-9) — A QUESTION IS NEVER AN ANSWER,
             # the third copy. `should i accept?` sent here as free text

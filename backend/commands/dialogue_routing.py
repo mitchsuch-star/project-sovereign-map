@@ -630,6 +630,416 @@ def petition_line_reprompt(dialogue: Optional[dict], typed: str,
     }
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# SR-2e part (ii) — CRT-5 "AN ANSWER IS READ CLOSED" (Score Mandate,
+# September 26, 2026; `COMMAND_ROBUSTNESS_SPEC.md` §12.3 row 5, IQ7-X7).
+#
+# IQ-7's closed grammar was the client petition's alone (by ruling), and every
+# other family kept arms that ask only whether an answer word APPEARS: measured
+# at `POST /command` on the shipped boot with Portugal's letter current,
+# `accept the offer later`, `accept it next turn`, `yes, later`, `if we
+# accept`, `accept the offer, but not now`, `we will accept tomorrow` and
+# `accept once Austria agrees` each SIGNED the treaty; with an ultimatum up,
+# `yield later` ceded the demand; `ratify it later` RATIFIED a settlement
+# (two war pairs to peace); `conquest later` chose a war purpose; `garrison
+# next turn` spent 2 actions on a rebellion. 19 of 20 families claimed 18–19
+# of 19 deferral and condition tails. No arm asked what ELSE the line said.
+#
+# The rule, generalised from `petition_plain_answer`: a typed answer must be
+# the dialogue's own answer phrase — a whole option label (in order, filler
+# allowed in the gaps), a keyword whose action this dialogue offers, or a
+# label's head word — plus words from a written-out allowlist (address,
+# function words, pronouns, the matter's nouns). The dialogue's OWN court and
+# the provinces its matter names are blanked; another court is blanked only in
+# an addressee shape (`Prussia's offer`, `the offer from Prussia`), so the
+# court guard downstream still speaks. Everything else — later, tomorrow, next
+# turn, soon, after/when/once/if/unless/until, but, not, yet, instead, a bare
+# foreign court, a marshal, an order verb — fails CLOSED: the line claims
+# nothing and executes nothing. A question never answers (IQ-7 R3-9, first);
+# a negation of an answer is not one (FA-N2) — only an answer token that IS a
+# negation ("never mind", "Proceed Without Allies") survives. The auxiliaries
+# answer in statement order only (`we shall accept`, never `shall we
+# accept`). Lever False restores the open arms byte for byte.
+# ════════════════════════════════════════════════════════════════════════════
+AN_ANSWER_IS_READ_CLOSED = True
+
+_CLOSED_FUNCTION_WORDS = _PLAIN_FUNCTION_WORDS | frozenset({"with", "would", "could"})
+_CLOSED_PRONOUNS = _PLAIN_PRONOUNS | frozenset({"that", "him", "her", "his"})
+# The nouns that name the matter itself: the letter nouns and each family's
+# own (a petition, a claim, a bargain, an ultimatum and its demands, a
+# settlement, the peace, a counter, an alliance, a mission, the risk).
+_CLOSED_MATTER_NOUNS = frozenset({
+    "offer", "offers", "terms", "proposal", "letter", "treaty", "petition",
+    "petitions", "request", "plea", "claim", "bargain", "ultimatum", "demand",
+    "demands", "settlement", "peace", "counter", "alliance", "mission", "risk",
+    # …and what a counter is made of or a dismissal names (`counter with
+    # gold`, `never mind the money` — pinned positives of UX23-B / FA-N2).
+    "gold", "money", "land", "territory", "matter", "question", "idea",
+    "advice", "suggestion", "counsel", "plan",
+})
+# `never mind the petition, accept Portugal's proposal` (IQ-7 R9's pinned
+# positive): when THIS dialogue offers no dismissal, `never mind <the matter>`
+# dismisses ANOTHER matter and is no second answer.
+_NEVER_MIND_ANOTHER_MATTER_RE = re.compile(
+    r"(?<![a-z'])never\s+mind(?:\s+(?:the|that|this|it|its))?"
+    r"(?:\s+(?:offer|offers|terms|proposal|letter|treaty|petition|petitions|"
+    r"request|plea|claim|bargain|ultimatum|demand|demands|settlement|peace|"
+    r"alliance|mission|money|gold|matter|question))?(?![a-z'])")
+# The nation list (`expand_options` rows) is picked, not answered.
+_CLOSED_PICK_WORDS = frozenset({"choose", "pick", "select", "approach", "try", "go"})
+_CLOSED_MODAL_AUXILIARIES = frozenset({"shall", "will", "would", "could"})
+
+
+def _closed_normalised(text: str) -> str:
+    return _plain_normalised(str(text or "").replace("?", " "))
+
+
+def _closed_blank(text: str, forms) -> str:
+    padded = f" {text} "
+    for form in sorted({f for f in forms if f}, key=len, reverse=True):
+        padded = re.sub(rf"(?<![a-z']){re.escape(form)}(?:'s|s'|')?(?![a-z'])",
+                        " ", padded)
+    return padded
+
+
+def _closed_court_forms(dialogue: Optional[dict]) -> List[str]:
+    court = dialogue_court(dialogue)
+    return [_closed_normalised(f) for f in _addressee_forms(court)] if court else []
+
+
+_KNOWN_COURT_FORMS: Optional[List[str]] = None
+
+
+def _closed_known_court_forms() -> List[str]:
+    """Every court's name forms, longest first (the Europe roster and the
+    legacy fixture's), read once."""
+    global _KNOWN_COURT_FORMS
+    if _KNOWN_COURT_FORMS is None:
+        from backend import nation_config as _nc
+        tags = set(getattr(_nc, "EUROPE_ROSTER", ()) or ())
+        tags |= set(getattr(_nc, "RUNTIME_NATIONS", ()) or ())
+        forms = set()
+        for tag in tags:
+            try:
+                forms |= {_closed_normalised(f) for f in _addressee_forms(tag)}
+            except Exception:
+                continue
+        _KNOWN_COURT_FORMS = sorted((f for f in forms if f), key=len, reverse=True)
+    return _KNOWN_COURT_FORMS
+
+
+_CLOSED_ADDRESSEE_PREP = r"(?:from|with|to|for|of|by|on|the)"
+
+
+def _closed_blank_addressed_courts(padded: str, keep=()) -> str:
+    """Another court's name is a COURT SLOT only in an addressee shape (a
+    possessive, or after from/with/to/for/of/by/on/the) — the court guard
+    downstream then refuses or admits it. A bare foreign name is not blanked:
+    `accept prussia` with Portugal's letter up is no plain answer (it used to
+    sign Portugal's letter). A court an option's own label names (`keep` —
+    the paradox's "Honor alliance with Bavaria", "Side with Austria") is part
+    of the ANSWER, never a slot: blanking it left the label unmatchable."""
+    keep = set(keep or ())
+    for form in _closed_known_court_forms():
+        if form in keep:
+            continue
+        esc = re.escape(form)
+        padded = re.sub(rf"(?<![a-z']){esc}(?:'s|s'|')(?![a-z'])", " ", padded)
+        padded = re.sub(rf"(?<![a-z']){_CLOSED_ADDRESSEE_PREP}\s+{esc}(?![a-z'])",
+                        lambda m: m.group(0).split()[0] + " ", padded)
+    return padded
+
+
+# The census of the recon's 20 families (September 26, 2026) caught the one
+# family whose positives CRT-5's first cut lost: the commitment paradox, whose
+# labels NAME the courts ("Honor alliance with Bavaria" / "Side with Austria").
+# Lever False reproduces the loss.
+A_LABEL_COURT_IS_THE_ANSWER = True
+
+
+def _closed_label_court_forms(options) -> set:
+    """The known court forms an option label names, as whole words."""
+    labels = " ".join(f" {_closed_normalised(str(o.get('label') or ''))} "
+                      for o in options or [])
+    return {form for form in _closed_known_court_forms()
+            if re.search(rf"(?<![a-z']){re.escape(form)}(?![a-z'])", labels)}
+
+
+def _closed_subject_regions(dialogue: Optional[dict], world_regions) -> List[str]:
+    """The provinces the matter itself names (`yield Hanover` to an ultimatum
+    that demands Hanover names the matter, not a march)."""
+    if not world_regions or not isinstance(dialogue, dict):
+        return []
+    blob = []
+    for key in ("message", "prompt", "text", "talleyrand_text", "title"):
+        value = dialogue.get(key)
+        if isinstance(value, str):
+            blob.append(value)
+    if isinstance(dialogue.get("context"), dict):
+        blob.append(repr(dialogue["context"]))
+    for option in dialogue_options(dialogue):
+        blob.append(repr(option))
+    low = " ".join(blob).lower()
+    return [_closed_normalised(r) for r in world_regions
+            if re.search(rf"(?<![a-z]){re.escape(str(r).lower())}(?![a-z])", low)]
+
+
+def _closed_phrases(dialogue: Optional[dict], blank_forms,
+                    any_head_word: bool = False):
+    """(tokens, option_index, token_to_return) per answer phrase, longest
+    first: every whole label; a label's head word when exactly one option's
+    label leads with it (a keyword on the typed road, any word on the
+    button road); every keyword whose action this dialogue offers."""
+    options = dialogue_options(dialogue)
+    filler = _CLOSED_FUNCTION_WORDS | _PLAIN_ADDRESS_WORDS | _CLOSED_PRONOUNS
+    out = []
+    heads: Dict[str, List[int]] = {}
+    for idx, option in enumerate(options):
+        label = str(option.get("label") or "")
+        if not label:
+            continue
+        toks = _closed_blank(_closed_normalised(label), blank_forms).split()
+        if toks:
+            out.append((toks, idx, label.lower().strip()))
+            heads.setdefault(toks[0], []).append(idx)
+    for head, idxs in heads.items():
+        if (len(idxs) == 1 and head not in filler
+                and (any_head_word or head in DIALOGUE_ACTION_KEYWORDS)):
+            out.append(([head], idxs[0], head))
+    offered = [str(o.get("action") or "") for o in options]
+    for keyword, actions in DIALOGUE_ACTION_KEYWORDS.items():
+        hit = next((a for a in actions if a in offered), None)
+        if hit is None:
+            continue
+        toks = _closed_normalised(keyword).split()
+        content = [t for t in toks if t not in filler] or toks
+        out.append((content, offered.index(hit), keyword))
+    out.sort(key=lambda phrase: -len(phrase[0]))
+    return out
+
+
+def closed_answer(dialogue: Optional[dict], raw_lower: str,
+                  marshal_names: Optional[List[str]] = None,
+                  world_regions=None, *, any_head_word: bool = False
+                  ) -> Optional[str]:
+    """CRT-5: the token to hand the response handler when the WHOLE typed line
+    is a plain answer to this dialogue, else None (fails closed). A client
+    petition keeps `petition_plain_answer` (its own closed grammar)."""
+    options = dialogue_options(dialogue)
+    if not options:
+        return None
+    text = str(raw_lower or "").lower().replace("’", "'")
+    if not text.strip():
+        return None
+    for option in options:                      # an action id, spelled out
+        action = str(option.get("action") or "").lower()
+        if action and text.strip() == action:
+            return action
+    if A_QUESTION_NEVER_ANSWERS and line_asks_a_question(text, options):
+        return None
+    # FA-N2: a negated answer is not one. Most negations fail closed through
+    # the allowlist anyway (`not`, `never`, `no` are no answer words), but a
+    # marker can be built from ANSWER words: `decline to reject it` is two
+    # reject-words and means accept. The allowlist cannot see that, so the
+    # marker check stays — pinned by that line, after a sweep measured it
+    # INERT against the one-word pins and the removal was caught by reading.
+    negation_text = text
+    for token in _self_negating_answer_tokens(options):
+        negation_text = negation_text.replace(token, " " * len(token))
+    if negation_marker_spans(negation_text):
+        return None                               # FA-N2: a negated answer
+    # A court name that IS an option's whole label is an ANSWER (the nation
+    # picker's rows are court names) and is never blanked.
+    label_forms = {_closed_normalised(str(o.get("label") or "")) for o in options}
+    blank_forms = [f for f in (_closed_court_forms(dialogue)
+                               + _closed_subject_regions(dialogue, world_regions))
+                   if f and f not in label_forms]
+    if not any(a in offered_actions(options)
+               for a in DIALOGUE_ACTION_KEYWORDS.get("never mind", [])):
+        text = _NEVER_MIND_ANOTHER_MATTER_RE.sub(" ", text)
+    norm = _closed_blank(_closed_normalised(text), blank_forms)
+    norm = _closed_blank_addressed_courts(
+        norm, keep=_closed_label_court_forms(options) if A_LABEL_COURT_IS_THE_ANSWER else ())
+    for phrase in _PLAIN_EMPHASIS_PHRASES:
+        norm = re.sub(rf"(?<![a-z']){re.escape(phrase)}(?![a-z'])", " ", norm)
+    tokens = norm.split()
+    if not tokens:
+        return None
+    consumed = [False] * len(tokens)
+    hits = []
+    skippable = _CLOSED_FUNCTION_WORDS | _PLAIN_ADDRESS_WORDS | _CLOSED_PRONOUNS
+    for content, idx, ret in _closed_phrases(dialogue, blank_forms, any_head_word):
+        i = 0
+        while i < len(tokens):
+            if consumed[i] or tokens[i] != content[0]:
+                i += 1
+                continue
+            positions, j, k = [i], i + 1, 1
+            while k < len(content) and j < len(tokens):
+                if consumed[j]:
+                    break
+                if tokens[j] == content[k]:
+                    positions.append(j)
+                    k += 1
+                    j += 1
+                elif tokens[j] in skippable:
+                    j += 1
+                else:
+                    break
+            if k == len(content):
+                for position in positions:
+                    consumed[position] = True
+                hits.append((idx, ret))
+                i = positions[-1] + 1
+            else:
+                i += 1
+    if not hits or len({idx for idx, _ in hits}) != 1:
+        return None                               # nothing, or two answers
+    allowed = skippable | _CLOSED_MATTER_NOUNS
+    if "expand_options" in offered_actions(options):
+        allowed = allowed | _CLOSED_PICK_WORDS
+    for n, token in enumerate(tokens):
+        if not consumed[n] and token not in allowed:
+            return None                           # the line says more
+    answered = {n for n, used in enumerate(consumed) if used}
+    for n, token in enumerate(tokens):
+        after_subject = n > 0 and tokens[n - 1] in _PLAIN_SUBJECTS
+        if token in _CLOSED_MODAL_AUXILIARIES and not consumed[n] and not after_subject:
+            return None                           # `shall we accept`
+        if (token == _PLAIN_DO_AUXILIARY and not consumed[n]
+                and not after_subject and (n + 1) not in answered):
+            return None
+    idx = hits[0][0]
+    label = str(options[idx].get("label") or "").lower().strip()
+    for hit_idx, ret in hits:
+        if hit_idx == idx and ret == label:
+            return ret                            # the LABEL, when it was said
+    return hits[0][1]
+
+
+def closed_line_tried_to_answer(dialogue: Optional[dict], typed: str) -> bool:
+    """CRT-5: did the line carry one of THIS dialogue's answer words? Only
+    such a line earns the "not an answer" re-prompt; any other keeps the
+    honest "I don't understand that choice"."""
+    words = _closed_answer_words(dialogue)
+    return any(t in words for t in _closed_normalised(typed).split())
+
+
+def closed_reprompt_message(dialogue: Optional[dict]) -> str:
+    """The re-prompt a line that tried to answer — and said more — earns."""
+    return ("A deferral, a condition or a second matter is not an answer, "
+            "Sire — nothing was relayed. Answer with one of: "
+            f"{format_numbered_options(dialogue)}.")
+
+
+def _closed_answer_words(dialogue: Optional[dict]) -> set:
+    """The single words that answer THIS dialogue: every keyword whose action
+    it offers and every label's head word."""
+    options = dialogue_options(dialogue)
+    offered = offered_actions(options)
+    words = {k for k, actions in DIALOGUE_ACTION_KEYWORDS.items()
+             if " " not in k and any(a in offered for a in actions)}
+    for option in options:
+        toks = _closed_normalised(str(option.get("label") or "")).split()
+        if toks:
+            words.add(toks[0])
+    return words
+
+
+def dialogue_line_reprompt(dialogue: Optional[dict], typed: str,
+                           marshal_names: Optional[List[str]] = None,
+                           world=None, world_regions=None) -> Optional[dict]:
+    """CRT-5: the in-place re-prompt for a line that was TRYING to answer the
+    letter on the desk and said more — `accept the offer later`, `yes, later`,
+    `accept, prussia`, `accept, they have earned it` — so nothing is mounted
+    over the letter (the ordinary road read the comma's answer word as a
+    marshal and asked "Whom did you intend?", or gave CRT-1's reason copy).
+    Never for a question (the desk answers it), a line naming a marshal of
+    ours, a line with military content (an ORDER — `cancel the march`), or
+    the player's own order about ANOTHER court. A client petition keeps
+    `petition_line_reprompt`."""
+    if not AN_ANSWER_IS_READ_CLOSED or _is_client_petition_dialogue(dialogue):
+        return None
+    from backend.ai.clause_guards import is_question
+    text = str(typed or "").lower().replace("’", "'").strip()
+    if not text or "?" in text or is_question(text):
+        return None
+    if closed_answer(dialogue, text, marshal_names, world_regions) is not None:
+        return None
+    if addresses_a_marshal(text, marshal_names):
+        return None
+    words = _closed_answer_words(dialogue)
+    spoken = [t for t in _closed_normalised(text).split() if t in words]
+    if not spoken:
+        return None
+    if any(_carries_military_content(text, w, world_regions, dialogue)
+           for w in spoken):
+        return None
+    other_courts = [c for c in courts_addressed_in(text, world)
+                    if c != dialogue_court(dialogue)]
+    if other_courts and not _line_is_answer_shaped(text, world):
+        return None
+    return {
+        "success": False,
+        "dialogue_reprompt": True,
+        "message": closed_reprompt_message(dialogue),
+        "diplomatic_dialogue": dialogue,
+        "awaiting_diplomatic_response": True,
+    }
+
+
+def court_mismatch_refusal_for_a_line(world, dialogue: Optional[dict],
+                                      raw_text: str) -> Optional[dict]:
+    """CRT-5: the court guard at the `/command` router seam for EVERY family
+    (the petition's R3-3 arm, generalised): the closed grammar blanks only
+    the letter's OWN court, so `accept prussia's offer` with Portugal's
+    letter up is claimed and the guard refuses it at the handler — but a line
+    the grammar returns None for (`decline the Portuguese offer, prussia`)
+    still meets the guard here when it is ANSWER-SHAPED."""
+    if not AN_ANSWER_IS_READ_CLOSED or _is_client_petition_dialogue(dialogue):
+        return None
+    if not _line_is_answer_shaped(str(raw_text or ""), world):
+        return None
+    return court_mismatch_refusal(world, dialogue, raw_text)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CRT-5, the objection seam (the recon's side finding S4): the plain-English
+# objection router took ANY line with exactly one answer word — measured,
+# `trust him tomorrow` carried out Ney's alternative and fought a battle;
+# `insist once Mack moves` carried out the original order for 2 actions. The
+# answer word must stand with plain words only; anything else claims nothing
+# and the objection block names the words.
+# ════════════════════════════════════════════════════════════════════════════
+AN_OBJECTION_ANSWER_IS_READ_CLOSED = True
+
+_OBJECTION_ANSWER_FILLER = frozenset({
+    "i", "we", "you", "he", "him", "his", "her", "it", "them", "their",
+    "the", "a", "an", "my", "your", "our", "on", "in", "with", "to", "as",
+    "sire", "please", "then", "so", "very", "well", "ok", "okay", "yes",
+    "do", "will", "shall", "be", "judgment", "judgement", "order", "orders",
+    "ordered", "given", "plan", "alternative", "instinct", "advice",
+    "counsel", "word", "marshal", "middle", "ground", "way",
+})
+
+
+def objection_answer_is_plain(text: str, answer: str,
+                              marshal_names: Optional[List[str]] = None) -> bool:
+    """CRT-5 (S4): True when the typed objection answer is the one answer
+    word and plain words — the objecting marshal's name (or any of ours)
+    allowed, a deferral or a condition not."""
+    if not AN_OBJECTION_ANSWER_IS_READ_CLOSED:
+        return True
+    names = set()
+    for name in (marshal_names or []):
+        names |= set(_closed_normalised(name).split())
+    for token in _closed_normalised(text).replace("'s", " ").split():
+        if token == answer or token in _OBJECTION_ANSWER_FILLER or token in names:
+            continue
+        return False
+    return True
+
+
 def _dialogue_is_petition_family(dialogue: Optional[dict]) -> bool:
     if not isinstance(dialogue, dict):
         return False
@@ -1181,6 +1591,10 @@ def match_dialogue_answer(dialogue: Optional[dict],
     if (A_PETITION_IS_ANSWERED_PLAINLY
             and _is_client_petition_dialogue(dialogue)):
         return petition_plain_answer(dialogue, typed)
+    # SR-2e part (ii) — CRT-5: every other family is read closed too. The
+    # open arms below are the lever-down road.
+    if AN_ANSWER_IS_READ_CLOSED:
+        return closed_answer(dialogue, typed, marshal_names, world_regions)
     raw_lower = text_the_player_still_means(raw_lower, options)
     raw_words = set(re.findall(r"[a-z]+", raw_lower))
     addressed = addresses_a_marshal(typed, marshal_names)

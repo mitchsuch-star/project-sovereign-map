@@ -4,6 +4,14 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ SR-2e PART (ii) — CRT-5 "AN ANSWER IS READ CLOSED" — LANDED September 26, 2026 — SR-2e IS COMPLETE** (`SCORE_MANDATE_PLAN.md` §2 Chunk 2 SR-2e part (ii); record `COMMAND_ROBUSTNESS_SPEC.md` §12.13; rules `SYSTEMS_REFERENCE.md` §71.7; pins `tests/test_crt5_an_answer_is_read_closed.py` 89; sweep `tools/_sweep_sr2e_ii.json` 20/20 killed, 0 INERT):
+> - **Every dialogue family is read by ONE closed grammar** (`dialogue_routing.closed_answer`: the dialogue's own answer phrase plus a written-out allowlist, failing closed) at the `/command` router and the button road; a refused line is re-prompted in place. The recon's census, 20 families × 19 deferral and condition tails: **349 → 0 of 380 claimed; plain answers 121 → 127 of 140** (none lost; the break-treaty confirm answers `proceed` for the first time).
+> - **S1–S4 fixed:** `accept prussia` no longer signs Portugal's letter; `accept` answers the counter-offer reply; the break-treaty confirm answers its own verb and not its deferral; `trust him tomorrow` no longer answers an objection (`objection_answer_is_plain`).
+> - **The families corrected the build twice before landing:** the first cut lost the commitment paradox's label answers (its labels name the courts — `A_LABEL_COURT_IS_THE_ANSWER`), and FA-N2's marker check, measured INERT and nearly deleted as redundant, is load-bearing for `decline to reject it` (a negation built of answer words).
+> - Pins flipped consciously: IQ7-X7's pinned-as-current class, FA-N2's bare-`not` limit, P21's Slice-H deferral; eleven lever-down sensitivity pins also lower CRT-5. Player-only; `BASELINE_SERIES` + M1–M7 byte-identical; the 278-file dialogue family green (11,469 passed); zero `.gd`.
+>
+> **▶ NEXT = L-D "the boolean road" (approved) → onward into Chunk 4 → ONE session exit → ONE residue slice.**
+>
 > **▶ ▶ ▶ SR-2e "STANDING ORDERS RELIABLE" PART (i) — LANDED September 26, 2026** (the user's ruling of SR-D3 as (c) first; `SCORE_MANDATE_PLAN.md` §2 Chunk 2 SR-2e landing record; rules `SYSTEMS_REFERENCE.md` §71.6; pins `tests/test_sr2e_standing_orders_reliable.py` 72; sweep `tools/_sweep_sr2e.json` 36/36 killed, 0 INERT). Every row reproduced at `POST /command` first by a six-agent read-only recon:
 > - **SUPPORT costs one action** for every marshal (`Marshal.strategic_order_ap(order_type=…)` — every pricing site and button names the order; the compromise is priced as the order it softens).
 > - **AAR-10 a march keeps its tail through a reinforcement** (the order stands, the reply says what resumes, the pass skips a man who answered the guns this turn, the AI's road home takes the same skip).
@@ -14,7 +22,7 @@
 > - **Q0 re-measured** (`docs/audits/playtest_digests/sr2e-q0-*`): the AAR road 37 and opening A 31 unchanged; opening B's tail HOLDS — 31 titled on 23 provinces at turn 41 (SR-1e: 16 on 8), because Massena's march survived a reinforcement; the best point on any road is still **39 of 45; 45 not moved**.
 > - `BASELINE_SERIES` + M1–M7 + AI-V assurance byte-identical (81 passed). Pins re-seated consciously: the CR-2 clarification price pin, FA slice 14's SUPPORT price, the r1 pipeline's legacy vindication plant, FA-26's `resolve_battle` stub, three cannon-fire pins (invented participants; two `reinforced_this_turn` hacks → a class-level stub). Zero `.gd`.
 >
-> **▶ NEXT = SR-2e part (ii) — CRT-5 "an answer is read closed"** (the recon's census: a deferral signs a letter, cedes an ultimatum, ratifies a settlement or garrisons a vassal on 19 of 20 families; its prototype closed grammar is in the session scratchpad, measured at ~32 pin flips; side findings S1 `accept prussia` signs Portugal's letter, S2/S3 two families that cannot be answered by their own verbs, S4 the objection answers) **→ L-D → onward into Chunk 4 → ONE session exit → ONE residue slice.**
+> ~~▶ NEXT = SR-2e part (ii) — CRT-5~~ ✅ landed the same day (the block above).
 >
 
 > **▶ ▶ ▶ THE SCORE MANDATE RE-RULED — September 26, 2026 (evening), docs only** (the user's rulings; recorded in `SCORE_MANDATE_PLAN.md` header + §0 + §2 + §4 + §5 and `DESIGN_REFINEMENT.md` §Score Mandate rulings; nothing built):
