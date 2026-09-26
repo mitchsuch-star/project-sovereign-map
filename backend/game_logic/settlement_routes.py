@@ -379,7 +379,9 @@ def evaluate_request_terms_affordance(world: Any, war_id: str) -> Dict[str, Any]
         world, war, player=player, current_turn=current_turn,
     )
     if structural == "war_too_young":
-        created_turn = int(war.get("created_turn") or current_turn)
+        from backend.game_logic.ai_diplomacy import settlement_war_age_start
+        created_turn = max(int(war.get("created_turn") or current_turn),
+                           settlement_war_age_start(war, player=player))
         ready_turn = created_turn + SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS
         remaining = max(1, ready_turn - current_turn)
         return {
@@ -409,7 +411,7 @@ def evaluate_request_terms_affordance(world: Any, war_id: str) -> Dict[str, Any]
     if gate is not None:
         return {
             "state": "disabled",
-            "reason": "league_not_spent",
+            "reason": str(gate.get("reason") or "league_not_spent"),
             "reason_display": league_offer_gate_display(world, gate),
         }
     return {"state": "available", "reason": ""}

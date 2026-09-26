@@ -39,7 +39,18 @@
 > re-seated (the phase-4 0-DP pin to a court at PEACE; IQ-6 T2's all-orders-succeed
 > assertion scoped to the courier's turn — the three re-issues typed after the
 > volte-face alliance ratified are the honest "reassured, not courted" refusal).
-> **NEXT = SR-2c** (WO-32 + PR-D1c/D1d), the reserve, the exit re-score.
+> ~~**SR-2c**~~ ✅ LANDED — **WO-32 (P1)** the rebellion modal's decision survives a refused arm
+> (PT-A1's rule ported: the arm runs first, success retires, a refusal re-seats the
+> modal with the refusal on it; the rail row names its vassal); **PR-D1c** the spend
+> is the war's own (the declaration stamped on its pair inside the serialized war
+> instance; the league's peace keeps whole the alarm of the wars it does not end —
+> 70 → 100 → 90, not ~48); **PR-D1d** three levers measured on the re-declaration arm
+> (historical 15 → 22, austerlitz 16 → 25, marengo 13 → 20 and the revolving door closed) — **lever (c) chosen**: a war France declared is gated on its
+> leader's break-ranks clause like the league's, `war_not_spent` named on every
+> surface. Rules §71.3; pins 7 + 7 + 24; sweep 18/18 killed, 0 INERT.
+> **NEXT = the Chunk 2 reserve** (≈0.75 from the §3 bank), then the exit re-score on a
+> played arm (the settlement table as victor and as loser, a mediation answered, a
+> court courted to a treaty).
 >
 > **▶ ▶ ▶ ROW SR CHUNK 1 "PARIS MUST BE REACHABLE" — CLOSED September 26, 2026
 > (commits `759414f9` + `f023d0b3`, pushed).**

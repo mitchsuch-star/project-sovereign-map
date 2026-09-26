@@ -14,7 +14,7 @@ Single source of truth for vassal mechanics:
 """
 
 import random
-from typing import List, Optional
+from typing import Dict, List, Optional
 from backend.display_names import display_nation, with_definite_article
 from backend.models.trust import Trust
 # VS-R (docs/VASSAL_DEEPENING_SPEC.md §2): imperial-grip -> vassal-loyalty
@@ -1098,6 +1098,9 @@ def process_vassal_loyalty(world) -> List[dict]:
                 f"{display_nation(vassal_name)} loyalty critical "
                 f"({int(new_loyalty)}) — rebellion imminent.",
                 int(world.current_turn),
+                # WO-32 (SR-2c): the row names its vassal, so a decision
+                # about ONE satellite dismisses ONE row.
+                details={"vassal": vassal_name},
             ))
             # V2-90: Append to popup list instead of overwriting (multiple vassals)
             #
@@ -1128,16 +1131,11 @@ def process_vassal_loyalty(world) -> List[dict]:
             # handler's result and its refusal read the same voice
             # (`garrison_result_line` / `garrison_refusal_line`).
             _garrison_copy = garrison_option_copy(world, vassal_name, lord)
-            rebellion_popup = {
-                "nation": vassal_name,
-                "loyalty": int(new_loyalty),
-                "loyalty_max": int(100),
-                "invest_cost_dp": int(1),
-                "garrison_ap_cost": int(2),
-                "invest_effect": "Loyalty +10",
-                "garrison_effect": _garrison_copy,
-                "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
-            }
+            # WO-32 (SR-2c): ONE builder — the handler re-seats the same
+            # modal, rebuilt from the dialogue, when an arm is refused.
+            rebellion_popup = build_rebellion_popup(
+                world, vassal_name, int(new_loyalty), lord=lord,
+                garrison_copy=_garrison_copy)
             # V2-89 → R12C: push() auto-queues if another dialogue is active
             rebellion_dialogue = {
                 "type": "vassal_rebellion_imminent",
@@ -4012,6 +4010,73 @@ def present_pending_asks(world, lord: str) -> List[str]:
 
 _GARRISON_AP_COST = 2
 _GARRISON_LOYALTY = 10
+
+
+# WO-32 (SR-2c, Score Mandate Chunk 2, September 26, 2026). Measured on the
+# filed row: the rebellion modal's handlers popped the dialogue
+# UNCONDITIONALLY and dismissed EVERY rebellion row, then ran an arm with
+# reachable refusals (Invest: a 3-turn cooldown, gold, DP; Garrison: 2 AP) —
+# so on a refused turn the player was told "no", charged nothing, and lost
+# Garrison and Accept Risk too, on a vassal one tick from rebellion. PT-A1's
+# rule, ported from the marshal-petition channel: the arm runs FIRST; the
+# decision is retired by SUCCESS; a refusal re-seats the modal. False
+# restores the pop-first handlers.
+A_REFUSED_ARM_KEEPS_THE_DECISION = True
+
+
+def build_rebellion_popup(world, vassal_name: str, loyalty: int, *,
+                          lord: Optional[str] = None,
+                          garrison_copy: Optional[str] = None,
+                          dialogue_id=None,
+                          refusal: str = "") -> Dict:
+    """The rebellion-imminent modal's payload — ONE builder for the producer
+    (`process_vassal_loyalty`) and the handler's re-seat after a refused arm.
+    `refusal` rides the re-seated modal so the client can print why the arm
+    did nothing (the terminal prints it from `message` regardless)."""
+    lord = lord or getattr(world, "player_nation", "France")
+    copy_line = (garrison_copy if garrison_copy is not None
+                 else garrison_option_copy(world, vassal_name, lord))
+    popup = {
+        "nation": vassal_name,
+        "loyalty": int(loyalty),
+        "loyalty_max": int(100),
+        "invest_cost_dp": int(1),
+        "garrison_ap_cost": int(2),
+        "invest_effect": "Loyalty +10",
+        "garrison_effect": copy_line,
+        "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
+    }
+    if dialogue_id is not None:
+        popup["dialogue_id"] = dialogue_id
+    if refusal:
+        popup["refusal"] = str(refusal)
+    return popup
+
+
+def rebellion_popup_for_dialogue(world, dialogue, *, refusal: str = "") -> Dict:
+    """Rebuild the modal for a `vassal_rebellion_imminent` dialogue the
+    manager still holds (WO-32's re-seat)."""
+    context = (dialogue or {}).get("context") or {}
+    vassal_name = str(context.get("vassal_name") or dialogue.get("target_nation") or "")
+    state = (getattr(world, "vassals", {}) or {}).get(vassal_name) or {}
+    loyalty = int(state.get("loyalty", context.get("loyalty", 0)) or 0)
+    return build_rebellion_popup(
+        world, vassal_name, loyalty, lord=state.get("lord"),
+        dialogue_id=dialogue.get("dialogue_id"), refusal=refusal)
+
+
+def dismiss_rebellion_row(world, vassal_name: str) -> int:
+    """Dismiss THIS vassal's rebellion-imminent rail row (rows without a
+    `details.vassal` — pre-WO-32 saves — are dismissed as before)."""
+    from backend.notifications import VASSAL_REBELLION_IMMINENT
+    notifications = getattr(world, "notifications", None)
+    if notifications is None or not hasattr(notifications, "dismiss_by_type"):
+        return 0
+    return int(notifications.dismiss_by_type(
+        VASSAL_REBELLION_IMMINENT,
+        lambda n: str(((n.get("details") or {}).get("vassal")) or vassal_name)
+        == str(vassal_name),
+    ) or 0)
 
 
 def garrison_option_copy(world, vassal_name: str, lord: Optional[str] = None) -> str:

@@ -2042,15 +2042,61 @@ def courts_in_flight(world) -> set:
     return set(getattr(world, "_treaty_courts_in_flight", None) or ())
 
 
-def league_spent_alarm(world, target: str) -> Dict[str, int]:
+# PR-D1c (SR-2c, September 26, 2026): "The spend is the war's own." The
+# league's peace halved EVERY non-treaty increment in the target's slot,
+# whatever war had earned it — so declarations stacked on courts OUTSIDE the
+# league before signing were halved with it (measured: 70 → 100 declaring on
+# Prussia and Denmark → peace → ~48, and those wars brought on no coalition;
+# the same acts after the peace reached 75 and a 14-court league). The alarm
+# of every LIVE war the target DECLARED on a court outside the dissolving
+# league — the declaration's own stamp on its pair — is kept whole, capped
+# by the slot as it stood. Derived from the war store; no new field.
+THE_SPEND_IS_THE_WARS_OWN = True
+
+
+def declared_alarm_outside_the_league(world, target: str,
+                                      league_members=None) -> int:
+    """The standing declaration alarm of the target's live wars against
+    courts NOT in the league — the wars the treaty does not end."""
+    if not THE_SPEND_IS_THE_WARS_OWN:
+        return 0
+    if league_members is None:
+        coalition = getattr(world, "active_coalition", None) or {}
+        league_members = list(coalition.get("members") or []) if (
+            coalition.get("target_nation") == target) else []
+    members = {str(n) for n in (league_members or [])}
+    total = 0
+    for instance in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(instance, dict) or instance.get("ended_turn") is not None:
+            continue
+        for pair, meta in (instance.get("diplo_key_meta") or {}).items():
+            if not isinstance(meta, dict):
+                continue
+            if str(meta.get("declared_by") or "") != str(target):
+                continue
+            if str(meta.get("pair_status") or "") != "war":
+                continue
+            other = [n for n in str(pair).split("|") if n != target]
+            if not other or other[0] in members:
+                continue
+            total += int(meta.get("declaration_alarm", 0) or 0)
+    return int(total)
+
+
+def league_spent_alarm(world, target: str, *,
+                       league_members=None) -> Dict[str, int]:
     """IQ-3: the alarm a treaty-dissolved league leaves behind its target.
 
     Returns ``{"from": before, "to": after}``. The treaty's own alarm this
     turn (``LEAGUE_SPEND_EXEMPT_SOURCES`` rows on `add_threat`'s mechanical
     record, cleared per turn) is kept whole; the rest is divided by
-    ``LEAGUE_SPENT_DIVISOR``. Pure — the caller applies the difference.
+    ``LEAGUE_SPENT_DIVISOR``. PR-D1c: the standing alarm of the target's
+    live wars against courts OUTSIDE the league (`league_members`, read
+    from the dissolving league by the caller) is kept whole too, capped by
+    the slot as it stood. Pure — the caller applies the difference.
     """
     before = int(world.threat_by_target.get(target, 0) or 0)
+    outside = declared_alarm_outside_the_league(world, target, league_members)
     requested = 0
     applied = 0
     for row in getattr(world, "threat_sources_this_turn", None) or []:
@@ -2069,7 +2115,7 @@ def league_spent_alarm(world, target: str) -> Dict[str, int]:
     # no longer makes the result depend on which pair the plan resolved
     # first. Never raises the slot.
     pre_treaty = max(0, before - applied)
-    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested)
+    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested + outside)
     return {"from": int(before), "to": int(after)}
 
 
@@ -2159,6 +2205,10 @@ def dissolve_coalition(world, reason: str,
     # §4.4b: dissolution copy names a NON-player target (legacy records
     # default to the player, byte-identical copy).
     _dissolve_target = coalition.get("target_nation") or world.player_nation
+    # PR-D1c: the league's members, read BEFORE the league is cleared — the
+    # spend keeps whole the alarm of the target's wars against courts
+    # outside them.
+    _dissolve_members = list(coalition.get("members") or [])
 
     # Clear coalition state
     world.active_coalition = None
@@ -2176,7 +2226,8 @@ def dissolve_coalition(world, reason: str,
     # list and Talleyrand's "what stirred Europe" name it.
     alarm_spent: Optional[Dict[str, int]] = None
     if THE_LEAGUE_SPENDS_ITS_ALARM and spent_by_treaty:
-        alarm_spent = league_spent_alarm(world, _dissolve_target)
+        alarm_spent = league_spent_alarm(
+            world, _dissolve_target, league_members=_dissolve_members)
         if alarm_spent["from"] > alarm_spent["to"]:
             reduce_threat(world, alarm_spent["from"] - alarm_spent["to"],
                           "league_spent", target=_dissolve_target)

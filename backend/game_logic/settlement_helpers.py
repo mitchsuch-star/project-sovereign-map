@@ -889,6 +889,13 @@ def attach_pair_to_war_instance(
     # Restamp pair meta — handles ARMISTICE -> WAR resumption and ensures
     # joined_turn / pair_status reflect the live transition.
     existing_meta = meta.get(pair, {})
+    # PR-D1d (SR-2c, September 26, 2026): a pair re-attached after a PEACE
+    # (prior status `resolved`) is a NEW war on an old instance — it keeps
+    # `joined_turn` (the pair's first entry) and records its reopening, the
+    # date the producer's war-age floor reads. The PR-D1c declaration stamp
+    # is carried across the restamp (declare_war re-stamps it right after).
+    _reopened = (int(turn) if str(existing_meta.get("pair_status") or "") == "resolved"
+                 else existing_meta.get("reopened_turn"))
     meta[pair] = {
         "attacker": attacker,
         "defender": defender,
@@ -897,6 +904,11 @@ def attach_pair_to_war_instance(
         "resolved_turn": None,
         "entry_path": existing_meta.get("entry_path", entry_path),
     }
+    if _reopened is not None:
+        meta[pair]["reopened_turn"] = int(_reopened)
+    for _carried in ("declaration_alarm", "declared_by"):
+        if _carried in existing_meta:
+            meta[pair][_carried] = existing_meta[_carried]
 
     if hasattr(world, "invalidate_war_instance_indexes"):
         world.invalidate_war_instance_indexes()

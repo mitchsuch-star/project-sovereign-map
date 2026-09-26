@@ -8731,6 +8731,20 @@ def declare_war(
         from backend.game_logic.coalition import add_threat
         threat = declaration_alarm(casus_belli)
         add_threat(world, threat, "war_declaration", target=aggressor)
+        # PR-D1c (SR-2c, September 26, 2026): the alarm a declaration adds is
+        # STAMPED on the pair it opened, inside the war instance the pair
+        # lives in — the durable, victim-keyed record `league_spent_alarm`
+        # reads so the league's peace spends only the alarm of the war it
+        # ends. (`threat_sources_this_turn` is actor-keyed and cleared every
+        # turn; the campaign log is capped.)
+        _stamp_instance = (war_instance_result.get("instance")
+                           if isinstance(war_instance_result, dict) else None)
+        if isinstance(_stamp_instance, dict):
+            _stamp_meta = _stamp_instance.setdefault("diplo_key_meta", {})
+            _stamp_pair = _stamp_meta.setdefault(
+                world._make_diplo_key(aggressor, target), {})
+            _stamp_pair["declaration_alarm"] = int(threat)
+            _stamp_pair["declared_by"] = str(aggressor)
 
     # Authority changes for AI nations
     nation_auth = getattr(world, 'nation_authority', {})

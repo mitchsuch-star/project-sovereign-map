@@ -1482,24 +1482,94 @@ def coalition_break_ranks_reason(world, nation: str, *, war_score: int,
     return None
 
 
+# PR-D1d (SR-2c, September 26, 2026): "a new war is not a spent league". The
+# SR-1d gate was scoped to the active league's war, so a war France RE-
+# DECLARES after the league's peace drew an offer at war-age 2 (measured on
+# the ruling's simulation: Austria asking 4,263g at turn 13). Three rules,
+# each behind a lever, MEASURED on the same commanded arm before the choice
+# (`docs/SCORE_MANDATE_PLAN.md` §2 Chunk 2, SR-2c's landing record):
+#   (a) every multi-party war against the player is gated on its leader's
+#       break-ranks clause (the ruling's option (a); ~55 producer pins);
+#   (b) the war-age floor reads the PAIR's own reopening, not the instance's
+#       old created_turn (the ruling's option (b));
+#   (c) a war the PLAYER declared (any of the player's live pairs in it
+#       carries PR-D1c's `declared_by` stamp) is gated on its LEADER's
+#       break-ranks clause — the row's own completion test.
+THE_LEAGUE_GATE_COVERS_EVERY_WAR = False
+THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR = True
+THE_WAR_AGE_IS_THE_PAIRS = False
+
+
+def _player_pair_meta(war: Dict, player: str, leader: str) -> Dict:
+    meta = (war.get("diplo_key_meta") or {}) if isinstance(war, dict) else {}
+    key = "|".join(sorted((str(player), str(leader))))
+    entry = meta.get(key)
+    return entry if isinstance(entry, dict) else {}
+
+
+def player_declared_this_war(war: Dict, player: str) -> bool:
+    """True when ANY live pair of the player's in this war carries the
+    player's own declaration stamp (PR-D1c's `declared_by`). The leader may
+    be a court the cascade brought in (measured: a French declaration on
+    Austria brings Britain and Russia back to Austria's side), and the war is
+    still the one the player started."""
+    meta = (war.get("diplo_key_meta") or {}) if isinstance(war, dict) else {}
+    for pair, entry in meta.items():
+        if not isinstance(entry, dict) or str(player) not in str(pair).split("|"):
+            continue
+        if str(entry.get("pair_status") or "") != "war":
+            continue
+        if str(entry.get("declared_by") or "") == str(player):
+            return True
+    return False
+
+
+def settlement_war_age_start(war: Dict, *, player: str) -> int:
+    """The turn the producer's war-age floor counts from: the instance's
+    `created_turn`, or — lever (b) — the later of that and the player's pair
+    with the opposing leader's own reopening."""
+    created = int(war.get("created_turn") or 0)
+    if not THE_WAR_AGE_IS_THE_PAIRS:
+        return created
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    if not player_side:
+        return created
+    leader = _settlement_offer_opposing_side_leader(war, player_side=player_side)
+    if not leader:
+        return created
+    reopened = _player_pair_meta(war, player, leader).get("reopened_turn")
+    return max(created, int(reopened or 0))
+
+
 def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
     """The offer gate for ONE war. None = ungated (the war is not the active
-    coalition's war against the player, or the leader may break ranks).
-    Otherwise a dict naming the gate: `{"reason": "league_not_spent",
-    "leader", "war_score", "exhaustion", "turns_at_most"}` — the honest
-    clock is the exhaustion arm's: at +8 a turn at war the leader passes 80
-    in at most ⌈(81 − N) / 8⌉ turns (the other arms may open it sooner)."""
+    coalition's war against the player — nor, under PR-D1d's levers, a war
+    the player declared / any multi-party war — or the leader may break
+    ranks). Otherwise a dict naming the gate: `{"reason": "league_not_spent"
+    | "war_not_spent", "leader", "war_score", "exhaustion", "turns_at_most"}`
+    — the honest clock is the exhaustion arm's: at +8 a turn at war the
+    leader passes 80 in at most ⌈(81 − N) / 8⌉ turns (the other arms may
+    open it sooner)."""
     if not THE_LEAGUE_TREATS_WHEN_SPENT or not isinstance(war, dict):
-        return None
-    coalition = getattr(world, "active_coalition", None)
-    if not coalition or coalition.get("target_nation") != player:
         return None
     side_by_nation = war.get("side_by_nation") or {}
     player_side = side_by_nation.get(player)
     if not player_side:
         return None
     leader = _settlement_offer_opposing_side_leader(war, player_side=player_side)
-    if not leader or leader not in (coalition.get("members") or []):
+    if not leader:
+        return None
+    coalition = getattr(world, "active_coalition", None)
+    leagues_war = bool(
+        coalition and coalition.get("target_nation") == player
+        and leader in (coalition.get("members") or [])
+    )
+    declared_war = bool(
+        THE_LEAGUE_GATE_COVERS_A_DECLARED_WAR
+        and player_declared_this_war(war, player)
+    )
+    if not (leagues_war or declared_war or THE_LEAGUE_GATE_COVERS_EVERY_WAR):
         return None
     from backend.game_logic.diplomacy import get_war_score_for
     war_score = int(get_war_score_for(world, leader, player))
@@ -1510,7 +1580,8 @@ def league_offer_gate(world, war: Dict, *, player: str) -> Optional[Dict]:
         return None
     exhaustion = int(world.war_exhaustion.get(leader, 0) or 0)
     turns = max(1, -(-(BREAK_RANKS_EXHAUSTION + 1 - exhaustion) // WAR_EXHAUSTION_PER_TURN_AT_WAR))
-    return {"reason": "league_not_spent", "leader": leader, "war_score": war_score,
+    return {"reason": "league_not_spent" if leagues_war else "war_not_spent",
+            "leader": leader, "war_score": war_score,
             "exhaustion": exhaustion, "turns_at_most": int(turns)}
 
 
@@ -1519,6 +1590,13 @@ def league_offer_gate_display(world, gate: Dict) -> str:
     from backend.game_logic.formations import formed_display_name
     leader = formed_display_name(world, str(gate.get("leader") or ""))
     turns = int(gate.get("turns_at_most") or 1)
+    if str(gate.get("reason") or "") == "war_not_spent":
+        # PR-D1d: a war the player declared — the leader has not broken ranks.
+        return (f"{leader} has not broken ranks on the war we declared, Sire — it "
+                f"names no terms while it can still fight (exhaustion "
+                f"{int(gate.get('exhaustion') or 0)} of {BREAK_RANKS_EXHAUSTION}; at "
+                f"most {turns} turn{'s' if turns != 1 else ''}, sooner if the war "
+                f"turns against it).")
     return (f"{leader} leads a league that is not yet spent, Sire — it names no terms "
             f"while it can still fight (exhaustion {int(gate.get('exhaustion') or 0)} of "
             f"{BREAK_RANKS_EXHAUSTION}; at most {turns} turn{'s' if turns != 1 else ''}, "
@@ -4108,6 +4186,8 @@ def _settlement_offer_eligible_for_war(
     if not covered_enemies:
         return "no_covered_enemy"
     created_turn = int(war.get("created_turn") or current_turn)
+    # PR-D1d lever (b): the pair's own reopening, when later.
+    created_turn = max(created_turn, settlement_war_age_start(war, player=player))
     if current_turn - created_turn < SETTLEMENT_OFFER_MIN_WAR_DURATION_TURNS:
         return "war_too_young"
     cooldowns = getattr(world, "ai_settlement_cooldowns", None) or {}
@@ -4291,7 +4371,7 @@ def _resolve_settlement_terms_requests(
         if _gate is not None:
             entry["status"] = "refused"
             entry["resolved_turn"] = int(current_turn)
-            entry["resolve_reason"] = "league_not_spent"
+            entry["resolve_reason"] = str(_gate.get("reason") or "league_not_spent")
             entry["cooldown_until_turn"] = int(
                 current_turn + REQUEST_TERMS_COOLDOWN_TURNS
             )
@@ -4304,7 +4384,7 @@ def _resolve_settlement_terms_requests(
                 details={
                     "war_id": str(war_id),
                     "result": "refused",
-                    "resolve_reason": "league_not_spent",
+                    "resolve_reason": str(_gate.get("reason") or "league_not_spent"),
                 },
             ))
             if hasattr(world, "log_event"):

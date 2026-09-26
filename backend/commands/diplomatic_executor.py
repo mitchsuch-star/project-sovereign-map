@@ -6040,13 +6040,23 @@ class DiplomaticExecutor:
             if not vassal_name:
                 world.dialogue_manager.pop()
                 return {"success": False, "message": "No vassal specified."}
-            from backend.game_logic.vassal import invest_in_vassal
+            from backend.game_logic.vassal import (
+                A_REFUSED_ARM_KEEPS_THE_DECISION, dismiss_rebellion_row,
+                invest_in_vassal, rebellion_popup_for_dialogue,
+            )
             result = invest_in_vassal(world, vassal_name)
-            world.dialogue_manager.pop()
-            world.vassal_rebellion_imminent_popup = None
-            # Dismiss stale vassal rebellion notification
-            from backend.notifications import VASSAL_REBELLION_IMMINENT
-            world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
+            # WO-32 (SR-2c): the decision is retired by SUCCESS. A refused
+            # Invest (cooldown / gold / DP) used to pop the dialogue and
+            # dismiss every rebellion row anyway — Garrison and Accept Risk
+            # gone for the turn on a vassal one tick from rebellion.
+            if result.get("success") or not A_REFUSED_ARM_KEEPS_THE_DECISION:
+                world.dialogue_manager.pop()
+                world.vassal_rebellion_imminent_popup = None
+                dismiss_rebellion_row(world, vassal_name)
+            else:
+                result["vassal_rebellion_retained"] = True
+                world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
+                    world, dialogue, refusal=str(result.get("message") or ""))
             return result
 
         elif action == "garrison_vassal_rebellion":
@@ -6069,21 +6079,29 @@ class DiplomaticExecutor:
             from backend.game_logic.vassal import lord_garrison_present
             _court = display_nation(vassal_name)
             if world.actions_remaining < 2:
+                from backend.game_logic.vassal import (
+                    A_REFUSED_ARM_KEEPS_THE_DECISION, rebellion_popup_for_dialogue,
+                )
+                _refusal = (f"Insufficient AP. Showing the flag in {_court} "
+                            f"costs 2 AP, you have {int(world.actions_remaining)}.")
+                # WO-32 (SR-2c): the sibling arm — a refused Garrison kept
+                # the popup slot and the rail row but popped the dialogue,
+                # which is what kills the decision.
+                if A_REFUSED_ARM_KEEPS_THE_DECISION:
+                    world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(
+                        world, dialogue, refusal=_refusal)
+                    return {"success": False, "message": _refusal,
+                            "vassal_rebellion_retained": True}
                 world.dialogue_manager.pop()
-                return {
-                    "success": False,
-                    "message": (f"Insufficient AP. Showing the flag in {_court} "
-                                f"costs 2 AP, you have {int(world.actions_remaining)}."),
-                }
+                return {"success": False, "message": _refusal}
             world.actions_remaining -= 2
             vassal_state = world.vassals.get(vassal_name, {})
             old_loyalty = vassal_state.get("loyalty", 0)
             vassal_state["loyalty"] = min(100, old_loyalty + 10)
             world.dialogue_manager.pop()
             world.vassal_rebellion_imminent_popup = None
-            # Dismiss stale vassal rebellion notification
-            from backend.notifications import VASSAL_REBELLION_IMMINENT
-            world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
+            from backend.game_logic.vassal import dismiss_rebellion_row
+            dismiss_rebellion_row(world, vassal_name)
             _capital = str(world.get_nation_capital(vassal_name) or "their capital")
             if lord_garrison_present(world, world.player_nation, _capital):
                 _tail = (f"No corps moves — ours already stands in {_capital}, "
@@ -6103,11 +6121,11 @@ class DiplomaticExecutor:
         elif action == "accept_vassal_rebellion":
             world.dialogue_manager.pop()
             world.vassal_rebellion_imminent_popup = None
-            # Dismiss stale vassal rebellion notification
-            from backend.notifications import VASSAL_REBELLION_IMMINENT
-            world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
             context = dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
+            # WO-32 (SR-2c): this vassal's row, not every rebellion row.
+            from backend.game_logic.vassal import dismiss_rebellion_row
+            dismiss_rebellion_row(world, vassal_name)
             return {
                 "success": True,
                 "message": (

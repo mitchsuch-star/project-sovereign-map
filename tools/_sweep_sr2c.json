@@ -1,0 +1,128 @@
+[
+ {
+  "id": "SR-2c/WO-32 a refused invest retires the decision again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "            if result.get(\"success\") or not A_REFUSED_ARM_KEEPS_THE_DECISION:\n                world.dialogue_manager.pop()",
+  "new": "            if True:\n                world.dialogue_manager.pop()",
+  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
+ },
+ {
+  "id": "SR-2c/WO-32 a refused garrison pops the dialogue again",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                if A_REFUSED_ARM_KEEPS_THE_DECISION:\n                    world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(\n                        world, dialogue, refusal=_refusal)",
+  "new": "                if False:\n                    world.vassal_rebellion_imminent_popup = rebellion_popup_for_dialogue(\n                        world, dialogue, refusal=_refusal)",
+  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
+ },
+ {
+  "id": "SR-2c/WO-32 a decision about one satellite dismisses every row",
+  "file": "backend/game_logic/vassal.py",
+  "old": "        VASSAL_REBELLION_IMMINENT,\n        lambda n: str(((n.get(\"details\") or {}).get(\"vassal\")) or vassal_name)\n        == str(vassal_name),\n    ) or 0)",
+  "new": "        VASSAL_REBELLION_IMMINENT,\n    ) or 0)",
+  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
+ },
+ {
+  "id": "SR-2c/WO-32 the rail row stops naming its vassal",
+  "file": "backend/game_logic/vassal.py",
+  "old": "                details={\"vassal\": vassal_name},\n            ))",
+  "new": "            ))",
+  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
+ },
+ {
+  "id": "SR-2c/WO-32 the re-seated modal loses its refusal",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    if refusal:\n        popup[\"refusal\"] = str(refusal)",
+  "new": "    if False:\n        popup[\"refusal\"] = str(refusal)",
+  "tests": "tests/test_sr2c_a_refusal_keeps_the_decision.py"
+ },
+ {
+  "id": "SR-2c/PR-D1c the declaration stops stamping its pair",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            _stamp_pair[\"declared_by\"] = str(aggressor)",
+  "new": "            _stamp_pair[\"declared_by\"] = None",
+  "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
+ },
+ {
+  "id": "SR-2c/PR-D1c the outside wars' alarm is halved again",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested + outside)",
+  "new": "    after = min(before, pre_treaty // LEAGUE_SPENT_DIVISOR + requested)",
+  "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
+ },
+ {
+  "id": "SR-2c/PR-D1c a league member's war counts as outside",
+  "file": "backend/game_logic/coalition.py",
+  "old": "            if not other or other[0] in members:\n                continue",
+  "new": "            if not other:\n                continue",
+  "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
+ },
+ {
+  "id": "SR-2c/PR-D1c a resolved pair's stamp still counts",
+  "file": "backend/game_logic/coalition.py",
+  "old": "            if str(meta.get(\"pair_status\") or \"\") != \"war\":\n                continue\n            other = [n for n in str(pair).split(\"|\") if n != target]",
+  "new": "            other = [n for n in str(pair).split(\"|\") if n != target]",
+  "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
+ },
+ {
+  "id": "SR-2c/PR-D1c the lever reads inverted",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if not THE_SPEND_IS_THE_WARS_OWN:\n        return 0",
+  "new": "    if THE_SPEND_IS_THE_WARS_OWN:\n        return 0",
+  "tests": "tests/test_pr_d1c_the_spend_is_the_wars_own.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d lever (c) stops reading the stamp",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        and player_declared_this_war(war, player)\n    )",
+  "new": "        and False\n    )",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d a resolved pair still counts as declared",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        if str(entry.get(\"pair_status\") or \"\") != \"war\":\n            continue\n        if str(entry.get(\"declared_by\") or \"\") == str(player):\n            return True",
+  "new": "        if str(entry.get(\"declared_by\") or \"\") == str(player):\n            return True",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d a re-attached pair forgets its reopening",
+  "file": "backend/game_logic/settlement_helpers.py",
+  "old": "    if _reopened is not None:\n        meta[pair][\"reopened_turn\"] = int(_reopened)",
+  "new": "    if False:\n        meta[pair][\"reopened_turn\"] = int(_reopened)",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d a re-attached pair drops its stamp",
+  "file": "backend/game_logic/settlement_helpers.py",
+  "old": "    for _carried in (\"declaration_alarm\", \"declared_by\"):\n        if _carried in existing_meta:\n            meta[pair][_carried] = existing_meta[_carried]\n",
+  "new": "",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d the display loses the declared-war arm",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if str(gate.get(\"reason\") or \"\") == \"war_not_spent\":",
+  "new": "    if False:",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d the gate names the league's reason for every war",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    return {\"reason\": \"league_not_spent\" if leagues_war else \"war_not_spent\",",
+  "new": "    return {\"reason\": \"league_not_spent\",",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d the button's reason is the league's for every war",
+  "file": "backend/game_logic/settlement_routes.py",
+  "old": "            \"reason\": str(gate.get(\"reason\") or \"league_not_spent\"),\n            \"reason_display\": league_offer_gate_display(world, gate),",
+  "new": "            \"reason\": \"league_not_spent\",\n            \"reason_display\": league_offer_gate_display(world, gate),",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ },
+ {
+  "id": "SR-2c/PR-D1d the war-age lever reads inverted",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if not THE_WAR_AGE_IS_THE_PAIRS:\n        return created",
+  "new": "    if THE_WAR_AGE_IS_THE_PAIRS:\n        return created",
+  "tests": "tests/test_pr_d1d_a_new_war_is_not_a_spent_league.py"
+ }
+]

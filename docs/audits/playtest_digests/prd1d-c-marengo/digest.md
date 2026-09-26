@@ -1,0 +1,1012 @@
+# Playtest digest — prd1d-c
+
+seed `marengo` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "declare_war": "proceed", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 1 · campaign seed `marengo` · dice `marengo`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `17b2ab9909bd` (dirty) · content `d2ac94502127` · driver `f870e9ba2f5e`
+  - new game → New campaign started. Autosave refreshed.
+
+## Turn 1 — Late September 1805
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (24,000; expect about 78,676 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favora…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 2629, own corps) vs Mack (lost 9416) — Reinforcements from Davout and Napoleon bolstered Ney's position — though Soult, Lannes, Murat and Bernadotte never arr…
+- CMD `Davout, move to Swabia` → ✗ Cannot move into Swabia - enemy forces present! Use ATTACK to engage Mack.
+- CMD `Lannes, move to Rhineland` → ✓ Lannes: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?'
+  - POPUP strategic_interrupt: Lannes, contact_bad_odds, Lannes: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?' → attack_anyway
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Lannes (lost 1858, own corps) vs Mack (lost 9277) — Ney and Bernadotte's timely arrival aided Lannes. Soult and Murat, however, were conspicuously absent.
+- CMD `end turn` → ✓ Turn 1 ended. (Warning: 2 actions unused) Turn 2 begins!
+- enemy phase: 5 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles's forces advance steadily. ArchdukeCharles gains the advantage over Deroy. Casualties: ArchdukeCharles'…
+  - 🏴 Austria: Both armies remain in the field. ArchdukeCharles advances into Franconia. (1,573 lost to march) Franconia has been captured by Austria!
+  - ⚔ Archduke Charles (lost 1538, own corps) vs Deroy (lost 9954) — The toll on Deroy's forces is heavy, Sire. This defeat will be felt.
+  - verbs: stance_change×2, move×1, attack×1, wait×1
+- ORDER Lannes [active]: Lannes is marching to Rhineland (3 turns remaining).
+- ENVOYS WAITING 3 · Prussia open borders · Ottoman open borders · Portugal open borders
+- LEDGER treasury 2489 · net +2288 · threat 67 · provinces 28 · ceiling 57480 · army 174905 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 99
+  - NET income 3400 · trade 350 · admin 50 · tribute 937 · upkeep 2164 · charges 20 · blockade 175 · admiralty 90
+- DISPATCH: Sire — Franconia has been taken by Austria.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - TURN EVENTS 2
+- DIPLO +5 medium/low (diplomatic_dp_regen, sovereign_takes_field, blockade_begins ×3)
+  - LOG ai_ai_proposal_refused: Britain rebuffs Prussia and Bavaria (open borders agreement)
+
+## Turn 2 — Early October 1805
+  - LETTER Ottoman: Open Borders Agreement → accept
+  - LETTER Portugal: Open Borders Agreement → accept
+  - MAILBOX #1 Prussia incoming_proposal: Prussia — Open Borders Agreement → activated
+  - POPUP diplomatic_dialogue: Prussia, open_borders #1 → accept
+  - POPUP proposal_result: You have accepted Prussia's proposal. Treaty signed: Peace → Open Borders with Prussia. → display-only
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (18,578; expect about 80,289 with the corps likely to arrive, up to 92,807 if all march) vs Mack (substantial force) at Munich — the balance of force looks …
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 607, own corps) vs Mack (lost 16736) — Lannes and Massena arrived to reinforce Ney, but Murat and Bernadotte failed to reach the field in time.
+- CMD `Davout, attack Mack` → ✓ Davout pursues Mack (at Munich). Moves to Swabia. Davout: "Pursuit, then. I do not intend to be led into anything."
+- CMD `Soult, move to Alsace` → ✗ Region 'Alsace' not found. From Lorraine the roads lead to: Swabia, Rhineland, Franche-Comte, Orleanais.
+- CMD `Murat, move to Franche-Comte` → ✗ Murat is already in Franche-Comte.
+- CMD `end turn` → ✓ Turn 2 ended. (Warning: 1 action unused) Turn 3 begins!
+- enemy phase: 4 actions, 4 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles delivers an effective strike. ArchdukeCharles gains the advantage over Davout. Casualties: ArchdukeChar… · ArchdukeJohn holds them at Swabia while allies attack from Franconia! (+1 coordination) · ArchdukeCharles holds them at Swabia while allies attack from Franconia! (+1 coordination) · ArchdukeJohn holds them at Swabia while allies attack from Franconia! (+1 coordination)
+  - ⚔ Archduke Charles (lost 2212, own corps) vs Davout (lost 3849, own corps) — Reinforcements from Napoleon bolstered Davout's position — though Ney, Soult and Murat never arrived, Sire.
+  - ⚔ Archduke John (lost 197, own corps) vs Deroy (lost 5519) — A grievous defeat for Deroy, Sire. The losses are severe.
+  - ⚔ Archduke Charles (lost 1031, own corps) vs Bernadotte (lost 7183) — Bernadotte stood alone, Sire. Ney and Soult never came.
+  - ⚔ Archduke John (lost 723, own corps) vs Davout (lost 3757) — Not one corps reached Davout. Ney, Soult and Murat were expected; Davout fought the battle single-handed.
+  - verbs: attack×4
+- ORDER Davout [active]: Davout is pursuing Mack (0 turns remaining).
+- ENVOYS WAITING 2 · Denmark non aggression · Saxony open borders
+- LEDGER treasury 4660 · net +2890 · threat 73 · provinces 28 (+0) · ceiling 53140 · army 151977 · vassals Holland 97 · Kingdom of Italy 97 · Switzerland 94
+  - NET income 3400 · trade 450 · admin 50 · tribute 937 · upkeep 1474 · charges 158 · blockade 225 · admiralty 90
+- DISPATCH: Sire — Bernadotte's corps has been broken at Swabia. He must reform before he fights again.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - TURN EVENTS 6
+- DIPLO +8 medium/low (diplomatic_treaty_signed ×3, diplomatic_we_threshold ×3, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 14 approaches from Austria and Prussia are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: Naples rebuffs Prussia (defensive alliance)
+  - LOG ai_ai_proposal_refused: Britain rebuffs Prussia (open borders agreement)
+
+## Turn 3 — Late October 1805
+  - LETTER Denmark: Non-Aggression Pact → accept
+  - LETTER Saxony: Open Borders Agreement → accept
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (17,095; expect about 83,124 with the corps likely to arrive, up to 83,972 if all march) vs Mack (14,707 men) at Franconia — the balance of force looks favo…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 82, own corps) vs Mack (lost 13728) — Lannes and Massena's timely arrival bolstered Ney's position. Well-coordinated, Sire. And Mack was taken on that field …
+  - POPUP capture_choice[capture]: Franconia, Ney → secure
+- CMD `Davout, attack Mack` → ✗ Mack is our prisoner at Paris, Sire — he leads no army. Hold him for the peace table.
+- CMD `Lannes, move to Swabia` → ✗ Cannot move into Swabia - enemy forces present! Use ATTACK to engage Archduke Charles, Archduke John.
+- CMD `recruit 10000 infantry with Soult` → ✓ Soult recruits 3,000 infantry at Lorraine (field levy — no depot; capped at 3,000) - Cost: 685 gold (×3 at war) (×1.14 over the ordinance). Morale: 100% -> 94%
+- CMD `end turn` → ✓ Turn 3 ended. (Warning: 3 actions unused) Turn 4 begins!
+- SPENT 685g on this turn's orders
+- enemy phase: 2 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles's forces advance steadily. Brutal stalemate between ArchdukeCharles and Davout. Heavy casualties on bot… · ArchdukeJohn's forces advance steadily. ArchdukeJohn gains the advantage over Davout. Casualties: ArchdukeJohn's army 1…
+  - ⚔ Archduke Charles (lost 2749, own corps) vs Davout (lost 1061, own corps) — Ney, Murat and Napoleon arrived to reinforce Davout, but Soult failed to reach the field in time.
+  - ⚔ Archduke John (lost 445, own corps) vs Davout (lost 4514) — Davout stood alone, Sire. Soult never came.
+  - verbs: attack×2
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Soult seeks an audience → acknowledge
+  -     ↳ Soult's grievance runs its course.
+- ENVOYS WAITING 2 · Hesse non aggression · PapalStates open borders
+- LEDGER treasury 6745 · net +2861 · threat 81 · provinces 29 (+1) · ceiling 35578 · army 142915 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 91
+  - NET income 3438 · trade 525 · admin 50 · tribute 937 · upkeep 1196 · charges 470 · occupation 70 · blockade 263 · admiralty 90
+- DISPATCH: Sire — Marshal Mack of Austria is taken at Franconia — he is our prisoner, and their order of battle is one commander shorter.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - TURN EVENTS 4
+- DIPLO +4 medium/low (diplomatic_treaty_signed ×2, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: 17 approaches rebuffed, chiefly from Prussia and Austria (open borders agreement)
+  - LOG ai_ai_proposal_refused: 2 approaches from Prussia and Spain are rebuffed (open borders agreement)
+
+## Turn 4 — Early November 1805
+  - LETTER Hesse: Non-Aggression Pact → accept
+  - LETTER PapalStates: Open Borders Agreement → accept
+- CMD `Ney, attack Mack` → ✗ Mack is our prisoner at Paris, Sire — he leads no army. Hold him for the peace table.
+- CMD `Davout, fortify` → ✗ Davout cannot fortify while engaged with enemy forces! Enemy present: ArchdukeCharles, ArchdukeJohn. Attack or retreat first.
+- CMD `Massena, move to Tyrol` → ✓ Massena moves from Franconia to Tyrol. Tyrol falls to France! (was Austria) (2,301 lost to march)
+  - POPUP capture_choice[capture]: Tyrol, Massena → secure
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 4 ended. (Warning: 3 actions unused) Turn 5 begins!
+- enemy phase: 4 actions, 0 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: retreat×2, stance_change×2
+  - POPUP marshal_petition: shadow_command, Marshal Soult asks for a command → detach
+  -     ↳ Soult straightens. "You will not regret it, Sire." March him to Franconia and the front is his — the order is…
+- LEDGER treasury 9786 · net +2635 · threat 81 · provinces 30 (+1) · ceiling 35515 · army 139593 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 89
+  - NET income 3476 · trade 587 · admin 50 · tribute 937 · upkeep 1112 · charges 797 · occupation 122 · blockade 294 · admiralty 90
+- DISPATCH: Sire — Tyrol has fallen to our arms. The tricolor flies over it this morning.
+  - TURN EVENTS 6
+- DIPLO +3 medium/low (diplomatic_treaty_signed ×2, diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: 6 courts rebuff Prussia (defensive alliance)
+
+## Turn 5 — Late November 1805
+- CMD `Ney, attack Archduke Charles` → ✓ MUSTER — Ney (15,287; expect about 79,853 with the corps likely to arrive, up to 89,571 if all march) vs Archduke Charles (34,307 men) at Munich — the balance of force l…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 735, own corps) vs Archduke Charles (lost 6047) — Reinforcement from Davout, Lannes, Murat and Massena kept Ney standing, Sire — but neither side yielded the ground.
+- CMD `Lannes, attack Mack` → ✗ Mack is our prisoner at Paris, Sire — he leads no army. Hold him for the peace table.
+- CMD `Soult, move to Swabia` → ✓ Soult moves from Lorraine to Swabia (933 lost to march)
+- CMD `Murat, move to Swabia` → ✓ Murat moves from Franche-Comte to Swabia (194 lost to march)
+- CMD `end turn` → ✓ Turn 5 ended. (Warning: 1 action unused) Turn 6 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- ENVOYS WAITING 1 · KingdomOfItaly client petition
+- LEDGER treasury 12248 · net +2400 · threat 79 · provinces 30 (+0) · ceiling 34462 · army 133055 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 87
+  - NET income 3556 · trade 587 · admin 50 · tribute 937 · upkeep 1048 · charges 1106 · contributions 100 · occupation 92 · blockade 294 · admiralty 90
+- DISPATCH: Sire — Davout's corps has been broken at Munich. He must reform before he fights again.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.
+  - RAIL diplomatic_ai_proposal: An envoy from the Kingdom of Italy has arrived with a petition.
+  - TURN EVENTS 3
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+
+## Turn 6 — Early December 1805
+  - MAILBOX #8 KingdomOfItaly incoming_proposal: Kingdom of Italy — Client's Petition → activated
+  - POPUP diplomatic_dialogue: KingdomOfItaly, client_petition #10 → grant the petition
+  - POPUP proposal_result: Tyrol is ceded to the Kingdom of Italy. Loyalty +4 (96 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP. Our net rises by 42g a turn — 37g of income forfeited, 52g of occupation relieved, 27g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only
+- CMD `Ney, drill` → ✓ Ney begins intensive drill exercises at Franconia. Troops will be locked in training next turn, bonus ready turn 8.
+- CMD `Davout, unfortify` → ✗ Davout is not currently fortified.
+- CMD `Lannes, fortify` → ✓ Lannes grumbles about defensive orders but complies. [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Lannes fortifies position …
+- CMD `recruit 10000 infantry with Soult` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 6 ended. (Warning: 1 action unused) Turn 7 begins!
+- enemy phase: 5 actions, 3 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Franche-Comte into Franche-Comte unopposed! (660 lost to march) Captured: France → Austria · ArchdukeCharles assaults the Milan garrison! Garrison: 10,000 -> 5,000 (-5,000). ArchdukeCharles loses 2,645 troops. Ga… · ArchdukeCharles assaults the Milan garrison! Garrison collapses (5,000 -> 0). ArchdukeCharles loses 1,543 troops in the…
+  - 🏴 Austria: ArchdukeCharles marches from Franche-Comte into Franche-Comte unopposed! (660 lost to march) Captured: France → Austria
+  - 🏴 Austria: [Materiel] Guns, horses and stores lost with the fallen: Austria -77g, Kingdom of Italy -125g. Captured: KingdomOfItaly → Austria
+  - verbs: attack×3, move×1, fortify×1
+- ENVOYS WAITING 1 · Switzerland client petition
+- LEDGER treasury 14750 · net +2299 · threat 77 · provinces 28 (-2) · ceiling 43059 · army 132269 · vassals Holland 96 · Kingdom of Italy 100 · Switzerland 85
+  - NET income 3422 · trade 587 · admin 50 · tribute 739 · upkeep 1040 · charges 1035 · occupation 40 · blockade 294 · admiralty 90
+- DISPATCH: Sire — Franche-Comte has fallen. Enemy colours fly over French homeland soil. ArchdukeJohn's corps of ~10,000 stands there. A garrison you detach (3,000 men) holds a province against a march, as does…
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 5
+- COURTS: The court of Prussia eases over The Hanoverian Prize — gold is now the length of its tether.
+- DIPLO +3 medium/low (diplomatic_we_threshold, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+
+## Turn 7 — Late December 1805
+  - MAILBOX #9 Switzerland incoming_proposal: Switzerland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #11 → grant the petition
+  - POPUP proposal_result: Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (85 → 95); bond 0 → 20 (+1 a turn). Cost: 1 DP. → display-only
+- CMD `Ney, attack Archduke Charles` → ✗ Ney is locked in drill exercises and cannot receive orders. Training completes turn 7.
+- CMD `Davout, move to Bohemia` → ✓ Davout moves from Franconia to Bohemia. Bohemia falls to France! (was Austria) (82 lost to march)
+  - POPUP capture_choice[capture]: Bohemia, Davout → secure
+- CMD `Murat, attack Archduke Charles` → ✓ MUSTER — Murat (19,245; expect about 50,708 with the corps likely to arrive, up to 50,988 if all march) vs Archduke Charles (20,836 men) at Milan — the balance of force …
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Murat (lost 1116, own corps) vs Archduke Charles (lost 4341) — Massena arrived in time to steady Murat's position. The field was held, nothing further.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 7 ended. (Warning: 2 actions unused) Turn 8 begins!
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Piedmont into Provence unopposed! (161 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Piedmont into Provence unopposed! (161 lost to march) Captured: France → Austria
+  - verbs: move×1, form_square×1, attack×1
+- LEDGER treasury 15962 · net +1207 · threat 77 · provinces 28 (+0) · ceiling 26329 · army 129060 · vassals Holland 96 · Kingdom of Italy 100 · Switzerland 94
+  - NET income 3276 · trade 587 · admin 50 · tribute 421 · upkeep 1008 · charges 1625 · occupation 110 · blockade 294 · admiralty 90
+- DISPATCH: Sire — Provence has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc…
+  - RAIL design_promoted: REVANCHE: Austria will not forgive France the loss of Bohemia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 3
+- DIPLO +3 medium/low (diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+
+## Turn 8 — Early January 1806
+- CMD `Davout, attack Archduke Charles` → ✓ Davout respectfully raises concerns: 'I have concerns about this order, Sire.'
+  - POPUP objection: Davout, Davout respectfully raises concerns: 'I have concerns about this order, Sire.' → trust
+- CMD `Ney, fortify` → ✓ Ney grumbles about defensive orders but complies. [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Ney fortifies position at Fra…
+- CMD `Soult, drill` → ✗ Soult cannot drill with enemy forces nearby! ArchdukeJohn is at Munich, just one region away.
+- CMD `Massena, move to Milan` → ✓ Massena moves from Tyrol to Milan. Milan falls to France! (was Austria) (962 lost to march)
+  - POPUP capture_choice[capture]: Milan, Massena → secure
+- CMD `end turn` → ✓ Turn 8 ended. Turn 9 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Piedmont into Lyonnais unopposed! (156 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Piedmont into Lyonnais unopposed! (156 lost to march) Captured: France → Austria
+  - verbs: attack×1
+- LEDGER treasury 16983 · net +899 · threat 67 · provinces 28 (+0) · ceiling 24491 · army 128098 · vassals Holland 96 · Switzerland 93
+  - NET income 3289 · trade 599 · admin 50 · tribute 337 · upkeep 1000 · charges 1791 · occupation 195 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Lyonnais has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc…
+  - RAIL nation_eliminated: KingdomOfItaly has been eliminated from the war.
+  - TURN EVENTS 3
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (300g/turn)
+  - LOG ai_ai_proposal_refused: Naples rebuffs Prussia (defensive alliance)
+  - LOG design_promoted: REVANCHE: Austria swears to retake Bohemia and 1 more — France is not forgiven
+
+## Turn 9 — Late January 1806
+- CMD `Ney, unfortify` → ✓ Ney abandons fortified position at Franconia. Army is now mobile.
+- CMD `Lannes, move to Bohemia` → ✗ Lannes is fortified at Franconia and cannot move. Order 'unfortify' first to make the army mobile.
+- CMD `Murat, drill` → ✓ Murat begins intensive drill exercises at Swabia. Troops will be locked in training next turn, bonus ready turn 11.
+- CMD `recruit 10000 cavalry with Murat` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 9 ended. (Warning: 2 actions unused) Turn 10 begins!
+- enemy phase: 3 actions, 2 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight. — Castanos launches a devastating assault! Castanos gains the advantage over Paget. Casualties: Castanos 672, Paget 1,840… · Castanos holds them at Leon while allies attack from Aragon! (+1 coordination)
+  - 🏴 Spain: [!] Paget's troops are BROKEN (morale 0%)! FORCED RETREAT! Leon has been captured by Spain!
+  - ⚔ Castanos (lost 672) vs Paget (lost 1840) — An aggressive stance invites disaster when one is not the attacker, Sire. Paget paid the price.
+  - ⚔ Castanos (lost 338) vs Paget (lost 1633) — Paget's aggressive posture left the troops exposed when Castanos's attack came. And Paget was taken on that field — Spa…
+  - verbs: attack×2, move×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- LEDGER treasury 17969 · net +865 · threat 65 · provinces 28 (+0) · ceiling 25004 · army 128098 · vassals Holland 96 · Switzerland 92
+  - NET income 3394 · trade 599 · admin 50 · tribute 337 · upkeep 1000 · charges 1960 · occupation 165 · blockade 300 · admiralty 90
+- DISPATCH: Lannes's fortifications decay: 8% → 6%
+  - TURN EVENTS 7
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG sponsorship_granted: Russia sponsors Austria against France (300g/turn)
+  - LOG nation_eliminated: KingdomOfItaly has been eliminated from the war.
+
+## Turn 10 — Early February 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, move to Franconia` → ✗ Ney is already in Franconia.
+- CMD `Davout, fortify` → ✓ [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Davout fortifies position at Bohemia. Defense bonus: +7% (grows +3% per turn, m…
+- CMD `Soult, move to Bavaria` → ✗ Bavaria is a nation, not a province. Name a province, Sire — theirs are Munich, Swabia.
+- CMD `end turn` → ✓ Turn 10 ended. (Warning: 2 actions unused) Turn 11 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: fortify×1
+  - ⚡ AUTONOMOUS: [Combat] Massena leads the charge! (Aggressive: +15% attack)
+  - ⚔ Massena (lost 1661, own corps) vs Archduke John (lost 1955) — Ney reached the field beside Massena, Sire — it saved the line, no more.
+- ENVOYS WAITING 1 · Britain settlement offer
+- LEDGER treasury 19343 · net +1349 · threat 63 · provinces 28 (+0) · ceiling 33213 · army 125692 · vassals Holland 96 · Switzerland 91
+  - NET income 3542 · trade 599 · admin 50 · tribute 337 · upkeep 984 · charges 1685 · occupation 120 · blockade 300 · admiralty 90
+- DISPATCH: Davout's fortifications strengthen: +12% defense (MAX)
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 5,000 men ashore at Piedmont.
+  - RAIL settlement_offer_arrival: Britain has offered terms to settle France vs Britain.
+  - TURN EVENTS 6
+- DIPLO +3 medium/low (enemy_marshal_commissioned, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Russia
+  - LOG ai_ai_proposal_refused: 6 courts rebuff Prussia (defensive alliance)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG sponsorship_granted: Britain sponsors Sardinia against France (200g/turn)
+  - LOG sponsorship_granted: Russia sponsors Britain against France (200g/turn)
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 7 approaches to Britain and Russia are rebuffed (open borders agreement)
+
+## Turn 11 — Late February 1806
+  - MAILBOX #10 Britain incoming_settlement_offer: Britain — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #14 → accept_settlement_offer
+  - POPUP diplomatic_dialogue: settlement_confirm #15 → confirm_settlement
+  - POPUP proposal_result: Settlement Ratified: France vs Austria + Britain + Russia (6 pairs resolved). Status quo: Bohemia, Franconia and Milan stay ours by the treaty — titled. Status quo: Franche-Comte, Lyonnais and Provence stay Austrian by the treaty. → display-only
+- CMD `Ney, attack Archduke John` → ✓ Choose your war purpose against Austria. Issue the attack again after the declaration is settled.
+  - POPUP diplomatic_dialogue: war_purpose_selection #16 → 1
+  - POPUP diplomatic_dialogue: force_declare_war_confirmation #17 → force_declare_war
+  - POPUP diplomatic_dialogue: proposal_confirm #18 → ally_entry_proceed_without
+  - POPUP proposal_result: France declares war on Austria, shattering the Peace Treaty! Britain enters the war against France in defense of Austria! Russia enters the war against France in defense of Austria! Holland follows France into the war against Austria! Switzerland follows France into the war against Austria! → display-only
+- CMD `Lannes, attack Archduke John` → ✗ Lannes is fortified at Franconia and cannot attack. Order 'unfortify' first to make the army mobile.
+- CMD `Murat, move to Franconia` → ✓ Murat moves from Swabia to Franconia
+- CMD `Massena, fortify` → ✓ Massena firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Archduke Charles at Piedmont instead.)
+  - POPUP objection: Massena, Massena firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Archduke Charles at Piedmont instead.) → trust
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Massena (lost 2379) vs Archduke Charles (lost 2425) — An inconclusive affair. Both sides bloodied but unbroken.
+- CMD `end turn` → ✓ Turn 11 ended. (Warning: 1 action unused) Turn 12 begins!
+- enemy phase: 4 actions, 1 attacks — Russia, Prussia, Spain and 4 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeJohn strikes back after successfully defending!
+  - ⚔ Archduke John (lost 1573) vs Davout (lost 329, own corps) — Ney arrived to reinforce Davout, but Murat failed to reach the field in time.
+  - verbs: stance_change×1, naval_expedition×1, unfortify×1, attack×1
+- ENVOYS WAITING 1 · Holland client petition
+- LEDGER treasury 20899 · net +1602 · threat 49 · provinces 28 (+0) · ceiling 44874 · army 122448 · vassals Holland 96 · Switzerland 92
+  - NET income 3540 · trade 599 · admin 50 · tribute 337 · upkeep 952 · charges 1262 · contributions 200 · occupation 120 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Wellesley has crossed into Berry. No French corps stands in his path.
+  - RAIL settlement_summary: Settlement of France + Spain + Holland + Bavaria vs Britain + Austria + Russia: settlement ratified.
+  - RAIL diplomatic_alliance_cascade: Britain enters the war via alliance with Austria.
+  - RAIL diplomatic_alliance_cascade: Russia enters the war via alliance with Austria.
+  - RAIL diplomatic_war_declared: France has declared war on Austria, shattering the Peace Treaty, with 4 allied courts poised to follow.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Piedmont.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - TURN EVENTS 7
+- COURTS: The court of Sardinia hardens over The House of Savoy Restored — prepared now to go as far as war.
+- DIPLO +9 medium/low (diplomatic_coalition_dissolved, status_quo_titled, witness_strike_recorded, diplomatic_treaty_broken ×2, diplomatic_dp_regen, sovereign_takes_field, blockade_broken ×2)
+  - LOG ai_ai_proposal_refused: Holland rebuffs Prussia (defensive alliance)
+  - LOG coalition_member_left: Britain has left the coalition.
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 63 to 31.
+  - LOG diplomatic_treaty_broken: France has broken the Peace Treaty with Austria by declaring war.
+  - LOG diplomatic_treaty_broken: Britain was forced to break the Peace Treaty with France (cascade).
+  - LOG defensive_cascade: Defensive cascade: Britain joins war via Austria
+  - LOG defensive_cascade: Defensive cascade: Russia joins war via Austria
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+
+## Turn 12 — Early March 1806
+  - MAILBOX #11 Holland incoming_proposal: Holland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Holland, client_petition #19 → grant the petition
+  - POPUP proposal_result: Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +4 (96 → 100); bond -15 → 5 (+0 a turn). Cost: 1 DP. → display-only
+- CMD `Ney, drill` → ✗ Ney cannot drill with enemy forces nearby! ArchdukeJohn is at Tyrol, just one region away.
+- CMD `Davout, unfortify` → ✓ Davout efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile.
+- CMD `Soult, fortify` → ✓ [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Soult fortifies position at Swabia. Defense bonus: +2% (grows +2% per turn, max…
+- CMD `recruit 10000 infantry with Lannes` → ✓ Lannes recruits 3,000 infantry at Franconia (field levy — no depot; capped at 3,000) - Cost: 600 gold (×3 at war). Morale: 80% -> 72%
+- CMD `end turn` → ✓ Turn 12 ended. (Warning: 2 actions unused) Turn 13 begins!
+- SPENT 600g on this turn's orders
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: form_square×1
+- LEDGER treasury 21508 · net +1149 · threat 47 · provinces 28 (+0) · ceiling 37914 · army 125448 · vassals Holland 100 · Switzerland 92
+  - NET income 3551 · trade 599 · admin 50 · upkeep 976 · charges 1365 · contributions 200 · occupation 120 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Paget has crossed into Limousin. No French corps stands in his path.
+  - TURN EVENTS 6
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+
+## Turn 13 — Late March 1806
+- CMD `Ney, attack Archduke John` → ✓ MUSTER — Ney (12,695; expect about 44,882 with the corps likely to arrive, up to 55,779 if all march) vs Archduke John (9,688 men) at Tyrol — the balance of force looks …
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 294, own corps) vs Archduke John (lost 6001) — Reinforcements! Davout, Murat and Massena marched onto the field beside Ney. The enemy's advantage melted away.
+- CMD `Murat, attack Archduke John` → ✓ MUSTER — Murat (17,709; expect about 43,870 with the corps likely to arrive) vs Archduke John (3,687 men) at Tyrol — the balance of force looks favorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Murat (lost 113, own corps) vs Archduke John (lost 2687) — Well-drilled troops make the difference. Murat's preparation paid dividends.
+  - POPUP capture_choice[capture]: Tyrol, Murat → secure
+- CMD `Davout, move to Franconia` → ✓ Davout moves from Tyrol to Franconia
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 13 ended. (Warning: 1 action unused) Turn 14 begins!
+- enemy phase: 2 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Lyonnais into Limousin unopposed! (157 lost to march) Captured: France → Austria · Hiller marches from Vienna into Bohemia unopposed! (25 lost to march — forward supply lines reduce losses) Captured: Fr…
+  - 🏴 Austria: ArchdukeCharles marches from Lyonnais into Limousin unopposed! (157 lost to march) Captured: France → Austria
+  - 🏴 Austria: Hiller marches from Vienna into Bohemia unopposed! (25 lost to march — forward supply lines reduce losses) Captured: France → Austria
+  - verbs: attack×2
+- LEDGER treasury 22561 · net +1064 · threat 53 · provinces 27 (-1) · ceiling 36932 · army 121424 · vassals Holland 100 · Switzerland 94
+  - NET income 3372 · trade 599 · admin 50 · upkeep 944 · charges 1521 · occupation 102 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Limousin has fallen. Enemy colours fly over French homeland soil. Paget's corps of ~2,500 stands there. A garrison you detach (3,000 men) holds a province against a march, as does any garrison…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 4,828 men ashore at Piedmont.
+  - TURN EVENTS 7
+- DIPLO +2 medium/low (diplomatic_we_threshold, diplomatic_dp_regen)
+  - LOG sponsorship_granted: Britain sponsors Russia against France (300g/turn)
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG ai_ai_proposal_refused: 11 approaches from Austria and Prussia are rebuffed (open borders agreement)
+
+## Turn 14 — Early April 1806
+- CMD `declare war on Austria` → ✗ We are already at war with Austria, Sire.
+- CMD `Lannes, fortify` → ✗ Lannes is already fortified at Franconia (+2% defense).
+- CMD `Soult, drill` → ✗ Soult is fortified and cannot drill. Abandon fortification first.
+- CMD `Massena, move to Tyrol` → ✗ Massena is already in Tyrol.
+- CMD `end turn` → ✓ Turn 14 ended. (Warning: 4 actions unused) Turn 15 begins!
+- enemy phase: 3 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Limousin into Berry unopposed! (155 lost to march) Captured: France → Austria · ArchdukeCharles marches from Berry into Gascony unopposed! (308 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Limousin into Berry unopposed! (155 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Berry into Gascony unopposed! (308 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles moves from Gascony to Languedoc. Languedoc falls to Austria!
+  - verbs: attack×2, move×1
+- LEDGER treasury 22513 · net +183 · threat 50 · provinces 24 (-3) · ceiling 24210 · army 119692 · vassals Holland 100 · Switzerland 94
+  - NET income 2927 · trade 599 · admin 50 · tribute 225 · upkeep 928 · charges 2198 · occupation 102 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Berry has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces …
+  - TURN EVENTS 5
+- DIPLO +2 medium/low (diplomatic_dp_regen, balance_of_europe_shifted)
+  - LOG balance_of_europe_shifted: Austrian-led alignment leads the current largest alignment at 36% of active European bloc power.
+  - LOG ai_ai_proposal_refused: Naples rebuffs Prussia (defensive alliance)
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+
+## Turn 15 — Late April 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, unfortify` → ✗ Ney is not currently fortified.
+- CMD `Davout, drill` → ✗ Davout cannot drill with enemy forces nearby! ArchdukeJohn is at Bohemia, just one region away.
+- CMD `recruit 10000 infantry with Soult` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 15 ended. (Warning: 4 actions unused) Turn 16 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 22295 · net -194 · threat 47 · provinces 24 (+0) · ceiling 20532 · army 118061 · vassals Holland 100 · Switzerland 94
+  - NET income 2996 · trade 599 · admin 50 · tribute 225 · upkeep 904 · charges 2240 · contributions 450 · occupation 80 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Paget has crossed into Guyenne. No French corps stands in his path.
+  - TURN EVENTS 5
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG sponsorship_granted: Russia sponsors Britain against France (300g/turn)
+  - LOG sponsorship_expired: The compact between Britain and Sardinia lapses
+
+## Turn 16 — Early May 1806
+- CMD `Ney, move to Bohemia` → ✗ Cannot move into Bohemia - enemy forces present! Use ATTACK to engage Archduke John, Hiller.
+- CMD `Lannes, unfortify` → ✓ Lannes abandons fortified position at Franconia. Army is now mobile.
+- CMD `Murat, fortify` → ✓ Murat firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Archduke Charles at Milan instead.)
+  - POPUP objection: Murat, Murat firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Archduke Charles at Milan instead.) → trust
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Murat (lost 1079, own corps) vs Archduke Charles (lost 1833) — Massena arrived to reinforce Murat, but Ney failed to reach the field in time.
+- CMD `Soult, move to Franconia` → ✗ Soult is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile.
+- CMD `end turn` → ✓ Turn 16 ended. (Warning: 2 actions unused) Turn 17 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 22188 · net +24 · threat 44 · provinces 24 (+0) · ceiling 22390 · army 113979 · vassals Holland 100 · Switzerland 94
+  - NET income 2975 · trade 599 · admin 50 · tribute 225 · upkeep 880 · charges 2325 · contributions 150 · occupation 80 · blockade 300 · admiralty 90
+- DISPATCH: Sire — 3 turns of famine at Tyrol now. 4,755 men gone, and not one of them to the enemy. A supply depot at Tyrol would ease it; Milan can feed 75,000 more and Munich can feed 45,000 more — a corps ma…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 4,663 men ashore at Piedmont.
+  - TURN EVENTS 3
+- COURTS: The court of Sardinia eases over The House of Savoy Restored — an ultimatum is now the length of its tether.
+- COURTS: The court of Sweden eases over Scourge of the Usurper — an ultimatum is now the length of its tether.
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: 6 courts rebuff Prussia (defensive alliance)
+
+## Turn 17 — Late May 1806
+- CMD `Ney, fortify` → ✓ Ney firmly objects: 'We outnumber them! Let me attack!' (Trust him and he will attack Hiller at Carniola instead.)
+  - POPUP objection: Ney, Ney firmly objects: 'We outnumber them! Let me attack!' (Trust him and he will attack Hiller at Carniola instead.) → trust
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 301, own corps) vs Hiller (lost 3172) — Reinforcements from Massena bolstered Ney's position — though Murat never arrived, Sire.
+- CMD `Davout, fortify` → ✓ Davout fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fort…
+- CMD `Lannes, drill` → ✓ Lannes begins intensive drill exercises at Franconia. Troops will be locked in training next turn, bonus ready turn 19.
+- CMD `Massena, fortify` → ✗ Massena cannot fortify while engaged with enemy forces! Enemy present: Hiller. Attack or retreat first.
+- CMD `end turn` → ✓ Turn 17 ended. (Warning: 1 action unused) Turn 18 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 22153 · net +8 · threat 44 · provinces 24 (+0) · ceiling 22218 · army 112941 · vassals Holland 100 · Switzerland 95
+  - NET income 2983 · trade 599 · admin 50 · tribute 225 · upkeep 872 · charges 2394 · contributions 150 · requisitions 37 · occupation 80 · blockade 300 · admiralty 90
+- DISPATCH: Sire — 3 turns now with enemy colours on French soil. The country is watching to see how long we permit it.
+  - TURN EVENTS 5
+- DIPLO +2 medium/low (diplomatic_we_threshold, diplomatic_dp_regen)
+
+## Turn 18 — Early June 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Soult, drill` → ✗ Soult is fortified and cannot drill. Abandon fortification first.
+- CMD `Murat, unfortify` → ✗ Murat is not currently fortified.
+- CMD `recruit 10000 infantry with Davout` → ✓ Davout recruits 3,000 infantry at Franconia (field levy — no depot; capped at 3,000) - Cost: 510 gold (×3 at war) (Davout's intendance: -15%). Morale: 7% -> 16%
+- CMD `end turn` → ✓ Turn 18 ended. (Warning: 4 actions unused) Turn 19 begins!
+- SPENT 510g on this turn's orders
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles's forces press forward aggressively. Murat holds the line. Casualties: ArchdukeCharles 3,335, Murat's a…
+  - ⚔ Archduke Charles (lost 3335) vs Murat (lost 836, own corps) — Massena's timely arrival aided Murat. Ney, however, was conspicuously absent.
+  - verbs: attack×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Bernadotte seeks an audience → acknowledge
+  -     ↳ Bernadotte's grievance runs its course.
+- LEDGER treasury 21362 · net -132 · threat 41 · provinces 24 (+0) · ceiling 20287 · army 113503 · vassals Holland 100 · Switzerland 96
+  - NET income 2980 · trade 599 · admin 50 · tribute 225 · upkeep 880 · charges 2385 · contributions 288 · requisitions 37 · occupation 80 · blockade 300 · admiralty 90
+- DISPATCH: Sire — Murat and Massena stand 32,963 men at Tyrol, which feeds 30,000. 2,963 too many. 1,780 men lost in 2 turns. A supply depot at Tyrol would ease it; Munich can feed 45,000 more and Bohemia can f…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 4,504 men ashore at Piedmont.
+  - TURN EVENTS 6
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+
+## Turn 19 — Late June 1806
+- CMD `Ney, unfortify` → ✗ Ney is not currently fortified.
+- CMD `Davout, unfortify` → ✓ Davout efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile.
+- CMD `Lannes, move to Franconia` → ✗ Lannes is already in Franconia.
+- CMD `Murat, drill` → ✗ Murat cannot drill with enemy forces nearby! ArchdukeCharles is at Milan, just one region away.
+- CMD `end turn` → ✓ Turn 19 ended. (Warning: 4 actions unused) Turn 20 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Piedmont into Savoy unopposed! (297 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Piedmont into Savoy unopposed! (297 lost to march) Captured: France → Austria
+  - verbs: attack×1
+- LEDGER treasury 21242 · net +232 · threat 38 · provinces 23 (-1) · ceiling 23075 · army 113126 · vassals Holland 100 · Switzerland 96
+  - NET income 2920 · trade 561 · admin 50 · tribute 562 · upkeep 880 · charges 2432 · contributions 150 · requisitions 37 · occupation 65 · blockade 281 · admiralty 90
+- DISPATCH: Sire — Savoy has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces …
+  - TURN EVENTS 4
+- DIPLO +5 medium/low (diplomatic_dp_regen, diplomatic_auto_downgrade ×2, agenda_shift ×2)
+  - LOG auto_downgrade: Relations auto-downgraded: France–Spain (ALLIANCE → DEFENSIVE ALLIANCE)
+  - LOG auto_downgrade: Relations auto-downgraded: Austria–Russia (ALLIANCE → DEFENSIVE ALLIANCE)
+  - LOG sponsorship_granted: Britain sponsors Austria against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Austria lapses
+
+## Turn 20 — Early July 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, drill` → ✗ Ney cannot drill with enemy forces nearby! ArchdukeJohn is at Bohemia, just one region away.
+- CMD `Soult, fortify` → ✗ Soult is already fortified at Swabia (+11% defense).
+- CMD `Massena, drill` → ✗ Massena cannot drill with enemy forces nearby! ArchdukeJohn is at Bohemia, just one region away.
+- CMD `end turn` → ✓ Turn 20 ended. (Warning: 4 actions unused) Turn 21 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Savoy into Burgundy unopposed! (145 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Savoy into Burgundy unopposed! (145 lost to march) Captured: France → Austria
+  - verbs: attack×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Ney seeks an audience → acknowledge
+  -     ↳ Ney's grievance runs its course.
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #21 → accept_settlement_offer
+  - POPUP diplomatic_dialogue: settlement_confirm #22 → confirm_settlement
+  - POPUP proposal_result: Settlement Ratified: France vs Austria + Britain + Russia (5 pairs resolved). Status quo: Franconia, Milan and Tyrol stay ours by the treaty — titled. Status quo: Berry, Burgundy, Franche-Comte, Gascony, Languedoc, Limousin, Lyonnais, Provence and Savoy stay Austrian by the treaty. → display-only
+- ENVOYS WAITING 1 · Austria settlement offer
+- LEDGER treasury 15675 · net +2978 · threat 35 · provinces 22 (-1) · ceiling 263833 · army 112759 · vassals Holland 100 · Switzerland 96
+  - NET income 2878 · trade 597 · admin 50 · tribute 562 · upkeep 880 · charges 164 · occupation 65
+- DISPATCH: Sire — Burgundy has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 4,350 men ashore at Piedmont.
+  - RAIL settlement_offer_arrival: Austria has offered terms to settle France vs Austria. Asking 5696 gold.
+  - TURN EVENTS 5
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+
+## Turn 21 — Late July 1806
+- CMD `Ney, fortify` → ✓ Ney firmly objects: 'I would rather attack than sit idle.' (His loyalty is frayed by neglect — his victories remain unrewarded.) (Trust him and he will attack Hiller at …
+  - POPUP objection: Ney, Ney firmly objects: 'I would rather attack than sit idle.' (His loyalty is frayed by neglect — his victories remain unrewarded.) (Trust him and he will attack Hiller at Bohemia instead.) → trust
+  - POPUP diplomatic_dialogue: war_purpose_selection #23 → 1
+  - POPUP diplomatic_dialogue: force_declare_war_confirmation #24 → force_declare_war
+  - POPUP diplomatic_dialogue: proposal_confirm #25 → ally_entry_proceed_without
+  - POPUP proposal_result: France declares war on Austria, shattering the Peace Treaty! Britain enters the war against France in defense of Austria! Russia enters the war against France in defense of Austria! Holland follows France into the war against Austria! Switzerland follows France into the war against Austria! → display-only
+- CMD `Davout, drill` → ✗ Davout cannot drill with enemy forces nearby! Hiller is at Bohemia, just one region away.
+- CMD `Lannes, fortify` → ✓ Lannes respectfully raises concerns: 'I would rather attack than sit idle.' (Trust him and he will attack Brunswick at Berlin instead.)
+  - POPUP objection: Lannes, Lannes respectfully raises concerns: 'I would rather attack than sit idle.' (Trust him and he will attack Brunswick at Berlin instead.) → trust
+  - POPUP diplomatic_dialogue: war_purpose_selection #26 → 1
+  - POPUP diplomatic_dialogue: force_declare_war_confirmation #27 → force_declare_war
+  - POPUP proposal_result: Sire, I must strongly advise against declaring war on Prussia. Our threat level stands at 55 — the courts of Europe already whisper of coalition. Another war will only hasten their union against us. → display-only
+  - POPUP diplomatic_objection: diplomatic_declare_war, Prussia → proceed
+  - POPUP diplomatic_dialogue: proposal_confirm #28 → ally_entry_proceed_without
+  - POPUP proposal_result: France declares war on Prussia, shattering the Open Borders Agreement! Holland follows France into the war against Prussia! Switzerland follows France into the war against Prussia! → display-only
+- CMD `recruit 10000 infantry with Murat` → ✓ Berthier notes: 'Marshal Murat commands cavalry, Sire.' Murat recruits 3,000 cavalry at Tyrol (field levy — no depot; capped at 3,000) (recruitment is drafted in fixed c…
+- CMD `end turn` → ✓ Turn 21 ended. (Warning: 2 actions unused) Turn 22 begins!
+- SPENT 1035g on this turn's orders
+- enemy phase: 4 actions, 3 attacks — Britain, Russia, Spain and 4 other courts stirred as well, but their formations remain beyond our sight. — Hiller engages in solid combat. Ney holds the line. Casualties: Hiller 3,125, Ney's army 968. Both armies remain in the… · Brunswick attacks with overwhelming force. Brunswick gains the advantage over Davout. Casualties: Brunswick 660, Davout… · Brunswick engages in solid combat. Brunswick gains the advantage over Murat. Casualties: Brunswick 1,801, Murat 6,262. …
+  - 🏴 Prussia: Brunswick advances into Franconia. (740 lost to march — forward supply lines reduce losses) Franconia has been captured by Prussia!
+  - ⚔ Hiller (lost 3125) vs Ney (lost 337, own corps) — Massena arrived to reinforce Ney, but Murat failed to reach the field in time.
+  - ⚔ Brunswick (lost 660) vs Davout (lost 1213, own corps) — Davout fought without Murat's support. The roads, or the will, proved insufficient.
+  - ⚔ Brunswick (lost 1801) vs Murat (lost 6262) — Where was Ney? Murat held the field alone — reinforcement never came.
+  - verbs: attack×3, unfortify×1
+- LEDGER treasury 15015 · net +821 · threat 72 · provinces 21 (-1) · ceiling 22903 · army 104482 · vassals Holland 97 · Switzerland 93
+  - NET income 2651 · trade 536 · admin 50 · tribute 562 · upkeep 808 · charges 1353 · contributions 451 · requisitions 37 · occupation 45 · blockade 268 · admiralty 90
+- DISPATCH: Sire — Murat, crowned three turns ago, has been beaten in the field — and the laurels have passed to another.
+  - RAIL settlement_summary: Settlement of France + Holland + Switzerland vs Austria + Britain + Russia: Gold indemnity: 5696 gold from France to Austria.
+  - RAIL diplomatic_alliance_cascade: Britain enters the war via alliance with Austria.
+  - RAIL diplomatic_alliance_cascade: Russia enters the war via alliance with Austria.
+  - RAIL diplomatic_war_declared: France has declared war on Austria, shattering the Peace Treaty, with 3 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: France has declared war on Prussia, shattering the Open Borders Agreement, with 1 allied court poised to follow.
+  - TURN EVENTS 10
+- COURTS: The court of Sardinia hardens over The House of Savoy Restored — prepared now to go as far as war.
+- COURTS: The court of Sweden hardens over Scourge of the Usurper — prepared now to go as far as war.
+- DIPLO +9 medium/low (status_quo_titled, witness_strike_recorded ×2, diplomatic_treaty_broken ×2, enemy_marshal_commissioned, diplomatic_dp_regen, sovereign_takes_field, diplomatic_coalition_brewing)
+  - LOG coalition_brewing_started: Coalition brewing — Spain, Ottoman, Sweden, Naples, Portugal, Denmark, Saxony, Hanover, Hesse, PapalStates, Sardinia alarmed (threat: 72)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Britain, Russia and Austria (defensive alliance)
+  - LOG diplomatic_treaty_broken: France has broken the Peace Treaty with Austria by declaring war.
+  - LOG diplomatic_treaty_broken: Britain was forced to break the Peace Treaty with France (cascade).
+  - LOG defensive_cascade: Defensive cascade: Britain joins war via Austria
+  - LOG defensive_cascade: Defensive cascade: Russia joins war via Austria
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG diplomatic_treaty_broken: France has broken the Open Borders Agreement with Prussia by declaring war.
+
+## Turn 22 — Early August 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Soult, unfortify` → ✓ Soult abandons fortified position at Swabia. Army is now mobile.
+- CMD `Murat, fortify` → ✗ Murat is recovering from retreat and cannot fortify. Recovery: 2 turns remaining.
+- CMD `Massena, unfortify` → ✗ Massena is not currently fortified.
+- CMD `end turn` → ✓ Turn 22 ended. (Warning: 3 actions unused) Turn 23 begins!
+- enemy phase: 3 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: retreat×1, move×1, stance_change×1
+- LEDGER treasury 16199 · net +1057 · threat 69 · provinces 21 (+0) · ceiling 26057 · army 104482 · vassals Holland 97 · Switzerland 93
+  - NET income 2655 · trade 536 · admin 50 · tribute 562 · upkeep 808 · charges 1522 · contributions 50 · requisitions 37 · occupation 45 · blockade 268 · admiralty 90
+- DISPATCH: Sire — the enemy has stood on our ground 4 turns. Every turn of it is worth a province to their recruiting sergeants.
+  - RAIL expedition_landed: THE LANDING: Paget has put 4,592 men ashore at Piedmont.
+  - TURN EVENTS 4
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+
+## Turn 23 — Late August 1806
+- CMD `Ney, unfortify` → ✗ Ney is not currently fortified.
+- CMD `Davout, fortify` → ✓ Davout fortifies position at Tyrol. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortifie…
+- CMD `Lannes, unfortify` → ✗ Lannes is not currently fortified.
+- CMD `Soult, drill` → ✗ Soult cannot drill with enemy forces nearby! Brunswick is at Franconia, just one region away.
+- CMD `end turn` → ✓ Turn 23 ended. (Warning: 3 actions unused) Turn 24 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight. — Blucher engages in solid combat. Blucher gains the advantage over Murat. Casualties: Blucher 566, Murat 2,695. Both arm…
+  - ⚔ Blucher (lost 566) vs Murat (lost 2695) — Not one corps reached Murat. Soult was expected; Murat fought the battle single-handed.
+  - verbs: stance_change×1, attack×1
+- LEDGER treasury 17565 · net +1376 · threat 66 · provinces 21 (+0) · ceiling 34173 · army 101195 · vassals Holland 95 · Switzerland 91
+  - NET income 2658 · trade 536 · admin 50 · tribute 562 · upkeep 776 · charges 1288 · requisitions 37 · occupation 45 · blockade 268 · admiralty 90
+- DISPATCH: Sire — Murat, crowned five turns ago, has been beaten in the field — and the laurels have passed to another.
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 4,201 men ashore at Piedmont.
+  - TURN EVENTS 5
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+
+## Turn 24 — Early September 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Murat, drill` → ✗ Murat is recovering from retreat and cannot drill. Recovery: 2 turns remaining.
+- CMD `Massena, fortify` → ✓ Massena firmly objects: 'I would rather attack than sit idle.' (His loyalty is frayed by neglect — his victories remain unrewarded.) (Trust him and he will attack Archdu…
+  - POPUP objection: Massena, Massena firmly objects: 'I would rather attack than sit idle.' (His loyalty is frayed by neglect — his victories remain unrewarded.) (Trust him and he will attack Archduke John at Bohemia instead.) → trust
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Massena (lost 717, own corps) vs Archduke John (lost 3625) — Ney and Lannes's timely arrival bolstered Massena's position. Well-coordinated, Sire.
+- CMD `recruit 10000 infantry with Soult` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 24 ended. (Warning: 3 actions unused) Turn 25 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: form_square×1
+- LEDGER treasury 18173 · net +607 · threat 66 · provinces 21 (+0) · ceiling 23369 · army 98610 · vassals Holland 96 · Switzerland 92
+  - NET income 2661 · trade 237 · admin 50 · tribute 562 · upkeep 760 · charges 1889 · contributions 50 · requisitions 50 · occupation 45 · blockade 119 · admiralty 90
+- DISPATCH: Sire — Paget has crossed into Normandy. No French corps stands in his path.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - RAIL diplomatic_alliance_cascade: Bavaria enters the war via alliance with France.
+  - RAIL diplomatic_war_declared: Spain has declared war on France, shattering the Defensive Alliance, with 1 allied court poised to follow.
+  - RAIL diplomatic_alliance_cascade: Bavaria enters the war via alliance with France.
+  - RAIL diplomatic_war_declared: Ottoman has declared war on France, shattering the Open Borders Agreement, with 1 allied court poised to follow.
+  - RAIL diplomatic_alliance_cascade: Bavaria enters the war via alliance with France.
+  - RAIL +18 more
+  - TURN EVENTS 3
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as alliance.
+- COURTS: The court of Russia hardens over The Gulf and the Straits — prepared now to go as far as service to the strong.
+- DIPLO +19 medium/low (diplomatic_dp_regen, witness_strike_recorded ×7, diplomatic_relation_shift ×11)
+  - LOG defensive_cascade: Defensive cascade: Bavaria joins war via France
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG coalition_declared: The Fourth Austrian Coalition — Coalition formed against France! Members: Austria, Britain, Denmark, Hanover, Hesse, Naples, Ottoman, PapalStates, Po…
+  - LOG ai_ai_proposal_refused: 37 approaches from Prussia, Britain and Austria are rebuffed (defensive alliance)
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+
+## Turn 25 — Late September 1806
+- CMD `Ney, drill` → ✗ Ney cannot drill with enemy forces nearby! Blucher is at Franconia, just one region away.
+- CMD `Davout, unfortify` → ✓ Davout efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile.
+- CMD `Lannes, drill` → ✗ Lannes cannot drill with enemy forces nearby! Blucher is at Franconia, just one region away.
+- CMD `Soult, fortify` → ✓ Soult fortifies position at Swabia. Defense bonus: +2% (grows +2% per turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.
+- CMD `end turn` → ✓ Turn 25 ended. (Warning: 3 actions unused) Turn 26 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 18465 · net +257 · threat 64 · provinces 21 (+0) · ceiling 20600 · army 97831 · vassals Holland 100 · Switzerland 100
+  - NET income 2664 · trade 187 · admin 50 · tribute 562 · upkeep 752 · charges 1975 · contributions 300 · requisitions 50 · occupation 45 · blockade 94 · admiralty 90
+- DISPATCH: Sire — Spain and France are at war. Spain tears up the Defensive Alliance to do it.
+  - RAIL expedition_landed: THE LANDING: Paget has put 4,435 men ashore at Piedmont.
+  - TURN EVENTS 5
+- DIPLO +4 medium/low (diplomatic_dp_regen, sovereign_takes_field, diplomatic_auto_downgrade, paymaster_subsidy)
+  - LOG auto_downgrade: Relations auto-downgraded: Bavaria–France (ALLIANCE → DEFENSIVE ALLIANCE)
+  - LOG ai_ai_proposal_refused: 12 approaches from Prussia and Austria are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Austria (defensive alliance)
+
+## Turn 26 — Early October 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Murat, unfortify` → ✗ Murat is not currently fortified.
+- CMD `Massena, drill` → ✗ Massena cannot drill with enemy forces nearby! Hiller is at Carniola, just one region away.
+- CMD `Ney, fortify` → ✓ Ney firmly objects: 'I would rather attack than sit idle.' (His loyalty is frayed by neglect — his victories remain unrewarded.) (Trust him and he will attack Hiller at …
+  - POPUP objection: Ney, Ney firmly objects: 'I would rather attack than sit idle.' (His loyalty is frayed by neglect — his victories remain unrewarded.) (Trust him and he will attack Hiller at Carniola instead.) → trust
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 208, own corps) vs Hiller (lost 4243) — Davout, Lannes and Massena's timely arrival aided Ney. Murat, however, was conspicuously absent. And Hiller was taken o…
+  - POPUP capture_choice[capture]: Carniola, Ney → secure
+- CMD `end turn` → ✓ Turn 26 ended. (Warning: 3 actions unused) Turn 27 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+  - POPUP marshal_petition: fontainebleau, The marshals petition the Emperor → concede
+  -     ↳ "I will find the means." Rentes are granted: Ney (120g/turn); Davout (40g/turn); Murat (80g/turn); Massena (8…
+- LEDGER treasury 18825 · net -118 · threat 67 · provinces 22 (+1) · ceiling 17865 · army 95273 · vassals Holland 100 · Switzerland 100
+  - NET income 2701 · trade 187 · admin 50 · tribute 562 · upkeep 728 · charges 2079 · contributions 50 · occupation 97 · blockade 94 · admiralty 90 · rentes 480
+- DISPATCH: Sire — Marshal Hiller of Austria is taken at Carniola — he is our prisoner, and their order of battle is one commander shorter.
+  - TURN EVENTS 4
+- COURTS: The court of Sardinia eases over The House of Savoy Restored — an ultimatum is now the length of its tether.
+- COURTS: The court of Sweden eases over Scourge of the Usurper — an ultimatum is now the length of its tether.
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 500g reaches Hanover
+  - LOG british_subsidy: Britain's gold: 500g reaches Denmark
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+  - LOG ai_ai_proposal_refused: 11 approaches from Prussia and Britain are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Britain (defensive alliance)
+
+## Turn 27 — Late October 1806
+- CMD `Davout, drill` → ✓ Davout begins intensive drill exercises at Carniola. Troops will be locked in training next turn, bonus ready turn 29.
+- CMD `Lannes, fortify` → ✓ Lannes grumbles about defensive orders but complies. Lannes fortifies position at Carniola. Defense bonus: +2% (grows +2% per turn, max 8%) (Aggressive: max 8% only). Ca…
+- CMD `Soult, unfortify` → ✓ Soult abandons fortified position at Swabia. Army is now mobile.
+- CMD `recruit 10000 infantry with Lannes` → ✗ Berthier advises caution. 'Carniola is in Unrest (stability 35/100). The populace will not answer our call until stability exceeds 50.'
+- CMD `end turn` → ✓ Turn 27 ended. (Warning: 1 action unused) Turn 28 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 18656 · net -147 · threat 65 · provinces 22 (+0) · ceiling 17488 · army 93938 · vassals Holland 100 · Switzerland 100
+  - NET income 2704 · trade 187 · admin 50 · tribute 562 · upkeep 728 · charges 2111 · contributions 50 · occupation 97 · blockade 94 · admiralty 90 · rentes 480
+- DISPATCH: Sire — Paget has crossed into Normandy. No French corps stands in his path.
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 4,011 men ashore at Piedmont.
+  - TURN EVENTS 3
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 500g reaches Hesse
+  - LOG ai_ai_proposal_refused: 23 approaches from Prussia, Britain and Austria are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Britain and Austria (defensive alliance)
+
+## Turn 28 — Early November 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, unfortify` → ✗ Ney is not currently fortified.
+- CMD `Murat, fortify` → ✓ Murat grumbles about defensive orders but complies. [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Murat fortifies position at…
+- CMD `Massena, unfortify` → ✗ Massena is not currently fortified.
+- CMD `end turn` → ✓ Turn 28 ended. (Warning: 2 actions unused) Turn 29 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight. — Castanos marches from Aragon into Bearn unopposed! (305 lost to march) Captured: France → Spain
+  - 🏴 Spain: Castanos marches from Aragon into Bearn unopposed! (305 lost to march) Captured: France → Spain
+  - 🏴 Spain: Castanos moves from Bearn to Bordelais. Bordelais falls to Spain!
+  - verbs: attack×1, move×1
+- LEDGER treasury 18919 · net +237 · threat 63 · provinces 20 (-2) · ceiling 21280 · army 92645 · vassals Holland 100 · Switzerland 100
+  - NET income 2580 · trade 187 · admin 50 · tribute 562 · upkeep 712 · charges 1691 · occupation 75 · blockade 94 · admiralty 90 · rentes 480
+- DISPATCH: Sire — Bearn has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces …
+  - RAIL expedition_landed: THE LANDING: Paget has put 4,284 men ashore at Piedmont.
+  - TURN EVENTS 4
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG diplomatic_treaty_broken: Spain has broken the Defensive Alliance with France by declaring war.
+  - LOG ai_ai_proposal_refused: 14 approaches from Russia, Prussia and Austria are rebuffed (defensive alliance)
+
+## Turn 29 — Late November 1806
+- CMD `Davout, fortify` → ✓ Davout fortifies position at Carniola. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while forti…
+- CMD `Lannes, unfortify` → ✓ Lannes abandons fortified position at Carniola. Army is now mobile.
+- CMD `Soult, drill` → ✓ Soult drills his corps with Boulogne-camp precision at Swabia. Sharpen today, strike tomorrow — bonus ready turn 30, and he remains at your orders (though he cannot shif…
+- CMD `Ney, drill` → ✗ Ney cannot drill with enemy forces nearby! ArchdukeJohn is at Hungary, just one region away.
+- CMD `end turn` → ✓ Turn 29 ended. (Warning: 1 action unused) Turn 30 begins!
+- enemy phase: 5 actions, 2 attacks — Britain, Russia, Austria and 4 other courts stirred as well, but their formations remain beyond our sight. — Blucher attacks with overwhelming force. Blucher gains the advantage over Murat. Casualties: Blucher 1,706, Murat's arm… · Castanos marches from Bordelais into Guyenne unopposed! (146 lost to march) Captured: France → Spain
+  - 🏴 Prussia: Both armies remain in the field. Blucher advances into Tyrol. (254 lost to march) Tyrol has been captured by Prussia!
+  - 🏴 Spain: Castanos marches from Bordelais into Guyenne unopposed! (146 lost to march) Captured: France → Spain
+  - 🏴 Spain: Castanos moves from Guyenne to Anjou. Anjou falls to Spain!
+  - 🏴 Spain: Castanos moves from Anjou to Maine. Maine falls to Spain!
+  - ⚔ Blucher (lost 1706) vs Murat (lost 862, own corps) — Reinforcements from Lannes and Massena bolstered Murat's position — though Ney never arrived, Sire.
+  - verbs: move×3, attack×2
+- LEDGER treasury 17843 · net -752 · threat 61 · provinces 16 (-4) · ceiling 12357 · army 86607 · vassals Holland 100 · Switzerland 100
+  - NET income 2060 · trade 187 · admin 50 · tribute 562 · upkeep 664 · charges 2173 · contributions 50 · occupation 60 · blockade 94 · admiralty 90 · rentes 480
+- DISPATCH: Sire — Guyenne has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there force…
+  - TURN EVENTS 7
+- COURTS: The court of Austria eases over Revanche — an ultimatum is now the length of its tether.
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 500g reaches Papal States
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+  - LOG british_subsidy: Britain's gold: 500g reaches Ottoman Empire
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Russia (defensive alliance)
+  - LOG ai_ai_proposal_refused: 38 approaches rebuffed, chiefly from Prussia and Austria (defensive alliance)
+
+## Turn 30 — Early December 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Murat, drill` → ✗ Murat is recovering from retreat and cannot drill. Recovery: 2 turns remaining.
+- CMD `Massena, fortify` → ✗ Massena is recovering from retreat and cannot fortify. Recovery: 2 turns remaining.
+- CMD `recruit 10000 infantry with Davout` → ✓ Davout recruits 3,000 infantry at Carniola (field levy — no depot; capped at 3,000) - Cost: 765 gold (unstable region premium) (×3 at war) (Davout's intendance: -15%). M…
+- CMD `end turn` → ✓ Turn 30 ended. (Warning: 4 actions unused) Turn 31 begins!
+- SPENT 765g on this turn's orders
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Austria and 4 other courts stirred as well, but their formations remain beyond our sight. — Castanos marches from Maine into Brittany unopposed! (142 lost to march) Captured: France → Spain
+  - 🏴 Spain: Castanos marches from Maine into Brittany unopposed! (142 lost to march) Captured: France → Spain
+  - verbs: form_square×1, grant_dotation×1, attack×1
+- ENVOYS WAITING 1 · Austria peace
+- LEDGER treasury 15642 · net -1181 · threat 59 · provinces 15 (-1) · ceiling 8278 · army 87777 · vassals Holland 100 · Switzerland 100
+  - NET income 1962 · trade 187 · admin 50 · tribute 562 · upkeep 680 · charges 2188 · contributions 350 · occupation 60 · blockade 94 · admiralty 90 · rentes 480
+- DISPATCH: Sire — Brittany has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 3,834 men ashore at Piedmont.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - TURN EVENTS 6
+- DIPLO +5 medium/low (diplomatic_dp_regen, diplomatic_auto_downgrade, paymaster_subsidy, agenda_shift, diplomatic_relation_shift)
+  - LOG auto_downgrade: Relations auto-downgraded: Bavaria–France (DEFENSIVE ALLIANCE → NON AGGRESSION)
+  - LOG british_subsidy: Britain's gold: 500g reaches Saxony
+  - LOG ai_ai_proposal_refused: 49 approaches rebuffed among the courts (defensive alliance)
+  - LOG ai_ai_proposal_refused: 51 approaches rebuffed among the courts (defensive alliance)
+  - LOG diplomatic_treaty_broken: Russia was forced to break the Peace Treaty with France (cascade).
+
+## Turn 31 — Late December 1806
+  - MAILBOX #14 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Austria, peace #31 → accept
+  - POPUP proposal_result: You have accepted Austria's proposal. Treaty signed: At War → Peace with Austria. → display-only
+  - RATIFIED Austria · PEACE · enemy_victory
+- CMD `Ney, fortify` → ✓ Ney firmly objects: 'We outnumber them! Let me attack!' (Trust him and he will attack Archduke John at Hungary instead.)
+  - POPUP objection: Ney, Ney firmly objects: 'We outnumber them! Let me attack!' (Trust him and he will attack Archduke John at Hungary instead.) → trust
+  - POPUP diplomatic_dialogue: war_purpose_selection #32 → 1
+  - POPUP diplomatic_dialogue: force_declare_war_confirmation #33 → force_declare_war
+  - POPUP proposal_result: Sire, I must strongly advise against declaring war on Austria. Our threat level stands at 59 — the courts of Europe already whisper of coalition. Another war will only hasten their union against us. → display-only
+  - POPUP diplomatic_objection: diplomatic_declare_war, Austria → proceed
+- CMD `Davout, unfortify` → ✓ Davout efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile.
+- CMD `Lannes, drill` → ✗ Lannes is recovering from retreat and cannot drill. Recovery: 1 turn remaining.
+- CMD `Soult, fortify` → ✓ Soult fortifies position at Swabia. Defense bonus: +2% (grows +2% per turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.
+- CMD `end turn` → ✓ Turn 31 ended. (Warning: 2 actions unused) Turn 32 begins!
+- enemy phase: 12 actions, 7 attacks — Britain, Spain, the Ottoman Empire and 3 other courts stirred as well, but their formations remain beyond our sight. — Buxhowden attacks with overwhelming force. Buxhowden gains the advantage over Ney. Casualties: Buxhowden's army 1,299, … · Kutuzov holds them at Carniola while allies attack from Hungary! (+1 coordination) · Bennigsen holds them at Carniola while allies attack from Hungary! (+1 coordination) · Bennigsen holds them at Carniola while allies attack from Hungary! (+1 coordination)
+  - 🏴 Austria: [!] MARSHAL CAPTURED — Davout is taken by Austria at Bohemia!
+  - ⚔ Buxhowden (lost 513, own corps) vs Ney (lost 2818, own corps) — Ney held superior ground, yet Buxhowden prevailed. A grim day, Sire.
+  - ⚔ Kutuzov (lost 127, own corps) vs Murat (lost 2627, own corps) — Even Murat's fortifications could not hold, Sire. Kutuzov overran the position.
+  - ⚔ Bennigsen (lost 36, own corps) vs Lannes (lost 4968) — Lannes held superior ground, yet Bennigsen prevailed. A grim day, Sire.
+  - ⚔ Bennigsen (lost 49, own corps) vs Massena (lost 5023) — Massena held superior ground, yet Bennigsen prevailed. A grim day, Sire.
+  - ⚔ Archduke John (lost 77) vs Ney (lost 1019) — The toll on Ney's forces is heavy, Sire. This defeat will be felt.
+  - ⚔ Archduke John (lost 160) vs Davout (lost 1810) — Davout was driven from the field. His men are scattered. And Davout was taken on that field — Austria holds him.
+  - ⚔ Brunswick (lost 4531) vs Soult (lost 3728) — Where were Bernadotte and Napoleon? Soult held the field alone — reinforcement never came.
+  - verbs: attack×7, move×2, recruit×2, fortify×1
+- ORDER Lannes [awaiting_response]: Lannes is cornered at Carniola with 3,818 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+- ORDER Massena [awaiting_response]: Massena is cornered at Carniola with 7,037 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+- ORDER Murat [awaiting_response]: Murat is cornered at Carniola with 2,955 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+- ORDER Ney [awaiting_response]: Ney is cornered at Bohemia with 1,398 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+  - POPUP strategic_interrupt: Lannes, last_stand, Lannes is cornered at Carniola with 3,818 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+  - POPUP strategic_interrupt: Massena, last_stand, Massena is cornered at Carniola with 7,037 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+  - POPUP strategic_interrupt: Murat, last_stand, Murat is cornered at Carniola with 2,955 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+  - POPUP strategic_interrupt: Ney, last_stand, Ney is cornered at Bohemia with 1,398 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+- ENVOYS WAITING 1 · Russia armistice losing
+- LEDGER treasury 11200 · net +71 · threat 77 · provinces 15 (+0) · ceiling 11583 · army 40076 · vassals Holland 100 · Switzerland 100
+  - NET income 1873 · trade 187 · admin 50 · tribute 562 · upkeep 312 · charges 1700 · contributions 323 · occupation 82 · blockade 94 · admiralty 90
+- DISPATCH: Sire — Marshal Davout has been taken. Austria holds him prisoner.
+  - RAIL peace_ratified: Peace ratified between Austria and France.
+  - RAIL diplomatic_war_declared: France has declared war on Austria, shattering the Peace Treaty.
+  - RAIL expedition_landed: THE LANDING: Paget has put 4,090 men ashore at Piedmont.
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - TURN EVENTS 9
+- COURTS: The court of Sardinia hardens over The House of Savoy Restored — prepared now to go as far as war.
+- COURTS: The court of Sweden hardens over Scourge of the Usurper — prepared now to go as far as war.
+- DIPLO +5 medium/low (status_quo_titled, diplomatic_treaty_signed, witness_strike_recorded, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG ai_ai_proposal_refused: 39 approaches from Prussia, Russia and Austria are rebuffed (defensive alliance)
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG diplomatic_treaty_broken: France has broken the Peace Treaty with Austria by declaring war.
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG ai_ai_proposal_refused: 41 approaches from Prussia, Russia and Austria are rebuffed (defensive alliance)
+
+## Turn 32 — Early January 1807
+  - MAILBOX #15 Russia incoming_proposal: Russia — Armistice → activated
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #34 → accept
+  - POPUP proposal_result: You have accepted Russia's proposal. Treaty signed: At War → Armistice with Russia. → display-only
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Murat, unfortify` → ✗ Marshal Murat is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Massena, drill` → ✗ Marshal Massena is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Ney, unfortify` → ✗ Marshal Ney is a prisoner of Austria, Sire — no order can reach him until his release.
+- CMD `end turn` → ✓ Turn 32 ended. (Warning: 4 actions unused) Turn 33 begins!
+- enemy phase: 7 actions, 3 attacks — Britain, Russia, the Ottoman Empire and 3 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeJohn marches from Bohemia into Carniola unopposed! (182 lost to march) Captured: France → Austria · Brunswick engages in solid combat. Brutal stalemate between Brunswick and Soult. Heavy casualties on both sides: Brunsw… · Castanos marches from Normandy into Artois unopposed! (138 lost to march) Captured: France → Spain
+  - 🏴 Austria: ArchdukeJohn marches from Bohemia into Carniola unopposed! (182 lost to march) Captured: France → Austria
+  - 🏴 Spain: Castanos marches from Normandy into Artois unopposed! (138 lost to march) Captured: France → Spain
+  - ⚔ Brunswick (lost 3786) vs Soult (lost 4320) — Not one corps reached Soult. Bernadotte and Napoleon were expected; Soult fought the battle single-handed.
+  - verbs: attack×3, move×1, fortify×1, stance_change×1, recruit×1
+- LEDGER treasury 10979 · net -4 · threat 75 · provinces 13 (-2) · ceiling 10954 · army 35756 · vassals Holland 100 · Switzerland 100
+  - NET income 1700 · trade 187 · admin 50 · tribute 562 · upkeep 280 · charges 1709 · contributions 300 · occupation 30 · blockade 94 · admiralty 90
+- DISPATCH: Sire — Artois has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces…
+  - RAIL armistice_ratified: A truce with Russia: the fighting stops for 5 turns — peace if relations heal to -60 or better, else the war resumes.
+  - TURN EVENTS 2
+- DIPLO +3 medium/low (diplomatic_treaty_signed, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Britain (defensive alliance)
+
+## Turn 33 — Late January 1807
+- CMD `Davout, drill` → ✗ Marshal Davout is a prisoner of Austria, Sire — no order can reach him until his release.
+- CMD `Lannes, fortify` → ✗ Marshal Lannes is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Soult, unfortify` → ✓ Soult abandons fortified position at Swabia. Army is now mobile.
+- CMD `recruit 10000 infantry with Murat` → ✗ Berthier checks the order of battle. 'No marshal of infantry can reach Paris, Sire — none of ours stands within reach.' Bernadotte commands our foot at Lorraine — march …
+- CMD `end turn` → ✓ Turn 33 ended. (Warning: 3 actions unused) Turn 34 begins!
+- enemy phase: 7 actions, 2 attacks — Britain, Russia, the Ottoman Empire and 3 other courts stirred as well, but their formations remain beyond our sight. — Brunswick engages in solid combat. Brunswick gains the advantage over Soult. Casualties: Brunswick 2,872, Soult 4,620. … · Castanos marches from Artois into Champagne unopposed! (136 lost to march) Captured: France → Spain
+  - 🏴 Spain: Castanos marches from Artois into Champagne unopposed! (136 lost to march) Captured: France → Spain
+  - ⚔ Brunswick (lost 2872) vs Soult (lost 4620) — Soult stood alone, Sire. Bernadotte and Napoleon never came.
+  - verbs: attack×2, unfortify×1, move×1, stance_change×1, fortify×1, recruit×1
+- ENVOYS WAITING 1 · Austria peace
+- LEDGER treasury 10365 · net -307 · threat 73 · provinces 12 (-1) · ceiling 8806 · army 31136 · vassals Holland 100 · Switzerland 100
+  - NET income 1650 · trade 187 · admin 50 · tribute 562 · upkeep 240 · charges 1652 · contributions 650 · occupation 30 · blockade 94 · admiralty 90
+- DISPATCH: Sire — Champagne has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there for…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 3,704 men ashore at Piedmont.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 500g reaches Ottoman Empire
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Austria (defensive alliance)
+  - LOG british_subsidy: Britain's gold: 500g reaches Hanover
+  - LOG british_subsidy: Britain's gold: 500g reaches Denmark
+  - LOG ai_ai_proposal_refused: 36 approaches rebuffed, chiefly from Prussia and Austria (defensive alliance)
+
+## Turn 34 — Early February 1807
+  - MAILBOX #16 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Austria, peace #35 → accept
+  - POPUP proposal_result: You have accepted Austria's proposal. Treaty signed: At War → Peace with Austria. → display-only
+  - RATIFIED Austria · PEACE · enemy_victory
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Murat, fortify` → ✗ Marshal Murat is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Massena, unfortify` → ✗ Marshal Massena is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Ney, drill` → ✗ Ney cannot drill with enemy forces (Castanos) present at Paris!
+- CMD `end turn` → ✓ Turn 34 ended. (Warning: 4 actions unused) Turn 35 begins!
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Austria and 4 other courts stirred as well, but their formations remain beyond our sight. — Castanos launches a decisive assault. Castanos gains the advantage over Ney. Casualties: Castanos 807, Ney's army 2,568…
+  - ⚔ Castanos (lost 807) vs Ney (lost 1284, own corps) — A grievous defeat for Ney, Sire. The losses are severe.
+  - verbs: unfortify×1, stance_change×1, attack×1
+- ORDER Ney [awaiting_response]: Ney is cornered at Paris with 3,716 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+  - POPUP strategic_interrupt: Ney, last_stand, Ney is cornered at Paris with 3,716 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+- LEDGER treasury 8710 · net +272 · threat 70 · provinces 12 (+0) · ceiling 10055 · army 34852 · vassals Holland 100 · Switzerland 100
+  - NET income 1626 · trade 212 · admin 50 · tribute 562 · upkeep 264 · charges 1352 · contributions 276 · occupation 30 · blockade 106 · admiralty 90 · rentes 60
+- DISPATCH: Sire — Davout's corps has been broken at Paris. He must reform before he fights again.
+  - RAIL peace_ratified: Peace ratified between Austria and France.
+  - RAIL expedition_landed: THE LANDING: Paget has put 3,951 men ashore at Piedmont.
+  - TURN EVENTS 1
+- COURTS: The court of Sardinia eases over The House of Savoy Restored — an ultimatum is now the length of its tether.
+- COURTS: The court of Sweden eases over Scourge of the Usurper — an ultimatum is now the length of its tether.
+- DIPLO +4 medium/low (status_quo_titled, diplomatic_treaty_signed, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 500g reaches Papal States
+  - LOG ai_ai_proposal_refused: Holland and Switzerland rebuff Austria (defensive alliance)
+
+## Turn 35 — Late February 1807
+- CMD `Davout, fortify` → ✗ Davout is recovering from retreat and cannot fortify. Recovery: 1 turn remaining.
+- CMD `Lannes, unfortify` → ✗ Marshal Lannes is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Soult, drill` → ✗ Soult cannot drill with enemy forces nearby! Brunswick is at Franconia, just one region away.
+- CMD `Murat, drill` → ✗ Marshal Murat is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `end turn` → ✓ Turn 35 ended. (Warning: 4 actions unused) Turn 36 begins!
+- enemy phase: 4 actions, 1 attacks — Britain, Russia, Austria and 4 other courts stirred as well, but their formations remain beyond our sight. — Castanos launches a decisive assault. Castanos gains the advantage over Davout. Casualties: Castanos 149, Davout 1,477.…
+  - 🏴 Spain: [!] Davout's troops are BROKEN (morale 0%)! FORCED RETREAT! Castanos advances into Normandy. (113 lost to march) Normandy has been captured by Spain!
+  - ⚔ Castanos (lost 149) vs Davout (lost 1477) — A grievous defeat for Davout, Sire. The losses are severe.
+  - verbs: stance_change×1, recruit×1, attack×1, fortify×1
+- ENVOYS WAITING 2 · Britain armistice losing · Spain peace
+- LEDGER treasury 9345 · net +584 · threat 67 · provinces 11 (-1) · ceiling 12659 · army 33364 · vassals Holland 100 · Switzerland 100
+  - NET income 1582 · trade 162 · admin 50 · tribute 562 · upkeep 256 · charges 1292 · requisitions 37 · occupation 30 · blockade 81 · admiralty 90 · rentes 60
+- DISPATCH: Sire — Normandy has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc…
+  - RAIL diplomatic_ai_proposal: An envoy from Britain has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Spain has arrived with a proposal.
+  - RAIL allegiance_in_play: The allegiance of Sardinia is in play — every court with gold or standing now bids for the flip.
+  - TURN EVENTS 1
+- COURTS: The court of Sardinia eases over The House of Savoy Restored — service to the strong is now the length of its tether.
+- DIPLO +5 medium/low (diplomatic_dp_regen, diplomatic_auto_downgrade ×2, balance_of_europe_shifted, paymaster_subsidy)
+  - LOG auto_downgrade: Relations auto-downgraded: Bavaria–France (NON AGGRESSION → OPEN BORDERS)
+  - LOG balance_of_europe_shifted: British-led alignment leads the current largest alignment at 39% of active European bloc power.
+  - LOG auto_downgrade: Relations auto-downgraded: Austria–Russia (DEFENSIVE ALLIANCE → NON AGGRESSION)
+  - LOG british_subsidy: Britain's gold: 500g reaches Saxony
+
+## Turn 36 — Early March 1807
+  - MAILBOX #17 Britain incoming_proposal: Britain — Armistice → activated
+  - MAILBOX #18 Spain incoming_proposal: Spain — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Britain, armistice_losing #36 → accept
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Spain. Your earlier answer was not delivered; the matt…
+  - POPUP diplomatic_dialogue: incoming_proposal #37 → accept_ai_proposal
+  - POPUP proposal_result: You have accepted Spain's proposal. Treaty signed: At War → Peace with Spain. → display-only
+  - RATIFIED Spain · PEACE · enemy_victory
+  - POPUP diplomatic_dialogue: Britain, armistice_losing #36 → accept
+  - POPUP proposal_result: You have accepted Britain's proposal. Treaty signed: At War → Armistice with Britain. → display-only
+  - POPUP diplomatic_dialogue: Spain, peace #37 → accept
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, fortify` → ✓ Ney firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Castanos at Normandy instead.)
+  - POPUP objection: Ney, Ney firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Castanos at Normandy instead.) → trust
+  - POPUP diplomatic_dialogue: war_purpose_selection #38 → 1
+  - POPUP diplomatic_dialogue: force_declare_war_confirmation #39 → force_declare_war
+  - POPUP proposal_result: Sire, I must strongly advise against declaring war on Spain. Our threat level stands at 67 — the courts of Europe already whisper of coalition. Another war will only hasten their union against us. → display-only
+  - POPUP diplomatic_objection: diplomatic_declare_war, Spain → proceed
+- CMD `Massena, fortify` → ✗ Marshal Massena is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `recruit 10000 infantry with Soult` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 36 ended. (Warning: 3 actions unused) Turn 37 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight. — Brunswick's attack meets fierce resistance. Brunswick gains the advantage over Soult. Casualties: Brunswick 2,271, Soul…
+  - ⚔ Brunswick (lost 2271) vs Soult (lost 4035) — Where were Bernadotte and Napoleon? Soult held the field alone — reinforcement never came.
+  - verbs: attack×1
+- ORDER Bernadotte [continues]: Bernadotte marches to Orleanais. 3 regions to Paris.
+- ORDER Davout [completed]: Davout arrives at Paris. Davout: "Done, and done properly — no stragglers, no surprises."
+- ORDER Napoleon [continues]: Napoleon marches to Orleanais. 3 regions to Paris.
+- ORDER Soult [continues]: Soult marches to Lorraine. 4 regions to Paris.
+- ENVOYS WAITING 1 · Spain settlement offer
+- LEDGER treasury 8542 · net +568 · threat 64 · provinces 11 (+0) · ceiling 11679 · army 34329 · vassals Holland 100 · Switzerland 100
+  - NET income 1588 · trade 174 · admin 50 · tribute 562 · upkeep 264 · charges 1182 · occupation 30 · admiralty 90 · rentes 240
+- DISPATCH: Sire — the war with Spain is over. 4 corps stand on the wrong side of the new frontier. Berthier has given them the road home — Davout to Paris, Soult to Paris, Bernadotte to Paris, Napoleon to Paris…
+  - RAIL peace_ratified: Peace ratified between Spain and France.
+  - RAIL armistice_ratified: A truce with Britain: the fighting stops for 5 turns — peace if relations heal to -60 or better, else the war resumes.
+  - RAIL settlement_offer_arrival: Spain has offered terms to settle Spain vs France. Asking 3139 gold.
+  - RAIL diplomatic_armistice_expired_war: The armistice between France and Russia has collapsed. War resumes!
+  - RAIL strait_open: THE STRAIT: the Cagliari–Corsica crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Corsica–Piedmont crossing stands open to our armies.
+  - TURN EVENTS 2
+- DIPLO +4 medium/low (diplomatic_treaty_signed ×2, diplomatic_dp_regen, blockade_broken)
+  - LOG ai_ai_proposal_refused: Britain, Austria and Spain rebuff Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: Bavaria and Switzerland rebuff Britain (defensive alliance)
+  - LOG coalition_member_left: Spain has left the coalition.
+  - LOG ai_ai_proposal_refused: 25 approaches rebuffed, chiefly from Austria and Britain (defensive alliance)
+  - LOG ai_ai_proposal_refused: 25 approaches rebuffed, chiefly from Austria and Britain (defensive alliance)
+
+## Turn 37 — Late March 1807
+  - MAILBOX #19 Spain incoming_settlement_offer: Spain — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #40 → accept_settlement_offer
+  - POPUP diplomatic_dialogue: settlement_confirm #41 → confirm_settlement
+  - POPUP nation_proclamation: Normandy → display-only
+  - POPUP proposal_result: Settlement Ratified: France vs Denmark + Hanover + Hesse + Naples + Ottoman + PapalStates + Portugal + Sardinia + Saxony + Spain + Sweden (41 pairs resolved). → display-only
+- CMD `Davout, unfortify` → ✗ Davout is not currently fortified.
+- CMD `Lannes, drill` → ✗ Marshal Lannes is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Soult, fortify` → ✓ Soult fortifies position at Lorraine. Defense bonus: +2% (grows +2% per turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.
+- CMD `Murat, unfortify` → ✗ Marshal Murat is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `end turn` → ✓ Turn 37 ended. (Warning: 3 actions unused) Turn 38 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- ORDER Bernadotte [continues]: Bernadotte marches to Ile-de-France. 2 regions to Paris.
+- ORDER Napoleon [continues]: Napoleon marches to Ile-de-France. 2 regions to Paris.
+- ENVOYS WAITING 2 · Normandy non aggression · Holland client petition
+- LEDGER treasury 6653 · net +1020 · threat 61 · provinces 11 (+0) · ceiling 12195 · army 34329 · vassals Holland 98 · Switzerland 98
+  - NET income 1594 · trade 294 · admin 50 · tribute 562 · upkeep 264 · charges 856 · occupation 30 · admiralty 90 · rentes 240
+- DISPATCH: Sire — Soult is no nearer home, and the safe passage runs out in 2 turns. After that his corps will be interned where it stands.
+  - RAIL nation_created: By the fortune of arms and the pen at the table — Duchy of Normandy is erected upon the map, a client of Spain.
+  - RAIL settlement_summary: Settlement of Spain + Ottoman Empire + Sweden + Naples + Portugal + Denmark + Saxony + Hanover + Hesse + Papal States + Sardinia vs France + Bavaria …
+  - RAIL diplomatic_ai_proposal: An envoy from Normandy has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - TURN EVENTS 2
+- COURTS: The court of Russia eases over The Gulf and the Straits — alliance is now the length of its tether.
+- DIPLO +3 medium/low (diplomatic_dp_regen, agenda_shift ×2)
+  - LOG coalition_member_left: Ottoman has left the coalition.
+  - LOG coalition_member_left: Sweden has left the coalition.
+  - LOG coalition_member_left: Naples has left the coalition.
+  - LOG coalition_member_left: Portugal has left the coalition.
+  - LOG coalition_member_left: Denmark has left the coalition.
+  - LOG coalition_member_left: Saxony has left the coalition.
+  - LOG coalition_member_left: Hanover has left the coalition.
+  - LOG coalition_member_left: Hesse has left the coalition.
+  - LOG coalition_member_left: PapalStates has left the coalition.
+  - LOG coalition_member_left: Sardinia has left the coalition.
+  - LOG ai_ai_proposal_refused: 13 approaches from Prussia and Austria are rebuffed (defensive alliance)
+
+## Turn 38 — Early April 1807
+  - LETTER Normandy: Non-Aggression Pact → accept
+  - MAILBOX #21 Holland incoming_proposal: Holland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Holland, client_petition #43 → grant the petition
+  - POPUP proposal_result: Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +2 (98 → 100); bond -40 → -20 (-1 a turn). Cost: 1 DP. → display-only
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, unfortify` → ✗ Ney is not currently fortified.
+- CMD `Massena, drill` → ✗ Marshal Massena is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Lannes, fortify` → ✗ Marshal Lannes is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `end turn` → ✓ Turn 38 ended. (Warning: 4 actions unused) Turn 39 begins!
+- enemy phase: 2 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: unfortify×1, wait×1
+- ORDER Bernadotte [continues]: Bernadotte marches to Champagne. 1 region to Paris.
+- ORDER Napoleon [continues]: Napoleon marches to Champagne. 1 region to Paris.
+- ENVOYS WAITING 1 · Switzerland client petition
+- LEDGER treasury 7327 · net +548 · threat 58 · provinces 11 (+0) · ceiling 10253 · army 34194 · vassals Holland 99 · Switzerland 96
+  - NET income 1600 · trade 294 · admin 50 · tribute 225 · upkeep 264 · charges 997 · occupation 30 · admiralty 90 · rentes 240
+- DISPATCH: Sire — the war with Duchy of Normandy is over. Bernadotte, Napoleon, Soult hold under your own orders and were not moved — the treaty offers a road, it does not overrule the Emperor. Their passage la…
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 3
+- DIPLO +3 medium/low (diplomatic_treaty_signed, diplomatic_dp_regen, diplomatic_ai_ai_treaty)
+  - LOG diplomatic_ai_ai_treaty: AI-AI treaty: Sardinia and Austria (Defensive Alliance)
+
+## Turn 39 — Late April 1807
+  - MAILBOX #22 Switzerland incoming_proposal: Switzerland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #44 → grant the petition
+  - POPUP proposal_result: Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +4 (96 → 100); bond -40 → -20 (-1 a turn). Cost: 1 DP. → display-only
+- CMD `Davout, drill` → ✓ Davout begins intensive drill exercises at Paris. Troops will be locked in training next turn, bonus ready turn 41.
+- CMD `Soult, unfortify` → ✓ Soult abandons fortified position at Lorraine. Army is now mobile.
+- CMD `Murat, fortify` → ✗ Marshal Murat is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `recruit 10000 infantry with Lannes` → ✓ Ney recruits 10,000 infantry (nearest to capital) - Cost: 518 gold (capital discount) (×3 at war) (Ney's intendance: +15%). Morale: 50% -> 43%
+- CMD `end turn` → ✓ Turn 39 ended. (Warning: 2 actions unused) Turn 40 begins!
+- SPENT 518g on this turn's orders
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- ORDER Bernadotte [completed]: Bernadotte arrives at Paris. Bernadotte: "Accomplished as ordered. The army is intact."
+- ORDER Napoleon [completed]: Napoleon arrives at Paris.
+- LEDGER treasury 7125 · net +281 · threat 55 · provinces 11 (+0) · ceiling 8596 · army 43274 · vassals Holland 98 · Switzerland 99
+  - NET income 1600 · trade 294 · admin 50 · upkeep 328 · charges 975 · occupation 30 · admiralty 90 · rentes 240
+- DISPATCH: Sire — Soult is no nearer home, and the safe passage runs out in 1 turn. After that his corps will be interned where it stands.
+  - TURN EVENTS 2
+- COURTS: The court of Sardinia eases over The House of Savoy Restored — alliance is now the length of its tether.
+- DIPLO +2 medium/low (diplomatic_dp_regen, diplomatic_auto_downgrade)
+  - LOG auto_downgrade: Relations auto-downgraded: Britain–Russia (NON AGGRESSION → OPEN BORDERS)
+
+## Turn 40 — Early May 1807
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, drill` → ✓ Ney begins intensive drill exercises at Paris. Troops will be locked in training next turn, bonus ready turn 42.
+- CMD `Massena, fortify` → ✗ Marshal Massena is a prisoner of Russia, Sire — no order can reach him until his release.
+- CMD `Davout, fortify` → ✗ Davout is locked in drill exercises and cannot receive orders. Training completes turn 40.
+- CMD `end turn` → ✓ Turn 40 ended. (Warning: 3 actions unused) Turn 41 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: fortify×1
+- LEDGER treasury 7257 · net +106 · threat 52 · provinces 11 (+0) · ceiling 7812 · army 42382 · vassals Holland 97 · Switzerland 98
+  - NET income 1600 · trade 294 · admin 50 · upkeep 328 · charges 1003 · occupation 30 · blockade 147 · admiralty 90 · rentes 240
+- DISPATCH: Sire — Soult is no nearer home, and the safe passage runs out in 0 turns. After that his corps will be interned where it stands.
+  - RAIL diplomatic_armistice_expired_war: The armistice between Britain and France has collapsed. War resumes!
+  - RAIL strait_shut: THE STRAIT: the Cagliari–Corsica crossing is shut — Britain commands the water.
+  - RAIL strait_shut: THE STRAIT: the Corsica–Piedmont crossing is shut — Britain commands the water.
+  - TURN EVENTS 3
+- DIPLO +2 medium/low (diplomatic_dp_regen, blockade_begins)
+  - LOG ai_ai_proposal_refused: 3 approaches from Britain and Austria are rebuffed (defensive alliance)
+
+---
+finished: **completed** · commands 200 · popups 104 · battles 42
