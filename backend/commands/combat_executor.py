@@ -559,6 +559,20 @@ COUNTER_PUNCH_CREDITS_THE_CAPTURE = True
 # False = the shared "has already marched this turn" row. Display only.
 GUNS_LIMBERED_SAY_SO = True
 
+# SRX-10 (the session exit of September 27, 2026): the muster's CO-LOCATED
+# arm returned "shares the field" for every corps standing on the battle
+# province, while the resolver's casualty participants
+# (`_get_casualty_participants`) drop one that is broken, retreated this turn
+# or still recovering. Measured on the Chunk 4 evidence arm, turn 7: Archduke
+# John stood at Carniola in retreat recovery; the band for "Murat, attack
+# Mack" priced him ("even — a hard fight that may go against us", "Mack
+# does not stand alone") and the resolver fought Mack alone — Murat broke
+# him, 6,247 to 594. The co-located arm now reads the resolver's own
+# exclusions, for both sides of the muster (the defender's term feeds
+# `muster_odds`, the glory gate on both boards). Lever False = the
+# phantom joiner (the flip arm of tools/_sr_exit_residue_2026_09_27_series_arms.py).
+A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD = True
+
 # AAR24-X2 (Score Mandate Chunk 4 reserve, Sept 26 2026): the banked
 # counter-punch is consumed at the head of `_execute_attack`, and the
 # GARRISON exit — the one R1-6 did not reach — returned without the blow's
@@ -1344,6 +1358,14 @@ class CombatExecutor:
                 )
                 if not _has_support:
                     return False, "shares_the_field_apart"
+            # SRX-10: the resolver's own exclusions (`_get_casualty_
+            # participants`) — a corps broken, retreated this turn or still
+            # recovering stands on the field and does not fight.
+            if A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD and (
+                    getattr(candidate, 'broken', False)
+                    or getattr(candidate, 'retreated_this_turn', False)
+                    or getattr(candidate, 'retreat_recovery', 0) > 0):
+                return False, "broken_recovering"
             return True, "shares_the_field"
         # NV-9 (shown = applied): reinforcement Rule 2b refuses a corps
         # across a covered sea link, but this ladder had no naval arm —
@@ -1782,8 +1804,8 @@ class CombatExecutor:
             committed_attacker=committed_attacker,
             committed_defender=committed_defender,
             fold_modifiers=True)
-        # AAR32-D1: what the word promises ("even" — most likely a fight
-        # that decides nothing), printed after it on the band line.
+        # AAR32-D1: what the word promises ("even" — a hard fight that may
+        # well decide nothing), printed after it on the band line.
         odds_note = odds_band_note(odds_band, _weighed)
 
         # The hedge row, fog-honest: it names only corps the player can

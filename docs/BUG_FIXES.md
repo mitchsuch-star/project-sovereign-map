@@ -119,6 +119,16 @@
 ---
 
 
+## Score Mandate Session Exit — filed September 27, 2026 (**2 rows SRX-9 + SRX-10, BOTH FIXED by the session's residue slice the same day** — memo `docs/audits/SR_SESSION_EXIT_2026_09_27.md`; evidence: three played arms on both trees against `23bd2e57` (the two committed exit arms + Chunk 4's evidence arm `tools/playtest_scripts/sr_exit_chunk4_field.json`); landing record `SCORE_MANDATE_PLAN.md` §5; rules `SYSTEMS_REFERENCE.md` §73.7; pins `tests/test_sr_exit_residue_2026_09_27.py`; sweep `tools/_sweep_sr_exit_residue_2026_09_27.json`)
+
+| Row | Sev | Finding (with the verified producer) | Owner / fix shape |
+|---|---|---|---|
+| ~~**SRX-9**~~ | P3 | **A crisis card borrowed the routine tier's word.** The AAR arm, turn 13: Lannes's grievance with Murat grown entrenched (escalation level 2 — the CRISIS tier) arrived as a MODAL titled "Marshal Lannes seeks an audience"; B1 made "an audience" the routine tier's word (the rail's "Hear him", the Generals chip, the badge). `jealousy.queue_confrontation_petition` titled every level alike. | ✅ **FIXED September 27, 2026 (the session's residue)** — the title follows the tier through `petition_tier_for`: an audience "seeks an audience", a crisis "demands to be heard". Lever `THE_CRISIS_IS_NOT_AN_AUDIENCE`. Pins `TestTheCrisisIsNotAnAudience` (6). |
+| ~~**SRX-10**~~ | P2 | **The muster counted a spent corps as sharing the field (shown ≠ applied).** Chunk 4's evidence arm, turn 7: "Murat, attack Mack" read "the balance of force looks even — a hard fight that may go against us" and "Mack does not stand alone" — a probe of the band named the corps it priced: Archduke John, co-located at Carniola with `retreat_recovery` 1. The resolver's casualty participants (`_get_casualty_participants`) drop a corps that is broken, retreated this turn or recovering; `_muster_reason`'s co-located arm returned "shares the field" before any of those checks — so the band (both sides), the "does not stand alone" and shared-casualty lines and `muster_odds` (the glory gate, both boards) counted a corps the resolver would not commit. Murat broke Mack alone, 6,247 to 594. | ✅ **FIXED September 27, 2026 (the session's residue)** — the co-located arm reads the resolver's own exclusions (`broken_recovering`, "is in no condition to fight"); a drift pin holds it equal to the participant rule flag by flag. Lever `combat_executor.A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD`; a two-arm flip: 6 of 849 muster verdicts changed on the ambient board, no decision moved, `BASELINE_SERIES` byte-identical. Pins `TestASpentCorpsDoesNotShareTheField` (11). |
+
+---
+
+
 ## Score Mandate Session Exit — filed September 26, 2026 (**8 rows SRX-1 … SRX-8 — SRX-1 … SRX-4 FIXED by the session's residue slice the same day; SRX-7 + SRX-8 FIXED by the Chunk 4 reserve the same day; SRX-5 + SRX-6 OPEN, owned** — memo `docs/audits/SR_SESSION_EXIT_2026_09_26.md`; evidence: the two committed exit arms (`tools/playtest_scripts/sr_exit_first_contact.json` + `sr_exit_aar_typed.json`) run on both trees against `dc297b50` in a scratch worktree; landing record `SCORE_MANDATE_PLAN.md` §5; rules `SYSTEMS_REFERENCE.md` §73.3; pins `tests/test_sr_exit_residue_2026_09_26.py`; sweep `tools/_sweep_sr_exit_residue.json`)
 
 | Row | Sev | Finding (with the verified producer) | Owner / fix shape |

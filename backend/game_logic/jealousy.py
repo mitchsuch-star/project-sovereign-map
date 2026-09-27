@@ -2201,6 +2201,11 @@ PETITION_DORMANT = "dormant"
 THE_ANTECHAMBER = True
 PETITION_TIER_AUDIENCE = "audience"
 PETITION_TIER_CRISIS = "crisis"
+# SRX-9 (the session exit of September 27, 2026): "an audience" is the
+# routine tier's word; a §6 confrontation of the CRISIS tier is titled
+# "Marshal X demands to be heard". Display only. Lever False = one title
+# ("seeks an audience") for both tiers.
+THE_CRISIS_IS_NOT_AN_AUDIENCE = True
 
 
 def petition_tier_for(kind: str, context: Optional[Dict] = None) -> str:
@@ -2801,9 +2806,20 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
     _reopened = settled_once_clause(world, marshal, target)
     if _reopened:
         body = f"{_reopened} {body}"
+    # SRX-9 (the session exit of September 27, 2026): B1 made "an
+    # audience" the ROUTINE tier's word — the rail's "Hear him", the
+    # Generals chip, the badge — and the crisis card borrowed it: turn 13 of
+    # the AAR arm raised a MODAL titled "Marshal Lannes seeks an audience"
+    # for a breach grown entrenched. The title follows the tier.
+    _tier = petition_tier_for("jealousy_confrontation",
+                              {"escalation_level": int(level)})
+    _title = (f"Marshal {marshal.name} demands to be heard"
+              if THE_CRISIS_IS_NOT_AN_AUDIENCE
+              and _tier == PETITION_TIER_CRISIS
+              else f"Marshal {marshal.name} seeks an audience")
     return _push_petition(world, {
         "kind": "jealousy_confrontation",
-        "title": f"Marshal {marshal.name} seeks an audience",
+        "title": _title,
         "body": body,
         "speaker": marshal.name,
         # A14: the man says something. `speaker` has been set since v3.2
@@ -2862,8 +2878,7 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
         "context": {"marshal": marshal.name, "target": target.name,
                     "escalation_level": int(level)},
         # B1: the ruled tier table (L0/L1 an audience, L2/L3 a crisis).
-        "tier": petition_tier_for("jealousy_confrontation",
-                                  {"escalation_level": int(level)}),
+        "tier": _tier,
         "turn": int(world.current_turn),
     })
 

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "SRX-9 lever down (one title)",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_CRISIS_IS_NOT_AN_AUDIENCE = True\n",
+    "new": "THE_CRISIS_IS_NOT_AN_AUDIENCE = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_27.py::TestTheCrisisIsNotAnAudience::test_a_crisis_demands_to_be_heard"
+  },
+  {
+    "id": "SRX-9 the title ignores the tier",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "              if THE_CRISIS_IS_NOT_AN_AUDIENCE\n              and _tier == PETITION_TIER_CRISIS\n",
+    "new": "              if THE_CRISIS_IS_NOT_AN_AUDIENCE\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_27.py::TestTheCrisisIsNotAnAudience::test_an_audience_still_seeks_an_audience"
+  },
+  {
+    "id": "SRX-9 the card's tier is not the title's",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        \"tier\": _tier,\n",
+    "new": "        \"tier\": PETITION_TIER_AUDIENCE,\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_27.py::TestTheCrisisIsNotAnAudience::test_a_crisis_demands_to_be_heard"
+  },
+  {
+    "id": "SRX-10 lever down (the phantom joiner)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD = True\n",
+    "new": "A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_27.py::TestASpentCorpsDoesNotShareTheField::test_the_defenders_muster_drops_him"
+  },
+  {
+    "id": "SRX-10 a broken corps shares the field",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                    getattr(candidate, 'broken', False)\n                    or getattr(candidate, 'retreated_this_turn', False)\n                    or getattr(candidate, 'retreat_recovery', 0) > 0):\n                return False, \"broken_recovering\"\n            return True, \"shares_the_field\"",
+    "new": "                    getattr(candidate, 'retreated_this_turn', False)\n                    or getattr(candidate, 'retreat_recovery', 0) > 0):\n                return False, \"broken_recovering\"\n            return True, \"shares_the_field\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_27.py::TestASpentCorpsDoesNotShareTheField::test_the_preview_and_the_resolver_agree"
+  },
+  {
+    "id": "SRX-10 a recovering corps shares the field",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                    or getattr(candidate, 'retreat_recovery', 0) > 0):\n                return False, \"broken_recovering\"\n            return True, \"shares_the_field\"",
+    "new": "                    ):\n                return False, \"broken_recovering\"\n            return True, \"shares_the_field\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_27.py::TestASpentCorpsDoesNotShareTheField::test_the_band_no_longer_prices_the_phantom"
+  }
+]

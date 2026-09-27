@@ -1,0 +1,18 @@
+{
+ "name": "sr-exit-chunk4-field",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "Score Mandate Chunk 4's session-exit evidence arm (SCORE_MANDATE_PLAN.md §2 Chunk 4: 'a played arm that fights a garrison, a stacked defender and a rival's battle; petitions counted per turn'). Turns 1-6 are the Creative AAR player's own opening (sr_exit_aar_typed.json), which storms Vienna's works on turns 5-6; run with --objection insist --diplomacy decline the war stays open, and on turn 7 Mack and Archduke John stand STACKED at Carniola beside Ney and Murat at Tyrol (measured on the shipped board, September 26, 2026). Every French battle is a rival's battle (the MC-3 web: Ney-Soult/Murat/Bernadotte, Davout-Bernadotte, Murat-Lannes). Count petitions per turn with the digest's POPUP lines (marshal_petition = a modal, marshal_audience = the antechamber).",
+ "turns": {
+  "1": ["help", "what can I do", "who am I fighting and why", "Talleyrand, assess our situation", "who are we at war with", "Marshal Ney, you have the honour of the first blow. Fall upon Mack at Ulm before the Russians can reach him, and do not let him slip away down the Danube.", "status", "economy", "Napoleon, attack Mack", "Soult, march to Swabia"],
+  "2": ["build ships", "court Prussia", "Ney, move to Franconia", "Davout, move to Munich", "Murat, scout Tyrol"],
+  "3": ["buy off Austria", "what can I build", "recruit", "build market at Paris", "Ney, attack Bohemia", "Massena, fortify", "license Prussia against Hanover", "Lannes, move to Munich", "Massena, fortify", "Davout, fortify", "Davout, fortify"],
+  "4": ["build supply depot in Bohemia", "build watchtower in Bohemia", "Ney, scout Vienna", "Soult, move to Franconia", "Murat, move to Franconia", "Bernadotte, move to Bohemia"],
+  "5": ["Talleyrand, assess Austria", "recruit for Lannes", "what are Ney's odds against Vienna", "Soult, move to Bohemia", "Ney, attack Vienna", "Napoleon, move to Franconia", "Davout, fortify", "Davout, go defensive", "buy substitutes for Ney"],
+  "6": ["Soult, attack Vienna", "Murat, attack Vienna", "Napoleon, move to Bohemia", "Napoleon, move to Bohemia", "Ney, move to Vienna"],
+  "7": ["who is at Carniola", "what are Ney's odds against Archduke John", "Ney, attack Archduke John", "Murat, attack Mack", "status"],
+  "8": ["who is at Vienna", "Soult, attack Vienna", "Bernadotte, attack Vienna", "status"],
+  "9": ["status", "Is Vienna safe?"],
+  "10": ["status"]
+ }
+}
