@@ -225,27 +225,17 @@ class PopupQueue:
         else:
             self._queue[canonical_type] = value
 
-    # ── Serialization ──
+    # ── Inspection (NOT serialization) ──
+    #
+    # PC15-10 B2 (F10): `to_dict`/`from_dict` were a third serialization
+    # path lying next to the two real ones and read by no production code —
+    # a save persists the queue through the world's popup PROPERTIES
+    # (`WorldState.to_dict`/`from_dict`), and the marshal petition through
+    # its plain field plus the S9 re-prime. Deleted, so nobody wires a save
+    # to the wrong one. `snapshot` is a read-only copy for inspection.
 
-    def to_dict(self) -> dict:
-        """Serialize popup queue state."""
-        serialized = {}
-        for popup_type, value in self._queue.items():
-            if value is None:
-                continue
-            canonical_type = self._canonicalize_popup_type(popup_type)
-            if canonical_type not in serialized or popup_type == canonical_type:
-                serialized[canonical_type] = value
-        return serialized
-
-    @classmethod
-    def from_dict(cls, data: dict) -> 'PopupQueue':
-        """Deserialize from save data."""
-        q = cls()
-        for popup_type, value in data.items():
-            if value is None:
-                continue
-            canonical_type = cls._canonicalize_popup_type(popup_type)
-            if canonical_type not in q._queue or popup_type == canonical_type:
-                q._queue[canonical_type] = value
-        return q
+    def snapshot(self) -> dict:
+        """A copy of the live queue, keyed by canonical type (inspection
+        only — persistence rides the world's popup properties)."""
+        return {self._canonicalize_popup_type(k): v
+                for k, v in self._queue.items() if v is not None}

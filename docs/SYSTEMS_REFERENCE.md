@@ -8067,3 +8067,40 @@ Memo `docs/audits/SR_SESSION_EXIT_2026_09_27.md` (SR-4c, B1 and the Chunk 4 rese
 - **The crisis is not an audience (SRX-9).** B1 made "an audience" the routine tier's word; the §6 confrontation's title now follows its tier through `petition_tier_for` — an AUDIENCE card "Marshal X seeks an audience", a CRISIS card (level 2+) "Marshal X demands to be heard". Display only. Lever `jealousy.THE_CRISIS_IS_NOT_AN_AUDIENCE`.
 - **A spent corps does not share the field (SRX-10).** `CombatExecutor._muster_reason`'s CO-LOCATED arm reads the resolver's own exclusions (`_get_casualty_participants`): a corps broken, retreated this turn or still recovering returns `broken_recovering` ("is in no condition to fight") instead of "shares the field". It reaches the band on both sides of the muster, the "does not stand alone" and shared-casualty lines, and `muster_odds` (the glory gate, both boards). A drift pin holds the arm's verdict equal to the participant rule flag by flag. Lever `combat_executor.A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD`.
 - **Measured.** The exit found SRX-10 on the evidence arm's turn 7 (a recovering Archduke John priced into "even — a hard fight that may go against us" before Murat broke Mack alone, 6,247 to 594). A two-arm flip: the lever changed 6 of 849 muster verdicts on the ambient board and moved no decision — `BASELINE_SERIES` byte-identical on both arms, the end-state provinces too; M1–M7 + the AI-V assurance byte-identical (81 passed). The jealousy family (6,100 passed) and the muster family (4,519 passed) green.
+
+### 73.8 PC15-10 B2 — The petition dies with its subject (`PETITION_POPUP_REVISIT_SPEC.md` §4 F2 + F10, §6 Q3 CONFIRMED; September 27, 2026)
+
+Record `PETITION_POPUP_REVISIT_SPEC.md` §9 (the B2 row, authoritative); landing `SCORE_MANDATE_PLAN.md` §2 Chunk 4 (the SR-4c line). Pins `tests/test_b2_the_petition_dies_with_its_subject.py` 32; sweep `tools/_sweep_b2.json` 25/25 killed, 0 INERT; attribution `tools/_b2_series_arms.py` (+ `.json`). Levers `jealousy.THE_PETITION_DIES_WITH_ITS_SUBJECT`, `jealousy.THE_NEWER_WORD_SUPERSEDES`, `world_state.THE_LOADED_POPUP_IS_STILL_TRUE`.
+
+- **One predicate, every kind (F2).** `jealousy.petition_retirement_reason(petition, world)` returns `""` while a card still stands, else why it retires:
+  - a §6 confrontation: `absent` (the man cannot press it — gone, broken to nothing, captured), `cooled` (he no longer resents the colleague it names), or `moved_on` (**S7**: the stamped `escalation_level` is read at last — a card written a rung behind the pair's live level never serves);
+  - a §6b rivalry: `absent`, or `mended` (the STORED value between them — S4's rule, never the derived one — rose above the transition the card announced);
+  - Fontainebleau: `provided` (no named petitioner still erodes);
+  - war-weary: `court_gone`, or `at_war` (a war begun by another road — the stored declaration dies with it);
+  - the shadow petition: `absent`, or `no_shadow` (he no longer stands on his sovereign's province).
+  `petition_is_still_live` is its negation. No numeric TTL.
+- **Every seam asks:**
+  - the per-turn re-push, both tiers;
+  - the ordinary drain — `main._pop_deliverable_popup` reaps a stale card and delivers the next popup in the same cycle (it was the one delivery seam that never asked);
+  - the end-turn `deferred_marshal_petition` key — it retires at once instead of leaving the card for the next re-push;
+  - the antechamber's `GET /marshal_petition` — the message names why;
+  - the answer — `handle_petition_response`, for every kind but the §6 confrontation (which keeps A3's pinned guard), returns "The moment has passed — … Nothing was spent." and charges nothing;
+  - the load (F10, below).
+- **Nothing retires silently (Q3).** `jealousy.retire_petition(world, petition, reason)` is THE retirement: the slot, the queue copy and the antechamber's rail row go, and ONE receipt line — `petition_retired`, "Berthier notes that …", naming who and why — rides the turn events. It is whitelisted in `dispatch._DISPATCH_EVENT_TYPES` and exempt from the drama cap (`JEALOUSY_NARRATION_EXEMPT`: a receipt collapsed into "…further matters" would be semi-silent — B0's F3 reasoning). B1 had retired a stale CRISIS in silence.
+- **The newer word supersedes (F1 item 5).** In `_push_petition`, before the occupancy rule, a card of a pair kind (`jealousy_confrontation` / `rivalry_confrontation`) about the same two men, in either order (`petition_supersedes`), replaces the standing card with a `superseded` receipt.
+  - The older card's latch key stays stamped: its moment is subsumed, not withdrawn. That is what distinguishes supersede from B1's eviction of a DIFFERENT pair's audience (latch un-stamped, so it returns).
+  - The mutual spiral's level-3 card from the other man now reaches the player instead of being blocked behind his rival's level-2 card.
+- **The load asks too (F10).** `WorldState._retire_stale_restored_popups()` runs at the end of `from_dict`, once the marshals, treaties and dialogues are back. It retires:
+  - the marshal petition, on F2's predicate (after the S9 re-prime, which it undoes for a stale card);
+  - the rebellion warnings PC15-17 retired inline — now each with a receipt;
+  - an envoy or settlement letter whose `dialogue_id` the manager no longer holds, or whose court has left the active nations;
+  - a Proclamation for a nation with no formation record, or no longer active.
+  Each leaves a `popup_retired` receipt ("Berthier notes that …", with its `slot`). `PopupQueue.to_dict`/`from_dict` — a third serialization path read by no production code — are deleted; `PopupQueue.snapshot()` is inspection only (persistence rides the world's popup properties).
+  **A load primes no cache.** The pass reads `get_active_nations()` (and a war-weary card's predicate does too), which fills the per-turn nation and region caches; `from_dict` never filled them before, and a caller that re-draws the map straight after a load (every fixture that strips a province off a copied world) read the stale cache — four IQ-1 economy pins, found by the pre-commit hook. The pass ends with `invalidate_active_nations_cache()`.
+- **Measured.** `BASELINE_SERIES` byte-identical on both arms of `tools/_b2_series_arms.py`, with the reach counted: the ambient board queues 23 petitions (re-pushes included) and retires ONE — a cooled confrontation, identical on both arms. There is no rivalry mend, no Fontainebleau and no supersede on a passive France, which is why the series cannot move (the channel is the player's court; F10 runs at load, which the sim never does). M1–M7 + the AI-V assurance byte-identical (81 passed). The 46-file petition and popup-queue family green (2,466 passed).
+- **Pins re-seated consciously:**
+  - B1's retirement-receipt pin — the type is `petition_retired` now (`marshal_audience` behind the lever);
+  - FA slice 6's crisis fixture — its card was stamped level 2 on a pair at level 0, S7's own case, so the fixture's quarrel is made real at that rung;
+  - the PopupQueue round-trip pins — the dead path is gone;
+  - the drama cap's exempt-tuple pin (`test_ca9_row3_a13_drama_cap.py`) — `petition_retired` joins, found by the hook.
+  Zero `.gd`.

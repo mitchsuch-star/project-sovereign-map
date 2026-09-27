@@ -214,22 +214,17 @@ class TestPopupQueueUnit:
         assert PopupQueue.RESPONSE_KEYS["diplomatic_sabotage_popup"] == "diplomatic_sabotage"
         assert PopupQueue.RESPONSE_KEYS["incoming_proposal_popup"] == "incoming_proposal"
 
-    def test_to_dict_from_dict_roundtrip(self):
-        """Serialization roundtrip preserves queue state."""
+    def test_the_queue_is_not_a_serialization_path(self):
+        """PC15-10 B2 (F10), a conscious flip of the two round-trip pins that
+        stood here: `to_dict`/`from_dict` were a third serialization path read
+        by no production code (a save persists the queue through the world's
+        popup properties). They are deleted; `snapshot` is inspection only."""
         q = PopupQueue()
-        q.push("coalition_popup", {"name": "Third Coalition"})
+        assert not hasattr(q, "to_dict")
+        assert not hasattr(PopupQueue, "from_dict")
         q.push("diplomatic_objection_popup", {"severity": "STRONG"})
-        data = q.to_dict()
-        loaded = PopupQueue.from_dict(data)
-        assert loaded.get("coalition_popup") == {"name": "Third Coalition"}
-        assert loaded.get("diplomatic_objection_popup") == {"severity": "STRONG"}
-
-    def test_empty_queue_roundtrip(self):
-        """Empty queue survives roundtrip."""
-        q = PopupQueue()
-        data = q.to_dict()
-        loaded = PopupQueue.from_dict(data)
-        assert not loaded.has_pending()
+        assert q.snapshot() == {"diplomatic_objection_popup": {"severity": "STRONG"}}
+        assert PopupQueue().snapshot() == {}
 
 
 # ════════════════════════════════════════════════════════════════════════════════

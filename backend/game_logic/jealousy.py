@@ -2407,6 +2407,14 @@ def _push_petition(world, petition: Dict) -> str:
             return PETITION_BLOCKED
     pending = getattr(world, "pending_marshal_petition", None)
     tier = petition_tier(petition)
+    # B2 (spec §4 F1 item 5 / F2): a newer word about the SAME pair replaces
+    # the older card — before the occupancy rule, so an L1 audience yields
+    # to its own pair's L2 crisis as SUPERSEDED (latch kept: its moment is
+    # subsumed) rather than EVICTED (latch un-stamped: to return later).
+    if (THE_NEWER_WORD_SUPERSEDES and pending is not None
+            and petition_supersedes(petition, pending)):
+        retire_petition(world, pending, "superseded")
+        pending = None
     if pending is not None and pending is not petition:
         # B1 (spec §4 F1 item 4): one card at a time is still the law —
         # except that a CRISIS evicts an AUDIENCE (withdrawn, not lost).
@@ -2541,28 +2549,268 @@ def petition_is_still_live(petition: Dict, world) -> bool:
     ONE predicate, sharing its rule with `handle_petition_response`'s
     answer-time guard: a confrontation card names the marshal and the
     colleague he resented, and it is stale the moment his resentment has
-    moved on (or he is in no position to ask). Every other kind is live by
-    default — this is deliberately not a general liveness sweep; it answers
-    the one question the Phase-3 evidence asked.
+    moved on (or he is in no position to ask).
+
+    B2 (PETITION_POPUP_REVISIT_SPEC §4 F2) generalizes it to every kind —
+    each card dies with its SUBJECT — through `petition_retirement_reason`,
+    which also says WHY, so a retirement can never be silent. Lever down
+    (`THE_PETITION_DIES_WITH_ITS_SUBJECT`) = the FA-S17-D4 question only.
     """
-    if not THE_AUDIENCE_IS_STILL_OWED:
-        return True
+    return not petition_retirement_reason(petition, world)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PC15-10 B2 — F2 "Subject-linked retirement" (PETITION_POPUP_REVISIT_SPEC
+# §4 F2, §6 Q3 CONFIRMED: no numeric TTL; supersede by the same pair; every
+# retirement a one-line receipt).
+#
+# A petition expires when its SUBJECT dies. The table (spec §4 F2):
+#   * jealousy_confrontation — the marshal exists, stands, still resents
+#     the colleague the card names, AND the pair's escalation level is still
+#     the one the card was written at (S7: the stamped level was write-only;
+#     a card whose register is a rung behind the quarrel never serves);
+#   * rivalry_confrontation  — both men stand and the STORED value between
+#     them is still at or below the transition the card announced (a
+#     mended pair's card retires);
+#   * fontainebleau          — at least one named petitioner still erodes;
+#   * war_weary              — the court he counselled against is still at
+#     peace with us and still exists (a war begun by another road makes the
+#     objection moot, and the stored declaration dies with it);
+#   * shadow_command         — (predates the table) he still stands under
+#     his sovereign's eye.
+# The per-kind predicates mirror the answer-time guards (A3's discipline):
+# the question "is this still true?" is asked at every seam that could
+# otherwise hand the player a card about nothing — the per-turn re-push,
+# both delivery seams, the antechamber's GET, the answer, and the load.
+#
+# Nothing retires silently: `retire_petition` is the ONE retirement, and it
+# always leaves a receipt line (`petition_retired`, a dispatch-only type,
+# exempt from the drama cap — a receipt that collapsed into "…further
+# matters" would make the retirement semi-silent again, B0's F3 reasoning).
+#
+# Supersede (F1 item 5): a newer card about the SAME pair — the same kind,
+# the same two men in either order — replaces the older one in
+# `_push_petition`, with a receipt. The older card's latch stays stamped:
+# its moment is subsumed, not withdrawn (the eviction rule un-stamps
+# because an evicted audience is a DIFFERENT pair's moment, still owed).
+#
+# Lever down = the channel as B1 left it: FA-S17-D4's confrontation
+# question at the re-push, a receipt for an audience only, no supersede.
+# ═══════════════════════════════════════════════════════════════════════
+THE_PETITION_DIES_WITH_ITS_SUBJECT = True
+THE_NEWER_WORD_SUPERSEDES = True
+
+PETITION_SUPERSEDE_KINDS = ("jealousy_confrontation", "rivalry_confrontation")
+
+
+def _standing_man(marshal) -> bool:
+    return (marshal is not None
+            and int(getattr(marshal, "strength", 0) or 0) > 0
+            and not getattr(marshal, "captured_by", ""))
+
+
+def _petition_pair(petition) -> Optional[Tuple[str, str]]:
+    """The unordered pair a pair-kind card is about, else None."""
     if not isinstance(petition, dict):
-        return True
-    if str(petition.get("kind") or "") != "jealousy_confrontation":
-        return True
+        return None
+    kind = str(petition.get("kind") or "")
     context = petition.get("context") or {}
-    asked_about = context.get("target") or petition.get("target")
-    marshal_name = (context.get("marshal") or petition.get("marshal")
-                    or petition.get("speaker"))
-    if not asked_about or not marshal_name:
+    first = str(context.get("marshal") or petition.get("marshal")
+                or petition.get("speaker") or "")
+    if kind == "jealousy_confrontation":
+        second = str(context.get("target") or petition.get("target") or "")
+    elif kind == "rivalry_confrontation":
+        second = str(context.get("other") or "")
+    else:
+        return None
+    if not first or not second:
+        return None
+    return tuple(sorted((first, second)))
+
+
+def petition_supersedes(newer, older) -> bool:
+    """True when `newer` is a later word about the same pair as `older`."""
+    if not isinstance(newer, dict) or not isinstance(older, dict):
+        return False
+    if newer is older:
+        return False
+    kind = str(newer.get("kind") or "")
+    if kind not in PETITION_SUPERSEDE_KINDS or kind != str(older.get("kind") or ""):
+        return False
+    pair = _petition_pair(newer)
+    return pair is not None and pair == _petition_pair(older)
+
+
+def _nation_still_stands(world, nation: str) -> bool:
+    """A court that still holds ground or an army (an eliminated court holds
+    neither). Read cheaply: the per-turn active-nations cache."""
+    if not nation:
+        return False
+    try:
+        return nation in (world.get_active_nations() or [])
+    except Exception:
         return True
-    marshal = world.get_marshal(marshal_name)
-    if marshal is None:
-        return False
-    if int(getattr(marshal, "strength", 0) or 0) <= 0 or getattr(marshal, "captured_by", ""):
-        return False
-    return getattr(marshal, "jealous_of", None) == asked_about
+
+
+def petition_retirement_reason(petition, world) -> str:
+    """"" while the card still stands; otherwise the reason it retires:
+    ``absent`` · ``cooled`` · ``moved_on`` · ``mended`` · ``provided`` ·
+    ``at_war`` · ``court_gone`` · ``no_shadow``."""
+    if not THE_AUDIENCE_IS_STILL_OWED:
+        return ""
+    if not isinstance(petition, dict):
+        return ""
+    kind = str(petition.get("kind") or "")
+    context = petition.get("context") or {}
+    if kind == "jealousy_confrontation":
+        asked_about = context.get("target") or petition.get("target")
+        marshal_name = (context.get("marshal") or petition.get("marshal")
+                        or petition.get("speaker"))
+        if not asked_about or not marshal_name:
+            return ""
+        marshal = world.get_marshal(marshal_name)
+        if not _standing_man(marshal):
+            return "absent"
+        if getattr(marshal, "jealous_of", None) != asked_about:
+            return "cooled"
+        # S7: the stamped level is read at last. A card written at one rung
+        # and still standing after the quarrel climbed another would serve
+        # the old register against the new state.
+        if (THE_PETITION_DIES_WITH_ITS_SUBJECT
+                and "escalation_level" in context):
+            try:
+                stamped = int(context.get("escalation_level") or 0)
+            except (TypeError, ValueError):
+                stamped = 0
+            if stamped != get_escalation_level(marshal, str(asked_about)):
+                return "moved_on"
+        return ""
+    if not THE_PETITION_DIES_WITH_ITS_SUBJECT:
+        return ""
+    if kind == "rivalry_confrontation":
+        marshal = world.get_marshal(str(context.get("marshal") or ""))
+        other = world.get_marshal(str(context.get("other") or ""))
+        if not _standing_man(marshal) or not _standing_man(other):
+            return "absent"
+        try:
+            announced = int(context.get("new_value", -1))
+        except (TypeError, ValueError):
+            announced = -1
+        stored = int((getattr(marshal, "relationships", {}) or {}).get(
+            other.name, 0) or 0)
+        return "" if stored <= announced else "mended"
+    if kind == "fontainebleau":
+        names = context.get("marshals", []) or []
+        for name in names:
+            man = world.get_marshal(str(name))
+            if _standing_man(man) and dotation.is_eroding(man, world):
+                return ""
+        return "provided"
+    if kind == "war_weary":
+        target_nation = str(context.get("target_nation") or "")
+        if not target_nation:
+            return ""
+        if not _nation_still_stands(world, target_nation):
+            return "court_gone"
+        player = getattr(world, "player_nation", "")
+        try:
+            if world.is_at_war(player, target_nation):
+                return "at_war"
+        except Exception:
+            pass
+        return ""
+    if kind == "shadow_command":
+        marshal = world.get_marshal(str(context.get("marshal") or
+                                        petition.get("speaker") or ""))
+        if not _standing_man(marshal):
+            return "absent"
+        if _sovereign_locations(world).get(marshal.nation) != marshal.location:
+            return "no_shadow"
+        return ""
+    return ""
+
+
+def petition_retirement_clause(petition, world, reason: str) -> str:
+    """The receipt's sentence after "Berthier notes that " — and after
+    "The moment has passed — " on the answering surfaces. Names who and why."""
+    petition = petition if isinstance(petition, dict) else {}
+    context = petition.get("context") or {}
+    speaker = humanize_entity_name(_petition_speaker(petition))
+    kind = str(petition.get("kind") or "")
+    if reason == "superseded":
+        if kind == "rivalry_confrontation":
+            other = humanize_entity_name(str(context.get("other") or ""))
+            return (f"the quarrel between {speaker} and {other} has gone "
+                    f"further; the earlier word is overtaken.")
+        return f"{speaker}'s earlier complaint is overtaken by graver words."
+    if not THE_PETITION_DIES_WITH_ITS_SUBJECT:
+        return f"{speaker} no longer presses the matter."
+    if kind == "jealousy_confrontation":
+        target = humanize_entity_name(str(context.get("target") or ""))
+        if reason == "absent":
+            return (f"{speaker} no longer presses the matter — he is in no "
+                    f"position to press it.")
+        if reason == "moved_on":
+            return (f"{speaker} no longer presses the matter as he put it — "
+                    f"the quarrel with {target} has moved past his words.")
+        return (f"{speaker} no longer presses the matter — his quarrel with "
+                f"{target} has cooled.")
+    if kind == "rivalry_confrontation":
+        other = humanize_entity_name(str(context.get("other") or ""))
+        if reason == "absent":
+            return (f"the quarrel between {speaker} and {other} no longer "
+                    f"waits on the council — one of them has left the field.")
+        return (f"the quarrel between {speaker} and {other} has mended; the "
+                f"council no longer waits on it.")
+    if kind == "fontainebleau":
+        return ("the marshals' petition is answered by events — every "
+                "petitioner is now provided for.")
+    if kind == "war_weary":
+        court = humanize_entity_name(str(context.get("target_nation") or ""))
+        if reason == "court_gone":
+            return (f"{speaker}'s counsel against war with {court} is moot — "
+                    f"that court is no more.")
+        return (f"{speaker}'s counsel is overtaken — the war with {court} "
+                f"began by another road.")
+    if kind == "shadow_command":
+        if reason == "absent":
+            return (f"{speaker} no longer asks for a command — he is in no "
+                    f"position to hold one.")
+        return (f"{speaker} no longer asks for a command — he no longer "
+                f"stands in the Emperor's shadow.")
+    return f"{speaker} no longer presses the matter."
+
+
+def retire_petition(world, petition, reason: str) -> str:
+    """THE one retirement (F2 / Q3): the slot, the queue copy and the rail
+    row go, and one receipt line says who and why. Returns the clause."""
+    clause = petition_retirement_clause(petition, world, reason)
+    was_audience = petition_tier(petition) == PETITION_TIER_AUDIENCE
+    _retire_pending_petition(world, petition)
+    speaker = _petition_speaker(petition)
+    if THE_PETITION_DIES_WITH_ITS_SUBJECT:
+        _pending_events(world).append({
+            "type": "petition_retired",
+            "message": f"Berthier notes that {clause}",
+            "nation": getattr(world, "player_nation", ""),
+            "marshal": speaker,
+            "kind": str((petition or {}).get("kind") or ""),
+            "reason": reason,
+            "retired": True,
+        })
+    elif was_audience:
+        # B1's receipt, unchanged (lever down): an audience said so; a
+        # crisis retired silently at the next re-push.
+        _pending_events(world).append({
+            "type": "marshal_audience",
+            "message": (f"Berthier notes that "
+                        f"{humanize_entity_name(speaker)} no longer presses "
+                        f"the matter."),
+            "nation": getattr(world, "player_nation", ""),
+            "marshal": speaker,
+            "retired": True,
+        })
+    return clause
 
 
 def refresh_petition_affordability(petition: Dict, world) -> Dict:
@@ -3379,6 +3627,21 @@ def handle_petition_response(world, choice: str, executor=None,
     kind = petition.get("kind")
     context = petition.get("context", {}) or {}
 
+    # B2 (spec §4 F2): the answer is the last seam that could charge the
+    # player for a moment that has passed. The confrontation keeps A3's own
+    # guard below (its sentence is the pinned one); every other kind asks
+    # the same subject predicate the re-push asks, and retires with its
+    # receipt instead of applying an arm to a quarrel that has mended, a
+    # petition every man has been paid for, a war already begun, or a
+    # marshal who has left the Emperor's side.
+    if THE_PETITION_DIES_WITH_ITS_SUBJECT and kind != "jealousy_confrontation":
+        _why = petition_retirement_reason(petition, world)
+        if _why:
+            _clause = retire_petition(world, petition, _why)
+            return {"success": True,
+                    "message": f"The moment has passed — {_clause} "
+                               f"Nothing was spent."}
+
     # ══════════════════════════════════════════════════════════════════
     # PT-A1 — A REFUSAL MUST NOT DESTROY THE DECISION.
     #
@@ -3935,6 +4198,9 @@ JEALOUSY_NARRATION_EXEMPT = (
     # would make the loss semi-silent again, defeating their only purpose.
     "rivalry_blocked_note",
     "war_weary_blocked_note",
+    # PC15-10 B2 (F2 / Q3): the retirement receipt is the ONLY surface a
+    # retired card leaves — collapsed into the tail it would be semi-silent.
+    "petition_retired",
 )
 
 # `jealousy_escalation` is NOT exempt wholesale — the memo's list says
@@ -4039,20 +4305,15 @@ def process_turn(world) -> List[Dict]:
     # FA-S17-D4 liveness predicate is therefore asked HERE, for both tiers
     # (a stale crisis was retired at delivery anyway), and a retired
     # audience says so: the rail row it raised goes, and one line tells why.
+    #
+    # B2 (spec §4 F2): every kind dies with its subject HERE, and every
+    # retirement leaves its receipt (`retire_petition`) — a stale crisis no
+    # longer vanishes in silence at this seam.
     _standing = getattr(world, "pending_marshal_petition", None)
-    if _standing and THE_ANTECHAMBER and not petition_is_still_live(_standing, world):
-        _was_audience = petition_tier(_standing) == PETITION_TIER_AUDIENCE
-        _retire_pending_petition(world, _standing)
-        if _was_audience:
-            events.append({
-                "type": "marshal_audience",
-                "message": (f"Berthier notes that "
-                            f"{humanize_entity_name(_petition_speaker(_standing))} "
-                            f"no longer presses the matter."),
-                "nation": getattr(world, "player_nation", ""),
-                "marshal": _petition_speaker(_standing),
-                "retired": True,
-            })
+    if _standing and (THE_ANTECHAMBER or THE_PETITION_DIES_WITH_ITS_SUBJECT):
+        _why = petition_retirement_reason(_standing, world)
+        if _why:
+            retire_petition(world, _standing, _why)
     if getattr(world, "pending_marshal_petition", None):
         _push_petition(world, world.pending_marshal_petition)
 

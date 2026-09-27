@@ -41,32 +41,36 @@
 | SR-D3 Q5 | The admin pool | **Unchanged.** An unused admin action still pays 25 gold. | Stated as the default. Converting admin actions to diplomatic points would mint points without their price. |
 | Q7 | Laws at the start | **None, France included.** No court starts with a law in force. The rivals' law descriptions name what they copy from France (e.g. "the corps system France has used since 1800"). | Asked September 27, 2026, with the doctrines (`DOCTRINES_SPEC.md`). As recommended. |
 
-### §0.1 Readings taken where the answers meet — FOR USER CONFIRMATION
+### §0.1 Readings taken where the answers meet — ✅ CONFIRMED by the user, September 27, 2026 (R3 + R8 replaced by "The Arrears")
 
-Each reading is one catalogue field or one constant to flip.
+Each reading is one catalogue field or one constant to flip. **The user confirmed R1, R2, R4, R5, R6 and R7 as written. For R3 + R8 they asked for "a creative solution to punish and cost money to bring back", and chose "The Arrears" from three options; it replaces both.** RF-1 builds from this list.
 
-- **R1 — The Staff pays upkeep like every law.**
+- **R1 — The Staff pays upkeep like every law.** ✅ CONFIRMED.
   - This combines Q1 (upkeep) with Q3's one-off enactment price.
   - So a court that cannot pay loses its fifth action.
   - The other reading — the Staff exempt from upkeep — is one catalogue field.
-- **R2 — Upkeep is always gold, political laws included.**
+- **R2 — Upkeep is always gold, political laws included.** ✅ CONFIRMED.
   - Q1's own words: "each costs gold every turn".
   - Authority is spent once, at enactment.
-- **R3 — A lapse is a repeal.** Re-enacting a lapsed law costs the full price again: no discount, no cooldown.
-- **R4 — The player may repeal a law at any time.** It costs one admin action (the `revoke_pension` idiom) and refunds nothing.
-- **R5 — Laws lapse before rentes.**
+- ~~**R3 — A lapse is a repeal.** Re-enacting a lapsed law costs the full price again: no discount, no cooldown.~~ **Replaced by R8 "The Arrears" (below)** for a law that LAPSED. A law the player REPEALED still costs its full price again.
+- **R4 — The player may repeal a law at any time.** ✅ CONFIRMED. It costs one admin action (the `revoke_pension` idiom) and refunds nothing.
+- **R5 — Laws lapse before rentes.** ✅ CONFIRMED.
   - When the treasury cannot pay, the law with the largest upkeep lapses first, and so on until the chest is whole.
   - The bounced upkeep is refunded: ESP-4's shape, one obligation over.
   - The principle: the state sheds its machinery before it breaks faith with its marshals.
   - The forecast names the doomed law a turn early. Repealing a different law first is how the player chooses which one goes.
-- **R6 — Five decks in v1:** France, Austria, Prussia, Russia, Britain. No minor court has laws.
-- **R7 — v1 mints ONE new action point, the fifth.**
+- **R6 — Five decks in v1:** France, Austria, Prussia, Russia, Britain. No minor court has laws. ✅ CONFIRMED.
+- **R7 — v1 mints ONE new action point, the fifth.** ✅ CONFIRMED.
   - A sixth (a second tier of the Staff) is not built.
   - It re-opens only on a named condition (§13).
-- **R8 — A lapsed law remembers** (proposed September 27, 2026 by the fun review, §8b; it amends R3):
-  - A law that **lapsed** — not one the player repealed — may be re-enacted within 10 turns of its lapse at **half its price** (upkeep unchanged).
-  - Why: R5 lapses the largest upkeep first, and that is always the Staff — the one law a struggling France most needs. Without R8, one insolvent turn costs the fifth action for as long as it takes to find 9,000 gold again.
-  - The teeth stay: the lapse still happens, the fifth action is still lost at the next refill, and the discount is only for the court's own lapses. GR5: the same rule for every court.
+- **R8 — "The Arrears": a lapsed law's officers are owed their pay** (✅ RULED by the user, September 27, 2026; replaces R3 for a lapse and the fun review's half-price proposal):
+  - A law that **lapsed** — not one the court repealed — may be restored within **10 turns** of its lapse for **half its price plus its arrears**: the law's upkeep for every turn it lay dead, counted from the lapse. Upkeep after restoration is unchanged. One admin action, as at enactment.
+  - **Worked for the Staff (9,000 gold, 300 a turn):** 4,800 a turn after the lapse, 6,000 after five, 7,500 after ten. On the eleventh turn it has **dispersed** and costs the full 9,000 again.
+  - **Why it punishes:** a lapse never saves gold — every dead turn is still owed if the law comes back, and it comes back without its effect in the meantime. Waiting makes it dearer, so the choice is real: find the money quickly, or let it disperse.
+  - **Why it is not a death spiral:** the struggling court's fastest road back to the Staff (4,800) is half the full price, and the forecast warns a turn before any lapse (T7).
+  - **A currency law** (authority) restores for half its authority price, rounded up, plus its arrears in gold.
+  - **Derived, one store:** the lapse turn rides the `reforms` world field beside the laws in force (§10). The price is computed at every read — the chip, the confirm, the AI rung and the executor — from one function (`reforms.restoration_price`), so shown = applied.
+  - GR5: the same rule for every court; the AI rung reads the same price.
 
 ---
 
@@ -265,7 +269,7 @@ Rules:
 
 **The doctrines ruling (September 27, 2026 — `DOCTRINES_SPEC.md`) changes this list at Chunk 7 (DC-2):**
 - **Cure clauses are added:** the Corps d'Armée and the Divisional System cure their court's slow arrival (the arrival bar 10 higher — `DOCTRINES_SPEC.md` RV-1); the Militia Transfer cures Britain's dear recruits; the Articles of War cure Prussia's brittleness.
-- **A cure works only while its court's Staff is in force** (`DOCTRINES_SPEC.md` RV-15, FOR USER CONFIRMATION). The Militia Transfer and the Articles of War keep their other clauses from enactment; their cures wait for the Horse Guards Reforms and the General Staff. The Train des Équipages, a cure only, does nothing until the Grand Quartier Général stands.
+- **A cure works only while its court's Staff is in force** (`DOCTRINES_SPEC.md` RV-15, ✅ CONFIRMED September 27, 2026). The Militia Transfer and the Articles of War keep their other clauses from enactment; their cures wait for the Horse Guards Reforms and the General Staff. The Train des Équipages, a cure only, does nothing until the Grand Quartier Général stands.
 - **The rivals' descriptions (`says`) name what they copy from France** (Q7).
 - **Stacking with the doctrines (the review, `DOCTRINES_SPEC.md` §2):** Austria's Generalissimus (×0.9, every arm) stacks with Austria's Hereditary Lands (×0.85) if RV-3 is confirmed. Without RV-3, the artillery laws of France, Russia and Britain above would each buy exactly Austria's drafted strength, "The Guns" (artillery ×0.85). After RV-4, Prussia's Military Reorganisation Commission no longer duplicates Prussia's strength.
 
@@ -285,7 +289,7 @@ Rules:
 **The AI never repeals.** The lapse rule is its discipline — the same rule the player meets when a forecast goes unanswered.
 
 **The cures (added September 27, 2026 by the doctrines review, `DOCTRINES_SPEC.md` RV-10, RV-15).**
-- A doctrine's cure takes effect only while its court's Staff is in force (RV-15, FOR USER CONFIRMATION). So every rival's catch-up arrives with its Staff, and no deck reorder is needed.
+- A doctrine's cure takes effect only while its court's Staff is in force (RV-15, ✅ CONFIRMED September 27, 2026). So every rival's catch-up arrives with its Staff, and no deck reorder is needed.
 - For Austria and Russia the cure IS the Staff: 9,000 gold, with a purse bar of about 11,500. This rung takes the first law a court can afford, so cheaper laws may be enacted first, and their upkeep raises that bar.
 - Measured before the build (`tools/_dc_reach_census.py`): Austria's treasury reaches the bar around turn 20 at peace and after turn 30 under French pressure; Russia's around turn 30 at peace. Only the treasury half of the purse test was measured; the forecast-Net half may hold a pressed court back even with the gold in hand.
 - `DOCTRINES_SPEC.md` §6 T8 records, per rival, the turn its cure takes effect, with a target of two of the four by turn 30 on the historical seed and no flaw cured before turn 10. **A miss is this rung's to fix.** The recommended fix: the rung saves for the Staff — which carries every rival's cure — and enacts nothing cheaper once the chest passes half its price.
@@ -385,7 +389,7 @@ Rules:
 **The death-spiral watch.** R5 lapses the largest upkeep first, and that is always the Staff — the one law a struggling France most needs. The mitigations:
 - the forecast warns a turn early, on three surfaces;
 - repealing another law first keeps the Staff, for one admin action, and the forecast says when none remains;
-- **R8 (FOR USER CONFIRMATION):** a law that lapsed may be re-enacted within 10 turns at half its price.
+- **R8 "The Arrears" (✅ RULED September 27, 2026):** a law that lapsed may be restored within 10 turns for half its price plus its upkeep for every turn it lay dead (the Staff: 4,800 a turn after the lapse, 7,500 after ten); then it disperses and costs the full price.
 
 T7 measures all three.
 
@@ -450,7 +454,7 @@ T7 measures all three.
 | T4 | The lapse | On a staged insolvent France: the largest law lapses first; the refund makes the chest whole; the forecast named that law a turn earlier; re-enacting charges the full price. |
 | T5 | The Staff on both boards | The fifth action appears at the first refill after enactment and is gone at the first refill after a lapse — for France and for an AI court. |
 | T6 | The bank | A court that spends nothing carries one turn's points, up to 7 and no further. The pool, the dispatch and the top bar agree. |
-| T7 | No death spiral (§8b) | On a staged insolvent France holding the Staff and two cheaper laws:<br>• the forecast names the doomed law a turn early on the LAWS tab, the end-turn banner and the dispatch;<br>• a "repeal X instead" chip keeps the Staff when an admin action remains, and the forecast says so when none does;<br>• after solvency returns on the commanded arm, a lapsed Staff can be re-enacted within 10 turns (at half price with R8). |
+| T7 | No death spiral (§8b) | On a staged insolvent France holding the Staff and two cheaper laws:<br>• the forecast names the doomed law a turn early on the LAWS tab, the end-turn banner and the dispatch;<br>• a "repeal X instead" chip keeps the Staff when an admin action remains, and the forecast says so when none does;<br>• after solvency returns on the commanded arm, a lapsed Staff can be restored within 10 turns at its Arrears price (R8: half its price plus the dead turns' upkeep), and the LAWS tab, the chip and the AI rung all quote that one price. |
 | T8 | Nothing unnamed (§8b) | Every law effect the player can see is named where it applies: the fifth action at the refill, the recruit price's named term, the supply headline, the vassal forecast. The census idiom is the doctrines' T10. |
 | Q0 | The road to 45 | Re-measured after the Staff lands. |
 

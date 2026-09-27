@@ -4,6 +4,21 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE CONFIRMATIONS ANSWERED + B2 "THE PETITION DIES WITH ITS SUBJECT" LANDED — September 27, 2026 (second session)**:
+> - **Every open confirmation is answered** (recorded in `REFORMS_SPEC.md` §0.1 and `DOCTRINES_SPEC.md` §0.1/§0.2):
+>   - **R1** the Staff pays upkeep, **R5** laws lapse before rentes (largest first), and **R2/R4/R6/R7**: CONFIRMED as written.
+>   - **R3 + R8 REPLACED by "The Arrears"** — the user asked for "a creative solution to punish and cost money to bring back", then chose it from three. A LAPSED law may be restored within 10 turns for half its price plus its upkeep for every turn it lay dead; after that it disperses and costs full price. A REPEALED law always costs full price. The Staff costs 4,800 a turn after a lapse and 7,500 after ten. One function, `reforms.restoration_price`, for every surface.
+>   - **All doctrine readings D-R1..D-R5 and amendments RV-2/3/4/5/15/16/17 CONFIRMED** (they gate Chunk 7 only).
+> - **B2 LANDED** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B2; rules `SYSTEMS_REFERENCE.md` §73.8; pins `tests/test_b2_the_petition_dies_with_its_subject.py` 32; sweep `tools/_sweep_b2.json` 25/25 killed, 0 INERT; zero `.gd`):
+>   - F2: one reason-bearing predicate per petition kind, including S7 (a card a rung behind its quarrel never serves). It is asked at the re-push, the drain (the one delivery seam that never asked), the end-turn key, the antechamber's GET, the answer and the load.
+>   - Every retirement leaves one `petition_retired` receipt, exempt from the drama cap. B1 had retired a stale crisis in silence.
+>   - A later word about the same pair supersedes and keeps the older latch.
+>   - F10 retires stale restored popups with `popup_retired` receipts. PopupQueue's dead `to_dict`/`from_dict` are deleted.
+>   - **The pre-commit hook found two more, fixed before landing:** the drama cap's exempt-tuple pin (a conscious flip), and the F10 pass priming the per-turn nation/region caches at load (four IQ-1 economy fixtures read stale caches) — a load now primes nothing (pinned).
+>   - `BASELINE_SERIES` is byte-identical on a two-arm flip with the reach counted (`tools/_b2_series_arms.py`: one cooled retirement on the ambient board, on both arms); M1–M7 and AI-V are byte-identical.
+> - **Recon done for B3 and B4** (read-only agents): FA-N5 (Sept 2) already landed F6's `dialogue_id` half. W7's live hole is `DialogueManager.open_flow`'s fallback `replace()`, which destroys a hybrid; preempting alone leaves its modal consumed, so B3 re-issues it.
+> - **▶ NEXT = B3 → B4 → B5** (closing Chunk 4) **→ Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ UI/UX BANDWIDTH AND THE FUN REVIEW — laws, doctrines, seasons — September 27, 2026** (docs only; user direction: *"make sure in docs we have bandwidth for this all adequately represented in ui and ux … same for seasons as well and make sure gameplay outcomes seem fun and engaging for all"*):
 > - **Every surface is planned, with its file and its proof** (`REFORMS_SPEC.md` §8a, `DOCTRINES_SPEC.md` §4a, `SEASONS_WEATHER_SPEC.md` §7).
 >   - Each player-facing surface names its client file, its payload, its fog rule and its proof: IQ-10 frames at Interface Scale 1.0 and 2.0 (new `cap_laws()`, `cap_doctrines()`, `cap_seasons()`), then the user's visual sign-off.

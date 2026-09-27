@@ -4,7 +4,7 @@
 >
 > This file holds:
 > - **the gate record (§0)**, which is authoritative;
-> - **the review of September 27, 2026 (§0.2)** — a reach census of every clause on seven boards, two independent review rounds, and the amendments they made. **Seven amendments change what a doctrine does and are FOR USER CONFIRMATION** (RV-2, RV-3, RV-4, RV-5, RV-15, RV-16, RV-17). Each can be reverted to the drafted clause. The rest correct the build contract;
+> - **the review of September 27, 2026 (§0.2)** — a reach census of every clause on seven boards, two independent review rounds, and the amendments they made. **Seven amendments change what a doctrine does — ✅ ALL CONFIRMED by the user, September 27, 2026** (RV-2, RV-3, RV-4, RV-5, RV-15, RV-16, RV-17), with the five readings D-R1..D-R5 as amended. The rest correct the build contract;
 > - **the build contract (§1–§9)**, written with the amendments in.
 >
 > Reading map: §0 the rulings and readings · §0.2 the review · §1 what a doctrine is · §2 the five doctrines · §3 the seams · §4 what the player sees · §4a the UI/UX plan · §4b fun and engagement · §5 the AI · §6 acceptance · §7 the build slices · §8 not in this ruling · §9 the save format.
@@ -29,7 +29,7 @@
 | Q4 | France's doctrine | **The corps system, plus "living off the land".** The flaw: French armies starve sooner in poor country until France buys the Train des Équipages. | **The recommended option (corps system only) was NOT taken.** The user chose the historically fuller version, told that it tightens the supply squeeze that already scatters France's army. |
 | — | Laws at the start (asked with SR-D1) | **No court starts with a law in force, France included.** The rivals' law descriptions name what they copy from France. | Recorded in `REFORMS_SPEC.md` §0 (Q7). |
 
-### §0.1 Readings taken where the answers meet — FOR USER CONFIRMATION
+### §0.1 Readings taken where the answers meet — ✅ CONFIRMED by the user, September 27, 2026 (all five, as amended by RV-5 and RV-15)
 
 - **D-R1 — "Poor country" is authored, not derived.**
   - The map marks nothing poor where history does. Measured (census corrected by the review, RV-12):
@@ -42,10 +42,10 @@
     - Alentejo and Beira — Masséna's 1810 invasion of Portugal;
     - Rumelia, Epirus and Albania — the Balkans.
   - The build authors the list; the validator checks the names.
-  - **Amended by RV-5 (FOR USER CONFIRMATION): poor country also includes stripped country** — a province eaten bare by war.
+  - **Amended by RV-5 (✅ CONFIRMED September 27, 2026): poor country also includes stripped country** — a province eaten bare by war.
 - **D-R2 — Where the flaw bites.**
   - ~~It applies only where the supply rule already feeds the army at the base rate: not home soil, not allied or vassal soil, and no naval lifeline.~~
-  - **Amended by RV-5 (FOR USER CONFIRMATION): read against the homeland, not the flag.** The flaw applies outside France's 1805 homeland, on conquered ground as well as an enemy's, and never on an ally's or vassal's soil. There a French army in poor or stripped country draws **80% of the supply it would otherwise draw** — a conquered province 80% of its fed rate, an enemy's 80% of its base.
+  - **Amended by RV-5 (✅ CONFIRMED September 27, 2026): read against the homeland, not the flag.** The flaw applies outside France's 1805 homeland, on conquered ground as well as an enemy's, and never on an ally's or vassal's soil. There a French army in poor or stripped country draws **80% of the supply it would otherwise draw** — a conquered province 80% of its fed rate, an enemy's 80% of its base.
   - At home and on allied soil the magazines feed a French army as they do today.
   - **A depot is not a cure** (added by the review). A depot raises the province's capacity, and the 80% is taken of that larger number. The Train des Équipages is the cure.
 - **D-R3 — The Train des Équipages becomes the cure alone.**
@@ -54,7 +54,7 @@
 - **D-R4 — A cure is a new law effect type, `cures`.** This is `REFORMS_SPEC.md` §4's tenth type.
   - Austria's Corps d'Armée and Russia's Divisional System carry it as their second clause. Those laws are worth more to their courts than France's Staff law is to France — that is the catch-up — at the same price.
   - Austria and Russia share one flaw on purpose (RV-9): both lack France's corps system, and both cure it by copying it.
-  - **Amended by RV-15 (FOR USER CONFIRMATION): a cure works only while its court's Staff is in force.**
+  - **Amended by RV-15 (✅ CONFIRMED September 27, 2026): a cure works only while its court's Staff is in force.**
   - **No cure clause is authored before its flaw exists (GR9).** The cures land at Chunk 7 (slice DC-2). Until then each of those laws does only what it does at Chunk 5.
 - **D-R5 — The opening balance moves.**
   - Doctrines apply from turn 1, so the Chunk-7 build re-records `BASELINE_SERIES` once, with a flip arm.
@@ -136,7 +136,7 @@
 
 **The amendments.**
 
-*Change what a doctrine does — FOR USER CONFIRMATION.* Each keeps the ruled frame (a strength, a flaw, a cure), and each can be reverted to the drafted clause:
+*Change what a doctrine does — ✅ ALL SEVEN CONFIRMED by the user, September 27, 2026.* Each keeps the ruled frame (a strength, a flaw, a cure):
 
 | # | Amendment | Why |
 |---|---|---|

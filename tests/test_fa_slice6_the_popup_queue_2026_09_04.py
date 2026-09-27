@@ -142,6 +142,15 @@ def _petition(world):
     # a response as a modal. The transport these pins prove is the CRISIS
     # tier's (the modal, the end-turn `deferred_marshal_petition`, the drain),
     # so the fixture queues the level the damage goes permanent at.
+    #
+    # CONSCIOUS FIX, PC15-10 B2 (F2 / S7, Sept 27 2026): ...and the quarrel
+    # has to be REAL at that rung too. The card's stamped level used to be
+    # write-only; it is read now, and a card written at a rung the pair has
+    # not reached is retired as stale. Production reads the level off the
+    # pair at build time, so only a fixture could write the mismatch.
+    J._set_escalation_level(ney, "Davout", J.ESCALATION_PERMANENT_LEVEL)
+    J._set_escalation_level(world.marshals["Davout"], "Ney",
+                            J.ESCALATION_PERMANENT_LEVEL)
     return J.queue_confrontation_petition(
         world, ney, world.marshals["Davout"], J.ESCALATION_PERMANENT_LEVEL)
 

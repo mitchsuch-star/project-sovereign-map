@@ -1,0 +1,177 @@
+[
+  {
+    "id": "B2 lever down",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_PETITION_DIES_WITH_ITS_SUBJECT = True\n",
+    "new": "THE_PETITION_DIES_WITH_ITS_SUBJECT = False\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_a_mended_rivalry_retires"
+  },
+  {
+    "id": "B2 supersede lever down",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_NEWER_WORD_SUPERSEDES = True\n",
+    "new": "THE_NEWER_WORD_SUPERSEDES = False\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheNewerWordSupersedes::test_the_same_pair_replaces_and_keeps_the_older_latch"
+  },
+  {
+    "id": "S7 the stamped level is never read",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            if stamped != get_escalation_level(marshal, str(asked_about)):\n",
+    "new": "            if False:\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_s7_a_card_a_rung_behind_the_quarrel_never_serves"
+  },
+  {
+    "id": "rivalry never mends",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        return \"\" if stored <= announced else \"mended\"\n",
+    "new": "        return \"\"\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_a_mended_rivalry_retires"
+  },
+  {
+    "id": "rivalry reads the derived value",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        stored = int((getattr(marshal, \"relationships\", {}) or {}).get(\n            other.name, 0) or 0)\n",
+    "new": "        stored = int(marshal.get_relationship(other.name))\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_a_rivalry_card_reads_the_STORED_value"
+  },
+  {
+    "id": "fontainebleau ignores who still erodes",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            if _standing_man(man) and dotation.is_eroding(man, world):\n                return \"\"\n",
+    "new": "            if False:\n                return \"\"\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_fontainebleau_stands_while_one_man_still_erodes"
+  },
+  {
+    "id": "war weary never overtaken",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            if world.is_at_war(player, target_nation):\n                return \"at_war\"\n",
+    "new": "            if False:\n                return \"at_war\"\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_war_weary_is_overtaken_by_a_war_begun_another_way"
+  },
+  {
+    "id": "war weary court never gone",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        if not _nation_still_stands(world, target_nation):\n            return \"court_gone\"\n",
+    "new": "        if False:\n            return \"court_gone\"\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_war_weary_about_a_court_that_is_no_more"
+  },
+  {
+    "id": "shadow never leaves",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        if _sovereign_locations(world).get(marshal.nation) != marshal.location:\n            return \"no_shadow\"\n",
+    "new": "        if False:\n            return \"no_shadow\"\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_the_shadow_petition_dies_when_he_leaves_the_emperor"
+  },
+  {
+    "id": "the receipt is never written",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        _pending_events(world).append({\n            \"type\": \"petition_retired\",",
+    "new": "        [].append({\n            \"type\": \"petition_retired\",",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_a_cooled_crisis_retires_with_a_receipt"
+  },
+  {
+    "id": "the receipt is capped",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    # retired card leaves — collapsed into the tail it would be semi-silent.\n    \"petition_retired\",\n",
+    "new": "    # retired card leaves — collapsed into the tail it would be semi-silent.\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheReceiptIsNeverSilent::test_the_receipt_is_exempt_from_the_drama_cap"
+  },
+  {
+    "id": "the receipt never reaches the dispatch",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"petition_retired\",\n    \"popup_retired\",\n",
+    "new": "",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheReceiptIsNeverSilent::test_the_receipt_reaches_the_dispatch"
+  },
+  {
+    "id": "supersede never matches a pair",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    return pair is not None and pair == _petition_pair(older)\n",
+    "new": "    return False\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheNewerWordSupersedes"
+  },
+  {
+    "id": "supersede un-stamps like an eviction",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        retire_petition(world, pending, \"superseded\")\n        pending = None\n",
+    "new": "        _evict_audience(world, pending)\n        pending = None\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheNewerWordSupersedes::test_the_same_pair_replaces_and_keeps_the_older_latch"
+  },
+  {
+    "id": "re-push retires an audience only",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        _why = petition_retirement_reason(_standing, world)\n        if _why:\n            retire_petition(world, _standing, _why)\n",
+    "new": "        _why = petition_retirement_reason(_standing, world)\n        if _why and petition_tier(_standing) == PETITION_TIER_AUDIENCE:\n            retire_petition(world, _standing, _why)\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEachKindDiesWithItsSubject::test_a_cooled_crisis_retires_with_a_receipt"
+  },
+  {
+    "id": "the drain never asks",
+    "file": "backend/main.py",
+    "old": "                if THE_PETITION_DIES_WITH_ITS_SUBJECT:\n                    _why = petition_retirement_reason(winner_value, world)\n",
+    "new": "                if False:\n                    _why = petition_retirement_reason(winner_value, world)\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEverySeamAsks::test_the_ordinary_drain_reaps_a_stale_card_and_delivers_the_next"
+  },
+  {
+    "id": "the end-turn key leaves it for the re-push",
+    "file": "backend/main.py",
+    "old": "                elif THE_PETITION_DIES_WITH_ITS_SUBJECT:\n",
+    "new": "                elif False:\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEverySeamAsks::test_the_end_turn_key_retires_a_stale_card_now"
+  },
+  {
+    "id": "the GET says only who",
+    "file": "backend/main.py",
+    "old": "        if THE_PETITION_DIES_WITH_ITS_SUBJECT:\n            clause = retire_petition(",
+    "new": "        if False:\n            clause = retire_petition(",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEverySeamAsks::test_the_antechamber_get_names_why"
+  },
+  {
+    "id": "the answer charges for a moment past",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if THE_PETITION_DIES_WITH_ITS_SUBJECT and kind != \"jealousy_confrontation\":\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestEverySeamAsks::test_the_answer_charges_nothing_for_a_mended_rivalry"
+  },
+  {
+    "id": "F10 lever down",
+    "file": "backend/models/world_state.py",
+    "old": "THE_LOADED_POPUP_IS_STILL_TRUE = True\n",
+    "new": "THE_LOADED_POPUP_IS_STILL_TRUE = False\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_a_proclamation_for_a_nation_that_left_the_map"
+  },
+  {
+    "id": "F10 the petition is never asked at load",
+    "file": "backend/models/world_state.py",
+    "old": "            why = petition_retirement_reason(petition, self)\n            if why:\n",
+    "new": "            why = petition_retirement_reason(petition, self)\n            if False:\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_a_stale_card_is_retired_at_the_load_with_a_receipt"
+  },
+  {
+    "id": "F10 a dead dialogue is not a reason",
+    "file": "backend/models/world_state.py",
+    "old": "            if not (dead or gone):\n",
+    "new": "            if not gone:\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_a_letter_whose_dialogue_is_gone"
+  },
+  {
+    "id": "F10 the rebellion stays silent",
+    "file": "backend/models/world_state.py",
+    "old": "        for name in getattr(self, \"_load_retired_rebellions\", []) or []:\n",
+    "new": "        for name in []:\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_the_rebellion_warning_now_leaves_a_receipt"
+  },
+  {
+    "id": "F10 a living court's letter is retired",
+    "file": "backend/models/world_state.py",
+    "old": "            gone = bool(court) and court not in active\n",
+    "new": "            gone = True\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_an_unbound_letter_from_a_living_court_stands"
+  },
+  {
+    "id": "F10 a load primes the caches",
+    "file": "backend/models/world_state.py",
+    "old": "        self.invalidate_active_nations_cache()\n        return retired\n",
+    "new": "        return retired\n",
+    "tests": "tests/test_b2_the_petition_dies_with_its_subject.py::TestTheLoadAsksToo::test_a_load_leaves_no_primed_cache"
+  }
+]

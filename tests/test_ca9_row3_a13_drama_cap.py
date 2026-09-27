@@ -172,6 +172,11 @@ class TestBeatsAreNeverCollapsed:
         # that did NOT go in, with the executor's reason. It answers the
         # warning beat directly above it; collapsing it into the tail
         # would leave "he will go on his own initiative" unanswered.
+        # Pin flipped consciously again (PC15-10 B2, Sept 27 2026):
+        # "petition_retired" joins — the retirement receipt is the ONLY
+        # surface a retired petition card leaves (§4 F2 / Q3: nothing
+        # retires silently); collapsed into the tail it would be
+        # semi-silent, B0's F3 reasoning again.
         assert J.JEALOUSY_NARRATION_EXEMPT == (
             "glory_crowned",
             "glory_crown_lost",
@@ -184,6 +189,7 @@ class TestBeatsAreNeverCollapsed:
             "marshal_commissioned",
             "rivalry_blocked_note",
             "war_weary_blocked_note",
+            "petition_retired",
         )
 
 

@@ -162,8 +162,14 @@ class TestAnAudienceWaitsInTheAntechamber:
             events = J.process_turn(world)
         assert world.pending_marshal_petition is None
         assert not _rail(world, N.JEALOUSY_CONFRONTATION)
+        # PC15-10 B2 (F2), a conscious flip: every retirement's receipt is
+        # now ONE type, `petition_retired` (exempt from the drama cap) — the
+        # audience-only `marshal_audience` receipt was B1's pulled-forward
+        # half of F2 and survives only behind B2's lever.
+        _type = ("petition_retired" if J.THE_PETITION_DIES_WITH_ITS_SUBJECT
+                 else "marshal_audience")
         lines = [e["message"] for e in events
-                 if e.get("type") == "marshal_audience" and e.get("retired")]
+                 if e.get("type") == _type and e.get("retired")]
         assert lines and "no longer presses the matter" in lines[-1], lines
 
     def test_get_retires_a_stale_card_and_says_so(self, world):

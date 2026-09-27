@@ -1889,7 +1889,9 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
             _petition = world._popup_queue.get("pending_marshal_petition")
             if _petition is not None and _popup_dialogue_is_current(world, _petition):
                 from backend.game_logic.jealousy import (
-                    petition_is_still_live, refresh_petition_affordability,
+                    THE_PETITION_DIES_WITH_ITS_SUBJECT,
+                    petition_is_still_live, petition_retirement_reason,
+                    refresh_petition_affordability, retire_petition,
                 )
                 # FA-S17-12 / FA-S17-D4: a card whose quarrel has already
                 # cooled is retired here rather than handed over to be
@@ -1897,6 +1899,11 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
                 if petition_is_still_live(_petition, world):
                     response["deferred_marshal_petition"] = refresh_petition_affordability(
                         dict(_petition), world)
+                elif THE_PETITION_DIES_WITH_ITS_SUBJECT:
+                    # B2 (F2): retired NOW, with its receipt — it had been
+                    # left in the slot for the next turn's re-push to retire.
+                    retire_petition(world, _petition,
+                                    petition_retirement_reason(_petition, world))
                 world._popup_queue.clear_type("pending_marshal_petition")
         except Exception:
             pass
@@ -2266,6 +2273,20 @@ def _pop_deliverable_popup(world):
             winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
             if winner_attr is None:
                 return None, None, None
+            # PC15-10 B2 (F2): a marshal petition whose subject has died is
+            # reaped here WITH its receipt, never shown — the ordinary drain
+            # was the one delivery seam that never asked (the end-turn key
+            # and the antechamber's GET did). The next deliverable popup
+            # takes this cycle instead.
+            if winner_attr == "pending_marshal_petition" and isinstance(winner_value, dict):
+                from backend.game_logic.jealousy import (
+                    THE_PETITION_DIES_WITH_ITS_SUBJECT,
+                    petition_retirement_reason, retire_petition)
+                if THE_PETITION_DIES_WITH_ITS_SUBJECT:
+                    _why = petition_retirement_reason(winner_value, world)
+                    if _why:
+                        retire_petition(world, winner_value, _why)
+                        continue
             if _popup_dialogue_is_current(world, winner_value):
                 return winner_attr, winner_key, winner_value
             if _popup_dialogue_is_dead(world, winner_value):
@@ -4344,14 +4365,23 @@ def get_marshal_petition():
     cooled is retired here and says so rather than being handed over."""
     from backend.display_names import humanize_entity_name
     from backend.game_logic.jealousy import (
+        THE_PETITION_DIES_WITH_ITS_SUBJECT,
         _petition_speaker, _retire_pending_petition, petition_is_still_live,
-        refresh_petition_affordability)
+        petition_retirement_reason, refresh_petition_affordability,
+        retire_petition)
     world = game_state["world"]
     petition = getattr(world, "pending_marshal_petition", None)
     if not isinstance(petition, dict):
         return {"success": True, "petition": None,
                 "message": "No marshal waits upon you, Sire."}
     if not petition_is_still_live(petition, world):
+        # B2 (F2): the one retirement, with its receipt — and the answer
+        # names why, not only who.
+        if THE_PETITION_DIES_WITH_ITS_SUBJECT:
+            clause = retire_petition(
+                world, petition, petition_retirement_reason(petition, world))
+            return {"success": True, "petition": None,
+                    "message": f"The moment has passed — {clause}"}
         speaker = _petition_speaker(petition)
         _retire_pending_petition(world, petition)
         return {"success": True, "petition": None,

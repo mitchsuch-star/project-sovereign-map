@@ -683,7 +683,7 @@ def test_settlement_offer_producer_plus_turn_pipeline_emits_notification_and_pop
     _install_multi_party_war(world)
 
     before_notifications = list(world.notifications.get_pending())
-    before_popup_queue = world._popup_queue.to_dict()
+    before_popup_queue = world._popup_queue.snapshot()
 
     # Simulate the turn_manager wiring inline — producer fires, the
     # promote step drains pending_settlement_dialogues into the
@@ -719,7 +719,7 @@ def test_settlement_offer_producer_plus_turn_pipeline_emits_notification_and_pop
     assert len(new_notifications) == 1
     assert new_notifications[0]["type"] == INCOMING_SETTLEMENT_OFFER
     assert new_notifications[0]["priority"] == int(NotificationPriority.HIGH)
-    new_popup_queue = world._popup_queue.to_dict()
+    new_popup_queue = world._popup_queue.snapshot()
     assert "incoming_settlement_offer_popup" in new_popup_queue
     assert "incoming_settlement_offer_popup" not in before_popup_queue
 

@@ -519,6 +519,10 @@ THE_CONTACT_LIST_IS_ORDERED = True
 # pair that has no objectives at all — a campaign where the player has set
 # his own purpose, or concluded one, is untouched. False = scenario boots only.
 THE_LOADED_WAR_HAS_A_PURPOSE_TOO = True
+# PC15-10 B2 — F10 flip lever: every restored popup slot answers "is this
+# still true?" at load (`_retire_stale_restored_popups`), and each one
+# retired leaves a receipt. False = PC15-17's rebellion check alone, silent.
+THE_LOADED_POPUP_IS_STILL_TRUE = True
 # PT-J3 "The Pensions of the Fallen" (gate record PLAYTEST_FIXES_SPEC.md §4):
 # a condition term pricing the CAMPAIGN'S OWN DEAD, read from the PT-J2
 # campaign ledger. EC-U1's ruling stands — upkeep bills fielded strength, so
@@ -9181,13 +9185,21 @@ class WorldState:
             lord = str(row.get("lord") or row.get("overlord")
                        or world.player_nation)
             return lord != world.player_nation
+        # B2 (F10): PC15-17 retired these in silence; the load pass at the
+        # end of from_dict now gives each its receipt, so it records whom.
+        _retired_rebellions = []
         _stale_pop = world.vassal_rebellion_imminent_popup
         if isinstance(_stale_pop, dict) and _stale_rebellion_court(
                 _stale_pop.get("nation")):
             world.vassal_rebellion_imminent_popup = None
+            _retired_rebellions.append(str(_stale_pop.get("nation")))
+        _retired_rebellions.extend(
+            str(p.get("nation")) for p in world.vassal_rebellion_imminent_popups
+            if _stale_rebellion_court(p.get("nation")))
         world.vassal_rebellion_imminent_popups = [
             p for p in world.vassal_rebellion_imminent_popups
             if not _stale_rebellion_court(p.get("nation"))]
+        world._load_retired_rebellions = sorted(set(_retired_rebellions))
         _dm = world._dialogue_manager
         if (_dm.peek() or {}).get("type") == "vassal_rebellion_imminent" \
                 and _stale_rebellion_court(
@@ -9246,7 +9258,130 @@ class WorldState:
         # untouched, so this is a one-time migration and never a re-write.
         world._migrate_missing_war_purposes()
 
+        # PC15-10 B2 (F10): one validity pass over every restored popup slot,
+        # now that the marshals, the treaties and the dialogues are all back.
+        world._retire_stale_restored_popups()
+
         return world
+
+    def _record_popup_retired(self, clause: str, slot: str) -> None:
+        """The F2 receipt idiom for a popup a loaded save could no longer
+        honour: one dispatch line ("Berthier notes that …"), never silence."""
+        events = getattr(self, "_pending_jealousy_turn_events", None)
+        if events is None:
+            events = []
+            self._pending_jealousy_turn_events = events
+        events.append({
+            "type": "popup_retired",
+            "message": f"Berthier notes that {clause}",
+            "nation": self.player_nation,
+            "slot": slot,
+            "retired": True,
+        })
+
+    def _retire_stale_restored_popups(self) -> List[str]:
+        """PC15-10 B2 — F10 "Load-time validity, generalized"
+        (PETITION_POPUP_REVISIT_SPEC §4 F10).
+
+        PC15-17 built the model for one slot (a rebellion warning from a
+        court that had already left vassalage). Every restored slot now
+        answers "is this still true?" at load, and each one retired leaves
+        its receipt:
+          * the marshal petition — F2's own predicate (`retire_petition`);
+          * the rebellion warnings PC15-17 retired inline — their receipts;
+          * a letter (envoy or settlement offer) whose dialogue the manager
+            no longer holds, or whose court is no more — the delivery gate
+            would reap it anyway, in silence;
+          * a Proclamation for a nation that has since left the map.
+        Returns the slots retired (for the pins). Lever down = PC15-17 only.
+        """
+        if not THE_LOADED_POPUP_IS_STILL_TRUE:
+            return []
+        from backend.display_names import display_nation, humanize_entity_name
+        retired: List[str] = []
+
+        petition = getattr(self, "pending_marshal_petition", None)
+        if isinstance(petition, dict):
+            from backend.game_logic.jealousy import (
+                petition_retirement_reason, retire_petition)
+            why = petition_retirement_reason(petition, self)
+            if why:
+                retire_petition(self, petition, why)
+                retired.append("pending_marshal_petition")
+
+        for name in getattr(self, "_load_retired_rebellions", []) or []:
+            self._record_popup_retired(
+                f"the warning of {display_nation(name)} teetering on "
+                f"rebellion no longer stands — it is no longer our vassal.",
+                "vassal_rebellion_imminent_popup")
+            retired.append("vassal_rebellion_imminent_popup")
+        self._load_retired_rebellions = []
+
+        manager = getattr(self, "_dialogue_manager", None)
+        live_ids = set()
+        if manager is not None:
+            for dialogue in [manager.peek()] + list(manager.iter_queue()):
+                if isinstance(dialogue, dict) and dialogue.get("dialogue_id") is not None:
+                    try:
+                        live_ids.add(int(dialogue["dialogue_id"]))
+                    except (TypeError, ValueError):
+                        pass
+        active = set(self.get_active_nations() or [])
+        for attr, court_key, what in (
+                ("incoming_proposal_popup", "from_nation", "the envoy"),
+                ("incoming_settlement_offer_popup", "proposer_nation",
+                 "the settlement offer")):
+            popup = getattr(self, attr, None)
+            if not isinstance(popup, dict):
+                continue
+            court = str(popup.get(court_key) or "")
+            dead = False
+            if popup.get("dialogue_id") is not None:
+                try:
+                    dead = int(popup["dialogue_id"]) not in live_ids
+                except (TypeError, ValueError):
+                    dead = False
+            gone = bool(court) and court not in active
+            if not (dead or gone):
+                continue
+            setattr(self, attr, None)
+            shown = display_nation(court) if court else "a foreign court"
+            reason = ("that court is no more" if gone
+                      else "the matter it carried was closed before the save")
+            self._record_popup_retired(
+                f"{what} from {shown} no longer waits — {reason}.", attr)
+            retired.append(attr)
+
+        formations = getattr(self, "nation_formations", {}) or {}
+        cards = []
+        if isinstance(self.nation_proclamation_popup, dict):
+            cards.append(("nation_proclamation_popup", self.nation_proclamation_popup))
+        for card in list(getattr(self, "nation_proclamation_popups", []) or []):
+            if isinstance(card, dict):
+                cards.append(("nation_proclamation_popups", card))
+        for slot, card in cards:
+            nation = str(card.get("nation") or "")
+            if not nation or (nation in formations and nation in active):
+                continue
+            if slot == "nation_proclamation_popup":
+                self.nation_proclamation_popup = None
+            else:
+                self.nation_proclamation_popups = [
+                    c for c in self.nation_proclamation_popups if c is not card]
+            shown = str(card.get("display_name") or humanize_entity_name(nation))
+            self._record_popup_retired(
+                f"the proclamation of {shown} no longer stands — "
+                f"{shown} has left the map.", slot)
+            retired.append(slot)
+        # The pass read `get_active_nations()` (and, for a war-weary card,
+        # the petition predicate did too), which PRIMES the per-turn nation
+        # and region caches. `from_dict` never primed them before B2, and a
+        # caller that re-draws the map straight after a load (every fixture
+        # that strips a province off a copied world) would then read the
+        # stale cache — found by the pre-commit hook on four IQ-1 pins. A
+        # load leaves no primed cache behind.
+        self.invalidate_active_nations_cache()
+        return retired
 
     def _migrate_missing_war_purposes(self) -> None:
         """FA-S17-17: give a loaded war the purpose a declaration would have.

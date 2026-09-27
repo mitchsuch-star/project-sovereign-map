@@ -4114,6 +4114,12 @@ _DISPATCH_EVENT_TYPES = {
     # petition — no modal), withdrawn for a graver matter, or no longer
     # pressing a matter that cooled. Routine drama: capped with the rest.
     "marshal_audience",
+    # PC15-10 B2 (F2 / Q3 / F10): a petition retired because its subject
+    # died, or superseded by a later word about the same pair — and a popup
+    # a loaded save could no longer honour. The receipt is the retirement's
+    # only surface; without it here the retirement would be silent.
+    "petition_retired",
+    "popup_retired",
     # WO-38 (slice-18 review round): an unanswered strategic objection
     # lapsing at the turn boundary. The lapse's whole contract is that it
     # is TOLD — the shadow_petition entry above records what happens when
