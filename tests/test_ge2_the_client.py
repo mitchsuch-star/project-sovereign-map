@@ -21,6 +21,7 @@ import json
 import os
 import random
 import re
+from tests import _gd_calls as G
 import shutil
 import subprocess
 import tempfile
@@ -538,8 +539,11 @@ class TestTheSceneAndItsWiring:
         assert "func get_campaign_end(callback: Callable):" in api
         main = _gd("main")
         assert "api_client.response_received.connect(_stash_ending)" in main
-        stash_chain = _func_body(main, "_on_command_result")
-        assert "_stash_ending(response)" in stash_chain
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(main, "_on_command_result", "_stash_ending(response)")
 
     def test_every_game_over_road_ends_at_one_seam(self):
         main = _gd("main")
@@ -551,12 +555,16 @@ class TestTheSceneAndItsWiring:
         assert "_show_pending_ending()" in body and "_show_game_over_screen(" in body
 
     def test_the_ending_is_raised_after_the_tableau_and_before_the_landmark(self):
-        tail = _func_body(_gd("main"), "_return_control_to_player")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        tail = G.inline_body(_gd("main"), "_return_control_to_player")
         assert tail.index("_show_pending_diorama()") < tail.index("_show_pending_ending()") \
             < tail.index("_show_pending_proclamation()")
         for name in ("_on_battle_diorama_dismissed", "_on_proclamation_dismissed",
                      "_on_marshal_petition_deferred", "_apply_world_swap_response"):
-            assert "_show_pending_ending()" in _func_body(_gd("main"), name), name
+            assert G.reaches(_gd("main"), name, "_show_pending_ending()"), name
 
     def test_the_command_line_never_reopens_after_the_fall(self):
         body = _func_body(_gd("main"), "set_input_enabled")
@@ -567,7 +575,11 @@ class TestTheSceneAndItsWiring:
 
     def test_a_world_swap_adopts_history_and_lifts_the_fall(self):
         main = _gd("main")
-        reset = _func_body(main, "_reset_frontend_state_for_world_swap")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        reset = G.inline_body(main, "_reset_frontend_state_for_world_swap")
         for line in ("pending_ending_queue.clear()", "_endings_shown.clear()",
                      "_campaign_over = false"):
             assert line in reset

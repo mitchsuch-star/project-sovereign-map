@@ -37,6 +37,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from tests import _gd_calls as G
 
 REPO = Path(__file__).resolve().parents[1]
 DEPLOY = REPO / "deploy"
@@ -597,8 +598,11 @@ class TestTheParserNoticeIsSaidOnce:
         swallow a sentence the backend will not say twice — it prints
         beside the stash chain, before `_post_hud_response_routes`."""
         main = _read(SCRIPTS / "main.gd")
-        at = main.index("func _on_command_result")
-        body = main[at:main.index("\nfunc ", at + 10)]
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        body = G.inline_body(main, "_on_command_result")
         notice = body.index('response.get("parser_notice"')
         assert body.index("_stash_ending(response)") < notice
         assert notice < body.index("tutorial_overlay.observe(response)")

@@ -37,6 +37,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 
 from backend import save_manager
 from backend.commands import disobedience as DIS
@@ -416,11 +417,11 @@ class TestTheClientRaisesItAtLoad:
     def swap_body(self):
         """The handler's CODE — comment lines stripped, so a pin can never be
         satisfied (or violated) by the prose written to explain the fix."""
-        src = MAIN_GD.read_text(encoding="utf-8")
-        m = re.search(r"func _apply_world_swap_response\((.*?)\nfunc ", src, re.S)
-        assert m, "_apply_world_swap_response could not be located"
-        return "\n".join(line for line in m.group(1).splitlines()
-                         if not line.strip().startswith("#"))
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): read INLINED
+        # through the stash and raise chokepoints, where this handler's own
+        # stash and raise now live (comments and docstrings stripped too).
+        return G.inline_body(MAIN_GD.read_text(encoding="utf-8"),
+                             "_apply_world_swap_response")
 
     def test_it_is_stashed_above_the_early_returning_arms(self, swap_body):
         """A capture or interrupt raised first must not lose the stash.

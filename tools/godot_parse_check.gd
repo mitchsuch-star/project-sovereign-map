@@ -167,6 +167,8 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/ge2_campaign_end_harness.gd",
 	# Row EP GE-3 "The Congress of Paris" — the client surfaces, driven
 	"res://../../tools/ge3_congress_harness.gd",
+	# PC15-10 B4b "The one tail" — the stash-and-raise, driven (tests/test_b4b_the_one_tail.py)
+	"res://../../tools/b4b_one_tail_harness.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

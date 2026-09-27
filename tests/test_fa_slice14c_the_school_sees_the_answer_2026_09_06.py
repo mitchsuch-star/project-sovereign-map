@@ -190,7 +190,11 @@ class TestTheSchoolSeesEveryAnswer:
 class TestTheObserveSitsAboveEveryEarlyReturn:
 
     @pytest.mark.parametrize("handler,first_statement", [
-        ("_on_capture_choice_response", "set_input_enabled(true)"),
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the early
+        # re-enable is gone (the estate question must not stand over a live
+        # command line); the handler's first early return is the estate
+        # stage itself, which is what this pin guards.
+        ("_on_capture_choice_response", "if _response_has_capture_choice_route(response):"),
         ("_on_objection_response", "if DEBUG_VERBOSE:"),
         ("_on_glorious_charge_response", "if DEBUG_VERBOSE:"),
     ])

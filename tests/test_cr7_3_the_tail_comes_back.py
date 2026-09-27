@@ -32,6 +32,7 @@ import backend.main as M
 import backend.commands.objection_v2 as objection_v2
 from backend.commands import relay
 from backend.commands.parser import CommandParser, sequel_note
+from tests import _gd_calls as G
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -462,7 +463,13 @@ class TestTheWordsAndTheRecord:
         with open(path, encoding="utf-8") as handle:
             src = handle.read()
         assert "func _stash_relay(" in src and "func _fill_pending_relay(" in src
-        assert src.count("_stash_relay(response)") >= 3
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the relay is stashed
+        # ONCE, inside the one stash chokepoint, and the three response
+        # roads this pin named (the command, the objection answer, the
+        # interrupt answer) reach it through that chokepoint.
+        for road in ("_on_command_result", "_on_objection_response",
+                     "_on_interrupt_response"):
+            assert G.reaches(src, road, "_stash_relay(response)"), road
         enable = src[src.index("func set_input_enabled"):src.index("func _show_objection_dialog")]
         assert "_fill_pending_relay()" in enable
         send = src[src.index("func _execute_command"):]

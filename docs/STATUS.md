@@ -4,6 +4,13 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ B4b "THE ONE TAIL" (F9) LANDED — September 27, 2026 (second session)** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B4; rules `SYSTEMS_REFERENCE.md` §73.11; Pins `tests/test_b4b_the_one_tail.py` 68 (census + six DRIVEN scenarios through `tools/b4b_one_tail_harness.gd`, the real `main.tscn` behind an API stub, on payloads from the real endpoints); sweep `tools/_sweep_b4b.json` 17/17 killed, 0 INERT):
+> - **One stash, one chain, one tail** in `main.gd`: `_stash_pending_surfaces` (every stasher, before any routing), `_raise_pending_surfaces` (nine surfaces in one order, the capture question lifted into it), `_return_control_to_player` (every control-return seam ends in it), `_clear_pending_surfaces` (every stash, on a world swap).
+> - **Four client defects, reproduced driven on the committed client first, now fixed:** an overridden attack that took a province never asked about its town (the backend had sent the question); a redemption on an interrupt answer threw away the other marshals' questions; the capture question and the Proclamation stood stacked; a Load typed the old campaign's relayed order into the new command line and raised its petition.
+> - **Two defects caught in my own first cut:** the chain's modal guard answered true, so a tail running while the pause menu stood would have locked the command line for good; and the objection, charge and capture answers re-enabled the line before raising a question (the capture question; the estate stage).
+> - 23 source pins across 14 files re-seated consciously onto a shared call-reachability helper `tests/_gd_calls.py` (a deleted call still reds them). Parse harness EXIT=0, boot 0 `SCRIPT ERROR`. Backend untouched.
+> - **▶ NEXT = B5** (the §8 acceptance re-run; closes Chunk 4) **→ Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ B4a "THE ORDER, JUSTIFIED" (F8) LANDED — September 27, 2026 (second session)** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B4; rules `SYSTEMS_REFERENCE.md` §73.10; pins `tests/test_b4a_the_order_justified.py` 12; sweep `tools/_sweep_b4a.json` 7/7 killed, 0 INERT; zero `.gd`):
 > - **Nine popup slots, each justified** in a numbered table at `PopupQueue.PRIORITY_ORDER`.
 > - **The dead `coalition_popup` slot retired whole** (order entry, response key, world property, save key; a legacy save's key dropped at load) — removing the order entry alone would have left a restored value nothing could pop. The unreachable `alliance_paradox_popup` order entry is gone; its alias stays.

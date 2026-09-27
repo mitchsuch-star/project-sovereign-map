@@ -333,6 +333,11 @@ var _awaiting_end_turn_confirmation: bool = false
 var mailbox_panel = null  # Session 2 follow-up: browsable envoy inbox
 var _pre_hud_response_routes: Array = []
 var _post_hud_response_routes: Array = []
+# PC15-10 B4b (F9): the post-HUD table for a handler that has ALREADY
+# rendered its result (the objection, charge and interrupt answers) — the
+# redemption route re-renders the result, so there the redemption rides
+# the stash and the one tail instead.
+var _post_answer_response_routes: Array = []
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -2443,6 +2448,8 @@ func _configure_response_routes():
 		{"id": "vassal_rebellion", "matches": "_response_has_vassal_rebellion_route", "show": "_route_vassal_rebellion_response", "result_first": true},
 		{"id": "redemption_event", "matches": "_response_has_redemption_route", "show": "_route_redemption_response"},
 	]
+	_post_answer_response_routes = _post_hud_response_routes.filter(
+		func(route): return str(route.get("id", "")) != "redemption_event")
 
 func _route_response_ui(response: Dictionary, routes: Array, before_modal: Callable = Callable()) -> bool:
 	"""Run the first matching response route and keep the precedence policy data-driven.
@@ -2972,19 +2979,10 @@ func _on_battle_diorama_dismissed():
 	if not _diorama_standalone:
 		return  # opened over another surface (enemy dialog / terminal link)
 	_diorama_standalone = false
-	if _show_pending_ending():
-		return  # GE-2: the fatal battle's tableau first, then the Fall
-	if _show_pending_proclamation():
-		return
-	if _show_pending_envoy_digest():
-		return
-	if _show_pending_redemption():
-		return  # PT-B1
-	if _show_pending_petition():
-		return  # FA slice 6 (FA-5)
-	_maybe_recover_dropped_redemption()
-	set_input_enabled(true)
-	command_input.grab_focus()
+	# PC15-10 B4b (F9): the one tail — the ending, the capture question, the
+	# Proclamation, the letter-book, the redemption, a deferred hard stop, the
+	# petition and the next queued question, in that order.
+	_return_control_to_player()
 
 
 func _on_view_field_requested(payload: Dictionary) -> void:
@@ -3027,68 +3025,28 @@ func _on_marshal_petition_deferred():
 	There is no answer to send: the backend never popped the petition, so it
 	re-surfaces next turn exactly as the dialog's header promises. All this
 	owes is control, which the route that showed the card deliberately did
-	not return. Follows the Proclamation's tail so anything stashed behind
-	the petition still gets its turn.
+	not return — through the one tail (PC15-10 B4b), so anything stashed
+	behind the petition still gets its turn.
 	"""
-	if _show_pending_ending():
-		return  # GE-2
-	if _show_pending_proclamation():
-		return
-	if _show_pending_envoy_digest():
-		return  # _on_mailbox_panel_closed re-enables input
-	if _show_pending_redemption():
-		return  # PT-B1: the redemption dialog's handler re-enables input
-	_maybe_recover_dropped_redemption()
-	set_input_enabled(true)
-	command_input.grab_focus()
+	_return_control_to_player()
 
 
 func _on_proclamation_dismissed():
-	# A second formation on the same tick queues behind the first.
-	if _show_pending_proclamation():
-		return
-	if _show_pending_ending():
-		return  # GE-2: an ending stashed late (the record's answer) takes the tail
-	if _show_pending_envoy_digest():
-		return  # _on_mailbox_panel_closed re-enables input
-	if _show_pending_redemption():
-		return  # PT-B1: the redemption dialog's handler re-enables input
-	if _show_pending_petition():
-		return  # FA slice 6 (FA-5)
-	_maybe_recover_dropped_redemption()
-	set_input_enabled(true)
-	command_input.grab_focus()
+	# A second formation on the same tick queues behind the first; the one
+	# tail raises it (PC15-10 B4b).
+	_return_control_to_player()
 
 
 func _return_control_to_player() -> void:
 	"""The single tail EVERY control-returning seam must end with.
 
-	The Proclamation is shown from here rather than from one hand-picked
-	seam: `_on_enemy_phase_dismissed` returns early for strategic reports
-	and redemption events — and formations are TRIGGERED BY CONQUEST, i.e.
-	by marshals under standing orders, which is exactly what populates
-	`strategic_reports`. Hanging the card off one seam stranded it on the
-	normal case, not an edge case.
+	PC15-10 B4b (F9): it raises through `_raise_pending_surfaces()` — the one
+	chain, in one order — and only when nothing is waiting does it hand the
+	terminal back. (The Proclamation was hung off this tail first, NA-6b:
+	formations are triggered by conquest, i.e. by marshals under standing
+	orders, the case that populates `strategic_reports`.)
 	"""
-	if _show_pending_diorama():
-		return  # BD: _on_battle_diorama_dismissed re-enables input
-	if _show_pending_ending():
-		return  # GE-2: the end screen's own signals own input from here
-	if _show_pending_proclamation():
-		return  # _on_proclamation_dismissed re-enables input
-	if _show_pending_envoy_digest():
-		return  # _on_mailbox_panel_closed re-enables input
-	if _show_pending_redemption():
-		return  # PT-B1: the redemption dialog's handler re-enables input
-	if _show_pending_deferred_dialogue():
-		return  # FA slice 3 review round: the popup's own handler re-enables input
-	if _show_pending_petition():
-		return  # FA slice 6 (FA-5): the petition dialog's own handlers re-enable input
-	if not interrupt_queue.is_empty():
-		# FA slice 3 review round (R2-F5): a follow-on popup (capture, charge,
-		# proposal confirm) used to return control without draining the
-		# queue, so the second marshal's question waited a whole turn.
-		_process_next_interrupt()
+	if _raise_pending_surfaces():
 		return
 	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
@@ -3350,14 +3308,9 @@ func _on_command_result(response):
 	# never re-fires it).
 	if typeof(response) == TYPE_DICTIONARY:
 		_forget_unreadable_command(response)  # CX-7
-		_stash_proclamation(response)
-		_stash_envoy_digest(response)
-		_stash_diorama(response)  # BD: same discipline — stash before routing
-		_stash_redemption(response)  # PT-B1: same discipline, same reason
-		_stash_deferred_dialogue(response)  # FA slice 3 review round: same discipline
-		_stash_petition(response)  # FA slice 6 (FA-5): same discipline — the end-turn petition
-		_stash_relay(response)  # CR-7-3: the relayed tail, filled at control return
-		_stash_ending(response)  # GE-2: the campaign's ending — raised at control return, never above the report
+		# PC15-10 B4b (F9): every deferred surface this response carries is
+		# stashed through ONE chokepoint, BEFORE any routing or early return.
+		_stash_pending_surfaces(response)
 		# C1 (the release build): the once-per-session Smarter Parsing notice
 		# (the live parser failed; the offline parser read the order). Printed
 		# BEFORE routing — an early-returning route must not swallow a line
@@ -3532,35 +3485,99 @@ func _on_command_result(response):
 
 	add_output("")
 
-	# BD: the battle tableau first — the freshest moment of the response —
-	# then the Proclamation landmark, then the letter-book. Each dismissal
-	# continues the chain.
+	# PC15-10 B4b (F9): the ONE control-return tail. It raised five of the
+	# nine deferred surfaces here — the deferred hard stop, the petition, the
+	# capture question and the next queued marshal question were never
+	# raised from a command's own tail.
+	_return_control_to_player()
+
+# ════════════════════════════════════════════════════════════════════════════
+# PC15-10 B4b (PETITION_POPUP_REVISIT_SPEC §4 F9): the stash-and-raise
+# discipline as ONE chokepoint.
+#
+# Nine surfaces are deferred rather than routed. The backend has already
+# popped them, or they ride an end-turn response whose route table would
+# swallow the report, so a response that drops one loses it for good. Each is
+# STASHED the moment a response arrives and RAISED where control would
+# otherwise return. The discipline had grown surface by surface: eight
+# stashers called from five ingests, only two of ~fourteen control-return
+# tails running the full chain, the objection and charge answers dropping a
+# capture question the backend had sent, the interrupt handler's redemption
+# arm throwing away the other marshals' questions, and a Load keeping the old
+# campaign's stashes (its relayed order was typed into the new command line).
+# ════════════════════════════════════════════════════════════════════════════
+
+func _stash_pending_surfaces(response) -> void:
+	"""Stash every deferred surface a response carries, in one place. Called by
+	every response ingest BEFORE any routing or early return."""
+	if typeof(response) != TYPE_DICTIONARY:
+		return
+	_stash_proclamation(response)
+	_stash_envoy_digest(response)
+	_stash_diorama(response)  # BD
+	_stash_redemption(response)  # PT-B1
+	_stash_deferred_dialogue(response)  # FA slice 3 review round
+	_stash_petition(response)  # FA slice 6 (FA-5)
+	_stash_relay(response)  # CR-7-3
+	_stash_ending(response)  # GE-2
+
+
+func _clear_pending_surfaces() -> void:
+	"""A world swap invalidates every stash — none of them belongs to the
+	arriving campaign, whose own response is stashed after this runs."""
+	pending_proclamation_data = null
+	pending_diorama_data = null
+	pending_redemption_data = null
+	pending_deferred_dialogue = null
+	pending_petition_data = null
+	pending_capture_response = null
+	pending_relay_command = ""
+	pending_ending_queue.clear()
+	_pending_envoy_digest_turn = -1
+
+
+func _raise_pending_surfaces() -> bool:
+	"""THE raise chain, in its canonical order: the battle tableau (the
+	freshest moment), the ending (the Fall after the battle that dealt it),
+	the capture question (the town just taken asks what to do with it), the
+	Proclamation (a nation born of that capture), the letter-book, the
+	audience a route discarded, a deferred hard stop, the marshal petition,
+	then the next queued marshal question. True when a surface took the flow —
+	its own handler returns control through `_return_control_to_player()`
+	again.
+
+	Nothing is raised over an open modal (every chain dialog hides before it
+	signals, so a dismissal handler always passes this guard). When one IS
+	open the stash waits for the next control return and this answers false,
+	so control is handed back exactly as before: a modal the player opened
+	while a request was in flight — the pause menu, the Cabinet, a war's
+	detail — never calls this tail when it closes, so a tail that waited on it
+	would lock the command line for good."""
+	if _is_modal_dialog_open():
+		return false
 	if _show_pending_diorama():
-		return  # _on_battle_diorama_dismissed re-enables input
-
-	# GE-2: a marked ending stamped on this response (a Humbled Peace on the
-	# ratify road, fetched off the record) — after the response has rendered.
+		return true  # BD: _on_battle_diorama_dismissed
 	if _show_pending_ending():
-		return  # the card's own signals own input from here
-
-	# NA-6b: the landmark comes LAST, after the whole response has
-	# rendered — never above it. An earlier version returned before this
-	# tail and the player ratified a settlement, saw the Proclamation, and
-	# never learned the settlement had been ratified.
+		return true  # GE-2: the end screen's own signals
+	if _show_pending_capture_choice():
+		return true  # the capture handler
 	if _show_pending_proclamation():
-		return  # _on_proclamation_dismissed re-enables input
-
-	# IGR-F: the letter-book, likewise after the whole response has rendered.
+		return true  # _on_proclamation_dismissed
 	if _show_pending_envoy_digest():
-		return  # _on_mailbox_panel_closed re-enables input
-
-	# PT-B1: and the audience a higher-priority route would have discarded.
+		return true  # _on_mailbox_panel_closed
 	if _show_pending_redemption():
-		return  # the redemption dialog's handler re-enables input
-	_maybe_recover_dropped_redemption()
+		return true  # PT-B1: the redemption dialog's handler
+	if _show_pending_deferred_dialogue():
+		return true  # FA slice 3 review round: the popup's own handler
+	if _show_pending_petition():
+		return true  # FA slice 6 (FA-5): the petition dialog's handlers
+	if not interrupt_queue.is_empty():
+		# FA slice 3 review round (R2-F5): the second marshal's question
+		# never waits a whole turn.
+		_process_next_interrupt()
+		return true
+	return false
 
-	# Auto-focus input
-	command_input.grab_focus()
 
 func _display_result(response):
 	"""Display result with appropriate formatting based on event type."""
@@ -4679,16 +4696,16 @@ func _display_morning_dispatch(data: Dictionary):
 func _show_pending_dispatch():
 	"""Display pending morning dispatch if any, then clear it.
 
-	This is the last thing shown before the player gets control back, which
-	makes it the right place to raise a capture question stashed out of an
-	end-turn response (Aug 30, 2026 review) — the turn is told in full, and
-	then the town asks what to do with it.
+	The last thing printed before the player gets control back. PC15-10 B4b
+	(F9): the capture question it used to raise from here now rides the one
+	raise chain (`_raise_pending_surfaces`), right after the tableau and the
+	ending — every caller ends in `_return_control_to_player()`, and raising
+	it here let that tail stack other modals over the capture dialog and
+	re-enable the command line beneath it.
 	"""
 	if pending_dispatch_data != null:
 		_display_morning_dispatch(pending_dispatch_data)
 		pending_dispatch_data = null
-	if _show_pending_capture_choice():
-		return
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""
@@ -5129,7 +5146,9 @@ func _on_objection_response(response):
 	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
 		tutorial_overlay.observe(response)
 	if typeof(response) == TYPE_DICTIONARY:
-		_stash_relay(response)  # CR-7-3: the tail that waited behind the objection
+		# PC15-10 B4b (F9): the one stash chokepoint (the relayed tail — CR-7-3
+		# — and every other deferred surface the answer's response carries).
+		_stash_pending_surfaces(response)
 
 	if DEBUG_VERBOSE:
 		print("OBJECTION RESPONSE: success=%s disobeyed=%s defiance=%s" % [
@@ -5177,8 +5196,11 @@ func _on_objection_response(response):
 
 		_update_diplomatic_top_bar(response)
 		_update_war_panel_visibility()
-		set_input_enabled(true)
-		command_input.grab_focus()
+		# PC15-10 B4b (F9): a defiant attack can take a province — route the
+		# capture question (or any popup) the response carries, then the tail.
+		if _route_response_ui(response, _post_answer_response_routes):
+			return
+		_return_control_to_player()
 		return
 
 	# ════════════════════════════════════════════════════════════
@@ -5202,8 +5224,7 @@ func _on_objection_response(response):
 
 		_update_diplomatic_top_bar(response)
 		_update_war_panel_visibility()
-		set_input_enabled(true)
-		command_input.grab_focus()
+		_return_control_to_player()  # PC15-10 B4b: the one tail
 		return
 
 	# ════════════════════════════════════════════════════════════
@@ -5238,8 +5259,9 @@ func _on_objection_response(response):
 		_show_interrupt_popup(response.pending_interrupt)
 		return  # Don't re-enable input until interrupt resolved
 
-	# Re-enable input (normal flow)
-	set_input_enabled(true)
+	# PC15-10 B4b (F9): no early re-enable (normal flow) — the one tail at
+	# the end hands the command line back, and re-enabling here would leave
+	# it live beneath a capture question the route raises.
 
 	if response.success:
 		# Update status displays
@@ -5277,11 +5299,15 @@ func _on_objection_response(response):
 
 	_update_war_panel_visibility()
 	add_output("")
-	# BD: an objection Proceed resolves the objected attack — raise its
-	# stashed tableau at this flow's own control return.
-	if _show_pending_diorama():
-		return  # _on_battle_diorama_dismissed re-enables input
-	command_input.grab_focus()
+	# PC15-10 B4b (F9): an objection Proceed resolves the objected attack, and
+	# the attack can take a province — the capture question (and any popup
+	# the response carries) used to be DROPPED here: this handler read no
+	# route table, and the question surfaced only when the player's next
+	# order was refused by the capture block. Route it, then the one tail
+	# (the tableau first, then everything else stashed).
+	if _route_response_ui(response, _post_answer_response_routes):
+		return
+	_return_control_to_player()
 
 
 func _show_redemption_dialog(redemption_event: Dictionary):
@@ -5505,11 +5531,11 @@ func _on_enemy_phase_dismissed():
 			return  # Don't re-enable input until reports dismissed
 
 		# Check for deferred redemption (cavalry trust penalty from end-turn)
-		# FA slice-9 review (R1-5): STASH it and let the shared tail raise it.
-		# `_show_pending_dispatch()` may itself raise a stashed CAPTURE modal,
-		# and drawing the redemption dialog straight over it stacked two
-		# modals; the capture handler ends in `_return_control_to_player()`,
-		# which raises the stash once the capture is answered.
+		# FA slice-9 review (R1-5): STASH it and let the shared tail raise it,
+		# behind a stashed capture question — the one raise chain asks the
+		# town first (PC15-10 B4b), and the capture handler ends in
+		# `_return_control_to_player()`, which raises the stash once the
+		# capture is answered.
 		if response.has("redemption_event"):
 			pending_enemy_phase_response = null
 			pending_redemption_data = response.redemption_event
@@ -5617,7 +5643,9 @@ func _on_capture_choice_response(response):
 	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
 		tutorial_overlay.observe(response)
 
-	set_input_enabled(true)
+	# PC15-10 B4b (F9): no early re-enable — the estate stage below mounts a
+	# SECOND question, and the command line must stay closed beneath it;
+	# every other arm ends in the one tail, which hands the line back.
 
 	# W6-8: the answer may mount a SECOND question (the estate stage), or a
 	# stale/wrong-token answer re-attaches the current one — chain straight
@@ -5725,15 +5753,16 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	# `pending_redemption_data` also short-circuits the recovery poll's own
 	# guard, so the NEW world's real question was never polled for.
 	_redemption_recheck_turn = -1
-	pending_redemption_data = null
-	pending_proclamation_data = null
+	# PC15-10 B4b (F9): EVERY stash, not the five this reset used to clear —
+	# the petition, the deferred hard stop, the capture question and the
+	# relayed order survived a Load, and the old campaign's relayed order was
+	# typed into the new campaign's command line.
+	_clear_pending_surfaces()
 	# GE-2: a PREVIOUS campaign's stashed ending, its shown-list and its
 	# closed command line must not outlive the world they belonged to.
-	pending_ending_queue.clear()
 	_endings_shown.clear()
 	_ending_fetch_pending = false
 	_campaign_over = false
-	pending_diorama_data = null
 	last_battle_diorama = null
 	pending_charge_marshal = ""
 	pending_charge_target = ""
@@ -5751,7 +5780,6 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	# would silently skip the auto-raise. Reload-the-current-turn is the
 	# ordinary savescum pattern.
 	_envoy_digest_shown_turn = -1
-	_pending_envoy_digest_turn = -1
 	_set_pending_envoy_count(0)
 	command_history.clear()
 	history_index = -1
@@ -5772,7 +5800,9 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	# stashed and raised at this handler's tail — a defeated save never
 	# loads onto a silent board.
 	_adopt_endings_on_world_swap(response)
-	_stash_ending(response)
+	# PC15-10 B4b (F9): the arriving campaign's own surfaces, through the one
+	# stash chokepoint (the reset above cleared the old campaign's).
+	_stash_pending_surfaces(response)
 
 	# POSITION 7: arm/disarm the School of War from the world's own
 	# scenario_name. This is also the mandatory re-assert after the reset's
@@ -5816,10 +5846,10 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 	# carries it and /load attaches it. Same stash-and-raise discipline as
 	# the command path (PT-B1), NEVER the route: _route_redemption_response's
 	# success arm calls _display_result, which would re-render the whole
-	# load payload. Stashed HERE, above the two arms that return early, so
-	# a capture or interrupt raised first leaves the stash standing for the
-	# next control-return tail; raised below, last, behind both.
-	_stash_redemption(response)
+	# load payload. Stashed ABOVE (the one stash chokepoint, PC15-10 B4b),
+	# ahead of the two arms that return early, so a capture or interrupt
+	# raised first leaves the stash standing for the next control-return
+	# tail; raised below, by the one tail, behind both.
 	if _response_has_capture_choice_route(response):
 		var raised = response.duplicate()
 		raised.erase("message")
@@ -5845,14 +5875,9 @@ func _apply_world_swap_response(response: Dictionary, success_text: String):
 		_route_interrupt_response(raised_interrupt)
 		return
 
-	if _show_pending_redemption():
-		return  # WO-41: the dialog owns input from here
-
-	if _show_pending_ending():
-		return  # GE-2 (R6): the Final save's Fall — the card's roads own input
-
-	set_input_enabled(true)
-	command_input.grab_focus()
+	# PC15-10 B4b (F9): the one tail — the stashed redemption (WO-41) and the
+	# Final save's Fall (GE-2 R6) among everything else, in the chain's order.
+	_return_control_to_player()
 
 
 func _on_load_result(response):
@@ -5979,6 +6004,9 @@ func _on_glorious_charge_response(response):
 	# outside the lesson.
 	if typeof(response) == TYPE_DICTIONARY and tutorial_overlay:
 		tutorial_overlay.observe(response)
+	# PC15-10 B4b (F9): the one stash chokepoint — the charge's response can
+	# carry a capture question and a redemption the old handler dropped.
+	_stash_pending_surfaces(response)
 
 	if DEBUG_VERBOSE:
 		print("GLORIOUS CHARGE RESPONSE: success=%s" % response.get("success", false))
@@ -5987,8 +6015,9 @@ func _on_glorious_charge_response(response):
 	pending_charge_marshal = ""
 	pending_charge_target = ""
 
-	# Re-enable input
-	set_input_enabled(true)
+	# PC15-10 B4b (F9): no early re-enable — the one tail below hands the
+	# command line back, and re-enabling here would leave it live beneath a
+	# capture question the route raises.
 
 	if response.success:
 		# Update status displays
@@ -6019,11 +6048,11 @@ func _on_glorious_charge_response(response):
 	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
 	add_output("")
-	# BD: uniform control-return raise (charges carry no payload today —
-	# scope boundary — so this is a no-op unless a stash is pending).
-	if _show_pending_diorama():
-		return  # _on_battle_diorama_dismissed re-enables input
-	command_input.grab_focus()
+	# PC15-10 B4b (F9): route what the charge carries (a capture question),
+	# then the one tail.
+	if _route_response_ui(response, _post_answer_response_routes):
+		return
+	_return_control_to_player()
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -6201,8 +6230,9 @@ func _on_interrupt_response(response):
 	# this line, clicking the button the game presents and typing the same
 	# answer gave two different outcomes.
 	if typeof(response) == TYPE_DICTIONARY:
-		_stash_diorama(response)
-		_stash_relay(response)  # CR-7-3: the tail that waited behind the interrupt
+		# PC15-10 B4b (F9): the one stash chokepoint (the tableau, CR-7-3's
+		# relayed tail, the redemption, …).
+		_stash_pending_surfaces(response)
 		# POSITION 7: this route BYPASSES _on_command_result — without this
 		# observe, a muster "Attack Anyway" battle would never advance an
 		# attack step of the School of War.
@@ -6237,14 +6267,12 @@ func _on_interrupt_response(response):
 	# Update diplomatic displays after interrupt resolution
 	_update_diplomatic_top_bar(response)
 
-	# Check for redemption event from strategic interrupt trust penalty
-	if response.has("redemption_event"):
-		interrupt_queue.clear()  # Redemption takes priority
-		pending_strategic_response = null
-		pending_enemy_phase_response = null
-		_show_pending_dispatch()
-		_show_redemption_dialog(response.redemption_event)
-		return  # Don't re-enable input until redemption resolved
+	# PC15-10 B4b (F9): a redemption from the interrupt's trust penalty is
+	# STASHED by the chokepoint above and raised by the one tail. This arm
+	# used to clear the interrupt queue ("redemption takes priority") —
+	# throwing away the other marshals' questions — and to draw the dialog
+	# straight after the dispatch, the stacking shape FA slice-9 (R1-5)
+	# removed everywhere else.
 
 	# A muster-confirmed attack can resolve into a CAPTURE (plunder/secure),
 	# a glorious charge, or another follow-on popup. Route them through the
@@ -6252,11 +6280,21 @@ func _on_interrupt_response(response):
 	# dropping the capture choice used to block the NEXT command with
 	# "you must decide how to handle the captured region first!". If a
 	# follow-on popup takes the flow, stop here (it owns re-enabling input).
-	if _route_response_ui(response, _post_hud_response_routes):
+	# PC15-10 B4b (F9): the answer's result is already rendered above, so
+	# the post-ANSWER table — a redemption rides the stash, never the
+	# route that would render the result a second time.
+	if _route_response_ui(response, _post_answer_response_routes):
 		return
 
-	# Process next interrupt in queue
-	_process_next_interrupt()
+	# PC15-10 B4b (F9): with questions still queued, the one chain decides
+	# what comes next — what this answer stashed (its battle's tableau, the
+	# redemption its trust penalty raised) before the next marshal's
+	# question, which the chain raises last. With the queue drained,
+	# `_process_next_interrupt()` closes the flow (the dispatch, then the tail).
+	if interrupt_queue.is_empty():
+		_process_next_interrupt()
+	else:
+		_return_control_to_player()
 
 
 func _process_next_interrupt():
@@ -6697,9 +6735,9 @@ func _on_mailbox_list_result(response: Dictionary):
 		))
 		# IGR-F: `_show_pending_envoy_digest` left input disabled expecting the
 		# panel to own the hand-back. If it never opens, hand it back here or
-		# the terminal is locked with nothing on screen to unlock it.
-		set_input_enabled(true)
-		command_input.grab_focus()
+		# the terminal is locked with nothing on screen to unlock it — through
+		# the one tail (PC15-10 B4b).
+		_return_control_to_player()
 		return
 	var count = int(response.get("count", 0))
 	var items = response.get("items", [])
@@ -6708,8 +6746,7 @@ func _on_mailbox_list_result(response: Dictionary):
 	_set_pending_envoy_count(count)
 	if count == 0:
 		add_output("[color=#d9c08c]No pending envoys at this time.[/color]")
-		set_input_enabled(true)
-		command_input.grab_focus()
+		_return_control_to_player()  # PC15-10 B4b: the one tail
 		return
 	# IGR-F: a letter-book row is answered IN the panel, so the count==1
 	# shortcut below must not divert it into the very modal the digest exists
@@ -6915,10 +6952,9 @@ func _on_mailbox_panel_closed():
 
 	IGR-F: the letter-book can be raised by `_show_pending_envoy_digest`,
 	which leaves input disabled the way the Proclamation does — so closing it
-	is what hands control back. Harmless on the envoy-badge path, where input
-	was never disabled in the first place."""
-	set_input_enabled(true)
-	command_input.grab_focus()
+	is what hands control back, through the one tail (PC15-10 B4b), so a
+	surface stashed behind the letter-book still gets its turn."""
+	_return_control_to_player()
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -7269,8 +7305,7 @@ func _on_marshal_audience_fetched(response: Dictionary):
 		return  # the answer / Later handlers hand control back
 	add_output("[color=#d9c08c]%s[/color]" % str(
 		response.get("message", "No marshal waits upon you, Sire.")))
-	set_input_enabled(true)
-	command_input.grab_focus()
+	_return_control_to_player()  # PC15-10 B4b: the one tail
 
 
 func _on_marshal_petition_result(response):

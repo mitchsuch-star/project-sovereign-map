@@ -1,0 +1,121 @@
+[
+  {
+    "id": "the chokepoint forgets the relay",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t_stash_relay(response)  # CR-7-3\n",
+    "new": "",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheStashIsOneChokepoint::test_the_chokepoint_calls_every_stasher"
+  },
+  {
+    "id": "the chain raises the ending before the tableau",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _show_pending_diorama():\n\t\treturn true  # BD: _on_battle_diorama_dismissed\n\tif _show_pending_ending():\n\t\treturn true  # GE-2: the end screen's own signals\n",
+    "new": "\tif _show_pending_ending():\n\t\treturn true  # GE-2: the end screen's own signals\n\tif _show_pending_diorama():\n\t\treturn true  # BD: _on_battle_diorama_dismissed\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheRaiseIsOneChain::test_the_chain_raises_in_the_canonical_order"
+  },
+  {
+    "id": "the modal guard waits on the modal",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _is_modal_dialog_open():\n\t\treturn false\n\tif _show_pending_diorama():",
+    "new": "\tif _is_modal_dialog_open():\n\t\treturn true\n\tif _show_pending_diorama():",
+    "tests": "tests/test_b4b_the_one_tail.py::TestThePauseMenuNeverLocksTheLine::test_the_command_line_comes_back tests/test_b4b_the_one_tail.py::TestTheRaiseIsOneChain::test_nothing_is_raised_over_an_open_modal_and_control_still_returns"
+  },
+  {
+    "id": "the modal guard is dropped",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _is_modal_dialog_open():\n\t\treturn false\n\tif _show_pending_diorama():",
+    "new": "\tif _show_pending_diorama():",
+    "tests": "tests/test_b4b_the_one_tail.py::TestThePauseMenuNeverLocksTheLine::test_nothing_is_raised_over_the_pause_menu"
+  },
+  {
+    "id": "the chain forgets the capture question",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _show_pending_capture_choice():\n\t\treturn true  # the capture handler\n",
+    "new": "",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheTownIsAskedFirstAndAlone::test_the_capture_question_stands_alone tests/test_b4b_the_one_tail.py::TestTheRaiseIsOneChain::test_the_chain_raises_every_modal_surface"
+  },
+  {
+    "id": "the dispatch raises the capture again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif pending_dispatch_data != null:\n\t\t_display_morning_dispatch(pending_dispatch_data)\n\t\tpending_dispatch_data = null\n",
+    "new": "\tif pending_dispatch_data != null:\n\t\t_display_morning_dispatch(pending_dispatch_data)\n\t\tpending_dispatch_data = null\n\tif _show_pending_capture_choice():\n\t\treturn\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheRaiseIsOneChain::test_the_dispatch_raises_nothing"
+  },
+  {
+    "id": "the reset keeps the old campaign's stashes",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t_clear_pending_surfaces()\n",
+    "new": "",
+    "tests": "tests/test_b4b_the_one_tail.py::TestALoadForgetsTheOldCampaign::test_the_old_relayed_order_is_not_typed_into_the_new_campaign tests/test_b4b_the_one_tail.py::TestAWorldSwapClearsEveryStash::test_the_reset_clears_through_the_chokepoint"
+  },
+  {
+    "id": "the clear keeps the relayed order",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tpending_relay_command = \"\"\n\tpending_ending_queue.clear()\n",
+    "new": "\tpending_ending_queue.clear()\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestALoadForgetsTheOldCampaign::test_the_old_relayed_order_is_not_typed_into_the_new_campaign tests/test_b4b_the_one_tail.py::TestAWorldSwapClearsEveryStash::test_every_variable_a_stasher_writes_is_cleared"
+  },
+  {
+    "id": "the overridden attack drops its question again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "(the tableau first, then everything else stashed).\n\tif _route_response_ui(response, _post_answer_response_routes):\n\t\treturn\n",
+    "new": "(the tableau first, then everything else stashed).\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheOverriddenAttackAsksAboutItsTown::test_the_capture_question_is_raised_before_control_returns tests/test_b4b_the_one_tail.py::TestEveryTailIsTheOneTail::test_the_objection_answer_routes_what_it_carries_on_every_arm"
+  },
+  {
+    "id": "the objection re-enables beneath the question",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t# it live beneath a capture question the route raises.\n\n\tif response.success:\n\t\t# Update status displays",
+    "new": "\t# it live beneath a capture question the route raises.\n\tset_input_enabled(true)\n\n\tif response.success:\n\t\t# Update status displays",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheOverriddenAttackAsksAboutItsTown::test_the_command_line_stays_closed_beneath_the_question"
+  },
+  {
+    "id": "the redemption clears the queue again",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t# removed everywhere else.\n",
+    "new": "\t# removed everywhere else.\n\tif response.has(\"redemption_event\"):\n\t\tinterrupt_queue.clear()\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheRedemptionKeepsTheOtherQuestions::test_the_second_question_is_kept tests/test_b4b_the_one_tail.py::TestEveryTailIsTheOneTail::test_the_interrupt_answer_keeps_the_other_questions"
+  },
+  {
+    "id": "the interrupt answer pops the next question first",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif interrupt_queue.is_empty():\n\t\t_process_next_interrupt()\n\telse:\n\t\t_return_control_to_player()\n",
+    "new": "\t_process_next_interrupt()\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheRedemptionKeepsTheOtherQuestions::test_the_redemption_is_raised_first"
+  },
+  {
+    "id": "the answer table keeps the redemption route",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t_post_answer_response_routes = _post_hud_response_routes.filter(\n\t\tfunc(route): return str(route.get(\"id\", \"\")) != \"redemption_event\")\n",
+    "new": "\t_post_answer_response_routes = _post_hud_response_routes.duplicate()\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestEveryTailIsTheOneTail::test_the_answer_table_is_the_post_hud_table_minus_the_redemption"
+  },
+  {
+    "id": "the charge stashes after it routes",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t# carry a capture question and a redemption the old handler dropped.\n\t_stash_pending_surfaces(response)\n",
+    "new": "\t# carry a capture question and a redemption the old handler dropped.\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheStashIsOneChokepoint::test_every_ingest_stashes_before_it_routes"
+  },
+  {
+    "id": "the letter-book hands back directly",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tsurface stashed behind the letter-book still gets its turn.\"\"\"\n\t_return_control_to_player()\n",
+    "new": "\tsurface stashed behind the letter-book still gets its turn.\"\"\"\n\tset_input_enabled(true)\n\tcommand_input.grab_focus()\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestThePauseMenuNeverLocksTheLine::test_the_stash_waits_for_the_next_return tests/test_b4b_the_one_tail.py::TestEveryTailIsTheOneTail::test_the_handler_hands_back_through_the_tail_only"
+  },
+  {
+    "id": "the capture answer re-enables beneath the estate question",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t# PC15-10 B4b (F9): no early re-enable — the estate stage below mounts a\n",
+    "new": "\tset_input_enabled(true)\n\t# PC15-10 B4b (F9): no early re-enable — the estate stage below mounts a\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheEstateQuestionKeepsTheLineClosed::test_the_command_line_stays_closed"
+  },
+  {
+    "id": "the tail re-enables before it raises",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif _raise_pending_surfaces():\n\t\treturn\n\t_maybe_recover_dropped_redemption()\n\tset_input_enabled(true)\n",
+    "new": "\tset_input_enabled(true)\n\tif _raise_pending_surfaces():\n\t\treturn\n\t_maybe_recover_dropped_redemption()\n",
+    "tests": "tests/test_b4b_the_one_tail.py::TestTheRaiseIsOneChain::test_the_tail_raises_before_it_hands_back tests/test_b4b_the_one_tail.py::TestTheOverriddenAttackAsksAboutItsTown::test_the_command_line_stays_closed_beneath_the_question"
+  }
+]

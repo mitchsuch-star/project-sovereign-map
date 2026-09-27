@@ -21,6 +21,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 
 
 def _endpoint_body(source: str, decorator: str) -> str:
@@ -1306,15 +1307,16 @@ class TestGodotWiring:
         assert 'dialog_manager.register("proclamation"' in main_gd
         assert "proclamation_popup.dismissed.connect(_on_proclamation_dismissed)" in main_gd
         assert "func _on_proclamation_dismissed" in main_gd
-        handler = main_gd.index("func _on_proclamation_dismissed")
-        # IGR-F: bounded by the NEXT function, not a fixed 200 characters.
-        # The fixed window silently de-bound the moment another
-        # control-returning branch was added ahead of the re-enable — the
+        # IGR-F: bounded by the NEXT function, not a fixed 200 characters —
+        # the fixed window silently de-bound the moment another
+        # control-returning branch was added ahead of the re-enable (the
         # same false-satisfy shape IGR-B's review found in the NA-6
-        # dead-name pin. The body is what the contract is about.
-        end = main_gd.index("\nfunc ", handler + 1)
-        body = main_gd[handler:end]
-        assert "set_input_enabled(true)" in body
+        # dead-name pin). PC15-10 B4b (Sept 27, 2026 — re-seated consciously):
+        # the handler hands control back through the one tail, so the
+        # re-enable is read through it (tests/_gd_calls.py — bounded by the
+        # function, comments stripped).
+        assert G.reaches(main_gd, "_on_proclamation_dismissed",
+                         "set_input_enabled(true)")
 
     def test_the_card_is_not_a_pre_empting_route(self):
         """REGRESSION (two confirmed P1s): every entry in
@@ -1341,9 +1343,13 @@ class TestGodotWiring:
         main_gd = _read("scripts/main.gd")
         assert "func _stash_proclamation" in main_gd
         assert "func _show_pending_proclamation" in main_gd
-        result_fn = main_gd.index("func _on_command_result")
-        stash = main_gd.index("_stash_proclamation(response)", result_fn)
-        route = main_gd.index("_route_response_ui(response", result_fn)
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        body = G.inline_body(main_gd, "_on_command_result")
+        stash = body.index("_stash_proclamation(response)")
+        route = body.index("_route_response_ui(response")
         assert stash < route, "the stash must precede all routing"
 
     def test_every_control_returning_seam_routes_through_one_tail(self):
@@ -1367,8 +1373,11 @@ class TestGodotWiring:
 
     def test_the_shared_tail_shows_the_card_before_re_enabling_input(self):
         main_gd = _read("scripts/main.gd")
-        start = main_gd.index("func _return_control_to_player")
-        body = main_gd[start:main_gd.index("\nfunc ", start + 10)]
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        body = G.inline_body(main_gd, "_return_control_to_player")
         assert body.index("_show_pending_proclamation()") < body.index(
             "set_input_enabled(true)")
 
@@ -1393,9 +1402,12 @@ class TestGodotWiring:
         """The dismissal handler chains, so two formations on one tick do
         not need an unrelated command to surface the second."""
         main_gd = _read("scripts/main.gd")
-        start = main_gd.index("func _on_proclamation_dismissed")
-        body = main_gd[start:main_gd.index("\nfunc ", start + 10)]
-        assert "_show_pending_proclamation()" in body
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(main_gd, "_on_proclamation_dismissed",
+                         "_show_pending_proclamation()")
 
     def test_the_popup_is_not_added_to_the_dialogue_dtype_whitelist(self):
         """§11.10-5 makes it a PopupQueue popup, NOT a dialogue — §11.7's

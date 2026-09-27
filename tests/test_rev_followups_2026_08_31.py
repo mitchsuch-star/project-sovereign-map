@@ -26,6 +26,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 
 from backend import save_manager
 from backend.commands.executor import CommandExecutor
@@ -634,6 +635,8 @@ class TestTheTwoOrderingFixesAreStillInMainGd:
         assert "_return_control_to_player()" in tail, (
             "the interrupt tail must end in the shared control-return tail")
         assert tail.index("_show_pending_dispatch()") < tail.index("_return_control_to_player()")
-        shared = src[src.index("func _return_control_to_player("):]
-        shared = shared[:shared.index("func ", 40)]
-        assert "_show_pending_diorama()" in _code_only_gd(shared)
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(src, "_return_control_to_player", "_show_pending_diorama()")

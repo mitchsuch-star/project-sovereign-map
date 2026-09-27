@@ -38,6 +38,7 @@ this slice exists to fix was already unanswerable.
 import copy
 
 import pytest
+from tests import _gd_calls as G
 
 from backend.game_logic import ai_diplomacy
 from backend.game_logic.envoy_digest import (
@@ -893,15 +894,20 @@ class TestClientContract:
 
     def test_the_digest_is_raised_from_the_control_return_tail(self):
         source = _gd("main.gd")
-        start = source.index("func _return_control_to_player")
-        end = source.index("\nfunc ", start + 10)
-        assert "_show_pending_envoy_digest()" in source[start:end]
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(source, "_return_control_to_player",
+                         "_show_pending_envoy_digest()")
 
     def test_closing_the_letter_book_hands_control_back(self):
         source = _gd("main.gd")
-        start = source.index("func _on_mailbox_panel_closed")
-        end = source.index("\nfunc ", start + 10)
-        assert "set_input_enabled(true)" in source[start:end]
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(source, "_on_mailbox_panel_closed", "set_input_enabled(true)")
 
     def test_the_panel_is_latched_per_turn(self):
         """Derived fresh on every response — without the latch a closed panel
@@ -943,8 +949,12 @@ class TestClientContract:
         place with exactly one call site. Delete either and
         `_show_pending_envoy_digest` returns false forever — the letter-book
         never auto-raises and every other test still passes."""
-        body = self._body("main.gd", "_on_command_result")
-        assert "_stash_envoy_digest(response)" in body
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(_gd("main.gd"), "_on_command_result",
+                         "_stash_envoy_digest(response)")
         stash = self._body("main.gd", "_stash_envoy_digest")
         assert "_pending_envoy_digest_turn = digest_turn" in stash
 
@@ -968,7 +978,11 @@ class TestClientContract:
         assert "if count == 1 and not has_digest:" in body
 
     def test_the_latches_are_cleared_on_a_world_swap(self):
-        body = self._body("main.gd", "_reset_frontend_state_for_world_swap")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        body = G.inline_body(_gd("main.gd"), "_reset_frontend_state_for_world_swap")
         assert "_envoy_digest_shown_turn = -1" in body
         assert "_pending_envoy_digest_turn = -1" in body
 

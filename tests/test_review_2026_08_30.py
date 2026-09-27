@@ -25,8 +25,10 @@ Method notes worth keeping (they cost real time this round):
 
 import io
 import os
+import re
 
 import pytest
+from tests import _gd_calls as G
 
 from backend.ai.clause_guards import strip_negated_clauses
 from backend.commands.parser import CommandParser
@@ -756,11 +758,23 @@ class TestTheCaptureQuestionDoesNotEatTheTurn:
     def test_and_raised_when_control_returns(self):
         src = _read("godot-client/project-sovereign/scripts/main.gd")
         assert "func _show_pending_capture_choice() -> bool:" in src
-        body = src[src.index("func _show_pending_dispatch():"):]
-        body = body[:body.index("func _display_turn_advance(")]
-        assert "_show_pending_capture_choice()" in body, (
-            "the dispatch is the last thing shown before control returns — "
-            "the NA-6b stash-and-raise idiom this file already uses")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the capture question
+        # rides the one raise chain now, and EVERY caller of the dispatch
+        # hands control back through the one tail AFTER the dispatch — the
+        # turn is told in full, then the town asks what to do with it.
+        assert G.reaches(src, "_return_control_to_player",
+                         "_show_pending_capture_choice()")
+        callers = G.callers(src, "_show_pending_dispatch")
+        assert callers, "the dispatch is shown from nowhere"
+        for name in callers:
+            code = G.body(src, name)
+            for shown in re.finditer(r"_show_pending_dispatch\(\)", code):
+                rest = code[shown.end():]
+                tail_at = rest.find("_return_control_to_player()")
+                early = re.search(r"^\s*return\b", rest, re.M)
+                assert tail_at != -1 and (early is None or tail_at < early.start()), (
+                    f"{name}: the dispatch is the last thing shown before control "
+                    "returns — the NA-6b stash-and-raise idiom this file already uses")
 
 
 class TestTheInterruptTailShowsTheDispatch:

@@ -37,6 +37,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 from fastapi.testclient import TestClient
 
 from backend.commands.executor import CommandExecutor
@@ -544,7 +545,11 @@ class TestWO36TheWorldSwapResetClearsTheStashes:
 
         Mutation: delete any one line."""
         src = MAIN_GD.read_text(encoding="utf-8")
-        body = _gd_func_body(src, "_reset_frontend_state_for_world_swap")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        body = G.inline_body(src, "_reset_frontend_state_for_world_swap")
         for line in self.RESET_LINES:
             assert line in body, f"the reset lost: {line}"
 

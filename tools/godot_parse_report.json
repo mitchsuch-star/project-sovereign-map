@@ -425,7 +425,13 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/ge3_congress_harness.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/b4b_one_tail_harness.gd"
     }
   ],
-  "timestamp": "2026-09-27T02:37:49Z"
+  "timestamp": "2026-09-27T22:53:55Z"
 }

@@ -41,6 +41,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 from fastapi.testclient import TestClient
 
 import backend.main as M
@@ -496,7 +497,11 @@ class TestThePetitionRidesTheEndTurn:
                           flags=re.M | re.S)
             assert m, name
             return m.group(1)
-        assert "_stash_petition(response)" in body("_on_command_result")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        assert G.reaches(src, "_on_command_result", "_stash_petition(response)")
         for tail in ("_return_control_to_player", "_on_proclamation_dismissed",
                      "_on_battle_diorama_dismissed", "_process_next_interrupt"):
             if tail == "_process_next_interrupt":
@@ -506,6 +511,6 @@ class TestThePetitionRidesTheEndTurn:
                 # by the first iteration of this loop.
                 assert "_return_control_to_player()" in body(tail), tail
                 continue
-            assert "_show_pending_petition()" in body(tail), tail
+            assert G.reaches(src, tail, "_show_pending_petition()"), tail
         # the route table is untouched — the petition stays a post-HUD route
         assert '{"id": "marshal_petition"' in src

@@ -41,6 +41,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 from fastapi.testclient import TestClient
 
 import backend.main as M
@@ -536,8 +537,11 @@ class TestTheRowCarriesWhatTheClientReads:
         src = (REPO / "godot-client/project-sovereign/scripts/main.gd").read_text(encoding="utf-8")
         assert "_stash_deferred_dialogue(response)" in src
         assert "if _show_pending_deferred_dialogue():" in src
-        tail = src[src.index("func _return_control_to_player()"):]
-        tail = tail[:tail.index("\nfunc ", 10)]
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the stash and
+        # the raise live behind the one chokepoint now — read the
+        # handler INLINED through it (tests/_gd_calls.py), so the call it
+        # reaches is what is pinned and a deleted call still reds.
+        tail = G.inline_body(src, "_return_control_to_player")
         assert "_show_pending_deferred_dialogue()" in tail
         assert "if not interrupt_queue.is_empty():" in tail and "_process_next_interrupt()" in tail
         capture = src[src.index("func _on_capture_choice_response("):]

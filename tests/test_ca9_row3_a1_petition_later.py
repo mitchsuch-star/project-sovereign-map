@@ -109,12 +109,24 @@ class TestTheTrapItselfIsStillReal:
 
     def test_that_route_family_still_returns_before_re_enabling(self, main):
         """The two lines that make the trap: `_route_response_ui` returns, and
-        `set_input_enabled(true)` sits after it."""
+        `set_input_enabled(true)` sits after it.
+
+        PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the answer
+        handlers now route through `_post_answer_response_routes` (the post-HUD
+        table minus the redemption route, whose stash the one tail raises),
+        and the command road passes the renderer as a third argument. The
+        premise is unchanged — both tables still carry the petition route and
+        still return before re-enabling — so the pattern accepts either table
+        and the optional argument, and the answer table is pinned to be the
+        post-HUD table's own filter."""
         match = re.search(
-            r"if _route_response_ui\(response, _post_hud_response_routes\):\n"
-            r"\t\treturn[^\n]*\n",
+            r"if _route_response_ui\(response, _post_(?:hud|answer)_response_routes"
+            r"(?:, \w+)?\):\n\t+return[^\n]*\n",
             main)
         assert match, (
             "the early return is gone — if control is now handed back "
             "centrally, A1's signal is belt-and-braces and the comment "
             "in marshal_petition_dialog.gd should be corrected")
+        assert re.search(
+            r"_post_answer_response_routes = _post_hud_response_routes\.filter\(",
+            main), "the answer table no longer derives from the post-HUD table"

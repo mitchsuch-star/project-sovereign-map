@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 
 import pytest
+from tests import _gd_calls as G
 
 from backend.game_logic.war_status import (
     _collapse_shared_war_instance_rows,
@@ -188,7 +189,13 @@ class TestTheRedemptionIsStashed:
 
     def test_every_patched_tail_raises_it(self):
         """A stash nothing raises is the same bug one step later."""
-        assert MAIN_GD.count("_show_pending_redemption()") >= 6
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the six tails PT-B1
+        # patched by hand now reach the raise through the one tail —
+        # counting call sites would pass on a stash no tail raises.
+        for tail in ("_on_command_result", "_return_control_to_player",
+                     "_on_battle_diorama_dismissed", "_on_marshal_petition_deferred",
+                     "_on_proclamation_dismissed", "_apply_world_swap_response"):
+            assert G.reaches(MAIN_GD, tail, "_show_pending_redemption()"), tail
 
     def test_it_is_raised_behind_the_letter_book_never_above_the_response(self):
         """Order matters: the three existing stashes are theatre and the

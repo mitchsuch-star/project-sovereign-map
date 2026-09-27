@@ -206,8 +206,12 @@ class TestTheCaptureRouteIsResultFirst:
 
     def test_the_muster_road_renders_before_it_routes(self):
         body = _func_body(_read(MAIN_GD), "_on_interrupt_response")
+        # PC15-10 B4b (Sept 27, 2026 — re-seated consciously): the answer
+        # handlers route through `_post_answer_response_routes` (the post-HUD
+        # table minus the redemption route, which would render the result a
+        # second time) — the render-before-route order is what is pinned.
         assert body.index("_display_result(response)") < body.index(
-            "_route_response_ui(response, _post_hud_response_routes)")
+            "_route_response_ui(response, _post_answer_response_routes)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
