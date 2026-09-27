@@ -132,30 +132,30 @@ class TestPopupQueueUnit:
     def test_push_and_get(self):
         """Push a popup and retrieve it without popping."""
         q = PopupQueue()
-        q.push("coalition_popup", {"name": "Test"})
-        assert q.get("coalition_popup") == {"name": "Test"}
+        q.push("diplomatic_sabotage_popup", {"name": "Test"})
+        assert q.get("diplomatic_sabotage_popup") == {"name": "Test"}
 
     def test_get_missing_returns_none(self):
         """get on missing type returns None."""
         q = PopupQueue()
-        assert q.get("coalition_popup") is None
+        assert q.get("diplomatic_sabotage_popup") is None
 
     def test_pop_highest_returns_top_priority(self):
         """pop_highest returns coalition (priority 1) over proposal (priority 6)."""
         q = PopupQueue()
         q.push("incoming_proposal_popup", {"type": "proposal"})
-        q.push("coalition_popup", {"type": "coalition"})
+        q.push("diplomatic_sabotage_popup", {"type": "coalition"})
         popup_type, response_key, data = q.pop_highest()
-        assert popup_type == "coalition_popup"
-        assert response_key == "coalition_popup"
+        assert popup_type == "diplomatic_sabotage_popup"
+        assert response_key == "diplomatic_sabotage"
         assert data == {"type": "coalition"}
 
     def test_pop_highest_removes_from_queue(self):
         """pop_highest removes the popped popup."""
         q = PopupQueue()
-        q.push("coalition_popup", {"name": "Test"})
+        q.push("diplomatic_sabotage_popup", {"name": "Test"})
         q.pop_highest()
-        assert q.get("coalition_popup") is None
+        assert q.get("diplomatic_sabotage_popup") is None
         assert not q.has_pending()
 
     def test_pop_highest_empty_returns_nones(self):
@@ -167,29 +167,29 @@ class TestPopupQueueUnit:
         """has_pending returns True when popups exist."""
         q = PopupQueue()
         assert not q.has_pending()
-        q.push("coalition_popup", {"test": True})
+        q.push("diplomatic_sabotage_popup", {"test": True})
         assert q.has_pending()
 
     def test_clear_type(self):
         """clear_type removes a specific popup type."""
         q = PopupQueue()
-        q.push("coalition_popup", {"test": True})
-        q.clear_type("coalition_popup")
+        q.push("diplomatic_sabotage_popup", {"test": True})
+        q.clear_type("diplomatic_sabotage_popup")
         assert not q.has_pending()
 
     def test_set_none_clears(self):
         """set(type, None) clears the popup."""
         q = PopupQueue()
-        q.push("coalition_popup", {"test": True})
-        q.set("coalition_popup", None)
-        assert q.get("coalition_popup") is None
+        q.push("diplomatic_sabotage_popup", {"test": True})
+        q.set("diplomatic_sabotage_popup", None)
+        assert q.get("diplomatic_sabotage_popup") is None
 
     def test_push_overwrites(self):
         """Pushing same type overwrites previous data."""
         q = PopupQueue()
-        q.push("coalition_popup", {"v": 1})
-        q.push("coalition_popup", {"v": 2})
-        assert q.get("coalition_popup") == {"v": 2}
+        q.push("diplomatic_sabotage_popup", {"v": 1})
+        q.push("diplomatic_sabotage_popup", {"v": 2})
+        assert q.get("diplomatic_sabotage_popup") == {"v": 2}
 
     def test_priority_order_all_types(self):
         """All popup types pop in canonical priority order, collapsing legacy aliases."""
@@ -210,7 +210,7 @@ class TestPopupQueueUnit:
 
     def test_response_keys_mapping(self):
         """RESPONSE_KEYS maps world attrs to Godot-facing keys."""
-        assert PopupQueue.RESPONSE_KEYS["coalition_popup"] == "coalition_popup"
+        assert PopupQueue.RESPONSE_KEYS["diplomatic_sabotage_popup"] == "diplomatic_sabotage"
         assert PopupQueue.RESPONSE_KEYS["diplomatic_sabotage_popup"] == "diplomatic_sabotage"
         assert PopupQueue.RESPONSE_KEYS["incoming_proposal_popup"] == "incoming_proposal"
 
@@ -266,16 +266,16 @@ class TestBackwardCompatProperties:
     def test_popup_property_read_write(self):
         """Popup properties read/write through PopupQueue."""
         world = WorldFactory.basic()
-        world.coalition_popup = {"name": "test"}
-        assert world.coalition_popup == {"name": "test"}
-        world.coalition_popup = None
-        assert world.coalition_popup is None
+        world.diplomatic_sabotage_popup = {"name": "test"}
+        assert world.diplomatic_sabotage_popup == {"name": "test"}
+        world.diplomatic_sabotage_popup = None
+        assert world.diplomatic_sabotage_popup is None
 
     def test_all_popup_properties(self):
         """All popup fields have working properties, including the paradox alias."""
         world = WorldFactory.basic()
         popups = {
-            "coalition_popup": {"a": 1},
+            "diplomatic_sabotage_popup": {"a": 1},
             "diplomatic_sabotage_popup": {"b": 2},
             "vassal_rebellion_imminent_popup": {"c": 3},
             "diplomatic_objection_popup": {"e": 5},
@@ -306,16 +306,16 @@ class TestBackwardCompatProperties:
     def test_popup_save_load_via_properties(self):
         """Popup fields save/load via properties — same save format."""
         world = WorldFactory.basic()
-        world.coalition_popup = {"name": "test"}
+        world.diplomatic_sabotage_popup = {"name": "test"}
         world.incoming_proposal_popup = {"from": "Austria"}
 
         data = world.to_dict()
-        assert data["coalition_popup"] == {"name": "test"}
+        assert data["diplomatic_sabotage_popup"] == {"name": "test"}
         assert data["incoming_proposal_popup"] == {"from": "Austria"}
         assert data["commitment_paradox_popup"] is None
 
         loaded = WorldFactory.basic().from_dict(data)
-        assert loaded.coalition_popup == {"name": "test"}
+        assert loaded.diplomatic_sabotage_popup == {"name": "test"}
         assert loaded.incoming_proposal_popup == {"from": "Austria"}
 
 
@@ -379,17 +379,17 @@ class TestPopupQueueIntegration:
         """_include_popup_passthroughs uses PopupQueue.pop_highest()."""
         from backend.main import _include_popup_passthroughs
         world = WorldFactory.basic()
-        world.coalition_popup = {"name": "Test Coalition"}
+        world.diplomatic_sabotage_popup = {"name": "Test Coalition"}
         world.incoming_proposal_popup = {"from": "Austria"}
 
         response = {}
         _include_popup_passthroughs(response, world)
 
         # Coalition wins (highest priority)
-        assert response["coalition_popup"] == {"name": "Test Coalition"}
+        assert response["diplomatic_sabotage"] == {"name": "Test Coalition"}
         assert response["incoming_proposal"] is None
         # Coalition cleared, proposal preserved
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
         assert world.incoming_proposal_popup == {"from": "Austria"}
 
     def test_popup_passthrough_all_keys_present(self):
@@ -400,7 +400,7 @@ class TestPopupQueueIntegration:
         _include_popup_passthroughs(response, world)
 
         expected = [
-            "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
+            "diplomatic_sabotage", "vassal_rebellion_imminent",
             "diplomatic_objection", "incoming_proposal",
             "commitment_paradox_popup"
         ]
@@ -443,9 +443,16 @@ class TestCooldownPopupEnforcement:
         Jealousy v3.2 added `pending_marshal_petition` (the marshal-petition
         channel — confrontations, rivalry events, Fontainebleau);
         NA-6b (July 18, 2026) added `proclamation_popup` (The Proclamation —
-        a formation landmark, spec §11.8 stage 2)."""
-        assert len(PopupQueue.PRIORITY_ORDER) == 11
-        assert len(PopupQueue.RESPONSE_KEYS) == 11
+        a formation landmark, spec §11.8 stage 2).
+
+        PC15-10 B4a (F8, §6 Q5 RULED), a conscious flip 11 -> 9: the dead
+        `coalition_popup` slot and the unreachable `alliance_paradox_popup`
+        ORDER entry are retired — nine canonical slots, each justified in the
+        comment table at `PRIORITY_ORDER`; the alias map is kept."""
+        assert len(PopupQueue.PRIORITY_ORDER) == 9
+        # PC15-10 B4a (F8, Q5), a conscious flip: 11 -> 10 — the retired
+        # `coalition_popup` response key (the legacy paradox alias stays).
+        assert len(PopupQueue.RESPONSE_KEYS) == 10
         assert PopupQueue.RESPONSE_KEYS["commitment_paradox_popup"] == "commitment_paradox_popup"
         assert PopupQueue.RESPONSE_KEYS["alliance_paradox_popup"] == "commitment_paradox_popup"
         assert "incoming_settlement_offer_popup" in PopupQueue.PRIORITY_ORDER
@@ -481,7 +488,7 @@ class TestCooldownPopupEnforcement:
         """Popup fields are properties, not instance attributes."""
         from backend.models.world_state import WorldState
         for prop_name in [
-            'coalition_popup', 'diplomatic_sabotage_popup',
+            'diplomatic_sabotage_popup',
             'vassal_rebellion_imminent_popup',
             'diplomatic_objection_popup', 'incoming_proposal_popup',
             'commitment_paradox_popup',

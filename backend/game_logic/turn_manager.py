@@ -789,7 +789,6 @@ class TurnManager:
         self.world.diplomatic_sabotage_popup = None
         self.world.vassal_rebellion_imminent_popup = None
         self.world.vassal_rebellion_imminent_popups = []
-        self.world.coalition_popup = None
         self.world.commitment_paradox_popup = None
         self.world.pending_capture_choice = None
 

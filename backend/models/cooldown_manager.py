@@ -137,34 +137,78 @@ class PopupQueue:
         "alliance_paradox_popup": "commitment_paradox_popup",
     }
 
-    # Priority order: lower index = higher priority.
-    # SC-5 reversal commit 2 places `incoming_settlement_offer_popup`
-    # just below `incoming_proposal_popup`: settlement offers are
-    # important but less urgent than ordinary AI proposals because
-    # they persist across turns (no end-of-turn lapse).
+    # Priority order: lower index = higher priority. One popup is delivered
+    # per response cycle.
+    #
+    # PC15-10 B4a (PETITION_POPUP_REVISIT_SPEC §4 F8, §6 Q5 RULED): the
+    # order, JUSTIFIED — each row says why it outranks the next.
+    #
+    #   1 diplomatic_sabotage_popup       an active betrayal discovery outranks
+    #                                     everything routine
+    #   2 vassal_rebellion_imminent_popup a state about to leave the empire
+    #   3 proclamation_popup              a nation being born waits for a
+    #                                     rebellion, not for mail (NA-6 §11.10-5)
+    #   4 diplomatic_objection_popup      Talleyrand blocking a command the
+    #                                     player has just given
+    #   5 pending_marshal_petition        marshal drama outranks routine mail —
+    #                                     the CRISIS tier only since B1 (an
+    #                                     audience never enters the queue)
+    #   6 incoming_proposal_popup         current-turn envoys: they lapse at the
+    #                                     end of the turn
+    #   7 incoming_settlement_offer_popup persistent mail, which outwaits the
+    #                                     envoys (SC-5 reversal commit 2)
+    #   8 proposal_result_popup           a RECEIPT, informational — never a
+    #                                     modal (FA-S17-D9 retired its scene):
+    #                                     the backend lifts it onto the notice
+    #                                     rail and the peace-summary line
+    #   9 commitment_paradox_popup        a modal follow-up that orders itself
+    #
+    # Two entries are RETIRED (Q5):
+    #   * `coalition_popup` — no producer ever wrote it (the coalition's
+    #     formation reaches the player on the notice rail; `form_coalition`'s
+    #     popup dict is local to its result). The slot, its response key, the
+    #     world property and the save key are gone; a legacy save's key is
+    #     dropped at load. (Removing the ORDER entry alone would have left a
+    #     restored value that nothing could ever pop, re-saved forever and
+    #     invisible to the game-over sweep, which walks this list.)
+    #   * the `alliance_paradox_popup` ORDER entry — unreachable: it
+    #     canonicalizes to the commitment paradox's slot, which the `seen` set
+    #     has already consumed. The ALIAS stays (a legacy save still pushes
+    #     under the old name).
     PRIORITY_ORDER = [
-        "coalition_popup",
         "diplomatic_sabotage_popup",
         "vassal_rebellion_imminent_popup",
-        # NA-6 §11.10-5: The Proclamation. A landmark outranks routine
-        # mail and marshal drama, and yields to the crises above it —
-        # a nation being born can wait for a rebellion, not for an envoy.
         "proclamation_popup",
         "diplomatic_objection_popup",
-        # Jealousy v3.2: the marshal-petition channel (confrontations,
-        # rivalry events, Fontainebleau) — marshal drama outranks routine
-        # diplomatic mail, yields to crises above.
         "pending_marshal_petition",
         "incoming_proposal_popup",
         "incoming_settlement_offer_popup",
         "proposal_result_popup",
         "commitment_paradox_popup",
-        "alliance_paradox_popup",
     ]
+
+    # The ONE documented exception to "one popup per response" (F8 — the
+    # `proposal_result` decision procedure's fold). The END-TURN response
+    # (it carries `enemy_phase`) defers every CHOICE popup, because the route
+    # table would swallow the turn report, and instead CARRIES these slots
+    # beside the report, each popped OUTSIDE `pop_highest` by
+    # `main._apply_command_popup_contract`:
+    #   * proposal_result_popup  -> `proposal_result` (informational, safe
+    #     beside the report — PL-5A/PL-30; lands on the rail);
+    #   * proclamation_popup     -> `nation_proclamation` (a landmark the
+    #     client stashes and raises at control return — NA-6b);
+    #   * pending_marshal_petition -> `deferred_marshal_petition` (the crisis
+    #     card, stashed and raised behind the report — FA-5).
+    # The same contract attaches the current hard stop as `deferred_dialogue`
+    # and blanks `envoy_digest` (the letter-book is derived, never queued).
+    ENEMY_PHASE_CARRIED = (
+        "proposal_result_popup",
+        "proclamation_popup",
+        "pending_marshal_petition",
+    )
 
     # World attr → response key mapping
     RESPONSE_KEYS = {
-        "coalition_popup": "coalition_popup",
         "diplomatic_sabotage_popup": "diplomatic_sabotage",
         "vassal_rebellion_imminent_popup": "vassal_rebellion_imminent",
         "proclamation_popup": "nation_proclamation",

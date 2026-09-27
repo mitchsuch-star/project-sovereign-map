@@ -972,13 +972,13 @@ class TestTheTurnLoop:
         results = []
         for i in range(5):
             if i == 4:
-                w.coalition_popup = {"stale": True}
+                w.diplomatic_sabotage_popup = {"stale": True}
             random.seed(900 + i)
             with contextlib.redirect_stdout(io.StringIO()):
                 results.append(tm.end_turn(gs))
         assert results[-1]["victory_check"]["game_over"] is True
         assert results[-1]["ending"]["cause"] == game_end.CAUSE_SOIL
-        assert w.coalition_popup is None
+        assert w.diplomatic_sabotage_popup is None
 
     def test_the_enemy_phase_stops_on_a_fallen_empire(self, monkeypatch):
         monkeypatch.setattr(game_end, "SOVEREIGN_DEATH_CHANCE_PCT", 100)

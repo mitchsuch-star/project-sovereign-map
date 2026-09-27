@@ -425,7 +425,7 @@ class TestM8ObjectionExceptionPopups:
         # We test the pattern: build response dict, call _include_popup_passthroughs
         from backend.main import _include_popup_passthroughs
         world = _make_world()
-        world.coalition_popup = {"test": True}
+        world.diplomatic_sabotage_popup = {"test": True}
 
         response = {
             "success": False,
@@ -435,8 +435,8 @@ class TestM8ObjectionExceptionPopups:
         _include_popup_passthroughs(response, world)
 
         # Should now have popup keys
-        assert "coalition_popup" in response
-        assert response["coalition_popup"] == {"test": True}
+        assert "diplomatic_sabotage" in response
+        assert response["diplomatic_sabotage"] == {"test": True}
 
 
 # ═══════════════════════════════════════════════════════════════════════════

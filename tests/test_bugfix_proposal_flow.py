@@ -1184,7 +1184,6 @@ class TestBugfix_PopupPassthrough:
         response = {}
         _include_popup_passthroughs(response, world)
         expected_keys = [
-            "coalition_popup",
             "diplomatic_sabotage",
             "vassal_rebellion_imminent",
             "diplomatic_objection",
@@ -1203,16 +1202,16 @@ class TestBugfix_PopupPassthrough:
 
         world = _make_world()
         world.incoming_proposal_popup = {"from_nation": "Prussia"}
-        world.coalition_popup = {"type": "formation"}
+        world.diplomatic_sabotage_popup = {"type": "formation"}
         response = {}
         _include_popup_passthroughs(response, world)
 
         # Coalition is higher priority than incoming_proposal (priority 1 vs 6)
-        assert response["coalition_popup"] == {"type": "formation"}
+        assert response["diplomatic_sabotage"] == {"type": "formation"}
         assert response["incoming_proposal"] is None
 
         # Coalition cleared from world after delivery (Golden Rule 4)
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
         # Lower-priority popup stays on world for next cycle
         assert world.incoming_proposal_popup == {"from_nation": "Prussia"}
 

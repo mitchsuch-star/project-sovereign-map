@@ -61,7 +61,7 @@ DIPLOMATIC_TOPBAR_KEYS = {
 
 # Popup passthrough keys — MUST appear (value may be None)
 POPUP_KEYS = {
-    "coalition_popup", "diplomatic_sabotage",
+    "diplomatic_sabotage",
     "vassal_rebellion_imminent",
     "diplomatic_objection", "incoming_proposal",
     "commitment_paradox_popup",
@@ -147,11 +147,11 @@ class TestBuildBaseResponse:
 
     def test_popup_passthrough_included(self, fresh_world, main_module):
         """When a popup is set on world, it should appear in response."""
-        fresh_world.coalition_popup = {"type": "test_coalition"}
+        fresh_world.diplomatic_sabotage_popup = {"type": "test_coalition"}
         response = main_module.build_base_response(fresh_world)
-        assert response["coalition_popup"] == {"type": "test_coalition"}
+        assert response["diplomatic_sabotage"] == {"type": "test_coalition"}
         # Should be cleared from world after reading
-        assert fresh_world.coalition_popup is None
+        assert fresh_world.diplomatic_sabotage_popup is None
 
     def test_proposal_result_is_mirrored_into_notice_notifications(self, fresh_world, main_module):
         """Informational proposal results should also reach the persistent notice rail."""
@@ -194,7 +194,7 @@ class TestBuildBaseResponse:
         response = main_module.build_base_response(fresh_world)
 
         assert result["coalition_popup"]["leader"] in result["members"]
-        assert response["coalition_popup"] is None
+        assert response["diplomatic_sabotage"] is None
         assert response["proposal_result"]["target_nation"] == "Austria"
 
     def test_active_wars_always_included(self, fresh_world, main_module):
@@ -228,7 +228,7 @@ class TestBuildBaseResponse:
 
     def test_can_skip_popup_and_notification_consumption(self, fresh_world, main_module):
         """Session 6: /command can start from the shared builder without draining deferred UI state."""
-        fresh_world.coalition_popup = {"type": "coalition_formed", "leader": "Austria"}
+        fresh_world.diplomatic_sabotage_popup = {"type": "coalition_formed", "leader": "Austria"}
         fresh_world.notifications.add({"id": "test_notif", "text": "Test!", "priority": "NORMAL"})
 
         response = main_module.build_base_response(
@@ -240,7 +240,7 @@ class TestBuildBaseResponse:
 
         assert "coalition_popup" not in response
         assert "notifications" not in response
-        assert fresh_world.coalition_popup == {"type": "coalition_formed", "leader": "Austria"}
+        assert fresh_world.diplomatic_sabotage_popup == {"type": "coalition_formed", "leader": "Austria"}
         assert fresh_world.notifications.has_pending() is True
 
     def test_talleyrand_state_label(self, fresh_world, main_module):
@@ -319,7 +319,7 @@ class TestX7CaptureRoutesDoNotDrainPopups:
 
     def test_result_response_can_fill_without_draining(
             self, fresh_world, main_module):
-        fresh_world.coalition_popup = {"type": "coalition_formed"}
+        fresh_world.diplomatic_sabotage_popup = {"type": "coalition_formed"}
         response = main_module._build_result_response(
             {"success": True, "message": "x"}, fresh_world,
             drain_popups=False)
@@ -327,32 +327,32 @@ class TestX7CaptureRoutesDoNotDrainPopups:
         for key in POPUP_KEYS:
             assert key in response
             assert response[key] is None
-        assert fresh_world.coalition_popup == {"type": "coalition_formed"}
+        assert fresh_world.diplomatic_sabotage_popup == {"type": "coalition_formed"}
 
     def test_typed_capture_token_leaves_queued_popup_alone(
             self, client, fresh_world):
         """A typed 'plunder' answer (the W6-0 pending-question router) must
         not eat a popup that was queued behind the capture question."""
         self._seed_capture(fresh_world)
-        fresh_world.coalition_popup = {"type": "coalition_formed"}
+        fresh_world.diplomatic_sabotage_popup = {"type": "coalition_formed"}
         resp = client.post("/command", json={"command": "plunder"})
         assert resp.status_code == 200
         data = resp.json()
-        assert data["coalition_popup"] is None
-        assert fresh_world.coalition_popup == {"type": "coalition_formed"}
+        assert data["diplomatic_sabotage"] is None
+        assert fresh_world.diplomatic_sabotage_popup == {"type": "coalition_formed"}
         # The survivor is delivered on the next ordinary command.
         follow = client.post("/command", json={"command": "status"}).json()
-        assert follow["coalition_popup"] == {"type": "coalition_formed"}
+        assert follow["diplomatic_sabotage"] == {"type": "coalition_formed"}
 
     def test_capture_choice_endpoint_leaves_queued_popup_alone(
             self, client, fresh_world):
         self._seed_capture(fresh_world)
-        fresh_world.coalition_popup = {"type": "coalition_formed"}
+        fresh_world.diplomatic_sabotage_popup = {"type": "coalition_formed"}
         resp = client.post("/capture_choice", json={"choice": "secure"})
         assert resp.status_code == 200
         data = resp.json()
-        assert data["coalition_popup"] is None
-        assert fresh_world.coalition_popup == {"type": "coalition_formed"}
+        assert data["diplomatic_sabotage"] is None
+        assert fresh_world.diplomatic_sabotage_popup == {"type": "coalition_formed"}
 
     def test_command_capture_early_return_site_is_wired(self, main_module):
         """Source pin: the /command capture early-return passes
@@ -408,7 +408,7 @@ class TestCommandEndpointDiplomaticFields:
         def _fake_execute(parsed, game_state):
             if calls["count"] == 0:
                 calls["count"] += 1
-                fresh_world.coalition_popup = {"type": "coalition_formed", "leader": "Austria"}
+                fresh_world.diplomatic_sabotage_popup = {"type": "coalition_formed", "leader": "Austria"}
                 return {
                     "success": True,
                     "message": "Enemy nations have acted.",
@@ -431,13 +431,16 @@ class TestCommandEndpointDiplomaticFields:
         first = client.post("/command", json={"command": "end turn"})
         first_data = first.json()
         assert first_data.get("enemy_phase") is not None
-        assert "coalition_popup" not in first_data or first_data["coalition_popup"] is None
-        assert fresh_world.coalition_popup is not None
+        # PC15-10 B4a: the retired slot's key never rides a response; the
+        # queued first-slot popup is deferred beside `enemy_phase`.
+        assert "coalition_popup" not in first_data
+        assert first_data.get("diplomatic_sabotage") is None
+        assert fresh_world.diplomatic_sabotage_popup is not None
 
         second = client.post("/command", json={"command": "Ney, scout Belgium"})
         second_data = second.json()
-        assert second_data["coalition_popup"] is not None
-        assert fresh_world.coalition_popup is None
+        assert second_data["diplomatic_sabotage"] is not None
+        assert fresh_world.diplomatic_sabotage_popup is None
 
     def test_enemy_phase_keeps_notifications_while_choice_popup_waits_for_followup(
         self, client, fresh_world, main_module, monkeypatch

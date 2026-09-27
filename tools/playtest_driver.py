@@ -671,7 +671,6 @@ DECISION_POPUP_KEYS = {
 # DECISION_POPUP_KEYS). Ten of eleven archived rebellion popups read
 # "→ display-only" and the paradox never appeared in any digest at all.
 DISPLAY_ONLY_KEYS = (
-    "coalition_popup",
     "nation_proclamation",
     "proposal_result",
     "battle_diorama",

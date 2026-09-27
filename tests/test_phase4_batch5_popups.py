@@ -37,7 +37,6 @@ def _get_popup_passthrough_fn():
 def _all_response_keys():
     """All popup response keys that Godot expects to be present."""
     return [
-        "coalition_popup",
         "diplomatic_sabotage",
         "vassal_rebellion_imminent",
         "diplomatic_objection",
@@ -54,42 +53,42 @@ class TestR76PriorityQueue:
     def test_single_popup_included(self, world):
         """When only one popup is set, it appears in the response."""
         fn = _get_popup_passthrough_fn()
-        world.coalition_popup = {"type": "coalition_formed", "leader": "Austria"}
+        world.diplomatic_sabotage_popup = {"type": "coalition_formed", "leader": "Austria"}
         response = {}
         fn(response, world)
-        assert response["coalition_popup"] is not None
-        assert response["coalition_popup"]["type"] == "coalition_formed"
+        assert response["diplomatic_sabotage"] is not None
+        assert response["diplomatic_sabotage"]["type"] == "coalition_formed"
 
     def test_single_popup_cleared_from_world(self, world):
         """After inclusion, the popup is cleared from world."""
         fn = _get_popup_passthrough_fn()
-        world.coalition_popup = {"type": "coalition_formed"}
+        world.diplomatic_sabotage_popup = {"type": "coalition_formed"}
         response = {}
         fn(response, world)
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
 
     def test_highest_priority_wins(self, world):
         """When multiple popups are set, only highest-priority appears."""
         fn = _get_popup_passthrough_fn()
-        world.coalition_popup = {"type": "coalition"}
+        world.diplomatic_sabotage_popup = {"type": "coalition"}
         world.incoming_proposal_popup = {"type": "proposal"}
         response = {}
         fn(response, world)
         # Coalition is highest priority — it should be included
-        assert response["coalition_popup"] is not None
-        assert response["coalition_popup"]["type"] == "coalition"
+        assert response["diplomatic_sabotage"] is not None
+        assert response["diplomatic_sabotage"]["type"] == "coalition"
         # Incoming proposal is lower priority — should be None
         assert response["incoming_proposal"] is None
 
     def test_lower_priority_preserved_on_world(self, world):
         """Lower-priority popups remain on world for the next cycle."""
         fn = _get_popup_passthrough_fn()
-        world.coalition_popup = {"type": "coalition"}
+        world.diplomatic_sabotage_popup = {"type": "coalition"}
         world.incoming_proposal_popup = {"type": "proposal"}
         response = {}
         fn(response, world)
         # Coalition was consumed
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
         # But incoming_proposal stays on world for next request
         assert world.incoming_proposal_popup is not None
         assert world.incoming_proposal_popup["type"] == "proposal"
@@ -97,18 +96,18 @@ class TestR76PriorityQueue:
     def test_second_call_delivers_next_popup(self, world):
         """After first popup consumed, second call delivers the next one."""
         fn = _get_popup_passthrough_fn()
-        world.coalition_popup = {"type": "coalition"}
+        world.diplomatic_sabotage_popup = {"type": "coalition"}
         world.diplomatic_objection_popup = {"type": "objection"}
         # First call: coalition wins
         response1 = {}
         fn(response1, world)
-        assert response1["coalition_popup"]["type"] == "coalition"
+        assert response1["diplomatic_sabotage"]["type"] == "coalition"
         assert response1["diplomatic_objection"] is None
         # Second call: objection now highest remaining
         response2 = {}
         fn(response2, world)
         assert response2["diplomatic_objection"]["type"] == "objection"
-        assert response2["coalition_popup"] is None
+        assert response2["diplomatic_sabotage"] is None
 
     def test_priority_order_sabotage_over_vassal(self, world):
         """Diplomatic sabotage beats vassal rebellion in priority."""
@@ -214,11 +213,11 @@ class TestR87EarlyReturnPassthroughs:
     def test_popup_passthrough_mutates_dict_in_place(self, world):
         """The function mutates the response dict in place (no return needed)."""
         fn = _get_popup_passthrough_fn()
-        world.coalition_popup = {"type": "test"}
+        world.diplomatic_sabotage_popup = {"type": "test"}
         response = {"existing_key": True}
         result = fn(response, world)
         assert result is None  # No return value
-        assert "coalition_popup" in response
+        assert "diplomatic_sabotage" in response
         assert response["existing_key"] is True
 
     def test_popup_passthrough_with_empty_world(self, world):

@@ -844,12 +844,14 @@ class TestPassThroughs:
         self.client = TestClient(app)
         self.world = world
 
-    def test_coalition_popup_key_present(self):
-        """coalition_popup key must be present in /command response."""
+    def test_the_retired_coalition_popup_key_is_absent(self):
+        """PC15-10 B4a (F8, Q5), a conscious flip: `coalition_popup` was a
+        slot no producer ever wrote. It is retired, so its key no longer
+        rides the /command response (it had always been None)."""
         response = self.client.post("/command", json={"command": "help"})
         assert response.status_code == 200
         data = response.json()
-        assert "coalition_popup" in data
+        assert "coalition_popup" not in data
 
     def test_diplomatic_sabotage_key_present(self):
         """diplomatic_sabotage key must be present in /command response."""
@@ -863,14 +865,14 @@ class TestPassThroughs:
         data = response.json()
         assert "vassal_rebellion_imminent" in data
 
-    def test_coalition_popup_cleared_after_read(self):
+    def test_the_first_slot_popup_cleared_after_read(self):
         """Popup field should be cleared after being read (Golden Rule 4)."""
-        self.world.coalition_popup = {"title": "TEST COALITION"}
+        self.world.diplomatic_sabotage_popup = {"title": "TEST COALITION"}
         response = self.client.post("/command", json={"command": "help"})
         data = response.json()
-        assert data["coalition_popup"] == {"title": "TEST COALITION"}
+        assert data["diplomatic_sabotage"] == {"title": "TEST COALITION"}
         # Field should be cleared now
-        assert self.world.coalition_popup is None
+        assert self.world.diplomatic_sabotage_popup is None
 
     def test_diplomatic_sabotage_cleared_after_read(self):
         self.world.diplomatic_sabotage_popup = {"target": "Austria"}

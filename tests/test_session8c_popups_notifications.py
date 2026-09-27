@@ -378,7 +378,8 @@ class TestPopupDataContracts:
         assert isinstance(popup["members"], list)
         assert isinstance(popup["combined_strength_display"], str)
         assert isinstance(popup["threat_level"], int)
-        assert world.coalition_popup is None
+        # PC15-10 B4a: the world has no coalition popup slot at all now.
+        assert not hasattr(world, "coalition_popup")
         # Check member structure
         for member in popup["members"]:
             assert "nation" in member
@@ -485,15 +486,15 @@ class TestPopupDataContracts:
         # All new popup fields default to None
         assert world.diplomatic_objection_popup is None
         assert world.incoming_proposal_popup is None
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
         assert world.diplomatic_sabotage_popup is None
         assert world.vassal_rebellion_imminent_popup is None
 
         # Set and clear
-        world.coalition_popup = {"test": True}
-        assert world.coalition_popup is not None
-        world.coalition_popup = None
-        assert world.coalition_popup is None
+        world.diplomatic_sabotage_popup = {"test": True}
+        assert world.diplomatic_sabotage_popup is not None
+        world.diplomatic_sabotage_popup = None
+        assert world.diplomatic_sabotage_popup is None
 
 
 class TestPopupScriptWiring:
@@ -578,7 +579,6 @@ class TestPassThroughs8C:
         """All 5 popup fields round-trip through to_dict/from_dict."""
         world = _make_world()
         # Set all 5
-        world.coalition_popup = {"coalition_name": "Test"}
         world.diplomatic_sabotage_popup = {"target_nation": "Prussia"}
         # PC15-17: the rebellion popup survives the round-trip only while
         # its court is a LIVE player vassal (stale ones retire at load).
@@ -591,7 +591,9 @@ class TestPassThroughs8C:
         data = world.to_dict()
         restored = WorldState.from_dict(data)
 
-        assert restored.coalition_popup == {"coalition_name": "Test"}
+        # PC15-10 B4a (F8, Q5): the `coalition_popup` slot is retired —
+        # no field for it in a save any more.
+        assert "coalition_popup" not in data
         assert restored.diplomatic_sabotage_popup == {"target_nation": "Prussia"}
         assert restored.vassal_rebellion_imminent_popup == {"nation": "Saxony"}
         assert restored.diplomatic_objection_popup == {"concern_level": "MILD"}

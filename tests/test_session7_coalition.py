@@ -342,7 +342,9 @@ class TestCoalitionFormation:
         assert isinstance(popup["members"], list)
         assert "combined_strength_display" in popup
         assert "threat_level" in popup
-        assert world.coalition_popup is None
+        # PC15-10 B4a (F8, Q5): the world slot is retired; the payload
+        # rides the formation result only (the notice rail renders it).
+        assert not hasattr(world, "coalition_popup")
 
 
 # ════════════════════════════════════════════════════════════════

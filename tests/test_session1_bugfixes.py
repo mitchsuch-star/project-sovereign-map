@@ -129,14 +129,14 @@ class TestPL30DeferredResultSurvivesMasking:
             "summary": "Alliance accepted",
         }
         # Set a higher-priority coalition popup
-        world.coalition_popup = {
+        world.diplomatic_sabotage_popup = {
             "coalition_name": "Third Coalition",
             "message": "Coalition declared!",
         }
 
         # Pop highest — coalition should win
         winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
-        assert winner_key == "coalition_popup"
+        assert winner_key == "diplomatic_sabotage"
         assert winner_value["coalition_name"] == "Third Coalition"
 
         # Proposal result must still be in the queue
@@ -150,7 +150,7 @@ class TestPL30DeferredResultSurvivesMasking:
             "result": "rejected",
             "from_nation": "Prussia",
         }
-        world.coalition_popup = {"message": "Coalition!"}
+        world.diplomatic_sabotage_popup = {"message": "Coalition!"}
 
         # First cycle — coalition wins
         world._popup_queue.pop_highest()
@@ -259,11 +259,11 @@ class TestPL30ResponseBuilderPassthrough:
         from backend.main import build_base_response
         world = _make_world()
         world.proposal_result_popup = {"result": "accepted", "from_nation": "Austria"}
-        world.coalition_popup = {"message": "Coalition declared!"}
+        world.diplomatic_sabotage_popup = {"message": "Coalition declared!"}
 
         response = build_base_response(world)
         # Coalition won
-        assert response.get("coalition_popup") is not None
+        assert response.get("diplomatic_sabotage") is not None
         # Proposal result was masked (None in response)
         assert response.get("proposal_result") is None
         # But it's still in the queue for next cycle

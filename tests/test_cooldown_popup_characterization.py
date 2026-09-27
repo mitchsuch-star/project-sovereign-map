@@ -117,7 +117,7 @@ class TestPopupPassthroughCharacterization:
         """When no popups set, all 6 response keys present as None."""
         world = WorldFactory.basic()
         response = self._call_passthroughs(world)
-        assert response["coalition_popup"] is None
+        assert response["diplomatic_sabotage"] is None
         assert response["diplomatic_sabotage"] is None
         assert response["vassal_rebellion_imminent"] is None
         assert response["diplomatic_objection"] is None
@@ -127,21 +127,21 @@ class TestPopupPassthroughCharacterization:
     def test_single_popup_included_and_cleared(self):
         """Setting one popup → included in response, cleared from world."""
         world = WorldFactory.basic()
-        world.coalition_popup = {"name": "Third Coalition"}
+        world.diplomatic_sabotage_popup = {"name": "Third Coalition"}
         response = self._call_passthroughs(world)
-        assert response["coalition_popup"] == {"name": "Third Coalition"}
-        assert world.coalition_popup is None  # Cleared
+        assert response["diplomatic_sabotage"] == {"name": "Third Coalition"}
+        assert world.diplomatic_sabotage_popup is None  # Cleared
 
     def test_priority_order_coalition_wins(self):
         """Coalition popup (priority 1) wins over all others."""
         world = WorldFactory.basic()
-        world.coalition_popup = {"type": "coalition"}
+        world.diplomatic_sabotage_popup = {"type": "coalition"}
         world.incoming_proposal_popup = {"type": "proposal"}
         response = self._call_passthroughs(world)
-        assert response["coalition_popup"] == {"type": "coalition"}
+        assert response["diplomatic_sabotage"] == {"type": "coalition"}
         assert response["incoming_proposal"] is None
         # Coalition cleared, proposal preserved for next cycle
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
         assert world.incoming_proposal_popup == {"type": "proposal"}
 
     def test_priority_order_sabotage_over_rebellion(self):
@@ -172,7 +172,7 @@ class TestPopupPassthroughCharacterization:
         world.diplomatic_objection_popup = {"type": "objection"}
         response = self._call_passthroughs(world)
         expected_keys = [
-            "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
+            "diplomatic_sabotage", "vassal_rebellion_imminent",
             "diplomatic_objection", "incoming_proposal",
             "commitment_paradox_popup"
         ]
@@ -229,7 +229,6 @@ class TestCooldownSerializationCharacterization:
     def test_popup_roundtrip(self):
         """All 6 popup fields survive save/load."""
         world = WorldFactory.basic()
-        world.coalition_popup = {"name": "test"}
         world.diplomatic_sabotage_popup = {"target": "Prussia"}
         # PC15-17: the rebellion popup survives the round-trip only while
         # its court is a LIVE player vassal (stale ones retire at load).
@@ -243,7 +242,9 @@ class TestCooldownSerializationCharacterization:
         data = world.to_dict()
         loaded = WorldFactory.basic().from_dict(data)
 
-        assert loaded.coalition_popup == {"name": "test"}
+        # PC15-10 B4a (F8, Q5): the `coalition_popup` slot is retired —
+        # no field for it in a save any more.
+        assert "coalition_popup" not in data
         assert loaded.diplomatic_sabotage_popup == {"target": "Prussia"}
         assert loaded.vassal_rebellion_imminent_popup == {"nation": "Saxony"}
         assert loaded.diplomatic_objection_popup == {"severity": "STRONG"}

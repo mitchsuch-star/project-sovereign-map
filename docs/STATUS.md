@@ -4,6 +4,14 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ B4a "THE ORDER, JUSTIFIED" (F8) LANDED — September 27, 2026 (second session)** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B4; rules `SYSTEMS_REFERENCE.md` §73.10; pins `tests/test_b4a_the_order_justified.py` 12; sweep `tools/_sweep_b4a.json` 7/7 killed, 0 INERT; zero `.gd`):
+> - **Nine popup slots, each justified** in a numbered table at `PopupQueue.PRIORITY_ORDER`.
+> - **The dead `coalition_popup` slot retired whole** (order entry, response key, world property, save key; a legacy save's key dropped at load) — removing the order entry alone would have left a restored value nothing could pop. The unreachable `alliance_paradox_popup` order entry is gone; its alias stays.
+> - **`proposal_result` decided:** neither spec branch applied — its scene was retired Sept 12 and the backend lifts it onto the rail — so it stays the documented receipt (row 8).
+> - **The end-turn carry declared** as `PopupQueue.ENEMY_PHASE_CARRIED` (three slots, not the spec's two) and pinned to what `_apply_command_popup_contract` pops.
+> - 58 pins re-seated consciously across 16 files (mostly `coalition_popup` used as a top-priority fixture → `diplomatic_sabotage_popup`). `BASELINE_SERIES` + M1–M7 + AI-V byte-identical.
+> - **▶ NEXT = B4b** (F9, the `main.gd` stash-and-raise chokepoint + the four client defects the recon found) **→ B5 → Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ B3 "THE CRISIS SURVIVES A NEW FLOW" LANDED — September 27, 2026 (second session)** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B3; rules `SYSTEMS_REFERENCE.md` §73.9; pins `tests/test_b3_the_crisis_survives_a_new_flow.py` 10; sweep `tools/_sweep_b3.json` 10/10 killed, 0 INERT; zero `.gd`):
 > - **W7 fixed.** A vassal rebellion or the sabotage reckoning (hybrid dialogues, which do not block commands) no longer dies when the player types a new flow over it: `DialogueManager.open_flow` preempts a displaced hybrid as it does mail.
 > - **Its modal comes back.** The modal was consumed at first delivery, so a stale answer aimed at the queued crisis re-issues it (one builder each — the sabotage modal's is new, `diplomatic_defiance.build_sabotage_popup`, now read by its producer too); the delivery gate holds it until the crisis is current again, and the refusal says it will return.

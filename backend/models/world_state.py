@@ -2728,13 +2728,8 @@ class WorldState:
     # R6: POPUP BACKWARD-COMPATIBLE PROPERTIES
     # ========================================
 
-    @property
-    def coalition_popup(self) -> Optional[Dict]:
-        return self._popup_queue.get("coalition_popup")
-
-    @coalition_popup.setter
-    def coalition_popup(self, value: Optional[Dict]):
-        self._popup_queue.set("coalition_popup", value)
+    # PC15-10 B4a (F8, Q5): `coalition_popup` is RETIRED — no producer ever
+    # wrote it; the coalition's formation reaches the player on the rail.
 
     @property
     def diplomatic_sabotage_popup(self) -> Optional[Dict]:
@@ -8280,7 +8275,6 @@ class WorldState:
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
 
             # Diplomatic popup fields (Session 8A)
-            "coalition_popup": self.coalition_popup,
             "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
             "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
             "vassal_rebellion_imminent_popups": [p.copy() for p in self.vassal_rebellion_imminent_popups],
@@ -9162,7 +9156,8 @@ class WorldState:
         world.pending_dispatch_events = [e.copy() for e in data.get("pending_dispatch_events", [])]
 
         # Diplomatic popup fields (Session 8A)
-        world.coalition_popup = data.get("coalition_popup", None)
+        # PC15-10 B4a (F8, Q5): a legacy save's `coalition_popup` key is
+        # dropped here — the slot is retired (no producer ever wrote it).
         world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
         world.vassal_rebellion_imminent_popups = [p.copy() for p in data.get("vassal_rebellion_imminent_popups", [])]

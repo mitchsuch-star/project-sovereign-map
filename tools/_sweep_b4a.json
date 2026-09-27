@@ -1,0 +1,51 @@
+[
+  {
+    "id": "the dead slot returns to the order",
+    "file": "backend/models/cooldown_manager.py",
+    "old": "    PRIORITY_ORDER = [\n        \"diplomatic_sabotage_popup\",\n",
+    "new": "    PRIORITY_ORDER = [\n        \"coalition_popup\",\n        \"diplomatic_sabotage_popup\",\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheOrderIsJustified::test_nine_slots_in_the_justified_order"
+  },
+  {
+    "id": "two slots swap",
+    "file": "backend/models/cooldown_manager.py",
+    "old": "        \"vassal_rebellion_imminent_popup\",\n        \"proclamation_popup\",\n",
+    "new": "        \"proclamation_popup\",\n        \"vassal_rebellion_imminent_popup\",\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheOrderIsJustified"
+  },
+  {
+    "id": "a slot loses its row in the table",
+    "file": "backend/models/cooldown_manager.py",
+    "old": "    #   4 diplomatic_objection_popup      Talleyrand blocking a command the\n",
+    "new": "    #     diplomatic_objection_popup      Talleyrand blocking a command the\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheOrderIsJustified::test_every_slot_has_its_row_in_the_table"
+  },
+  {
+    "id": "the carry forgets the proclamation",
+    "file": "backend/models/cooldown_manager.py",
+    "old": "        \"proposal_result_popup\",\n        \"proclamation_popup\",\n        \"pending_marshal_petition\",\n    )\n",
+    "new": "        \"proposal_result_popup\",\n        \"pending_marshal_petition\",\n    )\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheEndTurnCarryIsDeclared::test_the_declared_carry"
+  },
+  {
+    "id": "the dead response key returns",
+    "file": "backend/models/cooldown_manager.py",
+    "old": "    RESPONSE_KEYS = {\n        \"diplomatic_sabotage_popup\": \"diplomatic_sabotage\",\n",
+    "new": "    RESPONSE_KEYS = {\n        \"coalition_popup\": \"coalition_popup\",\n        \"diplomatic_sabotage_popup\": \"diplomatic_sabotage\",\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheDeadSlotIsRetired::test_the_slot_is_gone_everywhere"
+  },
+  {
+    "id": "the contract stops carrying the proclamation",
+    "file": "backend/main.py",
+    "old": "        response[\"nation_proclamation\"] = proclamation\n        world.nation_proclamation_popup = None\n",
+    "new": "        world.nation_proclamation_popup = None\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheEndTurnCarryIsDeclared::test_the_contract_pops_exactly_the_declared_slots"
+  },
+  {
+    "id": "the alias regains an order entry",
+    "file": "backend/models/cooldown_manager.py",
+    "old": "        \"commitment_paradox_popup\",\n    ]\n",
+    "new": "        \"commitment_paradox_popup\",\n        \"alliance_paradox_popup\",\n    ]\n",
+    "tests": "tests/test_b4a_the_order_justified.py::TestTheAliasIsKept::test_the_alias_has_no_order_entry"
+  }
+]

@@ -396,16 +396,17 @@ class TestPopupPassthroughs:
         main_mod = importlib.import_module("backend.main")
         return main_mod._include_popup_passthroughs
 
-    def test_coalition_popup_passthrough(self):
-        """coalition_popup → response key 'coalition_popup'."""
+    def test_first_slot_popup_passthrough(self):
+        """The first slot (PC15-10 B4a retired `coalition_popup`):
+        diplomatic_sabotage_popup → response key 'diplomatic_sabotage'."""
         fn = self._import_passthrough()
         world = _make_world()
-        world.coalition_popup = {"coalition_name": "Test", "leader": "Austria", "posture": "DEFENSIVE",
+        world.diplomatic_sabotage_popup = {"coalition_name": "Test", "leader": "Austria", "posture": "DEFENSIVE",
                                  "members": [], "combined_strength_display": "50,000", "threat_level": 80}
         response = {}
         fn(response, world)
-        assert response.get("coalition_popup") is not None
-        assert world.coalition_popup is None, "Popup should be cleared from world"
+        assert response.get("diplomatic_sabotage") is not None
+        assert world.diplomatic_sabotage_popup is None, "Popup should be cleared from world"
 
     def test_incoming_proposal_popup_passthrough(self):
         """incoming_proposal_popup → response key 'incoming_proposal'."""
@@ -469,7 +470,7 @@ class TestPopupPassthroughs:
         fn = self._import_passthrough()
         world = _make_world()
         # Set both coalition (priority 1) and incoming_proposal (priority 6)
-        world.coalition_popup = {"coalition_name": "Test", "leader": "Austria", "posture": "DEFENSIVE",
+        world.diplomatic_sabotage_popup = {"coalition_name": "Test", "leader": "Austria", "posture": "DEFENSIVE",
                                  "members": [], "combined_strength_display": "50,000", "threat_level": 80}
         world.incoming_proposal_popup = {
             "from_nation": "Prussia",
@@ -485,8 +486,8 @@ class TestPopupPassthroughs:
         fn(response, world)
 
         # Coalition won (higher priority)
-        assert response.get("coalition_popup") is not None
-        assert world.coalition_popup is None
+        assert response.get("diplomatic_sabotage") is not None
+        assert world.diplomatic_sabotage_popup is None
         # Incoming proposal deferred (still on world)
         assert world.incoming_proposal_popup is not None
         assert response.get("incoming_proposal") is None
@@ -499,7 +500,7 @@ class TestPopupPassthroughs:
         fn(response, world)
 
         expected_keys = [
-            "coalition_popup", "diplomatic_sabotage", "vassal_rebellion_imminent",
+            "diplomatic_sabotage", "vassal_rebellion_imminent",
             "diplomatic_objection", "incoming_proposal",
             "commitment_paradox_popup",
         ]

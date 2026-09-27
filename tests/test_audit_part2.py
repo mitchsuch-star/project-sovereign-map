@@ -544,7 +544,7 @@ class TestSection9AIAIDiplomacy:
         process_ai_ai_diplomatic_phase(world)
         # No popup fields should be set
         assert world.incoming_proposal_popup is None
-        assert world.coalition_popup is None
+        assert world.diplomatic_sabotage_popup is None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -642,13 +642,13 @@ class TestSection12Serialization:
         round-trip half of the pin still binds.
         """
         world = _make_world()
-        world.coalition_popup = {"message": "Coalition formed!"}
+        world.diplomatic_sabotage_popup = {"message": "Coalition formed!"}
         world.vassals["Saxony"] = {"lord": "France", "loyalty": 8,
                                    "regions": []}
         world.vassal_rebellion_imminent_popup = {"nation": "Saxony"}
         data = world.to_dict()
         world2 = WorldState.from_dict(data)
-        assert world2.coalition_popup is not None
+        assert world2.diplomatic_sabotage_popup is not None
         assert world2.vassal_rebellion_imminent_popup is not None
 
     def test_af1_blocking_dialogue_restored(self):

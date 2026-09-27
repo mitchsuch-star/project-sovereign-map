@@ -163,7 +163,7 @@ class TestSection1PopupFlow:
         response = {}
         _include_popup_passthroughs(response, world)
         # All popup keys should be present (None if not set)
-        assert "coalition_popup" in response
+        assert "diplomatic_sabotage" in response
         assert "diplomatic_sabotage" in response
         assert "vassal_rebellion_imminent" in response
         assert "diplomatic_objection" in response
@@ -177,14 +177,14 @@ class TestSection1PopupFlow:
         """
         from backend.main import _include_popup_passthroughs
         world = _make_world()
-        world.coalition_popup = {"title": "Test Coalition"}
+        world.diplomatic_sabotage_popup = {"title": "Test Coalition"}
         world.incoming_proposal_popup = {"from_nation": "Prussia"}
         response = {}
         _include_popup_passthroughs(response, world)
         # R76: Only highest-priority popup included
-        assert response["coalition_popup"] == {"title": "Test Coalition"}
+        assert response["diplomatic_sabotage"] == {"title": "Test Coalition"}
         assert response["incoming_proposal"] is None  # Lower priority — not included
-        assert world.coalition_popup is None  # Consumed
+        assert world.diplomatic_sabotage_popup is None  # Consumed
         assert world.incoming_proposal_popup is not None  # Preserved for next cycle
 
     def test_popup_safety_valve_rederives_incoming_proposal(self):

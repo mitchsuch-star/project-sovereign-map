@@ -701,15 +701,15 @@ class TestWO30TheLoadedSaveRaisesIt:
         from backend import save_manager
 
         client, m, _region = saved
-        m.world.coalition_popup = {"nations": ["Austria"]}
+        m.world.diplomatic_sabotage_popup = {"nations": ["Austria"]}
         save_manager.save_game(
             m.world, save_name="wo30",
             filepath=save_manager.SAVE_DIR / "wo30.json")
         data = client.post("/load", json={"filename": "wo30.json"}).json()
-        assert m.world.coalition_popup is not None, (
+        assert m.world.diplomatic_sabotage_popup is not None, (
             "the queued popup did not survive the save/load round trip — "
             "this test cannot say anything about draining")
-        assert data.get("coalition_popup") is None
+        assert data.get("diplomatic_sabotage") is None
         assert data.get("pending_capture_choice") is True
 
     def test_the_world_swap_handler_raises_it_client_side(self):

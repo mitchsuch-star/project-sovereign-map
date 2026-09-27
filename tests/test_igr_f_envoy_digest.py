@@ -833,8 +833,11 @@ class TestUntouched:
     def test_no_new_popup_queue_slot(self):
         from backend.models.cooldown_manager import PopupQueue
 
-        assert len(PopupQueue.PRIORITY_ORDER) == 11
-        assert len(PopupQueue.RESPONSE_KEYS) == 11
+        # PC15-10 B4a (F8, Q5), a conscious flip: 11 -> 9 — the dead
+        # `coalition_popup` slot and the unreachable `alliance_paradox_popup`
+        # order entry are retired. The letter-book still adds NO slot.
+        assert len(PopupQueue.PRIORITY_ORDER) == 9
+        assert len(PopupQueue.RESPONSE_KEYS) == 10  # the retired slot's key (B4a)
 
     def test_no_new_campaign_log_type(self):
         from backend.campaign_log import CAMPAIGN_LOG_TYPES
