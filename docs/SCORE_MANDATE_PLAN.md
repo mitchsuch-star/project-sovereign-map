@@ -17,7 +17,7 @@
 > - **A strength and a flaw** for each of the five great powers; a reform law cures each flaw, so the rivals' reforms are their catch-up.
 > - **France = the corps system + living off the land**, cured by the Train des Équipages. The recommended option (corps system only) was not taken.
 > - **The winter stays with the seasons**, in their own post-playtest slot, not at Chunk 7.
-> - Built at Chunk 7 as **SR-7d** (DC-0..DC-3, ~~≈1.2~~ ≈1.8 sessions after the same-day review). The standing-alarm-floor question stays at Chunk 7's gate.
+> - Built at Chunk 7 as **SR-7d** (DC-0..DC-3c, ~~≈1.2~~ ≈2.5 sessions after the same-day review and the UI/UX pass). The standing-alarm-floor question stays at Chunk 7's gate.
 > - **Reviewed the same day** (`DOCTRINES_SPEC.md` §0.2): a reach census (`tools/_dc_reach_census.py`) found six of the ten drafted clauses fire at most once on seven boards. **Seven amendments are FOR USER CONFIRMATION:** RV-2 a doctrine never overrides a marshal's character; RV-3 Austria = the Hereditary Lands (draft recruits ×0.85, every arm); RV-4 Prussia's Frederick's Drill = +10% attack modifier; RV-5 living off the land is read against the homeland, with stripped country; RV-15 a cure works only while its court's Staff is in force; RV-16 the court's flaw never costs the man trust; RV-17 the recruit clauses price the draft only. The arrival clauses move the bar, not the score.
 >
 > **The user's brief (September 26, 2026):** *"is it included in this plan a way to get the Congress of Paris to work — you mentioned not getting there? … make the mandate raising the score in all sections, especially the weakest, and order the chunks we do this in by category, leaving bandwidth for score-increasing quick wins; then make a section after this: technology, asymmetry / national flavor, AP and DP gaps — needs design."*
@@ -130,15 +130,15 @@ The road to the Congress, built from what was measured, not from the number. Ord
 
 **Session-exit evidence (§5):** a played arm that fights a garrison, a stacked defender and a rival's battle; petitions counted per turn. Both pillars are scored once, at the end of the mandate.
 
-### Chunk 5 — ECONOMY & NAVAL: "The chest and the sea" (≈2.0, ≈4.2 with SR-5r; 6.5 → 7.0 each)
+### Chunk 5 — ECONOMY & NAVAL: "The chest and the sea" (≈2.0, ≈4.8 with SR-5r; 6.5 → 7.0 each)
 
 - **Gate at the chunk's head — SR-D1 "Reforms, not research"** (re-slotted September 26, 2026 (evening); §4). Ruled here because a reform is both the economy's peacetime sink (the long peace has nothing to buy — §1's economy row) and, by SR-D3's ruling, the ONLY road to a new action point (the Staff reform, bought by both sides at the same price). SR-D3's two open questions ride it: DP (bank, reprice, or counsel only — AAR-D5) and the admin pool (convert, or leave). Nothing under it is built until it is ruled. **✅ RULED September 27, 2026, by the user** (gate record + build contract `REFORMS_SPEC.md`, authoritative): laws with upkeep; mixed currency; the Staff at one mid-campaign price for every court; DP banks one turn (cap 7); the admin pool unchanged; seven readings FOR USER CONFIRMATION (§0.1).
-- **SR-5r The Laws** (≈2.2; added September 27, 2026 by the SR-D1 ruling — `REFORMS_SPEC.md` §12):
+- **SR-5r The Laws** (≈2.8 — was ≈2.2 before the September 27 UI/UX pass gave the client a full session; added September 27, 2026 by the SR-D1 ruling — `REFORMS_SPEC.md` §12):
   - **RF-0** the substrate — the `reforms` scenario key, `backend/game_logic/reforms.py`, the validator block, save and backfill; no behaviour change.
   - **RF-1** the player's road — `enact` / `repeal` through the shared executor; the "Laws" Net line through the EC-U2 recipe; the lapse loop before ESP-4; the Staff's fifth action at `calculate_max_actions` and at the AI restore.
   - **RF-2** the other eight effect types and the authored catalogue (T1 / T2 measured).
   - **RF-3** the AI rung and its purse test; the one flip-attributed `BASELINE_SERIES` re-record (T3).
-  - **RF-4** the client — the LAWS tab on key 8, the forecast, the authority line, the School card.
+  - **RF-4a/4b/4c** the client (≈1.0, `REFORMS_SPEC.md` §8a): the LAWS tab on key 8 with its chips and the confirm; the forecast on three surfaces, the nation cards, the beats, the top bar's fifth action, the bank's display, help and the desk; the School card (19 → 20), the IQ-10 frames at both Interface Scales, and the user's sign-off. The fun section (§8b) adds T7 (no death spiral) and T8 (nothing unnamed), and proposes R8, a lapsed law re-enacted at half price within 10 turns (FOR USER CONFIRMATION).
   - **DP-1** the bank — independent; may ride any session.
   - **Q0 is re-measured after RF-1**; 45 is not moved.
 - **SR-5a The chest.** AAR-6 (admin verbs exempt from the military pre-check), AAR-12 (no auto-end on an admin spend without a word), AAR-30 (the capital discount is ours only); **question (c)'s design gate** (the victor's Net ratchet, `IMPROVEMENT_QUEUE_SPEC.md` §0.6b) held and answered; **IGR-X9** (the razing dominance on a built province) decided at the same gate; the EC-2 pass-2 residue with a home — ES-4 development, ES-7b `confer_title`, the pooled-allied-dead rider [P3-5] — either landed or struck with reasons (GR9).
@@ -156,14 +156,14 @@ The road to the Congress, built from what was measured, not from the number. Ord
 
 **Session-exit evidence (§5):** a played arm's dispatches; this chunk is also the quick-win bank's largest donor. Scored once, at the end of the mandate.
 
-### Chunk 7 — AI ALIVENESS & LIVING BALANCE: "Europe acts without France" (≈2.0, ≈3.8 with SR-7d; 7.5 → 8.0; 6.5 → 7.0)
+### Chunk 7 — AI ALIVENESS & LIVING BALANCE: "Europe acts without France" (≈2.0, ≈4.5 with SR-7d; 7.5 → 8.0; 6.5 → 7.0)
 
 - **Gate at the chunk's head — SR-D2 "Asymmetry and national flavor", with HC-6 seasons folded in** (re-slotted September 26, 2026 (evening); §4). Nothing under it is built until it is ruled. **✅ The doctrine half RULED September 27, 2026** (`DOCTRINES_SPEC.md`, authoritative). The seasons are NOT folded in after all: they keep their own post-playtest slot. **The alarm-floor question below is still this gate's.** **The same gate carries a second question (added the same evening): a standing alarm floor derived from France's share of Europe, so the long peace ends by machinery (PB-D1).** **Recommended default: Europe stays at Brewing while France holds ≥ 40% of the map**; the numbers escalate to the gate, and SR-7b measures the long peace first.
-- **SR-7d The Doctrines** (≈1.8 after the same-day review — was ≈1.2; added September 27, 2026 — `DOCTRINES_SPEC.md` §7). Needs SR-5r landed.
+- **SR-7d The Doctrines** (≈2.5 after the same-day review and the UI/UX pass — was ≈1.2; added September 27, 2026 — `DOCTRINES_SPEC.md` §7). Needs SR-5r landed.
   - **DC-0** the substrate: the `doctrines` and `poor_country` keys, the validator, the accessors.
   - **DC-1** the five strengths and flaws at their seams, flip-attributed.
   - **DC-2** the cures: the `cures` law effect, and the Train des Équipages.
-  - **DC-3** the client surfaces.
+  - **DC-3a/3b/3c** the client (≈1.1, `DOCTRINES_SPEC.md` §4a): the reading surfaces (the Generals screen, the nation cards, the map's poor and stripped marks with fog, the LAWS lines, the turn-1 briefing, help and the desk); the firing surfaces (the battle report's doctrine rows and morale line, the diorama shelf, the enemy-phase recruit note, the beats); the IQ-10 frames at both Interface Scales and the user's sign-off. The fun section (§4b) adds the counterplay table and T10 (nothing unnamed).
 - **SR-7a The AI's odds gate and its dithering** (AAR-D8): a floor under the assault rung and a garrison that surrenders under 500; the cautious kit's odds gate on the AI's attack rungs (the player's delegation obeys one, the glory attack obeys one); an anti-oscillation guard for fortify/unfortify/square (the `ai_square_cooldown` idiom, now serialized).
 - **SR-7b The long peace, measured and gated** (PB-D1, the ROADMAP-12 gate item): the two passive AAR arms and the commanded arm are the baseline (threat 0, 0 enemy attacks for 26–36 turns); the question for the gate is whether a promoted Revanche or an emergent design may open a war against a France at peace without a coalition (the volte-face and emergent-design machinery exist; AI-3r's council wars measured 0 because every warlike 1805 design targets the hegemon). Measure, then rule; build only the ruled arm. The gate at the chunk's head now carries the standing-alarm-floor question (its recommended default is above).
 - **SR-7c Dispersion** (AAR-D4, with the FA-D27 owner): the crowding threshold on major cities and capitals, or the tax lifted for corps under one lead's SUPPORT/HOLD; the retreat's friendly set includes ally and vassal soil France may enter (PC15-D1's law already knows the answer).

@@ -4,6 +4,25 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ UI/UX BANDWIDTH AND THE FUN REVIEW — laws, doctrines, seasons — September 27, 2026** (docs only; user direction: *"make sure in docs we have bandwidth for this all adequately represented in ui and ux … same for seasons as well and make sure gameplay outcomes seem fun and engaging for all"*):
+> - **Every surface is planned, with its file and its proof** (`REFORMS_SPEC.md` §8a, `DOCTRINES_SPEC.md` §4a, `SEASONS_WEATHER_SPEC.md` §7).
+>   - Each player-facing surface names its client file, its payload, its fog rule and its proof: IQ-10 frames at Interface Scale 1.0 and 2.0 (new `cap_laws()`, `cap_doctrines()`, `cap_seasons()`), then the user's visual sign-off.
+>   - Found while planning:
+>     - The Strategic Ledger's `_input` maps only `KEY_1`…`KEY_7`, so the LAWS tab's `KEY_8` is new work, and eight tab buttons must fit at Interface Scale 2.0.
+>     - The nation cards get a two-lines-per-court budget, shared by the laws line and the doctrine line.
+>     - The stripped-country mark needs the −1 fog sentinel; the summary sends 0 for fogged war damage today.
+> - **The bandwidth is real now:**
+>   - SR-5r The Laws: about 2.2 → 2.8 sessions (client 0.4 → 1.0, RF-4a/4b/4c); Chunk 5 about 4.8.
+>   - SR-7d The Doctrines: about 1.8 → 2.5 (client 0.4 → 1.1, DC-3a/3b/3c); Chunk 7 about 4.5.
+>   - The seasons, which had no sizes: about 2.8 sessions, with a new client slice SW-5 "The season on screen". They stay after Round 0.
+> - **The fun, stated and measured** (`REFORMS_SPEC.md` §8b, `DOCTRINES_SPEC.md` §4b, `SEASONS_WEATHER_SPEC.md` §8): the decisions each system creates, its named moments, the counterplay against every rival doctrine, and the anti-frustration rules. The falsifiable targets:
+>   - reforms T7 (no death spiral) and T8 (nothing unnamed);
+>   - doctrines T10 (nothing unnamed);
+>   - the seasons' five SW-V targets: the warning fires, quarters get used, no winter loss goes unnamed, a winter battle happens, and AI wars keep the season.
+> - **One new reading FOR USER CONFIRMATION — REFORMS R8:** a lapsed law may be re-enacted within 10 turns at half its price. R5 lapses the Staff first, so without R8 one insolvent turn costs the fifth action for as long as 9,000 gold takes to find.
+> - **A note for the seasons' gate:** with the doctrines, a French army in the Russian provinces in winter already draws 0.8 × 0.75 = 0.6, the 1812 number. Q7(b)'s Russia band may be unnecessary.
+> - **▶ NEXT unchanged: B2–B5 → Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ THE DOCTRINES SPEC REVIEWED — September 27, 2026** (docs, plus one read-only census tool; the record is `docs/DOCTRINES_SPEC.md` §0.2):
 > - **A reach census before any build.** `tools/_dc_reach_census.py` (output `tools/_dc_reach_census.json`) counted every clause's seam on the ambient board (four seeds) and three commanded arms. Its board reproduces `BASELINE_SERIES` byte for byte.
 >   - **Six of the ten drafted clauses fire at most once on seven boards.**

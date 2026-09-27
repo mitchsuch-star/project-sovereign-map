@@ -1,5 +1,11 @@
 # Seasons & Weather — "The General Winter" (HC-6)
 
+> **⚑ September 27, 2026 (later) — the UI/UX plan and the fun review are added.** This is build contract only; no §6 question is ruled here, and they still wait for the build session.
+> - §7 plans every season surface on screen, with its file and its proof.
+> - §8 states the decisions, the moments, the anti-frustration rules and the falsifiable fun targets.
+> - §5's slices gain session sizes and a client slice, **SW-5 "The season on screen"**: about 2.8 sessions in all, where the spec had no sizes.
+> - Q7 gains a note: the doctrines already give a French army in the Russian provinces the 1812 number in winter (§8).
+>
 > **⚑ September 27, 2026 — the fold is reversed for the build:** SR-D2's doctrines were ruled early (`DOCTRINES_SPEC.md`), and Russia's doctrine does NOT include the winter (§0 Q3). The seasons keep their August 14 ruling below — the build is deferred past Round 0 — and are not built at Chunk 7.
 >
 > **Re-slotted September 26, 2026 (evening) — read this first:** HC-6 is now ruled together with SR-D2 (asymmetry and national flavor) at the Score Mandate's Chunk 7 gate (`SCORE_MANDATE_PLAN.md` §4 SR-D2). It stays unbuilt until that gate rules; the status below is the August 14 record.
@@ -183,8 +189,22 @@ reason it is user-gated:
 
 ## §5 Slices (build order, post-gate)
 
+**Sizes** (added September 27, 2026 with §7; about 2.8 sessions in all):
+
+| Slice | Size (sessions) |
+|---|---|
+| SW-0 | 0.2 |
+| SW-1 | 0.6 |
+| SW-2 | 0.3 |
+| SW-3 | 0.2 |
+| SW-4 | 0.4 |
+| SW-5 | 0.6 |
+| SW-V | 0.5 |
+
 - **SW-0** the derivation + dormancy pins (display-only; season named
-  in dispatch/war room/gazette) — byte-identity everywhere.
+  in dispatch/war room/gazette) — byte-identity everywhere. It also puts
+  the season's glyph on the top bar and a season line in the turn-1
+  briefing (§7).
 - **SW-1** winter supply strain + shelter (the §3.2 arm) + shown=applied
   copy. The FIRST baseline mover; the re-record rides this slice.
 - **SW-2** winter march bill (§3.3).
@@ -200,10 +220,17 @@ reason it is user-gated:
 > talks about gold, it is row IQ-1's and it is now called IQ1-3.
 - **SW-3** winter at sea (§3.4).
 - **SW-4** the council's season sense (§3.5) + the season-turn beats.
+- **SW-5** "The season on screen" (§7): the winter warning a turn early,
+  the map's winter tint, the quarters line on the region panel and the
+  Forces tab, the diorama's winter stage, the desk's answers, and the
+  tutor naming winter mid-lesson.
 - **SW-V** the assurance pass: per-arm flip levers verified, a played
   winter (the 20-turn campaign crosses turn 6 — it evaluates this for
   free if SW lands first; the gate may also rule the campaign runs
-  BEFORE seasons, in which case SW waits — Q6).
+  BEFORE seasons, in which case SW waits — Q6). Also: §8's fun targets
+  read on a played 40-turn arm that crosses two winters, the IQ-10
+  `cap_seasons()` frames at both Interface Scales, and the user's
+  visual sign-off.
 
 ## §6 THE QUESTIONS (the user gate — recommended defaults marked ◆)
 
@@ -236,8 +263,81 @@ reason it is user-gated:
    winter at Q1's harsher number — the 1812 hook, +1 authored region
    list) · (c) also weather events (post-EA per the audit; NOT
    recommended).
+   *Note, September 27, 2026:* the doctrines (`DOCTRINES_SPEC.md`,
+   RV-5) already hold an invader that lives off the land to 80% in poor
+   country. With (a)'s winter factor of 0.75, a French army in
+   Lithuania or White Russia in winter draws 0.8 × 0.75 = **0.6** of
+   what it would otherwise draw — the 1812 number — while a Russian
+   army at home is fed. Read the doctrines
+   before ruling (b); the Russia band may be unnecessary.
 
 **Answering §6 at the defaults blesses §2–§5 as the build contract;
 each numbered answer is in-band tunable after landing, structural
 changes re-escalate. The HC-0 never-do amendment (§3.6) lands WITH
 SW-0, not before.**
+
+---
+
+## §7 The UI/UX plan — the season on screen
+
+*Added September 27, 2026. This is build contract; no §6 question is ruled.*
+
+**The rule:** the winter never surprises. The player sees the season before it bites, sees where shelter is, and sees every winter loss named on the surface where it lands. The season opens no modal.
+
+| Surface | Client file | Slice |
+|---|---|---|
+| **The top bar.** The calendar label gains the season's glyph (Phosphor: snowflake, flower, sun, leaf); the compact mode below 1,180 logical px keeps it | `top_bar.gd` | SW-0 |
+| **The turn-1 briefing** names the season and the turns left in the campaign season ("Late September — the campaign season closes in 4 turns") | `build_morning_dispatch(boot=True)` | SW-0 |
+| The season's turn named in the dispatch, the war room and the gazette | backend text; `dispatch_view.gd`, `gazette_view.gd` | SW-0, SW-4 |
+| **The winter warning, a turn early:** "Winter begins next turn — 3 corps are in the field: …", naming the nearest shelter for each | the end-turn banner (`main.gd`) and the morning dispatch | SW-5 |
+| **The map in winter:** a light cold tint through one uniform on the province highlight material. The pause menu's Settings gets a "winter tint" toggle for readability | `map_renderer_base.gd` (`_highlight_material`), `settings_panel.gd` | SW-5 |
+| **The region panel:** "Winter quarters: yes (capital)" or "(depot)", or "In the field: winter feeds 75%", for the province and for each own corps there | `region_panel.gd`, the supply block | SW-5 |
+| **The Forces tab:** each corps' quarters status and its projected winter loss next turn | `strategic_ledger.gd` `_render_forces` | SW-5 |
+| **The march confirm** names the winter march bill BEFORE the order (§3.6) | backend confirm text | SW-2 |
+| **The muster's supply note** names the winter factor | backend text | SW-1 |
+| **The Admiralty tab:** "readiness ceiling — winter: 60" | `strategic_ledger.gd` `_render_admiralty_block` | SW-3 |
+| **The Battle Diorama:** a winter battle gets a snow-dusted stage and its date on the nameplate ("Austerlitz — 2 December") | `battle_diorama.gd` | SW-5 |
+| **The battle report:** a flavour line for a winter battle ("fought in the December frost") | backend battle report | SW-5 |
+| **Help, the desk and the School:** "when does winter come?" and "is Ney in winter quarters?" as golden-corpus rows. The tutor names winter when it arrives mid-lesson; the lesson stays winnable (§4) | `question_desk.py`, `first_contact.py`, `tutorial_overlay.gd` | SW-5 |
+
+**Visual proof.**
+- `tools/iq10_capture_payloads.py` gains `cap_seasons()`, covering: the top bar in each season; the winter map tint (on and off); the region panel in quarters and in the field; the Forces tab; the Admiralty in winter; the diorama in snow.
+- Each is rendered at Interface Scale 1.0 and 2.0 with no overflow in the machine record, and the frames are committed, dated.
+- The winter tint is checked for colour-blind legibility against the nation colours.
+- The user's visual sign-off closes SW-V.
+
+**Bandwidth.** SW-5 is 0.6 session of client work, and SW-0 and SW-V carry the rest (§5's sizes).
+
+## §8 Fun and engagement — what the seasons are for
+
+**The promise:** the year has a rhythm, and every winter is a decision.
+
+**The decisions:**
+- **Quarters or campaign.** Go into winter quarters — safe and still — or march through the winter and pay for it. Austerlitz was won in December; Eylau was fought in a February blizzard.
+- **Build the quarters before the winter.** Shelter is a place: a capital, or a depot on home soil (Q3). A depot laid down in autumn is next winter's safety.
+- **Time the declarations.** The campaign season opens in spring; the AI's council keeps the same calendar (§3.5), so a November war is a gamble for everyone.
+- **At sea, fleets ride at anchor.** Every fleet's readiness ceiling drops in winter, so blockades loosen for both sides.
+
+**The moments:**
+- "The army enters winter quarters."
+- "Winter begins next turn — 3 corps are in the field."
+- The first snow on the map.
+- A battle "fought in the December frost", with its date on the diorama's nameplate.
+
+**With the doctrines.** France's living off the land and the winter multiply. A French army in poor country in winter draws 0.8 × 0.75 = 0.6 of what it would otherwise draw — the 1812 number, for the army that lives off the land. A Russian army at home is fed. The Train des Équipages cures the doctrine's half and never the winter's.
+
+**No frustration by construction:**
+- The winter never surprises: the top bar shows it, the warning comes a turn early, and the region panel and the march confirm name its price.
+- Shelter is a visible place, not a hidden rule.
+- Every army pays (GR5), so the player is never singled out.
+- The attrition ceiling still binds (3% plus stacking, 6% at most).
+- The tutorial stays winnable.
+
+**For the rival courts too.** The council's season sense keeps the AI to the campaign season, and the war room names it ("the campaign season is closing"), so the player can read the calendar the rivals read.
+
+**The fun targets are falsifiable,** read at SW-V on a played 40-turn arm that crosses two winters:
+1. Each winter, the warning fired on the turn before.
+2. At least one corps, the player's or an AI court's, moved into quarters because of the winter.
+3. Every winter loss is named on the supply surfaces: 0 unnamed.
+4. At least one winter battle was fought. The gamble is taken sometimes, never never.
+5. AI war declarations cluster in spring and summer, but are not zero in autumn.

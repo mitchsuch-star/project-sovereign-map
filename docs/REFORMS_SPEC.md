@@ -18,7 +18,7 @@
 > - §5 the Staff;
 > - §6 the draft catalogue;
 > - §7 the AI;
-> - §8 what the player sees;
+> - §8 what the player sees; §8a the UI/UX plan; §8b fun and engagement;
 > - §9 diplomatic points;
 > - §10 the save format;
 > - §11 acceptance;
@@ -63,6 +63,10 @@ Each reading is one catalogue field or one constant to flip.
 - **R7 — v1 mints ONE new action point, the fifth.**
   - A sixth (a second tier of the Staff) is not built.
   - It re-opens only on a named condition (§13).
+- **R8 — A lapsed law remembers** (proposed September 27, 2026 by the fun review, §8b; it amends R3):
+  - A law that **lapsed** — not one the player repealed — may be re-enacted within 10 turns of its lapse at **half its price** (upkeep unchanged).
+  - Why: R5 lapses the largest upkeep first, and that is always the Staff — the one law a struggling France most needs. Without R8, one insolvent turn costs the fifth action for as long as it takes to find 9,000 gold again.
+  - The teeth stay: the lapse still happens, the fifth action is still lost at the next refill, and the discount is only for the court's own lapses. GR5: the same rule for every court.
 
 ---
 
@@ -335,6 +339,62 @@ Rules:
 
 ---
 
+## §8a The UI/UX plan — every surface, its file, and its proof
+
+*Added September 27, 2026 by the UI/UX pass. This is build contract; no ruling changed.*
+
+**The rule:** every law says what it does, what it costs and what would take it away, on the surface where the player decides — and nothing about a law ever surprises the player at the end of a turn.
+
+| Surface | Client file | Notes |
+|---|---|---|
+| **The LAWS tab**, the Strategic Ledger's eighth tab | `strategic_ledger.gd` and `strategic_ledger.tscn` | Three pieces: a `LawsTab` button in `SubTabRow`, `KEY_8` in `_input`, and `_render_laws()`. `_input` maps only `KEY_1`…`KEY_7` today. The digit rule stays: a digit belongs to whoever has the caret (the August 30 review). Eight buttons must fit the tab row at Interface Scale 2.0 — the IQ-10 record flags any button off the viewport — so the labels shorten there if they do not. |
+| **Enact and Repeal chips** | `strategic_ledger.gd`, in the CN-3 idiom: a chip sends the typed command through the shared pipeline | Honest availability. An unavailable chip is dimmed beside `law_refusal`'s reason; an available one states its terms: price, upkeep, and the authority lines it crosses. |
+| **The enactment confirm** — authority priced aloud | the chip's confirm, in an existing confirm idiom (no new modal type) | "Authority 100 → 85 — the marshals' calm holds above 70." |
+| **The forecast** | the LAWS tab's footer, the end-turn banner (`main.gd`), the morning dispatch (`dispatch_view.gd`) | It names the law that would lapse first and the gold that saves it. It offers "repeal X instead" as a chip when an admin action remains, and says so when none does. |
+| **The Net line "Laws"** | every surface that prints Net (RF-1's EC-U2 recipe, including `strategic_ledger.gd`) | — |
+| **Other courts' laws** | `diplomatic_ledger.gd` `_render_nations`: one line per court | Shares the two-line density budget with the doctrine line (`DOCTRINES_SPEC.md` §4a). |
+| **The beats** | the morning dispatch and the campaign log | "Austria raises the Landwehr"; a lapse is named as a lapse, and a cure beat names its flaw (`DOCTRINES_SPEC.md` §4). |
+| **The fifth action** | the top bar's action count (`top_bar.gd`) | It appears at the refill after enactment, and the dispatch names why. The compact mode below 1,180 logical px must still show it. |
+| **The bank** (DP-1) | the dispatch's regen breakdown ("+N carried") and the top bar's DP | The pool shows as regen + carried, never over its own printed maximum. |
+| **The School card, 19 → 20** | `tutorial_overlay.gd`, with the tutorial state's card list | The card opens the LAWS tab and names one law; driven by `tools/tutorial_overlay_harness.gd`. |
+| **Help and the desk** | the help block (`first_contact.py`); `question_desk.py` ("what laws are in force?", "what does the Staff cost?") | Golden-corpus rows. |
+
+**Visual proof.**
+- `tools/iq10_capture_payloads.py` gains `cap_laws()`. It stages four boards: the tab at boot; the Staff in force; a forecast naming a doomed law; a rival's laws on its nation card.
+- Each is rendered at Interface Scale 1.0 and 2.0, and the machine record must show no overflow. The frames are committed, dated.
+- The user's visual sign-off closes RF-4.
+
+**Bandwidth.** The client work grows from 0.4 to 1.0 session, split across RF-4a, RF-4b and RF-4c (§12).
+
+## §8b Fun and engagement — what the laws are for
+
+**The promise:** the long peace has something to pay for; every law is a choice between a stronger state and a fuller chest; and every court's reform is a story the player can watch.
+
+**The decisions:**
+- **Which law first.** The Staff — the fifth action, 9,000 gold and 300 a turn — against three cheaper acts, or the Train des Équipages before a war in the east.
+- **Upkeep or war chest.** France's full slate costs about 1,050 a turn. Every law in force is gold not saved for the next coalition.
+- **Authority as a currency.** A political act spends the Emperor's standing, and victories buy it back. The marshals' calm lives above 70.
+- **What to lose.** When the chest cannot pay, the player chooses which law lapses by repealing another first.
+
+**The moments:**
+- "The Grand Quartier Général is established — the fifth action is ours."
+- "Austria raises the Landwehr."
+- "Vienna adopts the corps d'armée."
+- The forecast's drama: "The Grand Quartier Général lapses next turn unless 400 gold is found."
+
+**The death-spiral watch.** R5 lapses the largest upkeep first, and that is always the Staff — the one law a struggling France most needs. The mitigations:
+- the forecast warns a turn early, on three surfaces;
+- repealing another law first keeps the Staff, for one admin action, and the forecast says when none remains;
+- **R8 (FOR USER CONFIRMATION):** a law that lapsed may be re-enacted within 10 turns at half its price.
+
+T7 measures all three.
+
+**For the rival courts too.** The deck order gives every AI court a visible arc, and its enactments and lapses are dispatch beats — diplomacy has no fog. With the doctrines (`DOCTRINES_SPEC.md` §4b), a rival's reform is the moment its flaw closes, and an uncured flaw is a window the player can read.
+
+**The fun targets are falsifiable:** T7 (no death spiral) and T8 (nothing unnamed), §11.
+
+---
+
 ## §9 Diplomatic points bank one turn (SR-D3 Q3) — and the admin pool (Q5)
 
 **The rule.** In `diplomacy._process_dp_regen`, for every court (GR5):
@@ -390,6 +450,8 @@ Rules:
 | T4 | The lapse | On a staged insolvent France: the largest law lapses first; the refund makes the chest whole; the forecast named that law a turn earlier; re-enacting charges the full price. |
 | T5 | The Staff on both boards | The fifth action appears at the first refill after enactment and is gone at the first refill after a lapse — for France and for an AI court. |
 | T6 | The bank | A court that spends nothing carries one turn's points, up to 7 and no further. The pool, the dispatch and the top bar agree. |
+| T7 | No death spiral (§8b) | On a staged insolvent France holding the Staff and two cheaper laws:<br>• the forecast names the doomed law a turn early on the LAWS tab, the end-turn banner and the dispatch;<br>• a "repeal X instead" chip keeps the Staff when an admin action remains, and the forecast says so when none does;<br>• after solvency returns on the commanded arm, a lapsed Staff can be re-enacted within 10 turns (at half price with R8). |
+| T8 | Nothing unnamed (§8b) | Every law effect the player can see is named where it applies: the fifth action at the refill, the recruit price's named term, the supply headline, the vassal forecast. The census idiom is the doctrines' T10. |
 | Q0 | The road to 45 | Re-measured after the Staff lands. |
 
 **Gates for every slice:**
@@ -406,12 +468,14 @@ Rules:
 | **RF-1** | **The player's road.** `enact_law` and `repeal_law` through the shared executor (CLAUDE.md's new-action checklist); the "Laws" Net line through the EC-U2 recipe; the lapse loop before ESP-4; the Staff at `calculate_max_actions` and at the AI restore; the three log types. | 0.5 |
 | **RF-2** | **The rest of the catalogue.** The other eight effect types, each at its seam with a pin and a sweep row; §6 authored and measured against T1 and T2. | 0.5 |
 | **RF-3** | **The AI.** The rung and its purse test; the flip arm; `BASELINE_SERIES` re-recorded once; T3. | 0.3 |
-| **RF-4** | **The client.** The LAWS tab (key 8) with its chips, the forecast, the authority line, the Diplomatic Ledger's laws column, and the School card. Parse harness and boot. | 0.4 |
+| **RF-4a** | **The LAWS tab** (§8a). The eighth tab: its button and `KEY_8`, keeping the digit-belongs-to-the-caret rule. Its rows; its Enact and Repeal chips with honest availability; its footer; the enactment confirm with authority priced aloud. Parse harness and boot. | 0.4 |
+| **RF-4b** | **The laws everywhere else** (§8a): the forecast on three surfaces, with its "repeal X instead" chip; the nation cards' laws line; the beats; the fifth action on the top bar, in compact mode too; the DP bank's display; help and the desk. Parse harness and boot. | 0.3 |
+| **RF-4c** | **The School card and the visual pass.** The School card (19 → 20, driven by the tutorial overlay harness). `cap_laws()` frames at Interface Scale 1.0 and 2.0, and the overflow fixes the machine record asks for. T7 and T8. The user's visual sign-off. | 0.3 |
 | **DP-1** | **The bank.** The carry rule, the shown ceiling, the AI measurement, and the flip arm. | 0.2 |
 
-**Size.** About 2.2 sessions. Chunk 5 grows from about 2.0 sessions to about 4.2; SR-5a/5b/5c and the reserve are unchanged.
+**Size.** About 2.8 sessions, 1.0 of them client work (§8a — the September 27 UI/UX pass raised it from 0.4). Chunk 5 grows from about 2.0 sessions to about 4.8; SR-5a/5b/5c and the reserve are unchanged.
 
-**Order.** RF-0 → RF-1 → RF-2 → RF-3 → RF-4. DP-1 is independent and may ride any session.
+**Order.** RF-0 → RF-1 → RF-2 → RF-3 → RF-4a → RF-4b → RF-4c. DP-1 is independent and may ride any session.
 
 **What not to build first:**
 - anything in force at boot;

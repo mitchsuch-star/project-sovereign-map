@@ -7,7 +7,7 @@
 > - **the review of September 27, 2026 (§0.2)** — a reach census of every clause on seven boards, two independent review rounds, and the amendments they made. **Seven amendments change what a doctrine does and are FOR USER CONFIRMATION** (RV-2, RV-3, RV-4, RV-5, RV-15, RV-16, RV-17). Each can be reverted to the drafted clause. The rest correct the build contract;
 > - **the build contract (§1–§9)**, written with the amendments in.
 >
-> Reading map: §0 the rulings and readings · §0.2 the review · §1 what a doctrine is · §2 the five doctrines · §3 the seams · §4 what the player sees · §5 the AI · §6 acceptance · §7 the build slices · §8 not in this ruling · §9 the save format.
+> Reading map: §0 the rulings and readings · §0.2 the review · §1 what a doctrine is · §2 the five doctrines · §3 the seams · §4 what the player sees · §4a the UI/UX plan · §4b fun and engagement · §5 the AI · §6 acceptance · §7 the build slices · §8 not in this ruling · §9 the save format.
 >
 > What may change at the build:
 > - Numbers marked **DRAFT** are in-band tunable; the build measures them against §6.
@@ -163,6 +163,8 @@
 | **RV-13** | **The player sees the flaw before the march** (§4):<br>• the map names poor and stripped country, the stripped mark obeying fog (a fogged province's war damage is sent as −1, the PC15-16 sentinel);<br>• the supply headline names the Train as the remedy;<br>• the LAWS tab says what the Train would lift this turn;<br>• every forecast reads stripped country forward, as the next attrition pass will read it (§3). |
 | **RV-14** | **Evidence.**<br>• T3's arm, the Jena road, is authored as a real campaign and carries its own `"policy": {"declare_war": "proceed"}`, because the census passes no `--declare-war` and would otherwise cancel the war.<br>• T6 counts supply *bites*, not predicate hits.<br>• T7's grid spans the whole reachable deterministic range.<br>• T9 stages one case per nation-change seam. |
 | **RV-18** | **The slices boot and the series moves once.**<br>• `cured_by` and its validator rule land at DC-2, with the cures.<br>• DC-1 lands the clauses behind `DOCTRINES_ACTIVE = False` (its pins run the lever up in-test).<br>• DC-2 flips the lever and re-records `BASELINE_SERIES` ONCE, with per-court and cure arms. RV-15 makes a deck reorder unnecessary, so no scenario data moves outside the lever. |
+| **RV-19** | **The UI/UX is planned surface by surface, with the bandwidth to do it** (§4a). Every surface has its client file, its payload, its fog rule and its proof. Every surface is captured at both Interface Scales and signed off by the user. The client work grows from 0.4 to about 1.1 sessions (DC-3a/3b/3c). |
+| **RV-20** | **The fun is stated and measured** (§4b): the decisions the doctrines create, the counterplay against every rival, the named moments, the anti-frustration rules, and T10 — no doctrine changes an outcome without a line saying so. |
 
 ---
 
@@ -342,6 +344,70 @@ Every seam below was re-read by the review at HEAD `652d23d7` (code identical to
 
 ---
 
+## §4a The UI/UX plan — every surface, its file, and its proof (RV-19)
+
+**The rule:** a doctrine that changes an outcome says so where the player sees the outcome, and the player can read every court's doctrine before it bites. No doctrine opens a modal: doctrines are read, never asked.
+
+| Surface | Client file | Payload | Fog | Proof |
+|---|---|---|---|---|
+| **OUR DOCTRINE** block above THE LAURELS OF THE ARMY: name, `says`, strength and flaw with their live numbers, cure status | `marshal_management.gd`, beside `_render_glory_ladder` | `/marshal_overview` gains `doctrine` | own court | T1 + frame |
+| One doctrine line per great power, beside the reforms' laws line — **at most two lines per court together** | `diplomatic_ledger.gd` `_render_nations` | `nations[].doctrine`, with the cure status | none (diplomacy has no fog) | T1 + frame |
+| The poor and stripped country marks — "Stripped? unknown — scout it" when fogged | `region_panel.gd` (the supply and war-damage block) and the map tooltip (`map_renderer_base.gd` `_push_tooltip_line`) | map summary: a `poor_country` flag, and war damage with the −1 fog sentinel | the stripped mark reads `region_econ_visible` | T1 fogged and scouted + frames |
+| The muster: the doctrine named on the arrival note, own lines and enemy lines | backend text (`_format_muster_lines`), rendered as today | `rows[].arrival_note` | the muster's own fog | frame |
+| The battle report: doctrine rows (the share applied after the caps), the new morale line, the doctrine-decided arrival or no-show | `main.gd` `_display_battle_result`; backend `battle_report.py` | `battle_report.doctrine_rows`, `battle_report.morale_line` | the report's existing fog | T1 + frame |
+| The Battle Diorama: a `doctrine_delayed` corps stands on the shelf with its reason ("the Hofkriegsrat") | `battle_diorama.gd` (the shelf) | `contingents[]`: status `failed_arrive`, reason `doctrine_delayed` | FULL only, as today | frame |
+| The supply headline and its Train remedy; the cure and lapse beats; the Berthier line | backend text; `dispatch_view.gd` renders | dispatch rows | nothing new | T1 |
+| The enemy-phase recruit note — the doctrine's term only | `enemy_phase_dialog.gd`, the `"recruit"` arm, from a structured field (CA8-6) | `ai_action.doctrine_note` | the phase's own fog | frame |
+| The LAWS tab: the Train's cure line, its Staff condition, the live "would lift" line; the rivals' cure rows | `strategic_ledger.gd` (RF-4's `_render_laws`) | `laws[].cures`, `laws[].cure_needs`, `laws[].lifts_now` | own court | T1 + frame |
+| **Discoverability:** one line in the turn-1 briefing ("Our doctrine: the corps system — the corps march apart and fight together. The Generals screen, G."); the help block names doctrines; the desk answers "what is our doctrine?", "what is Austria's doctrine?" and "what are Austria's weaknesses?" | backend: `build_morning_dispatch(boot=True)`, `first_contact.py`, `question_desk.py` | — | none | golden-corpus rows + T1 |
+
+**Readability rules:**
+- Every number printed is the applied number, after the caps and the exemptions.
+- Names come from the doctrine's own `name` and its clause names, never raw keys (R7).
+- Colours come from the `Utils` palette: a strength in the success colour, a flaw in the warning colour, a cured flaw greyed with its turn.
+- **Both Interface Scales.** `tools/iq10_capture_payloads.py` gains `cap_doctrines()`, with staged boards for each surface above. `tools/iq10_surface_screenshot.gd` renders them at 1.0 and 2.0, and its machine record must show no overflowing label and no button off the viewport. The frames are committed, dated.
+- **The user's visual sign-off closes DC-3** (the standing UI convention).
+
+**Bandwidth.** The client work is about 1.1 of the doctrines' 2.5 sessions, split across DC-3a, DC-3b and DC-3c (§7).
+
+## §4b Fun and engagement — what the doctrines are for (RV-20)
+
+**The promise:** five armies that play differently. Each has a strength the player must respect and a flaw the player can exploit, and each has a catch-up the player can see coming.
+
+**The decisions they create for France:**
+- **Spread or stack.** Beyond the frontier, in poor or stripped country, a stacked army starves. The corps system rewards the corps that march apart and meet at the battle.
+- **When to buy the Train.** It needs the Grand Quartier Général and 200 a turn. A France going east should buy it first; a France fighting in rich Germany may never need it.
+- **Whom to fight first,** read off the ledger (the counterplay table below).
+- **Order or trust.** A written SUPPORT order still adds +15. The corps system adds its 10 to every French corps that marches on its own — except the men whose character keeps them away.
+
+**Counterplay — every rival's doctrine has an answer:**
+
+| Rival | Respect its strength by… | Exploit its flaw by… | The window closes when… |
+|---|---|---|---|
+| Austria | taking Vienna, not only armies — the Hereditary Lands raise another army at ×0.85 | fighting its corps apart, before they can concentrate (the Hofkriegsrat) | Vienna enacts the Corps d'Armée (its Staff) |
+| Russia | not expecting a rout — grind it, or cut it off (stubbornness halves the rout) | striking before its columns gather (slow to concentrate) | St Petersburg enacts the Divisional System (its Staff) |
+| Prussia | receiving its attack on ground you chose (Frederick's drill) | forcing one decisive exchange — a lopsided defeat breaks the whole army (brittle) | Berlin has both the General Staff and the Articles of War |
+| Britain | never meeting its line where it defends (the line holds) | bleeding its small army — every British recruit comes dear | London has both the Horse Guards Reforms and the Militia Transfer |
+
+**The moments (named beats):**
+- "The corps marched apart and arrived together." (Berthier)
+- "The Russians would not break." / "The Prussian line broke."
+- "The Hofkriegsrat's orders reached Archduke John too late."
+- "Vienna adopts the corps d'armée — the Hofkriegsrat's delays are over." / "Vienna can no longer pay for its corps."
+- "Living off the land: this stripped country feeds a French army 80%."
+
+**No frustration by construction:**
+- Every doctrine cost is announced before it is paid: the map marks poor and stripped country, the muster names the bar, the LAWS tab says what the Train lifts now.
+- No doctrine opens a modal or asks a question.
+- The court's flaw never costs the man trust (RV-16), and a doctrine never overrides a marshal's character (RV-2).
+- Nothing is permanent but the doctrine itself. Every flaw is curable; a cure lapses only when its court cannot pay; the dispatch says so either way.
+
+**For the rival courts too.** Each great power reads as a distinct opponent (T3), and each has a catch-up arc the player can watch: the dispatch announces every cure and every lapse. The doctrines are written so a British player could inherit Britain's.
+
+**The fun targets are falsifiable:** T3 (each style is named in a digest) and T10 (no doctrine changes an outcome without a line saying so).
+
+---
+
 ## §5 The AI
 
 **No new AI decision rules.** Every doctrine is a number on a seam the AI already reads:
@@ -371,6 +437,7 @@ Every seam below was re-read by the review at HEAD `652d23d7` (code identical to
 | T7 | Monotone | Over the whole reachable deterministic arrival range — sums −10 to 150, with `assume_order` both ways — the corps system never lowers the probability of arrival, and the two flaws never raise it. The supply, recruit, attack, defence and morale clauses are monotone the same way. Pinned as a grid, not a sample. |
 | T8 | The cure's timing | Per rival, on the four ambient seeds: the turn its cure takes effect, which half of the purse test held it back until then, and every lapse. **Pass:** no rival's flaw is cured before turn 10 (the flaw lives), and at least two of the four have a cure in effect by turn 30 on the historical seed. A miss belongs to RF-3 (§5). |
 | T9 | No drift | After every mutating route of a driven arm, and in one staged case per nation-change seam (§3), every marshal's `_doctrine_terms` equals a fresh derivation. A load restores the terms only after the `reforms` store (RV-6). |
+| T10 | Nothing unnamed | Over the Jena road and one commanded arm, an instrumented census compares every doctrine effect the player can see with the named lines. That means every bar shift that changed an arrival, supply bite, scaled morale penalty and recruit priced (fog applied). **Pass:** 0 unnamed effects, and the digest shows at least three distinct doctrine moments, with at least one per court that fought (§4b). |
 
 **Gates for every slice:** every pin mutation-swept to 0 INERT; any `.gd` change passes the parse harness (EXIT=0) and a boot with 0 SCRIPT ERROR.
 
@@ -383,9 +450,11 @@ Every seam below was re-read by the review at HEAD `652d23d7` (code identical to
 | **DC-0** | **The substrate.**<br>• The `doctrines` and `poor_country` scenario keys and their validator blocks (§1, without `cured_by`).<br>• The save field and its 1805-only backfill (§9).<br>• `backend/game_logic/doctrines.py`: the accessors, the forward-reading poor-or-stripped predicate, `refresh_doctrine_terms`, and `set_marshal_nation` with its AST census.<br>• The ONE arrival bar with `assume_order` (RV-1: the resolver and the odds row call `_arrival_threshold`, byte-identical, pinned).<br>No doctrine is active yet. | 0.4 |
 | **DC-1** | **Strengths and flaws.**<br>• The ten clauses at their seams, behind `DOCTRINES_ACTIVE = False` with per-court sub-levers; pins run the lever up.<br>• The character rule (RV-2); `doctrine_delayed` and the trust-dock exemption (RV-16); the draft-only recruit term (RV-17).<br>• The census re-run counting bites, and the Jena road authored as a real campaign.<br>• T1 (backend), T3, T6, T7 and T9. | 0.6 |
 | **DC-2** | **The cures.**<br>• The `cures` law effect type (D-R4) with its Staff condition (RV-15); the Train des Équipages authored (D-R3); the four cure clauses; `cured_by` and its validator rule.<br>• The lever flipped and `BASELINE_SERIES` re-recorded ONCE (T4).<br>• T2 and T8.<br>• `REFORMS_SPEC.md` §11 T2 (the sink) re-run with the Train in France's slate. | 0.4 |
-| **DC-3** | **The client and the words.**<br>• The doctrine rows on the Generals screen and the nation cards.<br>• The named firing lines, including the new morale line, the snapshot rows with their applied shares, and the doctrine-decided copy (RV-7, RV-16).<br>• Poor and stripped country on the region panel and tooltip, with fog.<br>• The supply headline's Train remedy; the LAWS tab's live cure line; the enemy-phase recruit note; the cure beat; the Berthier line.<br>• T1's client pins. Parse harness and boot. | 0.4 |
+| **DC-3a** | **The reading surfaces** (§4a).<br>• The OUR DOCTRINE block on the Generals screen.<br>• The nation cards' doctrine line, sharing the two-line budget with the reforms' laws line.<br>• Poor and stripped country on the region panel and the map tooltip, with the fog sentinel.<br>• The LAWS tab's doctrine lines.<br>• The turn-1 briefing line; the help block; the desk's three answers and their golden-corpus rows.<br>Parse harness and boot. | 0.4 |
+| **DC-3b** | **The firing surfaces** (§4a).<br>• The battle report's doctrine rows, the new morale line, and the doctrine-decided arrival and no-show copy (RV-7, RV-16).<br>• The diorama shelf's reason.<br>• The enemy-phase recruit note.<br>• The supply headline's Train remedy; the cure and lapse beats; the Berthier line.<br>Parse harness and boot. | 0.4 |
+| **DC-3c** | **The visual pass.** `cap_doctrines()` staged boards; frames at Interface Scale 1.0 and 2.0; the overflow fixes the machine record asks for; T10's census; the user's visual sign-off. | 0.3 |
 
-**Size.** About 1.8 sessions. Chunk 7 grows from about 2.0 sessions to about 3.8.
+**Size.** About 2.5 sessions, 1.1 of them client work (§4a). Chunk 7 grows from about 2.0 sessions to about 4.5.
 
 **Dependency.** DC-2 needs the laws (SR-5r, Chunk 5), and Chunk 7 comes after Chunk 5.
 
