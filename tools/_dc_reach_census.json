@@ -1,0 +1,1096 @@
+{
+ "about": "DOCTRINES_SPEC \u00a70.2 reach census (pre-build, levers do not exist yet)",
+ "poor_country_draft": [
+  "East Prussia",
+  "Posen",
+  "Samogitia",
+  "Lithuania",
+  "White Russia",
+  "Volhynia",
+  "Leon",
+  "Aragon",
+  "Galicia",
+  "Alentejo",
+  "Beira",
+  "Rumelia",
+  "Epirus",
+  "Albania"
+ ],
+ "arms": {
+  "ambient-historical": {
+   "spec": {
+    "mode": "ambient",
+    "seed": "historical"
+   },
+   "census": {
+    "arrival": {
+     "Austria": {
+      "rolls": 4,
+      "mean_deterministic": 62.5,
+      "P_base": 0.324,
+      "P_score+10": 0.818,
+      "P_score-10": 0.044,
+      "P_bar-10": 0.824,
+      "P_bar+10": 0.044,
+      "P_bar-10_with_RV2_exemptions": 0.824,
+      "rolls_a_+10_score_makes_LESS_likely": 0,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 0
+     },
+     "France": {
+      "rolls": 8,
+      "mean_deterministic": 86.9,
+      "P_base": 0.797,
+      "P_score+10": 0.932,
+      "P_score-10": 0.693,
+      "P_bar-10": 0.936,
+      "P_bar+10": 0.686,
+      "P_bar-10_with_RV2_exemptions": 0.863,
+      "rolls_a_+10_score_makes_LESS_likely": 1,
+      "rolls_a_-10_score_makes_MORE_likely": 1,
+      "rolls_RV2_would_exempt": 1
+     }
+    },
+    "lopsided_defeats": {
+     "France": {
+      "defeats": 11,
+      "penalty_paid": 10,
+      "mean_penalty_paid": 29.7
+     },
+     "Bavaria": {
+      "defeats": 3,
+      "penalty_paid": 2,
+      "mean_penalty_paid": 18.0
+     },
+     "Austria": {
+      "defeats": 1,
+      "penalty_paid": 1,
+      "mean_penalty_paid": 6.0
+     }
+    },
+    "battles": {
+     "attacker|Austria": 24,
+     "attacker|Bavaria": 3,
+     "attacker|France": 1,
+     "defender|Austria": 4,
+     "defender|Bavaria": 2,
+     "defender|France": 22
+    },
+    "recruits": {
+     "Austria|infantry": 18,
+     "Bavaria|infantry": 3,
+     "Britain|artillery": 1,
+     "Britain|cavalry": 1,
+     "Britain|infantry": 2,
+     "Prussia|infantry": 1,
+     "Russia|infantry": 13,
+     "Spain|infantry": 1
+    },
+    "drills": {
+     "Russia": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Austria": {
+      "drills": 1,
+      "room_for_five_more_morale": 0
+     }
+    },
+    "unfed_in_listed_poor": {},
+    "counters": {
+     "literal_no_march|France": 6,
+     "unfed|Austria": 17,
+     "unfed_stripped>=0.2|Austria": 4,
+     "unfed_stripped>=0.25|Austria": 4,
+     "unfed_stripped>=0.3|Austria": 4,
+     "unfed_over_80pct_cap|Austria": 8,
+     "literal_no_march|Austria": 1,
+     "unfed|Britain": 4
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      551,
+      14612,
+      12106,
+      11858,
+      11922
+     ],
+     "Britain": [
+      1300,
+      3229,
+      10337,
+      17043,
+      18873
+     ],
+     "Russia": [
+      800,
+      5194,
+      8793,
+      11514,
+      12660
+     ],
+     "Austria": [
+      131,
+      3242,
+      11836,
+      12315,
+      13272
+     ],
+     "Prussia": [
+      100,
+      2032,
+      5994,
+      9506,
+      12323
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "Britain:Shrapnel"
+    ]
+   }
+  },
+  "ambient-ulm": {
+   "spec": {
+    "mode": "ambient",
+    "seed": "ulm"
+   },
+   "census": {
+    "arrival": {
+     "Austria": {
+      "rolls": 3,
+      "mean_deterministic": 63.3,
+      "P_base": 0.373,
+      "P_score+10": 0.835,
+      "P_score-10": 0.059,
+      "P_bar-10": 0.843,
+      "P_bar+10": 0.059,
+      "P_bar-10_with_RV2_exemptions": 0.843,
+      "rolls_a_+10_score_makes_LESS_likely": 0,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 0
+     },
+     "France": {
+      "rolls": 32,
+      "mean_deterministic": 82.7,
+      "P_base": 0.802,
+      "P_score+10": 0.949,
+      "P_score-10": 0.589,
+      "P_bar-10": 0.959,
+      "P_bar+10": 0.58,
+      "P_bar-10_with_RV2_exemptions": 0.959,
+      "rolls_a_+10_score_makes_LESS_likely": 5,
+      "rolls_a_-10_score_makes_MORE_likely": 7,
+      "rolls_RV2_would_exempt": 0
+     },
+     "Britain": {
+      "rolls": 7,
+      "mean_deterministic": 80.7,
+      "P_base": 0.977,
+      "P_score+10": 0.957,
+      "P_score-10": 0.689,
+      "P_bar-10": 0.977,
+      "P_bar+10": 0.674,
+      "P_bar-10_with_RV2_exemptions": 0.977,
+      "rolls_a_+10_score_makes_LESS_likely": 6,
+      "rolls_a_-10_score_makes_MORE_likely": 3,
+      "rolls_RV2_would_exempt": 0
+     }
+    },
+    "lopsided_defeats": {
+     "France": {
+      "defeats": 16,
+      "penalty_paid": 16,
+      "mean_penalty_paid": 47.2
+     },
+     "Austria": {
+      "defeats": 7,
+      "penalty_paid": 6,
+      "mean_penalty_paid": 21.7
+     },
+     "Britain": {
+      "defeats": 2,
+      "penalty_paid": 1,
+      "mean_penalty_paid": 55.0
+     }
+    },
+    "battles": {
+     "attacker|Austria": 13,
+     "attacker|Britain": 9,
+     "attacker|France": 3,
+     "attacker|Spain": 2,
+     "defender|Austria": 3,
+     "defender|Britain": 2,
+     "defender|France": 22
+    },
+    "recruits": {
+     "Austria|infantry": 19,
+     "Britain|artillery": 1,
+     "Britain|cavalry": 1,
+     "Britain|infantry": 5,
+     "Prussia|infantry": 1,
+     "Russia|infantry": 12,
+     "Spain|infantry": 3
+    },
+    "drills": {
+     "Russia": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 6,
+      "room_for_five_more_morale": 1
+     },
+     "Austria": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     }
+    },
+    "unfed_in_listed_poor": {
+     "Britain": [
+      "Aragon"
+     ]
+    },
+    "counters": {
+     "unfed|Austria": 1,
+     "unfed_over_80pct_cap|Austria": 1,
+     "literal_no_march|France": 6,
+     "unfed|France": 151,
+     "unfed_over_80pct_cap|France": 126,
+     "unfed|Britain": 2,
+     "unfed_in_listed_poor|Britain": 2,
+     "unfed_stripped>=0.2|France": 26,
+     "france_flaw_hits|FLAG": 8,
+     "france_flaw_hits|HOMELAND": 6,
+     "unfed_stripped>=0.25|France": 8
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      513,
+      14853,
+      9025,
+      5331,
+      4687
+     ],
+     "Britain": [
+      1300,
+      5238,
+      8381,
+      12196,
+      15219
+     ],
+     "Russia": [
+      800,
+      6003,
+      11087,
+      12702,
+      12524
+     ],
+     "Austria": [
+      2,
+      5642,
+      16577,
+      17151,
+      19844
+     ],
+     "Prussia": [
+      100,
+      2032,
+      5994,
+      9506,
+      12323
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "Britain:Shrapnel"
+    ]
+   }
+  },
+  "ambient-austerlitz": {
+   "spec": {
+    "mode": "ambient",
+    "seed": "austerlitz"
+   },
+   "census": {
+    "arrival": {
+     "Austria": {
+      "rolls": 3,
+      "mean_deterministic": 63.3,
+      "P_base": 0.373,
+      "P_score+10": 0.835,
+      "P_score-10": 0.059,
+      "P_bar-10": 0.843,
+      "P_bar+10": 0.059,
+      "P_bar-10_with_RV2_exemptions": 0.843,
+      "rolls_a_+10_score_makes_LESS_likely": 0,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 0
+     },
+     "France": {
+      "rolls": 32,
+      "mean_deterministic": 82.7,
+      "P_base": 0.802,
+      "P_score+10": 0.949,
+      "P_score-10": 0.589,
+      "P_bar-10": 0.959,
+      "P_bar+10": 0.58,
+      "P_bar-10_with_RV2_exemptions": 0.959,
+      "rolls_a_+10_score_makes_LESS_likely": 5,
+      "rolls_a_-10_score_makes_MORE_likely": 7,
+      "rolls_RV2_would_exempt": 0
+     },
+     "Britain": {
+      "rolls": 7,
+      "mean_deterministic": 80.7,
+      "P_base": 0.977,
+      "P_score+10": 0.957,
+      "P_score-10": 0.689,
+      "P_bar-10": 0.977,
+      "P_bar+10": 0.674,
+      "P_bar-10_with_RV2_exemptions": 0.977,
+      "rolls_a_+10_score_makes_LESS_likely": 6,
+      "rolls_a_-10_score_makes_MORE_likely": 3,
+      "rolls_RV2_would_exempt": 0
+     }
+    },
+    "lopsided_defeats": {
+     "France": {
+      "defeats": 16,
+      "penalty_paid": 16,
+      "mean_penalty_paid": 47.2
+     },
+     "Austria": {
+      "defeats": 7,
+      "penalty_paid": 6,
+      "mean_penalty_paid": 21.7
+     },
+     "Britain": {
+      "defeats": 2,
+      "penalty_paid": 1,
+      "mean_penalty_paid": 55.0
+     }
+    },
+    "battles": {
+     "attacker|Austria": 13,
+     "attacker|Britain": 9,
+     "attacker|France": 3,
+     "attacker|Spain": 2,
+     "defender|Austria": 3,
+     "defender|Britain": 2,
+     "defender|France": 22
+    },
+    "recruits": {
+     "Austria|infantry": 19,
+     "Britain|artillery": 1,
+     "Britain|cavalry": 1,
+     "Britain|infantry": 5,
+     "Prussia|infantry": 1,
+     "Russia|infantry": 12,
+     "Spain|infantry": 3
+    },
+    "drills": {
+     "Russia": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 6,
+      "room_for_five_more_morale": 1
+     },
+     "Austria": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     }
+    },
+    "unfed_in_listed_poor": {
+     "Britain": [
+      "Aragon"
+     ]
+    },
+    "counters": {
+     "unfed|Austria": 1,
+     "unfed_over_80pct_cap|Austria": 1,
+     "literal_no_march|France": 6,
+     "unfed|France": 151,
+     "unfed_over_80pct_cap|France": 126,
+     "unfed|Britain": 2,
+     "unfed_in_listed_poor|Britain": 2,
+     "unfed_stripped>=0.2|France": 26,
+     "france_flaw_hits|FLAG": 8,
+     "france_flaw_hits|HOMELAND": 6,
+     "unfed_stripped>=0.25|France": 8
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      513,
+      14853,
+      9025,
+      5331,
+      4687
+     ],
+     "Britain": [
+      1300,
+      5416,
+      8598,
+      12591,
+      15637
+     ],
+     "Russia": [
+      800,
+      6097,
+      11411,
+      12769,
+      12545
+     ],
+     "Austria": [
+      2,
+      5642,
+      16577,
+      17129,
+      19841
+     ],
+     "Prussia": [
+      100,
+      2032,
+      5994,
+      9506,
+      12323
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "Britain:Shrapnel"
+    ]
+   }
+  },
+  "ambient-eylau": {
+   "spec": {
+    "mode": "ambient",
+    "seed": "eylau"
+   },
+   "census": {
+    "arrival": {
+     "Austria": {
+      "rolls": 11,
+      "mean_deterministic": 67.3,
+      "P_base": 0.446,
+      "P_score+10": 0.834,
+      "P_score-10": 0.244,
+      "P_bar-10": 0.841,
+      "P_bar+10": 0.237,
+      "P_bar-10_with_RV2_exemptions": 0.841,
+      "rolls_a_+10_score_makes_LESS_likely": 2,
+      "rolls_a_-10_score_makes_MORE_likely": 1,
+      "rolls_RV2_would_exempt": 0
+     },
+     "France": {
+      "rolls": 26,
+      "mean_deterministic": 79.2,
+      "P_base": 0.704,
+      "P_score+10": 0.877,
+      "P_score-10": 0.537,
+      "P_bar-10": 0.885,
+      "P_bar+10": 0.53,
+      "P_bar-10_with_RV2_exemptions": 0.871,
+      "rolls_a_+10_score_makes_LESS_likely": 4,
+      "rolls_a_-10_score_makes_MORE_likely": 4,
+      "rolls_RV2_would_exempt": 2
+     },
+     "Britain": {
+      "rolls": 3,
+      "mean_deterministic": 75.0,
+      "P_base": 0.991,
+      "P_score+10": 0.962,
+      "P_score-10": 0.471,
+      "P_bar-10": 0.991,
+      "P_bar+10": 0.462,
+      "P_bar-10_with_RV2_exemptions": 0.991,
+      "rolls_a_+10_score_makes_LESS_likely": 3,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 0
+     }
+    },
+    "lopsided_defeats": {
+     "France": {
+      "defeats": 25,
+      "penalty_paid": 24,
+      "mean_penalty_paid": 37.9
+     },
+     "Bavaria": {
+      "defeats": 4,
+      "penalty_paid": 3,
+      "mean_penalty_paid": 25.3
+     },
+     "Austria": {
+      "defeats": 4,
+      "penalty_paid": 3,
+      "mean_penalty_paid": 20.0
+     }
+    },
+    "battles": {
+     "attacker|Austria": 41,
+     "attacker|Bavaria": 3,
+     "attacker|Britain": 5,
+     "attacker|France": 1,
+     "defender|Austria": 4,
+     "defender|Bavaria": 3,
+     "defender|France": 43
+    },
+    "recruits": {
+     "Austria|infantry": 14,
+     "Britain|infantry": 2,
+     "Prussia|infantry": 2,
+     "Russia|infantry": 17,
+     "Spain|infantry": 1
+    },
+    "drills": {
+     "Russia": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 5,
+      "room_for_five_more_morale": 0
+     },
+     "Austria": {
+      "drills": 1,
+      "room_for_five_more_morale": 0
+     }
+    },
+    "unfed_in_listed_poor": {},
+    "counters": {
+     "literal_no_march|France": 18,
+     "unfed|Austria": 12,
+     "unfed_stripped>=0.2|Austria": 7,
+     "unfed_stripped>=0.25|Austria": 6,
+     "unfed_stripped>=0.3|Austria": 6,
+     "unfed_over_80pct_cap|Austria": 4,
+     "literal_no_march|Austria": 5,
+     "unfed|Russia": 25,
+     "unfed|Britain": 12,
+     "unfed_over_80pct_cap|Russia": 5,
+     "france_flaw_hits|HOMELAND": 1,
+     "unfed|France": 5
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      551,
+      14664,
+      7435,
+      3553
+     ],
+     "Britain": [
+      1300,
+      3304,
+      10838,
+      16512
+     ],
+     "Russia": [
+      800,
+      5352,
+      8074,
+      11751
+     ],
+     "Austria": [
+      131,
+      3049,
+      12011,
+      18772
+     ],
+     "Prussia": [
+      100,
+      2783,
+      7264,
+      11351
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "Britain:Shrapnel"
+    ]
+   }
+  },
+  "commanded-full40": {
+   "spec": {
+    "mode": "driver",
+    "seed": "historical",
+    "script": "commanded_full40.json"
+   },
+   "census": {
+    "arrival": {
+     "France": {
+      "rolls": 31,
+      "mean_deterministic": 73.4,
+      "P_base": 0.57,
+      "P_score+10": 0.737,
+      "P_score-10": 0.452,
+      "P_bar-10": 0.743,
+      "P_bar+10": 0.445,
+      "P_bar-10_with_RV2_exemptions": 0.68,
+      "rolls_a_+10_score_makes_LESS_likely": 6,
+      "rolls_a_-10_score_makes_MORE_likely": 6,
+      "rolls_RV2_would_exempt": 7
+     },
+     "Austria": {
+      "rolls": 5,
+      "mean_deterministic": 62.0,
+      "P_base": 0.376,
+      "P_score+10": 0.732,
+      "P_score-10": 0.071,
+      "P_bar-10": 0.741,
+      "P_bar+10": 0.071,
+      "P_bar-10_with_RV2_exemptions": 0.647,
+      "rolls_a_+10_score_makes_LESS_likely": 0,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 2
+     },
+     "Britain": {
+      "rolls": 2,
+      "mean_deterministic": 70.0,
+      "P_base": 0.731,
+      "P_score+10": 0.976,
+      "P_score-10": 0.235,
+      "P_bar-10": 0.996,
+      "P_bar+10": 0.231,
+      "P_bar-10_with_RV2_exemptions": 0.731,
+      "rolls_a_+10_score_makes_LESS_likely": 1,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 1
+     }
+    },
+    "lopsided_defeats": {
+     "Austria": {
+      "defeats": 10,
+      "penalty_paid": 9,
+      "mean_penalty_paid": 50.7
+     },
+     "France": {
+      "defeats": 14,
+      "penalty_paid": 13,
+      "mean_penalty_paid": 44.5
+     },
+     "Bavaria": {
+      "defeats": 4,
+      "penalty_paid": 3,
+      "mean_penalty_paid": 23.0
+     },
+     "Britain": {
+      "defeats": 4,
+      "penalty_paid": 2,
+      "mean_penalty_paid": 43.0
+     }
+    },
+    "battles": {
+     "attacker|Austria": 17,
+     "attacker|Bavaria": 6,
+     "attacker|Britain": 2,
+     "attacker|France": 9,
+     "attacker|Spain": 3,
+     "defender|Austria": 15,
+     "defender|Bavaria": 2,
+     "defender|Britain": 3,
+     "defender|France": 17
+    },
+    "recruits": {
+     "Austria|artillery": 1,
+     "Austria|infantry": 14,
+     "Bavaria|infantry": 3,
+     "France|infantry": 1,
+     "Prussia|infantry": 1,
+     "Russia|infantry": 4,
+     "Spain|infantry": 2
+    },
+    "drills": {
+     "Russia": {
+      "drills": 1,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "France": {
+      "drills": 6,
+      "room_for_five_more_morale": 2
+     }
+    },
+    "unfed_in_listed_poor": {
+     "Britain": [
+      "Aragon"
+     ],
+     "Spain": [
+      "Leon"
+     ]
+    },
+    "counters": {
+     "literal_no_march|France": 8,
+     "unfed|Austria": 8,
+     "unfed_over_80pct_cap|Austria": 2,
+     "france_flaw_hits|HOMELAND": 20,
+     "france_flaw_bites|HOMELAND": 9,
+     "france_flaw_extra_men|HOMELAND": 1258,
+     "france_flaw_bites_on_conquered|HOMELAND": 9,
+     "unfed|Britain": 48,
+     "unfed_in_listed_poor|Britain": 1,
+     "unfed|Spain": 2,
+     "unfed_in_listed_poor|Spain": 1,
+     "literal_no_march|Austria": 1,
+     "unfed|Bavaria": 1,
+     "unfed_stripped>=0.2|Bavaria": 1,
+     "unfed_stripped>=0.25|Bavaria": 1,
+     "unfed_stripped>=0.3|Bavaria": 1,
+     "unfed_stripped>=0.2|Austria": 1,
+     "unfed_stripped>=0.25|Austria": 1,
+     "unfed_stripped>=0.3|Austria": 1
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      248,
+      20102,
+      19307,
+      18491,
+      17936
+     ],
+     "Britain": [
+      1300,
+      2679,
+      7845,
+      11622,
+      12748
+     ],
+     "Russia": [
+      800,
+      5613,
+      8256,
+      10932,
+      11541
+     ],
+     "Austria": [
+      -249,
+      1805,
+      1872,
+      10446,
+      12425
+     ],
+     "Prussia": [
+      100,
+      2032,
+      5994,
+      9506,
+      12323
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "Austria:Smola",
+     "Britain:Shrapnel"
+    ]
+   }
+  },
+  "aar-road": {
+   "spec": {
+    "mode": "driver",
+    "seed": "historical",
+    "script": "sr1e_aar_road.json"
+   },
+   "census": {
+    "arrival": {
+     "France": {
+      "rolls": 43,
+      "mean_deterministic": 72.3,
+      "P_base": 0.562,
+      "P_score+10": 0.74,
+      "P_score-10": 0.43,
+      "P_bar-10": 0.748,
+      "P_bar+10": 0.422,
+      "P_bar-10_with_RV2_exemptions": 0.736,
+      "rolls_a_+10_score_makes_LESS_likely": 11,
+      "rolls_a_-10_score_makes_MORE_likely": 5,
+      "rolls_RV2_would_exempt": 4
+     },
+     "Austria": {
+      "rolls": 8,
+      "mean_deterministic": 70.0,
+      "P_base": 0.598,
+      "P_score+10": 0.814,
+      "P_score-10": 0.357,
+      "P_bar-10": 0.826,
+      "P_bar+10": 0.348,
+      "P_bar-10_with_RV2_exemptions": 0.797,
+      "rolls_a_+10_score_makes_LESS_likely": 2,
+      "rolls_a_-10_score_makes_MORE_likely": 1,
+      "rolls_RV2_would_exempt": 1
+     },
+     "Russia": {
+      "rolls": 1,
+      "mean_deterministic": 60.0,
+      "P_base": 0.176,
+      "P_score+10": 0.765,
+      "P_score-10": 0.0,
+      "P_bar-10": 0.765,
+      "P_bar+10": 0.0,
+      "P_bar-10_with_RV2_exemptions": 0.765,
+      "rolls_a_+10_score_makes_LESS_likely": 0,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 0
+     }
+    },
+    "lopsided_defeats": {
+     "Austria": {
+      "defeats": 9,
+      "penalty_paid": 8,
+      "mean_penalty_paid": 40.0
+     },
+     "Bavaria": {
+      "defeats": 1,
+      "penalty_paid": 1,
+      "mean_penalty_paid": 3.0
+     },
+     "France": {
+      "defeats": 18,
+      "penalty_paid": 17,
+      "mean_penalty_paid": 36.9
+     },
+     "Britain": {
+      "defeats": 6,
+      "penalty_paid": 5,
+      "mean_penalty_paid": 45.2
+     }
+    },
+    "battles": {
+     "attacker|Austria": 24,
+     "attacker|Bavaria": 1,
+     "attacker|France": 13,
+     "attacker|Russia": 4,
+     "attacker|Spain": 3,
+     "defender|Austria": 11,
+     "defender|Bavaria": 1,
+     "defender|Britain": 6,
+     "defender|France": 27
+    },
+    "recruits": {
+     "Austria|infantry": 17,
+     "Bavaria|infantry": 7,
+     "Britain|cavalry": 1,
+     "Britain|infantry": 1,
+     "France|artillery": 4,
+     "Prussia|infantry": 1,
+     "Russia|infantry": 4
+    },
+    "drills": {
+     "Russia": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 3,
+      "room_for_five_more_morale": 0
+     },
+     "Austria": {
+      "drills": 3,
+      "room_for_five_more_morale": 1
+     }
+    },
+    "unfed_in_listed_poor": {
+     "Britain": [
+      "Aragon"
+     ]
+    },
+    "counters": {
+     "literal_no_march|France": 15,
+     "unfed|Austria": 4,
+     "unfed_stripped>=0.2|Austria": 3,
+     "unfed_stripped>=0.25|Austria": 3,
+     "unfed_over_80pct_cap|Austria": 2,
+     "unfed_stripped>=0.3|Austria": 1,
+     "unfed|France": 45,
+     "unfed_over_80pct_cap|France": 14,
+     "unfed|Britain": 2,
+     "unfed_in_listed_poor|Britain": 2,
+     "france_flaw_hits|FLAG": 13,
+     "france_flaw_bites|FLAG": 7,
+     "france_flaw_extra_men|FLAG": 522,
+     "france_flaw_hits|HOMELAND": 14,
+     "france_flaw_bites|HOMELAND": 7,
+     "france_flaw_extra_men|HOMELAND": 522,
+     "unfed_stripped>=0.2|France": 15,
+     "unfed_stripped>=0.25|France": 13,
+     "unfed_stripped>=0.3|France": 9,
+     "literal_no_march|Austria": 1,
+     "literal_no_march|Russia": 2
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      75,
+      14064,
+      22481,
+      18569
+     ],
+     "Britain": [
+      1300,
+      2657,
+      6557,
+      6383
+     ],
+     "Russia": [
+      800,
+      4561,
+      7222,
+      8775
+     ],
+     "Austria": [
+      -1945,
+      60,
+      3806,
+      7113
+     ],
+     "Prussia": [
+      100,
+      2032,
+      5994,
+      9506
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "France:Marmont"
+    ]
+   }
+  },
+  "pressburg-road": {
+   "spec": {
+    "mode": "driver",
+    "seed": "historical",
+    "script": "gev_pressburg_road.json"
+   },
+   "census": {
+    "arrival": {
+     "France": {
+      "rolls": 15,
+      "mean_deterministic": 78.0,
+      "P_base": 0.714,
+      "P_score+10": 0.881,
+      "P_score-10": 0.536,
+      "P_bar-10": 0.891,
+      "P_bar+10": 0.526,
+      "P_bar-10_with_RV2_exemptions": 0.879,
+      "rolls_a_+10_score_makes_LESS_likely": 4,
+      "rolls_a_-10_score_makes_MORE_likely": 2,
+      "rolls_RV2_would_exempt": 1
+     },
+     "Austria": {
+      "rolls": 3,
+      "mean_deterministic": 66.7,
+      "P_base": 0.569,
+      "P_score+10": 0.906,
+      "P_score-10": 0.118,
+      "P_bar-10": 0.922,
+      "P_bar+10": 0.118,
+      "P_bar-10_with_RV2_exemptions": 0.922,
+      "rolls_a_+10_score_makes_LESS_likely": 0,
+      "rolls_a_-10_score_makes_MORE_likely": 0,
+      "rolls_RV2_would_exempt": 0
+     }
+    },
+    "lopsided_defeats": {
+     "Austria": {
+      "defeats": 5,
+      "penalty_paid": 5,
+      "mean_penalty_paid": 38.8
+     },
+     "France": {
+      "defeats": 14,
+      "penalty_paid": 14,
+      "mean_penalty_paid": 45.1
+     },
+     "Britain": {
+      "defeats": 2,
+      "penalty_paid": 2,
+      "mean_penalty_paid": 28.0
+     }
+    },
+    "battles": {
+     "attacker|Austria": 21,
+     "attacker|France": 3,
+     "attacker|Spain": 2,
+     "defender|Austria": 3,
+     "defender|Britain": 2,
+     "defender|France": 21
+    },
+    "recruits": {
+     "Austria|infantry": 28,
+     "Britain|cavalry": 1,
+     "Prussia|infantry": 1,
+     "Russia|infantry": 2,
+     "Spain|infantry": 3
+    },
+    "drills": {
+     "Russia": {
+      "drills": 1,
+      "room_for_five_more_morale": 0
+     },
+     "Britain": {
+      "drills": 2,
+      "room_for_five_more_morale": 0
+     }
+    },
+    "unfed_in_listed_poor": {
+     "Britain": [
+      "Aragon"
+     ]
+    },
+    "counters": {
+     "literal_no_march|France": 6,
+     "unfed|Austria": 6,
+     "unfed_over_80pct_cap|Austria": 3,
+     "unfed|Britain": 15,
+     "unfed_in_listed_poor|Britain": 1,
+     "unfed_stripped>=0.2|Austria": 3,
+     "unfed|France": 2,
+     "unfed_stripped>=0.25|Austria": 1,
+     "unfed_stripped>=0.3|Austria": 1,
+     "unfed|Spain": 9
+    },
+    "treasury_at_attrition_pass_1_11_21_31_40": {
+     "France": [
+      56,
+      17093,
+      22964,
+      21573,
+      21032
+     ],
+     "Britain": [
+      1300,
+      5606,
+      1913,
+      7075,
+      7977
+     ],
+     "Russia": [
+      800,
+      5065,
+      6492,
+      7244,
+      8785
+     ],
+     "Austria": [
+      -1046,
+      3883,
+      12216,
+      13471,
+      12549
+     ],
+     "Prussia": [
+      100,
+      4118,
+      8810,
+      16530,
+      22961
+     ]
+    },
+    "artillery_marshals_at_end": [
+     "Britain:Shrapnel"
+    ]
+   }
+  }
+ }
+}

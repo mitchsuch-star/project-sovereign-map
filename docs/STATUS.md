@@ -4,6 +4,36 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE DOCTRINES SPEC REVIEWED — September 27, 2026** (docs, plus one read-only census tool; the record is `docs/DOCTRINES_SPEC.md` §0.2):
+> - **A reach census before any build.** `tools/_dc_reach_census.py` (output `tools/_dc_reach_census.json`) counted every clause's seam on the ambient board (four seeds) and three commanded arms. Its board reproduces `BASELINE_SERIES` byte for byte.
+>   - **Six of the ten drafted clauses fire at most once on seven boards.**
+>   - Russia and Prussia never fight France within 40 turns, so both of their doctrines are silent.
+>   - France's living off the land, as drafted, could never bite conquered ground: the engine feeds any province France controls at the home rate. It bit 7 marshal-turns in 280 board-turns.
+>   - No court fields an artillery marshal at boot: Austria's "The Guns" fired once in 130 Austrian recruits.
+>   - Prussia's drill strength cannot fire for the AI: the drill rung is aggressive-only, and Prussia's marshals are cautious.
+>   - Britain's and Prussia's cheap political cures would have been bought in the opening.
+> - **Two independent review rounds attacked the review itself.** A fact-check found three counting flaws in the first cut of the census (fixed before the committed run). A design attack found two P1s and nine P2s, all taken.
+> - **Seven amendments FOR USER CONFIRMATION** (each can be reverted to the drafted clause):
+>   - **RV-2** a doctrine never overrides a marshal's character. Otherwise Bernadotte arrives 76.5% under a neutral lead instead of 17.6%, and 47% at Auerstedt instead of 0%.
+>   - **RV-3** Austria = "The Hereditary Lands": draft recruits ×0.85, every arm.
+>   - **RV-4** Prussia's Frederick's Drill = +10% on the attack modifier.
+>   - **RV-5** living off the land is read against the 1805 homeland, not the flag, and poor country includes stripped country (war damage ≥ 0.25). It now bites conquered ground: about 1,780 men across the boards.
+>   - **RV-15** a cure works only while its court's Staff is in force, so every rival's catch-up arrives with its Staff, mid-campaign.
+>   - **RV-16** the court's flaw never costs the man trust: a doctrine-decided no-show is `doctrine_delayed`.
+>   - **RV-17** the recruit clauses price the draft, not the substitute market.
+> - **Build-contract corrections:**
+>   - The arrival clauses move the bar, not the score. The 5% fumble above 80 made +10 on the score LOWER the odds on 36 of 187 French rolls. The bar's three copies become one, with `assume_order`.
+>   - The combat clauses ride a standing per-marshal term, with ONE setter for a marshal's court and an AST census. Its own declared set covers both serialization censuses.
+>   - The battle report's morale line must be built: nothing quotes the lopsided-defeat penalty today.
+>   - A save field, backfilled for the 1805 campaign only.
+>   - Stripped country is read forward, and the map's stripped mark obeys fog.
+>   - The slices boot: `cured_by` lands at DC-2, and the series is re-recorded ONCE at DC-2.
+>   - M1–M7 are expected byte-identical (D-R5 was wrong), and D-R1's census is corrected.
+>   - New targets: T6 reach (bites), T7 monotone, T8 cure timing per court, T9 no drift per seam; and a Jena-road evidence arm authored as a real campaign — a naive march east lost all 26 defensive battles.
+> - **`REFORMS_SPEC.md` amended:** the Staff carries every cure; AI authority never comes back (each AI court gets exactly two political acts — RF-3 adds the diplomatic-point term or strikes "weighs it"); the backfill discriminator; the sink test re-run at DC-2.
+> - **SR-7d grows to about 1.8 sessions** (Chunk 7 about 3.8).
+> - **▶ NEXT unchanged: B2–B5 → Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ SR-D2'S DOCTRINES RULED — September 27, 2026** (docs only; pulled forward from Chunk 7's gate by the user so the law list is written against them; gate record + build contract `docs/DOCTRINES_SPEC.md`, authoritative):
 > - **The ruling:**
 >   - Each of the five great powers gets one doctrine, a strength and a flaw; a reform law cures the flaw (the rivals' catch-up).

@@ -146,6 +146,7 @@ Each reading is one catalogue field or one constant to flip.
 - The player's authority also feeds the VS-R grip.
 - It comes back with victories (+2 or +5 a battle at the combat seams). A political reform is therefore paid for in the Emperor's standing and bought back on the field.
 - **An AI court boots exactly at the 60 line.** Its first political act costs it a diplomatic point a turn at once. That price is real, and the AI rung weighs it (§7).
+- ⚠ **Found by the doctrines review (September 27, 2026): an AI court's authority never comes back.** It has no live writer, so each AI court makes exactly two political acts in a campaign, and "bought back on the field" holds for the player only. The purse test has no diplomatic-point term yet, so "the AI rung weighs it" is RF-3's to make true or strike (§7).
 
 **Admin action** — one to enact, one to repeal.
 
@@ -259,8 +260,10 @@ Rules:
 | Congreve's Rockets | Boulogne, October 1806 | gold | 2,500 | 100 | `recruit_price` artillery ×0.85 |
 
 **The doctrines ruling (September 27, 2026 — `DOCTRINES_SPEC.md`) changes this list at Chunk 7 (DC-2):**
-- **Cure clauses are added:** the Corps d'Armée and the Divisional System cure their court's "−10 on the arrival roll"; the Militia Transfer cures Britain's dear recruits; the Articles of War cure Prussia's brittleness.
+- **Cure clauses are added:** the Corps d'Armée and the Divisional System cure their court's slow arrival (the arrival bar 10 higher — `DOCTRINES_SPEC.md` RV-1); the Militia Transfer cures Britain's dear recruits; the Articles of War cure Prussia's brittleness.
+- **A cure works only while its court's Staff is in force** (`DOCTRINES_SPEC.md` RV-15, FOR USER CONFIRMATION). The Militia Transfer and the Articles of War keep their other clauses from enactment; their cures wait for the Horse Guards Reforms and the General Staff. The Train des Équipages, a cure only, does nothing until the Grand Quartier Général stands.
 - **The rivals' descriptions (`says`) name what they copy from France** (Q7).
+- **Stacking with the doctrines (the review, `DOCTRINES_SPEC.md` §2):** Austria's Generalissimus (×0.9, every arm) stacks with Austria's Hereditary Lands (×0.85) if RV-3 is confirmed. Without RV-3, the artillery laws of France, Russia and Britain above would each buy exactly Austria's drafted strength, "The Guns" (artillery ×0.85). After RV-4, Prussia's Military Reorganisation Commission no longer duplicates Prussia's strength.
 
 ---
 
@@ -276,6 +279,18 @@ Rules:
 - The rung sits in the admin chain beside P1.75 (commissions). The exact slot is the build's, recorded in `ENEMY_AI_REFERENCE.md`.
 
 **The AI never repeals.** The lapse rule is its discipline — the same rule the player meets when a forecast goes unanswered.
+
+**The cures (added September 27, 2026 by the doctrines review, `DOCTRINES_SPEC.md` RV-10, RV-15).**
+- A doctrine's cure takes effect only while its court's Staff is in force (RV-15, FOR USER CONFIRMATION). So every rival's catch-up arrives with its Staff, and no deck reorder is needed.
+- For Austria and Russia the cure IS the Staff: 9,000 gold, with a purse bar of about 11,500. This rung takes the first law a court can afford, so cheaper laws may be enacted first, and their upkeep raises that bar.
+- Measured before the build (`tools/_dc_reach_census.py`): Austria's treasury reaches the bar around turn 20 at peace and after turn 30 under French pressure; Russia's around turn 30 at peace. Only the treasury half of the purse test was measured; the forecast-Net half may hold a pressed court back even with the gold in hand.
+- `DOCTRINES_SPEC.md` §6 T8 records, per rival, the turn its cure takes effect, with a target of two of the four by turn 30 on the historical seed and no flaw cured before turn 10. **A miss is this rung's to fix.** The recommended fix: the rung saves for the Staff — which carries every rival's cure — and enacts nothing cheaper once the chest passes half its price.
+- Moving a cure to a cheaper law is structural and goes to the user.
+
+**AI authority does not come back (found by the doctrines review, September 27, 2026).**
+- `diplomacy.modify_nation_authority` has no callers, and `_process_nation_authority` is a `pass`. So an AI court's authority stays at its boot 60, less what it spends. The only other write is the sovereign-capture shock, and no AI court has a sovereign at boot.
+- **So each AI court can make exactly two political acts in a campaign** (60 → 45 → 30, the floor this rung keeps). §3's "bought back on the field" holds for the player only.
+- §3 also says this rung weighs the diplomatic point a court loses when its first political act takes it below 60. The purse test above has no such term. **RF-3 either adds the term or strikes the sentence**, and records which in `ENEMY_AI_REFERENCE.md`.
 
 **Balance.**
 - Nothing is in force at boot, so turn 0 is byte-identical. The first AI enactment moves the ambient board.
@@ -351,7 +366,7 @@ Rules:
 - the catalogue, copied from the scenario at `from_scenario` (the agendas-deck idiom);
 - the laws in force, with their enactment turns.
 
-**Old saves.** A pre-reform save backfills the catalogue from the scenario at load, with nothing in force — the EB-2 idiom, drift-pinned.
+**Old saves.** A pre-reform save backfills the catalogue from the scenario at load, with nothing in force — the EB-2 idiom, drift-pinned. It does so **only when the save's `scenario_name` is the 1805 campaign** (the doctrines review, `DOCTRINES_SPEC.md` §9): a tutorial or modded-scenario save receives no deck.
 
 **Docs and tests.** Update `SAVE_FORMAT_REFERENCE.md` and the serialization enforcement test.
 
@@ -370,7 +385,7 @@ Rules:
 |---|---|---|
 | T0 | Boot | No law is in force on any board. `BASELINE_SERIES` turn 0 and M1–M7 are byte-identical; with the lever down, the whole 40-turn series is byte-identical. |
 | T1 | The Staff's reach (Q3) | On the commanded arm, a France that saves for the Staff can enact it between turns 10 and 15, on three seeds. |
-| T2 | The sink (Q1) | A France holding its full slate at peace spends 40–60% of its golden-peace surplus on upkeep, with the IQ-1 control arm as the baseline. |
+| T2 | The sink (Q1) | A France holding its full slate at peace spends 40–60% of its golden-peace surplus on upkeep, with the IQ-1 control arm as the baseline. Measured at RF-2 on the five-law slate, and re-run at DC-2 with the Train des Équipages in it (`DOCTRINES_SPEC.md` §7). |
 | T3 | AI competence (GR5) | On the ambient board, at least two AI great powers enact at least one law by turn 25, and no AI law lapses before turn 40 in a court that is not losing provinces. |
 | T4 | The lapse | On a staged insolvent France: the largest law lapses first; the refund makes the chest whole; the forecast named that law a turn earlier; re-enacting charges the full price. |
 | T5 | The Staff on both boards | The fifth action appears at the first refill after enactment and is gone at the first refill after a lapse — for France and for an AI court. |

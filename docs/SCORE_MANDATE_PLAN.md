@@ -17,7 +17,8 @@
 > - **A strength and a flaw** for each of the five great powers; a reform law cures each flaw, so the rivals' reforms are their catch-up.
 > - **France = the corps system + living off the land**, cured by the Train des Équipages. The recommended option (corps system only) was not taken.
 > - **The winter stays with the seasons**, in their own post-playtest slot, not at Chunk 7.
-> - Built at Chunk 7 as **SR-7d** (DC-0..DC-3, ≈1.2 sessions). The standing-alarm-floor question stays at Chunk 7's gate.
+> - Built at Chunk 7 as **SR-7d** (DC-0..DC-3, ~~≈1.2~~ ≈1.8 sessions after the same-day review). The standing-alarm-floor question stays at Chunk 7's gate.
+> - **Reviewed the same day** (`DOCTRINES_SPEC.md` §0.2): a reach census (`tools/_dc_reach_census.py`) found six of the ten drafted clauses fire at most once on seven boards. **Seven amendments are FOR USER CONFIRMATION:** RV-2 a doctrine never overrides a marshal's character; RV-3 Austria = the Hereditary Lands (draft recruits ×0.85, every arm); RV-4 Prussia's Frederick's Drill = +10% attack modifier; RV-5 living off the land is read against the homeland, with stripped country; RV-15 a cure works only while its court's Staff is in force; RV-16 the court's flaw never costs the man trust; RV-17 the recruit clauses price the draft only. The arrival clauses move the bar, not the score.
 >
 > **The user's brief (September 26, 2026):** *"is it included in this plan a way to get the Congress of Paris to work — you mentioned not getting there? … make the mandate raising the score in all sections, especially the weakest, and order the chunks we do this in by category, leaving bandwidth for score-increasing quick wins; then make a section after this: technology, asymmetry / national flavor, AP and DP gaps — needs design."*
 >
@@ -155,10 +156,10 @@ The road to the Congress, built from what was measured, not from the number. Ord
 
 **Session-exit evidence (§5):** a played arm's dispatches; this chunk is also the quick-win bank's largest donor. Scored once, at the end of the mandate.
 
-### Chunk 7 — AI ALIVENESS & LIVING BALANCE: "Europe acts without France" (≈2.0, ≈3.2 with SR-7d; 7.5 → 8.0; 6.5 → 7.0)
+### Chunk 7 — AI ALIVENESS & LIVING BALANCE: "Europe acts without France" (≈2.0, ≈3.8 with SR-7d; 7.5 → 8.0; 6.5 → 7.0)
 
 - **Gate at the chunk's head — SR-D2 "Asymmetry and national flavor", with HC-6 seasons folded in** (re-slotted September 26, 2026 (evening); §4). Nothing under it is built until it is ruled. **✅ The doctrine half RULED September 27, 2026** (`DOCTRINES_SPEC.md`, authoritative). The seasons are NOT folded in after all: they keep their own post-playtest slot. **The alarm-floor question below is still this gate's.** **The same gate carries a second question (added the same evening): a standing alarm floor derived from France's share of Europe, so the long peace ends by machinery (PB-D1).** **Recommended default: Europe stays at Brewing while France holds ≥ 40% of the map**; the numbers escalate to the gate, and SR-7b measures the long peace first.
-- **SR-7d The Doctrines** (≈1.2; added September 27, 2026 — `DOCTRINES_SPEC.md` §7). Needs SR-5r landed.
+- **SR-7d The Doctrines** (≈1.8 after the same-day review — was ≈1.2; added September 27, 2026 — `DOCTRINES_SPEC.md` §7). Needs SR-5r landed.
   - **DC-0** the substrate: the `doctrines` and `poor_country` keys, the validator, the accessors.
   - **DC-1** the five strengths and flaws at their seams, flip-attributed.
   - **DC-2** the cures: the `cures` law effect, and the Train des Équipages.
@@ -263,6 +264,7 @@ Each gate is a session of research and a memo with the questions answered at rec
   - **Q4** (Historical Moments) → not with the doctrines; the Events System is post-EA. **Q5** (the measurement) → §6 T3.
   - **Five readings FOR USER CONFIRMATION** (§0.1). Headline D-R1: poor country is an authored province list, because the map marks nothing poor where history does.
   - Built at Chunk 7 as SR-7d.
+  - **Reviewed the same day** (`DOCTRINES_SPEC.md` §0.2 — the reach census, RV-1..RV-14). RV-2..RV-5, RV-15, RV-16 and RV-17 change what a doctrine does and are FOR USER CONFIRMATION; the rest correct the build contract.
 
 ### SR-D3 The AP and DP gaps — "four action points for eight corps"
 
