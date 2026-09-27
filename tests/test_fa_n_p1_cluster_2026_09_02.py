@@ -696,16 +696,25 @@ class TestFAN5ProducersStampIdentity:
         """Source pin over the three producers that build a popup and its
         dialogue as separate dicts. A fourth arriving without a binding is
         the next instance of this defect."""
+        # PC15-10 B3 (Sept 27 2026), re-seated consciously: the sabotage
+        # modal is built by ONE builder shared with the stale-answer
+        # re-issue (`diplomatic_defiance.build_sabotage_popup`), so the
+        # binding is pinned in two halves — the producer hands the builder
+        # the dialogue's id, and the builder stamps it — plus the behaviour.
         for rel, marker in (
             ("backend/game_logic/vassal.py",
              'rebellion_popup["dialogue_id"]'),
             ("backend/game_logic/diplomacy.py",
              'paradox_popup["dialogue_id"]'),
             ("backend/game_logic/dispatch.py",
-             '"dialogue_id": confrontation.get("dialogue_id")'),
+             'sabotage, confrontation.get("dialogue_id"))'),
+            ("backend/commands/diplomatic_defiance.py",
+             '"dialogue_id": dialogue_id,'),
         ):
             text = (REPO_ROOT / rel).read_text(encoding="utf-8")
             assert marker in text, rel
+        from backend.commands.diplomatic_defiance import build_sabotage_popup
+        assert build_sabotage_popup({"target_nation": "Prussia"}, 7)["dialogue_id"] == 7
 
 
 class TestFAN37TheModalIsNotShownOverAnotherDialogue:

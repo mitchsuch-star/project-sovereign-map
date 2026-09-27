@@ -1,0 +1,72 @@
+[
+  {
+    "id": "B3 hybrids lever down",
+    "file": "backend/models/dialogue_manager.py",
+    "old": "HYBRIDS_SURVIVE_A_NEW_FLOW = True\n",
+    "new": "HYBRIDS_SURVIVE_A_NEW_FLOW = False\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestOpenFlowKeepsWhatThePlayerOwns::test_a_hybrid_is_preempted_not_destroyed"
+  },
+  {
+    "id": "open_flow ignores the hybrid",
+    "file": "backend/models/dialogue_manager.py",
+    "old": "        if displaced_is_mail or displaced_is_hybrid:\n",
+    "new": "        if displaced_is_mail:\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestOpenFlowKeepsWhatThePlayerOwns"
+  },
+  {
+    "id": "open_flow forgets the mail (REV-3)",
+    "file": "backend/models/dialogue_manager.py",
+    "old": "        if displaced_is_mail or displaced_is_hybrid:\n",
+    "new": "        if displaced_is_hybrid:\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestOpenFlowKeepsWhatThePlayerOwns::test_mail_is_preempted_as_before"
+  },
+  {
+    "id": "open_flow keeps every planning step",
+    "file": "backend/models/dialogue_manager.py",
+    "old": "        if displaced_is_mail or displaced_is_hybrid:\n",
+    "new": "        if previous is not None:\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestOpenFlowKeepsWhatThePlayerOwns::test_a_planning_step_is_still_overwritten"
+  },
+  {
+    "id": "the modal lever down",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "THE_HYBRID_MODAL_RETURNS = True\n",
+    "new": "THE_HYBRID_MODAL_RETURNS = False\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheRebellionReturns::test_the_whole_road"
+  },
+  {
+    "id": "the rebellion modal is not re-issued",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "                popups.append(rebellion_popup_for_dialogue(world, queued))\n",
+    "new": "                pass\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheRebellionReturns::test_the_whole_road"
+  },
+  {
+    "id": "the re-issue duplicates",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            if (slot.get(\"dialogue_id\") != qid\n                    and not any(",
+    "new": "            if True or (slot.get(\"dialogue_id\") != qid\n                    and not any(",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheRebellionReturns::test_a_second_stale_answer_does_not_duplicate_the_modal"
+  },
+  {
+    "id": "the sabotage modal is not re-issued",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "                world.diplomatic_sabotage_popup = build_sabotage_popup(\n                    queued.get(\"sabotage_record\") or {}, qid)\n",
+    "new": "                pass\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheSabotageReckoningReturns::test_the_reckoning_survives_and_returns"
+  },
+  {
+    "id": "the refusal does not say the crisis returns",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "                        f\"decision.\" + (f\" {_returns}\" if _returns else \"\")\n",
+    "new": "                        f\"decision.\"\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheRebellionReturns::test_the_whole_road"
+  },
+  {
+    "id": "the producer keeps its own dict",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            world.diplomatic_sabotage_popup = build_sabotage_popup(\n                sabotage, confrontation.get(\"dialogue_id\"))\n",
+    "new": "            world.diplomatic_sabotage_popup = {\"dialogue_id\": confrontation.get(\"dialogue_id\")}\n",
+    "tests": "tests/test_b3_the_crisis_survives_a_new_flow.py::TestTheSabotageReckoningReturns::test_one_builder_for_the_producer_and_the_return"
+  }
+]

@@ -427,6 +427,26 @@ def build_confrontation_dialogue(sabotage: Dict, talleyrand) -> Dict:
     }
 
 
+def build_sabotage_popup(sabotage: Dict, dialogue_id=None) -> Dict:
+    """The sabotage-discovery modal's payload — ONE builder for the producer
+    (`dispatch._build_talleyrand_section`) and the stale-answer re-issue
+    (PC15-10 B3, spec §4 F6): a modal consumed at its first delivery is
+    rebuilt from the dialogue's own `sabotage_record` when a new flow
+    displaced its dialogue and the player's answer came back stale."""
+    sabotage = sabotage or {}
+    original = sabotage.get("original_proposal", {})
+    modified = sabotage.get("modified_proposal", {})
+    return {
+        "dialogue_id": dialogue_id,
+        "target_nation": sabotage.get("target_nation", "unknown"),
+        "defiance_type": sabotage.get("defiance_type", "unknown"),
+        "ordered_summary": sabotage.get("original_summary", str(original)),
+        "delivered_summary": sabotage.get("modified_summary", str(modified)),
+        "authority_bonus_if_confronted": int(5),
+        "authority_penalty_if_overlooked": int(3),
+    }
+
+
 def _summarize_proposal(proposal: Dict) -> str:
     """Generate a human-readable summary of proposal terms."""
     from backend.display_names import summarize_proposal

@@ -168,6 +168,60 @@ MISSION_START_IS_NOT_A_REJECTION = True
 MISSION_CANCEL_READS_THE_NAME = True
 
 
+
+# PC15-10 B3 flip lever (spec §4 F6, W7): a stale answer aimed at a HYBRID
+# that a new flow displaced into the queue re-issues the hybrid's consumed
+# modal. False = the crisis survives in the queue but its modal never returns.
+THE_HYBRID_MODAL_RETURNS = True
+
+
+def _reissue_displaced_hybrid(world, requested_id) -> str:
+    """Re-issue the modal of the QUEUED hybrid the stale answer was aimed at
+    (the rebellion's `rebellion_popup_for_dialogue`, the sabotage's
+    `build_sabotage_popup` — one builder each, shared with their producers).
+    Returns the sentence the refusal adds ("" when nothing was re-issued).
+    Never duplicates: a modal already waiting for that dialogue is left."""
+    if not THE_HYBRID_MODAL_RETURNS or requested_id is None:
+        return ""
+    manager = getattr(world, "dialogue_manager", None)
+    if manager is None:
+        return ""
+    for queued in list(manager.iter_queue()):
+        if not isinstance(queued, dict):
+            continue
+        try:
+            qid = int(queued.get("dialogue_id"))
+        except (TypeError, ValueError):
+            continue
+        if qid != int(requested_id):
+            continue
+        dtype = queued.get("type")
+        if dtype == "vassal_rebellion_imminent":
+            from backend.display_names import display_nation
+            from backend.game_logic.vassal import rebellion_popup_for_dialogue
+            popups = getattr(world, "vassal_rebellion_imminent_popups", None)
+            if popups is None:
+                popups = []
+                world.vassal_rebellion_imminent_popups = popups
+            slot = getattr(world, "vassal_rebellion_imminent_popup", None) or {}
+            if (slot.get("dialogue_id") != qid
+                    and not any(isinstance(p, dict) and p.get("dialogue_id") == qid
+                                for p in popups)):
+                popups.append(rebellion_popup_for_dialogue(world, queued))
+            vassal = ((queued.get("context") or {}).get("vassal_name")
+                      or queued.get("target_nation") or "")
+            return (f"{display_nation(str(vassal))}'s crisis waits behind it "
+                    f"and will return to you.")
+        if dtype == "sabotage_confrontation":
+            from backend.commands.diplomatic_defiance import build_sabotage_popup
+            current = getattr(world, "diplomatic_sabotage_popup", None) or {}
+            if current.get("dialogue_id") != qid:
+                world.diplomatic_sabotage_popup = build_sabotage_popup(
+                    queued.get("sabotage_record") or {}, qid)
+            return ("Talleyrand's reckoning waits behind it and will return "
+                    "to you.")
+    return ""
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -3747,6 +3801,12 @@ class DiplomaticExecutor:
                 )
                 concerns_display = humanize_entity_name(str(concerns)) if concerns \
                     else "another court"
+                # PC15-10 B3 (spec §4 F6, W7): the answer was aimed at a
+                # HYBRID a new flow displaced into the queue. Its modal was
+                # consumed at first delivery, so it is re-issued now; the
+                # FA-N5 delivery gate holds it until the hybrid is current
+                # again, and the refusal says the crisis will return.
+                _returns = _reissue_displaced_hybrid(world, requested_id)
                 return {
                     "success": False,
                     "stale_dialogue": True,
@@ -3754,7 +3814,7 @@ class DiplomaticExecutor:
                         f"Sire, another matter has arrived since — this "
                         f"concerns {concerns_display}. Your earlier answer was "
                         f"not delivered; the matter before you awaits your "
-                        f"decision."
+                        f"decision." + (f" {_returns}" if _returns else "")
                     ),
                     "diplomatic_dialogue": dialogue,
                 }

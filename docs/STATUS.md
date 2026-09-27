@@ -4,6 +4,13 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ B3 "THE CRISIS SURVIVES A NEW FLOW" LANDED — September 27, 2026 (second session)** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B3; rules `SYSTEMS_REFERENCE.md` §73.9; pins `tests/test_b3_the_crisis_survives_a_new_flow.py` 10; sweep `tools/_sweep_b3.json` 10/10 killed, 0 INERT; zero `.gd`):
+> - **W7 fixed.** A vassal rebellion or the sabotage reckoning (hybrid dialogues, which do not block commands) no longer dies when the player types a new flow over it: `DialogueManager.open_flow` preempts a displaced hybrid as it does mail.
+> - **Its modal comes back.** The modal was consumed at first delivery, so a stale answer aimed at the queued crisis re-issues it (one builder each — the sabotage modal's is new, `diplomatic_defiance.build_sabotage_popup`, now read by its producer too); the delivery gate holds it until the crisis is current again, and the refusal says it will return.
+> - **The recon corrected F6 first:** its `dialogue_id` half had landed on Sept 2 (FA-N5), so B3 is backend-only; the destroying call was `open_flow`'s fallback `replace()`, not the line the spec named.
+> - `BASELINE_SERIES` byte-identical on a two-arm flip (`open_flow` reached 0 times on the ambient board); M1–M7 + AI-V byte-identical. FA-N5's producer-binding pin re-seated consciously.
+> - **▶ NEXT = B4 → B5** (closing Chunk 4) **→ Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ THE CONFIRMATIONS ANSWERED + B2 "THE PETITION DIES WITH ITS SUBJECT" LANDED — September 27, 2026 (second session)**:
 > - **Every open confirmation is answered** (recorded in `REFORMS_SPEC.md` §0.1 and `DOCTRINES_SPEC.md` §0.1/§0.2):
 >   - **R1** the Staff pays upkeep, **R5** laws lapse before rentes (largest first), and **R2/R4/R6/R7**: CONFIRMED as written.

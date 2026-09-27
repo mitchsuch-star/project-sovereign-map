@@ -44,6 +44,12 @@ PARADOX_SURVIVES_THE_STALE_SWEEP = True
 PARADOX_DIALOGUE_TYPES = frozenset({"commitment_paradox", "alliance_paradox"})
 
 
+# PC15-10 B3 flip lever (spec §4 F6, W7): `open_flow` keeps a displaced
+# HYBRID dialogue (a vassal rebellion, the sabotage reckoning) in the
+# queue instead of destroying it. False = only mail survives a new flow.
+HYBRIDS_SURVIVE_A_NEW_FLOW = True
+
+
 class DialogueManager:
     """Manages the active dialogue slot and priority queue.
 
@@ -324,7 +330,21 @@ class DialogueManager:
             and previous.get("type", "") in self.SOFT_STOP_MAILBOX_TYPES
             and dialogue.get("type", "") not in self.SOFT_STOP_MAILBOX_TYPES
         )
-        if displaced_is_mail:
+        # PC15-10 B3 (spec §4 F6, W7): a HYBRID is not a planning step either.
+        # A vassal on the brink of rebellion, or Talleyrand's sabotage
+        # reckoning, does not block commands — so "declare war on Prussia"
+        # typed while one held the slot fell through to `replace()` and
+        # DESTROYED it: gone from the slot and the queue alike (measured at
+        # HEAD, the rebellion decision never came back; a lost sabotage
+        # record stayed `discovered` forever with no reckoning). It is kept
+        # in the queue now, and returns when the new flow resolves.
+        displaced_is_hybrid = (
+            HYBRIDS_SURVIVE_A_NEW_FLOW
+            and previous is not None
+            and previous.get("type", "") in self.HYBRID_SOFT_STOP_TYPES
+            and dialogue.get("type", "") not in self.HYBRID_SOFT_STOP_TYPES
+        )
+        if displaced_is_mail or displaced_is_hybrid:
             self.preempt(dialogue)
         else:
             self.replace(dialogue)

@@ -5036,15 +5036,11 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
             # happen to resolve onto no other dialogue's options today — the
             # binding is what keeps that true when a future option label
             # contains one of those words.
-            world.diplomatic_sabotage_popup = {
-                "dialogue_id": confrontation.get("dialogue_id"),
-                "target_nation": target,
-                "defiance_type": defiance_type,
-                "ordered_summary": sabotage.get("original_summary", str(original)),
-                "delivered_summary": sabotage.get("modified_summary", str(modified)),
-                "authority_bonus_if_confronted": int(5),
-                "authority_penalty_if_overlooked": int(3),
-            }
+            # PC15-10 B3: ONE builder, shared with the stale-answer
+            # re-issue (`diplomatic_defiance.build_sabotage_popup`).
+            from backend.commands.diplomatic_defiance import build_sabotage_popup
+            world.diplomatic_sabotage_popup = build_sabotage_popup(
+                sabotage, confrontation.get("dialogue_id"))
 
             # Dispatch event (Session 8D) — use translated display_type
             queue_dispatch_event(world, "diplomatic_sabotage_discovered",
