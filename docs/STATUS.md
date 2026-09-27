@@ -4,6 +4,18 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ SR-D2'S DOCTRINES RULED — September 27, 2026** (docs only; pulled forward from Chunk 7's gate by the user so the law list is written against them; gate record + build contract `docs/DOCTRINES_SPEC.md`, authoritative):
+> - **The ruling:**
+>   - Each of the five great powers gets one doctrine, a strength and a flaw; a reform law cures the flaw (the rivals' catch-up).
+>   - Russia's doctrine is its stubbornness, without the winter. The seasons keep their post-playtest slot, not Chunk 7.
+>   - **France = the corps system (+10 on the arrival roll) plus "living off the land"**: an unfed French army in poor country is held to 80% of the supply. This was the user's pick over the recommended corps-system-only. The Train des Équipages cures it.
+>   - **No court starts with a law in force**; the rivals' law descriptions name what they copy from France.
+> - **Five readings FOR USER CONFIRMATION** (`DOCTRINES_SPEC.md` §0.1):
+>   - D-R1: the map marks nothing "poor" where history does — the 27 rural, lowest-income provinces are in France, Hanover, Holland, Sweden and the Ottoman islands, while Russia's and Prussia's provinces are cities — so poor country is an authored province list.
+>   - D-R3: the Train des Équipages becomes the cure alone and moves to Chunk 7.
+> - **Built at Chunk 7 as SR-7d** (DC-0..DC-3, about 1.2 sessions). The alarm-floor question stays at Chunk 7's gate. `REFORMS_SPEC.md` is amended: Q7, the `cures` effect type, the Train's move.
+> - **▶ NEXT unchanged: B2–B5 → Chunk 5 from SR-5r (RF-0 first) → ONE session exit + ONE residue slice.**
+>
 > **▶ ▶ ▶ SR-D1 "REFORMS, NOT RESEARCH" RULED — September 27, 2026** (docs only; gate record + build contract `docs/REFORMS_SPEC.md`, authoritative):
 > - **The ruling:**
 >   - **Q1 → laws with upkeep.** The recommended "permanent laws" were NOT taken. Five to eight named 1805 acts per great power; each is bought once, paid for in gold every turn, and lapses when the treasury cannot pay. None is in force at boot. The long peace gets something to pay for.

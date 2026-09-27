@@ -36,9 +36,10 @@
 | Q3 | How reachable the Staff is | **Mid-campaign.** A large one-off price that most campaigns can afford around turns 10–15. The AI pays the same price. | As recommended. |
 | Q4 | Both boards | **Yes (GR5).** Every AI great power enacts from its own authored deck, in order, at the same prices — the agendas idiom. | Stated as the default; not objected. |
 | Q5 | Is the Staff the action-point lever? | **Yes.** SR-D3's ruling of September 26, 2026 (evening) already answered it: the Staff is the only road to a new action point, on both boards. | — |
-| Q6 | Seasons | **Not here.** The Russian winter stays with SR-D2 + HC-6 at Chunk 7's gate. | Stated as the default; not objected. |
+| Q6 | Seasons | **Not here.** The Russian winter stays with SR-D2 + HC-6 at Chunk 7's gate. | Stated as the default; not objected. *Superseded the same day by the doctrines ruling: the seasons keep their own post-playtest slot, not Chunk 7 (`DOCTRINES_SPEC.md` §0 Q3).* |
 | SR-D3 Q3 | Diplomatic points | **Bank one turn.** Unspent points carry over one turn; the pool is capped at 7. | As recommended (AAR-D5). |
 | SR-D3 Q5 | The admin pool | **Unchanged.** An unused admin action still pays 25 gold. | Stated as the default. Converting admin actions to diplomatic points would mint points without their price. |
+| Q7 | Laws at the start | **None, France included.** No court starts with a law in force. The rivals' law descriptions name what they copy from France (e.g. "the corps system France has used since 1800"). | Asked September 27, 2026, with the doctrines (`DOCTRINES_SPEC.md`). As recommended. |
 
 ### §0.1 Readings taken where the answers meet — FOR USER CONFIRMATION
 
@@ -165,6 +166,7 @@ Every seam below was verified at HEAD `b858b806`.
 | `satellite_loyalty` | +N a turn for every satellite of the enacting lord | `vassal.process_vassal_loyalty` and `vassal.forecast_vassal_loyalty` (applied and forecast from one term) |
 | `cs_closure` | who counts toward the closure | `naval.closure_against` |
 | `blockade_denial` | ×m on a blockaded court's trade loss | the blockade arm of `diplomacy.process_trade_income` |
+| `cures` | removes one named doctrine flaw | the doctrine's own seam (`DOCTRINES_SPEC.md` §3). **Added September 27, 2026 by the doctrines ruling (D-R4); lands at Chunk 7 (DC-2).** No cure clause is authored before its flaw exists. |
 
 Rules:
 - **Strike, never invent.** If the build cannot site a type on ONE existing single source, the type is struck with its laws and recorded — never invented. A new type is structural and escalates; a number inside a type is in-band.
@@ -205,12 +207,12 @@ Rules:
 - Every political act costs **15 authority**.
 - Upkeep runs 100–300 gold a turn.
 
-**France — 6 laws.** The full slate's upkeep is 1,050 gold a turn, sized for §11 T2.
+**France — 6 laws: 5 at Chunk 5, and the Train des Équipages joins at Chunk 7 as the cure for France's doctrine flaw.** The full slate's upkeep is 1,050 gold a turn once the Train joins, sized for §11 T2.
 
 | Law | The act | Currency | Price | Upkeep | Effect |
 |---|---|---|---|---|---|
 | The Grand Quartier Général | Berthier's Imperial Headquarters, expanded 1805–07 | gold | 9,000 | 300 | `actions` +1 |
-| The Train des Équipages | decree of 26 March 1807 | gold | 3,500 | 200 | `supply_capacity` ×1.25 |
+| The Train des Équipages | decree of 26 March 1807 | gold | 3,500 | 200 | ~~`supply_capacity` ×1.25~~ **Moved to Chunk 7 by the doctrines ruling** (`DOCTRINES_SPEC.md` D-R3): its only effect becomes `cures` "living off the land" |
 | The Artillery Reserve | the Guard's reserve batteries, 1806–09 | gold | 3,000 | 150 | `recruit_price` artillery ×0.85 |
 | The Anticipated Class | the senatus-consultes calling the class early, 1806–07 | authority | 15 | 150 | `manpower_regen` infantry +25% |
 | The Berlin Decree | 21 November 1806 | authority | 15 | 150 | `cs_closure`: every client of the decreeing lord counts, whatever its autonomy (today only puppets and satellites do) |
@@ -255,6 +257,10 @@ Rules:
 | The Militia Transfer | Castlereagh, 1807–08 | authority | 15 | 150 | `manpower_regen` infantry +25% |
 | The Commissariat | reorganised 1809–10 | gold | 3,000 | 150 | `supply_capacity` ×1.25 |
 | Congreve's Rockets | Boulogne, October 1806 | gold | 2,500 | 100 | `recruit_price` artillery ×0.85 |
+
+**The doctrines ruling (September 27, 2026 — `DOCTRINES_SPEC.md`) changes this list at Chunk 7 (DC-2):**
+- **Cure clauses are added:** the Corps d'Armée and the Divisional System cure their court's "−10 on the arrival roll"; the Militia Transfer cures Britain's dear recruits; the Articles of War cure Prussia's brittleness.
+- **The rivals' descriptions (`says`) name what they copy from France** (Q7).
 
 ---
 
@@ -408,4 +414,4 @@ Rules:
 | Reforms delivered by events (Q1's third option) | Rejected by the ruling. |
 | A peace clause that repeals a law | Not planned and not promised; it would need its own diplomacy gate. |
 | The Code in one named client | Struck. The Code Abroad reaches every satellite of the enacting lord. |
-| Seasons and the Russian winter | SR-D2 + HC-6, at Chunk 7's gate. |
+| Seasons and the Russian winter | ~~SR-D2 + HC-6, at Chunk 7's gate.~~ The seasons keep their own slot after the first outside playtest (`SEASONS_WEATHER_SPEC.md`); Russia's doctrine excludes the winter (`DOCTRINES_SPEC.md` §0 Q3). |

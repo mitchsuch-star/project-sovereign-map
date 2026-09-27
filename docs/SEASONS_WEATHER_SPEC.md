@@ -1,5 +1,7 @@
 # Seasons & Weather — "The General Winter" (HC-6)
 
+> **⚑ September 27, 2026 — the fold is reversed for the build:** SR-D2's doctrines were ruled early (`DOCTRINES_SPEC.md`), and Russia's doctrine does NOT include the winter (§0 Q3). The seasons keep their August 14 ruling below — the build is deferred past Round 0 — and are not built at Chunk 7.
+>
 > **Re-slotted September 26, 2026 (evening) — read this first:** HC-6 is now ruled together with SR-D2 (asymmetry and national flavor) at the Score Mandate's Chunk 7 gate (`SCORE_MANDATE_PLAN.md` §4 SR-D2). It stays unbuilt until that gate rules; the status below is the August 14 record.
 
 > **Status: ✅ GATE RETURNED August 14, 2026 — THE BUILD IS DEFERRED
