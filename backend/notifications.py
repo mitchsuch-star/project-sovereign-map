@@ -172,13 +172,10 @@ VINDICATION_EXPIRED = "vindication_expired"          # NORMAL: window passed
 # missing from the maps fails it too. So reviving one of these means joining
 # the rail in the same commit.
 RAIL_EXEMPT_TYPES = {
-    JEALOUSY_CONFRONTATION: (
-        "Declared for the Jealousy v3.2 petition families, but no producer "
-        "ever called create_notification with it — the grievance reaches the "
-        "player through the marshal-petition channel (a popup + its dialogue "
-        "kind), and the string is live there, not here."),
-    RIVALRY_CONFRONTATION: (
-        "The same: a marshal_petition_dialog kind, never a rail row."),
+    # PC15-10 B1 (Sept 26, 2026): JEALOUSY_CONFRONTATION and
+    # RIVALRY_CONFRONTATION LEFT this set — the Antechamber is their producer
+    # (an AUDIENCE-tier petition is announced on the rail, and the row's
+    # button opens the card), so both joined the rail's two maps.
     VASSAL_LOYALTY_CRITICAL: (
         "Superseded before it shipped by VASSAL_REBELLION_IMMINENT, which is "
         "produced, mapped, and says the same thing with a threshold behind "

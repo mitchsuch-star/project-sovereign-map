@@ -1,0 +1,149 @@
+[
+  {
+    "id": "B1 antechamber lever down",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_ANTECHAMBER = True\n",
+    "new": "THE_ANTECHAMBER = False\n",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_an_audience_takes_the_slot_but_not_the_queue"
+  },
+  {
+    "id": "B1 an audience rides the queue",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if tier == PETITION_TIER_CRISIS:\n        if queue is not None:\n            queue.push(\"pending_marshal_petition\", petition)",
+    "new": "    if True:\n        if queue is not None:\n            queue.push(\"pending_marshal_petition\", petition)",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber"
+  },
+  {
+    "id": "B1 the audience is never announced",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    elif fresh:\n        # An AUDIENCE never enters the PopupQueue: it waits in the\n        # antechamber. Announced once, when it arrives — the per-turn\n        # re-push (identity) never re-announces it.\n        _announce_audience(world, petition)",
+    "new": "    elif fresh:\n        pass",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_an_audience_takes_the_slot_but_not_the_queue"
+  },
+  {
+    "id": "B1 the tier table: level 1 is a crisis",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        return (PETITION_TIER_CRISIS if level >= ESCALATION_PERMANENT_LEVEL\n                else PETITION_TIER_AUDIENCE)",
+    "new": "        return (PETITION_TIER_CRISIS if level >= 1\n                else PETITION_TIER_AUDIENCE)",
+    "tests": "tests/test_b1_the_antechamber.py::TestTheTierTable"
+  },
+  {
+    "id": "B1 the tier table: harsh words are a crisis",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        return PETITION_TIER_CRISIS if value <= -2 else PETITION_TIER_AUDIENCE",
+    "new": "        return PETITION_TIER_CRISIS",
+    "tests": "tests/test_b1_the_antechamber.py::TestTheTierTable"
+  },
+  {
+    "id": "B1 the shadow petition is a crisis",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if kind == \"shadow_command\":\n        return PETITION_TIER_AUDIENCE\n    return PETITION_TIER_CRISIS",
+    "new": "    return PETITION_TIER_CRISIS",
+    "tests": "tests/test_b1_the_antechamber.py::TestTheTierTable"
+  },
+  {
+    "id": "B1 a legacy card is an audience",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if petition.get(\"tier\") == PETITION_TIER_AUDIENCE:\n        return PETITION_TIER_AUDIENCE\n    return PETITION_TIER_CRISIS",
+    "new": "    if petition.get(\"tier\") != PETITION_TIER_CRISIS:\n        return PETITION_TIER_AUDIENCE\n    return PETITION_TIER_CRISIS",
+    "tests": "tests/test_b1_the_antechamber.py::TestTheTierTable::test_a_legacy_card_without_a_tier_is_a_crisis"
+  },
+  {
+    "id": "B1 a crisis never evicts",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        if (tier == PETITION_TIER_CRISIS\n                and petition_tier(pending) == PETITION_TIER_AUDIENCE):\n            _evict_audience(world, pending)\n        else:\n            return PETITION_BLOCKED",
+    "new": "        return PETITION_BLOCKED",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal"
+  },
+  {
+    "id": "B1 an audience evicts a crisis",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        if (tier == PETITION_TIER_CRISIS\n                and petition_tier(pending) == PETITION_TIER_AUDIENCE):",
+    "new": "        if (petition_tier(pending) != tier or tier == PETITION_TIER_CRISIS):",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal::test_an_audience_does_not_evict_a_crisis"
+  },
+  {
+    "id": "B1 the eviction keeps the latch key",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        seen.discard(f\"{pair}@L{level}\")\n        if level == 0:\n            seen.discard(pair)",
+    "new": "        pass",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal::test_a_crisis_evicts_an_audience_and_unstamps_its_latch"
+  },
+  {
+    "id": "B1 the eviction keeps the audience clock",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            (getattr(marshal, \"jealousy_history\", {}) or {}).pop(\"__audience__\", None)",
+    "new": "            pass",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal::test_a_crisis_evicts_an_audience_and_unstamps_its_latch"
+  },
+  {
+    "id": "B1 the confrontation producer writes its snapshot back",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                seen = set(getattr(world, \"jealousy_confrontations_seen\", []) or [])\n                seen.add(key)",
+    "new": "                seen.add(key)",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal::test_a_crisis_evicts_an_audience_and_unstamps_its_latch"
+  },
+  {
+    "id": "B1 the rivalry producer writes its snapshot back",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            seen = set(getattr(world, \"rivalry_transitions_seen\", []) or [])\n            seen.add(key)",
+    "new": "            seen.add(key)",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal::test_a_breach_evicts_harsh_words_and_their_key_survives_the_write"
+  },
+  {
+    "id": "B1 the eviction is silent",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        \"message\": (f\"{humanize_entity_name(speaker)}'s audience is set aside \"",
+    "new": "        \"message_unused\": (f\"{humanize_entity_name(speaker)}'s audience is set aside \"",
+    "tests": "tests/test_b1_the_antechamber.py::TestACrisisIsStillAModal::test_the_eviction_says_so"
+  },
+  {
+    "id": "B1 the answer leaves the rail row",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "            # B1: the antechamber's rail row leaves with the card.\n            _dismiss_audience_notice(world, petition)",
+    "new": "            pass",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_get_serves_the_card_and_the_same_endpoint_answers_it"
+  },
+  {
+    "id": "B1 the turn pass keeps a stale audience",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if _standing and THE_ANTECHAMBER and not petition_is_still_live(_standing, world):",
+    "new": "    if False:",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_a_stale_audience_is_retired_by_the_turn_pass_and_says_so"
+  },
+  {
+    "id": "B1 the load primes an audience",
+    "file": "backend/models/world_state.py",
+    "old": "            if petition_tier(world.pending_marshal_petition) == PETITION_TIER_CRISIS:",
+    "new": "            if True:",
+    "tests": "tests/test_b1_the_antechamber.py::TestTheLoadReprimeReadsTheTier::test_a_loaded_audience_is_not_primed_into_the_queue"
+  },
+  {
+    "id": "B1 the envelope names nobody",
+    "file": "backend/main.py",
+    "old": "        \"marshal_audience\": _marshal_audience(world),\n    }\n    response.update(extra)",
+    "new": "        \"marshal_audience\": None,\n    }\n    response.update(extra)",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_the_command_response_carries_no_modal"
+  },
+  {
+    "id": "B1 GET hands over a stale card",
+    "file": "backend/main.py",
+    "old": "    if not petition_is_still_live(petition, world):\n        speaker = _petition_speaker(petition)\n        _retire_pending_petition(world, petition)",
+    "new": "    if False:\n        speaker = _petition_speaker(petition)\n        _retire_pending_petition(world, petition)",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_get_retires_a_stale_card_and_says_so"
+  },
+  {
+    "id": "B1 the card chip is never set",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        \"seeks_audience\": bool(\n            (audience_summary(world) or {}).get(\"marshal\") == marshal.name),",
+    "new": "        \"seeks_audience\": False,",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_the_generals_card_carries_the_chip"
+  },
+  {
+    "id": "B1 the rail row opens nothing",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif review_target == \"marshal_petition\":\n\t\t_open_marshal_audience()",
+    "new": "\tif review_target == \"marshal_petition\":\n\t\tpass",
+    "tests": "tests/test_b1_the_antechamber.py::TestAnAudienceWaitsInTheAntechamber::test_the_rail_row_opens_the_card"
+  }
+]

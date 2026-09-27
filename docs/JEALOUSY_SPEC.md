@@ -494,6 +494,8 @@ Berthier closing note priority: Below broken/bankrupt/bleeding treasury, above i
 
 ## 6. Jealousy Confrontation Popup
 
+> **PC15-10 B1 "The Antechamber" (September 26, 2026):** "popup" below is TIER-qualified. A level-0/1 confrontation (and a rivalry at −1, and the shadow petition) is an AUDIENCE — no modal: it waits on the Generals card and the rail and is opened on demand (`GET /marshal_petition`); levels 2/3 (and the breach, Fontainebleau, war-weary) remain the modal. Build record `PETITION_POPUP_REVISIT_SPEC.md` §9 B1; rules `SYSTEMS_REFERENCE.md` §73.5.
+
 When jealousy fires for the **first time** between two marshals, create a popup event (using the existing objection popup pattern in `executor.py` -> `main.py` -> Godot).
 
 ### v3 Changes: Promise Glory simplified, all options have randomness

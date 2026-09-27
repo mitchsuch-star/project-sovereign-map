@@ -137,8 +137,13 @@ def _petition(world):
     # is delivered, and a 1-turn quarrel is cleared by `_process_jealousy`
     # before the response is built (which is FA-S17-12's whole finding).
     ney.jealousy_turns_remaining = 5
-    return J.queue_confrontation_petition(world, ney,
-                                          world.marshals["Davout"], 0)
+    # CONSCIOUS FLIP, PC15-10 B1 "The Antechamber" (Sept 26 2026): a level-0
+    # card is an AUDIENCE now — it never enters the PopupQueue and never rides
+    # a response as a modal. The transport these pins prove is the CRISIS
+    # tier's (the modal, the end-turn `deferred_marshal_petition`, the drain),
+    # so the fixture queues the level the damage goes permanent at.
+    return J.queue_confrontation_petition(
+        world, ney, world.marshals["Davout"], J.ESCALATION_PERMANENT_LEVEL)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -451,12 +456,20 @@ class TestThePetitionRidesTheEndTurn:
         M.PETITION_RIDES_THE_END_TURN = False
         world = _boot()
         _petition(world)
+        card = world.pending_marshal_petition
         with _served(world) as client:
             for _ in range(3):
                 reply = _cmd(client, "end turn")
                 assert "deferred_marshal_petition" not in reply
                 assert reply.get("marshal_petition") is None
-        assert "pending_marshal_petition" in _queued(world)
+        # CONSCIOUS FLIP, PC15-10 B1 (Sept 26 2026): the per-turn re-push now
+        # asks the FA-S17-D4 liveness predicate first, so a card whose quarrel
+        # cooled during these three turns (Ney's grievance can be settled by
+        # the ladder) is RETIRED rather than re-queued forever. The pin's
+        # claim is unchanged: it is never DELIVERED on this arm — it is either
+        # still queued, or gone because it went stale, never handed over.
+        assert ("pending_marshal_petition" in _queued(world)
+                or not J.petition_is_still_live(card, world))
 
     def test_the_client_stashes_and_raises_the_card(self):
         """The wiring the payload needs, pinned where it lives: the stash beside

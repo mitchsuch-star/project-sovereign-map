@@ -526,6 +526,15 @@ POLICY_DEFAULTS = {
     # archived digest non-regenerable and ties the reward economy to
     # petition order), never bundled into the default.
     "petition": "first_enabled",    # first_enabled | rotate
+    # PC15-10 B1 (Sept 26, 2026) "The Antechamber": an AUDIENCE-tier
+    # petition is no modal — the response names it under
+    # `marshal_audience` and the card is fetched on demand. `open` (the
+    # default) hears it the moment it is named, with the `petition` dial
+    # choosing the arm — the engaged player the channel measures;
+    # `ignore` leaves it waiting (a player who never opens the Generals
+    # screen). The digest logs it as POPUP marshal_audience, so a count of
+    # modals and a count of audiences are two different lines.
+    "audience": "open",             # open | ignore
     # FA-S17-D6 (Phase 4, Sept 12 2026): the player's OWN declare-war
     # confirmation after Talleyrand's objection — `force_declare_war_
     # confirmation`. It was in no table, so it fell to the generic diplomacy
@@ -2494,6 +2503,41 @@ class Answerer:
                             + first_line(reply.get("message"), 110))
                 followups.append(reply)
 
+        # 4b. The Antechamber (PC15-10 B1) -----------------------------------
+        # An AUDIENCE-tier petition never rides a response as a modal: the
+        # envelope names who waits (`marshal_audience`) and the card is
+        # fetched on demand — the rail row's and the Generals chip's road.
+        _audience = response.get("marshal_audience")
+        if (_audience and not _petition_raw
+                and str(self.policy.get("audience", "open")) == "open"):
+            fetched = self.t.get("/marshal_petition")
+            payload = _as_dict(fetched.get("petition"))
+            if payload:
+                options = payload.get("options") or []
+                enabled = [o for o in options if _enabled(o)]
+                choice = None
+                if enabled and str(self.policy.get("petition", "first_enabled")) == "rotate":
+                    kind = str(payload.get("kind") or "petition")
+                    idx = self._petition_rotation.get(kind, 0)
+                    choice = _option_id(enabled[idx % len(enabled)])
+                    self._petition_rotation[kind] = idx + 1
+                elif enabled:
+                    choice = _option_id(enabled[0])
+                if choice is None and options:
+                    choice = _option_id(options[0])
+                self.d.popup("marshal_audience",
+                             _summ(payload, "marshal", "kind", "title"),
+                             choice or "(no options)")
+                if choice is not None:
+                    reply = self.t.post("/marshal_petition_response",
+                                        {"choice": str(choice)})
+                    self.d.note(("    ↳ refused: " if reply.get("success") is False
+                                 else "    ↳ ")
+                                + first_line(reply.get("message"), 110))
+                    followups.append(reply)
+            elif fetched.get("message"):
+                self.d.note("    ↳ audience: " + first_line(fetched.get("message"), 110))
+
         # 5. Talleyrand pre-proposal objection ---------------------------------
         if response.get("diplomatic_objection"):
             payload = _as_dict(response["diplomatic_objection"])
@@ -4148,7 +4192,7 @@ class MissionAdvisor:
 # IQ-4: `missions` — set in the policy ONLY when passed, so the header of
 # every run that does not pass it is unchanged (see `missions_mode`).
 # IQ-7: `client_petition` — same rule as `missions` (absent unless passed).
-POLICY_FLAG_KEYS = ("redemption", "petition", "paradox", "rebellion",
+POLICY_FLAG_KEYS = ("redemption", "petition", "audience", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
                     "declare_war", "missions", "client_petition",
                     "settlement", "decline_from")
@@ -4210,6 +4254,9 @@ def main():
                     choices=["", "grant_autonomy", "administrative_role", "dismiss"])
     ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate"],
                     help="rotate cycles the enabled arms per petition kind (opt-in)")
+    ap.add_argument("--audience", default="", choices=["", "open", "ignore"],
+                    help="PC15-10 B1: hear an antechamber audience when the "
+                         "response names it (open, default) or leave it waiting")
     ap.add_argument("--declare-war", dest="declare_war", default="",
                     choices=["", "cancel", "proceed"],
                     help="FA-S17-D6: answer the player's own declare-war "

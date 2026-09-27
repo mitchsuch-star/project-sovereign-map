@@ -8543,9 +8543,15 @@ class WorldState:
         # petition was invisible exactly when the player resumed to answer
         # it. (Under the F1 tier split this re-prime narrows to the crisis
         # tier — spec §4-F5-4.)
+        # B1 (spec §4-F5-4): the re-prime narrows to the CRISIS tier — an
+        # audience waits in the antechamber and never enters the queue (its
+        # rail row rides the serialized notifications).
         if world.pending_marshal_petition is not None:
-            world._popup_queue.push("pending_marshal_petition",
-                                    world.pending_marshal_petition)
+            from backend.game_logic.jealousy import (
+                PETITION_TIER_CRISIS, petition_tier)
+            if petition_tier(world.pending_marshal_petition) == PETITION_TIER_CRISIS:
+                world._popup_queue.push("pending_marshal_petition",
+                                        world.pending_marshal_petition)
         world.jealousy_confrontations_seen = list(
             data.get("jealousy_confrontations_seen", []) or [])
         world.rivalry_transitions_seen = list(

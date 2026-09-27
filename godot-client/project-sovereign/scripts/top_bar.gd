@@ -375,7 +375,11 @@ func _update_button_highlights():
 			btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 		else:
 			btn.add_theme_stylebox_override("normal", _normal_style)
-			btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
+			# PC15-10 B1: amber while a marshal waits in the antechamber.
+			if sname == "generals" and _audience_marshal != "":
+				btn.add_theme_color_override("font_color", Utils.UI_WARNING)
+			else:
+				btn.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 
 
 # =============================================================================
@@ -446,6 +450,37 @@ func _set_talleyrand_summary(mission_summary: String):
 		talleyrand_label.text = full_text.substr(0, TALLEYRAND_SUMMARY_MAX_CHARS - 3).rstrip(" ") + "..."
 	else:
 		talleyrand_label.text = full_text
+
+var _audience_marshal := ""
+var _generals_base_text := ""
+var _generals_base_tooltip := ""
+
+func update_audience_badge(audience) -> void:
+	"""PC15-10 B1 "The Antechamber": a marshal waits to be heard — the
+	Generals button says so (a count in its label, amber text, his name in
+	its tooltip). Display only: his card's chip and the rail row open him."""
+	var who := ""
+	if audience is Dictionary:
+		who = str(audience.get("marshal_display", audience.get("marshal", "")))
+		if who == "<null>":
+			who = ""
+	if who == _audience_marshal:
+		return
+	if _generals_base_text == "":
+		_generals_base_text = str(_nav_full_text.get("generals", generals_btn.text))
+		_generals_base_tooltip = generals_btn.tooltip_text
+	_audience_marshal = who
+	if who != "":
+		_nav_full_text["generals"] = _generals_base_text + " (1)"
+		generals_btn.tooltip_text = (_generals_base_tooltip + "\n" + who
+			+ " seeks an audience — open his card to hear him.").strip_edges()
+	else:
+		_nav_full_text["generals"] = _generals_base_text
+		generals_btn.tooltip_text = _generals_base_tooltip
+	if not _compact:
+		generals_btn.text = str(_nav_full_text["generals"])
+	_update_button_highlights()
+
 
 func update_mailbox_count(envoy_count: int):
 	"""Refresh the envoys button copy and styling."""

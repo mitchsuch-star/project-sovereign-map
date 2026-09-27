@@ -655,6 +655,9 @@ def build_base_response(world, success: bool = True, message: str = "",
         # "two things in one slot, one gets swallowed" shape this review has
         # already logged twice.
         "envoy_digest": build_envoy_digest(world),
+        # PC15-10 B1: the antechamber — a marshal whose AUDIENCE-tier
+        # petition waits (no modal); the client badges the Generals button.
+        "marshal_audience": _marshal_audience(world),
     }
     response.update(extra)
     if _terminal_record is not None:
@@ -933,6 +936,16 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     "ending",
     "endings_recorded",
 )
+
+
+def _marshal_audience(world):
+    """PC15-10 B1: who waits in the antechamber (an AUDIENCE-tier petition),
+    for the top bar's badge — display only, None when nobody does."""
+    try:
+        from backend.game_logic.jealousy import audience_summary
+        return audience_summary(world)
+    except Exception:
+        return None
 
 
 def _pending_marshal_decisions(world) -> list:
@@ -2835,6 +2848,8 @@ def test_connection():
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
+        # PC15-10 B1: the antechamber's badge from the first frame.
+        "marshal_audience": _marshal_audience(world),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
@@ -4317,6 +4332,34 @@ def get_pending_objection():
         "alternative": objection.get("alternative"),
         "original_order": objection.get("original_order")
     }
+
+
+@app.get("/marshal_petition")
+def get_marshal_petition():
+    """PC15-10 B1 "The Antechamber" (PETITION_POPUP_REVISIT_SPEC §4 F1 item 3):
+    the standing marshal petition, served ON DEMAND — the rail row's button
+    and the Generals card's chip open it into the same dialog, answered at
+    the same `POST /marshal_petition_response`. Affordability is re-derived
+    at the moment it is served (the IGR-1 rule); a card whose grievance has
+    cooled is retired here and says so rather than being handed over."""
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.jealousy import (
+        _petition_speaker, _retire_pending_petition, petition_is_still_live,
+        refresh_petition_affordability)
+    world = game_state["world"]
+    petition = getattr(world, "pending_marshal_petition", None)
+    if not isinstance(petition, dict):
+        return {"success": True, "petition": None,
+                "message": "No marshal waits upon you, Sire."}
+    if not petition_is_still_live(petition, world):
+        speaker = _petition_speaker(petition)
+        _retire_pending_petition(world, petition)
+        return {"success": True, "petition": None,
+                "message": (f"The moment has passed — "
+                            f"{humanize_entity_name(speaker)} no longer "
+                            f"presses the matter.")}
+    return {"success": True,
+            "petition": refresh_petition_affordability(petition, world)}
 
 
 @app.post("/marshal_petition_response")

@@ -4110,6 +4110,10 @@ _DISPATCH_EVENT_TYPES = {
     # the card is lost (WAD), the MOMENT must not be (no silent losses).
     "rivalry_blocked_note",
     "war_weary_blocked_note",
+    # PC15-10 B1: a marshal waiting in the antechamber (an AUDIENCE-tier
+    # petition — no modal), withdrawn for a graver matter, or no longer
+    # pressing a matter that cooled. Routine drama: capped with the rest.
+    "marshal_audience",
     # WO-38 (slice-18 review round): an unanswered strategic objection
     # lapsing at the turn boundary. The lapse's whole contract is that it
     # is TOLD — the shadow_petition entry above records what happens when

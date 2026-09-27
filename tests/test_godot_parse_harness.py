@@ -47,6 +47,11 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     # `marshal_petition_dialog.gd` is a BLOCKING modal: a parse error in it
     # takes the turn with it.
     "marshal_petition_dialog.gd",
+    # PC15-10 B1 "The Antechamber" (Sept 26 2026): the spec's §7 asked for
+    # this set to be extended in the slice that touched them — the Generals
+    # card's "Hear him" chip and the on-demand fetch of the waiting card.
+    "marshal_management.gd",
+    "api_client.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

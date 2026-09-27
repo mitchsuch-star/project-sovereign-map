@@ -284,7 +284,7 @@ an unattended run hides nothing. Defaults: objections → **trust** ·
 incoming proposals/settlement offers → **decline** (a robot must not
 sign treaties nobody scripted) · capture → **secure**, estate →
 **respect** · glorious charge → **restrain** · Talleyrand's objection →
-**proceed** · petitions → **first enabled option** (usually the free
+**proceed** · antechamber audiences (PC15-10 B1, `--audience open|ignore`, default **open** — heard when the envelope names them, logged `POPUP marshal_audience`) · petitions → **first enabled option** (usually the free
 acknowledge) · war-purpose gate → **1 = Conquest** (the script ordered
 the attack; backing out would contradict it) · ultimatums → **defy** ·
 the player's own confirm dialogs → **confirm** · clarification questions

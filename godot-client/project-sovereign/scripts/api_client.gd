@@ -141,6 +141,10 @@ func get_marshal_overview(callback: Callable):
 func get_pending_envoy(callback: Callable):
 	_send_get("/pending_envoy", callback)
 
+func get_marshal_petition(callback: Callable):
+	"""PC15-10 B1 "The Antechamber": the standing petition, served on demand."""
+	_send_get("/marshal_petition", callback)
+
 func get_mailbox(callback: Callable):
 	_send_get("/mailbox", callback)
 

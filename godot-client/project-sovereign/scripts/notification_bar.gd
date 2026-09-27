@@ -107,6 +107,10 @@ const TYPE_ICONS = {
 	"marshal_defied_order": "DFY",
 	"marshal_commissioned": "CMS",
 	"marshal_last_stand": "ENC",
+	# PC15-10 B1: a marshal waits in the antechamber (an AUDIENCE-tier
+	# petition — the row's button opens his card; no modal).
+	"jealousy_confrontation": "AUD",
+	"rivalry_confrontation": "RIV",
 	"vindication_expired": "VIN",
 
 	# Men, money and land
@@ -213,6 +217,8 @@ const TYPE_ICON_SVGS = {
 	# NOT sovereign-only, despite the Emperor's copy: the ordinary cornered
 	# marshal raises the same row, and both ask the player to answer.
 	"marshal_last_stand": "shield",
+	"jealousy_confrontation": "scales",
+	"rivalry_confrontation": "scales",
 	"vindication_expired": "hourglass",
 
 	# Men, money and land

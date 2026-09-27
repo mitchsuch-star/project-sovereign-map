@@ -923,6 +923,11 @@ REVIEWED = {
     ("marshal_management.gd", '"commission_open"'): "opens the bench; sends nothing",
     ("marshal_management.gd", '"commission_back"'): "closes the bench; sends nothing",
     ("marshal_management.gd", '"reward:" + str(index)'): "opens the reward dialog; its commands driven",
+    # PC15-10 B1 "The Antechamber" (Sept 26, 2026): the card's "Hear him"
+    # chip — fetches the waiting petition (GET /marshal_petition) into its
+    # dialog; its answers are the petition endpoint's, pinned in
+    # tests/test_b1_the_antechamber.py.
+    ("marshal_management.gd", '"audience:open"'): "opens the waiting petition's dialog; sends nothing",
     ("marshal_management.gd", "url_meta"): "the wrapper's own body",
     ("marshal_management.gd", "url_meta: String"): "the wrapper's signature",
     # diplomatic_ledger.gd

@@ -19,6 +19,9 @@ signal commission_requested(candidate_name: String)
 # UI-6: a per-card order chip ([Fortify]/[Drill]) — main.gd sends the typed
 # command through the reward pipeline (history + echo + Generals refresh).
 signal order_command(command: String)
+# PC15-10 B1 "The Antechamber": the card's "Hear him" chip — main.gd
+# fetches the waiting petition (GET /marshal_petition) into its dialog.
+signal audience_requested
 
 # UI References — paths match scene tree
 @onready var background_overlay = $BackgroundOverlay
@@ -157,6 +160,8 @@ func _on_meta_clicked(meta):
 		var index = int(meta_str.substr(7))
 		if index >= 0 and index < cached_data.size():
 			reward_requested.emit(cached_data[index])
+	elif meta_str == "audience:open":
+		audience_requested.emit()
 	elif meta_str == "commission_open":
 		_commission_view = true
 		_render_current_view()
@@ -532,6 +537,10 @@ func _render_card(m: Dictionary, index: int) -> String:
 	var separations = m.get("separations", [])
 	if separations is Array and separations.size() > 0:
 		bbcode += "  [color=#" + COLOR_DIM + "]Kept apart from: " + ", ".join(separations) + " (Berthier watches)[/color]\n"
+	# PC15-10 B1: he waits in the antechamber — his petition is no modal;
+	# the chip opens it (the same dialog, the same answer).
+	if m.get("seeks_audience", false):
+		bbcode += "  " + _button_chip("audience:open", "Hear him — he seeks an audience", "f4e6bd", "3a2f18", _ICON_PHOSPHOR + "scales.svg") + "\n"
 
 	# ═══════ ES-7 ESTATES & EXPECTATION (Economy Revisit S7 + §0.6.8) ═══════
 	# Expectation vs estate income vs rente in the same g/turn units — the

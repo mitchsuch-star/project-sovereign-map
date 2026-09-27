@@ -639,6 +639,9 @@ func _ready():
 				# UI-6: per-card order chips (Fortify/Drill) — typed commands
 				if instance.has_signal("order_command"):
 					instance.order_command.connect(_on_reward_command)
+				# PC15-10 B1: the card's "Hear him" chip — the antechamber.
+				if instance.has_signal("audience_requested"):
+					instance.audience_requested.connect(_open_marshal_audience)
 			elif config[0] == "ledger":
 				# NV-6: THE ADMIRALTY's order chips (posture, the Diversion)
 				if instance.has_signal("naval_command"):
@@ -4886,6 +4889,9 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		_current_lapsing_petitions = lapsing_petitions if lapsing_petitions is Array else []
 		_set_pending_decisions(diplo_data.get("pending_marshal_decisions", []))
 		top_bar.update_diplomatic_fields(diplo_data)
+	# PC15-10 B1: the antechamber's badge rides every envelope.
+	if response.has("marshal_audience") and top_bar.has_method("update_audience_badge"):
+		top_bar.update_audience_badge(response.get("marshal_audience"))
 
 
 func _set_pending_envoy_count(count: int):
@@ -6623,6 +6629,10 @@ func _on_notification_review_requested(review_target: String, route_id: String =
 	if review_target == "diplomacy_wizard":
 		_open_diplomacy_wizard()
 		return
+	# PC15-10 B1: an AUDIENCE-tier petition's rail row — "Hear him".
+	if review_target == "marshal_petition":
+		_open_marshal_audience()
+		return
 	if review_target == "ally_settlement_petition_popup":
 		_on_envoy_clicked()
 		return
@@ -7240,6 +7250,27 @@ func _on_marshal_petition_choice(choice_id: String):
 		return
 	set_input_enabled(false)
 	api_client.send_marshal_petition_response(choice_id, _on_marshal_petition_result)
+
+
+func _open_marshal_audience():
+	"""PC15-10 B1 "The Antechamber": open the waiting audience ON DEMAND —
+	from its rail row or the Generals card's chip. The same dialog, the same
+	answer endpoint; the game forced no modal on the player to get here."""
+	if marshal_petition_dialog == null or _is_modal_dialog_open():
+		return
+	set_input_enabled(false)
+	api_client.get_marshal_petition(_on_marshal_audience_fetched)
+
+
+func _on_marshal_audience_fetched(response: Dictionary):
+	var petition = response.get("petition")
+	if petition is Dictionary and not petition.is_empty():
+		marshal_petition_dialog.show_petition(petition)
+		return  # the answer / Later handlers hand control back
+	add_output("[color=#d9c08c]%s[/color]" % str(
+		response.get("message", "No marshal waits upon you, Sire.")))
+	set_input_enabled(true)
+	command_input.grab_focus()
 
 
 func _on_marshal_petition_result(response):

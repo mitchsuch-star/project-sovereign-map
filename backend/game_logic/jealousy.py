@@ -1298,6 +1298,11 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
             status = queue_confrontation_petition(world, marshal, target,
                                                   level)
             if status == PETITION_QUEUED:
+                # B1: RE-READ the store — a crisis card may have just
+                # evicted an audience and un-stamped ITS key; writing back
+                # the snapshot taken above would put that key back and the
+                # evicted audience could never return (the test found it).
+                seen = set(getattr(world, "jealousy_confrontations_seen", []) or [])
                 seen.add(key)
                 world.jealousy_confrontations_seen = sorted(seen)
                 if THE_AUDIENCE_WAITS:
@@ -1910,6 +1915,9 @@ def check_rivalry_transitions(world, changes: Optional[List[Dict]]) -> None:
         # but the MOMENT must never be silent: one dispatch line marks it.
         status = queue_rivalry_petition(world, marshal, other, new_value)
         if status == PETITION_QUEUED:
+            # B1: re-read — a breach (@−2, a crisis) may have just evicted a
+            # harsh-words audience and un-stamped its key (see apply_jealousy).
+            seen = set(getattr(world, "rivalry_transitions_seen", []) or [])
             seen.add(key)
             world.rivalry_transitions_seen = sorted(seen)
         elif status == PETITION_BLOCKED:
@@ -2170,6 +2178,190 @@ PETITION_QUEUED = "queued"
 PETITION_BLOCKED = "blocked"
 PETITION_DORMANT = "dormant"
 
+# ═══════ PC15-10 B1 "THE ANTECHAMBER" (PETITION_POPUP_REVISIT_SPEC §4 F1) ═══════
+# The §6 gate RULED Q1(a) (the tier table) and Q2(a) (the audience surface)
+# on August 15, 2026; slotted by the Score Mandate into Chunk 4 with SR-4c.
+# The measured disease (spec §1): one petition modal on 19 of 24 turns of a
+# winning campaign, 17 of them answerable by a free arm whose outcome is
+# "nothing changes" — the routine tier of the channel had the interrupt class
+# of a crisis. Every card now carries a TIER set by its builder:
+#   AUDIENCE = {§6 confrontation L0/L1, §6b rivalry @−1, the shadow petition}
+#   CRISIS   = {§6 L2/L3, rivalry @−2, Fontainebleau, war-weary}
+# (the shadow petition — NP-3, "give me a command of my own" — post-dates the
+# table and is classified here: a once-a-campaign REQUEST, not a moment that
+# will not keep). A card with no tier (a pre-B1 save's) is a CRISIS — no
+# behaviour surprise on load. A crisis keeps today's road (the slot + the
+# PopupQueue + the modal); an audience takes the slot WITHOUT the queue and is
+# announced on the rail, the Generals card and the dispatch, then served on
+# demand (`GET /marshal_petition`) to the same dialog and the same answer
+# endpoint. A crisis arriving while an audience holds the slot evicts it and
+# un-stamps its latch (and its SR-4c clock), so the audience returns on the
+# pair's next fire — "every level gets its audience" is strengthened, not
+# weakened. Lever False = every card is a crisis (the channel as it was).
+THE_ANTECHAMBER = True
+PETITION_TIER_AUDIENCE = "audience"
+PETITION_TIER_CRISIS = "crisis"
+
+
+def petition_tier_for(kind: str, context: Optional[Dict] = None) -> str:
+    """The ruled tier table (spec §6 Q1(a)), read by every builder."""
+    context = context or {}
+    if kind == "jealousy_confrontation":
+        try:
+            level = int(context.get("escalation_level", 0) or 0)
+        except (TypeError, ValueError):
+            level = 0
+        return (PETITION_TIER_CRISIS if level >= ESCALATION_PERMANENT_LEVEL
+                else PETITION_TIER_AUDIENCE)
+    if kind == "rivalry_confrontation":
+        try:
+            value = int(context.get("new_value", 0) or 0)
+        except (TypeError, ValueError):
+            value = 0
+        return PETITION_TIER_CRISIS if value <= -2 else PETITION_TIER_AUDIENCE
+    if kind == "shadow_command":
+        return PETITION_TIER_AUDIENCE
+    return PETITION_TIER_CRISIS
+
+
+def petition_tier(petition) -> str:
+    """The tier a STANDING card travels by (a legacy card is a crisis)."""
+    if not THE_ANTECHAMBER or not isinstance(petition, dict):
+        return PETITION_TIER_CRISIS
+    if petition.get("tier") == PETITION_TIER_AUDIENCE:
+        return PETITION_TIER_AUDIENCE
+    return PETITION_TIER_CRISIS
+
+
+def _petition_speaker(petition) -> str:
+    context = (petition or {}).get("context") or {}
+    return str((petition or {}).get("speaker") or context.get("marshal") or "")
+
+
+def pending_audience(world):
+    """The standing AUDIENCE card, or None (a crisis travels as a modal)."""
+    petition = getattr(world, "pending_marshal_petition", None)
+    if isinstance(petition, dict) and petition_tier(petition) == PETITION_TIER_AUDIENCE:
+        return petition
+    return None
+
+
+def audience_summary(world) -> Optional[Dict]:
+    """The response envelope's `marshal_audience` — who waits in the
+    antechamber, for the top bar's badge and the Generals card (display
+    only). None when no audience stands (or the standing one is stale)."""
+    petition = pending_audience(world)
+    if petition is None or not petition_is_still_live(petition, world):
+        return None
+    speaker = _petition_speaker(petition)
+    return {"marshal": speaker,
+            "marshal_display": humanize_entity_name(speaker),
+            "kind": str(petition.get("kind") or ""),
+            "title": str(petition.get("title") or "")}
+
+
+def _audience_notice_type(petition) -> str:
+    from backend import notifications as _n
+    if str((petition or {}).get("kind") or "") == "rivalry_confrontation":
+        return _n.RIVALRY_CONFRONTATION
+    return _n.JEALOUSY_CONFRONTATION
+
+
+def _announce_audience(world, petition: Dict) -> None:
+    """The antechamber's three surfaces: a rail row whose button opens the
+    card, the Generals card chip (read off `audience_summary`), and one
+    routine dispatch line (capped with the rest of the pass's drama)."""
+    from backend import notifications as _n
+    speaker = _petition_speaker(petition)
+    shown = humanize_entity_name(speaker)
+    title = str(petition.get("title") or f"Marshal {shown} seeks an audience")
+    message = (f"{shown} asks to be heard — at your leisure, Sire; nothing "
+               f"waits on it. His card is on the Generals screen.")
+    details = {"marshal": speaker, "kind": str(petition.get("kind") or ""),
+               "review_target": "marshal_petition",
+               "review_label": "Hear him"}
+    collector = getattr(world, "notifications", None)
+    if collector is not None:
+        try:
+            if str(petition.get("kind") or "") == "rivalry_confrontation":
+                collector.add(_n.create_notification(
+                    _n.RIVALRY_CONFRONTATION, _n.NotificationPriority.HIGH,
+                    title, message, int(world.current_turn), details))
+            else:
+                collector.add(_n.create_notification(
+                    _n.JEALOUSY_CONFRONTATION, _n.NotificationPriority.HIGH,
+                    title, message, int(world.current_turn), details))
+        except Exception:
+            pass
+    _pending_events(world).append({
+        "type": "marshal_audience",
+        "message": (f"{shown} seeks an audience, Sire — his card waits on the "
+                    f"Generals screen and on the rail."),
+        "nation": getattr(world, "player_nation", ""),
+        "marshal": speaker,
+    })
+
+
+def _dismiss_audience_notice(world, petition) -> int:
+    """Retire the rail row that announced this card (0 when none)."""
+    if not isinstance(petition, dict):
+        return 0
+    collector = getattr(world, "notifications", None)
+    if collector is None:
+        return 0
+    speaker = _petition_speaker(petition)
+    try:
+        return int(collector.dismiss_by_type(
+            _audience_notice_type(petition),
+            lambda n: (n.get("details") or {}).get("marshal") == speaker))
+    except Exception:
+        return 0
+
+
+def _evict_audience(world, petition: Dict) -> None:
+    """A crisis takes the slot from an audience: the audience is WITHDRAWN,
+    not lost — its latch key and its SR-4c clock are un-stamped, so it
+    returns on the pair's next fire, and the dispatch says so."""
+    kind = str(petition.get("kind") or "")
+    context = petition.get("context") or {}
+    speaker = _petition_speaker(petition)
+    if kind == "jealousy_confrontation":
+        pair = _pair_key(str(context.get("marshal") or speaker),
+                         str(context.get("target") or ""))
+        try:
+            level = int(context.get("escalation_level", 0) or 0)
+        except (TypeError, ValueError):
+            level = 0
+        seen = set(getattr(world, "jealousy_confrontations_seen", []) or [])
+        seen.discard(f"{pair}@L{level}")
+        if level == 0:
+            seen.discard(pair)
+        world.jealousy_confrontations_seen = sorted(seen)
+        marshal = world.marshals.get(speaker) if hasattr(world, "marshals") else None
+        if marshal is not None:
+            (getattr(marshal, "jealousy_history", {}) or {}).pop("__audience__", None)
+    elif kind == "rivalry_confrontation":
+        pair = _pair_key(str(context.get("marshal") or speaker),
+                         str(context.get("other") or ""))
+        seen = set(getattr(world, "rivalry_transitions_seen", []) or [])
+        seen.discard(f"{pair}@{context.get('new_value')}")
+        world.rivalry_transitions_seen = sorted(seen)
+    elif kind == "shadow_command":
+        seen = set(getattr(world, "jealousy_confrontations_seen", []) or [])
+        seen.discard(f"shadow@{speaker}")
+        world.jealousy_confrontations_seen = sorted(seen)
+    _dismiss_audience_notice(world, petition)
+    if getattr(world, "pending_marshal_petition", None) is petition:
+        world.pending_marshal_petition = None
+    _pending_events(world).append({
+        "type": "marshal_audience",
+        "message": (f"{humanize_entity_name(speaker)}'s audience is set aside "
+                    f"for a graver matter; he will ask again."),
+        "nation": getattr(world, "player_nation", ""),
+        "marshal": speaker,
+        "evicted": True,
+    })
+
 
 def _push_petition(world, petition: Dict) -> str:
     """THE petition-channel gate (PC15-10 B0, F4).
@@ -2209,12 +2401,26 @@ def _push_petition(world, petition: Dict) -> str:
         if _who and getattr(world.marshals.get(_who), "is_sovereign", False):
             return PETITION_BLOCKED
     pending = getattr(world, "pending_marshal_petition", None)
+    tier = petition_tier(petition)
     if pending is not None and pending is not petition:
-        return PETITION_BLOCKED
+        # B1 (spec §4 F1 item 4): one card at a time is still the law —
+        # except that a CRISIS evicts an AUDIENCE (withdrawn, not lost).
+        if (tier == PETITION_TIER_CRISIS
+                and petition_tier(pending) == PETITION_TIER_AUDIENCE):
+            _evict_audience(world, pending)
+        else:
+            return PETITION_BLOCKED
+    fresh = getattr(world, "pending_marshal_petition", None) is not petition
     world.pending_marshal_petition = petition
     queue = getattr(world, "_popup_queue", None)
-    if queue is not None:
-        queue.push("pending_marshal_petition", petition)
+    if tier == PETITION_TIER_CRISIS:
+        if queue is not None:
+            queue.push("pending_marshal_petition", petition)
+    elif fresh:
+        # An AUDIENCE never enters the PopupQueue: it waits in the
+        # antechamber. Announced once, when it arrives — the per-turn
+        # re-push (identity) never re-announces it.
+        _announce_audience(world, petition)
     return PETITION_QUEUED
 
 
@@ -2302,6 +2508,8 @@ def _pending_confrontation_for_pair(world, marshal_name: str, target_name: str):
 
 def _retire_pending_petition(world, petition) -> None:
     """Drop a standing card from the channel (the slot AND the popup queue)."""
+    # B1: and the rail row that announced it, if it waited in the antechamber.
+    _dismiss_audience_notice(world, petition)
     if getattr(world, "pending_marshal_petition", None) is petition:
         world.pending_marshal_petition = None
     queue = getattr(world, "_popup_queue", None)
@@ -2653,6 +2861,9 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
         ],
         "context": {"marshal": marshal.name, "target": target.name,
                     "escalation_level": int(level)},
+        # B1: the ruled tier table (L0/L1 an audience, L2/L3 a crisis).
+        "tier": petition_tier_for("jealousy_confrontation",
+                                  {"escalation_level": int(level)}),
         "turn": int(world.current_turn),
     })
 
@@ -2758,6 +2969,10 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
         "options": options,
         "context": {"marshal": marshal.name, "other": other.name,
                     "new_value": int(new_value)},
+        # B1: harsh words (@−1) wait in the antechamber; the breach (@−2)
+        # is a crisis.
+        "tier": petition_tier_for("rivalry_confrontation",
+                                  {"new_value": int(new_value)}),
         "turn": int(world.current_turn),
     })
 
@@ -2974,6 +3189,8 @@ def queue_shadow_petition(world, marshal) -> str:
              "enabled": True},
         ],
         "context": {"marshal": marshal.name, "frontier": frontier},
+        # B1: a once-a-campaign request, not a moment that will not keep.
+        "tier": petition_tier_for("shadow_command"),
         "turn": int(world.current_turn),
     })
 
@@ -3193,6 +3410,8 @@ def handle_petition_response(world, choice: str, executor=None,
             queue = getattr(world, "_popup_queue", None)
             if queue is not None:
                 queue.set("pending_marshal_petition", None)
+            # B1: the antechamber's rail row leaves with the card.
+            _dismiss_audience_notice(world, petition)
     else:
         # PT-A1, corrected by the review fleet: hand back the DELIVERED
         # card, not the stored one. The raw petition carries the `enabled`
@@ -3798,6 +4017,27 @@ def process_turn(world) -> List[Dict]:
 
     # An unanswered petition re-surfaces each turn (the popup queue pops
     # one winner per response cycle; the pending slot is the durable state).
+    #
+    # B1: an AUDIENCE has no delivery seam of its own — nothing ever pops it
+    # — so a card whose grievance has cooled would hold the antechamber (and
+    # block every other audience) until the player happened to open it. The
+    # FA-S17-D4 liveness predicate is therefore asked HERE, for both tiers
+    # (a stale crisis was retired at delivery anyway), and a retired
+    # audience says so: the rail row it raised goes, and one line tells why.
+    _standing = getattr(world, "pending_marshal_petition", None)
+    if _standing and THE_ANTECHAMBER and not petition_is_still_live(_standing, world):
+        _was_audience = petition_tier(_standing) == PETITION_TIER_AUDIENCE
+        _retire_pending_petition(world, _standing)
+        if _was_audience:
+            events.append({
+                "type": "marshal_audience",
+                "message": (f"Berthier notes that "
+                            f"{humanize_entity_name(_petition_speaker(_standing))} "
+                            f"no longer presses the matter."),
+                "nation": getattr(world, "player_nation", ""),
+                "marshal": _petition_speaker(_standing),
+                "retired": True,
+            })
     if getattr(world, "pending_marshal_petition", None):
         _push_petition(world, world.pending_marshal_petition)
 
@@ -4503,6 +4743,9 @@ def build_glory_card_fields(marshal, world) -> Dict:
         "jealousy_turns_remaining": int(getattr(marshal, "jealousy_turns_remaining", 0)),
         "jealousy_surge": int(getattr(marshal, "jealousy_surge_turns", 0)) > 0,
         "jealousy_warned": bool(getattr(marshal, "jealousy_autonomous_warned", False)),
+        # B1: he waits in the antechamber — the card's "Hear him" chip.
+        "seeks_audience": bool(
+            (audience_summary(world) or {}).get("marshal") == marshal.name),
         "feuds": sorted([
             name for name, level in
             (getattr(marshal, "jealousy_history", {}) or {}).get("__levels__", {}).items()
