@@ -109,12 +109,28 @@ class TestStalemateGlory:
         # earns the attacker partial glory (spec DR-1 "and for taking a
         # province").
         ney, mack = world.marshals["Ney"], world.marshals["Mack"]
+        # CONSCIOUS FLIP, SR-4c "the drama's fuse" (JEALOUSY_SPEC §0.7, Sept
+        # 26 2026): this fixture fought a battle with NO dead (0 v 0), which
+        # the laurel floor now calls a skirmish — no glory either way. The
+        # DR-1 rule under test is unchanged: an inconclusive battle of
+        # battle size that TAKES the province still earns the partial point.
+        J.record_battle_glory(
+            world, ney, mack, attacker_won=False, defender_won=False,
+            attacker_casualties=700, defender_casualties=600,
+            conquered=True,
+            pre_attacker_strength=40000, pre_defender_strength=40000)
+        assert J.get_glory_score(ney, world.current_turn) == J.STALEMATE_GLORY
+
+    def test_a_skirmish_that_takes_a_province_earns_no_laurel(self, world):
+        # SR-4c: the same province taken in a fight with no dead — below the
+        # laurel floor, so nobody gains or loses glory.
+        ney, mack = world.marshals["Ney"], world.marshals["Mack"]
         J.record_battle_glory(
             world, ney, mack, attacker_won=False, defender_won=False,
             attacker_casualties=0, defender_casualties=0,
             conquered=True,
             pre_attacker_strength=40000, pre_defender_strength=40000)
-        assert J.get_glory_score(ney, world.current_turn) == J.STALEMATE_GLORY
+        assert J.get_glory_score(ney, world.current_turn) == 0
 
     def test_decisive_win_still_uses_victory_points(self, world):
         # regression: a clean win is unchanged by DR-1 — full victory formula.

@@ -1990,6 +1990,20 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     if event_type == "glory_crown_lost":
         marshal = event.get("marshal", "Unknown")
         nation = event.get("nation", "")
+        # SR-4c (AAR-D3): the row carries where the laurels went; a pre-SR-4c
+        # row (no `why`) keeps its old sentence byte for byte.
+        why = event.get("why")
+        successor = event.get("successor") or ""
+        if why == "passed" and successor:
+            return (f"{_name_tag(marshal, nation)} is no longer the army's most "
+                    f"celebrated commander — the laurels have passed to "
+                    f"{_name_tag(successor, nation)}")
+        if why == "level" and successor:
+            return (f"{_name_tag(marshal, nation)} no longer wears the laurels "
+                    f"alone — {successor} stand level")
+        if why == "faded":
+            return (f"{_name_tag(marshal, nation)}'s laurels have faded — no "
+                    f"commander stands above the rest")
         return (f"{_name_tag(marshal, nation)} is no longer the army's most "
                 f"celebrated commander — the laurels have passed")
 

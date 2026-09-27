@@ -214,6 +214,13 @@ class TestPetitionPerLevel:
         _fire(world, ney, davout)
         world.pending_marshal_petition = None
         J.clear_jealousy(world, ney, resolved_by_action=False)
+        # CONSCIOUS FLIP, SR-4c "the drama's fuse" (JEALOUSY_SPEC §0.7,
+        # Sept 26 2026): a man who has just asked does not ask again for
+        # AUDIENCE_COOLDOWN_TURNS — the ROUTINE levels (0/1) wait out his
+        # clock; the crisis levels (2+) never do. This pin fired L0 and L1 on
+        # the SAME turn, so the level-rise card now waits, and it speaks once
+        # the clock has run — the feud still deepens on camera.
+        world.current_turn = int(world.current_turn) + J.AUDIENCE_COOLDOWN_TURNS
         # Stored Rival relationship makes the next fire QUALIFY (spec §10),
         # advancing the pair to level 1 before the petition block reads it.
         ney.relationships["Davout"] = -1

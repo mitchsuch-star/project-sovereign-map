@@ -118,6 +118,82 @@ twelve-turn syllabus that never explains the channel. Two amendments, record = S
   tie/coordination clause is the §8 derived −1. Promise/Rebuke details already stated their
   numbers and are unchanged.
 
+### 0.7 SR-4c GATE RE-OPEN + LANDING RECORD (September 26, 2026 — "the drama's fuse"; authoritative where it amends §1/§6)
+
+**Re-opened by the user's direction** (the Score Mandate, `docs/SCORE_MANDATE_PLAN.md` §2
+Chunk 4 SR-4c; the owner row is `DESIGN_REFINEMENT.md` AAR-D3, which named this gate). The
+ruling handed down: *a laurel floor for crown and envy (a battle of `battle_scale.is_a_battle`
+size, or a decisive exchange) + a per-marshal petition cooldown longer than the 2–3 turns
+measured, with F4's reward fuse as the model.*
+
+**Measured first** (the session exit's AAR arm — the Creative AAR player's own typed orders,
+18 turns, `--objection insist --diplomacy accept` — with a counting probe on the glory seam,
+the trigger, the petition channel and the crown): 21 French grievances fired and **13 audience
+cards queued** (Soult's on turns 12, 15 and 17; Murat's on 1 and 4; Lannes's on 5 and 8); the
+crown went to **Ney on turn 1 for ONE point** (Ulm, fought under the Emperor's eye and halved by
+the Shadow); "the laurels have passed" was said on turn 9 when **Ney and Murat stood level** and
+nobody held them. The hand-played AAR crowned **Oudinot for a 420-against-1,007 fight** with
+Wellesley's raid, the only glory left in the window.
+
+⚠ **The ruling's floor does not reach the case it was written for.** Oudinot's fight cost
+1,427 men — `battle_scale.is_a_battle` calls it a battle. And on the measured boards the floor
+binds **zero times** (28 glory-bearing battles on the 40-turn ambient board, 15 on the AAR arm,
+every one ≥ 1,000 dead). It is built as ruled — a skirmish earns no laurel, and it binds on the
+raid and remnant wars — but the named case is closed by a second lever the ruling's own words
+imply (a floor under the CROWN), recorded here as the measured correction.
+
+**Amendments (each behind a flip lever in `backend/game_logic/jealousy.py`):**
+
+1. **The laurel floor** (`THE_LAUREL_FLOOR`, amends §1 Glory Tracking). `is_laurel(a, b)` =
+   `battle_scale.is_a_battle(a + b) or battle_scale.is_decisive_exchange(a, b)` — the engine's
+   own two opinions, read as module attributes at call time; unreadable input is never
+   downgraded. `record_battle_glory` — the single accrual chokepoint — records nothing for an
+   engagement that is not a laurel: no victory or defeat points, no DR-1 stalemate point, no
+   participant ±1. The ladder, the crown, envy and F4's rank-rise deed all read it. (The
+   decisive arm is subsumed today — it needs more dead than the floor — and stops being
+   subsumed the day either number is retuned; kept because the ruling names it.)
+2. **The crown wants laurels** (`THE_CROWN_WANTS_LAURELS`, `CROWN_MIN_GLORY = 3`, amends §1
+   Top of Ladder). The crown needs 3 glory in the window, not any point above zero: two
+   victories, or one that was decisive AND took ground — "the most celebrated commander in
+   the army" is no longer the only man to win anything in a quiet season. Both boards (GR5);
+   ties still vacate.
+3. **The audience waits** (`THE_AUDIENCE_WAITS`, `AUDIENCE_COOLDOWN_TURNS = 6`, amends §6). A
+   marshal whose §6 confrontation card QUEUED does not ask again for six turns (longer than
+   the longest grievance, 5; the span the Emperor's Promise holds). The grievance still fires,
+   its dispatch line still reports it and says why no card follows (*"He asked for an audience
+   on turn 4, and will not ask again before turn 10."*); the level's latch key stays unstamped,
+   so the card retries on the pair's next fire (the blocked-card semantics). **Exempt:** the
+   damage going permanent (escalation level 2+ — the `PETITION_POPUP_REVISIT_SPEC.md` CRISIS
+   tier) and F6's replacement of his own stale card (the same audience re-worded). The clock
+   lives in the already-serialized `jealousy_history["__audience__"] = {"turn": N}` (the
+   `__levels__` / `__shadow__` idiom — zero new serialized fields). Player marshals only (the
+   channel is the player's court); rivalry, Fontainebleau, war-weary and the shadow petition
+   keep their own latches.
+4. **The fires say why** (`THE_FIRES_SAY_WHY`, copy only). A lost crown says where the laurels
+   went — passed to a man, level between two ("no one wears them"), or faded; the campaign-log
+   row carries `why` / `successor` (a pre-SR-4c row keeps its old sentence). A rival whose corps
+   broke or fell back is no longer "gone": the cooling reads *"His rival's corps is broken or
+   falling back — there is nothing in him to envy until it rallies."*
+
+**Measured at landing:** on the AAR arm, audience cards **13 → 11**, Soult's three → one, no man
+heard twice inside six turns; the crown no longer lands on turn 1 (first crown turn 3, Ney at 4),
+and the crown-lost lines read "level" and "faded" where they had read "passed". **`BASELINE_SERIES`
+byte-identical on the five-arm flip experiment (`tools/_sr4c_series_arms.py`), with the reason
+measured:** the floor binds 0 of 28 glory calls on the ambient board, the crown floor withheld
+the crown on 8 nation-turns none of which moved a threat-bearing battle, and the audience clock
+is player-only. **M1–M7 byte-identical** (M7 turn 1 both arms). Pins `tests/test_sr4c_the_dramas_fuse.py`.
+
+**CA8-D3 Q2 (§0.5) is NARROWED, not repealed:** each escalation level still gets its audience,
+but the ROUTINE levels (0/1) speak at most once per six turns per man — a level-1 card that
+comes due inside his clock waits for the pair's next fire, and may be overtaken by the crisis
+card if the feud reaches level 2 first (that card always speaks). **Three pins flipped
+consciously:** `test_ca8_d3_rival_permanence.py::test_refires_when_the_level_rises` (fired L0
+and L1 on the same turn — the L1 card now speaks once the clock has run);
+`test_drama_glory_from_attrition.py::test_occupation_scores_without_clean_victory` (a 0-v-0
+"battle" is below the floor — re-seated at battle size, with a sibling pinning the skirmish at
+zero); `test_fa_s16_d4_…::test_the_negative_control_produces_both_kinds` (the lever-down
+lesson's first crown is still Ney's, now at turn 9 instead of turn 2).
+
 ---
 
 ## Design Philosophy

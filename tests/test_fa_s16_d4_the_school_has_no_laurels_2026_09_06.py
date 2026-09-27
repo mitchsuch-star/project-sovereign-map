@@ -233,7 +233,12 @@ class TestTheLessonIsSilent:
         # and any crown lost was one the lesson had crowned. The loss
         # producer itself is pinned in
         # tests/test_fa_slice17_h_the_ledger_and_the_gazette.
-        assert gained and (gained[0][0], gained[0][2]) == (2, "Ney"), gained
+        # CONSCIOUS FLIP, SR-4c "the drama's fuse" (JEALOUSY_SPEC §0.7, Sept
+        # 26 2026): the crown now wants CROWN_MIN_GLORY (3) in the window, so
+        # Ney's turn-2 crown for one early win is gone — measured, his first
+        # crown comes at turn 9. The control's purpose is unchanged: the
+        # lever-False lesson DOES crown someone, and it is Ney.
+        assert gained and gained[0][2] == "Ney" and gained[0][0] > 2, gained
         crowned = {m for _t, _k, m in gained}
         assert all(m in crowned for _t, _k, m in lost), (lost, crowned)
 

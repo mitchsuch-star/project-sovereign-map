@@ -69,6 +69,49 @@ GLORY_SHADOW_MULT = 0.5             # NP-3 THE SHADOW (NAPOLEON_SPEC §6.2,
 #   the ambitious man wants a DETACHED command, and the existing jealousy
 #   ladder prices the legend he builds out there.
 
+# ═══════ SR-4c "THE DRAMA'S FUSE" (Score Mandate Chunk 4, AAR-D3, Sept 26 2026) ═══════
+# The Jealousy gate RE-OPENED by the user's direction (JEALOUSY_SPEC §0.7 is
+# the record). Measured first, on the exit's AAR arm (18 turns, the Creative
+# AAR player's own orders): 21 French grievances fired and 13 audience cards
+# queued — one a turn from turn 11 on, Soult's three on turns 12, 15 and 17,
+# Murat's two three turns apart; the crown went to Ney on turn 1 with ONE
+# point of glory (Ulm fought under the Emperor's eye, halved by the Shadow),
+# and "the laurels have passed" was said on turn 9 when they had passed to
+# nobody — Ney and Murat stood level. The hand-played AAR crowned Oudinot for
+# a 420-against-1,007 fight with Wellesley's raid, the only glory in an army
+# whose laurels had all run out of the window.
+#
+# ⚠ The row's own floor does NOT reach that case, measured: the Oudinot fight
+# cost 1,427 men, which `battle_scale.is_a_battle` calls a battle. The floor
+# is built as the row writes it (a skirmish earns no laurel — it binds on the
+# raid and remnant wars); the case the row NAMED is closed by the second
+# lever, the crown's own floor. Recorded on AAR-D3.
+#
+# Four levers, each one arm of the attribution (tools/_sr4c_series_arms.py):
+#   THE_LAUREL_FLOOR        an engagement below `battle_scale.is_a_battle`
+#                           size that was not a decisive exchange earns and
+#                           costs no glory (both sides, every participant) —
+#                           the single accrual chokepoint, so the ladder, the
+#                           crown, envy and F4's rank-rise deed all read it;
+#   THE_CROWN_WANTS_LAURELS the crown needs CROWN_MIN_GLORY in the window, not
+#                           any point above zero (both boards — GR5);
+#   THE_AUDIENCE_WAITS      a marshal who has asked for an audience (a §6
+#                           confrontation card queued) does not ask again for
+#                           AUDIENCE_COOLDOWN_TURNS — the grievance still
+#                           fires and is still reported, the card waits; the
+#                           damage going permanent (escalation level 2+) is
+#                           never deferred (player-only — the channel is);
+#   THE_FIRES_SAY_WHY (copy) the crown-lost line says where the laurels went
+#                           (to a man, level between two, or faded), and a
+#                           rival who broke is not called gone.
+# Every number is in-band; the SHAPE is the ruling (F4's idiom).
+THE_LAUREL_FLOOR = True
+THE_CROWN_WANTS_LAURELS = True
+CROWN_MIN_GLORY = 3
+THE_AUDIENCE_WAITS = True
+AUDIENCE_COOLDOWN_TURNS = 6
+THE_FIRES_SAY_WHY = True
+
 # Trigger thresholds by relationship with the target (spec §1).
 # None = immune. Hostile additionally requires idle >= HOSTILE_IDLE_TURNS.
 THRESHOLDS = {2: None, 1: 4, 0: 2, -1: 1, -2: 1}
@@ -356,6 +399,65 @@ def prune_glory_events(marshal, current_turn: int) -> None:
     ]
 
 
+def is_laurel(side_a_casualties, side_b_casualties) -> bool:
+    """SR-4c (AAR-D3): is this engagement a LAUREL — a battle of
+    `battle_scale.is_a_battle` size, or a decisive exchange?
+
+    Both arms are the engine's own opinions, read as module attributes at
+    call time (battle_scale's rule): the war score's floor (the SUM of both
+    sides' dead) and its decisive test. Today the decisive arm is subsumed
+    (it needs more dead than the floor does); it is kept because the ruling
+    names it, and it stops being subsumed the day either number is retuned.
+    Unreadable input is never silently downgraded (is_a_battle's rule).
+    """
+    from backend.game_logic import battle_scale
+    try:
+        a = int(side_a_casualties)
+        b = int(side_b_casualties)
+    except (TypeError, ValueError):
+        return True
+    return battle_scale.is_a_battle(a + b) or battle_scale.is_decisive_exchange(a, b)
+
+
+def crown_floor() -> int:
+    """SR-4c: the least glory that wears the crown (1 = any point, the
+    pre-SR-4c rule, when the lever is down)."""
+    return int(CROWN_MIN_GLORY) if THE_CROWN_WANTS_LAURELS else 1
+
+
+def last_audience_turn(marshal) -> int:
+    """SR-4c: the turn this marshal last asked for an audience (a §6
+    confrontation card queued), or -1. Kept in the already-serialized
+    `jealousy_history` under a dunder DICT key — the `__levels__` /
+    `__shadow__` idiom, zero new serialized fields."""
+    rec = (getattr(marshal, "jealousy_history", {}) or {}).get("__audience__")
+    if not isinstance(rec, dict):
+        return -1
+    try:
+        return int(rec.get("turn", -1))
+    except (TypeError, ValueError):
+        return -1
+
+
+def audience_wait(world, marshal, level: int = 0) -> int:
+    """SR-4c: turns before this man may ask for another audience (0 = he
+    may ask now). The damage going permanent (escalation level 2+ — the
+    PETITION_POPUP_REVISIT_SPEC CRISIS tier) never waits."""
+    if not THE_AUDIENCE_WAITS:
+        return 0
+    if int(level or 0) >= ESCALATION_PERMANENT_LEVEL:
+        return 0
+    last = last_audience_turn(marshal)
+    if last < 0:
+        return 0
+    elapsed = int(getattr(world, "current_turn", 0) or 0) - last
+    return max(0, int(AUDIENCE_COOLDOWN_TURNS) - elapsed)
+
+
+def _stamp_audience(marshal, turn: int) -> None:
+    marshal.jealousy_history["__audience__"] = {"turn": int(turn)}
+
+
 def _append_glory(marshal, turn: int, points: int) -> None:
     # NP-0 (NAPOLEON_SPEC §6.1): a sovereign accrues NO glory, ever — his
     # victories are the Empire's. This is the single accrual chokepoint,
@@ -437,6 +539,14 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     callers — so the School's gate belongs here and nowhere else.
     """
     if glory_dormant(world):
+        return
+    # SR-4c (AAR-D3): a skirmish is not a laurel — below the war score's own
+    # battle floor, and short of a decisive exchange, nobody on either side
+    # gains or loses glory (the garrison-stomp principle, one size up). The
+    # single accrual chokepoint, so the ladder, the crown, envy and F4's
+    # rank-rise deed all read the same floor.
+    if THE_LAUREL_FLOOR and not is_laurel(attacker_casualties,
+                                          defender_casualties):
         return
     turn = int(world.current_turn)
     atk_outnumbered = pre_attacker_strength < pre_defender_strength
@@ -672,10 +782,13 @@ def recompute_crowns(world) -> List[Dict]:
     # unreachable for a LOADED lesson as well as a fresh one.
     dormant = glory_dormant(world)
     nations = {m.nation for m in world.marshals.values()}
+    # SR-4c: the crown wants laurels — CROWN_MIN_GLORY in the window, not
+    # any point above zero (Ney crowned on turn 1 for one Shadowed point).
+    _floor = crown_floor()
     for nation in nations:
         ladder = [] if dormant else get_nation_ladder(world, nation)
         holder = None
-        if ladder and ladder[0][1] > 0:
+        if ladder and ladder[0][1] >= _floor:
             # a tie for the top leaves the crown vacant — no one is
             # "the most celebrated" while two men share the laurels
             if len(ladder) == 1 or ladder[0][1] > ladder[1][1]:
@@ -708,21 +821,59 @@ def recompute_crowns(world) -> List[Dict]:
                         "nation": marshal.nation,
                     })
                 else:
+                    _why, _to = _crown_lost_cause(ladder, holder, _floor)
                     events.append({
                         "type": "glory_crown_lost",
-                        "message": (
-                            f"{marshal.name} is no longer the army's most "
-                            f"celebrated commander — the laurels have passed."),
+                        "message": _crown_lost_line(marshal, _why, _to),
                         "nation": marshal.nation,
                         "marshal": marshal.name,
                     })
                     if THE_CROWN_LOST_IS_LOGGED:
-                        world.log_event({
+                        _row = {
                             "type": "glory_crown_lost",
                             "marshal": marshal.name,
                             "nation": marshal.nation,
-                        })
+                        }
+                        if THE_FIRES_SAY_WHY:
+                            # New keys on the existing log type (no
+                            # CAMPAIGN_LOG_TYPES change): the log composes
+                            # its own sentence from them.
+                            _row["why"] = _why
+                            _row["successor"] = _to
+                        world.log_event(_row)
     return events
+
+
+def _crown_lost_cause(ladder, holder, floor: int):
+    """SR-4c: where the laurels went when a crown is lost — ("passed", the
+    new holder), ("level", "A and B" — two or more men tied at the head, so
+    nobody wears it), or ("faded", "" — nobody holds enough glory)."""
+    if holder is not None:
+        return "passed", holder.name
+    if (ladder and len(ladder) > 1 and ladder[0][1] >= floor
+            and ladder[0][1] == ladder[1][1]):
+        top = ladder[0][1]
+        level = [m.name for m, score in ladder if score == top]
+        return "level", " and ".join(humanize_entity_name(n) for n in level)
+    return "faded", ""
+
+
+def _crown_lost_line(marshal, why: str, to: str) -> str:
+    """SR-4c: the dispatch line for a lost crown, saying where it went.
+    Lever down: the pre-SR-4c sentence ("the laurels have passed") for every
+    cause — which is the line the AAR read on turn 9 when nobody held them."""
+    name = humanize_entity_name(marshal.name)
+    if not THE_FIRES_SAY_WHY:
+        return (f"{marshal.name} is no longer the army's most celebrated "
+                f"commander — the laurels have passed.")
+    if why == "passed" and to:
+        return (f"{name} is no longer the army's most celebrated commander — "
+                f"the laurels have passed to {humanize_entity_name(to)}.")
+    if why == "level" and to:
+        return (f"{name} no longer wears the army's laurels alone — {to} now "
+                f"stand level at its head, and no one wears them.")
+    return (f"{name}'s laurels have faded, Sire — for now no commander in "
+            f"the army stands above the rest.")
 
 
 # ═══════════════════════ AUTHORITY & SUPPRESSION ══════════════════════════
@@ -1080,13 +1231,16 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         else:
             _line = (f"Berthier reports that {_envious} appears envious of "
                      f"{_envied}'s laurels — he has {expression}.")
-        events.append({
+        _fire_event = {
             "type": "jealousy_fired",
             "message": _line,
             "nation": marshal.nation,
             "marshal": marshal.name,
             "target": target.name,
-        })
+        }
+        events.append(_fire_event)
+    else:
+        _fire_event = None
 
     # A12: `is_player` is exactly the condition under which the fire line
     # above was appended, so the escalation arm can tell whether the player
@@ -1113,12 +1267,30 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
         # re-fire replaces it — the latch had been blocking the fresh card
         # and handing the stale one over, which is the contradiction the
         # review read on consecutive turns.
+        _replacing = False
         if THE_REOPENED_QUARREL_SAYS_SO and settled_once_clause(world, marshal, target):
             stale = _pending_confrontation_for_pair(world, marshal.name, target.name)
             if stale is not None:
                 _retire_pending_petition(world, stale)
                 already = False
-        if not already:
+                _replacing = True
+        # SR-4c (AAR-D3): a man who asked for an audience lately does not ask
+        # again yet. A card that REPLACES his own stale one is the same
+        # audience, re-worded — it never waits (F6's replacement would
+        # otherwise leave neither card). The key stays unstamped, so the
+        # level's card retries on the pair's next fire (the blocked-card
+        # semantics), and the grievance itself is untouched.
+        _wait = 0 if (_replacing or already) else audience_wait(
+            world, marshal, level)
+        if _wait > 0:
+            _last = last_audience_turn(marshal)
+            if _fire_event is not None:
+                _fire_event["message"] += (
+                    f" He asked for an audience on turn {_last}, and will "
+                    f"not ask again before turn "
+                    f"{_last + int(AUDIENCE_COOLDOWN_TURNS)}.")
+                _fire_event["audience_waits"] = int(_wait)
+        elif not already:
             # PC15-10 B0 (F4): occupancy is the CHANNEL's decision now —
             # stamp only on QUEUED, so a blocked key keeps its retry (the
             # documented semantics: the level's card retries on the next
@@ -1128,6 +1300,8 @@ def apply_jealousy(world, marshal, target, delta: int, threshold: int,
             if status == PETITION_QUEUED:
                 seen.add(key)
                 world.jealousy_confrontations_seen = sorted(seen)
+                if THE_AUDIENCE_WAITS:
+                    _stamp_audience(marshal, turn)
 
 
 def _check_escalation(world, marshal, target, events: List[Dict],
@@ -1324,6 +1498,10 @@ _COOLING_CAUSE = {
     "the Emperor's promise": "He holds you to your word.",
     "the Emperor's rebuke": "He has swallowed the rebuke.",
     "the rival is gone": "There is no one left to envy.",
+    # SR-4c (AAR-D3): the rival still stands in the army — his corps broke
+    # or fell back, and there is nothing in him to envy until it rallies.
+    "the rival is broken": ("His rival's corps is broken or falling back — "
+                            "there is nothing in him to envy until it rallies."),
     # Q4(a): the §6b mend arms. Before this they charged AP, printed a
     # handshake and moved nothing a mechanic reads.
     "the Emperor forced the reconciliation":
@@ -3643,8 +3821,19 @@ def process_turn(world) -> List[Dict]:
         target = world.marshals.get(target_name)
         if target is None or not _is_standing(target) \
                 or target.nation != marshal.nation:
+            # SR-4c (AAR-D3): "There is no one left to envy" was said of a
+            # rival whose corps had only broken or fallen back — alive, in
+            # the army, and envied again the day he rallies. Gone and broken
+            # are different causes and are now said differently.
+            _broken_not_gone = (
+                THE_FIRES_SAY_WHY and target is not None
+                and target.nation == marshal.nation
+                and int(getattr(target, "strength", 0) or 0) > 0
+                and not getattr(target, "captured_by", ""))
             clear_jealousy(world, marshal, resolved_by_action=False,
-                           events=events, reason="the rival is gone")
+                           events=events,
+                           reason=("the rival is broken" if _broken_not_gone
+                                   else "the rival is gone"))
             cooled_this_pass.add((marshal.name, target_name))
             continue
         # Ladder shift (spec §2): passing the target resolves with surge.
