@@ -929,6 +929,50 @@ def first_line(text, limit=170):
     return ""
 
 
+# SR session-exit residue F4 (Sept 26, 2026): SR-4a made an assault's one-line
+# muster the FIRST line of the reply, and the digest records the first line —
+# so every assault's OUTCOME fell out of the archive (the exit read "ASSAULT —
+# Ney storms the works at Vienna alone…" and nothing of what followed). The
+# line after the muster is recorded beside it.
+THE_DIGEST_KEEPS_THE_ASSAULT_RESULT = True
+_ASSAULT_MUSTER_PREFIX = "ASSAULT —"
+
+
+def assault_result_line(text, limit=400):
+    """The outcome line an assault's muster pushed down — the first salient
+    line after a reply that OPENS with the assault's muster; "" otherwise."""
+    if not THE_DIGEST_KEEPS_THE_ASSAULT_RESULT:
+        return ""
+    lines = [line.strip() for line in str(text or "").splitlines()
+             if line.strip() and _HAS_WORD_RE.search(line)]
+    if len(lines) < 2 or not lines[0].startswith(_ASSAULT_MUSTER_PREFIX):
+        return ""
+    line = lines[1]
+    return (line[: limit - 1] + "…") if len(line) > limit else line
+
+
+# The exit's own re-read found the same blindness one reply over: a desk
+# answer opens with a LEAD-IN ("Were you to give the order, Sire:"), and the
+# digest recorded the lead-in and nothing of the answer. A first line that
+# ends in a colon announces the lines below it; the next two are recorded.
+THE_DIGEST_READS_PAST_A_LEAD_IN = True
+
+
+def continuation_line(text, limit=400):
+    """What a reply's FIRST line pushed down: the assault's outcome after its
+    muster (`assault_result_line`), or — after a lead-in ending in ":" — the
+    next two salient lines joined " / "; "" otherwise."""
+    result = assault_result_line(text, limit)
+    if result or not THE_DIGEST_READS_PAST_A_LEAD_IN:
+        return result
+    lines = [line.strip() for line in str(text or "").splitlines()
+             if line.strip() and _HAS_WORD_RE.search(line)]
+    if len(lines) < 2 or not lines[0].endswith(":"):
+        return ""
+    body = " / ".join(lines[1:3])
+    return (body[: limit - 1] + "…") if len(body) > limit else body
+
+
 def salient_line(text, limit=170):
     """`first_line`, but a bracketed tactical annotation yields to the prose.
 
@@ -1348,13 +1392,17 @@ class Digest:
             mark += "]"
         self._md(f"- CMD `{text}` → {ok}{mark} "
                  f"{first_line(response.get('message'))}")
+        _assault_result = continuation_line(response.get("message"))
+        if _assault_result:
+            self._md(f"  - ↳ {first_line(_assault_result)}")
         if response.get("capture_refused_recovering"):
             # FA-9 review round (L1-3): the walk-in that annexed nothing.
             self._md("  - ↳ walked in and annexed nothing — the corps is still "
                      "rallying from the rout (FA-9)")
         self.record("command", text=text, success=response.get("success"),
                     parse_mode=mode, parse_confidence=confidence,
-                    message=first_line(response.get("message"), 400))
+                    message=first_line(response.get("message"), 400),
+                    **({"result": _assault_result} if _assault_result else {}))
 
     def battle(self, report):
         self.counters["battles"] += 1

@@ -500,6 +500,38 @@ THE_DESK_ANSWERS_THE_BOARD = True
 # corps-only answer.
 THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS = True
 
+# ═══════════════════════════════════════════════════════════════════════════
+# THE SESSION EXIT'S RESIDUE (Score Mandate, September 26, 2026 — memo
+# `docs/audits/SR_SESSION_EXIT_2026_09_26.md`, findings F1 and F2). Each rule
+# behind its own lever; the down arm reproduces the finding.
+# ═══════════════════════════════════════════════════════════════════════════
+# F1 (P2): "is Vienna safe?" counted the corps at war with FRANCE whoever held
+# the province — so Austria's own Archduke John was named the threat to
+# Austria's own capital ("It is safe for a turn or two, no longer"), and a
+# French corps one march from Vienna, the only thing that threatened it, was
+# invisible to the answer. On soil that is not ours the threats are the corps
+# at war with its HOLDER, and on enemy soil the holder's own corps are its
+# cover, named as such.
+THE_SAFE_ANSWER_READS_THE_HOLDER = True
+# F2 (P2): "should Davout attack Mack" answered with the muster of whichever
+# corps stood nearest (Ney's) — CRT-2's class, inside the desk. The named
+# marshal is the one weighed; beyond his reach the answer says what the order
+# would do and names who IS within reach, and never weighs a substitute.
+THE_WHAT_IF_NAMES_ITS_MARSHAL = True
+# F2: "what are Ney's odds against Vienna" — the Creative AAR player's own
+# turn-5 line — had no desk kind at all.
+THE_DESK_READS_THE_ODDS = True
+# F2: a PROVINCE never reached the what-if ("should Ney attack Vienna", "can
+# Ney take Vienna" shrugged). It is weighed as the order reads it: the corps
+# standing there (the muster), else its works (the resolver's own exchange,
+# `CombatExecutor.garrison_exchange`), else open ground.
+THE_WHAT_IF_WEIGHS_A_PROVINCE = True
+# Who "we" and "I" are in a what-if: the player, weighing the nearest corps.
+_THE_ASKER = frozenset({"i", "we", "us", "our", "my", "the"})
+# A subject the desk cannot place ends the classification: the older what-if
+# entry would otherwise weigh the nearest corps in his stead.
+_NO_SUBSTITUTE = object()
+
 # The nouns a PRICE question may name. An allowlist rather than a free
 # capture, because "how much ..." otherwise swallows "how many men does Ney
 # have" — which the desk above already answers better.
@@ -626,6 +658,33 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         + r"(?P<name>[\w'’-]+(?:\s+[\w'’-]+)?)"
         r"\s+(?:reach|get\s+to|make\s+it\s+to)\s+(?:the\s+)?"
         r"(?P<place>.+?)" + _TAIL, re.IGNORECASE)),
+    # SR session-exit residue F2 (Sept 26, 2026): the NAMED what-if. The
+    # subject is captured, so "should Davout attack Mack" weighs Davout, and
+    # the verb reads its inflections and the province verbs ("what if Ney
+    # attacks Vienna", "can Ney take Vienna"). Sited BEFORE the older entry
+    # below, which stays the lever-down reading byte for byte.
+    ("what_if_named", re.compile(
+        _LEAD + r"(?:what\s+(?:happens|would\s+happen)\s+if|what\s+if"
+        r"|should|can|could)\s+(?P<who>i|we|" + _HON
+        + r"[\w'’-]+(?:\s+[\w'’-]+)?)\s+"
+        r"(?:attacks?|attacked|engages?|engaged|assaults?|assaulted"
+        r"|fights?|beats?|takes?|storms?|seizes?|captures?)\s+"
+        r"(?:the\s+)?(?P<name>.+?)" + _TAIL, re.IGNORECASE)),
+    # F2: the ODDS — "what are Ney's odds against Vienna", "what are our
+    # chances against Mack", "how good are the odds of taking Vienna", "what
+    # odds does Ney have against Mack".
+    ("what_if_odds", re.compile(
+        _LEAD + r"(?:what(?:" + _APOS + r"s|\s+(?:is|are|were|would\s+be))\s+"
+        r"(?:the\s+|our\s+|my\s+|(?P<who>" + _HON + r"[\w'’-]+?)"
+        + _APOS + r"s?\s+)?(?:odds|chances?|prospects?)"
+        r"|how\s+(?:good|strong|fair|bad|high)\s+(?:are|is)\s+"
+        r"(?:the\s+|our\s+|my\s+|(?P<who2>" + _HON + r"[\w'’-]+?)"
+        + _APOS + r"s?\s+)?(?:odds|chances?|prospects?)"
+        r"|what\s+(?:odds|chances?)\s+(?:do|does|would)\s+(?P<who3>i|we|"
+        + _HON + r"[\w'’-]+)\s+(?:have|stand|get))"
+        r"\s+(?:of\s+(?:beating|taking|storming|carrying|winning\s+at)"
+        r"|against|versus|vs\.?|at|on|for|with)\s+"
+        r"(?:the\s+)?(?P<name>.+?)" + _TAIL, re.IGNORECASE)),
     # "what happens if I attack Mack" / "what if we attack Mack" /
     # "should I attack Mack"
     ("what_if", re.compile(
@@ -713,10 +772,21 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
     for kind, pattern in _WIDE_KINDS:
         if kind in _WAR_QUESTION_KINDS and not THE_DESK_ANSWERS_THE_WAR_QUESTION:
             continue
+        if kind == "what_if_named" and not THE_WHAT_IF_NAMES_ITS_MARSHAL:
+            continue
+        if kind == "what_if_odds" and not THE_DESK_READS_THE_ODDS:
+            continue
         match = pattern.match(stripped)
         if not match:
             continue
         groups = match.groupdict()
+        if kind in ("what_if_named", "what_if_odds"):
+            weighed = _classify_the_weighed(groups, marshals, enemies, regions)
+            if weighed is _NO_SUBSTITUTE:
+                return None
+            if weighed is None:
+                continue
+            return weighed
         if kind in _SUBJECTLESS_KINDS:
             return {"kind": kind, "subject": "", "subject_type": "board"}
         if kind == "safe":
@@ -768,6 +838,33 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
                 return {"kind": kind, "subject": where[0],
                         "subject_type": "region"}
             return {"kind": kind, "subject": "", "subject_type": "here"}
+    return None
+
+
+def _classify_the_weighed(groups, marshals, enemies, regions):
+    """F2: the what-if's subject and object. The subject is the corps the
+    question NAMES (a name the desk cannot place ends the classification —
+    `_NO_SUBSTITUTE` — rather than let the older entry weigh the nearest
+    corps in his stead); the object is a foreign commander, else a province."""
+    who = next((groups.get(k) for k in ("who", "who2", "who3") if groups.get(k)), "")
+    who = (who or "").strip()
+    marshal, foreign = "", False
+    if who and _norm(who) not in _THE_ASKER:
+        hit = _resolve(who, marshals, enemies, (), kind="where")
+        if not hit:
+            return _NO_SUBSTITUTE
+        marshal, foreign = hit[0], hit[1] != "marshal"
+    phrase = groups.get("name") or ""
+    foe = _resolve(phrase, (), enemies, (), kind="where")
+    if foe:
+        return {"kind": "what_if", "subject": foe[0], "subject_type": "enemy",
+                "marshal": marshal, "marshal_foreign": foreign}
+    if THE_WHAT_IF_WEIGHS_A_PROVINCE:
+        where = _resolve(phrase, (), (), regions, kind="who_holds")
+        if where:
+            return {"kind": "what_if", "subject": where[0],
+                    "subject_type": "region", "marshal": marshal,
+                    "marshal_foreign": foreign}
     return None
 
 
@@ -1048,7 +1145,9 @@ def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
     return answer
 
 
-def _answer_what_if(world, player: str, enemy_name: str) -> Optional[str]:
+def _answer_what_if(world, player: str, enemy_name: str,
+                    marshal_name: str = "",
+                    marshal_foreign: bool = False) -> Optional[str]:
     """The muster preview the ATTACK itself would print, without the attack.
 
     `_build_muster_preview` is the W6-4 source: who will march, who will not,
@@ -1117,6 +1216,14 @@ def _answer_what_if(world, player: str, enemy_name: str) -> Optional[str]:
         elif not world.is_at_war(player, enemy.nation):
             preface = (f"France is at peace with {court}, Sire — the order "
                        f"would first put a declaration of war to you.\n")
+    if marshal_name and THE_WHAT_IF_NAMES_ITS_MARSHAL:
+        # F2: the corps the question named, never a substitute.
+        chosen = _the_named_corps(world, player, marshal_name, marshal_foreign,
+                                  enemy.location, f"{shown} at {enemy.location}",
+                                  candidates, enemy_target=True)
+        if isinstance(chosen, str):
+            return preface + chosen
+        candidates = [chosen]
     if not candidates:
         return (f"{preface}No corps of ours stands within reach of {shown} at "
                 f"{enemy.location}, Sire — there is no battle to weigh.")
@@ -1134,6 +1241,205 @@ def _answer_what_if(world, player: str, enemy_name: str) -> Optional[str]:
         return None
     return (preface + "Were you to give the order, Sire:\n" + str(text).strip()
             + "\n\nNothing has been ordered, and nothing spent.")
+
+
+def _the_named_corps(world, player: str, marshal_name: str, foreign: bool,
+                     target_location: str, target_shown: str, candidates,
+                     enemy_target: bool):
+    """F2: the corps a what-if NAMED — the Marshal to weigh, or the sentence
+    the order itself would answer with. Never a substitute: beyond his reach
+    the answer names who IS within reach, and weighs nobody.
+
+    The order's own gates, in the order `_execute_attack` asks them: the
+    range (an enemy commander out of reach is pursued, a province out of
+    reach is refused, and a gun engages only adjacent ground), then the
+    engagement rule (a corps engaged where it stands attacks nothing
+    elsewhere)."""
+    shown_m = _display(marshal_name)
+    marshal = world.get_marshal(marshal_name)
+    if marshal is None:
+        if marshal_name in (getattr(world, "fallen_marshals", None) or {}):
+            return f"{shown_m} has fallen, Sire — he leads no army to weigh."
+        return f"I know no corps under {shown_m}, Sire."
+    if foreign or marshal.nation != player:
+        return (f"{shown_m} is {_court(world, marshal.nation)}'s, Sire — not "
+                f"ours to order; I can weigh the field only for a corps of ours.")
+    if getattr(marshal, "captured_by", ""):
+        return f"{shown_m} is a prisoner, Sire — he leads no army to weigh."
+    if getattr(marshal, "administrative", False):
+        return f"{shown_m} serves at the desk, Sire — he leads no army to weigh."
+    if int(getattr(marshal, "strength", 0) or 0) <= 0:
+        return f"{shown_m} has no army left to weigh, Sire."
+    reach = int(getattr(marshal, "movement_range", 1) or 1)
+    if world.get_distance(marshal.location, target_location) > reach:
+        others = [c for c in candidates if c.name != marshal.name]
+        within = ""
+        if others:
+            names = _join([_display(c.name) for c in others[:3]])
+            within = (f" Of ours, {names} "
+                      f"{'stands' if len(others) == 1 else 'stand'} within reach.")
+        if enemy_target and not getattr(marshal, "artillery", False):
+            then = ("the order would set him in pursuit, and there is no "
+                    "battle to weigh yet")
+        else:
+            then = "the order would be refused, and nothing spent"
+        return (f"{shown_m} stands at {marshal.location}, beyond reach of "
+                f"{target_shown} this turn, Sire — {then}.{within}")
+    if target_location != marshal.location:
+        engaged = [e for e in world.get_marshals_in_region(marshal.location)
+                   if e.nation != player
+                   and int(getattr(e, "strength", 0) or 0) > 0
+                   and world.is_at_war(player, e.nation)]
+        if engaged:
+            names = _join([_display(e.name) for e in engaged])
+            return (f"The order would be refused, Sire: {shown_m} is engaged "
+                    f"with {names} at {marshal.location}, who must be dealt "
+                    f"with first — nothing spent.")
+    return marshal
+
+
+def _muster_lines(world, attacker, defender) -> Optional[str]:
+    """The W6-4 muster the attack itself prints (`_build_muster_preview` +
+    `_format_muster_lines`), for the corps and the defender given."""
+    from backend.commands.executor import CommandExecutor
+    combat = CommandExecutor()._combat
+    preview = combat._build_muster_preview(attacker, defender, world,
+                                           {"world": world})
+    if not preview:
+        return None
+    text = combat._format_muster_lines(preview)
+    return str(text).strip() if text else None
+
+
+def _answer_what_if_region(world, player: str, region_name: str,
+                           marshal_name: str = "",
+                           marshal_foreign: bool = False) -> Optional[str]:
+    """F2: "what are Ney's odds against Vienna" / "should Ney attack Vienna"
+    / "can Ney take Vienna" — the province weighed as `_execute_attack` reads
+    a province, in the order's own sequence: out of reach it is refused; a
+    corps engaged where it stands attacks nothing elsewhere; the crossing
+    gate; then a corps AT WAR with us standing there is fought, whoever owns
+    the ground (Mack at Bavarian Swabia is fought, not refused); only when
+    none stands there does the province's holder decide — ours holds nothing
+    to attack, an ally's soil is refused, a court at peace or under a truce
+    would first be put a declaration — and then its works (the assault's own
+    reckoning and the resolver's exchange, `garrison_report.
+    assault_forecast`), else open ground. Fog: nothing in the province is
+    named unless it is in view (PARTIAL+), and the garrison is a count only
+    at FULL."""
+    from backend.models.intel import PARTIAL
+    region = world.get_region(region_name)
+    if region is None:
+        return None
+    holder = getattr(region, "controller", "") or ""
+    court = _court(world, holder) if holder else region_name
+    visible = bool(world.get_region_intel(region_name).visibility_at_least(PARTIAL))
+    enemy_there = (world.get_enemy_at_location_for_nation(region_name, player)
+                   if visible else None)
+    if holder == player and enemy_there is None:
+        return f"{region_name} is ours, Sire — there is nothing there to attack."
+    able = [m for m in world.get_player_marshals()
+            if int(getattr(m, "strength", 0) or 0) > 0
+            and not getattr(m, "captured_by", "")
+            and not getattr(m, "administrative", False)]
+    in_reach = sorted(
+        (m for m in able
+         if world.get_distance(m.location, region_name)
+         <= int(getattr(m, "movement_range", 1) or 1)),
+        key=lambda m: (world.get_distance(m.location, region_name),
+                       -int(m.strength)))
+    if marshal_name and THE_WHAT_IF_NAMES_ITS_MARSHAL:
+        chosen = _the_named_corps(world, player, marshal_name, marshal_foreign,
+                                  region_name, region_name, in_reach,
+                                  enemy_target=False)
+        if isinstance(chosen, str):
+            return chosen
+    else:
+        if not in_reach:
+            return (f"No corps of ours stands within reach of {region_name}, "
+                    f"Sire — there is nothing to weigh this turn.")
+        chosen = None
+        first_refusal = None
+        for candidate in in_reach:
+            verdict = _the_named_corps(world, player, candidate.name, False,
+                                       region_name, region_name, in_reach,
+                                       enemy_target=False)
+            if isinstance(verdict, str):
+                first_refusal = first_refusal or verdict
+                continue
+            chosen = verdict
+            break
+        if chosen is None:
+            return first_refusal
+    shown_m = _display(chosen.name)
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import crossing_check_reach
+        crossing = crossing_check_reach(world, player, chosen.location,
+                                        region_name, int(chosen.strength))
+        if not crossing.get("allowed", True):
+            return (f"The order would be refused, Sire: "
+                    f"{crossing.get('message')} Nothing spent.")
+    closing = "\n\nNothing has been ordered, and nothing spent."
+    if enemy_there is not None:
+        text = _muster_lines(world, chosen, enemy_there)
+        if not text:
+            return None
+        return "Were you to give the order, Sire:\n" + text + closing
+    preface = ""
+    if holder and not world.is_at_war(player, holder):
+        from backend.commands.combat_executor import friendly_fire_refusal
+        state = world.get_diplomatic_state(player, holder)
+        if friendly_fire_refusal(world, chosen, holder):
+            bond = "our vassal" if state == "VASSAL" else "our ally"
+            return (f"{region_name} is {court}'s, and {court} is {bond}, Sire "
+                    f"— the order would be refused, and nothing spent. "
+                    f"{CABINET_LINE_FOR_DESK}")
+        if state == "ARMISTICE":
+            from backend.game_logic.diplomacy import ARMISTICE_DURATION
+            key = world._make_diplo_key(player, holder)
+            elapsed = int((getattr(world, "armistice_turns", {}) or {}).get(key, 0) or 0)
+            left = max(0, ARMISTICE_DURATION - elapsed)
+            preface = (f"We hold a truce with {court}, Sire ({left} "
+                       f"{'turn' if left == 1 else 'turns'} remaining) — the "
+                       f"order would first put a declaration of war to you.\n")
+        else:
+            preface = (f"France is at peace with {court}, Sire — the order "
+                       f"would first put a declaration of war to you.\n")
+    if not visible:
+        return (preface + f"We have no intelligence on what holds "
+                f"{region_name}, Sire — there is nothing to weigh. Scout it "
+                f"before you strike.")
+    if holder and not world.is_at_war(player, holder):
+        # After the declaration, the holder's own corps standing there is
+        # the defender the re-issued order would meet.
+        defender = next(
+            (m for m in world.marshals.values()
+             if m.location == region_name and m.nation == holder
+             and int(getattr(m, "strength", 0) or 0) > 0
+             and not getattr(m, "captured_by", "")), None)
+        if defender is not None:
+            text = _muster_lines(world, chosen, defender)
+            if not text:
+                return None
+            return preface + "Were you to give the order, Sire:\n" + text + closing
+    from backend.game_logic import garrison_report as _garrison_report
+    if _garrison_report.garrison_fights(region):
+        return (preface + "Were you to give the order, Sire:\n"
+                + _garrison_report.assault_forecast_text(world, player, chosen,
+                                                         region) + closing)
+    from backend.commands.movement_executor import (
+        raiding_party_holds_no_ground, raiding_party_refusal)
+    if raiding_party_holds_no_ground(chosen, region, world):
+        return (preface + "The order would be refused, Sire: "
+                + raiding_party_refusal(chosen, region_name) + " Nothing spent.")
+    if int(getattr(region, "garrison_strength", 0) or 0) > 0:
+        form, value = _garrison_report.garrison_view(world, region_name, player)
+        count = f"{value:,}" if form == "exact" else str(value)
+        return (preface + f"{region_name}'s garrison ({count}) is too weak to "
+                f"stand against a corps, Sire — it would collapse before "
+                f"{shown_m}, and {region_name} would fall to the march." + closing)
+    return (preface + f"{region_name} stands open, Sire — {shown_m} would take "
+            f"it by marching in." + closing)
 
 
 def _answer_levy_price(world, player: str, arm: str) -> Optional[str]:
@@ -1368,6 +1674,11 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
                      f"on what holds it.")
     else:
         parts.append(f"{region_name} is {whose}, Sire, with no corps of ours in it.")
+    if THE_SAFE_ANSWER_READS_THE_HOLDER and not ours:
+        parts.extend(_safe_for_the_holder(world, player, region, region_name,
+                                          adjacent, two_off, garrison, in_view,
+                                          bool(own)))
+        return " ".join(parts)
     if threats:
         said = []
         for steps, enemy, force in threats[:4]:
@@ -1391,6 +1702,98 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
         parts.append("No enemy corps stands within two marches of it, so far "
                      "as our intelligence reaches — it looks safe today.")
     return " ".join(parts)
+
+
+def _safe_for_the_holder(world, player: str, region, region_name: str,
+                         adjacent, two_off, garrison: int, in_view: bool,
+                         ours_in_it: bool) -> List[str]:
+    """F1: "is X safe?" on soil that is not ours — read from its HOLDER's
+    side. The threats are the corps at war with the holder that we can see
+    (ours always; any other only where the cell is in view, PARTIAL+), within
+    two marches; on enemy soil the holder's own corps are its cover, named as
+    such, never as a threat."""
+    from backend.models.intel import FULL, PARTIAL, get_strength_band
+    holder_nation = getattr(region, "controller", "") or ""
+    holder = _court(world, holder_nation) if holder_nation else region_name
+    enemy_soil = bool(holder_nation) and world.is_at_war(player, holder_nation)
+    threats, cover = [], []
+    for marshal in world.marshals.values():
+        if int(getattr(marshal, "strength", 0) or 0) <= 0:
+            continue
+        if getattr(marshal, "captured_by", ""):
+            continue
+        where = marshal.location
+        if where == region_name:
+            steps = 0
+        elif where in adjacent:
+            steps = 1
+        elif where in two_off:
+            steps = 2
+        else:
+            continue
+        ours_m = marshal.nation == player
+        intel = world.get_region_intel(where)
+        if not ours_m and not intel.visibility_at_least(PARTIAL):
+            continue
+        force = (f"{int(marshal.strength):,} men"
+                 if ours_m or intel.visibility == FULL
+                 else get_strength_band(int(marshal.strength)))
+        if marshal.nation == holder_nation:
+            if enemy_soil:
+                cover.append((steps, marshal, force))
+            continue
+        if holder_nation and world.is_at_war(holder_nation, marshal.nation):
+            threats.append((steps, marshal, force))
+    threats.sort(key=lambda t: (t[0], -int(t[1].strength)))
+    cover.sort(key=lambda t: (t[0], -int(t[1].strength)))
+
+    def said(entries):
+        out = []
+        for steps, marshal, force in entries[:4]:
+            name = _display(marshal.name)
+            who = (name if marshal.nation == player
+                   else f"{name} of {_court(world, marshal.nation)}")
+            distance = ("stands IN it" if steps == 0 else
+                        f"is at {marshal.location}, one march away" if steps == 1
+                        else f"is at {marshal.location}, two marches off")
+            out.append(f"{who} {distance} ({force})")
+        return "; ".join(out)
+
+    lines = []
+    if threats:
+        label = (f"Corps at war with {holder} within two marches"
+                 if enemy_soil else "Threats we can see")
+        lines.append(f"{label}: {said(threats)}.")
+    if cover:
+        lines.append(f"{holder}'s own we can see: {said(cover)}.")
+    held = garrison > 0 or ours_in_it or any(s == 0 for s, _, _ in cover)
+    if threats:
+        nearest = threats[0][0]
+        if nearest == 0:
+            lines.append("It is contested." if enemy_soil
+                         else "It is contested, not safe.")
+        elif nearest == 1 and not in_view:
+            lines.append("It is within reach of its enemies; what holds it "
+                         "we cannot see.")
+        elif nearest == 1 and not held:
+            lines.append(f"It lies open — nothing of {holder}'s stands in "
+                         f"the way." if enemy_soil else
+                         "It is in danger — nothing stands in its way.")
+        elif nearest == 1:
+            lines.append("It is held, but within reach." if enemy_soil else
+                         "It is held, but threatened.")
+        else:
+            lines.append("Its nearest enemy is two marches off." if enemy_soil
+                         else "It is safe for a turn or two, no longer.")
+    elif enemy_soil:
+        lines.append(f"No corps at war with {holder} stands within two marches "
+                     f"of it, so far as our intelligence reaches — it lies "
+                     f"beyond our reach today.")
+    else:
+        lines.append(f"No corps at war with {holder} stands within two marches "
+                     f"of it, so far as our intelligence reaches — it looks "
+                     f"safe today.")
+    return lines
 
 
 def _answer_truce_clock(world, player: str, nation: str) -> Optional[str]:
@@ -1720,6 +2123,13 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_reach(world, player, subject,
                                  str(question.get("place") or ""))
         if kind == "what_if":
+            _named = str(question.get("marshal") or "")
+            _foreign = bool(question.get("marshal_foreign"))
+            if question.get("subject_type") == "region":
+                return _answer_what_if_region(world, player, subject, _named,
+                                              _foreign)
+            if _named:
+                return _answer_what_if(world, player, subject, _named, _foreign)
             return _answer_what_if(world, player, subject)
         if kind == "can_build":
             where = subject or _first_own_region_with_a_corps(world, player)

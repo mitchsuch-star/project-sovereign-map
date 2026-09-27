@@ -110,7 +110,8 @@ def garrison_scan_clause(world, region_name: str, viewer: str) -> str:
 
 
 def assault_muster_line(world, marshal, region, attacker_effective: int,
-                        garrison_effective_now: int, coordination: float) -> str:
+                        garrison_effective_now: int, coordination: float,
+                        garrison_shown: Optional[str] = None) -> str:
     """AAR-24: the one-line muster an assault gets — the resolver's OWN terms
     (shown = applied): he goes in alone at `attacker_effective`, his corps
     beside him lend their coordination share but no men, and the garrison
@@ -125,9 +126,16 @@ def assault_muster_line(world, marshal, region, attacker_effective: int,
             f"assault's reckoning")
     if coordination > 0:
         lead += f" (+{int(round(coordination * 100))}% from the corps at his side)"
-    lead += f", against a garrison of {garrison:,}"
-    if garrison_effective_now != garrison:
-        lead += f" ({int(garrison_effective_now):,} behind its ground and works)"
+    if garrison_shown is not None:
+        # The desk's forecast at PARTIAL (SR session-exit residue F2): the
+        # garrison is a band there, and its effective figure would give the
+        # count away, so neither is printed.
+        lead += f", against {garrison_shown}"
+    else:
+        lead += f", against a garrison of {garrison:,}"
+        if garrison_effective_now != garrison:
+            lead += (f" ({int(garrison_effective_now):,} behind its ground "
+                     f"and works)")
     lead += "."
     adjacent = set(getattr(region, "adjacent_regions", None) or [])
     beside = [m for m in world.marshals.values()
@@ -148,6 +156,103 @@ def assault_muster_line(world, marshal, region, attacker_effective: int,
     else:
         tail += f" the garrison breaks below {MARCH_HALTS_AT_GARRISON:,}."
     return (lead + tail).replace(";  ", "; ").strip()
+
+
+def garrison_fights(region) -> bool:
+    """The attack's own rule (`CombatExecutor._execute_attack`): a garrison
+    stands and must be assaulted when it is a detachment (it fights to the
+    last man) or a capital's at or above the collapse line. ONE copy — the
+    order and the desk's forecast both read it (SR session-exit residue F2)."""
+    from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+    garrison = int(getattr(region, "garrison_strength", 0) or 0)
+    if garrison <= 0:
+        return False
+    if getattr(region, "garrison_detachment", False):
+        return True
+    return garrison >= MARCH_HALTS_AT_GARRISON
+
+
+def garrison_breaks(region, remaining: int) -> bool:
+    """The resolver's collapse rule: a detachment breaks at nothing, a
+    capital's garrison below the collapse line."""
+    from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+    if getattr(region, "garrison_detachment", False):
+        return int(remaining) <= 0
+    return int(remaining) < MARCH_HALTS_AT_GARRISON
+
+
+def assault_forecast(world, marshal, region) -> dict:
+    """The assault's reckoning WITHOUT the assault (SR session-exit residue
+    F2): the resolver's own reads in the resolver's own order — the
+    coordination stamp, then the attack modifier — taken PURELY. Every
+    transient coordination field of every marshal is restored afterwards and
+    the modifier is read with `consume=False`, so nothing a later battle
+    reads is touched; the losses are `CombatExecutor.garrison_exchange`, the
+    arithmetic the resolver applies (shown = applied)."""
+    from backend.commands.executor import CommandExecutor
+    from backend.models.marshal import Marshal
+    fields = Marshal.COORDINATION_TRANSIENT_FIELDS
+    saved = {}
+    for key, other in world.marshals.items():
+        saved[key] = {f: other.__dict__[f] for f in fields if f in other.__dict__}
+    combat = CommandExecutor()._combat
+    try:
+        combat._calculate_coordination_context(marshal, world)
+        coordination = float(
+            getattr(marshal, "total_coordination_attack_bonus", 0.0) or 0.0)
+        modifier = marshal.get_attack_modifier(consume=False)
+    finally:
+        for key, other in world.marshals.items():
+            before = saved.get(key, {})
+            for f in fields:
+                if f in before:
+                    setattr(other, f, before[f])
+                elif f in other.__dict__:
+                    delattr(other, f)
+    attacker_effective = int(marshal.strength * modifier)
+    garrison_now = int(getattr(region, "garrison_strength", 0) or 0)
+    defence = garrison_effective(region)
+    attacker_losses, garrison_losses = combat.garrison_exchange(
+        int(marshal.strength), attacker_effective, garrison_now, defence)
+    remaining = max(0, garrison_now - garrison_losses)
+    return {"attacker_effective": attacker_effective,
+            "garrison_effective": defence, "coordination": coordination,
+            "attacker_losses": attacker_losses,
+            "garrison_losses": garrison_losses, "remaining": remaining,
+            "breaks": garrison_breaks(region, remaining)}
+
+
+def assault_forecast_text(world, viewer: str, marshal, region) -> str:
+    """The desk's answer for an assault: the order's own one-line muster,
+    then — only where the garrison is counted (FULL, or our own soil) — the
+    exchange the resolver would apply. At PARTIAL the garrison is a band and
+    no figure that would give its count away is printed."""
+    from backend.display_names import humanize_entity_name
+    form, value = garrison_view(world, region.name, viewer)
+    forecast = assault_forecast(world, marshal, region)
+    name = humanize_entity_name(marshal.name)
+    if form != "exact":
+        line = assault_muster_line(
+            world, marshal, region, forecast["attacker_effective"],
+            forecast["garrison_effective"], forecast["coordination"],
+            garrison_shown=f"a garrison ({value})")
+        return (line + "\nOur intelligence gives no count of the garrison — "
+                "a scout's report would let me reckon the exchange.")
+    line = assault_muster_line(
+        world, marshal, region, forecast["attacker_effective"],
+        forecast["garrison_effective"], forecast["coordination"])
+    if forecast["breaks"]:
+        outcome = (f"The works would break: about "
+                   f"{forecast['garrison_losses']:,} of the garrison fall, "
+                   f"{name} loses about {forecast['attacker_losses']:,}, and "
+                   f"{region.name} is taken.")
+    else:
+        outcome = (f"The works would hold: about "
+                   f"{forecast['garrison_losses']:,} of the garrison fall and "
+                   f"{name} loses about {forecast['attacker_losses']:,} — "
+                   f"{forecast['remaining']:,} remain."
+                   + assault_regen_clause(world, region))
+    return line + "\n" + outcome
 
 
 def assault_regen_clause(world, region) -> str:

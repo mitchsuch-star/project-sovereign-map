@@ -6468,6 +6468,72 @@
       },
       "source": "CQ-37 the idioms (Score Mandate Chunk 3 reserve, September 26, 2026; SYSTEMS_REFERENCE.md §72.5)",
       "notes": "CQ-37: the adverb at the head of the order - 'once attack Mack' was read as a condition and the whole order was blanked."
+    },
+    {
+      "id": "sre-odds-against-a-province",
+      "utterance": "what are Ney's odds against Vienna",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
+      "notes": "SRX-2: the Creative AAR player's own turn-5 line — the odds phrasing had no desk kind."
+    },
+    {
+      "id": "sre-odds-against-a-commander",
+      "utterance": "what are Ney's odds against Mack",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
+      "notes": "SRX-2: the odds phrasing is the what-if."
+    },
+    {
+      "id": "sre-should-a-named-marshal-attack",
+      "utterance": "should Davout attack Mack?",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
+      "notes": "SRX-2: routed to the desk before and after (a control); the ANSWER weighs Davout now. The mark keeps the row independent of CX-1's lever, whose own pin requires every golden row to pass under both of its arms (the plain form leans on CX-1's subject rule and is pinned at /command by tests/test_sr_exit_residue_2026_09_26.py)."
+    },
+    {
+      "id": "sre-can-ney-take-a-province",
+      "utterance": "can Ney take Vienna?",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
+      "notes": "SRX-2: the province verb reaches the what-if. The mark keeps the row independent of CX-1's lever (the plain form is pinned at /command by tests/test_sr_exit_residue_2026_09_26.py)."
+    },
+    {
+      "id": "sre-how-long-without-the-mark",
+      "utterance": "how long until the armistice with Russia expires",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
+      "notes": "SRX-3: a quantity 'how' opens no imperative and needs no mark."
+    },
+    {
+      "id": "sre-what-if-a-marshal-attacks",
+      "utterance": "what if Lannes attacks Mack",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "mock_only": true,
+      "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
+      "notes": "SRX-3: a conjecture 'what if' is a question, not a contingency to refuse."
     }
   ]
 }

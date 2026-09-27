@@ -1,0 +1,240 @@
+[
+  {
+    "id": "F1 lever down",
+    "file": "backend/ai/question_desk.py",
+    "old": "THE_SAFE_ANSWER_READS_THE_HOLDER = True\n",
+    "new": "THE_SAFE_ANSWER_READS_THE_HOLDER = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_austrias_own_army_is_named_as_its_cover_not_its_threat"
+  },
+  {
+    "id": "F1 the holder's own corps is a threat",
+    "file": "backend/ai/question_desk.py",
+    "old": "            if enemy_soil:\n                cover.append((steps, marshal, force))\n",
+    "new": "            if enemy_soil:\n                threats.append((steps, marshal, force))\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_austrias_own_army_is_named_as_its_cover_not_its_threat"
+  },
+  {
+    "id": "F1 the fog is not read",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if not ours_m and not intel.visibility_at_least(PARTIAL):\n            continue\n",
+    "new": "        if False:\n            continue\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_a_foreign_corps_out_of_view_is_never_named"
+  },
+  {
+    "id": "F1 our corps near enemy soil is unsaid",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if holder_nation and world.is_at_war(holder_nation, marshal.nation):\n            threats.append((steps, marshal, force))\n",
+    "new": "        if False:\n            threats.append((steps, marshal, force))\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_our_corps_one_march_off_is_the_threat_on_enemy_soil"
+  },
+  {
+    "id": "F1 enemy soil reads as safe",
+    "file": "backend/ai/question_desk.py",
+    "old": "                     f\"beyond our reach today.\")\n",
+    "new": "                     f\"safe today.\")\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF1TheSafeAnswerReadsTheHolder::test_with_nothing_near_enemy_soil_lies_beyond_our_reach"
+  },
+  {
+    "id": "F2 named lever down",
+    "file": "backend/ai/question_desk.py",
+    "old": "THE_WHAT_IF_NAMES_ITS_MARSHAL = True\n",
+    "new": "THE_WHAT_IF_NAMES_ITS_MARSHAL = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheWhatIfNamesItsMarshal::test_should_davout_attack_mack_weighs_davout"
+  },
+  {
+    "id": "F2 odds lever down",
+    "file": "backend/ai/question_desk.py",
+    "old": "THE_DESK_READS_THE_ODDS = True\n",
+    "new": "THE_DESK_READS_THE_ODDS = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheOdds"
+  },
+  {
+    "id": "F2 province lever down",
+    "file": "backend/ai/question_desk.py",
+    "old": "THE_WHAT_IF_WEIGHS_A_PROVINCE = True\n",
+    "new": "THE_WHAT_IF_WEIGHS_A_PROVINCE = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_ours_holds_nothing_to_attack"
+  },
+  {
+    "id": "F2 an unplaceable name falls to the nearest corps",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if not hit:\n            return _NO_SUBSTITUTE\n",
+    "new": "        if not hit:\n            return None\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheWhatIfNamesItsMarshal::test_a_name_nobody_has_is_never_the_nearest_corps tests/test_sr_exit_residue_2026_09_26.py::TestF2TheWhatIfNamesItsMarshal::test_the_classifier_ends_on_a_name_it_cannot_place"
+  },
+  {
+    "id": "F2 the named corps has no reach",
+    "file": "backend/ai/question_desk.py",
+    "old": "    if world.get_distance(marshal.location, target_location) > reach:\n",
+    "new": "    if world.get_distance(marshal.location, target_location) > 99:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheWhatIfNamesItsMarshal::test_a_named_corps_beyond_reach_is_never_substituted"
+  },
+  {
+    "id": "F2 a foreign subject is weighed",
+    "file": "backend/ai/question_desk.py",
+    "old": "    if foreign or marshal.nation != player:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheWhatIfNamesItsMarshal::test_a_foreign_subject_is_not_ours_to_order"
+  },
+  {
+    "id": "F2 the named what-if forgets take",
+    "file": "backend/ai/question_desk.py",
+    "old": "        r\"|fights?|beats?|takes?|storms?|seizes?|captures?)\\s+\"\n",
+    "new": "        r\"|fights?|beats?|storms?|seizes?|captures?)\\s+\"\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed"
+  },
+  {
+    "id": "F2 the odds forget odds",
+    "file": "backend/ai/question_desk.py",
+    "old": "        + _APOS + r\"s?\\s+)?(?:odds|chances?|prospects?)\"\n        r\"|how\\s+(?:good",
+    "new": "        + _APOS + r\"s?\\s+)?(?:chances?|prospects?)\"\n        r\"|how\\s+(?:good",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2TheOdds"
+  },
+  {
+    "id": "F2 ours is attacked",
+    "file": "backend/ai/question_desk.py",
+    "old": "    if holder == player and enemy_there is None:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_ours_holds_nothing_to_attack"
+  },
+  {
+    "id": "F2 the army standing there is not read",
+    "file": "backend/ai/question_desk.py",
+    "old": "    enemy_there = (world.get_enemy_at_location_for_nation(region_name, player)\n                   if visible else None)\n",
+    "new": "    enemy_there = None\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_a_corps_standing_there_is_weighed_as_the_muster"
+  },
+  {
+    "id": "F2 the fog is not read on a province",
+    "file": "backend/ai/question_desk.py",
+    "old": "    if not visible:\n        return (preface + f\"We have no intelligence on what holds \"\n",
+    "new": "    if False:\n        return (preface + f\"We have no intelligence on what holds \"\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_in_the_fog_nothing_in_it_is_named"
+  },
+  {
+    "id": "F2 an ally's soil is weighed",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if friendly_fire_refusal(world, chosen, holder):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_an_allys_province_is_refused_like_the_order"
+  },
+  {
+    "id": "F2 the forecast leaves the stamp",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "                if f in before:\n                    setattr(other, f, before[f])\n",
+    "new": "                if f in before:\n                    pass\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_the_forecast_is_the_exchange_the_resolver_applies"
+  },
+  {
+    "id": "F2 the forecast spends Iron Resolve",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "        modifier = marshal.get_attack_modifier(consume=False)\n",
+    "new": "        modifier = marshal.get_attack_modifier(consume=True)\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_the_forecast_spends_no_one_time_bonus"
+  },
+  {
+    "id": "F2 the band leaks the count",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if form != \"exact\":\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_at_partial_the_garrison_is_a_band_and_no_count_leaks"
+  },
+  {
+    "id": "F2 the muster line prints the count",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if garrison_shown is not None:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_at_partial_the_garrison_is_a_band_and_no_count_leaks"
+  },
+  {
+    "id": "exchange the defender's floor moves",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            garrison_losses, int(garrison_strength * 0.10), 1)\n",
+    "new": "            garrison_losses, int(garrison_strength * 0.11), 1)\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestTheExchangeIsOneCopy::test_the_method_is_the_pre_extraction_arithmetic"
+  },
+  {
+    "id": "garrison stands one short of the line",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    return garrison >= MARCH_HALTS_AT_GARRISON\n",
+    "new": "    return garrison > MARCH_HALTS_AT_GARRISON\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestTheExchangeIsOneCopy::test_the_predicates_are_the_orders_rules"
+  },
+  {
+    "id": "garrison breaks at the line",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    return int(remaining) < MARCH_HALTS_AT_GARRISON\n",
+    "new": "    return int(remaining) <= MARCH_HALTS_AT_GARRISON\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestTheExchangeIsOneCopy::test_the_predicates_are_the_orders_rules"
+  },
+  {
+    "id": "F3 lever down",
+    "file": "backend/ai/clause_guards.py",
+    "old": "A_QUANTITY_OR_CONJECTURE_ASKS = True\n",
+    "new": "A_QUANTITY_OR_CONJECTURE_ASKS = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF3TheQuestionLeads::test_the_lead_is_a_question"
+  },
+  {
+    "id": "F3 how long is no question",
+    "file": "backend/ai/clause_guards.py",
+    "old": "    r\"^\\s+(?:long|many|much|far|soon|often)\\b\", re.IGNORECASE)\n",
+    "new": "    r\"^\\s+(?:many|much|far|soon|often)\\b\", re.IGNORECASE)\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF3TheQuestionLeads::test_the_lead_is_a_question"
+  },
+  {
+    "id": "F3 what if is no question",
+    "file": "backend/ai/clause_guards.py",
+    "old": "_CONJECTURE_AFTER_WHAT_RE = re.compile(r\"^\\s+if\\b\", re.IGNORECASE)\n",
+    "new": "_CONJECTURE_AFTER_WHAT_RE = re.compile(r\"^\\s+iff\\b\", re.IGNORECASE)\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF3TheQuestionLeads::test_the_lead_is_a_question"
+  },
+  {
+    "id": "F4 lever down",
+    "file": "tools/playtest_driver.py",
+    "old": "THE_DIGEST_KEEPS_THE_ASSAULT_RESULT = True\n",
+    "new": "THE_DIGEST_KEEPS_THE_ASSAULT_RESULT = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF4TheDigestKeepsTheResult::test_the_digest_records_it_in_both_files"
+  },
+  {
+    "id": "F4 any reply's second line is a result",
+    "file": "tools/playtest_driver.py",
+    "old": "    if len(lines) < 2 or not lines[0].startswith(_ASSAULT_MUSTER_PREFIX):\n",
+    "new": "    if len(lines) < 2:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF4TheDigestKeepsTheResult::test_any_other_reply_has_no_result_line"
+  },
+  {
+    "id": "F4 the md line is dropped",
+    "file": "tools/playtest_driver.py",
+    "old": "        if _assault_result:\n            self._md(f\"  - ↳ {first_line(_assault_result)}\")\n",
+    "new": "        if False:\n            self._md(f\"  - ↳ {first_line(_assault_result)}\")\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF4TheDigestKeepsTheResult::test_the_digest_records_it_in_both_files"
+  },
+  {
+    "id": "F2 the forecast leaves a fresh stamp",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "                elif f in other.__dict__:\n                    delattr(other, f)\n",
+    "new": "                elif f in other.__dict__:\n                    pass\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF2AProvinceIsWeighed::test_the_forecast_is_the_exchange_the_resolver_applies"
+  },
+  {
+    "id": "F4 the lead-in lever down",
+    "file": "tools/playtest_driver.py",
+    "old": "THE_DIGEST_READS_PAST_A_LEAD_IN = True\n",
+    "new": "THE_DIGEST_READS_PAST_A_LEAD_IN = False\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF4TheDigestKeepsTheResult::test_a_lead_in_is_read_past"
+  },
+  {
+    "id": "F4 any first line is a lead-in",
+    "file": "tools/playtest_driver.py",
+    "old": "    if len(lines) < 2 or not lines[0].endswith(\":\"):\n",
+    "new": "    if len(lines) < 2:\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF4TheDigestKeepsTheResult::test_a_lead_in_is_read_past"
+  },
+  {
+    "id": "F4 the command reads only the assault",
+    "file": "tools/playtest_driver.py",
+    "old": "        _assault_result = continuation_line(response.get(\"message\"))\n",
+    "new": "        _assault_result = assault_result_line(response.get(\"message\"))\n",
+    "tests": "tests/test_sr_exit_residue_2026_09_26.py::TestF4TheDigestKeepsTheResult::test_a_lead_in_is_read_past"
+  }
+]

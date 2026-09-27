@@ -1806,6 +1806,20 @@ def is_question(command_text: str,
         # "what is the news" was routed. No imperative opens this way.
         if A_PAST_TENSE_WH_IS_A_QUESTION and _PAST_TENSE_AFTER_WH_RE.match(rest):
             return True
+    # SR session-exit residue F3 (Sept 26, 2026): "how long until the
+    # armistice with Russia expires" and "what if Ney attacks Vienna". A
+    # quantity "how" and a conjecture "what if" open no imperative and carry
+    # no auxiliary: typed without the mark, the first fell to the order
+    # parser's shrug and the second to the contingency refusal, while the same
+    # line with a "?" reached the desk. On its OWN lever, deliberately outside
+    # CX-1's block: CX-1's corpus pin requires every golden row to pass under
+    # both arms of that lever, and this rule is not CX-1's.
+    if (A_QUANTITY_OR_CONJECTURE_ASKS and lead_word == "how"
+            and _QUANTITY_AFTER_HOW_RE.match(rest)):
+        return True
+    if (A_QUANTITY_OR_CONJECTURE_ASKS and lead_word == "what"
+            and _CONJECTURE_AFTER_WHAT_RE.match(rest)):
+        return True
     return lead_word in _WH_WORDS and bool(_AUXILIARY_RE.search(rest))
 
 
@@ -1817,6 +1831,15 @@ A_PAST_TENSE_WH_IS_A_QUESTION = True
 _PAST_TENSE_AFTER_WH_RE = re.compile(
     r"^\s+(?:happened|occurred|became|befell|transpired|changed"
     r"|went\s+wrong|came\s+of)\b", re.IGNORECASE)
+
+# SR session-exit residue F3: the quantity "how" ("how long", "how many",
+# "how much", "how far", "how soon", "how often") and the conjecture "what
+# if". A closed list, measured against the whole golden corpus: no row opens
+# with either and expects an order.
+A_QUANTITY_OR_CONJECTURE_ASKS = True
+_QUANTITY_AFTER_HOW_RE = re.compile(
+    r"^\s+(?:long|many|much|far|soon|often)\b", re.IGNORECASE)
+_CONJECTURE_AFTER_WHAT_RE = re.compile(r"^\s+if\b", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------

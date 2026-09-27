@@ -3765,13 +3765,12 @@ class CombatExecutor:
                 "message": f"{marshal.name} has no combat strength to assault the garrison."
             }
 
-        # Damage ratios (capped to prevent absurd results)
-        attacker_damage_ratio = min(0.35, garrison_effective / max(attacker_effective, 1) * 0.25)
-        garrison_damage_ratio = min(0.50, attacker_effective / max(garrison_effective, 1) * 0.35)
-
-        attacker_losses = int(marshal.strength * attacker_damage_ratio)
-        garrison_losses = int(target_region.garrison_strength * garrison_damage_ratio)
-
+        # Damage ratios (capped to prevent absurd results) and the floors
+        # below are ONE method, `garrison_exchange` (SR session-exit residue,
+        # Sept 26 2026): the desk's assault forecast reads it too, so "what
+        # are Ney's odds against Vienna" quotes the exchange this resolver
+        # applies (shown = applied).
+        #
         # Ensure minimum losses on both sides (no zero-damage stalemates)
         #
         # ── FA-D28 RULING (slice 14, Sept 5 2026) ─────────────────────────
@@ -3828,12 +3827,8 @@ class CombatExecutor:
         # player and by a small landing force put ashore against a capital.
         # It is the same rule for everyone; only one side can get into that
         # corner.
-        _floor_base = (target_region.garrison_strength
-                       if self.GARRISON_LOSS_FLOOR_READS_THE_GARRISON
-                       else marshal.strength)
-        attacker_losses = max(
-            attacker_losses,
-            int(_floor_base * self.GARRISON_ASSAULT_LOSS_FLOOR))
+        # (The floor itself is applied in `garrison_exchange`, the one copy
+        # of this arithmetic, called below.)
         # WO-3: the 10% floor TRUNCATES to 0 below ten men while the
         # attacker keeps paying his 2% floor — a detachment garrison
         # stalled at ONE man forever (measured: 40 assaults, "Garrison:
@@ -3844,8 +3839,9 @@ class CombatExecutor:
         # byte-identical. The P4.25 futility guard is consciously NOT
         # built (spec slice 3): with the floor fixed every assault
         # progresses, so unbounded futility cannot recur.
-        garrison_losses = max(
-            garrison_losses, int(target_region.garrison_strength * 0.10), 1)
+        attacker_losses, garrison_losses = self.garrison_exchange(
+            marshal.strength, attacker_effective,
+            target_region.garrison_strength, garrison_effective)
 
         # Apply losses
         marshal.strength = max(0, marshal.strength - attacker_losses)
@@ -3871,11 +3867,9 @@ class CombatExecutor:
 
         # Check if garrison collapsed
         # Capital garrisons collapse below 5k threshold; detachment garrisons fight to destruction
-        from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
-        if target_region.garrison_detachment:
-            garrison_collapsed = target_region.garrison_strength <= 0
-        else:
-            garrison_collapsed = target_region.garrison_strength < MARCH_HALTS_AT_GARRISON
+        # The collapse rule is ONE predicate the desk's forecast reads too.
+        garrison_collapsed = _garrison_report.garrison_breaks(
+            target_region, target_region.garrison_strength)
 
         # ── FA-R5 (slice 14): the assault goes ON THE RECORD ───────────────
         # Until now this resolver contained ZERO `log_event` calls, so two of
@@ -4202,6 +4196,30 @@ class CombatExecutor:
     # joining, the garrison's line of collapse, and (on the hold) what
     # the works regain by morning. False reproduces the bare message.
     AN_ASSAULT_NAMES_ITS_TERMS = True
+
+    def garrison_exchange(self, attacker_strength: int, attacker_effective: int,
+                          garrison_strength: int,
+                          garrison_effective: int) -> tuple:
+        """The garrison assault's loss arithmetic — ONE copy (SR session-exit
+        residue, Sept 26 2026), read by `_resolve_garrison_combat` and by the
+        desk's assault forecast. Proportional exchange, capped; then the
+        floors — the attacker's reads the GARRISON (FA-D28, the ruling above
+        the call site), the defender's carries WO-3's `+1`."""
+        attacker_damage_ratio = min(
+            0.35, garrison_effective / max(attacker_effective, 1) * 0.25)
+        garrison_damage_ratio = min(
+            0.50, attacker_effective / max(garrison_effective, 1) * 0.35)
+        attacker_losses = int(attacker_strength * attacker_damage_ratio)
+        garrison_losses = int(garrison_strength * garrison_damage_ratio)
+        _floor_base = (garrison_strength
+                       if self.GARRISON_LOSS_FLOOR_READS_THE_GARRISON
+                       else attacker_strength)
+        attacker_losses = max(
+            attacker_losses,
+            int(_floor_base * self.GARRISON_ASSAULT_LOSS_FLOOR))
+        garrison_losses = max(
+            garrison_losses, int(garrison_strength * 0.10), 1)
+        return attacker_losses, garrison_losses
 
     def _check_marshal_fate(self, marshal, enemy, world: 'WorldState'):
         """W6-7 §9.1: when a forced retreat fires on a cornered marshal,
@@ -6302,16 +6320,16 @@ class CombatExecutor:
                     # is present. Capital garrisons collapse below 5k. Detachment
                     # garrisons (garrison_detachment) fight to destruction.
                     # ════════════════════════════════════════════════════════════
-                    garrison_fights = False
-                    from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
-                    if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
-                        if target_region.garrison_detachment:
-                            # Detachment garrisons always fight (no collapse threshold)
-                            garrison_fights = True
-                        elif target_region.garrison_strength >= MARCH_HALTS_AT_GARRISON:
-                            # Capital garrisons fight above 5k (SR-4a: the
-                            # one threshold, `MARCH_HALTS_AT_GARRISON`)
-                            garrison_fights = True
+                    # Detachment garrisons always fight (no collapse
+                    # threshold); capital garrisons fight at or above the
+                    # collapse line (SR-4a: `MARCH_HALTS_AT_GARRISON`). ONE
+                    # predicate the desk's forecast reads too (SR
+                    # session-exit residue, Sept 26 2026).
+                    from backend.game_logic.garrison_report import (
+                        garrison_fights as _garrison_stands)
+                    garrison_fights = (
+                        target_region.controller != marshal.nation
+                        and _garrison_stands(target_region))
 
                     if garrison_fights:
                         garrison_result = self._resolve_garrison_combat(
