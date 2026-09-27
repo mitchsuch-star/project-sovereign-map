@@ -1,0 +1,30 @@
+{
+  "name": "flagship-1805",
+  "seed": "historical",
+  "llm": "anthropic",
+  "transport": "in-process",
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "dismiss",
+    "petition": "first_enabled",
+    "interrupt": "first",
+    "war_purpose": "1",
+    "ultimatum": "defy"
+  },
+  "turns_requested": 24,
+  "started": "2026-08-15 01:22",
+  "from_save": "",
+  "status": "completed",
+  "counters": {
+    "commands": 68,
+    "popups": 54,
+    "battles": 8,
+    "turns": 24
+  },
+  "unknown_blockers": []
+}

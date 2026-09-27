@@ -597,6 +597,26 @@ The binding measurement (IQ-4 §5): `--missions advisor --diplomacy decline`,
 types with an applied tick on every seed**; the control arm (no
 `--missions`) must still launch **0**.
 
+### The petition acceptance arm (PC15-10 B5, September 27, 2026)
+
+The row's exit evidence (`docs/PETITION_POPUP_REVISIT_SPEC.md` §8) is the August flagship arm, re-run. The digest answers how many petition modals interrupt and how many audiences are heard; the committed probe answers the two things a digest cannot see — whether any petition MOMENT was lost in silence, and how many L1 audiences died unopened (the Q1 re-open observable):
+
+```
+PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT.json -- \
+    --name b5-flagship-1805 --seed historical --llm mock \
+    --script tools/playtest_scripts/flagship_1805.json --turns 24 \
+    --objection insist --diplomacy decline --redemption dismiss \
+    --petition first_enabled --audience open --declare-war proceed --fresh
+.venv/Scripts/python.exe tools/_pc15_10_acceptance_analyze.py \
+    docs/audits/playtest_digests/flagship-1805-aug15/digest.jsonl \
+    tools/playtest_runs/b5-flagship-1805/digest.jsonl OUT.json
+```
+
+- `--declare-war proceed` reproduces what the August driver answered (it predates FA-S17-D6's dial).
+- `--llm mock` and `--llm anthropic` give byte-identical digests on this script: the offline parser reads every order at ≥ 0.7, so the model is never consulted.
+- The probe wraps the petition gate, the retirement, the eviction, the F6 withdrawal, the answer handler and the jealousy drama cap. A queued card with no fate at the end is a silent loss.
+- Record of September 27, 2026: `docs/audits/PC15_10_B5_ACCEPTANCE_2026_09_27.md`.
+
 ### Reading a run
 
 - `digest.md` — the read. One block per turn: commands with one-line

@@ -4,6 +4,13 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ B5 "THE ACCEPTANCE" LANDED — PC15-10 IS BUILT AND ACCEPTED; CHUNK 4 IS BUILD-COMPLETE — September 27, 2026 (second session)** (record `docs/audits/PC15_10_B5_ACCEPTANCE_2026_09_27.md`; landing note `PETITION_POPUP_REVISIT_SPEC.md` §9 B5):
+> - **The exact August flagship arm, re-run** (seed `historical`, 24 turns, the recorded policy, plus `--audience open` and `--declare-war proceed` to reproduce what the August driver did). The live-parser arm and a mock re-run are byte-identical — the model was never consulted.
+> - **All five §8 items pass:** 3 blocking petition modals on 3 turns (was **19 on 19**), longest run 1 (was 10); 8 audiences heard and answered through the modal's own handler; **0 silent losses** of 16 petition moments; 0 of 3 L1 audiences died unopened, so **Q1(a) stands**.
+> - Items 2 and 4 read a committed in-process probe (`tools/_pc15_10_acceptance_probe.py` + `_analyze.py`): the 4 blocked moments were each narrated by their fire line (13 fire lines, 0 capped) and retry on the pair's next fire.
+> - Correction to §8's own baseline: the August streak was 10 turns, not 11. Zero production code.
+> - **▶ NEXT = Chunk 5 from SR-5r "The Laws" (RF-0 → RF-1 → … ; DP-1 anytime) → ONE session exit (closes Chunk 4) + ONE residue slice.**
+>
 > **▶ ▶ ▶ B4b "THE ONE TAIL" (F9) LANDED — September 27, 2026 (second session)** (record `PETITION_POPUP_REVISIT_SPEC.md` §9 B4; rules `SYSTEMS_REFERENCE.md` §73.11; Pins `tests/test_b4b_the_one_tail.py` 68 (census + six DRIVEN scenarios through `tools/b4b_one_tail_harness.gd`, the real `main.tscn` behind an API stub, on payloads from the real endpoints); sweep `tools/_sweep_b4b.json` 17/17 killed, 0 INERT):
 > - **One stash, one chain, one tail** in `main.gd`: `_stash_pending_surfaces` (every stasher, before any routing), `_raise_pending_surfaces` (nine surfaces in one order, the capture question lifted into it), `_return_control_to_player` (every control-return seam ends in it), `_clear_pending_surfaces` (every stash, on a world swap).
 > - **Four client defects, reproduced driven on the committed client first, now fixed:** an overridden attack that took a province never asked about its town (the backend had sent the question); a redemption on an interrupt answer threw away the other marshals' questions; the capture question and the Proclamation stood stacked; a Load typed the old campaign's relayed order into the new command line and raised its petition.

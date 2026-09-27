@@ -1,0 +1,227 @@
+{"kind": "note", "text": "new game \u2192 New campaign started. Autosave refreshed."}
+{"kind": "turn", "turn": 1, "label": "Late September 1805"}
+{"kind": "command", "text": "Bernadotte, attack Mack", "success": true, "message": "Bernadotte challenges the order: 'Sire, the enemy is too strong. We need reinforcements.'"}
+{"kind": "popup", "key": "objection", "summary": "Bernadotte, Bernadotte challenges the order: 'Sire, the enemy is too strong. We need reinforcements.'", "answer": "insist"}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Bernadotte (lost 2063) vs Mack (lost 3625) \u2014 Lannes's timely arrival aided Bernadotte. Ney and Soult, however, were conspicuously absent."}
+{"kind": "command", "text": "Marshal Ney, attack Mack", "success": true, "message": "MUSTER \u2014 Ney (24,000; 48,858 if all march) vs Mack (48,375 men) at Swabia \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Ney (lost 1802) vs Mack (lost 8460) \u2014 Reinforcements from Davout bolstered Ney's position \u2014 though Soult, Murat and Bernadotte never arrived, Sire."}
+{"kind": "command", "text": "status", "success": true, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 1 ended. (Warning: 2 action(s) unused) Turn 2 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0}
+{"kind": "ledger", "treasury": 2394, "net": 2258, "threat": null}
+{"kind": "dispatch", "headline": "Supply cost you 560 men, at Swabia."}
+{"kind": "turn", "turn": 2, "label": "Early October 1805"}
+{"kind": "command", "text": "Davout, attack Mack", "success": true, "message": "Davout halts before the order is carried out. \"I can attack, Sire. I cannot promise you an army afterwards. Say the word and it is done.\""}
+{"kind": "popup", "key": "strategic_interrupt", "summary": "Davout, Davout halts before the order is carried out. \"I can attack, Sire. I cannot promise you an army afterwards. Say the word and it is done.\"\n\nThe muster reads unfavorable. [b]Commit the Attack[/b] to send him in regardless \u2014 or Cancel to hold him back.\nMUSTER \u2014 Davout (23,753) vs Mack (substantial force) at Nassau \u2014 the balance of force looks unfavorable.\n  WILL NOT \u2014 Ney: cannot march \u2014 the field is on soil we are not at war with\n  WILL NOT \u2014 Bernadotte: cannot march \u2014 the field is on soil we are not at war with", "answer": "attack_anyway"}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Murat seeks an audience", "answer": "acknowledge"}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Davout (lost 2222) vs Mack (lost 5391) \u2014 Davout stood alone, Sire. Ney never came."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Prussia, open_borders", "answer": "(left standing)"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Prussia, open_borders", "answer": "(left standing)"}
+{"kind": "command", "text": "Soult, move to Alsace", "success": false, "message": "Region 'Alsace' not found. Nearby: Wales, Balearics, Ulster"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Prussia, open_borders", "answer": "(left standing)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 2 ended. (Warning: 3 action(s) unused) Turn 3 begins!"}
+{"kind": "enemy_phase", "count": 4, "attacks": 0}
+{"kind": "ledger", "treasury": 4470, "net": 2085, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Rhineland has fallen. Enemy colours fly over French homeland soil."}
+{"kind": "turn", "turn": 3, "label": "Late October 1805"}
+{"kind": "command", "text": "Murat, attack Mack", "success": true, "message": "MUSTER \u2014 Murat (22,000; 27,030 if all march) vs Mack (substantial force) at Rhineland \u2014 the balance of force looks even."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Murat (lost 1757) vs Mack (lost 6805) \u2014 Davout's timely arrival aided Murat. Ney and Soult, however, were conspicuously absent."}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Bernadotte seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "Talleyrand, assess our situation", "success": true, "message": "Sire \u2014 the state of Europe, plainly told."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "advisory", "answer": "(left standing)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 3 ended. (Warning: 3 action(s) unused) Turn 4 begins!"}
+{"kind": "enemy_phase", "count": 5, "attacks": 0}
+{"kind": "ledger", "treasury": 6526, "net": 2188, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 our ally's marshal Deroy was broken at Croatia. Bavaria reels."}
+{"kind": "turn", "turn": 4, "label": "Early November 1805"}
+{"kind": "command", "text": "Soult, deal with the Austrians", "success": true, "message": "MUSTER \u2014 Soult (40,000; 80,866 if all march) vs Mack (24,292 men) at Rhineland \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Soult (lost 571) vs Mack (lost 15171) \u2014 Ney never reached the guns. The battle was decided without them, Sire."}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Murat seeks an audience", "answer": "acknowledge"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_settlement_offer", "answer": "decline"}
+{"kind": "command", "text": "Lannes, move to Swabia", "success": true, "message": "Lannes moves from Franche-Comte to Swabia (158 lost to march)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 4 ended. (Warning: 2 action(s) unused) Turn 5 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 0}
+{"kind": "ledger", "treasury": 8647, "net": 2001, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult holds the field at Rhineland \u2014 Mack's corps is broken and flees."}
+{"kind": "turn", "turn": 5, "label": "Late November 1805"}
+{"kind": "command", "text": "Ney, attack Mack", "success": false, "message": "Our purpose in this war awaits your answer, Sire \u2014 nothing was relayed. Answer with one of: 1=Conquest, 2=Forced Alliance, 3=Subjugation, 4=Back Out."}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Ney seeks an audience", "answer": "acknowledge"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "war_purpose_selection", "answer": "1"}
+{"kind": "popup", "key": "proposal_result", "summary": "Sire, I must strongly advise against declaring war on Hesse. Our threat level stands at 92 \u2014 the courts of Europe already whisper of coalition. Another war will only hasten their union against us.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_objection", "summary": "diplomatic_declare_war, Hesse", "answer": "proceed"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "proposal_confirm", "answer": "confirm"}
+{"kind": "command", "text": "Davout, attack Mack", "success": true, "message": "Davout advances from Rhineland to Swabia, moving toward ArchdukeCharles at Croatia! (Now 4 regions away) (183 lost to march)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 5 ended. (Warning: 3 action(s) unused) Turn 6 begins!"}
+{"kind": "ledger", "treasury": 10669, "net": 1841, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Ney has now gone unrewarded 3 turns. The staff have noticed which of us he no longer looks at."}
+{"kind": "turn", "turn": 6, "label": "Early December 1805"}
+{"kind": "command", "text": "Massena, attack Archduke Charles", "success": true, "message": "Massena pursues ArchdukeCharles (at Croatia). Moves to Tyrol. Massena: \"Run him to ground, then. My sabers are hungry.\""}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Massena seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "Bernadotte, move to Swabia", "success": true, "message": "Bernadotte moves from Franconia to Swabia (132 lost to march)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 6 ended. (Warning: 1 action(s) unused) Turn 7 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 0}
+{"kind": "ledger", "treasury": 12516, "net": 1940, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney, Davout, Lannes and Bernadotte stand 64,219 men at Swabia, which feeds 40,000. 24,219 too many. 4,094 men lost in 2 turns. No depot may be laid at Swabia \u2014 not controlled by France. Move a\u2026"}
+{"kind": "turn", "turn": 7, "label": "Late December 1805"}
+{"kind": "command", "text": "endow Ney with the Duchy of Swabia", "success": false, "message": "We do not hold Swabia \u2014 an estate must stand on our own soil."}
+{"kind": "popup", "key": "marshal_petition", "summary": "fontainebleau, The marshals petition the Emperor", "answer": "concede"}
+{"kind": "command", "text": "Murat, march to Munich", "success": true, "message": "Murat begins march to Munich. Cavalry charges through Swabia -> Munich. Murat: \"At the double, Sire \u2014 the men will smell powder soon enough.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 7 ended. (Warning: 2 action(s) unused) Turn 8 begins!"}
+{"kind": "enemy_phase", "count": 5, "attacks": 0}
+{"kind": "ledger", "treasury": 14072, "net": 1932, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Massena's corps has been broken at Tyrol. He must reform before he fights again."}
+{"kind": "turn", "turn": 8, "label": "Early January 1806"}
+{"kind": "command", "text": "Ney, march to Munich", "success": true, "message": "Ney begins march to Munich. Ney: \"At the double, Sire \u2014 the men will smell powder soon enough.\""}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Lannes seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "Davout, march to Munich", "success": true, "message": "Davout begins march to Munich. Davout: \"We move deliberately \u2014 arrival is worth little if the army arrives broken.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 8 ended. Turn 9 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0}
+{"kind": "ledger", "treasury": 15996, "net": 1788, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Ney holds the field at Munich \u2014 Archduke Charles's corps is broken and flees."}
+{"kind": "turn", "turn": 9, "label": "Late January 1806"}
+{"kind": "command", "text": "Talleyrand, assess our situation", "success": true, "message": "Sire \u2014 the state of Europe, plainly told."}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Bernadotte seeks an audience", "answer": "acknowledge"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "advisory", "answer": "(left standing)"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Prussia, open_borders", "answer": "(left standing)"}
+{"kind": "command", "text": "Soult, march to Swabia", "success": true, "message": "Soult begins march to Swabia. Moves to Swabia. \"Soult, march to Swabia.\" No more and no less. (1 AP \u2014 Soult executes precise orders with fewer couriers.)"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_settlement_offer", "answer": "decline"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "advisory", "answer": "(left standing)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 9 ended. (Warning: 3 action(s) unused) Turn 10 begins!"}
+{"kind": "ledger", "treasury": 17830, "net": 1678, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney, Davout, Lannes, Murat and Massena stand 71,527 men at Munich, which feeds 25,000. 46,527 too many. 14,610 men lost in 3 turns. No depot may be laid at Munich \u2014 not controlled by France. M\u2026"}
+{"kind": "turn", "turn": 10, "label": "Early February 1806"}
+{"kind": "command", "text": "grant Murat a rente", "success": true, "message": "By Imperial decree, Marshal Murat is granted a rente of 240g/turn upon the treasury (his previous rente of 120g/turn is folded in). With fees and arrears it will cost the crown 360g/turn \u2014 paper is dearer than land, Sire, and it buys no title. It holds his loyalty for exactly as long as it is paid."}
+{"kind": "popup", "key": "marshal_petition", "summary": "rivalry_confrontation, A rivalry among the marshals", "answer": "accept_breach"}
+{"kind": "command", "text": "Lannes, march to Munich", "success": true, "message": "Lannes begins march to Munich. Lannes: \"Good. An army rots standing still.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 10 ended. (Warning: 2 action(s) unused) Turn 11 begins!"}
+{"kind": "enemy_phase", "count": 5, "attacks": 0}
+{"kind": "ledger", "treasury": 19278, "net": 1361, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Ney holds the field at Munich \u2014 Archduke Charles's corps is broken and flees."}
+{"kind": "turn", "turn": 11, "label": "Late February 1806"}
+{"kind": "command", "text": "Ney, march to Vienna", "success": true, "message": "Ney begins march to Vienna. Route: Franconia -> Bohemia -> Vienna. Moves to Franconia. Ney: \"At the double, Sire \u2014 the men will smell powder soon enough.\""}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Lannes seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "Davout, march to Vienna", "success": true, "message": "Davout begins march to Vienna. Route: Franconia -> Dresden -> Vienna. Moves to Franconia. Davout: \"We move deliberately \u2014 arrival is worth little if the army arrives broken.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 11 ended. Turn 12 begins!"}
+{"kind": "enemy_phase", "count": 4, "attacks": 0}
+{"kind": "ledger", "treasury": 20595, "net": 1196, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Lannes, Murat and Massena have been 4 turns over what Munich can feed. 9,933 men. The country will ask where the army went. No depot may be laid at Munich \u2014 not controlled by France. Move a co\u2026"}
+{"kind": "turn", "turn": 12, "label": "Early March 1806"}
+{"kind": "command", "text": "Murat, march to Vienna", "success": true, "message": "Murat begins march to Vienna. Route: Bohemia -> Vienna. Cavalry charges through Franconia -> Bohemia. Murat: \"We march. Pity whatever slows us.\""}
+{"kind": "command", "text": "recruit 10000 infantry", "success": false, "message": "Berthier scans the dispatches. 'No marshal is available to receive reinforcements, Sire.' Recruits join a marshal who can reach the depot: Ney (out of range - 6 regions away, range 1); Davout (out of range - 6 regions away, range 1); Soult (out of range - 5 regions away, range 1) (and 4 others). March a corps within range, or name one directly (\"recruit 10000 infantry with Ney\")."}
+{"kind": "note", "text": "saved `flagship-1805_t12` \u2192 Game saved: flagship-1805_t12"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 12 ended. (Warning: 2 action(s) unused) Turn 13 begins!"}
+{"kind": "enemy_phase", "count": 6, "attacks": 0}
+{"kind": "ledger", "treasury": 20391, "net": 437, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Murat, crowned three turns ago, has been beaten in the field \u2014 and the laurels have passed to another."}
+{"kind": "turn", "turn": 13, "label": "Late March 1806"}
+{"kind": "command", "text": "build depot in Swabia", "success": false, "message": "Cannot build in Swabia \u2014 not controlled by France"}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Soult seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "Bernadotte, attack Archduke John", "success": true, "message": "Bernadotte pursues ArchdukeJohn (at Bohemia). Moves to Franconia. Bernadotte: \"Pursuit, then. I do not intend to be led into anything.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 13 ended. (Warning: 2 action(s) unused) Turn 14 begins!"}
+{"kind": "enemy_phase", "count": 9, "attacks": 0}
+{"kind": "ledger", "treasury": 21543, "net": 1245, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Davout's corps has been broken at Bohemia. He must reform before he fights again."}
+{"kind": "turn", "turn": 14, "label": "Early April 1806"}
+{"kind": "command", "text": "Ney, attack Archduke Charles", "success": true, "message": "MUSTER \u2014 Ney (11,559) vs ArchdukeCharles (20,282 men) at Bohemia \u2014 the balance of force looks unfavorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Ney (lost 886) vs Archduke Charles (lost 1045) \u2014 Lannes's timely arrival aided Ney. Bernadotte, however, was conspicuously absent."}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Lannes seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "status", "success": true, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 14 ended. (Warning: 3 action(s) unused) Turn 15 begins!"}
+{"kind": "enemy_phase", "count": 12, "attacks": 0}
+{"kind": "ledger", "treasury": 22140, "net": 1064, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney, crowned three turns ago, has been beaten in the field."}
+{"kind": "turn", "turn": 15, "label": "Late April 1806"}
+{"kind": "command", "text": "Talleyrand, request terms from Austria", "success": false, "message": "Requesting enemy terms is not available for this pair."}
+{"kind": "popup", "key": "marshal_petition", "summary": "rivalry_confrontation, A rivalry among the marshals", "answer": "accept_breach"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 15 ended. (Warning: 4 action(s) unused) Turn 16 begins!"}
+{"kind": "enemy_phase", "count": 3, "attacks": 0}
+{"kind": "popup", "key": "capture_choice[capture]", "summary": "(no summary fields)", "answer": "secure"}
+{"kind": "ledger", "treasury": 22511, "net": 277, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Shrapnel of Britain is taken at Carniola \u2014 he is our prisoner, and their order of battle is one commander shorter."}
+{"kind": "turn", "turn": 16, "label": "Early May 1806"}
+{"kind": "command", "text": "Soult, march to Vienna", "success": true, "message": "Soult begins march to Vienna. Route: Franconia -> Bohemia -> Vienna. Moves to Franconia. \"Soult, march to Vienna.\" Understood to the letter. (1 AP \u2014 Soult executes precise orders with fewer couriers.)"}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Davout seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "Massena, march to Tyrol", "success": true, "message": "Massena begins march to Tyrol. Moves to Tyrol. Massena: \"Good. An army rots standing still.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 16 ended. (Warning: 1 action(s) unused) Turn 17 begins!"}
+{"kind": "enemy_phase", "count": 4, "attacks": 0}
+{"kind": "ledger", "treasury": 22645, "net": 167, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Carniola has been taken by Austria."}
+{"kind": "turn", "turn": 17, "label": "Late May 1806"}
+{"kind": "command", "text": "Ney, attack Kutuzov", "success": true, "message": "Ney pursues Kutuzov (at Podolia). Moves to Bohemia. Ney: \"Run him to ground, then. My sabers are hungry.\""}
+{"kind": "popup", "key": "marshal_petition", "summary": "rivalry_confrontation, A rivalry among the marshals", "answer": "accept_breach"}
+{"kind": "command", "text": "Davout, attack Kutuzov", "success": true, "message": "Davout firmly objects: 'I have concerns about this order, Sire.'"}
+{"kind": "popup", "key": "objection", "summary": "Davout, Davout firmly objects: 'I have concerns about this order, Sire.'", "answer": "insist"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 17 ended. Turn 18 begins!"}
+{"kind": "enemy_phase", "count": 9, "attacks": 0}
+{"kind": "ledger", "treasury": 22410, "net": 160, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Lannes, crowned last turn, has been driven back."}
+{"kind": "turn", "turn": 18, "label": "Early June 1806"}
+{"kind": "command", "text": "offer peace to Austria", "success": true, "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation."}
+{"kind": "popup", "key": "marshal_petition", "summary": "fontainebleau, The marshals petition the Emperor", "answer": "concede"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "proposal_confirm", "answer": "confirm"}
+{"kind": "popup", "key": "proposal_result", "summary": "Talleyrand departs for the Austria court with your Peace Treaty proposal. Expect a response by next turn. (3 DP spent)", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 18 ended. (Warning: 4 action(s) unused) Turn 19 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0}
+{"kind": "ledger", "treasury": 21572, "net": -692, "threat": null}
+{"kind": "dispatch", "headline": "Davout's army is recovering. Effectiveness penalty: 0% (recovered)."}
+{"kind": "turn", "turn": 19, "label": "Late June 1806"}
+{"kind": "command", "text": "Murat, attack Buxhowden", "success": true, "message": "Soult attacks ArchdukeJohn and wins! Continuing his march."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Soult (lost 1070) vs Archduke John (lost 2090) \u2014 Reinforcements! Davout and Bernadotte marched onto the field beside Soult. The enemy's advantage melted away."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Austria, peace", "answer": "(left standing)"}
+{"kind": "command", "text": "Lannes, attack Buxhowden", "success": false, "message": "Lannes is recovering from retreat and cannot attack. Recovery: 1 turn(s) remaining."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_settlement_offer", "answer": "decline"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_proposal", "answer": "decline"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have rejected Ottoman's proposal. Talleyrand will convey your decision.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 19 ended. (Warning: 4 action(s) unused) Turn 20 begins!"}
+{"kind": "enemy_phase", "count": 6, "attacks": 0}
+{"kind": "ledger", "treasury": 20574, "net": -533, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Lannes, crowned three turns ago, has been beaten in the field."}
+{"kind": "turn", "turn": 20, "label": "Early July 1806"}
+{"kind": "command", "text": "Talleyrand, assess our situation", "success": true, "message": "Sire \u2014 the state of Europe, plainly told."}
+{"kind": "popup", "key": "diplomatic_sabotage", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "advisory", "answer": "(left standing)"}
+{"kind": "command", "text": "endow Davout with an estate", "success": false, "message": "Which province, Sire? Eligible estates: Tyrol, Bohemia. Example: 'endow Davout with Tyrol'."}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Davout seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "saved `flagship-1805_t20` \u2192 Game saved: flagship-1805_t20"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 20 ended. (Warning: 4 action(s) unused) Turn 21 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 0}
+{"kind": "ledger", "treasury": 19993, "net": -465, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Lannes was mauled at Bohemia: 177 men lost in a single action."}
+{"kind": "turn", "turn": 21, "label": "Late July 1806"}
+{"kind": "command", "text": "Ney, march to Vienna", "success": false, "message": "Bernadotte has no active strategic order."}
+{"kind": "popup", "key": "marshal_petition", "summary": "rivalry_confrontation, A rivalry among the marshals", "answer": "let_be"}
+{"kind": "command", "text": "Davout, march to Vienna", "success": true, "message": "Davout begins march to Vienna. Moves to Vienna. Davout: \"The roads will be scouted before each march, Sire.\""}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 21 ended. (Warning: 2 action(s) unused) Turn 22 begins!"}
+{"kind": "enemy_phase", "count": 4, "attacks": 0}
+{"kind": "ledger", "treasury": 19513, "net": -359, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Massena's corps has been broken at Bohemia. He must reform before he fights again."}
+{"kind": "turn", "turn": 22, "label": "Early August 1806"}
+{"kind": "command", "text": "status", "success": true, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Bernadotte seeks an audience", "answer": "acknowledge"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 22 ended. (Warning: 4 action(s) unused) Turn 23 begins!"}
+{"kind": "enemy_phase", "count": 3, "attacks": 0}
+{"kind": "ledger", "treasury": 19204, "net": -250, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's household goes unpaid. His patience erodes with his purse."}
+{"kind": "turn", "turn": 23, "label": "Late August 1806"}
+{"kind": "command", "text": "Ney, attack Archduke Charles", "success": true, "message": "MUSTER \u2014 Soult (26,515) vs ArchdukeCharles (substantial force) at Moravia \u2014 the balance of force looks even."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Soult (lost 2137) vs Archduke Charles (lost 1518) \u2014 The walls of the region bear fresh scars, Your Majesty. Their fortifications weaken -- another assault may crack them."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Russia, armistice_losing", "answer": "(left standing)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 23 ended. (Warning: 3 action(s) unused) Turn 24 begins!"}
+{"kind": "enemy_phase", "count": 6, "attacks": 0}
+{"kind": "ledger", "treasury": 18746, "net": -221, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Davout's corps has been broken at Bohemia. He must reform before he fights again."}
+{"kind": "turn", "turn": 24, "label": "Early September 1806"}
+{"kind": "command", "text": "Talleyrand, assess our situation", "success": true, "message": "Sire \u2014 the state of Europe, plainly told."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "advisory", "answer": "(left standing)"}
+{"kind": "command", "text": "end turn", "success": true, "message": "Turn 24 ended. (Warning: 4 action(s) unused) Turn 25 begins!"}
+{"kind": "enemy_phase", "count": 8, "attacks": 0}
+{"kind": "ledger", "treasury": 19383, "net": 539, "threat": null}
+{"kind": "dispatch", "headline": "Sire \u2014 Massena's corps has been broken at Bohemia. He must reform before he fights again."}
