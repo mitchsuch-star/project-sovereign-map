@@ -26,9 +26,12 @@ endpoints the client uses; the recorded responses are then fed to the real
 driven classes SKIP without a Godot engine — and a skip is not a pass.
 """
 
+import contextlib
+import hashlib
 import json
 import os
 import pathlib
+import random
 import re
 import shutil
 import subprocess
@@ -96,28 +99,53 @@ def _drive_overlay(spec: dict, work: pathlib.Path, timeout: int = 300) -> dict:
 # The lesson, driven at the real endpoints
 # ═══════════════════════════════════════════════════════════════════════
 
+# SRX-8 (Score Mandate Chunk 4 reserve, September 26, 2026): the lesson's
+# path is RNG-SHAPED — the engine's combat rolls, the objection's mood roll
+# and the defiance roll draw on the unseeded module RNG — so a driven pin that
+# needs the tutor to stand on a given card by a given turn passed or failed on
+# the luck of the process. Measured: the Cabinet pin failed 1 run in 8 as its
+# class (the tutor still on the objection lesson at turn 3, the Cabinet card
+# never shown); the "after its class sibling" order the row recorded was how
+# many draws ran first, not a leaked object. The lesson now runs on ONE fixed
+# draw sequence and hands the caller's RNG state back afterwards.
+LESSON_RNG_SEED = int(hashlib.sha256(b"tutorial:lesson").hexdigest(), 16) & 0xFFFFFFFF
+
+
+@contextlib.contextmanager
+def _lesson_draws():
+    """SRX-8: the lesson's own draw sequence, the caller's handed back."""
+    rng_state = random.getstate()
+    random.seed(LESSON_RNG_SEED)
+    try:
+        yield
+    finally:
+        random.setstate(rng_state)
+
+
 @pytest.fixture
 def lesson(monkeypatch, tmp_path):
     """A TestClient on the REAL tutorial scenario, booted through the same
     /new_game handshake the main menu uses (test_tutorial_position7's
-    idiom: /new_game rebinds both module globals — read `M.world`)."""
+    idiom: /new_game rebinds both module globals — read `M.world`), on the
+    lesson's own RNG sequence (SRX-8)."""
     for key in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "SOVEREIGN_SMOKE_START"):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("LLM_MODE", "mock")
     save_dir = tmp_path / "saves"
     save_dir.mkdir()
-    with patch("backend.save_manager.SAVE_DIR", save_dir):
-        import backend.main as M
-        from backend.commands.parser import CommandParser
+    with _lesson_draws():
+        with patch("backend.save_manager.SAVE_DIR", save_dir):
+            import backend.main as M
+            from backend.commands.parser import CommandParser
 
-        M._reset_world_state()
-        monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
-        with TestClient(M.app) as client:
-            boot = client.post("/new_game", json={"scenario": "tutorial"}).json()
-            assert boot.get("success") is True, boot
-            assert boot["game_state"]["scenario_name"] == "tutorial"
-            yield client, M, boot
-        M._reset_world_state()
+            M._reset_world_state()
+            monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
+            with TestClient(M.app) as client:
+                boot = client.post("/new_game", json={"scenario": "tutorial"}).json()
+                assert boot.get("success") is True, boot
+                assert boot["game_state"]["scenario_name"] == "tutorial"
+                yield client, M, boot
+            M._reset_world_state()
 
 
 class Recorder:
@@ -360,6 +388,34 @@ class TestTheChips:
 # ═══════════════════════════════════════════════════════════════════════
 # 4. The Cabinet lesson completes on the mission the wizard confirms
 # ═══════════════════════════════════════════════════════════════════════
+
+class TestTheLessonRunsOnItsOwnDraws:
+    """SRX-8: the lesson's path is RNG-shaped, so the fixture runs it on one
+    fixed draw sequence and hands the caller's back — a driven pin that needs
+    the tutor on a given card by a given turn cannot pass or fail on the luck
+    of the process, or on how many draws an earlier test took."""
+
+    def test_the_lesson_draws_are_its_own(self):
+        random.seed(1)
+        with _lesson_draws():
+            first = random.random()
+        random.seed(2)
+        with _lesson_draws():
+            second = random.random()
+        assert first == second == random.Random(LESSON_RNG_SEED).random()
+
+    def test_the_callers_draws_come_back(self):
+        random.seed(7)
+        before = random.getstate()
+        with _lesson_draws():
+            random.random()
+        assert random.getstate() == before
+
+    def test_the_fixture_runs_the_lesson_on_them(self, lesson):
+        """Behavioural: the boot draws nothing from the module RNG, so the
+        test body's first draw is the lesson sequence's first."""
+        assert random.random() == random.Random(LESSON_RNG_SEED).random()
+
 
 class TestTheCabinetLesson:
 

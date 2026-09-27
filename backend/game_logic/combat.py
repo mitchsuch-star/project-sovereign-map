@@ -146,6 +146,38 @@ def decisiveness_morale_penalty(loser_casualties: float,
                    (ratio - DECISIVENESS_EXCHANGE_PIVOT) * DECISIVENESS_MORALE_SLOPE))
 
 
+# ═══════ AAR32-D1 (Score Mandate Chunk 4 reserve, Sept 26 2026) ═══════
+# The resolver's four SKILL terms, named so the muster's band can weigh the
+# generals with the resolver's own arithmetic instead of a copy of it. The
+# band read none of them: measured over the real 1805 roster, one band ratio
+# ran from 0% to 90% wins by pairing (Murat into Archduke Charles against Ney
+# into Mack). `resolve_battle` and `roll_combat_dice` call these — the
+# arithmetic is byte-identical (same operations, same order).
+EXPECTED_NATURAL_ROLL = 7          # the mean of 2d6
+MAX_MODIFIED_ROLL = 14             # roll_combat_dice's cap
+
+
+def tactical_dice_bonus(tactical_skill):
+    """tactical // 3 — the attacker's bonus on the 2d6 (0-3)."""
+    return tactical_skill // 3
+
+
+def dice_damage_multiplier(modified_roll) -> float:
+    """0.85 + 0.025 per point of the modified roll."""
+    return 0.85 + (modified_roll * 0.025)
+
+
+def shock_damage_multiplier(shock_skill) -> float:
+    """The attacker's shock: 1 + shock/20 on the damage he deals."""
+    return 1.0 + (shock_skill / 20.0)
+
+
+def defense_casualty_share(defense_skill) -> float:
+    """The share of the casualties a side's defense skill lets through:
+    1 - defense/20."""
+    return 1.0 - (defense_skill / 20.0)
+
+
 class CombatResolver:
     """
     Resolves battles between armies.
@@ -198,7 +230,7 @@ class CombatResolver:
         else:
             tactical_skill = marshal.tactical_skill  # Fallback for backward compatibility
 
-        skill_bonus = tactical_skill // 3  # 0-3 for skill 1-10
+        skill_bonus = tactical_dice_bonus(tactical_skill)  # 0-3 for skill 1-10
 
         # Modified roll with flanking (cap at 14 to allow flanking benefits beyond 12)
         modified_roll = min(14, natural_roll + skill_bonus + int(flanking_bonus))
@@ -209,7 +241,7 @@ class CombatResolver:
 
         # Calculate damage multiplier
         # Range: 0.85 (roll 2) to 1.15 (roll 12)
-        multiplier = 0.85 + (modified_roll * 0.025)
+        multiplier = dice_damage_multiplier(modified_roll)
 
         return {
             "natural": int(natural_roll),
@@ -490,7 +522,7 @@ class CombatResolver:
             attacker.drilling_locked = False
             attacker.drill_complete_turn = -1
 
-        shock_multiplier = 1.0 + (attacker_shock / 20.0)
+        shock_multiplier = shock_damage_multiplier(attacker_shock)
         # Apply stance modifier to shock
         shock_multiplier *= attacker_stance_modifier
 
@@ -639,12 +671,12 @@ class CombatResolver:
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
         # Apply stance modifier to defense - note: higher modifier = better defense (reduces casualties MORE)
         # defender_stance_modifier > 1 means better defense (e.g., 1.15 for defensive stance)
-        defense_multiplier = (1.0 - defense_bonus) / defender_stance_modifier
+        defense_multiplier = defense_casualty_share(defender_defense) / defender_stance_modifier
 
         # Calculate final casualties
         # Attacker takes casualties (reduced by their defense skill)
         attacker_defense = attacker.get_effective_skill("defense") if hasattr(attacker, 'get_effective_skill') else attacker.skills.get("defense", 5)
-        attacker_defense_mult = 1.0 - (attacker_defense / 20.0)
+        attacker_defense_mult = defense_casualty_share(attacker_defense)
         attacker_casualties = int(base_attacker_casualties * attacker_defense_mult)
 
         # NOTE: Ranged bombardment (artillery firing from adjacent region) now uses

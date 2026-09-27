@@ -1,0 +1,152 @@
+{
+ "battles_per_pairing": 200,
+ "defender_strength": 30000,
+ "by_folded_ratio": {
+  "0.8": {
+   "win_mean": 0.4,
+   "win_min": 0.0,
+   "win_max": 2.5,
+   "stalemate_mean": 80.0,
+   "loss_mean": 19.6,
+   "pairings": 56
+  },
+  "1.0": {
+   "win_mean": 6.8,
+   "win_min": 0.0,
+   "win_max": 30.5,
+   "stalemate_mean": 89.0,
+   "loss_mean": 4.3,
+   "pairings": 56
+  },
+  "1.2": {
+   "win_mean": 24.8,
+   "win_min": 0.0,
+   "win_max": 68.0,
+   "stalemate_mean": 74.6,
+   "loss_mean": 0.7,
+   "pairings": 56
+  },
+  "1.4": {
+   "win_mean": 46.6,
+   "win_min": 0.0,
+   "win_max": 90.0,
+   "stalemate_mean": 53.4,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.5": {
+   "win_mean": 57.3,
+   "win_min": 2.0,
+   "win_max": 95.0,
+   "stalemate_mean": 42.6,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.6": {
+   "win_mean": 66.8,
+   "win_min": 3.0,
+   "win_max": 99.0,
+   "stalemate_mean": 33.2,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.7": {
+   "win_mean": 74.6,
+   "win_min": 8.0,
+   "win_max": 99.5,
+   "stalemate_mean": 25.4,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.8": {
+   "win_mean": 80.4,
+   "win_min": 14.5,
+   "win_max": 100.0,
+   "stalemate_mean": 19.6,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "2.0": {
+   "win_mean": 89.5,
+   "win_min": 35.5,
+   "win_max": 100.0,
+   "stalemate_mean": 10.5,
+   "loss_mean": 0.0,
+   "pairings": 56
+  }
+ },
+ "by_weighed_ratio": {
+  "0.8": {
+   "win_mean": 0.0,
+   "win_min": 0.0,
+   "win_max": 0.0,
+   "stalemate_mean": 69.4,
+   "loss_mean": 30.6,
+   "pairings": 56
+  },
+  "1.0": {
+   "win_mean": 0.0,
+   "win_min": 0.0,
+   "win_max": 0.0,
+   "stalemate_mean": 95.6,
+   "loss_mean": 4.4,
+   "pairings": 56
+  },
+  "1.2": {
+   "win_mean": 3.2,
+   "win_min": 2.5,
+   "win_max": 9.0,
+   "stalemate_mean": 96.8,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.4": {
+   "win_mean": 17.5,
+   "win_min": 15.5,
+   "win_max": 30.5,
+   "stalemate_mean": 82.5,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.5": {
+   "win_mean": 31.0,
+   "win_min": 28.0,
+   "win_max": 44.0,
+   "stalemate_mean": 69.0,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.6": {
+   "win_mean": 45.6,
+   "win_min": 43.5,
+   "win_max": 58.5,
+   "stalemate_mean": 54.4,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.7": {
+   "win_mean": 59.7,
+   "win_min": 58.0,
+   "win_max": 69.5,
+   "stalemate_mean": 40.3,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "1.8": {
+   "win_mean": 69.4,
+   "win_min": 68.0,
+   "win_max": 78.0,
+   "stalemate_mean": 30.6,
+   "loss_mean": 0.0,
+   "pairings": 56
+  },
+  "2.0": {
+   "win_mean": 82.5,
+   "win_min": 81.0,
+   "win_max": 91.0,
+   "stalemate_mean": 17.5,
+   "loss_mean": 0.0,
+   "pairings": 56
+  }
+ }
+}

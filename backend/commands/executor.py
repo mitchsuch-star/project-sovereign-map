@@ -2052,6 +2052,23 @@ class CommandExecutor:
                                 "wounded": True}
 
                 # ═══════════════════════════════════════════════════════════
+                # AAR24-X1 (Chunk 4 reserve): a gun corps does not storm the
+                # works — ONE predicate (`garrison_report.
+                # gun_corps_assault_refusal`), the rule the AI has always
+                # kept (P4.25), read before the objection battery (PF-4) and
+                # before anything is spent or consumed (a counter-punch
+                # included).
+                # ═══════════════════════════════════════════════════════════
+                if action in ('attack', 'bombard'):
+                    from backend.game_logic.garrison_report import (
+                        gun_corps_assault_refusal)
+                    _guns = gun_corps_assault_refusal(
+                        world, marshal, command.get("target"))
+                    if _guns:
+                        return {"success": False, "message": _guns,
+                                "guns_cannot_storm": True}
+
+                # ═══════════════════════════════════════════════════════════
                 # RETREAT STATE: Simplified - No personality objections during recovery
                 # Certain actions blocked, others allowed without objection dialog
                 # ═══════════════════════════════════════════════════════════
@@ -2489,7 +2506,9 @@ class CommandExecutor:
                                 legacy_severity = concern_to_legacy_severity(concern)
 
                                 # Generate message based on tone
-                                message = self._generate_objection_message(marshal, action, command, concern, tone)
+                                message = self._generate_objection_message(
+                                    marshal, action, command, concern, tone,
+                                    world=world)
 
                                 # ES-7 (S7) cosmetic legibility tag (spec
                                 # §0.6.2): an eroding marshal's objection
@@ -2954,6 +2973,14 @@ class CommandExecutor:
                 # printed "This attack costs NO actions" while doing it.
                 # Stamped here, where the fact is known, rather than at four
                 # more exits that can drift apart again.
+                #
+                # AAR24-X2 (Chunk 4 reserve, Sept 26 2026): this belt is the
+                # player's TYPED road only — the insist road
+                # (`meta_executor._execute_post_objection`) and the AI call
+                # `_execute_attack` without passing here, and the belt never
+                # said the line. So the garrison exit now stamps its own
+                # credit and COUNTER-PUNCH line, as the field and capture
+                # exits do; this belt still covers the auto-bombardment kill.
                 result["free_action"] = True
                 result["counter_punch_used"] = True
 

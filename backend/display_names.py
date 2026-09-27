@@ -807,6 +807,9 @@ MUSTER_REASON_DISPLAY = {
     "broken_recovering": "is in no condition to fight",
     "hostile_refuses": "will not lift a finger for this marshal",
     "cooldown_spent": "has already marched this turn",
+    # AAR10-X1: Rule 12 is the guns' rule — a battery that limbered and
+    # marched this turn cannot unlimber in time.
+    "guns_limbered": "limbered his guns and marched this turn — they cannot unlimber in time",
     "engaged": "is pinned by enemies before his own front",
     "square_formation": "stands in square and cannot march",
     # VS-4: assimilated ex-vassal contingent whose homeland wavers

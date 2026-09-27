@@ -394,3 +394,107 @@ class TestScriptPrecedence:
             args = argparse.Namespace(name=cli_name)
             script = {"name": script_name} if script_name else {}
             assert (args.name or script.get("name") or "run") == resolved
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# SRX-7 (Score Mandate Chunk 4 reserve, Sept 26 2026) — the unratifiable
+# table closes after one harsher dial, and the digest says why
+# ═══════════════════════════════════════════════════════════════════════
+
+def _unratifiable_table(did, can_ratify=False):
+    """The PROPOSE rail of the AAR arm's turn-7 white peace (option ids as
+    `settlement_staging` builds them)."""
+    return {
+        "type": "settlement_confirm", "dialogue_id": did,
+        "can_ratify": can_ratify, "draft_key": "war_1|Austria",
+        "ratify_blocked_reason": ("the terms claim a victory the field has "
+                                  "not delivered"),
+        "options": [
+            {"label": "Harsher terms", "action": "settlement_dial_harsher"},
+            {"label": "More generous", "action": "settlement_dial_generous"},
+            {"label": "Submit for Review",
+             "action": "submit_settlement_for_review"},
+            {"label": "Back Out", "action": "suspend_settlement_editor"},
+        ],
+    }
+
+
+class _TableTransport(StubTransport):
+    """Every dial re-shows the table under a fresh identity — still as
+    ratifiable as it was (the stub never lets a dial carry it)."""
+
+    def __init__(self, can_ratify=False):
+        super().__init__()
+        self.can_ratify = can_ratify
+        self.next_id = 16
+
+    def post(self, path, payload=None):
+        self.posts.append((path, payload))
+        choice = str((payload or {}).get("choice") or "")
+        if path == "/respond_to_diplomatic_dialogue" and "dial" in choice:
+            self.next_id += 1
+            return {"success": True, "diplomatic_dialogue":
+                    _unratifiable_table(self.next_id, self.can_ratify)}
+        return {"success": True}
+
+
+def _run_table(policy_overrides=None, can_ratify=False):
+    transport = _TableTransport(can_ratify)
+    digest = StubDigest()
+    policy = (dict(driver.POLICY_DEFAULTS)
+              | {"diplomacy": "accept"} | (policy_overrides or {}))
+    answerer = driver.Answerer(transport, digest, policy, strict=False)
+    driver.drain(transport, digest, answerer,
+                 {"diplomatic_dialogue": _unratifiable_table(16, can_ratify)},
+                 strict=False)
+    choices = [str((p or {}).get("choice")) for path, p in transport.posts
+               if path == "/respond_to_diplomatic_dialogue"]
+    return choices, digest
+
+
+class TestSRX7TheUnratifiableTableCloses:
+
+    def test_one_harsher_dial_then_the_table_closes(self):
+        choices, digest = _run_table()
+        assert choices == ["settlement_dial_harsher",
+                           "suspend_settlement_editor"], choices
+        closed = [a for _k, _s, a in digest.popups
+                  if "still unratifiable after one harsher dial" in str(a)]
+        assert closed, digest.popups
+        assert "claim a victory the field has not delivered" in closed[0]
+        assert not any("capped" in str(n) for n in digest.notes), digest.notes
+
+    def test_each_chain_gets_its_own_dial(self):
+        """The memory is the chain's: the next typed proposal is dialled
+        once again before it closes (begin_post resets it)."""
+        transport = _TableTransport()
+        digest = StubDigest()
+        policy = dict(driver.POLICY_DEFAULTS) | {"diplomacy": "accept"}
+        answerer = driver.Answerer(transport, digest, policy, strict=False)
+        for start in (16, 40):
+            transport.next_id = start
+            driver.drain(transport, digest, answerer,
+                         {"diplomatic_dialogue": _unratifiable_table(start)},
+                         strict=False)
+        choices = [str((p or {}).get("choice")) for path, p in transport.posts
+                   if path == "/respond_to_diplomatic_dialogue"]
+        assert choices == ["settlement_dial_harsher", "suspend_settlement_editor",
+                           "settlement_dial_harsher", "suspend_settlement_editor"]
+
+    def test_a_ratifiable_table_is_never_closed(self):
+        choices, _digest = _run_table(can_ratify=True)
+        assert "suspend_settlement_editor" not in choices
+        assert all(c == "settlement_dial_harsher" for c in choices), choices
+
+    def test_decline_mode_is_untouched(self):
+        choices, digest = _run_table({"diplomacy": "decline"})
+        assert choices == ["suspend_settlement_editor"], choices
+        assert not any("still unratifiable" in str(a)
+                       for _k, _s, a in digest.popups)
+
+    def test_lever_down_dials_to_the_cap(self, monkeypatch):
+        monkeypatch.setattr(driver, "UNRATIFIABLE_TABLE_CLOSES", False)
+        choices, digest = _run_table()
+        assert set(choices) == {"settlement_dial_harsher"}, choices
+        assert len(choices) == driver.MAX_ANSWERS_PER_POST
+        assert any("capped" in str(n) for n in digest.notes), digest.notes

@@ -76,6 +76,20 @@ ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 # exactly zero, it adds no new AI geometry. BASELINE_SERIES never reaches 0.
 PLAYER_NEVER_LEAVES_THE_ROSTER = True
 
+# AAR4-X1 (Score Mandate Chunk 4 reserve, Sept 26 2026): the captor does
+# NOT inherit the loser's garrison. `capture_region` changed the
+# controller and left `garrison_strength` alone, so a field win over Mack
+# standing in Vienna handed France the Austrian 25,000 (who never fought),
+# and marching into a Vienna held by 4,000 left France 4,000 that regrew
+# to 6,000 the next morning. Only the garrison-collapse and the
+# attack-on-undefended exits zeroed it; the auto-bombardment kill shared
+# the gap. Cleared at the ONE capture seam, for every nation (GR5) — the
+# captor's own garrison grows from nothing (a capital through the ONE
+# regen rule). A treaty cession is not a capture and does not pass here.
+# Lever False = the inherited garrison (the flip arm of
+# tools/_sr4_reserve_series_arms.py).
+CAPTURE_CLEARS_THE_GARRISON = True
+
 # AAR-16 (Score Mandate Chunk 2 reserve, Sept 26 2026): a FOREIGN court's
 # completed work names its owner in the player's terminal ("Austria
 # completes a market at Vienna."); our own keeps the receipt it always
@@ -4569,6 +4583,11 @@ class WorldState:
         region.controller = capturing_nation
         self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
+        # AAR4-X1: the loser's garrison does not change sides with the walls.
+        if (CAPTURE_CLEARS_THE_GARRISON and old_controller
+                and old_controller != capturing_nation):
+            region.garrison_strength = 0
+            region.garrison_detachment = False
 
         # PT-J2: the campaign ledger remembers the conquest even if the
         # province is later retaken (war-gated inside the helper).

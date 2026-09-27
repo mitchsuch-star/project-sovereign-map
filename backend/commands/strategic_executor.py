@@ -283,7 +283,8 @@ class StrategicExecutor:
         action: str,
         order: Dict,
         concern: 'ConcernLevel',
-        tone: str
+        tone: str,
+        world=None,
     ) -> str:
         """
         Generate objection message for MODERATE+ concerns based on tone.
@@ -342,6 +343,13 @@ class StrategicExecutor:
                 return (f"{prefix} 'That road runs through enemy country, "
                         f"Sire — I would sooner hold what we have.'")
             if action == 'attack':
+                # AAR24-X3 (Chunk 4 reserve): a garrison assault names its
+                # price — the assault's own reckoning, a count only at FULL —
+                # where the line said "the enemy is too strong" with none.
+                from backend.commands.objection_v2 import garrison_objection_quote
+                priced = garrison_objection_quote(marshal, order, world)
+                if priced:
+                    return f"{prefix} '{priced}'"
                 if concern == ConcernLevel.EXTREME:
                     return f"{prefix} 'This is suicide! The odds are hopeless!'"
                 elif concern == ConcernLevel.STRONG:

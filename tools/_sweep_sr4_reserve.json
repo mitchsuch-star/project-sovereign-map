@@ -1,0 +1,205 @@
+[
+  {
+    "id": "AAR4-X1 lever down (the captor inherits)",
+    "file": "backend/models/world_state.py",
+    "old": "CAPTURE_CLEARS_THE_GARRISON = True\n",
+    "new": "CAPTURE_CLEARS_THE_GARRISON = False\n",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_capture_clears_the_losers_garrison"
+  },
+  {
+    "id": "AAR4-X1 a detachment changes sides",
+    "file": "backend/models/world_state.py",
+    "old": "            region.garrison_strength = 0\n            region.garrison_detachment = False\n\n        # PT-J2",
+    "new": "            region.garrison_strength = 0\n\n        # PT-J2",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_capture_clears_the_losers_garrison"
+  },
+  {
+    "id": "AAR4-X1 a return home clears the garrison",
+    "file": "backend/models/world_state.py",
+    "old": "        if (CAPTURE_CLEARS_THE_GARRISON and old_controller\n                and old_controller != capturing_nation):",
+    "new": "        if CAPTURE_CLEARS_THE_GARRISON:",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_return_to_the_same_hands_is_no_capture"
+  },
+  {
+    "id": "AAR24-X1 lever down (the guns storm)",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "GUNS_DO_NOT_STORM_WORKS = True\n",
+    "new": "GUNS_DO_NOT_STORM_WORKS = False\n",
+    "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_the_order_is_refused_free_with_the_remedy"
+  },
+  {
+    "id": "AAR24-X1 the battery never asks",
+    "file": "backend/commands/executor.py",
+    "old": "                if action in ('attack', 'bombard'):\n                    from backend.game_logic.garrison_report import (\n                        gun_corps_assault_refusal)",
+    "new": "                if False:\n                    from backend.game_logic.garrison_report import (\n                        gun_corps_assault_refusal)",
+    "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_the_order_is_refused_free_with_the_remedy"
+  },
+  {
+    "id": "AAR24-X1 a corps in the field is refused too",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "                and world.is_at_war(marshal.nation, other.nation)):\n            return \"\"\n    if not garrison_fights(region):",
+    "new": "                and world.is_at_war(marshal.nation, other.nation)):\n            pass\n    if not garrison_fights(region):",
+    "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_a_corps_in_the_field_is_still_a_battle"
+  },
+  {
+    "id": "AAR24-X1 a foot corps is refused too",
+    "file": "backend/game_logic/garrison_report.py",
+    "old": "    if not GUNS_DO_NOT_STORM_WORKS or not getattr(marshal, \"artillery\", False):",
+    "new": "    if not GUNS_DO_NOT_STORM_WORKS:",
+    "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_a_foot_corps_still_storms"
+  },
+  {
+    "id": "AAR10-X1 lever down (the cooldown's words)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "GUNS_LIMBERED_SAY_SO = True\n",
+    "new": "GUNS_LIMBERED_SAY_SO = False\n",
+    "tests": "tests/test_sr4_quick_wins.py::TestRuleTwelveIsTheGunsRule::test_guns_that_limbered_say_so"
+  },
+  {
+    "id": "AAR10-X1 a reinforcer answers twice",
+    "file": "backend/commands/combat_executor.py",
+    "old": "        if getattr(candidate, 'reinforced_this_turn', False):\n            return False, \"cooldown_spent\"\n        if getattr(candidate, 'moved_this_turn', False):",
+    "new": "        if getattr(candidate, 'moved_this_turn', False):",
+    "tests": "tests/test_sr4_quick_wins.py::TestRuleTwelveIsTheGunsRule::test_a_corps_that_answered_the_guns_keeps_the_cooldown"
+  },
+  {
+    "id": "AAR24-X2 lever down (the blow is charged in silence)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "COUNTER_PUNCH_CREDITS_THE_ASSAULT = True\n",
+    "new": "COUNTER_PUNCH_CREDITS_THE_ASSAULT = False\n",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_insist_road_is_free_and_said tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_ai_takes_its_blow_free_too"
+  },
+  {
+    "id": "AAR24-X2 the line is dropped",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                            garrison_result[\"message\"] = (\n                                counter_punch_message + garrison_result[\"message\"])",
+    "new": "                            pass",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_typed_road_says_the_blow"
+  },
+  {
+    "id": "AAR24-X2 the credit is dropped",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                            garrison_result[\"free_action\"] = True\n                            garrison_result[\"counter_punch_used\"] = True",
+    "new": "                            garrison_result[\"counter_punch_used\"] = True",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_insist_road_is_free_and_said tests/test_sr4_quick_wins.py::TestTheCounterPunchRidesTheAssault::test_the_ai_takes_its_blow_free_too"
+  },
+  {
+    "id": "AAR24-X3 lever down (the marshal-only read)",
+    "file": "backend/commands/objection_v2.py",
+    "old": "THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES = True\n",
+    "new": "THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES = False\n",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_good_odds_raise_no_objection"
+  },
+  {
+    "id": "AAR24-X3 the garrison's visibility is not read",
+    "file": "backend/commands/objection_v2.py",
+    "old": "        if kind == \"garrison\":\n            return _get_region_visibility(\n                engaged.name, getattr(marshal, 'nation', 'France'), world)",
+    "new": "        if kind == \"garrison\":\n            return _UNKNOWN",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_good_odds_raise_no_objection"
+  },
+  {
+    "id": "AAR24-X3 the garrison is not priced",
+    "file": "backend/commands/objection_v2.py",
+    "old": "            ratio = garrison_assault_price(marshal, engaged, world)[\"ratio\"]\n            return float(ratio) if ratio is not None else 1.0",
+    "new": "            return 1.0",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_bad_odds_name_the_price_at_full"
+  },
+  {
+    "id": "AAR24-X3 PARTIAL is priced as a count",
+    "file": "backend/commands/objection_v2.py",
+    "old": "        estimate, exact = _get_band_midpoint_for_strength(garrison), False",
+    "new": "        estimate, exact = garrison, True",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_partial_intel_prices_the_band_and_gives_no_count"
+  },
+  {
+    "id": "AAR24-X3 a province's army is not engaged",
+    "file": "backend/commands/objection_v2.py",
+    "old": "    engaged = world.get_enemy_at_location_for_nation(region.name, nation)\n    if engaged is not None:\n        return \"marshal\", engaged",
+    "new": "    engaged = None",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_a_province_with_an_army_prices_the_army"
+  },
+  {
+    "id": "AAR24-X3 the objection keeps its old line",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                if priced:\n                    return f\"{prefix} '{priced}'\"",
+    "new": "                if False:\n                    return f\"{prefix} '{priced}'\"",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_bad_odds_name_the_price_at_full"
+  },
+  {
+    "id": "AAR24-X3 the executor never hands the world",
+    "file": "backend/commands/executor.py",
+    "old": "                                    marshal, action, command, concern, tone,\n                                    world=world)",
+    "new": "                                    marshal, action, command, concern, tone)",
+    "tests": "tests/test_sr4_quick_wins.py::TestTheObjectionPricesTheWorks::test_bad_odds_name_the_price_at_full"
+  },
+  {
+    "id": "AAR32-D1 lever down (the folded 1.0 line)",
+    "file": "backend/commands/objection_v2.py",
+    "old": "THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS = True\n",
+    "new": "THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS = False\n",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_one_folded_ratio_two_verdicts"
+  },
+  {
+    "id": "AAR32-D1 the line at 1.0",
+    "file": "backend/commands/objection_v2.py",
+    "old": "FAVORABLE_WEIGHED_RATIO = 1.7\n",
+    "new": "FAVORABLE_WEIGHED_RATIO = 1.0\n",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine"
+  },
+  {
+    "id": "AAR32-D1 the generals are not weighed",
+    "file": "backend/commands/objection_v2.py",
+    "old": "    neutral = exchange(5, 5, 5, 5)\n    return exchange(",
+    "new": "    neutral = exchange(5, 5, 5, 5)\n    return 1.0 or exchange(",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_the_generals_are_weighed_with_the_resolvers_own_terms"
+  },
+  {
+    "id": "AAR32-D1 even promises nothing",
+    "file": "backend/commands/objection_v2.py",
+    "old": "        return \"a hard fight that may well decide nothing\"",
+    "new": "        return \"\"",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_even_says_what_it_promises tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_the_muster_line_carries_the_promise"
+  },
+  {
+    "id": "AAR32-D1 the muster line drops the promise",
+    "file": "backend/commands/combat_executor.py",
+    "old": "            + (f\" — {preview['odds_note']}\" if preview.get(\"odds_note\") else \"\")",
+    "new": "            + \"\"",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_the_muster_line_carries_the_promise"
+  },
+  {
+    "id": "AAR32-D1 the resolver keeps its own copy",
+    "file": "backend/game_logic/combat.py",
+    "old": "        shock_multiplier = shock_damage_multiplier(attacker_shock)\n",
+    "new": "        shock_multiplier = 1.0 + (attacker_shock / 20.0)\n",
+    "tests": "tests/test_sr4a_the_band_weighs_the_field.py::TestTheFavorableLine::test_the_resolver_reads_the_named_terms"
+  },
+  {
+    "id": "SRX-7 lever down (the unbounded dial)",
+    "file": "tools/playtest_driver.py",
+    "old": "UNRATIFIABLE_TABLE_CLOSES = True\n",
+    "new": "UNRATIFIABLE_TABLE_CLOSES = False\n",
+    "tests": "tests/test_playtest_driver_instrument.py::TestSRX7TheUnratifiableTableCloses::test_one_harsher_dial_then_the_table_closes"
+  },
+  {
+    "id": "SRX-7 the memory outlives the chain",
+    "file": "tools/playtest_driver.py",
+    "old": "        self._stale_refusals = {}\n        self._dialled_tables = set()\n\n    def scan(self, response):",
+    "new": "        self._stale_refusals = {}\n\n    def scan(self, response):",
+    "tests": "tests/test_playtest_driver_instrument.py::TestSRX7TheUnratifiableTableCloses::test_each_chain_gets_its_own_dial"
+  },
+  {
+    "id": "SRX-7 a ratifiable table is closed",
+    "file": "tools/playtest_driver.py",
+    "old": "                or dtype not in SETTLEMENT_DIALOGUE_TYPES\n                or dialogue.get(\"can_ratify\") is not False):",
+    "new": "                or dtype not in SETTLEMENT_DIALOGUE_TYPES):",
+    "tests": "tests/test_playtest_driver_instrument.py::TestSRX7TheUnratifiableTableCloses::test_a_ratifiable_table_is_never_closed"
+  },
+  {
+    "id": "SRX-7 the close is silent",
+    "file": "tools/playtest_driver.py",
+    "old": "                answer_text = f\"{choice} (closed — {self.last_close_reason})\"",
+    "new": "                pass",
+    "tests": "tests/test_playtest_driver_instrument.py::TestSRX7TheUnratifiableTableCloses::test_one_harsher_dial_then_the_table_closes"
+  }
+]

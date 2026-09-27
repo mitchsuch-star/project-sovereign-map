@@ -219,3 +219,154 @@ class TestThePostureNoteNamesWhatHurts:
         _client, world = shipped
         massena, john = self._stage_massena(world)
         assert M.executor._combat._posture_note(massena, john, world) == ""
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# AAR32-D1 RULED (September 26, 2026, by the user's direction) — the
+# favorable line weighs the generals and is drawn where the resolver wins
+# more than it does not. The measurement is `tools/_aar32_the_favorable_line.py`
+# (committed with its JSON); these pins hold the rule, not the Monte Carlo.
+# ═══════════════════════════════════════════════════════════════════════
+
+def _solve_strength(world, attacker, defender, target):
+    """The attacker strength at which the band's FOLDED ratio reaches
+    `target` (a bisection over the band's own function — the pins set a
+    folded ratio, then read what the line does with it)."""
+    gs = {"world": world}
+    lo, hi = 1000.0, 400000.0
+    for _ in range(50):
+        mid = (lo + hi) / 2
+        attacker.strength = int(mid)
+        if O.inferred_attack_effective_ratio(attacker, defender, gs,
+                                             fold_modifiers=True) < target:
+            lo = mid
+        else:
+            hi = mid
+    attacker.strength = int(hi)
+    return O.inferred_attack_effective_ratio(attacker, defender, gs,
+                                             fold_modifiers=True)
+
+
+def _pair(world, attacker_name, defender_name):
+    _solo(world, {attacker_name})
+    d = world.get_marshal(defender_name)
+    d.location = "Swabia"
+    d.strength = 30000
+    d.stance = Stance.NEUTRAL
+    d.fortified = False
+    d.defense_bonus = 0.0
+    for m in world.marshals.values():
+        if m.location == "Swabia" and m.name != defender_name and m.nation != "France":
+            m.location = "Bohemia"
+        # nobody of his court within reach — the preview's committed
+        # defender term stays zero, so the folded ratio set below is the
+        # one the muster prints
+        if m.nation == d.nation and m.name != defender_name:
+            m.location = "Hungary"
+    a = world.get_marshal(attacker_name)
+    a.location = "Rhineland"
+    a.stance = Stance.NEUTRAL
+    return a, d
+
+
+class TestTheFavorableLine:
+
+    def test_the_generals_are_weighed_with_the_resolvers_own_terms(self, shipped):
+        _client, world = shipped
+        ney, mack = world.get_marshal("Ney"), world.get_marshal("Mack")
+        murat, charles = world.get_marshal("Murat"), world.get_marshal("ArchdukeCharles")
+        # Ney's shock into Mack's thin defence runs the exchange well above
+        # the band's ratio; Murat's paper defence into Charles's well below.
+        assert O.generalship_factor(ney, mack) > 1.3
+        assert O.generalship_factor(murat, charles) < 0.85
+
+    def test_one_folded_ratio_two_verdicts(self, shipped):
+        """The measured disease: at ONE band ratio the roster ran from 0% to
+        90% wins. Now the word follows the pairing."""
+        _client, world = shipped
+        gs = {"world": world}
+        ney, mack = _pair(world, "Ney", "Mack")
+        folded = _solve_strength(world, ney, mack, 1.3)
+        band_n, weighed_n = O.inferred_attack_odds_reading(ney, mack, gs, fold_modifiers=True)
+        murat, charles = _pair(world, "Murat", "ArchdukeCharles")
+        folded_m = _solve_strength(world, murat, charles, 1.3)
+        band_m, weighed_m = O.inferred_attack_odds_reading(murat, charles, gs, fold_modifiers=True)
+        assert abs(folded - folded_m) < 0.01
+        assert band_n == "favorable", (folded, weighed_n)
+        assert band_m == "even", (folded_m, weighed_m)
+
+    def test_the_line_is_the_weighed_ratio_at_one_point_seven(self, shipped):
+        assert O.FAVORABLE_WEIGHED_RATIO == 1.7   # the ruling's number
+        _client, world = shipped
+        gs = {"world": world}
+        davout, kutuzov = _pair(world, "Davout", "Kutuzov")
+        for target in (0.8, 1.0, 1.2, 1.5, 1.8, 2.2):
+            _solve_strength(world, davout, kutuzov, target)
+            folded = O.inferred_attack_effective_ratio(davout, kutuzov, gs, fold_modifiers=True)
+            band, weighed = O.inferred_attack_odds_reading(davout, kutuzov, gs, fold_modifiers=True)
+            assert weighed == pytest.approx(folded * O.generalship_factor(davout, kutuzov))
+            assert band == ("favorable" if weighed >= O.FAVORABLE_WEIGHED_RATIO else "even")
+            assert O.inferred_attack_odds_band(davout, kutuzov, gs, fold_modifiers=True) == band
+
+    def test_the_unfavorable_line_is_untouched(self, shipped):
+        """The only word that drives a decision: folded < 0.7, whatever the
+        generals — Ney into Mack at 0.65 is still unfavorable."""
+        _client, world = shipped
+        gs = {"world": world}
+        ney, mack = _pair(world, "Ney", "Mack")
+        _solve_strength(world, ney, mack, 0.65)
+        assert O.inferred_attack_odds_band(ney, mack, gs, fold_modifiers=True) == "unfavorable"
+
+    def test_even_says_what_it_promises(self, shipped):
+        assert O.odds_band_note("even", 1.2) == "a hard fight that may well decide nothing"
+        assert O.odds_band_note("even", 0.8) == "a hard fight that may go against us"
+        assert O.odds_band_note("favorable", 2.0) == ""
+        assert O.odds_band_note("unfavorable", 0.5) == ""
+
+    def test_the_muster_line_carries_the_promise(self, shipped):
+        """Produced AND rendered: Murat (aggressive — no objection stands in
+        front of the order) into Charles at a folded 1.5 — once "favorable",
+        now "even", and the line says what that means."""
+        client, world = shipped
+        murat, charles = _pair(world, "Murat", "ArchdukeCharles")
+        _solve_strength(world, murat, charles, 1.5)
+        band, weighed = O.inferred_attack_odds_reading(
+            murat, charles, {"world": world}, fold_modifiers=True)
+        assert band == "even" and weighed >= 1.0, (band, weighed)
+        world.update_intel_from_scout("Swabia", world.current_turn)
+        data = post(client, "Murat, attack Archduke Charles")
+        blob = str(data.get("message") or "") + str(data.get("pending_interrupt") or "")
+        assert ("the balance of force looks even — a hard fight that may "
+                "well decide nothing.") in blob, blob[:600]
+
+    def test_the_men_only_band_keeps_its_line(self, shipped):
+        """Without the fold (the CR-5 reads) the line is the folded 1.0."""
+        _client, world = shipped
+        gs = {"world": world}
+        ney, mack = _pair(world, "Ney", "Mack")
+        _solve_strength(world, ney, mack, 1.05)
+        raw = O.inferred_attack_effective_ratio(ney, mack, gs)
+        assert O.inferred_attack_odds_band(ney, mack, gs) == ("favorable" if raw >= 1.0 else "even")
+
+    def test_lever_down_the_line_is_the_folded_one(self, shipped, monkeypatch):
+        monkeypatch.setattr(O, "THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS", False)
+        _client, world = shipped
+        gs = {"world": world}
+        murat, charles = _pair(world, "Murat", "ArchdukeCharles")
+        _solve_strength(world, murat, charles, 1.2)
+        assert O.inferred_attack_odds_band(murat, charles, gs, fold_modifiers=True) == "favorable"
+        assert O.odds_band_note("even", 1.2) == ""
+
+    def test_the_resolver_reads_the_named_terms(self):
+        """The band weighs the generals with the resolver's OWN arithmetic —
+        the resolver calls the four named terms (a copy would drift)."""
+        import inspect
+        from backend.game_logic import combat as C
+        src = inspect.getsource(C.CombatResolver)
+        for call in ("tactical_dice_bonus(", "dice_damage_multiplier(",
+                     "shock_damage_multiplier(", "defense_casualty_share("):
+            assert call in src, call
+        assert C.shock_damage_multiplier(9) == 1.0 + 9 / 20.0
+        assert C.defense_casualty_share(8) == 1.0 - 8 / 20.0
+        assert C.dice_damage_multiplier(8) == 0.85 + 8 * 0.025
+        assert C.tactical_dice_bonus(8) == 2

@@ -2231,6 +2231,10 @@ class Answerer:
         self.last_standing_reason = ""
         # FA-79: `petition: rotate` — the next enabled arm per petition kind.
         self._petition_rotation = {}
+        # SRX-7: settlement tables dialled harsher once in THIS chain (reset
+        # by begin_post()), and why the last one was closed (the digest).
+        self._dialled_tables = set()
+        self.last_close_reason = ""
         # FA-90 (ii): reward notifications already typed, by id.
         self._rewarded_ids = set()
         # IQ-4 S4: what the `--missions advisor` hook meant by the command it
@@ -2264,6 +2268,7 @@ class Answerer:
         """
         self._answered_dialogue_ids = set()
         self._stale_refusals = {}
+        self._dialled_tables = set()
 
     def scan(self, response):
         followups = []
@@ -2628,7 +2633,11 @@ class Answerer:
                 # FA-78: WHY — the option list was all disabled, and the
                 # reason is the engine's own honest-availability text.
                 standing = f"(left standing — disabled: {first_line(self.last_standing_reason, 90)})"
-            self.d.popup("diplomatic_dialogue", label, choice or standing)
+            answer_text = choice or standing
+            if choice is not None and self.last_close_reason:
+                # SRX-7: the table was closed, and the line says why.
+                answer_text = f"{choice} (closed — {self.last_close_reason})"
+            self.d.popup("diplomatic_dialogue", label, answer_text)
             if choice is not None:
                 body = {"choice": choice}
                 if did is not None:
@@ -2681,7 +2690,7 @@ class Answerer:
                         self._stale_refusals[did] = (
                             self._stale_refusals.get(did, 0) + 1)
                         self.d.discount_answer(
-                            "diplomatic_dialogue", label, choice)
+                            "diplomatic_dialogue", label, answer_text)
                     else:
                         self._answered_dialogue_ids.add(did)
                 # WO slice 5 review: the digest rendered a REFUSED answer
@@ -2850,6 +2859,7 @@ class Answerer:
         options = [o for o in all_options if _enabled(o)]
         any_enabled = bool(options) or not all_options
         self.last_standing_reason = ""
+        self.last_close_reason = ""
         if all_options and not options:
             first = all_options[0]
             self.last_standing_reason = (str(first.get("description") or first.get("label") or "")
@@ -3034,6 +3044,11 @@ class Answerer:
             # NOT the constant: `first` keeps its own "take options[0]"
             # meaning here, which is the whole point of the mode.
             picked = find("accept", "agree", "yes", "sign")
+            if picked is None:
+                closing = self._close_unratifiable_table(
+                    dtype, dialogue, options, find)
+                if closing is not None:
+                    return closing
         elif mode == "first":
             picked = _option_id(options[0]) if options else None
         else:  # decline
@@ -3051,6 +3066,30 @@ class Answerer:
             # accepts a keyword — "decline" is the family's safe word.
             picked = "decline" if mode == "decline" else "1"
         return picked
+
+    def _close_unratifiable_table(self, dtype, dialogue, options, find):
+        """SRX-7: the closing option when this settlement table was already
+        dialled harsher once in this chain and still cannot be ratified;
+        None otherwise — the first time, the fallback's dial is let through
+        and the table is remembered."""
+        if (not UNRATIFIABLE_TABLE_CLOSES
+                or dtype not in SETTLEMENT_DIALOGUE_TYPES
+                or dialogue.get("can_ratify") is not False):
+            return None
+        table = str(dialogue.get("draft_key") or dialogue.get("war_id")
+                    or _court_of(dialogue) or dtype)
+        if table not in self._dialled_tables:
+            if options and "harsher" in str(_option_id(options[0]) or ""):
+                self._dialled_tables.add(table)
+            return None
+        closing = find(*_TABLE_CLOSING_WORDS)
+        if closing is None:
+            return None
+        reason = (str(dialogue.get("ratify_blocked_reason") or "").strip()
+                  or "the engine will not ratify it")
+        self.last_close_reason = (
+            f"still unratifiable after one harsher dial: {first_line(reason, 90)}")
+        return closing
 
     def _advisor_mission_choice(self, dialogue, options, find):
         """IQ-4 S4 `--missions advisor`: answer Talleyrand's mission confirm
@@ -3818,6 +3857,19 @@ CLIENT_PETITION_MODES = ("grant", "refuse")
 # `incoming_proposal`/the bare shape and stays `--diplomacy`'s).
 SETTLEMENT_DIALOGUE_TYPES = ("incoming_settlement_offer", "settlement_confirm")
 SETTLEMENT_MODES = ("accept", "decline")
+
+# SRX-7 (Score Mandate Chunk 4 reserve, Sept 26 2026): an accepting policy
+# pressed "Harsher terms" on a table the engine says cannot be ratified until
+# the 16-answer cap — sixteen dials on turn 7 of the AAR arm, on both trees,
+# for a white peace that "claims a victory the field has not delivered". The
+# first answer every archived arm gave (one harsher dial) is kept; if the
+# table that dial re-shows still cannot be ratified (`can_ratify` False, no
+# signing arm), the policy closes it (Back Out / withdraw / decline) and the
+# digest line says why. Per answer chain: the next typed proposal gets its
+# own one dial. Lever False = the unbounded dial.
+UNRATIFIABLE_TABLE_CLOSES = True
+_TABLE_CLOSING_WORDS = ("suspend", "back", "withdraw", "decline", "reject",
+                        "close", "cancel")
 
 
 def declined_courts(policy) -> frozenset:

@@ -458,6 +458,120 @@ def _get_region_visibility(region_name: str, nation: str, world) -> str:
     return _UNKNOWN
 
 
+# ═══════ AAR24-X3 (Score Mandate Chunk 4 reserve, Sept 26 2026) ═══════
+# An attack names a MARSHAL or a PROVINCE. `get_target_intel_level`,
+# `_get_attack_odds_ratio` and `_check_attack_target_fortified` looked the
+# target up as a marshal only, so a province read UNKNOWN and 1.0: a
+# cautious Davout — 60,000 men against Vienna's 25,000 — objected "Sire, the
+# enemy is too strong. We need reinforcements." with no figure, and a
+# province named with an army in it ("attack Swabia", Mack there) was priced
+# nothing like "attack Mack" at the same odds (it objected; the name did
+# not). The objection now reads what the attack ENGAGES, as the executor
+# resolves it — the named marshal; for a province, the enemy the executor
+# engages there (`get_enemy_at_location_for_nation`), else the garrison the
+# assault's own rule says fights (`garrison_report.garrison_fights`) — and
+# prices a garrison with the assault's own reckoning
+# (`garrison_report.assault_forecast`: the attacker as the resolver counts
+# him, the garrison behind its ground and works), fog-honest: a count only
+# at FULL, a band's midpoint at PARTIAL / STALE. Player-only (the AI never
+# objects), so no board can move. Lever False = the marshal-only read.
+THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES = True
+
+
+def attack_engages(marshal, order, world):
+    """AAR24-X3: what an attack order engages, as `_execute_attack`
+    resolves it — ("marshal", m) for a named marshal or the enemy standing
+    in a named province; ("garrison", region) for a province whose garrison
+    fights; (None, None) otherwise."""
+    target = str((order or {}).get("target") or "").strip()
+    if not target or world is None:
+        return None, None
+    named = world.marshals.get(target) if hasattr(world, "marshals") else None
+    if named is not None:
+        return "marshal", named
+    if not THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+        return None, None
+    region = world.get_region(target) if hasattr(world, "get_region") else None
+    if region is None:
+        return None, None
+    nation = getattr(marshal, "nation", None)
+    engaged = world.get_enemy_at_location_for_nation(region.name, nation)
+    if engaged is not None:
+        return "marshal", engaged
+    from backend.game_logic.garrison_report import garrison_fights
+    if region.controller and region.controller != nation and garrison_fights(region):
+        return "garrison", region
+    return None, None
+
+
+def garrison_assault_price(marshal, region, world) -> dict:
+    """AAR24-X3: the assault's own reckoning, fog-honest — the visibility
+    the objection reads on the province, the garrison as the player knows it
+    (exact at FULL, a band's midpoint at PARTIAL / STALE, nothing below), and
+    the ratio the cautious thresholds read: the garrison behind its ground
+    and works over the attacker in the assault's reckoning. Pure (the
+    forecast restores every field it stamps)."""
+    from backend.game_logic.garrison_report import (
+        assault_forecast, garrison_effective)
+    nation = getattr(marshal, "nation", "France")
+    visibility = _get_region_visibility(region.name, nation, world)
+    garrison = int(getattr(region, "garrison_strength", 0) or 0)
+    if visibility == _FULL:
+        estimate, exact = garrison, True
+    elif visibility in (_PARTIAL, _STALE):
+        estimate, exact = _get_band_midpoint_for_strength(garrison), False
+    else:
+        estimate, exact = None, False
+    forecast = assault_forecast(world, marshal, region)
+    attacker_effective = int(forecast["attacker_effective"])
+    defence = (garrison_effective(region, estimate)
+               if estimate is not None else None)
+    ratio = (defence / max(1, attacker_effective)
+             if defence is not None else None)
+    return {
+        "visibility": visibility, "exact": exact,
+        "garrison": garrison if exact else None,
+        "garrison_effective": defence,
+        "attacker_effective": attacker_effective, "ratio": ratio,
+        "attacker_losses": int(forecast["attacker_losses"]) if exact else None,
+        "breaks": bool(forecast["breaks"]) if exact else None,
+    }
+
+
+def garrison_objection_quote(marshal, order, world) -> str:
+    """AAR24-X3: what a cautious marshal says when he objects to storming a
+    garrison — the price from the assault's own reckoning, fog-honest (a
+    count only at FULL); '' when the order is not a garrison assault (his
+    personality's line stands)."""
+    if world is None or not THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+        return ""
+    kind, region = attack_engages(marshal, order, world)
+    if kind != "garrison":
+        return ""
+    price = garrison_assault_price(marshal, region, world)
+    name = region.name
+    if price["garrison_effective"] is None:
+        return (f"Sire, we know nothing of what holds {name}. I will not "
+                f"storm works I cannot see — let a scout report first.")
+    ours = f"{price['attacker_effective']:,}"
+    if price["exact"]:
+        garrison = price["garrison"]
+        behind = (f" — {price['garrison_effective']:,} behind their ground "
+                  f"and works —" if price["garrison_effective"] != garrison
+                  else "")
+        tail = ("and the works would still stand" if not price["breaks"]
+                else "before the works give way")
+        return (f"Sire, the works at {name} hold {garrison:,}{behind} against "
+                f"our {ours} in the assault's reckoning. I would lose about "
+                f"{price['attacker_losses']:,} men {tail}.")
+    from backend.game_logic.garrison_report import garrison_view
+    _form, band = garrison_view(world, name, getattr(marshal, "nation", ""))
+    held = f"a {band}" if isinstance(band, str) and band else "a garrison"
+    return (f"Sire, the works at {name} hold {held} — our intelligence gives "
+            f"no count — against our {ours}. I would not storm them blind; a "
+            f"scout's report would let me reckon the exchange.")
+
+
 def get_target_intel_level(target_name: str, marshal, world) -> str:
     """Get visibility level for a specific named enemy marshal.
 
@@ -478,6 +592,15 @@ def get_target_intel_level(target_name: str, marshal, world) -> str:
         return _UNKNOWN
 
     target_marshal = world.marshals.get(target_name) if hasattr(world, 'marshals') else None
+    if target_marshal is None and THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+        # AAR24-X3: a PROVINCE — the visibility of what the attack engages
+        # there (the army the executor would fight, else the garrison).
+        kind, engaged = attack_engages(marshal, {"target": target_name}, world)
+        if kind == "garrison":
+            return _get_region_visibility(
+                engaged.name, getattr(marshal, 'nation', 'France'), world)
+        if kind == "marshal":
+            target_marshal = engaged
     if not target_marshal or target_marshal.strength <= 0:
         return _UNKNOWN
 
@@ -763,6 +886,12 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
         return False
 
     target_marshal = world.marshals.get(target_name)
+    if target_marshal is None and THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+        # AAR24-X3: the army a province order engages (a garrison's works
+        # are already inside `garrison_assault_price` — no second bump).
+        kind, engaged = attack_engages(marshal, order, world)
+        if kind == "marshal":
+            target_marshal = engaged
     if target_marshal:
         return getattr(target_marshal, 'fortified', False)
 
@@ -795,6 +924,19 @@ def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
         return 1.0
 
     target_marshal = world.marshals.get(target_name)
+    if target_marshal is None and THE_OBJECTION_PRICES_WHAT_THE_ATTACK_ENGAGES:
+        # AAR24-X3: a province prices what the attack engages there — the
+        # army as that marshal's name would, the garrison by the assault's
+        # own reckoning.
+        kind, engaged = attack_engages(marshal, order, world)
+        if kind == "garrison":
+            if marshal.strength <= 0:
+                return 999.0
+            ratio = garrison_assault_price(marshal, engaged, world)["ratio"]
+            return float(ratio) if ratio is not None else 1.0
+        if kind == "marshal":
+            target_marshal = engaged
+            target_name = engaged.name
     if not target_marshal:
         return 1.0
 
@@ -957,6 +1099,98 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
     return attacker / effective_defender
 
 
+# ═══════ AAR32-D1 RULED (September 26, 2026, by the user's direction) ═══════
+# "Make a decision on favorable odds." The band's favorable line sat at a
+# folded ratio of 1.0, where — measured over the real 1805 roster (7 French
+# marshals × the 8 Austrian / Russian / British / Prussian commanders, 200
+# seeded fights each, open ground; `tools/_aar32_the_favorable_line.py`) —
+# the attacker won 6.8% of his fights (0–30% by pairing) and 89% decided
+# nothing. The spread came from the one thing the fold does not read: the
+# GENERALS. The ruling, in three parts:
+#   * "favorable" weighs the generals with the resolver's own skill terms
+#     (`generalship_factor`: the attacker's shock, both sides' defense, the
+#     expected roll of his tactical skill — relative to a 5/5/5 pairing) and
+#     is drawn at FAVORABLE_WEIGHED_RATIO = 1.7, where every one of the 56
+#     pairings wins more than half its fights (58–70%, mean 59.7%) and none
+#     loses — at the old folded 1.0 line the attacker won 6.8% (0–30%);
+#   * "even" is everything from the unfavorable line to there, and says what
+#     it promises (`odds_band_note`): a hard fight that may well decide
+#     nothing (a weighed 1.0–1.7 stalemates 96% → 40% of the time) — or,
+#     below a weighed 1.0, one that may go against us;
+#   * "unfavorable" is UNTOUCHED (folded < 0.7, CA9 row 2's gate line — the
+#     only word that drives a decision: the cautious marshal's confirm and
+#     the glory gate on both boards), so the ruling moves no decision.
+# Display only: BASELINE_SERIES and M1–M7 cannot move. Lever False = the
+# folded 1.0 line.
+THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS = True
+FAVORABLE_WEIGHED_RATIO = 1.7
+
+
+def _skill_of(marshal, name: str):
+    try:
+        return marshal.get_effective_skill(name)
+    except Exception:
+        return (getattr(marshal, "skills", {}) or {}).get(name, 5)
+
+
+def generalship_factor(marshal, enemy) -> float:
+    """AAR32-D1: how much better (> 1) or worse (< 1) the exchange runs than
+    the band's folded ratio says, from the resolver's own skill terms — the
+    attacker's shock on the damage he deals, the defender's defense on the
+    share he takes, the attacker's defense on the share HE takes, and the
+    expected 2d6 roll plus his tactical bonus — relative to a pairing of
+    fives. Only the attacker rolls in `resolve_battle`, so only his tactical
+    skill enters. A pure read."""
+    from backend.game_logic.combat import (
+        EXPECTED_NATURAL_ROLL, MAX_MODIFIED_ROLL, defense_casualty_share,
+        dice_damage_multiplier, shock_damage_multiplier, tactical_dice_bonus)
+
+    def exchange(shock_a, tactical_a, defense_a, defense_d):
+        roll = min(MAX_MODIFIED_ROLL,
+                   EXPECTED_NATURAL_ROLL + tactical_dice_bonus(tactical_a))
+        dealt = (shock_damage_multiplier(shock_a)
+                 * defense_casualty_share(defense_d)
+                 * dice_damage_multiplier(roll))
+        return dealt / max(0.05, defense_casualty_share(defense_a))
+
+    neutral = exchange(5, 5, 5, 5)
+    return exchange(_skill_of(marshal, "shock"), _skill_of(marshal, "tactical"),
+                    _skill_of(marshal, "defense"), _skill_of(enemy, "defense")) / neutral
+
+
+def odds_band_note(band: str, weighed_ratio: float) -> str:
+    """AAR32-D1: what the band's word promises, said after it — only "even"
+    carries a clause (the word alone promised a fair fight where the
+    resolver delivers a stalemate or worse)."""
+    if not THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS or band != "even":
+        return ""
+    if weighed_ratio >= 1.0:
+        return "a hard fight that may well decide nothing"
+    return "a hard fight that may go against us"
+
+
+def inferred_attack_odds_reading(marshal, enemy, game_state=None,
+                                 committed_attacker: float = 0.0,
+                                 committed_defender: float = 0.0,
+                                 fold_modifiers: bool = False):
+    """(band, weighed_ratio) — the band and the ratio its favorable line
+    reads. Without the fold (or with the lever down) the weighed ratio is
+    the folded ratio itself and the line is 1.0, byte-identically."""
+    ratio = inferred_attack_effective_ratio(
+        marshal, enemy, game_state, committed_attacker=committed_attacker,
+        committed_defender=committed_defender, fold_modifiers=fold_modifiers)
+    if ratio < INFERRED_ATTACK_FAVORABLE_RATIO:
+        return "unfavorable", float(ratio)
+    if (fold_modifiers and THE_BAND_WEIGHS_THE_STANDING_MODIFIERS
+            and THE_FAVORABLE_LINE_WEIGHS_THE_GENERALS
+            and hasattr(marshal, "get_effective_skill")
+            and hasattr(enemy, "get_effective_skill")):
+        weighed = float(ratio) * generalship_factor(marshal, enemy)
+        return ("favorable" if weighed >= FAVORABLE_WEIGHED_RATIO
+                else "even"), weighed
+    return ("favorable" if ratio >= 1.0 else "even"), float(ratio)
+
+
 def inferred_attack_odds_band(marshal, enemy, game_state=None,
                               committed_attacker: float = 0.0,
                               committed_defender: float = 0.0,
@@ -972,14 +1206,12 @@ def inferred_attack_odds_band(marshal, enemy, game_state=None,
     CO-2: `committed_attacker` folds the mustered reinforcement strength into
     the ratio so the band reflects the total committed force.
     CA9-F1: `committed_defender` does the same for the other side."""
-    ratio = inferred_attack_effective_ratio(
+    # AAR32-D1: ONE reading (`inferred_attack_odds_reading`) — the
+    # unfavorable line untouched, the favorable line weighing the generals.
+    return inferred_attack_odds_reading(
         marshal, enemy, game_state, committed_attacker=committed_attacker,
-        committed_defender=committed_defender, fold_modifiers=fold_modifiers)
-    if ratio >= 1.0:
-        return "favorable"
-    if ratio >= INFERRED_ATTACK_FAVORABLE_RATIO:
-        return "even"
-    return "unfavorable"
+        committed_defender=committed_defender,
+        fold_modifiers=fold_modifiers)[0]
 
 
 # ════════════════════════════════════════════════════════════════════════════

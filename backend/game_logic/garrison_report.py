@@ -21,6 +21,13 @@ from backend.models.region import TERRAIN_DEFENSE_BONUS
 
 # Levers: False reproduces the pre-slice surfaces byte for byte.
 THE_SCOUT_NAMES_THE_GARRISON = True
+# AAR24-X1 (Score Mandate Chunk 4 reserve, Sept 26 2026): a gun corps
+# does not storm the works. The AI has always refused it (enemy_ai P4.25:
+# "artillery — cannot assault garrisons"); the player's `attack Vienna` /
+# `bombard Vienna` from a gun corps resolved as a melee escalade. ONE rule
+# both boards now: refused at the executor's pre-objection battery, free,
+# with the reason and the remedy. Lever False = the melee escalade.
+GUNS_DO_NOT_STORM_WORKS = True
 THE_DESK_READS_THE_GARRISON_FOG = True
 
 
@@ -170,6 +177,36 @@ def garrison_fights(region) -> bool:
     if getattr(region, "garrison_detachment", False):
         return True
     return garrison >= MARCH_HALTS_AT_GARRISON
+
+
+def gun_corps_assault_refusal(world, marshal, target) -> str:
+    """AAR24-X1: the refusal sentence when `marshal` is a gun corps ordered
+    against works a garrison holds (no corps at war stands in front of them —
+    a corps in the field is a battle or a bombardment, not an escalade); ''
+    otherwise. Read by the executor's pre-objection battery, so no marshal
+    objects to an order the executor is about to refuse, and nothing is
+    spent."""
+    if not GUNS_DO_NOT_STORM_WORKS or not getattr(marshal, "artillery", False):
+        return ""
+    if not target or world is None:
+        return ""
+    region = world.get_region(str(target))
+    if region is None or region.controller == marshal.nation:
+        return ""
+    for other in world.marshals.values():
+        if (other.location == region.name and int(other.strength or 0) > 0
+                and other.nation != marshal.nation
+                and not getattr(other, "captured_by", "")
+                and world.is_at_war(marshal.nation, other.nation)):
+            return ""
+    if not garrison_fights(region):
+        return ""
+    from backend.display_names import humanize_entity_name
+    name = humanize_entity_name(marshal.name)
+    return (f"{name}'s guns cannot storm the works at {region.name}, Sire — "
+            f"a gun corps does not assault, and bombardment strikes a corps in "
+            f"the field, not a garrison behind its walls. Infantry or cavalry "
+            f"must carry {region.name}. Nothing was spent.")
 
 
 def garrison_breaks(region, remaining: int) -> bool:

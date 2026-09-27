@@ -552,6 +552,24 @@ def _attack_is_unordered(command) -> bool:
 # lost it (the player's route stamps the credit on that very exit).
 COUNTER_PUNCH_CREDITS_THE_CAPTURE = True
 
+# AAR10-X1 (Score Mandate Chunk 4 reserve, Sept 26 2026): Rule 12 is the
+# GUNS' rule, decided — a battery that limbered and marched this turn
+# cannot unlimber to join a battle, and the muster row says so in its own
+# words (`guns_limbered`) instead of the reinforcement cooldown's. Lever
+# False = the shared "has already marched this turn" row. Display only.
+GUNS_LIMBERED_SAY_SO = True
+
+# AAR24-X2 (Score Mandate Chunk 4 reserve, Sept 26 2026): the banked
+# counter-punch is consumed at the head of `_execute_attack`, and the
+# GARRISON exit — the one R1-6 did not reach — returned without the blow's
+# line or its credit: Davout stormed Vienna on his free blow, the blow was
+# spent, one action was charged and nothing said so. The exit now carries
+# the COUNTER-PUNCH line and `free_action`, as the field and capture exits
+# do — for every nation (GR5): the AI's cautious marshals get back the
+# action they were silently charged. Lever False = the silent charge (the
+# flip arm of tools/_sr4_reserve_series_arms.py).
+COUNTER_PUNCH_CREDITS_THE_ASSAULT = True
+
 
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
@@ -1263,7 +1281,11 @@ class CombatExecutor:
         # Rule 11: NOT already reinforced this turn
         if getattr(marshal, 'reinforced_this_turn', False):
             return False
-        # Rule 12: NOT moved_this_turn — troops cannot force-march twice (A-D2)
+        # Rule 12: NOT moved_this_turn — the GUNS' rule (AAR10-X1, decided
+        # Sept 26 2026): a battery that limbered and marched this turn cannot
+        # unlimber to join a battle (A-D2); `moved_this_turn` is set for guns
+        # (and a pursuer halted by a last stand) — a foot or horse corps that
+        # marched may still answer the guns.
         if getattr(marshal, 'moved_this_turn', False):
             return False
         # Rule 15: NOT in square formation (can't march while formed square)
@@ -1356,9 +1378,19 @@ class CombatExecutor:
         _frontier = self._pursuit_capture_guard(candidate, battle_region, world)
         if _frontier is not None and _frontier["arm"] == "neutral":
             return False, "neutral_soil"
-        if getattr(candidate, 'reinforced_this_turn', False) \
-                or getattr(candidate, 'moved_this_turn', False):
+        # AAR10-X1 (Chunk 4 reserve, Sept 26 2026) — DECIDED: Rule 12 is
+        # the GUNS' rule. `moved_this_turn` is set when a battery limbers and
+        # marches (and on a pursuer halted by a last stand); a foot or horse
+        # corps that marched a day may still answer the guns — the
+        # reinforcement is itself a same-day march to an adjacent field,
+        # priced by its arrival roll. A gun that limbered this turn cannot
+        # unlimber in time, and now says so in its own words.
+        if getattr(candidate, 'reinforced_this_turn', False):
             return False, "cooldown_spent"
+        if getattr(candidate, 'moved_this_turn', False):
+            return False, ("guns_limbered"
+                           if getattr(candidate, 'artillery', False)
+                           and GUNS_LIMBERED_SAY_SO else "cooldown_spent")
         # Engaged: enemies stand in the candidate's own region.
         engaged = any(
             m.location == candidate.location and m.nation != nation
@@ -1743,11 +1775,16 @@ class CombatExecutor:
         # failure direction. The PRINTED figures stay fog-legal below.
         defender_joining, committed_defender = self._defender_muster(
             enemy_marshal, world)
-        odds_band = inferred_attack_odds_band(
+        from backend.commands.objection_v2 import (
+            inferred_attack_odds_reading, odds_band_note)
+        odds_band, _weighed = inferred_attack_odds_reading(
             marshal, enemy_marshal, game_state,
             committed_attacker=committed_attacker,
             committed_defender=committed_defender,
             fold_modifiers=True)
+        # AAR32-D1: what the word promises ("even" — most likely a fight
+        # that decides nothing), printed after it on the band line.
+        odds_note = odds_band_note(odds_band, _weighed)
 
         # The hedge row, fog-honest: it names only corps the player can
         # already SEE, and says "at least", because the band above may be
@@ -1776,6 +1813,7 @@ class CombatExecutor:
                        "strength_display": target_strength_display,
                        "reinforcement_note": defender_note},
             "odds_band": odds_band,
+            "odds_note": odds_note,
             "rows": rows,
             "shared_casualty_note": shared_casualty_note,
         }
@@ -2092,7 +2130,9 @@ class CombatExecutor:
             f"{humanize_entity_name(preview['target']['name'])} "
             f"({preview['target']['strength_display']}) at "
             f"{preview['target']['location']} — the balance of force looks "
-            f"{preview['odds_band']}."
+            f"{preview['odds_band']}"
+            + (f" — {preview['odds_note']}" if preview.get("odds_note") else "")
+            + "."
         ]
         for row in preview["rows"]:
             verdict = "WILL JOIN" if row["will_join"] else "WILL NOT"
@@ -6336,6 +6376,15 @@ class CombatExecutor:
                             marshal, target_region, world, game_state)
                         if drill_cancelled_message:
                             garrison_result["message"] = drill_cancelled_message + garrison_result["message"]
+                        # AAR24-X2: the blow consumed at the head of this
+                        # method rides the exit it took — the assault's too
+                        # (the field and capture exits already credit it).
+                        if (is_counter_punch and COUNTER_PUNCH_CREDITS_THE_ASSAULT
+                                and garrison_result.get("success")):
+                            garrison_result["message"] = (
+                                counter_punch_message + garrison_result["message"])
+                            garrison_result["free_action"] = True
+                            garrison_result["counter_punch_used"] = True
                         return garrison_result
 
                     # If garrison exists but below collapse threshold, it collapses — clear it
