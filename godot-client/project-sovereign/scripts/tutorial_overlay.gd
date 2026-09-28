@@ -47,6 +47,9 @@ signal suggest_command(cmd: String)
 # diplomacy wizard on a court (typed diplomatic verbs are redirected to
 # that door by ruling G1, so a suggest chip would teach a dead route).
 signal open_cabinet(nation: String)
+# SR-5r RF-4c: the laws card's door — asks main.gd to open the Strategic
+# Ledger on the named book (THE LAWS = 7). Sends nothing.
+signal open_ledger(tab: int)
 
 const CHIP_TEXT_HEX := "e8d4a8"
 const CHIP_BG_HEX := "233043"
@@ -286,18 +289,33 @@ const STEPS := [
 		"advance": "_pred_turn_gte_12",
 	},
 	{
-		"id": "free_books",
+		"id": "laws",
 		"turn_gate": 12,
-		"title": "XVIII. The Instruments",
-		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger (seven books — forces, land, treasury, intelligence, manpower, orders, the Admiralty), [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again, [color=#e8d4a8]L[/color] the campaign log, [color=#e8d4a8]N[/color] Le Moniteur. Hold [color=#e8d4a8]Alt[/color] with the letter while you type. The treasury now carries occupation costs and the charges of empire — read them in the ledger. The notice rail at the top collects every matter that waits on you; [color=#e8d4a8]Esc[/color] saves, loads and sets the screen. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
+		"title": "XVIII. The Laws of State",
+		# SR-5r RF-4c (REFORMS_SPEC §8a): the laws of state — the lesson
+		# authors France's own five, the 1805 deck verbatim. A door (opens the
+		# ledger's eighth book) and a quill (the Staff); the Council of State
+		# asks the terms before anything is spent.
+		"body": "The treasury buys more than muskets, Sire: it buys LAWS — acts of state, paid once and then every turn. The ledger's eighth book, [color=#e8d4a8]THE LAWS[/color] ([color=#e8d4a8]T[/color], then 8), lists ours: what each does in numbers, its price, its upkeep, and whether we may enact it now. The Grand Quartier Général is the one road to a FIFTH order of the day — 9,000 gold, then 300 a turn. Say [color=#e8d4a8]enact the Staff[/color]: the Council of State names the terms and you answer. A political law is paid in AUTHORITY instead, and the Council names every line it crosses — the marshals' calm lives above 70. A law the treasury cannot pay LAPSES: the forecast warns a turn early, and repealing a cheaper law first keeps the one you need. Restored within ten turns, a lapsed law costs half its price and the arrears.",
+		"suggest": "enact the Staff",
+		"suggest_action": "enact_law",
+		"open": "ledger:7",
+		"open_label": "Open THE LAWS ▸",
+		"advance": "_pred_law_enacted",
+	},
+	{
+		"id": "free_books",
+		"turn_gate": 13,
+		"title": "XIX. The Instruments",
+		"body": "Everything I have taught has a screen: [color=#e8d4a8]T[/color] the Strategic Ledger (eight books — forces, land, treasury, intelligence, manpower, orders, the Admiralty, the laws), [color=#e8d4a8]G[/color] your Generals, [color=#e8d4a8]D[/color] the courts of Europe, [color=#e8d4a8]R[/color] my morning dispatch again, [color=#e8d4a8]L[/color] the campaign log, [color=#e8d4a8]N[/color] Le Moniteur. Hold [color=#e8d4a8]Alt[/color] with the letter while you type. The treasury now carries occupation costs and the charges of empire — read them in the ledger. The notice rail at the top collects every matter that waits on you; [color=#e8d4a8]Esc[/color] saves, loads and sets the screen. Five more instruments the great campaign will hand you, Sire: the ledger's seventh book is [color=#e8d4a8]THE ADMIRALTY[/color] — fleets, blockades, and the crossings. [color=#e8d4a8]F1[/color] opens the diplomacy wizard, and its Formable Nations button shows what new crowns a settlement can carve. A general's card carries a [color=#e8d4a8]Reward[/color] chip when his service demands payment. And the ledger's Design rows read each court's ambition — the why behind their armies. And from F1 you may send Talleyrand himself on a mission — to warm a court, reassure an ally, spy, or pry two allies apart; it costs diplomatic points every turn it runs, and stands in the ledger's Orders book and on the notice rail until it is done.",
 		"suggest": "",
 		"suggest_action": "",
-		"advance": "_pred_turn_gte_13",
+		"advance": "_pred_turn_gte_14",
 	},
 	{
 		"id": "handoff",
-		"turn_gate": 13,
-		"title": "XIX. The Lesson Ends",
+		"turn_gate": 14,
+		"title": "XX. The Lesson Ends",
 		"body": "That is the whole of the craft, Sire: orders, temper, battle, conquest, coin — and the courts beyond. The real war of 1805 waits at the main menu under BEGIN. Hold this little front as long as it amuses you.",
 		"suggest": "",
 		"suggest_action": "",
@@ -312,6 +330,9 @@ var _minimized := false
 var _turn := 1
 var _saw_objection := false
 var _saw_capture := false
+# SR-5r RF-4c: a law put in force (the Council's confirm answered) — latched,
+# so a law enacted before the laws card is due completes it on the next reply.
+var _saw_law := false
 # FA-42: which arm of card VII is true. "" until a roster is seen.
 var _kienmayer_state := ""
 # The infantry pool as of the PREVIOUS observed response. Pools regenerate
@@ -483,6 +504,11 @@ func _note_observations(response: Dictionary) -> void:
 		_saw_objection = true
 	if response.get("pending_capture_choice"):
 		_saw_capture = true
+	var events = response.get("events")
+	if events is Array:
+		for e in events:
+			if e is Dictionary and str(e.get("type", "")) == "law_enacted":
+				_saw_law = true
 	_note_kienmayer(response)
 
 
@@ -700,6 +726,9 @@ func _on_meta_clicked(meta) -> void:
 	elif meta_str.begins_with("open:cabinet:"):
 		AudioManager.play("click")
 		open_cabinet.emit(meta_str.substr(13))
+	elif meta_str.begins_with("open:ledger:"):
+		AudioManager.play("click")
+		open_ledger.emit(int(meta_str.substr(12)))
 
 
 func _on_minimize() -> void:
@@ -874,6 +903,15 @@ func _pred_turn_gte_12(_response: Dictionary) -> bool:
 
 func _pred_turn_gte_13(_response: Dictionary) -> bool:
 	return _turn >= 13
+
+
+func _pred_turn_gte_14(_response: Dictionary) -> bool:
+	return _turn >= 14
+
+
+func _pred_law_enacted(_response: Dictionary) -> bool:
+	# SR-5r RF-4c: the laws card — a law is in force (the latch above).
+	return _saw_law
 
 
 func _pred_never(_response: Dictionary) -> bool:

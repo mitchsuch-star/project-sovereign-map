@@ -1363,11 +1363,77 @@ def cap_congress():
            facts=_congress_facts((boot_dl.get("ledger") or {}).get("congress")))
 
 
+def cap_laws():
+    """SR-5r RF-4c (REFORMS_SPEC §8a "Visual proof"): the laws' boards. The
+    LAWS tab at boot is `ledger_boot` (cap_boot's); here, the Staff in force,
+    a forecast naming a doomed law, and a rival's laws on its nation card.
+    Every board is REAL state: laws put in force through the ONE mutation
+    (`reforms.enact_law`), and the forecast's negative Net grown from the
+    army's own upkeep — never a patched projection."""
+    from backend.game_logic import reforms as RF
+    from backend.game_logic.ledger import _build_economy
+
+    def enact(world, nation, *law_ids):
+        for law_id in law_ids:
+            RF.enact_law(world, nation, RF.find_law(world, nation, law_id))
+
+    # 2. the Staff in force
+    world, c = fresh()
+    world.nation_gold["France"] = 20000
+    enact(world, "France", "grand_quartier_general", "anticipated_class")
+    ledger = get(c, "/ledger")
+    laws = (ledger.get("ledger") or {}).get("laws") or {}
+    record("ledger_laws_staff", ledger, source="GET /ledger",
+           staging="1805 boot; the Staff and the Anticipated Class in force",
+           facts={"footer": laws.get("footer"),
+                  "in_force": [r["id"] for r in laws.get("rows", [])
+                               if r.get("status") == "in_force"]})
+
+    # 3. a forecast naming a doomed law — the lever on the tab
+    world, c = fresh()
+    world.nation_gold["France"] = 60000
+    enact(world, "France", "grand_quartier_general", "anticipated_class", "code_abroad")
+    # The Charges of Empire scale with the chest ABOVE its 2,000 floor, so the
+    # chest stays under the floor while the army grows — the projection is
+    # then the one the chest will actually meet.
+    world.nation_gold["France"] = 1000
+    marshals = [m for m in world.marshals.values()
+                if m.nation == "France" and m.strength > 0]
+    for _ in range(200):
+        if int(_build_economy(world, "France")["net"]) < -300:
+            break
+        for m in marshals:
+            m.strength += 2000
+    net = int(_build_economy(world, "France")["net"])
+    world.nation_gold["France"] = max(0, -net - 100)     # a 100-gold shortfall
+    ledger = get(c, "/ledger")
+    forecast = ((ledger.get("ledger") or {}).get("laws") or {}).get("forecast") or {}
+    record("ledger_laws_forecast", ledger, source="GET /ledger",
+           staging=("1805 boot; the Staff, the Anticipated Class and the Code Abroad in "
+                    "force; the French armies grown until the ledger's projected Net is "
+                    f"{net}; the chest {world.nation_gold['France']} (a 100-gold shortfall)"),
+           facts={"net": net, "line": forecast.get("line"),
+                  "repeal_instead": (forecast.get("repeal_instead") or {}).get("command")})
+
+    # 4. a rival's laws on its nation card — Britain's, whose card leads the
+    # Nations tab, so the line is on the first screen
+    world, c = fresh()
+    world.nation_gold["Britain"] = 60000
+    enact(world, "Britain", "orders_in_council", "militia_transfer")
+    dl = get(c, "/diplomatic_ledger")
+    britain = next((n for n in ((dl.get("ledger") or {}).get("nations") or [])
+                    if n.get("nation") == "Britain" or n.get("name") == "Britain"), {})
+    record("diplo_laws_rival", dl, source="GET /diplomatic_ledger",
+           staging="1805 boot; Britain's Orders in Council and Militia Transfer in force",
+           facts={"britain_laws": britain.get("laws")})
+
+
 CAPTURES = {
     "congress": cap_congress,
     "campaign_end": cap_campaign_end,
     "layout_f3": cap_layout_f3,
     "boot": cap_boot,
+    "laws": cap_laws,
     "spent": cap_spent,
     "ceiling": cap_ceiling_states,
     "collapse": cap_collapse,

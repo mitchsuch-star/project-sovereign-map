@@ -1,0 +1,184 @@
+[
+  {
+    "id": "the mirror moves the laws card a gate later",
+    "file": "backend/game_logic/tutorial_state.py",
+    "old": "    (\"laws\", 12, \"XVIII. The Laws of State\"),",
+    "new": "    (\"laws\", 13, \"XVIII. The Laws of State\"),",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_card_follows_the_congress"
+  },
+  {
+    "id": "the overlay moves the laws card a gate later",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\t\"id\": \"laws\",\n\t\t\"turn_gate\": 12,",
+    "new": "\t\t\"id\": \"laws\",\n\t\t\"turn_gate\": 13,",
+    "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheTableAndItsMirrors::test_the_backend_mirror_matches"
+  },
+  {
+    "id": "the latch never closes on a law enacted",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\t\tif e is Dictionary and str(e.get(\"type\", \"\")) == \"law_enacted\":\n\t\t\t\t_saw_law = true",
+    "new": "\t\t\tif e is Dictionary and str(e.get(\"type\", \"\")) == \"law_enacted\":\n\t\t\t\t_saw_law = false",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_driven_lesson_enacts_the_staff_on_the_card"
+  },
+  {
+    "id": "the card's predicate never fires",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\treturn _saw_law",
+    "new": "\treturn false",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_driven_lesson_enacts_the_staff_on_the_card"
+  },
+  {
+    "id": "the card's door opens the first book",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\topen_ledger.emit(int(meta_str.substr(12)))",
+    "new": "\t\topen_ledger.emit(0)",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_door_opens_the_real_ledger"
+  },
+  {
+    "id": "the card's door names another book",
+    "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
+    "old": "\t\t\"open\": \"ledger:7\",",
+    "new": "\t\t\"open\": \"ledger:0\",",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_card_opens_the_laws_book_and_names_the_staff"
+  },
+  {
+    "id": "main opens the ledger on its default book",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif top_bar and top_bar.has_method(\"open_ledger_to_tab\"):\n\t\ttop_bar.open_ledger_to_tab(tab)",
+    "new": "\tif top_bar and top_bar.has_method(\"open_ledger_to_tab\"):\n\t\ttop_bar.open_ledger_to_tab(0)",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_door_opens_the_real_ledger"
+  },
+  {
+    "id": "main never hears the card's door",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\ttutorial_overlay.open_ledger.connect(_on_tutorial_open_ledger)",
+    "new": "\t\tpass",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_door_opens_the_real_ledger"
+  },
+  {
+    "id": "the lesson carries no deck",
+    "file": "godot-client/project-sovereign/assets/maps/tutorial_1805.json",
+    "old": "  \"reforms\": {",
+    "new": "  \"reforms_withheld\": {",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_lesson_can_carry_the_staff_by_the_card"
+  },
+  {
+    "id": "the lesson script never enacts the Staff",
+    "file": "tools/playtest_scripts/tutorial_lesson.json",
+    "old": "    \"12\": [\n      \"enact the Staff\"\n    ]",
+    "new": "    \"12\": [\n      \"status\"\n    ]",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheLawsCard::test_the_driven_lesson_enacts_the_staff_on_the_card"
+  },
+  {
+    "id": "the refill forgets the Staff's action",
+    "file": "backend/models/world_state.py",
+    "old": "        return int(base_actions + bonus + staff)",
+    "new": "        return int(base_actions + bonus)",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheFifthActionOnTheHeader::test_the_wire_carries_the_fifth_action_from_the_refill"
+  },
+  {
+    "id": "the header keeps a fixed count",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\tmax_actions = int(action_summary.max_actions)",
+    "new": "\t\tmax_actions = 4",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheFifthActionOnTheHeader::test_the_header_prints_the_wires_count_and_the_top_bar_has_none"
+  },
+  {
+    "id": "the forecast follows the laws on the tab",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\tvar forecast = laws.get(\"forecast\", null)",
+    "new": "\tvar forecast = laws.get(\"lapse\", null)",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheVisualPass::test_the_forecast_leads_the_laws_book"
+  },
+  {
+    "id": "the Staff's Repeal chip forgets the order it takes",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                lost = f\" — {STAFF_LOSS}\" if is_staff(row) else \"\"",
+    "new": "                lost = \"\"",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheVisualPass::test_the_staffs_repeal_chip_says_what_it_takes_away"
+  },
+  {
+    "id": "the repeal's answer forgets the order",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        staff = reforms.staff_loss_sentence(row)",
+    "new": "        staff = \"\"",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheVisualPass::test_the_staffs_repeal_chip_says_what_it_takes_away"
+  },
+  {
+    "id": "the lapse's line forgets the order",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                staff = staff_loss_sentence(row)",
+    "new": "                staff = \"\"",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestTheVisualPass::test_the_staffs_repeal_chip_says_what_it_takes_away"
+  },
+  {
+    "id": "T7: the terms drop the arrears",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if int(quote[\"arrears\"]):\n        now += f\" + {int(quote['arrears']):,} gold in arrears\"",
+    "new": "    if False:\n        now += f\" + {int(quote['arrears']):,} gold in arrears\"",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT7TheArrears::test_a_lapsed_staff_restores_at_one_price_everywhere"
+  },
+  {
+    "id": "T7: the tab forgets the law lapsed",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            if quote[\"kind\"] == \"restore\":\n                entry[\"status\"] = \"lapsed\"",
+    "new": "            if False:\n                entry[\"status\"] = \"lapsed\"",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT7TheArrears::test_a_lapsed_staff_restores_at_one_price_everywhere"
+  },
+  {
+    "id": "T7: the AI prices the whole act",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    quote = restoration_price(world, nation, row)\n    gold = _court_gold(world, nation) if treasury is None else int(treasury)",
+    "new": "    quote = {\"kind\": \"enact\", \"currency\": \"gold\", \"price\": int(row.get(\"price\", 0) or 0), \"arrears\": 0}\n    gold = _court_gold(world, nation) if treasury is None else int(treasury)",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT7TheArrears::test_the_ai_rung_prices_the_same_restoration"
+  },
+  {
+    "id": "T7: the Arrears charge the full price",
+    "file": "backend/game_logic/reforms.py",
+    "old": "ARREARS_PRICE_DIVISOR = 2",
+    "new": "ARREARS_PRICE_DIVISOR = 1",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT7TheArrears"
+  },
+  {
+    "id": "T8: the Manpower tab drops the regen terms",
+    "file": "backend/game_logic/ledger.py",
+    "old": "            \"regen_terms\": [[n, int(v)] for n, v in\n                            manpower_regen_terms(world, player, pool_type)],",
+    "new": "            \"regen_terms\": [],",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT8NothingUnnamed"
+  },
+  {
+    "id": "T8: the Manpower tab drops the price terms",
+    "file": "backend/game_logic/ledger.py",
+    "old": "            \"price_terms\": [[n, float(v)] for n, v in\n                            recruit_price_terms(world, player, pool_type)],",
+    "new": "            \"price_terms\": [],",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT8NothingUnnamed"
+  },
+  {
+    "id": "T8: the dispatch never names the Staff's arrival",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        \"staff_arrived\": staff_arrived,",
+    "new": "        \"staff_arrived\": None,",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT8NothingUnnamed"
+  },
+  {
+    "id": "T8: the client card drops its law terms",
+    "file": "backend/game_logic/diplomatic_ledger.py",
+    "old": "            \"law_terms\": [[str(n), int(v)] for n, v in fc.get(\"law_terms\", [])],",
+    "new": "            \"law_terms\": [],",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT8NothingUnnamed"
+  },
+  {
+    "id": "T8: the Staff never arrives",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if is_staff(row) and int(row.get(\"enacted_turn\", -99)) == now - 1:",
+    "new": "        if False:",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT8NothingUnnamed"
+  },
+  {
+    "id": "T8: the treasury line drops the blockade law's name",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return f\"cut by {share}% ({names})\" if names else f\"cut by {share}%\"",
+    "new": "    return f\"cut by {share}%\"",
+    "tests": "tests/test_rf4c_the_school_and_the_census.py::TestT8NothingUnnamed"
+  }
+]

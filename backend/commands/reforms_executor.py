@@ -186,8 +186,7 @@ class ReformsExecutor:
         name = reforms.display_name(row)
         price = int(row.get("price", 0) or 0)
         unit = "authority" if row.get("currency") == "authority" else "gold"
-        staff = (" Its extra order of the day goes with it at the next refill."
-                 if reforms.is_staff(row) else "")
+        staff = reforms.staff_loss_sentence(row)
         message = (f"{name[0].upper() + name[1:]} is repealed — its "
                    f"{int(row.get('upkeep', 0) or 0):,} gold a turn ends, and "
                    f"nothing is refunded.{staff} Enacting it again costs its "

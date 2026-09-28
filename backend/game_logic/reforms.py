@@ -374,6 +374,19 @@ def is_staff(row) -> bool:
                for c in ((row or {}).get("effects") or []))
 
 
+# What losing the Staff costs, in the ONE phrase every surface that takes it
+# away says: the repeal's answer, the lapse's line, and the Repeal chip (RF-4c:
+# the chip — a repeal's only preview, since a repeal is not confirmed — named
+# the gold it saves and not the order it takes away).
+STAFF_LOSS = "its extra order of the day goes with it at the next refill"
+
+
+def staff_loss_sentence(row) -> str:
+    """" Its extra order of the day goes with it at the next refill." for the
+    Staff; "" for any other law."""
+    return f" {STAFF_LOSS[0].upper()}{STAFF_LOSS[1:]}." if is_staff(row) else ""
+
+
 def resolve_law(world, nation: str, text) -> Optional[Dict]:
     """The court's law these words name, or None (the verb then refuses free
     and lists the court's laws)."""
@@ -554,8 +567,7 @@ def process_law_lapses(world) -> List[Dict]:
                         else f"authority and {int(quote['arrears']):,} gold")
                 cost = (f"{total:,} gold" if quote["currency"] == "gold"
                         else f"{int(quote['price'])} {unit}")
-                staff = (" Its extra order of the day goes with it at the "
-                         "next refill." if is_staff(row) else "")
+                staff = staff_loss_sentence(row)
                 events.append({
                     "type": "law_lapsed",
                     "nation": nation,
@@ -717,8 +729,9 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
             if refusal:
                 chip["reason"] = refusal
             else:
-                chip["note"] = (f"ends {upkeep:,} gold a turn; nothing is refunded, "
-                                f"and enacting it again costs the full "
+                lost = f" — {STAFF_LOSS}" if is_staff(row) else ""
+                chip["note"] = (f"ends {upkeep:,} gold a turn{lost}; nothing is "
+                                f"refunded, and enacting it again costs the full "
                                 f"{_currency_words(price, currency)}")
         else:
             quote = restoration_price(world, nation, row)

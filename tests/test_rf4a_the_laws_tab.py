@@ -261,11 +261,20 @@ class TestThePayload:
         assert chip["enabled"] is False and chip["reason"] == refusal
 
     def test_the_repeal_chip_states_what_is_lost(self, world):
+        # Re-seated consciously at RF-4c (Sept 27, 2026): the Staff's note now
+        # names the order it takes away (`reforms.STAFF_LOSS`) — a repeal is
+        # not confirmed, so this note is its only preview. Any other law's
+        # note is unchanged.
         world.nation_gold["France"] = 60000
         R.enact_law(world, "France", R.find_law(world, "France", STAFF_ID))
         assert row_of(world, STAFF_ID)["chip"]["note"] == (
-            "ends 300 gold a turn; nothing is refunded, and enacting it again "
-            "costs the full 9,000 gold")
+            "ends 300 gold a turn — its extra order of the day goes with it at "
+            "the next refill; nothing is refunded, and enacting it again costs "
+            "the full 9,000 gold")
+        R.enact_law(world, "France", R.find_law(world, "France", "anticipated_class"))
+        assert row_of(world, "anticipated_class")["chip"]["note"] == (
+            "ends 150 gold a turn; nothing is refunded, and enacting it again "
+            "costs the full 15 authority")
 
     def test_a_lapsed_law_offers_its_arrears(self, world):
         world.nation_gold["France"] = 60000

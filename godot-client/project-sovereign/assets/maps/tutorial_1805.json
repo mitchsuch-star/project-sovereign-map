@@ -171,5 +171,87 @@
             "biography": "The diplomat-soldier. Careful, patient, and impossible to provoke into a battle he has not already won.",
             "relationships": { "ArchdukeCharles": 1 }
         }
-    }
+    },
+  "_reforms_comment": "SR-5r RF-4c: the School of War teaches the laws of state on France's own deck — the 1805 campaign's five laws verbatim (tests/test_rf4c_the_school_and_the_census.py holds them equal). The lesson nets +3,755 a turn, so the Staff is within reach by the laws card (turn 12) and no upkeep can starve a later beat.",
+  "reforms": {
+    "France": [
+      {
+        "id": "grand_quartier_general",
+        "name": "The Grand Quartier Général",
+        "date": "Berthier's Imperial Headquarters, expanded 1805–07",
+        "currency": "gold",
+        "price": 9000,
+        "upkeep": 300,
+        "effects": [
+          {
+            "type": "actions",
+            "value": 1
+          }
+        ],
+        "says": "Berthier's headquarters grown into a true general staff: one more order carried each day."
+      },
+      {
+        "id": "artillery_reserve",
+        "name": "The Artillery Reserve",
+        "date": "the Guard's reserve batteries, 1806–09",
+        "currency": "gold",
+        "price": 3000,
+        "upkeep": 150,
+        "effects": [
+          {
+            "type": "recruit_price",
+            "arm": "artillery",
+            "value": 0.85
+          }
+        ],
+        "says": "The Guard's reserve batteries and a standard gun park: artillery levies cost 15% less."
+      },
+      {
+        "id": "anticipated_class",
+        "name": "The Anticipated Class",
+        "date": "the senatus-consultes calling the class early, 1806–07",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 150,
+        "effects": [
+          {
+            "type": "manpower_regen",
+            "pool": "infantry",
+            "value": 25
+          }
+        ],
+        "says": "The Senate calls each year's conscripts before their time: infantry manpower returns 25% faster."
+      },
+      {
+        "id": "berlin_decree",
+        "name": "The Berlin Decree",
+        "date": "21 November 1806",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 150,
+        "effects": [
+          {
+            "type": "cs_closure",
+            "rule": "every_client"
+          }
+        ],
+        "says": "Every client of the Empire shuts its ports to British goods, whatever its autonomy."
+      },
+      {
+        "id": "code_abroad",
+        "name": "The Code Abroad",
+        "date": "the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 100,
+        "effects": [
+          {
+            "type": "satellite_loyalty",
+            "value": 1
+          }
+        ],
+        "says": "The Civil Code carried into the client states binds them to the Empire: +1 loyalty a turn in every one."
+      }
+    ]
+  }
 }

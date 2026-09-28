@@ -4,6 +4,15 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ SR-5r RF-4c "THE SCHOOL CARD AND THE VISUAL PASS" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.8; rules `SYSTEMS_REFERENCE.md` §74.8; pins `tests/test_rf4c_the_school_and_the_census.py` 15; sweep `tools/_sweep_rf4c.json` 26/26 killed, 0 INERT):
+> - **The School's twentieth card, "XVIII. The Laws of State"** (gate 12): it opens THE LAWS on the real ledger, suggests `enact the Staff` (the Council of State asks the terms) and completes when a law is in force. The lesson authors France's 1805 deck. Driven through the real lesson.
+> - **The visual pass:** `cap_laws()` stages the Staff in force, a forecast naming a doomed law, and Britain's laws on its nation card — eight frames at Interface Scale 1.0 and 2.0, nothing clipped or off the viewport. The frames asked for two fixes: the FORECAST now leads the LAWS tab, and the Staff's Repeal chip names the order it takes away (`reforms.STAFF_LOSS` — one phrase with the repeal's answer and the lapse's line; a repeal has no confirm, so the chip is its only preview).
+> - **§8a corrected:** the action count is the command terminal's header ("Actions: N/M"), not the top bar, which has none; the wire carries 5/5 from the Staff's refill (pinned on the real end-turn road).
+> - **T7 MET** (after a real lapse the Staff restores at one Arrears price, 4,500 + 900, on the tab, the confirm, the charge and the AI's bar); **T8 MET** (a ten-turn census on the player's road: 0 unnamed, every kind seen).
+> - Parse harness EXIT=0, boot 0 `SCRIPT ERROR`; series + M1–M7 byte-identical (the client, display copy and the lesson only).
+> - **⚠ Owed: the user's visual sign-off, which closes RF-4** — the laws frames `docs/audits/IQ10_LEDGER_BOOT_LAWS` / `IQ10_LEDGER_LAWS_STAFF` / `IQ10_LEDGER_LAWS_FORECAST` / `IQ10_DIPLO_LAWS_RIVAL_NATIONS` (each at 1.0 and `_X2`, dated 2026_09_27), the School card XVIII, and the header's "Actions: 5/5".
+> - **▶ NEXT = the AI drill fix ("drill to heal" — never where the corps can be attacked) → ONE session exit + ONE residue slice → then the ECONOMY BALANCE pass (Britain richer than France).**
+>
 > **▶ ▶ ▶ SR-5r DP-1 "THE BANK" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.7; rules `SYSTEMS_REFERENCE.md` §74.7; pins `tests/test_dp1_the_bank.py` 22; sweep `tools/_sweep_dp1.json` 10/10 killed, 0 INERT):
 > - **Diplomatic points bank one turn** for every court: `diplomacy.dp_refill` — carry = min(unspent, regen), the pool capped at 7. Zero new serialized fields. Lever `DIPLOMATIC_POINTS_CARRY`.
 > - **Shown = applied:** the dispatch names "+N carried from last turn"; the top bar's ceiling is regen + carried and never under the pool, even after a load.

@@ -571,6 +571,7 @@ func _ready():
 	if tutorial_overlay:
 		tutorial_overlay.suggest_command.connect(_on_tutorial_suggest_command)
 		tutorial_overlay.open_cabinet.connect(_on_tutorial_open_cabinet)
+		tutorial_overlay.open_ledger.connect(_on_tutorial_open_ledger)
 
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
@@ -7673,6 +7674,16 @@ func _on_tutorial_open_cabinet(nation: String) -> void:
 	if top_bar and top_bar.is_screen_open():
 		top_bar.close_all_screens()
 	diplomacy_wizard.open_for_nation(nation)
+
+func _on_tutorial_open_ledger(tab: int) -> void:
+	"""SR-5r RF-4c: the laws card's door opens the REAL Strategic Ledger on
+	the book it names (THE LAWS = 7) — the same door T then 8 opens, same
+	modal guard. The card still sends nothing."""
+	if _is_modal_dialog_open():
+		return
+	if top_bar and top_bar.has_method("open_ledger_to_tab"):
+		top_bar.open_ledger_to_tab(tab)
+
 
 func _on_new_game_result(response):
 	"""Handle fresh-campaign hydration from backend."""

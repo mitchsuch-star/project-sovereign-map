@@ -198,18 +198,24 @@ class TestTheSchoolTeachesTheCongress:
         from backend.game_logic import tutorial_state as T
         ids = [s[0] for s in T.STEPS]
         assert ids.index("congress") == ids.index("naval") + 1
-        assert ids.index("free_books") == ids.index("congress") + 1
+        # SR-5r RF-4c (Sept 27, 2026), consciously: "XVIII. The Laws of
+        # State" follows the Congress; the Instruments and the hand-off each
+        # move one number and one gate later.
+        assert ids.index("laws") == ids.index("congress") + 1
+        assert ids.index("free_books") == ids.index("laws") + 1
         titles = dict((s[0], s[2]) for s in T.STEPS)
         assert titles["congress"] == "XVII. The Congress of Paris"
-        assert titles["free_books"] == "XVIII. The Instruments"
-        assert titles["handoff"] == "XIX. The Lesson Ends"
+        assert titles["laws"] == "XVIII. The Laws of State"
+        assert titles["free_books"] == "XIX. The Instruments"
+        assert titles["handoff"] == "XX. The Lesson Ends"
         gates = dict((s[0], s[1]) for s in T.STEPS)
-        assert gates["congress"] == 11 and gates["free_books"] == 12 and gates["handoff"] == 13
+        assert (gates["congress"], gates["laws"], gates["free_books"],
+                gates["handoff"]) == (11, 12, 13, 14)
 
     def test_the_card_teaches_the_road_and_names_its_surfaces(self):
         src = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
                / "scripts" / "tutorial_overlay.gd").read_text(encoding="utf-8")
-        card = src.split('"id": "congress"', 1)[1].split('"id": "free_books"', 1)[0]
+        card = src.split('"id": "congress"', 1)[1].split('"id": "laws"', 1)[0]
         assert "forty-five provinces by TITLE" in card
         assert "a signed peace titles what you keep of the loser's" in card
         assert "CONGRESS tab" in card and "names each held one's road to title" in card

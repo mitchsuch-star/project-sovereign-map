@@ -213,6 +213,11 @@ class Recorder:
             if dialogue.get("type") == "mission":
                 reply = self.answer_dialogue("start_mission", dialogue)
                 continue
+            # SR-5r RF-4c: the Council of State's quote (the enactment
+            # confirm) is answered as the client's popup's first option is.
+            if reply.get("law_confirm"):
+                reply = self.say("yes")
+                continue
             return reply
         return reply
 
@@ -235,29 +240,31 @@ def _ids(result):
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# 1. The idle Emperor — thirteen `end turn`s and nothing else
+# 1. The idle Emperor — fourteen `end turn`s and nothing else (thirteen
+#    until SR-5r RF-4c moved the hand-off to gate 14, Sept 27, 2026)
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestTheIdleEmperorStillReachesTheEnd:
 
-    def test_the_backend_plays_thirteen_empty_turns(self, lesson):
+    def test_the_backend_plays_fourteen_empty_turns(self, lesson):
         client, M, boot = lesson
         rec = Recorder(client, M, boot)
-        for _ in range(13):
+        for _ in range(14):
             reply = rec.end_turn()
             assert reply.get("success") is True, reply.get("message")
             # a popup may be pending (an objection cannot — nothing was
             # ordered); a capture choice cannot either.
             assert not M.world.pending_capture_choice
-        assert M.world.current_turn >= 13
+        assert M.world.current_turn >= 14
         return rec
 
     def test_the_card_reaches_the_handoff_by_the_gate_of_the_last_page(self, lesson, tmp_path):
         """No step may hold the idle player past its gate + 2: the catch-up
-        walks every unfired card, and the handoff is reached by turn 12."""
+        walks every unfired card, and the handoff is reached by turn 15
+        (SR-5r RF-4c: the laws card moved the hand-off one gate later)."""
         client, M, boot = lesson
         rec = Recorder(client, M, boot)
-        for _ in range(13):
+        for _ in range(14):
             rec.end_turn()
         result = _drive_overlay(rec.spec(), tmp_path)
         rows = result["steps"]
@@ -285,7 +292,7 @@ class TestTheIdleEmperorStillReachesTheEnd:
         reached, and at the end both name the handoff."""
         client, M, boot = lesson
         rec = Recorder(client, M, boot)
-        for _ in range(13):
+        for _ in range(14):
             rec.end_turn()
         result = _drive_overlay(rec.spec(), tmp_path)
         for i, row in enumerate(result["steps"]):
@@ -497,7 +504,7 @@ class TestTheHappyLesson:
         client, M, boot = lesson
         rec = Recorder(client, M, boot)
         script = json.loads(LESSON.read_text(encoding="utf-8"))
-        for loop in range(1, 13):
+        for loop in range(1, 14):     # SR-5r RF-4c: the hand-off is a gate later
             for line in script["turns"].get(str(loop), []):
                 rec.settle(rec.say(line))
             rec.end_turn_until(loop + 1)
@@ -531,8 +538,10 @@ class TestTheTableAndItsMirrors:
         # "The Congress of Paris" teaches the reign's ending between the
         # Wooden Wall and the Instruments; the Instruments and the hand-off
         # each move one gate later.
-        assert len(rows) == 19
+        assert len(rows) == 20       # 19 → 20, consciously (SR-5r RF-4c, Sept 27,
+        # 2026): card XVIII "The Laws of State" follows the Congress.
         assert ids.index("congress") == ids.index("naval") + 1
+        assert ids.index("laws") == ids.index("congress") + 1
         assert ids.index("cabinet") == ids.index("bombardment") + 1
         assert ids.index("marshalate") == ids.index("first_battle") + 1
         assert ids.index("naval") == ids.index("free_stand") + 1

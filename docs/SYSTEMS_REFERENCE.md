@@ -8228,3 +8228,13 @@ Pins `tests/test_dp1_the_bank.py` 22; sweep `tools/_sweep_dp1.json` 10/10 killed
 - **Shown = applied:** the regen dispatch breakdown adds "+N carried from last turn"; the refill's split rides the transient `world._dp_refill` (never saved), and `displayed_dp_ceiling` is max(the base ceiling + the Seat, regen + carried, the player's pool) — so after a load the ceiling is never under the pool.
 - **Measured:** a fuller AI pool unlocks nothing on the ambient board (`tools/_dp1_measure.py` — 21 spends on both arms; the series byte-identical).
 
+### 74.8 SR-5r RF-4c — The School card and the visual pass (`REFORMS_SPEC.md` §8a, §11 T7/T8)
+
+Pins `tests/test_rf4c_the_school_and_the_census.py` 15; sweep `tools/_sweep_rf4c.json` 26/26 killed, 0 INERT.
+
+- **The School's card XVIII "The Laws of State"** (gate 12; `tutorial_state.STEPS` mirrors the overlay, 20 cards): `"open": "ledger:7"` emits `open_ledger(tab)`, which `main.gd` `_on_tutorial_open_ledger` answers with `top_bar.open_ledger_to_tab(tab)` under the modal guard; `"suggest": "enact the Staff"`; `"advance": "_pred_law_enacted"`, a latch (`_saw_law`) set by a `law_enacted` event in `_note_observations`. The lesson scenario (`tutorial_1805.json`) authors France's 1805 deck verbatim.
+- **The LAWS tab leads with its FORECAST**, before the rows.
+- **The Staff's loss, ONE phrase** (`reforms.STAFF_LOSS`; `reforms.staff_loss_sentence(row)` is its sentence form, "" for any other law): read by the Repeal chip's note (`laws_payload`), the repeal verb's answer (`reforms_executor`) and the lapse's line (`process_law_lapses`).
+- **The action count** is the command terminal's header ("Actions: N/M", `main.gd` `_update_status` from `action_summary.max_actions`); the top bar carries none.
+- **Visual proof:** `tools/iq10_capture_payloads.py` `cap_laws()` stages `ledger_laws_staff`, `ledger_laws_forecast` and `diplo_laws_rival`; `tools/iq10_run_captures.py` shoots them (with `ledger_boot_laws`) at Interface Scale 1.0 and 2.0.
+

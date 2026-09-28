@@ -1,6 +1,6 @@
 """FA-89 (slice 17, Sept 11 2026): the School of War's step, for the digest.
 
-The lesson's progression lives ENTIRELY in `tutorial_overlay.gd` — eighteen
+The lesson's progression lives ENTIRELY in `tutorial_overlay.gd` — twenty
 `advance` predicates over cross-response latches the backend does not have
 (`_saw_objection`, `_saw_capture`, `_last_infantry_pool`, the Kienmayer
 kill). So no unattended run could ever assert that a beat FIRED, and the
@@ -36,8 +36,9 @@ STEPS: List[Tuple[str, int, str]] = [
     ("free_stand", 9, "XV. The Counter-Blow"),
     ("naval", 10, "XVI. The Wooden Wall"),
     ("congress", 11, "XVII. The Congress of Paris"),
-    ("free_books", 12, "XVIII. The Instruments"),
-    ("handoff", 13, "XIX. The Lesson Ends"),
+    ("laws", 12, "XVIII. The Laws of State"),
+    ("free_books", 13, "XIX. The Instruments"),
+    ("handoff", 14, "XX. The Lesson Ends"),
 ]
 
 TUTORIAL_SCENARIO_NAME = "tutorial"

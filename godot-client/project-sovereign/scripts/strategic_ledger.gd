@@ -996,6 +996,16 @@ func _render_laws_tab():
 		bbcode += "[color=#" + Utils.COLOR_DIMMED + "]This campaign has no laws of state.[/color]\n"
 		content_area.text = bbcode
 		return
+	# RF-4b / RF-4c (REFORMS_SPEC §8 "The forecast"): the lapse the ledger's
+	# own projection foresees for this turn's end LEADS the book, with its
+	# lever — the RF-4c frame showed it below the fold, after five laws, and
+	# it is the one line that must never surprise the player.
+	var forecast = laws.get("forecast", null)
+	if forecast is Dictionary and not forecast.is_empty():
+		bbcode += "\n[color=#" + Utils.COLOR_WARNING + "][b]FORECAST[/b] " + str(forecast.get("line", "")) + "[/color]\n"
+		var rescue = forecast.get("repeal_instead", null)
+		if rescue is Dictionary and not rescue.is_empty():
+			bbcode += "\n" + _chip_row(rescue)
 	for row in laws.get("rows", []):
 		if not (row is Dictionary):
 			continue
@@ -1023,15 +1033,6 @@ func _render_laws_tab():
 		# A blank line first: a chip's pill padding overlaps the line above it.
 		bbcode += "\n" + _chip_row(row.get("chip", {}))
 	bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]" + str(laws.get("footer", "")) + "[/color]\n"
-	# RF-4b (REFORMS_SPEC §8 "The forecast"): the lapse the ledger's own
-	# projection foresees for this turn's end — the one source the end-turn
-	# banner and the dispatch read too — with the one lever as a chip.
-	var forecast = laws.get("forecast", null)
-	if forecast is Dictionary and not forecast.is_empty():
-		bbcode += "\n[color=#" + Utils.COLOR_WARNING + "][b]FORECAST[/b] " + str(forecast.get("line", "")) + "[/color]\n"
-		var rescue = forecast.get("repeal_instead", null)
-		if rescue is Dictionary and not rescue.is_empty():
-			bbcode += "\n" + _chip_row(rescue)
 	content_area.text = bbcode
 
 

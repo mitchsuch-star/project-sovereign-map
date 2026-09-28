@@ -94,6 +94,37 @@ SHOTS: list[dict] = [
             ("collapse_none", "no province left", "IQ-2's collapse state at zero provinces"),
         ]
     ],
+    # ── SR-5r RF-4c: the laws' boards (REFORMS_SPEC §8a "Visual proof"; the
+    #    LAWS tab at boot is ledger_boot_laws above) ─────────────────────────
+    *[
+        {
+            "id": f"ledger_laws_{name}",
+            "surface": f"Strategic Ledger — Laws ({label})",
+            "payload": f"ledger_laws_{name}",
+            "scene": "res://scenes/strategic_ledger.tscn",
+            "mode": "api_stub",
+            "method": "open",
+            "api_method": "get_ledger",
+            "tab": 7,
+            "must_show": must,
+        }
+        for name, label, must in [
+            ("staff", "the Staff in force",
+             "the Staff's row IN FORCE with its Repeal chip and what it loses; the footer's upkeep"),
+            ("forecast", "a doomed law",
+             "the FORECAST naming the Staff and the gold that saves it, and the "
+             "'repeal X instead' chip; nothing clipped at scale 2.0"),
+        ]
+    ],
+    {
+        "id": "diplo_laws_rival_nations",
+        "surface": "Diplomatic Ledger — Nations (a rival's laws)",
+        "payload": "diplo_laws_rival",
+        "scene": "res://scenes/diplomatic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 0,
+        "must_show": "Britain's card carries its Laws line (the Orders in Council and the Militia "
+                     "Transfer, with their cost a turn) within the two-line budget",
+    },
     # ── S10–S12 the Diplomatic Ledger ───────────────────────────────────────
     *[
         {

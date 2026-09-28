@@ -382,6 +382,7 @@ mock-parse-verified against the tutorial roster in
 | 9+ | The counter-blow | `Ney, fortify` | Mountains + earthworks + garrison vs the Vienna pair (~50k, cautious) — by this turn they have been in contact for six turns. Now also names supply: a province feeds only so many, and the region panel states the limit |
 | 10+ | **The Wooden Wall** (Sept 23, 2026) | *(none — self-releasing, `_pred_turn_gte_11`)* | The naval rule taught, not staged: the lesson authors no `navies` (an Admiralty bill would bankrupt the 900-gold treasury), and the card SAYS there is no fleet in this lesson. Names the Royal Navy's Channel, the crimson SHUT link, THE ADMIRALTY (T, then 7), `build ships`, blockade + the Continental System, expeditions, the Grand Diversion, and where Britain lands (Normandy, Lisbon) |
 | 11+ | **The Congress of Paris** (Sept 26, 2026 — SR-1's reserve) | *(none — self-releasing, `_pred_turn_gte_12`)* | The reign's ending taught, not staged: the lesson authors no Congress, and the card SAYS so. Title by four roads (own soil, a treaty's cession or retention, a client's loyal homeland, twelve quiet turns), the summons at forty-five from the Cabinet (F1), the public table and its prices, the eight-turn sitting and the hold, the CONGRESS tab (D, then 7) that names each held province's road, the war room that prices its counsel, THE IMPERIAL PEACE |
+| 12+ | **The Laws of State** (Sept 27, 2026 — SR-5r RF-4c) | `enact the Staff` (the Council of State asks the terms; answer yes) | The lesson authors France's own five laws, the 1805 deck verbatim. The card opens THE LAWS (the Strategic Ledger's eighth book, T then 8) and names the Grand Quartier Général — the one road to a fifth order of the day, 9,000 gold then 300 a turn. It teaches the two currencies (gold, or authority with the lines it crosses named), the lapse and its forecast, repealing a cheaper law first, and the Arrears (restored within ten turns at half its price and the upkeep of the dead turns). It completes when a law is in force |
 
 > **FA-63 (Sept 11, 2026) — the reserve's timing, measured.** The scenario
 > file's original `_comment` and this table's rows XII/XIII claimed that
@@ -401,14 +402,14 @@ mock-parse-verified against the tutorial roster in
 > pins the turn-2 first contact so the claim can never drift back.
 | 10+ | The instruments | *(hotkeys)* | T / G / D / R — the R159 lines name each screen's mechanic. **HC-5:** step XIV also names THE ADMIRALTY (ledger book 7), the F1 wizard + its Formable Nations button, the Generals card's Reward chip, and the ledger's Design rows — honest pointers, no new lessons (the R159 self-teaching screens carry the depth) |
 | 10+ | The instruments — the Cabinet (**IQ-4**, "The Cabinet Is Visible") | *(none)* | Step XIV now counts **Five** instruments: the fifth is Talleyrand's missions, sent from **F1** (warm a court, reassure an ally, spy, or pry two allies apart) — they cost diplomatic points every turn they run and stand in the Strategic Ledger's Orders book (the THE CABINET block, with a free Recall link) and on the notice rail until done. The card quotes **no figures** (a `.gd` constant cannot quote an applied number; the help text's missions block carries the live ones) and there is **no chip**: typed mission verbs are caught by the Cabinet redirect (`main.gd` `_redirect_diplomatic_command`), so a chip would teach a dead route |
-| 12 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
+| 14 | The lesson ends | *(Conclude chip)* | Hand-off card → main menu BEGIN; Europe worlds never hard-end (sandbox), so the school closes itself |
 
-> **Card numbering after the refresh (18):** I Situation · II Marches · III
+> **Card numbering after the refresh (20 — SR-5r RF-4c, Sept 27, 2026):** I Situation · II Marches · III
 > Day Closes · IV Temper (pushback) · V Trust/Insist/Compromise (trust,
 > defiance) · VI Guns · **VII Cabinet** · VIII First Blood · **IX Marshalate**
 > · X Standing Orders · XI Conquest · XII Conqueror's Choice · XIII Depots ·
-> XIV Fog · XV Counter-Blow · **XVI Wooden Wall** · **XVII The Congress of Paris** (Sept 26, 2026 — the reign's ending, the road to title, the table) · XVIII Instruments (now
-> also L, N, Alt+key, the notice rail, Esc) · XIX Lesson Ends. Card I now
+> XIV Fog · XV Counter-Blow · **XVI Wooden Wall** · **XVII The Congress of Paris** (Sept 26, 2026 — the reign's ending, the road to title, the table) · **XVIII The Laws of State** (Sept 27, 2026 — the Staff, the lapse, the Arrears) · XIX Instruments (now
+> also L, N, Alt+key, the notice rail, Esc; the ledger's eight books) · XX Lesson Ends. Card I now
 > teaches Tab completion, province-click chips and the three first-contact
 > doors (`what can I do` / `status` / `help`).
 
