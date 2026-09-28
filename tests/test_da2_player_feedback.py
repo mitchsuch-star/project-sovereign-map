@@ -237,7 +237,12 @@ class TestS1DpRegenDispatch:
     """DP regen should queue a dispatch event with breakdown."""
 
     def _process_dp_regen(self, world):
+        """SR-5r DP-1 (Sept 27, 2026): the pool now banks one turn — a
+        world that spent nothing carries its points. These pins read the
+        REGEN's breakdown, so the pool is spent first (the carry has its own
+        pins in `test_dp1_the_bank.py`)."""
         from backend.game_logic.diplomacy import _process_dp_regen
+        world.diplomatic_points = 0
         _process_dp_regen(world)
 
     def test_base_3_only(self):

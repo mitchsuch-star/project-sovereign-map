@@ -4,6 +4,13 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ SR-5r DP-1 "THE BANK" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.7; rules `SYSTEMS_REFERENCE.md` §74.7; pins `tests/test_dp1_the_bank.py` 22; sweep `tools/_sweep_dp1.json` 10/10 killed, 0 INERT):
+> - **Diplomatic points bank one turn** for every court: `diplomacy.dp_refill` — carry = min(unspent, regen), the pool capped at 7. Zero new serialized fields. Lever `DIPLOMATIC_POINTS_CARRY`.
+> - **Shown = applied:** the dispatch names "+N carried from last turn"; the top bar's ceiling is regen + carried and never under the pool, even after a load.
+> - **Measured before landing:** a fuller AI pool unlocks NOTHING on the ambient board (21 spends on both arms; the AI pools sit near the cap); series + M1–M7 unmoved, no re-record. **T6 met.**
+> - IQ-4's alliance-leap pin split in two: a France that spent its pool still cannot pay the 4-DP leap while courting; one that saved can — the bank's point.
+> - **▶ NEXT = RF-4c (the School card 19 → 20, `cap_laws()` frames at both scales, T7, T8, the user's sign-off) → the AI drill fix → ONE session exit + ONE residue slice → then the ECONOMY BALANCE pass.**
+>
 > **▶ ▶ ▶ SR-5r RF-4b "THE LAWS EVERYWHERE ELSE" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.6; rules `SYSTEMS_REFERENCE.md` §74.6; pins `tests/test_rf4b_the_laws_everywhere.py` 47; sweep `tools/_sweep_rf4b.json` 38/38 killed, 0 INERT):
 > - **The forecast, ONE source** (`reforms.lapse_forecast` — the lapse rule run on the ledger's projection; a pin runs the REAL lapse loop and checks it takes exactly the laws forecast) on the LAWS tab, the end-turn banner and the morning dispatch, with the **"repeal X instead"** lever (`reforms.repeal_plan` — the fewest repeals that keep the doomed law; a chip when it can be taken, withheld with its reason when the admin actions cannot cover the plan).
 > - **The beats:** a rival court's enactment, restoration and lapse on the dispatch, effect in numbers; the player's own lapse HIGH; the Staff's first refill named ("the dispatch names why"). The top bar already showed the fifth action (it prints `max_actions`).

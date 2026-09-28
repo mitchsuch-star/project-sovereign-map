@@ -597,6 +597,17 @@ T7 measures all three.
 - **Pins:** `tests/test_rf4b_the_laws_everywhere.py` (47). Sweep `tools/_sweep_rf4b.json` 38/38 killed, 0 INERT. Parse harness EXIT=0, boot 0 `SCRIPT ERROR`. Nothing the AI or the ambient board reads changed (the beats are display; the AI's purse test reads the same ledger projection as before), so `BASELINE_SERIES` + M1–M7 stay byte-identical.
 - **Owned elsewhere, not built here:** the DP bank's display (DP-1, which builds the bank); the School card, `cap_laws()`'s four boards, T7, T8 and the user's sign-off (RF-4c).
 
+### §12.7 DP-1 — LANDED September 27, 2026 (landing record)
+
+**The bank** (rules `SYSTEMS_REFERENCE.md` §74.7). Diplomatic points bank one turn, for every court (GR5).
+
+- **The rule, ONE function** (`diplomacy.dp_refill`): at the refill, carry = min(unspent, regen) and the pool = min(`DP_BANK_CAP` = 7, regen + carry). A debt carries nothing. Zero new serialized fields — the unspent pool before the refill IS the carry. Lever `diplomacy.DIPLOMATIC_POINTS_CARRY` (down, the pool resets to the regen as before).
+- **Shown = applied:** the dispatch's regen breakdown names "+N carried from last turn"; `displayed_dp_ceiling` (the top bar's DP) is regen + carried at the refill and holds for the turn, from a transient (`world._dp_refill`, never saved). After a load drops it, the ceiling falls back to the pool itself — never a pool over its own printed maximum (the NP audit's "DP: 6/5").
+- **Measured before landing (§9)** — `tools/_dp1_measure.py`, the ambient board with every AI pool wrapped to count spends: **a fuller AI pool unlocks nothing**. The same 21 spends (27 points) happen on both arms; the AI pools sit near the cap (≈3–4 → ≈6–7), as §9 predicted; the threat series is byte-identical. `BASELINE_SERIES` + M1–M7 unmoved, so no re-record.
+- **T6 — MET:** a court that spends nothing carries one turn's points, up to 7 and no further; the pool, the dispatch and the top bar agree (pinned for the player and an AI court).
+- **Pins consciously re-seated** (each on its intent): the DA-2 regen-breakdown pins and NP-5's Seat pin read the regen alone, so they spend the pool first; IQ-7's spend-to-zero helper runs on until the larger pool is empty; **IQ-4's alliance-leap pin splits in two** — a courting France that spent its pool still holds 3 and cannot pay the 4-DP leap, while one that SAVED carries its points (7 at the refill, 5 after the mission's 2) and can. The bank is what makes the leap reachable (§9's point).
+- **Pins:** `tests/test_dp1_the_bank.py` (22). Sweep `tools/_sweep_dp1.json` 10/10 killed, 0 INERT. No client change: the top bar prints the backend's pool and ceiling.
+
 ---
 
 ## §13 Not in v1 — each with its home, or struck

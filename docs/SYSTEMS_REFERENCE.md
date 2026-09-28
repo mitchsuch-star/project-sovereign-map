@@ -8220,3 +8220,11 @@ Pins `tests/test_rf4b_the_laws_everywhere.py` 47; sweep `tools/_sweep_rf4b.json`
 - **The desk:** `reforms.law_named_in(world, nation, text)` reads a law's authored name or id words (whole words; "staff" names the court's Staff). An unanswered question that names a law is answered with the laws answer (`first_contact._laws_answer`), which says what is in force first and puts the named law first. The live topic router has a "laws" topic (`counsel.surface_pointer("laws")` — the Laws tab, T then 8); the legacy table is unchanged.
 - **Named (T8):** the Manpower rows' `regen_terms` / `price_terms`, the vassal row's `law_terms` (the forecast's own term) and the Continental System's `decree_line` (`naval._decree_line` over `decree_clients`).
 
+### 74.7 SR-5r DP-1 — The bank (`REFORMS_SPEC.md` §9; T6)
+
+Pins `tests/test_dp1_the_bank.py` 22; sweep `tools/_sweep_dp1.json` 10/10 killed, 0 INERT.
+
+- **The refill** (`diplomacy.dp_refill(regen, unspent) -> (pool, carried)`): carry = max(0, min(unspent, regen)); pool = min(`DP_BANK_CAP` = 7, regen + carry). `_process_dp_regen` reads the unspent pool (the player's `diplomatic_points`, an AI court's `nation_dp`) before the refill — zero new serialized fields — for every court (GR5). Lever `DIPLOMATIC_POINTS_CARRY`.
+- **Shown = applied:** the regen dispatch breakdown adds "+N carried from last turn"; the refill's split rides the transient `world._dp_refill` (never saved), and `displayed_dp_ceiling` is max(the base ceiling + the Seat, regen + carried, the player's pool) — so after a load the ceiling is never under the pool.
+- **Measured:** a fuller AI pool unlocks nothing on the ambient board (`tools/_dp1_measure.py` — 21 spends on both arms; the series byte-identical).
+

@@ -10161,8 +10161,31 @@ def _is_nation_eliminated(world, nation: str) -> bool:
     return not world.get_nation_regions(nation)
 
 
+# SR-5r DP-1 (REFORMS_SPEC §9, SR-D3 Q3 RULED September 27, 2026): the
+# diplomatic points bank ONE turn. The unspent pool before the refill IS the
+# carry (zero new serialized fields): carry = min(unspent, regen), and the
+# pool never passes DP_BANK_CAP. Spending draws the oldest points first, so a
+# point lasts one turn while the regen holds; a rising regen can carry one
+# point twice (recorded, not engineered away). GR5: every court, one rule.
+# Lever: down, the pool resets to the regen each turn (the pre-DP-1 rule).
+DIPLOMATIC_POINTS_CARRY = True
+DP_BANK_CAP = 7
+
+
+def dp_refill(regen: int, unspent: int) -> Tuple[int, int]:
+    """THE refill (§9): (pool, carried) for a court whose regen is `regen`
+    and whose pool held `unspent` before the refill."""
+    regen = int(regen)
+    if not DIPLOMATIC_POINTS_CARRY:
+        return regen, 0
+    carry = max(0, min(int(unspent), regen))
+    pool = min(DP_BANK_CAP, regen + carry)
+    return pool, max(0, pool - regen)
+
+
 def _process_dp_regen(world) -> None:
-    """Regenerate DP for all nations. DP does NOT accumulate — reset each turn."""
+    """Regenerate DP for all nations — the regen plus one turn's unspent
+    points (DP-1, `dp_refill`), up to DP_BANK_CAP."""
     diplomats = getattr(world, 'diplomats', {})
     nation_auth = getattr(world, 'nation_authority', {})
 
@@ -10198,6 +10221,21 @@ def _process_dp_regen(world) -> None:
         seat = sovereign_seat_bonus(world, nation)
         dp += seat
 
+        # DP-1: the bank. The refill's own split rides a TRANSIENT (never
+        # serialized) so the display can say "regen + carried"; after a load
+        # the ceiling falls back to the pool itself (`displayed_dp_ceiling`).
+        if nation == world.player_nation:
+            unspent = int(getattr(world, "diplomatic_points", 0) or 0)
+        else:
+            unspent = int((getattr(world, "nation_dp", {}) or {}).get(nation, 0) or 0)
+        regen = int(dp)
+        dp, carried = dp_refill(regen, unspent)
+        refills = getattr(world, "_dp_refill", None)
+        if not isinstance(refills, dict):
+            refills = {}
+            world._dp_refill = refills
+        refills[nation] = (regen, carried)
+
         if nation == world.player_nation:
             world.diplomatic_points = int(dp)
             # S1: Queue DP breakdown for morning dispatch
@@ -10213,6 +10251,8 @@ def _process_dp_regen(world) -> None:
                 parts.append("-1 no capital")
             if seat:
                 parts.append("+1 the Emperor holds court in the capital")
+            if carried:
+                parts.append(f"+{carried} carried from last turn")
             breakdown_str = ", ".join(parts)
             queue_dispatch_event(world, "diplomatic_dp_regen",
                                 {"dp": int(dp), "breakdown": breakdown_str}, "always")
@@ -10276,7 +10316,18 @@ def displayed_dp_ceiling(world, nation: str = "") -> int:
     nation = nation or getattr(world, "player_nation", "")
     if not nation:
         return base
-    return base + sovereign_seat_bonus(world, nation)
+    ceiling = base + sovereign_seat_bonus(world, nation)
+    # DP-1 (REFORMS_SPEC §9): the carried points raise this turn's ceiling —
+    # the pool shows as regen + carried, never over its own printed maximum
+    # (the "DP: 6/5" lesson). The refill's split is transient; after a load
+    # the pool itself stands in for it.
+    if DIPLOMATIC_POINTS_CARRY:
+        refill = (getattr(world, "_dp_refill", None) or {}).get(nation)
+        if refill:
+            ceiling = max(ceiling, int(refill[0]) + int(refill[1]))
+        if nation == getattr(world, "player_nation", None):
+            ceiling = max(ceiling, int(getattr(world, "diplomatic_points", 0) or 0))
+    return ceiling
 
 
 def sovereign_seat_bonus(world, nation: str) -> int:

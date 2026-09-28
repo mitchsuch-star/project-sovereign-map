@@ -1723,17 +1723,40 @@ class TestEveryMissionHasItsCell:
         """Why T15 reads the OFFERED rungs: the only cell past relation's cap
         (Prussia's alliance, 48 at relation 60+) is a leap up the ladder that
         costs 4-6 DP, and a courting France holds 3 (5 regen, 2 to the
-        mission). Measured through the typed road."""
+        mission). Measured through the typed road.
+
+        ── AMENDED by SR-5r DP-1 "The bank" (September 27, 2026) ──────────
+        The pool banks one turn now, so "a courting France holds 3" is true
+        only of a France that SPENT its pool before the refill — this arm.
+        A France that saved carries its points and can pay the leap
+        (`test_the_bank_buys_the_alliance_leap_while_courting`)."""
         w, client = http
         _set_state(w, "France", "Prussia", "NON_AGGRESSION")
         _set_rel(w, "France", "Prussia", 60)
         assert _start_http(client, "court Prussia").get("success")
+        w.diplomatic_points = 0          # the pool spent before the refill
         _advance(w)
         assert w.diplomatic_points == 3
         assert D.get_transition_dp_cost("NON_AGGRESSION", "ALLIANCE") == 4
         r = _cmd(client, "propose alliance with Prussia")
         assert r.get("success") is False
         assert "costs 4 DP, but we only have 3" in (r.get("message") or "")
+
+    def test_the_bank_buys_the_alliance_leap_while_courting(self, http):
+        """SR-5r DP-1 (REFORMS_SPEC §9): a courting France that saved its
+        points carries them — the pool refills to the bank's cap of 7, the
+        mission takes its 2, and the 4-DP alliance leap is payable. The bank
+        is what makes the leap reachable."""
+        from backend.game_logic.diplomacy import DP_BANK_CAP
+        w, client = http
+        _set_state(w, "France", "Prussia", "NON_AGGRESSION")
+        _set_rel(w, "France", "Prussia", 60)
+        assert _start_http(client, "court Prussia").get("success")
+        assert w.diplomatic_points >= 5            # enough unspent to carry in full
+        _advance(w)
+        assert w.diplomatic_points == DP_BANK_CAP - 2
+        r = _cmd(client, "propose alliance with Prussia")
+        assert "costs 4 DP, but we only have" not in (r.get("message") or "")
 
     def test_reassure_is_the_only_relation_row_for_an_ally(self):
         w = _europe()

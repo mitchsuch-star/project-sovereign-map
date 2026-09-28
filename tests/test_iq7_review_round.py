@@ -155,9 +155,13 @@ LEVERS = ("THE_CLIENT_PETITIONS", "AN_UNANSWERED_PETITION_IS_REFUSED",
           "THE_TRANSFER_SHEDS_THE_REMISSION", "A_RELIEF_OF_NOTHING_IS_WITHDRAWN")
 # The typed verbs the review used to spend the turn's DP to 0 (each one an
 # ordinary, useful order — the dodge cost the player nothing).
+# SR-5r DP-1 (Sept 27, 2026): the pool banks one turn, so the board holds up
+# to 7 points, not 5 — the ordinary spends run on until it is empty.
 DP_SPENDS = ("invest in Holland", "invest in Kingdom of Italy",
              "grant Holland more autonomy", "grant Kingdom of Italy more autonomy",
-             "invest in Switzerland", "reduce Holland autonomy", "invest in Holland")
+             "invest in Switzerland", "reduce Holland autonomy", "invest in Holland",
+             "invest in Kingdom of Italy", "invest in Switzerland",
+             "grant Switzerland more autonomy", "invest in Holland")
 
 
 def _quiet():

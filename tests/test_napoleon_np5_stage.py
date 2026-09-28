@@ -98,12 +98,16 @@ class TestTheSeat:
         assert w.nation_dp["Austria"] >= 2  # base + seat above any clamp arm
 
     def test_dp_tick_carries_the_seat(self):
+        # SR-5r DP-1: the pool banks one turn — spend it before each tick so
+        # the pin reads the regen (the Seat's point) and not the carry.
         s = make_sovereign(location="Paris")
         w = make_world(s)
+        w.diplomatic_points = 0
         _process_dp_regen(w)
         with_seat = w.diplomatic_points
         s.location = "Belgium"
         w.pending_dispatch_events = []
+        w.diplomatic_points = 0
         _process_dp_regen(w)
         without = w.diplomatic_points
         assert with_seat == without + 1

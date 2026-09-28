@@ -1,0 +1,72 @@
+[
+  {
+    "id": "a carry is not capped at the regen",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    carry = max(0, min(int(unspent), regen))",
+    "new": "    carry = max(0, int(unspent))",
+    "tests": "tests/test_dp1_the_bank.py::TestTheRule::test_the_refill"
+  },
+  {
+    "id": "the bank has no cap",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    pool = min(DP_BANK_CAP, regen + carry)",
+    "new": "    pool = regen + carry",
+    "tests": "tests/test_dp1_the_bank.py::TestTheRule::test_the_refill"
+  },
+  {
+    "id": "a debt is carried",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    carry = max(0, min(int(unspent), regen))",
+    "new": "    carry = min(int(unspent), regen)",
+    "tests": "tests/test_dp1_the_bank.py::TestTheRule::test_the_refill"
+  },
+  {
+    "id": "the lever is ignored",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    if not DIPLOMATIC_POINTS_CARRY:\n        return regen, 0",
+    "new": "    if False:\n        return regen, 0",
+    "tests": "tests/test_dp1_the_bank.py::TestTheRule::test_lever_down_the_pool_resets"
+  },
+  {
+    "id": "the regen never banks",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        dp, carried = dp_refill(regen, unspent)",
+    "new": "        dp, carried = regen, 0",
+    "tests": "tests/test_dp1_the_bank.py::TestT6::test_the_player_carries_one_turn_up_to_seven_and_no_further"
+  },
+  {
+    "id": "an AI court carries nothing",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            unspent = int((getattr(world, \"nation_dp\", {}) or {}).get(nation, 0) or 0)",
+    "new": "            unspent = 0",
+    "tests": "tests/test_dp1_the_bank.py::TestT6::test_every_court_banks_the_same_way"
+  },
+  {
+    "id": "the dispatch hides the carry",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            if carried:\n                parts.append(f\"+{carried} carried from last turn\")",
+    "new": "            if False:\n                parts.append(f\"+{carried} carried from last turn\")",
+    "tests": "tests/test_dp1_the_bank.py::TestShownIsApplied::test_the_dispatch_names_the_carry"
+  },
+  {
+    "id": "the ceiling forgets the refill",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            ceiling = max(ceiling, int(refill[0]) + int(refill[1]))",
+    "new": "            pass",
+    "tests": "tests/test_dp1_the_bank.py::TestShownIsApplied::test_the_ceiling_is_regen_plus_carried"
+  },
+  {
+    "id": "the ceiling can sit under the pool",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "            ceiling = max(ceiling, int(getattr(world, \"diplomatic_points\", 0) or 0))",
+    "new": "            pass",
+    "tests": "tests/test_dp1_the_bank.py::TestShownIsApplied::test_never_a_pool_over_its_printed_maximum_after_a_load"
+  },
+  {
+    "id": "the refill's split is not kept",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        refills[nation] = (regen, carried)",
+    "new": "        pass",
+    "tests": "tests/test_dp1_the_bank.py::TestShownIsApplied::test_the_ceiling_is_regen_plus_carried"
+  }
+]
