@@ -5,6 +5,7 @@ Extracted from executor.py: _execute_economy, _execute_recruit, _execute_garriso
 _execute_build, _execute_build_watchtower, _execute_repair.
 Also includes _calculate_recruit_cost, _extract_building_type, and garrison constants.
 """
+import re
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import (
     WorldState, RECRUIT_ARMS, recruit_arm_of,
@@ -2194,6 +2195,11 @@ class EconomyExecutor:
         # Also check the original raw_input if available
         if not raw:
             raw = ""
+        # SR-5b / NV-D9: the yard reads first — "naval yard", "dockyard",
+        # "shipyard" (none of the words below appear in it, but a sentence
+        # such as "a naval yard by the fort" must not become a fortification).
+        if re.search(r"\b(?:naval\s+yard|dock\s*yards?|ship\s*yards?)\b", raw):
+            return "naval_yard"
         if "supply" in raw or "depot" in raw:
             return "supply_depot"
         elif "fort" in raw or "wall" in raw or "defense" in raw:

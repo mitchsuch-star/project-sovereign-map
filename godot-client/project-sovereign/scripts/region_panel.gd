@@ -433,6 +433,23 @@ func _render() -> void:
 					+ " [color=#" + Utils.COLOR_GREY + "]eyes on every adjacent province[/color]")
 			else:
 				build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
+		# SR-5b / NV-D9: the naval yard. The backend sends `naval_yard` only
+		# where this province is a yard SITE (an anchorage, an admiralty,
+		# not a yard already) and states the executor's own verdict in
+		# `refusal` — so the chip builds when it is lit and says why when
+		# it is dimmed, and the slot arithmetic above never has to guess.
+		var yard = terms.get("naval_yard", {})
+		if yard is Dictionary and yard.has("cost"):
+			var yard_label := "Naval Yard " + Utils.format_number(int(yard.get("cost", 0))) + "g"
+			var yard_why := str(yard.get("refusal", ""))
+			if yard_why == "":
+				build_rows.append("    " + Utils.bb_button_chip("do:build naval yard in " + _region, yard_label, Utils.COLOR_GOLD, _CHIP_BG)
+					+ " [color=#" + Utils.COLOR_GREY + "]keels laid and corps embarked here · "
+					+ str(int(yard.get("turns", 0))) + " turns · "
+					+ str(int(yard.get("raised", 0))) + " of " + str(int(yard.get("cap", 0))) + " yards raised[/color]")
+			else:
+				build_rows.append("    " + Utils.bb_chip_disabled(yard_label)
+					+ " [color=#" + Utils.COLOR_DIMMED + "]" + yard_why + "[/color]")
 		if build_rows.size() > 0:
 			# The tier upkeep is one figure for every work here — said
 			# once on the header, not repeated per row.
@@ -526,6 +543,12 @@ func _render() -> void:
 					+ Utils.format_number(int(corps.get("strength", 0)))
 					+ " men from " + str(corps.get("from", "")) + " · "
 					+ str(odds) + " in 100 slip past[/color]")
+				# SR-5b (AAR-D7): what would make it a better throw — the
+				# resolver's own odds re-asked, one lever at a time.
+				var levers := str(corps.get("levers", ""))
+				if levers != "":
+					action_rows.append("      [color=#" + Utils.COLOR_DIMMED + "]"
+						+ Utils.humanize_nation_keys_in_text(levers) + "[/color]")
 		else:
 			# NV-12 (recon gap 3): a too-large, inland, or non-consenting
 			# landing used to produce NO chip and NO message — absence was

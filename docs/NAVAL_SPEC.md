@@ -525,13 +525,13 @@ a falsifiable test.
 |-----|------|-----------------|-----------------|
 | NV-D1 | CS neutral coercion — the Portugal ultimatum, the Peninsula trap | NA follow-on gate (rides the NA-5 ultimatum machinery), post-NV-V | `test_cs_coercion.py` |
 | NV-D2 | Copenhagen 1807 — Britain's pre-emptive fleet seizure of a neutral | Same NA follow-on gate (it is an agenda behavior, not a naval one) | seizure event pins |
-| NV-D3 | Privateers / commerce-raid posture | Econ pass 3 successor, if the blockade layer measures thin | raid-income pins |
+| ~~NV-D3~~ | ~~Privateers / commerce-raid posture~~ | **STRUCK September 28, 2026 by the user's ruling** ("we can strike privateer", SR-5b). No player-facing surface ever promised it. Re-open only on a played campaign where the blockade layer measures thin — the SR-5b arms did not (Britain sued on turn 8 on six of six). | none — the row is closed |
 | ~~NV-D4~~ | ~~Naval battle presentation (diorama-class)~~ | **✅ CLOSED — re-opened and BUILT at the August 2, 2026 user gate ("a battle screen like for battles?"); landing record §15.5** | `test_naval_diorama.py` (22) + `docs/audits/NV7_NAVAL_DIORAMA_TRAFALGAR_2026_08_02.png` |
 | NV-D5 | Colonies / Egypt / the wider world — referenced NOWHERE in v1 copy | Post-EA expansion table (ROADMAP) — its own future gate defines scope + completion | copy-scan pin at NV-0: no colonial strings ship on any v1 surface |
 | NV-D6 | DEF-8 full `is_coastal` re-derivation | Stays at DEF-8, **not triggered** (§3.4 — v1 reads authored data only) | DEF-8's own row |
 | NV-D7 | Weather/season on expeditions (Bantry's gale) | NV-V verdict decides if the odds curve needs it | curve re-bless |
 | NV-D8 | Ambient AI expeditions/diversions (an AI France invading Ireland unprompted) | The first post-naval AI review (AI-V cadence) | predicate → ambient pins |
-| NV-D9 | A buildable "Naval Yard" structure — unlocks a SITE where none is authored, NEVER raises the national build rate (§13.3: the rate cap is the time wall and stays national) | Econ pass 3 successor, opened only if NV-V measures site scarcity as dull | yard-site pins |
+| ~~NV-D9~~ | ~~A buildable "Naval Yard" structure~~ | **BUILT September 28, 2026 in SR-5b** (the user's ruling, "Build them in SR-5b"): 1,200g, 4 turns, one admin action, at most 2 per court, a coastal city with a mooring, a court with an admiralty — a SITE, never a rate, never a port. Record §19. | `tests/test_sr5b_the_second_road_at_sea.py` TestTheNavalYard + TestTheAIRaisesAYard |
 
 ## §11. Build slices (each lands whole, suite-green, with its record)
 
@@ -621,6 +621,11 @@ sell the §3.5 time wall, because the build rate is national, not per-yard. The
 region-panel chip on a dockyard province is a convenience entry to the national order and
 consumes no building slot. **NV-D9** (§10) owns the only sanctioned future: a buildable
 Naval Yard that unlocks a SITE, never rate.
+
+> **Amended September 28, 2026 (SR-5b, §19).** NV-D9 is BUILT: a court with an admiralty may raise a
+> yard as an ordinary WORK (a slot, the tier upkeep, razed by a plunder, damaged by a secure, restored
+> by `repair`). The ruling's reason stands intact — the keel rate stays national, so a second yard buys
+> a site and never a faster navy; the authored `navies.dockyards` stay what they were.
 
 ### 13.4 Seam verification (every load-bearing claim → the code that carries it)
 
@@ -2042,3 +2047,36 @@ rule turned NUI2-2 (Russia's yard put back at Estonia) BROKEN in the same way,
 because the boot now refuses it. That claim is carried by NUI2-31, and the
 slot now pins Livonia's mooring against the art. Godot parse harness EXIT=0;
 the map capture 0 `SCRIPT ERROR`.
+
+## §19. SR-5b "THE SECOND ROAD AT SEA" — the expedition's levers and the naval yard (landing record,
+## September 28, 2026 — Score Mandate Chunk 5; rules `SYSTEMS_REFERENCE.md` §77)
+
+**What landed.** (1) **AAR-D7** — the expedition names the levers that move its odds: `expedition_odds_levers` re-asks
+`expedition_slip_odds` with one thing changed (a won diversion first, a 5,000-man corps, the fleet at the readiness it climbs
+toward, ten more sail, an ally's squadron), names only the roads this court can take and only when they move the odds by 2 or
+more, and `levers_line` prints the same sentence on the confirm, the region panel's landing chip and THE ADMIRALTY's land chips.
+(2) **NV-D9 BUILT** — the naval yard (§10, §13.3 amended): 1,200g, 4 turns, one admin action, at most two per court, at a coastal
+city of its own with a mooring; a SITE (keels, embarkation) and never a rate or a port; the AI raises one at P1.81 when its navy has
+lost every yard. (3) **NV-D3 STRUCK** by the user's ruling. (4) **SR5B-1**, found playing the evidence arm — a refused order no
+longer destroys the marshal's standing order.
+
+**Measured.** `BASELINE_SERIES` and M1–M7 byte-identical with every lever up, with the reason counted: on the 40-turn ambient board
+the yard rung is asked 447 times and never finds a navy without a yard (0 orders), and no expedition quote is asked (the levers
+ride the player's surfaces only). The landing-options payload with two corps at a yard: 2.6 ms before, 15.8 ms with the levers
+unmemoised, 3.4 ms memoised (exact — every row re-asked directly).
+
+**The standing DEF-5 evidence — played** (memo `docs/audits/SR5B_SHUT_OUT_ARM_2026_09_28.md`; six archived arms
+`sr5b-{accept,decline}-{historical,ulm,austerlitz}`, script `tools/playtest_scripts/sr5b_shut_out.json`). France declares war on
+Portugal and the Papal States, Soult marches on Lisbon, Massena on Rome, the rest of the army fights Austria.
+
+- **The A2 sue-path is played:** Britain proposes an armistice while losing on **turn 8 on six arms of six** (war exhaustion 74–77)
+  and again on turns 14–24 when refused or when the war resumes — no soldier crosses to Britain. The Continental System contributes
+  little to it: the closure reached tier 1 (≥40%) and never tier 2; the war's own tick (+8 a turn) carries Britain to the table.
+  Anchor A2's "≥80% closure" is not reachable in play (peak 50%).
+- **The SHUT OUT reading never held** in 240 played turns. Its closure term was met exactly (13 of 26) on three arms — Lisbon and
+  Rome in French hands, or Lisbon in Spain's — and every time a British corps stood on the Continent (Wellesley, Moore, Paget,
+  Shrapnel): Britain's descents land where the System bites, in Portugal. Routed as a design question, `DESIGN_REFINEMENT.md`
+  SR5B-D1.
+- **At peace the System closes nothing** — `closure_against` counts the ports of courts at WAR with Britain (and vassals, members,
+  conquered capitals), so every accepted British armistice drops the closure from 10–13 of 26 to 0–5. Working as designed (the
+  System was a war measure); recorded so a reader of the arms is not surprised.

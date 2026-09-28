@@ -1,0 +1,1022 @@
+{"kind": "note", "text": "new game \u2192 New campaign started. Autosave refreshed."}
+{"kind": "turn", "turn": 1, "label": "Late September 1805"}
+{"kind": "command", "text": "declare war on Portugal", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Choose your war purpose against Portugal."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "war_purpose_selection #1", "answer": "1"}
+{"kind": "popup", "key": "proposal_result", "summary": "Sire, I must strongly advise against declaring war on Portugal. Our threat level stands at 70 \u2014 the courts of Europe already whisper of coalition. Another war will only hasten their union against us.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_objection", "summary": "diplomatic_declare_war, Portugal", "answer": "proceed"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "proposal_confirm #2", "answer": "ally_entry_proceed_without"}
+{"kind": "popup", "key": "proposal_result", "summary": "France declares war on Portugal! Holland follows France into the war against Portugal! KingdomOfItaly follows France into the war against Portugal! Switzerland follows France into the war against Portugal!", "answer": "display-only"}
+{"kind": "command", "text": "declare war on the Papal States", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Choose your war purpose against PapalStates."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "war_purpose_selection #3", "answer": "1"}
+{"kind": "popup", "key": "proposal_result", "summary": "Sire, I must strongly advise against declaring war on PapalStates. Our threat level stands at 90 \u2014 the courts of Europe already whisper of coalition. Another war will only hasten their union against us.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_objection", "summary": "diplomatic_declare_war, PapalStates", "answer": "proceed"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "proposal_confirm #4", "answer": "ally_entry_proceed_without"}
+{"kind": "popup", "key": "proposal_result", "summary": "France declares war on PapalStates! Holland follows France into the war against PapalStates! KingdomOfItaly follows France into the war against PapalStates! Switzerland follows France into the war against PapalStates!", "answer": "display-only"}
+{"kind": "command", "text": "Soult, march to Lisbon", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult begins march to Lisbon. Route: Orleanais \u2192 Burgundy \u2192 Limousin \u2192 Gascony \u2192 Bearn \u2192 Cartagena \u2192 Andalusia \u2192 Lisbon. Moves to Orleanais. \"Soult, march to Lisbon.\" Understood to the letter. (1 AP \u2014 Soult executes precise orders with fewer couriers.)"}
+{"kind": "command", "text": "Massena, march to Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena begins march to Rome. Route: Piedmont \u2192 Rome. Moves to Piedmont. Massena: \"At the double, Sire \u2014 the men will smell powder soon enough.\""}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 1 ended. (Warning: 1 action unused) Turn 2 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 1793) vs Bernadotte (lost 6830) \u2014 Bernadotte's army has been badly mauled. Archduke Charles proved the stronger force today."}
+{"kind": "enemy_phase", "count": 2, "attacks": 1, "captures": 0, "verbs": {"move": 1, "attack": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "move", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles moves from Carniola to Tyrol"}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Bernadotte stands firm against superior numbers! (Cautious: +10% outnumbered)\nArchdukeCharles's forces press forward aggressively. ArchdukeCharles gains the advantage over Bernadotte. Casualties: ArchdukeCharles 1,793, Bernadotte 6,830. Both armies remain in the field. ArchdukeCharles advances into Franconia. (1,566 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -89g, France -341g."}]}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "active", "message": "Massena is marching to Rome (1 turn remaining)."}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "active", "message": "Soult is marching to Lisbon (7 turns remaining)."}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Denmark", "proposal_type": "open borders", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 1747, "net": 1288, "threat": 97, "provinces": 28, "ceiling": 31009, "ceiling_state": "bounded", "army": 179360, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 98}}
+{"kind": "purses", "purses": {"France": 1747, "Britain": 4151, "Russia": 2525, "Austria": 534, "Prussia": 514, "Spain": 1245, "Ottoman": 1808, "Sweden": 1179, "Naples": 331, "Portugal": 1530, "Denmark": 772, "Bavaria": 424, "Saxony": 1100, "Hanover": 1500, "Hesse": 1150, "PapalStates": 1100, "Sardinia": 1100, "Holland": 889, "KingdomOfItaly": 925, "Switzerland": 875}}
+{"kind": "economy", "net_residual": 0, "income": 2590, "trade": 350, "admin": 50, "tribute": 937, "upkeep": 2330, "blockade": 219, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Bernadotte was mauled at Franconia: a third of his corps \u2014 6,830 men \u2014 lost in a single action."}
+{"kind": "rail", "dtype": "diplomatic_war_declared", "text": "France has declared war on Portugal, with 2 allied courts poised to follow.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_war_declared", "text": "France has declared war on PapalStates, with 2 allied courts poised to follow.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Denmark has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_war_declared", "priority": "HIGH", "text": "France has declared war on Portugal, with 2 allied courts poised to follow."}
+{"kind": "dispatch_row", "dtype": "diplomatic_war_declared", "priority": "HIGH", "text": "France has declared war on PapalStates, with 2 allied courts poised to follow."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Britain enacts the Orders in Council \u2014 a blockade it lays cuts the enemy's trade by 62%, not half (\u00d71.25)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Denmark has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 authority, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "sovereign_takes_field", "priority": "MEDIUM", "text": "The Emperor has taken the field \u2014 Talleyrand holds the portfolio at the capital."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes France's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes Holland's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes Spain's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Britain rebuffs Prussia and Bavaria (open borders agreement)", "log_turn": 2}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Holland joined France's war.", "log_turn": 1}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Kingdom of Italy joined France's war.", "log_turn": 1}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Switzerland joined France's war.", "log_turn": 1}
+{"kind": "turn", "turn": 2, "label": "Early October 1805"}
+{"kind": "envoy_digest_answer", "mailbox_id": 1, "from_nation": "Denmark", "proposal_type": "open_borders", "choice": "accept", "outcome": "answered"}
+{"kind": "command", "text": "Ney, attack Mack", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Ney (24,000; expect about 78,676 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Ney (lost 1751, own corps) vs Mack (lost 14775) \u2014 Reinforcements from Davout, Lannes and Napoleon bolstered Ney's position \u2014 though Murat never arrived, Sire."}
+{"kind": "command", "text": "Davout, move to Swabia", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Davout is already in Swabia."}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t2` \u2192 Game saved: sr5b-accept-historical_t2"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 2 ended. (Warning: 3 actions unused) Turn 3 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 648) vs Bernadotte (lost 5567) \u2014 A grievous defeat for Bernadotte, Sire. The losses are severe. And Bernadotte was taken on that field \u2014 Austria holds h\u2026"}
+{"kind": "battle", "headline": "Archduke Charles (lost 1849) vs Deroy (lost 6899) \u2014 The hills were ours, but Archduke Charles took them. Deroy's position was overrun."}
+{"kind": "enemy_phase", "count": 7, "attacks": 2, "captures": 1, "verbs": {"attack": 2, "retreat": 2, "stance_change": 2, "wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Bernadotte stands firm against superior numbers! (Cautious: +10% outnumbered)\n[Combat] Adjacent allies bolster ArchdukeCharles's attack! (+4%)\nArchdukeCharles delivers an effective strike. ArchdukeCharles gains the advantage over Bernadotte. Casualties: ArchdukeCharles 648, Bernadotte 5,567. Both armies remain in the field.\n\n[!] Bernadotte's troops are BROKEN (morale 0%)! FORCED RETREAT! Franconia has been captured by Austria!\n[Materiel] Guns, horses and stores lost with the fallen: Austria -32g, France -278g.\n[!] MARSHAL CAPTURED \u2014 Bernadotte is taken by Austria at Franconia! 2,250 of his men escape home to the depots."}, {"nation": "Austria", "action": "retreat", "marshal": "Mack", "message": "Mack retreats from Swabia to Franconia.  (891 lost to march) Army begins recovery (currently at -55% effectiveness). Will recover over 3 turns."}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Deroy's DEFENSIVE stance strengthens the line! (+15% defense)\n[Alert] ArchdukeCharles's troops are exhausted from repeated attacks! (2nd attack: -10%)\n[Terrain] Deroy benefits from Mountains terrain (+25% defense)\n[Combat] Adjacent allies bolster ArchdukeCharles's attack! (+2%)\nArchdukeCharles's forces press forward aggressively. ArchdukeCharles gains the advantage over Deroy. Casualties: ArchdukeCharles 1,849, Deroy 6,899. Both armies remain in the field. ArchdukeCharles advances into Munich. (2,834 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -92g, Bavaria -344g."}, {"nation": "Austria", "action": "stance_change", "marshal": "Mack", "message": "Mack shifts from NEUTRAL to DEFENSIVE stance. Effect: -10% attack, +15% defense."}, {"nation": "Bavaria", "action": "retreat", "marshal": "Deroy", "message": "Deroy retreats from Munich to Franche-Comte.  (75 lost to march) Army begins recovery (currently at -35% effectiveness). (Defensive stance enabled orderly withdrawal) Will recover over 3 turns."}, {"nation": "Bavaria", "action": "stance_change", "marshal": "Deroy", "message": "Deroy shifts from NEUTRAL to DEFENSIVE stance. Effect: -10% attack, +15% defense."}, {"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Franche-Comte, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Burgundy. 6 regions to Lisbon."}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "interrupted", "message": "Massena hears cannon fire! Abandoning orders \u2014 rushing to Munich! Massena moves from Piedmont to Milan (1,178 lost to march)"}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Murat seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Murat's grievance runs its course."}
+{"kind": "ledger", "treasury": 3175, "net": 1925, "threat": 97, "provinces": 28, "ceiling": 37791, "ceiling_state": "bounded", "army": 158931, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 97}}
+{"kind": "purses", "purses": {"France": 3175, "Britain": 5587, "Russia": 3798, "Austria": 859, "Prussia": 658, "Spain": 1842, "Ottoman": 2921, "Sweden": 1618, "Naples": 397, "Portugal": 2260, "Denmark": 996, "Bavaria": 170, "Saxony": 1400, "Hanover": 2200, "Hesse": 1500, "PapalStates": 1400, "Sardinia": 1400, "Holland": 978, "KingdomOfItaly": 1050, "Switzerland": 950}}
+{"kind": "economy", "net_residual": 0, "income": 2590, "trade": 400, "admin": 50, "tribute": 937, "upkeep": 1684, "charges": 65, "requisitions": 37, "blockade": 250, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Bernadotte has been taken. Austria holds him prisoner."}
+{"kind": "rail", "dtype": "design_promoted", "text": "REVANCHE: Bavaria will not forgive Austria the loss of Franconia and 1 more province. A new design hardens in their court.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 4}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Denmark and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_we_threshold", "priority": "MEDIUM", "text": "War exhaustion grows \u2014 Austria nears breaking point (exhaustion: 22)."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Russia enacts the Opolchenie \u2014 infantry manpower returns 25% faster."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 authority, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Austria \u2014 the subsidy stands at 200 this season."}
+{"kind": "dispatch_row", "dtype": "design_promoted", "priority": "HIGH", "text": "REVANCHE: Bavaria will not forgive Austria the loss of Franconia and 1 more province. A new design hardens in their court."}
+{"kind": "dispatch_row", "dtype": "agenda_shift", "priority": "MEDIUM", "text": "The court of Bavaria takes up a new design: its own survival."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Austria", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Austria against France (200g/turn)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "26 approaches from Prussia, Bavaria and Austria are rebuffed (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "4 approaches from Austria and Prussia are rebuffed (defensive alliance)", "log_turn": 3}
+{"kind": "turn", "turn": 3, "label": "Late October 1805"}
+{"kind": "command", "text": "Ney, attack Mack", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Ney (21,007; expect about 65,665 with the corps likely to arrive, up to 72,717 if all march) vs Mack (34,774 men) at Franconia \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Ney (lost 566, own corps) vs Mack (lost 22689) \u2014 Davout, Lannes and Napoleon arrived to reinforce Ney! The timely arrival swung the battle in our favor, Sire."}
+{"kind": "popup", "key": "capture_choice[capture]", "summary": "Franconia, Ney", "answer": "secure"}
+{"kind": "command", "text": "Davout, attack Mack", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Davout (22,464; expect about 81,719 with the corps likely to arrive, up to 83,886 if all march) vs Mack (substantial force) at Tyrol \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Davout (lost 689, own corps) vs Archduke John (lost 5284) \u2014 Ney and Massena's timely arrival bolstered Davout's position. Well-coordinated, Sire."}
+{"kind": "command", "text": "Lannes, move to Swabia", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Lannes moves from Franconia to Swabia. Swabia falls to France! (was Austria) (155 lost to march)"}
+{"kind": "popup", "key": "capture_choice[capture]", "summary": "Swabia, Lannes", "answer": "secure"}
+{"kind": "command", "text": "Massena, attack Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena cannot reach Rome from Tyrol! Range: 1, Distance: 3"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 3 ended. (Warning: 1 action unused) Turn 4 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 855) vs Napoleon (lost 5062) \u2014 A grievous defeat for Napoleon, Sire. The losses are severe."}
+{"kind": "battle", "headline": "Archduke Charles (lost 1338) vs Lannes (lost 5548) \u2014 Lannes stood alone, Sire. Murat never came."}
+{"kind": "enemy_phase", "count": 4, "attacks": 2, "captures": 1, "verbs": {"attack": 2, "move": 1, "wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Combat] Adjacent allies bolster ArchdukeCharles's attack! (+2%)\nArchdukeCharles launches a devastating assault! ArchdukeCharles gains the advantage over Napoleon. Casualties: ArchdukeCharles 855, Napoleon 5,062. Both armies remain in the field.\n\n[!] Napoleon's troops are BROKEN (morale 0%)! FORCED RETREAT! ArchdukeCharles advances into Franconia. (1,291 lost to march) Franconia has been captured by Austria!\n[Materiel] Guns, horses and stores lost with the fallen: Austria -42g, France -253g.\n\n[The Emperor] He commanded in person, and the field was lost. The court will hear of it. (Authority \u22125)\n[!] The Guard bought the road with its own ranks \u2014 1,074 men fall covering the withdrawal. [!] Napoleon's broken army flees to Swabia! (12 lost to march) (recovering for 2 turns)"}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Alert] ArchdukeCharles's troops are exhausted from repeated attacks! (2nd attack: -10%)\nArchdukeCharles's forces advance steadily. ArchdukeCharles gains the advantage over Lannes. Casualties: ArchdukeCharles 1,338, Lannes 5,548. Both armies remain in the field.\n\n[!] Lannes's troops are BROKEN (morale 14%)! FORCED RETREAT! ArchdukeCharles advances into Swabia. (1,212 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -66g, France -277g.\n[!] Lannes's broken army flees to Franche-Comte! (recovering for 3 turns)"}, {"nation": "Bavaria", "action": "move", "marshal": "Deroy", "message": "Deroy moves from Franche-Comte to Munich"}, {"nation": "Bavaria", "action": "wait", "marshal": "Deroy", "message": "Deroy holds position at Munich, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Limousin. 5 regions to Lisbon."}
+{"kind": "ledger", "treasury": 4907, "net": 2226, "threat": 97, "provinces": 29, "ceiling": 26990, "ceiling_state": "bounded", "army": 137266, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 95}}
+{"kind": "purses", "purses": {"France": 4907, "Britain": 3983, "Russia": 4698, "Austria": 557, "Prussia": 533, "Spain": 2429, "Ottoman": 4072, "Sweden": 2291, "Naples": 373, "Portugal": 2980, "Denmark": 1247, "Bavaria": 456, "Saxony": 1700, "Hanover": 2898, "Hesse": 1850, "PapalStates": 1700, "Sardinia": 1700, "Holland": 1067, "KingdomOfItaly": 1175, "Switzerland": 1025}}
+{"kind": "economy", "net_residual": 0, "income": 2590, "trade": 400, "admin": 50, "tribute": 937, "upkeep": 1080, "charges": 293, "requisitions": 37, "occupation": 75, "blockade": 250, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Napoleon's corps has been broken at Franconia. He must reform before he fights again."}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "diplomatic_we_threshold", "priority": "MEDIUM", "text": "War exhaustion grows \u2014 Austria nears breaking point (exhaustion: 50)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 authority, +2 carried from last turn)."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Denmark rebuffs Austria, Prussia and Bavaria (open borders agreement)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "28 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "design_promoted", "text": "REVANCHE: Bavaria swears to retake Franconia and 1 more \u2014 Austria is not forgiven", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "3 approaches from Prussia, Bavaria and Spain are rebuffed (open borders agreement)", "log_turn": 2}
+{"kind": "turn", "turn": 4, "label": "Early November 1805"}
+{"kind": "command", "text": "Massena, march to Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena is engaged with Mack and cannot begin a strategic march. Deal with the engagement first."}
+{"kind": "command", "text": "Massena, attack Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena cannot reach Rome from Tyrol! Range: 1, Distance: 3"}
+{"kind": "command", "text": "Ney, attack Mack", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Ney (18,424; expect about 69,300 with the corps likely to arrive) vs Mack (11,362 men) at Tyrol \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Ney (lost 84, own corps) vs Mack (lost 10290) \u2014 An exemplary engagement by Ney. The outcome was never in doubt. And Mack was taken on that field \u2014 France holds him."}
+{"kind": "popup", "key": "capture_choice[capture]", "summary": "Tyrol, Ney", "answer": "secure"}
+{"kind": "command", "text": "Davout, attack Mack", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Mack is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t4` \u2192 Game saved: sr5b-accept-historical_t4"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 4 ended. (Warning: 3 actions unused) Turn 5 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 1626) vs Napoleon (lost 466, own corps) \u2014 The reinforcement arrived, Sire. The verdict of the field went against us regardless."}
+{"kind": "battle", "headline": "Archduke Charles (lost 1206) vs Deroy (lost 5061) \u2014 Deroy held superior ground, yet Archduke Charles prevailed. A grim day, Sire."}
+{"kind": "enemy_phase", "count": 3, "attacks": 2, "captures": 2, "verbs": {"attack": 2, "move": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles engages in solid combat. ArchdukeCharles gains the advantage over Napoleon. Casualties: ArchdukeCharles 1,626, Napoleon's army 4,579. Both armies remain in the field. Swabia has been captured by Austria!\n[Materiel] Guns, horses and stores lost with the fallen: Austria -81g, France -228g.\n\n[The Emperor] He commanded in person, and the field was lost. The court will hear of it. (Authority \u22125)\n[!] The Guard bought the road with its own ranks \u2014 608 men fall covering the withdrawal. Napoleon has 1,421 men about him now, Sire \u2014 the Guard cannot buy another road. Bring him out, or reinforce him where he stands. [!] Napoleon's broken army flees to Franche-Comte! (recovering for 2 turns)\nMurat withdraws to Franche-Comte after the battle."}, {"nation": "Austria", "action": "move", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles moves from Swabia to Franconia (1,114 lost to march)"}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\n[Shield] Deroy's DEFENSIVE stance strengthens the line! (+15% defense)\n[Alert] ArchdukeCharles's troops are exhausted from repeated attacks! (2nd attack: -10%)\n[Terrain] Deroy benefits from Mountains terrain (+25% defense)\nArchdukeCharles's forces press forward aggressively. ArchdukeCharles gains the advantage over Deroy. Casualties: ArchdukeCharles 1,206, Deroy 5,061. Both armies remain in the field.\n\n[!] Deroy's troops are BROKEN (morale 0%)! FORCED RETREAT! ArchdukeCharles advances into Munich. (2,090 lost to march) Munich has been captured by Austria!\n[Materiel] Guns, horses and stores lost with the fallen: Austria -60g, Bavaria -253g.\n[!] Deroy's broken army flees to Franche-Comte! (49 lost to march) (recovering for 3 turns)"}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Gascony. 4 regions to Lisbon."}
+{"kind": "ledger", "treasury": 6962, "net": 2043, "threat": 97, "provinces": 29, "ceiling": 25870, "ceiling_state": "bounded", "army": 128155, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 94}}
+{"kind": "purses", "purses": {"France": 6962, "Britain": 5274, "Russia": 5624, "Austria": 1355, "Prussia": 597, "Spain": 3031, "Ottoman": 5246, "Sweden": 3148, "Naples": 696, "Portugal": 3667, "Denmark": 1550, "Bavaria": 290, "Saxony": 2000, "Hanover": 3588, "Hesse": 2200, "PapalStates": 2000, "Sardinia": 2200, "Holland": 1156, "KingdomOfItaly": 1300, "Switzerland": 1100}}
+{"kind": "economy", "net_residual": 0, "income": 2621, "trade": 300, "admin": 50, "tribute": 937, "upkeep": 1000, "charges": 535, "occupation": 52, "blockade": 188, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Napoleon's corps has been broken at Swabia. He must reform before he fights again."}
+{"kind": "rail", "dtype": "nation_eliminated", "text": "Bavaria has been eliminated from the war.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Britain enacts the Militia Transfer \u2014 infantry manpower returns 25% faster."}
+{"kind": "dispatch_row", "dtype": "nation_eliminated", "priority": "HIGH", "text": "Bavaria has been eliminated from the war."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 authority, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Austria \u2014 the subsidy stands at 200 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Austria", "log_turn": 5}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Naples rebuffs Prussia (open borders agreement)", "log_turn": 5}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Denmark rebuffs Austria and Prussia (open borders agreement)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "17 approaches rebuffed, chiefly from Prussia and Austria (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "2 approaches from Prussia and Spain are rebuffed (open borders agreement)", "log_turn": 2}
+{"kind": "turn", "turn": 5, "label": "Late November 1805"}
+{"kind": "command", "text": "Massena, attack Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena cannot reach Rome from Tyrol! Range: 1, Distance: 3"}
+{"kind": "command", "text": "Lannes, attack Mack", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Lannes is recovering from retreat and cannot attack. Recovery: 1 turn remaining."}
+{"kind": "command", "text": "Murat, attack Archduke Charles", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Murat (17,530; expect about 49,259 with the corps likely to arrive, up to 64,839 if all march) vs Archduke Charles (32,744 men) at Munich \u2014 the balance of force looks even \u2014 a hard fight that may go against us."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Murat (lost 2725, own corps) vs Archduke Charles (lost 3083) \u2014 Reinforcements from Massena bolstered Murat's position \u2014 though Ney and Davout never arrived, Sire."}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 5 ended. (Warning: 3 actions unused) Turn 6 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 708) vs Napoleon (lost 443, own corps) \u2014 A grievous defeat for Napoleon, Sire. The losses are severe."}
+{"kind": "battle", "headline": "Archduke Charles (lost 360) vs Lannes (lost 6312) \u2014 The toll on Lannes's forces is heavy, Sire. This defeat will be felt."}
+{"kind": "enemy_phase", "count": 2, "attacks": 2, "captures": 0, "verbs": {"attack": 2}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "========================================\n  [!] COUNTER-PUNCH! (FREE ACTION) [!]  \n========================================\nArchdukeCharles strikes back after successfully defending!\nThis attack costs NO actions.\n\nArchdukeCharles delivers an effective strike. ArchdukeCharles gains the advantage over Napoleon. Casualties: ArchdukeCharles 708, Napoleon's army 5,160. Both armies remain in the field. ArchdukeCharles advances into Franche-Comte. (807 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -35g, France -258g.\n\n[The Emperor] He commanded in person, and the field was lost. The court will hear of it. (Authority \u22125) Europe has begun to notice that he can be beaten.\n[!] Napoleon's Guard is SPENT at Franche-Comte \u2014 awaiting your word: fight to the last, or cut our way out.\n[!] Murat's broken army flees to Nivernais! (recovering for 3 turns)"}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "\nArchdukeCharles holds them at Franche-Comte while allies attack from Munich! (+1 coordination)\nArchdukeCharles's forces advance steadily. ArchdukeCharles gains the advantage over Lannes. Casualties: ArchdukeCharles 360, Lannes 6,312. Both armies remain in the field.\n\n[!] Lannes's troops are BROKEN (morale 0%)! FORCED RETREAT!\n[Materiel] Guns, horses and stores lost with the fallen: Austria -18g, France -315g.\n[!] Lannes is CORNERED at Franche-Comte \u2014 awaiting your word: fight to the last, or attempt a breakout.\nLannes is KILLED at Franche-Comte \u2014 struck down at the head of his corps. 3,344 men pass to Napoleon."}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Bearn. 3 regions to Lisbon."}
+{"kind": "order_progress", "marshal": "Napoleon", "order_status": "awaiting_response", "message": "Napoleon's Guard is SPENT at Franche-Comte \u2014 950 men cannot buy another road, Sire. Fight to the last, or cut our way out."}
+{"kind": "popup", "key": "strategic_interrupt", "summary": "Napoleon, last_stand, Napoleon's Guard is SPENT at Franche-Comte \u2014 950 men cannot buy another road, Sire. Fight to the last, or cut our way out.", "answer": "fight_to_the_last"}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "KingdomOfItaly", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 8152, "net": 1774, "threat": 95, "provinces": 29, "ceiling": 20071, "ceiling_state": "bounded", "army": 102045, "vassals": {"Holland": 98, "Kingdom of Italy": 98, "Switzerland": 90}}
+{"kind": "purses", "purses": {"France": 8152, "Britain": 6744, "Russia": 3019, "Austria": 1999, "Prussia": 591, "Spain": 3616, "Ottoman": 6440, "Sweden": 4030, "Naples": 1019, "Portugal": 4317, "Denmark": 1813, "Bavaria": 377, "Saxony": 2300, "Hanover": 4269, "Hesse": 2548, "PapalStates": 2300, "Sardinia": 2698, "Holland": 1245, "KingdomOfItaly": 1425, "Switzerland": 1175}}
+{"kind": "economy", "net_residual": 0, "income": 2607, "trade": 250, "admin": 50, "tribute": 937, "upkeep": 792, "charges": 915, "contributions": 65, "occupation": 52, "blockade": 156, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Lannes has been KILLED at Franche-Comte \u2014 struck down at the head of his corps. 3,344 men pass to Napoleon. He will not return to the order of battle."}
+{"kind": "rail", "dtype": "expedition_landed", "text": "THE LANDING: Paget has put 5,000 men ashore at Lisbon.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Kingdom of Italy has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 5}
+{"kind": "dispatch_row", "dtype": "diplomatic_we_threshold", "priority": "MEDIUM", "text": "War exhaustion grows \u2014 France nears breaking point (exhaustion: 64)."}
+{"kind": "dispatch_row", "dtype": "expedition_landed", "priority": "HIGH", "text": "THE LANDING: Paget has put 5,000 men ashore at Lisbon."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 authority, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Kingdom of Italy has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "diplomatic_auto_downgrade", "priority": "MEDIUM", "text": "Relations between France and Spain have collapsed: ALLIANCE \u2192 DEFENSIVE_ALLIANCE."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Austria \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "auto_downgrade", "text": "Relations auto-downgraded: France\u2013Spain (ALLIANCE \u2192 DEFENSIVE ALLIANCE)", "log_turn": 6}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Austria", "log_turn": 6}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Austria rebuffs Prussia (open borders agreement)", "log_turn": 6}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Denmark rebuffs Austria (open borders agreement)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "nation_eliminated", "text": "Bavaria has been eliminated from the war.", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "8 approaches rebuffed, chiefly from Austria and Prussia (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Portugal and Papal States rebuff Austria (defensive alliance)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Russia rebuffs Spain (open borders agreement)", "log_turn": 2}
+{"kind": "turn", "turn": 6, "label": "Early December 1805"}
+{"kind": "note", "text": "MAILBOX #2 KingdomOfItaly incoming_proposal: Kingdom of Italy \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "KingdomOfItaly, client_petition #9", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Tyrol is ceded to the Kingdom of Italy. Loyalty +2 (98 \u2192 100); bond -30 \u2192 -10 (-1 a turn). Cost: 1 DP. Our net rises by 44g a turn \u2014 32g of income forfeited, 52g of occupation relieved, 24g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today.", "answer": "display-only"}
+{"kind": "command", "text": "Massena, march to Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena begins march to Rome. Route: Milan \u2192 Piedmont \u2192 Rome. Moves to Milan. Massena: \"We march. Pity whatever slows us.\""}
+{"kind": "command", "text": "Soult, attack Lisbon", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult cannot reach Lisbon from Bearn! Range: 1, Distance: 3"}
+{"kind": "command", "text": "Massena, attack Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena cannot reach Rome from Milan! Range: 1, Distance: 2"}
+{"kind": "command", "text": "Ney, attack Archduke Charles", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Ney pursues Archduke Charles (at Franche-Comte). Moves to Munich. Ney: \"Run him to ground, then. My sabers are hungry.\""}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t6` \u2192 Game saved: sr5b-accept-historical_t6"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 6 ended. Turn 7 begins!"}
+{"kind": "battle", "headline": "Archduke Charles (lost 243) vs Murat (lost 7537) \u2014 The toll on Murat's forces is heavy, Sire. This defeat will be felt."}
+{"kind": "enemy_phase", "count": 2, "attacks": 2, "captures": 1, "verbs": {"attack": 2}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles takes Franche-Comte where he stands! (605 lost to march) Captured: France \u2192 Austria"}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles's forces advance steadily. ArchdukeCharles gains the advantage over Murat. Casualties: ArchdukeCharles 243, Murat 7,537. Both armies remain in the field.\n\n[!] Murat's troops are BROKEN (morale 0%)! FORCED RETREAT! ArchdukeCharles advances into Nivernais. (542 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Austria -12g, France -376g.\n[!] Murat is CORNERED at Nivernais \u2014 awaiting your word: fight to the last, or attempt a breakout."}]}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "active", "message": "Massena is marching to Rome (2 turns remaining)."}
+{"kind": "order_progress", "marshal": "Ney", "order_status": "active", "message": "Ney is pursuing Archduke Charles (0 turns remaining)."}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Cartagena. 2 regions to Lisbon."}
+{"kind": "order_progress", "marshal": "Murat", "order_status": "awaiting_response", "message": "Murat is cornered at Nivernais with 2,551 men, Sire \u2014 capture looms. He asks leave to fight to the last, or he can attempt a breakout."}
+{"kind": "popup", "key": "strategic_interrupt", "summary": "Murat, last_stand, Murat is cornered at Nivernais with 2,551 men, Sire \u2014 capture looms. He asks leave to fight to the last, or he can attempt a breakout.", "answer": "fight_to_the_last"}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Davout seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Davout's grievance runs its course."}
+{"kind": "note", "text": "    \u21b3 audience: No marshal waits upon you, Sire."}
+{"kind": "ledger", "treasury": 9412, "net": 1325, "threat": 95, "provinces": 28, "ceiling": 16427, "ceiling_state": "bounded", "army": 90095, "vassals": {"Holland": 98, "Kingdom of Italy": 100, "Switzerland": 88}}
+{"kind": "purses", "purses": {"France": 9412, "Britain": 3104, "Russia": 3992, "Austria": 2837, "Prussia": 535, "Spain": 3851, "Ottoman": 7703, "Sweden": 4811, "Naples": 1342, "Portugal": 4929, "Denmark": 2586, "Bavaria": 464, "Saxony": 2597, "Hanover": 4942, "Hesse": 2892, "PapalStates": 2585, "Sardinia": 3190, "Holland": 1334, "KingdomOfItaly": 1507, "Switzerland": 1250}}
+{"kind": "economy", "net_residual": 0, "income": 2554, "trade": 250, "admin": 50, "tribute": 961, "upkeep": 704, "charges": 1399, "contributions": 36, "occupation": 105, "blockade": 156, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 the Emperor himself is TAKEN. Austria holds him, and the Empire holds its breath."}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "enemy_marshal_commissioned", "priority": "MEDIUM", "text": "Intelligence reports Britain has raised Wellesley to high command."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Austria enacts the Landwehr \u2014 infantry manpower returns 25% faster."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +3 carried from last turn)."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Britain against France (200g/turn)", "log_turn": 7}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Sardinia against France (200g/turn)", "log_turn": 5}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Sweden against France (200g/turn)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Russia against France (200g/turn)", "log_turn": 2}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "7 approaches to Britain and Russia are rebuffed (open borders agreement)", "log_turn": 2}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "PapalStates rebuffs Britain (defensive alliance)", "log_turn": 2}
+{"kind": "turn", "turn": 7, "label": "Late December 1805"}
+{"kind": "command", "text": "Massena, attack Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena cannot reach Rome from Milan! Range: 1, Distance: 2"}
+{"kind": "command", "text": "Soult, attack Lisbon", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult cannot reach Lisbon from Cartagena! Range: 1, Distance: 2"}
+{"kind": "command", "text": "Soult, attack Paget", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Soult (28,909) vs Paget (screening force) at Aragon \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Soult (lost 816) vs Paget (lost 3457) \u2014 An exemplary engagement by Soult. The outcome was never in doubt. And Paget was taken on that field \u2014 France holds him."}
+{"kind": "command", "text": "Davout, attack Archduke Charles", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Davout pursues Archduke Charles (at Nivernais). Moves to Munich. Davout: \"He will be watched at every step. Patience closes traps.\""}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 7 ended. (Warning: 1 action unused) Turn 8 begins!"}
+{"kind": "enemy_phase", "count": 4, "attacks": 2, "captures": 2, "verbs": {"attack": 2, "unfortify": 1, "move": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles takes Nivernais where he stands! (412 lost to march) Captured: France \u2192 Austria"}, {"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}, {"nation": "Austria", "action": "move", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn moves from Bohemia to Franconia (147 lost to march)"}, {"nation": "Austria", "action": "attack", "marshal": "ArchdukeCharles", "message": "ArchdukeCharles marches from Franche-Comte into Lorraine unopposed! (362 lost to march) Captured: France \u2192 Austria"}]}
+{"kind": "order_progress", "marshal": "Davout", "order_status": "active", "message": "Davout is pursuing Archduke Charles (0 turns remaining)."}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "continues", "message": "Massena marches to Piedmont. 1 region to Rome."}
+{"kind": "order_progress", "marshal": "Ney", "order_status": "continues", "message": "Ney pursues ArchdukeCharles. 1 region away."}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Britain", "proposal_type": "armistice losing", "state": "ACTIVE"}, {"nation": "Austria", "proposal_type": "peace", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 10694, "net": 1044, "threat": 96, "provinces": 27, "ceiling": 16116, "ceiling_state": "bounded", "army": 86090, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 89}}
+{"kind": "purses", "purses": {"France": 10694, "Britain": 4469, "Russia": 4743, "Austria": 3802, "Prussia": 728, "Spain": 4447, "Ottoman": 9138, "Sweden": 5543, "Naples": 1665, "Portugal": 5500, "Denmark": 3352, "Bavaria": 551, "Saxony": 2890, "Hanover": 5607, "Hesse": 3232, "PapalStates": 2854, "Sardinia": 3676, "Holland": 1423, "KingdomOfItaly": 1628, "Switzerland": 1325}}
+{"kind": "economy", "net_residual": 0, "income": 2427, "trade": 250, "admin": 50, "tribute": 1012, "upkeep": 672, "charges": 1672, "occupation": 105, "blockade": 156, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Nivernais has fallen. Enemy colours fly over French homeland soil. Archduke Charles's corps of 24,489 stands there. A garrison you detach (3,000 men) holds a province against a march, as does \u2026"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Britain has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Austria has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Britain has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Austria has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +3 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Austria \u2014 the subsidy stands at 200 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Austria", "log_turn": 8}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Austria against France (200g/turn)", "log_turn": 8}
+{"kind": "turn", "turn": 8, "label": "Early January 1806"}
+{"kind": "note", "text": "MAILBOX #3 Britain incoming_proposal: Britain \u2014 Armistice \u2192 activated"}
+{"kind": "note", "text": "MAILBOX #4 Austria incoming_proposal: Austria \u2014 Peace Treaty \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Britain, armistice_losing #10", "answer": "accept"}
+{"kind": "note", "text": "    \u21b3 refused: Sire, another matter has arrived since \u2014 this concerns Austria. Your earlier answer was not delivered; the ma\u2026"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_proposal #11", "answer": "accept_ai_proposal"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Austria's proposal. Treaty signed: At War \u2192 Peace with Austria.", "answer": "display-only"}
+{"kind": "ratified", "summary": {"target_nation": "Austria", "previous_state": "WAR", "new_state": "PEACE", "turn": 8, "war_duration_turns": 7, "war_outcome": "stalemate", "territory_gained": [], "territory_lost": [], "gold_received": 0, "gold_paid": 1405, "casualties_france": 64840, "casualties_enemy": 63692, "final_war_score": -24, "terms_ratified": ["France pays 1405 gold to Austria", "Status quo: Franconia, Lorraine, Nivernais and Swabia stay Austrian by the treaty.", "Status quo: Munich stays ours by the treaty \u2014 titled."], "political_aftermath": ["Our clients follow us into the peace: Kingdom of Italy (the client's war is the lord's war)", "Ney's pursuit of ArchdukeCharles has been cancelled", "Davout's pursuit of ArchdukeCharles has been cancelled"], "target_capital": "Vienna", "status_quo_titled": ["Munich"]}}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Britain, armistice_losing #10", "answer": "accept"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Britain's proposal. Treaty signed: At War \u2192 Armistice with Britain.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Austria, peace #11", "answer": "accept"}
+{"kind": "note", "text": "    \u21b3 refused: No diplomatic matter awaits your attention, Sire."}
+{"kind": "command", "text": "Massena, march to Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena is already carrying out that order. No change."}
+{"kind": "command", "text": "Soult, attack Lisbon", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2"}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t8` \u2192 Game saved: sr5b-accept-historical_t8"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 8 ended. (Warning: 4 actions unused) Turn 9 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "completed", "message": "Massena arrives at Rome. Massena: \"Accomplished. The men want a battle, not another road.\""}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Murat seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Murat's grievance runs its course."}
+{"kind": "ledger", "treasury": 11376, "net": 1789, "threat": 95, "provinces": 27, "ceiling": 25010, "ceiling_state": "bounded", "army": 100283, "vassals": {"Holland": 100, "Kingdom of Italy": 100, "Switzerland": 89}}
+{"kind": "purses", "purses": {"France": 11376, "Britain": 6008, "Russia": 3640, "Austria": 6146, "Prussia": 1146, "Spain": 4810, "Ottoman": 10506, "Sweden": 6698, "Naples": 1988, "Portugal": 6029, "Denmark": 4109, "Bavaria": 638, "Saxony": 3180, "Hanover": 6264, "Hesse": 3568, "PapalStates": 2780, "Sardinia": 4156, "Holland": 1662, "KingdomOfItaly": 1749, "Switzerland": 1400}}
+{"kind": "economy", "net_residual": 0, "income": 2528, "trade": 262, "admin": 50, "tribute": 1014, "upkeep": 760, "charges": 1230, "requisitions": 75, "occupation": 60, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 peace with Austria is signed. Terms on both sides; the war ends in a stalemate."}
+{"kind": "rail", "dtype": "peace_ratified", "text": "Peace ratified between Austria and France.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "armistice_ratified", "text": "A truce with Britain: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "status_quo_titled", "priority": "MEDIUM", "text": "Munich \u2014 retained by the peace with Austria, titled by treaty."}
+{"kind": "dispatch_row", "dtype": "status_quo_titled", "priority": "MEDIUM", "text": "Tyrol \u2014 retained by the peace with Austria, titled by treaty."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Austria and France have signed the Peace Treaty."}
+{"kind": "dispatch_row", "dtype": "peace_ratified", "priority": "HIGH", "text": "Peace ratified between Austria and France."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Britain and France have signed the Armistice."}
+{"kind": "dispatch_row", "dtype": "armistice_ratified", "priority": "HIGH", "text": "A truce with Britain: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Russia enacts the Extraordinary Levy \u2014 infantry levies cost 20% less (\u00d70.8); infantry drafts muster at -10 morale."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 200 this season."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of France is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of Holland is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Austria eases over Redeem Italy \u2014 an ultimatum is now the length of its tether."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "13 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)", "log_turn": 9}
+{"kind": "campaign_log", "dtype": "coalition_member_left", "text": "Austria has left the coalition.", "log_turn": 8}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "9 approaches from Ottoman Empire, Sweden and Naples are rebuffed (defensive alliance)", "log_turn": 5}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Denmark rebuffs Austria and Naples (open borders agreement)", "log_turn": 4}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "19 approaches rebuffed, chiefly from Naples (open borders agreement)", "log_turn": 3}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "4 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)", "log_turn": 3}
+{"kind": "turn", "turn": 9, "label": "Late January 1806"}
+{"kind": "command", "text": "Massena, attack Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "ASSAULT \u2014 Massena storms the works at Rome alone: 24,606 men, 28,296 in the assault's reckoning, against a garrison of 10,000. the garrison breaks below 5,000.", "result": "Massena assaults the Rome garrison! Garrison: 10,000 -> 5,000 (-5,000). Massena loses 2,173 troops. Garrison holds \u2014 5,000 defenders remain. It regains up to 2,000 a turn (to 10,000)."}
+{"kind": "command", "text": "Soult, attack Lisbon", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2"}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Wellesley \u2014 armistice with Britain (4 turns remaining)."}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 9 ended. (Warning: 3 actions unused) Turn 10 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"fortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "PapalStates", "proposal_type": "armistice losing", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 13393, "net": 1870, "threat": 94, "provinces": 27, "ceiling": 31028, "ceiling_state": "bounded", "army": 97816, "vassals": {"Holland": 98, "Kingdom of Italy": 99, "Switzerland": 87}}
+{"kind": "purses", "purses": {"France": 13393, "Britain": 5383, "Russia": 4012, "Austria": 4649, "Prussia": 1564, "Spain": 5221, "Ottoman": 11787, "Sweden": 8091, "Naples": 2311, "Portugal": 6515, "Denmark": 4857, "Bavaria": 725, "Saxony": 3466, "Hanover": 6913, "Hesse": 3900, "PapalStates": 2481, "Sardinia": 4831, "Holland": 1901, "KingdomOfItaly": 1871, "Switzerland": 1475}}
+{"kind": "economy", "net_residual": 0, "income": 2569, "trade": 262, "admin": 50, "tribute": 1015, "upkeep": 744, "charges": 1207, "requisitions": 75, "occupation": 60, "admiralty": 90}
+{"kind": "dispatch", "headline": "Supply cost you 294 men, at Paris."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Papal States has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 5}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Britain enacts Congreve's Rockets \u2014 artillery levies cost 15% less (\u00d70.85)."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Austria enacts the J\u00e4ger Battalions \u2014 infantry drafts muster at +10 morale."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Papal States has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 200 this season."}
+{"kind": "turn", "turn": 10, "label": "Early February 1806"}
+{"kind": "note", "text": "MAILBOX #5 PapalStates incoming_proposal: Papal States \u2014 Armistice \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "PapalStates, armistice_losing #12", "answer": "accept"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted the Papal States's proposal. Treaty signed: At War \u2192 Armistice with the Papal States.", "answer": "display-only"}
+{"kind": "command", "text": "Massena, march to Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena begins march to Rome. Massena: \"At the double, Sire \u2014 the men will smell powder soon enough.\""}
+{"kind": "command", "text": "Soult, attack Lisbon", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Wellesley \u2014 armistice with Britain (3 turns remaining)."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t10` \u2192 Game saved: sr5b-accept-historical_t10"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 10 ended. (Warning: 2 actions unused) Turn 11 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"unfortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}]}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "active", "message": "Massena is marching to Rome (0 turns remaining)."}
+{"kind": "popup", "key": "marshal_audience", "summary": "shadow_command, Marshal Murat asks for a command", "answer": "detach"}
+{"kind": "note", "text": "    \u21b3 Murat straightens. \"You will not regret it, Sire.\" Name him a front of his own when one opens \u2014 the order is \u2026"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_settlement_offer #13", "answer": "accept_settlement_offer"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "settlement_confirm #15", "answer": "seek_bilateral_peace"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "settlement_pair_substitute_confirm, peace #16", "answer": "confirm_pair_substitute"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "proposal_confirm #17", "answer": "(left standing \u2014 disabled: I cannot deliver this, Sire \u2014 Making peace with Britain while allied with Spain (who is s\u2026)"}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Britain", "proposal_type": "settlement offer", "state": "ACTIVE"}, {"nation": "Holland", "proposal_type": "client petition", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 15199, "net": 1572, "threat": 93, "provinces": 27, "ceiling": 29591, "ceiling_state": "bounded", "army": 97528, "vassals": {"Holland": 96, "Kingdom of Italy": 98, "Switzerland": 85}}
+{"kind": "purses", "purses": {"France": 15199, "Britain": 6762, "Russia": 4387, "Austria": 5495, "Prussia": 1857, "Spain": 5564, "Ottoman": 13013, "Sweden": 9467, "Naples": 2630, "Portugal": 6957, "Denmark": 5596, "Bavaria": 812, "Saxony": 3749, "Hanover": 7555, "Hesse": 4228, "PapalStates": 2757, "Sardinia": 5498, "Holland": 2140, "KingdomOfItaly": 1993, "Switzerland": 1550}}
+{"kind": "economy", "net_residual": 0, "income": 2577, "trade": 262, "admin": 50, "tribute": 1018, "upkeep": 744, "charges": 1441, "occupation": 60, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 the war with Papal States is over. 1 corps stands on the wrong side of the new frontier. Berthier has given them the road home \u2014 Massena to Corsica. They have safe passage for 5 turns while th\u2026"}
+{"kind": "rail", "dtype": "armistice_ratified", "text": "A truce with Papal States: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "settlement_offer_arrival", "text": "Britain has offered terms to settle France vs Britain.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Holland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "PapalStates and France have signed the Armistice."}
+{"kind": "dispatch_row", "dtype": "armistice_ratified", "priority": "HIGH", "text": "A truce with Papal States: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Prussia enacts the Articles of War \u2014 infantry drafts muster at +10 morale."}
+{"kind": "dispatch_row", "dtype": "settlement_offer_arrival", "priority": "HIGH", "text": "Britain has offered terms to settle France vs Britain."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Holland has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "11 approaches rebuffed, chiefly from Naples (defensive alliance)", "log_turn": 11}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "7 courts rebuff Naples (open borders agreement)", "log_turn": 3}
+{"kind": "turn", "turn": 11, "label": "Late February 1806"}
+{"kind": "command", "text": "Massena, attack Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Choose your war purpose against PapalStates. Issue the attack again after the declaration is settled."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "war_purpose_selection #18", "answer": "1"}
+{"kind": "note", "text": "    \u21b3 refused: The armistice with PapalStates holds for 4 more turns. We cannot declare war until it expires."}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Wellesley \u2014 armistice with Britain (2 turns remaining)."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Lisbon", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 11 ended. (Warning: 3 actions unused) Turn 12 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Bernadotte seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Bernadotte's grievance runs its course."}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Hesse", "proposal_type": "open borders", "state": "ACTIVE"}, {"nation": "Switzerland", "proposal_type": "client petition", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 16865, "net": 1437, "threat": 92, "provinces": 27, "ceiling": 29642, "ceiling_state": "bounded", "army": 97246, "vassals": {"Holland": 94, "Kingdom of Italy": 97, "Switzerland": 83}}
+{"kind": "purses", "purses": {"France": 16865, "Britain": 3541, "Russia": 4210, "Austria": 6309, "Prussia": 2175, "Spain": 5822, "Ottoman": 14184, "Sweden": 10826, "Naples": 2945, "Portugal": 7354, "Denmark": 6326, "Bavaria": 899, "Saxony": 4029, "Hanover": 8189, "Hesse": 4552, "PapalStates": 3035, "Sardinia": 6157, "Holland": 2370, "KingdomOfItaly": 2116, "Switzerland": 1625}}
+{"kind": "economy", "net_residual": 0, "income": 2640, "trade": 262, "admin": 50, "tribute": 1019, "upkeep": 744, "charges": 1670, "occupation": 30, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Massena is no nearer home, and the safe passage runs out in 2 turns. After that his corps will be interned where it stands."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Hesse has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Switzerland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Hesse has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Switzerland has arrived with a petition."}
+{"kind": "turn", "turn": 12, "label": "Early March 1806"}
+{"kind": "envoy_digest_answer", "mailbox_id": 8, "from_nation": "Hesse", "proposal_type": "friendly_gift", "choice": "accept", "outcome": "answered"}
+{"kind": "note", "text": "MAILBOX #9 Switzerland incoming_proposal: Switzerland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Switzerland, client_petition #20", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (83 \u2192 93); bond -30 \u2192 -10 (-1 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "Massena, march to Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena begins march to Rome. Massena: \"We march. Pity whatever slows us.\""}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Wellesley \u2014 armistice with Britain (1 turn remaining)."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t12` \u2192 Game saved: sr5b-accept-historical_t12"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 12 ended. (Warning: 2 actions unused) Turn 13 begins!"}
+{"kind": "battle", "headline": "Castanos (lost 752) vs Wellesley (lost 532) \u2014 The enemy's assault has weakened our works. We must repair or consider withdrawal."}
+{"kind": "enemy_phase", "count": 7, "attacks": 1, "captures": 0, "verbs": {"fortify": 2, "naval_expedition": 1, "unfortify": 1, "move": 2, "attack": 1}, "fogged": 1, "actions": [{"nation": "Britain", "action": "fortify", "marshal": "Wellesley", "message": "Wellesley fortifies position at London. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}, {"nation": "Britain", "action": "naval_expedition", "marshal": "Wellesley", "message": "THE LANDING: Wellesley slips past the empty sea and puts 4,900 men ashore at Lisbon (odds were 100 in 100)."}, {"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}, {"nation": "Spain", "action": "unfortify", "marshal": "Castanos", "message": "Castanos efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}, {"nation": "Spain", "action": "move", "marshal": "Castanos", "message": "Castanos moves from Galicia to Leon (109 lost to march)"}, {"nation": "Spain", "action": "attack", "marshal": "Castanos", "message": "\n[Combat] Castanos's DEFENSIVE stance hampers offensive operations (-10% attack)\n[Shield] Wellesley's DEFENSIVE stance strengthens the line! (+15% defense)\n[Shield] Wellesley's methodical defense is exemplary! (Cautious: +20% total) Outnumbered bonus: +10%\n[Fort] Wellesley's fortified position provides +7% defense!\nCastanos engages in solid combat. Brutal stalemate between Castanos and Wellesley. Heavy casualties on both sides: Castanos 752, Wellesley 532.\n[Materiel] Guns, horses and stores lost with the fallen: Spain -37g, Britain -26g."}, {"nation": "Spain", "action": "move", "marshal": "Castanos", "message": "Castanos moves from Leon to Aragon"}]}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "active", "message": "Massena is marching to Rome (0 turns remaining)."}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Ney seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Ney's grievance runs its course."}
+{"kind": "ledger", "treasury": 18116, "net": 925, "threat": 91, "provinces": 27, "ceiling": 26117, "ceiling_state": "bounded", "army": 96615, "vassals": {"Holland": 92, "Kingdom of Italy": 96, "Switzerland": 92}}
+{"kind": "purses", "purses": {"France": 18116, "Britain": 5328, "Russia": 3913, "Austria": 5057, "Prussia": 2491, "Spain": 5996, "Ottoman": 15845, "Sweden": 12169, "Naples": 3257, "Portugal": 7684, "Denmark": 7047, "Bavaria": 986, "Saxony": 4305, "Hanover": 8815, "Hesse": 4824, "PapalStates": 3315, "Sardinia": 6808, "Holland": 2433, "KingdomOfItaly": 2256, "Switzerland": 1925}}
+{"kind": "economy", "net_residual": 0, "income": 2667, "trade": 299, "admin": 50, "tribute": 824, "upkeep": 744, "charges": 1863, "occupation": 30, "blockade": 188, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 the war with Hesse is over. Massena holds under your own orders and was not moved \u2014 the treaty offers a road, it does not overrule the Emperor. Their passage lapses with the corridor."}
+{"kind": "rail", "dtype": "expedition_landed", "text": "THE LANDING: Wellesley has put 4,900 men ashore at Lisbon.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_armistice_expired_war", "text": "The armistice between Britain and France has collapsed. War resumes!", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the London\u2013Normandy crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Hesse and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "expedition_landed", "priority": "HIGH", "text": "THE LANDING: Wellesley has put 4,900 men ashore at Lisbon."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Austria enacts the New Infantry Regulations \u2014 +5 morale from every drill."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_armistice_expired_war", "priority": "HIGH", "text": "The armistice between Britain and France has collapsed. War resumes!"}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 200 this season."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes France's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes Holland's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing is shut \u2014 Britain commands the water."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing is shut \u2014 Britain commands the water."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the London\u2013Normandy crossing is shut \u2014 Britain commands the water."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Russia", "log_turn": 13}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Russia against France (200g/turn)", "log_turn": 13}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Austria lapses", "log_turn": 13}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Russia lapses", "log_turn": 12}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 11}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Russia", "log_turn": 10}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Russia", "log_turn": 9}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "22 approaches rebuffed, chiefly from Austria and Britain (defensive alliance)", "log_turn": 9}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "PapalStates rebuffs Britain (defensive alliance)", "log_turn": 8}
+{"kind": "turn", "turn": 13, "label": "Late March 1806"}
+{"kind": "command", "text": "Massena, attack Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Choose your war purpose against PapalStates. Issue the attack again after the declaration is settled."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "war_purpose_selection #21", "answer": "1"}
+{"kind": "note", "text": "    \u21b3 refused: The armistice with PapalStates holds for 2 more turns. We cannot declare war until it expires."}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Soult pursues Wellesley (at Lisbon). Moves to Leon. \"Soult attack Wellesley.\" Understood to the letter. (1 AP \u2014 Soult executes precise orders with fewer couriers.)"}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Moore's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 13 ended. (Warning: 2 actions unused) Turn 14 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"unfortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "active", "message": "Soult is pursuing Wellesley (0 turns remaining)."}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "KingdomOfItaly", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 19057, "net": 778, "threat": 90, "provinces": 27, "ceiling": 25602, "ceiling_state": "bounded", "army": 95754, "vassals": {"Holland": 92, "Kingdom of Italy": 95, "Switzerland": 91}}
+{"kind": "purses", "purses": {"France": 19057, "Britain": 6314, "Russia": 3679, "Austria": 5807, "Prussia": 2678, "Spain": 6126, "Ottoman": 17486, "Sweden": 13296, "Naples": 3565, "Portugal": 7948, "Denmark": 7759, "Bavaria": 1073, "Saxony": 4578, "Hanover": 9434, "Hesse": 5241, "PapalStates": 3597, "Sardinia": 7451, "Holland": 2491, "KingdomOfItaly": 2386, "Switzerland": 2225}}
+{"kind": "economy", "net_residual": 0, "income": 2675, "trade": 299, "admin": 50, "tribute": 824, "upkeep": 736, "charges": 2026, "occupation": 30, "blockade": 188, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Massena is no nearer home, and the safe passage runs out in 1 turn. After that his corps will be interned where it stands."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Kingdom of Italy has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Prussia enacts the Emancipation Edict \u2014 infantry levies cost 10% less (\u00d70.9)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Kingdom of Italy has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 14}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Austria against France (300g/turn)", "log_turn": 14}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Sweden lapses", "log_turn": 14}
+{"kind": "turn", "turn": 14, "label": "Early April 1806"}
+{"kind": "note", "text": "MAILBOX #10 KingdomOfItaly incoming_proposal: Kingdom of Italy \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "KingdomOfItaly, client_petition #22", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "The Kingdom of Italy's tribute is remitted for 8 collections (3896g forgone). Loyalty +5 (95 \u2192 100); bond -10 \u2192 10 (+0 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "Massena, march to Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Massena begins march to Rome. Massena: \"Good. An army rots standing still.\""}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "MUSTER \u2014 Soult (25,676) vs Wellesley (3,746 men) at Lisbon \u2014 the balance of force looks favorable."}
+{"kind": "popup", "key": "battle_diorama", "summary": "(no summary fields)", "answer": "display-only"}
+{"kind": "battle", "headline": "Soult (lost 464) vs Wellesley (lost 1451) \u2014 Wellesley's walls could not save them. Soult's troops showed great valor."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Soult is engaged with Wellesley and cannot begin a strategic march. Deal with the engagement first."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t14` \u2192 Game saved: sr5b-accept-historical_t14"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 14 ended. (Warning: 1 action unused) Turn 15 begins!"}
+{"kind": "battle", "headline": "Castanos (lost 109) vs Wellesley (lost 689) \u2014 The line gave way. Wellesley is falling back, and not in good order."}
+{"kind": "enemy_phase", "count": 3, "attacks": 1, "captures": 0, "verbs": {"wait": 1, "attack": 1, "fortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}, {"nation": "Spain", "action": "attack", "marshal": "Castanos", "message": "[!] Wellesley is EXPOSED! (Just retreated, no ally to cover)\n\n\n[Combat] Castanos's DEFENSIVE stance hampers offensive operations (-10% attack)\n[Shield] Wellesley's DEFENSIVE stance strengthens the line! (+15% defense)\n[Shield] Wellesley's methodical defense is exemplary! (Cautious: +20% total) Outnumbered bonus: +10%\nCastanos's forces strike with perfect coordination! Castanos gains the advantage over Wellesley. Casualties: Castanos 109, Wellesley 689. Both armies remain in the field.\n\n[!] Wellesley's troops are BROKEN (morale 0%)! FORCED RETREAT! Castanos advances into Leon. (91 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: Spain -5g, Britain -34g.\n[!] Wellesley's broken army flees to Aragon! (15 lost to march) (recovering for 2 turns)"}, {"nation": "Spain", "action": "fortify", "marshal": "Castanos", "message": "Castanos fortifies position at Leon. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}]}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "active", "message": "Massena is marching to Rome (0 turns remaining)."}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Massena seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Massena's grievance runs its course."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Britain, armistice_losing #23", "answer": "accept"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Britain's proposal. Treaty signed: At War \u2192 Armistice with Britain.", "answer": "display-only"}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Britain", "proposal_type": "armistice losing", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 19437, "net": 495, "threat": 92, "provinces": 27, "ceiling": 23518, "ceiling_state": "bounded", "army": 94512, "vassals": {"Holland": 93, "Kingdom of Italy": 100, "Switzerland": 91}}
+{"kind": "purses", "purses": {"France": 19437, "Britain": 7045, "Russia": 4386, "Austria": 7046, "Prussia": 2888, "Spain": 6132, "Ottoman": 19107, "Sweden": 14709, "Naples": 3869, "Portugal": 7743, "Denmark": 8463, "Bavaria": 1160, "Saxony": 4848, "Hanover": 10045, "Hesse": 5653, "PapalStates": 3928, "Sardinia": 7886, "Holland": 2543, "KingdomOfItaly": 2992, "Switzerland": 2508}}
+{"kind": "economy", "net_residual": 0, "income": 2683, "trade": 311, "admin": 50, "tribute": 337, "upkeep": 728, "charges": 2113, "requisitions": 75, "occupation": 30, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult holds the field at Lisbon \u2014 Wellesley's corps is driven from Lisbon yet again \u2014 broken, and fleeing."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Britain has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_armistice_expired_peace", "text": "The armistice between France and PapalStates has concluded. Peace declared.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 5}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Britain has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_armistice_expired_peace", "priority": "HIGH", "text": "The armistice between France and PapalStates has concluded. Peace declared."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 15}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Sweden against France (300g/turn)", "log_turn": 15}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "13 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)", "log_turn": 15}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Sardinia lapses", "log_turn": 15}
+{"kind": "turn", "turn": 15, "label": "Late April 1806"}
+{"kind": "command", "text": "Massena, attack Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Choose your war purpose against PapalStates. Issue the attack again after the declaration is settled."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "war_purpose_selection #24", "answer": "1"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "force_declare_war_confirmation #25", "answer": "force_declare_war"}
+{"kind": "popup", "key": "proposal_result", "summary": "Sire, I must strongly advise against declaring war on PapalStates. Our threat level stands at 92 \u2014 the courts of Europe already whisper of coalition. Another war will only hasten their union against us.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_objection", "summary": "diplomatic_declare_war, PapalStates", "answer": "proceed"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Cannot attack Wellesley \u2014 armistice with Britain (5 turns remaining)."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Moore \u2014 armistice with Britain (5 turns remaining)."}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 15 ended. (Warning: 3 actions unused) Turn 16 begins!"}
+{"kind": "enemy_phase", "count": 3, "attacks": 0, "captures": 0, "verbs": {"fortify": 1, "unfortify": 1, "wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}, {"nation": "Spain", "action": "unfortify", "marshal": "Castanos", "message": "Castanos efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}, {"nation": "Spain", "action": "wait", "marshal": "Castanos", "message": "Castanos holds position at Leon, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Russia", "proposal_type": "armistice losing", "state": "ACTIVE"}, {"nation": "Portugal", "proposal_type": "armistice losing", "state": "WAITING"}]}
+{"kind": "ledger", "treasury": 20001, "net": 438, "threat": 97, "provinces": 27, "ceiling": 23519, "ceiling_state": "bounded", "army": 94254, "vassals": {"Holland": 92, "Kingdom of Italy": 100, "Switzerland": 91}}
+{"kind": "purses", "purses": {"France": 20001, "Britain": 5658, "Russia": 4935, "Austria": 8350, "Prussia": 3095, "Spain": 7120, "Ottoman": 20709, "Sweden": 16105, "Naples": 4169, "Portugal": 7542, "Denmark": 9158, "Bavaria": 1247, "Saxony": 5114, "Hanover": 10649, "Hesse": 6060, "PapalStates": 3803, "Sardinia": 8516, "Holland": 2739, "KingdomOfItaly": 3548, "Switzerland": 2768}}
+{"kind": "economy", "net_residual": 0, "income": 2689, "trade": 299, "admin": 50, "tribute": 337, "upkeep": 728, "charges": 2239, "requisitions": 150, "occupation": 30, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Papal States and France are at war."}
+{"kind": "rail", "dtype": "armistice_ratified", "text": "A truce with Britain: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_war_declared", "text": "France has declared war on PapalStates, shattering the Armistice.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Russia has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Portugal has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "third_party_peace", "text": "THE CONGRESS: Britain and Spain have made their peace without France. Both courts are spent; their side of the war ends while the greater war goes on.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Britain and France have signed the Armistice."}
+{"kind": "dispatch_row", "dtype": "armistice_ratified", "priority": "HIGH", "text": "A truce with Britain: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes."}
+{"kind": "dispatch_row", "dtype": "witness_strike_recorded", "priority": "NORMAL", "text": "2 courts have taken note of France's conduct toward PapalStates: Russia, Portugal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_war_declared", "priority": "HIGH", "text": "France has declared war on PapalStates, shattering the Armistice."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Britain enacts the Commissariat \u2014 fed provinces feed 25% more men (\u00d71.25)."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Austria enacts the Generalissimus \u2014 every levy costs 10% less (\u00d70.9)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Russia has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Portugal has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 200 this season."}
+{"kind": "dispatch_row", "dtype": "third_party_peace", "priority": "HIGH", "text": "THE CONGRESS: Britain and Spain have made their peace without France. Both courts are spent; their side of the war ends while the greater war goes on."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of France is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of Holland is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of Spain is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Britain eases over The Low Countries \u2014 an ultimatum is now the length of its tether."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 200g reaches Russia", "log_turn": 16}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Sardinia against France (200g/turn)", "log_turn": 16}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "10 courts rebuff Britain (defensive alliance)", "log_turn": 16}
+{"kind": "campaign_log", "dtype": "diplomatic_treaty_broken", "text": "France has broken the Armistice with PapalStates by declaring war.", "log_turn": 15}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Holland joined France's war.", "log_turn": 15}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Kingdom of Italy joined France's war.", "log_turn": 15}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Switzerland joined France's war.", "log_turn": 15}
+{"kind": "turn", "turn": 16, "label": "Early May 1806"}
+{"kind": "note", "text": "MAILBOX #12 Russia incoming_proposal: Russia \u2014 Armistice \u2192 activated"}
+{"kind": "note", "text": "MAILBOX #13 Portugal incoming_proposal: Portugal \u2014 Armistice \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Russia, armistice_losing #26", "answer": "accept"}
+{"kind": "note", "text": "    \u21b3 refused: Sire, another matter has arrived since \u2014 this concerns Portugal. Your earlier answer was not delivered; the m\u2026"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_proposal #27", "answer": "accept_ai_proposal"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Portugal's proposal. Treaty signed: At War \u2192 Armistice with Portugal.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Russia, armistice_losing #26", "answer": "accept"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Russia's proposal. Treaty signed: At War \u2192 Armistice with Russia.", "answer": "display-only"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Portugal, armistice_losing #27", "answer": "accept"}
+{"kind": "note", "text": "    \u21b3 refused: No diplomatic matter awaits your attention, Sire."}
+{"kind": "command", "text": "Massena, attack Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "ASSAULT \u2014 Massena storms the works at Rome alone: 22,433 men, 25,797 in the assault's reckoning, against a garrison of 10,000. the garrison breaks below 5,000.", "result": "Massena assaults the Rome garrison! Garrison: 10,000 -> 5,000 (-5,000). Massena loses 2,173 troops. Garrison holds \u2014 5,000 defenders remain. It regains up to 2,000 a turn (to 10,000)."}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Cannot attack Wellesley \u2014 armistice with Britain (4 turns remaining)."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Moore \u2014 armistice with Britain (4 turns remaining)."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t16` \u2192 Game saved: sr5b-accept-historical_t16"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 16 ended. (Warning: 3 actions unused) Turn 17 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 0, "captures": 0, "verbs": {"unfortify": 1, "wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}, {"nation": "Spain", "action": "wait", "marshal": "Castanos", "message": "Castanos holds position at Leon, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Leon. 2 regions to Bearn."}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Davout seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Davout's grievance runs its course."}
+{"kind": "ledger", "treasury": 20256, "net": 259, "threat": 96, "provinces": 27, "ceiling": 22246, "ceiling_state": "bounded", "army": 91347, "vassals": {"Holland": 87, "Kingdom of Italy": 97, "Switzerland": 87}}
+{"kind": "purses", "purses": {"France": 20256, "Britain": 6739, "Russia": 3910, "Austria": 9405, "Prussia": 3300, "Spain": 8125, "Ottoman": 22291, "Sweden": 17485, "Naples": 4466, "Portugal": 8165, "Denmark": 9845, "Bavaria": 1334, "Saxony": 5377, "Hanover": 11246, "Hesse": 6462, "PapalStates": 3444, "Sardinia": 9138, "Holland": 2917, "KingdomOfItaly": 4055, "Switzerland": 3005}}
+{"kind": "economy", "net_residual": 0, "income": 2695, "trade": 299, "admin": 50, "tribute": 337, "upkeep": 712, "charges": 2365, "requisitions": 75, "occupation": 30, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 the war with Portugal is over. 1 corps stands on the wrong side of the new frontier. Berthier has given them the road home \u2014 Soult to Bearn. They have safe passage for 6 turns while they march."}
+{"kind": "rail", "dtype": "armistice_ratified", "text": "A truce with Portugal: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "armistice_ratified", "text": "A truce with Russia: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Portugal and France have signed the Armistice."}
+{"kind": "dispatch_row", "dtype": "armistice_ratified", "priority": "HIGH", "text": "A truce with Portugal: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes."}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Russia and France have signed the Armistice."}
+{"kind": "dispatch_row", "dtype": "armistice_ratified", "priority": "HIGH", "text": "A truce with Russia: the fighting stops for 5 turns \u2014 peace if relations heal to -60 or better, else the war resumes."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Russia enacts the War Ministry under Arakcheev \u2014 +5 morale from every drill."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Russia eases over Arbiter of Europe \u2014 an ultimatum is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Sweden eases over Scourge of the Usurper \u2014 an ultimatum is now the length of its tether."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "11 approaches rebuffed, chiefly from Naples (defensive alliance)", "log_turn": 17}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Naples rebuffs Britain (defensive alliance)", "log_turn": 16}
+{"kind": "campaign_log", "dtype": "third_party_peace", "text": "THE CONGRESS: Britain and Spain make peace without France", "log_turn": 16}
+{"kind": "turn", "turn": 17, "label": "Late May 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 17 ended. (Warning: 4 actions unused) Turn 18 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "continues", "message": "Soult marches to Aragon. 1 region to Bearn."}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Murat seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Murat's grievance runs its course."}
+{"kind": "ledger", "treasury": 20529, "net": 178, "threat": 94, "provinces": 27, "ceiling": 21864, "ceiling_state": "bounded", "army": 90205, "vassals": {"Holland": 84, "Kingdom of Italy": 96, "Switzerland": 85}}
+{"kind": "purses", "purses": {"France": 20529, "Britain": 8637, "Russia": 4760, "Austria": 10095, "Prussia": 3502, "Spain": 9179, "Ottoman": 23854, "Sweden": 18848, "Naples": 4759, "Portugal": 8787, "Denmark": 10524, "Bavaria": 1421, "Saxony": 5637, "Hanover": 11836, "Hesse": 6859, "PapalStates": 3338, "Sardinia": 9753, "Holland": 3077, "KingdomOfItaly": 4513, "Switzerland": 3219}}
+{"kind": "economy", "net_residual": 0, "income": 2701, "trade": 299, "admin": 50, "tribute": 337, "upkeep": 704, "charges": 2460, "requisitions": 75, "occupation": 30, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 10 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_auto_downgrade", "priority": "MEDIUM", "text": "Relations between Austria and Russia have collapsed: ALLIANCE \u2192 DEFENSIVE_ALLIANCE."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "auto_downgrade", "text": "Relations auto-downgraded: Austria\u2013Russia (ALLIANCE \u2192 DEFENSIVE ALLIANCE)", "log_turn": 18}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Russia and Austria lapses", "log_turn": 18}
+{"kind": "turn", "turn": 18, "label": "Early June 1806"}
+{"kind": "command", "text": "Massena, attack Rome", "success": true, "parse_mode": "mock", "parse_confidence": 0.95, "message": "ASSAULT \u2014 Massena storms the works at Rome alone: 20,260 men, 23,299 in the assault's reckoning, against a garrison of 9,000. the garrison breaks below 5,000.", "result": "Massena assaults the Rome garrison! Garrison collapses (9,000 -> 0). Massena loses 1,956 troops in the assault. Massena marches into Rome! (183 lost to march)"}
+{"kind": "popup", "key": "capture_choice[capture]", "summary": "Rome, Massena", "answer": "secure"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Wellesley \u2014 armistice with Britain (2 turns remaining)."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Cannot attack Moore \u2014 armistice with Britain (2 turns remaining)."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t18` \u2192 Game saved: sr5b-accept-historical_t18"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 18 ended. (Warning: 3 actions unused) Turn 19 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"fortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}]}
+{"kind": "order_progress", "marshal": "Soult", "order_status": "completed", "message": "\"the road home \u2014 safe passage granted by the peace\" \u2014 executed as written. Soult arrives at Bearn. Awaiting your next word."}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Holland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 21928, "net": 1403, "threat": 97, "provinces": 28, "ceiling": 44403, "ceiling_state": "bounded", "army": 87823, "vassals": {"Holland": 80, "Kingdom of Italy": 94, "Switzerland": 82}}
+{"kind": "purses", "purses": {"France": 21928, "Britain": 10409, "Russia": 5599, "Austria": 11036, "Prussia": 3702, "Spain": 10546, "Ottoman": 25399, "Sweden": 19995, "Naples": 5049, "Portugal": 9408, "Denmark": 11195, "Bavaria": 1508, "Saxony": 5894, "Hanover": 12418, "Hesse": 7251, "PapalStates": 3163, "Sardinia": 10360, "Holland": 3328, "KingdomOfItaly": 5118, "Switzerland": 3505}}
+{"kind": "economy", "net_residual": 0, "income": 2771, "trade": 311, "admin": 50, "tribute": 337, "upkeep": 688, "charges": 1243, "occupation": 135}
+{"kind": "dispatch", "headline": "Sire \u2014 Papal States is knocked out of the war. No army remains beneath their colours."}
+{"kind": "rail", "dtype": "nation_eliminated", "text": "PapalStates has been eliminated from the war.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Holland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 4}
+{"kind": "dispatch_row", "dtype": "nation_eliminated", "priority": "HIGH", "text": "PapalStates has been eliminated from the war."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Holland has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Britain eases over The Low Countries \u2014 service to the strong is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Austria eases over Redeem Italy \u2014 alliance is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_movement_tail", "priority": "LOW", "text": "And 1 other court stirs at its own design."}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Austria against France (300g/turn)", "log_turn": 19}
+{"kind": "turn", "turn": 19, "label": "Late June 1806"}
+{"kind": "note", "text": "MAILBOX #14 Holland incoming_proposal: Holland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Holland, client_petition #29", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +10 (80 \u2192 90); bond -45 \u2192 -25 (-2 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 19 ended. (Warning: 4 actions unused) Turn 20 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"unfortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}]}
+{"kind": "ledger", "treasury": 22279, "net": 481, "threat": 94, "provinces": 28, "ceiling": 27686, "ceiling_state": "bounded", "army": 87583, "vassals": {"Holland": 86, "Kingdom of Italy": 91, "Switzerland": 78}}
+{"kind": "purses", "purses": {"France": 22279, "Britain": 11321, "Russia": 6628, "Austria": 11916, "Prussia": 3899, "Spain": 12119, "Ottoman": 26925, "Sweden": 21128, "Naples": 5335, "Portugal": 10027, "Denmark": 11858, "Bavaria": 1595, "Saxony": 6148, "Hanover": 12993, "Hesse": 7638, "PapalStates": 3213, "Sardinia": 10760, "Holland": 3708, "KingdomOfItaly": 5716, "Switzerland": 3787}}
+{"kind": "economy", "net_residual": 0, "income": 2779, "trade": 311, "admin": 50, "tribute": 225, "upkeep": 664, "charges": 1800, "occupation": 135, "blockade": 195, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 12 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "rail", "dtype": "diplomatic_armistice_expired_war", "text": "The armistice between Britain and France has collapsed. War resumes!", "priority": "HIGH"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the Cagliari\u2013Rome crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_shut", "text": "THE STRAIT: the London\u2013Normandy crossing is shut \u2014 Britain commands the water.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_armistice_expired_war", "priority": "HIGH", "text": "The armistice between Britain and France has collapsed. War resumes!"}
+{"kind": "dispatch_row", "dtype": "diplomatic_auto_downgrade", "priority": "MEDIUM", "text": "Relations between France and Spain have collapsed: DEFENSIVE_ALLIANCE \u2192 NON_AGGRESSION."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes France's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "blockade_begins", "priority": "MEDIUM", "text": "BLOCKADE: Britain closes Holland's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Corsica crossing is shut \u2014 Britain commands the water."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Rome crossing is shut \u2014 Britain commands the water."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the Corsica\u2013Piedmont crossing is shut \u2014 Britain commands the water."}
+{"kind": "dispatch_row", "dtype": "strait_shut", "priority": "HIGH", "text": "THE STRAIT: the London\u2013Normandy crossing is shut \u2014 Britain commands the water."}
+{"kind": "dispatch_row", "dtype": "agenda_shift", "priority": "MEDIUM", "text": "The court of Britain takes up a new design: The Paymaster of Coalitions."}
+{"kind": "dispatch_row", "dtype": "agenda_shift", "priority": "MEDIUM", "text": "The court of Russia takes up a new design: The Gulf and the Straits."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Austria hardens over Redeem Italy \u2014 prepared now to go as far as service to the strong."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Sardinia hardens over The House of Savoy Restored \u2014 prepared now to go as far as service to the strong."}
+{"kind": "dispatch_row", "dtype": "diplomatic_relation_shift", "priority": "MEDIUM", "text": "Relations with Spain have worsened significantly (-10 this turn)."}
+{"kind": "campaign_log", "dtype": "auto_downgrade", "text": "Relations auto-downgraded: France\u2013Spain (DEFENSIVE ALLIANCE \u2192 NON AGGRESSION)", "log_turn": 20}
+{"kind": "campaign_log", "dtype": "nation_eliminated", "text": "PapalStates has been eliminated from the war.", "log_turn": 18}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Denmark rebuffs Naples (defensive alliance)", "log_turn": 9}
+{"kind": "turn", "turn": 20, "label": "Early July 1806"}
+{"kind": "command", "text": "Massena, attack Rome", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "Rome is already controlled by France"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Wellesley's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Moore's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t20` \u2192 Game saved: sr5b-accept-historical_t20"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 20 ended. (Warning: 4 actions unused) Turn 21 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "popup", "key": "marshal_petition", "summary": "rivalry_confrontation, A rivalry among the marshals", "answer": "accept_breach"}
+{"kind": "note", "text": "    \u21b3 Ney and Soult: Ney turns openly discontent (trust -3; expect defiance)."}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Switzerland, client_petition #30", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (74 \u2192 84); bond -25 \u2192 -5 (-1 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Switzerland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 23410, "net": 771, "threat": 91, "provinces": 27, "ceiling": 35838, "ceiling_state": "bounded", "army": 87349, "vassals": {"Holland": 84, "Kingdom of Italy": 88, "Switzerland": 84}}
+{"kind": "purses", "purses": {"France": 23410, "Britain": 11840, "Russia": 4418, "Austria": 12726, "Prussia": 4094, "Spain": 13673, "Ottoman": 28433, "Sweden": 22247, "Naples": 5618, "Portugal": 10694, "Denmark": 12513, "Bavaria": 1682, "Saxony": 6399, "Hanover": 13562, "Hesse": 8021, "PapalStates": 3263, "Sardinia": 11155, "Holland": 4069, "KingdomOfItaly": 6307, "Switzerland": 3841}}
+{"kind": "economy", "net_residual": 0, "income": 2771, "trade": 323, "admin": 50, "upkeep": 664, "charges": 1327, "occupation": 90, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Corsica has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there force\u2026"}
+{"kind": "rail", "dtype": "expedition_landed", "text": "THE LANDING: Wellesley has put 11,497 men ashore at Corsica.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Switzerland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_armistice_expired_war", "text": "The armistice between France and Russia has collapsed. War resumes!", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_armistice_expired_peace", "text": "The armistice between France and Portugal has concluded. Peace declared.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "expedition_landed", "priority": "HIGH", "text": "THE LANDING: Wellesley has put 11,497 men ashore at Corsica."}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Russia enacts Arakcheev's Artillery \u2014 artillery levies cost 15% less (\u00d70.85)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Switzerland has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "balance_of_europe_shifted", "priority": "NORMAL", "text": "Austrian-led alignment leads the current largest alignment at 33% of active European bloc power."}
+{"kind": "dispatch_row", "dtype": "diplomatic_armistice_expired_war", "priority": "HIGH", "text": "The armistice between France and Russia has collapsed. War resumes!"}
+{"kind": "dispatch_row", "dtype": "diplomatic_armistice_expired_peace", "priority": "HIGH", "text": "The armistice between France and Portugal has concluded. Peace declared."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "dispatch_row", "dtype": "agenda_shift", "priority": "MEDIUM", "text": "The court of Sweden takes up a new design: Scourge of the Usurper."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Austria hardens over Redeem Italy \u2014 prepared now to go as far as an ultimatum."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Sardinia hardens over The House of Savoy Restored \u2014 prepared now to go as far as an ultimatum."}
+{"kind": "campaign_log", "dtype": "balance_of_europe_shifted", "text": "Austrian-led alignment leads the current largest alignment at 33% of active European bloc power.", "log_turn": 21}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 21}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "13 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)", "log_turn": 21}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 20}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 19}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 18}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Russia sponsors Britain against France (300g/turn)", "log_turn": 18}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 17}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Russia and Britain lapses", "log_turn": 17}
+{"kind": "turn", "turn": 21, "label": "Late July 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 21 ended. (Warning: 4 actions unused) Turn 22 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"fortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}]}
+{"kind": "popup", "key": "marshal_audience", "summary": "jealousy_confrontation, Marshal Bernadotte seeks an audience", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Bernadotte's grievance runs its course."}
+{"kind": "ledger", "treasury": 24042, "net": 1009, "threat": 88, "provinces": 26, "ceiling": 39515, "ceiling_state": "bounded", "army": 87121, "vassals": {"Holland": 82, "Kingdom of Italy": 85, "Switzerland": 81}}
+{"kind": "purses", "purses": {"France": 24042, "Britain": 12277, "Russia": 5170, "Austria": 13629, "Prussia": 4287, "Spain": 15209, "Ottoman": 29923, "Sweden": 23353, "Naples": 5847, "Portugal": 11360, "Denmark": 13160, "Bavaria": 1769, "Saxony": 6647, "Hanover": 14124, "Hesse": 8399, "PapalStates": 3313, "Sardinia": 11546, "Holland": 4409, "KingdomOfItaly": 6891, "Switzerland": 4119}}
+{"kind": "economy", "net_residual": 0, "income": 2632, "trade": 323, "admin": 50, "tribute": 487, "upkeep": 664, "charges": 1437, "occupation": 90, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Provence has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc\u2026"}
+{"kind": "rail", "dtype": "expedition_landed", "text": "THE LANDING: Shrapnel has put 5,940 men ashore at Provence.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 6}
+{"kind": "dispatch_row", "dtype": "expedition_landed", "priority": "HIGH", "text": "THE LANDING: Shrapnel has put 5,940 men ashore at Provence."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 22}
+{"kind": "turn", "turn": 22, "label": "Early August 1806"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.95, "message": "No intelligence on Wellesley's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Moore's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t22` \u2192 Game saved: sr5b-accept-historical_t22"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 22 ended. (Warning: 4 actions unused) Turn 23 begins!"}
+{"kind": "enemy_phase", "count": 3, "attacks": 1, "captures": 2, "verbs": {"attack": 1, "move": 1, "unfortify": 1}, "fogged": 1, "actions": [{"nation": "Britain", "action": "attack", "marshal": "Shrapnel", "message": "Shrapnel marches from Provence into Lyonnais unopposed! (59 lost to march) Captured: France \u2192 Britain"}, {"nation": "Britain", "action": "move", "marshal": "Shrapnel", "message": "Shrapnel moves from Lyonnais to Burgundy. Burgundy falls to Britain! (was France) (58 lost to march)"}, {"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "KingdomOfItaly", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 24280, "net": 144, "threat": 85, "provinces": 24, "ceiling": 25739, "ceiling_state": "bounded", "army": 86896, "vassals": {"Holland": 80, "Kingdom of Italy": 82, "Switzerland": 78}}
+{"kind": "purses", "purses": {"France": 24280, "Britain": 12981, "Russia": 5682, "Austria": 14384, "Prussia": 4477, "Spain": 16726, "Ottoman": 31395, "Sweden": 24446, "Naples": 6074, "Portugal": 12024, "Denmark": 13799, "Bavaria": 1856, "Saxony": 6892, "Hanover": 14679, "Hesse": 8773, "PapalStates": 3363, "Sardinia": 11932, "Holland": 4728, "KingdomOfItaly": 6981, "Switzerland": 4394}}
+{"kind": "economy", "net_residual": 0, "income": 2522, "trade": 323, "admin": 50, "tribute": 487, "upkeep": 664, "charges": 2192, "occupation": 90, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Lyonnais has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forc\u2026"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Kingdom of Italy has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Kingdom of Italy has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 23}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "11 approaches rebuffed, chiefly from Naples (defensive alliance)", "log_turn": 23}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Russia lapses", "log_turn": 23}
+{"kind": "turn", "turn": 23, "label": "Late August 1806"}
+{"kind": "note", "text": "MAILBOX #16 KingdomOfItaly incoming_proposal: Kingdom of Italy \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "KingdomOfItaly, client_petition #31", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "The Kingdom of Italy's tribute is remitted for 8 collections (3896g forgone). Loyalty +10 (82 \u2192 92); bond -5 \u2192 15 (+0 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 23 ended. (Warning: 4 actions unused) Turn 24 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 1, "captures": 1, "verbs": {"attack": 1, "wait": 1}, "fogged": 1, "actions": [{"nation": "Britain", "action": "attack", "marshal": "Shrapnel", "message": "Shrapnel marches from Lyonnais into Savoy unopposed! (115 lost to march) Captured: France \u2192 Britain"}, {"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "ledger", "treasury": 23970, "net": -350, "threat": 82, "provinces": 23, "ceiling": 20523, "ceiling_state": "bounded", "army": 86677, "vassals": {"Holland": 78, "Kingdom of Italy": 90, "Switzerland": 75}}
+{"kind": "purses", "purses": {"France": 23970, "Britain": 13291, "Russia": 6159, "Austria": 5718, "Prussia": 4665, "Spain": 18225, "Ottoman": 32849, "Sweden": 25526, "Naples": 6298, "Portugal": 12686, "Denmark": 14430, "Bavaria": 1943, "Saxony": 7134, "Hanover": 15227, "Hesse": 9142, "PapalStates": 3413, "Sardinia": 12313, "Holland": 5024, "KingdomOfItaly": 7557, "Switzerland": 4666}}
+{"kind": "economy", "net_residual": 0, "income": 2525, "trade": 323, "admin": 50, "upkeep": 664, "charges": 2232, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Savoy has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces \u2026"}
+{"kind": "turn_events", "count": 7}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Austria enacts the Corps d'Arm\u00e9e \u2014 +1 order of the day, from the next refill."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 24}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Austria lapses", "log_turn": 24}
+{"kind": "turn", "turn": 24, "label": "Early September 1806"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t24` \u2192 Game saved: sr5b-accept-historical_t24"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 24 ended. (Warning: 4 actions unused) Turn 25 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 0, "captures": 0, "verbs": {"fortify": 1, "recruit": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}, {"nation": "Austria", "action": "recruit", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn recruits 3,000 infantry at Franconia (field levy \u2014 no depot; capped at 3,000) - Cost: 212 gold (\u00d71.18 over the ordinance) (\u00d70.9 by the Generalissimus). Morale: 100% -> 91% The J\u00e4ger Battalions: infantry recruits muster at 50, not 40.\nInfantry pool: 56,738 -> 53,738"}]}
+{"kind": "ledger", "treasury": 23629, "net": -375, "threat": 79, "provinces": 23, "ceiling": 20043, "ceiling_state": "bounded", "army": 86461, "vassals": {"Holland": 76, "Kingdom of Italy": 88, "Switzerland": 72}}
+{"kind": "purses", "purses": {"France": 23629, "Britain": 14007, "Russia": 6600, "Austria": 6156, "Prussia": 2750, "Spain": 19706, "Ottoman": 34286, "Sweden": 26293, "Naples": 6519, "Portugal": 13346, "Denmark": 15054, "Bavaria": 2030, "Saxony": 7373, "Hanover": 15769, "Hesse": 9507, "PapalStates": 3463, "Sardinia": 12690, "Holland": 5296, "KingdomOfItaly": 8126, "Switzerland": 4935}}
+{"kind": "economy", "net_residual": 0, "income": 2534, "trade": 323, "admin": 50, "upkeep": 664, "charges": 2266, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 17 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Prussia enacts the Military Reorganisation Commission \u2014 +5 morale from every drill."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 25}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Austria against France (400g/turn)", "log_turn": 25}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Sweden lapses", "log_turn": 25}
+{"kind": "turn", "turn": 25, "label": "Late September 1806"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Wellesley's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Moore's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 25 ended. (Warning: 4 actions unused) Turn 26 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"unfortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}]}
+{"kind": "ledger", "treasury": 23909, "net": 189, "threat": 76, "provinces": 23, "ceiling": 26320, "ceiling_state": "bounded", "army": 86248, "vassals": {"Holland": 74, "Kingdom of Italy": 86, "Switzerland": 69}}
+{"kind": "purses", "purses": {"France": 23909, "Britain": 15037, "Russia": 7004, "Austria": 6527, "Prussia": 2859, "Spain": 21169, "Ottoman": 35705, "Sweden": 27050, "Naples": 6738, "Portugal": 14004, "Denmark": 15670, "Bavaria": 2117, "Saxony": 7609, "Hanover": 16304, "Hesse": 9867, "PapalStates": 3513, "Sardinia": 12862, "Holland": 5543, "KingdomOfItaly": 8688, "Switzerland": 5200}}
+{"kind": "economy", "net_residual": 0, "income": 2540, "trade": 323, "admin": 50, "upkeep": 664, "charges": 1708, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 18 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "turn", "turn": 26, "label": "Early October 1806"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t26` \u2192 Game saved: sr5b-accept-historical_t26"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 26 ended. (Warning: 4 actions unused) Turn 27 begins!"}
+{"kind": "enemy_phase", "count": 2, "attacks": 0, "captures": 0, "verbs": {"wait": 1, "recruit": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}, {"nation": "Austria", "action": "recruit", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn recruits 3,000 infantry at Franconia (field levy \u2014 no depot; capped at 3,000) - Cost: 258 gold (\u00d71.44 over the ordinance) (\u00d70.9 by the Generalissimus). Morale: 100% -> 92% The J\u00e4ger Battalions: infantry recruits muster at 50, not 40.\nInfantry pool: 40,988 -> 37,988"}]}
+{"kind": "ledger", "treasury": 24098, "net": 440, "threat": 73, "provinces": 23, "ceiling": 29512, "ceiling_state": "bounded", "army": 86041, "vassals": {"Holland": 72, "Kingdom of Italy": 84, "Switzerland": 66}}
+{"kind": "purses", "purses": {"France": 24098, "Britain": 6888, "Russia": 7275, "Austria": 6639, "Prussia": 2967, "Spain": 22615, "Ottoman": 37107, "Sweden": 27798, "Naples": 6954, "Portugal": 14660, "Denmark": 16279, "Bavaria": 2204, "Saxony": 7842, "Hanover": 16833, "Hesse": 10223, "PapalStates": 3563, "Sardinia": 13332, "Holland": 5765, "KingdomOfItaly": 9243, "Switzerland": 5462}}
+{"kind": "economy", "net_residual": 0, "income": 2540, "trade": 323, "admin": 50, "tribute": 337, "upkeep": 664, "charges": 1794, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 19 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Britain enacts the Horse Guards Reforms \u2014 +1 order of the day, from the next refill."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "13 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)", "log_turn": 27}
+{"kind": "turn", "turn": 27, "label": "Late October 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 27 ended. (Warning: 4 actions unused) Turn 28 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"fortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Holland", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 24538, "net": 332, "threat": 70, "provinces": 23, "ceiling": 28469, "ceiling_state": "bounded", "army": 85837, "vassals": {"Holland": 70, "Kingdom of Italy": 82, "Switzerland": 63}}
+{"kind": "purses", "purses": {"France": 24538, "Britain": 7359, "Russia": 7813, "Austria": 6650, "Prussia": 3073, "Spain": 24044, "Ottoman": 38493, "Sweden": 28537, "Naples": 7167, "Portugal": 15309, "Denmark": 16881, "Bavaria": 2291, "Saxony": 8072, "Hanover": 17356, "Hesse": 10575, "PapalStates": 3613, "Sardinia": 13797, "Holland": 5626, "KingdomOfItaly": 9792, "Switzerland": 5721}}
+{"kind": "economy", "net_residual": 0, "income": 2540, "trade": 323, "admin": 50, "tribute": 337, "upkeep": 664, "charges": 1902, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 20 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Holland has arrived with a petition.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Holland has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "dispatch_row", "dtype": "balance_of_europe_shifted", "priority": "NORMAL", "text": "Russian-led alignment leads the current largest alignment at 37% of active European bloc power."}
+{"kind": "campaign_log", "dtype": "balance_of_europe_shifted", "text": "Russian-led alignment leads the current largest alignment at 37% of active European bloc power.", "log_turn": 28}
+{"kind": "turn", "turn": 28, "label": "Early November 1806"}
+{"kind": "note", "text": "MAILBOX #17 Holland incoming_proposal: Holland \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Holland, client_petition #32", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +10 (70 \u2192 80); bond -25 \u2192 -5 (-1 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "command", "text": "Soult, attack Wellesley", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Wellesley's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "command", "text": "Soult, attack Paget", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "Paget is our prisoner at Paris, Sire \u2014 he leads no army. Hold him for the peace table."}
+{"kind": "command", "text": "Soult, attack Moore", "success": false, "parse_mode": "mock", "parse_confidence": 0.9, "message": "No intelligence on Moore's position, Sire. Scout for him before Soult can give chase."}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t28` \u2192 Game saved: sr5b-accept-historical_t28"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 28 ended. (Warning: 4 actions unused) Turn 29 begins!"}
+{"kind": "enemy_phase", "count": 4, "attacks": 1, "captures": 1, "verbs": {"attack": 1, "unfortify": 1, "garrison": 1, "recruit": 1}, "fogged": 1, "actions": [{"nation": "Britain", "action": "attack", "marshal": "Shrapnel", "message": "Shrapnel marches from Lyonnais into Languedoc unopposed! (55 lost to march) Captured: France \u2192 Britain"}, {"nation": "Austria", "action": "unfortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile."}, {"nation": "Austria", "action": "garrison", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn detaches 3,000 troops to garrison Franconia. Army strength: 17,569."}, {"nation": "Austria", "action": "recruit", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn recruits 3,000 infantry at Franconia (field levy \u2014 no depot; capped at 3,000) - Cost: 271 gold (\u00d71.51 over the ordinance) (\u00d70.9 by the Generalissimus). Morale: 100% -> 92% The J\u00e4ger Battalions: infantry recruits muster at 50, not 40.\nInfantry pool: 38,238 -> 35,238"}]}
+{"kind": "ledger", "treasury": 23777, "net": -518, "threat": 67, "provinces": 22, "ceiling": 19363, "ceiling_state": "bounded", "army": 85639, "vassals": {"Holland": 79, "Kingdom of Italy": 80, "Switzerland": 60}}
+{"kind": "purses", "purses": {"France": 23777, "Britain": 7582, "Russia": 8601, "Austria": 6531, "Prussia": 3178, "Spain": 25455, "Ottoman": 39862, "Sweden": 29267, "Naples": 7378, "Portugal": 15950, "Denmark": 17475, "Bavaria": 2378, "Saxony": 8300, "Hanover": 17872, "Hesse": 10923, "PapalStates": 3663, "Sardinia": 14256, "Holland": 5820, "KingdomOfItaly": 10334, "Switzerland": 5977}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 323, "admin": 50, "tribute": 225, "upkeep": 664, "charges": 2560, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Languedoc has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there for\u2026"}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "10 approaches rebuffed, chiefly from Naples (defensive alliance)", "log_turn": 29}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Russia and Austria lapses", "log_turn": 29}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Denmark rebuffs Naples (defensive alliance)", "log_turn": 15}
+{"kind": "turn", "turn": 29, "label": "Late November 1806"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 29 ended. (Warning: 4 actions unused) Turn 30 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"wait": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "wait", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn holds position at Franconia, awaiting further orders. (Current stance: defensive)"}]}
+{"kind": "ledger", "treasury": 23259, "net": -526, "threat": 64, "provinces": 22, "ceiling": 18903, "ceiling_state": "bounded", "army": 85444, "vassals": {"Holland": 78, "Kingdom of Italy": 78, "Switzerland": 57}}
+{"kind": "purses", "purses": {"France": 23259, "Britain": 8185, "Russia": 9319, "Austria": 6668, "Prussia": 3282, "Spain": 26849, "Ottoman": 41215, "Sweden": 29989, "Naples": 7586, "Portugal": 16583, "Denmark": 18062, "Bavaria": 2465, "Saxony": 8525, "Hanover": 18382, "Hesse": 11266, "PapalStates": 3713, "Sardinia": 14709, "Holland": 5990, "KingdomOfItaly": 10869, "Switzerland": 6005}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 323, "admin": 50, "tribute": 225, "upkeep": 664, "charges": 2568, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 22 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 300 this season."}
+{"kind": "turn", "turn": 30, "label": "Early December 1806"}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t30` \u2192 Game saved: sr5b-accept-historical_t30"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 30 ended. (Warning: 4 actions unused) Turn 31 begins!"}
+{"kind": "enemy_phase", "count": 1, "attacks": 0, "captures": 0, "verbs": {"fortify": 1}, "fogged": 1, "actions": [{"nation": "Austria", "action": "fortify", "marshal": "ArchdukeJohn", "message": "ArchdukeJohn fortifies position at Franconia. Defense bonus: +7% (grows +3% per turn, max 12%) (Cautious: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."}]}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Britain", "proposal_type": "settlement offer", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 22733, "net": -41, "threat": 61, "provinces": 22, "ceiling": 22395, "ceiling_state": "bounded", "army": 85252, "vassals": {"Holland": 77, "Kingdom of Italy": 76, "Switzerland": 54}}
+{"kind": "purses", "purses": {"France": 22733, "Britain": 8710, "Russia": 10059, "Austria": 6803, "Prussia": 3385, "Spain": 28227, "Ottoman": 42551, "Sweden": 30702, "Naples": 7792, "Portugal": 17209, "Denmark": 18642, "Bavaria": 2552, "Saxony": 8747, "Hanover": 18886, "Hesse": 11605, "PapalStates": 3763, "Sardinia": 15157, "Holland": 6136, "KingdomOfItaly": 11398, "Switzerland": 6032}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 323, "admin": 50, "tribute": 712, "upkeep": 664, "charges": 2570, "occupation": 60, "blockade": 202, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 23 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "rail", "dtype": "settlement_offer_arrival", "text": "Britain has offered terms to settle France vs Britain. Asking 6398 gold.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "settlement_offer_arrival", "priority": "HIGH", "text": "Britain has offered terms to settle France vs Britain. Asking 6398 gold."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "paymaster_subsidy", "priority": "MEDIUM", "text": "Britain's gold reaches Russia \u2014 the subsidy stands at 400 this season."}
+{"kind": "turn", "turn": 31, "label": "Late December 1806"}
+{"kind": "note", "text": "MAILBOX #18 Britain incoming_settlement_offer: Britain \u2014 Settlement Offer \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "incoming_settlement_offer #33", "answer": "accept_settlement_offer"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "settlement_confirm #34", "answer": "confirm_settlement"}
+{"kind": "popup", "key": "proposal_result", "summary": "Settlement Ratified, Settlement Ratified: France vs Britain + Russia (3 pairs resolved). Status quo: Burgundy, Corsica, Languedoc, Lyonnais, Provence and Savoy stay British by the treaty.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 31 ended. (Warning: 4 actions unused) Turn 32 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "order_progress", "marshal": "Davout", "order_status": "continues", "message": "Davout marches to Franche-Comte. 3 regions to Champagne."}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "continues", "message": "Massena marches to Piedmont. 2 regions to Limousin."}
+{"kind": "order_progress", "marshal": "Ney", "order_status": "continues", "message": "Ney marches to Bern. 2 regions to Champagne."}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "KingdomOfItaly", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 18730, "net": 2318, "threat": 27, "provinces": 22, "ceiling": 91156, "ceiling_state": "bounded", "army": 84373, "vassals": {"Holland": 74, "Kingdom of Italy": 74, "Switzerland": 53}}
+{"kind": "purses", "purses": {"France": 18730, "Britain": 16699, "Russia": 10876, "Austria": 6936, "Prussia": 3486, "Spain": 29588, "Ottoman": 43871, "Sweden": 31406, "Naples": 7995, "Portugal": 17827, "Denmark": 19215, "Bavaria": 2639, "Saxony": 8967, "Hanover": 19384, "Hesse": 11940, "PapalStates": 3813, "Sardinia": 15600, "Holland": 6687, "KingdomOfItaly": 11434, "Switzerland": 6059}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 347, "admin": 50, "tribute": 712, "upkeep": 656, "charges": 535, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 the war with Britain is over. 3 corps stand on the wrong side of the new frontier. Berthier has given them the road home \u2014 Ney to Champagne, Davout to Champagne, Massena to Limousin. They have\u2026"}
+{"kind": "rail", "dtype": "settlement_summary", "text": "Settlement of France + Holland vs Britain + Russia: Gold indemnity: 6398 gold from France to Britain.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Kingdom of Italy has arrived with a petition.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the Cagliari\u2013Rome crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "strait_open", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_coalition_dissolved", "priority": "MEDIUM", "text": "The coalition against France has dissolved."}
+{"kind": "dispatch_row", "dtype": "settlement_summary", "priority": "HIGH", "text": "Settlement of France + Holland vs Britain + Russia: Gold indemnity: 6398 gold from France to Britain."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Kingdom of Italy has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of France is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "blockade_broken", "priority": "MEDIUM", "text": "The blockade of Holland is broken \u2014 her ports breathe, her crews may drill again."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the Cagliari\u2013Rome crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "strait_open", "priority": "HIGH", "text": "THE STRAIT: the London\u2013Normandy crossing stands open to our armies."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Austria eases over Redeem Italy \u2014 service to the strong is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Sardinia eases over The House of Savoy Restored \u2014 service to the strong is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_movement_tail", "priority": "LOW", "text": "And 1 other court stirs at its own design."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Austria rebuffs Sweden (defensive alliance)", "log_turn": 32}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 31}
+{"kind": "campaign_log", "dtype": "coalition_member_left", "text": "Britain has left the coalition.", "log_turn": 31}
+{"kind": "campaign_log", "dtype": "coalition_dissolved", "text": "Coalition against France has dissolved \u2014 the league is spent; Europe's alarm falls from 61 to 30.", "log_turn": 31}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 30}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 29}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 28}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Russia and Britain lapses", "log_turn": 28}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 300g reaches Russia", "log_turn": 27}
+{"kind": "campaign_log", "dtype": "sponsorship_granted", "text": "Britain sponsors Sardinia against France (300g/turn)", "log_turn": 27}
+{"kind": "campaign_log", "dtype": "british_subsidy", "text": "Britain's gold: 400g reaches Russia", "log_turn": 26}
+{"kind": "campaign_log", "dtype": "sponsorship_expired", "text": "The compact between Britain and Sardinia lapses", "log_turn": 26}
+{"kind": "turn", "turn": 32, "label": "Early January 1807"}
+{"kind": "note", "text": "MAILBOX #19 KingdomOfItaly incoming_proposal: Kingdom of Italy \u2014 Client's Petition \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "KingdomOfItaly, client_petition #35", "answer": "grant the petition"}
+{"kind": "popup", "key": "proposal_result", "summary": "The Kingdom of Italy's tribute is remitted for 8 collections (3896g forgone). Loyalty +10 (74 \u2192 84); bond 15 \u2192 35 (+1 a turn). Cost: 1 DP.", "answer": "display-only"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t32` \u2192 Game saved: sr5b-accept-historical_t32"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 32 ended. (Warning: 4 actions unused) Turn 33 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "order_progress", "marshal": "Davout", "order_status": "continues", "message": "Davout marches to Bern. 2 regions to Champagne."}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "continues", "message": "Massena marches to Lyonnais. 1 region to Limousin."}
+{"kind": "order_progress", "marshal": "Ney", "order_status": "continues", "message": "Ney marches to Burgundy. 1 region to Champagne."}
+{"kind": "ledger", "treasury": 20569, "net": 1780, "threat": 24, "provinces": 22, "ceiling": 76187, "ceiling_state": "bounded", "army": 83481, "vassals": {"Holland": 71, "Kingdom of Italy": 83, "Switzerland": 52}}
+{"kind": "purses", "purses": {"France": 20569, "Britain": 18245, "Russia": 11683, "Austria": 7068, "Prussia": 3586, "Spain": 30933, "Ottoman": 45175, "Sweden": 32102, "Naples": 8196, "Portugal": 18438, "Denmark": 19781, "Bavaria": 2726, "Saxony": 9184, "Hanover": 19876, "Hesse": 12271, "PapalStates": 3863, "Sardinia": 16037, "Holland": 7231, "KingdomOfItaly": 11956, "Switzerland": 6086}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 347, "admin": 50, "tribute": 225, "upkeep": 648, "charges": 594, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 25 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "turn", "turn": 33, "label": "Late January 1807"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 33 ended. (Warning: 4 actions unused) Turn 34 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "order_progress", "marshal": "Davout", "order_status": "continues", "message": "Davout marches to Burgundy. 1 region to Champagne."}
+{"kind": "order_progress", "marshal": "Massena", "order_status": "completed", "message": "Massena arrives at Limousin. Massena: \"It is done. Point me at something that shoots back, Sire.\""}
+{"kind": "order_progress", "marshal": "Ney", "order_status": "completed", "message": "Ney arrives at Champagne. Ney: \"It is done. Point me at something that shoots back, Sire.\""}
+{"kind": "popup", "key": "marshal_petition", "summary": "jealousy_confrontation, Marshal Soult demands to be heard", "answer": "acknowledge"}
+{"kind": "note", "text": "    \u21b3 Soult's grievance runs its course."}
+{"kind": "ledger", "treasury": 22373, "net": 1747, "threat": 21, "provinces": 22, "ceiling": 76937, "ceiling_state": "bounded", "army": 83085, "vassals": {"Holland": 68, "Kingdom of Italy": 82, "Switzerland": 49}}
+{"kind": "purses", "purses": {"France": 22373, "Britain": 19988, "Russia": 12481, "Austria": 7198, "Prussia": 3685, "Spain": 32262, "Ottoman": 46464, "Sweden": 32790, "Naples": 8395, "Portugal": 19041, "Denmark": 20341, "Bavaria": 2813, "Saxony": 9398, "Hanover": 20362, "Hesse": 12598, "PapalStates": 3913, "Sardinia": 16469, "Holland": 7769, "KingdomOfItaly": 12472, "Switzerland": 6112}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 347, "admin": 50, "tribute": 225, "upkeep": 624, "charges": 651, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 26 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 5}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Portugal rebuffs Austria (defensive alliance)", "log_turn": 29}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "11 courts rebuff Austria (defensive alliance)", "log_turn": 27}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Portugal rebuffs Austria (defensive alliance)", "log_turn": 23}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "11 courts rebuff Austria (defensive alliance)", "log_turn": 21}
+{"kind": "campaign_log", "dtype": "ai_ai_proposal_refused", "text": "Portugal rebuffs Austria (defensive alliance)", "log_turn": 17}
+{"kind": "turn", "turn": 34, "label": "Early February 1807"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t34` \u2192 Game saved: sr5b-accept-historical_t34"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 34 ended. (Warning: 4 actions unused) Turn 35 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "order_progress", "marshal": "Davout", "order_status": "completed", "message": "Davout arrives at Champagne. Davout: \"It is done. I took the liberty of posting pickets.\""}
+{"kind": "ledger", "treasury": 24120, "net": 1691, "threat": 18, "provinces": 22, "ceiling": 76937, "ceiling_state": "bounded", "army": 82337, "vassals": {"Holland": 65, "Kingdom of Italy": 81, "Switzerland": 41}}
+{"kind": "purses", "purses": {"France": 24120, "Britain": 22250, "Russia": 13269, "Austria": 6927, "Prussia": 3783, "Spain": 33575, "Ottoman": 47737, "Sweden": 33606, "Naples": 8591, "Portugal": 19637, "Denmark": 20894, "Bavaria": 2900, "Saxony": 9610, "Hanover": 20842, "Hesse": 12921, "PapalStates": 3963, "Sardinia": 17046, "Holland": 8300, "KingdomOfItaly": 12982, "Switzerland": 6138}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 347, "admin": 50, "tribute": 225, "upkeep": 624, "charges": 707, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 27 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_courting", "priority": "MEDIUM", "text": "Talleyrand reports Britain agents in Bern."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "turn", "turn": 35, "label": "Late February 1807"}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 35 ended. (Warning: 4 actions unused) Turn 36 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "ledger", "treasury": 25819, "net": 1981, "threat": 15, "provinces": 22, "ceiling": 87718, "ceiling_state": "bounded", "army": 81615, "vassals": {"Holland": 62, "Kingdom of Italy": 80, "Switzerland": 33}}
+{"kind": "purses", "purses": {"France": 25819, "Britain": 24745, "Russia": 14048, "Austria": 6659, "Prussia": 3880, "Spain": 34872, "Ottoman": 48995, "Sweden": 34413, "Naples": 8785, "Portugal": 20226, "Denmark": 21440, "Bavaria": 2987, "Saxony": 9819, "Hanover": 21316, "Hesse": 13240, "PapalStates": 4013, "Sardinia": 17616, "Holland": 8825, "KingdomOfItaly": 13486, "Switzerland": 6164}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 347, "admin": 50, "tribute": 562, "upkeep": 616, "charges": 762, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney and Davout stand 32,160 men at Champagne, which feeds 22,500. 9,660 too many. 1,119 men lost in 2 turns. No depot may be laid at Champagne \u2014 rural regions don't support buildings (need cit\u2026"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 4}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_unrest", "priority": "MEDIUM", "text": "Talleyrand reports unrest in Switzerland. Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "turn", "turn": 36, "label": "Early March 1807"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t36` \u2192 Game saved: sr5b-accept-historical_t36"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 36 ended. (Warning: 4 actions unused) Turn 37 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "Prussia", "proposal_type": "open borders", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 27800, "net": 1918, "threat": 12, "provinces": 22, "ceiling": 87718, "ceiling_state": "bounded", "army": 80920, "vassals": {"Holland": 59, "Kingdom of Italy": 79, "Switzerland": 25}}
+{"kind": "purses", "purses": {"France": 27800, "Britain": 27510, "Russia": 5601, "Austria": 6394, "Prussia": 3975, "Spain": 36153, "Ottoman": 50238, "Sweden": 35210, "Naples": 8976, "Portugal": 20808, "Denmark": 21980, "Bavaria": 3074, "Saxony": 10026, "Hanover": 21785, "Hesse": 13556, "PapalStates": 4063, "Sardinia": 17879, "Holland": 9007, "KingdomOfItaly": 13984, "Switzerland": 6190}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 347, "admin": 50, "tribute": 562, "upkeep": 616, "charges": 825, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney and Davout stand 31,633 men at Champagne, which feeds 22,500. 9,133 too many. 1,646 men lost in 3 turns. No depot may be laid at Champagne \u2014 rural regions don't support buildings (need cit\u2026"}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from Prussia has arrived with a proposal.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "law_enacted_abroad", "priority": "MEDIUM", "text": "THE LAWS: Russia enacts the Divisional System \u2014 +1 order of the day, from the next refill."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from Prussia has arrived with a proposal."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_courting", "priority": "MEDIUM", "text": "Talleyrand reports Austria agents in Bern."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_unrest", "priority": "MEDIUM", "text": "Talleyrand reports unrest in Switzerland. Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Austria eases over Redeem Italy \u2014 alliance is now the length of its tether."}
+{"kind": "dispatch_row", "dtype": "intent_eases", "priority": "LOW", "text": "The court of Sardinia eases over The House of Savoy Restored \u2014 alliance is now the length of its tether."}
+{"kind": "turn", "turn": 37, "label": "Late March 1807"}
+{"kind": "note", "text": "MAILBOX #20 Prussia incoming_proposal: Prussia \u2014 Open Borders Agreement \u2192 activated"}
+{"kind": "popup", "key": "diplomatic_dialogue", "summary": "Prussia, open_borders #36", "answer": "accept"}
+{"kind": "popup", "key": "proposal_result", "summary": "You have accepted Prussia's proposal. Treaty signed: Peace \u2192 Open Borders with Prussia.", "answer": "display-only"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 37 ended. (Warning: 4 actions unused) Turn 38 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "ledger", "treasury": 29751, "net": 1888, "threat": 9, "provinces": 22, "ceiling": 88750, "ceiling_state": "bounded", "army": 80247, "vassals": {"Holland": 56, "Kingdom of Italy": 78, "Switzerland": 17}}
+{"kind": "purses", "purses": {"France": 29751, "Britain": 30258, "Russia": 6172, "Austria": 6132, "Prussia": 4169, "Spain": 37419, "Ottoman": 51466, "Sweden": 35997, "Naples": 9165, "Portugal": 21383, "Denmark": 22513, "Bavaria": 3161, "Saxony": 10230, "Hanover": 22248, "Hesse": 13868, "PapalStates": 4113, "Sardinia": 18139, "Holland": 9186, "KingdomOfItaly": 14476, "Switzerland": 6215}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 372, "admin": 50, "tribute": 562, "upkeep": 608, "charges": 888, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Marshal Soult's claim is 30 turns in arrears and has stopped being a household matter. It is now a question of the army."}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_treaty_signed", "priority": "MEDIUM", "text": "Prussia and France have signed the Open Borders Agreement."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_courting", "priority": "MEDIUM", "text": "Talleyrand reports Britain agents in Bern."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_unrest", "priority": "MEDIUM", "text": "Talleyrand reports unrest in Switzerland. Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them."}
+{"kind": "turn", "turn": 38, "label": "Early April 1807"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t38` \u2192 Game saved: sr5b-accept-historical_t38"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 38 ended. (Warning: 4 actions unused) Turn 39 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "ledger", "treasury": 31647, "net": 1836, "threat": 6, "provinces": 22, "ceiling": 89000, "ceiling_state": "bounded", "army": 79596, "vassals": {"Holland": 53, "Kingdom of Italy": 77, "Switzerland": 9}}
+{"kind": "purses", "purses": {"France": 31647, "Britain": 33009, "Russia": 6736, "Austria": 5873, "Prussia": 4361, "Spain": 38670, "Ottoman": 52679, "Sweden": 36775, "Naples": 9352, "Portugal": 21951, "Denmark": 23040, "Bavaria": 3248, "Saxony": 10432, "Hanover": 22706, "Hesse": 14176, "PapalStates": 4163, "Sardinia": 18396, "Holland": 9363, "KingdomOfItaly": 14962, "Switzerland": 6240}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 372, "admin": 50, "tribute": 562, "upkeep": 600, "charges": 948, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney and Davout have been 4 turns over what Champagne can feed. 1,524 men. The country will ask where the army went. No depot may be laid at Champagne \u2014 rural regions don't support buildings (n\u2026"}
+{"kind": "rail", "dtype": "diplomatic_vassal_rebellion_imminent", "text": "Sire \u2014 Switzerland is on the verge of rebellion!", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_courting", "priority": "MEDIUM", "text": "Talleyrand reports Russia agents in Bern."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_rebellion_imminent", "priority": "HIGH", "text": "Sire \u2014 Switzerland is on the verge of rebellion!"}
+{"kind": "turn", "turn": 39, "label": "Late April 1807"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 39 ended. (Warning: 4 actions unused) Turn 40 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "ledger", "treasury": 33483, "net": 2264, "threat": 3, "provinces": 22, "ceiling": 104218, "ceiling_state": "bounded", "army": 78965, "vassals": {"Holland": 50, "Kingdom of Italy": 76, "Switzerland": 1}}
+{"kind": "purses", "purses": {"France": 33483, "Britain": 35727, "Russia": 7293, "Austria": 5617, "Prussia": 4551, "Spain": 39906, "Ottoman": 53878, "Sweden": 37544, "Naples": 9537, "Portugal": 22512, "Denmark": 23560, "Bavaria": 3335, "Saxony": 10631, "Hanover": 23158, "Hesse": 14480, "PapalStates": 4213, "Sardinia": 18650, "Holland": 9538, "KingdomOfItaly": 15442, "Switzerland": 6265}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 372, "admin": 50, "tribute": 1049, "upkeep": 600, "charges": 1007, "occupation": 60}
+{"kind": "dispatch", "headline": "Sire \u2014 Ney and Davout have been 5 turns over what Champagne can feed. 1,469 men. The country will ask where the army went. No depot may be laid at Champagne \u2014 rural regions don't support buildings (n\u2026"}
+{"kind": "rail", "dtype": "diplomatic_vassal_rebellion_imminent", "text": "Sire \u2014 Switzerland is on the verge of rebellion!", "priority": "HIGH"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 2}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_courting", "priority": "MEDIUM", "text": "Talleyrand reports Austria agents in Bern."}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_rebellion_imminent", "priority": "HIGH", "text": "Sire \u2014 Switzerland is on the verge of rebellion!"}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sweden is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "turn", "turn": 40, "label": "Early May 1807"}
+{"kind": "command", "text": "status", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "=== BERTHIER'S INTELLIGENCE REPORT ==="}
+{"kind": "popup", "key": "vassal_rebellion_imminent", "summary": "Switzerland #37", "answer": "accept_vassal_rebellion"}
+{"kind": "popup", "key": "proposal_result", "summary": "You accept the risk. If Switzerland's loyalty reaches zero, rebellion will follow.", "answer": "display-only"}
+{"kind": "popup", "key": "vassal_rebellion_imminent", "summary": "Switzerland #38", "answer": "accept_vassal_rebellion"}
+{"kind": "popup", "key": "proposal_result", "summary": "You accept the risk. If Switzerland's loyalty reaches zero, rebellion will follow.", "answer": "display-only"}
+{"kind": "note", "text": "saved `sr5b-accept-historical_t40` \u2192 Game saved: sr5b-accept-historical_t40"}
+{"kind": "command", "text": "end turn", "success": true, "parse_mode": "mock", "parse_confidence": 0.8, "message": "Turn 40 ended. (Warning: 4 actions unused) Turn 41 begins!"}
+{"kind": "enemy_phase", "count": 0, "attacks": 0, "captures": 0, "verbs": {}, "actions": [], "fogged": 1}
+{"kind": "envoys", "lapsed": [], "pending": [{"nation": "KingdomOfItaly", "proposal_type": "client petition", "state": "ACTIVE"}]}
+{"kind": "ledger", "treasury": 34702, "net": 1047, "threat": 0, "provinces": 22, "ceiling": 52616, "ceiling_state": "bounded", "army": 78354, "vassals": {"Holland": 37, "Kingdom of Italy": 65}}
+{"kind": "purses", "purses": {"France": 34702, "Britain": 38420, "Russia": 7843, "Austria": 5364, "Prussia": 4738, "Spain": 41127, "Ottoman": 55062, "Sweden": 38303, "Naples": 9719, "Portugal": 23103, "Denmark": 24074, "Bavaria": 3422, "Saxony": 10828, "Hanover": 23605, "Hesse": 14781, "PapalStates": 4300, "Sardinia": 18901, "Holland": 9512, "KingdomOfItaly": 15117, "Switzerland": 6502}}
+{"kind": "economy", "net_residual": 0, "income": 2460, "trade": 372, "admin": 50, "tribute": 824, "upkeep": 600, "charges": 1909, "occupation": 60, "admiralty": 90}
+{"kind": "dispatch", "headline": "Sire \u2014 Switzerland is no longer ours. They have rebelled, and it is war."}
+{"kind": "rail", "dtype": "diplomatic_ai_proposal", "text": "An envoy from the Kingdom of Italy has arrived with a petition.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "diplomatic_vassal_rebellion", "text": "Sire \u2014 Switzerland has rebelled against France. It is war.", "priority": "HIGH"}
+{"kind": "rail", "dtype": "allegiance_in_play", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip.", "priority": "HIGH"}
+{"kind": "turn_events", "count": 3}
+{"kind": "dispatch_row", "dtype": "diplomatic_dp_regen", "priority": "LOW", "text": "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 the Emperor holds court in the capital, +2 carried from last turn)."}
+{"kind": "dispatch_row", "dtype": "diplomatic_ai_proposal", "priority": "HIGH", "text": "An envoy from the Kingdom of Italy has arrived with a petition."}
+{"kind": "dispatch_row", "dtype": "diplomatic_vassal_rebellion", "priority": "HIGH", "text": "Sire \u2014 Switzerland has rebelled against France. It is war."}
+{"kind": "dispatch_row", "dtype": "allegiance_in_play", "priority": "HIGH", "text": "The allegiance of Sardinia is in play \u2014 every court with gold or standing now bids for the flip."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Austria hardens over Redeem Italy \u2014 prepared now to go as far as service to the strong."}
+{"kind": "dispatch_row", "dtype": "intent_hardens", "priority": "MEDIUM", "text": "The court of Sardinia hardens over The House of Savoy Restored \u2014 prepared now to go as far as service to the strong."}
+{"kind": "dispatch_row", "dtype": "diplomatic_relation_shift", "priority": "MEDIUM", "text": "Relations with Switzerland have worsened significantly (-50 this turn)."}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Holland joined France's war.", "log_turn": 41}
+{"kind": "campaign_log", "dtype": "vassal_auto_join_war", "text": "Vassal Kingdom of Italy joined France's war.", "log_turn": 41}
+{"kind": "campaign_log", "dtype": "vassal_broke_free", "text": "Vassal rebellion: Switzerland has broken free of France. War.", "log_turn": 41}

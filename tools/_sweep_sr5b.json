@@ -1,0 +1,233 @@
+[
+  {
+    "id": "Levers: the escort override is dropped",
+    "file": "backend/game_logic/naval.py",
+    "old": "    escort = max(combined_effective(world, mover_nation, coverer)\n                 + float(escort_extra), 1.0)",
+    "new": "    escort = max(combined_effective(world, mover_nation, coverer), 1.0)",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the window never halves the watch",
+    "file": "backend/game_logic/naval.py",
+    "old": "    coverer, coverage, mode = expedition_coverage(world, mover_nation,\n                                                  target_region, window=window)",
+    "new": "    coverer, coverage, mode = expedition_coverage(world, mover_nation,\n                                                  target_region)",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the diversion is offered whatever its gate",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if (not base.get(\"window\")\n            and all(t[\"met\"] for t in diversion_terms_for(world, nation))):",
+    "new": "    if (not base.get(\"window\")):",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: readiness is offered under blockade",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if ships > 0 and not is_blockaded(world, nation):",
+    "new": "    if ships > 0:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: more sail without a yard",
+    "file": "backend/game_logic/naval.py",
+    "old": "    # ten keels add exactly ten × 40 / 100 effective. Only with a yard.\n    if controlled_dockyards(world, nation):",
+    "new": "    # ten keels add exactly ten × 40 / 100 effective. Only with a yard.\n    if True:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: an ally already pooled is offered again",
+    "file": "backend/game_logic/naval.py",
+    "old": "        if _is_pooled_partner(world, nation, partner, coverer):\n            continue\n        eff = effective_strength(prec)",
+    "new": "        eff = effective_strength(prec)",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the floor is gone",
+    "file": "backend/game_logic/naval.py",
+    "old": "        if gain >= EXPEDITION_LEVER_MIN_GAIN:",
+    "new": "        if gain >= 0:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: least first",
+    "file": "backend/game_logic/naval.py",
+    "old": "    levers.sort(key=lambda lv: (-lv[\"odds\"], lv[\"key\"]))",
+    "new": "    levers.sort(key=lambda lv: (lv[\"odds\"], lv[\"key\"]))",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: no cap",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return levers[:EXPEDITION_LEVERS_SHOWN]",
+    "new": "    return levers",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the payload ignores the lever",
+    "file": "backend/game_logic/naval.py",
+    "old": "            if THE_EXPEDITION_NAMES_ITS_LEVERS and quote.get(\"coverer\"):",
+    "new": "            if quote.get(\"coverer\"):",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the memo forgets the corps size",
+    "file": "backend/game_logic/naval.py",
+    "old": "                key = (int(marshal.strength), quote[\"coverer\"], quote[\"mode\"])",
+    "new": "                key = (quote[\"coverer\"], quote[\"mode\"])",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the confirm drops the line",
+    "file": "backend/commands/naval_executor.py",
+    "old": "turned back.{levers_clause} Sail? (yes / no)\"),",
+    "new": "turned back. Sail? (yes / no)\"),",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Levers: the Admiralty chip drops the line",
+    "file": "backend/game_logic/naval.py",
+    "old": "            if corps.get(\"levers\"):\n                note += f\". {corps['levers']}\"",
+    "new": "            if False:\n                note += f\". {corps['levers']}\"",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Readiness: the war drill ceiling is forgotten",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return NAVY_DRILL_CEILING if (at_war and superior) else READINESS_MAX",
+    "new": "    return READINESS_MAX",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheLevers"
+  },
+  {
+    "id": "Yard: no anchorage needed",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if name not in mooring_provinces(world):",
+    "new": "    if False:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: no cap",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if (len(held) >= NAVAL_YARD_MAX_PER_NATION",
+    "new": "    if (len(held) >= 99",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: no admiralty needed",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if get_fleet(world, nation) is None:\n        # NV-0's ruling of record",
+    "new": "    if False:\n        # NV-0's ruling of record",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: can_build never asks the site",
+    "file": "backend/models/region.py",
+    "old": "    if building_type == \"naval_yard\":\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: a raised yard never counts",
+    "file": "backend/game_logic/naval.py",
+    "old": "            if str(prov) not in yards and _yard_stands(world, str(prov)):",
+    "new": "            if False:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: a damaged yard still serves",
+    "file": "backend/game_logic/naval.py",
+    "old": "            and region.has_building(NAVAL_YARD_BUILDING))",
+    "new": "            and region.has_building(NAVAL_YARD_BUILDING, functional_only=False))",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: completion never registers",
+    "file": "backend/models/world_state.py",
+    "old": "                    if completed_type == \"naval_yard\" and region.controller:",
+    "new": "                    if False:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: a rebuild keeps both builders",
+    "file": "backend/game_logic/naval.py",
+    "old": "        if other != nation and isinstance(built, list) and province in built:",
+    "new": "        if False:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: a rising yard escapes the cap",
+    "file": "backend/game_logic/naval.py",
+    "old": "        if (rising == NAVAL_YARD_BUILDING\n                or region.has_building",
+    "new": "        if (False\n                or region.has_building",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: a town is offered",
+    "file": "backend/game_logic/naval.py",
+    "old": "            or region.region_type not in spec[\"allowed_in\"]\n",
+    "new": "\n",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: the keel refusal forgets the road",
+    "file": "backend/game_logic/naval.py",
+    "old": "        road = yard_road_clause(world, nation)\n",
+    "new": "        road = \"\"\n",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "Yard: the Admiralty offers no yard",
+    "file": "backend/game_logic/naval.py",
+    "old": "        sites = naval_yard_sites(world, player)\n        if sites:",
+    "new": "        sites = []\n        if sites:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheNavalYard"
+  },
+  {
+    "id": "AI: a second yard while one rises",
+    "file": "backend/game_logic/naval.py",
+    "old": "            return None  # one is already rising",
+    "new": "            pass",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheAIRaisesAYard"
+  },
+  {
+    "id": "AI: the chest is never asked",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if int(treasury) <= cost + AI_FLEET_TREASURY_RESERVE * SHIP_COST:",
+    "new": "    if False:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheAIRaisesAYard"
+  },
+  {
+    "id": "AI: a ports-only court raises a yard",
+    "file": "backend/game_logic/naval.py",
+    "old": "    rec = get_fleet(world, nation)\n    if not rec or \"readiness\" not in rec:\n        return None\n    if controlled_dockyards(world, nation):",
+    "new": "    rec = get_fleet(world, nation)\n    if not rec:\n        return None\n    if controlled_dockyards(world, nation):",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestTheAIRaisesAYard"
+  },
+  {
+    "id": "SR5B-1: the order is never restored",
+    "file": "backend/commands/executor.py",
+    "old": "        if not A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER:\n            return",
+    "new": "        if True:\n            return",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestARefusedOrderKeepsTheStandingOrder"
+  },
+  {
+    "id": "SR5B-1: an order carried out is undone",
+    "file": "backend/commands/executor.py",
+    "old": "        if not attack_was_refused(result):\n            return",
+    "new": "        if False:\n            return",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestARefusedOrderKeepsTheStandingOrder"
+  },
+  {
+    "id": "SR5B-1: the question is lost",
+    "file": "backend/commands/executor.py",
+    "old": "            if interrupt and not getattr(marshal, \"pending_interrupt\", None):",
+    "new": "            if False:",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestARefusedOrderKeepsTheStandingOrder"
+  },
+  {
+    "id": "SR5B-1: the hold's ground is lost",
+    "file": "backend/commands/executor.py",
+    "old": "                marshal.holding_position = holding\n",
+    "new": "                marshal.holding_position = False\n",
+    "tests": "tests/test_sr5b_the_second_road_at_sea.py::TestARefusedOrderKeepsTheStandingOrder"
+  }
+]

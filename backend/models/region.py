@@ -102,6 +102,11 @@ BUILDING_TYPES = {
     "training_ground": {"gold_cost": 250, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
     "market": {"gold_cost": 350, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
     "stables": {"gold_cost": 300, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
+    # SR-5b / NV-D9 (RULED September 28, 2026): a yard is a SITE, never a
+    # rate — the keel rate stays national (NAVAL_SPEC §13.3). Coastal with a
+    # mooring, a court with an admiralty, at most two raised per court:
+    # `naval.naval_yard_site_refusal`, read by `can_build` below.
+    "naval_yard": {"gold_cost": 1200, "build_time": 4, "allowed_in": ["capital", "major_city", "city"]},
 }
 
 BUILDING_SLOT_LIMITS = {
@@ -166,6 +171,13 @@ def can_build(world, region, building_type: str, nation: str):
         # Someone else's province: neither remedy is ours to take.
         return False, (f"Cannot build in {name} — not controlled by "
                        f"{nation}"), ""
+    if building_type == "naval_yard":
+        # SR-5b / NV-D9: the SITE first (an anchorage, an admiralty, not a
+        # yard already, the two-per-court cap) — then the works' own gates.
+        from backend.game_logic.naval import naval_yard_site_refusal
+        site_refusal = naval_yard_site_refusal(world, region, nation)
+        if site_refusal:
+            return _refuse(site_refusal)
     if region.max_building_slots() == 0:
         return _refuse(f"Cannot build in {name} — {region.region_type} "
                        f"regions don't support buildings (need city or "

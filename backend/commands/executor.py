@@ -250,6 +250,19 @@ LAST_ORDER_OF_THE_DAY_NOTICE = ("That was the last order the day could take, "
 # Flip lever, not a config surface.
 AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL = True
 
+# SR-5b SR5B-1 (found playing the shut-out arm, September 28, 2026): a
+# REFUSED order keeps the standing order it would have replaced. The
+# strategic override (Phase 5.2-C) cancels a marshal's standing order the
+# moment an attack/move/defend/fortify/drill/retreat order names him — BEFORE
+# the order runs — so a refusal destroyed the march it never replaced.
+# Measured: Soult marching on Lisbon, `Soult, attack Lisbon` refused "cannot
+# reach Lisbon from Bearn", and the march was gone with no word, the corps
+# standing at Bearn for the rest of the campaign. The override now puts the
+# order aside; `execute` restores it (with its HOLD state and the question it
+# had raised) when the order is refused — no battle, `success is False`.
+# Flip lever, not a config surface.
+A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER = True
+
 
 def _correction_survives(query: str, match: Optional[str],
                          gate_active: bool) -> bool:
@@ -413,6 +426,9 @@ class CommandExecutor:
         # it now suppresses capture as well as the advance, so a stale True
         # would be a stand-off, not a mere no-advance.
         self._current_sortie = False
+        # SR5B-1: standing orders the strategic override set aside during
+        # the command in flight — restored by `execute` if it is refused.
+        self._orders_set_aside = []
         self._combat = CombatExecutor(self)
         self._strategic = StrategicExecutor(self)
         self._diplomatic = DiplomaticExecutor(self)
@@ -1254,11 +1270,18 @@ class CommandExecutor:
         _held = (self._hold_aside_vindication(parsed_command, game_state)
                  if _depth == 0 else None)
         result = None
+        _aside_mark = len(self._orders_set_aside)
         self._execute_depth = _depth + 1
         try:
             result = self._execute_one(parsed_command, game_state)
         finally:
             self._execute_depth = _depth
+            # SR5B-1: this frame's set-aside orders — restored when the
+            # order that set them aside was refused, else let go.
+            _aside = self._orders_set_aside[_aside_mark:]
+            del self._orders_set_aside[_aside_mark:]
+            if _aside:
+                self._restore_if_refused(_aside, result)
             if _held is not None:
                 _marshal_name, _entry, _world = _held
                 _world.vindication_tracker.settle_held(
@@ -1268,6 +1291,29 @@ class CommandExecutor:
         if _depth == 0:
             result = self._attach_square_break(result, game_state)
         return result
+
+    @staticmethod
+    def _restore_if_refused(aside, result) -> None:
+        """SR5B-1: a refused order leaves the standing order where it was.
+        `aside` holds (marshal, order, holding, hold_region, interrupt)
+        tuples the override recorded; restored only on a refusal the
+        project's own predicate recognises (`strategic.attack_was_refused`:
+        `success is False` and no battle of any shape) and only while the
+        marshal took no new order in the meantime."""
+        if not A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER:
+            return
+        from backend.commands.strategic import attack_was_refused
+        if not attack_was_refused(result):
+            return
+        for marshal, order, holding, hold_region, interrupt in aside:
+            if getattr(marshal, "strategic_order", None) is not None:
+                continue
+            marshal.strategic_order = order
+            if order is not None and order.command_type == "HOLD":
+                marshal.holding_position = holding
+                marshal.hold_region = hold_region
+            if interrupt and not getattr(marshal, "pending_interrupt", None):
+                marshal.pending_interrupt = interrupt
 
     @staticmethod
     def _hold_aside_vindication(parsed_command, game_state):
@@ -1975,6 +2021,13 @@ class CommandExecutor:
                     ]
                     if action in strategic_override_actions:
                         old_order = marshal.strategic_order
+                        # SR5B-1: set aside, not thrown away — `execute`
+                        # restores it if this order is refused.
+                        self._orders_set_aside.append((
+                            marshal, old_order,
+                            bool(getattr(marshal, "holding_position", False)),
+                            str(getattr(marshal, "hold_region", "") or ""),
+                            getattr(marshal, "pending_interrupt", None)))
                         marshal.strategic_order = None
                         # Clear holding_position if HOLD was active
                         if old_order and old_order.command_type == "HOLD":

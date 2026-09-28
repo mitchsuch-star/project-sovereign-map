@@ -551,6 +551,9 @@ _PRICEABLE = {
     "training ground": "training_ground", "market": "market",
     "stables": "stables", "watchtower": "watchtower",
     "ship": "fleet", "ships": "fleet", "fleet": "fleet", "keel": "fleet",
+    # SR-5b / NV-D9: the raised yard is priced from BUILDING_TYPES.
+    "naval yard": "naval_yard", "dockyard": "naval_yard",
+    "shipyard": "naval_yard", "yard": "naval_yard",
 }
 
 _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [

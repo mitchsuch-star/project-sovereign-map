@@ -1,0 +1,146 @@
+{
+  "name": "sr5b-shut-out",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "SR-5b (Score Mandate Chunk 5, September 28, 2026) — the standing DEF-5 evidence: the A2 strangulation arc and the Congress's SHUT OUT arm, PLAYED through POST /command (the NV-10 drive of August 2 called the executor directly). The boot Continental System closes 10 of 26 continental ports; the SHUT OUT reading (congress._shut_out_reading) wants 13 of 26 (cs_shutout_pct 50) and no British corps on the Continent. France takes the two capitals the System's own history names: Lisbon (Portugal's 2 ports — Junot, 1807) with Soult, Rome (the Papal States' 1 port — 1808) with Massena from Milan, while Ney, Davout, Lannes, Murat and the Emperor keep the war with Austria in the field. Soult then turns on the British corps that land in Portugal (Paget, Wellesley): the SHUT OUT reading wants none of them standing on the Continent. A refused attack no longer costs the march (SR5B-1, found playing this arm). Pair with --declare-war proceed (the declarations are this arm's point) and --diplomacy accept. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": [
+      "declare war on Portugal",
+      "declare war on the Papal States",
+      "Soult, march to Lisbon",
+      "Massena, march to Rome"
+    ],
+    "2": [
+      "Ney, attack Mack",
+      "Davout, move to Swabia",
+      "status"
+    ],
+    "3": [
+      "Ney, attack Mack",
+      "Davout, attack Mack",
+      "Lannes, move to Swabia",
+      "Massena, attack Rome"
+    ],
+    "4": [
+      "Massena, march to Rome",
+      "Massena, attack Rome",
+      "Ney, attack Mack",
+      "Davout, attack Mack"
+    ],
+    "5": [
+      "Massena, attack Rome",
+      "Lannes, attack Mack",
+      "Murat, attack Archduke Charles"
+    ],
+    "6": [
+      "Massena, march to Rome",
+      "Soult, attack Lisbon",
+      "Massena, attack Rome",
+      "Ney, attack Archduke Charles"
+    ],
+    "7": [
+      "Massena, attack Rome",
+      "Soult, attack Lisbon",
+      "Soult, attack Paget",
+      "Davout, attack Archduke Charles"
+    ],
+    "8": [
+      "Massena, march to Rome",
+      "Soult, attack Lisbon",
+      "Soult, attack Paget",
+      "status"
+    ],
+    "9": [
+      "Massena, attack Rome",
+      "Soult, attack Lisbon",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley"
+    ],
+    "10": [
+      "Massena, march to Rome",
+      "Soult, attack Lisbon",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget"
+    ],
+    "11": [
+      "Massena, attack Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Lisbon"
+    ],
+    "12": [
+      "Massena, march to Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "status"
+    ],
+    "13": [
+      "Massena, attack Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore"
+    ],
+    "14": [
+      "Massena, march to Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore"
+    ],
+    "15": [
+      "Massena, attack Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore",
+      "status"
+    ],
+    "16": [
+      "Massena, attack Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore"
+    ],
+    "18": [
+      "Massena, attack Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore"
+    ],
+    "20": [
+      "Massena, attack Rome",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore",
+      "status"
+    ],
+    "22": [
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore"
+    ],
+    "25": [
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore",
+      "status"
+    ],
+    "28": [
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Soult, attack Moore"
+    ],
+    "30": [
+      "status"
+    ],
+    "35": [
+      "status"
+    ],
+    "40": [
+      "status"
+    ]
+  },
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "accept"
+  },
+  "_note_variants": "Two arms. ACCEPT (--diplomacy accept): the A2 sue-path — the driver takes Britain's suit when it comes, which is the arc's end. DECLINE (--diplomacy decline): the SHUT OUT arm — France keeps the war with Britain (at peace the System closes nothing: `closure_against` counts the ports of courts AT WAR with Britain, vassals, members and conquered capitals) while Lisbon and Rome fall and Soult hunts the British corps in Portugal. Massena's march to Rome is re-issued because cannon fire at Munich pulls him to the guns."
+}

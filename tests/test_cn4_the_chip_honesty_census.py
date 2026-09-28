@@ -57,7 +57,9 @@ SCRIPTS = C.SCRIPTS
 CEDE_REGION = "Osnabruck"
 BUILD_TYPES = {"depot": "supply_depot", "fort": "fortification",
                "market": "market", "stables": "stables",
-               "training ground": "training_ground"}
+               "training ground": "training_ground",
+               # SR-5b / NV-D9 (Sept 28, 2026): the yard's own chip.
+               "naval yard": "naval_yard"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -903,6 +905,9 @@ REVIEWED = {
     ("region_panel.gd", '"do:buy substitutes for " + str(sub_q.get("recipient", ""))'): "driven; quote drift-pinned",
     ("region_panel.gd", '"do:" + str(def[2]) % _region'): "driven (five buildings)",
     ("region_panel.gd", '"do:build watchtower in " + _region'): "driven",
+    # SR-5b / NV-D9 (Sept 28, 2026): the naval yard's chip — lit only where
+    # `can_build` passes (the backend's `build_terms.naval_yard.refusal`).
+    ("region_panel.gd", '"do:build naval yard in " + _region'): "driven (SR-5b): builds the naval_yard it names",
     ("region_panel.gd", '"do:repair buildings in " + _region'): "driven",
     ("region_panel.gd", '"do:repair " + _region'): "driven",
     ("region_panel.gd", '"do:build ships"'): "driven; nation-scoped, the yard disclosed (NV-12)",

@@ -6790,6 +6790,38 @@
       },
       "notes": "The minister is the addressee of the desk, never a marshal typo ('Did you mean Ney?').",
       "source": "The session exit of September 28, 2026 — its residue (docs/audits/SR_SESSION_EXIT_2026_09_28.md): the desk reads the laws and the points."
+    },
+    {
+      "id": "sr5b-build-naval-yard",
+      "utterance": "build a naval yard in Artois",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Artois"
+      },
+      "source": "SR-5b \"The second road at sea\" / NV-D9 (Score Mandate Chunk 5, September 28, 2026; SYSTEMS_REFERENCE.md §77)",
+      "notes": "The raised yard rides the ordinary build verb; the executor reads the kind off the words (naval yard / dockyard / shipyard)."
+    },
+    {
+      "id": "sr5b-construct-dockyard",
+      "utterance": "construct a dockyard at Gascony",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Gascony"
+      },
+      "source": "SR-5b \"The second road at sea\" / NV-D9 (Score Mandate Chunk 5, September 28, 2026; SYSTEMS_REFERENCE.md §77)"
+    },
+    {
+      "id": "sr5b-build-shipyard",
+      "utterance": "build a shipyard in Anjou",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Anjou"
+      },
+      "source": "SR-5b \"The second road at sea\" / NV-D9 (Score Mandate Chunk 5, September 28, 2026; SYSTEMS_REFERENCE.md §77)",
+      "notes": "'shipyard' must not route to build_fleet: the fleet verb wants ship/ships/fleet/navy/sail as a whole word."
     }
   ]
 }

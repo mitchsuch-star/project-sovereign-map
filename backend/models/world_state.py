@@ -7635,6 +7635,14 @@ class WorldState:
                         "damaged": False
                     })
                     region.building_under_construction = None
+                    if completed_type == "naval_yard" and region.controller:
+                        # SR-5b / NV-D9: the finished yard joins its
+                        # builder's fleet record — from this turn keels may
+                        # be laid down and a corps embark there.
+                        from backend.game_logic.naval import (
+                            register_built_yard)
+                        register_built_yard(self, region.name,
+                                            region.controller)
                     events.append({
                         "type": "construction_complete",
                         "region": region.name,
@@ -7697,6 +7705,13 @@ class WorldState:
             article = "" if words.endswith("s") else "a "
             return (f"{display_nation(owner)} completes {article}{words} "
                     f"at {region.name}.")
+        if building_type == "naval_yard":
+            # SR-5b / NV-D9: say what the yard is for, and what it is not.
+            from backend.game_logic.naval import SHIP_BUILD_RATE
+            return (f"Construction complete: Naval Yard in {region.name}! "
+                    f"Keels may be laid down there and a corps may embark "
+                    f"from it — the yards together still lay down "
+                    f"{SHIP_BUILD_RATE} a turn.")
         return f"Construction complete: {words.title()} in {region.name}!"
 
     @staticmethod
@@ -9818,6 +9833,8 @@ class WorldState:
             return int(BUILDING_TYPES[b]["gold_cost"])
 
         income_now = region.get_effective_income()
+        from backend.game_logic.naval import naval_yard_terms
+        naval_yard = naval_yard_terms(self, region, self.player_nation)
         mult = self._supply_multiplier(
             self.player_nation, region, _shore_cache)
         supply_now = int(region.supply_capacity_with() * mult)
@@ -9861,6 +9878,10 @@ class WorldState:
             "watchtower": {
                 "cost": int(EconomyExecutor.WATCHTOWER_GOLD_COST),
             },
+            # SR-5b / NV-D9: present only where the province is a yard SITE
+            # (see `naval.naval_yard_terms`); the chip renders its own
+            # `refusal` beside a dimmed button when the work cannot start.
+            **({"naval_yard": naval_yard} if naval_yard else {}),
             "repair": {
                 "cost": int(EconomyExecutor.REPAIR_COST),
                 # In-game pass: war damage had no button and no mention on

@@ -387,8 +387,11 @@ class NavalExecutor:
                     f"An expedition assembles at a dockyard, Sire — "
                     f"{marshal.name} must stand at one of our yards: "
                     f"{', '.join(yards)}.")}
+            # SR-5b / NV-D9: name the build half of the road when one exists.
+            _road = naval.yard_road_clause(world, marshal.nation)
             return {"success": False, "message": (
-                "We control no dockyard from which to embark an expedition.")}
+                "We control no dockyard from which to embark an expedition."
+                + (f" {_road[0].upper()}{_road[1:]}." if _road else ""))}
         if (loc_controller != marshal.nation
                 and not getattr(loc_region, "is_coastal", False)):
             return {"success": False, "message": (
@@ -437,6 +440,12 @@ class NavalExecutor:
                     f" ({quote['coverer']} watches at {quote['coverage']:.0f} "
                     f"effective against our escort"
                     f"{' — the Strait window is open' if quote['window'] else ''})")
+            # SR-5b (AAR-D7): what would make it a better throw — the same
+            # odds function re-asked, one lever at a time. "" when nothing
+            # moves the odds (or the passage is unopposed).
+            levers = naval.levers_line(naval.expedition_odds_levers(
+                world, marshal.nation, target, troops))
+            levers_clause = f" {levers}." if levers else ""
             return {
                 "success": True,
                 "free_action": True,
@@ -454,7 +463,7 @@ class NavalExecutor:
                     f"~{int(naval.EXPEDITION_TURNBACK_LOSS * 100)}% turned "
                     f"back — and the fleet's readiness "
                     f"−{naval.EXPEDITION_TURNBACK_READINESS} if she is "
-                    f"turned back. Sail? (yes / no)"),
+                    f"turned back.{levers_clause} Sail? (yes / no)"),
                 "interpreted_target": target,
                 "options": [
                     {"label": f"Sail for {target}", "command": reissue,

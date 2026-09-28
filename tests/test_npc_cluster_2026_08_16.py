@@ -377,11 +377,43 @@ class TestNPC2TheStaleQuestion:
             # defined there.
             "backend/commands/strategic.py",
         }
-        leaked = [o for o in offenders
-                  if o.rsplit(":", 1)[0] not in allowed_files]
+        # Per-FUNCTION exemptions, each with its reason — never a whole file
+        # (a file-wide pass would blind the census to that file's real
+        # seams). SR-5b SR5B-1 (Sept 28, 2026): `_restore_if_refused` puts a
+        # REFUSED order's standing order back together WITH the question it
+        # had raised — the opposite of ending an order's life.
+        allowed_functions = {
+            ("backend/commands/executor.py", "_restore_if_refused"),
+        }
+
+        def _enclosing_function(path_str, lineno):
+            tree = ast.parse(pathlib.Path(path_str).read_text(encoding="utf-8"))
+            best = None
+            for fn in ast.walk(tree):
+                if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    end = fn.end_lineno or fn.lineno
+                    if fn.lineno <= lineno <= end and (
+                            best is None or fn.lineno > best.lineno):
+                        best = fn
+            return best.name if best is not None else ""
+
+        leaked = []
+        for o in offenders:
+            path_str, lineno = o.rsplit(":", 1)
+            if path_str in allowed_files:
+                continue
+            if (path_str, _enclosing_function(path_str, int(lineno))) \
+                    in allowed_functions:
+                continue
+            leaked.append(o)
         assert not leaked, (
             f"these seams end a strategic order's life without clearing its "
             f"question: {sorted(leaked)}")
+        # The exemption is bound to a live seam — if the function is renamed
+        # or removed, this list must change with it.
+        for path_str, fn_name in allowed_functions:
+            src = pathlib.Path(path_str).read_text(encoding="utf-8")
+            assert f"def {fn_name}(" in src, (path_str, fn_name)
 
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -6392,6 +6392,17 @@ class EnemyAI:
             if fleet_order:
                 return fleet_order
 
+        # Priority 1.81: RAISE A YARD (SR-5b / NV-D9, GR5). A court that keeps
+        # a navy but has lost every yard it could lay a keel in raises one at
+        # its best lawful site — the player's verb, price and gate
+        # (`region.can_build` via `naval.naval_yard_sites`). Dormant while a
+        # court holds any yard, so the shipped boot never reaches it.
+        if "build" not in skip_actions and getattr(world, "fleets", None):
+            from backend.game_logic.naval import find_ai_naval_yard
+            yard_order = find_ai_naval_yard(world, nation, treasury)
+            if yard_order:
+                return yard_order
+
         # Priority 1.85: THE EXPEDITION (NV-5, promoting the naval §10 NV-D8
         # arm). How a sea power's army reaches a war it cannot march to —
         # the door NV-4's host rule left open. Britain embarks for a shore

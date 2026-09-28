@@ -115,6 +115,35 @@ DIVERSION_SUCCESS_PCT = 45
 WINDOW_TURNS = 2
 WINDOW_COVERAGE_FACTOR = 0.5
 
+# SR-5b "The second road at sea" (AAR-D7, Score Mandate Chunk 5, September
+# 28, 2026) — the expedition names the levers that move its odds. The
+# Creative AAR's Irish expedition went at a quoted 56 and cost 4,500 men and
+# 24 sail, and nothing on the Admiralty board said what would have made it a
+# better throw: a won diversion first, a smaller corps, a fitter fleet, more
+# sail, an ally's squadron beside ours. Each lever below is the resolver's
+# OWN odds function re-run with one thing changed (`expedition_slip_odds`
+# takes the override), so the figure a lever quotes is the figure that
+# throw would roll. False = the prior quote, which named the odds alone.
+THE_EXPEDITION_NAMES_ITS_LEVERS = True
+EXPEDITION_LEVER_MIN_GAIN = 2      # a lever that moves the odds less is not named
+EXPEDITION_LEVER_SAIL = 10         # the "more sail" lever: 5 turns at the full keel rate
+EXPEDITION_LEVER_CORPS = 5000      # a new marshal's corps (recruitment.RECRUIT_MARSHAL_CORPS)
+EXPEDITION_LEVERS_SHOWN = 3        # the three that move the odds most
+
+# SR-5b / NV-D9 "The Naval Yard" (RULED by the user September 28, 2026:
+# "Build them in SR-5b"). A court that keeps an admiralty may raise a yard
+# at a coastal city of its own: 1,200 gold, 4 turns, one administrative
+# action, at most two per court. The yard unlocks a SITE — keels may be laid
+# down there, an expedition may embark there — and NEVER the rate: the keel
+# rate stays national (§13.3, the §3.5 time wall), and the yard adds no port
+# to the Continental System's denominator. The building is an ordinary work
+# on the province (a slot, the tier upkeep, razed by a plunder, damaged by a
+# secure, restored by `repair`), and it serves as a yard only while it
+# stands undamaged. False = the prior rule: dockyards are authored data only.
+NAVAL_YARDS_CAN_BE_BUILT = True
+NAVAL_YARD_BUILDING = "naval_yard"
+NAVAL_YARD_MAX_PER_NATION = 2
+
 # N10 — the fleet action (lanchester-lite)
 FLEET_ACTION_LOSER_BASE = 0.20
 FLEET_ACTION_LOSER_SCALE = 0.15
@@ -491,15 +520,43 @@ def migrate_retired_dockyards(world) -> int:
     return moved
 
 
+def _yard_stands(world, province: str) -> bool:
+    """SR-5b / NV-D9: a BUILT yard serves while its work stands undamaged —
+    the building is the yard. A plunder razes it (the province loses its
+    works), a secure damages it (`repair` restores it)."""
+    region = world.regions.get(province)
+    return bool(region is not None
+                and region.has_building(NAVAL_YARD_BUILDING))
+
+
+def nation_dockyards(world, nation: str) -> List[str]:
+    """One record's yards — the authored list, then the yards this court
+    raised that still stand (SR-5b / NV-D9). Authored order kept."""
+    rec = get_fleet(world, nation) or {}
+    out = [str(p) for p in (rec.get("dockyards", []) or [])]
+    for prov in rec.get("built_dockyards", []) or []:
+        if str(prov) not in out and _yard_stands(world, str(prov)):
+            out.append(str(prov))
+    return out
+
+
 def all_dockyard_provinces(world) -> Dict[str, str]:
     """{dockyard province -> authoring nation}. Conquest grants the YARD
-    (§3.4a) — build rights follow CONTROL of any listed province."""
+    (§3.4a) — build rights follow CONTROL of any listed province. SR-5b /
+    NV-D9: a yard a court RAISED counts while its work stands (the builder
+    is its "authoring" nation; control decides who builds there)."""
     yards: Dict[str, str] = {}
     for nation, rec in get_fleets(world).items():
         if nation == META_KEY or not isinstance(rec, dict):
             continue
         for prov in rec.get("dockyards", []) or []:
             yards[str(prov)] = nation
+    for nation, rec in get_fleets(world).items():
+        if nation == META_KEY or not isinstance(rec, dict):
+            continue
+        for prov in rec.get("built_dockyards", []) or []:
+            if str(prov) not in yards and _yard_stands(world, str(prov)):
+                yards[str(prov)] = nation
     return yards
 
 
@@ -509,6 +566,174 @@ def controlled_dockyards(world, nation: str) -> List[str]:
         prov for prov in all_dockyard_provinces(world)
         if _controller(world, prov) == nation
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE NAVAL YARD (SR-5b / NV-D9 — a site, never a rate)
+# ═══════════════════════════════════════════════════════════════════════════
+
+_MOORINGS_CACHE: Optional[frozenset] = None
+
+
+def mooring_provinces(world) -> frozenset:
+    """Provinces the painted map gives open water to moor at — the registry
+    `port_anchor` (NUI-2, `tools/gen_port_anchors.py`). The SAME test the
+    scenario validator puts to an authored yard (`modding/validator.py`,
+    the NUI-2 mooring check), so a yard raised in play stands where an
+    authored one could. Empty off the Europe registry world (the legacy
+    fixture has no naval layer and no anchors)."""
+    global _MOORINGS_CACHE
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return frozenset()
+    if _MOORINGS_CACHE is None:
+        try:
+            from backend.models.region import _load_europe_registry
+            _MOORINGS_CACHE = frozenset(
+                entry.get("name")
+                for entry in _load_europe_registry()["regions"].values()
+                if "port_anchor" in entry)
+        except Exception:
+            return frozenset()
+    return _MOORINGS_CACHE
+
+
+def raised_yards(world, nation: str) -> List[str]:
+    """The yards this court has raised or is raising, in provinces it holds —
+    a standing work (damaged or not) or one under construction. The count
+    `NAVAL_YARD_MAX_PER_NATION` caps. Read off the court's OWN provinces
+    (`get_nation_regions`, cached per turn — GR8), never a map scan."""
+    out: List[str] = []
+    for name in world.get_nation_regions(nation):
+        region = world.regions.get(name)
+        if region is None:
+            continue
+        rising = (region.building_under_construction or {}).get("type")
+        if (rising == NAVAL_YARD_BUILDING
+                or region.has_building(NAVAL_YARD_BUILDING,
+                                       functional_only=False)):
+            out.append(name)
+    return sorted(out)
+
+
+def naval_yard_site_refusal(world, region, nation: str) -> str:
+    """Why `region` cannot take a naval yard for `nation` — "" when the SITE
+    is lawful. ONE source for the build gate (`region.can_build`, which the
+    executor, the counsel, the desk and the region panel all read) and the
+    AI rung. The ordinary works' gates (a slot, stability, gold, a work
+    already rising) follow it inside `can_build`."""
+    name = getattr(region, "name", "")
+    if not NAVAL_YARDS_CAN_BE_BUILT:
+        return "Naval yards are not raised in this campaign."
+    if not has_naval_layer(world):
+        return "This campaign has no naval theatre, Sire."
+    if get_fleet(world, nation) is None:
+        # NV-0's ruling of record: a court with no navies row has no
+        # admiralty, no cadres and no seamen — a yard would build nothing.
+        return ("We keep no naval establishment, Sire — a yard needs an "
+                "admiralty and seamen to answer to it.")
+    if name not in mooring_provinces(world):
+        return (f"{name} has no anchorage — a yard needs open water to "
+                f"moor at.")
+    if name in all_dockyard_provinces(world):
+        return f"{name} is already a dockyard."
+    held = raised_yards(world, nation)
+    if (len(held) >= NAVAL_YARD_MAX_PER_NATION
+            and not region.has_building(NAVAL_YARD_BUILDING,
+                                        functional_only=False)):
+        return (f"We have raised our {NAVAL_YARD_MAX_PER_NATION} yards "
+                f"({', '.join(held)}) — a court raises no more than "
+                f"{NAVAL_YARD_MAX_PER_NATION}.")
+    return ""
+
+
+def register_built_yard(world, province: str, nation: str) -> bool:
+    """A finished yard joins its builder's fleet record (`built_dockyards`,
+    which rides the record through every save verbatim). A province can be
+    one court's yard only, so a rebuilt yard leaves any earlier builder's
+    list. Returns False when the controller keeps no fleet record — the
+    work then stands as a plain building and builds nothing (the site gate
+    refuses to START one in that case; this covers a province that changed
+    hands by treaty while the work was rising)."""
+    rec = get_fleet(world, nation)
+    if rec is None:
+        return False
+    for other, orec in get_fleets(world).items():
+        if other == META_KEY or not isinstance(orec, dict):
+            continue
+        built = orec.get("built_dockyards")
+        if other != nation and isinstance(built, list) and province in built:
+            orec["built_dockyards"] = [p for p in built if p != province]
+    built = list(rec.get("built_dockyards") or [])
+    if province not in built:
+        built.append(province)
+    rec["built_dockyards"] = built
+    return True
+
+
+def naval_yard_sites(world, nation: str) -> List[Tuple[str, str]]:
+    """Every province of ours that could take a yard, as (province,
+    refusal) — refusal "" where `can_build` would start the work now. The
+    lawful sites first, then by income (the richest port is the natural
+    yard), then by name. Read off our OWN provinces (GR8)."""
+    if not NAVAL_YARDS_CAN_BE_BUILT or get_fleet(world, nation) is None:
+        return []
+    out: List[Tuple[int, int, str, str]] = []
+    for name in world.get_nation_regions(nation):
+        region = world.regions.get(name)
+        terms = naval_yard_terms(world, region, nation)
+        if terms is None:
+            continue
+        refusal = str(terms["refusal"])
+        out.append((0 if not refusal else 1,
+                    -int(getattr(region, "income_value", 0) or 0),
+                    name, refusal))
+    out.sort()
+    return [(name, refusal) for _lawful, _inc, name, refusal in out]
+
+
+def yard_road_clause(world, nation: str) -> str:
+    """The honest tail for "we hold no yard": where one may be raised and
+    for what, or "" when no province of ours could take one. SR-5b / NV-D9
+    made the Admiralty's old "take or build one" true — this names the
+    build half."""
+    sites = naval_yard_sites(world, nation)
+    if not sites:
+        return ""
+    from backend.models.region import BUILDING_TYPES
+    spec = BUILDING_TYPES[NAVAL_YARD_BUILDING]
+    name, refusal = sites[0]
+    head = (f"a naval yard may be raised at {name} "
+            f"({int(spec['gold_cost']):,}g, {int(spec['build_time'])} turns)")
+    return head if not refusal else f"{head} — not yet: {refusal}"
+
+
+def naval_yard_terms(world, region, nation: str) -> Optional[Dict]:
+    """The region panel's naval-yard chip — None when the province is no
+    candidate SITE (no anchorage, no admiralty, already a yard, not ours),
+    else the price and the executor's own verdict (`can_build`): an empty
+    `refusal` is a chip that builds, a non-empty one says why it does not
+    (the §11.6 honest idiom). Figures from BUILDING_TYPES, never copied."""
+    if not NAVAL_YARDS_CAN_BE_BUILT or region is None:
+        return None
+    if getattr(region, "controller", None) != nation:
+        return None
+    from backend.models.region import BUILDING_TYPES, can_build
+    spec = BUILDING_TYPES[NAVAL_YARD_BUILDING]
+    # A town can never take a work (0 slots), so it is no SITE at all — the
+    # panel hides its build row there for every other work too.
+    if (not has_naval_layer(world) or get_fleet(world, nation) is None
+            or region.region_type not in spec["allowed_in"]
+            or region.name not in mooring_provinces(world)
+            or region.name in all_dockyard_provinces(world)):
+        return None
+    ok, refusal, _remedy = can_build(world, region, NAVAL_YARD_BUILDING, nation)
+    return {
+        "cost": int(spec["gold_cost"]),
+        "turns": int(spec["build_time"]),
+        "refusal": "" if ok else str(refusal),
+        "raised": len(raised_yards(world, nation)),
+        "cap": int(NAVAL_YARD_MAX_PER_NATION),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1667,14 +1892,24 @@ def losses_sentence(action: Dict, nation: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def expedition_coverage(world, mover_nation: str,
-                        target_region: str) -> Tuple[Optional[str], float, str]:
+                        target_region: str,
+                        window: Optional[bool] = None
+                        ) -> Tuple[Optional[str], float, str]:
     """Hostile naval coverage against an expedition to `target_region`.
     Returns (coverer, coverage, mode) — mode 'link' when the run crosses a
     covered sea link from the embarkation shore (the fleet stands ON the
     lane), 'open_water' for a no-route descent (Bantry: the patrol must
-    catch you at sea). Window halving applies (§5.3)."""
+    catch you at sea). Window halving applies (§5.3).
+
+    SR-5b: `window` forces the window's reading (None = the record's own,
+    which every live caller passes) — the diversion lever asks what the
+    same run would face with the strait held open."""
     mover_rec = get_fleet(world, mover_nation)
-    window_open = bool(mover_rec and int(mover_rec.get("window_turns", 0) or 0) > 0)
+    if window is None:
+        window_open = bool(mover_rec
+                           and int(mover_rec.get("window_turns", 0) or 0) > 0)
+    else:
+        window_open = bool(window)
     target_controller = _controller(world, target_region)
     best: Tuple[Optional[str], float] = (None, 0.0)
     for nation, rec in iter_fleets(world):
@@ -1713,21 +1948,35 @@ def expedition_coverage(world, mover_nation: str,
 
 
 def expedition_slip_odds(world, mover_nation: str, target_region: str,
-                         troops: int) -> Dict:
+                         troops: int, window: Optional[bool] = None,
+                         escort_extra: float = 0.0) -> Dict:
     """N8 — the quoted-and-applied odds (IGR-E discipline). Scale down with
     size and coverage-vs-escort ratio, up (+25pp) during a window. With no
-    hostile fleet at all the sailing is administrative: 100."""
+    hostile fleet at all the sailing is administrative: 100.
+
+    SR-5b (AAR-D7): two counterfactual overrides for the levers —
+    `window` (None = the record's own) and `escort_extra` (effective
+    strength added to our side: more sail, a fitter fleet, an ally's
+    squadron). Every live caller passes neither, so the quote, the confirm
+    and the resolver read exactly what they always read; a lever is THIS
+    function asked one question, never a second model of the odds."""
     troops = int(troops)
-    coverer, coverage, mode = expedition_coverage(world, mover_nation, target_region)
+    coverer, coverage, mode = expedition_coverage(world, mover_nation,
+                                                  target_region, window=window)
     if coverer is None or coverage <= 0:
         return {"odds": 100, "coverer": None, "coverage": 0.0, "ratio": 0.0,
                 "mode": mode, "window": False}
-    escort = max(combined_effective(world, mover_nation, coverer), 1.0)
+    escort = max(combined_effective(world, mover_nation, coverer)
+                 + float(escort_extra), 1.0)
     ratio = coverage / escort
     weight = (EXPEDITION_LINK_WEIGHT if mode == "link"
               else EXPEDITION_OPEN_WATER_WEIGHT)
     mover_rec = get_fleet(world, mover_nation)
-    window_open = bool(mover_rec and int(mover_rec.get("window_turns", 0) or 0) > 0)
+    if window is None:
+        window_open = bool(mover_rec
+                           and int(mover_rec.get("window_turns", 0) or 0) > 0)
+    else:
+        window_open = bool(window)
     odds = (EXPEDITION_BASE_PCT
             - EXPEDITION_SIZE_PENALTY_PER_1000 * (troops / 1000.0)
             - EXPEDITION_COVERAGE_PENALTY
@@ -1737,6 +1986,114 @@ def expedition_slip_odds(world, mover_nation: str, target_region: str,
     odds = int(round(max(5, min(95, odds))))
     return {"odds": odds, "coverer": coverer, "coverage": round(coverage, 1),
             "ratio": round(ratio, 2), "mode": mode, "window": window_open}
+
+
+def expedition_odds_levers(world, nation: str, target_region: str,
+                           troops: int) -> List[Dict]:
+    """SR-5b (AAR-D7) — what would make this landing a better throw, each
+    lever the resolver's own odds re-asked with one thing changed
+    (`expedition_slip_odds`'s overrides): a won diversion first (the window
+    halves the watch and adds 25), a smaller corps, the fleet at the
+    readiness it is climbing toward, ten more sail, an ally's squadron
+    beside ours. A lever is named only when it is a road this court can
+    take — the diversion only while its own gate is open, readiness only
+    while no blockade rots the crews, sail only while we hold a yard, an
+    ally only a court at war with the watcher and at peace with us — and
+    only when it moves the odds by `EXPEDITION_LEVER_MIN_GAIN` or more.
+    Each lever is quoted ALONE from today's board, never stacked. The
+    three that move the odds most, most first; [] for an unopposed
+    passage."""
+    if not THE_EXPEDITION_NAMES_ITS_LEVERS:
+        return []
+    troops = int(troops)
+    base = expedition_slip_odds(world, nation, target_region, troops)
+    coverer = base.get("coverer")
+    if coverer is None:
+        return []
+    now = int(base["odds"])
+    levers: List[Dict] = []
+
+    def _add(key: str, label: str, quote: Dict, order: str = "") -> None:
+        gain = int(quote["odds"]) - now
+        if gain >= EXPEDITION_LEVER_MIN_GAIN:
+            levers.append({"key": key, "label": label,
+                           "odds": int(quote["odds"]), "gain": int(gain),
+                           "order": order})
+
+    # 1. A won diversion first — only while the Diversion may be thrown.
+    if (not base.get("window")
+            and all(t["met"] for t in diversion_terms_for(world, nation))):
+        _add("diversion",
+             f"a won diversion first ({DIVERSION_SUCCESS_PCT} in 100)",
+             expedition_slip_odds(world, nation, target_region, troops,
+                                  window=True),
+             "order the diversion")
+    # 2. A smaller corps — a new marshal's corps is the size the Marshalate
+    # raises (the lift counsel's own road).
+    if troops > EXPEDITION_LEVER_CORPS:
+        _add("corps", f"a {EXPEDITION_LEVER_CORPS:,}-man corps",
+             expedition_slip_odds(world, nation, target_region,
+                                  EXPEDITION_LEVER_CORPS))
+    rec = get_fleet(world, nation) or {}
+    ships = int(rec.get("ships", 0) or 0)
+    # 3. The fleet at the readiness it climbs toward — never under blockade,
+    # where the crews only rot (§3.3 rule 1).
+    if ships > 0 and not is_blockaded(world, nation):
+        ceiling = readiness_ceiling(world, nation)
+        readiness = int(rec.get("readiness", 0) or 0)
+        if readiness < ceiling:
+            turns = -(-(ceiling - readiness) // READINESS_TICK)
+            _add("readiness",
+                 f"the fleet at readiness {ceiling} ({turns} turn"
+                 f"{'s' if turns != 1 else ''} in port)",
+                 expedition_slip_odds(
+                     world, nation, target_region, troops,
+                     escort_extra=ships * (ceiling - readiness) / 100.0))
+    # 4. More sail — green crews fold in at NEW_SHIP_READINESS (§3.3), so
+    # ten keels add exactly ten × 40 / 100 effective. Only with a yard.
+    if controlled_dockyards(world, nation):
+        _add("sail",
+             f"{EXPEDITION_LEVER_SAIL} more sail "
+             f"({EXPEDITION_LEVER_SAIL * SHIP_COST:,}g)",
+             expedition_slip_odds(
+                 world, nation, target_region, troops,
+                 escort_extra=(EXPEDITION_LEVER_SAIL * NEW_SHIP_READINESS
+                               / 100.0)),
+             "build ships")
+    # 5. An ally's squadron beside ours — the pooling rule's own terms (H6):
+    # a court at war with the watcher, at peace with us, not pooled yet.
+    best: Optional[Tuple[str, float, int]] = None
+    for partner, prec in iter_fleets(world):
+        if partner in (nation, coverer):
+            continue
+        if not world.is_at_war(partner, coverer):
+            continue
+        if world.is_at_war(partner, nation):
+            continue
+        if _is_pooled_partner(world, nation, partner, coverer):
+            continue
+        eff = effective_strength(prec)
+        if best is None or (eff, partner) > (best[1], best[0]):
+            best = (partner, eff, int(prec.get("ships", 0) or 0))
+    if best is not None:
+        from backend.display_names import display_nation
+        _add("ally",
+             f"an alliance with {display_nation(best[0])} ({best[2]} sail "
+             f"beside ours)",
+             expedition_slip_odds(world, nation, target_region, troops,
+                                  escort_extra=POOL_ALLIED * best[1]))
+    levers.sort(key=lambda lv: (-lv["odds"], lv["key"]))
+    return levers[:EXPEDITION_LEVERS_SHOWN]
+
+
+def levers_line(levers: List[Dict]) -> str:
+    """The one sentence every surface prints — the confirm, the region
+    panel's landing chip, the Admiralty's land chips. "" when nothing
+    would move the odds (or the passage is unopposed)."""
+    if not levers:
+        return ""
+    return "What moves the odds: " + " · ".join(
+        f"{lv['label']} → {lv['odds']}" for lv in levers)
 
 
 def resolve_expedition(world, marshal, target_region: str) -> Dict:
@@ -1899,6 +2256,26 @@ def _diversion_outcome_sentence(world, nation: str) -> str:
             f"opens only {named}, which our army cannot use.")
 
 
+def diversion_terms_for(world, nation: str) -> List[Dict]:
+    """The Grand Diversion's gate terms IN ORDER (the §11.6 idiom), each with
+    its own negative phrasing (NV-6: a disabled chip renders "<label> —
+    <reason>"). ONE source for THE ADMIRALTY's terms and chip and the
+    expedition's diversion lever (SR-5b) — the lever is offered only while
+    every term is met, so it never names a feint the executor refuses."""
+    own = get_fleet(world, nation) or {}
+    own_ships = int(own.get("ships", 0) or 0)
+    return [
+        {"text": "a fleet in commission", "met": own_ships > 0,
+         "unmet": "we keep no fleet in commission"},
+        {"text": "at war with a naval power",
+         "met": has_naval_war(world, nation),
+         "unmet": "no naval power is at war with us"},
+        {"text": "the diversion not yet spent this war",
+         "met": not bool(own.get("diversion_used")),
+         "unmet": "the diversion is already spent this war"},
+    ]
+
+
 def diversion_failure_readiness(rec: Optional[dict]) -> int:
     """The readiness the fleet ACTUALLY fights at if the Diversion fails.
 
@@ -2013,6 +2390,26 @@ def derive_ai_postures(world) -> None:
         rec["posture"] = posture
 
 
+def readiness_ceiling(world, nation: str,
+                      snapshot: Optional[Dict[str, float]] = None) -> int:
+    """§3.3 rules 2-3 — the readiness a fleet NOT under blockade climbs
+    toward: 100 blockading at war; the war drill ceiling 75 while a superior
+    hostile fleet exists; 100 otherwise. ONE source for the per-turn tick
+    (which passes its order-free snapshot) and the expedition's readiness
+    lever (SR-5b), so the lever never promises a fitness the tick withholds."""
+    rec = get_fleet(world, nation) or {}
+    at_war = bool(world.get_nations_at_war_with(nation))
+    if rec.get("posture") == "blockade" and at_war:
+        return READINESS_MAX
+    if snapshot is None:
+        snapshot = {n: effective_strength(r) for n, r in iter_fleets(world)}
+    superior = any(
+        other != nation and world.is_at_war(nation, other)
+        and eff > snapshot.get(nation, 0.0)
+        for other, eff in snapshot.items())
+    return NAVY_DRILL_CEILING if (at_war and superior) else READINESS_MAX
+
+
 def _readiness_tick(world) -> None:
     """§3.3 — the whole H2 economy in four rules, applied on a snapshot so
     order never matters:
@@ -2039,15 +2436,7 @@ def _readiness_tick(world) -> None:
                 else max(READINESS_BLOCKADE_FLOOR, readiness - READINESS_TICK),
                 READINESS_MAX))
             continue
-        at_war = bool(world.get_nations_at_war_with(nation))
-        if rec.get("posture") == "blockade" and at_war:
-            ceiling = READINESS_MAX
-        else:
-            superior = any(
-                other != nation and world.is_at_war(nation, other)
-                and eff > snapshot.get(nation, 0.0)
-                for other, eff in snapshot.items())
-            ceiling = NAVY_DRILL_CEILING if (at_war and superior) else READINESS_MAX
+        ceiling = readiness_ceiling(world, nation, snapshot)
         if readiness < ceiling:
             readiness = min(ceiling, readiness + READINESS_TICK)
         rec["readiness"] = int(max(READINESS_MIN, readiness))
@@ -2638,8 +3027,11 @@ def check_build_fleet(world, nation: str) -> Optional[str]:
                 "cadres, no tradition of the sea.")
     yards = controlled_dockyards(world, nation)
     if not yards:
+        # SR-5b / NV-D9: the refusal names the build half of the road.
+        road = yard_road_clause(world, nation)
         return ("We hold no dockyard. Ships of the line are laid down only "
-                "in a yard we control.")
+                "in a yard we control."
+                + (f" {road[0].upper()}{road[1:]}." if road else ""))
     if int(rec.get("built_this_turn", 0) or 0) >= build_rate(world, nation):
         rate = build_rate(world, nation)
         pressed = (" — the blockade slows the slips"
@@ -2800,7 +3192,25 @@ def expedition_road_chips(world, player: str, yards: List[str],
     with the treasury's own refusal when it cannot pay yet)."""
     chips: List[Dict] = []
     if not yards:
-        return chips  # term 1 names it: take or build one — no button can
+        # SR-5b / NV-D9: the first step of the road is a yard — the button
+        # raises it at the best site, or states why it cannot yet (the
+        # executor's own `can_build` verdict, the §11.6 honest idiom).
+        sites = naval_yard_sites(world, player)
+        if sites:
+            from backend.models.region import BUILDING_TYPES
+            spec = BUILDING_TYPES[NAVAL_YARD_BUILDING]
+            site, refusal = sites[0]
+            chips.append({
+                "command": f"build naval yard in {site}",
+                "label": (f"Raise a naval yard at {site} "
+                          f"({int(spec['gold_cost']):,}g)"),
+                "enabled": not refusal,
+                "reason": refusal,
+                "note": (f"{int(spec['build_time'])} turns — then keels may "
+                         f"be laid down and a corps embark there"
+                         if not refusal else ""),
+            })
+        return chips
     if ready_corps:
         ready = {m.name for m in ready_corps}
         rows = []
@@ -2816,13 +3226,17 @@ def expedition_road_chips(world, player: str, yards: List[str],
                              region, str(corps.get("marshal", "")), corps))
         rows.sort(key=lambda r: r[:5])
         for _enemy, _odds, _dist, region, who, corps in rows[:EXPEDITION_CHIP_LANDINGS]:
+            note = (f"{int(corps.get('odds', 0))} in 100 slip past · "
+                    f"{int(corps.get('strength', 0)):,} men from "
+                    f"{corps.get('from', '')}")
+            # SR-5b (AAR-D7): the land chip names what would move its odds.
+            if corps.get("levers"):
+                note += f". {corps['levers']}"
             chips.append({
                 "command": f"land {who} in {region}",
                 "label": f"Land {who} in {region}",
                 "enabled": True, "reason": "",
-                "note": (f"{int(corps.get('odds', 0))} in 100 slip past · "
-                         f"{int(corps.get('strength', 0)):,} men from "
-                         f"{corps.get('from', '')}"),
+                "note": note,
             })
         return chips
 
@@ -3000,16 +3414,7 @@ def build_admiralty_report(world) -> Dict:
     # "<label> — <reason>", and reusing the condition text there said
     # "The Grand Diversion — the diversion not yet spent this war", i.e.
     # exactly backwards. Caught live.
-    diversion_terms = [
-        {"text": "a fleet in commission", "met": own_ships > 0,
-         "unmet": "we keep no fleet in commission"},
-        {"text": "at war with a naval power",
-         "met": has_naval_war(world, player),
-         "unmet": "no naval power is at war with us"},
-        {"text": "the diversion not yet spent this war",
-         "met": not bool((own or {}).get("diversion_used")),
-         "unmet": "the diversion is already spent this war"},
-    ]
+    diversion_terms = diversion_terms_for(world, player)
     report["diversion_terms"] = diversion_terms
     report["diversion_available"] = all(t["met"] for t in diversion_terms)
     yards = controlled_dockyards(world, player)
@@ -3077,15 +3482,21 @@ def build_admiralty_report(world) -> Dict:
                 + ("; ".join(yards[:3]) if len(yards) <= 3
                    else "; ".join(yards[:3]) + " …"))
         else:
+            # SR-5b / NV-D9: "take or build one" named a building that did
+            # not exist; the build half now names its site and price.
+            _road = yard_road_clause(world, player)
             corps_detail = (
-                "we hold no dockyard to embark from — take or build one")
+                "we hold no dockyard to embark from — take one"
+                + (f", or {_road}" if _road else ""))
     # Verify-fleet copy corrections (Aug 2026): term 1 is scoped to HOME
     # embarkation (the executor's abroad arm has no yard requirement), and
     # term 2 names both lawful embark states.
     expedition_terms = [
         {"text": "a dockyard under our flag (to embark from home soil)",
          "met": bool(yards),
-         "detail": ", ".join(yards) if yards else "take or build one"},
+         "detail": (", ".join(yards) if yards else
+                    "take one" + (f", or {yard_road_clause(world, player)}"
+                                  if yard_road_clause(world, player) else ""))},
         {"text": (f"a corps of {EXPEDITION_MAX_TROOPS:,} men or fewer at a "
                   "yard, or on a foreign shore"),
          "met": bool(ready_corps), "detail": corps_detail},
@@ -3269,8 +3680,8 @@ def map_naval_overlay(world) -> Dict:
         })
     ports: List[str] = []
     for nation in blockaded_nations(world):
-        rec = get_fleet(world, nation) or {}
-        for prov in rec.get("dockyards", []) or []:
+        # SR-5b / NV-D9: a raised yard is a port the blockade shuts too.
+        for prov in nation_dockyards(world, nation):
             if _controller(world, prov) == nation:
                 ports.append(prov)
     return {"sea_link_verdicts": verdicts,
@@ -3426,6 +3837,7 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
     if not corps:
         return {}
     options: Dict[str, List[Dict]] = {}
+    lever_memo: Dict[Tuple[int, str, str], str] = {}
     for region_name, region in world.regions.items():
         if not getattr(region, "is_coastal", False):
             continue
@@ -3448,12 +3860,28 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
                     continue  # march there; the fleet is for what feet cannot
             quote = expedition_slip_odds(world, nation, region_name,
                                          int(marshal.strength))
-            options.setdefault(region_name, []).append({
+            row = {
                 "marshal": marshal.name,
                 "strength": int(marshal.strength),
                 "odds": int(quote["odds"]),
                 "from": marshal.location,
-            })
+            }
+            # SR-5b (AAR-D7): what would make it a better throw — the same
+            # odds function re-asked (`expedition_odds_levers`). Asked only
+            # of an opposed passage; "" rides when nothing moves it.
+            # Memoised per (corps size, watcher, mode): a watcher's coverage
+            # is its pooled strength, the same against every shore it
+            # watches (`expedition_coverage` reads no target in it), so the
+            # levers are exact per key — measured, this keeps the payload
+            # off ~6x the quotes with two corps at a yard (GR8). A drift
+            # pin re-asks every row directly.
+            if THE_EXPEDITION_NAMES_ITS_LEVERS and quote.get("coverer"):
+                key = (int(marshal.strength), quote["coverer"], quote["mode"])
+                if key not in lever_memo:
+                    lever_memo[key] = levers_line(expedition_odds_levers(
+                        world, nation, region_name, int(marshal.strength)))
+                row["levers"] = lever_memo[key]
+            options.setdefault(region_name, []).append(row)
     return options
 
 
@@ -3513,7 +3941,9 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
                 f"a yard ({', '.join(sorted(yards))}) or on a foreign "
                 f"shore — march one there")
         else:
-            no_corps_reason = "we control no dockyard to embark from"
+            _road = yard_road_clause(world, nation)
+            no_corps_reason = ("we control no dockyard to embark from"
+                               + (f" — {_road}" if _road else ""))
     blocked: Dict[str, str] = {}
     for region_name, region in world.regions.items():
         if not getattr(region, "is_coastal", False):
@@ -3757,6 +4187,41 @@ def ai_fleet_ceiling(world, nation: str) -> int:
     # older campaign inherits a ceiling at its current size rather than 0.
     established = int(rec.get("established", rec.get("ships", 0)) or 0)
     return int(round(established * AI_FLEET_CEILING_FACTOR))
+
+
+def find_ai_naval_yard(world, nation: str, treasury: int) -> Optional[Dict]:
+    """SR-5b / NV-D9 — the AI's yard rung (P1.81, GR5): a court that keeps a
+    navy (a fleet record with crews — the build rung's own test) but has
+    lost every yard it could lay a keel in raises one at its best lawful
+    site, at war and with a chest that survives the price and the build
+    rung's own reserve. Never a second yard while one is rising, never a
+    yard for a court that already holds one. The site and every refusal are
+    `can_build`'s (via `naval_yard_sites`) — the same verb, price and gate
+    as the player."""
+    if not NAVAL_YARDS_CAN_BE_BUILT:
+        return None
+    rec = get_fleet(world, nation)
+    if not rec or "readiness" not in rec:
+        return None
+    if controlled_dockyards(world, nation):
+        return None
+    if not world.get_nations_at_war_with(nation):
+        return None
+    for name in raised_yards(world, nation):
+        region = world.regions.get(name)
+        if (region is not None and (region.building_under_construction or {})
+                .get("type") == NAVAL_YARD_BUILDING):
+            return None  # one is already rising
+    from backend.models.region import BUILDING_TYPES
+    cost = int(BUILDING_TYPES[NAVAL_YARD_BUILDING]["gold_cost"])
+    if int(treasury) <= cost + AI_FLEET_TREASURY_RESERVE * SHIP_COST:
+        return None
+    lawful = [name for name, refusal in naval_yard_sites(world, nation)
+              if not refusal]
+    if not lawful:
+        return None
+    return {"marshal": None, "action": "build", "target": lawful[0],
+            "building_type": NAVAL_YARD_BUILDING, "_acting_nation": nation}
 
 
 def find_ai_build_fleet(world, nation: str, treasury: int) -> Optional[Dict]:

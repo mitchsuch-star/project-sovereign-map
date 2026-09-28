@@ -128,23 +128,47 @@ class TestOrderBoundInterruptClearedOnOverride:
         assert ney.pending_interrupt == pending, "the decision survives"
         assert ney.location == "Paris", "he did not march"
 
-    def test_refused_move_still_clears_the_interrupt(self):
-        """The probe's exact shape: the move is REFUSED (enemy in the target)
-        yet the order is cancelled — the interrupt must not outlive it."""
+    def _refused_move(self):
         world, ney, _ = _french_pair()
         enemy = MarshalFactory.infantry(name="Blocker", location="Normandy",
                                         personality="cautious",
                                         nation="Britain")
         world.marshals["Blocker"] = enemy
         ney.strategic_order = _order("Normandy")
-        ney.pending_interrupt = {
+        question = {
             "interrupt_type": "destination_blocked", "marshal": "Ney",
             "options": ["attack", "wait"],
         }
+        ney.pending_interrupt = dict(question)
         result = CommandExecutor().execute(
             {"command": {"marshal": "Ney", "action": "move",
                          "target": "Normandy"}},
             {"world": world})
+        return result, ney, question
+
+    def test_refused_move_keeps_the_order_and_its_question(self):
+        """The probe's exact shape: the move is REFUSED (enemy in the target).
+
+        Flipped consciously by SR-5b SR5B-1 (September 28, 2026). This pin
+        asserted that a refused move still CANCELLED the standing order, so
+        the question had to go with it. SR5B-1 found that premise was the
+        defect — a refused order destroyed the march it never replaced
+        (Soult's march on Lisbon, gone on a refused `attack Lisbon`) — and
+        restores the order on a refusal. The question comes back WITH the
+        order, which is TUT-F4a's own invariant: no order-bound question
+        outlives its order. Either both stand or both go."""
+        result, ney, question = self._refused_move()
+        assert result.get("success") is False
+        assert ney.strategic_order is not None
+        assert ney.pending_interrupt == question
+
+    def test_lever_down_a_refused_move_clears_both(self, monkeypatch):
+        """The pre-SR5B-1 shape, behind its lever: order and question go
+        together, so the invariant holds on both arms."""
+        from backend.commands import executor as EX
+        monkeypatch.setattr(EX, "A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER",
+                            False)
+        result, ney, _question = self._refused_move()
         assert result.get("success") is False
         assert ney.strategic_order is None
         assert ney.pending_interrupt is None
