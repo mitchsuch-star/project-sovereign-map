@@ -49,7 +49,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >   - **99 live defect rows**, each given a slice in the spec (§1, §3).
 >   - **Stale:** 29 defect rows and 45 design rows, to be struck by SF-0.
 >   - **Filed with the spec:** SF-V1 … SF-V4 (`BUG_FIXES.md` §Score Finish Verification).
-> - **The steps** (≈25–26 sessions):
+> - **The steps** (≈27.5 sessions; +1.0 if SF-ECON-1 is needed):
 >   0. SF-0 (the ledger) + SF-M (the instrument) + the baseline reading on `c20d5bba`
 >   1. "The peace holds" (RS-1 + RS-2 + RS-D1, SF-V1; SF-END-1 as the exit)
 >   2. Chunk 6 rebuilt + the reserve + SF-MD-1 + SF-DIP-1
@@ -58,6 +58,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 >   5. Chunk 8 + SF-AGD-1
 >   6. SF-NAV-1 (+ SF-ECON-1 only if needed)
 >   7. Chunk 9 + the user's eyes
+>   7b. **The front page of the peace** (added Sept 28, 2026): every morning has a front page, and the next coalition, with the price to keep each court out, is its news
 >   8. SF-R, the final reading
 > - **The method** (spec §4):
 >   - a fixed benchmark;

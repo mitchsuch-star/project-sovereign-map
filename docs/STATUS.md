@@ -4,6 +4,33 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ STEP 7b ADDED TO THE SCORE FINISH — "THE FRONT PAGE OF THE PEACE" (September 28, 2026; user-directed: "look for one more way to increase score and spec it on the end before rescore")**
+> - **Records:** `docs/SCORE_FINISH_SPEC.md` §3 Step 7b (the spec), Appendix A (corrections), §1.4 (SF-V5). New bug row SF-V5 in `BUG_FIXES.md` §Score Finish Verification. Nothing is built.
+> - **How it was found:** two read-only analyses at `c2dfe40b` came from opposite ends — the checklist's unassigned gaps, and the reviews' unanswered complaints — and reached the same place: **the quiet middle of a winning campaign is not empty, it is untold.**
+>   - **Narration's floor fails, and no step fixed it.** 58 of 120 commanded-arm turns carry no headline at all, which capped the pillar at 6.0: as planned, the mandate would have missed on narration for certain.
+>   - **The leads that do exist are nags.** Two standing ones alternate: Lannes's arrears on 20 turns and the levy on 10, so one class leads 7 of 10 turns.
+>   - **The real news never led.** Meanwhile London and St Petersburg paid Austria six subsidies against France, and Sweden signed with Austria.
+> - **The step** (≈2.5, after Chunk 9, before SF-R). Both parts are display-only, each behind its own lever, and `BASELINE_SERIES` cannot move.
+>   - **Every morning has a front page:**
+>     - a quiet turn is led by its biggest diplomatic row, or by a "state of the realm" line naming what changed;
+>     - the whole standing family shares one lead allowance;
+>     - no class leads more than 4 of any 10 turns.
+>   - **Europe arms in plain sight:**
+>     - one pure reader, `coalition.league_forecast`, names who pays whom, who would march, and which titled provinces their war would reopen;
+>     - **the price to keep each court out** — Talleyrand's turns to −10, and the design buy-off — gives the rich peace a use;
+>     - four league headline classes;
+>     - the Balance of Europe tab and the desk read it.
+> - **Lifts:**
+>   - **Narration** (floor and C1): its chance of reaching 8.0 goes from about 0.15 to about 0.55.
+>   - **Economy C6** and **living balance C5** (re-worded to this step).
+>   - **SF-ECON-1** is re-judged: it is taken only if economy C6 still fails after this step.
+> - **Also from the same research:**
+>   - **SF-V5 (P2):** Britain's whole-war letter is re-sent every three turns and cannot be ratified while a coalition member is in armistice. It is part of the 4–5-modal stacks; it goes to Step 1 as SF-V1's sibling.
+>   - **Four checklist items were re-worded where the first wording contradicted shipped design or measured an accident:** ending C1, diplomacy C5, agendas C5, living balance C5.
+>   - **The baseline preview was refined with measurements.**
+>   - **Three orphans were homed for SF-0:** AI-V scene 1 (the Confederation of the Rhine); NPC-D1; the census's blindness to `###` design headings.
+> - **Total plan:** ≈27.5 sessions. **▶ NEXT is unchanged: Score Finish Step 0.**
+
 > **▶ ▶ ▶ THREE RULINGS FOR THE SCORE FINISH — September 28, 2026** (the user's delegation: *"make decisions on [RS-D1, SR-G7, SF-V4] … commit and push"*)
 > - **Records:** gate records `docs/SCORE_FINISH_SPEC.md` §6.1–§6.3 (authoritative). Design rows RS-D1, SR-G7 and PB-D1 are RULED, RS-D3 is CLOSED as evidence (`DESIGN_REFINEMENT.md`), and bug row SF-V4 is RULED (`BUG_FIXES.md`).
 > - **Nothing is built:** each ruling lands in its step of the plan.
@@ -51,7 +78,7 @@
 >   - **Stale:** 29 defect rows and 45 design rows, fixed but never struck.
 >   - **Design:** 13 items in scope and 11 user gates.
 >   - **Orphans:** a dozen NPC rows and seven others (the NP-X rows, VP-R1-X1, CQ-22) had been homed to slices that landed without them; §1.5 re-homes each one.
-> - **The steps** (spec §3, ≈25–26 sessions):
+> - **The steps** (spec §3, ≈27.5 sessions, +1.0 if SF-ECON-1 is needed):
 >
 >   | Step | What | Sessions |
 >   |---|---|---|
@@ -63,6 +90,7 @@
 >   | 5 | **The client stands:** Chunk 8 (VD-C, the formables on a played road) + SF-AGD-1 | ≈2.0 |
 >   | 6 | **The chest and the sea:** SF-NAV-1 the strangulation played (+ SF-ECON-1 only if needed) | ≈0.7–1.7 |
 >   | 7 | **What the wire says, the screen says:** Chunk 9 + the user's eyes | ≈2.0 |
+>   | 7b | **The front page of the peace** (added Sept 28, 2026, the last build step before the re-score): every morning has a front page, and the next coalition, with the price to keep each court out, is its news | ≈2.5 |
 >   | 8 | **SF-R, the final reading:** the same instrument, the blind panel, the user's EYES items, one hand-played depth campaign for the findings rate | ≈1.0 |
 >
 > - **The new method** (spec §4, Appendix A):
