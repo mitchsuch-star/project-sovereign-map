@@ -155,11 +155,14 @@ class TestEnact:
         assert world.admin_actions_remaining == admin
 
     def test_an_unknown_law_lists_the_courts_laws(self, world, client):
+        # ⚑ RF-2 (Sept 27, 2026): this pin named "the Code Abroad" as a law
+        # France does not have — RF-2 authored it. The Concordat (1801) is
+        # not a law of state here.
         world.nation_gold["France"] = 30000
         admin = world.admin_actions_remaining
-        r = post(client, "enact the Code Abroad")
+        r = post(client, "enact the Concordat")
         assert r["success"] is False
-        assert "no law called 'Code Abroad'" in r["message"]
+        assert "no law called 'Concordat'" in r["message"]
         assert "the Grand Quartier Général (9,000 gold)" in r["message"]
         assert world.admin_actions_remaining == admin
 

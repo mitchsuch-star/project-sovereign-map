@@ -5303,11 +5303,41 @@ class WorldState:
         """
         region = self.get_region(marshal.location)
         trained = bool(region and region.has_building("training_ground"))
-        gain = (self.DRILL_MORALE_GAIN_TRAINED if trained
-                else self.DRILL_MORALE_GAIN)
+        gain = self.drill_morale_gain(getattr(marshal, "nation", None), trained)
         before = int(marshal.morale)
         marshal.adjust_morale(gain)
         return int(marshal.morale) - before
+
+    def drill_morale_gain(self, nation, trained: bool) -> int:
+        """SR-5r RF-2 (REFORMS_SPEC §4 `drill_morale`): the morale a completed
+        drill restores for `nation` — the rung (a training ground or not)
+        plus its laws. ONE figure for the drill, the dispatch's remedy line
+        and the build chip (shown = applied)."""
+        gain = (self.DRILL_MORALE_GAIN_TRAINED if trained
+                else self.DRILL_MORALE_GAIN)
+        if self.reforms and nation:
+            from backend.game_logic.reforms import drill_morale_bonus
+            gain += drill_morale_bonus(self, nation)
+        return int(gain)
+
+    def _drill_law_note(self, marshal, gain: int) -> str:
+        """T8: name the law whose share of a drill's gain was APPLIED (none
+        when the corps reached the cap before the law's share)."""
+        if not self.reforms or gain <= 0:
+            return ""
+        from backend.game_logic.reforms import drill_morale_terms
+        terms = drill_morale_terms(self, getattr(marshal, "nation", None))
+        if not terms:
+            return ""
+        region = self.get_region(marshal.location)
+        trained = bool(region and region.has_building("training_ground"))
+        rung = (self.DRILL_MORALE_GAIN_TRAINED if trained
+                else self.DRILL_MORALE_GAIN)
+        share = max(0, min(sum(v for _n, v in terms), int(gain) - int(rung)))
+        if share <= 0:
+            return ""
+        names = " and ".join(n for n, _v in terms)
+        return f" (+{share} from {names})"
 
     # W6-2 Dynamic Battle Naming — ordinal words for repeat engagements.
     _BATTLE_ORDINALS = {
@@ -6775,11 +6805,18 @@ class WorldState:
             we_penalty = min(1.0, we / 200.0)  # 0.0 → 1.0
             inf_regen = max(1000, int(inf_regen * (1.0 - we_penalty)))
 
-        return {
+        rates = {
             "infantry": int(inf_regen),
             "cavalry": int(cav_regen),
             "artillery": int(art_regen),
         }
+        # SR-5r RF-2 (REFORMS_SPEC §4 `manpower_regen`): a law's percentage
+        # applies LAST, after the war exhaustion and the caps — the one rate
+        # the regen tick applies and every surface quotes.
+        if self.reforms:
+            from backend.game_logic.reforms import apply_manpower_regen
+            rates = apply_manpower_regen(self, nation, rates)
+        return rates
 
     @staticmethod
     def _cavalry_territory_bonus(controlled) -> int:
@@ -7355,7 +7392,15 @@ class WorldState:
                 and self.get_diplomatic_state(nation, region.controller)
                 in self.ALLY_SUPPLY_STATES):
             is_fed = True
-        multiplier = self.HOME_SUPPLY_MULTIPLIER if is_fed else 1.0
+        # SR-5r RF-2 (REFORMS_SPEC §4 `supply_capacity`): a law scales the FED
+        # multiplier — never the 1.0 arm (an unfed army, or a fed coast the
+        # enemy's fleet has strangled) and never the base capacity.
+        fed_multiplier = self.HOME_SUPPLY_MULTIPLIER
+        if self.reforms:
+            from backend.game_logic.reforms import supply_capacity_factor
+            fed_multiplier = self.HOME_SUPPLY_MULTIPLIER * supply_capacity_factor(
+                self, nation)
+        multiplier = fed_multiplier if is_fed else 1.0
         if self.fleets and getattr(region, "is_coastal", False):
             # Slice-8 review [B-F1]: the memo is keyed by NATION, because
             # `shore_supply_state` never reads its region argument — the
@@ -7377,7 +7422,7 @@ class WorldState:
                 if _shore_cache is not None:
                     _shore_cache[nation] = verdict
             if verdict == "lifeline" and not is_fed:
-                multiplier = self.HOME_SUPPLY_MULTIPLIER
+                multiplier = fed_multiplier
             elif verdict == "strangled" and is_fed:
                 multiplier = 1.0
         return multiplier
@@ -9778,8 +9823,8 @@ class WorldState:
                 "cost": _cost("training_ground"),
                 "recruit_morale": int(EconomyExecutor.RECRUIT_MORALE_TRAINED),
                 "recruit_morale_base": int(EconomyExecutor.RECRUIT_MORALE_BASE),
-                "drill_gain": int(self.DRILL_MORALE_GAIN_TRAINED),
-                "drill_gain_base": int(self.DRILL_MORALE_GAIN),
+                "drill_gain": int(self.drill_morale_gain(self.player_nation, True)),
+                "drill_gain_base": int(self.drill_morale_gain(self.player_nation, False)),
             },
             "market": {
                 "cost": _cost("market"),
@@ -10207,7 +10252,7 @@ class WorldState:
                 region, self,
                 base_cost=levy_substitute_price(self, nation),
                 nation=nation, marshal=marshal,
-                foreign_soil=(region.controller != nation)))
+                foreign_soil=(region.controller != nation), draft=False))
         except Exception:
             return 0
 
@@ -13158,7 +13203,8 @@ class WorldState:
                         "nation": marshal.nation,
                         "message": f"DRILL COMPLETE: {marshal.name}'s corps sharpens in a single day — "
                                    f"Drillmaster of Boulogne. +20% attack bonus ready for next battle."
-                                   + _drill_morale_note(marshal, morale_gain),
+                                   + _drill_morale_note(marshal, morale_gain)
+                                   + self._drill_law_note(marshal, morale_gain),
                         "shock_bonus": 2,
                         "morale_gain": int(morale_gain),
                         "morale": int(marshal.morale),
@@ -13191,7 +13237,8 @@ class WorldState:
                         "nation": marshal.nation,
                         "message": f"DRILL COMPLETE: {marshal.name}'s training is finished! "
                                    f"+20% attack bonus ready for next battle."
-                                   + _drill_morale_note(marshal, morale_gain),
+                                   + _drill_morale_note(marshal, morale_gain)
+                                   + self._drill_law_note(marshal, morale_gain),
                         "shock_bonus": 2,
                         "morale_gain": int(morale_gain),
                         "morale": int(marshal.morale),

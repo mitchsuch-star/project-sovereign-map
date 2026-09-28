@@ -228,6 +228,19 @@ def region_feeds_nation(world, nation: str, region) -> bool:
             in world.ALLY_SUPPLY_STATES)
 
 
+def _levy_arm_of(marshal, base_cost) -> Optional[str]:
+    """The arm a draft levy is of, when the caller did not say: the
+    recruiting marshal's own arm (the ONE rule `_execute_recruit` levies
+    by), else the arm whose base price it was asked at, else None (then only
+    a law on every arm applies)."""
+    if marshal is not None:
+        from backend.models.world_state import recruit_arm_of
+        return recruit_arm_of(marshal)
+    return {INFANTRY_RECRUIT_GOLD_COST_BASE: "infantry",
+            CAVALRY_RECRUIT_GOLD_COST_BASE: "cavalry",
+            ARTILLERY_RECRUIT_GOLD_COST_BASE: "artillery"}.get(int(base_cost or 0))
+
+
 def substitute_arrival_morale(executor, region, marshal) -> int:
     """The morale bought men arrive at — the DRAFT's rung, less the premium.
 
@@ -549,7 +562,7 @@ def substitute_quote(world, region_name: str,
     base = levy_substitute_price(world, nation)
     per_batch = int(_levy_pricer()._calculate_recruit_cost(
         region, world, base_cost=base, nation=nation, marshal=marshal,
-        foreign_soil=(region.controller != nation)))
+        foreign_soil=(region.controller != nation), draft=False))
     quote["price"] = per_batch
     treasury = int(world.nation_gold.get(nation, 0))
     if treasury < per_batch:
@@ -606,8 +619,10 @@ def recruit_remedy(world, nation: Optional[str] = None) -> str:
         for m in world.marshals.values()
         if m.nation == nation and m.strength >= 1000
         and not getattr(m, "captured_by", "")))
+    from backend.game_logic.reforms import laws_signature
     key = (nation, int(getattr(world, "current_turn", 0) or 0),
-           int(world.nation_gold.get(nation, 0)), roster)
+           int(world.nation_gold.get(nation, 0)), roster,
+           laws_signature(world, nation))
     cached = getattr(world, "_recruit_remedy_cache", None)
     if cached and cached[0] == key:
         return cached[1]
@@ -826,10 +841,14 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
         quote.update(kind="pool_short", reason=_msg_pool_short(
             world, marshal.nation, levy_arm, available, amount))
         return quote
-    price = int(_levy_pricer()._calculate_recruit_cost(
+    price, price_terms = _levy_pricer()._recruit_cost_terms(
         region, world, base_cost=cost_base, nation=marshal.nation,
-        marshal=marshal))
+        marshal=marshal, arm=levy_arm)
+    price = int(price)
     quote["price"] = price
+    # SR-5r RF-2 (T8): the terms that made the price ride the quote, so a
+    # chip can name a law beside the figure it moved.
+    quote["price_terms"] = list(price_terms)
     have = int(world.nation_gold.get(marshal.nation, 0))
     if have < price:
         quote.update(kind="treasury", reason=_msg_treasury(price, have),
@@ -1152,7 +1171,14 @@ class EconomyExecutor:
         art_regen = world.get_artillery_regen_rate(nation)
 
         lines.append("\n  ═══════ MANPOWER ═══════")
-        lines.append(f"  Infantry Pool:  {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn)")
+        # SR-5r RF-2: the APPLIED rate (war exhaustion and the laws in it),
+        # and the law that moves it, named.
+        inf_regen = int(world.get_manpower_regen_rates(nation).get(
+            "infantry", INFANTRY_BASE_REGEN))
+        from backend.game_logic.reforms import manpower_regen_terms
+        inf_laws = "".join(f" — +{pct}% by {name}" for name, pct
+                           in manpower_regen_terms(world, nation, "infantry"))
+        lines.append(f"  Infantry Pool:  {inf_pool:,} (+{inf_regen:,}/turn{inf_laws})")
         lines.append(f"  Cavalry Pool:   {cav_pool:,} (+{cav_regen:,}/turn)")
         lines.append(f"  Artillery Pool: {art_pool:,} (+{art_regen:,}/turn)")
         if cav_pool < CAVALRY_RECRUIT_AMOUNT:
@@ -1198,15 +1224,20 @@ class EconomyExecutor:
 
     def _calculate_recruit_cost(self, region, world, base_cost: int = 200,
                                 nation: str = None, marshal=None,
-                                foreign_soil: bool = False) -> int:
+                                foreign_soil: bool = False,
+                                arm: Optional[str] = None,
+                                draft: bool = True) -> int:
         """The levy's price — `_recruit_cost_terms` without the terms."""
         return self._recruit_cost_terms(
             region, world, base_cost=base_cost, nation=nation,
-            marshal=marshal, foreign_soil=foreign_soil)[0]
+            marshal=marshal, foreign_soil=foreign_soil, arm=arm,
+            draft=draft)[0]
 
     def _recruit_cost_terms(self, region, world, base_cost: int = 200,
                             nation: str = None, marshal=None,
-                            foreign_soil: bool = False):
+                            foreign_soil: bool = False,
+                            arm: Optional[str] = None,
+                            draft: bool = True):
         """`(cost, terms)` — the recruitment gold cost and the named terms
         that made it, in the order they compose. ONE source for the price and
         for the recruit result's note (CN-3 rider 5: the note named the
@@ -1267,6 +1298,18 @@ class EconomyExecutor:
                     overage = (total_strength - force_limit) / force_limit
                     cost = int(cost * (1.0 + overage))
                     terms.append(f"×{1.0 + overage:.2f} over the ordinance")
+            # SR-5r RF-2 (REFORMS_SPEC §4 `recruit_price`): a law prices the
+            # DRAFT of its arm — never the substitute market, which calls this
+            # same pricer with `draft=False` (the RV-17 rule, DOCTRINES_SPEC
+            # §0.2: "the recruit clauses price the draft, not substitutes").
+            # Named on the terms list (T8), before the Intendance (applied
+            # last, MC-2b).
+            if draft:
+                from backend.game_logic.reforms import recruit_price_terms
+                for law_name, mult in recruit_price_terms(
+                        world, nation, arm or _levy_arm_of(marshal, base_cost)):
+                    cost = int(round(cost * mult))
+                    terms.append(f"×{mult:g} by {law_name}")
             if marshal is not None:
                 # round(), not int(): 200 * 1.15 is 229.999... in floats, and
                 # truncation would break shown-=-applied by a gold.
@@ -1545,7 +1588,7 @@ class EconomyExecutor:
             cost_base = INFANTRY_RECRUIT_GOLD_COST_BASE
         gold_cost, price_terms = self._recruit_cost_terms(
             region, world, base_cost=cost_base, nation=acting_nation,
-            marshal=recruit_marshal)
+            marshal=recruit_marshal, arm=recruit_type)
 
         nation_treasury = world.nation_gold.get(acting_nation, 0)
         if nation_treasury < gold_cost:
@@ -1553,6 +1596,17 @@ class EconomyExecutor:
                 "success": False,
                 "message": _msg_treasury(gold_cost, nation_treasury),
             }
+
+        # SR-5r RF-2 (REFORMS_SPEC §4 `recruit_morale`): a law's term sits on
+        # the green conscripts' BASE — before the training ground's rung and
+        # Moore's floor, which replace it (so it is void where they apply).
+        # The draft only: the substitute market mirrors the unreformed rung.
+        from backend.game_logic.reforms import recruit_morale_terms
+        morale_laws = recruit_morale_terms(world, acting_nation, recruit_type)
+        if morale_laws:
+            RECRUIT_MORALE = max(0, min(100, RECRUIT_MORALE
+                                        + sum(v for _n, v in morale_laws)))
+        law_morale = RECRUIT_MORALE
 
         # Phase 6.2 Audit Fix #6: Training Ground morale bonus buffed from +15% to +30%
         if region.has_building("training_ground"):
@@ -1571,6 +1625,14 @@ class EconomyExecutor:
                 f"Shorncliffe System (morale {RECRUIT_MORALE}, not "
                 f"{self.RECRUIT_MORALE_BASE})."
             )
+
+        # T8: the law is named when its term is what the recruits carry.
+        morale_law_note = ""
+        if morale_laws and RECRUIT_MORALE == law_morale:
+            _names = " and ".join(n for n, _v in morale_laws)
+            morale_law_note = (
+                f" {_names[0].upper() + _names[1:]}: {recruit_type} recruits "
+                f"muster at {RECRUIT_MORALE}, not {self.RECRUIT_MORALE_BASE}.")
 
         # --- Draw from manpower pool ---
         world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
@@ -1656,7 +1718,7 @@ class EconomyExecutor:
 
         return {
             "success": True,
-            "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{shorncliffe_note}{pool_line}{morale_warning}",
+            "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{shorncliffe_note}{morale_law_note}{pool_line}{morale_warning}",
             "events": [{
                 "type": "recruit",
                 "marshal": recipient,
@@ -1926,7 +1988,7 @@ class EconomyExecutor:
         per_batch = self._calculate_recruit_cost(
             region, world, base_cost=base, nation=acting_nation,
             marshal=marshal,
-            foreign_soil=(region.controller != acting_nation))
+            foreign_soil=(region.controller != acting_nation), draft=False)
         gold_cost = int(per_batch * batches)
 
         treasury = int(world.nation_gold.get(acting_nation, 0))
@@ -1944,7 +2006,7 @@ class EconomyExecutor:
         # decision.
         drafted = self._calculate_recruit_cost(
             region, world, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,
-            nation=acting_nation, marshal=marshal)
+            nation=acting_nation, marshal=marshal, arm="infantry")
 
         old_strength = int(marshal.strength)
         old_morale = int(marshal.morale)
@@ -3147,7 +3209,7 @@ def get_levy_status(world, nation: str = None) -> dict:
     if region is not None:
         price = int(_levy_pricer()._calculate_recruit_cost(
             region, world, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE,
-            nation=nation))
+            nation=nation, arm="infantry"))
 
     headroom = max(0, limit - total) if limit else 0
     # ══════════════════════════════════════════════════════════════════
@@ -3216,7 +3278,7 @@ def get_levy_status(world, nation: str = None) -> dict:
         "substitutes": ({
             "price": int(_levy_pricer()._calculate_recruit_cost(
                 region, world, base_cost=levy_substitute_price(world, nation),
-                nation=nation)) if region is not None else 0,
+                nation=nation, draft=False)) if region is not None else 0,
             "amount": int(INFANTRY_RECRUIT_AMOUNT),
             "max_batches": int(LEVY_MAX_BATCH),
             "ceiling": int(levy_purchase_ceiling(world, nation)),

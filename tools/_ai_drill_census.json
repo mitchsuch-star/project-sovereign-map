@@ -1,0 +1,123 @@
+{
+ "arms": {
+  "sim": {
+   "ai_marshal_turns": 662,
+   "by_personality": {
+    "cautious": 506,
+    "literal": 120,
+    "aggressive": 36
+   },
+   "drill_orders_by_nation_personality": {
+    "Austria|cautious": 1,
+    "Austria|literal": 1,
+    "Britain|aggressive": 1,
+    "Britain|cautious": 2,
+    "Russia|cautious": 2,
+    "Russia|literal": 1
+   },
+   "drills_completed_by_nation": {
+    "Russia": 3,
+    "Britain": 3,
+    "Austria": 1
+   },
+   "below_70_marshal_turns": 9,
+   "below_70_and_drill_safe": 4,
+   "below_70_and_drill_safe_by_personality_action": {
+    "literal|wait": 2,
+    "literal|move": 1,
+    "literal|garrison": 1
+   },
+   "longest_debased_marshals": [
+    [
+     "Bavaria:Deroy",
+     3,
+     61
+    ],
+    [
+     "Austria:Mack",
+     2,
+     60
+    ],
+    [
+     "Austria:ArchdukeJohn",
+     2,
+     69
+    ],
+    [
+     "Britain:Paget",
+     1,
+     64
+    ],
+    [
+     "Britain:Shrapnel",
+     1,
+     69
+    ]
+   ],
+   "mean_ai_morale_by_turn_bucket": {
+    "1-10": 99.4,
+    "11-20": 97.3,
+    "21-30": 96.8,
+    "31-40": 99.2
+   }
+  },
+  "commanded": {
+   "ai_marshal_turns": 625,
+   "by_personality": {
+    "cautious": 506,
+    "literal": 88,
+    "aggressive": 31
+   },
+   "drill_orders_by_nation_personality": {
+    "Britain|aggressive": 1,
+    "Britain|cautious": 1,
+    "Russia|literal": 1
+   },
+   "drills_completed_by_nation": {
+    "Russia": 1,
+    "Britain": 2,
+    "France": 15
+   },
+   "below_70_marshal_turns": 51,
+   "below_70_and_drill_safe": 33,
+   "below_70_and_drill_safe_by_personality_action": {
+    "literal|wait": 20,
+    "cautious|wait": 4,
+    "cautious|fortify": 3,
+    "literal|move": 2,
+    "literal|defend": 1,
+    "literal|fortify": 1,
+    "cautious|move": 1,
+    "cautious|break_square": 1
+   },
+   "longest_debased_marshals": [
+    [
+     "Austria:Mack",
+     27,
+     0
+    ],
+    [
+     "Austria:ArchdukeJohn",
+     15,
+     0
+    ],
+    [
+     "Bavaria:Deroy",
+     6,
+     7
+    ],
+    [
+     "Britain:Paget",
+     3,
+     50
+    ]
+   ],
+   "mean_ai_morale_by_turn_bucket": {
+    "1-10": 87.4,
+    "11-20": 93.9,
+    "21-30": 96.9,
+    "31-40": 96.9
+   }
+  }
+ }
+}

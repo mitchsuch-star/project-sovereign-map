@@ -2664,7 +2664,8 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     if event_type == "blockade_begins":
         nation = display_nation(event.get("nation", "Unknown"))
         blockader = display_nation(event.get("blockader", "Unknown"))
-        return f"BLOCKADE: {blockader} closes {nation}'s ports — trade halved, crews rot at anchor"
+        trade = str(event.get("trade_words") or "halved")
+        return f"BLOCKADE: {blockader} closes {nation}'s ports — trade {trade}, crews rot at anchor"
 
     if event_type == "blockade_broken":
         nation = display_nation(event.get("nation", "Unknown"))

@@ -598,7 +598,12 @@ func _render_economy():
 	# war ship upkeep — signed Net components (same SC-33 contract).
 	var blockade = int(econ.get("blockade", 0))
 	if blockade > 0:
-		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Blockade: -" + str(blockade) + "g  (trade halved under enemy sail)[/color]\n"
+		# SR-5r RF-2 (T8): the backend says what the blockade does to our
+		# trade — "halved", or the deeper cut and the law that made it.
+		var blockade_note = str(econ.get("blockade_note", ""))
+		if blockade_note == "":
+			blockade_note = "trade halved under enemy sail"
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Blockade: -" + str(blockade) + "g  (" + blockade_note + ")[/color]\n"
 	var admiralty = int(econ.get("admiralty", 0))
 	if admiralty > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Admiralty: -" + str(admiralty) + "g[/color]\n"

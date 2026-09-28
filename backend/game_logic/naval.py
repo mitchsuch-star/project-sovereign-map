@@ -676,10 +676,16 @@ def blockade_forecast_sentence(world, actor: str) -> str:
     if fc["closes"]:
         _n = len(fc["closes"])
         _poss = "her" if _n == 1 else "their"
+        _cut = "halved"
+        if getattr(world, "reforms", None):
+            from backend.game_logic.reforms import blockade_denial_factor
+            _f = blockade_denial_factor(world, actor)
+            if _f != 1.0:
+                _cut = (f"cut by {min(100, int(round((1.0 - BLOCKADE_TRADE_FACTOR) * _f * 100)))}%")
         parts.append(
             f"{_name_list([r['nation'] for r in fc['closes']])} "
             f"{'is' if _n == 1 else 'are'} closed — {_poss} "
-            f"ports watched and {_poss} trade halved.")
+            f"ports watched and {_poss} trade {_cut}.")
     else:
         parts.append("No enemy port is closed by it.")
     for row in fc["beyond_reach"]:
@@ -899,8 +905,37 @@ def blockade_trade_loss(world) -> Dict[str, int]:
     for nation in blockaded_nations(world):
         gross = int(full.get(nation, 0))
         if gross > 0:
-            losses[nation] = gross - int(gross * BLOCKADE_TRADE_FACTOR)
+            base = gross - int(gross * BLOCKADE_TRADE_FACTOR)
+            # SR-5r RF-2 (REFORMS_SPEC §4 `blockade_denial`): the BLOCKADER's
+            # law deepens the loss (the Orders in Council) — here, inside the
+            # one function every surface reads, so shown = applied.
+            factor = blockade_denial_factor_against(world, nation)
+            losses[nation] = (base if factor == 1.0
+                              else min(gross, int(round(base * factor))))
     return losses
+
+
+def blockade_denial_factor_against(world, nation: str) -> float:
+    """The multiplier on `nation`'s blockade loss: its blockader's laws."""
+    if not getattr(world, "reforms", None):
+        return 1.0
+    from backend.game_logic.reforms import blockade_denial_factor
+    blockader, _coverage = blockader_against(world, nation)
+    return blockade_denial_factor(world, blockader) if blockader else 1.0
+
+
+def blockade_trade_words(world, nation: str) -> str:
+    """What the blockade does to `nation`'s trade, in words — "halved", or
+    the deeper cut and the law that made it (T8). ONE phrase for the Board,
+    the ledger note, the blockade beat and the campaign log."""
+    factor = blockade_denial_factor_against(world, nation)
+    if factor == 1.0:
+        return "halved"
+    share = int(round((1.0 - BLOCKADE_TRADE_FACTOR) * factor * 100))
+    blockader, _c = blockader_against(world, nation)
+    from backend.game_logic.reforms import blockade_denial_terms
+    names = " and ".join(n for n, _v in blockade_denial_terms(world, blockader))
+    return f"cut by {min(share, 100)}% ({names})" if names else f"cut by {min(share, 100)}%"
 
 
 def ship_upkeep(world, nation: str) -> int:
@@ -952,6 +987,38 @@ def continental_ports_total(world) -> int:
     return total
 
 
+def _decree_counts(world, lord: str) -> bool:
+    if not getattr(world, "reforms", None):
+        return False
+    from backend.game_logic.reforms import decree_counts_every_client
+    return decree_counts_every_client(world, lord) is not None
+
+
+def decree_clients(world, target: str) -> List[str]:
+    """T8: the clients whose ports are counted against `target` ONLY by
+    their lord's decree (autonomous clients under the Berlin Decree) — the
+    same test `closure_against` applies, for the Admiralty's CS line."""
+    if not getattr(world, "reforms", None):
+        return []
+    from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
+    out = []
+    for nation, rec in get_fleets(world).items():
+        if nation == META_KEY or nation == target or not isinstance(rec, dict):
+            continue
+        if rec.get("island") or int(rec.get("ports", 0) or 0) <= 0:
+            continue
+        if world.is_at_war(nation, target):
+            continue
+        vstate = (getattr(world, "vassals", {}) or {}).get(nation) or {}
+        lord = vstate.get("lord")
+        if (lord and world.is_at_war(lord, target)
+                and vstate.get("autonomy", AUTONOMY_SATELLITE)
+                not in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)
+                and _decree_counts(world, lord)):
+            out.append(nation)
+    return out
+
+
 def closure_against(world, target: str) -> float:
     """§5.1 closure = Σ ports of (nations at war with `target` + their
     PUPPET/SATELLITE vassals + CS members) ÷ Σ all continental ports.
@@ -981,8 +1048,13 @@ def closure_against(world, target: str) -> float:
             vstate = vassals.get(nation) or {}
             lord = vstate.get("lord")
             if (lord and world.is_at_war(lord, target)
-                    and vstate.get("autonomy", AUTONOMY_SATELLITE)
-                    in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)):
+                    and (vstate.get("autonomy", AUTONOMY_SATELLITE)
+                         in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)
+                         # SR-5r RF-2 (REFORMS_SPEC §4 `cs_closure`): under
+                         # the lord's Berlin Decree every client shuts its
+                         # ports, whatever its autonomy — read LAST so an
+                         # unreformed board never asks.
+                         or _decree_counts(world, lord))):
                 counted = True
             else:
                 # NV-10 — THE CONQUERED COAST. Ports are authored per
@@ -2479,14 +2551,20 @@ def process_naval_turn(world) -> List[Dict]:
     for nation in now_blockaded:
         if nation not in prev_blockaded:
             blockader, _cov = blockader_against(world, nation)
+            # SR-5r RF-2 (T8): the beat and the log say what the blockade
+            # does to the trade AS IT BEGINS — "halved", or the deeper cut
+            # and the law that made it (the Orders in Council).
+            trade_words = blockade_trade_words(world, nation)
             event = {
                 "type": "blockade_begins", "turn": int(world.current_turn),
                 "nation": nation, "blockader": blockader or "",
+                "trade_words": trade_words,
             }
             world.log_event(event)
             events.append(event)
             queue_dispatch_event(world, "blockade_begins", {
                 "nation": nation, "blockader": blockader or "the enemy",
+                "trade_words": trade_words,
             }, "always")
     for nation in prev_blockaded:
         if nation not in now_blockaded and get_fleet(world, nation) is not None:
@@ -2820,7 +2898,7 @@ def build_admiralty_report(world) -> Dict:
         effects = []
         loss = int(losses.get(nation, 0))
         if loss > 0:
-            effects.append(f"trade halved (−{loss}/turn)")
+            effects.append(f"trade {blockade_trade_words(world, nation)} (−{loss}/turn)")
         if int(rec.get("ships", 0) or 0) > 0:
             effects.append("the fleet pinned in port")
         if rec.get("island"):

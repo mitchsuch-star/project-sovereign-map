@@ -1,0 +1,254 @@
+[
+  {
+    "id": "regen percent never applies",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if pct:\n            rates[pool] = int(rates[pool] * (100 + pct) // 100)\n",
+    "new": "        if False:\n            rates[pool] = int(rates[pool] * (100 + pct) // 100)\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestManpowerRegen"
+  },
+  {
+    "id": "the price reader ignores the arm",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    want = (\"all\", arm) if arm else (\"all\",)\n    return _terms(world, nation, \"recruit_price\", \"arm\", want, float)\n",
+    "new": "    want = (\"all\", \"infantry\", \"cavalry\", \"artillery\")\n    return _terms(world, nation, \"recruit_price\", \"arm\", want, float)\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_the_law_prices_its_arm_and_names_itself"
+  },
+  {
+    "id": "the morale reader ignores the arm",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    want = (\"all\", arm) if arm else (\"all\",)\n    return _terms(world, nation, \"recruit_morale\", \"arm\", want, int)\n",
+    "new": "    want = (\"all\", \"infantry\", \"cavalry\", \"artillery\")\n    return _terms(world, nation, \"recruit_morale\", \"arm\", want, int)\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitMorale::test_the_bonus_reader_by_arm"
+  },
+  {
+    "id": "supply factor never multiplies",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    factor = 1.0\n    for _n, value in supply_capacity_terms(world, nation):\n        factor *= value\n",
+    "new": "    factor = 1.0\n    for _n, value in supply_capacity_terms(world, nation):\n        factor *= 1.0\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestSupplyCapacity"
+  },
+  {
+    "id": "the decree rule is not read",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if clause.get(\"rule\") == \"every_client\":\n            return display_name(row)\n",
+    "new": "        if clause.get(\"rule\") == \"every_port\":\n            return display_name(row)\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheBerlinDecree"
+  },
+  {
+    "id": "the blockade factor never multiplies",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    factor = 1.0\n    for _n, value in blockade_denial_terms(world, blockader):\n        factor *= value\n",
+    "new": "    factor = 1.0\n    for _n, value in blockade_denial_terms(world, blockader):\n        factor *= 1.0\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheOrdersInCouncil"
+  },
+  {
+    "id": "the laws signature is constant",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return tuple(sorted(str(r.get(\"id\") or \"\") for r in laws_in_force(world, nation)))\n",
+    "new": "    return ()\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_an_authority_law_moves_the_remedy_cache"
+  },
+  {
+    "id": "regen laws never applied at the seam",
+    "file": "backend/models/world_state.py",
+    "old": "        if self.reforms:\n            from backend.game_logic.reforms import apply_manpower_regen\n",
+    "new": "        if False:\n            from backend.game_logic.reforms import apply_manpower_regen\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestManpowerRegen"
+  },
+  {
+    "id": "the drill law never adds",
+    "file": "backend/models/world_state.py",
+    "old": "        if self.reforms and nation:\n            from backend.game_logic.reforms import drill_morale_bonus\n",
+    "new": "        if False:\n            from backend.game_logic.reforms import drill_morale_bonus\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestDrillMorale"
+  },
+  {
+    "id": "the drill note claims the whole law",
+    "file": "backend/models/world_state.py",
+    "old": "        share = max(0, min(sum(v for _n, v in terms), int(gain) - int(rung)))\n",
+    "new": "        share = sum(v for _n, v in terms)\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestDrillMorale::test_the_note_names_the_applied_share"
+  },
+  {
+    "id": "the build chip quotes the bare constant",
+    "file": "backend/models/world_state.py",
+    "old": "                \"drill_gain_base\": int(self.drill_morale_gain(self.player_nation, False)),",
+    "new": "                \"drill_gain_base\": int(self.DRILL_MORALE_GAIN),",
+    "tests": "tests/test_rf2_the_catalogue.py::TestDrillMorale::test_the_build_chip_quotes_it"
+  },
+  {
+    "id": "the fed multiplier ignores the law",
+    "file": "backend/models/world_state.py",
+    "old": "            fed_multiplier = self.HOME_SUPPLY_MULTIPLIER * supply_capacity_factor(\n                self, nation)\n",
+    "new": "            fed_multiplier = self.HOME_SUPPLY_MULTIPLIER\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestSupplyCapacity"
+  },
+  {
+    "id": "the law scales the unfed arm too",
+    "file": "backend/models/world_state.py",
+    "old": "        multiplier = fed_multiplier if is_fed else 1.0\n",
+    "new": "        multiplier = fed_multiplier if is_fed else fed_multiplier / self.HOME_SUPPLY_MULTIPLIER\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestSupplyCapacity::test_the_fed_multiplier_only"
+  },
+  {
+    "id": "the draft is never priced by a law",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if draft:\n                from backend.game_logic.reforms import recruit_price_terms\n",
+    "new": "            if False:\n                from backend.game_logic.reforms import recruit_price_terms\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice"
+  },
+  {
+    "id": "substitutes are priced by the law",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        foreign_soil=(region.controller != nation), draft=False))\n    quote[\"price\"] = per_batch",
+    "new": "        foreign_soil=(region.controller != nation), draft=True))\n    quote[\"price\"] = per_batch",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_the_substitute_chip_is_never_priced_by_a_law"
+  },
+  {
+    "id": "the law term is not named",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                    terms.append(f\"×{mult:g} by {law_name}\")\n",
+    "new": "                    pass\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice"
+  },
+  {
+    "id": "the arm is not inferred from the base",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    return {INFANTRY_RECRUIT_GOLD_COST_BASE: \"infantry\",\n",
+    "new": "    return {-1: \"infantry\",\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_the_arm_is_read_from_the_base_when_not_given"
+  },
+  {
+    "id": "the quote carries no terms",
+    "file": "backend/commands/economy_executor.py",
+    "old": "    quote[\"price_terms\"] = list(price_terms)",
+    "new": "    quote[\"price_terms\"] = []",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_the_executor_charges_the_quoted_price_and_names_the_law"
+  },
+  {
+    "id": "the remedy key forgets the laws",
+    "file": "backend/commands/economy_executor.py",
+    "old": "           int(world.nation_gold.get(nation, 0)), roster,\n           laws_signature(world, nation))",
+    "new": "           int(world.nation_gold.get(nation, 0)), roster)",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_an_authority_law_moves_the_remedy_cache"
+  },
+  {
+    "id": "the morale law never applies",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if morale_laws:\n            RECRUIT_MORALE = max(0, min(100, RECRUIT_MORALE\n",
+    "new": "        if False:\n            RECRUIT_MORALE = max(0, min(100, RECRUIT_MORALE\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitMorale"
+  },
+  {
+    "id": "the morale law survives the training ground",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if region.has_building(\"training_ground\"):\n            RECRUIT_MORALE = self.RECRUIT_MORALE_TRAINED\n",
+    "new": "        if region.has_building(\"training_ground\") and not morale_laws:\n            RECRUIT_MORALE = self.RECRUIT_MORALE_TRAINED\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitMorale::test_a_training_ground_voids_it"
+  },
+  {
+    "id": "the morale note is never told",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if morale_laws and RECRUIT_MORALE == law_morale:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitMorale::test_the_law_raises_the_draft_and_names_itself"
+  },
+  {
+    "id": "the report quotes the base rate",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        lines.append(f\"  Infantry Pool:  {inf_pool:,} (+{inf_regen:,}/turn{inf_laws})\")\n",
+    "new": "        lines.append(f\"  Infantry Pool:  {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn{inf_laws})\")\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestManpowerRegen::test_the_treasury_report_names_it_and_quotes_the_applied_rate"
+  },
+  {
+    "id": "the ledger row names no regen law",
+    "file": "backend/game_logic/ledger.py",
+    "old": "            \"regen_terms\": [[n, int(v)] for n, v in\n                            manpower_regen_terms(world, player, pool_type)],\n",
+    "new": "            \"regen_terms\": [],\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestManpowerRegen::test_the_ledger_row_names_it"
+  },
+  {
+    "id": "the ledger blockade note is silent",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        blockade_note = f\"trade {blockade_trade_words(world, player)} under enemy sail\"",
+    "new": "        blockade_note = \"\"",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheOrdersInCouncil::test_the_ledger_reads_the_same_loss_and_words"
+  },
+  {
+    "id": "the forecast forgets the law",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    forecast = (drift + garrison_bonus + law_bonus + subsidy_bonus\n",
+    "new": "    forecast = (drift + garrison_bonus + subsidy_bonus\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestSatelliteLoyalty"
+  },
+  {
+    "id": "the tick forgets the law",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        for law_name, law_value in laws_by_lord[lord]:\n            _contribute(law_name, law_value)\n",
+    "new": "        for law_name, law_value in laws_by_lord[lord]:\n            pass\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestSatelliteLoyalty"
+  },
+  {
+    "id": "the decree never counts a client",
+    "file": "backend/game_logic/naval.py",
+    "old": "                         or _decree_counts(world, lord))):\n",
+    "new": "                         or False)):\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheBerlinDecree"
+  },
+  {
+    "id": "the loss ignores the blockader's law",
+    "file": "backend/game_logic/naval.py",
+    "old": "            factor = blockade_denial_factor_against(world, nation)\n            losses[nation] = (base if factor == 1.0\n",
+    "new": "            factor = 1.0\n            losses[nation] = (base if factor == 1.0\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheOrdersInCouncil"
+  },
+  {
+    "id": "the blockaded court's own law counts",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return blockade_denial_factor(world, blockader) if blockader else 1.0\n",
+    "new": "    return blockade_denial_factor(world, nation)\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheOrdersInCouncil::test_the_blockaded_courts_own_law_does_nothing"
+  },
+  {
+    "id": "the board says halved",
+    "file": "backend/game_logic/naval.py",
+    "old": "            effects.append(f\"trade {blockade_trade_words(world, nation)} (−{loss}/turn)\")",
+    "new": "            effects.append(f\"trade halved (−{loss}/turn)\")",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheOrdersInCouncil::test_the_board_says_it"
+  },
+  {
+    "id": "the log ignores the words",
+    "file": "backend/campaign_log.py",
+    "old": "        trade = str(event.get(\"trade_words\") or \"halved\")\n",
+    "new": "        trade = \"halved\"\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheOrdersInCouncil::test_the_beat_and_the_log_carry_the_words"
+  },
+  {
+    "id": "the validator skips clause shapes",
+    "file": "backend/modding/validator.py",
+    "old": "                    else:\n                        _validate_law_clause(result, cp, etype, clause,\n",
+    "new": "                    elif False:\n                        _validate_law_clause(result, cp, etype, clause,\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheClauseShapes"
+  },
+  {
+    "id": "the validator allows extra keys",
+    "file": "backend/modding/validator.py",
+    "old": "    if extra:\n        result.add_error(cp, f\"{etype} does not read {extra}\")\n",
+    "new": "    if False:\n        result.add_error(cp, f\"{etype} does not read {extra}\")\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheClauseShapes"
+  },
+  {
+    "id": "a float of 1.0 passes",
+    "file": "backend/modding/validator.py",
+    "old": "            elif kind == \"float\" and value == 1.0:\n",
+    "new": "            elif False:\n",
+    "tests": "tests/test_rf2_the_catalogue.py::TestTheClauseShapes"
+  },
+  {
+    "id": "the substitute purchase is priced by the law",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            foreign_soil=(region.controller != acting_nation), draft=False)\n        gold_cost = int(per_batch * batches)",
+    "new": "            foreign_soil=(region.controller != acting_nation), draft=True)\n        gold_cost = int(per_batch * batches)",
+    "tests": "tests/test_rf2_the_catalogue.py::TestRecruitPrice::test_the_substitute_purchase_is_never_priced_by_a_law"
+  }
+]

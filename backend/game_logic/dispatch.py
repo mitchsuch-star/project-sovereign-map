@@ -2780,8 +2780,14 @@ def _derive_danger(marshal, world, player_nation: str,
             if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
                 tail = " Drilling now."
             else:
-                gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
-                trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
+                # SR-5r RF-2: the gain the drill will APPLY, laws included.
+                _gain_of = getattr(world, "drill_morale_gain", None)
+                if callable(_gain_of):
+                    gain = int(_gain_of(marshal.nation, False))
+                    trained = int(_gain_of(marshal.nation, True))
+                else:
+                    gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
+                    trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
                 tail = (f" Two turns of drill would steady them (+{gain} morale; "
                         f"+{trained} with a training ground).")
         return f"Morale failing ({int(marshal.morale)}) — the men waver.{tail}"
@@ -5475,7 +5481,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # never per-turn repetition; the two strait beats carry a prebuilt
     # {line} because two emitters share the type).
     "blockade_begins": (
-        "BLOCKADE: {blockader} closes {nation}'s ports. Trade is halved "
+        "BLOCKADE: {blockader} closes {nation}'s ports. Trade is {trade_words} "
         "and the fleet is pinned at anchor, where crews rot."
     ),
     "blockade_broken": (
@@ -5956,6 +5962,10 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         template_vars["carved_name"] = with_definite_article(
             display_nation(template_vars.get("carved_name", "")),
             capitalize=True)
+    if event_type == "blockade_begins" and "trade_words" not in template_vars:
+        # SR-5r RF-2: a beat queued before the Orders in Council could deepen
+        # the cut carries no words — it was halved then (never a raw brace).
+        template_vars = dict(template_vars, trade_words="halved")
     try:
         return template.format(**template_vars)
     except (KeyError, IndexError):

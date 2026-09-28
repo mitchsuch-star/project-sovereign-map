@@ -859,6 +859,36 @@ def _validate_statecraft(result, data: dict, known_nations: set) -> None:
                     f"got {value}")
 
 
+def _validate_law_clause(result, cp: str, etype: str, clause: dict,
+                         shape: dict) -> None:
+    """SR-5r RF-2 (REFORMS_SPEC §4): a wired clause carries exactly its
+    type's parameters (`reforms.CLAUSE_SHAPES`) — a value within its bounds,
+    a choice from its closed list. An extra key is refused: a parameter the
+    seam does not read would be a promise the law cannot keep."""
+    for key, spec in shape.items():
+        if key not in clause:
+            result.add_error(cp, f"{etype} needs '{key}'")
+            continue
+        value = clause.get(key)
+        if spec and isinstance(spec[0], str) and spec[0] in ("int", "float"):
+            kind, low, high = spec
+            ok_type = (isinstance(value, int) and not isinstance(value, bool)
+                       if kind == "int" else
+                       isinstance(value, (int, float)) and not isinstance(value, bool))
+            if not ok_type or not (low <= value <= high):
+                result.add_error(
+                    cp, f"{etype}.{key} must be {kind} in [{low}, {high}], "
+                        f"got {value!r}")
+            elif kind == "float" and value == 1.0:
+                result.add_error(cp, f"{etype}.{key} of 1.0 does nothing")
+        elif value not in spec:
+            result.add_error(
+                cp, f"{etype}.{key} must be one of {spec}, got {value!r}")
+    extra = sorted(set(clause) - set(shape) - {"type"})
+    if extra:
+        result.add_error(cp, f"{etype} does not read {extra}")
+
+
 def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
     """SR-5r RF-0 (REFORMS_SPEC §1, §4, §5, §10): the authored `reforms`
     block — {court: [law row]}. Every row carries id / name / date /
@@ -872,7 +902,8 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
     if "reforms" not in data:
         return
     from backend.game_logic.reforms import (
-        CURRENCIES, EFFECT_TYPES, GREAT_POWERS, MAX_CLAUSES, WIRED_EFFECT_TYPES)
+        CLAUSE_SHAPES, CURRENCIES, EFFECT_TYPES, GREAT_POWERS, MAX_CLAUSES,
+        WIRED_EFFECT_TYPES)
     block = data.get("reforms")
     if not isinstance(block, dict):
         result.add_error("reforms",
@@ -945,6 +976,9 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                                 cp, "The Staff mints exactly one action "
                                     "(value 1 — R7)")
                         staffs.append(row)
+                    else:
+                        _validate_law_clause(result, cp, etype, clause,
+                                             CLAUSE_SHAPES.get(etype) or {})
         if len(staffs) != 1:
             result.add_error(
                 path, f"Exactly one Staff (the `actions` law) per court — "

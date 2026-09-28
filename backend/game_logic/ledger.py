@@ -635,6 +635,12 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # SR-5r RF-1 (REFORMS_SPEC §2.2): the upkeep of the laws in force — its
     # own signed Net component, rendered as a "Laws" line (SC-33).
     laws = int(income_data.get("laws", 0))
+    # SR-5r RF-2 (T8): what the blockade does to our trade, in words — the
+    # ledger's Blockade line reads it ("halved", or the deeper cut and its law).
+    blockade_note = ""
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import blockade_trade_words
+        blockade_note = f"trade {blockade_trade_words(world, player)} under enemy sail"
     # EC-U2 (Combat Overhaul Phase 4): per-turn maintenance of built
     # structures — its own signed Net component, rendered as an
     # "Infrastructure" line (same SC-33 contract; NET_GOLD_COMPONENTS-guarded).
@@ -854,6 +860,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
         "laws": laws,
+        "blockade_note": blockade_note,
         "infrastructure": infrastructure,
         "upkeep": upkeep,
         "upkeep_base": upkeep_base,
@@ -1032,6 +1039,8 @@ def _build_manpower(world, player: str) -> dict:
     # this panel and the charge agree.
     from backend.commands.economy_executor import (
         _levy_pricer, depot_closed_reason, recruit_location_gate)
+    from backend.game_logic.reforms import (
+        manpower_regen_terms, recruit_price_terms)
     capital = world.get_nation_capital(player)
     capital_region = world.get_region(capital) if capital else None
     # IQ-2: the tab priced the levy "at the capital" with Austria in Paris —
@@ -1069,7 +1078,7 @@ def _build_manpower(world, player: str) -> dict:
             live_price = int(_levy_pricer()._calculate_recruit_cost(
                 capital_region, world,
                 base_cost=int(config["recruit_base_cost"]),
-                nation=player))
+                nation=player, arm=pool_type))
 
         result[pool_type] = {
             "current": current,
@@ -1083,6 +1092,12 @@ def _build_manpower(world, player: str) -> dict:
                 "Live price at the capital — war, stability, force limit "
                 "and the recruiting marshal all move it"),
             "turns_until_full": int(turns_until_full),
+            # SR-5r RF-2 (T8): the laws that move this pool's regen and this
+            # arm's draft price, named — [law, +percent] / [law, ×mult].
+            "regen_terms": [[n, int(v)] for n, v in
+                            manpower_regen_terms(world, player, pool_type)],
+            "price_terms": [[n, float(v)] for n, v in
+                            recruit_price_terms(world, player, pool_type)],
         }
         if depot_note:
             # IQ-2: the note names the closed depot; `depot_closed` lets the

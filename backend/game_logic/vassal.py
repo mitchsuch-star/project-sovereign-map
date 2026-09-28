@@ -802,6 +802,11 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
         garrison_present = True
         garrison_bonus = GARRISON_LOYALTY_BONUS
 
+    # Step 2b (SR-5r RF-2): the lord's laws — the SAME term the tick applies.
+    from backend.game_logic.reforms import satellite_loyalty_terms
+    law_terms = satellite_loyalty_terms(world, lord)
+    law_bonus = int(sum(v for _n, v in law_terms))
+
     # Step 3: standing gold-subsidy treaty clauses (+1 per 100g/turn).
     subsidy_bonus = 0
     for treaty in getattr(world, 'active_treaties', {}).values():
@@ -829,8 +834,8 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
     grip = get_imperial_grip(world, lord)
     grip_drift = authority_vassal_drift(grip)
 
-    forecast = (drift + garrison_bonus + subsidy_bonus + shared_enemy_bonus
-                + relation_modifier + grip_drift)
+    forecast = (drift + garrison_bonus + law_bonus + subsidy_bonus
+                + shared_enemy_bonus + relation_modifier + grip_drift)
     if forecast > 0:
         trend = "rising"
     elif forecast < 0:
@@ -844,6 +849,9 @@ def forecast_vassal_loyalty(world, lord: str, vassal_name: str) -> dict:
         "drift": int(drift),
         "garrison_present": garrison_present,
         "garrison_bonus": int(garrison_bonus),
+        # SR-5r RF-2 (T8): the lord's laws, each named — [law, +loyalty].
+        "law_bonus": int(law_bonus),
+        "law_terms": [[n, int(v)] for n, v in law_terms],
         "subsidy_bonus": int(subsidy_bonus),
         "shared_enemy_bonus": int(shared_enemy_bonus),
         "relation_modifier": int(relation_modifier),
@@ -874,6 +882,10 @@ def process_vassal_loyalty(world) -> List[dict]:
     # VS-R: imperial grip is per-LORD; memoize so multiple satellites of the
     # same lord don't recompute it (GR8 — no repeated per-region scans).
     grip_by_lord: dict = {}
+    # SR-5r RF-2: the lord's `satellite_loyalty` laws, per lord, the SAME
+    # reader the forecast quotes.
+    from backend.game_logic.reforms import satellite_loyalty_terms
+    laws_by_lord: dict = {}
 
     for vassal_name, state in list(world.vassals.items()):
         lord = state["lord"]
@@ -907,6 +919,14 @@ def process_vassal_loyalty(world) -> List[dict]:
         vassal_capital = world.get_nation_capital(vassal_name)
         if vassal_capital and lord_garrison_present(world, lord, vassal_capital):
             _contribute("the garrison's presence", GARRISON_LOYALTY_BONUS)
+
+        # 2b. (SR-5r RF-2) The lord's laws — every client of the lord, at full
+        # value (a standing act of state, like the garrison: not reduced by
+        # the grip). Named by the law, so the event names its cause (T8).
+        if lord not in laws_by_lord:
+            laws_by_lord[lord] = satellite_loyalty_terms(world, lord)
+        for law_name, law_value in laws_by_lord[lord]:
+            _contribute(law_name, law_value)
 
         # 3. Gold investment from treaty clauses
         for pair_key, treaty in getattr(world, 'active_treaties', {}).items():

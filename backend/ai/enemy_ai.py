@@ -6083,7 +6083,7 @@ class EnemyAI:
 
         price = self.executor._calculate_recruit_cost(
             region, world, base_cost=levy_substitute_price(world, nation),
-            nation=nation, marshal=weakest)
+            nation=nation, marshal=weakest, draft=False)
         if price <= 0 or treasury < price * 3:
             return None
         return {"action": "purchase_levy", "marshal": weakest.name,

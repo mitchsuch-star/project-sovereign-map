@@ -54,9 +54,31 @@ EFFECT_TYPES = (
 )
 # The types WIRED to their seam in this build. The validator refuses a row
 # whose effect is not wired: a law must do what it says the day it ships
-# ("strike, never invent" — §4; GR9). RF-1 wires `actions`; RF-2 the next
-# eight; the doctrines' DC-2 wires `cures`.
-WIRED_EFFECT_TYPES = ("actions",)
+# ("strike, never invent" — §4; GR9). RF-1 wired `actions`; RF-2 the next
+# eight (September 27, 2026); the doctrines' DC-2 wires `cures`.
+WIRED_EFFECT_TYPES = (
+    "actions",
+    "manpower_regen", "recruit_price", "recruit_morale", "drill_morale",
+    "supply_capacity", "satellite_loyalty", "cs_closure", "blockade_denial",
+)
+# RF-2: each wired type's clause parameters — what the validator checks (a
+# number inside a type is in-band; a new type or a new parameter is
+# structural, §4). ("int"|"float", low, high) bounds a value, a tuple of
+# strings closes a choice. `actions` is special-cased (value exactly 1, R7).
+ARMS = ("infantry", "cavalry", "artillery")
+CLAUSE_SHAPES = {
+    # infantry only: the cavalry and artillery rates are recomputed by the
+    # stables chip's own marginal (`stables_cavalry_marginal`), so a law on
+    # those pools would sit on TWO sources — struck until that is one.
+    "manpower_regen": {"pool": ("infantry",), "value": ("int", 1, 100)},
+    "recruit_price": {"arm": ARMS + ("all",), "value": ("float", 0.5, 1.5)},
+    "recruit_morale": {"arm": ARMS + ("all",), "value": ("int", -30, 30)},
+    "drill_morale": {"value": ("int", 1, 20)},
+    "supply_capacity": {"value": ("float", 1.0, 2.0)},
+    "satellite_loyalty": {"value": ("int", 1, 5)},
+    "cs_closure": {"rule": ("every_client",)},
+    "blockade_denial": {"value": ("float", 1.0, 2.0)},
+}
 CURRENCIES = ("gold", "authority")
 MAX_CLAUSES = 2                       # §4: at most two clauses per law
 ADMIN_ACTIONS_PER_ACT = 1             # Q2 / R4: one to enact, one to repeal
@@ -106,15 +128,23 @@ def law_upkeep_bill(world, nation: str) -> int:
                    for row in laws_in_force(world, nation)))
 
 
-def effect_clauses(world, nation: str, effect_type: str) -> List[Dict]:
-    """Every clause of `effect_type` among the laws in force (the one read
-    every seam makes — derived, never written)."""
-    out: List[Dict] = []
+def effect_terms(world, nation: str, effect_type: str) -> List[tuple]:
+    """(law row, clause) for every clause of `effect_type` among the laws in
+    force — the one read every seam makes (derived, never written), with the
+    law beside its clause so every surface can NAME it (§11 T8)."""
+    out: List[tuple] = []
+    if not nation:
+        return out
     for row in laws_in_force(world, nation):
         for clause in row.get("effects") or []:
             if isinstance(clause, dict) and clause.get("type") == effect_type:
-                out.append(clause)
+                out.append((row, clause))
     return out
+
+
+def effect_clauses(world, nation: str, effect_type: str) -> List[Dict]:
+    """Every clause of `effect_type` among the laws in force."""
+    return [clause for _row, clause in effect_terms(world, nation, effect_type)]
 
 
 def staff_actions(world, nation: str) -> int:
@@ -127,6 +157,110 @@ def staff_actions(world, nation: str) -> int:
         except (TypeError, ValueError):
             continue
     return max(0, total)
+
+
+# ════════════════════════ RF-2: the eight seams' readers ═══════════════════════
+# Each seam calls ONE of these (derived at every read — a lapse or a repeal
+# removes the effect by construction). Every reader returns the law's display
+# name beside its term, so the surface that applies it can name it (T8).
+
+def _terms(world, nation, effect_type, key=None, want=None, cast=float):
+    out = []
+    for row, clause in effect_terms(world, nation, effect_type):
+        if key is not None and clause.get(key) not in want:
+            continue
+        try:
+            out.append((display_name(row), cast(clause.get("value"))))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def manpower_regen_terms(world, nation: str, pool: str = "infantry") -> List[tuple]:
+    """[(law, +percent)] on `pool`'s regen rate — `get_manpower_regen_rates`."""
+    return _terms(world, nation, "manpower_regen", "pool", (pool,), int)
+
+
+def apply_manpower_regen(world, nation: str, rates: Dict[str, int]) -> Dict[str, int]:
+    """The rates with every regen law applied — last, after the war
+    exhaustion and the caps (the percentages add, then apply once)."""
+    for pool in list(rates):
+        pct = sum(v for _n, v in manpower_regen_terms(world, nation, pool))
+        if pct:
+            rates[pool] = int(rates[pool] * (100 + pct) // 100)
+    return rates
+
+
+def recruit_price_terms(world, nation: str, arm: Optional[str]) -> List[tuple]:
+    """[(law, ×multiplier)] on a DRAFT levy of `arm` (a clause for `all`
+    arms always applies; an unknown arm meets only those)."""
+    want = ("all", arm) if arm else ("all",)
+    return _terms(world, nation, "recruit_price", "arm", want, float)
+
+
+def recruit_morale_terms(world, nation: str, arm: Optional[str]) -> List[tuple]:
+    """[(law, ±morale)] on a DRAFT levy's green-conscript morale."""
+    want = ("all", arm) if arm else ("all",)
+    return _terms(world, nation, "recruit_morale", "arm", want, int)
+
+
+def recruit_morale_bonus(world, nation: str, arm: Optional[str]) -> int:
+    return int(sum(v for _n, v in recruit_morale_terms(world, nation, arm)))
+
+
+def drill_morale_terms(world, nation: str) -> List[tuple]:
+    """[(law, +morale)] on a completed drill's morale gain."""
+    return _terms(world, nation, "drill_morale", cast=int)
+
+
+def drill_morale_bonus(world, nation: str) -> int:
+    return int(sum(v for _n, v in drill_morale_terms(world, nation)))
+
+
+def supply_capacity_terms(world, nation: str) -> List[tuple]:
+    """[(law, ×multiplier)] on the FED supply multiplier."""
+    return _terms(world, nation, "supply_capacity", cast=float)
+
+
+def supply_capacity_factor(world, nation: str) -> float:
+    factor = 1.0
+    for _n, value in supply_capacity_terms(world, nation):
+        factor *= value
+    return factor
+
+
+def satellite_loyalty_terms(world, lord: str) -> List[tuple]:
+    """[(law, +loyalty a turn)] for every client of `lord` — the ONE term the
+    loyalty tick applies and the forecast quotes."""
+    return _terms(world, lord, "satellite_loyalty", cast=int)
+
+
+def decree_counts_every_client(world, lord: str) -> Optional[str]:
+    """The name of the law by which every client of `lord` shuts its ports,
+    whatever its autonomy (the Berlin Decree), or None."""
+    for row, clause in effect_terms(world, lord, "cs_closure"):
+        if clause.get("rule") == "every_client":
+            return display_name(row)
+    return None
+
+
+def blockade_denial_terms(world, blockader: str) -> List[tuple]:
+    """[(law, ×multiplier)] on the trade a court `blockader` blockades
+    loses (the Orders in Council) — the BLOCKADER's laws."""
+    return _terms(world, blockader, "blockade_denial", cast=float)
+
+
+def blockade_denial_factor(world, blockader: str) -> float:
+    factor = 1.0
+    for _n, value in blockade_denial_terms(world, blockader):
+        factor *= value
+    return factor
+
+
+def laws_signature(world, nation: str) -> tuple:
+    """The laws in force, as a hashable key — for a cache whose figure a law
+    can move without moving the chest (an authority-priced law)."""
+    return tuple(sorted(str(r.get("id") or "") for r in laws_in_force(world, nation)))
 
 
 # ════════════════════════════ the price, shown = applied ═════════════════════

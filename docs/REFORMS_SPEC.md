@@ -167,14 +167,14 @@ Every seam below was verified at HEAD `b858b806`.
 | Type | Parameter | The seam |
 |---|---|---|
 | `actions` | +1 (the Staff only) | the player: `WorldState.calculate_max_actions`; the AI: the per-turn restore of `nation_actions` from `base_nation_actions` in `WorldState` |
-| `manpower_regen` | +N% on a named pool | `WorldState.get_manpower_regen_rates` |
+| `manpower_regen` | +N% on a named pool — **infantry only** (RF-2: the cavalry and artillery rates are recomputed by the stables chip's own marginal, so a law on them would sit on two sources) | `WorldState.get_manpower_regen_rates` (applied LAST, after the war exhaustion) |
 | `recruit_price` | ×m on a named arm, or on all arms | `EconomyExecutor._calculate_recruit_cost` — so `recruit_quote` and every chip quote it too |
 | `recruit_morale` | ±N on a named arm's green-conscript morale | the readers of `EconomyExecutor.RECRUIT_MORALE_BASE` (the executor and the quote's rung) |
 | `drill_morale` | +N | the readers of `WorldState.DRILL_MORALE_GAIN` and `_TRAINED` |
 | `supply_capacity` | ×m on the fed multiplier | `WorldState.get_effective_supply_cap` / `_supply_multiplier` |
 | `satellite_loyalty` | +N a turn for every satellite of the enacting lord | `vassal.process_vassal_loyalty` and `vassal.forecast_vassal_loyalty` (applied and forecast from one term) |
 | `cs_closure` | who counts toward the closure | `naval.closure_against` |
-| `blockade_denial` | ×m on a blockaded court's trade loss | the blockade arm of `diplomacy.process_trade_income` |
+| `blockade_denial` | ×m on a blockaded court's trade loss — the BLOCKADER's law | `naval.blockade_trade_loss` (RF-2 correction: `process_trade_income` only subtracts that function's figure, and five other surfaces read it directly — a multiplier at `process_trade_income` would have shown the old loss everywhere) |
 | `cures` | removes one named doctrine flaw | the doctrine's own seam (`DOCTRINES_SPEC.md` §3). **Added September 27, 2026 by the doctrines ruling (D-R4); lands at Chunk 7 (DC-2).** No cure clause is authored before its flaw exists. |
 
 Rules:
@@ -510,6 +510,32 @@ T7 measures all three.
 - **§11 against this slice:** T4 MET on its lapse clauses (the forecast clause is RF-4b's); T5 MET for the player and an AI court; T0's boot clause MET. T1, T2, T3, T6, T7 and T8 belong to later slices.
 - **Amended in this slice:** §2 item 5 and T4 read "full price" for a lapsed law (R3, which R8 replaced for a lapse); both now state the Arrears.
 - **Not built here, each owned:** the forecast on three surfaces, the dispatch beats, the rivals' laws on the nation cards and the help block's verbs (RF-4b); the LAWS tab (RF-4a); the other eight effect types and the catalogue (RF-2); the AI rung (RF-3); the School card (RF-4c).
+
+
+### §12.3 RF-2 — LANDED September 27, 2026 (landing record)
+
+**The catalogue** (rules `SYSTEMS_REFERENCE.md` §74.3). The other eight effect types wired, each on ONE existing source that applies it and that every surface quotes, each naming its law where it applies (T8), each the same rule for the player and every AI court (GR5). The 20 remaining laws of §6 authored (25 in all, five decks). A four-agent read-only recon mapped every seam first and corrected the §4 table twice (above).
+
+- **The readers.** `reforms.effect_terms` returns (law, clause), so every surface can name what it applies; one reader per type (`manpower_regen_terms` / `apply_manpower_regen`, `recruit_price_terms`, `recruit_morale_terms`, `drill_morale_terms`, `supply_capacity_factor`, `satellite_loyalty_terms`, `decree_counts_every_client`, `blockade_denial_factor`) and `laws_signature` for a cache a law can move without moving the chest. `CLAUSE_SHAPES` closes each type's parameters; the validator refuses a value out of bounds, a choice not on the list, a float of 1.0 (it does nothing) and any key the seam does not read.
+- **The seams:**
+  - `manpower_regen` — `get_manpower_regen_rates`, last; the treasury report quotes the APPLIED rate (it printed the raw base, already wrong under war exhaustion) and names the law; the ledger's manpower rows carry `regen_terms`.
+  - `recruit_price` — `_recruit_cost_terms` inside the Europe block, after the ordinance and BEFORE the Intendance (MC-2b applied last), `int(round())`, on the DRAFT of its arm only. The arm is passed by every draft caller, else read from the marshal or the base price asked at; the quote carries `price_terms`; the remedy memo keys on the laws in force.
+  - `recruit_morale` — on the green conscripts' base, BEFORE the training ground's flat rung and Moore's floor, which replace it (so the law is void there); the recruit result names it ("…: infantry recruits muster at 50, not 40").
+  - `drill_morale` — `WorldState.drill_morale_gain` for the drill, the dispatch's remedy line and the build chip; the completion note names the share actually applied ("(+5 from …)", none when the cap took it).
+  - `supply_capacity` — the FED multiplier in `_supply_multiplier` (both fed sites, the lifeline included); never the 1.0 arm, so a strangled coast stays strangled.
+  - `satellite_loyalty` — ONE reader for the loyalty tick (a named contribution, full value, every client of the lord whatever its autonomy) and `forecast_vassal_loyalty` (`law_bonus`, `law_terms`).
+  - `cs_closure` — `naval.closure_against`'s client arm: under the lord's decree an autonomous client counts too (still only while the lord is at war with the target); `naval.decree_clients` names the ports counted by the decree alone.
+  - `blockade_denial` — inside `naval.blockade_trade_loss`, the BLOCKADER's law (`blockader_against`); the loss reaches Net, the ledger, the dispatch, both banners and the Board unchanged by construction. `naval.blockade_trade_words` is ONE phrase ("halved", or "cut by 62% (the Orders in Council)") for the Board, the ledger's note (`blockade_note`, rendered by `strategic_ledger.gd`), the `blockade_begins` beat and its log line (`trade_words` rides the event); a beat queued before RF-2 falls back to "halved", never a raw brace.
+- **Readings taken, recorded (none changes a ruling):**
+  - *A law prices the draft, never the substitute market* — the RV-17 rule the user confirmed for the doctrines ("the recruit clauses price the draft, not substitutes") read for the laws; the market calls the same pricer with `draft=False`, and its morale mirrors the unreformed rung (so the gap between the draft and the bought men moves with the law: bought men muster 25 below a draft under the Jäger Battalions, 5 below under the Extraordinary Levy, against 15 with no law).
+  - *The Code Abroad reaches every client of the lord*, whatever its autonomy (§13's own wording), at full value — a standing act, like the garrison, not reduced by the grip.
+- **§11 against this slice:**
+  - **T1 — measured, and RULED by the user:** a commanded France that saves for the Staff buys it on **turn 5** on all three seeds (historical, ulm, austerlitz; `tools/playtest_scripts/rf2_t1_commanded_staff.json`) — earlier than Q3's "around turns 10–15". One price cannot be mid-campaign for France and the poorer courts (Austria's bar is reached around turn 20 at peace; the doctrines' cures ride the Staff). **The user kept 9,000 for every court (September 27, 2026)**, and noted that Britain should be richer than France — an economy balance pass is the next STATUS item.
+  - **T2 — measured:** France's five-law slate costs 850 gold a turn, **36.7%** of the IQ-1 control arm's mean Net (2,316 a turn, `iq13-control-cmd-historical`) — under the 40–60% band. The band was sized for six laws: with the Train des Équipages at DC-2 the slate is 1,050, **45.3%**. T2 is re-run at DC-2 as §11 says.
+  - **T8 — the backend names every applied effect** (the recruit result and quote, the treasury report, the ledger rows, the drill note, the loyalty event, the Board, the ledger note, the beat); the client rows owed are RF-4b's (below).
+- **The drill laws** (Austria's regulations, Prussia's Commission, Russia's War Ministry) stay as authored by the user's direction. The recon measured that the AI almost never drills (P6 asks aggressive marshals only, for the shock bonus, and never reads morale), so the user ordered an AI fix — "drill to heal", with no drill where a corps can be attacked — evaluated by three sub-agents and built at the end of this session.
+- **Measured:** the full suite green in the worktree before the carry (27,537 passed) — `BASELINE_SERIES` + M1–M7 + the AI-V assurance byte-identical, because no AI court enacts a law until RF-3 and nothing is in force at boot (every seam reads 1.0 / +0 there). Parse harness EXIT=0, boot 0 `SCRIPT ERROR`.
+- **Not built here, each owned:** the client rows that print `regen_terms`, `price_terms`, `law_terms`, `supply` terms and the decree's ports (RF-4b); the LAWS tab (RF-4a); the AI rung (RF-3); the Train des Équipages and `cures` (DC-2).
 
 ---
 
