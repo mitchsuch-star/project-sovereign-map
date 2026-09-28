@@ -4202,6 +4202,11 @@ func _display_turn_change(event: Dictionary):
 	var rente_str = ""
 	if rente_cost > 0:
 		rente_str = " | Rentes: -" + str(int(rente_cost)) + "g"
+	# SR-5r RF-1 (REFORMS_SPEC §2.2): the upkeep of the laws in force
+	var laws = int(event.get("laws", 0))
+	var laws_str = ""
+	if laws > 0:
+		laws_str = " | Laws: -" + str(int(laws)) + "g"
 	# EC-W1/EC-W2 (Econ War-Coupling): the presence-suspension and war-effort
 	# drains are separate Net components — without them the wartime banner's
 	# visible lines would not sum toward Net
@@ -4258,7 +4263,7 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	# PT-C3 mirror (verify fleet, Aug 2026): Upkeep signs like its siblings
 	# so the banner's terms sum legibly to Net.
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: -" + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + laws_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: -" + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

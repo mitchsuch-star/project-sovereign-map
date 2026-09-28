@@ -265,6 +265,32 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 5,
         },
     },
+    # SR-5r RF-1 "The Laws" (REFORMS_SPEC §8 "The words"): the Emperor's acts
+    # of state — no marshal; the target is the law as the player named it (the
+    # executor resolves it against the court's own deck). A QUESTION about the
+    # laws ("should I enact the Staff?") is answered, never enacted.
+    {
+        "input": "enact the Staff",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "enact_law",
+            "target": "the Staff",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
+    {
+        "input": "repeal the Staff",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "repeal_law",
+            "target": "the Staff",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",

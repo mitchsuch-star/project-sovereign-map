@@ -77,6 +77,9 @@ EXPECTED_NET_SIGNS = {
     "occupation": -1, "contributions": -1, "state_charges": -1,
     "dotation_skim": -1, "rente_cost": -1, "infrastructure": -1,
     "blockade": -1, "admiralty": -1, "upkeep_base": -1, "upkeep_surcharge": -1,
+    # SR-5r RF-1 (Sept 27, 2026) — added consciously: "Laws", the upkeep of
+    # the acts of state in force (REFORMS_SPEC §2.2, the EC-U2 recipe).
+    "laws": -1,
 }
 
 

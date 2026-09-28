@@ -228,6 +228,10 @@ def load_game(filepath: Path) -> Dict:
         # save names (the IGR-E / EB-2 backfill precedent) — never a copy of
         # the numbers here. A scenario that authors no block stays unarmed.
         _backfill_campaign_end(world)
+        # SR-5r RF-0 (REFORMS_SPEC §10): a save written before the laws
+        # carries no `reforms` store; an in-flight 1805 campaign is armed
+        # with the scenario's authored decks, nothing in force.
+        _backfill_reforms(world)
 
         # GE-1 verification round: a fallen campaign's save that does not
         # name its own Final file — written by 975f1f13, which stamped
@@ -431,6 +435,38 @@ def _backfill_campaign_end(world: WorldState) -> None:
             # titled.
             from backend.game_logic.game_end import backfill_record
             backfill_record(world)
+            return
+
+
+def _backfill_reforms(world: WorldState) -> None:
+    """SR-5r RF-0 (REFORMS_SPEC §10): arm a pre-reform save with the decks
+    its scenario NOW authors, nothing in force — ONLY the 1805 campaign (the
+    doctrines review, DOCTRINES_SPEC §9): a tutorial or modded save receives
+    no deck, and a save already carrying a store is never overwritten."""
+    if getattr(world, "reforms", None):
+        return
+    # The scenario name is the gate: only the 1805 campaign is in
+    # `_BACKFILL_SCENARIOS`, and only a Europe world carries its name.
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                block = json.load(fh).get("reforms")
+        except (OSError, ValueError):
+            continue
+        if isinstance(block, dict) and block:
+            import copy as _copy
+            world.reforms = {
+                str(k): _copy.deepcopy(list(v))
+                for k, v in block.items()
+                if not str(k).startswith("_") and isinstance(v, list)
+            }
             return
 
 

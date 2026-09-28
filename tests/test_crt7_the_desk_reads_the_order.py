@@ -917,8 +917,13 @@ class TestBerthierSuggestsOnlyRealOrders:
     # the lever down reproduces the pre-slice fingerprint byte for byte, the
     # lever up reproduces the re-stamped one — so the re-stamp is this block
     # and nothing else.
+    # ⚑ Re-derived at SR-5r RF-1 (Sept 27, 2026): the recovery prompt's
+    # verb list gained "enacts" / "repeals" (the two law verbs' display
+    # names), so the lever-down arm is the pre-CRT-7 layout WITH that list —
+    # the attribution still isolates this block (the list is common to both
+    # arms). The pre-RF-1 value was 582b90ffac45f4b9…46400a34.
     PRE_CRT7_RECOVERY_PROMPT_SHA256 = (
-        "582b90ffac45f4b90d3240c9a7129fa16e1a6c561acbdb69f6307de646400a34")
+        "e9ed02d0723b5b3722c01db25046ec36e33c27ab6c3b7945f79114d308187b72")
 
     @pytest.mark.parametrize("lever", [False, True])
     def test_the_recovery_cassette_drift_is_this_block_alone(self, monkeypatch, lever):

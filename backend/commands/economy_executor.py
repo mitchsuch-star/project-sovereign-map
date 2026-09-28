@@ -928,6 +928,8 @@ class EconomyExecutor:
         dotation_skim = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill
         rente_cost = int(income_data.get("rente_cost", 0))
+        # SR-5r RF-1: the upkeep of the laws in force ("Laws")
+        laws = int(income_data.get("laws", 0))
         # EC-W5b: infrastructure maintenance was MISSING from this report's
         # net (the applied net in process_income_phase subtracts it), so the
         # projection lied whenever structures existed.
@@ -1087,6 +1089,15 @@ class EconomyExecutor:
                     f"-> -{get_rente_cost(int(m.pension), world, nation)}g with fees"
                 )
 
+        # SR-5r RF-1 (REFORMS_SPEC §2.2): the laws in force, each by name.
+        if laws > 0:
+            from backend.game_logic.reforms import display_name, laws_in_force
+            in_force = laws_in_force(world, nation)
+            lines.append(f"\n  Laws: -{laws}g  ({len(in_force)} in force)")
+            for row in in_force:
+                lines.append(f"    {display_name(row)}: "
+                             f"-{int(row.get('upkeep', 0) or 0)}g/turn")
+
         # EC-W5b: infrastructure maintenance line (was missing entirely —
         # the cost applied every turn but the report never named it)
         if infrastructure > 0:
@@ -1166,6 +1177,7 @@ class EconomyExecutor:
                 "state_charges": int(state_charges),
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
+                "laws": int(laws),
                 "infrastructure": int(infrastructure),
                 "upkeep": int(upkeep_data["total"]),
                 "admin_bonus": int(admin_bonus),

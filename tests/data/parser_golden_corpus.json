@@ -6534,6 +6534,183 @@
       "mock_only": true,
       "source": "the Score Mandate session exit's residue (September 26, 2026; SYSTEMS_REFERENCE.md §73.3)",
       "notes": "SRX-3: a conjecture 'what if' is a question, not a contingency to refuse."
+    },
+    {
+      "id": "rf1-enact-the-staff",
+      "utterance": "enact the Staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "target": "the Staff",
+        "marshal": null,
+        "strategic_type": null
+      },
+      "notes": "The Staff is the court's one `actions` law (§5): the executor resolves 'the Staff' against the court's own deck, so the parse carries the words as typed. Unparseable before RF-1.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-enact-the-grand-quartier-general",
+      "utterance": "enact the Grand Quartier General",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "target": "the Grand Quartier General"
+      },
+      "notes": "The authored name without its accent — the executor folds accents and case.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-enact-the-grand-quartier-general-accented",
+      "utterance": "enact the Grand Quartier Général",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "target": "the Grand Quartier Général"
+      },
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-reenact-the-staff",
+      "utterance": "re-enact the staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "target": "the staff"
+      },
+      "notes": "'re-enact' folds to 'reenact' so the CX-R1 harvest learns a whole verb; a lapsed law's re-enactment is the Arrears price (R8), the executor's to quote.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-repeal-the-staff",
+      "utterance": "repeal the Staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "repeal_law",
+        "target": "the Staff",
+        "marshal": null,
+        "strategic_type": null
+      },
+      "notes": "R4: one admin action, nothing refunded. Must never become a standing order (NEVER_STRATEGIC_ACTIONS).",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-talleyrand-enact-the-staff",
+      "utterance": "Talleyrand, enact the Staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "marshal": null,
+        "not_action": "diplomatic_proposal"
+      },
+      "notes": "An act of state put to the foreign minister: the address is decoration. Measured before the fix: CR-2's 'I do not find Talleyrand in the order of battle, Sire. Did you mean Ney?'.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-emperor-repeal-the-staff",
+      "utterance": "Sire, repeal the staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "repeal_law",
+        "marshal": null
+      },
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-ney-enact-the-staff",
+      "utterance": "Ney, enact the Staff",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "marshal": "Ney"
+      },
+      "notes": "A law order put to a marshal parses WITH its marshal so the executor can refuse it in words, free: 'The laws are the Emperor's to enact, Sire — Marshal Ney commands a corps, not the state.' (the Admiralty's idiom). Measured before the fix: Berthier's generic shrug.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-question-should-i-enact",
+      "utterance": "should I enact the Staff?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "enact_law"
+      },
+      "notes": "A QUESTION FAILS CLOSED: answered with the court's laws and their prices (first_contact 'laws'), and nothing is enacted.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-question-can-we-repeal",
+      "utterance": "can we repeal the staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "repeal_law"
+      },
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-question-what-laws",
+      "utterance": "what laws can I enact?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "enact_law"
+      },
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-question-talleyrand-should-we-enact",
+      "utterance": "Talleyrand, should we enact the Staff?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "enact_law"
+      },
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-hedge-perhaps-enact",
+      "utterance": "perhaps enact the staff",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "enact_law"
+      },
+      "notes": "A hedge is answered, never executed — the Congress's head rule.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-negation-dont-enact",
+      "utterance": "don't enact the Staff",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "enact_law"
+      },
+      "notes": "PARSE-NEG refuses it before the law route reads a word.",
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf1-negation-do-not-repeal",
+      "utterance": "do not repeal the staff",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "repeal_law"
+      },
+      "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
     }
   ]
 }

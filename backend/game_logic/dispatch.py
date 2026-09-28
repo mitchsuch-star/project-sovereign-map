@@ -3464,6 +3464,8 @@ def _build_situation(world, player_nation: str,
     dotation_skim = int(income_data.get("dotation_skim", 0))
     # ES-7 second pass (§0.6.8): the rente bill — same treatment
     rente_cost = int(income_data.get("rente_cost", 0))
+    # SR-5r RF-1: the upkeep of the laws in force — same treatment
+    laws = int(income_data.get("laws", 0))
     # EC-U2: infrastructure maintenance — same treatment (its own Net component)
     infrastructure = int(income_data.get("infrastructure", 0))
 
@@ -3602,6 +3604,8 @@ def _build_situation(world, player_nation: str,
         # the briefing announces WHEN a marshal starts expecting more
         "rente_cost": rente_cost,
         "expectation_rises": expectation_rises,
+        # SR-5r RF-1: the upkeep of the laws in force ("Laws")
+        "laws": laws,
         # EC-U2: infrastructure maintenance — computed above since the EC-U2
         # slice but never returned until the Aug 2026 health-check audit, so
         # the briefing named every sibling drain except this one.

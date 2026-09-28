@@ -126,7 +126,7 @@ Each reading is one catalogue field or one constant to flip. **The user confirme
    - This loop runs immediately BEFORE ESP-4's rente default, in the same post-income window, and both run before `_update_bankruptcy`.
    - GR5: every court, one rule.
 4. **Repeal.** `repeal <law>` costs one admin action and refunds nothing. Its effects end at the same reads.
-5. **Re-enact.** A lapsed or repealed law is available again at its full price.
+5. **Re-enact.** A **repealed** law is available again at its full price. A **lapsed** law may be restored within 10 turns for half its price plus its arrears (R8 "The Arrears"), and after that at its full price. The price is `reforms.restoration_price`, read by every surface.
 
 **Effects are derived, never written.**
 - Every effect is read at its seam from the set of laws in force. A lapse or a repeal therefore removes it by construction, and no second store can drift.
@@ -205,7 +205,7 @@ Rules:
 
 **A lapse costs the fifth action at the next refill**, and the morning dispatch says so.
 
-**Q0 is re-measured after the Staff lands** (`SCORE_MANDATE_PLAN.md` §4 SR-D3): the three roads' titled count, by `tools/sr1e_titled_probe.py`. 45 is not moved.
+**Q0 is re-measured after the Staff lands** (`SCORE_MANDATE_PLAN.md` §4 SR-D3): the three roads' titled count, by `tools/sr1e_titled_probe.py`. 45 is not moved. **✅ Re-measured at RF-1 (September 27, 2026): 35 / 35 / 22 on both arms — §12.2.**
 
 ---
 
@@ -451,7 +451,7 @@ T7 measures all three.
 | T1 | The Staff's reach (Q3) | On the commanded arm, a France that saves for the Staff can enact it between turns 10 and 15, on three seeds. |
 | T2 | The sink (Q1) | A France holding its full slate at peace spends 40–60% of its golden-peace surplus on upkeep, with the IQ-1 control arm as the baseline. Measured at RF-2 on the five-law slate, and re-run at DC-2 with the Train des Équipages in it (`DOCTRINES_SPEC.md` §7). |
 | T3 | AI competence (GR5) | On the ambient board, at least two AI great powers enact at least one law by turn 25, and no AI law lapses before turn 40 in a court that is not losing provinces. |
-| T4 | The lapse | On a staged insolvent France: the largest law lapses first; the refund makes the chest whole; the forecast named that law a turn earlier; re-enacting charges the full price. |
+| T4 | The lapse | On a staged insolvent France: the largest law lapses first; the refund makes the chest whole; the forecast named that law a turn earlier; restoring it within 10 turns charges its Arrears price (R8: half its price plus the dead turns' upkeep), and after that its full price. *(R8 amendment, September 27, 2026: this line read "re-enacting charges the full price" — R3, which R8 replaced for a lapse.)* |
 | T5 | The Staff on both boards | The fifth action appears at the first refill after enactment and is gone at the first refill after a lapse — for France and for an AI court. |
 | T6 | The bank | A court that spends nothing carries one turn's points, up to 7 and no further. The pool, the dispatch and the top bar agree. |
 | T7 | No death spiral (§8b) | On a staged insolvent France holding the Staff and two cheaper laws:<br>• the forecast names the doomed law a turn early on the LAWS tab, the end-turn banner and the dispatch;<br>• a "repeal X instead" chip keeps the Staff when an admin action remains, and the forecast says so when none does;<br>• after solvency returns on the commanded arm, a lapsed Staff can be restored within 10 turns at its Arrears price (R8: half its price plus the dead turns' upkeep), and the LAWS tab, the chip and the AI rung all quote that one price. |
@@ -485,6 +485,31 @@ T7 measures all three.
 - anything in force at boot;
 - an AI rung before the player's road has its pins;
 - a sixth action point.
+
+
+### §12.1 RF-0 — LANDED September 27, 2026 (landing record)
+
+**The substrate** (rules `SYSTEMS_REFERENCE.md` §74.1). `backend/game_logic/reforms.py` holds the closed effect set (§4) with `WIRED_EFFECT_TYPES` (`actions` alone), the deck and in-force readers, `law_upkeep_bill`, `staff_actions`, the ONE predicate `law_refusal`, and the ONE price `restoration_price` (R8 "The Arrears"). ONE serialized world field, `reforms`, carries the in-force state ON each row (`enacted_turn`, `lapsed_turn`); the scenario and the save share its shape (`from_dict` reads both). `europe_1805.json` authors each great power's Staff at one price for all (9,000 gold, 300 a turn), nothing in force. The validator block refuses an unwired or unknown type, a third clause, a second or unequal Staff, and any in-force state in a scenario. `save_manager._backfill_reforms` arms a pre-reform 1805 save only (a tutorial or modded save gets no deck).
+
+- **Pins:** `tests/test_rf0_the_laws_substrate.py` (35). Sweep `tools/_sweep_rf0.json` 19/19 killed, 0 INERT.
+- **Measured:** nothing is in force at boot and no verb exists, so `BASELINE_SERIES` + M1–M7 cannot move.
+
+### §12.2 RF-1 — LANDED September 27, 2026 (landing record)
+
+**The player's road** (rules `SYSTEMS_REFERENCE.md` §74.2). `enact_law` and `repeal_law` through the shared executor (the whole new-action checklist); the "Laws" Net line through the EC-U2 recipe; the lapse loop before ESP-4; the Staff at `calculate_max_actions` and at the AI restore; the three log types. Lever `reforms.THE_STATE_HAS_LAWS`.
+
+- **The verbs.** One admin action each; the price is `restoration_price`'s quote, charged by the ONE mutation `reforms.enact_law` (shown = applied); a repeal refunds nothing and never earns the Arrears. Refusals are free and in the predicate's own words. The authority spend names the thresholds it crosses.
+- **The words.** `enact the Staff` · the authored name (accents and case folded) · `re-enact` · `repeal`. A QUESTION or a hedge is answered with the court's laws and prices, and nothing is enacted. An order put to a marshal is refused in words, free (the Admiralty's idiom); the foreign minister and the Emperor are decoration. **Two defects measured and fixed before the pins:** `Talleyrand, enact the Staff` answered CR-2's "Did you mean Ney?", and `Ney, enact the Staff` got Berthier's generic shrug. `routed_order_words` regenerated (`enact`, `reenact`, `repeal`); 15 golden-corpus rows pass under both arms of CX-1's lever.
+- **The lapse (T4, R5).** It runs after the income phase and immediately BEFORE ESP-4's rente default and the bankruptcy check — pinned in the turn itself. The largest upkeep lapses first (tie: the most recently enacted); the refund makes the chest whole and is folded out of the applied record; `lapsed_turn` starts the Arrears clock; the player's lapse is told in the end-turn report with its Arrears price. GR5.
+- **The Staff (T5).** Felt at the next refill, never the turn it is enacted; lost at the refill after a lapse or repeal; the same derived term for the player and for an AI court.
+- **The prompt.** The action list and two board-independent examples changed the parse prompt, and "enacts"/"repeals" the recovery prompt's verb list. The 17 authored IQ-9 cassettes are re-stamped, and both attribution records re-derived for the change common to both arms (`tests/data/l1_prompt_restamp.json`, CRT-7's recovery constant).
+- **Pins consciously flipped:** the fourteen campaign-log count pins (168 → 171) and IQ-7's census; the Net-component tripwire (`test_economy_ledger_reconciliation.EXPECTED_NET_SIGNS` gains `laws`).
+- **Pins:** `tests/test_rf1_the_players_road.py` (73). Sweep `tools/_sweep_rf1.json` 54/54 killed, 0 INERT (the first pass found two INERT — the Emperor's exemption and the route's own hedge guard, each a defence in depth the shipped road never reaches; both are now pinned on the road they guard).
+- **Measured.** `BASELINE_SERIES` + M1–M7 + the AI-V assurance byte-identical — nothing is enacted on the ambient board (the AI's rung is RF-3's). Parse harness EXIT=0, boot 0 `SCRIPT ERROR`.
+- **Q0 after RF-1 (§5):** the three roads re-driven at HEAD, as authored and with the Staff bought at its first affordable turn (turn 4 on all three): **35 / 35 / 22 at turn 41 on both arms**. The roads spend 35–50 of their actions in forty turns, so the fifth goes unused — but for three orders on opening B, whose tail holds longer (35 titled at turn 30 against 26) and ends at the same 22. The as-authored arms equal the pre-RF commit's (measured on a scratch worktree at `e9d32403`), so RF-1 is inert on them; their drift since SR-2e (37 / 31 / 31) belongs to the slices landed between. The best point on any road is still 39; **45 is not moved.** Archives `docs/audits/playtest_digests/rf1-q0-*` (scripts `tools/playtest_scripts/rf1_q0_*_staff.json`); the standing xfail reads them. **For RF-2's T1:** the chest crosses 9,000 on turn 4 of all three roads — earlier than Q3's "around turns 10–15"; the price is in-band tunable and RF-2's T1 measurement owns it.
+- **§11 against this slice:** T4 MET on its lapse clauses (the forecast clause is RF-4b's); T5 MET for the player and an AI court; T0's boot clause MET. T1, T2, T3, T6, T7 and T8 belong to later slices.
+- **Amended in this slice:** §2 item 5 and T4 read "full price" for a lapsed law (R3, which R8 replaced for a lapse); both now state the Arrears.
+- **Not built here, each owned:** the forecast on three surfaces, the dispatch beats, the rivals' laws on the nation cards and the help block's verbs (RF-4b); the LAWS tab (RF-4a); the other eight effect types and the catalogue (RF-2); the AI rung (RF-3); the School card (RF-4c).
 
 ---
 

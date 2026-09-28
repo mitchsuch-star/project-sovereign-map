@@ -1,0 +1,135 @@
+[
+  {
+    "id": "the state has no laws",
+    "file": "backend/game_logic/reforms.py",
+    "old": "THE_STATE_HAS_LAWS = True\n",
+    "new": "THE_STATE_HAS_LAWS = False\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheOnePredicate::test_a_law_the_court_can_afford_passes"
+  },
+  {
+    "id": "the window is nine turns",
+    "file": "backend/game_logic/reforms.py",
+    "old": "ARREARS_WINDOW_TURNS = 10\n",
+    "new": "ARREARS_WINDOW_TURNS = 9\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheArrears"
+  },
+  {
+    "id": "no half price",
+    "file": "backend/game_logic/reforms.py",
+    "old": "ARREARS_PRICE_DIVISOR = 2\n",
+    "new": "ARREARS_PRICE_DIVISOR = 1\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheArrears"
+  },
+  {
+    "id": "the bounced turn is not counted",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return int(getattr(world, \"current_turn\", 0) or 0) - int(lapsed) + 1\n",
+    "new": "    return int(getattr(world, \"current_turn\", 0) or 0) - int(lapsed)\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheArrears"
+  },
+  {
+    "id": "half rounds down",
+    "file": "backend/game_logic/reforms.py",
+    "old": "\"price\": int(math.ceil(full / ARREARS_PRICE_DIVISOR)),",
+    "new": "\"price\": int(full // ARREARS_PRICE_DIVISOR),",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheArrears::test_an_authority_law_restores_for_half_its_authority"
+  },
+  {
+    "id": "the admin action is never checked",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if int(admin_actions) < ADMIN_ACTIONS_PER_ACT:\n        return f\"Enacting {name} takes an admin action; none remains this turn.\"\n",
+    "new": "    if False:\n        return f\"Enacting {name} takes an admin action; none remains this turn.\"\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheOnePredicate::test_no_admin_action_left"
+  },
+  {
+    "id": "the arrears are not charged",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        need = quote[\"price\"] + quote[\"arrears\"]\n",
+    "new": "        need = quote[\"price\"]\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheArrears::test_the_refusal_reads_the_arrears_price"
+  },
+  {
+    "id": "a law is in force without enactment",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            and row.get(\"enacted_turn\") is not None)\n",
+    "new": "            )\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheAuthoredCatalogue::test_nothing_is_in_force_at_boot"
+  },
+  {
+    "id": "the Staff mints nothing",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return max(0, total)\n",
+    "new": "    return 0\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheAuthoredCatalogue::test_the_staff_counts_once_in_force"
+  },
+  {
+    "id": "the laws bill nothing",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return int(sum(int(row.get(\"upkeep\", 0) or 0)\n",
+    "new": "    return 0 * int(sum(int(row.get(\"upkeep\", 0) or 0)\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheAuthoredCatalogue::test_the_staff_counts_once_in_force"
+  },
+  {
+    "id": "the validator lets a scenario put a law in force",
+    "file": "backend/modding/validator.py",
+    "old": "            if \"enacted_turn\" in row or \"lapsed_turn\" in row:\n",
+    "new": "            if False:\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheValidator::test_in_force_state_is_refused_in_a_scenario"
+  },
+  {
+    "id": "the validator lets an unwired type ship",
+    "file": "backend/modding/validator.py",
+    "old": "                    elif etype not in WIRED_EFFECT_TYPES:\n",
+    "new": "                    elif False:\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheValidator::test_an_unwired_effect_type_is_refused"
+  },
+  {
+    "id": "the validator counts no Staff",
+    "file": "backend/modding/validator.py",
+    "old": "        if len(staffs) != 1:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheValidator::test_two_staffs_are_refused"
+  },
+  {
+    "id": "the validator lets the Staff's price differ",
+    "file": "backend/modding/validator.py",
+    "old": "    if len(set(staff_terms.values())) > 1:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheValidator::test_an_unequal_staff_price_is_refused"
+  },
+  {
+    "id": "the save forgets the laws",
+    "file": "backend/models/world_state.py",
+    "old": "            \"reforms\": copy.deepcopy(self.reforms),\n",
+    "new": "",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheStore::test_the_round_trip_keeps_in_force_state"
+  },
+  {
+    "id": "the load forgets the laws",
+    "file": "backend/models/world_state.py",
+    "old": "            for k, v in (data.get(\"reforms\", {}) or {}).items()\n",
+    "new": "            for k, v in ({}).items()\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheStore::test_the_round_trip_keeps_in_force_state"
+  },
+  {
+    "id": "an old save is never armed",
+    "file": "backend/save_manager.py",
+    "old": "        _backfill_reforms(world)\n",
+    "new": "",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheStore::test_the_committed_fixture_loads_armed"
+  },
+  {
+    "id": "the backfill overwrites an armed save",
+    "file": "backend/save_manager.py",
+    "old": "    if getattr(world, \"reforms\", None):\n        return\n    # The scenario name is the gate",
+    "new": "    # The scenario name is the gate",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheStore::test_an_armed_save_is_never_overwritten"
+  },
+  {
+    "id": "every save is armed",
+    "file": "backend/save_manager.py",
+    "old": "    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, \"scenario_name\", \"\") or \"\"))\n    if not parts:\n        return\n    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]\n    base = getattr(sys, \"_MEIPASS\", None)\n    if base:\n        candidates.append(Path(base).joinpath(*parts))\n    for path in candidates:\n        try:\n            with open(path, encoding=\"utf-8\") as fh:\n                block = json.load(fh).get(\"reforms\")\n",
+    "new": "    parts = ['godot-client', 'project-sovereign', 'assets', 'maps', 'europe_1805.json']\n    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]\n    base = getattr(sys, \"_MEIPASS\", None)\n    if base:\n        candidates.append(Path(base).joinpath(*parts))\n    for path in candidates:\n        try:\n            with open(path, encoding=\"utf-8\") as fh:\n                block = json.load(fh).get(\"reforms\")\n",
+    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheStore::test_a_tutorial_save_receives_no_deck"
+  }
+]

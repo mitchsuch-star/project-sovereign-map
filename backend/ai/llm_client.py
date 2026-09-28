@@ -1309,6 +1309,73 @@ def _asks_about_the_congress(command_lower: str) -> bool:
     return bool(_CONGRESS_QUESTION_RE.search(command_lower))
 
 
+# SR-5r "THE LAWS" (docs/REFORMS_SPEC.md §8 "The words"): `enact <law>` /
+# `repeal <law>` — the Emperor's acts of state. The verb must OPEN the line
+# (after an address and a word of filler — the Congress's head rule): a
+# clause that merely mentions a law never enacts one. "re-enact" folds to
+# "reenact" first, so the CX-R1 order-word harvest learns whole verbs.
+_LAW_VERB_RE = re.compile(r"(enact|reenact|repeal)\s+\S")
+_LAW_ENACT_RE = re.compile(r"(?:enact|reenact)\s+\S")
+_LAW_REPEAL_RE = re.compile(r"repeal\s+\S")
+_LAW_WORDS_RE = re.compile(
+    r"\b(?:re-?enact|enact|repeal)\s+(.+?)[\s.!]*$", re.IGNORECASE)
+# A QUESTION about the laws ("what laws can I enact?", "should we repeal
+# the staff?") — read only after `is_question` has said the line asks.
+_LAW_QUESTION_RE = re.compile(
+    r"\blaws?\b|\breforms?\b|\b(?:re-?)?enact(?:s|ed|ing)?\b|"
+    r"\brepeal(?:s|ed|ing)?\b")
+
+
+def _law_rest(command_lower: str) -> str:
+    text = re.sub(r"\bre-enact", "reenact", command_lower)
+    head = _CONGRESS_HEAD_RE.match(text)
+    return text[head.end():] if head else text
+
+
+def _enacts_or_repeals_a_law(command_lower: str) -> bool:
+    """"enact the Staff" / "re-enact the Grand Quartier General" /
+    "repeal the Staff" — at the HEAD of the line."""
+    return bool(_LAW_VERB_RE.match(_law_rest(command_lower)))
+
+
+def _enacts_a_law(command_lower: str) -> bool:
+    return bool(_LAW_ENACT_RE.match(_law_rest(command_lower)))
+
+
+def _repeals_a_law(command_lower: str) -> bool:
+    return bool(_LAW_REPEAL_RE.match(_law_rest(command_lower)))
+
+
+def _asks_about_the_laws(command_lower: str) -> bool:
+    return bool(_LAW_QUESTION_RE.search(command_lower))
+
+
+def _marshal_addressed_law(command_lower: str, marshal_names):
+    """"Ney, enact the Staff" / "Ney enact the Staff" — a law order put to
+    a marshal in the field: (action, marshal) so the executor can refuse it
+    in words (the Admiralty's idiom), else None. Only a line whose order
+    OPENS with the verb after the name — "Ney, attack Mack so we can enact
+    the Staff" is Ney's attack."""
+    match = _LEADING_ADDRESS_RE.match(command_lower)
+    if match and match.group(1).strip():
+        name = _match_known_name(match.group(1).strip(), marshal_names)
+        rest = command_lower[match.end():]
+    else:
+        first = re.match(r"\s*([a-z][a-z'-]*)\s+", command_lower)
+        if not first:
+            return None
+        name = _match_known_name(first.group(1), marshal_names)
+        rest = command_lower[first.end():]
+    if not name:
+        return None
+    rest = re.sub(r"\bre-enact", "reenact", rest).lstrip()
+    if _LAW_REPEAL_RE.match(rest):
+        return ("repeal_law", name)
+    if _LAW_ENACT_RE.match(rest):
+        return ("enact_law", name)
+    return None
+
+
 # Slice-11 review round: the peace-intent and treaty-break EARLY routes
 # select the diplomatic parser on keyword presence alone, before marshal
 # parsing — so `Ney, end the war of attrition` and `Ney, make peace
@@ -2360,6 +2427,35 @@ class LLMClient:
             return self._parse_congress_command(
                 action, command_text, command_lower, known_nations,
                 game_state)
+
+        # ════════════════════════════════════════════════════════════
+        # SR-5r "THE LAWS" (docs/REFORMS_SPEC.md §8) — `enact <law>` /
+        # `repeal <law>`. Sited ABOVE every family that reads a law's NAME
+        # as its own order word (the recon measured: "the Military
+        # Reorganisation Commission" is recruit_marshal's noun, "the Train
+        # des Équipages" drill's verb, "the Horse Guards Reforms" hold's).
+        # The Congress's three guards, read the same way: a line LED by a
+        # marshal stands down; a question or a hedge FAILS CLOSED — it is
+        # answered with the court's laws and nothing is spent.
+        # ════════════════════════════════════════════════════════════
+        _law_order = _enacts_or_repeals_a_law(command_lower)
+        _misaddressed_law = (_marshal_addressed_law(command_lower, _player_roster)
+                             if _congress_marshal_led else None)
+        if _misaddressed_law:
+            return self._parse_law_command(
+                _misaddressed_law[0], command_text, marshal=_misaddressed_law[1])
+        if not _congress_marshal_led and (
+                (_law_order or _asks_about_the_laws(command_lower))
+                and is_question(original_text, _question_subjects(game_state))):
+            return self._laws_question(original_text)
+        if not _congress_marshal_led and _law_order and _congress_hedged(command_lower):
+            return self._laws_question(original_text)
+        if not _congress_marshal_led and _repeals_a_law(command_lower):
+            action = "repeal_law"
+            return self._parse_law_command(action, command_text)
+        if not _congress_marshal_led and _enacts_a_law(command_lower):
+            action = "enact_law"
+            return self._parse_law_command(action, command_text)
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         if any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES):
@@ -3608,6 +3704,51 @@ class LLMClient:
             key_source=self.key_source,
             raw_command=command_text,
             diplomatic_data=diplomatic_data,
+        )
+
+    def _parse_law_command(self, action: str, command_text: str,
+                           marshal: Optional[str] = None) -> ParseResult:
+        """SR-5r RF-1: `enact <law>` / `repeal <law>` — a nation-level act of
+        state, no marshal. The target is the words as TYPED (the executor
+        resolves them accent- and case-insensitively against the court's
+        own deck, and quotes them back if they name none)."""
+        words = _LAW_WORDS_RE.search(command_text)
+        target = words.group(1).strip() if words else None
+        return ParseResult(
+            matched=True,
+            command_type="specific",
+            marshals=[marshal] if marshal else [],
+            action=action,
+            target=target,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation=(f"The laws — {'repeal' if action == 'repeal_law' else 'enact'} "
+                            f"{target or 'a law'}"),
+            confidence=0.95 if target else 0.8,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+        )
+
+    def _laws_question(self, original_text: str) -> ParseResult:
+        """SR-5r RF-1: a question about the laws FAILS CLOSED — answered
+        (`first_contact.answer_first_contact("laws", …)`: the court's deck,
+        each law's price read off the executor's own predicate) and nothing
+        is enacted."""
+        return ParseResult(
+            matched=True,
+            command_type="tactical",
+            marshals=[],
+            action="help",
+            target=None,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation="Question — the laws of state",
+            confidence=0.9,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=original_text,
+            question={"kind": "laws", "asked": original_text},
         )
 
     def _congress_question(self, original_text: str) -> ParseResult:

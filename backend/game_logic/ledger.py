@@ -515,6 +515,7 @@ NET_GOLD_COMPONENTS = {
     "state_charges": -1,
     "dotation_skim": -1,
     "rente_cost": -1,
+    "laws": -1,  # SR-5r RF-1: the upkeep of the laws in force
     "infrastructure": -1,
     "blockade": -1,
     "admiralty": -1,
@@ -631,6 +632,9 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # ES-7 second pass (§0.6.8): the rente bill — its own signed Net
     # component, rendered as a "Rentes" line (same SC-33 contract).
     rente_cost = int(income_data.get("rente_cost", 0))
+    # SR-5r RF-1 (REFORMS_SPEC §2.2): the upkeep of the laws in force — its
+    # own signed Net component, rendered as a "Laws" line (SC-33).
+    laws = int(income_data.get("laws", 0))
     # EC-U2 (Combat Overhaul Phase 4): per-turn maintenance of built
     # structures — its own signed Net component, rendered as an
     # "Infrastructure" line (same SC-33 contract; NET_GOLD_COMPONENTS-guarded).
@@ -746,7 +750,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
         + settlement_gold + requisitions + overseas
         - occupation - contributions - state_charges
-        - dotation_skim - rente_cost
+        - dotation_skim - rente_cost - laws
         - infrastructure - blockade - admiralty - upkeep_base - upkeep_surcharge
     )
 
@@ -849,6 +853,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "ceiling_state": _ceiling_state,
         "dotation_skim": dotation_skim,
         "rente_cost": rente_cost,
+        "laws": laws,
         "infrastructure": infrastructure,
         "upkeep": upkeep,
         "upkeep_base": upkeep_base,

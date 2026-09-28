@@ -1107,6 +1107,9 @@ class CommandParser:
             # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.3–§2.4)
             "summon_congress",        # "summon the congress" — 2 DP + 1 admin
             "recognition_sweetener",  # "offer Prussia 1000 gold for recognition"
+            # SR-5r "The Laws" (REFORMS_SPEC §2)
+            "enact_law",    # "enact the Staff" — price + 1 admin
+            "repeal_law",   # "repeal the Staff" — 1 admin
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -1453,6 +1456,21 @@ class CommandParser:
                 # the minister is its addressee, never a marshal typo to
                 # clarify ("Did you mean 'Ney'?"). Scoped to that one
                 # answer: every other addressed `help` keeps CR-2.
+                # SR-5r RF-1: a law is the Emperor's act of state. Put to the
+                # foreign minister or to the Emperor himself ("Talleyrand,
+                # enact the Staff" / "Sire, repeal the staff" / "Napoleon,
+                # enact …"), the address is decoration — never a marshal
+                # typo to clarify ("Did you mean 'Ney'?"). A question about
+                # the laws put to the minister is answered at the desk.
+                if (addressed
+                        and (llm_result.get("action") in ("enact_law", "repeal_law")
+                             or (llm_result.get("question") or {}).get("kind") == "laws")
+                        and (any(name in addressed.lower()
+                                 for name in DIPLOMAT_ADDRESS_NAMES)
+                             or addressed.lower().strip() in (
+                                 "sire", "emperor", "napoleon", "majesty",
+                                 "your majesty", "the emperor"))):
+                    addressed = None
                 if (addressed
                         and (llm_result.get("question") or {}).get("kind")
                         == "congress"

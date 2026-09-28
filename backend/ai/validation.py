@@ -116,6 +116,9 @@ VALID_ACTIONS: Set[str] = {
     # arm's two player verbs, nation-level, no marshal:
     "summon_congress",        # "summon the congress" — 2 DP + 1 admin action
     "recognition_sweetener",  # "offer Prussia 1000 gold for recognition" — 1 DP
+    # SR-5r "The Laws" (REFORMS_SPEC §2) — acts of state, no marshal:
+    "enact_law",    # "enact the Staff" — the law's price + 1 admin action
+    "repeal_law",   # "repeal the Staff" — 1 admin action, nothing refunded
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -176,6 +179,9 @@ META_ACTIONS: Set[str] = {
     # Emperor's own acts of state. No marshal needed.
     "summon_congress",
     "recognition_sweetener",
+    # SR-5r RF-1 — a law is the Emperor's act of state. No marshal needed.
+    "enact_law",
+    "repeal_law",
 }
 
 # FA slice 7 (FA-N9): ONE list. parser.py kept a THIRD hand-copied "needs no
@@ -210,6 +216,8 @@ ADMINISTRATIVE_ACTIONS = frozenset({
     "grant_pension", "revoke_pension", "grant_dotation", "recruit_marshal",
     "recall_marshal",
     "recruit", "purchase_levy", "build", "repair", "garrison",
+    # SR-5r RF-1: "repeal the Staff" must never become a standing order.
+    "enact_law", "repeal_law",
 })
 NEVER_STRATEGIC_ACTIONS = frozenset(
     META_ACTIONS | NON_ORDER_ACTIONS | ADMINISTRATIVE_ACTIONS)

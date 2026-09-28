@@ -37,7 +37,10 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  "purchase_levy",
                  "build_fleet",
                  # GE-3: the summons of the Congress of Paris.
-                 "summon_congress"}
+                 "summon_congress",
+                 # SR-5r RF-1 (REFORMS_SPEC §2): a law is enacted or
+                 # repealed for one admin action (Q2 / R4).
+                 "enact_law", "repeal_law"}
 
 
 def collapse_turn_end_fields(world) -> Dict:
@@ -369,6 +372,8 @@ class MetaExecutor:
         dotation_val = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill is its own Net component
         rente_val = int(income_data.get("rente_cost", 0))
+        # SR-5r RF-1: the upkeep of the laws in force ("Laws")
+        laws_val = int(income_data.get("laws", 0))
         # EC-U2: infrastructure maintenance is its own Net component too
         infrastructure_val = int(income_data.get("infrastructure", 0))
         # DEF-5 naval: the Admiralty (war ship upkeep) + the blockade's
@@ -392,7 +397,7 @@ class MetaExecutor:
         other_val = net_val - (income_val + requisitions_val + overseas_val
                                - occupation_val - contributions_val
                                - state_charges_val - dotation_val
-                               - rente_val - infrastructure_val
+                               - rente_val - laws_val - infrastructure_val
                                - admiralty_val - blockade_val - upkeep_val
                                - materiel_val)
         net_sign = "+" if net_val >= 0 else ""
@@ -407,6 +412,7 @@ class MetaExecutor:
         state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
+        laws_str = f" | Laws: -{laws_val}g" if laws_val > 0 else ""
         infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
         admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
         blockade_str = f" | Blockade: -{blockade_val}g" if blockade_val > 0 else ""
@@ -431,7 +437,7 @@ class MetaExecutor:
         # mid-line between nine explicitly-negative siblings — so it read as
         # an addition. (`Income:` is unsigned too and stays that way: it is
         # the positive base the line opens on, not a term in a signed run.)
-        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str} | Upkeep: -{upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str} | Upkeep: -{upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -451,6 +457,7 @@ class MetaExecutor:
             "state_charges": int(state_charges_val),
             "dotation_skim": int(dotation_val),
             "rente_cost": int(rente_val),
+            "laws": int(laws_val),
             "admiralty": int(admiralty_val),
             "blockade": int(blockade_val),
             # PT-C4 / EC-U2 mirror (Aug 2026 health-check audit): both were

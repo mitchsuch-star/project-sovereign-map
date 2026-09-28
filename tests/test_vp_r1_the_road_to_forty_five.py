@@ -688,7 +688,11 @@ def _archived_titled(run: str) -> dict:
            "standing orders reliable) re-drove them again: the AAR road 37, "
            "opening A 31, opening B 31 (its tail held — Massena's march "
            "survived a reinforcement) — the best point on any road is still "
-           "39. This turns RED the day an "
+           "39. SR-5r RF-1 (Sept 27, 2026 — the Staff, the only road to a "
+           "fifth action) re-drove all three twice at HEAD, as authored and "
+           "with the Staff enacted at its first affordable turn: 35 / 35 / "
+           "22 on both arms — the roads spend 35-50 of their actions, so the "
+           "fifth has nowhere to go. This turns RED the day an "
            "archived road reaches 45 — then retire the xfail and re-record.")
 def test_a_played_arm_reaches_forty_five_by_turn_forty():
     """GEV-D1's named test over the committed re-measure archives — VP-R1's
@@ -696,7 +700,9 @@ def test_a_played_arm_reaches_forty_five_by_turn_forty():
     tails = [_archived_titled(run) for run in (
         "vpr1-played-a-tail", "vpr1-played-b-tail",
         "sr1e-aar-road", "sr1e-gev-b", "sr1e-gev-a",
-        "sr2e-q0-aar-road", "sr2e-q0-gev-b", "sr2e-q0-gev-a")]
+        "sr2e-q0-aar-road", "sr2e-q0-gev-b", "sr2e-q0-gev-a",
+        "rf1-q0-aar-road", "rf1-q0-gev-a", "rf1-q0-gev-b",
+        "rf1-q0-aar-road-staff", "rf1-q0-gev-a-staff", "rf1-q0-gev-b-staff")]
     assert all(t["turn"] >= 40 for t in tails)
     assert any(t["titled"] >= t["hold_titled"] for t in tails), tails
 
@@ -755,3 +761,61 @@ class TestTheReMeasureIsOnTheRecord:
         assert b["status"] == "completed" and b["titled"] == 36 and b["turn"] == 41
         assert a["hold_titled"] == b["hold_titled"] == 45
 
+
+class TestTheRF1Q0ReMeasureIsOnTheRecord:
+    """SR-5r RF-1 (Score Mandate Chunk 5, September 27, 2026 — the Staff is
+    the only road to a fifth action, `REFORMS_SPEC.md` §5: "Q0 is re-measured
+    after the Staff lands"). The three roads re-driven at HEAD, same seed,
+    scripts and popup policy, twice: as authored, and with `enact the Staff`
+    first on turns 4-8 (`tools/playtest_scripts/rf1_q0_*_staff.json` — the
+    chest crosses 9,000 on turn 4 of all three). Each Staff arm buys it once.
+
+    As authored the roads read 35 / 35 / 22 at turn 41 — the same series the
+    pre-RF commit gives (measured on a scratch worktree at `e9d32403`), so
+    RF-1 is inert on them and their drift since SR-2e (37 / 31 / 31) belongs
+    to the slices landed between. With the Staff: 35 / 35 / 22. The roads
+    spend 35-50 of their actions in forty turns, so the fifth (35 more over
+    the campaign) goes unused but for three orders on opening B, whose tail
+    holds longer (35 titled at turn 30 where the authored arm has 26; 16
+    provinces at turn 41 where it has 12) and ends at the same 22. The best
+    point on any road is still 39. 45 is not moved."""
+
+    AUTHORED = {"rf1-q0-aar-road": [35, 34, 35, 35, 35],
+                "rf1-q0-gev-a": [34, 35, 35, 35, 35],
+                "rf1-q0-gev-b": [39, 36, 26, 22, 22]}
+    STAFF = {"rf1-q0-aar-road-staff": [35, 34, 35, 35, 35],
+             "rf1-q0-gev-a-staff": [34, 35, 35, 35, 35],
+             "rf1-q0-gev-b-staff": [39, 36, 35, 25, 22]}
+
+    @staticmethod
+    def _meta(run: str) -> dict:
+        return json.loads((DIGESTS / run / "meta.json").read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _staff_bought(run: str) -> int:
+        rows = [json.loads(line) for line in
+                (DIGESTS / run / "digest.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()]
+        return sum(1 for r in rows if r.get("kind") == "command"
+                   and "enact the staff" in str(r.get("text", "")).lower()
+                   and r.get("success"))
+
+    def test_the_archived_series_say_what_the_record_says(self):
+        for run, series in {**self.AUTHORED, **self.STAFF}.items():
+            titled = _archived_titled(run)
+            assert [s["titled"] for s in titled["series"]] == series, run
+            assert titled["status"] == "completed" and titled["turn"] == 41, run
+            assert titled["hold_titled"] == 45, run
+
+    def test_each_staff_arm_bought_it_once_and_the_authored_arms_never(self):
+        for run in self.STAFF:
+            assert self._staff_bought(run) == 1, run
+        for run in self.AUTHORED:
+            assert self._staff_bought(run) == 0, run
+
+    def test_the_fifth_action_was_offered_and_hardly_spent(self):
+        for authored, staffed in zip(self.AUTHORED, self.STAFF):
+            a, b = self._meta(authored)["counters"], self._meta(staffed)["counters"]
+            assert a["ap_available"] == 160, authored
+            assert b["ap_available"] > a["ap_available"], staffed
+            assert b["ap_spent"] - a["ap_spent"] <= 3, (authored, staffed)

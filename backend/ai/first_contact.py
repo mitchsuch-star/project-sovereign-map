@@ -56,7 +56,7 @@ CABINET_DOOR = "For any matter of state, press F1 for the Cabinet."
 # `backend.game_logic.congress`'s own public API, so the answer and the
 # executor's refusal are the same sentence.
 FIRST_CONTACT_HELP_KINDS = frozenset({"greeting", "escape_menu", "undo", "goal",
-                                      "congress"})
+                                      "congress", "laws"})
 FIRST_CONTACT_KINDS = FIRST_CONTACT_HELP_KINDS | {"options"}
 
 _ADDRESS_RE = re.compile(
@@ -459,8 +459,45 @@ def _congress_answer(asked: str, world) -> str:
     return text + table + relayed
 
 
+def _laws_answer(asked: str, world) -> str:
+    """SR-5r RF-1: a question about the laws, ANSWERED and never executed —
+    the court's deck, each law's state and price read off
+    `game_logic.reforms`'s own predicate and price (shown = applied)."""
+    from backend.game_logic import reforms
+    relayed = " Nothing has been enacted."
+    player = getattr(world, "player_nation", "") if world is not None else ""
+    rows = [r for r in reforms.deck(world, player)] if world is not None else []
+    if not rows:
+        return "There are no laws of state in this campaign, Sire." + relayed
+    lines = []
+    for row in rows:
+        name = reforms.display_name(row)
+        name = name[0].upper() + name[1:]
+        upkeep = int(row.get("upkeep", 0) or 0)
+        if reforms.is_in_force(row):
+            lines.append(f"{name} is in force (since turn {int(row['enacted_turn'])}, "
+                         f"{upkeep:,} gold a turn).")
+            continue
+        quote = reforms.restoration_price(world, player, row)
+        unit = "gold" if quote["currency"] == "gold" else "authority"
+        price = f"{int(quote['price']):,} {unit}"
+        if quote["arrears"]:
+            price += (f" and {int(quote['arrears']):,} gold in arrears — it "
+                      f"disperses in {int(quote['disperses_after'])} turn"
+                      f"{'s' if int(quote['disperses_after']) != 1 else ''}")
+        refusal = reforms.law_refusal(world, player, str(row.get("id")))
+        state = ("ready to enact" if not refusal
+                 else refusal[0].lower() + refusal[1:].rstrip("."))
+        lines.append(f"{name}: {price}, then {upkeep:,} gold a turn — {state}.")
+    return ("The laws of state, Sire. " + " ".join(lines)
+            + " Say 'enact <law>' to enact one, or 'repeal <law>' to strike "
+              "one down." + relayed)
+
+
 def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
     """Berthier's answer for a `FIRST_CONTACT_HELP_KINDS` kind, or None."""
+    if str(kind or "") == "laws":
+        return _laws_answer(asked, world)
     if str(kind or "") == "congress":
         # GE-3 — the question desk for the Congress; needs no counsel lines.
         return _congress_answer(asked, world)

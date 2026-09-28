@@ -859,6 +859,107 @@ def _validate_statecraft(result, data: dict, known_nations: set) -> None:
                     f"got {value}")
 
 
+def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
+    """SR-5r RF-0 (REFORMS_SPEC §1, §4, §5, §10): the authored `reforms`
+    block — {court: [law row]}. Every row carries id / name / date /
+    currency (gold|authority) / price / upkeep (ints >= 0) / effects (1-2
+    clauses from §4's closed set, each type WIRED to its seam in this build —
+    "strike, never invent") / says. Nothing is in force at boot, so a
+    scenario may not author `enacted_turn` or `lapsed_turn`. Each court
+    carries exactly ONE `actions` law (the Staff, value 1), and every court's
+    Staff costs the same (§5, Q3, GR5). A deck for a court beyond the five
+    great powers is a warning (R6: v1's decks)."""
+    if "reforms" not in data:
+        return
+    from backend.game_logic.reforms import (
+        CURRENCIES, EFFECT_TYPES, GREAT_POWERS, MAX_CLAUSES, WIRED_EFFECT_TYPES)
+    block = data.get("reforms")
+    if not isinstance(block, dict):
+        result.add_error("reforms",
+                         f"Must be an object, got {type(block).__name__}")
+        return
+    staff_terms: Dict[str, tuple] = {}
+    for court, rows in block.items():
+        if str(court).startswith("_"):
+            continue
+        path = f"reforms.{court}"
+        if known_nations and court not in known_nations:
+            result.add_error(path, f"Unknown nation '{court}'")
+        if court not in GREAT_POWERS:
+            result.add_warning(
+                path, "R6: v1's decks are the five great powers only")
+        if not isinstance(rows, list):
+            result.add_error(path, "Must be a list of law rows")
+            continue
+        seen_ids: Set[str] = set()
+        staffs = []
+        for i, row in enumerate(rows):
+            rp = f"{path}[{i}]"
+            if not isinstance(row, dict):
+                result.add_error(rp, "Must be an object")
+                continue
+            for key in ("id", "name", "date", "currency", "price",
+                        "upkeep", "effects", "says"):
+                if key not in row:
+                    result.add_error(rp, f"Missing required field '{key}'")
+            law_id = str(row.get("id") or "")
+            if law_id in seen_ids:
+                result.add_error(rp, f"Duplicate law id '{law_id}'")
+            seen_ids.add(law_id)
+            if "enacted_turn" in row or "lapsed_turn" in row:
+                result.add_error(
+                    rp, "A scenario may not put a law in force: nothing is "
+                        "in force at boot (REFORMS_SPEC §1)")
+            if "currency" in row and row.get("currency") not in CURRENCIES:
+                result.add_error(
+                    rp, f"currency must be one of {CURRENCIES}, got "
+                        f"{row.get('currency')!r}")
+            for key in ("price", "upkeep"):
+                if key in row and (not isinstance(row[key], int)
+                                   or isinstance(row[key], bool)
+                                   or row[key] < 0):
+                    result.add_error(rp, f"{key} must be an integer >= 0")
+            effects = row.get("effects")
+            if "effects" in row:
+                if (not isinstance(effects, list) or not effects
+                        or len(effects) > MAX_CLAUSES):
+                    result.add_error(
+                        rp, f"effects must be a list of 1-{MAX_CLAUSES} "
+                            f"clauses (REFORMS_SPEC §4)")
+                    effects = []
+                for j, clause in enumerate(effects or []):
+                    cp = f"{rp}.effects[{j}]"
+                    etype = clause.get("type") if isinstance(clause, dict) else None
+                    if etype not in EFFECT_TYPES:
+                        result.add_error(
+                            cp, f"Unknown effect type {etype!r} — the set is "
+                                f"closed (REFORMS_SPEC §4)")
+                    elif etype not in WIRED_EFFECT_TYPES:
+                        result.add_error(
+                            cp, f"Effect type {etype!r} is not wired to its "
+                                f"seam in this build — strike the law or wire "
+                                f"the type (REFORMS_SPEC §4)")
+                    elif etype == "actions":
+                        if clause.get("value") != 1:
+                            result.add_error(
+                                cp, "The Staff mints exactly one action "
+                                    "(value 1 — R7)")
+                        staffs.append(row)
+        if len(staffs) != 1:
+            result.add_error(
+                path, f"Exactly one Staff (the `actions` law) per court — "
+                      f"found {len(staffs)} (REFORMS_SPEC §5)")
+        else:
+            s = staffs[0]
+            staff_terms[court] = (s.get("currency"), s.get("price"),
+                                  s.get("upkeep"))
+    if len(set(staff_terms.values())) > 1:
+        result.add_error(
+            "reforms", "The Staff costs every court the same — one price, "
+                       "one upkeep, one currency (REFORMS_SPEC §5, Q3, GR5); "
+                       f"found {sorted(set(staff_terms.values()), key=str)}")
+
+
 def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
     """DEF-5 naval (NAVAL_SPEC §3.2/§8): the authored `navies` block —
     per-nation {ships 0-150, readiness 40-100 (required when ships > 0),
@@ -1621,6 +1722,9 @@ def validate_scenario(
 
     # DEF-5 naval (NAVAL_SPEC §8): the authored `navies` block.
     _validate_navies(result, data, statecraft_known)
+
+    # SR-5r RF-0 (REFORMS_SPEC §1/§4/§5): the authored `reforms` block.
+    _validate_reforms(result, data, statecraft_known)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

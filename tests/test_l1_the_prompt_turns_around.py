@@ -197,7 +197,13 @@ class TestTheExamplesAreHonest:
 class TestTheCassetteAttribution:
     """Every re-stamped parse cassette: the lever DOWN reproduces the
     fingerprint the cassette carried before the slice, the lever UP the one it
-    carries now — so the re-stamp is this reorder and nothing else."""
+    carries now — so the re-stamp is this reorder and nothing else.
+
+    ⚑ Both arms re-derived at SR-5r RF-1 (Sept 27, 2026): the prompt gained
+    the two law verbs (`enact_law`, `repeal_law` in the action list) and their
+    two board-independent examples, common to BOTH arms — so the lever still
+    isolates the reorder. A later prompt change re-derives both arms the same
+    way (`tests/data/l1_prompt_restamp.json`) and says so here."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

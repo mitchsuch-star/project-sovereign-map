@@ -1312,6 +1312,12 @@ class WorldState:
         # the ACTIVE agenda is derived per turn (never stored). Empty = no
         # designs (survival override only).
         self.agendas: Dict[str, list] = {}
+        # SR-5r RF-0 (REFORMS_SPEC §10): the laws — ONE store, per court
+        # the authored deck (copied from the scenario, the agendas idiom)
+        # with the in-force state ON each row (`enacted_turn`,
+        # `lapsed_turn`). Empty on a world whose scenario authors none
+        # (the legacy world, N1).
+        self.reforms: Dict[str, list] = {}
         # AI-3r §2.6 (gate ruling R1): the authored statecraft OVERRIDE —
         # scenario key `statecraft`, per-nation, `wary_of` sub-key only in
         # v1. Merged over the nation_config code table at get_statecraft.
@@ -1481,6 +1487,10 @@ class WorldState:
             # sweetener rides the instrument verbs (0 AP, 1 DP + the gold).
             "summon_congress": 1,
             "recognition_sweetener": 0,
+            # SR-5r RF-1 (REFORMS_SPEC §2): enact / repeal a law — 1 ADMIN
+            # action each (ADMIN_ACTIONS); the price is charged in-executor.
+            "enact_law": 1,
+            "repeal_law": 1,
             # DEF-5 naval (NAVAL_SPEC §9): build_fleet is 1 ADMIN AP
             # (ADMIN_ACTIONS) + 400g in-executor; the posture order is a
             # cheap command; the expedition is a real commitment (the
@@ -6514,6 +6524,13 @@ class WorldState:
         # EB-5a: what OUR armies requisition from the provinces they disrupt.
         requisitions = int(self.get_requisition_map().get(nation, 0))
 
+        # SR-5r RF-1 (REFORMS_SPEC §2.2): the upkeep of the laws in force —
+        # ONE signed Net component, "Laws" (GR5; 0 where no law is in
+        # force, and on a world that authors none). No bankruptcy mercy: an
+        # unpaid law LAPSES instead (§2.3, `reforms.process_law_lapses`).
+        from backend.game_logic.reforms import law_upkeep_bill
+        laws_cost = int(law_upkeep_bill(self, nation))
+
         return {
             "income": total_income,
             "occupation": int(occupation_cost),
@@ -6535,6 +6552,8 @@ class WorldState:
             # ES-7 second pass: rentes are a TREASURY spend (can run the
             # nation negative), unlike the skim's structural floor at 0.
             "rente_cost": int(rente_cost),
+            # SR-5r RF-1: the upkeep of the laws in force ("Laws").
+            "laws": int(laws_cost),
             # EC-U2: per-turn maintenance of built structures — a signed Net
             # component of its own (income stays GROSS), the conquest-free sink.
             "infrastructure": int(infrastructure_cost),
@@ -6553,6 +6572,7 @@ class WorldState:
                 "state_charges_terms": charges_rate["terms"],
                 "dotation_skim": int(dotation_skim),
                 "rente_cost": int(rente_cost),
+                "laws": int(laws_cost),
                 "infrastructure": int(infrastructure_cost),
                 "admiralty": int(admiralty_cost),
                 "total": total_income,
@@ -6825,6 +6845,8 @@ class WorldState:
         dotation_skim = int(income_data.get("dotation_skim", 0))
         # ES-7 second pass (§0.6.8): the rente bill — same seam both sides.
         rente_cost = int(income_data.get("rente_cost", 0))
+        # SR-5r RF-1: the upkeep of the laws in force — same seam both sides.
+        laws = int(income_data.get("laws", 0))
         # EC-U2: infrastructure maintenance — same seam both sides (GR5).
         infrastructure = int(income_data.get("infrastructure", 0))
         # DEF-5 N3: the Admiralty (war-time ship upkeep) — same seam both
@@ -6833,7 +6855,7 @@ class WorldState:
 
         net = (income_data["income"] + requisitions + overseas
                - occupation - contributions - state_charges
-               - dotation_skim - rente_cost
+               - dotation_skim - rente_cost - laws
                - infrastructure - admiralty - upkeep_data["total"] + admin_bonus)
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
@@ -6851,6 +6873,7 @@ class WorldState:
                              if state_charges > 0 else "")
         dotation_str = f", -{dotation_skim} dotations" if dotation_skim > 0 else ""
         rente_str = f", -{rente_cost} rentes" if rente_cost > 0 else ""
+        laws_str = f", -{laws} laws" if laws > 0 else ""
         infrastructure_str = (f", -{infrastructure} infrastructure"
                               if infrastructure > 0 else "")
         admiralty_str = f", -{admiralty} admiralty" if admiralty > 0 else ""
@@ -6864,6 +6887,7 @@ class WorldState:
             "state_charges": state_charges,
             "dotation_skim": dotation_skim,
             "rente_cost": rente_cost,
+            "laws": laws,
             "infrastructure": infrastructure,
             "admiralty": admiralty,
             "upkeep": upkeep_data["total"],
@@ -6885,7 +6909,7 @@ class WorldState:
                        f"+{income_data['income']} income"
                        f"{requisitions_str}{overseas_str}"
                        f"{occupation_str}{contributions_str}{state_charges_str}"
-                       f"{dotation_str}{rente_str}"
+                       f"{dotation_str}{rente_str}{laws_str}"
                        f"{infrastructure_str}{admiralty_str}, "
                        f"-{upkeep_data['total']} upkeep"
                        f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
@@ -7860,6 +7884,8 @@ class WorldState:
             "marshal_pool": {k: [dict(c) for c in v]
                              for k, v in self.marshal_pool.items()},
             "agendas": copy.deepcopy(self.agendas),
+            # SR-5r RF-0: the laws (deck + in-force state, one store).
+            "reforms": copy.deepcopy(self.reforms),
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -8395,6 +8421,15 @@ class WorldState:
         world.agendas = {
             k: copy.deepcopy(list(v or []))
             for k, v in (data.get("agendas", {}) or {}).items()
+        }
+        # SR-5r RF-0 (REFORMS_SPEC §10): the laws. The scenario funnels
+        # through here too, so a scenario's `reforms` block IS the store
+        # (one shape for scenario and save). Comment keys are dropped;
+        # deepcopy, because rows nest `effects` lists.
+        world.reforms = {
+            str(k): copy.deepcopy(list(v or []))
+            for k, v in (data.get("reforms", {}) or {}).items()
+            if not str(k).startswith("_") and isinstance(v, list)
         }
         # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
         # posture). Absent on pre-AI-3r saves = empty = code table only.
@@ -10453,8 +10488,13 @@ class WorldState:
         """
         base_actions = 4
         bonus = getattr(self, 'bonus_actions', 0)
+        # SR-5r RF-1 (REFORMS_SPEC §5): the Staff's +1 is DERIVED from the
+        # laws in force at every refill — never written into
+        # `bonus_actions`, whose one writer stays the administrative role.
+        from backend.game_logic.reforms import staff_actions
+        staff = staff_actions(self, self.player_nation)
         # Explicit int cast for safety
-        return int(base_actions + bonus)
+        return int(base_actions + bonus + staff)
 
     def use_action(self, action_type: str = "generic") -> Dict:
         """
@@ -10988,9 +11028,12 @@ class WorldState:
         # 4-nation builder — squashed Austria 4→3 and never restored the 15
         # Europe-only nations, so their ap_per_turn penalties compounded).
         # ════════════════════════════════════════════════════════════
+        # SR-5r RF-1 (REFORMS_SPEC §5): plus the Staff, derived — the same
+        # term the player's refill reads (GR5).
+        from backend.game_logic.reforms import staff_actions
         for nation, base in self.base_nation_actions.items():
             if nation in self.nation_actions:
-                self.nation_actions[nation] = base
+                self.nation_actions[nation] = base + staff_actions(self, nation)
 
         # Reset player actions (before treaty clauses so AP penalty applies)
         self.max_actions_per_turn = int(self.calculate_max_actions())
@@ -11040,6 +11083,17 @@ class WorldState:
         # the bankruptcy check, per spec §0.6.1 #6. Prunes lost estates,
         # erodes unmet marshals (player AND AI — GR5).
         # ════════════════════════════════════════════════════════════
+        # ════════════════════════════════════════════════════════════
+        # SR-5r RF-1 THE LAPSE (REFORMS_SPEC §2.3, R5) — a court whose
+        # chest the income phase left negative sheds its laws, the largest
+        # upkeep first, BEFORE ESP-4's rente default (inside the dotation
+        # state below): the state sheds its machinery before it breaks
+        # faith with its marshals. GR5; a no-op where no law is in force.
+        # ════════════════════════════════════════════════════════════
+        if self.reforms:
+            from backend.game_logic.reforms import process_law_lapses
+            tactical_events.extend(process_law_lapses(self))
+
         # FA-26: the tick's own question rides the same list the end-turn
         # hoist reads (`hoist_tactical_redemption`).
         _erosion_events = self._process_dotation_state()

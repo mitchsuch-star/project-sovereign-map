@@ -1,0 +1,380 @@
+[
+  {
+    "id": "enact charges no gold",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) - gold\n",
+    "new": "        world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) - 0\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_enact_the_staff_charges_its_price_and_one_admin_action"
+  },
+  {
+    "id": "enact records no spend",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        world.record_gold_spent(nation, gold)\n",
+    "new": "        pass\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_the_spend_is_counted_in_the_turn_summary"
+  },
+  {
+    "id": "enact never puts the law in force",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    row[\"enacted_turn\"] = int(getattr(world, \"current_turn\", 0) or 0)\n    row.pop(\"lapsed_turn\", None)\n",
+    "new": "    row.pop(\"lapsed_turn\", None)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_enact_the_staff_charges_its_price_and_one_admin_action"
+  },
+  {
+    "id": "enact keeps the lapse stamp",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    row[\"enacted_turn\"] = int(getattr(world, \"current_turn\", 0) or 0)\n    row.pop(\"lapsed_turn\", None)\n",
+    "new": "    row[\"enacted_turn\"] = int(getattr(world, \"current_turn\", 0) or 0)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRestoringALapsedLaw::test_the_restoration_charges_exactly_the_quoted_price"
+  },
+  {
+    "id": "the arrears are not charged",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    gold = int(quote[\"arrears\"]) + (int(quote[\"price\"])\n",
+    "new": "    gold = 0 + (int(quote[\"price\"])\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRestoringALapsedLaw"
+  },
+  {
+    "id": "authority is not spent",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if authority:\n        _spend_authority(world, nation, authority)\n",
+    "new": "    if authority:\n        pass\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRestoringALapsedLaw::test_an_authority_law_restores_for_half_its_authority_and_gold_arrears"
+  },
+  {
+    "id": "the log calls a restoration an enactment",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        \"restored\": quote[\"kind\"] == \"restore\",\n",
+    "new": "        \"restored\": False,\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRestoringALapsedLaw::test_the_restoration_is_logged_as_a_restoration"
+  },
+  {
+    "id": "repeal keeps the law in force",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    row.pop(\"enacted_turn\", None)\n    world.log_event({\n        \"type\": \"law_repealed\",\n",
+    "new": "    world.log_event({\n        \"type\": \"law_repealed\",\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRepeal::test_repeal_takes_one_admin_action_and_refunds_nothing"
+  },
+  {
+    "id": "the smallest upkeep lapses first",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    rows.sort(key=lambda item: (-int(item[1].get(\"upkeep\", 0) or 0),\n",
+    "new": "    rows.sort(key=lambda item: (int(item[1].get(\"upkeep\", 0) or 0),\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_largest_upkeep_lapses_first_and_the_refund_makes_the_chest_whole"
+  },
+  {
+    "id": "a tie lapses the oldest",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                                -int(item[1].get(\"enacted_turn\", 0) or 0),\n",
+    "new": "                                int(item[1].get(\"enacted_turn\", 0) or 0),\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_a_tie_lapses_the_most_recently_enacted"
+  },
+  {
+    "id": "the lapse loop never runs",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        while int(world.nation_gold.get(nation, 0) or 0) < 0:\n",
+    "new": "        while False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse"
+  },
+  {
+    "id": "the lapse refunds nothing",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) + refund\n",
+    "new": "            world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) + 0\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_largest_upkeep_lapses_first_and_the_refund_makes_the_chest_whole"
+  },
+  {
+    "id": "the applied laws are not folded",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                applied[\"laws\"] = max(0, int(applied.get(\"laws\", 0) or 0) - refund)\n",
+    "new": "                applied[\"laws\"] = int(applied.get(\"laws\", 0) or 0)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_refund_is_folded_out_of_the_applied_record"
+  },
+  {
+    "id": "the applied net is not folded",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                applied[\"net\"] = int(applied.get(\"net\", 0) or 0) + refund\n",
+    "new": "                applied[\"net\"] = int(applied.get(\"net\", 0) or 0)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_refund_is_folded_out_of_the_applied_record"
+  },
+  {
+    "id": "the lapse is not stamped",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            row[\"lapsed_turn\"] = int(getattr(world, \"current_turn\", 0) or 0)\n",
+    "new": "            row[\"lapsed_turn_x\"] = int(getattr(world, \"current_turn\", 0) or 0)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_largest_upkeep_lapses_first_and_the_refund_makes_the_chest_whole"
+  },
+  {
+    "id": "the lapse is not logged",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            world.log_event({\n                \"type\": \"law_lapsed\",\n",
+    "new": "            world.log_event({\n                \"type\": \"law_lapsed_x\",\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_lapse_is_logged_and_told"
+  },
+  {
+    "id": "the player is never told",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            if nation == getattr(world, \"player_nation\", None):\n                quote = restoration_price(world, nation, row)\n",
+    "new": "            if False:\n                quote = restoration_price(world, nation, row)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_lapse_is_logged_and_told tests/test_rf1_the_players_road.py::TestTheLapse::test_the_end_turn_report_tells_the_lapse"
+  },
+  {
+    "id": "an AI court's lapse is told to the player",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            if nation == getattr(world, \"player_nation\", None):\n                quote = restoration_price(world, nation, row)\n",
+    "new": "            if True:\n                quote = restoration_price(world, nation, row)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_gr5_an_ai_court_lapses_by_the_same_rule_and_is_not_told"
+  },
+  {
+    "id": "the lapse message quotes the full price",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                total = int(quote[\"price\"]) + int(quote[\"arrears\"])\n",
+    "new": "                total = int(row.get(\"price\", 0) or 0)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_lapse_is_logged_and_told"
+  },
+  {
+    "id": "the Staff is not a name",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if want in STAFF_WORDS:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_enact_the_staff_charges_its_price_and_one_admin_action"
+  },
+  {
+    "id": "accents are not folded",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    folded = folded.encode(\"ascii\", \"ignore\").decode(\"ascii\").lower()\n",
+    "new": "    folded = folded.lower()\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_the_law_is_named_many_ways"
+  },
+  {
+    "id": "a word short never resolves",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if len(want) >= _MIN_PARTIAL:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_the_law_is_named_many_ways"
+  },
+  {
+    "id": "a marshal may enact",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "    name = command.get(\"marshal\")\n    if not name:\n        return {}\n",
+    "new": "    name = command.get(\"marshal\")\n    if True:\n        return {}\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_an_order_put_to_a_marshal_is_refused_in_words_free"
+  },
+  {
+    "id": "the Emperor is misaddressed",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "    if marshal is not None and getattr(marshal, \"is_sovereign\", False):\n        return {}\n",
+    "new": "    if False:\n        return {}\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_a_parse_that_names_the_emperor_is_not_refused"
+  },
+  {
+    "id": "the enact refusal is skipped",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        if refusal:\n            return {\"success\": False, \"message\": refusal}\n        outcome = reforms.enact_law(world, actor, row)\n",
+    "new": "        outcome = reforms.enact_law(world, actor, row)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_a_price_the_chest_cannot_pay_is_refused_free tests/test_rf1_the_players_road.py::TestEnact::test_already_in_force_is_refused_free"
+  },
+  {
+    "id": "the repeal refusal is skipped",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        if refusal:\n            return {\"success\": False, \"message\": refusal}\n        reforms.repeal_law(world, actor, row)\n",
+    "new": "        reforms.repeal_law(world, actor, row)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRepeal::test_a_law_not_in_force_cannot_be_repealed"
+  },
+  {
+    "id": "a restoration is told as an enactment",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        if quote[\"kind\"] == \"restore\":\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRestoringALapsedLaw::test_the_typed_restoration_says_what_it_paid"
+  },
+  {
+    "id": "the Staff never reaches the player's refill",
+    "file": "backend/models/world_state.py",
+    "old": "        return int(base_actions + bonus + staff)\n",
+    "new": "        return int(base_actions + bonus)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheStaffAtTheRefill"
+  },
+  {
+    "id": "the Staff never reaches the AI restore",
+    "file": "backend/models/world_state.py",
+    "old": "                self.nation_actions[nation] = base + staff_actions(self, nation)\n",
+    "new": "                self.nation_actions[nation] = base\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheStaffAtTheRefill::test_an_ai_court_gets_the_same_fifth_action_gr5"
+  },
+  {
+    "id": "the laws are not billed",
+    "file": "backend/models/world_state.py",
+    "old": "        laws_cost = int(law_upkeep_bill(self, nation))\n",
+    "new": "        laws_cost = 0\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine"
+  },
+  {
+    "id": "the income phase does not subtract the laws",
+    "file": "backend/models/world_state.py",
+    "old": "               - dotation_skim - rente_cost - laws\n",
+    "new": "               - dotation_skim - rente_cost\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine::test_the_bill_reaches_the_chest"
+  },
+  {
+    "id": "the lapse is never called",
+    "file": "backend/models/world_state.py",
+    "old": "        if self.reforms:\n            from backend.game_logic.reforms import process_law_lapses\n",
+    "new": "        if False:\n            from backend.game_logic.reforms import process_law_lapses\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_end_turn_report_tells_the_lapse tests/test_rf1_the_players_road.py::TestTheLapse::test_the_lapse_runs_before_the_rente_default_and_the_bankruptcy"
+  },
+  {
+    "id": "the lapse runs after the rente default",
+    "file": "backend/models/world_state.py",
+    "old": "        if self.reforms:\n            from backend.game_logic.reforms import process_law_lapses\n            tactical_events.extend(process_law_lapses(self))\n\n        # FA-26: the tick's own question rides the same list the end-turn\n        # hoist reads (`hoist_tactical_redemption`).\n        _erosion_events = self._process_dotation_state()\n",
+    "new": "        # FA-26: the tick's own question rides the same list the end-turn\n        # hoist reads (`hoist_tactical_redemption`).\n        _erosion_events = self._process_dotation_state()\n        if self.reforms:\n            from backend.game_logic.reforms import process_law_lapses\n            tactical_events.extend(process_law_lapses(self))\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLapse::test_the_lapse_runs_before_the_rente_default_and_the_bankruptcy"
+  },
+  {
+    "id": "laws is re-signed",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    \"laws\": -1,  # SR-5r RF-1: the upkeep of the laws in force\n",
+    "new": "    \"laws\": 1,  # SR-5r RF-1: the upkeep of the laws in force\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine::test_laws_is_a_signed_net_component tests/test_rf1_the_players_road.py::TestTheLawsLine::test_the_ledger_net_is_the_signed_sum_with_laws"
+  },
+  {
+    "id": "the ledger net forgets the laws",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        - dotation_skim - rente_cost - laws\n",
+    "new": "        - dotation_skim - rente_cost\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine::test_the_ledger_net_is_the_signed_sum_with_laws"
+  },
+  {
+    "id": "the ledger hides the laws",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        \"laws\": laws,\n",
+    "new": "        \"laws\": 0,\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine::test_the_ledger_net_is_the_signed_sum_with_laws"
+  },
+  {
+    "id": "the banner hides the laws",
+    "file": "backend/commands/meta_executor.py",
+    "old": "        laws_str = f\" | Laws: -{laws_val}g\" if laws_val > 0 else \"\"\n",
+    "new": "        laws_str = \"\"\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine::test_the_end_turn_banner_prints_the_laws_line"
+  },
+  {
+    "id": "the treasury report hides the laws",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if laws > 0:\n            from backend.game_logic.reforms import display_name, laws_in_force\n",
+    "new": "        if False:\n            from backend.game_logic.reforms import display_name, laws_in_force\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheLawsLine::test_the_treasury_report_names_each_law"
+  },
+  {
+    "id": "a rival's law is fogged",
+    "file": "backend/campaign_log.py",
+    "old": "                          \"law_enacted\", \"law_repealed\", \"law_lapsed\"):\n",
+    "new": "                          ):\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheCampaignLog::test_a_rival_courts_law_is_court_knowledge"
+  },
+  {
+    "id": "a restoration reads as an enactment",
+    "file": "backend/campaign_log.py",
+    "old": "        verb = \"restores\" if event.get(\"restored\") else \"enacts\"\n",
+    "new": "        verb = \"enacts\"\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheCampaignLog::test_the_one_liners"
+  },
+  {
+    "id": "the lapse is not a logged type",
+    "file": "backend/campaign_log.py",
+    "old": "    \"law_lapsed\",               # a law the treasury could not pay (R5)\n",
+    "new": "",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheCampaignLog::test_the_three_types_are_logged_types"
+  },
+  {
+    "id": "a question enacts",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if not _congress_marshal_led and (\n                (_law_order or _asks_about_the_laws(command_lower))\n",
+    "new": "        if False and (\n                (_law_order or _asks_about_the_laws(command_lower))\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_a_question_or_a_hedge_is_answered_and_nothing_is_enacted"
+  },
+  {
+    "id": "a hedge enacts",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if not _congress_marshal_led and _law_order and _congress_hedged(command_lower):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_a_trailing_hedge_or_deferral_is_answered"
+  },
+  {
+    "id": "a marshal's law order is a shrug",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if _misaddressed_law:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_an_order_put_to_a_marshal_is_refused_in_words_free"
+  },
+  {
+    "id": "re-enact is not folded",
+    "file": "backend/ai/llm_client.py",
+    "old": "    text = re.sub(r\"\\bre-enact\", \"reenact\", command_lower)\n",
+    "new": "    text = command_lower\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRestoringALapsedLaw::test_the_typed_restoration_says_what_it_paid"
+  },
+  {
+    "id": "repeal routes as nothing",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if not _congress_marshal_led and _repeals_a_law(command_lower):\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestRepeal::test_repeal_takes_one_admin_action_and_refunds_nothing"
+  },
+  {
+    "id": "the minister is a marshal to clarify",
+    "file": "backend/commands/parser.py",
+    "old": "                                 \"your majesty\", \"the emperor\"))):\n                    addressed = None\n",
+    "new": "                                 \"your majesty\", \"the emperor\"))):\n                    pass\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_the_law_is_named_many_ways"
+  },
+  {
+    "id": "the laws question has no answer",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if str(kind or \"\") == \"laws\":\n        return _laws_answer(asked, world)\n",
+    "new": "    if False:\n        return _laws_answer(asked, world)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_a_question_or_a_hedge_is_answered_and_nothing_is_enacted"
+  },
+  {
+    "id": "the answer hides the arrears",
+    "file": "backend/ai/first_contact.py",
+    "old": "        if quote[\"arrears\"]:\n",
+    "new": "        if False:\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_the_answer_names_the_arrears_after_a_lapse"
+  },
+  {
+    "id": "enact is not dispatched",
+    "file": "backend/commands/executor.py",
+    "old": "        elif action == \"enact_law\":\n            result = self._reforms._execute_enact_law(command, game_state)\n",
+    "new": "        elif action == \"enact_law_x\":\n            result = self._reforms._execute_enact_law(command, game_state)\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_enact_the_staff_charges_its_price_and_one_admin_action"
+  },
+  {
+    "id": "enact costs no admin action",
+    "file": "backend/commands/meta_executor.py",
+    "old": "                 \"enact_law\", \"repeal_law\"}\n",
+    "new": "                 }\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_enact_the_staff_charges_its_price_and_one_admin_action"
+  },
+  {
+    "id": "the desk's answer shouts its refusal",
+    "file": "backend/ai/first_contact.py",
+    "old": "                 else refusal[0].lower() + refusal[1:].rstrip(\".\"))\n",
+    "new": "                 else refusal.rstrip(\".\"))\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestTheWords::test_the_answer_puts_a_refusal_in_its_place"
+  },
+  {
+    "id": "the price loses its comma",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            return f\"{head} costs {need:,} gold; the treasury holds {gold:,}.\"\n",
+    "new": "            return f\"{head} costs {need} gold; the treasury holds {gold}.\"\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_a_price_the_chest_cannot_pay_is_refused_free"
+  },
+  {
+    "id": "the refusal names the law in lower case",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    head = name[0].upper() + name[1:]     # at a sentence's head\n",
+    "new": "    head = name\n",
+    "tests": "tests/test_rf1_the_players_road.py::TestEnact::test_a_price_the_chest_cannot_pay_is_refused_free"
+  }
+]

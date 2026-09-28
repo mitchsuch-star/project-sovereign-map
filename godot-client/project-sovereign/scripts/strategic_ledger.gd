@@ -582,6 +582,11 @@ func _render_economy():
 	var rente_cost = int(econ.get("rente_cost", 0))
 	if rente_cost > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Rentes: -" + str(rente_cost) + "g[/color]\n"
+	# SR-5r RF-1 (REFORMS_SPEC §2.2): the upkeep of the laws in force — its
+	# own signed Net component (same SC-33 contract).
+	var laws = int(econ.get("laws", 0))
+	if laws > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Laws: -" + str(laws) + "g[/color]\n"
 	# EC-U2 (Combat Overhaul Phase 4): per-turn maintenance of built
 	# structures (depots, forts, training grounds, markets, stables,
 	# watchtowers) — the conquest-free gold sink; its own signed Net

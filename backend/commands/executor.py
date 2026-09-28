@@ -45,6 +45,7 @@ from backend.commands.economy_executor import EconomyExecutor
 from backend.commands.tactical_executor import TacticalExecutor
 from backend.commands.movement_executor import MovementExecutor
 from backend.commands.naval_executor import NavalExecutor
+from backend.commands.reforms_executor import ReformsExecutor
 from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
 
 # CA9-N5: a pending objection blocked EVERYTHING, including asking what
@@ -408,6 +409,7 @@ class CommandExecutor:
         self._tactical = TacticalExecutor(self)
         self._movement = MovementExecutor(self)
         self._naval = NavalExecutor(self)
+        self._reforms = ReformsExecutor(self)  # SR-5r RF-1: the laws
         self._meta = MetaExecutor(self)
         print("Command Executor initialized")
 
@@ -2901,6 +2903,13 @@ class CommandExecutor:
             result = self._naval._execute_naval_expedition(command, game_state)
         elif action == "naval_diversion":
             result = self._naval._execute_naval_diversion(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # SR-5r THE LAWS (docs/REFORMS_SPEC.md §2) — acts of state
+        # ════════════════════════════════════════════════════════════
+        elif action == "enact_law":
+            result = self._reforms._execute_enact_law(command, game_state)
+        elif action == "repeal_law":
+            result = self._reforms._execute_repeal_law(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             # ESP-EV-4: the raw text rides on the command dict so the attack
@@ -3273,6 +3282,8 @@ class CommandExecutor:
             dotation_val = int(income_data.get("dotation_skim", 0))
             # ES-7 second pass (§0.6.8): the rente bill
             rente_val = int(income_data.get("rente_cost", 0))
+            # SR-5r RF-1: the upkeep of the laws in force ("Laws")
+            laws_val = int(income_data.get("laws", 0))
             spent_val = saved_gold_spent.get(nation, 0)
             # DEF-5 naval: the blockade's trade suspension — its meta sibling
             # carries it; this banner omitted it (Aug 2026 audit).
@@ -3292,7 +3303,7 @@ class CommandExecutor:
             other_val = net_val - (income_val + requisitions_val + overseas_val
                                    - occupation_val - contributions_val
                                    - state_charges_val - dotation_val
-                                   - rente_val - infrastructure_val
+                                   - rente_val - laws_val - infrastructure_val
                                    - admiralty_val - blockade_val - upkeep_val
                                    - materiel_val)
             bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
@@ -3308,6 +3319,7 @@ class CommandExecutor:
                 "state_charges": int(state_charges_val),
                 "dotation_skim": int(dotation_val),
                 "rente_cost": int(rente_val),
+                "laws": int(laws_val),
                 "admiralty": int(admiralty_val),
                 "blockade": int(blockade_val),
                 "materiel": int(materiel_val),
@@ -3334,6 +3346,7 @@ class CommandExecutor:
             admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
             dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
             rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
+            laws_str = f" | Laws: -{laws_val}g" if laws_val > 0 else ""
             blockade_str = f" | Blockade: -{blockade_val}g" if blockade_val > 0 else ""
             materiel_str = f" | Materiel: -{materiel_val}g" if materiel_val > 0 else ""
             other_str = ""
@@ -3342,7 +3355,7 @@ class CommandExecutor:
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
             # IQ-2: the same collapse line + event keys as _execute_end_turn

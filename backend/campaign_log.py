@@ -443,6 +443,11 @@ CAMPAIGN_LOG_TYPES = {
     "expedition_intercepted",   # caught at sea, corps bled (NV-2)
     "expedition_turned_back",   # the patrols close the passage (NV-2)
     "naval_turnback",           # an AI army halted at a covered strait (NV-2)
+    # SR-5r "The Laws" (REFORMS_SPEC §8 "The events" — 168→171 flipped
+    # consciously at RF-1): a court's acts of state had no persistent record.
+    "law_enacted",              # a law put in force, or restored in arrears (R8)
+    "law_repealed",             # a law struck down by its own court (R4)
+    "law_lapsed",               # a law the treasury could not pay (R5)
 }
 
 # ============================================================================
@@ -547,6 +552,10 @@ CATEGORY_MAP = {
     "vassal_defected": "diplomacy",      # VS-6
     "client_petition_answered": "diplomacy",  # IQ-7
     "coalition_member_left": "diplomacy",
+    # SR-5r RF-1: the laws — the chest's own sink.
+    "law_enacted": "economy",
+    "law_repealed": "economy",
+    "law_lapsed": "economy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
     "fleet_posture": "command",
@@ -988,7 +997,11 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "crisis_passed", "guarantee_honored",
                           "third_party_peace",
                           "coalition_dissolved_for_france",
-                          "design_promoted", "volte_face"):
+                          "design_promoted", "volte_face",
+                          # SR-5r RF-1: a court's laws are court knowledge
+                          # across Europe (REFORMS_SPEC §8: "diplomacy
+                          # has no fog").
+                          "law_enacted", "law_repealed", "law_lapsed"):
             filtered.append(event)
             continue
 
@@ -2619,6 +2632,21 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         partner = display_nation(event.get("partner", "Unknown"))
         return (f"THE VOLTE-FACE: {nation}, beaten and then courted, "
                 f"takes {partner}'s hand")
+
+    # ── SR-5r "The Laws" (REFORMS_SPEC §8) ────────────────────────────
+    if event_type in ("law_enacted", "law_repealed", "law_lapsed"):
+        nation = display_nation(event.get("nation", "Unknown"))
+        name = str(event.get("name") or event.get("law") or "a law")
+        if name.startswith("The "):
+            name = "the " + name[4:]
+        upkeep = int(event.get("upkeep", 0) or 0)
+        if event_type == "law_repealed":
+            return f"{nation} repeals {name}"
+        if event_type == "law_lapsed":
+            return (f"{nation} cannot pay for {name} ({upkeep:,}g a turn) — "
+                    f"the law lapses")
+        verb = "restores" if event.get("restored") else "enacts"
+        return f"{nation} {verb} {name} ({upkeep:,}g a turn)"
 
     # ── DEF-5 naval (NV-0..NV-3) ──────────────────────────────────────
     if event_type == "fleet_laid_down":

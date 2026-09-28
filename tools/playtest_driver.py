@@ -813,6 +813,7 @@ NET_COMPONENTS = (
     ("occupation", "occupation"), ("blockade", "blockade"),
     ("admiralty", "admiralty"), ("infrastructure", "infrastructure"),
     ("dotation_skim", "dotations"), ("rente_cost", "rentes"),
+    ("laws", "laws"),  # SR-5r RF-1
 )
 
 # The one deliberate difference from the ledger's canonical map: the digest

@@ -59,6 +59,8 @@ ACTION_DISPLAY = {
     "naval_diversion": "orders the grand diversion",  # DEF-5 naval (NV-3)
     "summon_congress": "summons the Congress of Paris",      # GE-3 (ENDGAME_PLAN §2.3)
     "recognition_sweetener": "lays a sweetener before",     # GE-3 (ENDGAME_PLAN §2.4)
+    "enact_law": "enacts",                                  # SR-5r RF-1 (REFORMS_SPEC §2)
+    "repeal_law": "repeals",                                # SR-5r RF-1 (R4)
 }
 
 # ============================================================================
@@ -224,6 +226,8 @@ OBJECTION_DISPLAY = {
     "naval_diversion": "the grand diversion",       # DEF-5 naval (no objections in v1)
     "summon_congress": "summoning the Congress of Paris",  # GE-3 (the Emperor's own act — no objections)
     "recognition_sweetener": "offering a sweetener for recognition",  # GE-3 (no objections)
+    "enact_law": "enacting a law",       # SR-5r RF-1 (an act of state — no objections)
+    "repeal_law": "repealing a law",     # SR-5r RF-1 (no objections)
 }
 
 # ============================================================================
@@ -277,6 +281,8 @@ DEFIANCE_DISPLAY = {
     "naval_diversion": "ordered the diversion",    # DEF-5 naval (no defiance in v1)
     "summon_congress": "summoned the Congress of Paris",   # GE-3 (no defiance)
     "recognition_sweetener": "offered a sweetener for recognition",  # GE-3 (no defiance)
+    "enact_law": "enacted a law",        # SR-5r RF-1 (no defiance)
+    "repeal_law": "repealed a law",      # SR-5r RF-1 (no defiance)
 }
 
 # ============================================================================
