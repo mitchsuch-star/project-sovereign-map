@@ -17,7 +17,12 @@
 >   - six read-only agents, which re-verified every open row, read each pillar's review history and designed the scoring method;
 >   - one reproduction by hand (SF-V4).
 >
-> **Reading map:** §0 why · §1 the census · §2 the pillars · §3 the build order · §4 the scoring method · §5 cadence · §6 the user's rulings · §7 done when · §8 what this supersedes · Appendix A the checklist (v1, draft).
+> **Three of §6's questions were RULED the same day** under the user's delegation, each after research:
+> - RS-D1: recognition by defeat, anchored to the capital (§6.1);
+> - SR-G7 / PB-D1: "The Armed Peace" (§6.2);
+> - SF-V4: a proper name asks (§6.3).
+>
+> **Reading map:** §0 why · §1 the census · §2 the pillars · §3 the build order · §4 the scoring method · §5 cadence · §6 the user's rulings (§6.1–§6.3 the gate records) · §7 done when · §8 what this supersedes · Appendix A the checklist (v1, draft).
 
 ---
 
@@ -136,11 +141,11 @@ Five live rows are not in the 126:
 - **SF-V3 (P3, instrument): the Chunk 5 laws arm no longer buys the Staff.**
   - Since SR-5a the treasury reaches 9,000 only at turn 8, and the script types the enactment once, at loop 6.
   - → SF-M.
-- **SF-V4 (P2, needs a ruling): an attack on a proper name the map does not know fights the nearest enemy.**
+- **SF-V4 (P2; ruled September 28, 2026 that the marshal asks — §6.3): an attack on a proper name the map does not know fights the nearest enemy.**
   - "Ney, attack Zorglub", "attack Alsace" and "attack Lombardy" each read "Your words named no foe our maps know, Sire — Ney marches on Mack at Swabia", then fight him. Reproduced by hand: Ney 24,000 → about 21,900.
   - An *address* to such a name spends nothing (CX-R1).
   - CX5-L5-F8 ruled the substitution designed for a descriptive phrase ("smash the retreating column"); a proper name was never ruled.
-  - → CRT-10 with NPC-6, after §6's ruling.
+  - → leads CRT-10, with NPC-6 folded in (§6.3).
 
 ### §1.5 Owners that did not hold
 
@@ -168,12 +173,12 @@ That is the new ruler, not a regression. Targets are stated as ceiling counts (�
 
 | Pillar | Sept 28 | Target | Still docked (open rows) | The lift (§3) | Could fall if |
 |---|---|---|---|---|---|
-| **The ending** | 6.75 | 7.0 (3 ceilings) | RS-2 (P1), RS-D1, RS-10, RS-16 | Step 1, "The peace holds", with SF-END-1 as its exit (the sitting played to its end from the turn-24 save) | RS-D1 is left as it stands (the sitting stays unwinnable at −90), or "contested but counted" softens the finish too far |
+| **The ending** | 6.75 | 7.0 (3 ceilings) | RS-2 (P1), RS-D1, RS-10, RS-16 | Step 1, "The peace holds", with RS-D1 as ruled (the capital latch, §6.1) and SF-END-1 as its exit (the sitting played to its end from the turn-24 save) | The price rider makes the decisive-campaign peace unreachable (then the latch ships alone), or "contested but counted" softens the finish too far |
 | **Diplomacy** | 6.75 | 7.0 (3) | RS-1 (P1), SF-V1, RS-7, RS-9, RS-18 … RS-22, CQ-36, CX-X3, NPC-21 | Step 1 (RS-1, SF-V1); Step 2 (SF-DIP-1 "the dial survives the drop"; SR-6b copy); Step 4 (CRT-8) | RS-1's fix changes alliance calls (one series re-record) |
 | **First contact** | 7.0 | 7.5 (4) | RS-12, RS-14, RS-15, SRX-5, RS-6, RS-7, CX3-X2, CX3-X3, CX-BEHAV-1 | Step 2 (RS-14, SRX-5); Step 4 (CRT-9 with RS-12/RS-15; SF-CMD-1's first hour); Step 7 (the first ten minutes in the client) | The sourced lines are saturated, so a scorer's own phrasing decides (the HOLD arm, §4.2) |
 | **Economy** | 6.75 | 7.0 (3) | RS-D3 (evidence for SR-G7) | Step 3 (SR-G7 gives the chest a war to fund); Step 6 (SF-ECON-1, only if the items still fall short) | A new sink re-opens SR-5a's balance |
 | **Naval** | 6.75 | 7.0 (3) | RS-25; SHUT OUT has never held on a played board | Step 6 (SF-NAV-1 "the strangulation, played") | Britain sues from its own war exhaustion before the System bites (6 of 6 arms) |
-| **Living balance** | 6.5 | 7.0 (3) | SR-G7 / PB-D1 (the long peace); 0 AI-vs-AI wars; RS-3, RS-27, CQ-22, IQ5-R1, XR-3 | Step 3: SR-7b measures → SR-G7 ruled and built → SF-LB-1 "Europe's own quarrels" | A standing "Brewing" re-opens IQ-3's revolving door |
+| **Living balance** | 6.5 | 7.0 (3) | SR-G7 / PB-D1 (the long peace); 0 AI-vs-AI wars; RS-3, RS-27, CQ-22, IQ5-R1, XR-3 | Step 3: SR-G7 "The Armed Peace" as ruled (§6.2) → SF-LB-1 "Europe's own quarrels" | The league the fuse brings breaks F1 (France below 20 provinces at turn 40): lengthen the fuse, never lower the watch. A shorter fuse would re-open IQ-3's revolving door |
 | **Combat legibility** | 7.0 | 7.5 (4) | RS-3, RS-4, RS-12, RS-13, RS-26, NPC-13, NPC-17, NPC-25, AAR-5, AAR4-X2, AAR24-X4 | Step 3 (RS-3); Step 2 (RS-13, the AAR rows); Step 4 (SF-CL-1 "the forecast keeps its word") | SR-7d moves the arrival odds (the threshold exists in three copies) |
 | **Marshal drama** | 7.0 | 7.5 (4) | RS-5 + VP-R1-X1, RS-24, NPC-11, CQ-38 | Step 2 (RS-5 + VP-R1-X1; SF-MD-1 "every man his own voice"); Step 7 (B1's audiences on screen) | Floors that bind 0 times, and audiences nobody opens, make the game quiet |
 | **Vassals** | 7.0 | 7.5 (4) | IQ7-D1 (VD-C), IQ7-D3, IQ7-X1, IQ7-X3, CX-X3, VP-D9, IQ7-D4 | Step 5 (SR-8a VD-C, SR-8c) | VD-C touches marshal strength at four exits |
@@ -191,7 +196,7 @@ That is the new ruler, not a regression. Targets are stated as ceiling counts (�
 |---|---|---|---|
 | **0** | SF-0 the ledger tells the truth · SF-M the instrument + **the baseline reading** | ≈1.5 | measurement |
 | — | The user's rulings (§6) — no build session | — | gate Steps 1, 3, 4 and 5 |
-| **1** | "The peace holds": RS-1, RS-2 (+ RS-D1), RS-10, RS-16, SF-V1; SF-END-1 as the exit | ≈1.5 | the ending, diplomacy |
+| **1** | "The peace holds": RS-1, RS-2, RS-D1 as ruled (the capital latch + the price rider), RS-10, RS-16, SF-V1; SF-END-1 as the exit | ≈1.8 | the ending, diplomacy |
 | **2** | Berthier tells the truth: Chunk 6 rebuilt, plus the reserve, SF-MD-1 and SF-DIP-1 | ≈4.0 | narration, drama, combat legibility, diplomacy, first contact |
 | **3** | Europe acts without France: Chunk 7 as one balance block, SR-7d last | ≈6.5 | living balance, AI aliveness, economy |
 | **4** | The three misses, second pass: SF-CL-1, SF-CMD-1, then Chunk 3b trimmed to what the census confirms | ≈5.3 | combat legibility, command, first contact |
@@ -199,7 +204,7 @@ That is the new ruler, not a regression. Targets are stated as ceiling counts (�
 | **6** | The chest and the sea: SF-NAV-1 (+ SF-ECON-1 only if needed) | ≈0.7 (+1.0) | naval, economy |
 | **7** | What the wire says, the screen says: Chunk 9 + the user's eyes | ≈2.0 | UI/UX (+ first contact, drama) |
 | **8** | SF-R, the final reading | ≈1.0 | all |
-| | **Total** | **≈24–25** | |
+| | **Total** | **≈25–26** | |
 
 **Why the total is larger than the ≈12 sessions the mandate carried for Chunks 6–9 and 3b:**
 - Chunk 6's written bullets had six of seven rows already landed, while its real load (the retest's copy rows and the NPC rows homed to it) is about four times its ≈1.0.
@@ -249,12 +254,13 @@ The baseline is pinned to `c20d5bba`, so Steps 0 and 1 may swap if the user want
   - the panel ran;
   - §2 gains a "Baseline" column.
 
-### Step 1 — "The peace holds" (≈1.5; the latch half needs RS-D1 ruled)
+### Step 1 — "The peace holds" (≈1.8; RS-D1 is ruled — §6.1)
 
 | Row | Sev | Fix shape |
 |---|---|---|
 | RS-1 | P1 | The offensive cascade keeps a fresh peace. A court with a fresh peace or a pair cooldown is not called (`hard_illegal`, "fresh peace with X", no penalty), and the settlement writes the pair cooldown. Lever `THE_CASCADE_KEEPS_A_FRESH_PEACE`, series attributed. Also closes PC15-15's recorded residual (`settlement_third_party.py`). |
-| RS-2 | P1 | While the Congress sits, a war France neither declared nor joined marks a refusing ceder's titles CONTESTED but still counted. The break applies when that war ends, and the sue peace re-titles and latches recognition. Lever `A_CONGRESS_WAR_CONTESTS_NOT_BREAKS`. With RS-D1, if ruled yes: a signed peace that leaves a great power's capital in the French bloc latches its recognition. |
+| RS-2 | P1 | While the Congress sits, a war France neither declared nor joined marks a refusing ceder's titles CONTESTED but still counted. The break applies when that war ends, and the sue peace re-titles and latches recognition. Lever `A_CONGRESS_WAR_CONTESTS_NOT_BREAKS`. |
+| RS-D1 | ruled | §6.1: a signed peace that leaves a great power's capital held by France or her vassal chain latches its recognition (`kind: "capital"`; it breaks when the capital leaves the bloc). The price rider makes the scorer read a retained capital as lost; the latch and the rider each sit behind their own lever, and the rider is measured on the turn-16 shape. Every courtship lever quotes its cost in turns. With it, the RS-1 rider: the cascade reads `spared_from_coalition` while the Congress sits. |
 | RS-10 | P2 | Before the summons, the Congress says that the gate drops to 40 and which courts go to war (it reads the brewing league). |
 | RS-16 | P3 | The alarm line is built from one forecast of the tick's gains and its decay. |
 | SF-V1 | P2 | The AI proposal producer skips a treaty whose relation floor the pair does not meet (the ratifier's own predicate), and the refusal names the treaty. |
@@ -302,7 +308,7 @@ Order: RS-3 → SR-7a → SR-7b → SR-G7 (built as ruled) → SR-7c → RS-27 �
 
   One series re-record, flip-attributed per lever.
 - **SR-7b "The long peace, measured"** (PB-D1): the baseline arms first.
-- **SR-G7**, built as ruled. Recommended: Europe stays at Brewing while France holds ≥ 40% of the map. PB-D1's completion clause is its acceptance test.
+- **SR-G7 "The Armed Peace"**, as ruled (§6.2): the watch at 45 while the hegemon leads ≥ 1/3 of Europe's power, then the 16-quiet-turn fuse at +3 a turn up to the brewing gate. PB-D1's completion clause is its acceptance test (3 of 3 commanded seeds; projected league turns 32 / 29 / 31). SR-7b's baseline arms were already measured by the ruling's research.
 - **SR-7c "Dispersion"** (AAR-D4).
 - **RS-27** (measure first): bisect what moved the volte-face, then either pin it firing on its arm or re-script the arm.
 - **SF-LB-1 "Europe's own quarrels" (≈1.0):** deck authoring — IQ6-D1's Austrian follow-on, and `gulf_and_straits` waking without a volte-face. Measured to open at least one ambient AI-vs-AI war in 40 turns on ≥ 3 of 7 seeds.
@@ -321,7 +327,7 @@ Order: RS-3 → SR-7a → SR-7b → SR-G7 (built as ruled) → SR-7c → RS-27 �
   - **CRT-6 "the retreat is a word":** CQ-33, CX5-L5-F3, F4, F5, F6, F7, N2, N4, N5.
   - **CRT-8 "the Cabinet's rules on every road":** RS-7, CQ-36, CX-X3 (§6 rules the last).
   - **CRT-9 "the state speaks first", as ONE state probe:** RS-4, RS-12, RS-15, CQ-21, CQ-24, CQ-28. `march_state_refusal` gains drill-lock and fortified arms, and those orders are refused free at issuance.
-  - **CRT-10 "the suggestion is honest":** CX3-X2, CX3-X3, CX-BEHAV-1, PC15-13; NPC-6 (the tombstone answer); SF-V4 (per §6).
+  - **CRT-10 "the suggestion is honest":** led by **SF-V4**, "a proper name asks", as ruled (§6.3, lever `A_PROPER_NAME_ASKS`). Then CX3-X2, CX3-X3, CX-BEHAV-1, PC15-13, and NPC-6 (the tombstone answer, folded into SF-V4's fallen-general case).
   - **CRT-11 "the second name is heard":** CQ-8, CQ-38.
   - **The parser riders (no CRT row named them):** RS-6, RS-8, RS-11, NP-X1, NP-X8, NP-X9, NP-X10, NPC-9, NPC-10, NPC-18, NPC-26.
 
@@ -507,16 +513,16 @@ Appendix A lists version 1 (112 items). It is frozen once the user confirms it a
 
 ## §6 The user's rulings
 
-Recommended defaults are the plan's; every one is the user's to confirm or change.
+Recommended defaults are the plan's; every one is the user's to confirm or change. **Rows 1, 3 and 6 were RULED on September 28, 2026 under the user's delegation** (*"make decisions on …"*). Each was researched first; the gate records are §6.1–§6.3, and they are authoritative.
 
 | # | Question | Recommended default | Needed by |
 |---|---|---|---|
-| 1 | **RS-D1:** does a signed peace that leaves a great power's capital in the French bloc latch its recognition? | **Yes**, and the Congress table prices each lever in turns. The alternative is a 12–16-turn sitting. | Step 1 (the latch half) |
+| 1 | **RS-D1:** does a signed peace that leaves a great power's capital in the French bloc latch its recognition? | ✅ **RULED Sept 28, 2026: YES, anchored to the capital, with a price rider** (§6.1). | Step 1 |
 | 2 | **The checklist, v1** (Appendix A), and "the items are the done-when" | Confirm v1. Define done as 56 of 84 ceilings with every floor green, which means every pillar at target. | Step 0, before the baseline freezes |
-| 3 | **SR-G7 / PB-D1:** a standing alarm floor, so the long peace ends by machinery; which slot rules it | Europe stays at Brewing while France holds ≥ 40% of the map. Ruled at Chunk 7's head (Step 3), with SR-7b measuring first. ROADMAP 12 stops owning PB-D1. | Step 3 |
+| 3 | **SR-G7 / PB-D1:** a standing alarm floor, so the long peace ends by machinery; which slot rules it | ✅ **RULED Sept 28, 2026: "THE ARMED PEACE"** — a watch line at 45 while France leads a third of Europe's power, then a visible 16-quiet-turn fuse up to the brewing gate (§6.2). The drafted "≥ 40% of the map" was **rejected on measurement**. Built at Step 3; ROADMAP 12 no longer owns PB-D1. | Step 3 |
 | 4 | **RS-3's shape** | A field win halts before a garrison that still fights (the march's own predicate). | Step 3 |
 | 5 | **CQ-22:** the stance rule for drill on every road | The player's rule for both boards: no drill in aggressive stance. One series re-record. | Step 3 |
-| 6 | **SF-V4:** an attack on a proper name the map does not know | **Ask**, as the address rule does: "No foe called Zorglub is known — the nearest is Mack at Swabia. Attack him?" A descriptive phrase keeps CX5-L5-F8's substitution. | Step 4 |
+| 6 | **SF-V4:** an attack on a proper name the map does not know | ✅ **RULED Sept 28, 2026: the marshal ASKS, for free, naming only foes in sight**; a descriptive phrase keeps today's disclosed substitution (§6.3). | Step 4 (it leads CRT-10) |
 | 7 | **CX-X3:** the typed `vassalize` of a beaten minor | Route it through the Cabinet's priced proposal (acceptance plus DP). GEV-1's three proofs stay the rule for great powers. | Step 4 |
 | 8 | **CQ-36:** the break row for a boot alliance | Keep the dim, and make its reason honest: "an alliance of 1805, not a treaty of ours". | Step 4 |
 | 9 | **VP-D9:** the player's defection-bribe verb | Strike it. The AI's on-ramp stays; VD-C is the vassals' lift. | Step 5 |
@@ -532,6 +538,181 @@ Recommended defaults are the plan's; every one is the user's to confirm or chang
 - **EWC-D3:** strike. W6-7's clause covers the release; a ransom is post-EA content.
 - **VP-D8:** decline.
 - **IQ6-D2:** no default. Rule it at Step 3's gate, after measuring.
+
+### §6.1 RS-D1 "Recognition by defeat" — RULED September 28, 2026 (gate record)
+
+**The ruling: YES, anchored to the capital.** It amends SR-1a's ruling (2), and ruling (1) stands (a retained province is not reconciled: the ceder's designs still covet it).
+
+**The research** (read-only, at `c20d5bba`):
+- **Five things satisfy a court today** (`congress.answer`, congress.py:1056-1135):
+  - elimination or vassalage;
+  - a `table` latch: a peace signed while the Congress sits;
+  - a `beaten` latch: a peace that CEDED provinces by clause (game_end.py:1448-1457);
+  - the at-peace formula reaching 50 during the sitting;
+  - SHUT OUT.
+- **Austria's two retest peaces ceded nothing by clause.** Vienna was kept by a status-quo retention, so no latch was ever written: `world.congress` is `None` in the turn-24 save.
+- **ENDGAME §2.4's "a refuser whose capital France holds sues at once" works only for a court at war.** `court_must_sue` returns False at peace. At peace, the capital is worth only a +10 that lapses 15 turns after the peace.
+- **The turn-24 save, replayed:** it dissolves at the end of turn 27. On the same tick, Austria's answer turns to "SUES — we hold Vienna" — one tick too late.
+- **The same replay with Austria latched:**
+  - Austria RECOGNIZES on every tick;
+  - the league forms without it;
+  - the count holds at 47 through day 3;
+  - the Congress falls on day 4 to a real loss in the field (Buxhowden takes Moravia from an unattended Ney).
+
+  That is a fall with a cause the player can see.
+- **Alternatives rejected:**
+  - (b) GEV-1's "beaten" test at signing: a war score is cleared when the war ends, one recruit undoes "no corps standing", and a white peace after field wins alone would latch a court whose map is intact (GE-3 review #0).
+  - (c) a 12–16-turn sitting: it doubles the time the hold is exposed, and the +10 still lapses.
+  - (d) no change: the table keeps quoting a price that cannot be paid.
+
+**The mechanics** (Step 1, behind the lever `congress.A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES`):
+
+1. **The condition.** In `game_end.note_ratification`, after the clauses apply, any great-power counterpart whose capital is held by France or France's vassal chain is latched `kind: "capital"`, with the capital's name recorded.
+   - "France's vassal chain" includes carved clients: the `_top_overlord == France` test that `_capital_taken`, GEV-1 and the title rule already use.
+   - An ally is NOT the bloc here.
+   - This applies to signed roads only, before or during the sitting. A truce, a truce expiring, or an elimination writes nothing. Player only: the Congress is France's.
+2. **What breaks it.**
+   - the two existing breakers: any new war between France and the court; the Emperor's capture from its bloc or of a province it covets;
+   - **new:** the capital leaving the French bloc by any road — handed back, retaken, taken by a third party, or its holder's rebellion. This is derived inside `_signed_record`, with no new serialized field.
+
+   A later cession peace re-writes the latch as `beaten`; a peace signed during the sitting writes `table`.
+3. **The price rider** (its own lever).
+   - **The problem:** the peace table scores a status-quo peace that keeps the counterpart's capital as "kept all" (`capital_lost: False`, +5; settlement_scoring.py:813-913). Austria read 52/50 on turn 16 for a peace plus 100 gold.
+   - **The rule:** the scorer reads a retained great-power capital as a capital lost, so recognition by defeat costs a defeat, not a white peace.
+   - **Measured in Step 1** with a flip arm on the retest's turn-16 shape. If, after the whole decisive campaign (Vienna, Bohemia, Moravia, Dresden and Carniola taken), no peace that keeps Vienna can be signed at all, the rider does not ship: the latch ships alone and the finding is recorded.
+4. **What the player reads.**
+   - **The Congress row:** "RECOGNIZES — it signed the peace that left Vienna in our hands (turn 16)".
+   - **The settlement review and the ratification summary:** "Recognition: Austria will recognize the order at the Congress — Vienna stays ours by this treaty."
+   - **The SUES projection** names this road.
+   - **Every courtship lever quotes its cost in TURNS** (RS-D1's second half): "court them to 40 — 16 turns; the Congress sits 8".
+5. **The rider for RS-1.** While the Congress sits, the offensive cascade also reads `spared_from_coalition`, so a recognizing court is not dragged into the league by an alliance.
+6. **Pins** (`tests/test_rs_d1_recognition_by_defeat.py`):
+   - both ratifiers latch a white peace that keeps the capital;
+   - a capital held by a vassal or client latches; one held by an ally does not;
+   - each of the three breakers;
+   - a truce, or a truce expiring, never latches;
+   - lever down, ruling (2) behaviour returns;
+   - the turn-24 replay, driven;
+   - the wording.
+
+   `test_congress_of_paris.py::TestTheTable::test_a_white_peace_before_the_summons_does_not_latch` stays green: that peace keeps no capital.
+7. **Pin flipped consciously:** `test_sr1a_status_quo_is_a_cession.py::TestTheAARShape::test_it_does_not_latch_the_congress`.
+8. **Series.** `BASELINE_SERIES` cannot move, because the ambient board ratifies nothing with France (`congress_writes: 0` on every arm). The build confirms this with a two-arm check.
+
+### §6.2 SR-G7 / PB-D1 "The Armed Peace" — RULED September 28, 2026 (gate record)
+
+**The ruling: a watch line below the brewing gate, and a visible armed-peace fuse.** The drafted default ("Europe stays at Brewing while France holds ≥ 40% of the map") is **rejected on measurement**: it never fires.
+
+**The research** (read-only; the three commanded arms re-run with saves every 5 turns, matching the `rs0928-cmd-*` ledgers exactly):
+- **France holds 27–30 of 126 provinces** on the commanded arms (21–25%; 27–30% with satellites), and 36 (29%) on the hand-played Congress road.
+- **Read as the bloc power share instead** (provinces × tier weight over France, her satellites and her allies — coalition.py:269-381), the 40% line fires on one seed of three, by 0.002.
+- **Why the alarm reaches 0:**
+  - The general peace (turns 10–11) spends the league: 95→47, 67→33, 76→38.
+  - After that only hegemony (+1) and the agenda grudge (+2 for ten turns) run against decay (−3), so the alarm falls to 0 by turns 36–38.
+  - Meanwhile Britain, Russia and Austria all QUALIFY for a league from turns 15–20 to turn 40 (relations −36 to −61). The league is loaded; only the alarm is missing.
+  - No AI road reaches a quiet France: every opportunism term needs the holder at war, beaten, exhausted or bankrupt. Austria's Revanche stays below the coerce rung while she re-arms from 34k to 126k.
+- **Alternatives rejected:**
+  - (a) a floor AT brewing: never fires on provinces, is knife-edge on the bloc share, and where it fires it is IQ-3's revolving door (a new league 8 turns after each spent one).
+  - (c) an AI road alone: an ultimatum needs French-held soil in a design, defiance adds less than decay, and "no unilateral AI declare-war" is pinned. At best one seed.
+  - A bare clock: IQ-3 had rejected "a cooldown with a memory label". This one is admitted only because it is visible, can be played against, and fires once per quiet period.
+
+**The mechanics** (Step 3, behind the lever `coalition.THE_ARMED_PEACE`; zero new serialized fields; one roster pass, GR8):
+
+1. **The predicate.** All four must hold:
+   - the hegemon leads the largest bloc at ≥ 1/3 of Europe's power (the band the code already names "anti-decay", coalition.py:325);
+   - no coalition is active or brewing;
+   - some court is left to alarm;
+   - the Congress is not sitting.
+2. **Quiet turns:** the current turn minus the latest `last_battle_turn` among the hegemon's marshals.
+3. **The watch: 45** (in-band 40–50). While the predicate holds, decay stops at 45; below 45 decay does not run at all, so hegemony lifts a spent alarm back up.
+4. **The fuse: 16 quiet turns** (in-band 12–20; never shorter than the 12-turn title clock).
+   - After the fuse, the watch rises **+3 a turn** (source `armed_peace`) until it reaches the brewing gate at 60, where it holds.
+   - The existing brewing countdown and `qualifies_for_coalition` do the rest.
+5. **Reset.** Any battle by the hegemon restarts the count, and a formed league ends the predicate.
+6. **What the player reads.**
+   - **Threat rows:** "Europe watches — France leads 40% of Europe's power (floor 45)" and "The courts re-arm (+3)".
+   - **The war room** shows the fuse's turns left and names the courts that would consult.
+   - **The levers are stated:**
+     - a court raised above −10 will not join;
+     - a bloc under a third of Europe ends the watch;
+     - the Congress suspends it;
+     - a declaration takes the alarm from 45 to 65.
+7. **GR5.** The predicate is written on *the hegemon*, as D3 already frames every coalition. The build measures the ambient series with the lever flipped:
+   - **If the ambient series moves:** the move is attributed and `BASELINE_SERIES` is re-recorded once, provided every guard below holds. The "threat must be EARNED" pin (`test_ai_intent_threat_migration.py`) is then amended consciously.
+   - **If a guard fails:** the predicate is scoped to the player, and the reason is recorded.
+8. **Acceptance — PB-D1's own clause:** *"A France at peace after the opening war has a reason to act, and a Europe that answers her. On the commanded-accept driver arm, turns 12–40 contain either an AI-initiated war or ultimatum against France, or a French design pursued."*
+   - **Measured as:** on 3 of 3 commanded-accept seeds, a coalition declares on France in turns 12–40, not by cascade, and the alarm rises after the peace.
+   - **Projected:** the fuse lapses on turns 24 / 21 / 23 (historical / austerlitz / marengo); the league declares on turns 32 / 29 / 31. That is 18–22 turns after the peace — about Pressburg to Jena.
+9. **Guards:**
+   - IQ-3's declaring board still yields ≤ 3 leagues in 40 turns;
+   - France keeps ≥ 20 provinces at turn 40 (checklist F1);
+   - the GE-3 Pressburg arm still signs;
+   - `BASELINE_SERIES` and M1–M7 are byte-identical with the lever down;
+   - the passive France is no worse (it fights on 27 of 40 turns, so "quiet and dominant" never holds there).
+10. **Risks recorded:**
+    - F1 around turn 30: a France of 83–108k men faces Austria at 89–131k, Russia at 75–80k and Britain at 42–55k. If F1 breaks, lengthen the fuse; do not lower the watch.
+    - At 45 the AI-to-AI preemptive-alliance trigger (above 40) wakes, so Europe allies during the quiet. Accepted: that is the point.
+11. **Closes:** PB-D1 closes when this lands with its clause green. RS-D3 closes today, cited as evidence here. ROADMAP 12 no longer owns PB-D1's ruling.
+
+### §6.3 SF-V4 "A proper name asks" — RULED September 28, 2026 (gate record)
+
+**The ruling: an attack that names a proper name matching nothing makes the marshal ASK, for free, naming only foes in sight.** A descriptive phrase keeps today's disclosed substitution. This is CRT-2's principle ("a name the sentence gives is the one acted on, or the order is refused free") and FA-22's addressee rule, applied to the target.
+
+**The research** (probe at `c2dfe40b`, mock parser, a fresh 1805 boot per line, through `POST /command`):
+- **Unknown names fight today.** "Ney, attack Zorglub" / "Alsace" / "Lombardy" each fight Mack: one action and about 6,500 French across the muster. The same happens for Venetia, Atlantis, Ulm, Bonaparte and a lowercase "zorglub", for Soult (literal), Davout and Murat alike, and for the driver's own 28 "Soult, attack Paget/Wellesley" lines while those generals are uncommissioned.
+- **The same shape of order already gets other answers:**
+  - it asks for "Charles" and "Kutusof" (CQ-30);
+  - it is refused free for pursue, move, march, recruit and "deal with Zorglub";
+  - a bare "attack Zorglub" asks which MARSHAL Zorglub is, and answering "1" sent Soult against Mack.
+- **Where the name is dropped:**
+  - both parse roads drop an unknown attack target (the mock at `llm_client.py:3375-3464`; the live road at `validation.py:473-475`);
+  - the executor then picks the nearest visible foe;
+  - `guessed_target_refusal` (combat_executor.py:238) discloses and proceeds.
+- **How it got here:** ESP-EV-4 refused (Jul 11) → PS-1 exempted empty orders (Jul 12) → CR-6 §7 exempted auto-assignment (Jul 16) → PS18-R1 switched to disclose-and-proceed because *descriptions* cannot be enumerated (Jul 18). No ruling ever covered a proper name.
+- **Alternatives rejected:**
+  - (c) keep the substitution: it is a battle nobody ordered, and "he will turn" prints after the fight (CX5-L5-N5);
+  - (b) refuse: it recreates the dead end PS-1 fixed, so it is kept only for when nothing is in sight;
+  - (d) typo-matching first: kept, as the ask's own first stage.
+
+**The mechanics** (Step 4; SF-V4 LEADS CRT-10, behind the lever `A_PROPER_NAME_ASKS`):
+
+1. **A proper name, defined by grammar** (a pure function of the raw text, the marshal and the world). Take the words after the attack verb, up to the first comma, conjunction, preposition or clause word. A proper name is present when all three hold:
+   - the words do not open with a determiner, possessive or quantifier (`_NAME_BLOCKING_PREFIXES`, plus his, her, their, its, our, your, every, any, each, some, all);
+   - after filler and `GENERIC_TARGETS` are removed, a word remains that is not on a closed list of military nouns (cavalry, guns, battery, column, flank, vanguard, baggage …) and is not an -ly adverb;
+   - that word resolves to no roster marshal, province, nation, demonym or prisoner.
+
+   All six PS18-R1 descriptions stay descriptions, and so does "the Zorglub column".
+2. **Behaviour by case:**
+
+   | Case | Behaviour |
+   |---|---|
+   | Empty, generic, a description, a nation, an exact name, a fogged exact name | unchanged |
+   | Unknown proper name | ask, free: "No foe called Zorglub is in sight, Sire. The nearest in sight is Mack at Swabia — shall Ney engage him?" |
+   | Near miss of a visible foe (Makc, Mach) | "…did you mean Mack at Swabia?" (CQ-30 widened to transpositions inside the ask) |
+   | A fallen general whose death was visible | "Archduke John fell at Tyrol on turn N, Sire — his corps is no more." + the ask (NPC-6). If the death was not visible, the plain ask. |
+   | A name on an enemy's uncommissioned bench | the same line as a fogged commissioned general, so a commission never leaks |
+   | Nothing in sight | the existing refusal, reworded to "in sight" |
+   | Bare "attack Zorglub" (no marshal named) | the target question, never the marshal question |
+
+3. **Fog.**
+   - The ask says "in sight", never "known".
+   - It offers only foes at PARTIAL visibility or better, nearest first, each with `interpreted_target` set. "yes" or "attack him" engages the foe the question named; today "yes" takes the first option in unsorted order.
+4. **The arrival tail.** "march to Swabia then attack Zorglub" marches, arms no attack, and the reply names the dropped word.
+5. **Pins** (`tests/test_crt10_the_suggestion_is_honest.py`, at `POST /command`, reading the world before and after):
+   - every probe line, for all four personalities: nothing spent or lost, nothing out of sight named, and "yes", "2" and "cancel" each resolve;
+   - the six PS18-R1 lines plus "retreating column", "enemy cavalry", "their left flank" and "at dawn" still proceed;
+   - the bench answer is identical before and after an AI commission;
+   - the fallen-general fog rule holds both ways;
+   - the bare road never targets one of our own marshals;
+   - a lever-down pin, golden-corpus rows, and a mutation sweep.
+
+   The benchmark's DL arm gains "Ney, attack Zorglub" and "Ney, attack Alsace" (checklist Command C4).
+6. **Pins flipped or extended consciously:**
+   - the Venetia pin (`test_playtest_command_and_ui_2026_07_18.py:317`) flips;
+   - `test_wo_slice10_enemy_direction_gate.py`'s refusal-wording list gains "No foe called".
+7. **Series.**
+   - `BASELINE_SERIES` and M1–M7 cannot move: only the typed player road carries raw input, and the AI always names exact targets.
+   - **The commanded driver arms WILL move.** Their Paget/Wellesley lines now ask, and the driver's clarification policy decides what follows. The build re-reads those arms and records the change as a known move of the benchmark.
 
 ---
 
@@ -709,7 +890,7 @@ Recommended defaults are the plan's; every one is the user's to confirm or chang
 | C1 | OP: ≤ 1 shrug in 127 lines | A | ✓ |
 | C2 | OP: 0 reading refusals (of the "Cannot find marshal 'Of Ney'" kind, which the hand-played retest met on turn 1) | A | |
 | C3 | ≥ 18 of HOLD's 20 orders execute as meant | P | |
-| C4 | DL's "in support of", "march on X and destroy Y" and "take" execute (RS-6/8/11) | A | ✗ |
+| C4 | DL's "in support of", "march on X and destroy Y" and "take" execute (RS-6/8/11), and "attack Zorglub" / "attack Alsace" ask without spending anything (SF-V4, §6.3) | A | ✗ |
 | C5 | On `typed_road.json`, question turns spend 0 actions and order turns spend them | A | |
 | C6 | OP on the live parser has ≤ 1 misread | A | |
 

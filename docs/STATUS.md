@@ -4,6 +4,40 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THREE RULINGS FOR THE SCORE FINISH — September 28, 2026** (the user's delegation: *"make decisions on [RS-D1, SR-G7, SF-V4] … commit and push"*)
+> - **Records:** gate records `docs/SCORE_FINISH_SPEC.md` §6.1–§6.3 (authoritative). Design rows RS-D1, SR-G7 and PB-D1 are RULED, RS-D3 is CLOSED as evidence (`DESIGN_REFINEMENT.md`), and bug row SF-V4 is RULED (`BUG_FIXES.md`).
+> - **Nothing is built:** each ruling lands in its step of the plan.
+> - **How they were made:** each question went to a read-only research agent first — code read at `c20d5bba`, and the saves replayed or probed at `POST /command`.
+> - **RS-D1 "Recognition by defeat" → YES, anchored to the capital.**
+>   - **Found:** Austria's retest peaces ceded nothing by clause, so no latch was written. "A refuser whose capital France holds sues at once" works only at war.
+>   - **Found:** the turn-24 replay with Austria latched keeps 47 of 45 through day 3. The Congress then falls on day 4 to a real loss in the field.
+>   - **Ruled:**
+>     - A signed peace that leaves a great power's capital held by France or her vassal chain latches its recognition (`kind: "capital"`). An ally does not count.
+>     - The latch breaks on a new war, on the Emperor's capture from its bloc, or when the capital leaves the bloc. It is player only.
+>     - **The price rider:** the peace table reads a retained capital as lost. Austria had signed away Vienna for 100 gold at 52/50.
+>     - Every courtship lever quotes its cost in turns.
+>   - **Lands:** Step 1, "The peace holds". `test_sr1a…::test_it_does_not_latch_the_congress` flips consciously.
+> - **SR-G7 / PB-D1 "The Armed Peace" → the drafted default is REJECTED on measurement.**
+>   - **Found:** France holds 21–25% of the map on the commanded arms, so "≥ 40% of the map" never fires.
+>   - **Found:** after the general peace the alarm decays to 0 while Britain, Russia and Austria all qualify for a league. The league is loaded; only the alarm is missing.
+>   - **Ruled:**
+>     - **The watch:** decay stops at 45 while the hegemon leads ≥ 1/3 of Europe's power (the bloc share the code already computes).
+>     - **The fuse:** after 16 quiet turns, the alarm rises +3 a turn to the brewing gate (60). The existing league machinery does the rest.
+>     - The count resets on any battle; the Congress suspends it.
+>     - **Shown to the player:** "Europe watches — …", and the fuse on the war room.
+>   - **Projected:** a league declares on turns 32 / 29 / 31 across the three seeds, which is PB-D1's own clause.
+>   - **Guards:** IQ-3's ≤ 3 leagues, F1 (France ≥ 20 provinces at turn 40), the Pressburg arm, and GR5 on the hegemon with a flip-attributed series.
+>   - **Lands:** Step 3. ROADMAP 12 no longer owns PB-D1.
+> - **SF-V4 "A proper name asks" → the marshal ASKS, for free, naming only foes in sight.**
+>   - **Found:** probed at `c2dfe40b`, "attack Zorglub / Alsace / Venetia / Atlantis / Bonaparte" each fight Mack, costing about 6,500 men and an action. Meanwhile pursue / move / recruit / "deal with" refuse free, and a near miss asks. No ruling ever covered a proper name.
+>   - **Ruled:**
+>     - A grammatical test defines a proper name; the six PS18-R1 descriptions stay descriptions.
+>     - A near miss asks "did you mean Mack at Swabia?". A fallen general gets the tombstone line (NPC-6). A bench name is answered like a fogged general. Nothing in sight gets the refusal.
+>     - "Yes" engages the foe the question named.
+>   - **Lands:** it leads CRT-10 in Step 4 (lever `A_PROPER_NAME_ASKS`). The Venetia pin flips.
+>   - **Moves:** the commanded driver arms, whose Paget/Wellesley lines now ask. `BASELINE_SERIES` cannot move: the AI never carries raw text.
+> - **▶ NEXT is unchanged: Score Finish Step 0.**
+
 > **▶ ▶ ▶ THE SCORE FINISH — THE PLAN (September 28, 2026, user-directed: "lay out plan to hit all defects, these pillars … then a rescore at the end with improved methods … make status reflect plan and steps")**
 > - **Routing authority from today: `docs/SCORE_FINISH_SPEC.md`** (row SF, the rest of the Score Mandate). `SCORE_MANDATE_PLAN.md` keeps its landing records and its gates. Nothing is built yet: the spec is docs plus one read-only tool.
 > - **Why the scores stood still** (spec §0):
@@ -17,12 +51,12 @@
 >   - **Stale:** 29 defect rows and 45 design rows, fixed but never struck.
 >   - **Design:** 13 items in scope and 11 user gates.
 >   - **Orphans:** a dozen NPC rows and seven others (the NP-X rows, VP-R1-X1, CQ-22) had been homed to slices that landed without them; §1.5 re-homes each one.
-> - **The steps** (spec §3, ≈24–25 sessions):
+> - **The steps** (spec §3, ≈25–26 sessions):
 >
 >   | Step | What | Sessions |
 >   |---|---|---|
 >   | 0 | **SF-0** the ledger tells the truth + **SF-M** the instrument (`tools/score_run.py`, the checklist v1, the probes) + **the baseline reading** on `c20d5bba` | ≈1.5 |
->   | 1 | **"The peace holds":** RS-1, RS-2 (+ RS-D1), RS-10, RS-16, SF-V1; SF-END-1, the Imperial Peace played, as its exit | ≈1.5 |
+>   | 1 | **"The peace holds":** RS-1, RS-2, RS-D1 as ruled (the capital latch + the price rider), RS-10, RS-16, SF-V1; SF-END-1, the Imperial Peace played, as its exit | ≈1.8 |
 >   | 2 | **Berthier tells the truth:** Chunk 6 rebuilt (its written bullets had already landed), the reserve, SF-MD-1 "every man his own voice", SF-DIP-1 | ≈4.0 |
 >   | 3 | **Europe acts without France:** Chunk 7 as one balance block — RS-3, SR-7a (+ CQ-22, IQ5-R1, XR-3), SR-7b, SR-G7, SR-7c, RS-27, SF-LB-1 "Europe's own quarrels", SR-7d last | ≈6.5 |
 >   | 4 | **The three misses, second pass:** SF-CL-1 the forecast keeps its word; SF-CMD-1 the unrehearsed line; Chunk 3b trimmed (CRT-6/8/9/10/11 + the parser riders) | ≈5.3 |
@@ -40,12 +74,9 @@
 >
 >   **Every session exit now reports item flips, so progress is visible without a re-score.**
 > - **⚠ Expect the baseline to read LOWER than the Sept 28 impression scores.** A verified P1 caps the ending and diplomacy, and most of living balance's ceilings are unmet. That is the new ruler, not a regression.
-> - **⚠ Open with the user** (spec §6, each with a recommended default):
->   - RS-D1: recognition by defeat;
+> - **⚠ Open with the user** (spec §6, each with a recommended default). ~~RS-D1~~, ~~SR-G7 / PB-D1~~ and ~~SF-V4~~ were RULED the same day (entry above). Still open:
 >   - the checklist v1 as the definition of done;
->   - SR-G7 / PB-D1: the alarm floor, and which slot rules it;
 >   - RS-3's shape; CQ-22's drill rule;
->   - SF-V4: an attack on an unknown proper name (default: ask);
 >   - CX-X3; CQ-36; VP-D9; IQ7-D4;
 >   - SF-ECON-1, only if needed;
 >   - the orphaned design gates: WO-D7, WO-D8, WO-D13, EWC-D3, VP-D8, IQ6-D2;

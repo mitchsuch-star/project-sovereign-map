@@ -86,6 +86,8 @@ Sizes are sessions; every chunk's 30% reserve (§0-3) is inside its size.
 
 ### Chunk 1 — THE ENDING: "Paris must be reachable" (≈3.0; the ending 5.5 → 7.0; diplomacy +0.25)
 
+> **⚑ Amended September 28, 2026:** RS-D1 "recognition by defeat" amends **SR-1a's ruling (2)** (`SCORE_FINISH_SPEC.md` §6.1). A signed peace that leaves a great power's capital held by France or her vassal chain now latches that court's recognition, and a price rider makes the peace table read a retained capital as lost. Ruling (1) stands: a retained province is not reconciled. It is built in the Score Finish's Step 1.
+
 The road to the Congress, built from what was measured, not from the number. Order:
 
 - ~~**SR-1a Status quo is a cession**~~ ✅ **LANDED September 26, 2026** (AAR-D2, small, the largest single effect). A province retained by a ratified status-quo clause is titled `ceded_by_treaty` (the treaty was signed for it; uti possidetis is a title everywhere in the period's practice). On the AAR road this alone is 36 at turn 9 and 37 at turn 18 with Vienna; on GE-V's Pressburg shape it is the whole "three cessions" term. Pin: a driven ratification of a status-quo peace flips the held-unsettled list to titled the same turn; the Congress line says so.
@@ -198,6 +200,8 @@ The road to the Congress, built from what was measured, not from the number. Ord
 **Session-exit evidence (§5):** a played arm's dispatches; this chunk is also the quick-win bank's largest donor. Scored once, at the end of the mandate.
 
 ### Chunk 7 — AI ALIVENESS & LIVING BALANCE: "Europe acts without France" (≈2.0, ≈4.5 with SR-7d; 7.5 → 8.0; 6.5 → 7.0)
+
+> **⚑ The gate below was RULED September 28, 2026:** SR-G7 / PB-D1 → **"The Armed Peace"** (`SCORE_FINISH_SPEC.md` §6.2). The recommended default written below ("Europe stays at Brewing while France holds ≥ 40% of the map") was **rejected on measurement**: France holds 21–25% of the map on the commanded arms. This chunk is rebuilt as the Score Finish's Step 3.
 
 - **Gate at the chunk's head — SR-D2 "Asymmetry and national flavor", with HC-6 seasons folded in** (re-slotted September 26, 2026 (evening); §4). Nothing under it is built until it is ruled. **✅ The doctrine half RULED September 27, 2026** (`DOCTRINES_SPEC.md`, authoritative). The seasons are NOT folded in after all: they keep their own post-playtest slot. **The alarm-floor question below is still this gate's.** **The same gate carries a second question (added the same evening): a standing alarm floor derived from France's share of Europe, so the long peace ends by machinery (PB-D1).** **Recommended default: Europe stays at Brewing while France holds ≥ 40% of the map**; the numbers escalate to the gate, and SR-7b measures the long peace first.
 - **SR-7d The Doctrines** (≈2.5 after the same-day review and the UI/UX pass — was ≈1.2; added September 27, 2026 — `DOCTRINES_SPEC.md` §7). Needs SR-5r landed.
