@@ -687,11 +687,10 @@ class NavalExecutor:
                 if not rec or int(rec.get("ships", 0) or 0) <= 0:
                     return {"success": False,
                             "message": "We have no fleet to sail, Sire."}
-                if rec.get("diversion_used"):
-                    return {"success": False, "message": (
-                        "The fleet has already attempted its grand "
-                        "diversion this war — the squadrons cannot repeat "
-                        "the feint while the enemy watches for it.")}
+                if naval.diversion_wait(world, actor) > 0:
+                    # SR-5c: the refusal names the wait, from the resolver's
+                    # own sentence (one source).
+                    return naval.resolve_diversion(world, actor)
                 # Aug 30, 2026 review: shown = applied. The failure arm
                 # docks readiness BEFORE the battle, so the quoted "current
                 # readiness" was never the readiness she fought at. One
@@ -742,14 +741,24 @@ class NavalExecutor:
                     "marshal": "The Admiralty",
                     "original_command": command.get("raw_command", ""),
                     "message": (
-                        f"The Grand Diversion is drawn up, Sire — once, "
-                        f"and once only, this war. The fleet sails to draw "
-                        f"the enemy squadrons off station: "
-                        f"{naval.DIVERSION_SUCCESS_PCT} times in 100 the "
-                        f"strait opens for {naval.WINDOW_TURNS} turns; "
-                        f"otherwise she is caught coming home and fights "
-                        f"at readiness {readiness}."
-                        f"{camp_line}{forecast_line} "
+                        (f"The Grand Diversion is drawn up, Sire. The fleet "
+                         f"sails to draw the enemy squadrons off station: "
+                         f"{naval.diversion_odds(world, actor)} times in 100 "
+                         f"at her readiness "
+                         f"({int(rec.get('readiness', 0) or 0)}) the strait "
+                         f"opens for {naval.WINDOW_TURNS} turns; otherwise "
+                         f"she is caught coming home and fights at readiness "
+                         f"{readiness}. Whatever the outcome, she may try it "
+                         f"again {naval.DIVERSION_WAIT_TURNS} turns from now."
+                         if naval.THE_DIVERSION_IS_THROWN_AGAIN else
+                         f"The Grand Diversion is drawn up, Sire — once, "
+                         f"and once only, this war. The fleet sails to draw "
+                         f"the enemy squadrons off station: "
+                         f"{naval.DIVERSION_SUCCESS_PCT} times in 100 the "
+                         f"strait opens for {naval.WINDOW_TURNS} turns; "
+                         f"otherwise she is caught coming home and fights "
+                         f"at readiness {readiness}.")
+                        + f"{camp_line}{forecast_line} "
                         f"Sail? (yes / no)"),
                     "options": [
                         {"label": "Order the diversion",

@@ -1,0 +1,121 @@
+[
+  {
+    "id": "Odds: readiness is ignored",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return int(max(DIVERSION_ODDS_FLOOR,\n                   min(DIVERSION_ODDS_CEILING,\n                       readiness - DIVERSION_READINESS_OFFSET)))",
+    "new": "    return int(DIVERSION_SUCCESS_PCT)",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheOdds"
+  },
+  {
+    "id": "Odds: no clamp",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return int(max(DIVERSION_ODDS_FLOOR,\n                   min(DIVERSION_ODDS_CEILING,\n                       readiness - DIVERSION_READINESS_OFFSET)))",
+    "new": "    return int(readiness - DIVERSION_READINESS_OFFSET)",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheOdds"
+  },
+  {
+    "id": "Roll: the flat 45 again",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if _pct_roll(world, namespace, odds):",
+    "new": "    if _pct_roll(world, namespace, DIVERSION_SUCCESS_PCT):",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheOdds"
+  },
+  {
+    "id": "Wait: none",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return int(max(0, last + DIVERSION_WAIT_TURNS\n                   - int(getattr(world, \"current_turn\", 0) or 0)))",
+    "new": "    return 0",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheWait"
+  },
+  {
+    "id": "Wait: never ends",
+    "file": "backend/game_logic/naval.py",
+    "old": "    return int(max(0, last + DIVERSION_WAIT_TURNS\n                   - int(getattr(world, \"current_turn\", 0) or 0)))",
+    "new": "    return int(DIVERSION_WAIT_TURNS)",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheWait"
+  },
+  {
+    "id": "Throw: not recorded",
+    "file": "backend/game_logic/naval.py",
+    "old": "    rec[\"diversion_last_turn\"] = int(world.current_turn)\n    namespace",
+    "new": "    namespace",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheWait"
+  },
+  {
+    "id": "Reset: the wait outlives the war",
+    "file": "backend/game_logic/naval.py",
+    "old": "            rec[\"diversion_last_turn\"] = -1\n",
+    "new": "            pass\n",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheWait"
+  },
+  {
+    "id": "Terms: the wait is not asked",
+    "file": "backend/game_logic/naval.py",
+    "old": "                 \"met\": wait == 0,\n                 # Every term carries",
+    "new": "                 \"met\": True,\n                 # Every term carries",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheWait"
+  },
+  {
+    "id": "Chip: the old note",
+    "file": "backend/game_logic/naval.py",
+    "old": "        if THE_DIVERSION_IS_THROWN_AGAIN:\n            note = (f\"{diversion_odds(world, player)} in 100 at readiness \"",
+    "new": "        if False:\n            note = (f\"{diversion_odds(world, player)} in 100 at readiness \"",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheSurfaces"
+  },
+  {
+    "id": "Payload: the wait is not carried",
+    "file": "backend/game_logic/naval.py",
+    "old": "            \"diversion_wait\": int(diversion_wait(world, player)),",
+    "new": "            \"diversion_wait\": 0,",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheSurfaces"
+  },
+  {
+    "id": "Lever: the flat 45 in the label",
+    "file": "backend/game_logic/naval.py",
+    "old": "             f\"a won diversion first ({diversion_odds(world, nation)} in 100)\",",
+    "new": "             f\"a won diversion first ({DIVERSION_SUCCESS_PCT} in 100)\",",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheSurfaces"
+  },
+  {
+    "id": "Confirm: the flat 45 quoted",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                         f\"{naval.diversion_odds(world, actor)} times in 100 \"",
+    "new": "                         f\"{naval.DIVERSION_SUCCESS_PCT} times in 100 \"",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheSurfaces"
+  },
+  {
+    "id": "Confirm: a waiting fleet is quoted, not refused",
+    "file": "backend/commands/naval_executor.py",
+    "old": "                if naval.diversion_wait(world, actor) > 0:",
+    "new": "                if False:",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheSurfaces"
+  },
+  {
+    "id": "AI: the rung ignores the wait",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if (diversion_wait(world, nation) > 0\n            or int(rec.get(\"window_turns\", 0) or 0) > 0):",
+    "new": "    if (int(rec.get(\"window_turns\", 0) or 0) > 0):",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheAIWaitsToo"
+  },
+  {
+    "id": "Migration: a spent card forgotten",
+    "file": "backend/game_logic/naval.py",
+    "old": "            rec[\"diversion_last_turn\"] = turn if used else -1",
+    "new": "            rec[\"diversion_last_turn\"] = -1",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheMigration"
+  },
+  {
+    "id": "Migration: never runs",
+    "file": "backend/models/world_state.py",
+    "old": "            migrate_diversion_records(world)",
+    "new": "            pass",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheMigration"
+  },
+  {
+    "id": "Lever: the new rule under the lever down",
+    "file": "backend/game_logic/naval.py",
+    "old": "    if not THE_DIVERSION_IS_THROWN_AGAIN:\n        return int(DIVERSION_SUCCESS_PCT)",
+    "new": "    if False:\n        return int(DIVERSION_SUCCESS_PCT)",
+    "tests": "tests/test_sr5c_the_descents_second_throw.py::TestTheLever"
+  }
+]

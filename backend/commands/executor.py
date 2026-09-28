@@ -263,6 +263,34 @@ AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL = True
 # Flip lever, not a config surface.
 A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER = True
 
+# SR5B-2 (the Chunk 5 reserve, September 28, 2026): an order CARRIED OUT over
+# a standing order says so. The override was silent — `Ney, attack Mack`
+# while Ney held Rhineland fought, reported the battle, and the hold simply
+# ended, visible only when the Orders tab no longer listed it. One clause now
+# closes the answer ("Ney's hold at Rhineland is set aside."), the player's
+# marshals only (an AI order's answer is nobody's to read). Flip lever, not a
+# config surface.
+AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE = True
+
+
+def set_aside_clause(marshal, order) -> str:
+    """SR5B-2: the one sentence naming a standing order a new order ended."""
+    from backend.display_names import humanize_entity_name
+    name = getattr(marshal, "name", "")
+    kind = getattr(order, "command_type", "") if order is not None else ""
+    target = str(getattr(order, "target", "") or "")
+    if kind == "MOVE_TO":
+        what = f"march to {target}"
+    elif kind == "HOLD":
+        what = f"hold at {target}"
+    elif kind == "PURSUE":
+        what = f"pursuit of {humanize_entity_name(target)}"
+    elif kind == "SUPPORT":
+        what = f"support of {humanize_entity_name(target)}"
+    else:
+        what = "standing order"
+    return f"{name}'s {what} is set aside."
+
 
 def _correction_survives(query: str, match: Optional[str],
                          gate_active: bool) -> bool:
@@ -1282,6 +1310,7 @@ class CommandExecutor:
             del self._orders_set_aside[_aside_mark:]
             if _aside:
                 self._restore_if_refused(_aside, result)
+                self._announce_set_aside(_aside, result, game_state)
             if _held is not None:
                 _marshal_name, _entry, _world = _held
                 _world.vindication_tracker.settle_held(
@@ -1314,6 +1343,34 @@ class CommandExecutor:
                 marshal.hold_region = hold_region
             if interrupt and not getattr(marshal, "pending_interrupt", None):
                 marshal.pending_interrupt = interrupt
+
+    @staticmethod
+    def _announce_set_aside(aside, result, game_state) -> None:
+        """SR5B-2: an order carried out over a standing order closes its
+        answer by naming the order it ended — the player's marshals only,
+        and never on a refusal (SR5B-1 restored that order)."""
+        if not AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE:
+            return
+        if not isinstance(result, dict):
+            return
+        from backend.commands.strategic import attack_was_refused
+        if attack_was_refused(result):
+            return
+        world = (game_state or {}).get("world") if isinstance(
+            game_state, dict) else None
+        player = getattr(world, "player_nation", None)
+        clauses = []
+        for marshal, order, _holding, _region, _interrupt in aside:
+            if order is None or getattr(marshal, "nation", None) != player:
+                continue
+            if getattr(marshal, "strategic_order", None) is order:
+                continue  # restored or never ended
+            clauses.append(set_aside_clause(marshal, order))
+        if not clauses:
+            return
+        message = str(result.get("message") or "").rstrip()
+        result["message"] = ((message + " ") if message else "") + " ".join(
+            clauses)
 
     @staticmethod
     def _hold_aside_vindication(parsed_command, game_state):

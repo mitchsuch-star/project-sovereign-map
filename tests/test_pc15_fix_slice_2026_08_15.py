@@ -659,7 +659,10 @@ class TestPC15n7DiversionQuoteConfirm:
         assert result.get("naval_confirm") is True
         assert result.get("state") == "awaiting_clarification"
         msg = result.get("message", "")
-        assert "once only" in msg
+        # SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`).
+        from backend.game_logic import naval as _n5c
+        assert (f"she may try it again {_n5c.DIVERSION_WAIT_TURNS} turns "
+                f"from now") in msg
         # CONSCIOUS FLIP (Aug 30, 2026 review): this asserted the modal quoted
         # "her current readiness (53)" — and that sentence was false. The
         # failure arm docks EXPEDITION_TURNBACK_READINESS BEFORE the battle,
@@ -671,8 +674,8 @@ class TestPC15n7DiversionQuoteConfirm:
         _expected = _naval.diversion_failure_readiness(world.fleets["France"])
         assert _expected == 53 - _naval.EXPEDITION_TURNBACK_READINESS
         assert f"readiness {_expected}" in msg, msg
-        assert not world.fleets["France"].get("diversion_used"), (
-            "the quote consumed the once-per-war attempt")
+        assert _naval.last_diversion_turn(world.fleets["France"]) == -1, (
+            "the quote consumed the attempt")
 
     def test_confirmed_diversion_resolves(self):
         world = self._naval_world()
@@ -681,13 +684,15 @@ class TestPC15n7DiversionQuoteConfirm:
              "raw_input": "order the diversion confirmed"},
             {"world": world})
         assert result.get("state") != "awaiting_clarification"
-        assert world.fleets["France"].get("diversion_used") is True
+        from backend.game_logic import naval as _naval
+        assert _naval.last_diversion_turn(world.fleets["France"]) == int(
+            world.current_turn)
 
     def test_ai_path_is_untouched(self):
         """GR5: an AI actor's diversion resolves without the confirm gate
         (the rung already weighed it)."""
         world = self._naval_world()
-        world.fleets["Britain"]["diversion_used"] = False
+        world.fleets["Britain"]["diversion_last_turn"] = -1
         result = self._executor()._execute_naval_diversion(
             {"action": "naval_diversion", "_acting_nation": "Britain"},
             {"world": world})

@@ -119,7 +119,7 @@ world.fleets: Dict[str, dict]  # keyed by nation, present only for nations with 
 #   "readiness": int,        # 40..100, the H2 mechanic
 #   "posture": "guard" | "blockade",   # v1.0.3: UNTARGETED — blockade covers all at-war enemies
 #   "camp_turns": int,       # §5.3 Descent prep counter (France-side; 0 for everyone else)
-#   "diversion_used": bool,  # §5.3 — one Grand Diversion per war
+#   "diversion_last_turn": int,  # §5.3 / SR-5c — the turn of the last Grand Diversion this naval war (-1 none; was `diversion_used: bool`, migrated on load)
 #   "window_turns": int,     # §5.3 — turns of open Channel remaining (0 = shut)
 # }
 ```
@@ -373,8 +373,9 @@ The full H3 chain, every step visible to both sides:
    allied readiness starts climbing, but only to the war drill ceiling of 75 (§3.3); the
    two-front tension is automatic, no scripting, and waiting alone can never open the
    Strait (v1.0.3 — the oscillation hole is closed).
-3. **The window** — any one of: **(a) The Grand Diversion** (`naval_diversion`, once per
-   war): the fleet sails to draw the RN west — seeded 45%: success halves Britain's Channel
+3. **The window** — any one of: **(a) The Grand Diversion** (`naval_diversion`; **SR-5c,
+   Sept 28, 2026: again 4 turns after the last throw, at the fleet's readiness less 25** — was once per
+   war at a flat 45%, `SYSTEMS_REFERENCE.md` §78): the fleet sails to draw the RN west — seeded (45% at readiness 70): success halves Britain's Channel
    coverage for 2 turns (`window_turns`, shown in the Admiralty block: "The Strait lies
    open — 2 turns"); failure = intercepted returning = §4.4 at bad readiness = **Trafalgar,
    as it happened**. **(b)** Win a fleet action outright. **(c)** Pooled parity (H6).

@@ -8375,3 +8375,20 @@ The strategic override (Phase 5.2-C) cancels a marshal's standing order the mome
 
 ### 77.4 Struck
 NV-D3 privateers / a commerce-raid posture — struck by the user's ruling ("we can strike privateer"), `NAVAL_SPEC.md` §10.
+
+## 78. THE SCORE MANDATE — CHUNK 5, "The Descent's second throw" (SR-5c; September 28, 2026)
+
+Landing record `SCORE_MANDATE_PLAN.md` §2 Chunk 5 SR-5c; pins `tests/test_sr5c_the_descents_second_throw.py`; sweep `tools/_sweep_sr5c.json`.
+
+### 78.1 The Grand Diversion is thrown again (RULED by the user: "Readiness sets the odds, repeatable")
+The fleet may sail the feint again `DIVERSION_WAIT_TURNS` (4) turns after its last throw, won or lost. The odds are `naval.diversion_odds` — the fleet's readiness less `DIVERSION_READINESS_OFFSET` (25), clamped to 5–95: 45 at the boot readiness 70 (the old flat odds, so a campaign's first throw is the throw it always was), 50 at the drill ceiling 75, 25 at the blockade floor 50. The odds are read before the throw changes anything (a failure docks readiness afterwards). So a failed throw leaves a fleet whose readiness must be rebuilt before the next throw is worth sailing — and a blockade, whose crews rot toward 50, forbids the rebuild: the second throw exists, and it is earned. State: the fleet record's `diversion_last_turn` (−1 = none this naval war) replaces the once-per-war `diversion_used`; the wait resets when the naval war ends (FA-N83's reading of "this war"); a save from before SR-5c migrates on load (`migrate_diversion_records`: a spent card becomes a throw on the load turn, the one fixed point the save offers). ONE source for the roll, the confirm ("37 times in 100 at her readiness (62) … she may try it again 4 turns from now"), THE ADMIRALTY's chip ("45 in 100 at readiness 70 — and again 4 turns after, whatever the outcome") and its third gate term (the wait, said), the Admiralty payload (`diversion_wait`, `diversion_odds`; `diversion_used` kept, meaning "may not sail the feint this turn"), the expedition's diversion lever (§77.1), the help, and the AI rung P1.9, which waits the same four turns (GR5). Lever `naval.THE_DIVERSION_IS_THROWN_AGAIN` (down = once per war at 45).
+
+## 79. THE SCORE MANDATE — CHUNK 5 reserve (September 28, 2026)
+
+Pins `tests/test_sr5_quick_wins.py`; sweep `tools/_sweep_sr5_reserve.json`.
+
+### 79.1 An override names the order it set aside (SR5B-2)
+An order carried out over a standing order closes its answer with one clause naming the order it ended — "Ney's hold at Rhineland is set aside." (march to / hold at / pursuit of / support of; `executor.set_aside_clause`). Never on a refusal (§77.3 restored that order, and a refused order is not "carried out" even under SR5B-1's lever down), never for an order still standing, and for the player's marshals only (`CommandExecutor._announce_set_aside`). Lever `executor.AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE`.
+
+### 79.2 A fleet action can lead the morning dispatch (FA-66)
+Three headline classes read the naval layer's own fleet-action event (`trafalgar` / `fleet_action`, `naval._log_fleet_action`): `fleet_shattered` (94 — our fleet decisively beaten; between a broken corps and a destroyed marshal), `fleet_beaten` (83 — beaten, not broken; below a lost satellite), `fleet_triumph` (89 — our decisive victory, on the CA8-D6 triumph ladder under a broken corps of our own). The sentence is `naval.losses_sentence` — the loser's OWN sail with the allies beside (FA-59), never the pooled side; an indecisive win is no triumph, and a fleet action between two other courts is neither our wound nor our triumph (gate CA8-D6). Each class has its template and Berthier note. Lever `dispatch.FLEET_ACTIONS_LEAD_THE_DISPATCH`.

@@ -8583,6 +8583,10 @@ class WorldState:
                         and "ships" in _rec
                         and "overseas_income" not in _rec):
                     _rec["overseas_income"] = OVERSEAS_INCOME_BACKFILL[_fleet_nation]
+            # SR-5c save-compat: the once-per-war flag becomes the turn of
+            # the last throw (`naval.migrate_diversion_records`).
+            from backend.game_logic.naval import migrate_diversion_records
+            migrate_diversion_records(world)
         # NA-6c §11.10 decision 6 / seam-map L1: `nation_capitals` is
         # deliberately NOT serialized — it is rebuilt from the authored
         # table at construction, which is why the enforcement test excludes

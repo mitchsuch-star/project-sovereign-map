@@ -66,6 +66,7 @@ SOIL_ALARM_IS_ONE_RUN = True          # FA-12
 SOIL_ALARM_IS_HOME_SOIL_ONLY = True   # FA-N14
 THE_SHELLING_IS_BRIEFED = True        # FA-25
 A_LOST_SATELLITE_CAN_LEAD = True      # FA-38
+FLEET_ACTIONS_LEAD_THE_DISPATCH = True   # FA-66 (the Chunk 5 reserve, Sept 28, 2026)
 IDLE_NUDGE_READS_THE_LIVE_MISSION = True   # IQ-4 review: a completed mission record no longer silences Talleyrand's idle nudge
 
 HEADLINE_WEIGHTS: Dict[str, int] = {
@@ -129,6 +130,16 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # a destroyed corps is gone for good. One above marshal_captured.
     "marshal_destroyed": 96,
     "marshal_captured": 95,     # W6-7 capture events (top-weight per spec)
+    # FA-66 (the Chunk 5 reserve, Sept 28, 2026): a fleet action could never
+    # lead the briefing — the turn France lost half her fleet led with a
+    # counter-punch expiry. A decisive loss is a wound of a corps' scale or
+    # more (between `own_broken` 90 and `marshal_destroyed` 96); a beaten
+    # but unbroken fleet sits below a lost satellite; a decisive victory
+    # rides the CA8-D6 triumph ladder just under a broken corps of our own
+    # (at equal scale the wound leads). In-band tunable.
+    "fleet_shattered": 94,
+    "fleet_beaten": 83,
+    "fleet_triumph": 89,
     # VP-M1 "The Fortunes of War" (GE-D1, Sept 25, 2026): a wound is a
     # setback, not a loss — below a capture, above a broken corps.
     "marshal_wounded": 84,
@@ -415,6 +426,11 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # PC15-1: both destruction arms composed backend-side (field and
     # victor are optional keys on the event).
     "marshal_destroyed": "Sire — {line}",
+    # FA-66: composed backend-side — the loss sentence is the naval layer's
+    # own (`naval.losses_sentence`, the loser's OWN sail, allies beside).
+    "fleet_shattered": "Sire — {line}",
+    "fleet_beaten": "Sire — {line}",
+    "fleet_triumph": "Sire — {line}",
     "sovereign_dead": "{line}",
     "enemy_marshal_destroyed": "Sire — {line}",
     "marshal_wounded": "Sire — {line}",
@@ -622,6 +638,11 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # PC15-1: the fall is permanent — the note answers with the recovery
     # path that actually exists (the bench; PT-J4's commission arm rides it).
     "marshal_destroyed": "France does not replace such men by decree, Sire. The army fights one corps short until another is raised.",
+    # FA-66: what a lost fleet costs, and the one road back (keels, then
+    # readiness — green crews first fold the fleet down, §3.3).
+    "fleet_shattered": "The water is theirs until the yards replace what we lost, Sire — and new keels sail green.",
+    "fleet_beaten": "The squadrons will refit, Sire. Let them recover their readiness before they sail again.",
+    "fleet_triumph": "Their squadrons will be a long season refitting, Sire. The water is less theirs while they do.",
     "marshal_wounded": "His corps stands and will march, Sire — it will not attack until he can lead it. Hold it, or give its ground to another man.",
     "sovereign_dead": "There is no order left to give. The Empire was a man, and the man is dead.",
     "enemy_marshal_destroyed": "Their order of battle is one commander shorter — permanently, Sire. Press the advantage while their line is headless.",
@@ -1284,6 +1305,28 @@ def _build_headline(world, player_nation: str,
                      line=(f"Marshal {des_marshal}{_of} is destroyed{des_at} "
                            f"— his corps annihilated, his name struck from "
                            f"their order of battle."))
+        elif (etype in ("trafalgar", "fleet_action")
+                and FLEET_ACTIONS_LEAD_THE_DISPATCH):
+            # FA-66: the fleet action as the briefing's lead. The event is
+            # the naval layer's own (`naval._log_fleet_action`) and carries
+            # the per-court losses, so the sentence is `losses_sentence` —
+            # the loser's OWN sail, never the pooled side (FA-59). A fleet
+            # action between two other courts is neither our wound nor our
+            # triumph (gate CA8-D6).
+            from backend.game_logic.naval import losses_sentence, own_ships_lost
+            _fa_name = e.get("battle_name") or "the fleet action"
+            _fa_decisive = bool(e.get("decisive"))
+            if e.get("loser") == player_nation:
+                _add("fleet_shattered" if _fa_decisive else "fleet_beaten",
+                     f"fleet_action:{_fa_name}",
+                     line=(f"The fleet is {'shattered' if _fa_decisive else 'beaten'} "
+                           f"at {_fa_name} — {losses_sentence(e, player_nation)}."))
+            elif e.get("winner") == player_nation and _fa_decisive:
+                _fa_ours = own_ships_lost(e, player_nation)
+                _add("fleet_triumph", f"fleet_action:{_fa_name}",
+                     line=(f"The fleet wins at {_fa_name} — "
+                           f"{losses_sentence(e, e.get('loser', ''))}; we lose "
+                           f"{_fa_ours} sail."))
         elif etype in ("marshal_broken", "retreat"):
             # ────────────────────────────────────────────────────────────
             # CA8-5 (creative audit, Aug 4 2026): `own_broken` carries the

@@ -1013,10 +1013,11 @@ is a button there, with its terms, so none of it need be typed):
         any hostile fleet watches the water, a hostile shore is
         taken by expedition or not at all. Sink the covering fleet
         and the crossing becomes an open ferry.
-  diversion  - "order the diversion" (1 AP, once per war) - the
-               fleet draws the enemy off station: succeed and the
-               Strait lies open two turns; fail and be brought to
-               battle coming home.
+  diversion  - "order the diversion" (1 AP) - the fleet draws the
+               enemy off station: succeed and the Strait lies open
+               two turns; fail and be brought to battle coming home.
+               The odds are the fleet's readiness less 25 (45 at 70),
+               and she may try it again 4 turns after the last.
   - An army cannot walk a sea crossing a hostile fleet commands -
     the map draws a shut strait CRIMSON, an open window GOLD, and
     a DEFENDED SHORE (the water is ours, the far coast is not)

@@ -111,9 +111,28 @@ EXPEDITION_TURNBACK_READINESS = 10
 EXPEDITION_INTERCEPT_RATIO = 1.5  # decisive coverage → intercepted, not turned
 
 # N9 — the Grand Diversion
-DIVERSION_SUCCESS_PCT = 45
+DIVERSION_SUCCESS_PCT = 45   # the pre-SR-5c odds; since SR-5c = readiness 70 − 25
 WINDOW_TURNS = 2
 WINDOW_COVERAGE_FACTOR = 0.5
+
+# SR-5c "The Descent's second throw" (Score Mandate Chunk 5, RULED by the user
+# September 28, 2026: "Readiness sets the odds, repeatable"). One roll of the
+# Grand Diversion was the whole Descent: once per war at a flat 45%, and a
+# failed throw (caught coming home, a Trafalgar at bad readiness) ended the
+# arc. Now the fleet may sail the feint again DIVERSION_WAIT_TURNS after its
+# last throw, and the odds are the fleet's readiness less
+# DIVERSION_READINESS_OFFSET — 45 at the boot readiness 70, 50 at the drill
+# ceiling 75, 25 at the blockade floor 50 — so a failed throw leaves a fleet
+# whose readiness must be rebuilt before the next is worth sailing (and a
+# blockade that rots the crews keeps the odds low). The wait resets when the
+# naval war ends (FA-N83's reading of "this war"). One source,
+# `diversion_odds`, for the roll, the confirm, the chip, the terms and the
+# expedition's diversion lever. False = the prior rule: once per war, 45%.
+THE_DIVERSION_IS_THROWN_AGAIN = True
+DIVERSION_WAIT_TURNS = 4
+DIVERSION_READINESS_OFFSET = 25
+DIVERSION_ODDS_FLOOR = 5
+DIVERSION_ODDS_CEILING = 95
 
 # SR-5b "The second road at sea" (AAR-D7, Score Mandate Chunk 5, September
 # 28, 2026) — the expedition names the levers that move its odds. The
@@ -380,7 +399,7 @@ def boot_fleets_from_navies(world, navies: Optional[dict]) -> None:
                 "readiness": int(row.get("readiness", 70) or 70),
                 "posture": "guard",
                 "camp_turns": 0,
-                "diversion_used": False,
+                "diversion_last_turn": -1,
                 "window_turns": 0,
                 "built_this_turn": 0,
                 # NV-5: the authored establishment — what this court's yards
@@ -2024,7 +2043,7 @@ def expedition_odds_levers(world, nation: str, target_region: str,
     if (not base.get("window")
             and all(t["met"] for t in diversion_terms_for(world, nation))):
         _add("diversion",
-             f"a won diversion first ({DIVERSION_SUCCESS_PCT} in 100)",
+             f"a won diversion first ({diversion_odds(world, nation)} in 100)",
              expedition_slip_odds(world, nation, target_region, troops,
                                   window=True),
              "order the diversion")
@@ -2264,16 +2283,100 @@ def diversion_terms_for(world, nation: str) -> List[Dict]:
     every term is met, so it never names a feint the executor refuses."""
     own = get_fleet(world, nation) or {}
     own_ships = int(own.get("ships", 0) or 0)
+    wait = diversion_wait(world, nation)
+    if THE_DIVERSION_IS_THROWN_AGAIN:
+        ready = {"text": (f"the fleet free to sail the feint (again "
+                          f"{DIVERSION_WAIT_TURNS} turns after the last)"),
+                 "met": wait == 0,
+                 # Every term carries its negative phrasing even while met
+                 # (NV-6: a disabled chip renders it as the reason).
+                 "unmet": (diversion_wait_sentence(world, nation)
+                           or f"the fleet must wait {DIVERSION_WAIT_TURNS} "
+                              f"turns between feints")}
+    else:
+        ready = {"text": "the diversion not yet spent this war",
+                 "met": wait == 0,
+                 "unmet": "the diversion is already spent this war"}
     return [
         {"text": "a fleet in commission", "met": own_ships > 0,
          "unmet": "we keep no fleet in commission"},
         {"text": "at war with a naval power",
          "met": has_naval_war(world, nation),
          "unmet": "no naval power is at war with us"},
-        {"text": "the diversion not yet spent this war",
-         "met": not bool(own.get("diversion_used")),
-         "unmet": "the diversion is already spent this war"},
+        ready,
     ]
+
+
+def last_diversion_turn(rec: Optional[dict]) -> int:
+    """SR-5c: the turn the fleet last sailed the Grand Diversion in this
+    naval war, -1 when it has not. A save from before SR-5c carries the old
+    `diversion_used` flag instead; `migrate_diversion_records` converts it on
+    load, and a record still carrying it reads as thrown at turn 0."""
+    rec = rec or {}
+    last = rec.get("diversion_last_turn")
+    if last is None:
+        return 0 if rec.get("diversion_used") else -1
+    return int(last)
+
+
+def diversion_wait(world, nation: str) -> int:
+    """Turns before the fleet may sail the feint again — 0 when it may.
+    Under the lever down, a thrown feint waits out the war (a large wait)."""
+    last = last_diversion_turn(get_fleet(world, nation))
+    if last < 0:
+        return 0
+    if not THE_DIVERSION_IS_THROWN_AGAIN:
+        return 10 ** 6
+    return int(max(0, last + DIVERSION_WAIT_TURNS
+                   - int(getattr(world, "current_turn", 0) or 0)))
+
+
+def diversion_wait_sentence(world, nation: str) -> str:
+    """The wait, said — "" when the fleet may sail now."""
+    wait = diversion_wait(world, nation)
+    if wait <= 0:
+        return ""
+    if not THE_DIVERSION_IS_THROWN_AGAIN:
+        return "the diversion is already spent this war"
+    ago = int(getattr(world, "current_turn", 0) or 0) - last_diversion_turn(
+        get_fleet(world, nation))
+    when = ("this turn" if ago <= 0
+            else f"{ago} turn{'s' if ago != 1 else ''} ago")
+    return (f"the fleet sailed the feint {when} — she may try it again in "
+            f"{wait} turn{'s' if wait != 1 else ''}")
+
+
+def diversion_odds(world, nation: str) -> int:
+    """SR-5c — the odds the Grand Diversion rolls: the fleet's readiness
+    less DIVERSION_READINESS_OFFSET, clamped to the floor and ceiling. ONE
+    source for the roll, the confirm, the chip, and the expedition's
+    diversion lever (shown = applied). Lever down: the flat 45."""
+    if not THE_DIVERSION_IS_THROWN_AGAIN:
+        return int(DIVERSION_SUCCESS_PCT)
+    rec = get_fleet(world, nation) or {}
+    readiness = int(rec.get("readiness", 0) or 0)
+    return int(max(DIVERSION_ODDS_FLOOR,
+                   min(DIVERSION_ODDS_CEILING,
+                       readiness - DIVERSION_READINESS_OFFSET)))
+
+
+def migrate_diversion_records(world) -> int:
+    """SR-5c load migration: a pre-SR-5c save's spent card
+    (`diversion_used: True`) becomes a throw on the load turn — the wait
+    counts from there, the one fixed point the save offers; an unspent card
+    becomes -1. The old key is retired. Returns the records converted."""
+    moved = 0
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for nation, rec in get_fleets(world).items():
+        if nation == META_KEY or not isinstance(rec, dict):
+            continue
+        if "diversion_used" not in rec:
+            continue
+        used = bool(rec.pop("diversion_used"))
+        if "diversion_last_turn" not in rec:
+            rec["diversion_last_turn"] = turn if used else -1
+        moved += 1
+    return moved
 
 
 def diversion_failure_readiness(rec: Optional[dict]) -> int:
@@ -2290,18 +2393,24 @@ def diversion_failure_readiness(rec: Optional[dict]) -> int:
 
 
 def resolve_diversion(world, nation: str) -> Dict:
-    """§5.3.3(a) — the Grand Diversion, once per war: seeded 45%. Success
-    halves the enemy's coverage for 2 turns (`window_turns`) and fires
-    `strait_open`; failure is intercepted returning — §4.4 at bad readiness
-    (Trafalgar, as it happened)."""
+    """§5.3.3(a) — the Grand Diversion. SR-5c: sailed again
+    DIVERSION_WAIT_TURNS after the last throw, at the fleet's readiness less
+    25 (`diversion_odds`, seeded). Success halves the enemy's coverage for 2
+    turns (`window_turns`) and fires `strait_open`; failure is intercepted
+    returning — §4.4 at bad readiness (Trafalgar, as it happened)."""
     rec = get_fleet(world, nation)
     if not rec or int(rec.get("ships", 0) or 0) <= 0:
         return {"success": False,
                 "message": "We have no fleet to sail, Sire."}
-    if rec.get("diversion_used"):
+    if diversion_wait(world, nation) > 0:
+        if not THE_DIVERSION_IS_THROWN_AGAIN:
+            return {"success": False, "message": (
+                "The fleet has already attempted its grand diversion this war — "
+                "the squadrons cannot repeat the feint while the enemy watches for it.")}
+        sentence = diversion_wait_sentence(world, nation)
         return {"success": False, "message": (
-            "The fleet has already attempted its grand diversion this war — "
-            "the squadrons cannot repeat the feint while the enemy watches for it.")}
+            f"{sentence[0].upper()}{sentence[1:]}. The squadrons cannot "
+            f"repeat the feint while the enemy still watches for it.")}
     enemies = _island_war_enemies(world, nation)
     hostile = enemies[0] if enemies else None
     if hostile is None:
@@ -2314,9 +2423,11 @@ def resolve_diversion(world, nation: str) -> Dict:
     if hostile is None:
         return {"success": False, "message": (
             "There is no hostile fleet to draw away — the seas are open already.")}
-    rec["diversion_used"] = True
+    # SR-5c: the odds read BEFORE the throw changes anything.
+    odds = diversion_odds(world, nation)
+    rec["diversion_last_turn"] = int(world.current_turn)
     namespace = f"naval::diversion::{int(world.current_turn)}::{nation}"
-    if _pct_roll(world, namespace, DIVERSION_SUCCESS_PCT):
+    if _pct_roll(world, namespace, odds):
         rec["window_turns"] = int(WINDOW_TURNS)
         world.log_event({
             "type": "strait_open", "turn": int(world.current_turn),
@@ -2331,7 +2442,7 @@ def resolve_diversion(world, nation: str) -> Dict:
         }, "always")
         return {
             "success": True, "window": True, "against": hostile,
-            "window_turns": int(WINDOW_TURNS),
+            "window_turns": int(WINDOW_TURNS), "odds": int(odds),
             "message": (
                 f"The diversion succeeds — "
                 f"{_fleet_label(hostile, get_fleet(world, hostile) or {})} "
@@ -2342,9 +2453,12 @@ def resolve_diversion(world, nation: str) -> Dict:
     rec["readiness"] = diversion_failure_readiness(rec)
     action = resolve_fleet_action(world, nation, hostile, context="diversion")
     ships_lost = own_ships_lost(action, nation)
+    again = ("" if not THE_DIVERSION_IS_THROWN_AGAIN else
+             f" She may try it again in {DIVERSION_WAIT_TURNS} turns, at "
+             f"the odds her readiness then gives.")
     return {
         "success": True, "window": False, "against": hostile,
-        "fleet_action": action,
+        "fleet_action": action, "odds": int(odds),
         # NV-7: this is Trafalgar's own arm — the diversion caught coming
         # home at bad readiness. If any battle in this game deserves a
         # tableau, it is this one.
@@ -2354,7 +2468,8 @@ def resolve_diversion(world, nation: str) -> Dict:
             f"battle at bad readiness. {losses_sentence(action, nation)}. "
             + ("A decisive defeat: the enemy's line held the weather gage."
                if action["loser"] == nation and action["decisive"] else
-               "The squadrons limp back to port.")),
+               "The squadrons limp back to port.")
+            + again),
     }
 
 
@@ -2922,8 +3037,11 @@ def process_naval_turn(world) -> List[Dict]:
         # Austrian land war stood, and a BRAND-NEW war with Britain inherited
         # the previous war's spent card with the chip reading "the diversion
         # is already spent this war" about a war that started this turn.
-        if rec.get("diversion_used") and not has_naval_war(world, nation):
-            rec["diversion_used"] = False
+        # SR-5c: the wait between feints resets with the war, as the
+        # once-per-war card did.
+        if (last_diversion_turn(rec) >= 0
+                and not has_naval_war(world, nation)):
+            rec["diversion_last_turn"] = -1
 
     # 5. war-weariness couplings.
     now_blockaded = blockaded_nations(world)
@@ -3069,7 +3187,7 @@ def lay_down_ship(world, nation: str) -> Dict:
         rec.setdefault("posture", "guard")
         rec["readiness"] = int(NEW_SHIP_READINESS)
         rec.setdefault("camp_turns", 0)
-        rec.setdefault("diversion_used", False)
+        rec.setdefault("diversion_last_turn", -1)
         rec.setdefault("window_turns", 0)
         rec["built_this_turn"] = int(rec.get("built_this_turn", 0) or 0) + 1
         # FA-45: BOTH arms carry `readiness_before`. This one is reachable —
@@ -3322,7 +3440,11 @@ def build_admiralty_report(world) -> Dict:
             "build_rate": int(rate),
             "laid_this_turn": int(laid),
             "window_turns": int(own.get("window_turns", 0) or 0),
-            "diversion_used": bool(own.get("diversion_used")),
+            # SR-5c: `diversion_used` kept for the payload's readers — it
+            # now means "may not sail the feint this turn".
+            "diversion_used": diversion_wait(world, player) > 0,
+            "diversion_wait": int(diversion_wait(world, player)),
+            "diversion_odds": int(diversion_odds(world, player)),
             "camp_turns": int(own.get("camp_turns", 0) or 0),
             "camp_strength": int(camp_strength(world, player)),
             "camp_provinces": list(own.get("camp_provinces") or []),
@@ -3604,7 +3726,12 @@ def build_admiralty_report(world) -> Dict:
         # not being made to — but spending a once-per-war card to open
         # two turns of water with no army on the beach is a trap, so
         # the chip says so instead of quietly letting it happen.
-        note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
+        if THE_DIVERSION_IS_THROWN_AGAIN:
+            note = (f"{diversion_odds(world, player)} in 100 at readiness "
+                    f"{int((own or {}).get('readiness', 0) or 0)} — and again "
+                    f"{DIVERSION_WAIT_TURNS} turns after, whatever the outcome")
+        else:
+            note = f"{DIVERSION_SUCCESS_PCT}% — and once only, this war"
         if not camp_staged(world, player):
             note += "; no army is staged to use the open water"
         # FA-31: and what the 45% actually BUYS. The staging warning above
@@ -4149,7 +4276,8 @@ def find_ai_diversion(world, nation: str) -> Optional[Dict]:
     rec = get_fleet(world, nation)
     if not rec or int(rec.get("ships", 0) or 0) <= 0:
         return None
-    if rec.get("diversion_used") or int(rec.get("window_turns", 0) or 0) > 0:
+    if (diversion_wait(world, nation) > 0
+            or int(rec.get("window_turns", 0) or 0) > 0):
         return None
     if not camp_staged(world, nation):
         return None  # no army on the beach — a window would open onto nothing

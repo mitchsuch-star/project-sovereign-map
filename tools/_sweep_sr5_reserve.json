@@ -1,0 +1,79 @@
+[
+  {
+    "id": "SR5B-2: never announced",
+    "file": "backend/commands/executor.py",
+    "old": "        if not AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE:\n            return",
+    "new": "        if True:\n            return",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
+  },
+  {
+    "id": "SR5B-2: a refusal is announced",
+    "file": "backend/commands/executor.py",
+    "old": "        if attack_was_refused(result):\n            return\n        world = (game_state or {})",
+    "new": "        world = (game_state or {})",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
+  },
+  {
+    "id": "SR5B-2: an enemy's order is announced",
+    "file": "backend/commands/executor.py",
+    "old": "            if order is None or getattr(marshal, \"nation\", None) != player:",
+    "new": "            if order is None:",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
+  },
+  {
+    "id": "SR5B-2: an order still standing is announced",
+    "file": "backend/commands/executor.py",
+    "old": "            if getattr(marshal, \"strategic_order\", None) is order:\n                continue  # restored or never ended",
+    "new": "            pass",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
+  },
+  {
+    "id": "SR5B-2: a march is called a hold",
+    "file": "backend/commands/executor.py",
+    "old": "        what = f\"march to {target}\"",
+    "new": "        what = f\"hold at {target}\"",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheOverrideNamesWhatItSetsAside"
+  },
+  {
+    "id": "FA-66: the lever is ignored",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                and FLEET_ACTIONS_LEAD_THE_DISPATCH):",
+    "new": "                and False):",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
+  },
+  {
+    "id": "FA-66: our loss is never a lead",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            if e.get(\"loser\") == player_nation:\n                _add(\"fleet_shattered\"",
+    "new": "            if False:\n                _add(\"fleet_shattered\"",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
+  },
+  {
+    "id": "FA-66: every loss is merely beaten",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _add(\"fleet_shattered\" if _fa_decisive else \"fleet_beaten\",",
+    "new": "                _add(\"fleet_beaten\",",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
+  },
+  {
+    "id": "FA-66: an indecisive win is a triumph",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            elif e.get(\"winner\") == player_nation and _fa_decisive:",
+    "new": "            elif e.get(\"winner\") == player_nation:",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
+  },
+  {
+    "id": "FA-66: the shattered fleet weighs too little",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"fleet_shattered\": 94,",
+    "new": "    \"fleet_shattered\": 80,",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
+  },
+  {
+    "id": "FA-66: the winner's losses are named as ours",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                           f\"at {_fa_name} — {losses_sentence(e, player_nation)}.\"))",
+    "new": "                           f\"at {_fa_name} — {losses_sentence(e, e.get('winner', ''))}.\"))",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads"
+  }
+]

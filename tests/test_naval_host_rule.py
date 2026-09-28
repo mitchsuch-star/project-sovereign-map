@@ -484,17 +484,23 @@ class TestTheAdmiraltyChips:
         Diversion — the diversion not yet spent this war", i.e. exactly
         backwards. Every term now carries its own negative phrasing."""
         world.player_nation = "France"
-        naval.get_fleet(world, "France")["diversion_used"] = True
+        # SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`).
+        naval.get_fleet(world, "France")["diversion_last_turn"] = int(
+            world.current_turn)
         report = naval.build_admiralty_report(world)
         chips = {c["command"]: c for c in report["chips"]}
         diversion = chips["order the diversion"]
         assert diversion["enabled"] is False
-        assert diversion["reason"] == "the diversion is already spent this war"
+        assert diversion["reason"] == (
+            "the fleet sailed the feint this turn — she may try it again in "
+            f"{naval.DIVERSION_WAIT_TURNS} turns")
         # ...and the CONDITION phrasing survives where it belongs, beside
         # the tick, so the two surfaces did not merge into one compromise.
         spent = [t for t in report["diversion_terms"]
-                 if "spent" in t["text"]][0]
-        assert spent["text"] == "the diversion not yet spent this war"
+                 if "free to sail the feint" in t["text"]][0]
+        assert spent["text"] == (
+            f"the fleet free to sail the feint (again "
+            f"{naval.DIVERSION_WAIT_TURNS} turns after the last)")
         assert spent["met"] is False
 
     def test_every_term_carries_both_phrasings(self, world):

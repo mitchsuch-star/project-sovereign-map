@@ -192,11 +192,11 @@ class TestTheLevers:
         w = _boot()
         assert _lever(N.expedition_odds_levers(w, "France", "London", 9000),
                       "diversion") is not None
-        N.get_fleet(w, "France")["diversion_used"] = True
+        N.get_fleet(w, "France")["diversion_last_turn"] = int(w.current_turn)
         assert not all(t["met"] for t in N.diversion_terms_for(w, "France"))
         assert _lever(N.expedition_odds_levers(w, "France", "London", 9000),
                       "diversion") is None
-        N.get_fleet(w, "France")["diversion_used"] = False
+        N.get_fleet(w, "France")["diversion_last_turn"] = -1
         N.get_fleet(w, "France")["window_turns"] = 2   # already open
         assert _lever(N.expedition_odds_levers(w, "France", "London", 9000),
                       "diversion") is None

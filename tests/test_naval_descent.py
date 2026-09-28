@@ -177,7 +177,7 @@ class TestA4WorkedExample:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# THE GRAND DIVERSION (§5.3.3a — once per war, seeded 45%)
+# THE GRAND DIVERSION (§5.3.3a — SR-5c: again after 4 turns, at readiness − 25)
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _seed_with_outcome(world, nation, want_success):
@@ -187,7 +187,9 @@ def _seed_with_outcome(world, nation, want_success):
         candidate = f"nv3-{i}"
         world.campaign_seed = candidate
         namespace = f"naval::diversion::{int(world.current_turn)}::{nation}"
-        if naval._pct_roll(world, namespace, naval.DIVERSION_SUCCESS_PCT) == want_success:
+        # SR-5c: the roll reads the fleet's readiness odds, not a flat 45.
+        if naval._pct_roll(world, namespace,
+                           naval.diversion_odds(world, nation)) == want_success:
             return candidate
     raise AssertionError("no seed found in 64 tries")
 
@@ -212,20 +214,26 @@ class TestGrandDiversion:
         action = result["fleet_action"]
         assert action["loser"] == "France"
 
-    def test_once_per_war(self, world):
+    def test_the_feint_waits_before_a_second_throw(self, world):
+        """SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`). Was `test_once_per_war`."""
         _seed_with_outcome(world, "France", True)
         naval.resolve_diversion(world, "France")
         second = naval.resolve_diversion(world, "France")
         assert not second["success"]
-        assert "already" in second["message"]
+        assert (f"may try it again in {naval.DIVERSION_WAIT_TURNS} turns"
+                in second["message"])
+        world.current_turn += naval.DIVERSION_WAIT_TURNS
+        world.fleets["France"]["window_turns"] = 0
+        third = naval.resolve_diversion(world, "France")
+        assert third["success"]
 
     def test_the_spent_feint_resets_at_peace(self, world):
-        world.fleets["France"]["diversion_used"] = True
+        world.fleets["France"]["diversion_last_turn"] = int(world.current_turn)
         for enemy in list(world.get_nations_at_war_with("France")):
             world.diplomatic_states[world._make_diplo_key("France", enemy)] = "PEACE"
         world.invalidate_active_nations_cache()
         naval.process_naval_turn(world)
-        assert world.fleets["France"]["diversion_used"] is False
+        assert world.fleets["France"]["diversion_last_turn"] == -1
 
     def test_the_verb_rides_the_executor(self, world):
         _seed_with_outcome(world, "France", True)

@@ -440,8 +440,10 @@ class TestTheChipTellsTheTruth:
         _rot(boot, 4)
         chip = _diversion_chip(boot)
         assert chip["enabled"] is True
-        assert f"{N.DIVERSION_SUCCESS_PCT}%" in chip["note"]
-        assert "once only, this war" in chip["note"]
+        # SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`).
+        assert (f"{N.diversion_odds(boot, 'France')} in 100 at readiness"
+                in chip["note"])
+        assert f"again {N.DIVERSION_WAIT_TURNS} turns after" in chip["note"]
         assert "leaves London-Normandy shut" in chip["note"]
 
     def test_no_fourth_gate_row_was_added(self, boot):
@@ -607,8 +609,12 @@ class TestTheAiAsksTheSameQuestion:
         monkeypatch.setattr(N, "DIVERSION_WINDOW_FORECAST", False)
         _rot(boot, 6, stage_at=5)
         assert N.find_ai_diversion(boot, "France") is not None
+        # SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`).
+        readiness = N.get_fleet(boot, "France")["readiness"]
         assert _diversion_chip(boot)["note"] == (
-            f"{N.DIVERSION_SUCCESS_PCT}% — and once only, this war")
+            f"{N.diversion_odds(boot, 'France')} in 100 at readiness "
+            f"{readiness} — and again {N.DIVERSION_WAIT_TURNS} turns after, "
+            f"whatever the outcome")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -655,29 +661,36 @@ class TestOncePerWarMeansTheNavalWar:
     """FA-N83. The reset read ANY war while the gate term read a NAVAL war —
     two readings of one phrase, and the stricter one owned the reset."""
 
+    # SR-5c (Sept 28, 2026), flipped consciously: the Grand Diversion is sailed again four turns after its last throw, at the fleet's readiness less 25 (`naval.diversion_odds`). The card is a four-turn wait now, and the naval war's end
+    # still clears it — these three pins keep that reading of "this war".
+
     def test_a_land_war_does_not_withhold_the_card(self, boot):
-        N.get_fleet(boot, "France")["diversion_used"] = True
+        N.get_fleet(boot, "France")["diversion_last_turn"] = int(
+            boot.current_turn)
         with contextlib.redirect_stdout(io.StringIO()):
             for nation in ("Britain", "Russia"):
                 set_diplomatic_state(boot, "France", nation, "PEACE", "test")
             _rot(boot, 3)
         assert boot.get_nations_at_war_with("France")     # Austria stands
-        assert N.get_fleet(boot, "France")["diversion_used"] is False
+        assert N.get_fleet(boot, "France")["diversion_last_turn"] == -1
 
     def test_a_new_naval_war_returns_the_card(self, boot):
-        N.get_fleet(boot, "France")["diversion_used"] = True
+        N.get_fleet(boot, "France")["diversion_last_turn"] = int(
+            boot.current_turn)
         with contextlib.redirect_stdout(io.StringIO()):
             for nation in ("Britain", "Russia", "Austria"):
                 set_diplomatic_state(boot, "France", nation, "PEACE", "test")
             _rot(boot, 1)
             set_diplomatic_state(boot, "France", "Britain", "WAR", "test")
-        assert N.get_fleet(boot, "France")["diversion_used"] is False
+        assert N.get_fleet(boot, "France")["diversion_last_turn"] == -1
         assert _diversion_chip(boot)["enabled"] is True
 
     def test_the_card_is_still_spent_inside_its_own_war(self, boot):
-        N.get_fleet(boot, "France")["diversion_used"] = True
+        N.get_fleet(boot, "France")["diversion_last_turn"] = int(
+            boot.current_turn)
         _rot(boot, 3)
-        assert N.get_fleet(boot, "France")["diversion_used"] is True
+        assert N.get_fleet(boot, "France")["diversion_last_turn"] == int(
+            boot.current_turn)
         assert _diversion_chip(boot)["enabled"] is False
 
     def test_the_reset_and_the_gate_term_read_one_predicate(self, boot):
