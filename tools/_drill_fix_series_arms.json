@@ -1,0 +1,1532 @@
+{
+ "recorded": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  54,
+  52,
+  49,
+  46,
+  43,
+  40,
+  37,
+  24,
+  11,
+  8,
+  5,
+  2,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "arms": {
+  "0": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    54,
+    52,
+    49,
+    46,
+    43,
+    40,
+    37,
+    24,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 97,
+    "Bavaria": 0,
+    "Britain": 5,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Denmark": 6,
+    "Britain": 26,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Hanover": 6,
+    "Switzerland": 2,
+    "Naples": 1,
+    "France": 3,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "drillfix": {
+    "drills": [
+     [
+      "Britain",
+      "Moore",
+      1,
+      100,
+      [
+       5,
+       "Soult",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Buxhowden",
+      1,
+      100,
+      [
+       4,
+       "Bernadotte",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Britain",
+      "Paget",
+      8,
+      100,
+      [
+       2,
+       "Castanos",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      11,
+      100,
+      [
+       2,
+       "Massena",
+       1
+      ],
+      "Soult"
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      12,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Austria",
+      "Mack",
+      14,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Britain",
+      "Paget",
+      38,
+      54,
+      [
+       2,
+       "Soult",
+       1
+      ],
+      "Soult"
+     ]
+    ],
+    "completed": [
+     [
+      "Russia",
+      "Buxhowden",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Moore",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      9,
+      0
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      10,
+      0
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      10,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      12,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      13,
+      0
+     ],
+     [
+      "Austria",
+      "Mack",
+      15,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      39,
+      10
+     ]
+    ],
+    "within_reach": 7
+   }
+  },
+  "1": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    63,
+    61,
+    59,
+    57,
+    55,
+    53,
+    51,
+    49,
+    47,
+    45,
+    33,
+    31,
+    28,
+    25,
+    22,
+    19,
+    16,
+    13,
+    10,
+    7,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 52,
+    "Britain": 0,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "KingdomOfItaly": 2,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Britain": 12,
+    "Hanover": 6,
+    "France": 12,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 4,
+    "Switzerland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "drillfix": {
+    "drills": [
+     [
+      "Austria",
+      "ArchdukeJohn",
+      31,
+      55,
+      [
+       5,
+       "Massena",
+       1
+      ],
+      null
+     ]
+    ],
+    "completed": [
+     [
+      "Austria",
+      "ArchdukeJohn",
+      32,
+      15
+     ]
+    ],
+    "within_reach": 0
+   }
+  },
+  "H": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    54,
+    52,
+    49,
+    46,
+    43,
+    40,
+    37,
+    24,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 97,
+    "Bavaria": 0,
+    "Britain": 6,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 27,
+    "Denmark": 6,
+    "Britain": 25,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Hanover": 6,
+    "Switzerland": 2,
+    "Naples": 1,
+    "France": 2,
+    "Sardinia": 1,
+    "Hesse": 2
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "drillfix": {
+    "drills": [
+     [
+      "Britain",
+      "Moore",
+      1,
+      100,
+      [
+       5,
+       "Soult",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Buxhowden",
+      1,
+      100,
+      [
+       4,
+       "Bernadotte",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Britain",
+      "Paget",
+      8,
+      100,
+      [
+       2,
+       "Castanos",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      11,
+      100,
+      [
+       2,
+       "Massena",
+       1
+      ],
+      "Soult"
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      12,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Austria",
+      "Mack",
+      14,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Britain",
+      "Paget",
+      19,
+      48,
+      [
+       4,
+       "Massena",
+       1
+      ],
+      null
+     ],
+     [
+      "Britain",
+      "Paget",
+      21,
+      63,
+      [
+       5,
+       "Soult",
+       1
+      ],
+      null
+     ],
+     [
+      "Britain",
+      "Paget",
+      34,
+      52,
+      [
+       2,
+       "Soult",
+       1
+      ],
+      "Soult"
+     ]
+    ],
+    "completed": [
+     [
+      "Russia",
+      "Buxhowden",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Moore",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      9,
+      0
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      10,
+      0
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      10,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      12,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      13,
+      0
+     ],
+     [
+      "Austria",
+      "Mack",
+      15,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      20,
+      10
+     ],
+     [
+      "Britain",
+      "Paget",
+      22,
+      10
+     ],
+     [
+      "Britain",
+      "Paget",
+      35,
+      10
+     ]
+    ],
+    "within_reach": 7
+   }
+  },
+  "R": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    63,
+    61,
+    59,
+    57,
+    55,
+    53,
+    51,
+    49,
+    47,
+    45,
+    33,
+    31,
+    28,
+    25,
+    22,
+    19,
+    16,
+    13,
+    10,
+    7,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 52,
+    "Britain": 0,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "KingdomOfItaly": 2,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Britain": 12,
+    "Hanover": 6,
+    "France": 12,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 4,
+    "Switzerland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "drillfix": {
+    "drills": [],
+    "completed": [],
+    "within_reach": 0
+   }
+  },
+  "D": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    54,
+    52,
+    49,
+    46,
+    43,
+    40,
+    37,
+    24,
+    11,
+    8,
+    5,
+    2,
+    2,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 97,
+    "Bavaria": 0,
+    "Britain": 9,
+    "Spain": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 25,
+    "Britain": 25,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Hanover": 6,
+    "Switzerland": 2,
+    "Naples": 1,
+    "France": 3,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "drillfix": {
+    "drills": [
+     [
+      "Britain",
+      "Moore",
+      1,
+      100,
+      [
+       5,
+       "Soult",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Buxhowden",
+      1,
+      100,
+      [
+       4,
+       "Bernadotte",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Britain",
+      "Paget",
+      8,
+      100,
+      [
+       2,
+       "Castanos",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      11,
+      100,
+      [
+       2,
+       "Massena",
+       1
+      ],
+      "Soult"
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      12,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Austria",
+      "Mack",
+      14,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Britain",
+      "Paget",
+      36,
+      95,
+      null,
+      null
+     ]
+    ],
+    "completed": [
+     [
+      "Russia",
+      "Buxhowden",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Moore",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      9,
+      0
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      10,
+      0
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      10,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      12,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      13,
+      0
+     ],
+     [
+      "Austria",
+      "Mack",
+      15,
+      9
+     ],
+     [
+      "Britain",
+      "Paget",
+      37,
+      0
+     ]
+    ],
+    "within_reach": 6
+   }
+  },
+  "P": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    54,
+    52,
+    49,
+    46,
+    43,
+    40,
+    37,
+    34,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 97,
+    "Bavaria": 0,
+    "Britain": 5,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 28,
+    "Denmark": 6,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Britain": 24,
+    "Hanover": 6,
+    "Naples": 1,
+    "France": 2,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Switzerland": 1,
+    "Holland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain",
+    "Switzerland"
+   ],
+   "drillfix": {
+    "drills": [
+     [
+      "Britain",
+      "Moore",
+      1,
+      100,
+      [
+       5,
+       "Soult",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Buxhowden",
+      1,
+      100,
+      [
+       4,
+       "Bernadotte",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Britain",
+      "Paget",
+      8,
+      100,
+      [
+       2,
+       "Castanos",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      11,
+      100,
+      [
+       2,
+       "Massena",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      17,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Britain",
+      "Paget",
+      24,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ]
+    ],
+    "completed": [
+     [
+      "Russia",
+      "Buxhowden",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Moore",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      9,
+      0
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      10,
+      0
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      10,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      12,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      18,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      25,
+      0
+     ]
+    ],
+    "within_reach": 6
+   }
+  },
+  "C": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    54,
+    52,
+    49,
+    46,
+    43,
+    40,
+    37,
+    24,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 97,
+    "Bavaria": 0,
+    "Britain": 5,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Denmark": 6,
+    "Britain": 26,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Hanover": 6,
+    "Switzerland": 2,
+    "Naples": 1,
+    "France": 3,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "drillfix": {
+    "drills": [
+     [
+      "Britain",
+      "Moore",
+      1,
+      100,
+      [
+       5,
+       "Soult",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Buxhowden",
+      1,
+      100,
+      [
+       4,
+       "Bernadotte",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Britain",
+      "Paget",
+      8,
+      100,
+      [
+       2,
+       "Castanos",
+       1
+      ],
+      "Murat"
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      9,
+      100,
+      [
+       4,
+       "Ney",
+       1
+      ],
+      null
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      11,
+      100,
+      [
+       2,
+       "Massena",
+       1
+      ],
+      "Soult"
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      12,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Austria",
+      "Mack",
+      14,
+      100,
+      [
+       2,
+       "Ney",
+       1
+      ],
+      "Ney"
+     ],
+     [
+      "Britain",
+      "Paget",
+      38,
+      54,
+      [
+       2,
+       "Soult",
+       1
+      ],
+      "Soult"
+     ]
+    ],
+    "completed": [
+     [
+      "Russia",
+      "Buxhowden",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Moore",
+      2,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      9,
+      0
+     ],
+     [
+      "Russia",
+      "Kutuzov",
+      10,
+      0
+     ],
+     [
+      "Russia",
+      "Bennigsen",
+      10,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeCharles",
+      12,
+      0
+     ],
+     [
+      "Austria",
+      "ArchdukeJohn",
+      13,
+      0
+     ],
+     [
+      "Austria",
+      "Mack",
+      15,
+      0
+     ],
+     [
+      "Britain",
+      "Paget",
+      39,
+      10
+     ]
+    ],
+    "within_reach": 7
+   }
+  }
+ },
+ "levers": {
+  "0": "",
+  "1": "HRDPC",
+  "H": "H",
+  "R": "R",
+  "D": "D",
+  "P": "P",
+  "C": "C"
+ }
+}

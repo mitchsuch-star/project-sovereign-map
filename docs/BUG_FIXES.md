@@ -13524,3 +13524,30 @@ triage, `COMMAND_ROBUSTNESS_SPEC.md` §12 — "CR-6 proper" is retired).
 |---|---|---|---|
 | **VP-R1-X1** | P3 | OPEN — owner: the next objection/legibility slice (CRT-7 "the desk answers what the order would do" is the nearest home) | `DisobedienceSystem._generate_alternative` builds the aggressive marshal's attack alternative from `get_enemies_in_range(marshal, game_state)`, which returns the nearest FOREIGN corps in range — an ALLY's included. Measured staging VP-R1 (d): Ney at Munich, `Ney, fortify` objected with the alternative `attack Deroy` (Bavaria's corps at Franconia, a French satellite); the executor refuses the friendly fire, so the trust option offered — now legibly, "attack Deroy at Franconia" — an order the game will not take, and a trust answer executes nothing. Fix shape: filter the candidate list on `world.is_at_war(marshal.nation, m.nation)` at the ONE source, then re-run the Master-Rule-#2 exhaustion demotion (an alternative that resolves to nothing must demote to MILD, never show a fake choice). Reproduce first: the VP-R1 (d) pin moves Deroy to Vienna to stage around it. |
 
+## The AI Drill Fix — September 27, 2026 (user-directed: "fix AI, be good — we don't want them drilling when they can get attacked")
+
+> Rules `SYSTEMS_REFERENCE.md` §75; pins `tests/test_ai_drill_fix_2026_09_27.py`; measured with `tools/_ai_drill_census.py`, `tools/_ai_drill_diag.py`, `tools/_drill_fix_series_arms.py` and `tools/_drill_fix_wo_attribution.py`; the literal question `DESIGN_REFINEMENT.md` AIDR-D1.
+
+| ID | Priority | Status | Summary |
+|---|---|---|---|
+| **AIDR-1** | P2 | FIXED | **The AI never drilled to heal.** P6 asked only aggressive marshals (5% of AI marshal-turns), for the shock bonus alone, and never read morale; morale returns only by a won battle, a drill or a recruit blend. Measured on the commanded arm: 51 AI marshal-turns below 70 morale, Archduke John 15 turns down to 0. Fixed: P4.9 "drill to heal" (§75.3). |
+| **AIDR-2** | P2 | FIXED | **The AI drilled where it could be attacked.** P6 read only the fog view's adjacent contacts. On the ambient board 7 of the old AI's 9 drills began within reach of a corps at war (Mack two regions from Ney). Fixed: the one reach predicate `drill_reach_threat`, read by P6 and P4.9 (§75.2); the shipped AI orders 1 drill there, none within reach. |
+| **AIDR-3** | P2 | FIXED | **Shown ≠ applied (GR4): a corps caught drilling suffered no penalty.** `combat.resolve_battle` cancelled the drill before `get_defense_modifier` read it, while the report printed "(-25% defense)" and the battle report snapshotted "Caught drilling". Measured: a drilling Mack lost 6,113 men, the same as undrilled; now 8,151 (= 6,113 / 0.75). Both sides (§75.1). |
+| **AIDR-4** | P3 | FIXED | **P8's aggressive default ordered a drilling corps a stance change the executor refuses** (R1-5 guarded the cautious branch alone). Measured: Paget, drilling at London, turn 17 of the commanded arm. |
+| **AIDR-5** | P3 | FIXED | **A corps that began a drill was evaluated again the same phase**, spending two waits after every drill (P2's "defend" could cancel a not-yet-locked drill). Fixed: the day's-work mark (§75.4). |
+
+**The series** was re-recorded ONCE (`tools/_drill_fix_series_arms.py`, seven arms, every lever set in the child): arm 0 (every lever down) reproduces the RF-3 series byte for byte; the heal alone and the penalty alone leave it unmoved; the day's work alone and P8's guard alone move it (from index 20 and 15), but with the reach gate up their effect is absorbed — the shipped series equals the reach gate's own arm exactly (first divergence at index 5). M1–M7 are byte-identical (the combat-metrics harness runs no AI phase and stages no drilling defender). **Passive-France guard, stated honestly:** the shock bonus the old AI bought by drilling at the front fed the raids on the unattended France — on the shipped arm it ends turn 40 with 12 provinces (arm 0: 3) while Britain holds 12 (26).
+
+**Pins re-seated consciously, each cause measured** (`tools/_drill_fix_wo_attribution.py`: with the five levers down in the child every prior figure returns verbatim): RF-3, DP-1, VP-R1 and EP F5 chain one more link to the new record; WO slice 10's ungated arm (collapses 57 → 4, the pair split, the series, the refused-order writes 58 / 2 → 4 / 1); WO slice 9's rebellions (uncapped 12 → 15, capped 16) and its largest-fall pin (the Kingdom of Italy survives this board, so there is nothing to exclude — the FA slice 17 Phase 2 case); FA slice 4 and 4r's drill pins, whose boards staged a shock drill within the new reach, re-seat on their own subjects (FA-4 stands the French army down; FA-4r lowers the reach gate, and for R1-4's lever-off arm the day's work too — with the day's work up, the drill survives R1-4's lever alone). Fourteen pins in eight files.
+
+**Balance, measured honestly** (the commanded arm, `commanded_full40.json`, `--diplomacy accept`, France's provinces at turn 40; archives `docs/audits/playtest_digests/drillfix-*`):
+
+| Arm | historical | ulm | austerlitz |
+|---|---|---|---|
+| every drill lever down (= RF-3's arm) | 25 | 5 | 25 |
+| the drilling penalty alone | 25 | 5 | 25 |
+| every lever but the reach gate | 11 | 28 | 25 |
+| **shipped** | **26** | **20** | **29** |
+| shipped, and literals heal (AIDR-D1) | 27 | — | — |
+
+The seed-to-seed swing is wider than any lever's effect on three seeds, so this is NOT a balance claim; the economy balance pass (next) re-measures.

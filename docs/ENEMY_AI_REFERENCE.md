@@ -146,14 +146,15 @@ diplomacy-facing set and is non-empty for deny/contain courts) |
 | P4.6 | Coordinated Attack Setup | 78 | Combined > 1.5x but solo < 1.5x, relationship >= Rival |
 | P4.75 | Ally Support | 78 | Move toward outnumbered/engaged ally (relationship >= Rival, Devoted priority); the "attacking X to join" arm picks an ENEMY on the ally (FA slice 4) and is PRICED like P4 — the field, the mood floor, the futility brake, the crossing gate (slice-4 review round R1-2) |
 | P4.8 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
+| P4.9 | Drill to Heal | — | **The AI drill fix (user-directed, Sept 27, 2026).** Morale below 70 (`HEAL_MORALE_BELOW`), a real corps (≥ 1,000), neither broken nor recovering, and the executor would take the order (`drill_refusal`) — and no corps AT WAR with its court within reach before the drill ends (`drill_reach_threat`: (exposed enemy phases + 1) × its range — 3 regions for infantry, 6 for cavalry, 2 for an infantryman against Soult's one-day Drillmaster; omniscient, like `_evaluate_capture_safety`; a court at peace and a prisoner are not threats). Every personality but the literal (the MC-V-2 ruling below; `LITERALS_DRILL_TO_HEAL`). Above P5, whose works would lock it out (FA-R2); it ignores P6's shock-bonus gate (a bonus only an attack clears); it yields to P6.5's supply move (`_supply_pressure_move`, the one P6.5 decision), the AI-3c war-intent frontier and P7.4's reinforcement. A corps that began a drill is done for the phase (`DRILL_IS_THE_DAYS_WORK`) |
 | P5 | Fortification | 85 | Cautious + no attack target |
-| P6 | Drilling | 90 | Aggressive + position secure; never while fortified — the executor refuses it (FA slice 4) |
+| P6 | Drilling | 90 | Aggressive + position secure; never while fortified — the executor refuses it (FA slice 4); never where a corps at war with its court could reach it before the drill ends — the same `drill_reach_threat` (the AI drill fix: 7 of the old AI's 9 drills on the ambient board began within reach; `AI_DRILL_READS_THE_REACH`) |
 | P6.5 | Supply Awareness | 91 | Supply excess > 50% — mildly relocate to better-supplied region; never orders a drilling or a FORTIFIED corps (the movement seam refuses a fortified mover for every nation — slice-4 review round R1-5/R1-8) |
 | P6.75 | Garrison Placement | 91 | Place capital garrison (max 1 per nation per turn) |
 | P7 | Strategic Movement | 92 | Can advance toward enemy (P4.76 co-location guard, P4.77 cross-nation scoring); NA-3 agenda bias — target choice credits design regions 2 hops (gates unchanged) |
 | P7.4 | Defensive Reinforcement | 92 | Move adjacent to threatened Rival+ ally for reinforcement readiness |
 | P7.5 | Stagnation Breaker | 93 | Graduated escalation: Turn 2 unfortify, Turn 3+ lowered attack threshold — both attack arms read the crossing gate; the range arm prices the field (FA slice 4); `form_square` is meaningful, and a corps that drills or has acted THIS phase is not forced (the counter is last phase\'s — slice-4 review round R1-4) |
-| P8 | Default | 95 | Stance adjustment or wait |
+| P8 | Default | 95 | Stance adjustment or wait; a drilling corps is left to drill in EVERY personality's branch (R1-5 guarded the cautious branch alone — the aggressive default ordered a drilling corps a stance change the executor refuses; `EVERY_DEFAULT_LEAVES_THE_DRILL`, the AI drill fix) |
 
 ### Priority 6.5: Supply Awareness
 
@@ -306,6 +307,20 @@ Evaluates all enemies in range against personality threshold.
 - If has drill bonus (`shock_bonus > 0`): Attack immediately to use it
 - If aggressive and not in aggressive stance: Change stance first
 
+### Priority 4.9: Drill to Heal (every personality but the literal)
+
+The AI drill fix (user-directed, September 27, 2026). A corps drills to
+restore its morale (+10 a drill, +15 on a training ground, plus its court's
+drill law) when:
+- its morale is below 70 (`HEAL_MORALE_BELOW`) and it is a real corps (≥ 1,000);
+- it is neither broken nor recovering, and the executor would take the order (`drill_refusal`);
+- no corps AT WAR with its court could reach it before the drill ends (`drill_reach_threat`: (exposed enemy phases + 1) × that corps' range — a court at peace and a prisoner are not threats);
+- no more pressing duty applies: P6.5's supply move, the AI-3c frontier, P7.4's reinforcement.
+
+It sits above P5 because a fortified corps cannot drill. It ignores P6's
+shock-bonus gate. A literal is held out by the MC-V-2 ruling (the user's
+question, `DESIGN_REFINEMENT.md` AIDR-D1).
+
 ### Priority 5: Fortification (Cautious Only)
 
 Cautious marshals fortify when:
@@ -318,7 +333,13 @@ Cautious marshals fortify when:
 Aggressive marshals drill when:
 - Not already drilling or have bonus
 - No enemy adjacent (vulnerable during drill)
+- No corps at war with their court could reach them before the drill ends (`drill_reach_threat`, the same predicate as P4.9 — the AI drill fix)
 - Position is secure
+
+A corps caught drilling fights at −25% defence (`Marshal.get_defense_modifier`;
+until the AI drill fix `combat.py` cancelled the drill before the modifier
+read it, so the penalty the report printed was never applied). A corps that
+began a drill is done for the phase.
 
 ### Priority 7: Strategic Movement
 
@@ -385,6 +406,7 @@ marshals gone autonomous.
 | Threatened in P7 | NO fall-back — stands his ground |
 | Unthreatened in P7 | Holds his standing disposition; the stagnation breaker (turn 2+) is what finally moves him ("new orders arrive") |
 | P5 fortify / P6 drill | Never on his own initiative (cautious-only / aggressive-only) |
+| P4.9 drill to heal | Held out by this ruling (`LITERALS_DRILL_TO_HEAL = False`); whether a literal may drill to heal where he stands is the user's question, `DESIGN_REFINEMENT.md` AIDR-D1, with its measured arm |
 | P8 default | wait (no stance fiddling) |
 
 Net read: Mack sits at Ulm and gives battle at fair odds without ever

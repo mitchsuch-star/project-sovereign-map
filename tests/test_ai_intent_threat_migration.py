@@ -1102,10 +1102,35 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # France that uses its own laws (the Staff, the Anticipated Class, the Code
 # Abroad) holds 25 / 28 / 27. The laws are a two-sided arms race.
 # ═══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — the AI drill fix (user-directed, September 27,
+# 2026: "we don't want them drilling when they can get attacked";
+# `tools/_drill_fix_series_arms.py`, seven arms, every lever set IN THE
+# CHILD, every AI drill counted with the nearest corps at war with its court):
+#   0.  every lever DOWN ................... the RF-3 series above, BYTE-FOR-BYTE
+#   H.  the P4.9 heal alone ................ series BYTE-IDENTICAL (the board is
+#                                            not: France 2 provinces at t40, not 3)
+#   C.  the drilling penalty read alone .... BYTE-IDENTICAL (no drilling corps is
+#                                            attacked on this board)
+#   R.  the shock drill reads the reach .... diverges at [5]
+#   D.  the day's work alone ............... diverges at [20]
+#   P.  every default leaves the drill ..... diverges at [15]
+#   1.  all five (shipped) ................. the series below, = arm R exactly
+# The shipped series IS the reach gate's own arm (the day's work and P8's
+# guard move the series only alone; the reach absorbs them): the old AI ordered 9
+# drills on this board, 7 of them within reach of a corps at war with its
+# court (Moore at London on turn 1, Murat's cavalry within its six regions;
+# Mack two regions from Ney); the shipped AI orders 1 (John's heal, turn 31,
+# the nearest corps at war five regions off) and none within reach. Passive-
+# France guard, stated honestly: the shock bonus those drills bought fed the
+# raids on the UNATTENDED France — on the shipped arm it ends turn 40 with 12
+# provinces (arm 0: 3) while Britain holds 12 (26) and Austria 25 (24); the
+# ambient harness's passive France, NOT a balance claim.
+# ═══════════════════════════════════════════════════════════════════════
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 49, 46, 43, 40, 37, 24, 11,
-    8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0,
+    70, 68, 66, 64, 62, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 33, 31,
+    28, 25, 22, 19, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0,
 ]
 
 

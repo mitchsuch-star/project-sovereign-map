@@ -264,7 +264,15 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert rf3["arms"]["0"]["series"] == rf3["recorded"]
         assert rf3["recorded"][:8] == [70, 68, 66, 64, 62, 60, 58, 46]
-        assert BASELINE_SERIES[:7] == [70, 68, 66, 64, 62, 60, 58]
+        # RE-SEATED by the AI drill fix (September 27, 2026): the standing
+        # series now forks at index [5] (60 -> 63, the reach gate), so it
+        # keeps the prefix all three boards share; RF-3's record lives on as
+        # the drill fix's prior, reproduced byte for byte by its arm 0.
+        drill = json.loads((REPO / "tools" / "_drill_fix_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert drill["arms"]["0"]["series"] == drill["recorded"] == rf3["arms"]["1"]["series"]
+        assert drill["recorded"][:7] == [70, 68, 66, 64, 62, 60, 58]
+        assert BASELINE_SERIES[:5] == [70, 68, 66, 64, 62]
 
 
 # ═══════════════════════════════════════════════════════════════════════════

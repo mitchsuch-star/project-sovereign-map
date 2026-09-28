@@ -666,7 +666,14 @@ class TestTheSeriesAttribution:
         assert a["2"] == recorded_before, "the gate is inert on the ambient board"
         assert a["1"] == a["3"] == rf3["recorded"], "the coast lever is the sole mover"
         assert rf3["arms"]["0"]["series"] == rf3["recorded"]
-        assert rf3["arms"]["1"]["series"] == BASELINE_SERIES
+        # RE-SEATED by the AI drill fix (September 27, 2026): one more link —
+        # RF-3's arm 1 is the prior record the drill fix's arm 0 reproduces,
+        # and the drill fix's arm 1 is the standing series.
+        drill = json.loads((ROOT / "tools" / "_drill_fix_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert rf3["arms"]["1"]["series"] == drill["recorded"]
+        assert drill["arms"]["0"]["series"] == drill["recorded"]
+        assert drill["arms"]["1"]["series"] == BASELINE_SERIES
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

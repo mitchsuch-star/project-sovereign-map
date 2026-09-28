@@ -51,7 +51,8 @@ from backend.models.world_state import WorldState
 LEVERS = {
     ea: ("FIELD_PRICES_THE_TARGET_TOO", "ALLY_SUPPORT_PRICES_THE_FIELD",
          "ADMIN_RECRUIT_SPARES_THE_SQUARE", "STAGNATION_READS_THE_PHASE",
-         "DRILLING_CORPS_IS_LEFT_TO_DRILL", "CAVALRY_AI_READS_THE_LIMIT"),
+         "DRILLING_CORPS_IS_LEFT_TO_DRILL", "CAVALRY_AI_READS_THE_LIMIT",
+         "AI_DRILL_READS_THE_REACH", "DRILL_IS_THE_DAYS_WORK"),
     ce: ("COUNTER_PUNCH_CREDITS_THE_CAPTURE",),
     mv: ("FORTIFIED_CORPS_NEVER_MARCHES",),
 }
@@ -349,6 +350,12 @@ class TestTheAdminRecruitSparesTheSquare:
 class TestStagnationReadsThePhase:
 
     def _blucher(self):
+        # RE-SEATED by the AI drill fix (September 27, 2026): P6 now also asks
+        # `drill_reach_threat`, and on the 19-region fixture the French corps
+        # this staging keeps as the stagnation breaker's enemy are within
+        # reach of Hanover. The reach gate stands down here (restored by the
+        # autouse fixture); it is pinned in tests/test_ai_drill_fix_2026_09_27.py.
+        ea.AI_DRILL_READS_THE_REACH = False
         world = _legacy()
         _british_soil(world)
         blu = world.marshals["Blucher"]
@@ -415,12 +422,23 @@ class TestStagnationReadsThePhase:
         assert "Blucher" in ai._acted_this_phase
 
     def test_the_lever_off_phase_cancels_the_drill(self):
+        """RE-SEATED by the AI drill fix (September 27, 2026): the day's work
+        (`DRILL_IS_THE_DAYS_WORK`) is a second guard over this seam — a corps
+        that began a drill is not evaluated again in its phase — so R1-4's
+        lever-off defect shows only with that guard down too, and with it up
+        the drill survives R1-4's lever alone."""
         ea.STAGNATION_READS_THE_PHASE = False
+        ea.DRILL_IS_THE_DAYS_WORK = False
         world, blu = self._blucher()
         _ai_, acts = self._phase(world)
         mine = [a.get("action") for a in acts if a.get("marshal") == "Blucher"]
         assert "drill" in mine, mine
         assert blu.drilling is False, mine
+        ea.DRILL_IS_THE_DAYS_WORK = True
+        world, blu = self._blucher()
+        _ai_, acts = self._phase(world)
+        mine = [a.get("action") for a in acts if a.get("marshal") == "Blucher"]
+        assert mine == ["drill"] and blu.drilling is True, mine
 
     def test_a_square_is_meaningful_at_phase_end(self):
         """The phase-end tracker: a corps whose whole phase was `form_square`

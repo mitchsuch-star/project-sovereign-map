@@ -1,0 +1,149 @@
+[
+  {
+    "id": "the drill is never cancelled after the read",
+    "file": "backend/game_logic/combat.py",
+    "old": "        if is_drilling and DRILL_PENALTY_READ_BEFORE_THE_CLEAR:\n            _cancel_drill(defender)",
+    "new": "        if False:\n            _cancel_drill(defender)",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheDrillingPenaltyIsRead::test_the_drill_is_still_lost_after_the_read"
+  },
+  {
+    "id": "the drill is cancelled before the read again",
+    "file": "backend/game_logic/combat.py",
+    "old": "            if not DRILL_PENALTY_READ_BEFORE_THE_CLEAR:\n                _cancel_drill(defender)",
+    "new": "            if True:\n                _cancel_drill(defender)",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheDrillingPenaltyIsRead::test_a_corps_caught_drilling_takes_the_printed_penalty"
+  },
+  {
+    "id": "the reach forgets the strike",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        reach = (phases + 1) * max(1, int(getattr(other, \"movement_range\", 1) or 1))",
+    "new": "        reach = phases * max(1, int(getattr(other, \"movement_range\", 1) or 1))",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheReachPredicate::test_infantry_reaches_three_regions"
+  },
+  {
+    "id": "the reach ignores the cavalry's range",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        reach = (phases + 1) * max(1, int(getattr(other, \"movement_range\", 1) or 1))",
+    "new": "        reach = (phases + 1) * 1",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheReachPredicate::test_cavalry_reaches_six_regions"
+  },
+  {
+    "id": "a court at peace becomes a threat",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if not world.is_at_war(marshal.nation, other.nation):\n            continue\n        reach = (phases + 1)",
+    "new": "        if False:\n            continue\n        reach = (phases + 1)",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheReachPredicate::test_a_court_at_peace_is_no_threat"
+  },
+  {
+    "id": "a prisoner becomes a threat",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if getattr(other, \"captured_by\", \"\"):\n            continue\n        if not world.is_at_war(marshal.nation, other.nation):",
+    "new": "        if False:\n            continue\n        if not world.is_at_war(marshal.nation, other.nation):",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheReachPredicate::test_a_prisoner_is_no_threat"
+  },
+  {
+    "id": "the Drillmaster stands exposed two phases",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "    phases = (1 if ability.get(\"name\") == \"Drillmaster of Boulogne\"\n              else DRILL_EXPOSED_PHASES)",
+    "new": "    phases = DRILL_EXPOSED_PHASES",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheReachPredicate::test_the_drillmaster_stands_exposed_one_phase"
+  },
+  {
+    "id": "the heal reads no morale",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if int(getattr(marshal, \"morale\", 100) or 0) >= HEAL_MORALE_BELOW:\n            return None",
+    "new": "        if int(getattr(marshal, \"morale\", 100) or 0) >= 101:\n            return None",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_the_gates"
+  },
+  {
+    "id": "the heal drills a remnant",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if int(marshal.strength or 0) < STUB_STRENGTH_FLOOR:\n            return None\n        if self._corps_takes_no_ground(marshal):",
+    "new": "        if False:\n            return None\n        if self._corps_takes_no_ground(marshal):",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_the_gates"
+  },
+  {
+    "id": "the heal drills a broken corps",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if self._corps_takes_no_ground(marshal):\n            return None\n        from backend.commands.tactical_executor import drill_refusal",
+    "new": "        if False:\n            return None\n        from backend.commands.tactical_executor import drill_refusal",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_the_gates"
+  },
+  {
+    "id": "the heal orders what the executor refuses",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        refused, _short = drill_refusal(world, marshal, stance_gate=False)\n        if refused:\n            return None",
+    "new": "        refused, _short = drill_refusal(world, marshal, stance_gate=False)\n        if False:\n            return None",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_the_gates"
+  },
+  {
+    "id": "the heal ignores the reach",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        threat = drill_reach_threat(world, marshal)\n        if threat is not None:\n            ai_debug(f\"    P4.9:",
+    "new": "        threat = None\n        if threat is not None:\n            ai_debug(f\"    P4.9:",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_a_corps_within_reach_does_not_heal"
+  },
+  {
+    "id": "the heal reads the shock bonus",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if int(marshal.strength or 0) < STUB_STRENGTH_FLOOR:\n            return None\n        if self._corps_takes_no_ground(marshal):",
+    "new": "        if int(marshal.strength or 0) < STUB_STRENGTH_FLOOR or getattr(marshal, \"shock_bonus\", 0) > 0:\n            return None\n        if self._corps_takes_no_ground(marshal):",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_the_heal_ignores_the_shock_bonus"
+  },
+  {
+    "id": "the heal drills a literal",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if personality == \"literal\" and not LITERALS_DRILL_TO_HEAL:\n            return None",
+    "new": "        if False:\n            return None",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_a_literal_is_held_out_by_the_standing_ruling"
+  },
+  {
+    "id": "the heal ignores the supply move",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if current_region and self._supply_pressure_move(marshal, nation, world, current_region):\n            return None\n        from backend.game_logic.war_council import get_intent_frontier\n        if get_intent_frontier(world, nation):",
+    "new": "        if False:\n            return None\n        from backend.game_logic.war_council import get_intent_frontier\n        if get_intent_frontier(world, nation):",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_it_yields_to_a_more_pressing_duty"
+  },
+  {
+    "id": "the heal ignores the frontier",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if get_intent_frontier(world, nation):\n            return None\n        if self._find_defensive_reinforcement_position(marshal, nation, world):\n            return None\n        return {",
+    "new": "        if False:\n            return None\n        if self._find_defensive_reinforcement_position(marshal, nation, world):\n            return None\n        return {",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_it_yields_to_the_war_intent_frontier"
+  },
+  {
+    "id": "the heal ignores the threatened ally",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if self._find_defensive_reinforcement_position(marshal, nation, world):\n            return None\n        return {\n            \"marshal\": marshal.name,\n            \"action\": \"drill\"\n        }\n\n    def _consider_drill",
+    "new": "        if False:\n            return None\n        return {\n            \"marshal\": marshal.name,\n            \"action\": \"drill\"\n        }\n\n    def _consider_drill",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_it_yields_to_a_more_pressing_duty"
+  },
+  {
+    "id": "the heal rung is never asked",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        heal_action = self._consider_heal_drill(marshal, nation, world, personality,\n                                                current_region)",
+    "new": "        heal_action = None",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheHealRung::test_a_debased_corps_out_of_reach_drills_before_it_fortifies"
+  },
+  {
+    "id": "the shock drill ignores the reach",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if AI_DRILL_READS_THE_REACH:\n            threat = drill_reach_threat(world, marshal)",
+    "new": "        if False:\n            threat = drill_reach_threat(world, marshal)",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheShockDrillReadsTheReach"
+  },
+  {
+    "id": "a drilling corps is evaluated again the same phase",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                    and result.get(\"success\")):\n                self._marshals_done_this_turn.add(selected_action[\"marshal\"])",
+    "new": "                    and result.get(\"success\")):\n                pass",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheDaysWork"
+  },
+  {
+    "id": "the aggressive default orders the drilling corps a stance",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if (EVERY_DEFAULT_LEAVES_THE_DRILL and DRILLING_CORPS_IS_LEFT_TO_DRILL\n                and _corps_is_drilling(marshal)):",
+    "new": "        if False:",
+    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestEveryDefaultLeavesTheDrill"
+  }
+]

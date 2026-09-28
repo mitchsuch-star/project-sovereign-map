@@ -8238,3 +8238,24 @@ Pins `tests/test_rf4c_the_school_and_the_census.py` 15; sweep `tools/_sweep_rf4c
 - **The action count** is the command terminal's header ("Actions: N/M", `main.gd` `_update_status` from `action_summary.max_actions`); the top bar carries none.
 - **Visual proof:** `tools/iq10_capture_payloads.py` `cap_laws()` stages `ledger_laws_staff`, `ledger_laws_forecast` and `diplo_laws_rival`; `tools/iq10_run_captures.py` shoots them (with `ledger_boot_laws`) at Interface Scale 1.0 and 2.0.
 
+## 75. THE AI DRILL FIX — "we don't want them drilling when they can get attacked" (user-directed, September 27, 2026)
+
+Rows `BUG_FIXES.md` §The AI Drill Fix (AIDR-1..5); pins `tests/test_ai_drill_fix_2026_09_27.py` 26; sweep `tools/_sweep_drill_fix.json` 21/21 killed, 0 INERT; the question `DESIGN_REFINEMENT.md` AIDR-D1.
+
+### 75.1 The drilling penalty is read (GR4)
+A corps caught drilling fights at −25% defence (`Marshal.get_defense_modifier`). `combat.resolve_battle` now cancels the drill (`combat._cancel_drill`) AFTER the defence modifier has read it; it used to cancel first, so the penalty the report printed ("(-25% defense)") and the battle report snapshotted ("Caught drilling") was never applied. Both sides. Lever `combat.DRILL_PENALTY_READ_BEFORE_THE_CLEAR`.
+
+### 75.2 The one reach predicate
+`enemy_ai.drill_reach_threat(world, marshal)` — the first corps AT WAR with the marshal's court that could reach and strike him before a drill ends, or None. Reach per hostile corps = (the drill's exposed enemy phases + 1) × its range (`movement_range`): a drill ordered on turn N stands through the enemy phases of N and N+1 (`DRILL_EXPOSED_PHASES` = 2; Soult's Drillmaster, 1), and in a phase a corps marches its range and strikes from its range — 3 regions for infantry, 6 for cavalry. Omniscient, like `_evaluate_capture_safety`. A court at peace and a prisoner (`captured_by`) are not threats. Distances are the cached `WorldState.get_distance`.
+
+### 75.3 P4.9 "drill to heal"
+`EnemyAI._consider_heal_drill`, sited after P4.8 and above P5 (a fortified corps cannot drill). A corps drills to restore its morale when: morale < `HEAL_MORALE_BELOW` (70); strength ≥ `STUB_STRENGTH_FLOOR`; not broken or recovering (`_corps_takes_no_ground`); the executor would take the order (`tactical_executor.drill_refusal`, `stance_gate=False`); `drill_reach_threat` is None; and no lower rung's more pressing duty applies — P6.5's supply move (`_supply_pressure_move`, the one P6.5 decision, extracted byte-identically), the AI-3c frontier (`war_council.get_intent_frontier`), P7.4's reinforcement (`_find_defensive_reinforcement_position`). It ignores P6's shock-bonus gate. Every personality but the literal (`LITERALS_DRILL_TO_HEAL`, held by the MC-V-2 ruling). Lever `AI_DRILLS_TO_HEAL`.
+
+### 75.4 P6, the day's work, the default
+- P6's shock drill also asks `drill_reach_threat` (`AI_DRILL_READS_THE_REACH`).
+- A corps whose drill order succeeded is marked done for the phase (`DRILL_IS_THE_DAYS_WORK`).
+- P8's default leaves a drilling corps be in every personality's branch (`EVERY_DEFAULT_LEAVES_THE_DRILL`; R1-5 covered the cautious branch alone).
+
+### 75.5 Measured
+- The ambient board (`tools/_drill_fix_series_arms.py`, seven arms): the old AI ordered 9 drills, 7 within reach of a corps at war; the shipped AI orders 1 (a heal), none within reach. `BASELINE_SERIES` re-recorded once — the shipped series equals the reach gate's own arm (the day's work and P8's guard move it only alone).
+- The commanded board (`tools/_ai_drill_diag.py`): every non-literal debased corps that reached P4.9, not already drilling, healed; the reach gate refused none; the remaining debased turns are literals (MC-V-2) and corps recovering or engaged.

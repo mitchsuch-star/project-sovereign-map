@@ -1052,7 +1052,14 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # VASSAL -> PEACE; `tools/_rf3_board_events.py`). Attribution measured
         # through THIS runner's `flips`: with `reforms.THE_AI_ENACTS` down in
         # the child it reads 11 / 13 verbatim (`tools/_rf3_wo_attribution.py`).
-        assert uncapped == 12, uncapped
+        # Re-measured by the AI drill fix (September 27, 2026): the reach gate
+        # re-times the ambient board from turn 6 (the BASELINE_SERIES
+        # attribution block). Uncapped 15, capped 16 — the cap buys ONE turn;
+        # the contract holds. The capped exit is still a VS-6 defection to
+        # Britain at turn 15. Attribution measured through THIS runner's
+        # `flips`: with the drill fix's five levers down in the child it reads
+        # 12 / 16 verbatim (`tools/_drill_fix_wo_attribution.py`, measured).
+        assert uncapped == 15, uncapped
         assert capped == 16, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
@@ -1152,12 +1159,23 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     step from index 15 to 16, 24 -> 11). The decay there is -3, so
         #     the signature is -13 — the "-12/-13 signature" at its -13 end.
         #     Named and excluded, as before.
-        elimination_step = 15
-        assert steps[elimination_step] == -13, steps
-        ordinary = [s for i, s in enumerate(steps) if i != elimination_step]
-        worst = min(ordinary)
-        assert ordinary.count(worst) == 1, (
-            f"the largest ordinary fall {worst} is no longer unique: {steps}")
-        index = steps.index(worst, 0) + 1
-        assert steps[index - 1] == worst and index - 1 != elimination_step
+        # The AI drill fix (September 27, 2026). The re-recorded series keeps
+        # this pin's general form — the FA slice 17 Phase 2 case again.
+        # Traced with `tools/_rf3_board_events.py` (events at `log_event`):
+        #   - The Kingdom of Italy SURVIVES the forty turns (still France's
+        #     vassal at turn 31; its turn-16 elimination on the RF-3 board is
+        #     gone), so no lord relief fires and there is nothing to exclude:
+        #     the whole series is ordinary.
+        #   - The capped exit is its unique largest fall, -12 (45 -> 33, the
+        #     step from index 14 to 15, world turn 16): -2 decay - 10 as
+        #     Switzerland leaves the web — a VS-6 defection to Britain at
+        #     turn 15 (`vassal_defected`, outcome transfer), the RF-3 board's
+        #     exit. `_rebellion_turn(True)` measures 16 = index + 1.
+        # Should the elimination return, its -13 fails the first line, or its
+        # -12 makes the largest fall a tie and fails the second.
+        assert -13 not in steps, steps
+        worst = min(steps)
+        assert steps.count(worst) == 1, (
+            f"the largest fall {worst} is no longer unique: {steps}")
+        index = steps.index(worst) + 1
         assert _rebellion_turn(True) == index + 1

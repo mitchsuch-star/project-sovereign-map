@@ -125,6 +125,22 @@ def rout_survivors(old_strength: int, survival_rate: float) -> int:
     return floored
 
 
+# The AI drill fix (Sept 27, 2026), a pre-existing GR4 defect: the drill was
+# cancelled BEFORE `get_defense_modifier` read it, so the -25% a corps caught
+# drilling suffers — printed on the report, snapshotted on the battle
+# report — was never applied (measured: identical casualties drilling or
+# not). True = the modifier reads the drill, then the drill is cancelled.
+DRILL_PENALTY_READ_BEFORE_THE_CLEAR = True
+
+
+def _cancel_drill(defender) -> None:
+    """A corps caught drilling loses all its progress."""
+    defender.drilling = False
+    defender.drilling_locked = False
+    defender.drill_complete_turn = -1
+    defender.shock_bonus = 0  # Clear any pending bonus
+
+
 # FA-D29 (slice 17, Phase 2) flip lever: a reinforced side's casualty pool is
 # the bodies on the field (primary + relocated reinforcers), the same list the
 # executor distributes the losses over. False = the primary's strength alone
@@ -605,11 +621,10 @@ class CombatResolver:
         is_drilling = getattr(defender, 'drilling', False) or getattr(defender, 'drilling_locked', False)
         if is_drilling:
             drilling_penalty_message = f"{defender.name}'s drill was interrupted by the attack! (-25% defense)"
-            # Cancel drill - they lose all progress (state change stays here)
-            defender.drilling = False
-            defender.drilling_locked = False
-            defender.drill_complete_turn = -1
-            defender.shock_bonus = 0  # Clear any pending bonus
+            # Cancel drill - they lose all progress. GR4: AFTER the defense
+            # modifier has read it (below), unless the lever is down.
+            if not DRILL_PENALTY_READ_BEFORE_THE_CLEAR:
+                _cancel_drill(defender)
 
         # ════════════════════════════════════════════════════════════
         # STANCE & PERSONALITY MODIFIER (Phase 2.7/2.8): Apply defense modifiers
@@ -667,6 +682,11 @@ class CombatResolver:
                     defender_personality_message = (
                         f"{defender_personality_message} {cov_line}"
                         if defender_personality_message else cov_line)
+
+        # GR4 (the AI drill fix): the modifier above has read the drill; now
+        # the drill is lost.
+        if is_drilling and DRILL_PENALTY_READ_BEFORE_THE_CLEAR:
+            _cancel_drill(defender)
 
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
         # Apply stance modifier to defense - note: higher modifier = better defense (reduces casualties MORE)

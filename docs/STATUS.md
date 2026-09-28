@@ -4,6 +4,16 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE AI DRILL FIX LANDED — September 27, 2026 (second session; user-directed: "fix AI, be good — we don't want them drilling when they can get attacked")** (rules `SYSTEMS_REFERENCE.md` §75; rows + landing record `BUG_FIXES.md` §The AI Drill Fix, AIDR-1..5; pins `tests/test_ai_drill_fix_2026_09_27.py` 26; sweep `tools/_sweep_drill_fix.json` 21/21 killed, 0 INERT):
+> - **P4.9 "drill to heal"**: a corps below 70 morale drills to restore it where nothing can reach it — every personality but the literal, above P5, yielding to the supply move, the war-intent frontier and a threatened ally.
+> - **One reach predicate** (`enemy_ai.drill_reach_threat`) for every AI drill, P6's shock drill too: no corps at war with the court within (exposed phases + 1) × its range. On the ambient board the old AI ordered 9 drills, 7 within reach; the shipped AI 1, none within reach.
+> - **A pre-existing GR4 defect fixed:** a corps caught drilling suffered NO penalty — the drill was cancelled before the defence modifier read it, while the report printed "−25%". Both sides.
+> - A drilling corps is done for the phase, and P8's aggressive default no longer orders it a refused stance change.
+> - **`BASELINE_SERIES` re-recorded once** (seven-arm attribution; the shipped series equals the reach gate's own arm); fourteen pins in eight other files re-seated with each cause measured.
+> - **Balance, not a claim:** the commanded France at turn 40 is 26 / 20 / 29 against 25 / 5 / 25, but three seeds swing wider than the fix.
+> - **⚠ The user's question, AIDR-D1: may an enemy literal drill to heal?** The MC-V-2 ruling holds them out; measured, Mack's 40 debased turns fall to 19 if they may.
+> - **▶ NEXT = ONE session exit + ONE residue slice → then the ECONOMY BALANCE pass (Britain richer than France, the user's Sept 27 direction).**
+>
 > **▶ ▶ ▶ SR-5r RF-4c "THE SCHOOL CARD AND THE VISUAL PASS" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.8; rules `SYSTEMS_REFERENCE.md` §74.8; pins `tests/test_rf4c_the_school_and_the_census.py` 15; sweep `tools/_sweep_rf4c.json` 26/26 killed, 0 INERT):
 > - **The School's twentieth card, "XVIII. The Laws of State"** (gate 12): it opens THE LAWS on the real ledger, suggests `enact the Staff` (the Council of State asks the terms) and completes when a law is in force. The lesson authors France's 1805 deck. Driven through the real lesson.
 > - **The visual pass:** `cap_laws()` stages the Staff in force, a forecast naming a doomed law, and Britain's laws on its nation card — eight frames at Interface Scale 1.0 and 2.0, nothing clipped or off the viewport. The frames asked for two fixes: the FORECAST now leads the LAWS tab, and the Staff's Repeal chip names the order it takes away (`reforms.STAFF_LOSS` — one phrase with the repeal's answer and the lapse's line; a repeal has no confirm, so the chip is its only preview).

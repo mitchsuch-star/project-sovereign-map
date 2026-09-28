@@ -1080,7 +1080,12 @@ class TestTheAmbientBoard:
         # different French provinces on it (the pair split below). With
         # `reforms.THE_AI_ENACTS` down in the child this arm reads 64 again
         # (`tools/_rf3_wo_attribution.py`, measured).
-        assert seams == {"_fuzzy_match_enemy": 57}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts)
+        # The AI drill fix (September 27, 2026): 57 -> 4. The reach gate
+        # re-times the UNGATED board from turn 6 (the BASELINE_SERIES
+        # attribution block); the AI's orders stop naming Champagne and Maine
+        # (the pair split below). With the five drill-fix levers down in the
+        # child this arm reads 57 again (`tools/_drill_fix_wo_attribution.py`, measured).
+        assert seams == {"_fuzzy_match_enemy": 4}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1130,9 +1135,13 @@ class TestTheAmbientBoard:
         # is still a PROVINCE collapsing onto a marshal — the defect's shape,
         # unchanged. With `reforms.THE_AI_ENACTS` down in the child the
         # VP-R1 split returns (`tools/_rf3_wo_attribution.py`, measured).
-        assert dict(pairs) == {("Leon", "Napoleon"): 3,
-                               ("Champagne", "Ney"): 32,
-                               ("Maine", "Ney"): 22}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3
+        # The AI drill fix (September 27, 2026): the ungated board re-times
+        # under the reach gate — `Champagne -> Ney` and `Maine -> Ney` are
+        # gone, `Leon -> Napoleon` 3 -> 4. Every pair is still a PROVINCE
+        # collapsing onto a marshal — the defect's shape, unchanged. With the
+        # five drill-fix levers down in the child the RF-3 split returns
+        # (`tools/_drill_fix_wo_attribution.py`, measured).
+        assert dict(pairs) == {("Leon", "Napoleon"): 4}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1242,7 +1251,15 @@ class TestTheAmbientBoard:
         # re-time the gated one (the BASELINE_SERIES attribution block). With
         # `reforms.THE_AI_ENACTS` down in the child the EP F5 / VP-R1 list
         # returns byte-for-byte (measured, `tools/_rf3_wo_attribution.py`).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 49, 46, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # RF-3 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 49, 46, 43, 40, 27, 24, 21,
+        #  18, 15, 12, 9, 6, 3, 0, 0, ...]
+        # Re-recorded by the AI drill fix (September 27, 2026): the reach gate
+        # re-times this arm from index [5] exactly as it re-times the gated
+        # one (the BASELINE_SERIES attribution block). With the five drill-fix
+        # levers down in the child the RF-3 list returns byte-for-byte
+        # (`tools/_drill_fix_wo_attribution.py`, measured).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 43, 41, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1930,8 +1947,12 @@ class TestTheAiIsNotFrozenInstead:
         # board IS the standing series board, re-recorded once). With
         # `reforms.THE_AI_ENACTS` down in the child both read 76 / 3 again
         # (`tools/_rf3_wo_attribution.py`, measured).
-        assert cooldowns["ungated"] == 58, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts)
-        assert cooldowns["gated"] == 2, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts)
+        # The AI drill fix (September 27, 2026): 58 / 2 -> 4 / 1. The reach
+        # gate re-times both boards from turn 6 (the gated board IS the
+        # standing series board, re-recorded once). With the five drill-fix
+        # levers down in the child both read 58 / 2 again (`tools/_drill_fix_wo_attribution.py`, measured).
+        assert cooldowns["ungated"] == 4, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix)
+        assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix)
 
 
 _COOLDOWN_PROBE = r'''

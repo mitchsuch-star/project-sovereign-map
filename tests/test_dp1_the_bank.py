@@ -191,5 +191,13 @@ class TestTheMeasurement:
         assert max(on.values()) <= DG.DP_BANK_CAP
 
     def test_the_measured_series_is_the_shipped_series(self):
+        """RE-SEATED by the AI drill fix (September 27, 2026): DP-1 measured
+        against the RF-3 record, which the drill fix's arm 0 (every drill
+        lever down) reproduces byte for byte; the drill fix's arm 1 is the
+        standing series."""
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
-        assert self.DATA["on"]["series"] == BASELINE_SERIES
+        drill = json.loads((ROOT / "tools" / "_drill_fix_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert self.DATA["on"]["series"] == drill["recorded"]
+        assert drill["arms"]["0"]["series"] == drill["recorded"]
+        assert BASELINE_SERIES == drill["arms"]["1"]["series"]

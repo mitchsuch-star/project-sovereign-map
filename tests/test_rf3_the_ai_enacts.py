@@ -252,5 +252,13 @@ class TestTheMeasuredBoard:
         assert self.ARMS["arms"]["1"]["rf3"]["lapsed"] == []
 
     def test_the_shipped_series_is_arm_one(self):
+        """RE-SEATED by the AI drill fix (September 27, 2026): the series was
+        re-recorded once more. RF-3's arm 1 is now the prior record the drill
+        fix's arm 0 (every drill lever down) reproduces byte for byte; the
+        drill fix's arm 1 is the standing series."""
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
-        assert BASELINE_SERIES == self.ARMS["arms"]["1"]["series"]
+        drill = json.loads((ROOT / "tools" / "_drill_fix_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert self.ARMS["arms"]["1"]["series"] == drill["recorded"]
+        assert drill["arms"]["0"]["series"] == drill["recorded"]
+        assert BASELINE_SERIES == drill["arms"]["1"]["series"]

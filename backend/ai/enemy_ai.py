@@ -165,6 +165,36 @@ STAGNATION_READS_THE_PHASE = True        # R1-4: form_square is meaningful; a co
 ONE_WALK_IN_PER_CORPS_PER_TURN = True    # P4.5 hands a corps at most `movement_range` walk-ins a turn
 THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK = True  # a literal corps runs the cautious 1.5x counter-attack check before a walk-in
 DRILLING_CORPS_IS_LEFT_TO_DRILL = True   # R1-5: no stance / fortify / supply-move is ordered to a drilling corps
+# ── The AI drill fix (user-directed, Sept 27, 2026: "we don't want them
+# drilling when they can get attacked") ─────────────────────────────────────
+# P4.9 "drill to heal": a debased corps drills to restore its morale, where
+# no corps at war with its court can reach it before the drill ends. The
+# census (tools/_ai_drill_census.py) found the AI almost never drilled — P6
+# asks only aggressive marshals, for the shock bonus alone — and a corps sat a
+# campaign below 70 morale (Mack 27 turns, down to 0).
+AI_DRILLS_TO_HEAL = True
+HEAL_MORALE_BELOW = 70                   # band 60-75
+# Every drill the AI orders (the heal and P6's shock drill) first asks the ONE
+# reach predicate, `drill_reach_threat`. Down: P6 keeps its fog-adjacent
+# check alone.
+AI_DRILL_READS_THE_REACH = True
+# A corps that began a drill has done the day's work: marked done for the
+# phase, so P2's "defend" cannot cancel it the same phase and P8 cannot order
+# a stance change the executor refuses (a 2-turn cooldown write).
+DRILL_IS_THE_DAYS_WORK = True
+# MC-V-2 (the user's July 11 ruling): an enemy literal takes NO drill
+# initiative. Held; the question is the user's (DESIGN_REFINEMENT AI-DR-D1),
+# with this lever's measured arm beside it.
+LITERALS_DRILL_TO_HEAL = False
+# R1-5 guarded a drilling corps in P8's CAUTIOUS default only; the aggressive
+# default still ordered it a stance change, which the executor refuses (a
+# failed-action write). True = every default branch leaves the drill be.
+EVERY_DEFAULT_LEAVES_THE_DRILL = True
+# A drill ordered on turn N stands through the enemy phases of N and N+1
+# (Soult's Drillmaster: N alone). In a phase a corps can march its range and
+# strike from its range (move + attack, 2 actions), so the reach over the
+# exposure is (phases + 1) x range: 3 regions for infantry, 6 for cavalry.
+DRILL_EXPOSED_PHASES = 2
 CAVALRY_AI_READS_THE_LIMIT = True        # R1-7: the cautious rungs never park cavalry in DEFENSIVE or a fort under the cavalry limit
 
 # Below this, a hostile corps is a remnant one corps finishes while the rest
@@ -460,6 +490,31 @@ def _cavalry_under_the_limit(marshal) -> bool:
     return bool(getattr(marshal, "cavalry", False)
                 and getattr(_ws, "CAVALRY_LIMITS_ALL_NATIONS", False)
                 and getattr(marshal, "stance", None) == Stance.AGGRESSIVE)
+
+
+def drill_reach_threat(world, marshal) -> "Optional[Marshal]":
+    """The first corps AT WAR with `marshal`'s court that could reach and
+    strike him before a drill ends — or None. ONE predicate for every drill
+    the AI orders (the P4.9 heal and P6's shock drill). Reach per hostile
+    corps = (the drill's exposed enemy phases + 1) x its range: it marches
+    its range each phase and strikes from its range. Omniscient by design,
+    like `_evaluate_capture_safety`: the AI's fog view missed 4 of 4 corps
+    two hops from Vienna at turn 4. A court at peace is not a threat (it
+    must declare first); a prisoner is not."""
+    ability = getattr(marshal, "ability", None) or {}
+    phases = (1 if ability.get("name") == "Drillmaster of Boulogne"
+              else DRILL_EXPOSED_PHASES)
+    for other in world.marshals.values():
+        if other.nation == marshal.nation or int(other.strength or 0) <= 0:
+            continue
+        if getattr(other, "captured_by", ""):
+            continue
+        if not world.is_at_war(marshal.nation, other.nation):
+            continue
+        reach = (phases + 1) * max(1, int(getattr(other, "movement_range", 1) or 1))
+        if world.get_distance(marshal.location, other.location) <= reach:
+            return other
+    return None
 
 
 def _corps_is_drilling(marshal) -> bool:
@@ -1295,6 +1350,13 @@ class EnemyAI:
                     "form_square", "fortify"):
                 self._acted_this_phase.add(selected_action["marshal"])
 
+            # The AI drill fix: a corps that began a drill has done the day's
+            # work — P2 cannot cancel it and P8 cannot order it a stance the
+            # executor refuses, later in the same phase.
+            if (DRILL_IS_THE_DAYS_WORK and selected_action["action"] == "drill"
+                    and result.get("success")):
+                self._marshals_done_this_turn.add(selected_action["marshal"])
+
             # Track successful stance changes to prevent spam
             if selected_action["action"] == "stance_change":
                 self._stance_changed_this_turn.add(selected_action["marshal"])
@@ -1649,6 +1711,7 @@ class EnemyAI:
         #   P4      → Attack opportunity (ratio >= personality threshold)
         #   P4.5    → Capture undefended enemy region (adjacent)
         #   P4.75   → Ally support (move toward outnumbered ally)
+        #   P4.9    → Drill to heal (morale < 70, nothing can reach him)
         #   P5      → Fortify (cautious personality only)
         #   P6      → Drill for shock bonus (aggressive personality only)
         #   P7      → Strategic movement (advance or fall back)
@@ -2347,6 +2410,19 @@ class EnemyAI:
         ai_debug("  P4.8: No consolidation needed")
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 4.9: DRILL TO HEAL (the AI drill fix, Sept 27, 2026)
+        # A debased corps restores its morale where nothing can reach it
+        # before the drill ends. Above P5, whose works would lock it out of
+        # the drill (FA-R2); below every threat, attack, capital, support
+        # and road-home rung.
+        # ════════════════════════════════════════════════════════════
+        heal_action = self._consider_heal_drill(marshal, nation, world, personality,
+                                                current_region)
+        if heal_action:
+            ai_debug(f"  -> P4.9 Heal: {heal_action}")
+            return (heal_action, 5)
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 5: FORTIFICATION (cautious marshals, or any marshal
         # when coalition is active with defensive/cautious posture — R122)
         # ════════════════════════════════════════════════════════════
@@ -2395,62 +2471,9 @@ class EnemyAI:
         # back to full through the normal admin phase.
         # ════════════════════════════════════════════════════════════
         if current_region:
-            # PC15-D2 rider: the SAME effective cap the attrition applies
-            # (home/ally 1.5×, naval shore verdict) — the rung read raw
-            # `supply_capacity`, a pre-existing shown≠applied gap that
-            # made the AI flee provinces that actually fed it.
-            supply_cap = world.get_effective_supply_cap(
-                nation, current_region)
-            total_troops_here = sum(
-                m.strength for m in world.get_marshals_in_region_indexed(marshal.location)
-                if m.strength > 0
-            )
-            supply_excess_ratio = (total_troops_here - supply_cap) / supply_cap if supply_cap > 0 else 0
-
-            _rung_blind = (
-                (DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal))
-                or (_fortified_corps_never_marches()
-                    and getattr(marshal, 'fortified', False)))
-            # R1-5 / R1-8: a drilling corps cannot march and a fortified one
-            # is refused at the movement seam now — the rung stops ordering
-            # what the executor will refuse (P7.5 unfortifies a truly idle one).
-            if supply_excess_ratio > 0.50 and not _rung_blind:  # 5% attrition tier
-                ai_debug(f"  P6.5: Supply pressure at {marshal.location} "
-                         f"({total_troops_here:,} troops, {supply_cap:,} capacity, "
-                         f"{supply_excess_ratio:.0%} over)")
-
-                best_supply_region = None
-                best_supply_margin = -999999
-
-                for adj_name in current_region.adjacent_regions:
-                    adj_region = world.get_region(adj_name)
-                    if not adj_region:
-                        continue
-                    if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
-                        continue  # DLF-12: diplomatic permission check
-
-                    # PC15-D2 rider: effective cap here too (see above).
-                    adj_cap = world.get_effective_supply_cap(
-                        nation, adj_region)
-                    troops_at_dest = sum(
-                        m.strength for m in world.get_marshals_in_region_indexed(adj_name)
-                        if m.strength > 0
-                    )
-                    supply_margin = adj_cap - troops_at_dest - marshal.strength
-                    if supply_margin > best_supply_margin:
-                        best_supply_margin = supply_margin
-                        best_supply_region = adj_name
-
-                if best_supply_region and best_supply_margin > -marshal.strength:
-                    ai_debug(f"  -> P6.5: Relocating to {best_supply_region} "
-                             f"(supply margin: {best_supply_margin:,})")
-                    return ({
-                        "marshal": marshal.name,
-                        "action": "move",
-                        "target": best_supply_region
-                    }, 6)
-                else:
-                    ai_debug("  P6.5: No better supply region adjacent — staying")
+            supply_move = self._supply_pressure_move(marshal, nation, world, current_region)
+            if supply_move:
+                return (supply_move, 6)
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 6.75: AI GARRISON PLACEMENT
@@ -4684,6 +4707,54 @@ class EnemyAI:
             "action": "fortify"
         }
 
+    def _consider_heal_drill(self, marshal: Marshal, nation: str, world: WorldState,
+                             personality: str, current_region) -> Optional[Dict]:
+        """P4.9 "drill to heal" (the AI drill fix, user-directed Sept 27,
+        2026). A corps below HEAL_MORALE_BELOW drills to restore its morale
+        (+10 a drill, +15 on a training ground, + its court's drill law) —
+        every personality but the literal (MC-V-2, LITERALS_DRILL_TO_HEAL),
+        when:
+          * it is a real corps (STUB_STRENGTH_FLOOR), neither broken nor
+            recovering, and the executor would take the order (its own
+            `drill_refusal`);
+          * no corps at war with its court could reach it before the drill
+            ends (`drill_reach_threat`);
+          * no more pressing duty of a lower rung applies — P6.5's supply
+            move, the AI-3c war-intent frontier, P7.4's reinforcement of a
+            threatened ally.
+        It ignores P6's shock-bonus gate (a bonus only an attack clears: a
+        corps at peace would heal once)."""
+        if not AI_DRILLS_TO_HEAL:
+            return None
+        if personality == "literal" and not LITERALS_DRILL_TO_HEAL:
+            return None
+        if int(getattr(marshal, "morale", 100) or 0) >= HEAL_MORALE_BELOW:
+            return None
+        if int(marshal.strength or 0) < STUB_STRENGTH_FLOOR:
+            return None
+        if self._corps_takes_no_ground(marshal):
+            return None
+        from backend.commands.tactical_executor import drill_refusal
+        refused, _short = drill_refusal(world, marshal, stance_gate=False)
+        if refused:
+            return None
+        threat = drill_reach_threat(world, marshal)
+        if threat is not None:
+            ai_debug(f"    P4.9: {marshal.name} will not drill — {threat.name} "
+                     f"({threat.nation}) at {threat.location} could reach him")
+            return None
+        if current_region and self._supply_pressure_move(marshal, nation, world, current_region):
+            return None
+        from backend.game_logic.war_council import get_intent_frontier
+        if get_intent_frontier(world, nation):
+            return None
+        if self._find_defensive_reinforcement_position(marshal, nation, world):
+            return None
+        return {
+            "marshal": marshal.name,
+            "action": "drill"
+        }
+
     def _consider_drill(self, marshal: Marshal, world: WorldState) -> Optional[Dict]:
         """Consider drilling (aggressive marshals like this when no threat)."""
         # Don't drill if already drilling or have bonus
@@ -4714,10 +4785,82 @@ class EnemyAI:
                     ai_debug(f"    P6: Can't drill - {enemy.name} adjacent")
                     return None
 
+        # The AI drill fix: no drill where a corps at war could reach him
+        # before it ends (the ONE reach predicate, shared with P4.9).
+        if AI_DRILL_READS_THE_REACH:
+            threat = drill_reach_threat(world, marshal)
+            if threat is not None:
+                ai_debug(f"    P6: Can't drill - {threat.name} could reach him")
+                return None
+
         return {
             "marshal": marshal.name,
             "action": "drill"
         }
+
+    def _supply_pressure_move(self, marshal: Marshal, nation: str, world: WorldState,
+                              current_region) -> Optional[Dict]:
+        """P6.5's decision, ONE source (extracted by the AI drill fix, Sept 27,
+        2026 — the P4.9 heal rung yields to it): the relocation a corps over
+        its province's supply by half makes, or None. Byte-identical to the
+        rung it was lifted from."""
+        # PC15-D2 rider: the SAME effective cap the attrition applies
+        # (home/ally 1.5×, naval shore verdict) — the rung read raw
+        # `supply_capacity`, a pre-existing shown≠applied gap that
+        # made the AI flee provinces that actually fed it.
+        supply_cap = world.get_effective_supply_cap(
+            nation, current_region)
+        total_troops_here = sum(
+            m.strength for m in world.get_marshals_in_region_indexed(marshal.location)
+            if m.strength > 0
+        )
+        supply_excess_ratio = (total_troops_here - supply_cap) / supply_cap if supply_cap > 0 else 0
+
+        _rung_blind = (
+            (DRILLING_CORPS_IS_LEFT_TO_DRILL and _corps_is_drilling(marshal))
+            or (_fortified_corps_never_marches()
+                and getattr(marshal, 'fortified', False)))
+        # R1-5 / R1-8: a drilling corps cannot march and a fortified one
+        # is refused at the movement seam now — the rung stops ordering
+        # what the executor will refuse (P7.5 unfortifies a truly idle one).
+        if supply_excess_ratio > 0.50 and not _rung_blind:  # 5% attrition tier
+            ai_debug(f"  P6.5: Supply pressure at {marshal.location} "
+                     f"({total_troops_here:,} troops, {supply_cap:,} capacity, "
+                     f"{supply_excess_ratio:.0%} over)")
+
+            best_supply_region = None
+            best_supply_margin = -999999
+
+            for adj_name in current_region.adjacent_regions:
+                adj_region = world.get_region(adj_name)
+                if not adj_region:
+                    continue
+                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
+                    continue  # DLF-12: diplomatic permission check
+
+                # PC15-D2 rider: effective cap here too (see above).
+                adj_cap = world.get_effective_supply_cap(
+                    nation, adj_region)
+                troops_at_dest = sum(
+                    m.strength for m in world.get_marshals_in_region_indexed(adj_name)
+                    if m.strength > 0
+                )
+                supply_margin = adj_cap - troops_at_dest - marshal.strength
+                if supply_margin > best_supply_margin:
+                    best_supply_margin = supply_margin
+                    best_supply_region = adj_name
+
+            if best_supply_region and best_supply_margin > -marshal.strength:
+                ai_debug(f"  -> P6.5: Relocating to {best_supply_region} "
+                         f"(supply margin: {best_supply_margin:,})")
+                return {
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": best_supply_region
+                }
+            else:
+                ai_debug("  P6.5: No better supply region adjacent — staying")
+        return None
 
     def _consider_garrison(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
@@ -5192,6 +5335,12 @@ class EnemyAI:
             }
 
         # Not engaged - continue with personality-based defaults
+        # The AI drill fix: R1-5's guard, for EVERY branch below (it sat in
+        # the cautious branch alone; Paget, drilling at London, was ordered
+        # an aggressive stance on the commanded arm's turn 17).
+        if (EVERY_DEFAULT_LEAVES_THE_DRILL and DRILLING_CORPS_IS_LEFT_TO_DRILL
+                and _corps_is_drilling(marshal)):
+            return {"marshal": marshal.name, "action": "wait"}
         if personality == "aggressive":
             # Prefer aggressive stance
             if current_stance != Stance.AGGRESSIVE:

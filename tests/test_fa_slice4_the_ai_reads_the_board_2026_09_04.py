@@ -563,6 +563,15 @@ class TestNoDrillOrderToAFortifiedCorps:
 
     def _idle(self, fortified):
         world = _legacy()
+        # RE-SEATED by the AI drill fix (September 27, 2026): P6 now also asks
+        # `drill_reach_threat`, and on the 19-region fixture every French
+        # corps is within reach of the Netherlands. The French army stands
+        # down, so this class still pins FA-R2's gate alone with every shipped
+        # lever up (the reach gate is pinned in
+        # tests/test_ai_drill_fix_2026_09_27.py).
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.strength = 0
         wel = world.marshals["Wellington"]
         wel.location = "Netherlands"
         wel.fortified = fortified
