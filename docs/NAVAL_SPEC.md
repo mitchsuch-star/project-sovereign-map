@@ -2077,7 +2077,8 @@ Portugal and the Papal States, Soult marches on Lisbon, Massena on Rome, the res
 - **The SHUT OUT reading never held** in 240 played turns. Its closure term was met exactly (13 of 26) on three arms — Lisbon and
   Rome in French hands, or Lisbon in Spain's — and every time a British corps stood on the Continent (Wellesley, Moore, Paget,
   Shrapnel): Britain's descents land where the System bites, in Portugal. Routed as a design question, `DESIGN_REFINEMENT.md`
-  SR5B-D1.
+  SR5B-D1 — **RULED September 28, 2026: keep the rule, name the corps** (`SYSTEMS_REFERENCE.md` §80.1: the Congress price, the
+  lapse beat and THE ADMIRALTY's System line name the British corps that keep the Continent open, fog-honestly).
 - **At peace the System closes nothing** — `closure_against` counts the ports of courts at WAR with Britain (and vassals, members,
   conquered capitals), so every accepted British armistice drops the closure from 10–13 of 26 to 0–5. Working as designed (the
   System was a war measure); recorded so a reader of the arms is not surprised.

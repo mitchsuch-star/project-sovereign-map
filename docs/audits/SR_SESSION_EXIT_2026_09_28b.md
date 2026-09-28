@@ -190,3 +190,7 @@ and three older copy leaks (SRX-20/21/22) — all fixed in the residue. The
 economy's "Britain richer than France" is met at the boot, where France pays
 for its war; across a long French peace the two incomes are level (§3.4), and
 that question goes to the user as SRX-D1.
+
+---
+
+**Addendum (September 28, 2026, later that day).** Both questions this exit sent to the user were ruled under the user's delegation ("make these decisions"), at the recommended options: **SRX-D1 — keep** (no lever; a golden peace may grow rich) and **SR5B-D1 — keep the rule and name the corps** (built: `congress.continent_holders`). Rules `SYSTEMS_REFERENCE.md` §80; rows `DESIGN_REFINEMENT.md` SR5B-D1 + SRX-D1.

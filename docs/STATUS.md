@@ -4,6 +4,18 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE TWO RULINGS OF SEPTEMBER 28, 2026 — SR5B-D1 BUILT, SRX-D1 KEPT (taken under the user's delegation: "make these decisions")**
+> - **Records:** rows `DESIGN_REFINEMENT.md` SR5B-D1 + SRX-D1 (both RULED); rules `SYSTEMS_REFERENCE.md` §80; pins `tests/test_sr5b_d1_the_continent_kept_open.py` 22; sweep `tools/_sweep_sr5b_d1.json` 17/17 killed, 0 INERT at close (one INERT found and repaired — the unarmed-Congress pin had only the tutorial, which has no System to read); parse harness EXIT=0, boot 0 `SCRIPT ERROR`; ONE `.gd` (`strategic_ledger.gd`).
+> - **SR5B-D1 — keep the rule, name the corps (the recommended option).** The SHUT OUT reading is unchanged (13 of 26 ports AND no British corps on the Continent — the Peninsular War is the rule working). ONE source, `congress.continent_holders`, names the corps that keep Britain on the Continent and where they stand:
+>   - the Congress price: "shut 13 of 26 ports (now 10) and drive Wellesley from Lisbon"; with the ports already shut, the corps is the whole lever;
+>   - the lapse beat: "Britain is no longer shut out — Wellesley at Lisbon keeps the Continent open to her";
+>   - a new line in THE ADMIRALTY under the System: "Britain would be shut out of the Congress of Paris at 13 of 26 ports (10 now) with no British corps on the Continent — today Wellesley at Lisbon keeps the Continent open to her."
+>   - **Fog-honest:** a corps out of sight is counted, never placed ("a British corps our scouts have not found"); the old lapse clause placed every corps. The reading's truth stays omniscient. Display only.
+> - **SRX-D1 — keep (the recommended option).** A golden peace may grow rich (EC-P3); no lever built. Re-open condition on the row.
+> - **Measured:** display only — no stance, price value, decision or AI read moves; the related families (Congress, VP-R1, SR-5b/5c, naval, RF-4b, NUI-2, GE-3 client, enforcement) 570 passed.
+> - **▶ NEXT = the user-directed FULL PLAY RETEST + RE-SCORE with a Steam review blurb (this session), then Chunk 6 — NARRATION, DISPATCH & COPY, opening SR-6a "The dispatch pass".**
+> - **⚠ Open with the user:** the RF-4 visual sign-off (the laws frames) — and a look at THE ADMIRALTY's new System line.
+
 > **▶ ▶ ▶ THE SECOND SESSION EXIT OF SEPTEMBER 28, 2026 RAN, AND ITS RESIDUE LANDED — CHUNK 5 CLOSED**
 > - **Records:** memo `docs/audits/SR_SESSION_EXIT_2026_09_28b.md`; rules `SYSTEMS_REFERENCE.md` §79.3; rows `BUG_FIXES.md` §Score Mandate Session Exit (September 28, the second), SRX-18 … SRX-23, all FIXED; design row `DESIGN_REFINEMENT.md` SRX-D1; pins `tests/test_sr_exit_residue_2026_09_28b.py` 20; sweep `tools/_sweep_sr_exit_residue_2026_09_28b.json` 20/20 killed, 0 INERT at close (one INERT found and repaired); new evidence arm `tools/playtest_scripts/sr_exit_chunk5_sea.json`; zero `.gd`.
 > - **What the exit read:** SR-5a, SR-5b, and SR-5c with the reserve, on eight played arms and both trees, against `716b09a7` — the four standing exit arms, Chunk 5's sea arm, and the IQ-1 economy arms re-run.
@@ -19,8 +31,8 @@
 >   - **SRX-23 (P2): an attack held for a declaration had destroyed the standing order it never replaced** — one predicate now reads refusals and held attacks alike.
 > - **Measured:** `BASELINE_SERIES` + M1–M7 byte-identical — both war-purpose staging arms are the player's, so the AI never holds an attack. One old pin re-seated consciously: the elimination template's, which formatted the raw template past the fill site.
 > - **Corrected before commit:** the exit's first economy reading ("France out-banks Britain while Britain pays for a war") compared hoards and was wrong on the facts — no court is at war at turn 41; the memo records the correction.
-> - **⚠ Open with the user:** SR5B-D1 (the shut-out's beachhead), SRX-D1 (the long peace), the RF-4 visual sign-off.
-> - **▶ NEXT = Chunk 6 — NARRATION, DISPATCH & COPY**, opening **SR-6a "The dispatch pass"** (`SCORE_MANDATE_PLAN.md` §2 Chunk 6).
+> - ~~**⚠ Open with the user:** SR5B-D1 (the shut-out's beachhead), SRX-D1 (the long peace), the RF-4 visual sign-off.~~ SR5B-D1 + SRX-D1 RULED September 28, 2026 (entry above); the RF-4 sign-off stays open.
+> - ~~**▶ NEXT = Chunk 6 — NARRATION, DISPATCH & COPY**, opening **SR-6a "The dispatch pass"** (`SCORE_MANDATE_PLAN.md` §2 Chunk 6).~~ The two rulings, then the user-directed full play retest + re-score, came first (entry above); Chunk 6 follows.
 
 > **▶ ▶ ▶ SR-5c "THE DESCENT'S SECOND THROW" + THE CHUNK 5 RESERVE LANDED — September 28, 2026 (one commit)**
 > - **Records:** landing records `SCORE_MANDATE_PLAN.md` §2 Chunk 5 SR-5c + the reserve line; rules `SYSTEMS_REFERENCE.md` §78 (SR-5c) + §79 (the reserve); naval record `NAVAL_SPEC.md` (the record schema + §5.3.3(a) amended); rows `BUG_FIXES.md` SR5B-2 + FA-66 FIXED; pins `tests/test_sr5c_the_descents_second_throw.py` (28) + `tests/test_sr5_quick_wins.py`; sweeps `tools/_sweep_sr5c.json` 17/17 + `tools/_sweep_sr5_reserve.json` 11/11 killed, 0 INERT; zero `.gd`.

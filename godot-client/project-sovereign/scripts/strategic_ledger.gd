@@ -858,6 +858,13 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		var next_pct = cs.get("next_tier_pct")
 		if next_pct != null:
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Next notch at " + str(int(next_pct)) + "% — " + Utils.plural(int(cs.get("ports_to_next_tier", 0)), "more port") + " closed to them.[/color]\n"
+		# SR5B-D1 (ruled Sept 28, 2026): the System's endgame use — the
+		# Congress's SHUT OUT reading — and which of her corps keeps the
+		# Continent open today, named where it stands (the backend's ONE
+		# sentence, `congress.admiralty_shut_out_line`; fog-honest there).
+		var shut_out_line = str(cs.get("shut_out_line", ""))
+		if shut_out_line != "":
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + shut_out_line + "[/color]\n"
 	var board = adm.get("blockade_board", [])
 	if board is Array and board.size() > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]The Blockade Board[/color]\n"

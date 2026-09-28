@@ -3507,6 +3507,13 @@ def build_admiralty_report(world) -> Dict:
             # `closure_against` applies.
             "decree_line": _decree_line(world, player, target),
         }
+        # SR5B-D1 (ruled September 28, 2026): what the System's endgame use
+        # takes — the Congress of Paris's SHUT OUT reading — and which of her
+        # corps keeps the Continent open today, named where it stands.
+        from backend.game_logic import congress as _congress
+        shut_out_line = _congress.admiralty_shut_out_line(world)
+        if shut_out_line:
+            report["continental_system"]["shut_out_line"] = shut_out_line
 
     # The Crossings verdict lines (§9 v1.0.1) — the SAME predicate the
     # movement gate reads. NUI: ONE sentence per crossing (`crossing_line`),

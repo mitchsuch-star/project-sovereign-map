@@ -1,0 +1,121 @@
+[
+  {
+    "id": "Fog: every corps placed (the leak)",
+    "file": "backend/game_logic/congress.py",
+    "old": "        return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))\n    except Exception:\n        return False\n\n\ndef continent_holders(",
+    "new": "        return True\n    except Exception:\n        return False\n\n\ndef continent_holders(",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py"
+  },
+  {
+    "id": "Fog: nobody ever named",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if loc and _holder_in_view(world, loc, viewer):",
+    "new": "        if False:",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py"
+  },
+  {
+    "id": "AI fog: the viewer arm ignored",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if viewer != player:\n        return True\n    try:\n        from backend.models.intel import PARTIAL",
+    "new": "    if False:\n        return True\n    try:\n        from backend.models.intel import PARTIAL",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestOneSource"
+  },
+  {
+    "id": "Price: the named branch dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if (shut.get(\"corps_abroad\") and world is not None and NAME_THE_CONTINENTS_HOLDERS\n            and row.get(\"court\")):",
+    "new": "    if False:",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestThePriceNamesTheCorps"
+  },
+  {
+    "id": "Price: ports-shut arm dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "        if closed >= need:\n            text = f\"{drive} — {closed} of {total} ports are already shut against her\"",
+    "new": "        if False:\n            text = f\"{drive} — {closed} of {total} ports are already shut against her\"",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestThePriceNamesTheCorps"
+  },
+  {
+    "id": "Price: the world never passed (tactical call site)",
+    "file": "backend/game_logic/congress.py",
+    "old": "        ports = _ports_lever(row, world)",
+    "new": "        ports = _ports_lever(row)",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestThePriceNamesTheCorps"
+  },
+  {
+    "id": "Drive: no grouping by province",
+    "file": "backend/game_logic/congress.py",
+    "old": "    parts = [f\"{and_join(names)} from {loc}\" for loc, names in by_loc.items()]",
+    "new": "    parts = [f\"{n} from {loc}\" for loc, names in by_loc.items() for n in names]",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestThePriceNamesTheCorps"
+  },
+  {
+    "id": "Drive: the unseen corps dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if holders.get(\"unseen\"):\n        parts.append(f\"{_unseen_holders_phrase(holders['court'], int(holders['unseen']))} \"",
+    "new": "    if False:\n        parts.append(f\"{_unseen_holders_phrase(holders['court'], int(holders['unseen']))} \"",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestThePriceNamesTheCorps"
+  },
+  {
+    "id": "Clause: the verb never agrees",
+    "file": "backend/game_logic/congress.py",
+    "old": "    verb = \"keeps\" if holders[\"count\"] == 1 else \"keep\"",
+    "new": "    verb = \"keeps\"",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Lapse: the old omniscient words back",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if abroad and NAME_THE_CONTINENTS_HOLDERS:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestOneSource"
+  },
+  {
+    "id": "Admiralty: the line never attached",
+    "file": "backend/game_logic/naval.py",
+    "old": "        if shut_out_line:\n            report[\"continental_system\"][\"shut_out_line\"] = shut_out_line",
+    "new": "        if False:\n            report[\"continental_system\"][\"shut_out_line\"] = shut_out_line",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Admiralty: armed not checked",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if not NAME_THE_CONTINENTS_HOLDERS or not armed(world):\n        return \"\"",
+    "new": "    if not NAME_THE_CONTINENTS_HOLDERS:\n        return \"\"",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Admiralty: holds arm dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if reading.get(\"holds\"):\n        return (f\"{name} is shut out of the Congress of Paris",
+    "new": "    if False:\n        return (f\"{name} is shut out of the Congress of Paris",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Admiralty: spent arm dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if reading.get(\"broken\"):\n        return (f\"{name} can no longer be shut out",
+    "new": "    if False:\n        return (f\"{name} can no longer be shut out",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Admiralty: ports-shut arm dropped",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if closed >= need and clause:\n",
+    "new": "    if False:\n",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Admiralty: the holder clause never appended",
+    "file": "backend/game_logic/congress.py",
+    "old": "    if clause:\n        return f\"{head} — today {clause}.\"",
+    "new": "    if False:\n        return f\"{head} — today {clause}.\"",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py::TestTheAdmiraltyLine"
+  },
+  {
+    "id": "Lever: down",
+    "file": "backend/game_logic/congress.py",
+    "old": "NAME_THE_CONTINENTS_HOLDERS = True",
+    "new": "NAME_THE_CONTINENTS_HOLDERS = False",
+    "tests": "tests/test_sr5b_d1_the_continent_kept_open.py"
+  }
+]

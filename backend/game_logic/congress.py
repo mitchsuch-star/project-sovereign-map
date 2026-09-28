@@ -798,6 +798,140 @@ def corps_on_the_continent(world, court: str) -> List[str]:
     return sorted(out)
 
 
+# SR5B-D1 (RULED September 28, 2026, under the user's delegation: "keep the
+# rule and name the army holding the Continent open"). The SHUT OUT reading
+# is unchanged — the ports AND no corps of hers on the Continent (the
+# Peninsular War was Britain's answer to the System, and a beachhead is that
+# answer). What changes is the words: every surface that speaks of the
+# reading names the corps that keep her on the Continent, and where — the
+# Congress price, the lapse beat and THE ADMIRALTY's System line, all from
+# `continent_holders`. The 240 played turns of SR-5b never once saw the
+# reading hold, and no surface said which corps was the reason.
+# Fog-honest (R5): the reading's TRUTH is omniscient (it decides a stance),
+# its WORDS are not — a corps on a province the player sees at PARTIAL or
+# better is named with its province; one out of sight is counted and never
+# placed. The AI has no fog. Lever down = the pre-ruling words exactly.
+NAME_THE_CONTINENTS_HOLDERS = True
+
+
+def _holder_in_view(world, location: str, viewer: Optional[str]) -> bool:
+    """The captive rule (`prisoners.cell_in_view`), for a corps: the AI has
+    no fog; the player knows a province only at PARTIAL or better."""
+    player = _player(world)
+    if viewer is None:
+        viewer = player
+    if viewer != player:
+        return True
+    try:
+        from backend.models.intel import PARTIAL
+        return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
+    except Exception:
+        return False
+
+
+def continent_holders(world, court: str, viewer: Optional[str] = None) -> Dict[str, Any]:
+    """The court's corps on the Continent as `viewer` may know them (default:
+    the player): `named` = [{marshal, display, location}] for the corps in
+    view, `unseen` = how many more stand where our scouts have not looked,
+    `count` = both (the reading's own truth, `corps_on_the_continent`)."""
+    from backend.display_names import humanize_entity_name
+    named: List[Dict[str, str]] = []
+    unseen = 0
+    abroad = corps_on_the_continent(world, court)
+    for name in abroad:
+        m = (getattr(world, "marshals", {}) or {}).get(name)
+        loc = str(getattr(m, "location", "") or "") if m is not None else ""
+        if loc and _holder_in_view(world, loc, viewer):
+            named.append({"marshal": name, "display": humanize_entity_name(name),
+                          "location": loc})
+        else:
+            unseen += 1
+    return {"court": court, "named": named, "unseen": unseen, "count": len(abroad)}
+
+
+def _unseen_holders_phrase(court: str, n: int) -> str:
+    from backend.display_names import nation_adjective
+    lead = "a" if n == 1 else str(n)
+    return f"{lead} {nation_adjective(court)} corps our scouts have not found"
+
+
+def _holders_subject(holders: Dict[str, Any]) -> str:
+    """"Wellesley at Lisbon" · "Wellesley at Lisbon and Moore at Galicia" ·
+    "a British corps our scouts have not found"."""
+    from backend.campaign_log import and_join
+    parts = [f"{h['display']} at {h['location']}" for h in holders.get("named") or []]
+    if holders.get("unseen"):
+        parts.append(_unseen_holders_phrase(holders["court"], int(holders["unseen"])))
+    return and_join(parts)
+
+
+def continent_kept_open_clause(world, court: str, to_whom: str = "her",
+                               viewer: Optional[str] = None) -> str:
+    """"Wellesley at Lisbon keeps the Continent open to her" — or "" when no
+    corps of hers stands on the Continent. The one clause the lapse beat and
+    THE ADMIRALTY speak."""
+    holders = continent_holders(world, court, viewer)
+    if not holders["count"]:
+        return ""
+    verb = "keeps" if holders["count"] == 1 else "keep"
+    return f"{_holders_subject(holders)} {verb} the Continent open to {to_whom}"
+
+
+def _drive_phrase(holders: Dict[str, Any]) -> str:
+    """The Congress price's verb: "drive Wellesley from Lisbon" · "drive
+    Wellesley and Moore from Lisbon" · "drive a British corps our scouts have
+    not found from the Continent" (grouped by province, in roster order)."""
+    from backend.campaign_log import and_join
+    by_loc: Dict[str, List[str]] = {}
+    for h in holders.get("named") or []:
+        by_loc.setdefault(h["location"], []).append(h["display"])
+    parts = [f"{and_join(names)} from {loc}" for loc, names in by_loc.items()]
+    if holders.get("unseen"):
+        parts.append(f"{_unseen_holders_phrase(holders['court'], int(holders['unseen']))} "
+                     f"from the Continent")
+    return "drive " + and_join(parts)
+
+
+def admiralty_shut_out_line(world) -> str:
+    """THE ADMIRALTY's line under the Continental System: what shutting the
+    trade-dominance court out of the Congress of Paris takes, and — the
+    ruling — which of her corps keeps the Continent open today. "" where
+    the Congress is not armed, or the court is the player's or gone."""
+    if not NAME_THE_CONTINENTS_HOLDERS or not armed(world):
+        return ""
+    from backend.display_names import nation_adjective
+    from backend.game_logic import naval
+    court = naval.trade_dominance_nation(world)
+    if not court or court == _player(world) or court_gone(world, court):
+        return ""
+    reading = _shut_out_reading(world, court)
+    total = int(reading.get("total", 0) or 0)
+    if not reading.get("applies") or total <= 0:
+        return ""
+    name = _display(court)
+    adj = nation_adjective(court)
+    closed = int(reading.get("closed", 0) or 0)
+    need = int(reading.get("needed", 0) or 0)
+    if reading.get("holds"):
+        return (f"{name} is shut out of the Congress of Paris — {closed} of {total} "
+                f"ports closed to her and no {adj} corps on the Continent.")
+    if reading.get("broken"):
+        return (f"{name} can no longer be shut out at this sitting — on an end "
+                f"turn the ports fell short of {need} of {total}.")
+    clause = continent_kept_open_clause(world, court)
+    if closed >= need and clause:
+        count = int(continent_holders(world, court)["count"])
+        return (f"{closed} of {total} ports are closed to {name}, but {clause}: "
+                f"drive {'it' if count == 1 else 'them'} off and she is shut out "
+                f"of the Congress of Paris.")
+    head = (f"{name} would be shut out of the Congress of Paris at {need} of {total} "
+            f"ports ({closed} now) with no {adj} corps on the Continent")
+    if clause:
+        return f"{head} — today {clause}."
+    from backend.display_names import plural
+    return f"{head} — {plural(max(0, need - closed), 'more port')} to close."
+
+
 def _bloc(world) -> set:
     return set(world.get_bloc_members(_player(world)))
 
@@ -1155,7 +1289,7 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         capital_lever = {"key": "capital", "value": None,
                          "text": (f"take its capital, {capital}" if capital
                                   else "take its capital")}
-        ports = _ports_lever(row)
+        ports = _ports_lever(row, world)
         island = bool(capital) and capital not in mainland(world)
         if island and ports is not None:
             levers.append(ports)
@@ -1234,7 +1368,7 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
                        "text": "better relations (court them)"})
     # 5. The ports (the trade-dominance court): SHUT OUT satisfies the table
     # without the formula (review #6 — the at-peace arm never offered it).
-    ports = _ports_lever(row)
+    ports = _ports_lever(row, world)
     if ports is not None:
         levers.append(ports)
     out["levers"] = levers
@@ -1283,13 +1417,25 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     return out
 
 
-def _ports_lever(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _ports_lever(row: Dict[str, Any], world=None) -> Optional[Dict[str, Any]]:
     """Shut the ports (SHUT OUT). A shut-out spent this sitting is no lever
-    (the ports must hold at EVERY end turn of it)."""
+    (the ports must hold at EVERY end turn of it). SR5B-D1: the corps that
+    keep her on the Continent are named where they stand (fog-honest), and
+    when the ports are already shut the corps is the whole of the lever."""
     shut = row.get("shut_out") or {}
     if not shut.get("applies") or shut.get("broken"):
         return None
     need = int(shut.get("needed", 0))
+    closed = int(shut.get("closed", 0) or 0)
+    total = int(shut.get("total", 0) or 0)
+    if (shut.get("corps_abroad") and world is not None and NAME_THE_CONTINENTS_HOLDERS
+            and row.get("court")):
+        drive = _drive_phrase(continent_holders(world, row["court"]))
+        if closed >= need:
+            text = f"{drive} — {closed} of {total} ports are already shut against her"
+        else:
+            text = f"shut {need} of {total} ports (now {closed}) and {drive}"
+        return {"key": "ports", "value": None, "text": text}
     text = f"shut {need} of {shut.get('total', 0)} ports (now {shut.get('closed', 0)})"
     if shut.get("corps_abroad"):
         text += " and drive her corps from the Continent"
@@ -1502,6 +1648,10 @@ def _shut_out_lapse_reason(world, court: str) -> str:
     """Why the trade-dominance court is no longer shut out, in one clause."""
     reading = _shut_out_reading(world, court)
     abroad = list(reading.get("corps_abroad") or [])
+    if abroad and NAME_THE_CONTINENTS_HOLDERS:
+        # SR5B-D1: the one clause, fog-honest — the old words below placed
+        # every corps, seen or not ("… stand on the Continent at Lisbon").
+        return continent_kept_open_clause(world, court)
     if abroad:
         from backend.display_names import humanize_entity_name
         names = [humanize_entity_name(n) for n in abroad[:2]]
