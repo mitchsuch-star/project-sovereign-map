@@ -4,6 +4,13 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ SR-5r RF-4b "THE LAWS EVERYWHERE ELSE" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.6; rules `SYSTEMS_REFERENCE.md` §74.6; pins `tests/test_rf4b_the_laws_everywhere.py` 47; sweep `tools/_sweep_rf4b.json` 38/38 killed, 0 INERT):
+> - **The forecast, ONE source** (`reforms.lapse_forecast` — the lapse rule run on the ledger's projection; a pin runs the REAL lapse loop and checks it takes exactly the laws forecast) on the LAWS tab, the end-turn banner and the morning dispatch, with the **"repeal X instead"** lever (`reforms.repeal_plan` — the fewest repeals that keep the doomed law; a chip when it can be taken, withheld with its reason when the admin actions cannot cover the plan).
+> - **The beats:** a rival court's enactment, restoration and lapse on the dispatch, effect in numbers; the player's own lapse HIGH; the Staff's first refill named ("the dispatch names why"). The top bar already showed the fifth action (it prints `max_actions`).
+> - **The nation cards' Laws line; help names the verbs; the desk answers a question that names a law** ("what does the Staff cost?" got Berthier's "I cannot answer" before); RF-2's owed rows named (the Manpower terms, the vassal law term, the decree's own ports — `decree_clients` had no caller).
+> - Parse harness EXIT=0, boot 0 `SCRIPT ERROR`; series + M1–M7 byte-identical (display only).
+> - **▶ NEXT = RF-4c (the School card 19 → 20, `cap_laws()` frames at both scales, T7, T8, the user's sign-off) + DP-1 (the bank and its display) → the AI drill fix → ONE session exit + ONE residue slice → then the ECONOMY BALANCE pass.**
+>
 > **▶ ▶ ▶ SR-5r RF-4a "THE LAWS TAB" LANDED — September 27, 2026 (second session)** (record `REFORMS_SPEC.md` §12.5; rules `SYSTEMS_REFERENCE.md` §74.5; pins `tests/test_rf4a_the_laws_tab.py` 53; sweep `tools/_sweep_rf4a.json` 35/35 killed, 0 INERT):
 > - **The eighth book** of the Strategic Ledger, on key 8: one row per law — name, date, what it says, what it does in numbers, price and upkeep, status — and ONE chip whose state IS the verb's predicate, with the predicate's own words when it is refused. One source (`reforms.laws_payload`, `effect_line`, `terms_line`, `authority_line`).
 > - **The enactment confirm** on the existing clarification channel (the Admiralty's idiom): `enact the Staff` answers with the terms, free; `yes` enacts, `no` withdraws; `… confirmed` is one step; the AI is never quoted. **A reading, recorded:** the chip sends the typed order, so the chip's confirm is the verb's — the typed road confirms too. A repeal is not confirmed; its chip states what is lost.

@@ -3584,6 +3584,13 @@ def _build_situation(world, player_nation: str,
     else:
         authority_label = "Weak"
 
+    # SR-5r RF-4b (REFORMS_SPEC §8): the forecast, the one source the LAWS
+    # tab and the end-turn banner read too; and the Staff's first refill,
+    # derived ("the dispatch names why").
+    from backend.game_logic.reforms import lapse_forecast, staff_arrival
+    law_forecast = lapse_forecast(world, player_nation)
+    staff_arrived = staff_arrival(world, player_nation)
+
     situation = {
         "player_regions": int(player_regions),
         "enemy_regions": int(enemy_regions),
@@ -3591,6 +3598,8 @@ def _build_situation(world, player_nation: str,
         "treasury_delta": treasury_delta,
         "treasury_delta_label": treasury_delta_label,
         "trade_income": trade_income,
+        "law_forecast": law_forecast,
+        "staff_arrived": staff_arrived,
         # ES-2 (S6): occupation detail rides the dispatch like the ES-3
         # surcharge — the morning projection can explain the drain
         "occupation": occupation,
@@ -5484,6 +5493,18 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "BLOCKADE: {blockader} closes {nation}'s ports. Trade is {trade_words} "
         "and the fleet is pinned at anchor, where crews rot."
     ),
+    # SR-5r RF-4b (REFORMS_SPEC §8 "The events"): a court's laws are court
+    # knowledge across Europe — its enactments and lapses are beats; the
+    # player's own lapse is named as a lapse.
+    "law_enacted_abroad": "THE LAWS: {nation} {verb} {law} — {effect}.",
+    "law_lapsed_abroad": (
+        "THE LAWS: {nation} cannot pay for {law} — the law lapses."
+    ),
+    "law_lapsed_home": (
+        "THE LAWS: {law} has lapsed — the treasury could not pay its "
+        "{upkeep} gold a turn. It restores at its Arrears price for "
+        "{window} turns."
+    ),
     "blockade_broken": (
         "The blockade of {nation} is broken — her ports breathe, her "
         "crews may drill again."
@@ -5639,6 +5660,11 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "fleet_action": "MEDIUM",
     "blockade_begins": "MEDIUM",
     "blockade_broken": "MEDIUM",
+    # SR-5r RF-4b: a rival's act of state is news; the player's own lapse
+    # is a wound.
+    "law_enacted_abroad": "MEDIUM",
+    "law_lapsed_abroad": "MEDIUM",
+    "law_lapsed_home": "HIGH",
     "cs_tier_shift": "MEDIUM",
     # AI-6 (Stage F): the ROUTINE lines the cap governs — deliberately
     # below every beat, and the tail below the lines it summarises.

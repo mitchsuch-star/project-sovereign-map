@@ -443,6 +443,14 @@ class MetaExecutor:
             bk_turns = world.nation_bankruptcy_turns[nation]
             message += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 
+        # SR-5r RF-4b (REFORMS_SPEC §8 "The forecast"): the lapse the
+        # ledger's own projection foresees for THIS new turn's end — the one
+        # source the LAWS tab and the dispatch read too.
+        from backend.game_logic.reforms import lapse_forecast
+        law_forecast = lapse_forecast(world, nation)
+        if law_forecast:
+            message += f"\nTHE LAWS: {law_forecast['line']}"
+
         # Build turn_end event for Godot's _display_turn_change
         bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
         turn_end_event = {
@@ -458,6 +466,7 @@ class MetaExecutor:
             "dotation_skim": int(dotation_val),
             "rente_cost": int(rente_val),
             "laws": int(laws_val),
+            "law_forecast": law_forecast,
             "admiralty": int(admiralty_val),
             "blockade": int(blockade_val),
             # PT-C4 / EC-U2 mirror (Aug 2026 health-check audit): both were
@@ -706,6 +715,9 @@ class MetaExecutor:
         (("fleet", "fleets", "ship", "ships", "navy", "naval", "blockade",
           "sail", "admiral", "admiralty", "crossing", "crossings", "strait",
           "landing", "expedition"), "admiralty"),
+        # SR-5r RF-4b: the laws of state — the Strategic Ledger's Laws tab.
+        (("law", "laws", "reform", "reforms", "enact", "repeal", "staff",
+          "decree", "decrees"), "laws"),
         (("order", "orders", "standing", "march", "pursue", "cancel",
           "halt"), "orders"),
         (("supply", "supplies", "manpower", "recruit", "recruits", "levy",
@@ -773,6 +785,15 @@ class MetaExecutor:
         world = (game_state or {}).get("world")
         if world is None:
             return None
+        # SR-5r RF-4b: a question that NAMES one of the court's laws is
+        # answered with it ("what does the Staff cost?") — the laws answer
+        # reads the executor's own predicate and price (shown = applied).
+        from backend.game_logic.reforms import law_named_in
+        if law_named_in(world, getattr(world, "player_nation", ""), asked):
+            from backend.ai.first_contact import answer_first_contact
+            answered = answer_first_contact("laws", asked, world)
+            if answered:
+                return answered
         topic = self.question_topic(asked)
         pointer = surface_pointer(topic) if topic else None
         lines = ["Berthier sets down his pen. \"I cannot answer that from the "
@@ -870,6 +891,13 @@ MILITARY COMMANDS:
 
   garrison   - Leave detachment to defend a region (2 AP)
                Max 3 garrisons per nation. Fights to destruction.
+
+  enact      - Enact a law of state (1 Admin AP + its price)
+               "enact the Staff" - the Council of State quotes the
+               terms first; answer yes to enact. A law costs gold (or
+               authority) once and gold every turn; a law the chest
+               cannot pay lapses. The Laws tab: press T, then 8.
+  repeal     - "repeal the Code Abroad" (1 Admin AP, nothing refunded)
 
 TACTICAL COMMANDS:
   fortify    - Dig in for growing defense; cannot move/attack

@@ -8209,3 +8209,14 @@ Pins `tests/test_rf4a_the_laws_tab.py` 53; sweep `tools/_sweep_rf4a.json` 35/35 
 - **A clarification answer refreshes the screens beneath it** (`main.gd` `_on_clarification_command_result` → `_refresh_open_info_screens`, which now includes the strategic ledger) — the Council's confirm and the Admiralty's Diversion confirm alike.
 - **The client:** `LawsTab`, `KEY_8` under the digit-belongs-to-the-caret guard, `_render_laws_tab()`, one `_chip_row` for every book. Eight tabs fit at Interface Scale 2.0 (IQ-10 frames 2026_09_27).
 
+### 74.6 SR-5r RF-4b — The laws everywhere else (`REFORMS_SPEC.md` §8, §8a; T7, T8)
+
+Pins `tests/test_rf4b_the_laws_everywhere.py` 47; sweep `tools/_sweep_rf4b.json` 38/38 killed, 0 INERT.
+
+- **The forecast** (`reforms.lapse_forecast`) is the lapse rule (`lapse_order`) run against the ledger's projection of this turn's end (the chest + `ledger._build_economy`'s Net): None while the slate is paid; else the law that lapses first, the gold that saves the whole slate (`shortfall`), the laws that would go after it (`doomed`) and the lever. ONE source for the LAWS tab (`laws["forecast"]`), the end-turn banner (the message's `THE LAWS:` line and `turn_end.law_forecast`) and the morning dispatch (`situation.law_forecast`).
+- **The lever** (`reforms.repeal_plan`): the fewest repeals of the OTHER laws in force whose saved upkeep covers the shortfall — the cheapest single law when one suffices, else the largest first. The chip (`repeal_instead`: label, typed command, note, plan) is enabled only when `repeal_refusal` passes AND the admin actions cover the whole plan; otherwise it is withheld with its reason and the line says why.
+- **The beats** (`reforms.queue_law_beat`, called by the ONE mutation and the lapse loop): a rival court's enactment or restoration (`law_enacted_abroad`, MEDIUM, the effect in numbers) and lapse (`law_lapsed_abroad`, MEDIUM); the player's lapse (`law_lapsed_home`, HIGH). The player's enactment is the verb's own answer. **The Staff's first refill** is derived at the dispatch (`reforms.staff_arrival` — the Staff enacted last turn) and named in SITUATION.
+- **The nation card** carries `laws` (`reforms.laws_line` — the laws in force and their cost a turn; None omits the row).
+- **The desk:** `reforms.law_named_in(world, nation, text)` reads a law's authored name or id words (whole words; "staff" names the court's Staff). An unanswered question that names a law is answered with the laws answer (`first_contact._laws_answer`), which says what is in force first and puts the named law first. The live topic router has a "laws" topic (`counsel.surface_pointer("laws")` — the Laws tab, T then 8); the legacy table is unchanged.
+- **Named (T8):** the Manpower rows' `regen_terms` / `price_terms`, the vassal row's `law_terms` (the forecast's own term) and the Continental System's `decree_line` (`naval._decree_line` over `decree_clients`).
+

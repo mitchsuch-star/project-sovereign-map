@@ -500,6 +500,13 @@ func _render_nations():
 			if exposure_row_line != "":
 				bbcode += "  Exposure: [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_row_line) + "[/color]\n"
 
+		# SR-5r RF-4b (REFORMS_SPEC §8a): the court's laws in force, by name
+		# and what they cost it a turn — diplomacy has no fog. Backend-
+		# composed line (R7); null omits the row.
+		var laws_row = n.get("laws")
+		if laws_row != null and str(laws_row) != "":
+			bbcode += "  Laws: [color=#" + Utils.COLOR_GOLD + "]" + str(laws_row) + "[/color]\n"
+
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])
 		if ai_relations.size() > 0:
@@ -1506,6 +1513,14 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	var subsidy = int(v.get("subsidy_bonus", 0))
 	if subsidy > 0:
 		bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Subsidized — treaty gold steadies them (+" + str(subsidy) + "/turn)[/color]\n"
+
+	# ── The laws that bind them (SR-5r RF-4b, T8 — the forecast's own term) ──
+	for term in v.get("law_terms", []):
+		if term is Array and term.size() >= 2:
+			var law_name = str(term[0])
+			if law_name != "":
+				law_name = law_name.substr(0, 1).to_upper() + law_name.substr(1)
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]" + law_name + " binds them (+" + str(int(term[1])) + "/turn)[/color]\n"
 
 	# ── Granted provinces (VS-3 provenance) ──
 	var granted = v.get("granted_regions", [])

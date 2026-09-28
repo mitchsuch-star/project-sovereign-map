@@ -1026,6 +1026,22 @@ def decree_clients(world, target: str) -> List[str]:
     return out
 
 
+def _decree_line(world, lord: str, target: str) -> str:
+    """"the Berlin Decree counts 2 autonomous clients: Holland and the
+    Kingdom of Italy" — or "" when the decree counts none."""
+    clients = [c for c in decree_clients(world, target)
+               if (getattr(world, "vassals", {}) or {}).get(c, {}).get("lord") == lord]
+    if not clients:
+        return ""
+    from backend.display_names import display_nation
+    from backend.game_logic.reforms import decree_counts_every_client
+    law = decree_counts_every_client(world, lord) or "the decree"
+    names = [display_nation(c) for c in clients]
+    joined = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+    return (f"{law[0].upper() + law[1:]} counts {len(names)} autonomous "
+            f"client{'s' if len(names) != 1 else ''}: {joined}")
+
+
 def closure_against(world, target: str) -> float:
     """§5.1 closure = Σ ports of (nations at war with `target` + their
     PUPPET/SATELLITE vassals + CS members) ÷ Σ all continental ports.
@@ -2946,6 +2962,10 @@ def build_admiralty_report(world) -> Dict:
                 max(1, int(-(-(next_threshold * total_ports
                               - closure * total_ports) // 1)))
                 if next_threshold is not None else None),
+            # SR-5r RF-4b (T8): the clients counted ONLY by the lord's decree
+            # (the Berlin Decree), named — `decree_clients`, the same test
+            # `closure_against` applies.
+            "decree_line": _decree_line(world, player, target),
         }
 
     # The Crossings verdict lines (§9 v1.0.1) — the SAME predicate the

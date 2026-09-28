@@ -469,7 +469,14 @@ def _laws_answer(asked: str, world) -> str:
     rows = [r for r in reforms.deck(world, player)] if world is not None else []
     if not rows:
         return "There are no laws of state in this campaign, Sire." + relayed
-    lines = []
+    # RF-4b: the law the question names leads; what is in force is said
+    # first of all.
+    named = reforms.law_named_in(world, player, asked)
+    if named is not None:
+        rows = [named] + [r for r in rows if r is not named]
+    in_force = [reforms.display_name(r) for r in reforms.laws_in_force(world, player)]
+    lines = [("In force: " + ", ".join(in_force) + ".") if in_force
+             else "No law is in force."]
     for row in rows:
         name = reforms.display_name(row)
         name = name[0].upper() + name[1:]
@@ -491,7 +498,8 @@ def _laws_answer(asked: str, world) -> str:
         lines.append(f"{name}: {price}, then {upkeep:,} gold a turn — {state}.")
     return ("The laws of state, Sire. " + " ".join(lines)
             + " Say 'enact <law>' to enact one, or 'repeal <law>' to strike "
-              "one down." + relayed)
+              "one down; the Laws tab (press T, then 8) keeps them all."
+            + relayed)
 
 
 def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:

@@ -3008,6 +3008,13 @@ func _on_output_meta_clicked(meta) -> void:
 		if not _is_modal_dialog_open():
 			_open_diplomacy_wizard()
 		return
+	# SR-5r RF-4b: a terminal chip carries its full typed order (the
+	# forecast's "repeal X instead") — the ledger's chip road, same latch.
+	if meta_str.begins_with("do:"):
+		var chip_command = meta_str.substr("do:".length())
+		if chip_command != "" and not _is_modal_dialog_open():
+			_on_naval_command(chip_command)
+		return
 
 func _show_pending_proclamation() -> bool:
 	"""Show a stashed Proclamation. True when shown — the caller must then
@@ -4285,8 +4292,25 @@ func _display_turn_change(event: Dictionary):
 	if collapse_line is String and collapse_line != "":
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + collapse_line + "[/color]")
 
+	# SR-5r RF-4b: the lapse the ledger foresees for THIS turn's end.
+	_render_law_forecast(event.get("law_forecast", null), "")
+
 	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
+
+func _render_law_forecast(forecast, indent: String) -> void:
+	"""SR-5r RF-4b — THE FORECAST (REFORMS_SPEC §8), one renderer for the
+	end-turn banner and the morning dispatch: the law that lapses when this
+	turn ends and the gold that saves it, and the one lever — repeal another
+	law instead — as a chip when it can be taken (the line itself says so
+	when it cannot). The backend reads the lapse rule itself (one source)."""
+	if not (forecast is Dictionary) or forecast.is_empty():
+		return
+	add_output("[color=#" + Utils.COLOR_WARNING + "]" + indent + "THE LAWS: " + str(forecast.get("line", "")) + "[/color]")
+	var rescue = forecast.get("repeal_instead", null)
+	if rescue is Dictionary and bool(rescue.get("enabled", false)):
+		add_output(indent + "  " + Utils.bb_button_chip("do:" + str(rescue.get("command", "")), str(rescue.get("label", "")), Utils.COLOR_GOLD, "233043") + "  [color=#" + Utils.COLOR_GREY + "]" + str(rescue.get("note", "")) + "[/color]")
+
 
 func _display_morning_dispatch(data: Dictionary):
 	"""Display Berthier's Morning Dispatch — structured turn-start briefing (Phase 6.5).
@@ -4336,6 +4360,13 @@ func _display_morning_dispatch(data: Dictionary):
 	var delta_label = str(situation.get("treasury_delta_label", ""))
 	var delta_suffix = "" if delta_label == "" else " " + delta_label
 	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + delta_suffix + ")[/color]")
+	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named ("the
+	# dispatch names why"), and the forecast — the same source as the
+	# end-turn banner and the LAWS tab.
+	var staff_arrived = situation.get("staff_arrived", null)
+	if staff_arrived is String and staff_arrived != "":
+		add_output("[color=#" + Utils.COLOR_SUCCESS + "]  THE STAFF: " + staff_arrived + " is established — one more order of the day, from today.[/color]")
+	_render_law_forecast(situation.get("law_forecast", null), "  ")
 
 	# Enemy regions + estimated strength
 	if bankrupt:

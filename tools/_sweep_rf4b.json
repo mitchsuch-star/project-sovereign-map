@@ -1,0 +1,268 @@
+[
+  {
+    "id": "the forecast reads the chest alone",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    projected = chest + net\n    if projected >= 0:\n        return None",
+    "new": "    projected = chest\n    if projected >= 0:\n        return None",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_line_names_the_law_and_the_gold"
+  },
+  {
+    "id": "the forecast walks a different order",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    for row in lapse_order(world, nation):\n        if running >= 0:",
+    "new": "    for row in reversed(lapse_order(world, nation)):\n        if running >= 0:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_forecast_is_the_lapse_rule_itself"
+  },
+  {
+    "id": "the forecast stops at the first law",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        doomed.append(row)\n        running += int(row.get(\"upkeep\", 0) or 0)",
+    "new": "        doomed.append(row)\n        running = 0",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_forecast_is_the_lapse_rule_itself"
+  },
+  {
+    "id": "the laws after it are not named",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if len(doomed) > 1:\n        after = [display_name(r) for r in doomed[1:]]",
+    "new": "    if False:\n        after = [display_name(r) for r in doomed[1:]]",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_line_names_the_law_and_the_gold"
+  },
+  {
+    "id": "the dearest single repeal is offered",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    single = sorted((r for r in others if _upkeep(r) >= shortfall),\n                    key=lambda r: (_upkeep(r), str(r.get(\"id\") or \"\")))",
+    "new": "    single = sorted((r for r in others if _upkeep(r) >= shortfall),\n                    key=lambda r: (-_upkeep(r), str(r.get(\"id\") or \"\")))",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_cheapest_single_repeal_is_the_one_offered"
+  },
+  {
+    "id": "no pair of repeals is ever planned",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return plan if total >= shortfall else []",
+    "new": "    return []",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_two_repeals_keep_it_one_admin_action_each"
+  },
+  {
+    "id": "a plan that falls short is offered",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return plan if total >= shortfall else []",
+    "new": "    return plan",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_it_says_so_when_no_repeal_would_keep_it"
+  },
+  {
+    "id": "the lever ignores the admin actions",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            if nation == getattr(world, \"player_nation\", None) and left < len(plan):",
+    "new": "            if False:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_lever_is_withheld_when_the_actions_fall_short"
+  },
+  {
+    "id": "the lever never asks the predicate",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        refusal = repeal_refusal(world, nation, str(pick.get(\"id\")))\n        saves = ",
+    "new": "        refusal = \"\"\n        saves = ",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_it_says_so_when_no_admin_action_remains"
+  },
+  {
+    "id": "the LAWS tab drops the forecast",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            \"forecast\": lapse_forecast(world, nation)}",
+    "new": "            \"forecast\": None}",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_laws_tab_carries_it"
+  },
+  {
+    "id": "the banner drops the forecast",
+    "file": "backend/commands/meta_executor.py",
+    "old": "        if law_forecast:\n            message += f\"\\nTHE LAWS: {law_forecast['line']}\"",
+    "new": "        if False:\n            message += f\"\\nTHE LAWS: {law_forecast['line']}\"",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_banner_and_the_dispatch_read_the_same_forecast"
+  },
+  {
+    "id": "the dispatch drops the forecast",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        \"law_forecast\": law_forecast,\n        \"staff_arrived\": staff_arrived,",
+    "new": "        \"law_forecast\": None,\n        \"staff_arrived\": staff_arrived,",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheForecast::test_the_banner_and_the_dispatch_read_the_same_forecast"
+  },
+  {
+    "id": "a rival's enactment is no beat",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    queue_law_beat(world, nation, row,\n                   \"restored\" if quote[\"kind\"] == \"restore\" else \"enacted\")",
+    "new": "    pass",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheBeats::test_a_rivals_enactment_is_a_beat"
+  },
+  {
+    "id": "a restoration reads as an enactment",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        \"verb\": \"restores\" if kind == \"restored\" else \"enacts\",",
+    "new": "        \"verb\": \"enacts\",",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheBeats::test_a_restoration_says_so"
+  },
+  {
+    "id": "a lapse is no beat",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            queue_law_beat(world, nation, row, \"lapsed\")\n",
+    "new": "",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheBeats::test_a_rivals_lapse_is_a_beat"
+  },
+  {
+    "id": "the player's enactment becomes a beat",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if nation == player:\n        if kind == \"lapsed\":",
+    "new": "    if False:\n        if kind == \"lapsed\":",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheBeats::test_the_players_enactment_is_the_verbs_own_answer"
+  },
+  {
+    "id": "the player's lapse is ordinary news",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"law_lapsed_home\": \"HIGH\",",
+    "new": "    \"law_lapsed_home\": \"MEDIUM\",",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheBeats::test_the_players_lapse_is_a_wound"
+  },
+  {
+    "id": "the Staff arrives the turn it is enacted",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if is_staff(row) and int(row.get(\"enacted_turn\", -99)) == now - 1:",
+    "new": "        if is_staff(row) and int(row.get(\"enacted_turn\", -99)) >= now - 1:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheStaffArrives::test_the_first_refill_names_it_once"
+  },
+  {
+    "id": "the dispatch never names the Staff",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    staff_arrived = staff_arrival(world, player_nation)",
+    "new": "    staff_arrived = None",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheStaffArrives::test_the_dispatch_names_why"
+  },
+  {
+    "id": "the card line forgets the cost",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    return (f\"{_join_names([display_name(r) for r in rows])} \"\n            f\"({law_upkeep_bill(world, nation):,} gold a turn)\")",
+    "new": "    return f\"{_join_names([display_name(r) for r in rows])}\"",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheNationCards::test_a_court_with_laws_shows_them"
+  },
+  {
+    "id": "the ledger drops the card line",
+    "file": "backend/game_logic/diplomatic_ledger.py",
+    "old": "            \"laws\": _laws_line(nation, world),",
+    "new": "            \"laws\": None,",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheNationCards::test_the_ledger_carries_the_line"
+  },
+  {
+    "id": "a law named is not answered",
+    "file": "backend/commands/meta_executor.py",
+    "old": "        if law_named_in(world, getattr(world, \"player_nation\", \"\"), asked):",
+    "new": "        if False:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_a_question_naming_the_staff_is_answered"
+  },
+  {
+    "id": "the named law does not lead",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if named is not None:\n        rows = [named] + [r for r in rows if r is not named]",
+    "new": "    if False:\n        rows = [named] + [r for r in rows if r is not named]",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_the_law_asked_about_leads"
+  },
+  {
+    "id": "what is in force is not said",
+    "file": "backend/ai/first_contact.py",
+    "old": "    lines = [(\"In force: \" + \", \".join(in_force) + \".\") if in_force\n             else \"No law is in force.\"]",
+    "new": "    lines = []",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_what_is_in_force_is_said_first"
+  },
+  {
+    "id": "a law is found inside a word",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            if probe and f\" {probe} \" in folded:",
+    "new": "            if probe and probe.split()[-1] in folded:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_a_law_is_named_as_a_whole"
+  },
+  {
+    "id": "the router has no laws topic",
+    "file": "backend/commands/meta_executor.py",
+    "old": "        ((\"law\", \"laws\", \"reform\", \"reforms\", \"enact\", \"repeal\", \"staff\",\n          \"decree\", \"decrees\"), \"laws\"),\n",
+    "new": "",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_the_router_points_at_the_laws_tab"
+  },
+  {
+    "id": "the laws pointer is missing",
+    "file": "backend/ai/counsel.py",
+    "old": "    \"laws\": (\"the Strategic Ledger's Laws tab\", \"press T, then 8\"),",
+    "new": "",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_the_router_points_at_the_laws_tab"
+  },
+  {
+    "id": "the help forgets the verbs",
+    "file": "backend/commands/meta_executor.py",
+    "old": "  enact      - Enact a law of state (1 Admin AP + its price)",
+    "new": "  enactment  - Enact a law of state (1 Admin AP + its price)",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheDesk::test_the_help_names_the_verbs"
+  },
+  {
+    "id": "the vassal row drops the law term",
+    "file": "backend/game_logic/diplomatic_ledger.py",
+    "old": "            \"law_terms\": [[str(n), int(v)] for n, v in fc.get(\"law_terms\", [])],",
+    "new": "            \"law_terms\": [],",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheOwedRows::test_the_vassal_row_names_the_law_that_binds_it"
+  },
+  {
+    "id": "the decree line is never composed",
+    "file": "backend/game_logic/naval.py",
+    "old": "            \"decree_line\": _decree_line(world, player, target),",
+    "new": "            \"decree_line\": \"\",",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheOwedRows::test_the_decree_names_its_own_ports"
+  },
+  {
+    "id": "the decree line names every client",
+    "file": "backend/game_logic/naval.py",
+    "old": "    clients = [c for c in decree_clients(world, target)\n               if (getattr(world, \"vassals\", {}) or {}).get(c, {}).get(\"lord\") == lord]",
+    "new": "    clients = list(decree_clients(world, target)) + [\"Nobody\"]",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheOwedRows::test_the_decree_names_its_own_ports"
+  },
+  {
+    "id": "the banner never renders the forecast",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t_render_law_forecast(event.get(\"law_forecast\", null), \"\")",
+    "new": "\tpass",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_one_forecast_renderer_for_the_banner_and_the_dispatch"
+  },
+  {
+    "id": "a withheld lever is still a chip",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif rescue is Dictionary and bool(rescue.get(\"enabled\", false)):",
+    "new": "\tif rescue is Dictionary:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_one_forecast_renderer_for_the_banner_and_the_dispatch"
+  },
+  {
+    "id": "a terminal chip goes nowhere",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\t_on_naval_command(chip_command)",
+    "new": "\t\t\tpass",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_a_terminal_chip_takes_the_chip_road"
+  },
+  {
+    "id": "the re-read screen forgets the forecast",
+    "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+    "old": "\tvar law_forecast = situation.get(\"law_forecast\", null)",
+    "new": "\tvar law_forecast = null",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_the_reread_screen_says_the_same"
+  },
+  {
+    "id": "the LAWS tab hides the lever",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\t\tbbcode += \"\\n\" + _chip_row(rescue)",
+    "new": "\t\t\tpass",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_the_laws_tab_shows_the_forecast_and_its_lever"
+  },
+  {
+    "id": "the Manpower tab hides the regen law",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\tfor term in pool.get(\"regen_terms\", []):",
+    "new": "\t\tfor term in []:",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_the_manpower_rows_name_their_laws"
+  },
+  {
+    "id": "the card hides the laws",
+    "file": "godot-client/project-sovereign/scripts/diplomatic_ledger.gd",
+    "old": "\t\tvar laws_row = n.get(\"laws\")",
+    "new": "\t\tvar laws_row = null",
+    "tests": "tests/test_rf4b_the_laws_everywhere.py::TestTheClient::test_the_cards_name_the_laws"
+  }
+]

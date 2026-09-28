@@ -523,6 +523,8 @@ _SURFACE_FOR_KIND = {
     "forces": ("the Strategic Ledger's Forces tab", "press T"),
     "orders": ("the Strategic Ledger's Orders tab", "press T, then 6"),
     "admiralty": ("THE ADMIRALTY", "press T, then 7"),
+    # SR-5r RF-4a: the laws of state — the Strategic Ledger's eighth book.
+    "laws": ("the Strategic Ledger's Laws tab", "press T, then 8"),
     "marshals": ("the Generals screen", "press G"),
     "diplomacy": ("the Cabinet", "press F1"),
     "courts": ("the Diplomatic Ledger", "press D"),

@@ -842,6 +842,10 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			# Say so, and say what closes the next one.
 			cs_line += " — [color=#" + Utils.COLOR_GREY + "]not yet biting[/color]"
 		bbcode += cs_line + "\n"
+		# SR-5r RF-4b (T8): the clients counted by the decree alone, named.
+		var decree_line = str(cs.get("decree_line", ""))
+		if decree_line != "":
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]" + decree_line + ".[/color]\n"
 		var next_pct = cs.get("next_tier_pct")
 		if next_pct != null:
 			bbcode += "  [color=#" + Utils.COLOR_GREY + "]Next notch at " + str(int(next_pct)) + "% — " + Utils.plural(int(cs.get("ports_to_next_tier", 0)), "more port") + " closed to them.[/color]\n"
@@ -1019,6 +1023,15 @@ func _render_laws_tab():
 		# A blank line first: a chip's pill padding overlaps the line above it.
 		bbcode += "\n" + _chip_row(row.get("chip", {}))
 	bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]" + str(laws.get("footer", "")) + "[/color]\n"
+	# RF-4b (REFORMS_SPEC §8 "The forecast"): the lapse the ledger's own
+	# projection foresees for this turn's end — the one source the end-turn
+	# banner and the dispatch read too — with the one lever as a chip.
+	var forecast = laws.get("forecast", null)
+	if forecast is Dictionary and not forecast.is_empty():
+		bbcode += "\n[color=#" + Utils.COLOR_WARNING + "][b]FORECAST[/b] " + str(forecast.get("line", "")) + "[/color]\n"
+		var rescue = forecast.get("repeal_instead", null)
+		if rescue is Dictionary and not rescue.is_empty():
+			bbcode += "\n" + _chip_row(rescue)
 	content_area.text = bbcode
 
 
@@ -1126,6 +1139,14 @@ func _render_manpower():
 			bbcode += " (no regen)\n"
 		else:
 			bbcode += " (" + str(turns_full) + " turns to full)\n"
+		# SR-5r RF-4b (T8): the laws inside these figures, named — the rate
+		# above and the price below are the APPLIED ones (RF-2's one source).
+		for term in pool.get("regen_terms", []):
+			if term is Array and term.size() >= 2:
+				bbcode += "    [color=#" + Utils.COLOR_SUCCESS + "]includes +" + str(int(term[1])) + "% regen — " + str(term[0]) + "[/color]\n"
+		for term in pool.get("price_terms", []):
+			if term is Array and term.size() >= 2:
+				bbcode += "    [color=#" + Utils.COLOR_SUCCESS + "]the draft price includes ×" + str(snappedf(float(term[1]), 0.01)) + " — " + str(term[0]) + "[/color]\n"
 
 		# IQ-2: when the capital's depot is shut (enemy-held, or in unrest)
 		# the executor refuses the DEFAULT (capital) recruit, so the capital

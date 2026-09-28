@@ -458,6 +458,8 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
         "authority": int(authority),
         "upkeep": int(row.get("upkeep", 0) or 0),
     })
+    queue_law_beat(world, nation, row,
+                   "restored" if quote["kind"] == "restore" else "enacted")
     return {"quote": quote, "gold": int(gold), "authority": int(authority),
             "authority_before": int(authority_before),
             "authority_after": int(_court_authority(world, nation))}
@@ -544,6 +546,7 @@ def process_law_lapses(world) -> List[Dict]:
                 "name": str(row.get("name") or ""),
                 "upkeep": refund,
             })
+            queue_law_beat(world, nation, row, "lapsed")
             if nation == getattr(world, "player_nation", None):
                 quote = restoration_price(world, nation, row)
                 total = int(quote["price"]) + int(quote["arrears"])
@@ -648,7 +651,7 @@ def effect_line(clause) -> str:
         return "every client shuts its ports to Britain, whatever its autonomy"
     if etype == "blockade_denial":
         from backend.game_logic.naval import blockade_cut_percent
-        return (f"a blockade this court lays cuts the enemy's trade by "
+        return (f"a blockade it lays cuts the enemy's trade by "
                 f"{blockade_cut_percent(float(value))}%, not half (×{float(value):g})")
     return ""
 
@@ -748,7 +751,211 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
     in_force = [e for e in out if e["status"] == "in_force"]
     footer = (f"The laws in force cost {upkeep_total:,} gold a turn."
               if in_force else "No law is in force.")
-    return {"rows": out, "upkeep_total": upkeep_total, "footer": footer}
+    return {"rows": out, "upkeep_total": upkeep_total, "footer": footer,
+            "forecast": lapse_forecast(world, nation)}
+
+
+# ════════════════════════════ the laws everywhere else (RF-4b) ════════════════
+# REFORMS_SPEC §8 "The forecast", "The events"; §8a. Nothing about a law ever
+# surprises the player at the end of a turn.
+
+def lapse_forecast(world, nation: str) -> Optional[Dict]:
+    """§8 THE FORECAST — shown = applied: the lapse rule itself
+    (`lapse_order`, §2) run against the ledger's own projection of this turn's
+    end (the chest + the forecast Net, `ledger._build_economy`). None when the
+    slate is paid. Otherwise: the law that lapses first, the gold that saves
+    the whole slate, the laws the rule would take after it, and the player's
+    one lever (§8b) — the cheapest OTHER law in force whose repeal alone keeps
+    them, with its honest availability (`repeal_refusal`). The LAWS tab, the
+    end-turn banner and the morning dispatch all read this."""
+    if not THE_STATE_HAS_LAWS:
+        return None
+    in_force = laws_in_force(world, nation)
+    if not in_force:
+        return None
+    from backend.game_logic.ledger import _build_economy
+    chest = _court_gold(world, nation)
+    net = int(_build_economy(world, nation).get("net", 0) or 0)
+    projected = chest + net
+    if projected >= 0:
+        return None
+    shortfall = -projected
+    doomed: List[Dict] = []
+    running = projected
+    for row in lapse_order(world, nation):
+        if running >= 0:
+            break
+        doomed.append(row)
+        running += int(row.get("upkeep", 0) or 0)
+    first = doomed[0]
+    name = display_name(first)
+    spoken = name[0].upper() + name[1:]
+    line = (f"{spoken} lapses when this turn ends unless {shortfall:,} gold is "
+            f"found — the chest ({chest:,}) cannot carry the turn's Net "
+            f"({net:+,}).")
+    if len(doomed) > 1:
+        after = [display_name(r) for r in doomed[1:]]
+        line += (f" {_join_names(after)[0].upper() + _join_names(after)[1:]} "
+                 f"would go after it.")
+    plan = repeal_plan(world, nation, first, shortfall)
+    rescue = None
+    if plan:
+        pick = plan[0]
+        pick_name = display_name(pick)
+        refusal = repeal_refusal(world, nation, str(pick.get("id")))
+        saves = int(pick.get("upkeep", 0) or 0)
+        rescue = {
+            "law": str(pick.get("id") or ""),
+            "label": f"Repeal {pick_name} instead",
+            "command": f"repeal {pick_name}",
+            "enabled": not refusal,
+            "note": (f"saves {saves:,} gold a turn and keeps {name}"
+                     if len(plan) == 1 else
+                     f"saves {saves:,} gold a turn — the first of {len(plan)} "
+                     f"repeals that keep {name}"),
+            "plan": [str(r.get("id") or "") for r in plan],
+        }
+        names = _join_names([display_name(r) for r in plan])
+        if len(plan) == 1:
+            sentence = f" Repealing {names} instead keeps it"
+        else:
+            sentence = (f" Repealing {names} instead would keep it — one admin "
+                        f"action each")
+        if refusal:
+            rescue["reason"] = refusal
+            line += sentence + ", but no admin action remains this turn."
+        else:
+            left = int(getattr(world, "admin_actions_remaining", 0) or 0)
+            if nation == getattr(world, "player_nation", None) and left < len(plan):
+                # The first repeal alone would lose that law AND the doomed
+                # one — the chip is withheld, never a trap.
+                short = (f"only {left} admin action{'s' if left != 1 else ''} "
+                         f"remain{'s' if left == 1 else ''} this turn")
+                rescue["enabled"] = False
+                rescue["reason"] = (f"It takes {len(plan)} repeals to keep "
+                                    f"{name}, and {short}.")
+                line += sentence + f", and {short}."
+            else:
+                line += sentence + "."
+    elif len(in_force) > 1:
+        line += " No repeal of the other laws would keep it."
+    return {
+        "law": str(first.get("id") or ""),
+        "name": spoken,
+        "shortfall": int(shortfall),
+        "chest": int(chest),
+        "net": int(net),
+        "doomed": [str(r.get("id") or "") for r in doomed],
+        "line": line,
+        "repeal_instead": rescue,
+    }
+
+
+def repeal_plan(world, nation: str, doomed: Dict, shortfall: int) -> List[Dict]:
+    """The player's one lever against a lapse (§8b "What to lose"): the fewest
+    repeals of the OTHER laws in force whose saved upkeep covers `shortfall`
+    and so keeps `doomed`. The cheapest single law when one suffices (the
+    smallest sacrifice); else the largest first until it is covered. [] when
+    no repeal of the others would keep it."""
+    others = [r for r in laws_in_force(world, nation) if r is not doomed]
+
+    def _upkeep(r):
+        return int(r.get("upkeep", 0) or 0)
+    single = sorted((r for r in others if _upkeep(r) >= shortfall),
+                    key=lambda r: (_upkeep(r), str(r.get("id") or "")))
+    if single:
+        return [single[0]]
+    plan, total = [], 0
+    for r in sorted(others, key=lambda r: (-_upkeep(r), str(r.get("id") or ""))):
+        if total >= shortfall:
+            break
+        plan.append(r)
+        total += _upkeep(r)
+    return plan if total >= shortfall else []
+
+
+def _join_names(names: List[str]) -> str:
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def laws_line(world, nation: str) -> Optional[str]:
+    """The Diplomatic Ledger's nation-card line (§8a): the court's laws in
+    force by name and what they cost it a turn — diplomacy has no fog. None
+    when none is in force (the card omits the row)."""
+    rows = laws_in_force(world, nation)
+    if not rows:
+        return None
+    return (f"{_join_names([display_name(r) for r in rows])} "
+            f"({law_upkeep_bill(world, nation):,} gold a turn)")
+
+
+def law_named_in(world, nation: str, text) -> Optional[Dict]:
+    """The court's law a question NAMES, or None — the desk's world-aware read
+    ("what does the Staff cost?" carries no word the parser's law router
+    knows). A law's authored name (its article dropped) or its id's words, as
+    whole words; "staff" names the court's one Staff."""
+    folded = " " + re.sub(r"[^a-z0-9]+", " ", _fold(text)) + " "
+    if folded.strip() == "":
+        return None
+    rows = [r for r in deck(world, nation) if isinstance(r, dict)]
+    for row in rows:
+        name = _fold(row.get("name"))
+        if name.startswith("the "):
+            name = name[4:]
+        name = re.sub(r"[^a-z0-9]+", " ", name).strip()
+        words = str(row.get("id") or "").replace("_", " ").strip()
+        for probe in (name, words):
+            if probe and f" {probe} " in folded:
+                return row
+    if " staff " in folded:
+        staffs = [r for r in rows if is_staff(r)]
+        if len(staffs) == 1:
+            return staffs[0]
+    return None
+
+
+def queue_law_beat(world, nation: str, row: Dict, kind: str) -> None:
+    """§8 "The events": a court's act is a beat on the next morning dispatch
+    — a rival's enactment, restoration or lapse (court knowledge, diplomacy
+    has no fog), and the player's own lapse. The player's enactments are the
+    verb's own answer; the Staff's arrival is derived at the refill."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    player = getattr(world, "player_nation", None)
+    name = display_name(row)
+    if nation == player:
+        if kind == "lapsed":
+            queue_dispatch_event(world, "law_lapsed_home", {
+                "law": name[0].upper() + name[1:],
+                "upkeep": f"{int(row.get('upkeep', 0) or 0):,}",
+                "window": str(ARREARS_WINDOW_TURNS),
+            }, "always")
+        return
+    if kind == "lapsed":
+        queue_dispatch_event(world, "law_lapsed_abroad", {
+            "nation": nation, "law": name}, "always")
+        return
+    effect = "; ".join(line for line in (effect_line(c) for c in (row.get("effects") or [])) if line)
+    queue_dispatch_event(world, "law_enacted_abroad", {
+        "nation": nation,
+        "verb": "restores" if kind == "restored" else "enacts",
+        "law": name,
+        "effect": effect or "its terms are its own",
+    }, "always")
+
+
+def staff_arrival(world, nation: str) -> Optional[str]:
+    """The Staff's first refill (§8a "the dispatch names why"): the law's
+    name when the court's Staff went into force LAST turn — this morning is
+    the first with its extra order — else None. Derived (no queue), so a
+    Staff enacted and struck down in the same turn announces nothing."""
+    now = int(getattr(world, "current_turn", 0) or 0)
+    for row in laws_in_force(world, nation):
+        if is_staff(row) and int(row.get("enacted_turn", -99)) == now - 1:
+            name = display_name(row)
+            return name[0].upper() + name[1:]
+    return None
 
 # ════════════════════════════ the AI (RF-3) ═══════════════════════════════════
 # REFORMS_SPEC §7. Every AI great power enacts from its own authored deck, in

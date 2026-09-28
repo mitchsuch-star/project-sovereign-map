@@ -545,9 +545,19 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # the rear-security reserve, the row that makes the war
             # council's refusals playable. None omits (fogged/army-less).
             "exposure": _build_exposure_line(nation, world),
+            # SR-5r RF-4b (REFORMS_SPEC §8a): the court's laws in force, by
+            # name and what they cost it a turn — diplomacy has no fog.
+            # None omits the row.
+            "laws": _laws_line(nation, world),
         })
 
     return nations
+
+
+def _laws_line(nation: str, world):
+    """SR-5r RF-4b: `reforms.laws_line` — the one source for the card's row."""
+    from backend.game_logic.reforms import laws_line
+    return laws_line(world, nation)
 
 
 def _build_exposure_line(nation: str, world):
@@ -781,6 +791,9 @@ def _build_vassals(world) -> Dict[str, Any]:
             "garrison_present": garrison_present,
             "garrison_bonus": int(garrison_bonus),
             "subsidy_bonus": int(fc["subsidy_bonus"]),
+            # SR-5r RF-4b (T8): the laws that bind this client — the term
+            # the forecast (and the tick) already carry, named.
+            "law_terms": [[str(n), int(v)] for n, v in fc.get("law_terms", [])],
             "invest_gain": int(invest_gain),
             "autonomy_up_gain": int(autonomy_up_gain),
             "autonomy_down_loss": 15,

@@ -115,6 +115,14 @@ func _on_dispatch_received(response):
 	var delta_label = str(situation.get("treasury_delta_label", ""))
 	var delta_suffix = "" if delta_label == "" else " " + delta_label
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + delta_suffix + ")[/color]\n"
+	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named, and
+	# the forecast — the same source as the terminal's dispatch.
+	var staff_arrived = situation.get("staff_arrived", null)
+	if staff_arrived is String and staff_arrived != "":
+		bbcode += "[color=#" + Utils.COLOR_SUCCESS + "]  THE STAFF: " + staff_arrived + " is established — one more order of the day, from today.[/color]\n"
+	var law_forecast = situation.get("law_forecast", null)
+	if law_forecast is Dictionary and not law_forecast.is_empty():
+		bbcode += "[color=#" + Utils.COLOR_WARNING + "]  THE LAWS: " + str(law_forecast.get("line", "")) + "[/color]\n"
 
 	if bankrupt:
 		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"

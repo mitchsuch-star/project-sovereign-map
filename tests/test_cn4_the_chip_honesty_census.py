@@ -935,6 +935,12 @@ REVIEWED = {
     ("diplomatic_ledger.gd", '"talleyrand_assess"'): "sends `Talleyrand, assess our situation` (W6-9)",
     # strategic_ledger.gd — backend-composed
     ("strategic_ledger.gd", '"do:" + str(chip.get("command", ""))'): "driven: the Admiralty's chips",
+    # main.gd — SR-5r RF-4b: the lapse forecast's "repeal X instead" chip on
+    # the end-turn banner and the terminal dispatch (backend-composed; the
+    # typed `repeal <law>` down the ledger's chip road). Driven through
+    # /command in tests/test_rf4b_the_laws_everywhere.py — the law repealed,
+    # the forecast cleared.
+    ("main.gd", '"do:" + str(rescue.get("command", ""))'): "driven: the forecast's repeal lever (RF-4b)",
     # tutorial_overlay.gd
     ("tutorial_overlay.gd", '"suggest:" + str(step["suggest"])'): "fills the line, never sends (T-B1 pins each parse)",
     ("tutorial_overlay.gd", '"skipdone:"'): "concludes the lesson; sends nothing",
