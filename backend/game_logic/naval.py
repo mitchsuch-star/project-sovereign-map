@@ -1140,8 +1140,12 @@ OVERSEAS_WAR_FACTOR = 0.25
 # authored values; the duplication is safe because a drift pin
 # (test_econ_balance_eb.py) asserts the two stay equal. France authors
 # NONE by design and is absent here too.
+# SR-5a (September 28, 2026): Britain 500 -> 1,000 with the ruled balance
+# package ("Britain up, France trimmed"). A save written after EB-2 carries
+# its own authored figure and keeps it (the key is present, so nothing is
+# backfilled); only a pre-EB-2 save missing the key receives the new one.
 OVERSEAS_INCOME_BACKFILL = {
-    "Britain": 500,
+    "Britain": 1000,
     "Spain": 250,
     "Holland": 150,
     "Portugal": 150,

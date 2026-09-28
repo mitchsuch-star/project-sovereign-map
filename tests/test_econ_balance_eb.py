@@ -280,10 +280,14 @@ class TestRequisitions:
 
 class TestOverseasTrade:
     def test_boot_deltas_are_the_gated_four(self, world):
-        """Britain +307 (500 × 0.6154 closure) · Portugal +150 (at peace) ·
+        """Britain +615 (1,000 × 0.6154 closure) · Portugal +150 (at peace) ·
         Spain 0 (blockaded) · Holland 0 (blockaded) · France 0 (authors
-        none — its overseas arm is continental extraction, a design pin)."""
-        assert world.calculate_turn_income("Britain")["overseas"] == 307
+        none — its overseas arm is continental extraction, a design pin).
+
+        SR-5a (September 28, 2026): Britain's authored pool 500 -> 1,000
+        under the ruled balance package ("Britain up, France trimmed");
+        it was +307 at 500. The other three are unchanged."""
+        assert world.calculate_turn_income("Britain")["overseas"] == 615
         assert world.calculate_turn_income("Portugal")["overseas"] == 150
         assert world.calculate_turn_income("Spain")["overseas"] == 0
         assert world.calculate_turn_income("Holland")["overseas"] == 0
@@ -303,7 +307,8 @@ class TestOverseasTrade:
         members = [n for n, _ in naval.iter_fleets(world) if n != "Britain"]
         world.continental_system_members = members
         floored = naval.overseas_trade_income(world, "Britain")
-        assert floored == int(500 * 0.4)
+        # SR-5a: the authored pool is 1,000 (was 500) — the floor follows.
+        assert floored == int(1000 * 0.4)
         assert floored < base
 
     def test_peace_with_britain_lets_the_silver_flow(self, world):
@@ -671,7 +676,8 @@ class TestOverseasSaveBackfill:
                 rec.pop("overseas_income", None)
         loaded = WorldState.from_dict(data)
         from backend.game_logic.naval import overseas_trade_income
-        assert overseas_trade_income(loaded, "Britain") == 307
+        # SR-5a: the backfill carries the ruled 1,000 (it was +307 at 500).
+        assert overseas_trade_income(loaded, "Britain") == 615
         assert loaded.calculate_turn_income("Portugal")["overseas"] == 150
 
     def test_an_authored_value_is_never_clobbered(self, world):

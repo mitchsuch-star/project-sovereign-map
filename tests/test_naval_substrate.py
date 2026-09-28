@@ -53,7 +53,9 @@ class TestAuthoredBoot:
         assert rec["readiness"] == 100
         assert rec["posture"] == "blockade"
         assert rec["island"] is True
-        assert rec["trade_dominance"] == 300
+        # SR-5a (September 28, 2026): 300 -> 450, the ruled balance package
+        # ("Britain up, France trimmed" — the City's carrying trade).
+        assert rec["trade_dominance"] == 450
 
     def test_france_boots_guard_at_the_authored_rot(self, world):
         rec = world.fleets["France"]

@@ -179,6 +179,36 @@ def _get_relation(world, a: str, b: str) -> int:
     return world.nation_relations.get(_get_diplo_key(a, b), 0) or 0
 
 
+def next_war_exhaustion(world, nation: str) -> int:
+    """SR-5a (IQ1-5-1): THE per-turn war-exhaustion tick for one nation — the
+    value `process_coalition_turn` step 3 will write this advance. Single
+    source for the tick itself AND for every forecast that prices the
+    Charges of Empire at the rate they will be LEVIED at (the tick runs
+    before the income phase inside the advance, so a forecast that read
+    today's figure quoted a charge one tick stale — 121 gold a turn at a
+    40,000 chest, 277 at 88,556).
+
+    +8 at war (capped at WAR_EXHAUSTION_MAX), −5 at peace (floored at 0).
+    The player's row ticks on Europe worlds only (the legacy fixture boots
+    at war and its economy is pinned — EC-W2 review finding #1); an AI
+    row keys on being at war with ANYONE on Europe, with the player on the
+    legacy world (AI-4c, pin 17c)."""
+    player = world.player_nation
+    current = int((getattr(world, "war_exhaustion", {}) or {}).get(nation, 0) or 0)
+    europe = getattr(world, "sovereign_map", "legacy") == "europe"
+    if nation == player:
+        if not europe:
+            return current
+        at_war = bool(world.get_nations_at_war_with(player))
+    elif europe:
+        at_war = bool(world.get_nations_at_war_with(nation))
+    else:
+        at_war = _get_diplo_state(world, player, nation) == "WAR"
+    if at_war:
+        return min(current + 8, WAR_EXHAUSTION_MAX)
+    return max(current - 5, 0)
+
+
 def _get_diplo_state(world, a: str, b: str) -> str:
     """Get diplomatic state between two nations."""
     return world.diplomatic_states.get(_get_diplo_key(a, b), "PEACE")
@@ -2715,41 +2745,19 @@ def process_coalition_turn(world) -> List[Dict]:
             reduce_threat(world, min(_tgt_decay, _slot), "decay", target=_tgt)
 
     # ────────── 3. War exhaustion per-turn (§10a) ──────────
+    # EC-W2: France wearies of war like everyone else (GR5) — the same
+    # +8/−5 constants, keyed on being at war with ANYONE; feeds
+    # calculate_state_charges (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17
+    # §3). Europe-scoped for the player (N1: the legacy fixture world BOOTS
+    # at war, so an ungated tick would drift its pinned economy — review
+    # finding #1). AI-4c: on Europe an AI row keys on being at war with
+    # ANYONE (pin 17a); the legacy world keeps the France-relative read
+    # byte-identically (pin 17c). R11: +8 (was +5). SR-5a (IQ1-5-1): the
+    # arithmetic lives in `next_war_exhaustion`, so the forecasts that price
+    # the Charges of Empire read the SAME tick the advance applies.
     for nation in _get_all_nations(world):
-        if nation == france:
-            # EC-W2: France wearies of war like everyone else (GR5) — the
-            # same +8/−5 constants, keyed on being at war with ANYONE (the
-            # AI rows below are France-relative because their consumers
-            # are). Feeds calculate_state_charges — the treasury-fraction
-            # war spending (memo ECON_WAR_COUPLING_RESEARCH_2026_07_17 §3).
-            # Europe-scoped (N1): the legacy fixture world BOOTS at war, so
-            # an ungated tick would drift its pinned economy (France WE →
-            # infantry-regen scaling) — review finding #1.
-            if getattr(world, "sovereign_map", "legacy") != "europe":
-                continue
-            at_war = bool(world.get_nations_at_war_with(france))
-            current_we = world.war_exhaustion.get(france, 0)
-            if at_war:
-                new_we = min(current_we + 8, WAR_EXHAUSTION_MAX)
-            else:
-                new_we = max(current_we - 5, 0)
-            if new_we != current_we:
-                world.war_exhaustion[france] = int(new_we)
-            continue
-        # AI-4c: on Europe worlds the tick keys on being at war with ANYONE
-        # (the exact predicate France's own arm uses) — an AI-vs-AI war
-        # finally accrues instead of decaying −5/turn (pin 17a). The legacy
-        # fixture world keeps the France-relative read byte-identically
-        # (pin 17c — it boots at war and its economy is pinned).
-        if getattr(world, "sovereign_map", "legacy") == "europe":
-            at_war = bool(world.get_nations_at_war_with(nation))
-        else:
-            at_war = _get_diplo_state(world, france, nation) == "WAR"
         current_we = world.war_exhaustion.get(nation, 0)
-        if at_war:
-            new_we = min(current_we + 8, WAR_EXHAUSTION_MAX)  # R11: was +5
-        else:
-            new_we = max(current_we - 5, 0)
+        new_we = next_war_exhaustion(world, nation)
         if new_we != current_we:
             world.war_exhaustion[nation] = int(new_we)
 

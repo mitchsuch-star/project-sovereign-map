@@ -237,6 +237,19 @@ AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY = True
 LAST_ORDER_OF_THE_DAY_NOTICE = ("That was the last order the day could take, "
                                 "Sire — the turn ends when you say so.")
 
+# SR-5a AAR-6 (Score Mandate Chunk 5, September 28, 2026): an ADMINISTRATIVE
+# order asks only the administrative pool. `recruit` is also an objection
+# action (a marshal may grumble at a levy), so a marshal-addressed levy —
+# `Soult, recruit infantry`, `recruit 10000 infantry with Soult` — walked
+# into the objection branch, whose own AP pre-check read the MILITARY pool:
+# measured, at military 0/4 and admin 2/2 the order was refused "Not enough
+# actions remaining. 0 actions left." while the charge, the help ("1 Admin
+# AP + gold") and every other admin verb (substitutes, keels, laws) read the
+# admin pool. The admin pool is already gated at the head of `execute`
+# (`is_admin_action`), so the objection branch's pre-check now skips it.
+# Flip lever, not a config surface.
+AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL = True
+
 
 def _correction_survives(query: str, match: Optional[str],
                          gate_active: bool) -> bool:
@@ -2357,7 +2370,9 @@ class CommandExecutor:
                 # with an AP error, which is confusing.
                 # ═══════════════════════════════════════════════════════════
                 if (action_costs_point and is_player_action_check
-                        and not counter_punch_waiver):
+                        and not counter_punch_waiver
+                        and not (AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL
+                                 and is_admin_action)):
                     required_ap = 1  # Default cost
                     if action == 'stance_change':
                         target_stance_raw_ap = (command.get('target_stance') or command.get('target') or '').lower()

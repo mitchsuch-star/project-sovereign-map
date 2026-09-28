@@ -76,9 +76,20 @@ DRIVER = REPO / "tools" / "playtest_driver.py"
 
 # The chests the defect was measured across, and the shipped (wrong) reading
 # at each. Kept as data so the negative control cannot drift from the claim.
-MEASURED_DEFECT = {800: 59_562, 5_000: 56_562, 20_000: 41_562,
-                   40_000: 21_562, 60_000: 0, 88_556: 0}
-TRUE_FIXED_POINT = 59_562
+# SR-5a "The chest" (September 28, 2026): re-measured on the ruled board
+# (Britain up, France trimmed). France's boot Net fell 1,842 -> 1,032, so the
+# fixed point is 2,000 + 1,032 x 2,500 // 80 = 34,250 and every lever-down
+# reading moves with it (measured, lever up and down). The IQ1-2 figures, on
+# the prior board, were {800: 59_562, 5_000: 56_562, 20_000: 41_562,
+# 40_000: 21_562, 60_000: 0, 88_556: 0} around a fixed point of 59_562.
+# The same session's IQ1-5-1 fix then priced the ledger's projection at the
+# rate the advance LEVIES (its war-exhaustion tick runs first: France boots
+# at war, so the projected rate is 88, not 80): 2,000 + 1,032 x 2,500 // 88
+# = 31,318, and the lever-down readings move with it (measured). Before that
+# fix, on the ruled board: {800: 34_250, 5_000: 31_250, 20_000: 16_250, ...}.
+MEASURED_DEFECT = {800: 31_318, 5_000: 28_335, 20_000: 13_335,
+                   40_000: 0, 60_000: 0, 88_556: 0}
+TRUE_FIXED_POINT = 31_318
 
 
 @pytest.fixture

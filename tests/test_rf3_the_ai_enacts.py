@@ -261,4 +261,12 @@ class TestTheMeasuredBoard:
             encoding="utf-8"))
         assert self.ARMS["arms"]["1"]["series"] == drill["recorded"]
         assert drill["arms"]["0"]["series"] == drill["recorded"]
-        assert BASELINE_SERIES == drill["arms"]["1"]["series"]
+        # RE-SEATED by SR-5a "The chest" (September 28, 2026): one more link —
+        # the drill fix's arm 1 is the prior record SR-5a's arm 0 (the
+        # pre-slice scenario, every lever down) reproduces byte for byte, and
+        # SR-5a's arm 1 (the ruled balance package) is the standing series.
+        sr5a = json.loads((ROOT / "tools" / "_sr5a_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert drill["arms"]["1"]["series"] == sr5a["recorded"]
+        assert sr5a["arms"]["0"]["series"] == sr5a["recorded"]
+        assert BASELINE_SERIES == sr5a["arms"]["1"]["series"]

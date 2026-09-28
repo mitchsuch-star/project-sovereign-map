@@ -580,6 +580,10 @@ func _render_economy():
 			if rate_note != "":
 				terms_text += " — " + rate_note
 			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + terms_text + ")[/color]\n"
+		# SR-5a question (c): why the draw moved since the last charged turn.
+		var charges_delta_note = str(econ.get("state_charges_delta_note", ""))
+		if charges_delta_note != "":
+			bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + charges_delta_note + ")[/color]\n"
 	# ES-7 (Economy Revisit S7): income of provinces endowed to marshals'
 	# estates — a signed Net component of its own (Income stays gross), so
 	# it must render for the visible lines to sum to Net (SC-33 invariant).
@@ -632,6 +636,11 @@ func _render_economy():
 	var grande_armee = int(econ.get("grande_armee", 0))
 	var over_limit_surcharge = upkeep_surcharge - grande_armee
 	bbcode += "  Upkeep:   -" + str(upkeep_base) + "g\n"
+	# SR-5a question (c): the army is paid for the men under arms today, and
+	# the note says how the bill moved since the last turn it was charged.
+	var upkeep_note = str(econ.get("upkeep_note", ""))
+	if upkeep_note != "":
+		bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + upkeep_note + ")[/color]\n"
 	if over_limit_surcharge > 0:
 		var force_limit = int(econ.get("force_limit", 0))
 		var army_total = int(econ.get("army_strength_total", 0))

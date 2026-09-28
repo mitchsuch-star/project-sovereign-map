@@ -183,8 +183,13 @@ AI_DRILL_READS_THE_REACH = True
 # a stance change the executor refuses (a 2-turn cooldown write).
 DRILL_IS_THE_DAYS_WORK = True
 # MC-V-2 (the user's July 11 ruling): an enemy literal takes NO drill
-# initiative. Held; the question is the user's (DESIGN_REFINEMENT AI-DR-D1),
-# with this lever's measured arm beside it.
+# initiative. AIDR-D1 DECIDED September 28, 2026 (the user delegated it:
+# "make a decision — remember Mack sucked"): HELD OUT. A literal's rot in
+# place is the character the MC-V-2 ruling authored — Mack sat at Ulm while
+# his army wasted, and a general who drills to heal is showing the initiative
+# the literal lacks. Measured arm kept (lever up: Mack's 40 debased turns
+# fall to 19). Re-open condition: a played campaign where a literal-led court
+# can field no fighting corps at all because its armies never recover.
 LITERALS_DRILL_TO_HEAL = False
 # R1-5 guarded a drilling corps in P8's CAUTIOUS default only; the aggressive
 # default still ordered it a stance change, which the executor refuses (a

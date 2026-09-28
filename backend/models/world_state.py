@@ -509,6 +509,13 @@ THE_DETACHMENT_FEEDS_STABILITY = True
 # under the other). The driver pins the hash seed and never saw it; an
 # in-process test did. False = the hash-ordered list.
 THE_CONTACT_LIST_IS_ORDERED = True
+# SR-5a (IQ1-5-1, September 28, 2026) flip lever: a FORECAST of the Charges
+# of Empire (the ledger's forward projection — the economy tab, the laws'
+# lapse forecast, the AI's purse test) prices the war-exhaustion term at the
+# value the advance's own tick will write before the income phase levies
+# the charge. It priced today's: quoted 1,216, charged 1,337 at a 40,000
+# chest. False = today's figure (the one-tick-stale quote).
+THE_FORECAST_PRICES_TOMORROWS_WAR = True
 # FA-S17-17 (slice 17, Phase 4) flip lever: FA-D4's boot purpose reaches a
 # LOADED campaign too. The ruling gives every belligerent of every starting
 # war the objective a live declaration would have given it — but the pass
@@ -6249,19 +6256,30 @@ class WorldState:
                 requisitions[winner] = requisitions.get(winner, 0) + amount
         return requisitions
 
-    def get_state_charges_rate(self, nation: str) -> Dict:
+    def get_state_charges_rate(self, nation: str, projected: bool = False) -> Dict:
         """EB-1: the condition-priced rate behind the Charges of Empire.
 
         Returns {"rate": int, "terms": [{"key", "label", "amount"}...]} —
         each term a NAMED reading (the AI-3r moment-term idiom) so every
         surface can explain the rate it applies. Derived per-call from
         existing state only; zero new serialized fields. Europe-scoped.
+
+        SR-5a (IQ1-5-1): `projected=True` is a FORECAST of the charge the next
+        advance will levy — the war-exhaustion term reads the value the
+        advance's own tick will have written by then
+        (`coalition.next_war_exhaustion`, the tick's single source), because
+        the tick runs before the income phase. The levy itself (the income
+        phase, after the tick) reads today's figure, which by then IS that
+        value.
         """
         if getattr(self, "sovereign_map", "legacy") != "europe":
             return {"rate": 0, "terms": []}
         terms = []
         # The existing war-exhaustion term (EC-W2's arithmetic, absorbed).
         we = int(getattr(self, "war_exhaustion", {}).get(nation, 0) or 0)
+        if projected and THE_FORECAST_PRICES_TOMORROWS_WAR:
+            from backend.game_logic.coalition import next_war_exhaustion
+            we = int(next_war_exhaustion(self, nation))
         if we > 0:
             terms.append({"key": "war_exhaustion",
                           "label": "the long war wears on", "amount": we})
@@ -6377,8 +6395,13 @@ class WorldState:
             return 0
         return int(gold * rate // WAR_EFFORT_DIVISOR)
 
-    def calculate_turn_income(self, nation: str = None) -> Dict:
+    def calculate_turn_income(self, nation: str = None, projected: bool = False) -> Dict:
         """Calculate income for a nation. Defaults to player_nation.
+
+        SR-5a (IQ1-5-1): `projected=True` — the FORWARD projection a ledger
+        caller makes of the next advance — prices the Charges of Empire at
+        the rate that advance will levy (`get_state_charges_rate`); the
+        income phase itself never passes it.
 
         Uses get_effective_income() which applies stability and war damage modifiers.
 
@@ -6540,7 +6563,7 @@ class WorldState:
         # is a fraction of a positive chest above a floor, self-limiting.
         # Rate computed ONCE here and shared with the breakdown (G4: the
         # rate read walks the nation's regions — never do it twice).
-        charges_rate = self.get_state_charges_rate(nation)
+        charges_rate = self.get_state_charges_rate(nation, projected=projected)
         # FA-N88 (slice 17): the documented single source is CALLED, with the
         # rate computed once above passed in (G4 — never walk the regions
         # twice). Byte-identical arithmetic; what changed is that the applied

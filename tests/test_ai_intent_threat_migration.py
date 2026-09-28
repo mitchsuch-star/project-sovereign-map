@@ -1127,9 +1127,39 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # provinces (arm 0: 3) while Britain holds 12 (26) and Austria 25 (24); the
 # ambient harness's passive France, NOT a balance claim.
 # ═══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — row SR, Chunk 5, SR-5a "The chest" (September 28,
+# 2026; the user's ruling "Britain up, France trimmed";
+# `tools/_sr5a_series_arms.py`, five arms, the scenario swapped and every
+# slice lever set IN THE CHILD):
+#   0.  the pre-slice scenario, levers DOWN .. the drill-fix series above,
+#                                              BYTE-FOR-BYTE
+#   L.  the pre-slice scenario, levers UP .... BYTE-IDENTICAL (AAR-6's admin
+#                                              pool, the substitutes' named
+#                                              ground, the ledger's why-notes,
+#                                              IQ1-5-1's honest forecast — the
+#                                              AI's purse test reads it — and
+#                                              the card's tomorrow's standing
+#                                              decide nothing here)
+#   F.  France's half alone (homeland 75%) .. BYTE-IDENTICAL
+#   B.  Britain's half alone ................ diverges at [5]
+#   1.  both halves (shipped) ............... the series below, diverging at [5]
+# Britain's half is NECESSARY (France's alone moves nothing) and the halves
+# INTERACT (arm B is not arm 1: the unattended France ends turn 40 with 11
+# provinces under Britain's half alone, 3 under both — a poorer France under
+# a richer Britain). A court netting 2,851 a turn instead of 1,901 commissions
+# and levies earlier and lands on the undefended coast.
+# Passive-France guard, stated honestly: on the shipped arm the UNATTENDED
+# France ends turn 40 with 3 provinces (arm 0: 12) while Britain holds 27
+# (12) and Austria 26 (25) — the ambient harness's passive France, NOT a
+# balance claim. Measured on the COMMANDED arm (three seeds, driver runs of
+# the rf2_t1 staff script): France holds 29 / 28 / 29 at turn 40 (before:
+# 27 / 20 / 29) and Britain 11 / 11 / 11 (before: 11 / 19 / 11); a played
+# France is not overrun and a rich Britain does not become a land empire.
+# ═══════════════════════════════════════════════════════════════════════
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 33, 31,
-    28, 25, 22, 19, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
+    36, 37, 35, 33, 31, 19, 17, 15, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0,
 ]
 

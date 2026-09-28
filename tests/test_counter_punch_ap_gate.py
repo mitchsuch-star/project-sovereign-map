@@ -367,9 +367,16 @@ class TestSingleSourcePredicate:
         )
         gate1 = "if action_costs_point and is_player_action_check and not counter_punch_waiver:"
         assert gate1 in src, "gate 1 (early AP check) does not consult the waiver"
-        gate2 = ("if (action_costs_point and is_player_action_check\n"
-                 "                        and not counter_punch_waiver):")
-        assert gate2 in src, "gate 2 (AP PRE-CHECK) does not consult the waiver"
+        # SR-5a AAR-6 (Sept 28, 2026) re-seat: gate 2 gained a clause (an
+        # admin order asks only the admin pool), so the pin reads the gate's
+        # whole CONDITION — up to its colon — instead of its exact line
+        # breaks. It still fails if gate 2 stops consulting the waiver.
+        head = "if (action_costs_point and is_player_action_check\n"
+        assert head in src, "gate 2 (AP PRE-CHECK) is gone"
+        cond = src[src.index(head):]
+        cond = cond[:cond.index("):") + 2]
+        assert "and not counter_punch_waiver" in cond, (
+            "gate 2 (AP PRE-CHECK) does not consult the waiver")
 
     def test_waiver_is_scoped_to_the_attack_action(self):
         src = self._read("backend", "commands", "executor.py")

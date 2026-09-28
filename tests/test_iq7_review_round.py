@@ -1291,6 +1291,15 @@ class TestR7TheCardTellsTheTruth:
                 # soured lord relation (-60 // 20 = -3) makes the forecast
                 # fall, so the cadence's expiry has something to ask for.
                 _set_rel(w, SWISS, PLAYER, -60)
+                # SR-5a "The chest" (September 28, 2026): the ruled balance
+                # board has the unattended France lose more battles by turn
+                # 10 (the lord's defeats, -2 each), so the Swiss stood at 67
+                # here and a -5 forecast took them under the loyal line at
+                # the advance into 15. The card now says so
+                # (THE_CARD_READS_TOMORROWS_STANDING); the second cycle's
+                # standing is staged explicitly, like its relation, so the
+                # countdown is what this pin measures.
+                w.vassals[SWISS]["loyalty"] = 80
             _end_turn(client)
             if w.vassals[SWISS].get("petitioned_turn") == w.current_turn:
                 issued.add(int(w.current_turn))
@@ -1325,6 +1334,44 @@ class TestR7TheCardTellsTheTruth:
                 assert (t + n) in issued and not any(t < k < t + n for k in issued), (t, standing, n)
                 checked += 1
         assert checked >= 13, checked
+
+    def test_the_card_reads_the_standing_the_advance_will_leave(self):
+        """SR-5a (September 28, 2026), THE_CARD_READS_TOMORROWS_STANDING.
+        The producer asks after the turn's loyalty tick, so a client one
+        falling tick above the loyal line has no standing at the advance.
+        The card said "may petition" there (measured: loyalty 62, forecast
+        -5, the advance left 57 and nothing was asked). Killed by: reading
+        today's loyalty in the projected gate."""
+        w = _europe()
+        w.current_turn = 14
+        row = w.vassals[SWISS]
+        row["created_turn"] = 1
+        row.pop("petitioned_turn", None)
+        row["remission_left"] = 0
+        _set_rel(w, SWISS, PLAYER, -60)
+        forecast = V.forecast_vassal_loyalty(w, PLAYER, SWISS)["forecast"]
+        assert forecast < 0, forecast
+        row["loyalty"] = V.PETITION_LOYAL_MIN - forecast - 1   # one tick lands under the line
+        card = _card(w, SWISS)
+        assert card["standing_key"] == "loyalty", card["standing"]
+        assert V.petition_gate_verdict(w, PLAYER, SWISS)[0] is False
+        # the producer's read is today's, unchanged
+        assert V.petition_gate_verdict(w, PLAYER, SWISS, projected=False)[1] != "loyalty"
+        row["loyalty"] = V.PETITION_LOYAL_MIN - forecast   # the tick lands ON the line
+        assert _card(w, SWISS)["standing_key"] != "loyalty"
+
+    def test_the_card_lever_down_is_the_prior_read(self, monkeypatch):
+        w = _europe()
+        w.current_turn = 14
+        row = w.vassals[SWISS]
+        row["created_turn"] = 1
+        row.pop("petitioned_turn", None)
+        row["remission_left"] = 0
+        _set_rel(w, SWISS, PLAYER, -60)
+        forecast = V.forecast_vassal_loyalty(w, PLAYER, SWISS)["forecast"]
+        row["loyalty"] = V.PETITION_LOYAL_MIN - forecast - 1
+        monkeypatch.setattr(V, "THE_CARD_READS_TOMORROWS_STANDING", False)
+        assert _card(w, SWISS)["standing_key"] != "loyalty"
 
     def test_the_standing_names_the_blocking_gate_and_never_a_second_standing(self):
         w = _europe()

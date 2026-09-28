@@ -2654,8 +2654,13 @@ class TestN11TreasuryDeltaIsWhatHappened:
         from backend.game_logic.ledger import _build_economy
         assert not getattr(world, "_income_phase_results", None)
         a = _build_economy(world, "France")
+        # SR-5a (IQ1-5-1, September 28, 2026) — re-seated consciously: the
+        # projection now prices the Charges of Empire at the rate the next
+        # advance levies (`projected=True`); it is otherwise the projection
+        # it always was.
         b = _build_economy(world, "France",
-                           income_data=world.calculate_turn_income("France"))
+                           income_data=world.calculate_turn_income(
+                               "France", projected=True))
         assert a == b
 
     def test_the_applied_cache_wins_when_it_exists(self, world):

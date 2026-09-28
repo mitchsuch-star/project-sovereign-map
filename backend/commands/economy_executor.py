@@ -105,6 +105,11 @@ def depot_closed_reason(world, region_name: str, region, gate: Optional[str]) ->
 # board is the pre-slice board.
 THE_SUBSTITUTE_MARKET_IS_OPEN = True
 
+# SR-5a (September 28, 2026): `buy substitutes in <province>` means the
+# infantry marshal of ours standing there, and a refusal is a sentence —
+# never the fuzzy matcher's error dict stuffed into `message`. Flip lever.
+THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES = True
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # IQ-1 IQ1-3 "The Granary and the Alarm" — flip levers
@@ -1902,8 +1907,35 @@ class EconomyExecutor:
                 "Name the marshal who is to receive them, Sire. "
                 "(\"buy substitutes for Ney\")")}
 
+        # SR-5a (found reproducing AAR-6, September 28, 2026): `buy
+        # substitutes in Paris` names GROUND, not a man. The fuzzy marshal
+        # match then answered with its whole error DICT stuffed into the
+        # message ("{'success': False, 'message': \"Marshal 'Paris' not
+        # found…\"}") — the only one of eighteen callers that wrapped it.
+        # A named province now means the marshal of ours who stands there
+        # (the delivery is at his location anyway); none there is refused
+        # in a sentence that keeps the name (CRT-2).
+        if (THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES
+                and world.get_marshal(marshal_name) is None):
+            ground = world.get_region(marshal_name)
+            if ground is not None:
+                acting = command.get("_acting_nation") or world.player_nation
+                standing = [m for m in world.marshals.values()
+                            if m.nation == acting and m.strength > 0
+                            and m.location == ground.name
+                            and not getattr(m, "cavalry", False)
+                            and not getattr(m, "artillery", False)]
+                if not standing:
+                    return {"success": False, "message": (
+                        f"No infantry marshal of ours stands at {ground.name} "
+                        f"to receive them, Sire. Name the marshal "
+                        f"(\"buy substitutes for Ney\").")}
+                marshal_name = max(standing, key=lambda m: m.strength).name
+
         marshal, error = self._executor._fuzzy_match_marshal(marshal_name, world)
         if error:
+            if THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES:
+                return error
             return {"success": False, "message": error}
 
         acting_nation = command.get("_acting_nation") or marshal.nation

@@ -318,8 +318,9 @@ drill law) when:
 - no more pressing duty applies: P6.5's supply move, the AI-3c frontier, P7.4's reinforcement.
 
 It sits above P5 because a fortified corps cannot drill. It ignores P6's
-shock-bonus gate. A literal is held out by the MC-V-2 ruling (the user's
-question, `DESIGN_REFINEMENT.md` AIDR-D1).
+shock-bonus gate. A literal is held out by the MC-V-2 ruling — AIDR-D1
+DECIDED September 28, 2026: held out (the user delegated it, "remember Mack
+sucked"; `DESIGN_REFINEMENT.md` AIDR-D1).
 
 ### Priority 5: Fortification (Cautious Only)
 
@@ -406,7 +407,7 @@ marshals gone autonomous.
 | Threatened in P7 | NO fall-back — stands his ground |
 | Unthreatened in P7 | Holds his standing disposition; the stagnation breaker (turn 2+) is what finally moves him ("new orders arrive") |
 | P5 fortify / P6 drill | Never on his own initiative (cautious-only / aggressive-only) |
-| P4.9 drill to heal | Held out by this ruling (`LITERALS_DRILL_TO_HEAL = False`); whether a literal may drill to heal where he stands is the user's question, `DESIGN_REFINEMENT.md` AIDR-D1, with its measured arm |
+| P4.9 drill to heal | Held out by this ruling (`LITERALS_DRILL_TO_HEAL = False`) — AIDR-D1 DECIDED September 28, 2026: held out; the rot in place is the literal's character (Mack at Ulm). Measured arm kept; re-open condition in `DESIGN_REFINEMENT.md` AIDR-D1 |
 | P8 default | wait (no stance fiddling) |
 
 Net read: Mack sits at Ulm and gives battle at fair odds without ever

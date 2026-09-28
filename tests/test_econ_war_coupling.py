@@ -346,8 +346,16 @@ class TestStateChargesDrain:
         world.war_exhaustion["France"] = 80
         rate = world.get_state_charges_rate("France")["rate"]
         expected = (25000 - CHARGES_HOARD_FLOOR) * rate // WAR_EFFORT_DIVISOR
+        # SR-5a (IQ1-5-1, September 28, 2026): the ledger forecasts the
+        # charge the ADVANCE levies — its war-exhaustion tick (+8 at war)
+        # runs before the income phase — so the shown figure is the
+        # projected rate's. The direct income-phase call below runs no tick
+        # and levies today's rate, as it always did.
+        projected = world.get_state_charges_rate("France", projected=True)["rate"]
+        assert projected == rate + 8
         econ = _build_economy(world, "France")
-        assert econ["state_charges"] == expected
+        assert econ["state_charges"] == (
+            (25000 - CHARGES_HOARD_FLOOR) * projected // WAR_EFFORT_DIVISOR)
         result = world.process_income_phase("France")
         assert result["state_charges"] == expected
         # applied: treasury moved by net which includes the drain

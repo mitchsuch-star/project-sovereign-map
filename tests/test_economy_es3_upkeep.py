@@ -359,4 +359,16 @@ class TestTurn1Anchor:
             + calculate_trade_income(world1805).get("France", 0)
         )
         absorption = es3_only / gross
-        assert 0.40 <= absorption <= 0.55
+        # SR-5a "The chest" (September 28, 2026): the ruled package trims
+        # France's homeland to three-quarters of its registry yield, so the
+        # same upkeep is a larger share of a smaller gross — ES-3 alone
+        # 47% -> 59.5% (1,748 of 2,940). What the pin protects is the
+        # LAYERING: ES-3 alone stays below the stacked E1 measure (67.0%,
+        # `test_economy_e1_band.py`), and it still does.
+        assert 0.55 <= absorption <= 0.62
+        from backend.game_logic.ledger import _build_economy
+        econ = _build_economy(world1805, "France")
+        stacked_gross = (econ["income"] + econ["trade_income"]
+                         + econ["admin_bonus"] + econ["vassal_tribute"])
+        stacked = (econ["upkeep_base"] + econ["upkeep_surcharge"]) / stacked_gross
+        assert absorption < stacked

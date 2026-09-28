@@ -156,6 +156,17 @@ THE_DEED_HONOURS_THE_PETITION = True
 THE_LORD_PAYS_TO_GRANT = True
 THE_TRANSFER_SHEDS_THE_REMISSION = True
 A_RELIEF_OF_NOTHING_IS_WITHDRAWN = True
+# SR-5a (September 28, 2026; found re-seating the IQ-7 R7 card pin on the
+# ruled balance board): the producer asks AFTER the turn's loyalty tick
+# (`diplomacy` steps 5-7), so the Vassals card, forecasting the NEXT advance,
+# must read the standing the client will HAVE then. It read today's: at
+# loyalty 62 with a -5 forecast the card said "may petition" and the advance
+# took the client to 57, under the loyal line, before the gate ran — the
+# promise R7 says the card may never make. The projected gate (a) now adds
+# the knowable steady-state delta (`forecast_vassal_loyalty`, the tick term
+# for term but for the battle term, which no forecast can know — a stated
+# limit). The producer's own read is unchanged. Flip lever.
+THE_CARD_READS_TOMORROWS_STANDING = True
 
 # The blessed numbers. Every constant not marked "reused" is ⚠ FOR USER
 # CONFIRMATION (in-band tunable; the contract's §1.1 table).
@@ -3264,8 +3275,12 @@ def _petition_gate(world, lord: str, vassal_name: str, *, turn: int,
     if not row or str(row.get("lord") or "") != lord:
         return ("no_row", 0, None)
     threshold = 1 if projected else 0
-    # (a) standing
-    if int(row.get("loyalty", 0) or 0) < PETITION_LOYAL_MIN:
+    # (a) standing — the card reads tomorrow's (see the lever above).
+    standing = int(row.get("loyalty", 0) or 0)
+    if projected and THE_CARD_READS_TOMORROWS_STANDING:
+        standing += int(forecast_vassal_loyalty(world, lord, vassal_name)
+                        .get("forecast", 0) or 0)
+    if standing < PETITION_LOYAL_MIN:
         return ("loyalty", 0, None)
     # (b) grace / (c) cadence / (f) remission — the timed gates, each as the
     # number of end turns until it clears.

@@ -228,6 +228,10 @@ class TestTheHealRung:
         assert _heal(ai, world, "Castanos", "Spain") == {"marshal": "Castanos", "action": "drill"}
 
     def test_a_literal_is_held_out_by_the_standing_ruling(self, world, ai, monkeypatch):
+        """AIDR-D1 DECIDED September 28, 2026 (SR-5a session; the user
+        delegated it: "make a decision — remember Mack sucked"): held out.
+        The literal's rot in place is the character MC-V-2 authored."""
+        assert EA.LITERALS_DRILL_TO_HEAL is False
         armfelt = world.marshals["Armfelt"]
         armfelt.morale, armfelt.personality = 50, "literal"
         assert EA.get_effective_ai_personality(armfelt, world) == "literal"
@@ -338,5 +342,19 @@ class TestTheMeasuredArms:
             assert arms["arms"][lever]["series"] == arms["recorded"], lever
 
     def test_the_shipped_series_is_the_fix(self, arms):
+        """RE-SEATED by SR-5a "The chest" (September 28, 2026): the series
+        was re-recorded once more, for the ruled balance package. The drill
+        fix's arm 1 is now the prior record SR-5a's arm 0 (the pre-slice
+        scenario, every lever down) reproduces byte for byte; SR-5a's arm 1
+        is the standing series (`tools/_sr5a_series_arms.json`)."""
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
-        assert BASELINE_SERIES == arms["arms"]["1"]["series"]
+        drill = arms
+        # RE-SEATED by SR-5a "The chest" (September 28, 2026): one more link —
+        # the drill fix's arm 1 is the prior record SR-5a's arm 0 (the
+        # pre-slice scenario, every lever down) reproduces byte for byte, and
+        # SR-5a's arm 1 (the ruled balance package) is the standing series.
+        sr5a = json.loads((ROOT / "tools" / "_sr5a_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert drill["arms"]["1"]["series"] == sr5a["recorded"]
+        assert sr5a["arms"]["0"]["series"] == sr5a["recorded"]
+        assert BASELINE_SERIES == sr5a["arms"]["1"]["series"]

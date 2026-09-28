@@ -1085,7 +1085,13 @@ class TestTheAmbientBoard:
         # attribution block); the AI's orders stop naming Champagne and Maine
         # (the pair split below). With the five drill-fix levers down in the
         # child this arm reads 57 again (`tools/_drill_fix_wo_attribution.py`, measured).
-        assert seams == {"_fuzzy_match_enemy": 4}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix
+        # SR-5a "The chest" (September 28, 2026): 4 -> 11. The ruled balance
+        # package (Britain up, France trimmed) re-times the UNGATED board
+        # from turn 5 (the BASELINE_SERIES attribution block: Britain's half
+        # is the sole mover). With the PRE-SLICE scenario swapped in the
+        # child this arm reads 4 again (`tools/_sr5a_wo_attribution.py`,
+        # measured).
+        assert seams == {"_fuzzy_match_enemy": 11}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1141,7 +1147,14 @@ class TestTheAmbientBoard:
         # collapsing onto a marshal — the defect's shape, unchanged. With the
         # five drill-fix levers down in the child the RF-3 split returns
         # (`tools/_drill_fix_wo_attribution.py`, measured).
-        assert dict(pairs) == {("Leon", "Napoleon"): 4}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix
+        # SR-5a "The chest" (September 28, 2026): the ungated board re-times
+        # under the ruled balance package — `Champagne -> Ney` returns (8),
+        # `Leon -> Napoleon` 4 -> 3. Every pair is still a PROVINCE
+        # collapsing onto a marshal — the defect's shape, unchanged. With the
+        # pre-slice scenario swapped in the child the drill-fix split returns
+        # (`tools/_sr5a_wo_attribution.py`, measured).
+        assert dict(pairs) == {("Champagne", "Ney"): 8,
+                               ("Leon", "Napoleon"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1259,7 +1272,15 @@ class TestTheAmbientBoard:
         # one (the BASELINE_SERIES attribution block). With the five drill-fix
         # levers down in the child the RF-3 list returns byte-for-byte
         # (`tools/_drill_fix_wo_attribution.py`, measured).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 43, 41, 29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # Drill-fix record, kept for the diff:
+        # [70, 68, 66, 64, 62, 63, 61, 59, 57, 55, 53, 51, 49, 47, 45, 43, 41,
+        #  29, 26, 23, 20, 17, 14, 11, 8, 5, 2, 0, 0, ...]
+        # Re-recorded by SR-5a "The chest" (September 28, 2026): the ruled
+        # balance package re-times this arm from index [5] exactly as it
+        # re-times the gated one (the BASELINE_SERIES attribution block).
+        # With the pre-slice scenario swapped in the child the drill-fix list
+        # returns byte-for-byte (`tools/_sr5a_wo_attribution.py`, measured).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38, 36, 34, 32, 30, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1951,8 +1972,13 @@ class TestTheAiIsNotFrozenInstead:
         # gate re-times both boards from turn 6 (the gated board IS the
         # standing series board, re-recorded once). With the five drill-fix
         # levers down in the child both read 58 / 2 again (`tools/_drill_fix_wo_attribution.py`, measured).
-        assert cooldowns["ungated"] == 4, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix)
-        assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix)
+        # SR-5a "The chest" (September 28, 2026): 4 / 1 -> 12 / 0. The ruled
+        # balance package re-times both boards from turn 5 (the gated board
+        # IS the standing series board, re-recorded once). With the
+        # pre-slice scenario swapped in the child both read 4 / 1 again
+        # (`tools/_sr5a_wo_attribution.py`, measured).
+        assert cooldowns["ungated"] == 12, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package)
+        assert cooldowns["gated"] == 0, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package)
 
 
 _COOLDOWN_PROBE = r'''

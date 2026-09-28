@@ -217,11 +217,24 @@ _SEED_VARIANCE_OFF_CHILD = textwrap.dedent("""
     # directly and still roll on this seed. Measured September 16, 2026: 14
     # such draws a run — one slip roll (57 on historical, 47 here) against
     # odds of 88 that both pass, the rest text the digest does not carry.
-    # So control 2's equality holds on THIS board, not by construction: a
+    # So control 2's equality held on THAT board, not by construction: a
     # naval roll whose odds fell between the two draws would turn it red
     # with no loss of variance. Read such a red as that, not as a defect.
+    #
+    # SR-5a (September 28, 2026): it turned red exactly so. A richer Britain
+    # (the ruled balance package) fights more on the ulm board, a dice draw
+    # landed between the two seeds' rolls, and Kingdom of Italy fell a turn
+    # apart with no variance at stake. The control now holds BY
+    # CONSTRUCTION: the dice roll on the historical seed too — `_unit` is
+    # the one hash every `seeded_int` reads at call time, however the
+    # caller imported `seeded_int` — while `campaign_seed` still reads the
+    # seed's own name. What the signature separates is what the SEED did,
+    # its variance and its dice together.
     import backend.game_logic.campaign_variance as campaign_variance
     campaign_variance.is_historical = lambda _seed: True
+    _historical_unit = campaign_variance._unit
+    campaign_variance._unit = (
+        lambda _seed, namespace: _historical_unit("historical", namespace))
 
     spec = importlib.util.spec_from_file_location(
         "ai_v_sweep_seed_variance_off", tool_path)

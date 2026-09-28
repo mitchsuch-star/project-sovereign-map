@@ -27,9 +27,41 @@
     "sovereign_map": "europe",
     "player_nation": "France",
     "current_turn": 1,
+    "_economy_balance_comment": "SR-5a The chest (Score Mandate Chunk 5, RULED by the user September 28, 2026 - docs/SCORE_MANDATE_PLAN.md section 2 Chunk 5, rules docs/SYSTEMS_REFERENCE.md section 76): Britain is the richest court in Europe and France pays for its war by conquest. region_overrides carries each province's income_value: every French homeland province yields three-quarters of the registry figure (3,400 -> 2,590 gold; the Emperor's 1805 treasury was in crisis until Austerlitz) and England's five industrial and commercial provinces rise (London 500, East Anglia 300, Midlands 300, Northumbria 150, Scotland 150; 1,500 -> 2,050). With the navies block (Britain trade_dominance 300 -> 450, overseas_income 500 -> 1,000) Britain nets 2,851 a turn at boot against France's 1,032 (it was 1,901 against 1,842); France's turn-1 absorption is 67%, inside the 55-70% band the EC-2 gate blessed. Scenario-scoped: the registry, the tutorial and the legacy world keep their figures.",
     "region_overrides": {
-        "Flanders": {"garrison_strength": 12000},
-        "Normandy": {"garrison_strength": 12000}
+        "Paris": {"income_value": 220},
+        "Berry": {"income_value": 150},
+        "Provence": {"income_value": 150},
+        "Flanders": {"garrison_strength": 12000, "income_value": 150},
+        "Corsica": {"income_value": 150},
+        "Artois": {"income_value": 110},
+        "Rhineland": {"income_value": 110},
+        "Gascony": {"income_value": 110},
+        "Guyenne": {"income_value": 110},
+        "Limousin": {"income_value": 110},
+        "Anjou": {"income_value": 110},
+        "Lorraine": {"income_value": 110},
+        "Lyonnais": {"income_value": 80},
+        "Bearn": {"income_value": 80},
+        "Savoy": {"income_value": 80},
+        "Maine": {"income_value": 80},
+        "Franche-Comte": {"income_value": 80},
+        "Bordelais": {"income_value": 80},
+        "Orleanais": {"income_value": 80},
+        "Languedoc": {"income_value": 80},
+        "Brittany": {"income_value": 80},
+        "Nivernais": {"income_value": 40},
+        "Burgundy": {"income_value": 40},
+        "Champagne": {"income_value": 40},
+        "Normandy": {"garrison_strength": 12000, "income_value": 40},
+        "Ile-de-France": {"income_value": 40},
+        "Picardy": {"income_value": 40},
+        "Ardennes": {"income_value": 40},
+        "London": {"income_value": 500},
+        "East Anglia": {"income_value": 300},
+        "Midlands": {"income_value": 300},
+        "Northumbria": {"income_value": 150},
+        "Scotland": {"income_value": 150}
     },
     "starting_wars": [
         {"attacker": "France", "defender": "Britain"},
@@ -1325,15 +1357,15 @@
             }
         ]
     },
-    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. NUI-2 (Sept 24, 2026; tools/gen_port_anchors.py): a dockyard must reach open water in the art, so three yards moved - Holland's Amsterdam -> Friesland (the Frisian coast and the Texel roadstead; the art draws Amsterdam inland), France's Channel yard Flanders -> Normandy (Le Havre and Cherbourg; the art draws Flanders inland, and it stays a camp province - Davout's camp at Bruges), Russia's Estonia -> Livonia (Riga; the art gives the province named Estonia a lake pocket, not a shore). The map draws each fleet on the water off its senior yard (the registry's port_anchor). DEF-14 (Sept 24, 2026; tools/audit_province_names.py): two yards' provinces were renamed to where the art paints them - Sweden's Scania is Stralsund (Swedish Pomerania's port, where Armfelt's army stood in 1805) and Spain's Toledo is Cartagena (the south-east coast; Spain's Mediterranean arsenal in 1805); the yards did not move. EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 500 = the India/sugar trade + the fiscal machine; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
+    "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. NUI-2 (Sept 24, 2026; tools/gen_port_anchors.py): a dockyard must reach open water in the art, so three yards moved - Holland's Amsterdam -> Friesland (the Frisian coast and the Texel roadstead; the art draws Amsterdam inland), France's Channel yard Flanders -> Normandy (Le Havre and Cherbourg; the art draws Flanders inland, and it stays a camp province - Davout's camp at Bruges), Russia's Estonia -> Livonia (Riga; the art gives the province named Estonia a lake pocket, not a shore). The map draws each fleet on the water off its senior yard (the registry's port_anchor). DEF-14 (Sept 24, 2026; tools/audit_province_names.py): two yards' provinces were renamed to where the art paints them - Sweden's Scania is Stralsund (Swedish Pomerania's port, where Armfelt's army stood in 1805) and Spain's Toledo is Cartagena (the south-east coast; Spain's Mediterranean arsenal in 1805); the yards did not move. EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 1,000 (SR-5a, September 28 2026, was 500) = the India/sugar trade + the fiscal machine; trade_dominance 450 (SR-5a, was 300) = the City's carrying trade; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
     "navies": {
         "Britain": {
             "ships": 100,
             "readiness": 100,
             "admiral": "Nelson",
             "island": true,
-            "trade_dominance": 300,
-            "overseas_income": 500,
+            "trade_dominance": 450,
+            "overseas_income": 1000,
             "dockyards": ["London", "East Anglia", "Cornwall"]
         },
         "France": {

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "AAR-6 the admin order asks the military pool again",
+    "file": "backend/commands/executor.py",
+    "old": "                        and not (AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL\n                                 and is_admin_action)):",
+    "new": "                        and not (False\n                                 and is_admin_action)):",
+    "tests": "tests/test_sr5a_the_chest.py::TestAAR6TheAdminPool"
+  },
+  {
+    "id": "AAR-6 the exemption swallows field orders",
+    "file": "backend/commands/executor.py",
+    "old": "                        and not (AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL\n                                 and is_admin_action)):",
+    "new": "                        and not AN_ADMIN_ORDER_ASKS_ONLY_THE_ADMIN_POOL):",
+    "tests": "tests/test_sr5a_the_chest.py::TestAAR6TheAdminPool"
+  },
+  {
+    "id": "Substitutes: the named ground is never read",
+    "file": "backend/commands/economy_executor.py",
+    "old": "        if (THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES\n                and world.get_marshal(marshal_name) is None):",
+    "new": "        if (False\n                and world.get_marshal(marshal_name) is None):",
+    "tests": "tests/test_sr5a_the_chest.py::TestTheNamedGroundReceivesTheSubstitutes"
+  },
+  {
+    "id": "Substitutes: the error dict is stuffed back into the message",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            if THE_NAMED_GROUND_RECEIVES_THE_SUBSTITUTES:\n                return error\n            return {\"success\": False, \"message\": error}",
+    "new": "            return {\"success\": False, \"message\": error}",
+    "tests": "tests/test_sr5a_the_chest.py::TestTheNamedGroundReceivesTheSubstitutes"
+  },
+  {
+    "id": "Substitutes: a cavalry marshal on the ground is taken",
+    "file": "backend/commands/economy_executor.py",
+    "old": "                            and not getattr(m, \"cavalry\", False)\n                            and not getattr(m, \"artillery\", False)]",
+    "new": "                            ]",
+    "tests": "tests/test_sr5a_the_chest.py::TestTheNamedGroundReceivesTheSubstitutes"
+  },
+  {
+    "id": "The ledger: the why-notes never speak",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    out = {\"upkeep_note\": \"\", \"charges_note\": \"\"}\n    if not THE_BILLS_SAY_WHY_THEY_MOVED:\n        return out",
+    "new": "    out = {\"upkeep_note\": \"\", \"charges_note\": \"\"}\n    if True:\n        return out",
+    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved tests/test_iq1_iq1_5_the_exit.py::TestTheLedgerSaysWhy"
+  },
+  {
+    "id": "The ledger: the smaller army is never compared",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        if was_bill > upkeep and was_men > men:",
+    "new": "        if False:",
+    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved tests/test_iq1_iq1_5_the_exit.py::TestTheLedgerSaysWhy"
+  },
+  {
+    "id": "The ledger: the chest's part is never named",
+    "file": "backend/game_logic/ledger.py",
+    "old": "                reasons = ([\"the chest is fuller\"] if chest_part > 0 else []) + (\n                    rising if rate_part > 0 else [])",
+    "new": "                reasons = [] + (\n                    rising if rate_part > 0 else [])",
+    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved"
+  },
+  {
+    "id": "The ledger: the rate's part is never named",
+    "file": "backend/game_logic/ledger.py",
+    "old": "                reasons = ([\"the chest is fuller\"] if chest_part > 0 else []) + (\n                    rising if rate_part > 0 else [])",
+    "new": "                reasons = ([\"the chest is fuller\"] if chest_part > 0 else [])",
+    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved"
+  },
+  {
+    "id": "The ledger: the calmer realm is never named",
+    "file": "backend/game_logic/ledger.py",
+    "old": "                    [\"the realm is calmer\"] if rate_part < 0 else [])",
+    "new": "                    [] if rate_part < 0 else [])",
+    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved"
+  },
+  {
+    "id": "The ledger: the rate note loses its plain clause",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        note += \", so a fuller chest pays more\"",
+    "new": "        pass",
+    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved tests/test_iq1_iq1_5_the_exit.py::TestTheLedgerSaysWhy"
+  },
+  {
+    "id": "IQ1-5-1 the forecast prices today's war again",
+    "file": "backend/models/world_state.py",
+    "old": "        if projected and THE_FORECAST_PRICES_TOMORROWS_WAR:",
+    "new": "        if False:",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
+  },
+  {
+    "id": "IQ1-5-1 the ledger never asks for the projection",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        income_data = world.calculate_turn_income(player, projected=True)",
+    "new": "        income_data = world.calculate_turn_income(player)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
+  },
+  {
+    "id": "IQ1-5-1 the income path drops the flag",
+    "file": "backend/models/world_state.py",
+    "old": "        charges_rate = self.get_state_charges_rate(nation, projected=projected)",
+    "new": "        charges_rate = self.get_state_charges_rate(nation)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote"
+  },
+  {
+    "id": "IQ1-5-1 the tick's helper forgets the cap",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    if at_war:\n        return min(current + 8, WAR_EXHAUSTION_MAX)\n    return max(current - 5, 0)",
+    "new": "    if at_war:\n        return current + 8\n    return max(current - 5, 0)",
+    "tests": "tests/test_iq1_iq1_5_the_exit.py::TestIq151TheStaleQuote tests/test_sr5a_the_chest.py::TestTheForecastAndTheTick"
+  },
+  {
+    "id": "IQ1-5-1 the tick's helper never decays",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    if at_war:\n        return min(current + 8, WAR_EXHAUSTION_MAX)\n    return max(current - 5, 0)",
+    "new": "    if at_war:\n        return min(current + 8, WAR_EXHAUSTION_MAX)\n    return current",
+    "tests": "tests/test_sr5a_the_chest.py::TestTheForecastAndTheTick"
+  },
+  {
+    "id": "The card reads today's standing again",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if projected and THE_CARD_READS_TOMORROWS_STANDING:",
+    "new": "    if False:",
+    "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth"
+  },
+  {
+    "id": "The card reads tomorrow's standing on the producer too",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if projected and THE_CARD_READS_TOMORROWS_STANDING:",
+    "new": "    if THE_CARD_READS_TOMORROWS_STANDING:",
+    "tests": "tests/test_iq7_review_round.py::TestR7TheCardTellsTheTruth"
+  }
+]

@@ -1217,6 +1217,25 @@ RECOVERY rather than position** — replacing what a defeat destroyed should be
 dear — which needs a design answer before a build contract. **IQ-1 closes on
 (a), (b), (d) with (c) handed off, owner named, GR9-clean.**
 
+**✅ QUESTION (c) RULED September 28, 2026, by the user — "keep the rules,
+make it legible"** (Score Mandate Chunk 5, SR-5a "The chest";
+`SCORE_MANDATE_PLAN.md` §2; rules `SYSTEMS_REFERENCE.md` §76). Re-measured
+at HEAD first (`advance_turn`-driven, both boards held at peace): the ratchet
+is two rules the user chose meeting — the army is paid for the men under
+arms (the July 14 reversal of EC-U1: the fallen draw no pay) and the Charges
+of Empire are a share of the chest (EB-1: a fuller chest pays more) — while
+the beaten board's provinces recover. Nothing about either rule moves. The
+ledger now says why each bill moved since the last charged turn
+(`ledger.why_the_bills_moved`: "the fallen draw no pay; 500g less than last
+turn's bill, the army 40,000 men smaller" beside Upkeep, "the chest is
+fuller" / "the realm's condition raised the rate" beside the Charges of
+Empire). A beaten France recovering faster is the rubber band the EC-2 gate
+asked for. On the same session's ruled balance board the gap no longer
+inverts — the beaten France leads from the first tick (+257) and the
+internment doubles it (+941) — and the pins in
+`tests/test_iq1_iq1_5_the_exit.py::TestCompletionItemTwo` were rewritten to
+that shape, not deleted, as their docstring asked.
+
 ~~**IQ1-5 — "The Exit": the ratio's replacement and the pillar re-score.**~~
 ✅ **HELD September 14, 2026 — landing record §0.6b.** No production code. The
 four completion items measured on committed archived arms with the re-stated

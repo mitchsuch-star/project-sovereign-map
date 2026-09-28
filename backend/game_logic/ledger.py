@@ -577,8 +577,96 @@ def state_charges_ceiling(net: int, rate: int) -> int:
 
 def _state_charges_rate_note() -> str:
     from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
-    return (f"rate points — each draws 1g per {int(WAR_EFFORT_DIVISOR):,}g of the chest "
+    note = (f"rate points — each draws 1g per {int(WAR_EFFORT_DIVISOR):,}g of the chest "
             f"above the {int(CHARGES_HOARD_FLOOR):,}g floor")
+    if THE_BILLS_SAY_WHY_THEY_MOVED:
+        # SR-5a question (c): the victor's Net decays as its chest fills —
+        # say so in the words the player reads, not only the unit.
+        note += ", so a fuller chest pays more"
+    return note
+
+
+# SR-5a question (c) (RULED by the user September 28, 2026: "keep the rules,
+# make it legible"). The victor's ratchet is two blessed rules meeting — the
+# army is paid for the men under arms today (the July 14 reversal of EC-U1:
+# the fallen draw no pay) and the Charges of Empire are a share of the chest
+# (EB-1: a fuller chest pays more). Nothing about either rule moves; the
+# ledger now SAYS why each bill moved since the last turn it charged.
+# Display only (GR6), derived from the income phase's own transient
+# applied-results cache, zero new serialized fields. Flip lever.
+THE_BILLS_SAY_WHY_THEY_MOVED = True
+
+
+def _rate_of(terms) -> int:
+    return sum(int((t or {}).get("amount", 0) or 0) for t in (terms or []))
+
+
+def why_the_bills_moved(world, nation: str, upkeep_data: dict,
+                        state_charges: int, state_charges_terms=None) -> Dict[str, str]:
+    """SR-5a (c): one plain sentence per bill that moved since last turn.
+
+    Compares THIS turn's projection (the ledger tab's own figures) with the
+    turn the income phase last CHARGED (`world._income_phase_results`, the
+    applied cache the dispatch and the end-turn banners already read). After
+    a load the cache is empty and only the standing rule is said.
+    """
+    out = {"upkeep_note": "", "charges_note": ""}
+    if not THE_BILLS_SAY_WHY_THEY_MOVED:
+        return out
+    men = int((upkeep_data or {}).get("total_strength", 0) or 0)
+    upkeep = int((upkeep_data or {}).get("total", 0) or 0)
+    out["upkeep_note"] = (f"paid for the {men:,} men under arms — the fallen "
+                          f"draw no pay") if men > 0 else ""
+    last = (getattr(world, "_income_phase_results", None) or {}).get(nation) or {}
+    last_upkeep = last.get("upkeep_data") or {}
+    if last_upkeep:
+        was_bill = int(last_upkeep.get("total", 0) or 0)
+        was_men = int(last_upkeep.get("total_strength", 0) or 0)
+        if was_bill > upkeep and was_men > men:
+            out["upkeep_note"] += (
+                f"; {was_bill - upkeep:,}g less than last turn's bill, the "
+                f"army {was_men - men:,} men smaller")
+        elif upkeep > was_bill and men > was_men:
+            out["upkeep_note"] += (
+                f"; {upkeep - was_bill:,}g more than last turn's bill, the "
+                f"army {men - was_men:,} men larger")
+    if "state_charges" in last:
+        was_charge = int(last.get("state_charges", 0) or 0)
+        was_terms = (last.get("breakdown") or {}).get("state_charges_terms") or []
+        now_terms = list(state_charges_terms or [])
+        was_rate = _rate_of(was_terms)
+        charge = int(state_charges)
+        if charge != was_charge:
+            # Split the move by the formula itself: the draw today's chest
+            # would pay at LAST turn's rate isolates the chest's part; the
+            # rest is the rate's, named by the terms that moved.
+            from backend.models.world_state import (
+                CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR)
+            gold = int((getattr(world, "nation_gold", {}) or {}).get(nation, 0) or 0)
+            at_old_rate = (int(max(0, gold - CHARGES_HOARD_FLOOR) * was_rate
+                               // WAR_EFFORT_DIVISOR) if was_rate > 0 else 0)
+            chest_part = at_old_rate - was_charge
+            rate_part = charge - at_old_rate
+            was_by_key = {t.get("key"): int(t.get("amount", 0) or 0) for t in was_terms}
+            now_by_key = {t.get("key"): int(t.get("amount", 0) or 0) for t in now_terms}
+            labels = {t.get("key"): str(t.get("label") or "")
+                      for t in (*was_terms, *now_terms)}
+            rising = [f"{labels[k]} (+{now_by_key[k] - was_by_key.get(k, 0)})"
+                      for k in now_by_key
+                      if now_by_key[k] > was_by_key.get(k, 0) and labels.get(k)]
+            if charge > was_charge:
+                reasons = (["the chest is fuller"] if chest_part > 0 else []) + (
+                    rising if rate_part > 0 else [])
+                reasons = reasons or ["the chest is fuller"]
+                out["charges_note"] = (f"{charge - was_charge:,}g more than last "
+                                       f"turn's draw — " + " and ".join(reasons))
+            else:
+                reasons = (["the chest is leaner"] if chest_part < 0 else []) + (
+                    ["the realm is calmer"] if rate_part < 0 else [])
+                reasons = reasons or ["the chest is leaner"]
+                out["charges_note"] = (f"{was_charge - charge:,}g less than last "
+                                       f"turn's draw — " + " and ".join(reasons))
+    return out
 
 
 def _build_economy(world, player: str, income_data: dict = None) -> dict:
@@ -592,7 +680,10 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     and keeps today's behaviour byte-identically.
     """
     if income_data is None:
-        income_data = world.calculate_turn_income(player)
+        # SR-5a (IQ1-5-1): a forward projection prices the Charges of Empire
+        # at the rate the next advance will levy (its war-exhaustion tick
+        # runs before the income phase) — `projected=True`.
+        income_data = world.calculate_turn_income(player, projected=True)
     # Same prefer-applied contract for upkeep: calculate_turn_upkeep reads
     # nation_bankruptcy_turns, which _update_bankruptcy mutates AFTER the
     # income phase — recomputing on a bankruptcy-flip turn is off by half
@@ -827,6 +918,9 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         _ceiling_value = state_charges_ceiling(_ceiling_gross, _ceiling_rate)
         _ceiling_state = CEILING_BOUNDED
 
+    _why = why_the_bills_moved(world, player, upkeep_data, state_charges,
+                               state_charges_terms)
+
     return {
         "treasury": _treasury,
         "income": income,
@@ -847,6 +941,10 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # Slice 17 review round (L2-7): the terms are RATE POINTS under a gold
         # figure; say the unit, from the constants the charge is computed with.
         "state_charges_rate_note": _state_charges_rate_note(),
+        # SR-5a question (c): why the bills moved since the last charged turn
+        # (display only; "" when nothing moved or the cache is empty).
+        "state_charges_delta_note": _why["charges_note"],
+        "upkeep_note": _why["upkeep_note"],
         # FA-D26 (slice 17, Phase 2): the Butcher's Bill (EC-W3) is charged at
         # the battle, OUTSIDE Net by design (the plunder-gold precedent), and
         # the ledger had no row for it — the one component the applied

@@ -119,10 +119,20 @@ class TestBlockadeTradeComponent:
 
 class TestTradeDominance:
     def test_boot_scaling_by_closure(self, world):
-        """300 × (1 − 0.385) = 184 — the System squeezes from turn one."""
-        assert naval.trade_dominance_income(world, "Britain") == 184
+        """450 × (1 − 0.385) = 276 — the System squeezes from turn one.
+
+        SR-5a (September 28, 2026): the ruled balance package raised
+        Britain's authored trade dominance 300 -> 450 (the City's carrying
+        trade; `europe_1805.json` navies, "Britain up, France trimmed").
+        The pin reads the authored figure so the scaling, not the literal,
+        is what it holds: it was 184 at 300."""
+        td = int(world.fleets["Britain"]["trade_dominance"])
+        assert td == 450
+        expected = int(td * (1 - naval.closure_against(world, "Britain")))
+        assert expected == 276
+        assert naval.trade_dominance_income(world, "Britain") == expected
         income = world.calculate_turn_income("Britain")
-        assert income["breakdown"]["naval_income"] == 184
+        assert income["breakdown"]["naval_income"] == expected
 
     def test_suspended_entirely_under_blockade(self, world):
         world.fleets["France"]["posture"] = "blockade"
@@ -141,7 +151,8 @@ class TestTradeDominance:
             world.diplomatic_states[key] = "WAR"
         world.invalidate_active_nations_cache()
         assert naval.closure_against(world, "Britain") == 1.0
-        assert naval.trade_dominance_income(world, "Britain") == 120  # 300×0.4
+        # SR-5a: 450 × 0.4 (it was 300 × 0.4 = 120 before the ruled package).
+        assert naval.trade_dominance_income(world, "Britain") == 180
 
     def test_power_score_absorbed_static(self, world):
         """The td arm is STATIC — closure never feeds coalition math

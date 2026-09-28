@@ -114,7 +114,12 @@ class TestTheCeilingIsTheFixedPoint:
         re-written against the arithmetic instead, and the chest is raised so
         the two arguments differ.
         """
-        world.nation_gold["France"] = 40_000
+        # SR-5a (September 28, 2026): 40,000 -> 20,000. Under the ruled
+        # balance package France's fixed point is 34,250 (it was 59,562), so
+        # a 40,000 chest sits ABOVE it and the last line below — the chest
+        # can still climb to the ceiling — would be false by construction.
+        # 20,000 still bites (576 a turn) and is still below the ceiling.
+        world.nation_gold["France"] = 20_000
         econ = _build_economy(world, "France")
         rate = sum(int(t.get("amount", 0))
                    for t in econ.get("state_charges_terms", []))
@@ -139,7 +144,11 @@ class TestShownEqualsApplied:
         econ = _build_economy(world, "France")
         shown_rate = sum(int(t.get("amount", 0))
                          for t in econ["state_charges_terms"])
-        applied_rate = world.get_state_charges_rate("France")["rate"]
+        # SR-5a (IQ1-5-1, September 28, 2026) — re-seated consciously: the
+        # ledger forecasts the NEXT advance, whose war-exhaustion tick runs
+        # before the income phase, so the rate the charge will be applied
+        # at is the PROJECTED one (France boots at war: 88, not today's 80).
+        applied_rate = world.get_state_charges_rate("France", projected=True)["rate"]
         assert shown_rate == applied_rate
         # ⚠ PIN FLIPPED CONSCIOUSLY, IQ1-2 — the second assertion was the
         # same tautology as above. What shown=applied actually requires is
@@ -148,7 +157,7 @@ class TestShownEqualsApplied:
         # is non-zero and the two readings are distinguishable.
         world.nation_gold["France"] = 40_000
         econ = _build_economy(world, "France")
-        applied = world.get_state_charges_rate("France")["rate"]
+        applied = world.get_state_charges_rate("France", projected=True)["rate"]
         gross = econ["net"] + econ["state_charges"]
         assert econ["state_charges"] > 0
         assert econ["ceiling"] == state_charges_ceiling(gross, applied)

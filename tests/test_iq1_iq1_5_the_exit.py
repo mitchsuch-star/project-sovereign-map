@@ -21,7 +21,9 @@ What is pinned:
 * **(ii)** the item the row could NOT close: a beaten France out-earns a whole
   one, and it is a ratchet rather than a handicap. Pinned as a live measurement
   with a direction, so that when question (c)'s design gate builds its answer
-  this file reds and says which half moved.
+  this file reds and says which half moved. **RULED September 28, 2026
+  (SR-5a): keep the rules, make them legible** — the pins now record the
+  ruled board's shape and that the ledger says why each bill moved.
 * **(iii)** the purse census: exactly FOUR production sites move France's gold
   in a real turn, and exactly ONE of them is invisible to Net.
 * **IQ1-5-1** the new finding: the Charges of Empire are quoted one war-effort
@@ -213,6 +215,23 @@ def _hold_at_peace(world):
 class TestCompletionItemTwo:
     """MEASURED FALSE. Pinned so the (c) gate's answer reds this file.
 
+    ── RULED September 28, 2026 — SR-5a "The chest", question (c) ──────────
+    The user kept the rules and asked for them to be legible: the army is
+    paid for the men under arms (the July 14 reversal of EC-U1 — the fallen
+    draw no pay) and the Charges of Empire are a share of the chest (EB-1 — a
+    fuller chest pays more). Nothing about either rule moved; the ledger now
+    names why each bill moved since the last turn it charged
+    (`ledger.why_the_bills_moved`, `TestTheLedgerSaysWhy` below).
+
+    The same session's ruled balance package ("Britain up, France trimmed":
+    every French homeland province at three-quarters of its registry yield)
+    changes the SHAPE these pins measure, and they are rewritten to it rather
+    than deleted: the whole France's homeland no longer pays for its whole
+    189,000-man army (its income phase nets -26 at tick 0, the satellites'
+    tribute carrying it), so the beaten France out-earns it from the FIRST
+    tick (+257) instead of from the bleed, and the internment widens the gap
+    at a stroke (+373 -> +941). The ratchet stands, by ruling.
+
     Both boards are held at PEACE before every tick, so what is measured is the
     upkeep asymmetry and not a difference in war rate — without that the gap is
     partly a cascade re-declaring on one board and not the other.
@@ -252,29 +271,26 @@ class TestCompletionItemTwo:
         return out
 
     def test_the_beaten_france_out_earns_the_whole_one(self, series):
-        """The defect: losing pays. Fixing (c) reds this."""
+        """Losing pays — RULED to stand (SR-5a, question (c)). On the ruled
+        balance board it pays from the first tick, under the less flattering
+        construction too (beat, then make peace)."""
         ahead = [i for i, (w, b, _, _c) in enumerate(series) if b > w]
-        assert ahead, (
-            "a beaten France no longer out-earns a whole one — if question "
-            "(c)'s design gate has landed, this pin is the thing that should "
-            "be rewritten, not deleted")
-        assert min(ahead) >= 1, (
-            "the turn-0 reading is construction-dependent and this class "
-            "deliberately builds the board the way that does NOT flatter the "
-            "finding — see the class docstring")
+        assert ahead == list(range(self.TICKS)), (
+            f"the beaten France should lead on every tick: {series}")
 
     def test_it_is_a_ratchet_not_a_fixed_handicap(self, series):
         """The correction the exit made to the row's own contract: the gap does
-        not settle at a handicap, it INVERTS and then widens every turn, as the
-        loser bleeds further and its upkeep falls again."""
+        not settle at a handicap, it widens every turn, and the further bleed
+        widens it at a stroke. On the ruled board (SR-5a) it no longer
+        INVERTS — the beaten France leads from the first tick — so the pin
+        asserts the widening and the step, which is the ratchet itself."""
         gaps = [b - w for w, b, _, _c in series]
         early, late = gaps[:self.BLEED_TICK], gaps[self.BLEED_TICK:]
-        assert all(g < 0 for g in early), (
-            f"the whole France should lead before the further bleed: {early}")
-        assert all(g > 0 for g in late), (
-            f"and be behind after it: {late}")
-        assert late == sorted(late), (
-            f"the late gap must be WIDENING, not converging: {late}")
+        assert all(g > 0 for g in gaps), gaps
+        assert min(late) > max(early), (
+            f"the further bleed must widen the gap at a stroke: {gaps}")
+        assert early == sorted(early) and late == sorted(late), (
+            f"the gap must be WIDENING, not converging: {gaps}")
 
     def test_the_inversion_is_caused_by_losing_more(self, series):
         """Why it is a ratchet and not a one-off: the turn the gap flips is the
@@ -299,7 +315,9 @@ class TestCompletionItemTwo:
             f"the fall is whole CORPS being removed, not attrition: {lost}")
         assert before - after == 25_000
         gaps = [b - w for w, b, _, _c in series]
-        assert gaps[self.BLEED_TICK - 1] < 0 < gaps[self.BLEED_TICK]
+        # SR-5a: on the ruled board the gap is already positive before the
+        # bleed; what the internment does is DOUBLE it at a stroke.
+        assert gaps[self.BLEED_TICK] > 2 * gaps[self.BLEED_TICK - 1] > 0, gaps
 
     def test_the_engine_names_the_mechanism_internment(self):
         """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT. The pins above INFER
@@ -344,6 +362,59 @@ class TestCompletionItemTwo:
         beaten = [b for _, b, _, _c in series]
         assert whole[-1] < whole[0], f"the victor's Net decays: {whole}"
         assert beaten[-1] > beaten[0], f"the loser's Net grows: {beaten}"
+
+
+class TestTheLedgerSaysWhy:
+    """SR-5a question (c), RULED "keep the rules, make it legible": the two
+    boards of the ratchet, advanced through the REAL turn (once, through
+    `advance_turn` alone — this file's own trap), each read the sentence the
+    ledger now prints beside the bill that moved.
+
+    Killed by: `ledger.THE_BILLS_SAY_WHY_THEY_MOVED` down, a note that no
+    longer compares with the charged turn, or a charges note that blames the
+    chest for a rate the realm raised."""
+
+    def _advance(self, world):
+        _hold_at_peace(world)
+        _quiet(world.advance_turn)
+
+    def test_the_victors_chest_is_named_when_the_charges_rise(self):
+        from backend.game_logic.ledger import _build_economy
+        whole = _boot(5_000)
+        _hold_at_peace(whole)
+        self._advance(whole)
+        econ = _quiet(_build_economy, whole, "France")
+        assert "the chest is fuller" in econ["state_charges_delta_note"], econ[
+            "state_charges_delta_note"]
+        assert "fuller chest pays more" in econ["state_charges_rate_note"]
+        assert "the fallen draw no pay" in econ["upkeep_note"]
+
+    def test_the_losers_upkeep_is_named_when_the_army_falls(self):
+        from backend.game_logic.ledger import _build_economy
+        beaten = _beaten(_boot(5_000))
+        _hold_at_peace(beaten)
+        army_before = _french_army(beaten)
+        self._advance(beaten)
+        # the fallen are taken off the rolls between the charged turn and
+        # the next one (the half-army board, with 20,000 more lost)
+        for m in beaten.marshals.values():
+            if m.nation == "France" and m.name == "Ney":
+                m.strength = max(0, m.strength - 10_000)
+        econ = _quiet(_build_economy, beaten, "France")
+        note = econ["upkeep_note"]
+        assert "less than last turn's bill" in note, note
+        assert "men smaller" in note, note
+        assert _french_army(beaten) < army_before
+
+    def test_lever_down_says_only_what_it_said_before(self, monkeypatch):
+        from backend.game_logic import ledger as LG
+        monkeypatch.setattr(LG, "THE_BILLS_SAY_WHY_THEY_MOVED", False)
+        whole = _boot(5_000)
+        _hold_at_peace(whole)
+        self._advance(whole)
+        econ = _quiet(LG._build_economy, whole, "France")
+        assert econ["upkeep_note"] == "" and econ["state_charges_delta_note"] == ""
+        assert "fuller chest" not in econ["state_charges_rate_note"]
 
 
 # ---------------------------------------------------------------------------
@@ -450,21 +521,37 @@ class TestCompletionItemThree:
 # ---------------------------------------------------------------------------
 
 class TestIq151TheStaleQuote:
-    """The Charges of Empire are quoted one war-effort tick stale.
+    """The Charges of Empire were quoted one war-effort tick stale.
 
-    A CHARACTERIZATION pin: it asserts the defect on purpose, so the fix reds
-    it. `BUG_FIXES.md` §Improvement Queue carries the row and its fix shape.
+    It was a CHARACTERIZATION pin (it asserted the defect so the fix would
+    red it). ✅ FIXED September 28, 2026 by SR-5a "The chest", which owns the
+    row (PB-7): the forecast prices the war-exhaustion term at the value the
+    advance's own tick writes before the income phase levies the charge
+    (`coalition.next_war_exhaustion`, the tick's single source;
+    `world_state.THE_FORECAST_PRICES_TOMORROWS_WAR`). The pins now assert the
+    quote IS the levy, and the lever-down arm reproduces the measured stale
+    gap to the gold, so the cause stays named.
     """
 
-    @pytest.fixture
-    def one_turn(self):
-        world = _boot()
+    @staticmethod
+    def _one_turn(gold=40_000):
+        world = _boot(gold=gold)
         quoted = _quiet(L._build_economy, world, "France")
         rate_before = _quiet(world.get_state_charges_rate, "France")["rate"]
         _quiet(world.advance_turn)
         rate_after = _quiet(world.get_state_charges_rate, "France")["rate"]
         applied = (getattr(world, "_income_phase_results", {}) or {}).get("France", {})
         return quoted, applied, rate_before, rate_after
+
+    @pytest.fixture
+    def one_turn(self):
+        return self._one_turn()
+
+    @pytest.fixture
+    def stale(self, monkeypatch):
+        from backend.models import world_state as WS
+        monkeypatch.setattr(WS, "THE_FORECAST_PRICES_TOMORROWS_WAR", False)
+        return self._one_turn()
 
     def test_every_other_ledger_term_is_exact(self, one_turn):
         """The finding is precise because nothing else moves: if this reds, the
@@ -478,16 +565,20 @@ class TestIq151TheStaleQuote:
         assert int(quoted["upkeep_base"]) == int(upkeep.get("base", 0) or 0)
         assert int(quoted["upkeep_surcharge"]) == int(upkeep.get("surcharge", 0) or 0)
 
-    def test_the_charge_levied_exceeds_the_charge_quoted(self, one_turn):
+    def test_the_charge_quoted_is_the_charge_levied(self, one_turn):
         quoted, applied, _, _ = one_turn
-        assert int(applied["state_charges"]) > int(quoted["state_charges"]), (
-            "the Charges of Empire are no longer quoted stale — if IQ1-5-1 has "
-            "been fixed, this pin is what should change")
+        assert int(quoted["state_charges"]) == int(applied["state_charges"]) == 1337
 
-    def test_the_cause_is_the_war_exhaustion_tick(self, one_turn):
-        """Named, not guessed: the rate itself moves across the advance, and the
-        gap is exactly the chest above the floor times that move."""
-        quoted, applied, rate_before, rate_after = one_turn
+    def test_lever_down_the_levy_exceeds_the_quote(self, stale):
+        quoted, applied, _, _ = stale
+        assert int(applied["state_charges"]) > int(quoted["state_charges"])
+        assert int(applied["state_charges"]) - int(quoted["state_charges"]) == 121
+
+    def test_the_cause_is_the_war_exhaustion_tick(self, stale):
+        """Named, not guessed (lever down): the rate itself moves across the
+        advance, and the gap is exactly the chest above the floor times that
+        move."""
+        quoted, applied, rate_before, rate_after = stale
         assert rate_after > rate_before
         gap = int(applied["state_charges"]) - int(quoted["state_charges"])
         chest_above_floor = 40_000 - CHARGES_HOARD_FLOOR
@@ -495,31 +586,41 @@ class TestIq151TheStaleQuote:
                      - chest_above_floor * rate_before // WAR_EFFORT_DIVISOR)
         assert gap == predicted
 
+    def test_the_forecast_reads_the_ticks_own_arithmetic(self):
+        from backend.game_logic.coalition import next_war_exhaustion
+        world = _boot()
+        before = int(world.war_exhaustion.get("France", 0) or 0)
+        tomorrow = next_war_exhaustion(world, "France")
+        _quiet(world.advance_turn)
+        assert int(world.war_exhaustion.get("France", 0) or 0) == tomorrow
+        assert tomorrow == before + 8   # France boots at war
+
     def test_the_exhaustion_term_is_what_appears(self, one_turn):
-        _, _, rate_before, _ = one_turn
         world = _boot()
         keys_before = {t["key"] for t
                        in _quiet(world.get_state_charges_rate, "France")["terms"]}
+        keys_projected = {t["key"] for t in _quiet(
+            world.get_state_charges_rate, "France", projected=True)["terms"]}
         _quiet(world.advance_turn)
         keys_after = {t["key"] for t
                       in _quiet(world.get_state_charges_rate, "France")["terms"]}
         assert "war_exhaustion" not in keys_before
+        assert "war_exhaustion" in keys_projected
         assert "war_exhaustion" in keys_after
 
-    def test_the_gap_scales_with_the_chest(self):
-        """Why it matters more the richer the player is: at the control arm's
-        88,556-gold chest the stale quote is worth more than twice what it is
-        worth at 40,000."""
+    def test_the_gap_is_closed_at_every_chest(self, monkeypatch):
+        """Why it mattered more the richer the player was: at the control arm's
+        88,556-gold chest the stale quote was worth more than twice what it
+        was at 40,000 (lever down). Fixed, the gap is 0 at both."""
         def gap_at(gold):
-            world = _boot(gold=gold)
-            quoted = _quiet(L._build_economy, world, "France")
-            _quiet(world.advance_turn)
-            applied = (getattr(world, "_income_phase_results", {})
-                       or {}).get("France", {})
+            quoted, applied, _, _ = self._one_turn(gold)
             return int(applied["state_charges"]) - int(quoted["state_charges"])
 
+        assert gap_at(40_000) == 0 and gap_at(88_556) == 0
+        from backend.models import world_state as WS
+        monkeypatch.setattr(WS, "THE_FORECAST_PRICES_TOMORROWS_WAR", False)
         small, large = gap_at(40_000), gap_at(88_556)
-        assert large > 2 * small
+        assert large > 2 * small > 0
 
 
 # ---------------------------------------------------------------------------

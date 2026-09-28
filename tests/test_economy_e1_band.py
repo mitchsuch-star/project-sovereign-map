@@ -127,9 +127,19 @@ class TestTurnOneAnchor:
         France at boot, so Austria is byte-unchanged). Bounded so drift is a
         conscious retune: below 0.50 the Grande Armée bite weakened; above
         0.62 the rate was pushed past the measured sweet spot (re-verify the
-        doubled-empire steady state stays out of a death-spiral)."""
+        doubled-empire steady state stays out of a death-spiral).
+
+        SR-5a "The chest" (September 28, 2026) — a USER-BLESSED BAND RETUNE,
+        not a shape change: the ruled balance package trims every French
+        homeland province to three-quarters of its registry yield (Britain
+        up, France trimmed; `europe_1805.json` region_overrides), which
+        lifts France's turn-1 absorption from 55.5% to 67.0% (drains 2,630
+        of gross 3,927) — inside the 55-70% band the EC-2 gate blessed, as
+        the ruling's own terms stated. The measured range moves with it:
+        below 0.62 the trim was undone; above 0.70 the package left the
+        blessed band."""
         drains, gross, absorption, net = _absorption(world, "France")
-        assert 0.50 <= absorption <= 0.62, (
+        assert 0.62 <= absorption <= 0.70, (
             f"France turn-1 stacked absorption {absorption:.1%} left the "
             f"measured range (drains={drains} gross={gross})")
         assert net > 0
@@ -138,12 +148,33 @@ class TestTurnOneAnchor:
         """The BINDING two-sided constraint (Austria +18): any across-the-
         board drain increase breaks this before it reaches the aspirational
         turn-1 band — the no-lose sandbox must not boot a major into
-        permanent bankruptcy."""
+        permanent bankruptcy.
+
+        SR-5a "The chest" (September 28, 2026) — restated, consciously. The
+        invariant is "no court boots into bankruptcy", and what decides
+        bankruptcy is the treasury's own arithmetic: the ledger's FULL Net,
+        tribute and trade included. That is the first loop. The homeland
+        measure below it (province income against the army) still binds
+        every court but one: under the ruled package ("Britain up, France
+        trimmed") France's homeland no longer pays for its whole 189,000-man
+        army at boot (-40), and its satellites' tribute carries it — France
+        pays for its war by conquest and its clients, which is the ruling.
+        Pinned exactly so the next change to either side is a decision."""
+        from backend.game_logic.ledger import _build_economy
+        for nation in world.get_active_nations():
+            assert _build_economy(world, nation)["net"] > 0, (
+                f"{nation} boots net-negative on the ledger")
         for nation in world.get_active_nations():
             income = world.calculate_turn_income(nation)
             upkeep = world.calculate_turn_upkeep(nation)
             net = (income["income"] - income["occupation"]
                    - income["dotation_skim"] - upkeep["total"])
+            if nation == "France":
+                econ = _build_economy(world, "France")
+                assert net == -40, net
+                assert net + econ["vassal_tribute"] > 0, (
+                    "the satellites' tribute no longer carries the army")
+                continue
             assert net > 0, f"{nation} net-negative at boot ({net})"
 
     def test_boot_has_no_occupation_or_dotation(self, world):
@@ -166,8 +197,18 @@ class TestDoubledEmpire:
         assert absorption >= 0.70, (
             f"fresh doubled-empire absorption {absorption:.1%} — the "
             f"digest-before-you-bite pressure collapsed")
-        # ...but never unrecoverable: even here France stays solvent
-        assert net > -world.nation_gold.get("France", 0)
+        # ...but never unrecoverable. SR-5a (September 28, 2026): under the
+        # ruled package this worst case (every conquest at stability 10, the
+        # whole boot army, the boot's 800 gold) nets -1,232 and the chest
+        # goes one turn into arrears — measured: bankruptcy counter 1 on
+        # turn 2, back to 0 on turn 3 as pacification and the mercy bite.
+        # The old one-turn solvency check is replaced by the recovery it
+        # stood for: no desertion tier, and a positive chest after six turns.
+        for _ in range(6):
+            world.advance_turn()
+            assert world.nation_bankruptcy_turns.get("France", 0) < 3, (
+                "the fresh doubled empire death-spiralled")
+        assert world.nation_gold["France"] > 0
 
     def test_steady_state_lands_in_blessed_band(self, world):
         """EC-U3 sharpened the anti-snowball at the top end. Doubling the
