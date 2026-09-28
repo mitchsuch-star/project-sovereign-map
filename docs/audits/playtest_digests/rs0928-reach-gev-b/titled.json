@@ -1,0 +1,13 @@
+{
+ "turn": 41,
+ "titled": 23,
+ "hold_titled": 45,
+ "status": "completed",
+ "held": [
+  "Brunswick",
+  "Oldenburg",
+  "Westphalia"
+ ],
+ "provinces": 20,
+ "note": "SR-1e re-measure (September 26, 2026): read off the run's own save by tools/sr1e_titled_probe.py through congress.titled — the same count the summons reads."
+}

@@ -397,6 +397,7 @@ script's own keys.
 | Sept 16, IQ-7 refuse | 29 | 29 | 29 | Windows 11, CPython 3.13 | as above | `0` | `--diplomacy accept --client-petition refuse` | `iq7-refuse-historical`, `iq7-refuse-austerlitz`, `iq7-refuse-marengo` |
 | **Sept 17, IQ-8** | **28** | **28** | **29** | Windows 11, CPython 3.13.12 | `7d10e20c` + the uncommitted IQ-8 tree (content `457e8f82bc61`, driver `641a9fcf2c43`) | `0` | `--diplomacy accept` | `iq8-cmd-historical`, `iq8-cmd-austerlitz`, `iq8-cmd-marengo` |
 | **Sept 26, SR-1d (PR-D1b)** | **28** | **25** | **28** | Windows 11, CPython 3.13.12 | `759414f9` + the uncommitted SR-1c/1d tree (driver `196c4ee545c1`) | `0` | `--diplomacy accept` | `prd1b-cmd-historical`, `prd1b-cmd-austerlitz`, `prd1b-cmd-marengo` — **the league's offer t4 → t9 / t10 / t11** |
+| **Sept 28, the full play retest** | **30** | **29** | **27** | Windows 11, CPython 3.13.12 | `91796f25`, clean (driver `aef52ad7cbfd`) | `0` | `--diplomacy accept` | `rs0928-cmd-historical`, `rs0928-cmd-austerlitz`, `rs0928-cmd-marengo` — titled 36 / 34 / 36 at turn 41 (each archive's titled.json); treasury 91,878 / 86,368 / 91,827 (the full play retest memo, §3) |
 
 ⚠ **The first row is UNCITABLE, and PR-D4 is CLOSED as "cause unrecoverable, no
 archive"** (`DESIGN_REFINEMENT.md`, IQ-8). No digest, `meta.json` or driver stamp

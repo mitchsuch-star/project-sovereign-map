@@ -42,15 +42,15 @@
 
 ## §1 The scoreboard
 
-Scores are directional and, as before, **FOR USER CONFIRMATION** where marked. "Now" is September 25, 2026 (evening); **the Chunk 1 exit (September 26, 2026) re-scored two rows, marked ⚑.** **⚑ Re-ruled September 26, 2026 (evening): no more per-chunk re-scores — this table is re-scored ONCE, fully, at the end of the mandate (§5). The rows below stand until then; the Chunk 3 exit re-score was NOT run.**
+Scores are directional and, as before, **FOR USER CONFIRMATION** where marked. "Now" is September 25, 2026 (evening); **the Chunk 1 exit (September 26, 2026) re-scored two rows, marked ⚑.** **⚑ Re-ruled September 26, 2026 (evening): no more per-chunk re-scores — this table is re-scored ONCE, fully, at the end of the mandate (§5). The rows below stand until then; the Chunk 3 exit re-score was NOT run.** **⚑ An INTERIM, user-directed full re-score ran September 28, 2026** (the user: *"do full play retest and rescore with a steam review blurb"*; memo `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_28.md` §4 — a 28-turn hand-played campaign on the live parser, eighteen driver arms and six verification agents). It re-read all fourteen rows, moved four (marked ⚑⚑) and held ten (UI/UX not re-scored: no client pass). Every figure is FOR USER CONFIRMATION, and it does NOT replace the one full re-score §5 reserves for the end of the mandate.
 
 | Pillar | Now | Target | Gap | Chunk | What moves it (the measured cause) |
 |---|---|---|---|---|---|
-| **The ending** | ~~5.5~~ **6.5** ⚑ *(Chunk 1 exit, Sept 26 — FOR USER CONFIRMATION; target NOT met, residue → SR-D3)* | 7.0 | 0.5 | **1** ✅ | ~~The road to 45 titled is not there (GE-V, VP-R1, the AAR: 32 at turn 18 with the whole Austrian campaign held); a signed status quo titles nothing; a client eaten under the lord's peace costs titled soil; the paying peace removes the war that would title by treaty.~~ **Landed:** a signed status quo titles (SR-1a), the client's war is the lord's (SR-1b), every held province's road and the counsel's DP price are on the surfaces (SR-1c), the league treats when spent (SR-1d). **Still short:** the re-driven roads peak at 39 of 45 and erode (SR-1e: 37 / 31 / 16 at turn 40) — the §68.6 levers, now SR-D3's first questions. |
+| **The ending** | ~~5.5~~ ~~6.5~~ **6.75** ⚑⚑ *(interim full re-score, Sept 28 — FOR USER CONFIRMATION: the Congress summoned from a played road for the first time, 47 of 45 at turn 24, and dissolved on day 3 by its own war — RS-2 (P1), RS-D1; Chunk 1 exit read 6.5)* | 7.0 | 0.25 | **1** ✅ | ~~The road to 45 titled is not there (GE-V, VP-R1, the AAR: 32 at turn 18 with the whole Austrian campaign held); a signed status quo titles nothing; a client eaten under the lord's peace costs titled soil; the paying peace removes the war that would title by treaty.~~ **Landed:** a signed status quo titles (SR-1a), the client's war is the lord's (SR-1b), every held province's road and the counsel's DP price are on the surfaces (SR-1c), the league treats when spent (SR-1d). **Still short:** the re-driven roads peak at 39 of 45 and erode (SR-1e: 37 / 31 / 16 at turn 40) — the §68.6 levers, now SR-D3's first questions. |
 | **Diplomacy** | ~~6.0~~ ~~6.25~~ **6.75** ⚑ *(Chunk 2 exit, Sept 26 — FOR USER CONFIRMATION; target NOT met, residue → SR-2d; memo `docs/audits/SR_CHUNK2_EXIT_2026_09_26.md`; **SR-2d LANDED Sept 26 — the four residues disposed, the score not re-read by a slice: Chunk 3's exit re-reads it beside first contact and command**)* | 7.0 | 0.25 | **2** ✅ | The settlement editor's two verdicts; the revision table pricing the proposer's own offer; the identical proposal menu; a P1 popup that destroys its own decision (WO-32); ~~the paying peace at war-age 2~~ *(landed: SR-1d; a lord's peace covering its clients and an honest HARD_STOP label, SR-1b)*. |
-| **First contact** | 6.5 | 7.5 | 1.0 | **3** | The desk shrugs at the first question a player asks; questions that order; the boolean road to the keyless delegation. |
-| **Economy** | 6.5 | 7.0 | 0.5 | **5** | Admin verbs gated on military AP; the long peace with nothing to buy; the victor's Net ratchet (question (c)); the razing dominance (IGR-X9). |
-| **Naval** | 6.5 | 7.0 | 0.5 | **5** | One throw of the dice is the whole road; the SHUT OUT arm never played. |
+| **First contact** | ~~6.5~~ **7.0** ⚑⚑ *(interim full re-score, Sept 28 — FOR USER CONFIRMATION: the sourced first-contact arm 28 of 28 answered, 0 shrugs; novel phrasings still slip — RS-6, RS-7, RS-14)* | 7.5 | 0.5 | **3** | The desk shrugs at the first question a player asks; questions that order; the boolean road to the keyless delegation. |
+| **Economy** | ~~6.5~~ **6.75** ⚑⚑ *(interim full re-score, Sept 28 — FOR USER CONFIRMATION: the laws give the early game its decision; the hoard at peace remains — RS-D3)* | 7.0 | 0.25 | **5** | Admin verbs gated on military AP; the long peace with nothing to buy; the victor's Net ratchet (question (c)); the razing dominance (IGR-X9). |
+| **Naval** | ~~6.5~~ **6.75** ⚑⚑ *(interim full re-score, Sept 28 — FOR USER CONFIRMATION: the second throw, two Trafalgars and the yard play; SHUT OUT held only on the staged board — RS-25)* | 7.0 | 0.25 | **5** | One throw of the dice is the whole road; the SHUT OUT arm never played. |
 | **Living balance** | 6.5 | 7.0 | 0.5 | **7** | Nothing but the player restarts the war (PB-D1); council wars measured 0 on every seed (AI-3r §8.2). |
 | **Combat legibility** | 7.0 | 7.5 | 0.5 | **4** | The garrison-blind scout; the solo assault nobody announces; "favorable" against a stacked defender; the counter-punch announced after it expires. |
 | **Marshal drama** | 7.0 | 7.5 | 0.5 | **4** | Nine petitions in eighteen turns; a crown for a skirmish; the vindication verdict on the wrong battle; the petition popup's lifecycle (Antechamber). |
@@ -60,7 +60,7 @@ Scores are directional and, as before, **FOR USER CONFIRMATION** where marked. "
 | **Narration** | 7.5 | 8.0 | 0.5 | **6** | The dispatch's stale intel row, the marshal-bound danger flags, an armistice called a peace, foreign constructions announced as ours. |
 | **AI aliveness** | 7.5 | 8.0 | 0.5 | **7** | The garrison grind and the suicide attacks; the fortify/unfortify/square dithering; a client eaten under a peace. |
 | **Agendas & formables** | 8.5 | hold | — | **8** | The Proclamation has never been sighted from play; formables never reached on a played road. |
-| **Directional** | ~~≈6.9~~ **≈7.0** ⚑ *(Chunk 2 exit, Sept 26: the mean of the fourteen rows, 98.25 / 14 = 7.02; Chunk 1 read 97.75 / 14)* | **≥7.5** | | | Every chunk's exit re-scores its pillar; the directional is recomputed at each exit. |
+| **Directional** | ~~≈6.9~~ ~~≈7.0~~ **≈7.1** ⚑⚑ *(interim full re-score, Sept 28: 99.5 / 14 = 7.11 — FOR USER CONFIRMATION; the Chunk 2 exit read 98.25 / 14 = 7.02, Chunk 1 97.75 / 14)* | **≥7.5** | | | Every chunk's exit re-scores its pillar; the directional is recomputed at each exit. |
 
 ---
 
@@ -245,6 +245,15 @@ Small rows — each ≤ 0.25 session, each raising a score a reader can feel —
 | ~~SRX-7~~ | Instrument | The driver closes an unratifiable settlement instead of dialing it harsher to the cap (the session exit). | ✅ LANDED Sept 26 (the Chunk 4 reserve) |
 | ~~SRX-8~~ | Test hygiene | The tutorial Cabinet-lesson pin passes in every order (it fails after its class sibling; the session exit's family run). | ✅ LANDED Sept 26 (the Chunk 4 reserve — RNG-shaped, not order-leaked) |
 | SR-2-X5 | Diplomacy / narration | The Arbiter's Offer names its mediator on the rail and in the mailbox. | 0.1 **✅ TAKEN by Chunk 2, SR-2d (Sept 26) — and on the dispatch event and the review it opens.** |
+| RS-4 | Command / combat legibility | A fortified marshal's march, hold or pursue is refused free at issuance with the executor's own sentence; a stalled order says why (the full play retest, Sept 28; `BUG_FIXES.md` RS-4). | 0.2 |
+| RS-5 | Marshal drama | The aggressive Trust arm offers only a man we can see and reach, and a refused Trust keeps the question and the order (RS-5). | 0.2 |
+| RS-10 | The ending | The Congress warns that the summons lowers the league's gate to 40, and reads a brewing league (RS-10; rider to RS-2). | 0.25 |
+| RS-12 | First contact / combat legibility | The what-if refuses like the order for a fortified, drilling, wounded or gun corps (RS-12). | 0.15 |
+| RS-13 | Combat legibility | An attack pressed through an objection prints its muster (RS-13). | 0.1 |
+| RS-14 | First contact | The desk answers "where are the Russians?" and the alarm questions (RS-14). | 0.2 |
+| RS-15 | First contact / economy | "What can I do" at zero military actions names the builds the day can still take (RS-15). | 0.1 |
+| RS-16 | The ending / living balance | The Congress's alarm line forecasts the real tick, gains and decay (RS-16). | 0.2 |
+| RS-28 | Test hygiene | The Presence-marching pin passes in every order (RS-28). | 0.1 |
 
 ---
 
@@ -344,6 +353,11 @@ Each gate is a session of research and a memo with the questions answered at rec
     - **SRX-23 (P2): an attack held for a declaration keeps the standing order** — one predicate for SR5B-1's restore and SR5B-2's announcement.
   - **Chunk 5 is CLOSED.**
   - **Next: Chunk 6 — NARRATION, DISPATCH & COPY**, opening SR-6a "The dispatch pass". Open with the user: ~~SR5B-D1, SRX-D1,~~ the RF-4 visual sign-off. *(SR5B-D1 and SRX-D1 RULED September 28, 2026 under the user's delegation — keep the rule and name the corps; keep the long-peace balance — `SYSTEMS_REFERENCE.md` §80.)*
+- **The full play retest and interim re-score — September 28, 2026 (user-directed, after the SR5B-D1 / SRX-D1 rulings landed as `91796f25`).**
+  - **What ran.** Memo `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_28.md`: a 28-turn hand-played campaign on the live parser (165 typed orders, 156 carried out), eighteen driver arms (`docs/audits/playtest_digests/rs0928-*`) and six read-only verification agents. It is an INTERIM full re-score by the user's direction; §1 marks it ⚑⚑, and the end-of-mandate re-score still stands.
+  - **What it found.** The Congress of Paris was summoned from a played road for the first time (47 of 45 titled on turn 24; Prussia signed for 1,800 gold) and dissolved on day 3 when the league the summons made possible marched Austria, whose war unsigned what it had ceded. That is **RS-2 (P1)**, GE-3's own P1 back through SR-1a's unlatched ceders. **RS-1 (P1):** a fresh peace re-broken by an ally's offensive cascade. 27 more rows (`BUG_FIXES.md` §Full Play Retest) and three design rows (`DESIGN_REFINEMENT.md` RS-D1 … RS-D3; **RS-D1 recognition by defeat is the user's ruling**).
+  - **The score** (FOR USER CONFIRMATION): the ending 6.5 → 6.75, first contact 6.5 → 7.0, economy 6.5 → 6.75, naval 6.5 → 6.75, ten held; directional ≈7.0 → ≈7.1.
+  - **Next:** "The peace holds" (RS-1 + RS-2 — a played campaign's P1s jump the queue, §0-4), then Chunk 6's SR-6a "The dispatch pass" (with RS-9, RS-17, RS-20, RS-23, RS-24, RS-D2). The quick-win rows RS-4 … RS-28 are banked in §3.
 - **Confirmation.** Scores stay FOR USER CONFIRMATION where a session cannot run the arm that scores them (a client pass the user must see; a live-parser arm without a key).
 - **Balance.** `BASELINE_SERIES` + M1–M7 byte-identical unless attributed by a flip experiment (`tools/_vpr1_series_arms.py` is the pattern).
 - **Save before any driver run touches a live campaign** (the AAR's lesson — `--http` opens with `POST /new_game`).
