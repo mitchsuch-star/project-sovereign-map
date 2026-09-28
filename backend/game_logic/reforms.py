@@ -569,6 +569,187 @@ def process_law_lapses(world) -> List[Dict]:
     return events
 
 
+
+# ════════════════════════════ what the player sees (RF-4a) ════════════════════
+# REFORMS_SPEC §8 / §8a: every law says what it does, what it costs and what
+# would take it away, on the surface where the player decides. ONE source for
+# the LAWS tab, its chips, the enactment confirm and the verb's own result.
+
+# §3's teeth, read exactly as the engine reads them: the marshals' calm holds
+# only ABOVE 70 (`jealousy`: authority > AUTHORITY_SUPPRESS_ABOVE); the extra
+# diplomatic point at 60 and above, and a point lost below 30
+# (`diplomacy.calculate_dp`).
+CALM_ABOVE = 70
+DP_LINE = 60
+FLOOR_LINE = 30
+
+
+def authority_line(before: int, after: int) -> str:
+    """"Authority 100 → 85 — the marshals' calm holds above 70." Every line
+    the spend crosses is named as lost; when none is crossed, the nearest
+    line that still holds is named (§8 "Authority, priced aloud")."""
+    before, after = int(before), int(after)
+    lost = []
+    if before > CALM_ABOVE >= after:
+        lost.append("the marshals' calm above 70 is lost")
+    if before >= DP_LINE > after:
+        lost.append("the extra diplomatic point is lost (it needs 60)")
+    if before >= FLOOR_LINE > after:
+        lost.append("under 30 the court loses a diplomatic point a turn")
+    if lost:
+        tail = "; ".join(lost)
+    elif after > CALM_ABOVE:
+        tail = "the marshals' calm holds above 70"
+    elif after >= DP_LINE:
+        tail = "the extra diplomatic point holds (60 and above)"
+    elif after >= FLOOR_LINE:
+        tail = "the court stays at 30 or above"
+    else:
+        tail = "the court is already under 30"
+    return f"Authority {before} → {after} — {tail}."
+
+
+_ARM_NOUN = {"infantry": "infantry", "cavalry": "cavalry",
+             "artillery": "artillery"}
+
+
+def effect_line(clause) -> str:
+    """One clause of a law in numbers — the LAWS tab's "what it does" (§8).
+    "" for a clause the build does not render (an unwired type)."""
+    if not isinstance(clause, dict):
+        return ""
+    etype = clause.get("type")
+    value = clause.get("value")
+    if etype == "actions":
+        n = int(value or 0)
+        return f"+{n} order{'s' if n != 1 else ''} of the day, from the next refill"
+    if etype == "recruit_price":
+        v = float(value)
+        pct = int(round((v - 1.0) * 100))
+        arm = clause.get("arm")
+        who = "every levy" if arm == "all" else f"{_ARM_NOUN.get(arm, arm)} levies"
+        verb = "cost" if arm != "all" else "costs"
+        return f"{who} {verb} {abs(pct)}% {'less' if pct < 0 else 'more'} (×{v:g})"
+    if etype == "recruit_morale":
+        n = int(value or 0)
+        arm = clause.get("arm")
+        who = "every draft" if arm == "all" else f"{_ARM_NOUN.get(arm, arm)} drafts"
+        return f"{who} muster at {n:+d} morale"
+    if etype == "drill_morale":
+        return f"+{int(value or 0)} morale from every drill"
+    if etype == "manpower_regen":
+        return f"{clause.get('pool', 'infantry')} manpower returns {int(value or 0)}% faster"
+    if etype == "supply_capacity":
+        v = float(value)
+        return f"fed provinces feed {int(round((v - 1.0) * 100))}% more men (×{v:g})"
+    if etype == "satellite_loyalty":
+        return f"+{int(value or 0)} loyalty a turn in every client"
+    if etype == "cs_closure":
+        return "every client shuts its ports to Britain, whatever its autonomy"
+    if etype == "blockade_denial":
+        from backend.game_logic.naval import blockade_cut_percent
+        return (f"a blockade this court lays cuts the enemy's trade by "
+                f"{blockade_cut_percent(float(value))}%, not half (×{float(value):g})")
+    return ""
+
+
+def _currency_words(amount: int, currency: str) -> str:
+    return f"{int(amount):,} gold" if currency == "gold" else f"{int(amount)} authority"
+
+
+def terms_line(world, nation: str, row: Dict) -> str:
+    """What enacting (or restoring) this law costs, now and every turn —
+    `restoration_price`'s quote in words, with the authority priced aloud.
+    The chip's note and the confirm read it (shown = applied). It never ends
+    in a full stop: the confirm writes its own."""
+    quote = restoration_price(world, nation, row)
+    upkeep = int(row.get("upkeep", 0) or 0)
+    now = _currency_words(quote["price"], quote["currency"])
+    if int(quote["arrears"]):
+        now += f" + {int(quote['arrears']):,} gold in arrears"
+    line = f"{now} now, then {upkeep:,} gold a turn"
+    if is_staff(row):
+        line += "; one more order each day from the next refill"
+    if quote["currency"] == "authority":
+        before = _court_authority(world, nation)
+        line += ". " + authority_line(before, before - int(quote["price"])).rstrip(".")
+    return line
+
+
+def laws_payload(world, nation: str) -> Optional[Dict]:
+    """The LAWS tab (§8, §8a): one row per law in the court's deck, in deck
+    order — what it does, what it costs, its status, and ONE chip (Enact,
+    Restore or Repeal) whose enabled state IS the predicate the verb calls
+    and whose reason is the predicate's own words (honest availability).
+    None on a world with no deck, so a legacy payload stays byte-identical."""
+    rows = [r for r in deck(world, nation) if isinstance(r, dict)]
+    if not rows:
+        return None
+    out = []
+    for row in rows:
+        law_id = str(row.get("id") or "")
+        name = display_name(row)
+        spoken = name[0].upper() + name[1:]
+        price = int(row.get("price", 0) or 0)
+        currency = str(row.get("currency") or "gold")
+        upkeep = int(row.get("upkeep", 0) or 0)
+        entry = {
+            "id": law_id,
+            "name": str(row.get("name") or law_id),
+            "date": str(row.get("date") or ""),
+            "says": str(row.get("says") or ""),
+            "effects": [line for line in (effect_line(c) for c in (row.get("effects") or [])) if line],
+            "price": price,
+            "currency": currency,
+            "price_words": _currency_words(price, currency),
+            "upkeep": upkeep,
+            "is_staff": is_staff(row),
+        }
+        if is_in_force(row):
+            entry["status"] = "in_force"
+            entry["status_line"] = f"In force since turn {int(row['enacted_turn'])}."
+            refusal = repeal_refusal(world, nation, law_id)
+            chip = {"label": "Repeal", "command": f"repeal {name}",
+                    "enabled": not refusal}
+            if refusal:
+                chip["reason"] = refusal
+            else:
+                chip["note"] = (f"ends {upkeep:,} gold a turn; nothing is refunded, "
+                                f"and enacting it again costs the full "
+                                f"{_currency_words(price, currency)}")
+        else:
+            quote = restoration_price(world, nation, row)
+            refusal = law_refusal(world, nation, law_id)
+            lapsed = row.get("lapsed_turn")
+            if quote["kind"] == "restore":
+                entry["status"] = "lapsed"
+                entry["status_line"] = (
+                    f"Lapsed on turn {int(lapsed)}. It restores at its Arrears "
+                    f"price for {int(quote['disperses_after'])} more turn"
+                    f"{'s' if int(quote['disperses_after']) != 1 else ''}; "
+                    f"then it costs its full price.")
+            elif lapsed is not None:
+                entry["status"] = "dispersed"
+                entry["status_line"] = (f"Lapsed on turn {int(lapsed)} and has "
+                                        f"dispersed — its full price again.")
+            else:
+                entry["status"] = "refused" if refusal else "available"
+                entry["status_line"] = refusal or "Not in force."
+            chip = {"label": "Restore" if quote["kind"] == "restore" else "Enact",
+                    "command": f"enact {name}", "enabled": not refusal}
+            if refusal:
+                chip["reason"] = refusal
+            else:
+                chip["note"] = terms_line(world, nation, row)
+        entry["spoken"] = spoken
+        entry["chip"] = chip
+        out.append(entry)
+    upkeep_total = int(law_upkeep_bill(world, nation))
+    in_force = [e for e in out if e["status"] == "in_force"]
+    footer = (f"The laws in force cost {upkeep_total:,} gold a turn."
+              if in_force else "No law is in force.")
+    return {"rows": out, "upkeep_total": upkeep_total, "footer": footer}
+
 # ════════════════════════════ the AI (RF-3) ═══════════════════════════════════
 # REFORMS_SPEC §7. Every AI great power enacts from its own authored deck, in
 # deck order, at the player's prices, through the SAME verb and executor

@@ -61,9 +61,17 @@ def client(world):
     return TestClient(M.app)
 
 
-def post(client, command):
+def post(client, command, *, answer_the_council=True):
+    """RF-4a (Sept 27, 2026): an enactment is quoted first — the Council of
+    State's confirm on the clarification channel (REFORMS_SPEC §8a, pinned in
+    `test_rf4a_the_laws_tab.py`). This helper answers that quote "yes", so
+    RF-1's pins keep reading the enactment itself; a refusal is never quoted
+    and comes straight back."""
     with _quiet():
-        return client.post("/command", json={"command": command}).json()
+        r = client.post("/command", json={"command": command}).json()
+        if answer_the_council and r.get("law_confirm"):
+            r = client.post("/command", json={"command": "yes"}).json()
+        return r
 
 
 def staff(world, nation="France"):
@@ -264,9 +272,11 @@ class TestTheWords:
                          if getattr(m, "is_sovereign", False))
         with _quiet():
             result = M.executor._reforms._execute_enact_law(
-                {"action": "enact_law", "marshal": sovereign, "target": "the Staff"},
+                {"action": "enact_law", "marshal": sovereign, "target": "the Staff",
+                 "confirmed": True},
                 M.game_state)
         assert result["success"] is True, result.get("message")
+        assert R.is_in_force(staff(world))
         with _quiet():
             refused = M.executor._reforms._execute_repeal_law(
                 {"action": "repeal_law", "marshal": "Ney", "target": "the Staff"},

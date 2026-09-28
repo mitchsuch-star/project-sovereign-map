@@ -3,16 +3,20 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Strategic Ledger Screen (Session B)
 # =============================================================================
-# 7-section sub-tabbed screen. CanvasLayer 50.
+# 8-section sub-tabbed screen. CanvasLayer 50.
 # Tabs: FORCES, TERRITORIES, ECONOMY, INTELLIGENCE, MANPOWER, ORDERS,
 # ADMIRALTY (NV-12 "The Clear Deck" — the naval block was buried at the
-# bottom of ECONOMY; it is a first-class book now).
-# Number keys 1-7 switch sub-tabs (guarded by visible check).
+# bottom of ECONOMY; it is a first-class book now), LAWS (SR-5r RF-4a —
+# the laws of state, REFORMS_SPEC §8a).
+# Number keys 1-8 switch sub-tabs (guarded by visible check, and a digit
+# belongs to whoever has the caret).
 # =============================================================================
 
 signal closed
 # NV-6: an Admiralty chip — the same typed-command pipeline every other
-# chip surface uses (main.gd owns the send + the in-place refresh).
+# chip surface uses (main.gd owns the send + the in-place refresh). RF-4a:
+# THE LAWS' Enact / Restore / Repeal chips ride the same road — it is the
+# ledger's one chip pipeline, whatever the book.
 signal naval_command(command: String)
 
 # NV-6: the Admiralty chip pill, matching the region panel's `_CHIP_BG`.
@@ -30,9 +34,10 @@ const _NAVAL_CHIP_BG = "233043"
 @onready var manpower_tab = $PanelContainer/VBoxContainer/SubTabRow/ManpowerTab
 @onready var orders_tab = $PanelContainer/VBoxContainer/SubTabRow/OrdersTab
 @onready var admiralty_tab = $PanelContainer/VBoxContainer/SubTabRow/AdmiraltyTab
+@onready var laws_tab = $PanelContainer/VBoxContainer/SubTabRow/LawsTab
 
 # State
-var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders, 6=admiralty
+var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders, 6=admiralty, 7=laws
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 
@@ -45,7 +50,7 @@ func _ready():
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	background_overlay.gui_input.connect(_on_overlay_input)
 
-	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab, admiralty_tab]
+	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab, admiralty_tab, laws_tab]
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
 
@@ -82,7 +87,7 @@ func _ready():
 
 
 func _input(event):
-	"""Handle number keys 1-5 for sub-tab switching. Only when visible."""
+	"""Handle number keys 1-8 for sub-tab switching. Only when visible."""
 	if not visible:
 		return
 	# Aug 30, 2026 review: `visible` is not the whole question. `Node._input`
@@ -112,6 +117,8 @@ func _input(event):
 				_switch_tab(5)
 			KEY_7:
 				_switch_tab(6)
+			KEY_8:
+				_switch_tab(7)
 			_:
 				switched = false
 		if switched:
@@ -302,6 +309,8 @@ func _render_current_tab():
 			_render_orders()
 		6:
 			_render_admiralty_tab()
+		7:
+			_render_laws_tab()
 
 
 # =============================================================================
@@ -919,7 +928,7 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 		return ""
 	var bbcode = "\n[color=#" + Utils.COLOR_HEADER + "]Orders to the Admiralty[/color]\n"
 	for chip in chips:
-		bbcode += _admiralty_chip_row(chip)
+		bbcode += _chip_row(chip)
 	var road = adm.get("expedition_chips", [])
 	var has_road: bool = road is Array and road.size() > 0
 	if has_road:
@@ -928,7 +937,7 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 		# sub-header must not sit under the last order's pill.
 		bbcode += "\n  [color=#" + Utils.COLOR_GREY + "]The expedition — the next step:[/color]\n"
 		for chip in road:
-			bbcode += _admiralty_chip_row(chip)
+			bbcode += _chip_row(chip)
 	if ready is Array and ready.size() > 0:
 		# The expedition's chip lives on the map, where its destination is
 		# actually chosen — say so rather than offering a verb with no object.
@@ -946,11 +955,12 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 	return bbcode
 
 
-func _admiralty_chip_row(chip) -> String:
+func _chip_row(chip) -> String:
 	# One chip row, both families: enabled = the gold pill + its note,
 	# disabled = the dimmed pill + the gate's own reason (NV-12 recon gap 13:
 	# disabled chips were grey TEXT, reading as a different control family
-	# than the region panel's disabled pills).
+	# than the region panel's disabled pills). Every book on this screen
+	# renders its chips here — THE ADMIRALTY's orders and THE LAWS' (RF-4a).
 	if not (chip is Dictionary):
 		return ""
 	var label = str(chip.get("label", ""))
@@ -965,6 +975,51 @@ func _admiralty_chip_row(chip) -> String:
 		row += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_GREY + "]" \
 			+ str(chip.get("reason", "not available")) + "[/color]"
 	return row + "\n"
+
+
+func _render_laws_tab():
+	"""SR-5r RF-4a — THE LAWS (REFORMS_SPEC §8, §8a): one row per law in the
+	player's deck, in deck order — what it does (in numbers), what it costs,
+	its status — and ONE chip whose enabled state IS the verb's predicate
+	(the backend stamps it from `law_refusal` / `repeal_refusal`; a withheld
+	chip states that predicate's own words). A chip sends the typed order down
+	the ledger's one chip road; an enactment is quoted first on the
+	clarification channel (the Council of State's confirm) and enacted there."""
+	var laws = cached_data.get("laws", {})
+	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]\n"
+	bbcode += _dated_line()
+	if not (laws is Dictionary) or laws.is_empty():
+		bbcode += "[color=#" + Utils.COLOR_DIMMED + "]This campaign has no laws of state.[/color]\n"
+		content_area.text = bbcode
+		return
+	for row in laws.get("rows", []):
+		if not (row is Dictionary):
+			continue
+		bbcode += "\n[color=#" + Utils.COLOR_GOLD + "][b]" + str(row.get("name", "")) + "[/b][/color]"
+		var date = str(row.get("date", ""))
+		if date != "":
+			bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]" + date + "[/color]"
+		bbcode += "\n"
+		var says = str(row.get("says", ""))
+		if says != "":
+			bbcode += "  " + says + "\n"
+		for line in row.get("effects", []):
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]• " + str(line) + "[/color]\n"
+		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + str(row.get("price_words", "")) \
+			+ " to enact · " + Utils.format_number(int(row.get("upkeep", 0))) + " gold a turn[/color]\n"
+		# A refused row's reason is the chip's own — said once, beside the chip.
+		var status = str(row.get("status", ""))
+		if status != "refused":
+			var status_color = Utils.COLOR_GREY
+			if status == "in_force":
+				status_color = Utils.COLOR_SUCCESS
+			elif status == "lapsed":
+				status_color = Utils.COLOR_WARNING
+			bbcode += "  [color=#" + status_color + "]" + str(row.get("status_line", "")) + "[/color]\n"
+		# A blank line first: a chip's pill padding overlaps the line above it.
+		bbcode += "\n" + _chip_row(row.get("chip", {}))
+	bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]" + str(laws.get("footer", "")) + "[/color]\n"
+	content_area.text = bbcode
 
 
 func _render_intel():

@@ -3714,6 +3714,11 @@ class LLMClient:
         own deck, and quotes them back if they name none)."""
         words = _LAW_WORDS_RE.search(command_text)
         target = words.group(1).strip() if words else None
+        # RF-4a: "enact the Staff confirmed" — the confirm's marker is read
+        # by the executor off the raw words; the law's name never carries it.
+        if target:
+            target = re.sub(r"\s*\bconfirm(?:ed)?\b\s*$", "", target,
+                            flags=re.IGNORECASE).strip() or None
         return ParseResult(
             matched=True,
             command_type="specific",

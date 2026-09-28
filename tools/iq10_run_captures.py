@@ -47,7 +47,7 @@ SCRIPT = "../../tools/iq10_surface_screenshot.gd"
 # One row per SHOT: the scene, how it is entered, and what the frame must show.
 # `payload` names a capture in the payload manifest. `tab` presses a ledger
 # sub-tab after the screen has rendered (the ledger's own `_switch_tab`).
-LEDGER_TABS = ["Forces", "Territories", "Economy", "Intel", "Manpower", "Orders", "Admiralty"]
+LEDGER_TABS = ["Forces", "Territories", "Economy", "Intel", "Manpower", "Orders", "Admiralty", "Laws"]
 # The Diplomatic Ledger's books IN ORDER (the scene's SubTabRow). GE-3 (Sept
 # 25, 2026): index 4 is WAR BARGAINS — the old list named it "Vassals", so
 # every "…_vassals" shot below it pressed tab 4 and photographed the War

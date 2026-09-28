@@ -924,6 +924,13 @@ def blockade_denial_factor_against(world, nation: str) -> float:
     return blockade_denial_factor(world, blockader) if blockader else 1.0
 
 
+def blockade_cut_percent(factor: float) -> int:
+    """The share of a blockaded court's trade the blockade takes, in percent,
+    under a blockade-denial factor (1.0 = halved). ONE source for the phrase
+    below and the LAWS tab's effect line (RF-4a)."""
+    return min(int(round((1.0 - BLOCKADE_TRADE_FACTOR) * float(factor) * 100)), 100)
+
+
 def blockade_trade_words(world, nation: str) -> str:
     """What the blockade does to `nation`'s trade, in words — "halved", or
     the deeper cut and the law that made it (T8). ONE phrase for the Board,
@@ -931,11 +938,11 @@ def blockade_trade_words(world, nation: str) -> str:
     factor = blockade_denial_factor_against(world, nation)
     if factor == 1.0:
         return "halved"
-    share = int(round((1.0 - BLOCKADE_TRADE_FACTOR) * factor * 100))
+    share = blockade_cut_percent(factor)
     blockader, _c = blockader_against(world, nation)
     from backend.game_logic.reforms import blockade_denial_terms
     names = " and ".join(n for n, _v in blockade_denial_terms(world, blockader))
-    return f"cut by {min(share, 100)}% ({names})" if names else f"cut by {min(share, 100)}%"
+    return f"cut by {share}% ({names})" if names else f"cut by {share}%"
 
 
 def ship_upkeep(world, nation: str) -> int:

@@ -6389,7 +6389,17 @@ func _on_clarification_command(command: String):
 	_clarification_backend_pending = false
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]> " + command + "[/color]")
 	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
+	api_client.send_command(command, _on_clarification_command_result)
+
+
+func _on_clarification_command_result(response):
+	"""RF-4a: a confirm answered from the clarification popup — the Council
+	of State's enactment, the Admiralty's Diversion — resolves an order a
+	chip began on a screen still open beneath the modal. Refresh the open
+	info screens now, as the objection answer already does (UI6-R4); the
+	chip's own callback saw only the quote."""
+	_on_command_result(response)
+	_refresh_open_info_screens()
 
 
 func _on_clarification_cancelled():
@@ -7110,7 +7120,7 @@ var _chip_command_in_flight := false
 func _refresh_open_info_screens():
 	"""Re-fetch whichever info surfaces are open (Generals, diplomatic
 	ledger, region panel) after a deferred resolution changed state."""
-	for screen_name in ["generals", "diplomatic_ledger"]:
+	for screen_name in ["generals", "diplomatic_ledger", "ledger"]:
 		if top_bar and top_bar.screens.has(screen_name):
 			var node = top_bar.screens[screen_name]
 			if node and node.has_method("refresh_if_open"):

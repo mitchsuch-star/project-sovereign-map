@@ -6711,6 +6711,32 @@
         "not_action": "repeal_law"
       },
       "source": "SR-5r RF-1 \"The Laws\" (docs/REFORMS_SPEC.md §8 \"The words\") — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "rf4a-enact-the-staff-confirmed",
+      "utterance": "enact the Staff confirmed",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "target": "the Staff",
+        "marshal": null,
+        "strategic_type": null
+      },
+      "notes": "The Council of State's confirm reissues the order with this marker (the Admiralty's quote-then-confirm idiom); the executor reads it off the raw words, so the law's NAME never carries it — 'the Staff confirmed' would name no law.",
+      "source": "SR-5r RF-4a \"The LAWS tab\" (docs/REFORMS_SPEC.md §8a — the enactment confirm on the clarification channel)."
+    },
+    {
+      "id": "rf4a-enact-the-anticipated-class-confirm",
+      "utterance": "enact the Anticipated Class confirm",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "target": "the Anticipated Class"
+      },
+      "notes": "The bare 'confirm' is the same marker.",
+      "source": "SR-5r RF-4a \"The LAWS tab\" (docs/REFORMS_SPEC.md §8a — the enactment confirm on the clarification channel)."
     }
   ]
 }

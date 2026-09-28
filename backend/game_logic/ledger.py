@@ -94,6 +94,14 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     if MISSION_LEDGER_BLOCK:
         cabinet_fields["cabinet"] = build_cabinet(world)
 
+    # SR-5r RF-4a: THE LAWS — the eighth book (`reforms.laws_payload`, one
+    # source for the rows and their chips). Absent on a world with no deck,
+    # so the legacy payload stays byte-identical.
+    from backend.game_logic.reforms import laws_payload
+    _laws = laws_payload(world, player)
+    if _laws is not None:
+        cabinet_fields["laws"] = _laws
+
     return {
         **collapse_fields,
         **cabinet_fields,

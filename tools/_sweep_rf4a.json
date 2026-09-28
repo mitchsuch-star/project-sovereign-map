@@ -1,0 +1,247 @@
+[
+  {
+    "id": "the calm is read at 70, not above it",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if before > CALM_ABOVE >= after:",
+    "new": "    if before >= CALM_ABOVE > after:",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheAuthorityLine::test_the_calm_is_lost_at_exactly_seventy"
+  },
+  {
+    "id": "the diplomatic point is never named",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if before >= DP_LINE > after:",
+    "new": "    if False:",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheAuthorityLine::test_the_diplomatic_point"
+  },
+  {
+    "id": "the floor is never named",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if before >= FLOOR_LINE > after:",
+    "new": "    if False:",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheAuthorityLine::test_the_floor"
+  },
+  {
+    "id": "the calm that holds is never named",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    elif after > CALM_ABOVE:\n        tail = \"the marshals' calm holds above 70\"",
+    "new": "    elif False:\n        tail = \"the marshals' calm holds above 70\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheAuthorityLine::test_the_spec_example"
+  },
+  {
+    "id": "under thirty reads as holding",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    else:\n        tail = \"the court is already under 30\"",
+    "new": "    else:\n        tail = \"the court stays at 30 or above\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheAuthorityLine::test_the_floor"
+  },
+  {
+    "id": "a price cut prints its sign",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        return f\"{who} {verb} {abs(pct)}% {'less' if pct < 0 else 'more'} (×{v:g})\"",
+    "new": "        return f\"{who} {verb} {pct}% {'less' if pct < 0 else 'more'} (×{v:g})\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheEffectLines::test_each_type_in_numbers"
+  },
+  {
+    "id": "a price cut reads as a rise",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        return f\"{who} {verb} {abs(pct)}% {'less' if pct < 0 else 'more'} (×{v:g})\"",
+    "new": "        return f\"{who} {verb} {abs(pct)}% {'more' if pct < 0 else 'less'} (×{v:g})\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheEffectLines::test_each_type_in_numbers"
+  },
+  {
+    "id": "a morale penalty loses its sign",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        return f\"{who} muster at {n:+d} morale\"",
+    "new": "        return f\"{who} muster at {abs(n)} morale\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheEffectLines::test_each_type_in_numbers"
+  },
+  {
+    "id": "the blockade figure is a second copy",
+    "file": "backend/game_logic/naval.py",
+    "old": "    share = blockade_cut_percent(factor)\n",
+    "new": "    share = min(int(round((1.0 - BLOCKADE_TRADE_FACTOR) * factor * 100)), 100)\n",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheEffectLines::test_the_blockade_line_and_the_board_share_one_figure"
+  },
+  {
+    "id": "the arrears are left off the terms",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if int(quote[\"arrears\"]):\n        now += ",
+    "new": "    if False:\n        now += ",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_lapsed_law_offers_its_arrears"
+  },
+  {
+    "id": "the Staff's action is left off the terms",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if is_staff(row):\n        line += \"; one more order each day from the next refill\"",
+    "new": "    if False:\n        line += \"; one more order each day from the next refill\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_gold_law_prices_now_and_a_turn"
+  },
+  {
+    "id": "the authority is not priced aloud",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if quote[\"currency\"] == \"authority\":\n        before = _court_authority(world, nation)\n        line += ",
+    "new": "    if False:\n        before = _court_authority(world, nation)\n        line += ",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_an_authority_law_is_priced_aloud"
+  },
+  {
+    "id": "an Enact chip is always enabled",
+    "file": "backend/game_logic/reforms.py",
+    "old": "                    \"command\": f\"enact {name}\", \"enabled\": not refusal}",
+    "new": "                    \"command\": f\"enact {name}\", \"enabled\": True}",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_the_chip_is_the_predicate"
+  },
+  {
+    "id": "the Enact chip never asks the predicate",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            refusal = law_refusal(world, nation, law_id)\n            lapsed = row.get(\"lapsed_turn\")",
+    "new": "            refusal = \"\"\n            lapsed = row.get(\"lapsed_turn\")",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_the_chip_is_the_predicate"
+  },
+  {
+    "id": "the Repeal chip never asks the predicate",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            refusal = repeal_refusal(world, nation, law_id)\n            chip = {\"label\": \"Repeal\"",
+    "new": "            refusal = \"\"\n            chip = {\"label\": \"Repeal\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_law_in_force_offers_repeal"
+  },
+  {
+    "id": "a law in force still offers Enact",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if is_in_force(row):\n            entry[\"status\"] = \"in_force\"",
+    "new": "        if False:\n            entry[\"status\"] = \"in_force\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_law_in_force_offers_repeal"
+  },
+  {
+    "id": "a restoration is labelled Enact",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            chip = {\"label\": \"Restore\" if quote[\"kind\"] == \"restore\" else \"Enact\",",
+    "new": "            chip = {\"label\": \"Enact\",",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_lapsed_law_offers_its_arrears"
+  },
+  {
+    "id": "a dispersed law reads as never lapsed",
+    "file": "backend/game_logic/reforms.py",
+    "old": "            elif lapsed is not None:\n                entry[\"status\"] = \"dispersed\"",
+    "new": "            elif False:\n                entry[\"status\"] = \"dispersed\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_dispersed_law_costs_its_full_price"
+  },
+  {
+    "id": "the footer's two lines swapped",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    footer = (f\"The laws in force cost {upkeep_total:,} gold a turn.\"\n              if in_force else \"No law is in force.\")",
+    "new": "    footer = (\"No law is in force.\"\n              if in_force else f\"The laws in force cost {upkeep_total:,} gold a turn.\")",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_the_footer_counts_the_slate"
+  },
+  {
+    "id": "the ledger carries a deckless tab",
+    "file": "backend/game_logic/ledger.py",
+    "old": "    if _laws is not None:\n        cabinet_fields[\"laws\"] = _laws",
+    "new": "    if True:\n        cabinet_fields[\"laws\"] = _laws",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_a_deckless_world_has_no_tab"
+  },
+  {
+    "id": "the ledger drops the tab",
+    "file": "backend/game_logic/ledger.py",
+    "old": "        cabinet_fields[\"laws\"] = _laws\n",
+    "new": "        pass\n",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestThePayload::test_the_ledger_carries_the_tab"
+  },
+  {
+    "id": "an enactment is never quoted",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "                and not _confirmed(command)):\n            return self._quote(world, actor, row, command)",
+    "new": "                and False):\n            return self._quote(world, actor, row, command)",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_an_enactment_is_quoted_first_and_free"
+  },
+  {
+    "id": "the AI is quoted too",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        if (not command.get(\"_acting_nation\")\n                and actor == getattr(world, \"player_nation\", None)",
+    "new": "        if (True\n                and True",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_the_ai_is_never_quoted"
+  },
+  {
+    "id": "the typed marker is never read",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "    for key in (\"target\", \"law\", \"raw_input\", \"original_command\", \"raw_command\"):",
+    "new": "    for key in ():",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_the_typed_confirm_enacts_at_once"
+  },
+  {
+    "id": "the marker is read as part of the name",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        words = _CONFIRMED_RE.sub(\"\", str(command.get(\"target\") or command.get(\"law\") or \"\"))",
+    "new": "        words = str(command.get(\"target\") or command.get(\"law\") or \"\")",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_a_marker_left_in_the_target_is_read_not_named"
+  },
+  {
+    "id": "the parser keeps the marker in the name",
+    "file": "backend/ai/llm_client.py",
+    "old": "            target = re.sub(r\"\\s*\\bconfirm(?:ed)?\\b\\s*$\", \"\", target,",
+    "new": "            target = re.sub(r\"\\bNEVER_MATCHES_\\b\", \"\", target,",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_the_parser_strips_the_marker"
+  },
+  {
+    "id": "the confirm's option reissues the bare order",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "                 \"command\": f\"enact {name} confirmed\",",
+    "new": "                 \"command\": f\"enact {name}\",",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_yes_enacts"
+  },
+  {
+    "id": "the quote spends an admin action",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "            \"free_action\": True,\n            \"state\": \"awaiting_clarification\",",
+    "new": "            \"free_action\": False,\n            \"state\": \"awaiting_clarification\",",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheConfirm::test_an_enactment_is_quoted_first_and_free"
+  },
+  {
+    "id": "the result's note is a second copy of the line",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "    return \" \" + reforms.authority_line(int(outcome.get(\"authority_before\", 0)),\n                                        int(outcome.get(\"authority_after\", 0)))",
+    "new": "    return f\" Authority {int(outcome.get('authority_before', 0))} → {int(outcome.get('authority_after', 0))}.\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheAuthorityLine::test_the_verbs_result_reads_the_same_line"
+  },
+  {
+    "id": "key 8 opens the Admiralty",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\t\tKEY_8:\n\t\t\t\t_switch_tab(7)",
+    "new": "\t\t\tKEY_8:\n\t\t\t\t_switch_tab(6)",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheClient::test_key_eight_opens_the_laws_tab"
+  },
+  {
+    "id": "the laws tab is not a book",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "orders_tab, admiralty_tab, laws_tab]",
+    "new": "orders_tab, admiralty_tab]",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheClient::test_the_tab_is_the_eighth_book"
+  },
+  {
+    "id": "tab 7 renders the Admiralty",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "\t\t7:\n\t\t\t_render_laws_tab()",
+    "new": "\t\t7:\n\t\t\t_render_admiralty_tab()",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheClient::test_the_laws_book_is_rendered"
+  },
+  {
+    "id": "a clarification answer refreshes nothing",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tapi_client.send_command(command, _on_clarification_command_result)",
+    "new": "\tapi_client.send_command(command, _on_command_result)",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheClient::test_a_clarification_answer_refreshes_the_open_ledger"
+  },
+  {
+    "id": "the ledger is not an info screen",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tfor screen_name in [\"generals\", \"diplomatic_ledger\", \"ledger\"]:",
+    "new": "\tfor screen_name in [\"generals\", \"diplomatic_ledger\"]:",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheClient::test_a_clarification_answer_refreshes_the_open_ledger"
+  },
+  {
+    "id": "the tab button reads otherwise",
+    "file": "godot-client/project-sovereign/scenes/strategic_ledger.tscn",
+    "old": "theme_override_font_sizes/font_size = 12\ntext = \"LAWS\"",
+    "new": "theme_override_font_sizes/font_size = 12\ntext = \"LEGIS\"",
+    "tests": "tests/test_rf4a_the_laws_tab.py::TestTheClient::test_the_tab_button_exists"
+  }
+]

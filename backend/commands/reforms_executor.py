@@ -8,28 +8,37 @@ shown = applied), then call the ONE mutation. The admin action is charged by
 the shared executor after success (both verbs are ADMIN_ACTIONS); the AI rides
 the same verbs with `_acting_nation` and its own admin budget (GR5).
 """
+import re
 from typing import Dict
 
 from backend.game_logic import reforms
 
+# RF-4a: the enactment confirm (REFORMS_SPEC §8a) — the Admiralty's
+# quote-then-confirm on the EXISTING command_clarification channel (no new
+# modal type). The option reissues the order with this marker; a typed
+# "… confirmed" does the same. An AI court never sees the quote (GR5 — its
+# rung already priced the act).
+_CONFIRMED_RE = re.compile(r"\s*\bconfirm(?:ed)?\b\s*$", re.IGNORECASE)
+COUNCIL = "The Council of State"
+
 
 def _authority_note(outcome: Dict) -> str:
-    """"Authority 100 → 85" plus every threshold the spend crossed (§3's
-    teeth): the diplomatic point at 60, the marshals' calm at 70, the floor
-    at 30."""
-    before = int(outcome.get("authority_before", 0))
-    after = int(outcome.get("authority_after", 0))
+    """The authority priced aloud on the verb's result — the SAME line the
+    chip and the confirm read (`reforms.authority_line`)."""
     if not outcome.get("authority"):
         return ""
-    crossed = []
-    if before >= 70 > after:
-        crossed.append("the marshals' calm above 70 is lost")
-    if before >= 60 > after:
-        crossed.append("the diplomatic point above 60 is lost")
-    if before >= 30 > after:
-        crossed.append("below 30 the court loses a diplomatic point a turn")
-    tail = (" — " + "; ".join(crossed)) if crossed else ""
-    return f" Authority {before} → {after}{tail}."
+    return " " + reforms.authority_line(int(outcome.get("authority_before", 0)),
+                                        int(outcome.get("authority_after", 0)))
+
+
+def _confirmed(command: Dict) -> bool:
+    if command.get("confirmed"):
+        return True
+    for key in ("target", "law", "raw_input", "original_command", "raw_command"):
+        words = command.get(key)
+        if isinstance(words, str) and _CONFIRMED_RE.search(words):
+            return True
+    return False
 
 
 def _misaddressed(command: Dict, world, actor: str, verb: str) -> Dict:
@@ -59,7 +68,7 @@ class ReformsExecutor:
         self.parent = parent
 
     def _resolve(self, command: Dict, world, actor: str):
-        words = command.get("target") or command.get("law") or ""
+        words = _CONFIRMED_RE.sub("", str(command.get("target") or command.get("law") or ""))
         row = reforms.resolve_law(world, actor, words)
         if row is not None:
             return row, None
@@ -91,6 +100,10 @@ class ReformsExecutor:
                                       admin_actions=admin)
         if refusal:
             return {"success": False, "message": refusal}
+        if (not command.get("_acting_nation")
+                and actor == getattr(world, "player_nation", None)
+                and not _confirmed(command)):
+            return self._quote(world, actor, row, command)
         outcome = reforms.enact_law(world, actor, row)
         quote = outcome["quote"]
         name = reforms.display_name(row)
@@ -119,6 +132,39 @@ class ReformsExecutor:
         }
         result["new_state"] = game_state
         return result
+
+    def _quote(self, world, actor: str, row: Dict, command: Dict) -> Dict:
+        """The enactment confirm: the terms first, free (the Admiralty's
+        quote-then-confirm). The option reissues the order confirmed."""
+        name = reforms.display_name(row)
+        spoken = name[0].upper() + name[1:]
+        quote = reforms.restoration_price(world, actor, row)
+        verb = "Restore" if quote["kind"] == "restore" else "Enact"
+        date = str(row.get("date") or "")
+        says = str(row.get("says") or "")
+        chest = int(getattr(world, "gold", 0) or 0)
+        message = (f"{spoken}{f' ({date})' if date else ''}: {says} "
+                   f"{reforms.terms_line(world, actor, row)}. The treasury holds "
+                   f"{chest:,} gold. {verb} it? (yes / no)")
+        return {
+            "success": True,
+            "free_action": True,
+            "state": "awaiting_clarification",
+            "type": "clarification",
+            "law_confirm": True,
+            "marshal": COUNCIL,
+            "original_command": command.get("raw_command", ""),
+            "message": message,
+            "options": [
+                {"label": f"{verb} {name}",
+                 "command": f"enact {name} confirmed",
+                 "aliases": ["yes", "enact", "restore", "confirm"]},
+                {"label": "Not now", "command": "cancel",
+                 "aliases": ["no", "not now", "stand down"]},
+            ],
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
+        }
 
     def _execute_repeal_law(self, command: Dict, game_state: Dict) -> Dict:
         world = game_state.get("world")
