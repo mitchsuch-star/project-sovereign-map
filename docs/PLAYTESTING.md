@@ -975,6 +975,24 @@ engine read them, after the import.
 3. If the playtest discharges a visual sign-off, screenshots under
    `docs/audits/` (Mode C pattern).
 
+### Scoring a build (from September 28, 2026)
+
+A pillar score is no longer one reviewer's impression of one campaign. It is
+read from the instrument in `docs/SCORE_FINISH_SPEC.md` §4:
+- a fixed benchmark: the same arms, seeds and dials every time (§4.2);
+- eight binary items per pillar (Appendix A);
+- a frozen rule that turns those items into a score (§4.4);
+- a blind panel of three agents that never see the previous number (§4.5).
+
+The rule for any session:
+- **Report checklist item flips, not a new score.** The two full readings,
+  the baseline and the final, belong to that spec's Step 0 and Step 8.
+- **Log defects, not points.** A hand-played campaign files what it finds as
+  defect rows. Those count toward the findings rate (new rows per 10 turns
+  played, by severity and depth), which is reported beside the score and
+  never subtracted from it.
+- **Count the ledgers with** `.venv/Scripts/python.exe tools/defect_census.py --open`.
+
 ## Known limits (deliberate)
 
 - **Heavy process concurrency can FREEZE a driver child** (seen Aug 21,

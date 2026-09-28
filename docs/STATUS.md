@@ -4,6 +4,54 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE SCORE FINISH — THE PLAN (September 28, 2026, user-directed: "lay out plan to hit all defects, these pillars … then a rescore at the end with improved methods … make status reflect plan and steps")**
+> - **Routing authority from today: `docs/SCORE_FINISH_SPEC.md`** (row SF, the rest of the Score Mandate). `SCORE_MANDATE_PLAN.md` keeps its landing records and its gates. Nothing is built yet: the spec is docs plus one read-only tool.
+> - **Why the scores stood still** (spec §0):
+>   - The Sept 28 re-score held ten of fourteen pillars.
+>   - Six of those belong to chunks not yet started. Two can't move at all without the client or without being exercised.
+>   - Diplomacy had already risen at its own exit.
+>   - The three worked-on pillars that held (combat legibility, marshal drama, command) were fixed to the row and measured on the row.
+>   - The score itself is one anchored impression. It swings ±0.5 between reviews, against chunk targets of +0.5.
+> - **The census** (spec §1): `tools/defect_census.py` (new) counts every row in both ledgers, and six read-only agents verified each open row at `c20d5bba`.
+>   - **99 live defect rows:** 86 open, 8 partial, NPC-12's remainder, and 4 new rows filed today (SF-V1 … SF-V4, `BUG_FIXES.md` §Score Finish Verification).
+>   - **Stale:** 29 defect rows and 45 design rows, fixed but never struck.
+>   - **Design:** 13 items in scope and 11 user gates.
+>   - **Orphans:** a dozen NPC rows and seven others (the NP-X rows, VP-R1-X1, CQ-22) had been homed to slices that landed without them; §1.5 re-homes each one.
+> - **The steps** (spec §3, ≈24–25 sessions):
+>
+>   | Step | What | Sessions |
+>   |---|---|---|
+>   | 0 | **SF-0** the ledger tells the truth + **SF-M** the instrument (`tools/score_run.py`, the checklist v1, the probes) + **the baseline reading** on `c20d5bba` | ≈1.5 |
+>   | 1 | **"The peace holds":** RS-1, RS-2 (+ RS-D1), RS-10, RS-16, SF-V1; SF-END-1, the Imperial Peace played, as its exit | ≈1.5 |
+>   | 2 | **Berthier tells the truth:** Chunk 6 rebuilt (its written bullets had already landed), the reserve, SF-MD-1 "every man his own voice", SF-DIP-1 | ≈4.0 |
+>   | 3 | **Europe acts without France:** Chunk 7 as one balance block — RS-3, SR-7a (+ CQ-22, IQ5-R1, XR-3), SR-7b, SR-G7, SR-7c, RS-27, SF-LB-1 "Europe's own quarrels", SR-7d last | ≈6.5 |
+>   | 4 | **The three misses, second pass:** SF-CL-1 the forecast keeps its word; SF-CMD-1 the unrehearsed line; Chunk 3b trimmed (CRT-6/8/9/10/11 + the parser riders) | ≈5.3 |
+>   | 5 | **The client stands:** Chunk 8 (VD-C, the formables on a played road) + SF-AGD-1 | ≈2.0 |
+>   | 6 | **The chest and the sea:** SF-NAV-1 the strangulation played (+ SF-ECON-1 only if needed) | ≈0.7–1.7 |
+>   | 7 | **What the wire says, the screen says:** Chunk 9 + the user's eyes | ≈2.0 |
+>   | 8 | **SF-R, the final reading:** the same instrument, the blind panel, the user's EYES items, one hand-played depth campaign for the findings rate | ≈1.0 |
+>
+> - **The new method** (spec §4, Appendix A):
+>   - a fixed benchmark: the same arms and seeds every time;
+>   - eight binary items per pillar (2 floors + 6 ceilings), 112 in all;
+>   - one frozen rule: 5.5 + 0.5 per ceiling, with a verified open P1 capping its pillar;
+>   - three blind scorers who never see the old number. The median and the spread are published, and a move smaller than the spread is not claimed.
+>   - findings per turn played, reported beside the score, never subtracted from it.
+>
+>   **Every session exit now reports item flips, so progress is visible without a re-score.**
+> - **⚠ Expect the baseline to read LOWER than the Sept 28 impression scores.** A verified P1 caps the ending and diplomacy, and most of living balance's ceilings are unmet. That is the new ruler, not a regression.
+> - **⚠ Open with the user** (spec §6, each with a recommended default):
+>   - RS-D1: recognition by defeat;
+>   - the checklist v1 as the definition of done;
+>   - SR-G7 / PB-D1: the alarm floor, and which slot rules it;
+>   - RS-3's shape; CQ-22's drill rule;
+>   - SF-V4: an attack on an unknown proper name (default: ask);
+>   - CX-X3; CQ-36; VP-D9; IQ7-D4;
+>   - SF-ECON-1, only if needed;
+>   - the orphaned design gates: WO-D7, WO-D8, WO-D13, EWC-D3, VP-D8, IQ6-D2;
+>   - the RF-4 sign-off and the FA confirmations still owed.
+> - **▶ NEXT = Step 0: SF-0 "The ledger tells the truth" → SF-M "The instrument" → the baseline reading.** The P1s may go first on the user's word; the baseline is pinned to `c20d5bba` either way.
+
 > **▶ ▶ ▶ THE FULL PLAY RETEST + INTERIM RE-SCORE — September 28, 2026 (user-directed: "do full play retest and rescore with a steam review blurb")**
 > - **Records:** memo `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_28.md` (the verdict, the Steam review, the 28-turn diary, the eighteen arms, the re-score, the rows); rows `BUG_FIXES.md` §Full Play Retest, RS-1 … RS-29 (2 P1 · 9 P2 · 17 P3 · 1 P4, all open, every one owned); design rows `DESIGN_REFINEMENT.md` §Full Play Retest, RS-D1 … RS-D3; archives `docs/audits/playtest_digests/rs0928-*` (eighteen driver arms) + `rs0928-hand-played/` (the transcript, the diary, the saves). Nothing built after the rulings.
 > - **How it was played:** 28 turns by hand from the boot on a fresh port-8009 backend with the live parser configured — 165 typed orders (156 carried out, 160 read offline at 0.80–0.95, the model consulted 4 times), every popup answered through the client's endpoints; eighteen seeded driver arms (the commanded seeds, spender, ambient, both reach roads, the four exit arms, sea, volte, propose, advisor, flagship, tutorial, the staged Pressburg ending); six read-only agents reproduced every defect on a fresh boot or a replayed save.
@@ -13,7 +61,7 @@
 > - **The score (interim, FOR USER CONFIRMATION — `SCORE_MANDATE_PLAN.md` §1 ⚑⚑):** the ending 6.5 → 6.75, first contact 6.5 → 7.0, economy 6.5 → 6.75, naval 6.5 → 6.75; the other ten held (UI/UX not re-scored — no client pass, the user's game was open); **directional ≈7.0 → ≈7.1**. The end-of-mandate re-score still stands.
 > - **The Steam review:** *👍 Recommended — 7/10. "Buy it for the tent and the dispatches. The Congress needs one more patch."* (memo §1).
 > - **Measured:** every arm completed; 0 tracebacks or server errors across the arms and the hand-played campaign. No production code changed.
-> - **▶ NEXT = "The peace holds" (RS-1 + RS-2, each behind its own lever, `BASELINE_SERIES` attributed), then Chunk 6 — NARRATION, DISPATCH & COPY, opening SR-6a "The dispatch pass"** (with RS-9, RS-17, RS-20, RS-23, RS-24, RS-D2). The quick-win rows (RS-4, RS-5, RS-10, RS-12 … RS-16, RS-28) are banked in `SCORE_MANDATE_PLAN.md` §3.
+> - ~~**▶ NEXT = "The peace holds" (RS-1 + RS-2, each behind its own lever, `BASELINE_SERIES` attributed), then Chunk 6 — NARRATION, DISPATCH & COPY, opening SR-6a "The dispatch pass"** (with RS-9, RS-17, RS-20, RS-23, RS-24, RS-D2). The quick-win rows (RS-4, RS-5, RS-10, RS-12 … RS-16, RS-28) are banked in `SCORE_MANDATE_PLAN.md` §3.~~ **Superseded the same day by the Score Finish plan** (entry above). "The peace holds" is Step 1; every RS row has a step there.
 > - **⚠ Open with the user:** **RS-D1 recognition by defeat** (it amends SR-1a's ruling (2) — recommended: a signed peace that leaves a great power's capital in the French bloc latches its recognition); the interim scores; the RF-4 visual sign-off.
 
 > **▶ ▶ ▶ THE TWO RULINGS OF SEPTEMBER 28, 2026 — SR5B-D1 BUILT, SRX-D1 KEPT (taken under the user's delegation: "make these decisions")**

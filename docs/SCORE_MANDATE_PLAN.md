@@ -1,6 +1,18 @@
 # THE SCORE MANDATE — the plan after the release build (row SR)
 
-> **Status: RULED September 26, 2026, by the user's direction — THIS DOCUMENT IS THE ROUTING AUTHORITY.** `docs/STATUS.md` ▶ NEXT UP points here; `CLAUDE.md` LIVE STATE names it. It supersedes the September 23 "Fix Updates 1–5" ordering (§6 says exactly how) and keeps the ROADMAP spine after it (Round 0 → the Victory & Objectives gate → Steam → CR-6 → Pre-EA → Trailer → EA) unchanged.
+> **⚑ ROUTING HANDED ON — September 28, 2026: `docs/SCORE_FINISH_SPEC.md` routes the rest of this mandate** (the user: *"lay out plan to hit all defects, these pillars … then a rescore at the end with improved methods"*).
+> - **What this file keeps:**
+>   - its landing records (§2 Chunks 1–5, §5);
+>   - its §0 principles;
+>   - its §4 gates;
+>   - the content of Chunks 6–9 and 3b, which the Finish absorbs by name.
+> - **What the Finish supersedes:**
+>   - §1's scoreboard: the interim numbers are frozen as history, replaced by the Finish's instrument and its baseline reading;
+>   - §5's measurement rule;
+>   - Chunk 6's bullets: six of seven had already landed in Chunks 1–2, and the Finish's Step 2 rebuilds the chunk.
+> - **The quick-win bank (§3)** is dealt into the Finish's Steps 1, 2 and 4.
+>
+> **Status: RULED September 26, 2026, by the user's direction — THIS DOCUMENT IS THE ROUTING AUTHORITY** *(until September 28, 2026 — see above)*. `docs/STATUS.md` ▶ NEXT UP points here; `CLAUDE.md` LIVE STATE names it. It supersedes the September 23 "Fix Updates 1–5" ordering (§6 says exactly how) and keeps the ROADMAP spine after it (Round 0 → the Victory & Objectives gate → Steam → CR-6 → Pre-EA → Trailer → EA) unchanged.
 >
 > **⚑ RE-RULED September 26, 2026 (evening), by the user's direction — five rulings amend this plan in place** (the header, §0-1/5/6, §1, §2 Chunks 2–7, §4, §5, §6, §7; the table of rulings is `DESIGN_REFINEMENT.md` §Score Mandate rulings):
 > 1. **SR-D3's premise is corrected.** The AI is NOT exempt from action points — it spends its nation's budget through the same cost table the player pays; every enemy corps moves because the 1805 rosters are 1–3 corps against 2–4 actions, while France fields 8 corps against 4 (§4 SR-D3).
@@ -41,6 +53,10 @@
 ---
 
 ## §1 The scoreboard
+
+> **⚑ Frozen as history, September 28, 2026.** The pillars are now read by `SCORE_FINISH_SPEC.md` §4's instrument: a fixed benchmark, eight binary items per pillar, a frozen rule and a blind panel.
+> - Its baseline reading, on `c20d5bba`, supersedes the numbers below. It is Step 0 of the Finish.
+> - Expect it to read lower in places: a verified open P1 caps its pillar.
 
 Scores are directional and, as before, **FOR USER CONFIRMATION** where marked. "Now" is September 25, 2026 (evening); **the Chunk 1 exit (September 26, 2026) re-scored two rows, marked ⚑.** **⚑ Re-ruled September 26, 2026 (evening): no more per-chunk re-scores — this table is re-scored ONCE, fully, at the end of the mandate (§5). The rows below stand until then; the Chunk 3 exit re-score was NOT run.** **⚑ An INTERIM, user-directed full re-score ran September 28, 2026** (the user: *"do full play retest and rescore with a steam review blurb"*; memo `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_28.md` §4 — a 28-turn hand-played campaign on the live parser, eighteen driver arms and six verification agents). It re-read all fourteen rows, moved four (marked ⚑⚑) and held ten (UI/UX not re-scored: no client pass). Every figure is FOR USER CONFIRMATION, and it does NOT replace the one full re-score §5 reserves for the end of the mandate.
 
@@ -170,6 +186,10 @@ The road to the Congress, built from what was measured, not from the number. Ord
 **Session-exit evidence (§5):** the three arms of the IQ-1 exit (a commanded France, a passive France, a beaten France); a played Descent or strangulation arc; **and the Continental System shut-out arc PLAYED** (added September 26, 2026 (evening) — the shut-out has never been reached on a played road; VP-R1 moved `cs_shutout_pct` 60 → 50 because 60 was unreachable from play). Both pillars are scored once, at the end of the mandate.
 
 ### Chunk 6 — NARRATION, DISPATCH & COPY: "Berthier tells the truth" (≈1.0; 7.5 → 8.0)
+
+> **⚑ Rebuilt September 28, 2026 as `SCORE_FINISH_SPEC.md` §3 Step 2 (≈4.0).**
+> - The bullets below are stale. Of the seven rows they name, six landed in Chunks 1–2: AAR-13, AAR-14, AAR-15, AAR-16, AAR-22 and AAR-27. Only AAR-5 remains.
+> - The chunk's real load is the retest's copy rows, the NPC rows homed to it, and SF-MD-1.
 
 - **SR-6a The dispatch pass:** the intel row prefers the live full-view sighting (AAR-5); the danger flag is keyed on (marshal, province) (AAR-13); the supply remedy names only provinces a corps can march into (AAR-14); foreign constructions name their owner or stay off our tactical events (AAR-16).
 - **SR-6b The copy pass** (F2's successor, NPC-12's next census slice): an armistice is an armistice (AAR-15); raw tags and in-place walk-ins (AAR-22); the war label (AAR-27 if 2a did not take it).

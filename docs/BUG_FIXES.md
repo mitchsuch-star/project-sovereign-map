@@ -3,7 +3,19 @@
 > Broken-now implementation document.
 > Treat the current findings as frozen truth until the open items below are fixed.
 >
-> Last Updated: **September 28, 2026 — the Full Play Retest** filed 29 rows
+> Last Updated: **September 28, 2026 — the Score Finish census**
+> (`docs/SCORE_FINISH_SPEC.md` §1).
+> - **The ledger, counted.** `tools/defect_census.py` counts every row in this
+>   file and in `DESIGN_REFINEMENT.md`. Six read-only agents then verified each
+>   open row at `c20d5bba`.
+> - **99 live defect rows**, each with a slice in the spec's build order.
+> - **Stale rows:** 29 defect rows and 45 design rows are fixed but never
+>   struck. Step 0's SF-0 marks them, with their evidence.
+> - **Four new rows** are filed below as §Score Finish Verification, SF-V1 …
+>   SF-V4. The first, SF-V1, is an AI treaty offer its own ratification
+>   refuses.
+>
+> Previously: **September 28, 2026 — the Full Play Retest** filed 29 rows
 > (§Full Play Retest below, memo `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_28.md`):
 > a 28-turn hand-played campaign summoned the Congress of Paris for the first time
 > (47 of 45 titled, turn 24) and watched it dissolve on day 3. Two P1s:
@@ -125,6 +137,17 @@
 
 ---
 
+
+## Score Finish Verification — filed September 28, 2026 (**4 rows SF-V1 … SF-V4, ALL OPEN, every one owned; 2 P2 · 2 P3** — found while verifying the open ledger for `docs/SCORE_FINISH_SPEC.md` §1; evidence: the `rs0928-*` driver archives, the verification agents' probes, and one reproduction by hand)
+
+| Row | Sev | Finding | Owner / fix shape |
+|---|---|---|---|
+| **SF-V1** | P2 | **An AI court offers a treaty its own ratification refuses.** Sweden offered France a defensive alliance on five of the retest's driver arms: the three commanded seeds, the spender and the volte arm. The driver accepted it every time, and the ratification refused it 14 times: *"Sweden's terms could not be ratified: Relations with France are insufficient for DEFENSIVE_ALLIANCE."* Two faults:<br>• The offer producer never checks the relation floor of the treaty it offers. IGR-X3 kept the floors on the rows above peace, so the treaty is refused at ratification instead.<br>• The refusal prints the raw state key. | **"The peace holds"** (`SCORE_FINISH_SPEC.md` §3 Step 1).<br>• The AI proposal producer skips a treaty whose relation floor the pair does not meet, using the ratifier's own predicate.<br>• The refusal names the treaty through `display_names`.<br>• **Pin:** 0 such refusals on the commanded arm in 40 turns (checklist Diplomacy C6). |
+| **SF-V2** | P3 | **The white-peace table's header reads "Will NOT carry" beside a live Ratify.** A white peace keeps the leader gate by G4F-19's design, so its header and its button disagree. SR-2a recorded this residue as SR-2a-X1 (`SCORE_MANDATE_PLAN.md` §2 Chunk 2), but it never got a ledger row. | **SR-6b, with SRX-6.** Both are copy for the white-peace table's legitimacy line.<br>• An empty package's header speaks the leader gate's own verdict.<br>• **Pin:** no screen shows "Will NOT carry" beside an enabled Ratify. |
+| **SF-V3** | P3 (instrument) | **The Chunk 5 laws evidence arm no longer buys the Staff.** `tools/playtest_scripts/sr_exit_chunk5_laws.json` types `enact the Staff` once, at loop 6. Since SR-5a, the treasury reaches 9,000 only at turn 8, so `rs0928-laws` never enacted the Staff and the arm stopped testing the thing it exists for. | **SF-M** (`SCORE_FINISH_SPEC.md` §3 Step 0). The arm types the enactment on every loop until it lands. **Pin:** checklist Economy C1 reads it. |
+| **SF-V4** | P2 (needs a ruling) | **An attack on a proper name the map does not know fights the nearest enemy.** Reproduced by hand at `c20d5bba` through `POST /command`, mock parser: `Ney, attack Zorglub`, `Ney, attack Alsace` and `Ney, attack Lombardy` each answer *"Your words named no foe our maps know, Sire — Ney marches on Mack at Swabia, the nearest in sight. Name another and he will turn."* The battle is then fought; Ney goes from 24,000 to about 21,900 men.<br>This conflicts with two existing rulings:<br>• An address to a name nobody has spends nothing (CX-R1).<br>• CX5-L5-F8 ruled the substitution designed only for a descriptive phrase ("smash the retreating column"); a proper name was never ruled.<br>NPC-6's road, a fallen man's surname, is the same seam. | **CRT-10, with NPC-6, after the ruling in `SCORE_FINISH_SPEC.md` §6 row 6.** Recommended: a proper name that matches nothing asks, as the address rule does (*"No foe called Zorglub is known — the nearest is Mack at Swabia. Attack him?"*). A descriptive phrase keeps the substitution. |
+
+---
 
 ## Full Play Retest — filed September 28, 2026 (**29 rows RS-1 … RS-29, ALL OPEN, every one owned; 2 P1 · 9 P2 · 17 P3 · 1 P4** — memo `docs/audits/PLAYTEST_FULL_RESCORE_2026_09_28.md`; evidence: a 28-turn hand-played campaign on the live parser (`docs/audits/playtest_digests/rs0928-hand-played/`) + eighteen driver arms (`docs/audits/playtest_digests/rs0928-*`) + six read-only verification agents that reproduced every row on a fresh boot or a replayed save; design rows `DESIGN_REFINEMENT.md` §Full Play Retest RS-D1 … RS-D3)
 
