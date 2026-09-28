@@ -309,8 +309,12 @@ class TestNationEliminatedTemplate:
         assert "nation_eliminated" in _DIPLOMATIC_EVENT_PRIORITY, \
             "nation_eliminated priority missing"
 
-        template = _DIPLOMATIC_EVENT_TEMPLATES["nation_eliminated"]
-        rendered = template.format(nation="Prussia")
+        # SRX-21 (Sept 28, 2026): rendered through the real fill site — the
+        # template now names the court by `{nation_display}`, PR-2's derived
+        # suffix, which a bare `template.format(nation=...)` never reaches.
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        rendered = _format_dispatch_event_text("nation_eliminated",
+                                               {"nation": "Prussia"})
         assert "Prussia" in rendered
         assert "eliminated" in rendered
 

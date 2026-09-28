@@ -134,6 +134,13 @@ class TestTheSupportObjectionQuotesWhatItCharges:
         # `apply_mood_variance`'s own docstring: mock it, or the objection is
         # a roll (a mild concern proceeds with "I have reservations").
         monkeypatch.setattr(SE, "apply_mood_variance", lambda concern: concern)
+        # The insist answer rolls V2b defiance (6% for Bernadotte here) on the
+        # GLOBAL random stream, so an unpinned roll made this pin depend on
+        # every test before it (found at the second Sept 28 session exit: a
+        # subset run defied and left no order). Defiance has its own pins;
+        # this one prices the answer.
+        monkeypatch.setattr("backend.commands.defiance.calculate_defiance_chance",
+                            lambda *a, **k: 0.0)
         data = post(client, "Bernadotte, support Davout")
         objection = data.get("objection") or {}
         assert objection.get("options"), data.get("message")

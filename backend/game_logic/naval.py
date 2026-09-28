@@ -2434,10 +2434,10 @@ def resolve_diversion(world, nation: str) -> Dict:
             "nation": nation, "against": hostile, "window_turns": int(WINDOW_TURNS),
         })
         from backend.game_logic.dispatch import queue_dispatch_event
-        from backend.display_names import display_nation
+        from backend.display_names import display_nation, nation_adjective
         queue_dispatch_event(world, "strait_open", {
             "line": (f"{display_nation(nation)}'s diversion draws the "
-                     f"{display_nation(hostile)} fleet off station — "
+                     f"{nation_adjective(hostile)} fleet off station — "
                      f"{WINDOW_TURNS} turns of open water"),
         }, "always")
         return {

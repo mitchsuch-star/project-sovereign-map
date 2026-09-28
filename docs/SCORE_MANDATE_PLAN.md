@@ -135,7 +135,7 @@ The road to the Congress, built from what was measured, not from the number. Ord
 
 **Session-exit evidence (§5):** a played arm that fights a garrison, a stacked defender and a rival's battle; petitions counted per turn. Both pillars are scored once, at the end of the mandate.
 
-### Chunk 5 — ECONOMY & NAVAL: "The chest and the sea" (≈2.0, ≈4.8 with SR-5r; 6.5 → 7.0 each)
+### Chunk 5 — ECONOMY & NAVAL: "The chest and the sea" (≈2.0, ≈4.8 with SR-5r; 6.5 → 7.0 each) — ✅ CLOSED September 28, 2026 (every slice through a session exit: SR-5r at the first exit that day, SR-5a / SR-5b / SR-5c and the reserve at the second — §5)
 
 - **Gate at the chunk's head — SR-D1 "Reforms, not research"** (re-slotted September 26, 2026 (evening); §4). Ruled here because a reform is both the economy's peacetime sink (the long peace has nothing to buy — §1's economy row) and, by SR-D3's ruling, the ONLY road to a new action point (the Staff reform, bought by both sides at the same price). SR-D3's two open questions ride it: DP (bank, reprice, or counsel only — AAR-D5) and the admin pool (convert, or leave). Nothing under it is built until it is ruled. **✅ RULED September 27, 2026, by the user** (gate record + build contract `REFORMS_SPEC.md`, authoritative): laws with upkeep; mixed currency; the Staff at one mid-campaign price for every court; DP banks one turn (cap 7); the admin pool unchanged; seven readings FOR USER CONFIRMATION (§0.1).
 - **SR-5r The Laws** (≈2.8 — was ≈2.2 before the September 27 UI/UX pass gave the client a full session; added September 27, 2026 by the SR-D1 ruling — `REFORMS_SPEC.md` §12):
@@ -328,7 +328,22 @@ Each gate is a session of research and a memo with the questions answered at rec
     - SRX-16: four refusals print names, not keys, and the pursue road's truce refusal reads the truce's own clock.
     - **SRX-17 (P2): guarantee / sponsor / buy off refuse an eliminated court.**
   - **Chunk 4 is CLOSED.**
-  - **Next: the ECONOMY BALANCE pass** (the user's Sept 27 direction: Britain should be richer than France), opening SR-5a "The chest"; then SR-5b, SR-5c and the reserve. Open with the user: the RF-4 visual sign-off and AIDR-D1.
+  - ~~**Next: the ECONOMY BALANCE pass** (the user's Sept 27 direction: Britain should be richer than France), opening SR-5a "The chest"; then SR-5b, SR-5c and the reserve. Open with the user: the RF-4 visual sign-off and AIDR-D1.~~ ✅ All four landed the same day (below); AIDR-D1 decided at SR-5a.
+- **The second September 28, 2026 session exit — RAN, and its residue LANDED. CHUNK 5 CLOSED.**
+  - **Scope.** Memo `docs/audits/SR_SESSION_EXIT_2026_09_28b.md`. It read three commits: SR-5a (`00a9b4d7`), SR-5b (`01b7aaed`), and SR-5c with the Chunk 5 reserve (`21699f55`). Eight played arms ran on both trees against `716b09a7`: the four standing exit arms, Chunk 5's sea evidence arm `tools/playtest_scripts/sr_exit_chunk5_sea.json`, and the IQ-1 economy arms re-run (a commanded France, a spending France, a passive France). No score.
+  - **What it read.**
+    - The sea road read true. The naval yard is priced and refused for its price (before: "Unknown building type"). The Grand Diversion's first throw won; the refusal inside the wait named the turns; the second throw, at readiness 64 (39 in 100), failed, and the fleet action led the next morning's dispatch. A refused attack kept Soult's march.
+    - AAR-6 in play: a levy with the military actions spent was refused on the before tree and raised on the after tree.
+    - The economy: SR-5a nearly doubled Britain's peacetime Net (+1,316 → +2,413 a turn at turn 41). Across a long French peace the two incomes are level (France +2,545 / +2,028); the chests differ by what each court spends — **SRX-D1, the user's**.
+  - **The residue slice** (rules `SYSTEMS_REFERENCE.md` §79.3; pins `tests/test_sr_exit_residue_2026_09_28b.py` 20; sweep `tools/_sweep_sr_exit_residue_2026_09_28b.json` 20/20 killed, 0 INERT at close — one INERT found and repaired; zero `.gd`):
+    - SRX-18: the desk names a naval yard only where one could stand — a regression of SR-5b's — with one period, and a capital after "Sire.".
+    - SRX-19: the fleet headline names the opponent, not "the France–Britain action".
+    - SRX-20: "the British fleet", "the British patrols".
+    - SRX-21: an eliminated court by its name, with its article.
+    - SRX-22: "the Papal States'" — the formatter's nine other raw-`source` lines go to SR-6b, NPC-12's next census slice.
+    - **SRX-23 (P2): an attack held for a declaration keeps the standing order** — one predicate for SR5B-1's restore and SR5B-2's announcement.
+  - **Chunk 5 is CLOSED.**
+  - **Next: Chunk 6 — NARRATION, DISPATCH & COPY**, opening SR-6a "The dispatch pass". Open with the user: SR5B-D1, SRX-D1, the RF-4 visual sign-off.
 - **Confirmation.** Scores stay FOR USER CONFIRMATION where a session cannot run the arm that scores them (a client pass the user must see; a live-parser arm without a key).
 - **Balance.** `BASELINE_SERIES` + M1–M7 byte-identical unless attributed by a flip experiment (`tools/_vpr1_series_arms.py` is the pattern).
 - **Save before any driver run touches a live campaign** (the AAR's lesson — `--http` opens with `POST /new_game`).

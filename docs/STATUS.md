@@ -4,13 +4,31 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE SECOND SESSION EXIT OF SEPTEMBER 28, 2026 RAN, AND ITS RESIDUE LANDED — CHUNK 5 CLOSED**
+> - **Records:** memo `docs/audits/SR_SESSION_EXIT_2026_09_28b.md`; rules `SYSTEMS_REFERENCE.md` §79.3; rows `BUG_FIXES.md` §Score Mandate Session Exit (September 28, the second), SRX-18 … SRX-23, all FIXED; design row `DESIGN_REFINEMENT.md` SRX-D1; pins `tests/test_sr_exit_residue_2026_09_28b.py` 20; sweep `tools/_sweep_sr_exit_residue_2026_09_28b.json` 20/20 killed, 0 INERT at close (one INERT found and repaired); new evidence arm `tools/playtest_scripts/sr_exit_chunk5_sea.json`; zero `.gd`.
+> - **What the exit read:** SR-5a, SR-5b, and SR-5c with the reserve, on eight played arms and both trees, against `716b09a7` — the four standing exit arms, Chunk 5's sea arm, and the IQ-1 economy arms re-run.
+>   - The sea road read true. The naval yard is priced and refused for its price (before: "Unknown building type"). The Grand Diversion's first throw won; inside the wait the refusal named the turns; the second throw, at readiness 64 (39 in 100), failed, and the fleet action led the next morning's dispatch. A refused attack kept Soult's march.
+>   - AAR-6 held in play: a levy with the military actions spent is raised.
+>   - **The economy (SRX-D1, the user's):** SR-5a nearly doubled Britain's peacetime income (+1,316 → +2,413 a turn at turn 41). Across a long French peace the two incomes are level (France +2,545 / +2,028); the chests differ by what each court spends. Recommended: keep ("a golden peace may grow rich").
+> - **The residue fixed:**
+>   - SRX-18, a regression of SR-5b's: the desk named a naval yard at every inland province, with a doubled period.
+>   - SRX-19: the fleet headline read "shattered at the France–Britain action"; it names the opponent now.
+>   - SRX-20: "the British fleet" / "the British patrols".
+>   - SRX-21: an eliminated court by its name, with its article.
+>   - SRX-22: "the Papal States'".
+>   - **SRX-23 (P2): an attack held for a declaration had destroyed the standing order it never replaced** — one predicate now reads refusals and held attacks alike.
+> - **Measured:** `BASELINE_SERIES` + M1–M7 byte-identical — both war-purpose staging arms are the player's, so the AI never holds an attack. One old pin re-seated consciously: the elimination template's, which formatted the raw template past the fill site.
+> - **Corrected before commit:** the exit's first economy reading ("France out-banks Britain while Britain pays for a war") compared hoards and was wrong on the facts — no court is at war at turn 41; the memo records the correction.
+> - **⚠ Open with the user:** SR5B-D1 (the shut-out's beachhead), SRX-D1 (the long peace), the RF-4 visual sign-off.
+> - **▶ NEXT = Chunk 6 — NARRATION, DISPATCH & COPY**, opening **SR-6a "The dispatch pass"** (`SCORE_MANDATE_PLAN.md` §2 Chunk 6).
+
 > **▶ ▶ ▶ SR-5c "THE DESCENT'S SECOND THROW" + THE CHUNK 5 RESERVE LANDED — September 28, 2026 (one commit)**
 > - **Records:** landing records `SCORE_MANDATE_PLAN.md` §2 Chunk 5 SR-5c + the reserve line; rules `SYSTEMS_REFERENCE.md` §78 (SR-5c) + §79 (the reserve); naval record `NAVAL_SPEC.md` (the record schema + §5.3.3(a) amended); rows `BUG_FIXES.md` SR5B-2 + FA-66 FIXED; pins `tests/test_sr5c_the_descents_second_throw.py` (28) + `tests/test_sr5_quick_wins.py`; sweeps `tools/_sweep_sr5c.json` 17/17 + `tools/_sweep_sr5_reserve.json` 11/11 killed, 0 INERT; zero `.gd`.
 > - **SR-5c (RULED by the user: "Readiness sets the odds, repeatable"):** the Grand Diversion may be sailed again 4 turns after its last throw, at the fleet's readiness less 25 (45 at the boot readiness 70 — a campaign's first throw is unchanged; 50 at 75; 25 at the blockade floor), one source (`naval.diversion_odds`) for the roll, the confirm, THE ADMIRALTY's chip and terms, the payload, the expedition's diversion lever, the help and the AI rung. `diversion_last_turn` replaces the once-per-war flag (the wait resets with the naval war; old saves migrate on load).
 > - **The reserve:** **SR5B-2** an order carried out over a standing order names the order it set aside ("Ney's hold at Rhineland is set aside."); **FA-66** a fleet action can lead the morning dispatch (shattered / beaten / triumph — the loser's own sail named).
 > - **Measured:** `BASELINE_SERIES` + M1–M7 byte-identical (the AI diversion rung asked 450 times on the ambient board, never throwing; the reserve is narration). Re-seated consciously: the once-per-war pin families (FA-14b, NV-3, NV-6, PC15-7, SR-5b's lever pin).
 > - **⚠ Open with the user:** SR5B-D1 (the shut-out's beachhead); the RF-4 visual sign-off.
-> - **▶ NEXT = ONE session exit + ONE residue slice** (the exit reads SR-5a, SR-5b, SR-5c and the reserve on both trees; its arms include Chunk 5's sea evidence arm `sr_exit_chunk5_sea.json` and the IQ-1 economy arms).
+> - ~~**▶ NEXT = ONE session exit + ONE residue slice**~~ ✅ RAN and LANDED September 28, 2026 (entry above) — **Chunk 5 CLOSED**.
 
 > **▶ ▶ ▶ SR-5b "THE SECOND ROAD AT SEA" LANDED — September 28, 2026 (the user's rulings: naval yards "Build them in SR-5b"; privateers struck)**
 > - **Records:** landing record `SCORE_MANDATE_PLAN.md` §2 Chunk 5 SR-5b; rules `SYSTEMS_REFERENCE.md` §77; rows `BUG_FIXES.md` §SR-5b The Second Road at Sea; naval record `NAVAL_SPEC.md` §19; pins `tests/test_sr5b_the_second_road_at_sea.py` (55); sweep `tools/_sweep_sr5b.json` 33/33 killed at close (two INERT found and repaired); evidence memo `docs/audits/SR5B_SHUT_OUT_ARM_2026_09_28.md` + six archived arms; parse harness EXIT=0, boot 0 `SCRIPT ERROR`; corpus 845/845.

@@ -4859,10 +4859,17 @@ class WorldState:
         from backend.notifications import (
             create_notification, NotificationPriority, NATION_ELIMINATED,
         )
+        # SRX-21: the court by its name, never its tag ("KingdomOfItaly
+        # has been eliminated" rode the payload; the client's name net was
+        # all that stood between it and the rail).
+        from backend.display_names import with_definite_article
+        from backend.game_logic.formations import formed_display_name
+        _named = formed_display_name(self, nation)
         self.notifications.add(create_notification(
             NATION_ELIMINATED, NotificationPriority.HIGH,
-            f"{nation} Eliminated!",
-            f"{nation} has been eliminated from the war.",
+            f"{_named} Eliminated!",
+            f"{with_definite_article(_named, capitalize=True)} has been "
+            f"eliminated from the war.",
             int(self.current_turn),
         ))
 

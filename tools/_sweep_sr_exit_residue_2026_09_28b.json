@@ -1,0 +1,142 @@
+[
+  {
+    "id": "SRX-18 the yard is named inland again",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if key == \"naval_yard\" and naval_yard_terms(world, region,\n                                                    player) is None:\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX18TheDeskNamesAYardOnlyWhereOneCouldStand::test_an_inland_answer_names_no_yard"
+  },
+  {
+    "id": "SRX-18 the refusal keeps its own period",
+    "file": "backend/ai/question_desk.py",
+    "old": "            refused.append(f\"{word} — {str(reason).rstrip('.')}\")",
+    "new": "            refused.append(f\"{word} — {reason}\")",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX18TheDeskNamesAYardOnlyWhereOneCouldStand::test_a_refusal_ends_on_one_period"
+  },
+  {
+    "id": "SRX-18 the second sentence opens lowercase",
+    "file": "backend/ai/question_desk.py",
+    "old": "        return f\"{head} {first[:1].upper()}{first[1:]}.\"",
+    "new": "        return f\"{head} {first}.\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX18TheDeskNamesAYardOnlyWhereOneCouldStand::test_the_second_sentence_opens_in_capitals"
+  },
+  {
+    "id": "SRX-19 the loss names the battle as a place",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                           f\"in action with {_fa_foe} — \"",
+    "new": "                           f\"at {_fa_name} — \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX19TheFleetHeadlineNamesTheOpponent::test_the_loss_names_the_victor"
+  },
+  {
+    "id": "SRX-19 the win names the battle as a place",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                     line=(f\"The fleet wins its action with {_fa_foe} — \"",
+    "new": "                     line=(f\"The fleet wins at {_fa_name} — \"",
+    "tests": "tests/test_sr5_quick_wins.py::TestTheFleetActionLeads::test_a_decisive_victory_is_a_triumph"
+  },
+  {
+    "id": "SRX-19 the victor loses its article",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                _fa_foe = with_definite_article(\n                    formed_display_name(world, e.get(\"winner\", \"\")))",
+    "new": "                _fa_foe = formed_display_name(world, e.get(\"winner\", \"\"))",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX19TheFleetHeadlineNamesTheOpponent::test_the_article_rides_the_name"
+  },
+  {
+    "id": "SRX-20 the Britain fleet",
+    "file": "backend/game_logic/naval.py",
+    "old": "f\"{nation_adjective(hostile)} fleet off station — \"",
+    "new": "f\"{display_nation(hostile)} fleet off station — \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX20TheAdjectiveBeforeTheFleet::test_the_strait_line_says_british"
+  },
+  {
+    "id": "SRX-20 the Britain patrols",
+    "file": "backend/commands/naval_executor.py",
+    "old": "f\"{'the ' + nation_adjective(outcome['coverer']) + ' patrols' if outcome['coverer'] else 'the empty sea'}\"",
+    "new": "f\"{'the ' + outcome['coverer'] + ' patrols' if outcome['coverer'] else 'the empty sea'}\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX20TheAdjectiveBeforeTheFleet::test_the_landing_line_says_british"
+  },
+  {
+    "id": "SRX-21 the rail prints the tag",
+    "file": "backend/models/world_state.py",
+    "old": "            f\"{with_definite_article(_named, capitalize=True)} has been \"",
+    "new": "            f\"{nation} has been \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX21TheEliminatedCourtByName::test_the_rail_the_dispatch_and_the_log"
+  },
+  {
+    "id": "SRX-21 the log prints the tag",
+    "file": "backend/campaign_log.py",
+    "old": "        nation = with_definite_article(\n            display_nation(event.get(\"nation\", \"Unknown\")), capitalize=True)",
+    "new": "        nation = event.get(\"nation\", \"Unknown\")",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX21TheEliminatedCourtByName::test_the_rail_the_dispatch_and_the_log"
+  },
+  {
+    "id": "SRX-21 the dispatch template takes the tag",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"nation_eliminated\": \"Sire — {nation_display} has been eliminated from the war.\",",
+    "new": "    \"nation_eliminated\": \"Sire — {nation} has been eliminated from the war.\",",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX21TheEliminatedCourtByName::test_the_rail_the_dispatch_and_the_log"
+  },
+  {
+    "id": "SRX-21 the preview refusal prints the tag",
+    "file": "backend/main.py",
+    "old": "f\"{_art_elim(_dn_elim(nation), capitalize=True)} has been eliminated from the war.\"",
+    "new": "f\"{nation} has been eliminated from the war.\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX21TheEliminatedCourtByName::test_the_preview_refusal_names_the_court"
+  },
+  {
+    "id": "SRX-22 a plural name takes 's",
+    "file": "backend/campaign_log.py",
+    "old": "    return f\"{name}'\" if name.endswith(\"s\") else f\"{name}'s\"",
+    "new": "    return f\"{name}'s\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX22TheProposingCourtByName"
+  },
+  {
+    "id": "SRX-22 the possessive takes the tag",
+    "file": "backend/campaign_log.py",
+    "old": "    name = with_definite_article(display_nation(str(tag or \"Unknown\")))",
+    "new": "    name = str(tag or \"Unknown\")",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX22TheProposingCourtByName"
+  },
+  {
+    "id": "SRX-22 the accepted line keeps the tag",
+    "file": "backend/campaign_log.py",
+    "old": "        # \"PapalStates's\").\n        source = _possessive_court(event.get(\"source\", \"Unknown\"))",
+    "new": "        # \"PapalStates's\").\n        source = event.get(\"source\", \"Unknown\") + \"'s\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX22TheProposingCourtByName::test_the_accepted_line_takes_the_name_too"
+  },
+  {
+    "id": "SRX-23 the lever down",
+    "file": "backend/commands/executor.py",
+    "old": "AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER = True",
+    "new": "AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER = False",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX23AnAttackHeldForADeclarationKeepsTheOrder::test_the_march_stands_through_the_declaration"
+  },
+  {
+    "id": "SRX-23 a held attack reads as carried out",
+    "file": "backend/commands/executor.py",
+    "old": "    return not result.get(\"battle_result\")",
+    "new": "    return False",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX23AnAttackHeldForADeclarationKeepsTheOrder"
+  },
+  {
+    "id": "SRX-23 a held order that fought is not carried out",
+    "file": "backend/commands/executor.py",
+    "old": "    if any(isinstance(e, dict) and e.get(\"type\") in (\"battle\", \"glorious_charge\")\n           for e in events):\n        return False",
+    "new": "    if False:\n        return False",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX23AnAttackHeldForADeclarationKeepsTheOrder::test_a_held_order_that_fought_is_carried_out"
+  },
+  {
+    "id": "SRX-23 the restore reads the refusal alone",
+    "file": "backend/commands/executor.py",
+    "old": "        if not order_was_not_carried_out(result):\n            return\n        for marshal, order, holding, hold_region, interrupt in aside:",
+    "new": "        from backend.commands.strategic import attack_was_refused\n        if not attack_was_refused(result):\n            return\n        for marshal, order, holding, hold_region, interrupt in aside:",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX23AnAttackHeldForADeclarationKeepsTheOrder::test_the_march_stands_through_the_declaration"
+  },
+  {
+    "id": "SRX-23 the announcement ignores the predicate",
+    "file": "backend/commands/executor.py",
+    "old": "        if order_was_not_carried_out(result):\n            return\n        world = (game_state or {})",
+    "new": "        if False:\n            return\n        world = (game_state or {})",
+    "tests": "tests/test_sr_exit_residue_2026_09_28b.py::TestSRX23AnAttackHeldForADeclarationKeepsTheOrder::test_the_announcement_reads_the_same_predicate"
+  }
+]

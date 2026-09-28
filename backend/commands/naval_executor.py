@@ -481,7 +481,9 @@ class NavalExecutor:
         if outcome["landed"]:
             message = (
                 f"THE LANDING: {marshal.name} slips past "
-                f"{'the ' + outcome['coverer'] + ' patrols' if outcome['coverer'] else 'the empty sea'}"
+                # SRX-20: the adjective ("the British patrols"), as the
+                # interception line already reads.
+                f"{'the ' + nation_adjective(outcome['coverer']) + ' patrols' if outcome['coverer'] else 'the empty sea'}"
                 f" and puts {troops:,} men ashore at {target} "
                 f"(odds were {outcome['odds']} in 100).")
             capture = None

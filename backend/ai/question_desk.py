@@ -1986,7 +1986,15 @@ def _answer_can_build(world, player: str, region_name: str) -> Optional[str]:
         return (f"{region_name} is not ours to build in, Sire — it answers to "
                 f"{_court(world, getattr(region, 'controller', '') or '')}.")
     allowed, refused = [], []
+    from backend.game_logic.naval import naval_yard_terms
     for key, spec in BUILDING_TYPES.items():
+        # SRX-18 (the exit of Sept 28, second): a naval yard is named only
+        # where the province could ever take one (a mooring, an admiralty,
+        # a city) — the desk had added "Not naval yard — Rhineland has no
+        # anchorage" to every inland answer.
+        if key == "naval_yard" and naval_yard_terms(world, region,
+                                                    player) is None:
+            continue
         verdict = can_build(world, region, key, player)
         ok = verdict[0] if isinstance(verdict, (tuple, list)) else bool(verdict)
         reason = (verdict[1] if isinstance(verdict, (tuple, list))
@@ -1996,10 +2004,16 @@ def _answer_can_build(world, player: str, region_name: str) -> Optional[str]:
         if ok:
             allowed.append(f"{word} ({cost}g)")
         elif reason:
-            refused.append(f"{word} — {reason}")
+            # One period: the refusal is the gate's own sentence, and the
+            # answer below closes it.
+            refused.append(f"{word} — {str(reason).rstrip('.')}")
     if not allowed:
         head = f"Nothing can be built at {region_name} today, Sire."
-        return head + (" " + refused[0] + "." if refused else "")
+        if not refused:
+            return head
+        # A new sentence opens in capitals ("Sire. Supply depot — …").
+        first = refused[0]
+        return f"{head} {first[:1].upper()}{first[1:]}."
     head = (f"At {region_name} we may build: " + ", ".join(allowed) + ".")
     if refused:
         head += f" Not {refused[0]}."

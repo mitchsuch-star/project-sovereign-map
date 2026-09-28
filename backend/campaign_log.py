@@ -1671,6 +1671,14 @@ def _holdings_left_clause(event: dict) -> str:
     return ""
 
 
+def _possessive_court(tag) -> str:
+    """SRX-22: a court's name in the possessive — "Saxony's", "the Ottoman
+    Empire's", "the Papal States'" (a plural name takes the bare
+    apostrophe)."""
+    name = with_definite_article(display_nation(str(tag or "Unknown")))
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
 def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     """
     Produce a human-readable one-liner for a campaign log event.
@@ -2827,7 +2835,9 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
 
     # V3 Session 8: new event types
     if event_type == "nation_eliminated":
-        nation = event.get("nation", "Unknown")
+        # SRX-21: the court by its name, never its tag.
+        nation = with_definite_article(
+            display_nation(event.get("nation", "Unknown")), capitalize=True)
         return f"{nation} has been eliminated from the war."
 
     if event_type == "vassal_auto_join_war":
@@ -2920,14 +2930,16 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     # are the side that answered. The old copy reversed the direction
     # ("Saxony rejected our open borders proposal" when we rejected Saxony's).
     if event_type == "ai_proposal_accepted":
-        source = event.get("source", "Unknown")
+        # SRX-22: the court by its name ("the Papal States'", not
+        # "PapalStates's").
+        source = _possessive_court(event.get("source", "Unknown"))
         proposal_type = _proposal_label(event)
-        return f"We accepted {source}'s {proposal_type} proposal{_decision_reason_suffix(event)}"
+        return f"We accepted {source} {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_rejected":
-        source = event.get("source", "Unknown")
+        source = _possessive_court(event.get("source", "Unknown"))
         proposal_type = _proposal_label(event)
-        return f"We rejected {source}'s {proposal_type} proposal{_decision_reason_suffix(event)}"
+        return f"We rejected {source} {proposal_type} proposal{_decision_reason_suffix(event)}"
 
     if event_type == "ai_proposal_counter_failed":
         source = event.get("source", "Unknown")

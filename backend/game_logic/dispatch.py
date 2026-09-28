@@ -1316,15 +1316,24 @@ def _build_headline(world, player_nation: str,
             from backend.game_logic.naval import losses_sentence, own_ships_lost
             _fa_name = e.get("battle_name") or "the fleet action"
             _fa_decisive = bool(e.get("decisive"))
+            # SRX-19: the naval layer has no sea zones, so its battle name
+            # is "the France–Britain action" — "shattered at the
+            # France–Britain action" read as a place. The line names the
+            # opponent instead.
             if e.get("loser") == player_nation:
+                _fa_foe = with_definite_article(
+                    formed_display_name(world, e.get("winner", "")))
                 _add("fleet_shattered" if _fa_decisive else "fleet_beaten",
                      f"fleet_action:{_fa_name}",
                      line=(f"The fleet is {'shattered' if _fa_decisive else 'beaten'} "
-                           f"at {_fa_name} — {losses_sentence(e, player_nation)}."))
+                           f"in action with {_fa_foe} — "
+                           f"{losses_sentence(e, player_nation)}."))
             elif e.get("winner") == player_nation and _fa_decisive:
                 _fa_ours = own_ships_lost(e, player_nation)
+                _fa_foe = with_definite_article(
+                    formed_display_name(world, e.get("loser", "")))
                 _add("fleet_triumph", f"fleet_action:{_fa_name}",
-                     line=(f"The fleet wins at {_fa_name} — "
+                     line=(f"The fleet wins its action with {_fa_foe} — "
                            f"{losses_sentence(e, e.get('loser', ''))}; we lose "
                            f"{_fa_ours} sail."))
         elif etype in ("marshal_broken", "retreat"):
@@ -5631,7 +5640,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "commitment_paradox_resolved": (
         "In a crisis of commitments, {player_nation} chose {chosen_nation} over {spurned_nation}."
     ),
-    "nation_eliminated": "{nation} has been eliminated from the war.",
+    "nation_eliminated": "Sire — {nation_display} has been eliminated from the war.",
     # Peace Deals BPH-A + BPH-D
     "peace_ratified": "Peace ratified between {proposer_nation} and {target_nation}.",
     # SR-1a — a signed peace's status quo titles what we hold (uti possidetis)

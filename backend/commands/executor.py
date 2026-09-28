@@ -273,6 +273,35 @@ A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER = True
 AN_OVERRIDE_NAMES_THE_ORDER_IT_SETS_ASIDE = True
 
 
+# SRX-23 (the exit of Sept 28, second): an attack HELD for a declaration was
+# not carried out either — "Choose your war purpose against Austria. Issue the
+# attack again after the declaration is settled." — yet it destroyed the
+# march it never replaced (measured: Lannes's march to Vienna gone, and gone
+# for nothing if the declaration is then cancelled). Flip lever.
+AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER = True
+
+
+def order_was_not_carried_out(result) -> bool:
+    """The new order never ran: refused (`strategic.attack_was_refused` —
+    `success is False` and no battle), or held for a declaration the player
+    must settle first (`awaiting_diplomatic_response`, no battle). SR5B-1's
+    restore and SR5B-2's announcement read this one predicate."""
+    from backend.commands.strategic import attack_was_refused
+    if attack_was_refused(result):
+        return True
+    if not (AN_ATTACK_HELD_FOR_A_DECLARATION_KEEPS_THE_ORDER
+            and isinstance(result, dict)
+            and result.get("awaiting_diplomatic_response")):
+        return False
+    events = result.get("events") or []
+    if isinstance(events, dict):
+        events = [events]
+    if any(isinstance(e, dict) and e.get("type") in ("battle", "glorious_charge")
+           for e in events):
+        return False
+    return not result.get("battle_result")
+
+
 def set_aside_clause(marshal, order) -> str:
     """SR5B-2: the one sentence naming a standing order a new order ended."""
     from backend.display_names import humanize_entity_name
@@ -1331,8 +1360,7 @@ class CommandExecutor:
         marshal took no new order in the meantime."""
         if not A_REFUSED_ORDER_KEEPS_THE_STANDING_ORDER:
             return
-        from backend.commands.strategic import attack_was_refused
-        if not attack_was_refused(result):
+        if not order_was_not_carried_out(result):
             return
         for marshal, order, holding, hold_region, interrupt in aside:
             if getattr(marshal, "strategic_order", None) is not None:
@@ -1353,8 +1381,7 @@ class CommandExecutor:
             return
         if not isinstance(result, dict):
             return
-        from backend.commands.strategic import attack_was_refused
-        if attack_was_refused(result):
+        if order_was_not_carried_out(result):
             return
         world = (game_state or {}).get("world") if isinstance(
             game_state, dict) else None

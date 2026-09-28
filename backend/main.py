@@ -6340,7 +6340,9 @@ def get_diplomatic_preview_endpoint(
             has_forces = any(m.strength > 0 for m in world.marshals.values() if m.nation == nation)
             has_regions = any(r.controller == nation for r in world.regions.values())
             if not has_forces and not has_regions:
-                return {"success": False, "error": f"{nation} has been eliminated from the war."}
+                from backend.display_names import display_nation as _dn_elim
+                from backend.display_names import with_definite_article as _art_elim
+                return {"success": False, "error": f"{_art_elim(_dn_elim(nation), capitalize=True)} has been eliminated from the war."}
         preview = get_diplomatic_preview(world, nation)
         return {
             "success": True,

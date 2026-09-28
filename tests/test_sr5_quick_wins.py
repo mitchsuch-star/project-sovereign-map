@@ -172,7 +172,9 @@ class TestTheFleetActionLeads:
         head = D._build_headline(w, "France")
         assert head["class"] == "fleet_shattered"
         assert N.losses_sentence(action, "France") in head["text"]
-        assert head["text"].startswith("Sire — The fleet is shattered at ")
+        # SRX-19 (the exit's residue): the opponent, not "the X–Y action".
+        assert head["text"].startswith(
+            "Sire — The fleet is shattered in action with Britain — ")
 
     def test_a_beaten_fleet_is_a_lesser_lead(self):
         w = _boot()
@@ -190,7 +192,7 @@ class TestTheFleetActionLeads:
         head = D._build_headline(w, "France")
         assert head["class"] == "fleet_triumph"
         assert head["text"] == (
-            "Sire — The fleet wins at the Battle of Ushant — Britain loses "
+            "Sire — The fleet wins its action with Britain — Britain loses "
             "40 sail; Portugal 2 beside her; we lose 3 sail.")
 
     def test_an_indecisive_win_is_no_triumph(self):
