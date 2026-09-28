@@ -2736,7 +2736,12 @@ def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
         for km in getattr(intel, "known_marshals", []) or []:
             if not _intel_marshal_is_enemy(world, player_nation, km):
                 continue
-            name = str(km.get("name") or km.get("marshal") or "")
+            # The session exit of September 28, 2026 (its residue, SRX-15):
+            # the intel stores the marshal's KEY, and this was the one name
+            # in the dispatch not passed through the humaniser — the morning
+            # lead read "ArchdukeCharles's corps of 19,418 stands there"
+            # (the client translates nation keys only).
+            name = humanize_entity_name(str(km.get("name") or km.get("marshal") or ""))
             if "strength" in km:
                 who = f" {name}'s corps of {int(km['strength']):,} stands there."
             elif "band" in km:

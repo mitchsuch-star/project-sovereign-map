@@ -22,7 +22,8 @@ class VassalExecutor:
         self._executor = parent_executor
 
     @staticmethod
-    def _eliminated_court_refusal(world, target: str) -> str:
+    def _eliminated_court_refusal(world, target: str,
+                                  tail: str = "Nothing can be invested in it.") -> str:
         """GE-V (September 25, 2026): the sentence for a court the board has
         eliminated — authored on this scenario (`nation_starting_regions`)
         but no longer among the active nations. "" for a living court or a
@@ -34,9 +35,11 @@ class VassalExecutor:
                 return ""
             if target in set(world.get_active_nations()):
                 return ""
+            # The session exit of September 28, 2026 (its residue, SRX-17):
+            # the three instruments ask this same predicate with their own
+            # tail (`DiplomaticExecutor._instrument_preflight`).
             return (f"{_court(world, target, capitalize=True)} no longer "
-                    f"exists as a court — it was eliminated. Nothing can be "
-                    f"invested in it.")
+                    f"exists as a court — it was eliminated. {tail}")
         except Exception:
             return ""
 

@@ -1350,6 +1350,22 @@ def _asks_about_the_laws(command_lower: str) -> bool:
     return bool(_LAW_QUESTION_RE.search(command_lower))
 
 
+# The session exit of September 28, 2026 (its residue): the bare word —
+# "laws", like "economy" and "status" — asks for the laws. The exit's laws
+# arm typed it and got Berthier's shrug ("this order eludes me").
+THE_BARE_WORD_ASKS_FOR_THE_LAWS = True
+_LAWS_BARE_RE = re.compile(
+    r"^(?:[a-z][\w'’-]*\s*,\s*)?(?:(?:the|our|my)\s+)?(?:laws?|reforms?)"
+    r"(?:\s+of\s+(?:the\s+)?state)?[\s.!?]*$")
+
+
+def _names_the_laws(command_lower: str) -> bool:
+    """"laws" / "the laws" / "our laws of state" — the whole line, after an
+    address and a word of filler (the Congress's head rule)."""
+    return (THE_BARE_WORD_ASKS_FOR_THE_LAWS
+            and bool(_LAWS_BARE_RE.match(_law_rest(command_lower).strip())))
+
+
 def _marshal_addressed_law(command_lower: str, marshal_names):
     """"Ney, enact the Staff" / "Ney enact the Staff" — a law order put to
     a marshal in the field: (action, marshal) so the executor can refuse it
@@ -2450,12 +2466,39 @@ class LLMClient:
             return self._laws_question(original_text)
         if not _congress_marshal_led and _law_order and _congress_hedged(command_lower):
             return self._laws_question(original_text)
+        if not _congress_marshal_led and _names_the_laws(command_lower):
+            return self._laws_question(original_text)
         if not _congress_marshal_led and _repeals_a_law(command_lower):
             action = "repeal_law"
             return self._parse_law_command(action, command_text)
         if not _congress_marshal_led and _enacts_a_law(command_lower):
             action = "enact_law"
             return self._parse_law_command(action, command_text)
+
+        # The session exit of September 28, 2026 (its residue): "how many
+        # diplomatic points do I have?" — "diplomatic" holds "diplomat", one
+        # of the diplomat's address names below, so the count opened
+        # Talleyrand's assessment (and, answered with its first options, a
+        # peace proposal). A count of the Emperor's own points and orders is
+        # the desk's (`question_desk` kind "points").
+        from .question_desk import classify_points_question
+        _points_question = classify_points_question(original_text)
+        if _points_question:
+            return ParseResult(
+                matched=True,
+                command_type="tactical",
+                marshals=[],
+                action="status",
+                target=None,
+                ambiguity=5,
+                strategic_score=0,
+                interpretation="Question — points",
+                confidence=0.9,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=original_text,
+                question=_points_question,
+            )
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
         if any(name in command_lower for name in DIPLOMAT_ADDRESS_NAMES):

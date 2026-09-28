@@ -1,0 +1,163 @@
+[
+  {
+    "id": "R1 the bare word is never read",
+    "file": "backend/ai/llm_client.py",
+    "old": "        if not _congress_marshal_led and _names_the_laws(command_lower):\n            return self._laws_question(original_text)",
+    "new": "        if False:\n            return self._laws_question(original_text)",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheBareWordAsksForTheLaws"
+  },
+  {
+    "id": "R1 the bare word takes no address",
+    "file": "backend/ai/llm_client.py",
+    "old": "    r\"^(?:[a-z][\\w'’-]*\\s*,\\s*)?(?:(?:the|our|my)\\s+)?(?:laws?|reforms?)\"",
+    "new": "    r\"^(?:(?:the|our|my)\\s+)?(?:laws?|reforms?)\"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheBareWordAsksForTheLaws"
+  },
+  {
+    "id": "R2 the named law never says",
+    "file": "backend/ai/first_contact.py",
+    "old": "                if THE_LAW_NAMED_SAYS_WHAT_IT_DOES and row is named else \"\")",
+    "new": "                if False else \"\")",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheNamedLawSaysWhatItDoes"
+  },
+  {
+    "id": "R2 an in-force named law is silent",
+    "file": "backend/ai/first_contact.py",
+    "old": "            if says:\n                lines.append(says)\n            continue",
+    "new": "            if False:\n                lines.append(says)\n            continue",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheNamedLawSaysWhatItDoes::test_an_in_force_named_law_says_too"
+  },
+  {
+    "id": "R3 the price is said twice again",
+    "file": "backend/ai/first_contact.py",
+    "old": "    if holds.startswith(\"the treasury holds\"):\n        return holds",
+    "new": "    if holds.startswith(\"the treasury holds\"):\n        return refusal",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestARefusedLawStatesItsPriceOnce::test_the_price_is_said_once"
+  },
+  {
+    "id": "R3 the authority loses its unit",
+    "file": "backend/ai/first_contact.py",
+    "old": "        return holds.rstrip(\".\") + \" authority.\"",
+    "new": "        return holds",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestARefusedLawStatesItsPriceOnce::test_an_authority_price_keeps_its_unit"
+  },
+  {
+    "id": "R3 the refusal is never re-read",
+    "file": "backend/ai/first_contact.py",
+    "old": "        if refusal:\n            refusal = _refusal_after_the_price(refusal)",
+    "new": "        if False:\n            refusal = _refusal_after_the_price(refusal)",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestARefusedLawStatesItsPriceOnce"
+  },
+  {
+    "id": "R4 the diplomat's address takes the count again",
+    "file": "backend/ai/llm_client.py",
+    "old": "        _points_question = classify_points_question(original_text)",
+    "new": "        _points_question = None",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_question_is_the_desks"
+  },
+  {
+    "id": "R4 the desk's classifier forgets the kind",
+    "file": "backend/ai/question_desk.py",
+    "old": "    return classify_points_question(stripped)",
+    "new": "    return None",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_desks_own_classifier_knows_the_kind"
+  },
+  {
+    "id": "R4 the desk never answers the kind",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if kind == \"points\" and THE_DESK_COUNTS_THE_POINTS:\n            return _answer_points(world, player)",
+    "new": "        if False:\n            return _answer_points(world, player)",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_answer_reads_the_pool_the_refill_and_the_orders"
+  },
+  {
+    "id": "R4 the carry is not named",
+    "file": "backend/ai/question_desk.py",
+    "old": "        if carried:\n            head += (f\" and {carried} {'was' if carried == 1 else 'were'} \"",
+    "new": "        if False:\n            head += (f\" and {carried} {'was' if carried == 1 else 'were'} \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_answer_reads_the_pool_the_refill_and_the_orders"
+  },
+  {
+    "id": "R4 the minister is a marshal typo again",
+    "file": "backend/commands/parser.py",
+    "old": "                             in (\"laws\", \"points\"))",
+    "new": "                             in (\"laws\",))",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheDeskCountsThePoints::test_the_question_is_the_desks"
+  },
+  {
+    "id": "R5 the occupier is named by his key again",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            name = humanize_entity_name(str(km.get(\"name\") or km.get(\"marshal\") or \"\"))",
+    "new": "            name = str(km.get(\"name\") or km.get(\"marshal\") or \"\")",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheFallenProvinceNamesItsOccupierAsPrinted"
+  },
+  {
+    "id": "R6 the engaged refusal reads the keys again",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "        enemy_names = [humanize_entity_name(e.name) for e in enemies_in_region]",
+    "new": "        enemy_names = [e.name for e in enemies_in_region]",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheEngagedRefusalNamesTheFoe"
+  },
+  {
+    "id": "R7 the instruments' gate forgets the eliminated court",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "        if gone:\n            return world, \"\", {\"success\": False, \"message\": gone}",
+    "new": "        if False:\n            return world, \"\", {\"success\": False, \"message\": gone}",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestAnEliminatedCourtBindsNoInstrument"
+  },
+  {
+    "id": "R7 the tail is the invest verb's",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            world, target, tail=\"No instrument can bind it.\")",
+    "new": "            world, target)",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestAnEliminatedCourtBindsNoInstrument::test_every_instrument_refuses_and_charges_nothing"
+  },
+  {
+    "id": "R7 the invest verb loses its own tail",
+    "file": "backend/commands/vassal_executor.py",
+    "old": "                                  tail: str = \"Nothing can be invested in it.\") -> str:",
+    "new": "                                  tail: str = \"No instrument can bind it.\") -> str:",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestAnEliminatedCourtBindsNoInstrument::test_invest_keeps_its_own_sentence"
+  },
+  {
+    "id": "R7 the guarantee prints the tag",
+    "file": "backend/commands/diplomatic_executor.py",
+    "old": "            f\"{_display_nation(player)} guarantees {_display_nation(target)}. \"",
+    "new": "            f\"{_display_nation(player)} guarantees {target}. \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestAnEliminatedCourtBindsNoInstrument::test_a_living_court_is_still_guaranteed_by_its_printed_name"
+  },
+  {
+    "id": "R6b the drill refusal reads the key one march off",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "                            f\"{humanize_entity_name(enemy.name)} is at {adj_name}, \"\n                            f\"just one region away.\",",
+    "new": "                            f\"{enemy.name} is at {adj_name}, \"\n                            f\"just one region away.\",",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheEngagedRefusalNamesTheFoe::test_the_drill_refusal_names_a_foe_one_march_off"
+  },
+  {
+    "id": "R6b the drill refusal reads the key on the field",
+    "file": "backend/commands/tactical_executor.py",
+    "old": "cannot drill with enemy forces ({humanize_entity_name(enemy_here.name)}) ",
+    "new": "cannot drill with enemy forces ({enemy_here.name}) ",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheEngagedRefusalNamesTheFoe::test_the_drill_refusal_names_a_foe_on_the_field"
+  },
+  {
+    "id": "R6b the attack road's truce refusal reads the key",
+    "file": "backend/commands/executor.py",
+    "old": "                \"message\": (f\"Cannot attack {humanize_entity_name(target_marshal.name)} — \"",
+    "new": "                \"message\": (f\"Cannot attack {target_marshal.name} — \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheTruceRefusalsNameTheFoeAndReadTheClock::test_the_attack_road_prints_the_names"
+  },
+  {
+    "id": "R6b the pursue road's truce refusal reads the key",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                            \"message\": (f\"Cannot pursue {humanize_entity_name(enemy.name)} — \"",
+    "new": "                            \"message\": (f\"Cannot pursue {enemy.name} — \"",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheTruceRefusalsNameTheFoeAndReadTheClock::test_the_pursue_road_prints_the_names_and_reads_the_truces_clock"
+  },
+  {
+    "id": "R6b the pursue road reads the war-entry floor again",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                        turns_left = int(max(0, ARMISTICE_DURATION - elapsed))\n                        unit = \"turn\" if turns_left == 1 else \"turns\"\n                        return {\n                            \"success\": False,\n                            \"message\": (f\"Cannot pursue",
+    "new": "                        turns_left = int(world.armistice_cooldowns.get(diplo_key, 1))\n                        unit = \"turn\" if turns_left == 1 else \"turns\"\n                        return {\n                            \"success\": False,\n                            \"message\": (f\"Cannot pursue",
+    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheTruceRefusalsNameTheFoeAndReadTheClock::test_the_pursue_road_prints_the_names_and_reads_the_truces_clock"
+  }
+]

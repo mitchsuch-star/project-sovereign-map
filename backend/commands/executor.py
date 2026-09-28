@@ -690,9 +690,15 @@ class CommandExecutor:
             elapsed = int((getattr(world, "armistice_turns", {}) or {}).get(diplo_key, 0) or 0)
             turns_left = int(max(0, ARMISTICE_DURATION - elapsed))
             unit = "turn" if turns_left == 1 else "turns"
+            # SRX-16 (the session exit of September 28, 2026): the AAR arm
+            # printed "Cannot attack ArchdukeCharles — armistice with
+            # Austria"; the marshal and the court by their printed names.
+            from backend.display_names import display_nation, humanize_entity_name
             return {
                 "success": False,
-                "message": f"Cannot attack {target_marshal.name} — armistice with {target_marshal.nation} ({turns_left} {unit} remaining).",
+                "message": (f"Cannot attack {humanize_entity_name(target_marshal.name)} — "
+                            f"armistice with {display_nation(target_marshal.nation)} "
+                            f"({turns_left} {unit} remaining)."),
                 "diplomatic_block": "armistice",
             }
         return None  # Non-armistice non-war: let auto-war-declaration handle

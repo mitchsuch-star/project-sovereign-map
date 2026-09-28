@@ -833,10 +833,25 @@ class StrategicExecutor:
                     diplo_state = world.get_diplomatic_state(marshal.nation, enemy.nation)
                     if diplo_state == "ARMISTICE":
                         diplo_key = world._make_diplo_key(marshal.nation, enemy.nation)
-                        turns_left = int(world.armistice_cooldowns.get(diplo_key, 1))
+                        # SRX-16 (the session exit of September 28, 2026),
+                        # found in passing: the attack road's truce refusal
+                        # was moved onto the truce's own clock by SR-3a
+                        # (ii)'s CRT-7 rider (`ARMISTICE_DURATION -
+                        # armistice_turns`, the rule the truce expires by);
+                        # this pursue-road sibling still read the
+                        # war-entry floor in `armistice_cooldowns`. It reads
+                        # the same clock now, and prints the names.
+                        from backend.display_names import display_nation
+                        from backend.game_logic.diplomacy import ARMISTICE_DURATION
+                        elapsed = int((getattr(world, "armistice_turns", {}) or {})
+                                      .get(diplo_key, 0) or 0)
+                        turns_left = int(max(0, ARMISTICE_DURATION - elapsed))
+                        unit = "turn" if turns_left == 1 else "turns"
                         return {
                             "success": False,
-                            "message": f"Cannot pursue {enemy.name} — armistice with {enemy.nation} ({turns_left} turns remaining).",
+                            "message": (f"Cannot pursue {humanize_entity_name(enemy.name)} — "
+                                        f"armistice with {display_nation(enemy.nation)} "
+                                        f"({turns_left} {unit} remaining)."),
                             "variable_action_cost": 0,
                         }
                     else:

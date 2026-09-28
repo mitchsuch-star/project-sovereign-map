@@ -4,6 +4,35 @@
 
 ## ▶ NEXT UP
 
+> **▶ ▶ ▶ THE SESSION EXIT OF SEPTEMBER 28, 2026 RAN, AND ITS RESIDUE LANDED — CHUNK 4 CLOSED**
+> - **Records:** memo `docs/audits/SR_SESSION_EXIT_2026_09_28.md`; rules `SYSTEMS_REFERENCE.md` §74.9; rows `BUG_FIXES.md` §Score Mandate Session Exit (September 28), SRX-11 … SRX-17, all FIXED; pins `tests/test_sr_exit_residue_2026_09_28.py` 41; sweep `tools/_sweep_sr_exit_residue_2026_09_28.json` 23/23 killed, 0 INERT; zero `.gd`.
+> - **What the exit read:** thirteen commits (B2–B5, SR-5r RF-0 → RF-4c, DP-1, the AI drill fix), on four played arms and both trees, against `6ceadabe`. The arms were the three standing exit arms plus Chunk 5's new laws evidence arm, `tools/playtest_scripts/sr_exit_chunk5_laws.json`.
+> - **What it measured:**
+>   - First contact: 27 of 28 replies identical; the one drift is the drill fix's, shown by a flip.
+>   - The laws road read true end to end on the new arm:
+>     - the authority laws are priced with the marshals' calm;
+>     - the Staff is refused with its price until turn 6, then bought;
+>     - the fifth action is on the wire;
+>     - the repeal and the full-price re-enactment work;
+>     - the Laws Net line reads 550;
+>     - seven rival-law beats in ten turns;
+>     - no lapse.
+>   - Petition modals stayed at the crisis tier on every arm.
+>   - 0 tracebacks in all eight runs.
+> - **The residue fixed all seven findings:**
+>   - the bare word "laws" is answered (SRX-11);
+>   - a named law says what it does (SRX-12);
+>   - a refused law states its price once (SRX-13);
+>   - **(P2) "how many diplomatic points do I have?" is the desk's** (SRX-14). "diplomatic" contains "diplomat", so it had opened Talleyrand's assessment. It now answers the pool, the refill's split and the day's orders;
+>   - the morning lead names "Archduke Charles's corps", not the key (SRX-15);
+>   - four refusals print names, not keys, and the pursue road's truce refusal reads the truce's own clock (SRX-16);
+>   - **(P2) guarantee / sponsor / buy off refuse an eliminated court** (SRX-17). "guarantee Kingdom of Italy" had charged 1 DP to defend soil the kingdom no longer had.
+> - **Chunk 4 is CLOSED:** every slice of it has been through an exit. **Chunk 5:** SR-5r is built and through this exit; SR-5a/5b/5c and the reserve remain.
+> - **⚠ Open with the user:**
+>   - the RF-4 visual sign-off (the laws frames at both scales, card XVIII, the header's "Actions: 5/5");
+>   - **AIDR-D1: may an enemy literal drill to heal?** The recommendation is to allow it; measured, Mack's 40 debased turns fall to 19.
+> - **▶ NEXT = the ECONOMY BALANCE pass** (the user's Sept 27 direction: Britain should be richer than France), opening SR-5a "The chest".
+>
 > **▶ ▶ ▶ THE AI DRILL FIX LANDED — September 27, 2026 (second session; user-directed: "fix AI, be good — we don't want them drilling when they can get attacked")** (rules `SYSTEMS_REFERENCE.md` §75; rows + landing record `BUG_FIXES.md` §The AI Drill Fix, AIDR-1..5; pins `tests/test_ai_drill_fix_2026_09_27.py` 26; sweep `tools/_sweep_drill_fix.json` 21/21 killed, 0 INERT):
 > - **P4.9 "drill to heal"**: a corps below 70 morale drills to restore it where nothing can reach it — every personality but the literal, above P5, yielding to the supply move, the war-intent frontier and a threatened ally.
 > - **One reach predicate** (`enemy_ai.drill_reach_threat`) for every AI drill, P6's shock drill too: no corps at war with the court within (exposed phases + 1) × its range. On the ambient board the old AI ordered 9 drills, 7 within reach; the shipped AI 1, none within reach.

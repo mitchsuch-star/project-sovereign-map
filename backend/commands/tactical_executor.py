@@ -69,7 +69,9 @@ def drill_refusal(world, marshal, *, stance_gate: bool = True):
     enemy_here = world.get_enemy_at_location_for_nation(marshal.location, marshal.nation)
     if enemy_here and enemy_here.strength > 0:
         shown = humanize_entity_name(enemy_here.name)
-        return (f"{name} cannot drill with enemy forces ({enemy_here.name}) present at {marshal.location}!",
+        # SRX-16 (the session exit of September 28, 2026): the printed name.
+        return (f"{name} cannot drill with enemy forces ({humanize_entity_name(enemy_here.name)}) "
+                f"present at {marshal.location}!",
                 f"{shown} stands here")
     # Enemies in adjacent regions — fog-filtered for the player (P2-2).
     current_region = world.get_region(marshal.location)
@@ -80,8 +82,11 @@ def drill_refusal(world, marshal, *, stance_gate: bool = True):
         for adj_name in current_region.adjacent_regions:
             for enemy in enemies:
                 if enemy.location == adj_name and enemy.strength > 0:
+                    # SRX-16: the laws arm (turn 8) printed "ArchdukeCharles is
+                    # at Rhineland" — the long form read the key.
                     return (f"{name} cannot drill with enemy forces nearby! "
-                            f"{enemy.name} is at {adj_name}, just one region away.",
+                            f"{humanize_entity_name(enemy.name)} is at {adj_name}, "
+                            f"just one region away.",
                             f"{humanize_entity_name(enemy.name)} is at {adj_name}, "
                             f"one region away")
     return "", ""
@@ -111,7 +116,11 @@ def fortify_refusal(world, marshal):
         and world.is_at_war(marshal.nation, m.nation)
     ]
     if enemies_in_region:
-        enemy_names = [e.name for e in enemies_in_region]
+        # The session exit of September 28, 2026 (its residue, SRX-16): the
+        # long refusal printed the roster KEYS ("Enemy present:
+        # ArchdukeCharles, ArchdukeJohn") while its own short form below
+        # already read the printed name; both read it now.
+        enemy_names = [humanize_entity_name(e.name) for e in enemies_in_region]
         return (f"{name} cannot fortify while engaged with enemy forces! "
                 f"Enemy present: {', '.join(enemy_names)}. "
                 f"Attack or retreat first.",

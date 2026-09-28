@@ -8238,6 +8238,77 @@ Pins `tests/test_rf4c_the_school_and_the_census.py` 15; sweep `tools/_sweep_rf4c
 - **The action count** is the command terminal's header ("Actions: N/M", `main.gd` `_update_status` from `action_summary.max_actions`); the top bar carries none.
 - **Visual proof:** `tools/iq10_capture_payloads.py` `cap_laws()` stages `ledger_laws_staff`, `ledger_laws_forecast` and `diplo_laws_rival`; `tools/iq10_run_captures.py` shoots them (with `ledger_boot_laws`) at Interface Scale 1.0 and 2.0.
 
+### 74.9 The session exit of September 28, 2026 — its residue
+
+**The exit and its record.**
+- Memo `docs/audits/SR_SESSION_EXIT_2026_09_28.md`. It read thirteen commits
+  (B2–B5, SR-5r RF-0 → RF-4c, DP-1 and the AI drill fix) on four played arms
+  against `6ceadabe`: the three standing exit arms and Chunk 5's laws
+  evidence arm, `tools/playtest_scripts/sr_exit_chunk5_laws.json`.
+- Landing `SCORE_MANDATE_PLAN.md` §5; rows `BUG_FIXES.md` §Score Mandate
+  Session Exit (September 28).
+- Pins `tests/test_sr_exit_residue_2026_09_28.py` 41; sweep
+  `tools/_sweep_sr_exit_residue_2026_09_28.json` 23/23 killed, 0 INERT; zero
+  `.gd`.
+
+**The fixes.**
+- **The bare word asks for the laws (SRX-11).** "laws", "the laws" and "our
+  laws of state" are the laws answer when they are the whole line, after an
+  address and a word of filler (`llm_client._names_the_laws`). Lever
+  `THE_BARE_WORD_ASKS_FOR_THE_LAWS`.
+- **A named law says what it does (SRX-12).** A laws question that names a law
+  appends the law's authored `says`, whether the law is in force or not
+  (`first_contact._laws_answer`). Lever `THE_LAW_NAMED_SAYS_WHAT_IT_DOES`.
+- **A refused law states its price once (SRX-13).** `law_refusal`'s price
+  sentence ("X costs N; the treasury holds M.") loses the price the line has
+  already said, leaving "the treasury holds M" or "the court holds A
+  authority" (`first_contact._refusal_after_the_price`). Every other refusal
+  stays whole. Lever `A_REFUSED_LAW_STATES_ITS_PRICE_ONCE`.
+- **The desk counts the points (SRX-14).** A desk kind `points`
+  (`question_desk.classify_points_question`) is read **before** the
+  diplomat's address, because "diplomatic" contains "diplomat" (one of
+  `DIPLOMAT_ADDRESS_NAMES`). The count had opened Talleyrand's assessment,
+  and its first options became a proposal.
+  - `answer_board_question` → `_answer_points` reads what the top bar and the
+    command header print:
+    - the pool and its ceiling (`diplomacy.displayed_dp_ceiling`);
+    - the refill's split (DP-1's transient `world._dp_refill`) and the bank's
+      rule;
+    - the day's orders and administrative actions
+      (`world.get_action_summary`).
+  - The minister may be its addressee: `parser.py`'s addressee exemption
+    admits the `points` kind beside `laws`.
+  - Free. Lever `question_desk.THE_DESK_COUNTS_THE_POINTS`.
+- **Names as printed (SRX-15, SRX-16).** The humaniser now runs at five
+  producers:
+  - the soil alarm's clause (`dispatch._home_captured_lever`, "Archduke
+    Charles's corps of …");
+  - the fortify refusal's long form (`tactical_executor.fortify_refusal`);
+  - both forms of the drill refusal (`drill_refusal`);
+  - the attack road's truce refusal
+    (`CommandExecutor._make_diplomatic_error`);
+  - the pursue road's truce refusal (`StrategicExecutor`).
+
+  The truce refusals also print the court by its display name. **The pursue
+  road reads the truce's own clock** (`ARMISTICE_DURATION − armistice_turns`,
+  the attack road's since SR-3a (ii)); it had read the war-entry floor in
+  `armistice_cooldowns`. Display only, so no levers.
+- **An eliminated court binds no instrument (SRX-17).**
+  `DiplomaticExecutor._instrument_preflight` — the one gate of `guarantee`,
+  `sponsor` and `buy off` — asks the invest verb's own predicate and sentence
+  (`VassalExecutor._eliminated_court_refusal(world, target, tail=…)`, one
+  source, each verb with its own tail): "The Kingdom of Italy no longer exists
+  as a court — it was eliminated. No instrument can bind it." Nothing is
+  charged. The guarantee's success line names both courts as printed. The AI
+  never takes this road; only the parser emits the three actions.
+
+**Pins re-seated.** Two, consciously:
+- RF-1's `test_the_answer_puts_a_refusal_in_its_place` had pinned the double
+  price.
+- The corpus row for the points question is stated positively, because a
+  `not_action: diplomatic*` row means a negated diplomatic order to the
+  Cabinet-door census.
+
 ## 75. THE AI DRILL FIX — "we don't want them drilling when they can get attacked" (user-directed, September 27, 2026)
 
 Rows `BUG_FIXES.md` §The AI Drill Fix (AIDR-1..5); pins `tests/test_ai_drill_fix_2026_09_27.py` 26; sweep `tools/_sweep_drill_fix.json` 21/21 killed, 0 INERT; the question `DESIGN_REFINEMENT.md` AIDR-D1.

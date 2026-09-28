@@ -339,6 +339,17 @@ class DiplomaticExecutor:
                 "success": False,
                 "message": "Sire, France cannot treat with itself.",
             }
+        # The session exit of September 28, 2026 (its residue, SRX-17): the
+        # three instruments share this gate, and it let an ELIMINATED court
+        # through — measured, "guarantee Kingdom of Italy" a turn after the
+        # kingdom fell charged 1 DP and pledged to defend soil it no longer
+        # had, while "invest in" the same court refused. The invest verb's
+        # own predicate and sentence (GE-V), one source; nothing is charged.
+        from backend.commands.vassal_executor import VassalExecutor
+        gone = VassalExecutor._eliminated_court_refusal(
+            world, target, tail="No instrument can bind it.")
+        if gone:
+            return world, "", {"success": False, "message": gone}
         if int(getattr(world, "diplomatic_points", 0) or 0) < INSTRUMENT_DP_COST:
             return world, "", {
                 "success": False,
@@ -681,8 +692,10 @@ class DiplomaticExecutor:
         if not result.get("success"):
             return result
         world.diplomatic_points -= INSTRUMENT_DP_COST
+        # SRX-17: the court by its printed name, never the raw tag.
         message = (
-            f"France guarantees {target}. Every court that covets their "
+            f"{_display_nation(player)} guarantees {_display_nation(target)}. "
+            f"Every court that covets their "
             f"soil now weighs our army in the scale (their willingness "
             f"falls by {GUARANTEE_WEIGHT_DETERRENT}). Talleyrand: \"A "
             f"guarantee is credibility staked, Sire — if it is tested "

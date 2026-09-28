@@ -1,0 +1,89 @@
+{
+ "name": "sr-exit-chunk5-laws",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "Score Mandate session exit of September 28, 2026 (docs/audits/SR_SESSION_EXIT_2026_09_28.md; the session that began September 27) — the laws evidence arm (SCORE_MANDATE_PLAN.md §5, scoped to SR-5r + DP-1): the desk asked about the laws; an authority law (the Anticipated Class) and a gold law (the Code Abroad) enacted through the Council's quote; the Staff tried every turn until the chest buys it; the fifth action and the carried diplomatic points read on the status lines; a repeal (turn 7) and a re-enactment (turn 8, full price); the military lines are rf3_commanded_enacts.json's turns 1-10. Run with --turns 10 --diplomacy accept.",
+ "turns": {
+  "1": [
+   "what laws are in force",
+   "what does the Staff cost",
+   "laws",
+   "enact the Anticipated Class",
+   "Ney, attack Mack",
+   "Davout, move to Swabia",
+   "Lannes, move to Rhineland"
+  ],
+  "2": [
+   "what does the Code Abroad do",
+   "enact the Code Abroad",
+   "economy",
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Soult, move to Alsace",
+   "Murat, move to Franche-Comte"
+  ],
+  "3": [
+   "what laws are in force",
+   "enact the Staff",
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Lannes, move to Swabia",
+   "recruit 10000 infantry with Soult"
+  ],
+  "4": [
+   "enact the Staff",
+   "status",
+   "Ney, attack Mack",
+   "Davout, fortify",
+   "Massena, move to Tyrol"
+  ],
+  "5": [
+   "enact the Staff",
+   "what does the Staff cost",
+   "Ney, attack Archduke Charles",
+   "Lannes, attack Mack",
+   "Soult, move to Swabia",
+   "Murat, move to Swabia"
+  ],
+  "6": [
+   "enact the Staff",
+   "status",
+   "how many diplomatic points do I have",
+   "Ney, drill",
+   "Davout, unfortify",
+   "Lannes, fortify",
+   "recruit 10000 infantry with Soult"
+  ],
+  "7": [
+   "repeal the Code Abroad",
+   "what laws are in force",
+   "economy",
+   "Ney, attack Archduke Charles",
+   "Davout, move to Bohemia",
+   "Murat, attack Archduke Charles"
+  ],
+  "8": [
+   "enact the Code Abroad",
+   "status",
+   "Davout, attack Archduke Charles",
+   "Ney, fortify",
+   "Soult, drill",
+   "Massena, move to Milan"
+  ],
+  "9": [
+   "what happened last turn",
+   "status",
+   "Ney, unfortify",
+   "Lannes, move to Bohemia",
+   "Murat, drill",
+   "recruit 10000 cavalry with Murat"
+  ],
+  "10": [
+   "what laws are in force",
+   "economy",
+   "Ney, move to Franconia",
+   "Davout, fortify",
+   "Soult, move to Bavaria"
+  ]
+ }
+}

@@ -299,10 +299,16 @@ class TestTheWords:
         assert world.nation_gold["France"] == 30000
 
     def test_the_answer_puts_a_refusal_in_its_place(self, world, client):
+        """Re-seated consciously by the session exit of September 28, 2026
+        (its residue, SRX-13): the line had said the price twice ("9,000
+        gold, then 300 gold a turn — the Grand Quartier Général costs 9,000
+        gold; the treasury holds 800"); the refusal now keeps only what the
+        treasury holds. The refusal is still in its place."""
         world.nation_gold["France"] = 800
         r = post(client, "what laws can I enact?")
-        assert ("then 300 gold a turn — the Grand Quartier Général costs 9,000 "
-                "gold; the treasury holds 800.") in r["message"], r["message"]
+        assert ("The Grand Quartier Général: 9,000 gold, then 300 gold a turn — "
+                "the treasury holds 800.") in r["message"], r["message"]
+        assert "costs 9,000 gold" not in r["message"], r["message"]
 
     def test_a_negated_order_is_refused(self, world, client):
         world.nation_gold["France"] = 30000

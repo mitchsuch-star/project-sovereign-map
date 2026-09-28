@@ -1461,10 +1461,14 @@ class CommandParser:
                 # enact the Staff" / "Sire, repeal the staff" / "Napoleon,
                 # enact …"), the address is decoration — never a marshal
                 # typo to clarify ("Did you mean 'Ney'?"). A question about
-                # the laws put to the minister is answered at the desk.
+                # the laws put to the minister is answered at the desk — and,
+                # since the session exit of September 28, 2026, so is his
+                # count of the points ("Talleyrand, how many points do we
+                # have?" had been refused as a marshal typo).
                 if (addressed
                         and (llm_result.get("action") in ("enact_law", "repeal_law")
-                             or (llm_result.get("question") or {}).get("kind") == "laws")
+                             or (llm_result.get("question") or {}).get("kind")
+                             in ("laws", "points"))
                         and (any(name in addressed.lower()
                                  for name in DIPLOMAT_ADDRESS_NAMES)
                              or addressed.lower().strip() in (

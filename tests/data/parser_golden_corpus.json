@@ -6737,6 +6737,59 @@
       },
       "notes": "The bare 'confirm' is the same marker.",
       "source": "SR-5r RF-4a \"The LAWS tab\" (docs/REFORMS_SPEC.md §8a — the enactment confirm on the clarification channel)."
+    },
+    {
+      "id": "srx0928-laws-bare",
+      "utterance": "laws",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "notes": "The bare word asks for the laws, like 'economy' and 'status' (it had got Berthier's shrug).",
+      "source": "The session exit of September 28, 2026 — its residue (docs/audits/SR_SESSION_EXIT_2026_09_28.md): the desk reads the laws and the points."
+    },
+    {
+      "id": "srx0928-laws-bare-addressed",
+      "utterance": "Berthier, laws",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "source": "The session exit of September 28, 2026 — its residue (docs/audits/SR_SESSION_EXIT_2026_09_28.md): the desk reads the laws and the points."
+    },
+    {
+      "id": "srx0928-points-dp",
+      "utterance": "how many diplomatic points do I have",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "notes": "'diplomatic' holds 'diplomat', one of the diplomat's address names; the count had opened Talleyrand's assessment (diplomatic_advisory). Pinned positively: a `not_action: diplomatic*` row means a NEGATED DIPLOMATIC ORDER to the Cabinet-door census (test_wo_slice7_cabinet_door), which this is not.",
+      "source": "The session exit of September 28, 2026 — its residue (docs/audits/SR_SESSION_EXIT_2026_09_28.md): the desk reads the laws and the points."
+    },
+    {
+      "id": "srx0928-points-actions",
+      "utterance": "how many actions do I have left",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "source": "The session exit of September 28, 2026 — its residue (docs/audits/SR_SESSION_EXIT_2026_09_28.md): the desk reads the laws and the points."
+    },
+    {
+      "id": "srx0928-points-talleyrand",
+      "utterance": "Talleyrand, how many points do we have?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "notes": "The minister is the addressee of the desk, never a marshal typo ('Did you mean Ney?').",
+      "source": "The session exit of September 28, 2026 — its residue (docs/audits/SR_SESSION_EXIT_2026_09_28.md): the desk reads the laws and the points."
     }
   ]
 }

@@ -459,6 +459,32 @@ def _congress_answer(asked: str, world) -> str:
     return text + table + relayed
 
 
+# The session exit of September 28, 2026 (its residue). R2: a question that
+# NAMES a law ("what does the Code Abroad do?") is answered with what it does
+# (its authored `says`), not its price alone. R3: a refused law's line had
+# said its price twice ("3,000 gold, then 150 gold a turn — the Artillery
+# Reserve costs 3,000 gold; the treasury holds 800"); the refusal's own
+# sentence keeps only what the court holds.
+THE_LAW_NAMED_SAYS_WHAT_IT_DOES = True
+A_REFUSED_LAW_STATES_ITS_PRICE_ONCE = True
+
+
+def _refusal_after_the_price(refusal: str) -> str:
+    """`law_refusal`'s price sentence ("X costs N gold; the treasury holds
+    M.") without the price the line has already said; any other refusal
+    whole."""
+    if not A_REFUSED_LAW_STATES_ITS_PRICE_ONCE:
+        return refusal
+    head, sep, holds = refusal.partition("; ")
+    if not sep or " costs " not in head:
+        return refusal
+    if holds.startswith("the treasury holds"):
+        return holds
+    if holds.startswith("the court holds"):
+        return holds.rstrip(".") + " authority."
+    return refusal
+
+
 def _laws_answer(asked: str, world) -> str:
     """SR-5r RF-1: a question about the laws, ANSWERED and never executed —
     the court's deck, each law's state and price read off
@@ -481,9 +507,15 @@ def _laws_answer(asked: str, world) -> str:
         name = reforms.display_name(row)
         name = name[0].upper() + name[1:]
         upkeep = int(row.get("upkeep", 0) or 0)
+        says = (str(row.get("says") or "").strip()
+                if THE_LAW_NAMED_SAYS_WHAT_IT_DOES and row is named else "")
+        if says and not says.endswith("."):
+            says += "."
         if reforms.is_in_force(row):
             lines.append(f"{name} is in force (since turn {int(row['enacted_turn'])}, "
                          f"{upkeep:,} gold a turn).")
+            if says:
+                lines.append(says)
             continue
         quote = reforms.restoration_price(world, player, row)
         unit = "gold" if quote["currency"] == "gold" else "authority"
@@ -493,9 +525,13 @@ def _laws_answer(asked: str, world) -> str:
                       f"disperses in {int(quote['disperses_after'])} turn"
                       f"{'s' if int(quote['disperses_after']) != 1 else ''}")
         refusal = reforms.law_refusal(world, player, str(row.get("id")))
+        if refusal:
+            refusal = _refusal_after_the_price(refusal)
         state = ("ready to enact" if not refusal
                  else refusal[0].lower() + refusal[1:].rstrip("."))
         lines.append(f"{name}: {price}, then {upkeep:,} gold a turn — {state}.")
+        if says:
+            lines.append(says)
     return ("The laws of state, Sire. " + " ".join(lines)
             + " Say 'enact <law>' to enact one, or 'repeal <law>' to strike "
               "one down; the Laws tab (press T, then 8) keeps them all."

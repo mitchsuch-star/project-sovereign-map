@@ -104,6 +104,10 @@ WHO_IS_WINNING_READS_THE_BANNER = True
 # holds only marshals with strength > 0. The player's own tombstones join the
 # desk's roster (no fog on our own dead) and are answered in the first person.
 OUR_OWN_FALLEN_ARE_ANSWERED = True
+# The session exit of September 28, 2026 (its residue): "how many diplomatic
+# points do I have?" / "how many actions do I have left?" — the Emperor's own
+# counts, read off the sources the top bar and the command header print.
+THE_DESK_COUNTS_THE_POINTS = True
 
 _APOS = "['’]"
 _HON = r"(?:" + HONORIFIC + r")?"
@@ -744,6 +748,30 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         r"|what\s+now)" + _TAIL, re.IGNORECASE)),
 ]
 
+# The session exit's residue (Sept 28, 2026): the Emperor's own counts — the
+# diplomatic points and the day's orders. Its own pattern (not a `_WIDE_KINDS`
+# row) because the parser must ask it BEFORE the diplomat's address, whose
+# name "diplomat" is a substring of "diplomatic".
+_POINTS_RE = re.compile(
+    _LEAD + r"(?:how\s+many\s+(?:(?:diplomatic\s+)?points|dps?|(?:military\s+|admin(?:istrative)?\s+)?"
+    r"(?:actions|orders))"
+    r"(?:\s+(?:do|have|has)\s+(?:i|we|you|he|talleyrand)(?:\s+(?:got|have|left))?)?"
+    r"(?:\s+(?:left|remaining|to\s+spend))?"
+    r"|what\s+(?:actions|orders|points)\s+(?:do\s+)?(?:i|we)\s+have(?:\s+left)?)" + _TAIL,
+    re.IGNORECASE)
+
+
+def classify_points_question(text: str) -> Optional[Dict]:
+    """The points question in `text` ("how many diplomatic points do I
+    have?"), or None."""
+    if not (QUESTION_DESK_ACTIVE and THE_DESK_ANSWERS_THE_BOARD
+            and THE_DESK_COUNTS_THE_POINTS) or not text:
+        return None
+    if _POINTS_RE.match(text.strip()):
+        return {"kind": "points", "subject": "", "subject_type": "board"}
+    return None
+
+
 # The kinds whose captured `name` is a COURT, resolved against the nations the
 # parser already knows rather than against the marshal/region rosters.
 _NATION_KINDS = frozenset({"at_war", "wants"})
@@ -838,7 +866,7 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
                 return {"kind": kind, "subject": where[0],
                         "subject_type": "region"}
             return {"kind": kind, "subject": "", "subject_type": "here"}
-    return None
+    return classify_points_question(stripped)
 
 
 def _classify_the_weighed(groups, marshals, enemies, regions):
@@ -2102,6 +2130,36 @@ def surface_pointer(kind: str) -> Optional[str]:
     return _pointer(kind)
 
 
+def _answer_points(world, player: str) -> str:
+    """The session exit's residue (Sept 28, 2026): the Emperor's own counts,
+    read off what the top bar and the command header print — the diplomatic
+    pool, its ceiling (`diplomacy.displayed_dp_ceiling`) and the refill's
+    split (DP-1's transient `world._dp_refill`), then the day's orders
+    (`world.get_action_summary`, the header's own source)."""
+    from backend.display_names import plural
+    from backend.game_logic import diplomacy as D
+    diplomat = getattr((getattr(world, "diplomats", None) or {}).get(player), "name", "")
+    who = diplomat or "Your foreign minister"
+    dp = int(getattr(world, "diplomatic_points", 0) or 0)
+    ceiling = int(D.displayed_dp_ceiling(world, player))
+    head = f"{who} holds {plural(dp, 'diplomatic point')} of {ceiling}"
+    split = (getattr(world, "_dp_refill", None) or {}).get(player)
+    if split:
+        regen, carried = int(split[0]), int(split[1])
+        head += f" — {regen} came with this morning's refill"
+        if carried:
+            head += (f" and {carried} {'was' if carried == 1 else 'were'} "
+                     f"carried from last turn")
+    if D.DIPLOMATIC_POINTS_CARRY:
+        head += (f"; what he leaves unspent carries one turn, to at most "
+                 f"{D.DP_BANK_CAP}")
+    summary = world.get_action_summary()
+    return (f"{head}. Today {int(summary['actions_remaining'])} of "
+            f"{plural(int(summary['max_actions']), 'order')} remain, and "
+            f"{int(summary['admin_actions_remaining'])} of "
+            f"{plural(int(summary['max_admin_actions']), 'administrative action')}.")
+
+
 def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
     """Berthier's answer to a CX-2 board question, or None."""
     if not question or world is None:
@@ -2153,6 +2211,8 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_options(world, player)
         if kind == "own_army":
             return _answer_own_army(world, player)
+        if kind == "points" and THE_DESK_COUNTS_THE_POINTS:
+            return _answer_points(world, player)
         # CRT-7 / AAR-17: the war question and its kin.
         if kind in _WAR_QUESTION_KINDS and not THE_DESK_ANSWERS_THE_WAR_QUESTION:
             return None
