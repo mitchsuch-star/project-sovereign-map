@@ -154,7 +154,7 @@ Each reading is one catalogue field or one constant to flip. **The user confirme
 - The player's authority also feeds the VS-R grip.
 - It comes back with victories (+2 or +5 a battle at the combat seams). A political reform is therefore paid for in the Emperor's standing and bought back on the field.
 - **An AI court boots exactly at the 60 line.** Its first political act costs it a diplomatic point a turn at once. That price is real, and the AI rung weighs it (§7).
-- ⚠ **Found by the doctrines review (September 27, 2026): an AI court's authority never comes back.** It has no live writer, so each AI court makes exactly two political acts in a campaign, and "bought back on the field" holds for the player only. The purse test has no diplomatic-point term yet, so "the AI rung weighs it" is RF-3's to make true or strike (§7).
+- ⚠ **Found by the doctrines review (September 27, 2026): an AI court's authority never comes back.** It has no live writer, so each AI court makes exactly two political acts in a campaign, and "bought back on the field" holds for the player only. "The AI rung weighs it" was RF-3's to make true or strike (§7). **RF-3 made it true** (§12.4): a political act never leaves an AI court fewer than 3 diplomatic points a turn.
 
 **Admin action** — one to enact, one to repeal.
 
@@ -298,7 +298,7 @@ Rules:
 **AI authority does not come back (found by the doctrines review, September 27, 2026).**
 - `diplomacy.modify_nation_authority` has no callers, and `_process_nation_authority` is a `pass`. So an AI court's authority stays at its boot 60, less what it spends. The only other write is the sovereign-capture shock, and no AI court has a sovereign at boot.
 - **So each AI court can make exactly two political acts in a campaign** (60 → 45 → 30, the floor this rung keeps). §3's "bought back on the field" holds for the player only.
-- §3 also says this rung weighs the diplomatic point a court loses when its first political act takes it below 60. The purse test above has no such term. **RF-3 either adds the term or strikes the sentence**, and records which in `ENEMY_AI_REFERENCE.md`.
+- §3 also says this rung weighs the diplomatic point a court loses when its first political act takes it below 60. The purse test above has no such term. **RF-3 either adds the term or strikes the sentence**, and records which in `ENEMY_AI_REFERENCE.md`. **✅ Added, as a floor (RF-3, §12.4):** an authority price never leaves the court fewer than 3 diplomatic points a turn after the act (`reforms.AI_DIPLOMACY_FLOOR`, read through `diplomacy.calculate_dp` at the authority after the spend). A hard "never cross 60" was rejected: it would bar all seven political acts of the four rival decks.
 
 **Balance.**
 - Nothing is in force at boot, so turn 0 is byte-identical. The first AI enactment moves the ambient board.
@@ -536,6 +536,35 @@ T7 measures all three.
 - **The drill laws** (Austria's regulations, Prussia's Commission, Russia's War Ministry) stay as authored by the user's direction. The recon measured that the AI almost never drills (P6 asks aggressive marshals only, for the shock bonus, and never reads morale), so the user ordered an AI fix — "drill to heal", with no drill where a corps can be attacked — evaluated by three sub-agents and built at the end of this session.
 - **Measured:** the full suite green in the worktree before the carry (27,537 passed) — `BASELINE_SERIES` + M1–M7 + the AI-V assurance byte-identical, because no AI court enacts a law until RF-3 and nothing is in force at boot (every seam reads 1.0 / +0 there). Parse harness EXIT=0, boot 0 `SCRIPT ERROR`.
 - **Not built here, each owned:** the client rows that print `regen_terms`, `price_terms`, `law_terms`, `supply` terms and the decree's ports (RF-4b); the LAWS tab (RF-4a); the AI rung (RF-3); the Train des Équipages and `cures` (DC-2).
+
+### §12.4 RF-3 — LANDED September 27, 2026 (landing record)
+
+**The AI enacts** (rules `SYSTEMS_REFERENCE.md` §74.4). Every AI great power enacts from its own authored deck, in deck order, at the player's prices, through the SAME `enact_law` verb and executor (GR5). Lever `reforms.THE_AI_ENACTS`.
+
+- **The rung** (`reforms.find_ai_enactment`, the admin chain's P1.78, beside the P1.75 commissions — `ENEMY_AI_REFERENCE.md`). It takes the first law that `law_refusal` passes with the court's OWN admin budget and whose purse test passes; at most one enactment every 3 turns (paced off the laws in force — zero new fields); it never repeals. The executor defaults an AI actor to the one admin action the loop holds, so it never reads the player's pool.
+- **The purse test** (`reforms.ai_purse_refusal`), §7's three clauses plus the diplomatic term:
+  - the chest ≥ the price (in gold; an authority price asks none) + any Arrears + 1,000 + 5 × the slate's upkeep including the new law;
+  - the court's forecast Net (`ledger._build_economy`) stays ≥ 0 after the new upkeep;
+  - an authority price never takes the court below 30, **nor leaves it fewer than 3 diplomatic points a turn** — §3's "the AI rung weighs it", ADDED as a floor, not struck (§7 above; recorded in `ENEMY_AI_REFERENCE.md`).
+- **T3 — MET.** On the ambient board every rival great power enacts: Britain the Orders in Council on turn 1, Russia the Opolchenie on turn 2, Austria the Landwehr on turn 8, Prussia the Articles of War on turn 10 — sixteen laws in forty turns, **0 lapses** (`tools/_rf3_series_arms.json`).
+- **The series** re-recorded ONCE with a two-arm flip attribution (`tools/_rf3_series_arms.py`): arm 0 (the rung down) reproduces the VP-R1 series byte for byte; arm 1 (shipped) diverges at index 7. The rung is the sole mover. M1–M7 byte-identical (the M-harness reaches no admin phase).
+- **Balance, measured honestly** (archives `docs/audits/playtest_digests/rf3-*`, the COMMANDED arm `commanded_full40.json`, three seeds, France's provinces at turn 40):
+
+  | Arm | historical | ulm | austerlitz |
+  |---|---|---|---|
+  | the rung down (`--lever …THE_AI_ENACTS=0`) | 28 | 27 | 25 |
+  | the rivals enact, France enacts nothing | 25 | **5** | 25 |
+  | the rivals enact, France enacts too (`rf3_commanded_enacts.json`: the Anticipated Class turn 2, the Code Abroad turn 3, the Staff turn 6) | 25 | 28 | 27 |
+
+  The laws are a two-sided arms race: a France that ignores them loses one seed badly, a France that uses them holds all three. On the ambient board the unattended France ends turn 40 with 3 provinces (arm 0: 17) — the passive harness, not a balance claim (FA-D27's caveat).
+- **Measured for the doctrines' T8 — handed to DC-2** (`DOCTRINES_SPEC.md` §7 DC-2). Every cure rides its court's Staff (RV-15), so the Staff's timing predicts T8. As built, only Austria's Staff comes in on the ambient historical board (turn 33); Russia's, Prussia's and Britain's never do in forty turns. The rung takes cheaper laws while the Staff's bar is out of reach, and their upkeep raises that bar (§7's own prediction); which half of the purse test held each court back is T8's record at DC-2. T8 asks two of four by turn 30, none before turn 10, so it would miss. §7's recommended fix (save for the Staff once the chest passes half its price) is built at DC-2, where T8 can be measured with the cures in place, with its own flip arm inside DC-2's one re-record. Building it here would re-time the board twice.
+- **Nine standing pins re-seated consciously**, each with the cause measured (`tools/_rf3_wo_attribution.py`: with the RF-3 lever down in the child every prior figure returns byte for byte):
+  - WO slice 10: the ungated collapses 64 → 57, the pair split, the ungated series, the refused-order writes 76 / 3 → 58 / 2;
+  - WO slice 9: the cap still delays and never saves — uncapped 12, capped 16 (four turns; the capped exit is a VS-6 defection on this board), and the elimination step is named at index 15 (`tools/_rf3_board_events.py`, which captures events at `log_event`, never by slicing the capped log);
+  - EP F5 and VP-R1: their shipped series is now the prior record RF-3's arm 0 reproduces — the pins chain to `tools/_rf3_series_arms.json`;
+  - AI-V's routine-narration floor moved to the ambient ulm run: on the historical ambient board Austria's want no longer moves, so its two easing lines are gone (both return with the lever down); the producer is unchanged (ulm reads 3 unique lines).
+- **Pins:** `tests/test_rf3_the_ai_enacts.py` (21). Sweep `tools/_sweep_rf3.json` 21/21 killed, 0 INERT. The first pass found five INERT, each a weak pin of mine: four were masked because a 60,000-gold test chest drives EB-1's charges up and the forecast Net negative, so the purse refused for the wrong reason. The fifth staged a Staff that `law_refusal` refused on price before the purse was ever asked. All five were rewritten on the clause they name.
+- **Not built here, each owned:** the rivals' laws on the nation cards and the beats (RF-4b); the save-for-the-Staff rule (DC-2, above).
 
 ---
 

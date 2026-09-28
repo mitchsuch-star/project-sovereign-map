@@ -249,8 +249,22 @@ class TestTheSeriesAttribution:
         assert "THE_LITERAL_TAKES_THE_CAUTIOUS_STRENGTH_CHECK" in src
 
     def test_the_recorded_series_is_the_shipped_tree(self):
+        """F5's fork at index [7] (58 -> 46: the Kingdom of Italy leaves
+        France's web at world turn 8 on the walk-in-capped board).
+
+        RE-SEATED by SR-5r RF-3 "The AI enacts" (September 27, 2026): the
+        rival courts' laws re-time the ambient board from index [7] too
+        (46 -> 56), so the standing BASELINE_SERIES no longer carries F5's
+        fork. It lives in the prior record, which RF-3's arm 0 (the rung
+        down) reproduces byte for byte (`tools/_rf3_series_arms.json`); the
+        standing series keeps the prefix both boards share."""
+        import json
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
-        assert BASELINE_SERIES[:8] == [70, 68, 66, 64, 62, 60, 58, 46]
+        rf3 = json.loads((REPO / "tools" / "_rf3_series_arms.json").read_text(
+            encoding="utf-8"))
+        assert rf3["arms"]["0"]["series"] == rf3["recorded"]
+        assert rf3["recorded"][:8] == [70, 68, 66, 64, 62, 60, 58, 46]
+        assert BASELINE_SERIES[:7] == [70, 68, 66, 64, 62, 60, 58]
 
 
 # ═══════════════════════════════════════════════════════════════════════════

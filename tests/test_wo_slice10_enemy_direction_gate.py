@@ -1074,7 +1074,13 @@ class TestTheAmbientBoard:
         # keeps more soil, and the AI's collapsing orders shift by one.
         # With the three VP-R1 levers down in the child this arm reads 63
         # again (`tools/_vpr1_series_arms.py`, arm 0 byte-identical).
-        assert seams == {"_fuzzy_match_enemy": 64}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever)
+        # SR-5r RF-3 "The AI enacts" (September 27, 2026): 64 -> 57. The
+        # rival courts' laws re-time the UNGATED board from turn 8 (the
+        # BASELINE_SERIES attribution block), and the AI's orders name
+        # different French provinces on it (the pair split below). With
+        # `reforms.THE_AI_ENACTS` down in the child this arm reads 64 again
+        # (`tools/_rf3_wo_attribution.py`, measured).
+        assert seams == {"_fuzzy_match_enemy": 57}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1117,10 +1123,16 @@ class TestTheAmbientBoard:
         # Every pair is still a PROVINCE collapsing onto a marshal — the
         # defect's shape, unchanged. With the three VP-R1 levers down in the
         # child the EP-F5 split returns (`tools/_vpr1_series_arms.py`).
-        assert dict(pairs) == {("Leon", "Napoleon"): 7,
-                               ("Gascony", "Ney"): 23,
-                               ("Champagne", "Ney"): 33,
-                               ("Brittany", "Ney"): 1}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1
+        # SR-5r RF-3 "The AI enacts" (September 27, 2026): the ungated board
+        # re-times under the rival courts' laws — `Gascony -> Ney` and
+        # `Brittany -> Ney` are gone, `Maine -> Ney` returns (22),
+        # `Champagne -> Ney` 33 -> 32, `Leon -> Napoleon` 7 -> 3. Every pair
+        # is still a PROVINCE collapsing onto a marshal — the defect's shape,
+        # unchanged. With `reforms.THE_AI_ENACTS` down in the child the
+        # VP-R1 split returns (`tools/_rf3_wo_attribution.py`, measured).
+        assert dict(pairs) == {("Leon", "Napoleon"): 3,
+                               ("Champagne", "Ney"): 32,
+                               ("Maine", "Ney"): 22}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1222,7 +1234,15 @@ class TestTheAmbientBoard:
         # the Kingdom of Italy leaves France's web at world turn 8 on both
         # boards now. With the two F5 levers down in the child the NUI-2 list
         # returns byte-for-byte (measured, `tools/_f5_wo10_attribution.py`).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 46, 44, 41, 38, 35, 22, 19, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # EP F5 / VP-R1 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 46, 44, 41, 38, 35, 22, 19, 16, 13, 10,
+        #  7, 4, 1, 0, 0, ...]
+        # Re-recorded by SR-5r RF-3 "The AI enacts" (September 27, 2026): the
+        # rival courts' laws re-time this arm from index [7] exactly as they
+        # re-time the gated one (the BASELINE_SERIES attribution block). With
+        # `reforms.THE_AI_ENACTS` down in the child the EP F5 / VP-R1 list
+        # returns byte-for-byte (measured, `tools/_rf3_wo_attribution.py`).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 49, 46, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -1905,8 +1925,13 @@ class TestTheAiIsNotFrozenInstead:
         # BASELINE_SERIES attribution block; the gated board IS the standing
         # series board, re-recorded once). With the three VP-R1 levers down
         # in the child both read 75 / 4 again (`tools/_vpr1_series_arms.py`).
-        assert cooldowns["ungated"] == 76, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever)
-        assert cooldowns["gated"] == 3, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever)
+        # SR-5r RF-3 "The AI enacts" (September 27, 2026): 76 / 3 -> 58 / 2.
+        # The rival courts' laws re-time both boards from turn 8 (the gated
+        # board IS the standing series board, re-recorded once). With
+        # `reforms.THE_AI_ENACTS` down in the child both read 76 / 3 again
+        # (`tools/_rf3_wo_attribution.py`, measured).
+        assert cooldowns["ungated"] == 58, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts)
+        assert cooldowns["gated"] == 2, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts)
 
 
 _COOLDOWN_PROBE = r'''

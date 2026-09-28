@@ -1,0 +1,149 @@
+[
+  {
+    "id": "the lever is ignored",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if not (THE_STATE_HAS_LAWS and THE_AI_ENACTS):\n        return None\n    if not nation or nation == getattr(world, \"player_nation\", None):",
+    "new": "    if not THE_STATE_HAS_LAWS:\n        return None\n    if not nation or nation == getattr(world, \"player_nation\", None):",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_lever_down_no_court_enacts"
+  },
+  {
+    "id": "the rung serves the player",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if not nation or nation == getattr(world, \"player_nation\", None):\n        return None\n    rows = deck(world, nation)",
+    "new": "    if not nation:\n        return None\n    rows = deck(world, nation)",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_never_the_player"
+  },
+  {
+    "id": "no pacing between enactments",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if last is not None and now - last < AI_ENACTMENT_EVERY_TURNS:",
+    "new": "    if last is not None and now - last < 1:",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_one_enactment_every_three_turns"
+  },
+  {
+    "id": "the last enactment is never read",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    turns = [int(r[\"enacted_turn\"]) for r in laws_in_force(world, nation)]\n    return max(turns) if turns else None",
+    "new": "    turns = [int(r[\"enacted_turn\"]) for r in laws_in_force(world, nation)]\n    return None",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_one_enactment_every_three_turns"
+  },
+  {
+    "id": "the rung reads the player's admin pool",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if law_refusal(world, nation, law_id, admin_actions=admin_ap):",
+    "new": "        if law_refusal(world, nation, law_id):",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_no_admin_action_no_order"
+  },
+  {
+    "id": "the deck is walked backwards",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    for row in rows:\n        if not isinstance(row, dict) or is_in_force(row):",
+    "new": "    for row in reversed(rows):\n        if not isinstance(row, dict) or is_in_force(row):",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_the_first_affordable_law_in_deck_order"
+  },
+  {
+    "id": "the purse test is skipped",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if ai_purse_refusal(world, nation, row, treasury):\n            continue",
+    "new": "        if False:\n            continue",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_the_staff_unaffordable_it_takes_the_next"
+  },
+  {
+    "id": "the bar forgets the slate in force",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (\n        law_upkeep_bill(world, nation) + upkeep)",
+    "new": "    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (\n        0 + upkeep)",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_bar_counts_the_slate_already_in_force"
+  },
+  {
+    "id": "the bar forgets the new law's upkeep",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (\n        law_upkeep_bill(world, nation) + upkeep)",
+    "new": "    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (\n        law_upkeep_bill(world, nation))",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_chest_keeps_a_reserve_and_five_turns_of_upkeep"
+  },
+  {
+    "id": "the bar forgets the reserve",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (",
+    "new": "    bar = need + AI_PURSE_UPKEEP_TURNS * (",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_chest_keeps_a_reserve_and_five_turns_of_upkeep"
+  },
+  {
+    "id": "an authority price is charged in gold",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    need = (int(quote[\"price\"]) if quote[\"currency\"] == \"gold\" else 0) + int(quote[\"arrears\"])",
+    "new": "    need = int(quote[\"price\"]) + int(quote[\"arrears\"])",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_an_authority_law_asks_no_gold_price"
+  },
+  {
+    "id": "the arrears are left off the bar",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    need = (int(quote[\"price\"]) if quote[\"currency\"] == \"gold\" else 0) + int(quote[\"arrears\"])",
+    "new": "    need = (int(quote[\"price\"]) if quote[\"currency\"] == \"gold\" else 0)",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_a_lapsed_law_prices_its_arrears"
+  },
+  {
+    "id": "the forecast ignores the new upkeep",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if net - upkeep < 0:",
+    "new": "    if net < 0:",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_forecast_net_must_carry_the_upkeep"
+  },
+  {
+    "id": "the forecast is never read",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    if net - upkeep < 0:",
+    "new": "    if False:",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_forecast_net_must_carry_the_upkeep"
+  },
+  {
+    "id": "the authority floor is dropped",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if after < AI_AUTHORITY_FLOOR:",
+    "new": "        if after < 0:",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_authority_never_below_thirty"
+  },
+  {
+    "id": "the diplomatic point is weighed before the act",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if _court_dp_after(world, nation, after) < AI_DIPLOMACY_FLOOR:",
+    "new": "        if _court_dp_after(world, nation, authority) < AI_DIPLOMACY_FLOOR:",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_diplomatic_point_is_weighed"
+  },
+  {
+    "id": "the diplomatic point is never weighed",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        if _court_dp_after(world, nation, after) < AI_DIPLOMACY_FLOOR:",
+    "new": "        if False:",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_the_diplomatic_point_is_weighed"
+  },
+  {
+    "id": "the capital is always held",
+    "file": "backend/game_logic/reforms.py",
+    "old": "    holds = bool(capital and capital in world.regions\n                 and world.regions[capital].controller == nation)",
+    "new": "    holds = True",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestThePurseTest::test_a_court_without_its_capital_keeps_its_authority"
+  },
+  {
+    "id": "the executor reads the player's pool for an AI court",
+    "file": "backend/commands/reforms_executor.py",
+    "old": "        if admin is None and actor != getattr(world, \"player_nation\", None):\n            admin = reforms.ADMIN_ACTIONS_PER_ACT   # the AI loop holds one\n",
+    "new": "",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheSameExecutor::test_the_ai_enacts_through_the_shared_executor_with_its_own_budget"
+  },
+  {
+    "id": "the admin chain never asks the rung",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "            enactment = find_ai_enactment(world, nation, treasury, admin_ap)\n            if enactment:\n                return enactment",
+    "new": "            enactment = None\n            if enactment:\n                return enactment",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheSameExecutor::test_the_admin_chain_orders_it"
+  },
+  {
+    "id": "a skipped enactment is ordered again",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if \"enact_law\" not in skip_actions:\n            from backend.game_logic.reforms import find_ai_enactment",
+    "new": "        if True:\n            from backend.game_logic.reforms import find_ai_enactment",
+    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheSameExecutor::test_a_skipped_enactment_is_not_ordered_again"
+  }
+]

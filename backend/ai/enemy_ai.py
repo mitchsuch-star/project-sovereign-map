@@ -6215,6 +6215,19 @@ class EnemyAI:
             if commission:
                 return commission
 
+        # Priority 1.78: ENACT A LAW (SR-5r RF-3, REFORMS_SPEC §7 — GR5).
+        # The court's own authored deck, in deck order, at the player's
+        # prices, through the same verb and executor; one enactment every
+        # three turns; a purse test (the chest's bar, the forecast Net, the
+        # authority floor and the diplomatic-point floor) the player meets
+        # as the ledger's forecast. The AI never repeals — the lapse rule is
+        # its discipline.
+        if "enact_law" not in skip_actions:
+            from backend.game_logic.reforms import find_ai_enactment
+            enactment = find_ai_enactment(world, nation, treasury, admin_ap)
+            if enactment:
+                return enactment
+
         # Priority 1.8: LAY DOWN A SHIP (DEF-5 naval §6, the P1.75 idiom).
         # At war + treasury > 2× cost + a live naval want (blockaded, or its
         # own blockade outmatched) — the SAME priced verb the player types;

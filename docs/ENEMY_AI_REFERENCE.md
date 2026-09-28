@@ -748,6 +748,7 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | 1.5 | Estate endowment / rente | ES-7 reward rung — endow an expectation-shortfall marshal with an estate, falling back to a rente when no province is endowable (Economy Revisit S7 + §0.6.8) |
 | 1.6 | Vassal shore-up | VP-D6 — bleeding vassal: invest → cede province (VS-3 grant) → grant autonomy, through the shared executor |
 | 1.75 | Commission a marshal | The Marshalate — at war + standing roster < 3 + treasury >= cost+1000 (`recruitment.find_ai_commission`) |
+| 1.78 | Enact a law | SR-5r RF-3 (`REFORMS_SPEC.md` §7) — the court's own authored deck, in deck order, at the player's prices, through the same `enact_law` verb and executor (GR5); at most one enactment every 3 turns; never repeals (the lapse rule is its discipline). The purse test (`reforms.ai_purse_refusal`): the chest ≥ the price + any arrears + 1,000 + 5 × the slate's upkeep including the new law; the forecast Net (`ledger._build_economy`) carries the new upkeep; an authority price never takes the court below 30 **and never leaves it fewer than 3 diplomatic points a turn** — §3's "the AI rung weighs it", ADDED at RF-3 as a floor, not struck (`reforms.find_ai_enactment`) |
 | 1.8 | Lay down a ship | DEF-5 naval (NAVAL_SPEC §6) — at war + treasury > 2×SHIP_COST + a live naval want (blockaded, or its own blockade outmatched); the SAME priced `build_fleet` verb + `naval.check_build_fleet` gate the player uses (`naval.find_ai_build_fleet`) |
 | 2 | Build market | At highest-income region |
 | 3 | Build supply depot | At capital or major city; within each tier, prefers regions adjacent to enemy territory (forward logistics, Phase 6.2.H) |
@@ -763,6 +764,8 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 - Recruitment is split into two tiers: urgent (below 50%, top priority) and rebuild (50%-100%, low priority) so enemies can reach full strength over time without sacrificing building and repair
 - Building priorities reflect economic strategy: income first (market), then logistics (supply depot), then defense (fortification)
 - Saving AP for gold is always the lowest priority — the AI prefers to spend
+- **The law rung (1.78) and the diplomatic point (RF-3, September 27, 2026).** An AI court boots at authority 60 — exactly the line above which `diplomacy.calculate_dp` gives +1 a turn — so its first political act (every authority-priced law costs 15) costs it that point at once. The rung weighs it by a floor: a political act never leaves the court fewer than 3 diplomatic points a turn after the act (`AI_DIPLOMACY_FLOOR`). A hard "never cross 60" would bar all seven political acts of the four rival decks; the floor binds a court that has lost its capital and has no skilled envoy. An AI court's authority has no live writer (`REFORMS_SPEC.md` §7), so each court makes at most two political acts in a campaign (60 → 45 → 30, the authority floor).
+- The law rung reads the court's OWN admin budget (the loop's local), never the player's pool; the executor defaults an AI actor to the one action the loop holds.
 
 ---
 
@@ -776,6 +779,7 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | test_ai_scoring.py | 24 | Strategic scoring |
 | test_enemy_ai_bugs.py | 5 | Regression tests |
 | test_ai_garrison.py | 29 | AI garrison placement + P4.25 awareness |
+| test_rf3_the_ai_enacts.py | 21 | The P1.78 law rung, its purse test and the series attribution |
 
 ---
 

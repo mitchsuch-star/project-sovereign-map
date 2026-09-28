@@ -650,13 +650,23 @@ class TestDTheObjectionNamesTheDeed:
 class TestTheSeriesAttribution:
 
     def test_the_arms_file_tells_the_story(self):
+        """RE-SEATED by SR-5r RF-3 "The AI enacts" (September 27, 2026):
+        BASELINE_SERIES was re-recorded once more, for the rival courts'
+        laws. The coast lever's shipped series is now the prior record RF-3's
+        arm 0 reproduces byte for byte with its rung down; RF-3's arm 1 is
+        the standing series (`tools/_rf3_series_arms.json`). The chain keeps
+        both attributions falsifiable."""
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
         arms = json.loads(ARMS.read_text(encoding="utf-8"))
+        rf3 = json.loads((ROOT / "tools" / "_rf3_series_arms.json").read_text(
+            encoding="utf-8"))
         recorded_before = arms["recorded"]
         a = {k: v["series"] for k, v in arms["arms"].items()}
         assert a["0"] == recorded_before, "arm 0 reproduces the prior series"
         assert a["2"] == recorded_before, "the gate is inert on the ambient board"
-        assert a["1"] == a["3"] == BASELINE_SERIES, "the coast lever is the sole mover"
+        assert a["1"] == a["3"] == rf3["recorded"], "the coast lever is the sole mover"
+        assert rf3["arms"]["0"]["series"] == rf3["recorded"]
+        assert rf3["arms"]["1"]["series"] == BASELINE_SERIES
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

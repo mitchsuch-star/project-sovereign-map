@@ -1,0 +1,314 @@
+{
+ "recorded": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  46,
+  44,
+  41,
+  38,
+  35,
+  22,
+  19,
+  16,
+  13,
+  10,
+  7,
+  4,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "arms": {
+  "0": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    46,
+    44,
+    41,
+    38,
+    35,
+    22,
+    19,
+    16,
+    13,
+    10,
+    7,
+    4,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 11,
+    "Bavaria": 0,
+    "Britain": 0,
+    "Spain": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 10,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 16,
+    "Bavaria": 4,
+    "Denmark": 6,
+    "Britain": 14,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "France": 17,
+    "Hanover": 6,
+    "Naples": 1,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 4
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain",
+    "Switzerland"
+   ],
+   "rf3": {
+    "enacted": [],
+    "lapsed": [],
+    "repealed": []
+   }
+  },
+  "1": {
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    54,
+    52,
+    49,
+    46,
+    43,
+    40,
+    37,
+    24,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "threat_by_target": {
+    "France": 0,
+    "Austria": 97,
+    "Bavaria": 0,
+    "Britain": 5,
+    "Spain": 0,
+    "Russia": 0
+   },
+   "scalar_mirror_ok": true,
+   "provinces": {
+    "Russia": 10,
+    "Ottoman": 14,
+    "Prussia": 6,
+    "Spain": 9,
+    "Sweden": 9,
+    "Saxony": 1,
+    "Austria": 24,
+    "Denmark": 6,
+    "Britain": 26,
+    "PapalStates": 1,
+    "Portugal": 4,
+    "Hanover": 6,
+    "Switzerland": 2,
+    "Naples": 1,
+    "France": 3,
+    "Sardinia": 1,
+    "Hesse": 2,
+    "Holland": 1
+   },
+   "belligerents": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "France",
+    "Holland",
+    "KingdomOfItaly",
+    "Russia",
+    "Spain"
+   ],
+   "rf3": {
+    "enacted": [
+     [
+      1,
+      "Britain",
+      "orders_in_council"
+     ],
+     [
+      2,
+      "Russia",
+      "opolchenie"
+     ],
+     [
+      4,
+      "Britain",
+      "militia_transfer"
+     ],
+     [
+      8,
+      "Russia",
+      "extraordinary_levy"
+     ],
+     [
+      8,
+      "Austria",
+      "landwehr"
+     ],
+     [
+      10,
+      "Prussia",
+      "articles_of_war"
+     ],
+     [
+      11,
+      "Austria",
+      "generalissimus"
+     ],
+     [
+      13,
+      "Prussia",
+      "emancipation_edict"
+     ],
+     [
+      14,
+      "Austria",
+      "jager_battalions"
+     ],
+     [
+      15,
+      "Britain",
+      "congreve_rockets"
+     ],
+     [
+      17,
+      "Austria",
+      "infantry_regulations"
+     ],
+     [
+      20,
+      "Russia",
+      "war_ministry"
+     ],
+     [
+      24,
+      "Prussia",
+      "reorganisation_commission"
+     ],
+     [
+      25,
+      "Russia",
+      "arakcheev_artillery"
+     ],
+     [
+      28,
+      "Britain",
+      "commissariat"
+     ],
+     [
+      33,
+      "Austria",
+      "corps_d_armee"
+     ]
+    ],
+    "lapsed": [],
+    "repealed": []
+   }
+  }
+ },
+ "levers": {
+  "0": {
+   "ai_enacts": false
+  },
+  "1": {
+   "ai_enacts": true
+  }
+ }
+}

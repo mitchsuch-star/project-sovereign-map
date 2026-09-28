@@ -522,7 +522,7 @@ class TestArmAAmbientDoD:
         dispatch, every turn of the run (the tail rides its own type)."""
         assert hist1["derived"]["routine_intent_lines_max_per_turn"] <= 2
 
-    def test_routine_intent_lines_fire_in_the_wild(self, hist1):
+    def test_routine_intent_lines_fire_in_the_wild(self, ulm):
         """IQ-6 N2 (PR-X4, September 14, 2026): the FLOOR beside the ceiling
         above. That pin only ever asserted `<= 2`, so it stayed green whether
         the producer fired or never did — which is how the rescore memo
@@ -534,12 +534,23 @@ class TestArmAAmbientDoD:
         Counted UNIQUE (type + producing turn + vars), because the queue is
         snapshotted without draining and a line queued inside advance_turn
         rides into the next snapshot too — the second assertion holds the
-        dedupe to that: on this board the raw snapshot count is larger."""
-        derived = hist1["derived"]
+        dedupe to that: on this board the raw snapshot count is larger.
+
+        RE-SEATED onto the AMBIENT ulm run by SR-5r RF-3 "The AI enacts"
+        (September 27, 2026) — still unscripted, still "in the wild". The
+        historical ambient run's only routine lines were Austria's two
+        easings (turns 17 and 26, `primacy_germany`: fight -> coerce ->
+        bandwagon, after its want moved on turn 15). The rival courts' laws
+        re-time that board: Austria's want stays `redeem_italy` and leaves
+        the ladder at turn 21, so the historical run reads 0. With
+        `reforms.THE_AI_ENACTS` down in the child it reads those two lines
+        again (measured). The producer is unchanged; the ulm ambient run
+        reads 3 unique lines (6 raw), the scripted arms 5 and 6."""
+        derived = ulm["derived"]
         total = derived["routine_intent_lines_total"]
         assert total >= 1, "the Stage-F producer never fired in 40 turns"
         assert total >= derived["routine_intent_lines_max_per_turn"]
-        raw = sum(1 for row in hist1["turns"] for e in row["dispatch_queue"]
+        raw = sum(1 for row in ulm["turns"] for e in row["dispatch_queue"]
                   if e["type"] in sweep.ROUTINE_INTENT_TYPES)
         assert total < raw, (total, raw)
 

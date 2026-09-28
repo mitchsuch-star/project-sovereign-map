@@ -1084,10 +1084,28 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # time since slice 4 that a France issuing no orders is not overrun by
 # raids. The muster-preview lever is display and arm 3 = arm 1 proves it.
 # ═══════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — row SR, Chunk 5, SR-5r RF-3 "The AI enacts"
+# (September 27, 2026; `tools/_rf3_series_arms.py`, two arms, the lever set
+# IN THE CHILD, every enactment and lapse counted per court and turn):
+#   0.  reforms.THE_AI_ENACTS DOWN ......... the VP-R1 series above, BYTE-FOR-BYTE
+#   1.  the shipped rung ................... the series below, diverging at [7]
+# The rung is the SOLE mover: every rival great power enacts from its deck —
+# 16 laws in 40 turns (Britain the Orders in Council on turn 1, then Russia,
+# Austria, Prussia by turn 10), 0 lapses; the rival courts' manpower,
+# cheaper and steadier levies change the war from turn 7. Passive-France
+# guard, stated honestly: on the shipped arm the UNATTENDED France ends turn
+# 40 with 3 provinces (arm 0: 17) while Britain holds 26 (14) and Austria 24
+# (16) — the ambient harness's passive France, NOT a balance claim. Measured
+# on the COMMANDED arm (three seeds): a France that enacts nothing while the
+# rivals do holds 25 / 5 / 25 at turn 40 (the rung down: 28 / 27 / 25); a
+# France that uses its own laws (the Staff, the Anticipated Class, the Code
+# Abroad) holds 25 / 28 / 27. The laws are a two-sided arms race.
+# ═══════════════════════════════════════════════════════════════════════
 BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 60, 58, 46, 44, 41, 38, 35, 22, 19, 16, 13, 10,
-    7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
+    70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 49, 46, 43, 40, 37, 24, 11,
+    8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0,
 ]
 
 

@@ -567,3 +567,106 @@ def process_law_lapses(world) -> List[Dict]:
                         f"full price again."),
                 })
     return events
+
+
+# ════════════════════════════ the AI (RF-3) ═══════════════════════════════════
+# REFORMS_SPEC §7. Every AI great power enacts from its own authored deck, in
+# deck order, at the player's prices, through the SAME verb and executor
+# (GR5). The rung takes the first law `law_refusal` passes (with the court's
+# own admin budget) and whose purse test passes; at most one enactment every
+# AI_ENACTMENT_EVERY_TURNS; it never repeals (the lapse rule is its
+# discipline). Lever `THE_AI_ENACTS` — down, no AI court enacts: the prior
+# BASELINE_SERIES reproduces byte for byte.
+THE_AI_ENACTS = True
+AI_ENACTMENT_EVERY_TURNS = 3
+AI_PURSE_RESERVE = 1000          # the chest keeps a reserve …
+AI_PURSE_UPKEEP_TURNS = 5        # … and five turns of the slate's upkeep
+AI_AUTHORITY_FLOOR = 30          # a political act never takes the court below 30
+# The diplomatic term (§3: "the AI rung weighs it" — made TRUE at RF-3). Every
+# AI court boots at authority 60, so its first political act loses the +1 a
+# turn above 60 (`diplomacy.calculate_dp`). The rung weighs that point by a
+# floor in the house style: a political act never leaves the court fewer than
+# AI_DIPLOMACY_FLOOR diplomatic points a turn. A hard "never cross 60" would bar
+# all seven political acts of the four rival decks; the floor binds a court
+# that has lost its capital and has no skilled envoy.
+AI_DIPLOMACY_FLOOR = 3
+
+
+def _last_enactment_turn(world, nation: str) -> Optional[int]:
+    """The turn the court last enacted a law still in force (derived from
+    the rows — zero new fields; a law that lapsed or was repealed no longer
+    paces the next)."""
+    turns = [int(r["enacted_turn"]) for r in laws_in_force(world, nation)]
+    return max(turns) if turns else None
+
+
+def _court_dp_after(world, nation: str, authority_after: int) -> int:
+    from backend.game_logic.diplomacy import calculate_dp
+    diplomat = (getattr(world, "diplomats", {}) or {}).get(nation)
+    capital = world.get_nation_capital(nation)
+    holds = bool(capital and capital in world.regions
+                 and world.regions[capital].controller == nation)
+    return int(calculate_dp(diplomat, int(authority_after), holds))
+
+
+def ai_purse_refusal(world, nation: str, row: Dict,
+                     treasury: Optional[int] = None) -> str:
+    """"" when an AI court's purse test passes for `row` (§7), else why:
+      * the chest ≥ the price (and any arrears) + AI_PURSE_RESERVE +
+        AI_PURSE_UPKEEP_TURNS × the slate's upkeep INCLUDING the new law;
+      * the court's forecast Net (the ledger's own projection) stays ≥ 0
+        after the new upkeep;
+      * an authority price never takes the court below AI_AUTHORITY_FLOOR,
+        nor leaves it fewer than AI_DIPLOMACY_FLOOR diplomatic points a
+        turn."""
+    quote = restoration_price(world, nation, row)
+    gold = _court_gold(world, nation) if treasury is None else int(treasury)
+    need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
+    upkeep = int(row.get("upkeep", 0) or 0)
+    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (
+        law_upkeep_bill(world, nation) + upkeep)
+    if gold < bar:
+        return f"the chest ({gold}) is under the bar ({bar})"
+    from backend.game_logic.ledger import _build_economy
+    net = int(_build_economy(world, nation).get("net", 0) or 0)
+    if net - upkeep < 0:
+        return f"the forecast Net ({net}) cannot carry {upkeep} a turn"
+    if quote["currency"] == "authority":
+        authority = _court_authority(world, nation)
+        after = authority - int(quote["price"])
+        if after < AI_AUTHORITY_FLOOR:
+            return f"authority {authority} → {after} is under {AI_AUTHORITY_FLOOR}"
+        if _court_dp_after(world, nation, after) < AI_DIPLOMACY_FLOOR:
+            return (f"authority {after} would leave fewer than "
+                    f"{AI_DIPLOMACY_FLOOR} diplomatic points a turn")
+    return ""
+
+
+def find_ai_enactment(world, nation: str, treasury: int,
+                      admin_ap: int) -> Optional[Dict]:
+    """§7 THE RUNG: the order an AI court gives this admin phase, or None —
+    the first law in deck order that `law_refusal` (its own admin budget)
+    and `ai_purse_refusal` both pass, at most one every
+    AI_ENACTMENT_EVERY_TURNS. The same verb the player types (GR5)."""
+    if not (THE_STATE_HAS_LAWS and THE_AI_ENACTS):
+        return None
+    if not nation or nation == getattr(world, "player_nation", None):
+        return None
+    rows = deck(world, nation)
+    if not rows:
+        return None
+    last = _last_enactment_turn(world, nation)
+    now = int(getattr(world, "current_turn", 0) or 0)
+    if last is not None and now - last < AI_ENACTMENT_EVERY_TURNS:
+        return None
+    for row in rows:
+        if not isinstance(row, dict) or is_in_force(row):
+            continue
+        law_id = str(row.get("id") or "")
+        if law_refusal(world, nation, law_id, admin_actions=admin_ap):
+            continue
+        if ai_purse_refusal(world, nation, row, treasury):
+            continue
+        return {"action": "enact_law", "target": law_id}
+    return None
+

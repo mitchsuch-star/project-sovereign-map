@@ -1044,8 +1044,16 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # contract holds. Attribution measured through THIS runner's
         # `flips`: with `RAIDING_PARTY_HOLDS_NO_HOMELAND` down in the child
         # it reads 12 / 15 verbatim.
-        assert uncapped == 11, uncapped
-        assert capped == 13, capped
+        # Re-measured by SR-5r RF-3 "The AI enacts" (September 27, 2026): the
+        # rival courts' laws re-time the ambient board from turn 8 (the
+        # BASELINE_SERIES attribution block). Uncapped 12, capped 16 — the cap
+        # buys FOUR turns; the contract holds. On this board the capped exit
+        # is a VS-6 defection (`vassal_defected`, transferred at turn 15,
+        # VASSAL -> PEACE; `tools/_rf3_board_events.py`). Attribution measured
+        # through THIS runner's `flips`: with `reforms.THE_AI_ENACTS` down in
+        # the child it reads 11 / 13 verbatim (`tools/_rf3_wo_attribution.py`).
+        assert uncapped == 12, uncapped
+        assert capped == 16, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1132,8 +1140,20 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     (28 -> 15, the step from index 13 to 14, world turn 15): -3
         #     decay - 10 as Switzerland leaves the vassal web.
         #     `_rebellion_turn(True)` measures 15 = index + 1.
-        elimination_step = 6
-        assert steps[elimination_step] == -12, steps
+        # SR-5r RF-3 "The AI enacts" (September 27, 2026). The re-recorded
+        # series keeps this pin's general form. Traced with
+        # `tools/_rf3_board_events.py` (events captured at `log_event`):
+        #   - The capped exit is the unique largest ORDINARY fall, -13
+        #     (37 -> 24, the step from index 14 to 15, world turn 16): -3
+        #     decay - 10 as Switzerland leaves the web — a VS-6 defection on
+        #     this board. `_rebellion_turn(True)` measures 16 = index + 1.
+        #   - The elimination MOVED to the very next step: the Kingdom of
+        #     Italy is eliminated out of France's web at world turn 16 (the
+        #     step from index 15 to 16, 24 -> 11). The decay there is -3, so
+        #     the signature is -13 — the "-12/-13 signature" at its -13 end.
+        #     Named and excluded, as before.
+        elimination_step = 15
+        assert steps[elimination_step] == -13, steps
         ordinary = [s for i, s in enumerate(steps) if i != elimination_step]
         worst = min(ordinary)
         assert ordinary.count(worst) == 1, (

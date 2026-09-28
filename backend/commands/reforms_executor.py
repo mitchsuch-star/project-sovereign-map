@@ -85,6 +85,8 @@ class ReformsExecutor:
         if unresolved:
             return {"success": False, "message": unresolved}
         admin = command.get("_admin_actions")
+        if admin is None and actor != getattr(world, "player_nation", None):
+            admin = reforms.ADMIN_ACTIONS_PER_ACT   # the AI loop holds one
         refusal = reforms.law_refusal(world, actor, str(row.get("id")),
                                       admin_actions=admin)
         if refusal:
