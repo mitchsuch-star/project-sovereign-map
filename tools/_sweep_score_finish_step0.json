@@ -1,0 +1,114 @@
+[
+ {
+  "id": "census: OPEN REMAINDER no longer read first",
+  "file": "tools/defect_census.py",
+  "old": "    if OPEN_REMAINDER.search(\" \".join(cells)):\n        return \"partial\"\n    if \"~~\" in first or TICK in first:",
+  "new": "    if \"~~\" in first or TICK in first:",
+  "tests": "tests/test_score_finish_step0.py::TestTheCensusVocabulary"
+ },
+ {
+  "id": "census: RE-HOMED is not a disposition",
+  "file": "tools/defect_census.py",
+  "old": "r\"SUPERSEDED|ACCEPTED|RE-HOMED)\\b\")",
+  "new": "r\"SUPERSEDED|ACCEPTED)\\b\")",
+  "tests": "tests/test_score_finish_step0.py::TestTheCensusVocabulary"
+ },
+ {
+  "id": "census: RE-HOMED is not a disposition (the live ledgers)",
+  "file": "tools/defect_census.py",
+  "old": "r\"SUPERSEDED|ACCEPTED|RE-HOMED)\\b\")",
+  "new": "r\"SUPERSEDED|ACCEPTED)\\b\")",
+  "tests": "tests/test_score_finish_step0.py::TestTheLedgersTellTheTruth"
+ },
+ {
+  "id": "census: the tag's pillar is never parsed",
+  "file": "tools/defect_census.py",
+  "old": "        if part.startswith(\"pillar=\"):\n            out[\"pillar\"] = part[len(\"pillar=\"):].strip()\n        elif part.startswith(\"step=\"):",
+  "new": "        if part.startswith(\"step=\"):",
+  "tests": "tests/test_score_finish_step0.py::TestTheCensusVocabulary"
+ },
+ {
+  "id": "census: the tag's pillar is never parsed (the live ledgers)",
+  "file": "tools/defect_census.py",
+  "old": "        if part.startswith(\"pillar=\"):\n            out[\"pillar\"] = part[len(\"pillar=\"):].strip()\n        elif part.startswith(\"step=\"):",
+  "new": "        if part.startswith(\"step=\"):",
+  "tests": "tests/test_score_finish_step0.py::TestTheLedgersTellTheTruth"
+ },
+ {
+  "id": "rule: a ceiling is worth a quarter",
+  "file": "tools/score_run.py",
+  "old": "        return round(5.5 + 0.5 * ceilings_passed, 2)",
+  "new": "        return round(5.5 + 0.25 * ceilings_passed, 2)",
+  "tests": "tests/test_score_finish_step0.py::TestTheFrozenRule"
+ },
+ {
+  "id": "rule: no 6.0 cap",
+  "file": "tools/score_run.py",
+  "old": "    return round(min(6.0, 5.0 + 0.25 * ceilings_passed), 2)",
+  "new": "    return round(5.0 + 0.25 * ceilings_passed, 2)",
+  "tests": "tests/test_score_finish_step0.py::TestTheFrozenRule"
+ },
+ {
+  "id": "rule: exercised at five",
+  "file": "tools/score_run.py",
+  "old": "    if n_meas < 6:",
+  "new": "    if n_meas < 5:",
+  "tests": "tests/test_score_finish_step0.py::TestTheFrozenRule"
+ },
+ {
+  "id": "rule: a P1 caps nothing",
+  "file": "tools/score_run.py",
+  "old": "        return score_from_items(fl, not open_p1, ce)",
+  "new": "        return score_from_items(fl, True, ce)",
+  "tests": "tests/test_score_finish_step0.py::TestTheFrozenRule"
+ },
+ {
+  "id": "rule: the directional averages every pillar",
+  "file": "tools/score_run.py",
+  "old": "    lows = [v[\"low\"] for v in scores.values() if v.get(\"exercised\")]",
+  "new": "    lows = [v[\"low\"] for v in scores.values()]",
+  "tests": "tests/test_score_finish_step0.py::TestTheFrozenRule"
+ },
+ {
+  "id": "reader: the band word must match whole",
+  "file": "tools/score_run.py",
+  "old": "        if band.startswith(word) or word.startswith(band):",
+  "new": "        if band == word:",
+  "tests": "tests/test_score_finish_step0.py::TestTheArmReader"
+ },
+ {
+  "id": "reader: no AUTO reader resolves",
+  "file": "tools/score_run.py",
+  "old": "    fn = globals().get(f\"r_{pillar}_{item_id}\")\n    return fn",
+  "new": "    return None",
+  "tests": "tests/test_score_finish_step0.py::TestTheChecklist"
+ },
+ {
+  "id": "driver: the headline class is dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "            if headline_class:\n                fields[\"headline_class\"] = str(headline_class)",
+  "new": "            if False:\n                fields[\"headline_class\"] = str(headline_class)",
+  "tests": "tests/test_score_finish_step0.py::TestTheDriverFields"
+ },
+ {
+  "id": "driver: the voice line is dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "        if _voice:\n            self.record(\"battle\", headline=head, voice=_voice)",
+  "new": "        if False:\n            self.record(\"battle\", headline=head, voice=_voice)",
+  "tests": "tests/test_score_finish_step0.py::TestTheDriverFields"
+ },
+ {
+  "id": "driver: the bill notes are dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.record(\"ledger\", **_bill_notes_kw(economy), treasury=treasury,",
+  "new": "            self.record(\"ledger\", treasury=treasury,",
+  "tests": "tests/test_score_finish_step0.py::TestTheDriverFields"
+ },
+ {
+  "id": "arm: the laws arm forgets the Staff",
+  "file": "tools/playtest_scripts/sr_exit_chunk5_laws.json",
+  "old": "\"3\": [\n   \"what laws are in force\",\n   \"enact the Staff\"",
+  "new": "\"3\": [\n   \"what laws are in force\",\n   \"enact nothing\"",
+  "tests": "tests/test_score_finish_step0.py::TestTheArmScripts"
+ }
+]

@@ -1,0 +1,85 @@
+{
+ "name": "score-docked-lines",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "SF-M (SCORE_FINISH_SPEC.md §4.2, the DL arm; Sept 29, 2026): the lines the reviews DOCKED, typed on the boot board, one arm the instrument reads for command C4, diplomacy C4/C5, first contact C3/C4, economy C5 and combat legibility C4. Every line names the row it answers to in `dl_lines`; `tools/score_run.py check` reads each command's reply against that row's pass condition. The arm GROWS: a new review's docked line is appended with its row id, never re-authored. Run with --turns 3. Order matters, so no line spoils another's measurement: turn 1 spends its four actions on the 2-AP strategic order (RS-8) and Davout's fortify at Rhineland, so the what-if (RS-12) asks about a FORTIFIED man with Mack adjacent at Swabia; turn 2 carries the support phrasings (RS-6) and the eight Cabinet phrasings (RS-7); turn 3 asks for terms once the war is old enough (PC15-6), tries the two proper names (SF-V4), burns the military actions on three scouts, then asks 'what can I do' (RS-15) at zero military actions and raises the levy with Davout, who has not moved (AAR-6).",
+ "dl_lines": {
+  "RS-6": [
+   "Marshal Soult, bring your corps up in support of Ney.",
+   "Soult, march in support of Ney",
+   "Lannes, march to the aid of Ney",
+   "Murat, come to Ney's support"
+  ],
+  "RS-7": [
+   "Talleyrand, improve our relations with Prussia",
+   "Talleyrand, improve ties with Prussia",
+   "Talleyrand, mend relations with Prussia",
+   "Talleyrand, warm our relations with Prussia",
+   "Talleyrand, better our relations with Prussia",
+   "Talleyrand, make friends with Prussia",
+   "Talleyrand, seek friendship with Prussia",
+   "Talleyrand, improve our standing with Prussia"
+  ],
+  "RS-8": [
+   "Ney, march on Swabia and destroy Mack"
+  ],
+  "RS-11": [
+   "Bernadotte, take Bohemia"
+  ],
+  "RS-12": [
+   "Davout, fortify",
+   "what if Davout attacks Mack?"
+  ],
+  "RS-14": [
+   "where are the Russians?",
+   "why is Europe alarmed?"
+  ],
+  "RS-15": [
+   "what can I do"
+  ],
+  "PC15-6": [
+   "request terms from Austria"
+  ],
+  "AAR-6": [
+   "recruit 10000 infantry with Davout"
+  ],
+  "SF-V4": [
+   "Ney, attack Zorglub",
+   "attack Alsace"
+  ]
+ },
+ "turns": {
+  "1": [
+   "Ney, march on Swabia and destroy Mack",
+   "Bernadotte, take Bohemia",
+   "Marshal Soult, bring your corps up in support of Ney.",
+   "Davout, fortify",
+   "what if Davout attacks Mack?",
+   "where are the Russians?",
+   "why is Europe alarmed?"
+  ],
+  "2": [
+   "Soult, march in support of Ney",
+   "Lannes, march to the aid of Ney",
+   "Murat, come to Ney's support",
+   "Talleyrand, improve our relations with Prussia",
+   "Talleyrand, improve ties with Prussia",
+   "Talleyrand, mend relations with Prussia",
+   "Talleyrand, warm our relations with Prussia",
+   "Talleyrand, better our relations with Prussia",
+   "Talleyrand, make friends with Prussia",
+   "Talleyrand, seek friendship with Prussia",
+   "Talleyrand, improve our standing with Prussia"
+  ],
+  "3": [
+   "request terms from Austria",
+   "Ney, attack Zorglub",
+   "attack Alsace",
+   "Bernadotte, scout Bohemia",
+   "Murat, scout Swabia",
+   "Lannes, scout Swabia",
+   "what can I do",
+   "recruit 10000 infantry with Davout"
+  ]
+ }
+}

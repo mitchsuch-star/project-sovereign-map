@@ -1,0 +1,222 @@
+{
+ "tree": "/tmp/claude-0/-home-user-project-sovereign-map/1dfcca4c-262d-5e12-aa9f-83e5b89b6e34/scratchpad/base_c20d5bba",
+ "sha": "c20d5bba3ca1fa69d9c2e88b3372812244156a23",
+ "started": "2026-09-29T18:24",
+ "jobs": 3,
+ "arms": {
+  "CMD-A": {
+   "arm": "CMD-A",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 19.5,
+   "cmd": [
+    "--name",
+    "CMD-A",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/tools/playtest_runs/score_2026_09_29_c20d5bba/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "austerlitz"
+   ],
+   "titled": [
+    {
+     "save": "CMD-A_t10.json",
+     "turn": 10,
+     "titled": 32,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t20.json",
+     "turn": 20,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t30.json",
+     "turn": 30,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t40.json",
+     "turn": 40,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    }
+   ]
+  },
+  "CMD-M": {
+   "arm": "CMD-M",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 20.4,
+   "cmd": [
+    "--name",
+    "CMD-M",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/tools/playtest_runs/score_2026_09_29_c20d5bba/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "marengo"
+   ],
+   "titled": [
+    {
+     "save": "CMD-M_t10.json",
+     "turn": 10,
+     "titled": 32,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-M_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-M_t40.json",
+     "turn": 40,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    }
+   ]
+  },
+  "CMD-H": {
+   "arm": "CMD-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 20.8,
+   "cmd": [
+    "--name",
+    "CMD-H",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/tools/playtest_runs/score_2026_09_29_c20d5bba/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "CMD-H_t10.json",
+     "turn": 10,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-H_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-H_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-H_t40.json",
+     "turn": 40,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    }
+   ]
+  },
+  "DL": {
+   "arm": "DL",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 3.6,
+   "cmd": [
+    "--name",
+    "DL",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/tools/playtest_runs/score_2026_09_29_c20d5bba/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_docked_lines.json",
+    "--turns",
+    "3"
+   ]
+  },
+  "AIV": {
+   "arm": "AIV",
+   "dir": "/home/user/project-sovereign-map/tools/playtest_runs/score_2026_09_29_c20d5bba/AIV",
+   "status": "linked"
+  }
+ },
+ "skipped": {
+  "CLI": "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (\u00a74.6)"
+ },
+ "finished": "2026-09-29T18:25"
+}

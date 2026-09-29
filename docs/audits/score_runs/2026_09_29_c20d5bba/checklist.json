@@ -1,0 +1,1206 @@
+{
+ "run": "/home/user/project-sovereign-map/tools/playtest_runs/score_2026_09_29_c20d5bba",
+ "checklist_version": 1,
+ "checked": "2026-09-29T18:43",
+ "pillars": {
+  "ending": {
+   "name": "The ending",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "Pressburg reaches THE IMPERIAL PEACE by turn 36",
+     "measured": true,
+     "pass": true,
+     "evidence": "THE IMPERIAL PEACE at turn 36 (status ending-reached)"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The Verdict arm reaches its turn-44 register",
+     "measured": true,
+     "pass": true,
+     "evidence": "Verdict at turn 44: - ENDING — THE VERDICT OF HISTORY: The reign, unfinished, is judged as it stands. [THE ECLIPSE]"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "On CONG, the Congress is never dissolved by a cession reopened in a war France neither declared nor joined, and a fall names its cause (RS-2)",
+     "measured": true,
+     "pass": false,
+     "evidence": "dissolved by a reopened cession at turn 27: - DISPATCH: Sire — THE CONGRESS OF PARIS DISSOLVES — the titled provinces fell short (41 of 45) — Austria's war reopened what it ceded (Bohemia, Carniola, Dresden …). London, Berlin and St Petersburg "
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "The CONG summons names the league gate it lowers (RS-10)",
+     "measured": true,
+     "pass": false,
+     "evidence": "summons: The Emperor summons the powers of Europe to Paris. The Congress sits for 8 turns, to the end of turn 32. Britain REFUSES — at war with us (our war score -4 — it sues at +40); Russia REFUSES — relations -73; Austria REFUS"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "The CONG alarm forecast matches the next tick ±1 (RS-16)",
+     "measured": true,
+     "pass": false,
+     "evidence": "the table promises a fall of 3 a turn ('it falls 3 a turn (one, plus one for each court at peace with us, at m…'); the quiet ticks on the CONG arm fell [-1, -1, -2, -2, -2, -2, -2] (median -2); alarm series [57, 58, 59, 74, 76, 78, 80, 82, 84]"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "T ≥ 40 at turn 40 on 2 of 3 CMD seeds",
+     "measured": true,
+     "pass": false,
+     "evidence": "titled at turn 40: {'CMD-H': 36, 'CMD-A': 34, 'CMD-M': 36}"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "Some benchmark road reaches T ≥ 45 by turn 40",
+     "measured": true,
+     "pass": false,
+     "evidence": "best road CMD-H = 36; all {'CMD-H': 36, 'CMD-A': 34, 'CMD-M': 36, 'CMD-ULM': 28, 'REACH-AAR': 30, 'REACH-GEVB': 23}"
+    },
+    {
+     "id": "C6",
+     "kind": "PROBE",
+     "text": "On CONG, each refuser's price can be paid within the sitting, or the table says it cannot (RS-D1)",
+     "measured": true,
+     "pass": false,
+     "evidence": "4 refusers; a price that neither closes the gap by its own figures, nor quotes its turns, nor says it cannot: ['Britain (None of 50): win the war to +40 (now -4) · shut 13 of 26 ports (now 9) · take its capital, London · sign a peace with Britain']"
+    }
+   ],
+   "score": {
+    "measured": 8,
+    "of": 8,
+    "open_p1": [
+     "RS-2"
+    ],
+    "ceilings_passed": 0,
+    "ceilings_failed": 6,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 5.0,
+    "high": 5.0,
+    "score": 5.0,
+    "reading": "5.00",
+    "open_p2": 1,
+    "target_ceilings": 3
+   }
+  },
+  "diplomacy": {
+   "name": "Diplomacy",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The propose arm ratifies a peace on every seed",
+     "measured": true,
+     "pass": true,
+     "evidence": "{\"PROP-H\": \"  - RATIFIED Russia · PEACE · stalemate\", \"PROP-A\": \"  - RATIFIED Russia · PEACE · white_peace\", \"PROP-M\": \"  - RATIFIED Russia · PEACE · stalemate\"}"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The advisor arm ticks at least 2 mission types",
+     "measured": true,
+     "pass": true,
+     "evidence": "mission types ticked: ['Improving Relations', 'Reassuring Ally']"
+    },
+    {
+     "id": "C1",
+     "kind": "PROBE",
+     "text": "No French peace is broken within 5 turns by another court's cascade (RS-1)",
+     "measured": true,
+     "pass": true,
+     "evidence": "5 peaces, none re-broken within 5 turns"
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "A ratification label names only the covered courts (RS-9)",
+     "measured": true,
+     "pass": true,
+     "evidence": "3 ratification labels, each naming covered courts only (the 'Still at war' line disagrees with none)"
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "VOLTE fires volte_face (RS-27)",
+     "measured": true,
+     "pass": false,
+     "evidence": "no volte_face on the volte arm"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's eight Cabinet phrasings each start a mission or give a priced refusal (RS-7)",
+     "measured": true,
+     "pass": false,
+     "evidence": "8 Cabinet phrasings; dead ends: [\"'Talleyrand, improve our relations with Prussia' → Sire, I await your instructions regarding Prussia.\", \"'Talleyrand, improve ties with Prussia' → Sire, I await your instructions regarding Prussia.\", \"'Talleyrand, mend relations with Prussia' → Sire, I await your instructions regarding Prussia.\"]"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "DL's 'request terms from Austria' is answered honestly: by Austria, or by the coalition's leader named as the court that answers for the war (PC15-6)",
+     "measured": true,
+     "pass": true,
+     "evidence": "Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 21 of 80; at most 8 turns, sooner if the war turns against it)."
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "No treaty France accepts from an AI offer fails its own ratification (SF-V1)",
+     "measured": true,
+     "pass": false,
+     "evidence": "11 treaty-refused-after-accept lines: CMD-A: Relations with France are insufficient for DEFENSIVE_ALLIANCE; CMD-H: Relations with France are insufficient for DEFENSIVE_ALLIANCE; CMD-H: Relations with France are insufficient for DEFENSIVE_ALLIANCE"
+    }
+   ],
+   "score": {
+    "measured": 8,
+    "of": 8,
+    "open_p1": [
+     "RS-1"
+    ],
+    "ceilings_passed": 3,
+    "ceilings_failed": 3,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 5.75,
+    "high": 5.75,
+    "score": 5.75,
+    "reading": "5.75",
+    "open_p2": 5,
+    "target_ceilings": 3
+   }
+  },
+  "first_contact": {
+   "name": "First contact",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "FC has 0 shrugs and 0 refusals",
+     "measured": true,
+     "pass": true,
+     "evidence": "28 lines; shrugs []; refusals []"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "SCH reaches card XIX",
+     "measured": true,
+     "pass": true,
+     "evidence": "School steps reached: [16, 17, 18, 19]"
+    },
+    {
+     "id": "C1",
+     "kind": "PROBE",
+     "text": "At most 2 of HOLD's 20 questions shrug",
+     "measured": true,
+     "pass": false,
+     "evidence": "20 questions; shrugs 16: ['Who is Deroy, and is he on our side or against us?', 'How much gold do we have right now, and what do we', 'what would it cost me to raise more infantry in Rh', 'Berthier, what do you advise for this first turn?']"
+    },
+    {
+     "id": "C2",
+     "kind": "EYES",
+     "text": "No HOLD answer contradicts the save",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "DL's 'where are the Russians' and 'why is Europe alarmed' are answered (RS-14)",
+     "measured": true,
+     "pass": false,
+     "evidence": "'where are the Russians?' → shrug: Berthier sets down his pen. \"I cannot answer that from the dispatches, | 'why is Europe alarmed?' → shrug: Berthier sets down his pen. \"I cannot answer that from the dispatches,"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's 'what can I do' at 0 military actions names a legal order (RS-15)",
+     "measured": true,
+     "pass": true,
+     "evidence": "These orders would be carried out today, Sire: / - ↳ end turn — no military actions remain today / recruit infantry in Franche-Comte — 732g for 3,000 men under Soult"
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "Every TODAY order in the boot briefing executes",
+     "measured": true,
+     "pass": true,
+     "evidence": "each on its own boot: 'Ney, attack Mack' ✓ | 'Davout, march to Lorraine' ✓ | 'recruit infantry in Rhineland' ✓ | 'build supply depot in Rhineland' ✓ — typed top to bottom on one boot, 2 fail: [\"'Davout, march to Lorraine' ✗ Davout is engaged with Mack and cannot begin a strategic mar\", \"'recruit infantry in Rhineland' ✗ Berthier shakes his head. 'The treasury cannot support this,\"]"
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "OP's first loop has 0 reading refusals",
+     "measured": true,
+     "pass": true,
+     "evidence": "loop 1: 11 lines, reading refusals []"
+    }
+   ],
+   "score": {
+    "measured": 7,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 2,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 7.5,
+    "score": null,
+    "reading": "7.00–7.50",
+    "open_p2": 0,
+    "target_ceilings": 4
+   }
+  },
+  "economy": {
+   "name": "Economy",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "net_residual is 0 on every record",
+     "measured": true,
+     "pass": true,
+     "evidence": "607 records; nonzero residuals []"
+    },
+    {
+     "id": "F2",
+     "kind": "PROBE",
+     "text": "Britain's turn-1 Net exceeds France's (SR-5a)",
+     "measured": true,
+     "pass": true,
+     "evidence": "turn-1 Net: Britain 2851 vs France 1032 (ledger._build_economy on the boot world)"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "On LAW, the Staff is enacted by loop 9",
+     "measured": true,
+     "pass": true,
+     "evidence": "the Staff enacted at loop 8: The Grand Quartier Général (Berthier's Imperial Headquarters, expanded 1805–07): Berthier's headquarters grown into a tr"
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "Every Net-line move of 10% or more names its cause",
+     "measured": true,
+     "pass": false,
+     "evidence": "35 moves of 10% or more; unnamed by the ledger's notes that turn or the next: ['t3 tribute 901→712', 't3 charges 50→185', 't4 charges 185→428', 't5 tribute 712→487', 't5 charges 428→666']"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "The quoted Charges and Laws equal what the next turn applies",
+     "measured": true,
+     "pass": false,
+     "evidence": "(turn, quoted charges, applied, quoted laws, applied): [(10, 463, 557, 0, 0), (20, 417, 445, 0, 0), (30, 720, 755, 0, 0), (40, 1047, 1078, 0, 0)] — mismatches [(10, 463, 557, 0, 0), (20, 417, 445, 0, 0), (30, 720, 755, 0, 0), (40, 1047, 1078, 0, 0)]"
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "Every priced order charges what it quoted",
+     "measured": true,
+     "pass": true,
+     "evidence": "levy quoted 741, charged 741 | law: cheapest gold law The Artillery Reserve at 3000 exceeds the chest 59 — not tried"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "DL's levy at 0 military actions executes (AAR-6)",
+     "measured": true,
+     "pass": false,
+     "evidence": "Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'"
+    },
+    {
+     "id": "C6",
+     "kind": "PROBE",
+     "text": "On CMD turns 20–40, 'what can I do' names an affordable purchase on ≥ 80% of turns (RS-D3)",
+     "measured": true,
+     "pass": true,
+     "evidence": "9/9 samples name an affordable purchase (100%): CMD-H t20 ✓; CMD-H t30 ✓; CMD-H t40 ✓; CMD-A t20 ✓; CMD-A t30 ✓; CMD-A t40 ✓; CMD-M t20 ✓; CMD-M t30 ✓; CMD-M t40 ✓"
+    }
+   ],
+   "score": {
+    "measured": 8,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 3,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 7.0,
+    "score": 7.0,
+    "reading": "7.00",
+    "open_p2": 0,
+    "target_ceilings": 3
+   }
+  },
+  "naval": {
+   "name": "Naval",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The naval-gate tests are green",
+     "measured": true,
+     "pass": true,
+     "evidence": "naval gate: test_naval_channel_gate.py → 35 passed, 1 warning in 0.86s; test_naval_substrate.py → 50 passed, 1 warning in 1.12s"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "SEA has no blocker and no SCRIPT PRECONDITION",
+     "measured": true,
+     "pass": true,
+     "evidence": "status completed; blockers []; preconditions none"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "SEA quotes the second diversion at readiness −25, and both throws print",
+     "measured": true,
+     "pass": true,
+     "evidence": "quotes (odds, readiness) [(40, 65), (39, 64)] — odds = readiness − 25: True; throws resolved 4"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "A fleet action leads the next dispatch",
+     "measured": true,
+     "pass": true,
+     "evidence": "the dispatch on/after a fleet action: [('SEA', 6, 'Sire — The fleet is shattered in action with Britain — France loses 26 sail; Spain 17 and Holland 7 '), ('SEA', 8, 'Sire — Burgundy has fallen. Enemy colours fly over French homeland soil. A garrison you detach (3,00'), ('DESC', 5, 'Sire — The fleet is shattered in action with Britain — France loses 24 sail; Spain 16 and Holland 6 ')]"
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "The descent quote names the odds and a lever, and Munster falls",
+     "measured": true,
+     "pass": false,
+     "evidence": "quotes 0; odds named False; lever named False; Munster falls False"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "On the shut-out arm, Britain sues by turn 10 on 3 of 3 seeds",
+     "measured": true,
+     "pass": true,
+     "evidence": "Britain sues at turn {'SHUT-H': 7, 'SHUT-A': 7, 'SHUT-M': 7}"
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "The ports lever explains '(now 0)' during a truce (RS-25)",
+     "measured": false,
+     "pass": null,
+     "evidence": "no '(now 0)' ports lever quoted on the arms (needs a truce with Britain)"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The Admiralty and fleet frames pass",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 6,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 1,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 8.0,
+    "score": null,
+    "reading": "7.00–8.00",
+    "open_p2": 0,
+    "target_ceilings": 3
+   }
+  },
+  "living_balance": {
+   "name": "Living balance",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "On CMD, France holds ≥ 20 provinces at turn 40 on 3 of 3 seeds",
+     "measured": true,
+     "pass": true,
+     "evidence": "France at turn 40: {'CMD-H': 30, 'CMD-A': 29, 'CMD-M': 27}"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "BASELINE_SERIES and M1–M7 are green",
+     "measured": true,
+     "pass": true,
+     "evidence": "M1–M7 + BASELINE_SERIES: test_combat_sweep_metrics.py → 11 passed, 1 warning in 1.33s; test_ai_intent_threat_migration.py → 18 passed, 1 warning in 3.00s"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "AIV-C shows at least one war between two AI courts",
+     "measured": true,
+     "pass": false,
+     "evidence": "AI-vs-AI wars per seed: {'00_historical_k10000': 0, '01_ulm_k17919': 0, '02_austerlitz_k25838': 0, '03_jena_k33757': 0, '04_marengo_k41676': 0, '05_eylau_k49595': 0, '06_friedland_k57514': 0, '07_wagram_k65433': 0, '08_lodi_k73352': 0, '09_rivoli_k81271': 0}"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "AIV-C shows at least one standalone third-party settlement",
+     "measured": true,
+     "pass": false,
+     "evidence": "standalone third-party settlements per seed: {'00_historical_k10000': 0, '01_ulm_k17919': 0, '02_austerlitz_k25838': 0, '03_jena_k33757': 0, '04_marengo_k41676': 0, '05_eylau_k49595': 0, '06_friedland_k57514': 0, '07_wagram_k65433': 0, '08_lodi_k73352': 0, '09_rivoli_k81271': 0}"
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "AIV-C shows exhaustion-driven pair peaces on every seed",
+     "measured": true,
+     "pass": true,
+     "evidence": "exhaustion pair peaces (third_party_peace beats) per seed: {'00_historical_k10000': 2, '01_ulm_k17919': 4, '02_austerlitz_k25838': 4, '03_jena_k33757': 2, '04_marengo_k41676': 4, '05_eylau_k49595': 2, '06_friedland_k57514': 2, '07_wagram_k65433': 2, '08_lodi_k73352': 4, '09_rivoli_k81271': 4}"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "On CMD, after the general peace, a court declares war on France beyond the fresh-peace floor and not by cascade (PB-D1)",
+     "measured": true,
+     "pass": false,
+     "evidence": "declarations beyond the fresh-peace floor: [('CMD-H', 'peaces', {'Austria': 9})]"
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "On CMD after the peace, every sponsorship against France and every great power that newly qualifies for a league leads or sub-beats the next dispatch, and each quoted keep-out lever flips qualifies_for_coalition(relation_shift=) (Step 7b)",
+     "measured": true,
+     "pass": false,
+     "evidence": "13 sponsorships against France after the peace; 0 led or sub-beat the dispatch; keep-out levers quoted 0"
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "On every AIV-C seed, an AI court takes a province from another AI court",
+     "measured": true,
+     "pass": true,
+     "evidence": "an AI court takes another's last province (eliminations, the proxy the run records) per seed: {\"armC_00_historical\": [\"Bavaria\", \"KingdomOfItaly\", \"Switzerland\", \"Holland\"], \"armC_01_ulm\": [\"KingdomOfItaly\"], \"armC_02_austerlitz\": [\"Bavaria\", \"KingdomOfItaly\"], \"armC_03_jena\": [\"Bavaria\", \"KingdomOfItaly\", \"Holland\"], \"armC_04_marengo\": [\"KingdomOfItaly\", \"Switzerland\"], \"armC_05_eylau\": [\"Bavaria\", \"KingdomOfItaly\"], \"armC_06_friedland\": [\"Bavaria\", \"KingdomOfItaly\"], \"armC_07_wagram\": [\""
+    }
+   ],
+   "score": {
+    "measured": 8,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 2,
+    "ceilings_failed": 4,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 6.5,
+    "high": 6.5,
+    "score": 6.5,
+    "reading": "6.50",
+    "open_p2": 0,
+    "target_ceilings": 3
+   }
+  },
+  "combat_legibility": {
+   "name": "Combat legibility",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "Every player battle is logged with both sides' losses",
+     "measured": true,
+     "pass": false,
+     "evidence": "66 battle lines; missing a side's losses: [('FLD', '- ⚔ [Combat] Ney leads the charge! (Aggressive: +15% attack)')]"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "OP's turn-4 scout of Vienna names the garrison",
+     "measured": true,
+     "pass": true,
+     "evidence": "turn 4: Ney scouts Vienna: Controlled by Austria. Terrain: Plains. Enemy forces: Mack (Austria): ~818 troops. Garrison: 25,000 — it must be assaulted — a march halts before it; …"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "Every attack that fought printed its muster first, including through an objection (RS-13)",
+     "measured": true,
+     "pass": true,
+     "evidence": "17 attacks fought; without a muster first: []"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "The bands are monotone: 'favorable' attacks out-bleed the enemy ≥ 70% of the time, and more often than 'even'",
+     "measured": true,
+     "pass": true,
+     "evidence": "favorable out-bleeds 12/12 = 1.00; even 3/5; unfavorable 0/0"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "An occupied capital's garrison fights, or is named (RS-3)",
+     "measured": true,
+     "pass": false,
+     "evidence": "2 capital captures after a battle; garrison neither fought nor named: ['OP t5 Vienna']"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's what-if for a fortified marshal refuses as the order would (RS-12)",
+     "measured": true,
+     "pass": false,
+     "evidence": "weighs a muster for a fortified man: Were you to give the order, Sire: / - ↳ MUSTER — Davout (23,994; expect about 71,282 with the corps likely to arrive, up to 86,324 if all march) vs Mack (36,955 men) at Swabia — the balance of force looks favo…"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "No raw marshal keys in combat text (RS-26)",
+     "measured": true,
+     "pass": false,
+     "evidence": "raw keys in combat/muster/enemy-phase lines: 124 {\"ArchdukeCharles\": 86, \"ArchdukeChar\": 2, \"ArchdukeJohn\": 29, \"ArchdukeCharl\": 2, \"ArchdukeCharle\": 1, \"ArchdukeCh\": 3, \"KingdomOfItaly\": 1}"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The diorama frames pass at both scales",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 7,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 2,
+    "ceilings_failed": 3,
+    "floors_passed": 1,
+    "floors_failed": 1,
+    "exercised": true,
+    "low": 5.5,
+    "high": 5.75,
+    "score": null,
+    "reading": "5.50–5.75",
+    "open_p2": 3,
+    "target_ceilings": 4
+   }
+  },
+  "marshal_drama": {
+   "name": "Marshal drama",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "PROBE",
+     "text": "On the flagship arm, _pc15_10_acceptance_probe.py shows ≤ 4 petition modals and 0 silent losses",
+     "measured": true,
+     "pass": true,
+     "evidence": "petition modals 2 (≤ 4), silent losses 0, petition moments 12"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "On OP, a grievance fires, is heard and resolves",
+     "measured": true,
+     "pass": true,
+     "evidence": "grievances fired 24, heard/resolved lines 16; e.g. -     ↳ Murat's grievance runs its course."
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "OP shows ≤ 3 petition modals and ≥ 3 audiences",
+     "measured": true,
+     "pass": true,
+     "evidence": "petition modals 3, audiences 10"
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "A Trust answer names only a man we can see and reach, and a refused Trust keeps the order (RS-5)",
+     "measured": true,
+     "pass": true,
+     "evidence": "1 Trust alternatives, each a man already in view"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "No marshal repeats a victory line within his last three wins (RS-24)",
+     "measured": true,
+     "pass": false,
+     "evidence": "77 voiced battles; a line repeated within three wins: ['OP Ney: \\'Ney: \"They stood, Sire. Briefly.\"\\'', 'OP Ney: \\'Ney: \"They stood, Sire. Briefly.\"\\'', 'OP Archduke Charles: \\'Massena: \"Neither side yielded. Unfinished busines\\'']"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "The crown moves only on ≥ 3 glory, and the line names where it went",
+     "measured": false,
+     "pass": null,
+     "evidence": "no crown moved on the arms"
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "An unmet expectation is announced before trust erodes",
+     "measured": true,
+     "pass": true,
+     "evidence": "2 eroding claims, each announced first"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "Five sampled petitions each read in the marshal's own voice",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 6,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 1,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 8.0,
+    "score": null,
+    "reading": "7.00–8.00",
+    "open_p2": 2,
+    "target_ceilings": 4
+   }
+  },
+  "vassals": {
+   "name": "Vassals",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "On CMD, ≥ 2 of 3 satellites remain at turn 40 on 3 of 3 seeds",
+     "measured": true,
+     "pass": true,
+     "evidence": "satellites at turn 40: {'CMD-H': 3, 'CMD-A': 2, 'CMD-M': 3}"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "CMD-H with --client-petition refuse loses a satellite by turn 30",
+     "measured": true,
+     "pass": true,
+     "evidence": "satellites 3 → first loss at turn 22; rebellion lines [(21, '- RAIL diplomatic_vassal_rebellion_imminent: Sire — Switzerl'), (22, '- POPUP vassal_rebellion_imminent: Switzerland #22 → accept_')]"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "CMD shows ≥ 4 priced petitions",
+     "measured": true,
+     "pass": true,
+     "evidence": "priced petitions per seed: {'CMD-H': 6, 'CMD-A': 4, 'CMD-M': 8}"
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "A petition's applied effect equals its quote",
+     "measured": true,
+     "pass": true,
+     "evidence": "14 petitions, quote = applied within the turn's drift"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "No French peace leaves a client state at war (SR-1b)",
+     "measured": true,
+     "pass": true,
+     "evidence": "12 saves, no client left at war after a French peace"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "Loyalty under 40 draws a line naming the remedy",
+     "measured": true,
+     "pass": false,
+     "evidence": "CMDR-H t17: Switzerland at 39 → remedy MISSING | CMDR-H t20: Kingdom of Italy at 31 → remedy MISSING | CMDR-H t21: Holland at 31 → remedy MISSING"
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "An attacked client capital is contested within 2 turns (VD-C)",
+     "measured": true,
+     "pass": false,
+     "evidence": "1 client capitals taken; uncontested within 2 turns: ['CMD-A t5 Milan']"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The VASSALS tab frame passes",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 7,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 2,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 7.5,
+    "score": null,
+    "reading": "7.00–7.50",
+    "open_p2": 0,
+    "target_ceilings": 4
+   }
+  },
+  "ui_ux": {
+   "name": "UI/UX",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "CLI: 0 SCRIPT ERROR, 0 blank frames, every shot ok",
+     "measured": false,
+     "pass": null,
+     "evidence": "the client arm (IQ-10 frames) needs the Godot binary; not run"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The parse harness exits 0 and the boot smoke test is clean",
+     "measured": false,
+     "pass": null,
+     "evidence": "the client arm (IQ-10 frames) needs the Godot binary; not run"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "No frame has buttons_offscreen",
+     "measured": false,
+     "pass": null,
+     "evidence": "the client arm (IQ-10 frames) needs the Godot binary; not run"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "No frame has clipped_text",
+     "measured": false,
+     "pass": null,
+     "evidence": "the client arm (IQ-10 frames) needs the Godot binary; not run"
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "No frame's text shows a raw key, <null> or (s)",
+     "measured": false,
+     "pass": null,
+     "evidence": "the client arm (IQ-10 frames) needs the Godot binary; not run"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "On OP, no end turn raises more than 3 blocking popups (a rail audience is not a blocking popup)",
+     "measured": true,
+     "pass": false,
+     "evidence": "most blocking popups one end turn raised: 5 (turn 10) ['diplomatic_dialogue:Russia, armistice #26', 'diplomatic_dialogue:incoming_settlement_offer #25', 'diplomatic_dialogue:settlement_confirm #27', 'diplomatic_dialogue:settlement_pair_substitute_con', 'diplomatic_dialogue:proposal_confirm #29']"
+    },
+    {
+     "id": "C5",
+     "kind": "EYES",
+     "text": "The user signs off ≥ 9 of 10 named frames",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "In a 5-turn Mode C session, nothing is blocked and every hotkey works",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 1,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 0,
+    "ceilings_failed": 1,
+    "floors_passed": 0,
+    "floors_failed": 0,
+    "exercised": false,
+    "score": null,
+    "low": null,
+    "high": null,
+    "reading": "NOT EXERCISED",
+    "open_p2": 1,
+    "target_ceilings": 4
+   }
+  },
+  "command": {
+   "name": "Command & parsing",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The golden corpus passes 100%",
+     "measured": true,
+     "pass": true,
+     "evidence": "845/845 passed"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The keyless replay passes 100%",
+     "measured": true,
+     "pass": true,
+     "evidence": "6/6 passed"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "OP: ≤ 1 shrug in 127 lines",
+     "measured": true,
+     "pass": true,
+     "evidence": "145 lines, shrugs 1: ['Berthier, remind me what the Russians demanded at ']"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "OP: 0 reading refusals (of the 'Cannot find marshal Of Ney' kind)",
+     "measured": true,
+     "pass": true,
+     "evidence": "reading refusals 0: []"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "≥ 18 of HOLD's 20 orders execute as meant",
+     "measured": true,
+     "pass": false,
+     "evidence": "8/20 orders executed as meant; misses: ['\\'If Mack is still sitting in Swabia, have\\' → Berthier sets down his pen. \"Sire, that is a contingency, no', \"'Have Talleyrand work on Prussia - I want' → Sire, I await your instructions regarding Prussia.\", '\\'Lannes, follow Ney in and back him up.\\' → Berthier frowns at the dispatch. \"I see Marshal Lannes\\'s nam', \"'Murat, hunt Mack down before he can slip' → Cannot find 'Mack Down' to pursue.\"]"
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's 'in support of', 'march on X and destroy Y' and 'take' execute (RS-6/8/11), and 'attack Zorglub' / 'attack Alsace' ask without spending anything (SF-V4)",
+     "measured": true,
+     "pass": false,
+     "evidence": "RS-6 'Marshal Soult, bring your corps up in support of Ney.' → Cannot find marshal 'Of Ney' to support. | RS-6 'Soult, march in support of Ney' → Soult begins march to In Support Of Ney. Moves to Swabia. \"S | RS-6 'Lannes, march to the aid of Ney' → Lannes begins march to Aid Of Ney. Lannes: \"At the double, S | RS-11 → Berthier adjusts his spectacles. \"Sire, I understand this co"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "On typed_road.json, question turns spend 0 actions and order turns spend them",
+     "measured": true,
+     "pass": true,
+     "evidence": "question turns spent 0; order turns spent when an order was carried out"
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "OP on the live parser has ≤ 1 misread",
+     "measured": false,
+     "pass": null,
+     "evidence": "the live-parser arm needs an ANTHROPIC_API_KEY; not run"
+    }
+   ],
+   "score": {
+    "measured": 7,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 2,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 7.5,
+    "score": null,
+    "reading": "7.00–7.50",
+    "open_p2": 8,
+    "target_ceilings": 5
+   }
+  },
+  "narration": {
+   "name": "Narration",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "Every turn has a headline, and none shows a raw key",
+     "measured": true,
+     "pass": true,
+     "evidence": "{\"CMD-H\": \"0/40 turns without a headline, 0 raw\", \"CMD-A\": \"0/40 turns without a headline, 0 raw\", \"CMD-M\": \"0/40 turns without a headline, 0 raw\"}"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "A dispatch carries ≤ 2 routine intent lines plus a tail",
+     "measured": true,
+     "pass": true,
+     "evidence": "most routine intent lines in one dispatch: 2 (cap 2 + one tail)"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "No headline class leads more than 4 of any 10 turns (RS-D2, Step 7b)",
+     "measured": true,
+     "pass": false,
+     "evidence": "worst class in any 10-turn window: {'CMD-H': ('estate_eroding', 7), 'CMD-A': ('supply_strain', 5), 'CMD-M': ('enemy_on_our_soil', 3)}"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "No rail row repeats more than 3 times a turn, and every war entry names its enemy (RS-23)",
+     "measured": true,
+     "pass": true,
+     "evidence": "rail rows repeated >3×: []; war entries naming no enemy: []"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "The near-miss and summonable headlines fire (RS-17)",
+     "measured": false,
+     "pass": null,
+     "evidence": "no road came within 5 of the summons on the arms"
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "The dispatch's intel row matches the intel store (AAR-5)",
+     "measured": true,
+     "pass": true,
+     "evidence": "55 intel rows, each where the store last saw the man"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "Le Moniteur keeps its cadence and its special editions",
+     "measured": true,
+     "pass": true,
+     "evidence": "CMD-H: 9 issues at [4, 5, 10, 15, 20, 25, 30, 35, 40], specials [4, 5], longest silence 5 turns | CMD-A: 9 issues at [5, 6, 9, 14, 19, 24, 29, 34, 39], specials [5, 6, 9], longest silence 5 turns | CMD-M: 8 issues at [5, 7, 12, 17, 22, 27, 32, 37], specials [7], longest silence 5 turns"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "Ten sampled dispatches each lead with the turn's biggest event",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 6,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 1,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 8.0,
+    "score": null,
+    "reading": "7.00–8.00",
+    "open_p2": 3,
+    "target_ceilings": 5
+   }
+  },
+  "ai_aliveness": {
+   "name": "AI aliveness",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "test_ai_intent_assurance.py is green",
+     "measured": true,
+     "pass": true,
+     "evidence": "AI-intent assurance: test_ai_intent_assurance.py → 52 passed, 1 warning in 17.67s"
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "No arm has a blocker or a traceback",
+     "measured": true,
+     "pass": true,
+     "evidence": "29 arms; all completed, no blockers, no tracebacks"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "The rival courts enact 13–18 laws with 0 lapses",
+     "measured": true,
+     "pass": true,
+     "evidence": "laws enacted abroad (enacted, lapsed) per seed: {'CMD-H': (18, 0), 'CMD-A': (18, 0), 'CMD-M': (18, 0)}"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "Every 40-turn arm has ≥ 1 design promotion",
+     "measured": true,
+     "pass": true,
+     "evidence": "design promotions per 40-turn arm: {'CMD-H': 4, 'CMD-A': 4, 'CMD-M': 4, 'CMD-ULM': 4, 'VOLTE': 4, 'REACH-AAR': 4, 'REACH-GEVB': 6}"
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "Britain lands on the continent on every CMD arm",
+     "measured": true,
+     "pass": true,
+     "evidence": "{\"CMD-H\": \"- RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.\", \"CMD-A\": \"- RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.\", \"CMD-M\": \"- RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.\"}"
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "No AI assaults a garrison under 500 men three times running (AAR-D8)",
+     "measured": true,
+     "pass": true,
+     "evidence": "8 garrison assaults, none three turns running"
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "No AI corps fortifies, unfortifies and fortifies again within 3 turns",
+     "measured": true,
+     "pass": true,
+     "evidence": "7 acts, no dither"
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "On CMD, visible AI attacks occur on ≥ 50% of the turns at war",
+     "measured": true,
+     "pass": true,
+     "evidence": "turns with a visible AI attack over the turns at war: {'CMD-H': '5/8', 'CMD-A': '8/10', 'CMD-M': '7/8'}"
+    }
+   ],
+   "score": {
+    "measured": 8,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 6,
+    "ceilings_failed": 0,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 8.5,
+    "high": 8.5,
+    "score": 8.5,
+    "reading": "8.50",
+    "open_p2": 0,
+    "target_ceilings": 5
+   }
+  },
+  "agendas": {
+   "name": "Agendas & formables",
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The agenda and formables tests are green",
+     "measured": true,
+     "pass": true,
+     "evidence": "agenda + formables tests: test_nation_agendas.py → 184 passed, 1 warning in 1.90s; test_nation_agendas_formables.py → 225 passed, 1 warning in 2.64s"
+    },
+    {
+     "id": "F2",
+     "kind": "PROBE",
+     "text": "/formables on every CMD save lists each template with its gate terms",
+     "measured": true,
+     "pass": true,
+     "evidence": "68 rows, each with its gate terms"
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "Every 40-turn arm has ≥ 2 agenda_shift events",
+     "measured": true,
+     "pass": true,
+     "evidence": "agenda_shift rows per arm: {'CMD-H': 2, 'CMD-A': 4, 'CMD-M': 2, 'CMD-ULM': 3, 'VOLTE': 3, 'REACH-AAR': 2, 'REACH-GEVB': 6}"
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "On AIV-B, a variance seed opens with a different design (D7)",
+     "measured": true,
+     "pass": true,
+     "evidence": "Austria's opening design per seed: {'armA_historical_run1': 'redeem_italy', 'armA_historical_run2': 'redeem_italy', 'armB_austerlitz': 'primacy_germany', 'armB_jena': 'redeem_italy', 'armB_ulm': 'primacy_germany', 'armC_00_historical': 'redeem_italy', 'armC_01_ulm': 'primacy_germany', 'armC_02_austerlitz': 'primacy_germany', 'armC_03_jena': 'redeem_italy', 'armC_04_marengo': 'primacy_germany', 'armC_05_eylau': 'redeem_italy', 'armC_06_friedland': 'redeem_italy', 'armC_07_wagram': 'redeem_italy', 'armC_08_lodi': 'primacy_germany', 'armC_09_rivoli': 'redeem_italy', 'armb_scripted_austerlitz': 'p"
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "A gate term flips to met during play",
+     "measured": true,
+     "pass": false,
+     "evidence": "194 gate-term readings, none flipped to met between the saves"
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "The TILSIT probe raises nation_proclamation",
+     "measured": true,
+     "pass": true,
+     "evidence": "the scorer answers (bare: COUNTER_OFFER at 30; +6,000g: ACCEPT at 90); DuchyOfWarsaw minted from Posen: True; the Proclamation card: 'Duchy of Warsaw', 'By your hand.'"
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "On SF-AGD-1's arm, a carve states its terms and the Proclamation card fires",
+     "measured": false,
+     "pass": null,
+     "evidence": "SF-AGD-1's arm does not exist yet (Step 5)"
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The Proclamation and formables frames pass",
+     "measured": false,
+     "pass": null,
+     "evidence": "EYES: no mark given (--eyes)"
+    }
+   ],
+   "score": {
+    "measured": 6,
+    "of": 8,
+    "open_p1": [],
+    "ceilings_passed": 3,
+    "ceilings_failed": 1,
+    "floors_passed": 2,
+    "floors_failed": 0,
+    "exercised": true,
+    "low": 7.0,
+    "high": 8.0,
+    "score": null,
+    "reading": "7.00–8.00",
+    "open_p2": 0,
+    "target_ceilings": 6
+   }
+  }
+ },
+ "directional": {
+  "value": 6.71,
+  "over": "13/14",
+  "note": "the mean of each exercised pillar's LOW end (§4.4); NOT EXERCISED pillars are never averaged"
+ }
+}

@@ -174,28 +174,28 @@ The verification found rows homed to slices that then landed without them. This 
 
 ## §2 The pillars
 
-The Sept 28 column is the retest's impression score. The instrument's baseline (§5) will re-base every row, and several will read **lower**:
+The Sept 28 column is the retest's impression score. **The Baseline column is the instrument's reading on `c20d5bba` (Step 0, September 29, 2026 — directional 6.71 over 13 exercised pillars; the archive is `docs/audits/score_runs/2026_09_29_c20d5bba/`).** As predicted, it re-based every row and several read **lower**:
 - a verified open P1 caps its pillar, which today hits the ending and diplomacy;
 - most of living balance's ceilings are unmet.
 
 That is the new ruler, not a regression. Targets are stated as ceiling counts (§4.4).
 
-| Pillar | Sept 28 | Target | Still docked (open rows) | The lift (§3) | Could fall if |
-|---|---|---|---|---|---|
-| **The ending** | 6.75 | 7.0 (3 ceilings) | RS-2 (P1), RS-D1, RS-10, RS-16 | Step 1, "The peace holds", with RS-D1 as ruled (the capital latch, §6.1) and SF-END-1 as its exit (the sitting played to its end from the turn-24 save) | The price rider makes the decisive-campaign peace unreachable (then the latch ships alone), or "contested but counted" softens the finish too far |
-| **Diplomacy** | 6.75 | 7.0 (3) | RS-1 (P1), SF-V1, RS-7, RS-9, RS-18 … RS-22, CQ-36, CX-X3, NPC-21 | Step 1 (RS-1, SF-V1); Step 2 (SF-DIP-1 "the dial survives the drop"; SR-6b copy); Step 4 (CRT-8) | RS-1's fix changes alliance calls (one series re-record) |
-| **First contact** | 7.0 | 7.5 (4) | RS-12, RS-14, RS-15, SRX-5, RS-6, RS-7, CX3-X2, CX3-X3, CX-BEHAV-1 | Step 2 (RS-14, SRX-5); Step 4 (CRT-9 with RS-12/RS-15; SF-CMD-1's first hour); Step 7 (the first ten minutes in the client) | The sourced lines are saturated, so a scorer's own phrasing decides (the HOLD arm, §4.2) |
-| **Economy** | 6.75 | 7.0 (3) | RS-D3 (evidence for SR-G7) | Step 3 (SR-G7 gives the chest a war to fund); Step 7b (the keep-out prices give the chest its peacetime use); Step 6 (SF-ECON-1, only if economy C6 still fails after Step 7b) | A new sink re-opens SR-5a's balance |
-| **Naval** | 6.75 | 7.0 (3) | RS-25; SHUT OUT has never held on a played board | Step 6 (SF-NAV-1 "the strangulation, played") | Britain sues from its own war exhaustion before the System bites (6 of 6 arms) |
-| **Living balance** | 6.5 | 7.0 (3) | SR-G7 / PB-D1 (the long peace); 0 AI-vs-AI wars; RS-3, RS-27, CQ-22, IQ5-R1, XR-3 | Step 3: SR-G7 "The Armed Peace" as ruled (§6.2) → SF-LB-1 "Europe's own quarrels"; Step 7b makes the league visible and playable-against | The league the fuse brings breaks F1 (France below 20 provinces at turn 40): lengthen the fuse, never lower the watch. A shorter fuse would re-open IQ-3's revolving door |
-| **Combat legibility** | 7.0 | 7.5 (4) | RS-3, RS-4, RS-12, RS-13, RS-26, NPC-13, NPC-17, NPC-25, AAR-5, AAR4-X2, AAR24-X4 | Step 3 (RS-3); Step 2 (RS-13, the AAR rows); Step 4 (SF-CL-1 "the forecast keeps its word") | SR-7d moves the arrival odds (the threshold exists in three copies) |
-| **Marshal drama** | 7.0 | 7.5 (4) | RS-5 + VP-R1-X1, RS-24, NPC-11, CQ-38 | Step 2 (RS-5 + VP-R1-X1; SF-MD-1 "every man his own voice"); Step 7 (B1's audiences on screen) | Floors that bind 0 times, and audiences nobody opens, make the game quiet |
-| **Vassals** | 7.0 | 7.5 (4) | IQ7-D1 (VD-C), IQ7-D3, IQ7-X1, IQ7-X3, CX-X3, VP-D9, IQ7-D4 | Step 5 (SR-8a VD-C, SR-8c) | VD-C touches marshal strength at four exits |
-| **UI/UX** | 7.0 (carried) | 7.5 (4) | S5-4, WO-V-D1, WO-V-D2, WO-D14, CX3-R2 … CX3-R12 (8), EAS-2, SRX-6 / SF-V2, the owed sign-offs | Step 7: Chunk 9 as a driven client pass, plus the user's eyes | Skipped again: the pillar is NOT EXERCISED and the directional cannot count it |
-| **Command & parsing** | 7.5 | 8.0 (5) | RS-6, RS-7, RS-8, RS-11; CQ-8, CQ-21, CQ-24, CQ-28, CQ-33, CQ-38; CRT-6's CX5-L5 rows; NP-X1, NP-X8, NP-X9, NP-X10; NPC-6, NPC-9, NPC-10, NPC-18, NPC-26; PC15-13; SF-V4 | Step 4: SF-CMD-1 "the unrehearsed line", then Chunk 3b trimmed to what it confirms | New verbs regress the negation and question guards |
-| **Narration** | 7.5 | 8.0 (5) | RS-D2, RS-17, RS-23, RS-24, AAR-5, NPC-14, NPC-15, NPC-23, NPC-24, NPC-27, IQ6-D3, EAS-2 | Step 2 (SR-6a/6b/6c); **Step 7b: every morning has a front page, and the next coalition is its news** | Step 7b's quiet-turn lead reads as filler to the panel (prefer real rows; name only what changed) |
-| **AI aliveness** | 7.5 | 8.0 (5) | AAR-D8 (the garrison grind, the dithering), RS-27 | Step 3 (SR-7a, SF-LB-1, SR-7d) | The Hofkriegsrat drops Austrian arrival odds sharply |
-| **Agendas & formables** | 8.5 (carried since Jul 25) | 8.5 (6) | The Proclamation has never been seen from play; IQ7-D3; IQ6-D1 | Step 5 (SR-8b + SF-AGD-1: a carve to a Proclamation on a played road) | A July score on a build from before the mandate; one 0.5 fall here breaks the directional |
+| Pillar | Sept 28 | **Baseline (Sept 29)** | Target | Still docked (open rows) | The lift (§3) | Could fall if |
+|---|---|---|---|---|---|---|
+| **The ending** | 6.75 | **5.00 (RS-2 caps it)** | 7.0 (3 ceilings) | RS-2 (P1), RS-D1, RS-10, RS-16 | Step 1, "The peace holds", with RS-D1 as ruled (the capital latch, §6.1) and SF-END-1 as its exit (the sitting played to its end from the turn-24 save) | The price rider makes the decisive-campaign peace unreachable (then the latch ships alone), or "contested but counted" softens the finish too far |
+| **Diplomacy** | 6.75 | **5.75 (RS-1 caps it)** | 7.0 (3) | RS-1 (P1), SF-V1, RS-7, RS-9, RS-18 … RS-22, CQ-36, CX-X3, NPC-21 | Step 1 (RS-1, SF-V1); Step 2 (SF-DIP-1 "the dial survives the drop"; SR-6b copy); Step 4 (CRT-8) | RS-1's fix changes alliance calls (one series re-record) |
+| **First contact** | 7.0 | **7.00–7.50** | 7.5 (4) | RS-12, RS-14, RS-15, SRX-5, RS-6, RS-7, CX3-X2, CX3-X3, CX-BEHAV-1 | Step 2 (RS-14, SRX-5); Step 4 (CRT-9 with RS-12/RS-15; SF-CMD-1's first hour); Step 7 (the first ten minutes in the client) | The sourced lines are saturated, so a scorer's own phrasing decides (the HOLD arm, §4.2) |
+| **Economy** | 6.75 | **7.00** | 7.0 (3) | RS-D3 (evidence for SR-G7) | Step 3 (SR-G7 gives the chest a war to fund); Step 7b (the keep-out prices give the chest its peacetime use); Step 6 (SF-ECON-1, only if economy C6 still fails after Step 7b) | A new sink re-opens SR-5a's balance |
+| **Naval** | 6.75 | **7.00–8.00** | 7.0 (3) | RS-25; SHUT OUT has never held on a played board | Step 6 (SF-NAV-1 "the strangulation, played") | Britain sues from its own war exhaustion before the System bites (6 of 6 arms) |
+| **Living balance** | 6.5 | **6.50** | 7.0 (3) | SR-G7 / PB-D1 (the long peace); 0 AI-vs-AI wars; RS-3, RS-27, CQ-22, IQ5-R1, XR-3 | Step 3: SR-G7 "The Armed Peace" as ruled (§6.2) → SF-LB-1 "Europe's own quarrels"; Step 7b makes the league visible and playable-against | The league the fuse brings breaks F1 (France below 20 provinces at turn 40): lengthen the fuse, never lower the watch. A shorter fuse would re-open IQ-3's revolving door |
+| **Combat legibility** | 7.0 | **5.50–5.75** | 7.5 (4) | RS-3, RS-4, RS-12, RS-13, RS-26, NPC-13, NPC-17, NPC-25, AAR-5, AAR4-X2, AAR24-X4 | Step 3 (RS-3); Step 2 (RS-13, the AAR rows); Step 4 (SF-CL-1 "the forecast keeps its word") | SR-7d moves the arrival odds (the threshold exists in three copies) |
+| **Marshal drama** | 7.0 | **7.00–8.00** | 7.5 (4) | RS-5 + VP-R1-X1, RS-24, NPC-11, CQ-38 | Step 2 (RS-5 + VP-R1-X1; SF-MD-1 "every man his own voice"); Step 7 (B1's audiences on screen) | Floors that bind 0 times, and audiences nobody opens, make the game quiet |
+| **Vassals** | 7.0 | **7.00–7.50** | 7.5 (4) | IQ7-D1 (VD-C), IQ7-D3, IQ7-X1, IQ7-X3, CX-X3, VP-D9, IQ7-D4 | Step 5 (SR-8a VD-C, SR-8c) | VD-C touches marshal strength at four exits |
+| **UI/UX** | 7.0 (carried) | **NOT EXERCISED (no Godot on the reading machine)** | 7.5 (4) | S5-4, WO-V-D1, WO-V-D2, WO-D14, CX3-R2 … CX3-R12 (8), EAS-2, SRX-6 / SF-V2, the owed sign-offs | Step 7: Chunk 9 as a driven client pass, plus the user's eyes | Skipped again: the pillar is NOT EXERCISED and the directional cannot count it |
+| **Command & parsing** | 7.5 | **7.00–7.50** | 8.0 (5) | RS-6, RS-7, RS-8, RS-11; CQ-8, CQ-21, CQ-24, CQ-28, CQ-33, CQ-38; CRT-6's CX5-L5 rows; NP-X1, NP-X8, NP-X9, NP-X10; NPC-6, NPC-9, NPC-10, NPC-18, NPC-26; PC15-13; SF-V4 | Step 4: SF-CMD-1 "the unrehearsed line", then Chunk 3b trimmed to what it confirms | New verbs regress the negation and question guards |
+| **Narration** | 7.5 | **7.00–8.00** | 8.0 (5) | RS-D2, RS-17, RS-23, RS-24, AAR-5, NPC-14, NPC-15, NPC-23, NPC-24, NPC-27, IQ6-D3, EAS-2 | Step 2 (SR-6a/6b/6c); **Step 7b: every morning has a front page, and the next coalition is its news** | Step 7b's quiet-turn lead reads as filler to the panel (prefer real rows; name only what changed) |
+| **AI aliveness** | 7.5 | **8.50** | 8.0 (5) | AAR-D8 (the garrison grind, the dithering), RS-27 | Step 3 (SR-7a, SF-LB-1, SR-7d) | The Hofkriegsrat drops Austrian arrival odds sharply |
+| **Agendas & formables** | 8.5 (carried since Jul 25) | **7.00–8.00** | 8.5 (6) | The Proclamation has never been seen from play; IQ7-D3; IQ6-D1 | Step 5 (SR-8b + SF-AGD-1: a carve to a Proclamation on a played road) | A July score on a build from before the mandate; one 0.5 fall here breaks the directional |
 
 ---
 
@@ -244,9 +244,9 @@ The baseline is pinned to `c20d5bba`, so Steps 0 and 1 may swap if the user want
 - Verify the retest's unfiled "COUNTER expected": the peace offer to Britain at 750 gold a turn plus an action a turn, turns 23–24. File it if it is a defect.
 - Close the design rows §6-12 disposes.
 - **Home three orphans that Step 7b's research found:**
-  - AI-V scene 1, the Confederation of the Rhine. It is unreachable because the German minors have no agenda deck (their intent reads "indifferent"), even though France's bloc share opens the bandwagon gate. → SR-8c's deck review.
-  - NPC-D1, the Emperor's aura dimming unnarrated. → SR-6a, with NPC-27.
-  - The census cannot count design rows written as `###` headings (NPC-D1 … D4). Convert them to table rows, or teach the census.
+  - ~~AI-V scene 1, the Confederation of the Rhine.~~ ✅ homed Sept 29 — the SR-8c bullet in Step 5 names it, and `AI_INTENT_SPEC.md` §7a's scene-1 row points there. It is unreachable because the German minors have no agenda deck (their intent reads "indifferent"), even though France's bloc share opens the bandwagon gate.
+  - ~~NPC-D1, the Emperor's aura dimming unnarrated.~~ ✅ homed Sept 29 — SR-6a's bullet in Step 2 carries it with NPC-27; the row is tagged `⟨SF step=2 · SR-6a · pillar=narration⟩`.
+  - ~~The census cannot count design rows written as `###` headings (NPC-D1 … D4).~~ ✅ converted Sept 29 — the four rows are a table in `DESIGN_REFINEMENT.md` §Napoleon Campaign (NPC-D1 + NPC-D4 OPEN and tagged; NPC-D2 + NPC-D3 disposed), and the census counts them.
 - **Done when:** `defect_census.py --open` lists exactly §1's live rows (99, plus SF-V5, plus anything filed since), each with an owner in this spec.
 
 **SF-M "The instrument" (≈1.2).** Build:
@@ -269,6 +269,14 @@ The baseline is pinned to `c20d5bba`, so Steps 0 and 1 may swap if the user want
   - every pillar reads a score, a range, or NOT EXERCISED, with its items;
   - the panel ran;
   - §2 gains a "Baseline" column.
+
+**✅ STEP 0 LANDED September 29, 2026 — landing record** (authoritative for what was built; the reading itself is the memo `docs/audits/SCORE_BASELINE_2026_09_29.md` and the archive `docs/audits/score_runs/2026_09_29_c20d5bba/`; §6 row 2 was taken at its recommended default under the user's "proceed" — checklist v1 is frozen, the user may amend).
+
+- **SF-0, the ledger.** The 29 stale defect rows are struck (`~~id~~` + an evidence note each), CA9-P2 / CA9-P3 / CX5-L5-N3 are disposed as notes, NPC-12 carries its **OPEN REMAINDER** marker (the census reads it `partial`), the 45 design rows are closed with evidence and 6 are **RE-HOMED** to the gate that owns them, §6-12's dispositions are on the rows (WO-D7 + EWC-D3 struck, WO-D8 + WO-D13 ruled, VP-D8 declined, IQ6-D2 tagged to Step 3's gate), the `###` NPC-D rows are a table the census counts, and **every live row carries `⟨SF step=N · slice · pillar=X⟩`** — `tools/defect_census.py --by-pillar` hands the P1s to the rule. The census at landing: **defect 102 OPEN + 1 partial, design 17 OPEN** (§1.2's 99 was the count before this reading filed SF-V6 … SF-V9 and closed SF-V3). Three rows are tagged `pillar=none` on purpose — RS-28 (test hygiene), NP-X5 (a mod example), NP-X7 (a docstring) — hygiene, not a pillar. The three orphans are homed (the struck bullets above). **The retest's "COUNTER expected" was verified NOT a defect:** Britain answers the 750-gold-a-turn peace with an 800-gold lump at ACCEPT 57 — a counter, as the diary expected, not a refusal — so nothing was filed.
+- **SF-M, the instrument.** `tools/score_run.py` (`run | check | packet | compare`), `docs/SCORE_CHECKLIST_V1.json` (14 pillars × 8 = 112 items, 56 target ceilings), `tools/_score_probes.py` (30 PROBE readers, every one a read-only stage on a save or a fresh boot, sandboxed under the run's own save dir), the DL / HOLD / CONG arms (`tools/playtest_scripts/score_docked_lines.json`, `score_hold_2026_09_29.json` — 20 questions + 20 orders written blind by an agent that had not seen the corpus — and `score_congress_sitting.json` replaying the turn-24 save), the LAW arm fixed (SF-V3 → FIXED: `enact the Staff` at the head of every loop from 3; the arm enacts it on turn 7), the two IQ-10 shots registered (`proclamation_warsaw`, `wizard_formables_entry` in `tools/iq10_run_captures.py`; payloads captured by `cap_proclamation`, frames not shot — no Godot on this machine), and the driver fields (`headline_class` on the dispatch record, the marshal's `voice` on the battle record, `bill_notes` on the ledger record — each absent on a pre-SF-M archive by construction). Pins: `tests/test_score_finish_step0.py` (45); sweep `tools/_sweep_score_finish_step0.json` **16 of 16 killed, 0 INERT**. Every reader is deterministic across hash seeds (a set-ordered tie-break in narration C1 was found by re-running the check under a second `PYTHONHASHSEED` and fixed).
+- **The baseline reading.** Every arm was played fresh on a detached worktree at `c20d5bba` (no `rs0928-*` archive was reused; all 29 digests carry the same `engine_revision.content_hash` `8f597da5…`; the worktree's only differences from `c20d5bba` were the instrument's own files (the driver's three fields, the laws-arm script, the new tools) — `git diff c20d5bba -- backend` is empty; each meta's `dirty: true` flags those instrument files, and the uniform content hash is over the backend, the map registry and the scenario JSON), plus SUITE (the seven named test files, 575 green), PEVAL (corpus 845/845, replay 6/6) and AIV (arm A byte-identical; arm C over 10 seeds). **Directional 6.71 over 13 of 14 pillars.** The ending 5.00 (RS-2 caps it, 0 of 6 ceilings) · diplomacy 5.75 (RS-1 caps it, 3 of 6) · first contact 7.00–7.50 · economy 7.00 · naval 7.00–8.00 · living balance 6.50 · combat legibility 5.50–5.75 (F1 fails: the FLD cannon-fire charge line carries no losses) · marshal drama 7.00–8.00 · vassals 7.00–7.50 · **UI/UX NOT EXERCISED** (no Godot) · command 7.00–7.50 · narration 7.00–8.00 · AI aliveness 8.50 · agendas 7.00–8.00. A range is a pillar with 6–7 items measured; the directional takes the low end. The panel: three blind scorers; the median left the anchor on Naval (7.00 → 7.25), Living balance (6.50 → 6.25), Combat legibility (5.50 → 5.75), Narration (7.00 → 6.75); spread 0.00–0.25 (`panel.json`).
+- **Corrections to this spec's own claims, found by the reading.** (1) §4.6's TILSIT probe lives in `tools/_score_probes.py` (`agendas_c4_tilsit`), not a `_score_formables_probe.py`, and "58 against 50" did not reproduce: on the beaten board (`_beaten_prussia`) the bare carve reads **COUNTER_OFFER at 30** and **ACCEPT at 90 with a 6,000-gold sweetener**; a counter is not a signature (IGR-D: the counter drops the client), so the item passes on the sweetened arm and the card raises. (2) The descent arm's precondition is stale since SR-5a (the commission is refused for gold) — **SF-V6**, Step 6. (3) The LAWS forecast under-quotes the Charges of Empire by one tick (463 / 557 …) — **SF-V7**, Step 6. (3b) Two of the panel's flags verified on the digests and filed: **SF-V8** (the landing verb answers for Lannes when Oudinot was named — CRT-2's naval twin, Step 4) and **SF-V9** (the HOLD arm's 12 order misses + 16 shrugs as SF-CMD-1's worklist, Step 4). (4) `typed_road.json`'s "question turns spend 0 actions" is measured by the game's own rule — an ADDRESSED line ending in "?" keeps its order by `clause_guards`' design — so a question turn that carried an order is not a miss (command C5 reads that rule; nothing filed).
+- **Not done, and why.** UI/UX is NOT EXERCISED and command C6 (the live parser) is unmeasured: neither a Godot binary nor an API key exists on the reading machine; both run on the user's PC (`--godot`, `ANTHROPIC_API_KEY`). The EYES items carry no marks (`--eyes` takes the user's). The panel's agents necessarily carry the project's `CLAUDE.md` in their system context, which quotes the old impression scores; they were told to disregard it, the anchor is the rule's and the adjustment is bounded to ±0.25 — recorded as the panel's one known leak.
 
 ### Step 1 — "The peace holds" (≈1.8; RS-D1 is ruled — §6.1)
 
@@ -293,6 +301,7 @@ The baseline is pinned to `c20d5bba`, so Steps 0 and 1 may swap if the user want
   - RS-23.
   - RS-D2: the levy yields the headline after three unanswered statements.
   - NPC-14, NPC-15, NPC-27, IQ6-D3, SRX-5.
+  - NPC-D1 with NPC-27 (homed by SF-0, Sept 29): the Emperor's aura dimming gets its dispatch beat and its battle-row clause.
 - **SR-6b "The copy pass" (≈0.8):**
   - RS-18, RS-21, RS-22, RS-25.
   - RS-26 with NPC-12's census: the humaniser at every producer, and a census pin over the muster and the combat lines.
@@ -358,7 +367,7 @@ Order: RS-3 → SR-7a → SR-7b → SR-G7 (built as ruled) → SR-7c → RS-27 �
   - a carve through the settlement path to a Proclamation, on a played road;
   - SF-M's TILSIT probe as its instrument;
   - the formables gate flipping in play.
-- **SR-8c:** IQ7-D3 (a satellite design province France can grant), and IQ6-D1's deck review.
+- **SR-8c:** IQ7-D3 (a satellite design province France can grant), and IQ6-D1's deck review — which also owns **AI-V §7a scene 1, the Confederation of the Rhine** (homed by SF-0, Sept 29): the German minors carry no deck, so the bandwagon gate has nothing to read; the review authors their deck or records the scene unreachable by design.
 - **VP-D9:** build the player's bribe verb, or strike it (§6).
 
 ### Step 6 — the chest and the sea (≈0.7, +1.0 if needed)
@@ -585,9 +594,9 @@ Appendix A lists version 1 (112 items). It is frozen once the user confirms it a
 - The EYES half is the same ten frames every run, before and after side by side, plus one 5-turn Mode C session.
 - No Godot: the pillar is NOT EXERCISED.
 
-**Agendas.** Scripts reach a carve only from the losing side. The Normandy mirror carve on seed `ulm` raised `nation_proclamation` on `rf3-cmd-on-ulm` at turn 30. `tools/_score_formables_probe.py` does three things:
+**Agendas.** Scripts reach a carve only from the losing side. The Normandy mirror carve on seed `ulm` raised `nation_proclamation` on `rf3-cmd-on-ulm` at turn 30. `tools/_score_probes.py` (⚑ built Sept 29 as the one probes module — not a separate `_score_formables_probe.py`) does three things:
 - reads `GET /formables` at each snapshot, recording gate flips;
-- **TILSIT:** stages the IGR-D fixture (France six turns at war with Prussia, holding Posen), then drives the Warsaw `create_client` separate peace through `/respond_to_diplomatic_dialogue`, without patching acceptance (measured 58 against 50). Pass means `nation_proclamation` fires and `DuchyOfWarsaw` stands;
+- **TILSIT:** stages the IGR-D fixture (France six turns at war with Prussia, holding Posen), then drives the Warsaw `create_client` separate peace through `/respond_to_diplomatic_dialogue`, without patching acceptance (measured 58 against 50). Pass means `nation_proclamation` fires and `DuchyOfWarsaw` stands; **⚑ Measured Sept 29 (`agendas_c4_tilsit`): on the beaten board the bare carve reads COUNTER_OFFER at 30 and ACCEPT at 90 with a 6,000-gold sweetener — the 58-against-50 figure did not reproduce; the probe ratifies the first ACCEPT (a counter is not a signature) and the card raises;**
 - adds the two IQ-10 shots from Step 0.
 
 ### §4.7 Cost
@@ -627,7 +636,7 @@ Recommended defaults are the plan's; every one is the user's to confirm or chang
 | # | Question | Recommended default | Needed by |
 |---|---|---|---|
 | 1 | **RS-D1:** does a signed peace that leaves a great power's capital in the French bloc latch its recognition? | ✅ **RULED Sept 28, 2026: YES, anchored to the capital, with a price rider** (§6.1). | Step 1 |
-| 2 | **The checklist, v1** (Appendix A), and "the items are the done-when" | Confirm v1. Define done as 56 of 84 ceilings with every floor green, which means every pillar at target. | Step 0, before the baseline freezes |
+| 2 | **The checklist, v1** (Appendix A), and "the items are the done-when" | Confirm v1. Define done as 56 of 84 ceilings with every floor green, which means every pillar at target. | Step 0, before the baseline freezes **✅ Taken at the recommended default Sept 29, 2026 under the user's "proceed": v1 is frozen (`docs/SCORE_CHECKLIST_V1.json`), done = 56 of 84 ceilings with every floor green and no verified open P1; the user may amend and a new version re-reads the baseline archive.** |
 | 3 | **SR-G7 / PB-D1:** a standing alarm floor, so the long peace ends by machinery; which slot rules it | ✅ **RULED Sept 28, 2026: "THE ARMED PEACE"** — a watch line at 45 while France leads a third of Europe's power, then a visible 16-quiet-turn fuse up to the brewing gate (§6.2). The drafted "≥ 40% of the map" was **rejected on measurement**. Built at Step 3; ROADMAP 12 no longer owns PB-D1. | Step 3 |
 | 4 | **RS-3's shape** | A field win halts before a garrison that still fights (the march's own predicate). | Step 3 |
 | 5 | **CQ-22:** the stance rule for drill on every road | The player's rule for both boards: no drill in aggressive stance. One series re-record. | Step 3 |
@@ -853,192 +862,193 @@ Recommended defaults are the plan's; every one is the user's to confirm or chang
 
 ---
 
-## Appendix A — the checklist, version 1 (DRAFT, FOR USER CONFIRMATION)
+## Appendix A — the checklist, version 1 (FROZEN September 29, 2026 — taken at the recommended default under the user's "proceed", §6 row 2; the machine copy is `docs/SCORE_CHECKLIST_V1.json`; the user may amend, and a new version re-reads the baseline archive)
 
 **Legend:**
 - **F** = floor, **C** = ceiling.
 - **Kind:** A = AUTO, P = PROBE, E = EYES.
 - **Today:** ✓ / ✗ where it was measured on the `rs0928-*` archives at `c20d5bba`; blank = not yet measured (the baseline reads it).
 - Arms refer to §4.2; **T** = titled provinces (`tools/sr1e_titled_probe.py`).
+- **Baseline (Sept 29):** ✓ / ✗ / · as the instrument read each item on `c20d5bba` (Step 0's baseline reading; the evidence line for every mark is in `docs/audits/score_runs/2026_09_29_c20d5bba/checklist.json`).
 
 **The ending (target 7.0 = 3 ceilings)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | Pressburg reaches THE IMPERIAL PEACE by turn 36 | A | ✓ |
-| F2 | The Verdict arm reaches its turn-44 register | A | ✓ (re-run Sept 28: the Verdict at t44, "Eclipse") |
-| C1 | On CONG, the Congress is never dissolved by a cession reopened in a war France neither declared nor joined, and a fall names its cause (RS-2) *(re-worded Sept 28: the first wording failed on the passive driver losing Moravia, a real loss that SHOULD break the hold)* | A | ✗ |
-| C2 | The CONG summons names the league gate it lowers (RS-10) | A | ✗ |
-| C3 | The CONG alarm forecast matches the next tick ±1 (RS-16) | P | ✗ |
-| C4 | T ≥ 40 at turn 40 on 2 of 3 CMD seeds | A | ✗ (36/34/36) |
-| C5 | Some benchmark road reaches T ≥ 45 by turn 40 | A | ✗ |
-| C6 | On CONG, each refuser's price can be paid within the sitting, or the table says it cannot (RS-D1) | P | ✗ |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | Pressburg reaches THE IMPERIAL PEACE by turn 36 | A | ✓ | ✓ |
+| F2 | The Verdict arm reaches its turn-44 register | A | ✓ (re-run Sept 28: the Verdict at t44, "Eclipse") | ✓ |
+| C1 | On CONG, the Congress is never dissolved by a cession reopened in a war France neither declared nor joined, and a fall names its cause (RS-2) *(re-worded Sept 28: the first wording failed on the passive driver losing Moravia, a real loss that SHOULD break the hold)* | A | ✗ | ✗ |
+| C2 | The CONG summons names the league gate it lowers (RS-10) | A | ✗ | ✗ |
+| C3 | The CONG alarm forecast matches the next tick ±1 (RS-16) | P | ✗ | ✗ |
+| C4 | T ≥ 40 at turn 40 on 2 of 3 CMD seeds | A | ✗ (36/34/36) | ✗ |
+| C5 | Some benchmark road reaches T ≥ 45 by turn 40 | A | ✗ | ✗ |
+| C6 | On CONG, each refuser's price can be paid within the sitting, or the table says it cannot (RS-D1) | P | ✗ | ✗ |
 
 **Diplomacy (7.0 = 3)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | The propose arm ratifies a peace on every seed | A | |
-| F2 | The advisor arm ticks at least 2 mission types | A | |
-| C1 | No French peace is broken within 5 turns by another court's cascade (RS-1) | P | ✗ |
-| C2 | A ratification label names only the covered courts (RS-9) | P | ✗ |
-| C3 | VOLTE fires `volte_face` (RS-27) | A | ✗ |
-| C4 | DL's eight Cabinet phrasings each start a mission or give a priced refusal (RS-7) | A | ✗ |
-| C5 | DL's "request terms from Austria" is answered honestly: by Austria, or by the coalition's leader named as the court that answers for the war (PC15-6) *(re-worded Sept 28: the first wording contradicted PC15-6's shipped design)* | A | |
-| C6 | No treaty France accepts from an AI offer fails its own ratification (SF-V1) | A | ✗ (14 on 5 arms) |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | The propose arm ratifies a peace on every seed | A | | ✓ |
+| F2 | The advisor arm ticks at least 2 mission types | A | | ✓ |
+| C1 | No French peace is broken within 5 turns by another court's cascade (RS-1) | P | ✗ | ✓ |
+| C2 | A ratification label names only the covered courts (RS-9) | P | ✗ | ✓ |
+| C3 | VOLTE fires `volte_face` (RS-27) | A | ✗ | ✗ |
+| C4 | DL's eight Cabinet phrasings each start a mission or give a priced refusal (RS-7) | A | ✗ | ✗ |
+| C5 | DL's "request terms from Austria" is answered honestly: by Austria, or by the coalition's leader named as the court that answers for the war (PC15-6) *(re-worded Sept 28: the first wording contradicted PC15-6's shipped design)* | A | | ✓ |
+| C6 | No treaty France accepts from an AI offer fails its own ratification (SF-V1) | A | ✗ (14 on 5 arms) | ✗ |
 
 **First contact (7.5 = 4)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | FC has 0 shrugs and 0 refusals | A | ✓ |
-| F2 | SCH reaches card XIX | A | ✓ |
-| C1 | At most 2 of HOLD's 20 questions shrug | P | |
-| C2 | No HOLD answer contradicts the save | E | |
-| C3 | DL's "where are the Russians" and "why is Europe alarmed" are answered (RS-14) | A | ✗ |
-| C4 | DL's "what can I do" at 0 military actions names a legal order (RS-15) | A | ✗ |
-| C5 | Every TODAY order in the boot briefing executes | P | |
-| C6 | OP's first loop has 0 reading refusals | A | ✓ (OP loop 1: 10 of 10 succeed) |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | FC has 0 shrugs and 0 refusals | A | ✓ | ✓ |
+| F2 | SCH reaches card XIX | A | ✓ | ✓ |
+| C1 | At most 2 of HOLD's 20 questions shrug | P | | ✗ |
+| C2 | No HOLD answer contradicts the save | E | | · |
+| C3 | DL's "where are the Russians" and "why is Europe alarmed" are answered (RS-14) | A | ✗ | ✗ |
+| C4 | DL's "what can I do" at 0 military actions names a legal order (RS-15) | A | ✗ | ✓ |
+| C5 | Every TODAY order in the boot briefing executes | P | | ✓ |
+| C6 | OP's first loop has 0 reading refusals | A | ✓ (OP loop 1: 10 of 10 succeed) | ✓ |
 
 **Economy (7.0 = 3).** The size of the treasury is ruled intended (SRX-D1) and is not read.
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | `net_residual` is 0 on every record | A | ✓ (0 of 457) |
-| F2 | Britain's turn-1 Net exceeds France's (SR-5a) | P | ✓ |
-| C1 | On LAW, the Staff is enacted by loop 9 | A | ✗ (SF-V3) |
-| C2 | Every Net-line move of 10% or more names its cause | P | |
-| C3 | The quoted Charges and Laws equal what the next turn applies | P | |
-| C4 | Every priced order charges what it quoted | P | |
-| C5 | DL's levy at 0 military actions executes (AAR-6) | A | ✓ |
-| C6 | On CMD turns 20–40, "what can I do" names an affordable purchase on ≥ 80% of turns (RS-D3) | P | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | `net_residual` is 0 on every record | A | ✓ (0 of 457) | ✓ |
+| F2 | Britain's turn-1 Net exceeds France's (SR-5a) | P | ✓ | ✓ |
+| C1 | On LAW, the Staff is enacted by loop 9 | A | ✗ (SF-V3) | ✓ |
+| C2 | Every Net-line move of 10% or more names its cause | P | | ✗ |
+| C3 | The quoted Charges and Laws equal what the next turn applies | P | | ✗ |
+| C4 | Every priced order charges what it quoted | P | | ✓ |
+| C5 | DL's levy at 0 military actions executes (AAR-6) | A | ✓ | ✗ |
+| C6 | On CMD turns 20–40, "what can I do" names an affordable purchase on ≥ 80% of turns (RS-D3) | P | | ✓ |
 
 **Naval (7.0 = 3)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | The naval-gate tests are green | A | ✓ |
-| F2 | SEA has no blocker and no `SCRIPT PRECONDITION` | A | ✓ |
-| C1 | SEA quotes the second diversion at readiness −25, and both throws print | A | ✓ |
-| C2 | A fleet action leads the next dispatch | A | ✓ |
-| C3 | The descent quote names the odds and a lever, and Munster falls | A | |
-| C4 | On the shut-out arm, Britain sues by turn 10 on 3 of 3 seeds | A | |
-| C5 | The ports lever explains "(now 0)" during a truce (RS-25) | P | ✗ |
-| C6 | The Admiralty and fleet frames pass | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | The naval-gate tests are green | A | ✓ | ✓ |
+| F2 | SEA has no blocker and no `SCRIPT PRECONDITION` | A | ✓ | ✓ |
+| C1 | SEA quotes the second diversion at readiness −25, and both throws print | A | ✓ | ✓ |
+| C2 | A fleet action leads the next dispatch | A | ✓ | ✓ |
+| C3 | The descent quote names the odds and a lever, and Munster falls | A | | ✗ |
+| C4 | On the shut-out arm, Britain sues by turn 10 on 3 of 3 seeds | A | | ✓ |
+| C5 | The ports lever explains "(now 0)" during a truce (RS-25) | P | ✗ | · |
+| C6 | The Admiralty and fleet frames pass | E | | · |
 
 **Living balance (7.0 = 3).** The unattended France's collapse is ruled intended and is not read.
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | On CMD, France holds ≥ 20 provinces at turn 40 on 3 of 3 seeds | A | ✓ (30/29/27) |
-| F2 | `BASELINE_SERIES` and M1–M7 are green | A | ✓ |
-| C1 | AIV-C shows at least one war between two AI courts | A | ✗ |
-| C2 | AIV-C shows at least one standalone third-party settlement | A | ✗ |
-| C3 | AIV-C shows exhaustion-driven pair peaces on every seed | A | ✓ (10 of 10 seeds) |
-| C4 | On CMD, after the general peace, a court declares war on France beyond the fresh-peace floor and not by cascade (PB-D1) | A | ✗ |
-| C5 | On CMD after the peace, every sponsorship against France and every great power that newly qualifies for a league leads or sub-beats the next dispatch, and each quoted keep-out lever flips `qualifies_for_coalition(relation_shift=)` (Step 7b) *(replaces "threat rises after the peace", which C4 implies once SR-G7 lands)* | P | ✗ |
-| C6 | On every AIV-C seed, an AI court takes a province from another AI court | A | ✓ (10 of 10 seeds) |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | On CMD, France holds ≥ 20 provinces at turn 40 on 3 of 3 seeds | A | ✓ (30/29/27) | ✓ |
+| F2 | `BASELINE_SERIES` and M1–M7 are green | A | ✓ | ✓ |
+| C1 | AIV-C shows at least one war between two AI courts | A | ✗ | ✗ |
+| C2 | AIV-C shows at least one standalone third-party settlement | A | ✗ | ✗ |
+| C3 | AIV-C shows exhaustion-driven pair peaces on every seed | A | ✓ (10 of 10 seeds) | ✓ |
+| C4 | On CMD, after the general peace, a court declares war on France beyond the fresh-peace floor and not by cascade (PB-D1) | A | ✗ | ✗ |
+| C5 | On CMD after the peace, every sponsorship against France and every great power that newly qualifies for a league leads or sub-beats the next dispatch, and each quoted keep-out lever flips `qualifies_for_coalition(relation_shift=)` (Step 7b) *(replaces "threat rises after the peace", which C4 implies once SR-G7 lands)* | P | ✗ | ✗ |
+| C6 | On every AIV-C seed, an AI court takes a province from another AI court | A | ✓ (10 of 10 seeds) | ✓ |
 
 **Combat legibility (7.5 = 4)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | Every player battle is logged with both sides' losses | A | |
-| F2 | OP's turn-4 scout of Vienna names the garrison | A | ✓ |
-| C1 | Every attack that fought printed its muster first, including through an objection (RS-13) | A | ✗ |
-| C2 | The bands are monotone: "favorable" attacks out-bleed the enemy ≥ 70% of the time, and more often than "even" | A | ✓ (24/24 vs 9/12) |
-| C3 | An occupied capital's garrison fights, or is named (RS-3) | P | ✗ |
-| C4 | DL's what-if for a fortified marshal refuses as the order would (RS-12) | A | ✗ |
-| C5 | No raw marshal keys in combat text (RS-26) | A | ✗ |
-| C6 | The diorama frames pass at both scales | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | Every player battle is logged with both sides' losses | A | | ✗ |
+| F2 | OP's turn-4 scout of Vienna names the garrison | A | ✓ | ✓ |
+| C1 | Every attack that fought printed its muster first, including through an objection (RS-13) | A | ✗ | ✓ |
+| C2 | The bands are monotone: "favorable" attacks out-bleed the enemy ≥ 70% of the time, and more often than "even" | A | ✓ (24/24 vs 9/12) | ✓ |
+| C3 | An occupied capital's garrison fights, or is named (RS-3) | P | ✗ | ✗ |
+| C4 | DL's what-if for a fortified marshal refuses as the order would (RS-12) | A | ✗ | ✗ |
+| C5 | No raw marshal keys in combat text (RS-26) | A | ✗ | ✗ |
+| C6 | The diorama frames pass at both scales | E | | · |
 
 **Marshal drama (7.5 = 4)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | On the flagship arm, `_pc15_10_acceptance_probe.py` shows ≤ 4 petition modals and 0 silent losses | P | ✓ |
-| F2 | On OP, a grievance fires, is heard and resolves | A | |
-| C1 | OP shows ≤ 3 petition modals and ≥ 3 audiences | A | ✓ (3 and 10) |
-| C2 | A Trust answer names only a man we can see and reach, and a refused Trust keeps the order (RS-5) | P | ✗ |
-| C3 | No marshal repeats a victory line within his last three wins (RS-24) | P | ✗ |
-| C4 | The crown moves only on ≥ 3 glory, and the line names where it went | A | |
-| C5 | An unmet expectation is announced before trust erodes | P | |
-| C6 | Five sampled petitions each read in the marshal's own voice | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | On the flagship arm, `_pc15_10_acceptance_probe.py` shows ≤ 4 petition modals and 0 silent losses | P | ✓ | ✓ |
+| F2 | On OP, a grievance fires, is heard and resolves | A | | ✓ |
+| C1 | OP shows ≤ 3 petition modals and ≥ 3 audiences | A | ✓ (3 and 10) | ✓ |
+| C2 | A Trust answer names only a man we can see and reach, and a refused Trust keeps the order (RS-5) | P | ✗ | ✓ |
+| C3 | No marshal repeats a victory line within his last three wins (RS-24) | P | ✗ | ✗ |
+| C4 | The crown moves only on ≥ 3 glory, and the line names where it went | A | | · |
+| C5 | An unmet expectation is announced before trust erodes | P | | ✓ |
+| C6 | Five sampled petitions each read in the marshal's own voice | E | | · |
 
 **Vassals (7.5 = 4)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | On CMD, ≥ 2 of 3 satellites remain at turn 40 on 3 of 3 seeds | A | ✓ |
-| F2 | CMD-H with `--client-petition refuse` loses a satellite by turn 30 | A | |
-| C1 | CMD shows ≥ 4 priced petitions | A | ✓ (6/4/8) |
-| C2 | A petition's applied effect equals its quote | P | |
-| C3 | No French peace leaves a client state at war (SR-1b) | P | |
-| C4 | Loyalty under 40 draws a line naming the remedy | A | |
-| C5 | An attacked client capital is contested within 2 turns (VD-C) | P | ✗ |
-| C6 | The VASSALS tab frame passes | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | On CMD, ≥ 2 of 3 satellites remain at turn 40 on 3 of 3 seeds | A | ✓ | ✓ |
+| F2 | CMD-H with `--client-petition refuse` loses a satellite by turn 30 | A | | ✓ |
+| C1 | CMD shows ≥ 4 priced petitions | A | ✓ (6/4/8) | ✓ |
+| C2 | A petition's applied effect equals its quote | P | | ✓ |
+| C3 | No French peace leaves a client state at war (SR-1b) | P | | ✓ |
+| C4 | Loyalty under 40 draws a line naming the remedy | A | | ✗ |
+| C5 | An attacked client capital is contested within 2 turns (VD-C) | P | ✗ | ✗ |
+| C6 | The VASSALS tab frame passes | E | | · |
 
 **UI/UX (7.5 = 4)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | CLI: 0 `SCRIPT ERROR`, 0 blank frames, every shot ok | A | |
-| F2 | The parse harness exits 0 and the boot smoke test is clean | A | ✓ |
-| C1 | No frame has `buttons_offscreen` | A | |
-| C2 | No frame has `clipped_text` | A | |
-| C3 | No frame's text shows a raw key, `<null>` or `(s)` | A | |
-| C4 | On OP, no end turn raises more than 3 blocking popups (a rail audience is not a blocking popup) | A | ✗ (max 4 blocking; the shape is SF-V5's letter + an incoming treaty) |
-| C5 | The user signs off ≥ 9 of 10 named frames | E | |
-| C6 | In a 5-turn Mode C session, nothing is blocked and every hotkey works | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | CLI: 0 `SCRIPT ERROR`, 0 blank frames, every shot ok | A | | · |
+| F2 | The parse harness exits 0 and the boot smoke test is clean | A | ✓ | · |
+| C1 | No frame has `buttons_offscreen` | A | | · |
+| C2 | No frame has `clipped_text` | A | | · |
+| C3 | No frame's text shows a raw key, `<null>` or `(s)` | A | | · |
+| C4 | On OP, no end turn raises more than 3 blocking popups (a rail audience is not a blocking popup) | A | ✗ (max 4 blocking; the shape is SF-V5's letter + an incoming treaty) | ✗ |
+| C5 | The user signs off ≥ 9 of 10 named frames | E | | · |
+| C6 | In a 5-turn Mode C session, nothing is blocked and every hotkey works | E | | · |
 
 **Command & parsing (8.0 = 5)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | The golden corpus passes 100% | A | ✓ |
-| F2 | The keyless replay passes 100% | A | ✓ |
-| C1 | OP: ≤ 1 shrug in 127 lines | A | ✓ |
-| C2 | OP: 0 reading refusals (of the "Cannot find marshal 'Of Ney'" kind, which the hand-played retest met on turn 1) | A | ✓ (none on OP) |
-| C3 | ≥ 18 of HOLD's 20 orders execute as meant | P | |
-| C4 | DL's "in support of", "march on X and destroy Y" and "take" execute (RS-6/8/11), and "attack Zorglub" / "attack Alsace" ask without spending anything (SF-V4, §6.3) | A | ✗ |
-| C5 | On `typed_road.json`, question turns spend 0 actions and order turns spend them | A | |
-| C6 | OP on the live parser has ≤ 1 misread | A | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | The golden corpus passes 100% | A | ✓ | ✓ |
+| F2 | The keyless replay passes 100% | A | ✓ | ✓ |
+| C1 | OP: ≤ 1 shrug in 127 lines | A | ✓ | ✓ |
+| C2 | OP: 0 reading refusals (of the "Cannot find marshal 'Of Ney'" kind, which the hand-played retest met on turn 1) | A | ✓ (none on OP) | ✓ |
+| C3 | ≥ 18 of HOLD's 20 orders execute as meant | P | | ✗ |
+| C4 | DL's "in support of", "march on X and destroy Y" and "take" execute (RS-6/8/11), and "attack Zorglub" / "attack Alsace" ask without spending anything (SF-V4, §6.3) | A | ✗ | ✗ |
+| C5 | On `typed_road.json`, question turns spend 0 actions and order turns spend them | A | | ✓ |
+| C6 | OP on the live parser has ≤ 1 misread | A | | · |
 
 **Narration (8.0 = 5)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | Every turn has a headline, and none shows a raw key | A | ✗ (58 of 120 CMD turns have no headline; Step 7b) |
-| F2 | A dispatch carries ≤ 2 routine intent lines plus a tail | A | |
-| C1 | No headline class leads more than 4 of any 10 turns (RS-D2, Step 7b) | A | ✗ (7 of 10 on CMD-H: Lannes's arrears on 20 turns, the levy on 10) |
-| C2 | No rail row repeats more than 3 times a turn, and every war entry names its enemy (RS-23) | A | ✗ |
-| C3 | The near-miss and summonable headlines fire (RS-17) | P | ✗ |
-| C4 | The dispatch's intel row matches the intel store (AAR-5) | P | ✗ |
-| C5 | Le Moniteur keeps its cadence and its special editions | A | |
-| C6 | Ten sampled dispatches each lead with the turn's biggest event | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | Every turn has a headline, and none shows a raw key | A | ✗ (58 of 120 CMD turns have no headline; Step 7b) | ✓ |
+| F2 | A dispatch carries ≤ 2 routine intent lines plus a tail | A | | ✓ |
+| C1 | No headline class leads more than 4 of any 10 turns (RS-D2, Step 7b) | A | ✗ (7 of 10 on CMD-H: Lannes's arrears on 20 turns, the levy on 10) | ✗ |
+| C2 | No rail row repeats more than 3 times a turn, and every war entry names its enemy (RS-23) | A | ✗ | ✓ |
+| C3 | The near-miss and summonable headlines fire (RS-17) | P | ✗ | · |
+| C4 | The dispatch's intel row matches the intel store (AAR-5) | P | ✗ | ✓ |
+| C5 | Le Moniteur keeps its cadence and its special editions | A | | ✓ |
+| C6 | Ten sampled dispatches each lead with the turn's biggest event | E | | · |
 
 **AI aliveness (8.0 = 5)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | `test_ai_intent_assurance.py` is green | A | ✓ |
-| F2 | No arm has a blocker or a traceback | A | ✓ |
-| C1 | The rival courts enact 13–18 laws with 0 lapses | A | ✓ |
-| C2 | Every 40-turn arm has ≥ 1 design promotion | A | ✓ |
-| C3 | Britain lands on the continent on every CMD arm | A | ✓ |
-| C4 | No AI assaults a garrison under 500 men three times running (AAR-D8) | P | |
-| C5 | No AI corps fortifies, unfortifies and fortifies again within 3 turns | P | |
-| C6 | On CMD, visible AI attacks occur on ≥ 50% of the turns at war | A | ✓ (on a knife edge: 5 of 10, 8 of 11, 7 of 11; SR-7a's odds gate removes attacks) |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | `test_ai_intent_assurance.py` is green | A | ✓ | ✓ |
+| F2 | No arm has a blocker or a traceback | A | ✓ | ✓ |
+| C1 | The rival courts enact 13–18 laws with 0 lapses | A | ✓ | ✓ |
+| C2 | Every 40-turn arm has ≥ 1 design promotion | A | ✓ | ✓ |
+| C3 | Britain lands on the continent on every CMD arm | A | ✓ | ✓ |
+| C4 | No AI assaults a garrison under 500 men three times running (AAR-D8) | P | | ✓ |
+| C5 | No AI corps fortifies, unfortifies and fortifies again within 3 turns | P | | ✓ |
+| C6 | On CMD, visible AI attacks occur on ≥ 50% of the turns at war | A | ✓ (on a knife edge: 5 of 10, 8 of 11, 7 of 11; SR-7a's odds gate removes attacks) | ✓ |
 
 **Agendas & formables (8.5 = 6)**
 
-| # | Item | Kind | Today |
-|---|---|---|---|
-| F1 | The agenda and formables tests are green | A | ✓ |
-| F2 | `/formables` on every CMD save lists each template with its gate terms | P | |
-| C1 | Every 40-turn arm has ≥ 2 `agenda_shift` events | A | ✓ |
-| C2 | On AIV-B, a variance seed opens with a different design (D7) | A | ✓ (ulm, austerlitz, marengo and lodi open with `primacy_germany`) |
-| C3 | A gate term flips to met during play | P | |
-| C4 | The TILSIT probe raises `nation_proclamation` | P | |
-| C5 | On SF-AGD-1's arm, a carve states its terms and the Proclamation card fires *(re-anchored Sept 28: the CMD-ulm carve was an accident of Archduke Charles overrunning Normandy)* | A | |
-| C6 | The Proclamation and formables frames pass | E | |
+| # | Item | Kind | Today | Baseline (Sept 29) |
+|---|---|---|---|---|
+| F1 | The agenda and formables tests are green | A | ✓ | ✓ |
+| F2 | `/formables` on every CMD save lists each template with its gate terms | P | | ✓ |
+| C1 | Every 40-turn arm has ≥ 2 `agenda_shift` events | A | ✓ | ✓ |
+| C2 | On AIV-B, a variance seed opens with a different design (D7) | A | ✓ (ulm, austerlitz, marengo and lodi open with `primacy_germany`) | ✓ |
+| C3 | A gate term flips to met during play | P | | ✗ |
+| C4 | The TILSIT probe raises `nation_proclamation` | P | | ✓ |
+| C5 | On SF-AGD-1's arm, a carve states its terms and the Proclamation card fires *(re-anchored Sept 28: the CMD-ulm carve was an accident of Archduke Charles overrunning Normandy)* | A | | · |
+| C6 | The Proclamation and formables frames pass | E | | · |

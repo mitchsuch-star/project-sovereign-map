@@ -824,6 +824,21 @@ NET_COMPONENTS = (
 NET_COMPONENTS_FOLDED = {"upkeep": ("upkeep_base", "upkeep_surcharge")}
 
 
+
+def _bill_notes_kw(economy) -> dict:
+    """SF-M (Sept 29, 2026): the ledger's own notes on why the bills moved
+    (SR-5a's `why_the_bills_moved` — the `*_note` strings of the economy
+    section), recorded beside the chest so the instrument can read "every
+    Net-line move names its cause" (economy C2) off the archive. The notes
+    live only in the running ledger (a save carries no `last` snapshot), so
+    a probe on a save reads them empty; the digest is the one place they
+    survive. Absent or empty -> the record is the pre-SF-M record."""
+    if not isinstance(economy, dict):
+        return {}
+    notes = {k: str(v) for k, v in economy.items()
+             if k.endswith("_note") and isinstance(v, str) and v.strip()}
+    return {"bill_notes": notes} if notes else {}
+
 # The rail's cap, and the fog's. MODULE-level, because a stub Digest that
 # BORROWS `dispatch` or `enemy_phase` has no class of ours — reaching for
 # `self.MAX_RAIL_ROWS` from a borrowed method is the same break as reaching
@@ -1454,7 +1469,14 @@ class Digest:
                                    "observation", "message"))
                     or "battle report captured")
         self._md(f"  - ⚔ {head}")
-        self.record("battle", headline=head)
+        # SF-M (Sept 29, 2026): the marshal's own post-battle line, so the
+        # instrument can read "no marshal repeats a victory line within his
+        # last three wins" (drama C3) off the archive. Absent -> unchanged.
+        _voice = report.get("marshal_voice") if isinstance(report, dict) else None
+        if _voice:
+            self.record("battle", headline=head, voice=_voice)
+        else:
+            self.record("battle", headline=head)
 
     def popup(self, key, summary, answer):
         self.counters["popups"] += 1
@@ -1905,7 +1927,7 @@ class Digest:
                                       for name, loyalty in web}}
         if bits:
             self._md("- LEDGER " + " · ".join(bits))
-            self.record("ledger", treasury=treasury, net=net, threat=threat,
+            self.record("ledger", **_bill_notes_kw(economy), treasury=treasury, net=net, threat=threat,
                         provinces=provinces, ceiling=ceiling,
                         # Review round: WHICH zero. `ceiling` is an int-safe
                         # GR2 sentinel, so 0 meant two different facts — "the
@@ -1957,11 +1979,19 @@ class Digest:
                 residual = int(net) - total
             self.record("economy", net_residual=residual, **moved)
 
-    def dispatch(self, text, events=None, turn_events=None):
+    def dispatch(self, text, events=None, turn_events=None, headline_class=""):
         head = first_line(text, 200)
         if head:
             self._md(f"- DISPATCH: {head}")
-            self.record("dispatch", headline=head)
+            # SF-M (Sept 29, 2026): the headline's CLASS beside its text, so
+            # the instrument can read "no class leads more than 4 of any 10
+            # turns" (narration C1) off the archive instead of matching prose.
+            # Absent (a pre-SF-M caller, or a headline with no class) -> the
+            # record is the pre-SF-M record byte for byte.
+            fields = {"headline": head}
+            if headline_class:
+                fields["headline_class"] = str(headline_class)
+            self.record("dispatch", **fields)
         # FA-37: the DIPLOMATIC EVENTS rail. Defections, transfers,
         # rebellions, eliminations, war declarations and every naval and
         # AI-Intent beat land here and nowhere else, so the archived
@@ -3725,10 +3755,14 @@ def run(args):
         digest.congress_line((body or {}).get("congress_clock")
                              if isinstance(body, dict) else None)
         try:
+            _headline = morning.get("headline")
             digest.dispatch(dig(morning, "text", "content", "message",
                                 default=""),
                             events=morning.get("diplomatic_events"),
-                            turn_events=morning.get("turn_events"))
+                            turn_events=morning.get("turn_events"),
+                            headline_class=((_headline or {}).get("class")
+                                            if isinstance(_headline, dict)
+                                            else ""))
         except Exception:
             pass
         # FA-84, and it must be read PER TURN. `MAX_EVENT_LOG_SIZE` is 500

@@ -1,0 +1,36 @@
+{
+ "name": "score-congress-sitting",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "SF-M (SCORE_FINISH_SPEC.md §4.2, the CONG arm; Sept 29, 2026): the Congress sitting replayed from the hand-played retest's frozen turn-24 state (docs/audits/playtest_digests/rs0928-hand-played/retest_t24_summonable.json, 47 of 45 titled). Loop 1 summons; every loop the driver accepts what Europe offers and ends the turn. On c20d5bba the Congress dissolves at loop 4 with 41 of 45 titled (RS-2). Run with --from-save <that save> --diplomacy accept --turns 9. The ending items C1/C2/C3/C6 read it.",
+ "turns": {
+  "1": [
+   "summon the congress",
+   "status"
+  ],
+  "2": [
+   "status"
+  ],
+  "3": [
+   "status"
+  ],
+  "4": [
+   "status"
+  ],
+  "5": [
+   "status"
+  ],
+  "6": [
+   "status"
+  ],
+  "7": [
+   "status"
+  ],
+  "8": [
+   "status"
+  ],
+  "9": [
+   "status"
+  ]
+ }
+}

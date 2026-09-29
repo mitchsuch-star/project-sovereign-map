@@ -1,0 +1,347 @@
+# Playtest digest — SHUT-A
+
+seed `austerlitz` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 1 · campaign seed `austerlitz` · dice `austerlitz`
+- platform: CPython 3.11.15 · Linux-6.18.44-fc-v37-x86_64-with-glibc2.39 (x86_64) · PYTHONHASHSEED `0` · engine `c20d5bba3ca1` (dirty) · content `8f597da58501` · driver `4489dcc909f5`
+  - new game → New campaign started. Autosave refreshed.
+
+## Turn 1 — Late September 1805
+- CMD `declare war on Portugal` → ✓ Choose your war purpose against Portugal.
+  - POPUP diplomatic_dialogue: war_purpose_selection #1 → 1
+  - POPUP proposal_result: Sire, I must strongly advise against declaring war on Portugal. Our threat level stands at 69 — the courts of Europe already whisper of coalition. Another war will only hasten their union against us. → display-only
+  - POPUP diplomatic_objection: diplomatic_declare_war, Portugal → proceed
+  - POPUP diplomatic_dialogue: proposal_confirm #2 → ally_entry_proceed_without
+  - POPUP proposal_result: France declares war on Portugal! Holland follows France into the war against Portugal! KingdomOfItaly follows France into the war against Portugal! Switzerland follows France into the war against Portugal! → display-only
+- CMD `declare war on the Papal States` → ✓ Choose your war purpose against PapalStates.
+  - POPUP diplomatic_dialogue: war_purpose_selection #3 → 1
+  - POPUP proposal_result: Sire, I must strongly advise against declaring war on PapalStates. Our threat level stands at 89 — the courts of Europe already whisper of coalition. Another war will only hasten their union against us. → display-only
+  - POPUP diplomatic_objection: diplomatic_declare_war, PapalStates → proceed
+  - POPUP diplomatic_dialogue: proposal_confirm #4 → ally_entry_proceed_without
+  - POPUP proposal_result: France declares war on PapalStates! Holland follows France into the war against PapalStates! KingdomOfItaly follows France into the war against PapalStates! Switzerland follows France into the war against PapalStates! → display-only
+- CMD `Soult, march to Lisbon` → ✓ Soult begins march to Lisbon. Route: Orleanais → Burgundy → Limousin → Gascony → Bearn → Cartagena → Andalusia → Lisbon. Moves to Orleanais. "Soult, march to Lisbon." Un…
+- CMD `Massena, march to Rome` → ✓ Massena begins march to Rome. Route: Piedmont → Rome. Moves to Piedmont. Massena: "At the double, Sire — the men will smell powder soon enough."
+- CMD `end turn` → ✓ Turn 1 ended. (Warning: 1 action unused) Turn 2 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Prussia and 6 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles delivers an effective strike. ArchdukeCharles gains the advantage over Bernadotte. Casualties: Archduke…
+  - ⚔ Archduke Charles (lost 1973) vs Bernadotte (lost 5774) — Bernadotte's army has been badly mauled. Archduke Charles proved the stronger force today.
+  - verbs: move×1, attack×1
+- ORDER Massena [active]: Massena is marching to Rome (1 turn remaining).
+- ORDER Soult [active]: Soult is marching to Lisbon (7 turns remaining).
+- LEDGER treasury 1770 · net +1258 · threat 97 · provinces 28 · ceiling 31120 · army 180402 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 98
+  - NET income 2590 · trade 350 · admin 50 · tribute 937 · upkeep 2360 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Bernadotte was mauled at Franconia: a third of his corps — 5,774 men — lost in a single action.
+  - RAIL diplomatic_war_declared: France has declared war on Portugal, with 2 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: France has declared war on PapalStates, with 2 allied courts poised to follow.
+  - TURN EVENTS 2
+- DIPLO +6 medium/low (law_enacted_abroad, diplomatic_dp_regen, sovereign_takes_field, blockade_begins ×3)
+  - LOG ai_ai_proposal_refused: 3 approaches from Prussia and Bavaria are rebuffed (open borders agreement)
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+
+## Turn 2 — Early October 1805
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (24,000; expect about 78,676 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favora…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 1820, own corps) vs Mack (lost 14211) — Reinforcements from Davout, Lannes and Napoleon bolstered Ney's position — though Murat never arrived, Sire.
+- CMD `Davout, move to Swabia` → ✗ Davout is already in Swabia.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 2 ended. (Warning: 3 actions unused) Turn 3 begins!
+- enemy phase: 7 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles engages in solid combat. ArchdukeCharles gains the advantage over Bernadotte. Casualties: ArchdukeCharl… · ArchdukeCharles attacks with overwhelming force. ArchdukeCharles gains the advantage over Deroy. Casualties: ArchdukeCh…
+  - 🏴 Austria: [!] Bernadotte's troops are BROKEN (morale 0%)! FORCED RETREAT! Franconia has been captured by Austria!
+  - ⚔ Archduke Charles (lost 789) vs Bernadotte (lost 6612) — A grievous defeat for Bernadotte, Sire. The losses are severe. And Bernadotte was taken on that field — Austria holds h…
+  - ⚔ Archduke Charles (lost 2093) vs Deroy (lost 6640) — The hills were ours, but Archduke Charles took them. Deroy's position was overrun.
+  - verbs: attack×2, retreat×2, stance_change×2, wait×1
+- ORDER Soult [continues]: Soult marches to Burgundy. 6 regions to Lisbon.
+- ORDER Massena [interrupted]: Massena hears cannon fire! Abandoning orders — rushing to Munich! Massena moves from Piedmont to Milan (1,178 lost to march)
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- LEDGER treasury 3124 · net +1917 · threat 97 · provinces 28 (+0) · ceiling 37593 · army 158724 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 97
+  - NET income 2590 · trade 350 · admin 50 · tribute 937 · upkeep 1676 · charges 62 · requisitions 37 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Marshal Bernadotte has been taken. Austria holds him prisoner.
+  - RAIL design_promoted: REVANCHE: Bavaria will not forgive Austria the loss of Franconia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 4
+- DIPLO +5 medium/low (diplomatic_we_threshold, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 26 approaches from Bavaria, Austria and Prussia are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: 4 approaches from Austria and Prussia are rebuffed (defensive alliance)
+
+## Turn 3 — Late October 1805
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (20,946; expect about 67,639 with the corps likely to arrive, up to 74,397 if all march) vs Mack (35,324 men) at Franconia — the balance of force looks favo…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 624, own corps) vs Mack (lost 21393) — Davout, Lannes and Napoleon arrived to reinforce Ney! The timely arrival swung the battle in our favor, Sire.
+  - POPUP capture_choice[capture]: Franconia, Ney → secure
+- CMD `Davout, attack Mack` → ✓ MUSTER — Davout (22,332; expect about 80,823 with the corps likely to arrive, up to 83,631 if all march) vs Mack (substantial force) at Tyrol — the balance of force look…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Davout (lost 1530, own corps) vs Archduke John (lost 1483, own corps) — Reinforcement from Ney and Massena kept Davout standing, Sire — but neither side yielded the ground.
+- CMD `Lannes, move to Swabia` → ✓ Lannes moves from Franconia to Swabia. Swabia falls to France! (was Austria) (154 lost to march)
+  - POPUP capture_choice[capture]: Swabia, Lannes → secure
+- CMD `Massena, attack Rome` → ✗ Massena cannot reach Rome from Milan! Range: 1, Distance: 2
+- CMD `end turn` → ✓ Turn 3 ended. (Warning: 1 action unused) Turn 4 begins!
+- enemy phase: 4 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles launches a decisive assault. ArchdukeCharles gains the advantage over Lannes. Casualties: ArchdukeCharl…
+  - ⚔ Archduke Charles (lost 1595) vs Lannes (lost 5686) — Lannes stood alone, Sire. Murat never came.
+  - verbs: wait×2, attack×1, move×1
+- ORDER Soult [continues]: Soult marches to Limousin. 5 regions to Lisbon.
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Massena seeks an audience → acknowledge
+  -     ↳ Massena's grievance runs its course.
+- LEDGER treasury 4682 · net +2001 · threat 97 · provinces 30 (+2) · ceiling 25091 · army 144137 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 96
+  - NET income 2616 · trade 350 · admin 50 · tribute 937 · upkeep 1236 · charges 262 · occupation 145 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Lannes was mauled at Swabia: a third of his corps — 5,686 men — lost in a single action.
+  - TURN EVENTS 6
+- DIPLO +2 medium/low (diplomatic_we_threshold, diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: 28 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)
+  - LOG design_promoted: REVANCHE: Bavaria swears to retake Franconia and 1 more — Austria is not forgiven
+  - LOG ai_ai_proposal_refused: 4 approaches from Prussia, Bavaria and Spain are rebuffed (open borders agreement)
+
+## Turn 4 — Early November 1805
+- CMD `Massena, march to Rome` → ✓ Massena begins march to Rome. Route: Piedmont → Rome. Moves to Piedmont. Massena: "At the double, Sire — the men will smell powder soon enough."
+- CMD `Massena, attack Rome` → ✓ ASSAULT — Massena storms the works at Rome alone: 33,372 men, 38,377 in the assault's reckoning, against a garrison of 10,000. the garrison breaks below 5,000.
+  - ↳ Massena assaults the Rome garrison! Garrison: 10,000 -> 5,000 (-5,000). Massena loses 2,173 troops. Garrison holds — 5,000 defenders remain. It regains up to 2,000 a tur…
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (18,355; expect about 45,462 with the corps likely to arrive, up to 49,743 if all march) vs Mack (13,775 men) at Tyrol — the balance of force looks favorabl…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 688, own corps) vs Mack (lost 5753, own corps) — Davout and Napoleon's timely arrival bolstered Ney's position. Well-coordinated, Sire.
+  - POPUP capture_choice[capture]: Tyrol, Ney → secure
+- CMD `Davout, attack Mack` → ✗ Not enough actions! Need 1, have 0.
+- CMD `end turn` → ✓ Turn 4 ended. Turn 5 begins!
+- enemy phase: 3 actions, 3 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles takes Swabia where he stands! (1,031 lost to march) Captured: France → Austria · ArchdukeCharles engages in solid combat. ArchdukeCharles gains the advantage over Deroy. Casualties: ArchdukeCharles 1,… · ArchdukeCharles's forces advance steadily. ArchdukeCharles gains the advantage over Murat. Casualties: ArchdukeCharles …
+  - 🏴 Austria: ArchdukeCharles takes Swabia where he stands! (1,031 lost to march) Captured: France → Austria
+  - 🏴 Austria: FORCED RETREAT! ArchdukeCharles advances into Munich. (1,931 lost to march) Munich has been captured by Austria!
+  - ⚔ Archduke Charles (lost 1167) vs Deroy (lost 5117) — Deroy held superior ground, yet Archduke Charles prevailed. A grim day, Sire.
+  - ⚔ Archduke Charles (lost 1366) vs Murat (lost 5336) — Murat's army has been badly mauled. Archduke Charles proved the stronger force today.
+  - verbs: attack×3
+- ORDER Soult [continues]: Soult marches to Gascony. 4 regions to Lisbon.
+  - ⚡ AUTONOMOUS: [Combat] Murat leads the charge! (Aggressive: +15% attack)
+  - ⚔ Murat (lost 4614, own corps) vs Archduke Charles (lost 2548) — A grievous defeat for Murat, Sire. The losses are severe.
+- LEDGER treasury 6142 · net +1988 · threat 97 · provinces 30 (+0) · ceiling 23454 · army 124488 · vassals Holland 97 · Kingdom of Italy 97 · Switzerland 91
+  - NET income 2641 · trade 237 · admin 50 · tribute 937 · upkeep 968 · charges 475 · contributions 73 · occupation 122 · blockade 149 · admiralty 90
+- DISPATCH: Sire — Lannes's corps has been broken at Swabia. He must reform before he fights again.
+  - RAIL nation_eliminated: Sire — Bavaria has been eliminated from the war.
+  - TURN EVENTS 6
+- DIPLO +5 medium/low (diplomatic_we_threshold, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 3 approaches from Austria and Prussia are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: 17 approaches rebuffed, chiefly from Prussia and Austria (open borders agreement)
+  - LOG ai_ai_proposal_refused: 3 approaches from Prussia and Spain are rebuffed (open borders agreement)
+
+## Turn 5 — Late November 1805
+- CMD `Massena, attack Rome` → ✓ ASSAULT — Massena storms the works at Rome alone: 31,181 men, 35,858 in the assault's reckoning, against a garrison of 7,000. the garrison breaks below 5,000.
+  - ↳ Massena assaults the Rome garrison! Garrison collapses (7,000 -> 0). Massena loses 1,521 troops in the assault. Massena marches into Rome! (869 lost to march)
+  - POPUP capture_choice[capture]: Rome, Massena → secure
+- CMD `Lannes, attack Mack` → ✗ Lannes is recovering from retreat and cannot attack. Recovery: 2 turns remaining.
+- CMD `Murat, attack Archduke Charles` → ✗ Murat is recovering from retreat and cannot attack. Recovery: 2 turns remaining.
+- CMD `end turn` → ✓ Turn 5 ended. (Warning: 3 actions unused) Turn 6 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles's forces press forward aggressively. ArchdukeCharles gains the advantage over Lannes. Casualties: Archd…
+  - ⚔ Archduke Charles (lost 178) vs Lannes (lost 5197) — The toll on Lannes's forces is heavy, Sire. This defeat will be felt.
+  - verbs: attack×1
+- ORDER Soult [continues]: Soult marches to Bearn. 3 regions to Lisbon.
+- ORDER Lannes [awaiting_response]: Lannes is cornered at Franche-Comte with 2,409 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+  - POPUP strategic_interrupt: Lannes, last_stand, Lannes is cornered at Franche-Comte with 2,409 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+- ENVOYS WAITING 1 · KingdomOfItaly client petition
+- LEDGER treasury 7844 · net +1793 · threat 97 · provinces 31 (+1) · ceiling 22583 · army 113255 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 88
+  - NET income 2700 · trade 212 · admin 50 · tribute 937 · upkeep 880 · charges 710 · contributions 67 · occupation 227 · blockade 132 · admiralty 90
+- DISPATCH: Sire — Papal States is knocked out of the war. No army remains beneath their colours.
+  - RAIL nation_eliminated: Sire — the Papal States has been eliminated from the war.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.
+  - RAIL diplomatic_ai_proposal: An envoy from the Kingdom of Italy has arrived with a petition.
+  - TURN EVENTS 6
+- DIPLO +4 medium/low (diplomatic_dp_regen, diplomatic_auto_downgrade, paymaster_subsidy, cs_tier_shift)
+  - LOG auto_downgrade: Relations auto-downgraded: France–Spain (ALLIANCE → DEFENSIVE ALLIANCE)
+  - LOG ai_ai_proposal_refused: 9 approaches from Ottoman Empire, Sweden and Naples are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: 28 approaches rebuffed, chiefly from Naples and Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: 5 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: 4 approaches from Prussia, Naples and Spain are rebuffed (open borders agreement)
+  - LOG diplomatic_ai_ai_treaty: AI-AI treaty: Naples and Russia (Open Borders Agreement)
+
+## Turn 6 — Early December 1805
+  - MAILBOX #1 KingdomOfItaly incoming_proposal: Kingdom of Italy — Client's Petition → activated
+  - POPUP diplomatic_dialogue: KingdomOfItaly, client_petition #9 → grant the petition
+  - POPUP proposal_result: Tyrol is ceded to the Kingdom of Italy. Loyalty +4 (96 → 100); bond -30 → -10 (-1 a turn). Cost: 1 DP. Our net rises by 44g a turn — 32g of income forfeited, 52g of occupation relieved, 24g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only
+- CMD `Massena, march to Rome` → ✓ Massena begins march to Rome. Massena: "We march. Pity whatever slows us."
+- CMD `Soult, attack Lisbon` → ✗ Soult cannot reach Lisbon from Bearn! Range: 1, Distance: 3
+- CMD `Massena, attack Rome` → ✗ Rome is already controlled by France
+- CMD `Ney, attack Archduke Charles` → ✓ Ney pursues Archduke Charles (at Franche-Comte). Moves to Munich. Ney: "Run him to ground, then. My sabers are hungry."
+- CMD `end turn` → ✓ Turn 6 ended. Turn 7 begins!
+- enemy phase: 2 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles takes Franche-Comte where he stands! (637 lost to march) Captured: France → Austria · ArchdukeCharles's forces advance steadily. ArchdukeCharles gains the advantage over Murat. Casualties: ArchdukeCharles …
+  - 🏴 Austria: ArchdukeCharles takes Franche-Comte where he stands! (637 lost to march) Captured: France → Austria
+  - ⚔ Archduke Charles (lost 360) vs Murat (lost 9004) — The toll on Murat's forces is heavy, Sire. This defeat will be felt.
+  - verbs: attack×2
+- ORDER Massena [active]: Massena is marching to Rome (0 turns remaining).
+- ORDER Ney [active]: Ney is pursuing Archduke Charles (0 turns remaining).
+- ORDER Soult [continues]: Soult marches to Cartagena. 2 regions to Lisbon.
+- ORDER Murat [awaiting_response]: Murat is cornered at Nivernais with 3,046 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout.
+  - POPUP strategic_interrupt: Murat, last_stand, Murat is cornered at Nivernais with 3,046 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. → fight_to_the_last
+- ENVOYS WAITING 1 · Switzerland client petition
+- LEDGER treasury 9248 · net +1614 · threat 97 · provinces 30 (-1) · ceiling 21361 · army 99997 · vassals Holland 94 · Kingdom of Italy 99 · Switzerland 84
+  - NET income 2670 · trade 212 · admin 50 · tribute 961 · upkeep 776 · charges 965 · contributions 36 · occupation 280 · blockade 132 · admiralty 90
+- DISPATCH: Sire — Franche-Comte has fallen. Enemy colours fly over French homeland soil. Archduke Charles's corps of 27,621 stands there. A garrison you detach (3,000 men) holds a province against a march, as d…
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 6
+- DIPLO +4 medium/low (enemy_marshal_commissioned, diplomatic_we_threshold, diplomatic_dp_regen, agenda_shift)
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Prussia (open borders agreement)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Britain against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 2 approaches from Austria and Prussia are rebuffed (open borders agreement)
+  - LOG nation_eliminated: The Papal States has been eliminated from the war.
+  - LOG sponsorship_granted: Britain sponsors Sardinia against France (200g/turn)
+  - LOG nation_eliminated: Bavaria has been eliminated from the war.
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 19 approaches rebuffed, chiefly from Naples (open borders agreement)
+  - LOG ai_ai_proposal_refused: 4 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 7 approaches to Britain and Russia are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: PapalStates rebuffs Britain (defensive alliance)
+
+## Turn 7 — Late December 1805
+  - MAILBOX #2 Switzerland incoming_proposal: Switzerland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #10 → grant the petition
+  - POPUP proposal_result: Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (84 → 94); bond -30 → -10 (-1 a turn). Cost: 1 DP. → display-only
+- CMD `Massena, attack Rome` → ✗ Rome is already controlled by France
+- CMD `Soult, attack Lisbon` → ✗ Soult cannot reach Lisbon from Cartagena! Range: 1, Distance: 2
+- CMD `Soult, attack Paget` → ✓ MUSTER — Soult (28,909) vs Paget (screening force) at Aragon — the balance of force looks favorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Soult (lost 781) vs Paget (lost 3693) — An exemplary engagement by Soult. The outcome was never in doubt. And Paget was taken on that field — France holds him.
+- CMD `Davout, attack Archduke Charles` → ✓ Davout pursues Archduke Charles (at Nivernais). Moves to Munich. Davout: "He will be watched at every step. Patience closes traps."
+- CMD `end turn` → ✓ Turn 7 ended. (Warning: 1 action unused) Turn 8 begins!
+- enemy phase: 2 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles takes Nivernais where he stands! (417 lost to march) Captured: France → Austria · ArchdukeCharles marches from Nivernais into Lorraine unopposed! (390 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles takes Nivernais where he stands! (417 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Nivernais into Lorraine unopposed! (390 lost to march) Captured: France → Austria
+  - verbs: attack×2
+- ORDER Davout [active]: Davout is pursuing Archduke Charles (0 turns remaining).
+- ORDER Massena [completed]: Massena arrives at Rome. Massena: "It is done. Point me at something that shoots back, Sire."
+- ORDER Ney [continues]: Ney pursues ArchdukeCharles. 1 region away.
+- ENVOYS WAITING 1 · Britain armistice losing
+- LEDGER treasury 10853 · net +1396 · threat 97 · provinces 29 (-1) · ceiling 21057 · army 97208 · vassals Holland 95 · Kingdom of Italy 100 · Switzerland 94
+  - NET income 2737 · trade 212 · admin 50 · tribute 787 · upkeep 752 · charges 1211 · occupation 205 · blockade 132 · admiralty 90
+- DISPATCH: Sire — Nivernais has fallen. Enemy colours fly over French homeland soil. Archduke Charles's corps of 24,719 stands there. A garrison you detach (3,000 men) holds a province against a march, as does …
+  - RAIL diplomatic_ai_proposal: An envoy from Britain has arrived with a proposal.
+  - TURN EVENTS 3
+- DIPLO +3 medium/low (law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 2 approaches from Naples and Spain are rebuffed (open borders agreement)
+
+## Turn 8 — Early January 1806
+  - MAILBOX #3 Britain incoming_proposal: Britain — Armistice → activated
+  - POPUP diplomatic_dialogue: Britain, armistice_losing #11 → accept
+  - POPUP proposal_result: You have accepted Britain's proposal. Treaty signed: At War → Armistice with Britain. → display-only
+- CMD `Massena, march to Rome` → ✓ Massena begins march to Rome. Massena: "Good. An army rots standing still."
+- CMD `Soult, attack Lisbon` → ✗ Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2
+- CMD `Soult, attack Paget` → ✗ Paget is our prisoner at Paris, Sire — he leads no army. Hold him for the peace table.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 8 ended. (Warning: 2 actions unused) Turn 9 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Lorraine into Rhineland unopposed! (366 lost to march) Captured: France → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Lorraine into Rhineland unopposed! (366 lost to march) Captured: France → Austria
+  - verbs: attack×1
+- ORDER Davout [continues]: Davout pursues ArchdukeCharles. 1 region away.
+- ORDER Massena [active]: Massena is marching to Rome (0 turns remaining).
+- ORDER Ney [continues]: Ney pursues ArchdukeCharles. 1 region away.
+- ENVOYS WAITING 1 · Holland client petition
+- LEDGER treasury 12249 · net +1173 · threat 97 · provinces 29 (+0) · ceiling 20621 · army 96869 · vassals Holland 93 · Kingdom of Italy 100 · Switzerland 93
+  - NET income 2655 · trade 212 · admin 50 · tribute 789 · upkeep 752 · charges 1434 · occupation 257 · admiralty 90
+- DISPATCH: Sire — Rhineland has fallen. Enemy colours fly over French homeland soil. Archduke Charles's corps of ~27,500 stands there. A garrison you detach (3,000 men) holds a province against a march, as does…
+  - RAIL armistice_ratified: A truce with Britain: the fighting stops for 5 turns — peace if relations heal to -60 or better, else the war resumes.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - RAIL strait_open: THE STRAIT: the Cagliari–Corsica crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Cagliari–Rome crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Corsica–Piedmont crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the London–Normandy crossing stands open to our armies.
+  - TURN EVENTS 4
+- DIPLO +7 medium/low (diplomatic_treaty_signed, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy, cs_tier_shift, blockade_broken ×2)
+  - LOG ai_ai_proposal_refused: 3 approaches from Austria, Prussia and Naples are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: Russia rebuffs Spain (open borders agreement)
+
+## Turn 9 — Late January 1806
+  - MAILBOX #4 Holland incoming_proposal: Holland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Holland, client_petition #12 → grant the petition
+  - POPUP proposal_result: Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +7 (93 → 100); bond -30 → -10 (-1 a turn). Cost: 1 DP. → display-only
+- CMD `Massena, attack Rome` → ✗ Rome is already controlled by France
+- CMD `Soult, attack Lisbon` → ✗ Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2
+- CMD `Soult, attack Paget` → ✗ Paget is our prisoner at Paris, Sire — he leads no army. Hold him for the peace table.
+- CMD `Soult, attack Wellesley` → ✗ Cannot attack Wellesley — armistice with Britain (4 turns remaining).
+- CMD `end turn` → ✓ Turn 9 ended. (Warning: 4 actions unused) Turn 10 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeJohn's assault collapses into chaos! Napoleon holds the line. Casualties: ArchdukeJohn 1,886, Napoleon 517. Bot…
+  - ⚔ Archduke John (lost 1886) vs Napoleon (lost 517) — An exemplary engagement by Napoleon. The outcome was never in doubt.
+  - verbs: attack×1
+- ORDER Massena [completed]: Massena arrives at Rome. Massena: "Done — and I trust the next order has more fire in it."
+- ORDER Davout : Davout: 'Cannon fire at Tyrol, Sire. Investigate?'
+- ORDER Ney [interrupted]: Ney hears cannon fire! Abandoning orders — rushing to Tyrol! Ney moves from Swabia to Franconia (157 lost to march)
+  - POPUP strategic_interrupt: Davout, cannon_fire, Davout: 'Cannon fire at Tyrol, Sire. Investigate?' → investigate
+- ENVOYS WAITING 1 · Britain settlement offer
+- LEDGER treasury 13258 · net +861 · threat 95 · provinces 29 (+0) · ceiling 19249 · army 96015 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 93
+  - NET income 2816 · trade 212 · admin 50 · tribute 445 · upkeep 744 · charges 1616 · occupation 212 · admiralty 90
+- DISPATCH: Sire — the Emperor Napoleon holds the field at Tyrol — Archduke John's corps is driven from Tyrol yet again — broken, and fleeing.
+  - RAIL settlement_offer_arrival: Britain has offered terms to settle France vs Britain.
+  - TURN EVENTS 4
+- DIPLO +3 medium/low (law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 5 approaches rebuffed, chiefly from Prussia and Britain (defensive alliance)
+  - LOG ai_ai_proposal_refused: 9 courts rebuff Prussia (defensive alliance)
+
+## Turn 10 — Early February 1806
+  - MAILBOX #5 Britain incoming_settlement_offer: Britain — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #13 → accept_settlement_offer
+  - POPUP diplomatic_dialogue: settlement_confirm #14 → confirm_settlement
+  - POPUP proposal_result: Settlement Ratified, Settlement Ratified: France vs Austria + Britain + Portugal + Russia (10 pairs resolved). Status quo: Franconia, Munich and Swabia stay ours by the treaty — titled. Status quo: Lorraine, Nivernais and Rhineland stay Austrian by the treaty. Status quo: Tyrol stays ours by the treaty — titled. → display-only
+- CMD `Massena, march to Rome` → ✓ Massena begins march to Rome. Massena: "At the double, Sire — the men will smell powder soon enough."
+- CMD `Soult, attack Lisbon` → ✗ Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2
+- CMD `Soult, attack Wellesley` → ✗ We are not at war with Britain, Sire — Wellesley may not be attacked while the peace holds. Declare war on Britain first, or leave him be.
+- CMD `Soult, attack Paget` → ✗ We are not at war with Britain, Sire — Paget may not be attacked while the peace holds. Declare war on Britain first, or leave him be.
+- CMD `end turn` → ✓ Turn 10 ended. (Warning: 2 actions unused) Turn 11 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- ORDER Massena [active]: Massena is marching to Rome (0 turns remaining).
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- ENVOYS WAITING 1 · Denmark open borders
+- LEDGER treasury 15470 · net +2119 · threat 67 · provinces 29 (+0) · ceiling 65904 · army 110715 · vassals Holland 97 · Kingdom of Italy 97 · Switzerland 90
+  - NET income 2929 · trade 260 · admin 50 · tribute 447 · upkeep 840 · charges 565 · occupation 162
+- DISPATCH: Sire — the war with Austria is over. The peace grants safe passage home.
+  - RAIL settlement_summary: Settlement of France + Spain + Holland + Kingdom of Italy + Switzerland vs Britain + Austria + Russia + Portugal: settlement ratified.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL allegiance_in_play: The allegiance of Sardinia is in play — every court with gold or standing now bids for the flip.
+  - TURN EVENTS 8
+- COURTS: The court of Britain eases over The Low Countries — an ultimatum is now the length of its tether.
+- COURTS: The court of Sweden eases over Scourge of the Usurper — an ultimatum is now the length of its tether.
+- COURTS: And 2 other courts stir at their own designs.
+- DIPLO +6 medium/low (diplomatic_coalition_dissolved, status_quo_titled ×2, law_enacted_abroad, diplomatic_dp_regen, blockade_broken)
+  - LOG ai_ai_proposal_refused: 22 approaches rebuffed, chiefly from Austria and Naples (defensive alliance)
+  - LOG coalition_member_left: Britain has left the coalition.
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 95 to 67.
+
+## Turn 11 — Late February 1806
+  - LETTER Denmark: Open Borders Agreement → accept
+- CMD `Massena, attack Rome` → ✗ Rome is already controlled by France
+- CMD `Soult, attack Wellesley` → ✗ We are not at war with Britain, Sire — Wellesley may not be attacked while the peace holds. Declare war on Britain first, or leave him be.
+- CMD `Soult, attack Paget` → ✗ We are not at war with Britain, Sire — Paget may not be attacked while the peace holds. Declare war on Britain first, or leave him be.
+- CMD `Soult, attack Lisbon` → ✗ Soult cannot reach Lisbon from Aragon! Range: 1, Distance: 2
+- CMD `end turn` → ✓ Turn 11 ended. (Warning: 4 actions unused) Turn 12 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- ORDER Massena [completed]: Massena arrives at Rome. Massena: "Accomplished. The men want a battle, not another road."
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Ney seeks an audience → acknowledge
+  -     ↳ Ney's grievance runs its course.
+- ENVOYS WAITING 1 · Hesse open borders
+- LEDGER treasury 18167 · net +2664 · threat 67 · provinces 29 (+0) · ceiling 240166 · army 110421 · vassals Holland 94 · Kingdom of Italy 94 · Switzerland 87
+  - NET income 3029 · trade 310 · admin 50 · tribute 449 · upkeep 840 · charges 194 · occupation 140
+- DISPATCH: Sire — Marshal Soult's household goes unpaid. His patience erodes with his purse.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - TURN EVENTS 8
+- DIPLO +2 medium/low (diplomatic_treaty_signed, diplomatic_dp_regen)
+
+## Turn 12 — Early March 1806
+  - LETTER Hesse: Open Borders Agreement → accept
+- CMD `Massena, march to Rome` → ✓ Massena begins march to Rome. Massena: "We march. Pity whatever slows us."
+- CMD `Soult, attack Wellesley` → ✗ We are not at war with Britain, Sire — Wellesley may not be attacked while the peace holds. Declare war on Britain first, or leave him be.
+- CMD `Soult, attack Paget` → ✗ We are not at war with Britain, Sire — Paget may not be attacked while the peace holds. Declare war on Britain first, or leave him be.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 12 ended. (Warning: 2 actions unused) Turn 13 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- ORDER Massena [active]: Massena is marching to Rome (0 turns remaining).
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Lannes seeks an audience → acknowledge
+  -     ↳ Lannes's grievance runs its course.
+- LEDGER treasury 21032 · net +2682 · threat 67 · provinces 29 (+0) · ceiling 244500 · army 110133 · vassals Holland 91 · Kingdom of Italy 91 · Switzerland 84
+  - NET income 3043 · trade 347 · admin 50 · tribute 450 · upkeep 840 · charges 228 · occupation 140
+- DISPATCH: Sire — 3 turns now with the establishment under the ordinance and the depots standing full. 22,367 men at Paris, and nobody has gone to collect them.
+  - TURN EVENTS 7
+- DIPLO +4 medium/low (diplomatic_treaty_signed, law_enacted_abroad ×2, diplomatic_dp_regen)
+
+---
+finished: **completed** · commands 58 · popups 40 · battles 15

@@ -1,0 +1,158 @@
+{
+ "ending": {
+  "anchor": 5.0,
+  "adjust": -0.25,
+  "score": 4.75,
+  "eyes": {},
+  "cite": "CONG.md:116: - DISPATCH: Sire — THE CONGRESS OF PARIS DISSOLVES — the titled provinces fell short (41 of 45) — Austria's war reopened what it ceded (Bohemia, Carniola, Dresden …). London, Berlin and St Petersburg had not sig…",
+  "flag": "PRESS.md:179 closes the staged Imperial Peace on a RECORD of 0 battles, 0 men lost and 0 peaces signed — a human should check whether an ending with nothing behind it should read as THE ASCENDANT EMPIRE, and whether the CMD arms' 30-turn plateau at 34–36 titled is the road a player actually walks."
+ },
+ "diplomacy": {
+  "anchor": 5.75,
+  "adjust": 0,
+  "score": 5.75,
+  "eyes": {},
+  "cite": "VOLTE.md:756:   - POPUP proposal_result: You have accepted Austria's proposal. Treaty signed: Defensive Alliance → Alliance with Austria. → display-only",
+  "flag": "The 'Sire, another matter has arrived since … Your earlier answer was not delivered' re-prompt fires on nearly every multi-envoy turn on every arm (e.g. FLAG.md:180, OP.md:354–359 with five dialogues raised on one turn) — a human should check whether it costs the player a wasted answer or a diplomatic point."
+ },
+ "first_contact": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "score": 7.0,
+  "eyes": {
+   "C2": {
+    "pass": true,
+    "cite": "HOLD.md:16: - CMD `how many actions do I have left this turn` → ✓ Talleyrand holds 5 diplomatic points of 5; what he leaves unspent carries one turn, to at most 7. Today 4 of 4 orders remain, and 2 of 2 administrative actions. (consistent with HOLD.md:29 '(Warning: 4 actions unused)' and with FC.md:22's 25,000 Paris garrison; sampled HOLD answers only — the shrugs contradict nothing)"
+   }
+  },
+  "cite": "FC.md:21: - CMD `how do I win` → ✓ Berthier unrolls the map. \"The reign is WON at the Congress of Paris, Sire: hold 45 TITLED provinces — homeland, ceded by treaty, a client's soil, or held 12 quiet turns…",
+  "flag": "HOLD.md:10 shrugs at 'Who is Deroy, and is he on our side or against us?' while Deroy is Bavaria's marshal fighting beside France from turn 1 (FLAG.md:46) — a human should check whether the desk should know an ally's commander."
+ },
+ "economy": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "score": 7.0,
+  "eyes": {},
+  "cite": "FLAG.md:716:   - NET income 2662 · trade 350 · admin 50 · tribute 337 · upkeep 48 · charges 3928 · contributions 152 · occupation 30 · blockade 219 · admiralty 90",
+  "flag": "CMD-A.md:749 ends turn 40 at treasury 86,368, net +2,409, threat 0 — a human should check whether a 30-turn peacetime hoard with no sink but the open levy is the intended feel of a won war."
+ },
+ "naval": {
+  "anchor": 7.0,
+  "adjust": 0.25,
+  "score": 7.25,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "cannot judge from a digest: no frames/ folder exists in the panel_packet (the client arm did not run), and no digest records a client surface"
+   }
+  },
+  "cite": "DESC.md:152: - CMD `Ney, march to London` → ✗ The crossing from Normandy to London is barred — the Royal Navy commands the water with 97 sail (97 effective) against our 19. Build or pool a fleet to contest the passa…",
+  "flag": "DESC.md:267 answers an order for Oudinot ('land Oudinot in Munster with 5,000 men') with Lannes's numbers ('Lannes commands 18,000 — 3,000 too many') and the whole descent arm's expedition lines were refused — the expedition itself was never played on any arm."
+ },
+ "living_balance": {
+  "anchor": 6.5,
+  "adjust": -0.25,
+  "score": 6.25,
+  "eyes": {},
+  "cite": "CMD-A.md:746: - enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 6 other courts stirred as well, but their formations remain beyond our sight.",
+  "flag": "REACH-AAR.md:857–858 — from turn 18 to turn 40 every turn is a bare 'end turn' with '(Warning: 4 actions unused)' and '0 attacks' while threat decays 31 → 0; a human should check whether a France at peace has anything to do or anyone to fear."
+ },
+ "combat_legibility": {
+  "anchor": 5.5,
+  "adjust": 0,
+  "score": 5.5,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "cannot judge from a digest: no frames/ folder exists in the panel_packet (the client arm did not run), and no digest records a client surface; every battle_diorama popup is logged as '(no summary fields) → display-only'"
+   }
+  },
+  "cite": "CMD-ULM.md:45:   WILL JOIN — Ney: will march to the sound of the guns — he will NOT make it from the mountains at Munich in time; order 'Ney, support Davout' and it rises to about 76%",
+  "flag": "FLD.md:123 scouts Vienna's garrison at 25,000 ('it must be assaulted — a march halts before it'), yet FLD.md:153–156 'Ney, attack Vienna' resolves as a field battle against Mack and Vienna is captured with no assault line — a human should check whether the garrison was silently bypassed."
+ },
+ "marshal_drama": {
+  "anchor": 7.0,
+  "adjust": 0.25,
+  "score": 7.25,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "cannot judge from a digest: FLAG.md:22:   -     ↳ Murat's grievance runs its course. — the digests record only the audience header and its outcome line, never the petition body, so the marshal's voice in the petition cannot be read"
+   }
+  },
+  "cite": "FLAG.md:677:   - ⚔ Bennigsen (lost 191) vs Lannes (lost 1236, own corps) — The reinforcement arrived, Sire. The verdict of the field went against us regardless. — Bernadotte's faith in you is spent (trust 24) — he committed 966 to the fight where he would have brought 1,933.",
+  "flag": "CMD-A.md:138 '- DISPATCH: Sire — Ney, crowned four turns ago, has been beaten in the field.' (also CMD-ULM.md:205, REACH-GEVB.md:191) shows a crown won and lost on the arms — a human should reconcile this with the checklist's C4 note that no crown moved."
+ },
+ "vassals": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "score": 7.0,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "cannot judge from a digest: no frames/ folder exists in the panel_packet (the client arm did not run), and no digest records a client surface"
+   }
+  },
+  "cite": "CMD-ULM.md:164:   - POPUP proposal_result: Tyrol is ceded to the Kingdom of Italy. Loyalty +9 (91 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP. Our net rises by 5g a turn — 99g of income forfeited, 30g of occupation relieved, 74g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only",
+  "flag": "REACH-GEVB.md:9 'vassalize Bavaria' on turn 1 makes an allied minor a Satellite at loyalty 60 with no battle and no price shown (Hesse and Saxony likewise at REACH-GEVB.md:102–103, both lost within eight turns) — a human should check whether free turn-1 vassalization of an ally is intended."
+ },
+ "ui_ux": {
+  "anchor": null,
+  "adjust": 0,
+  "score": null,
+  "eyes": {
+   "C5": {
+    "pass": null,
+    "cite": "cannot judge from a digest: no frames/ folder exists in the panel_packet (the client arm did not run), and no digest records a client surface, so no named frame exists to sign off"
+   },
+   "C6": {
+    "pass": null,
+    "cite": "cannot judge from a digest: no Mode C client session ran; the digests are in-process driver runs and record no hotkeys or client blocking"
+   }
+  },
+  "cite": "OP.md:359:   - POPUP diplomatic_dialogue: proposal_confirm #29 → (left standing — disabled: I cannot deliver this, Sire — Making peace with Britain while allied with Spain (who is s…)",
+  "flag": "OP.md:354–359 raise five diplomatic dialogues on one turn and leave the last standing disabled — a human should check what a player at the keyboard sees when that stack lands."
+ },
+ "command": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "score": 7.0,
+  "eyes": {},
+  "cite": "TYPED.md:99: - CMD `Ney, attack Mack` → ✓ Ney pursues Mack (at Franconia). Moves to Swabia. Ney: \"He is already beaten — he merely has not been told. I will tell him.\"",
+  "flag": "SHUT-M.md:106 — one order after Mack's corps was annihilated (SHUT-M.md:104), 'Davout, attack Mack' was answered 'Your words named no foe our maps know, Sire — Davout marches on Archduke John at Bohemia, the nearest in sight' and a battle followed; a human should check whether an order naming a dead foe should act rather than ask."
+ },
+ "narration": {
+  "anchor": 7.0,
+  "adjust": -0.25,
+  "score": 6.75,
+  "eyes": {
+   "C6": {
+    "pass": false,
+    "cite": "VERDICT.md:69: - DISPATCH: Switzerland loyalty 90 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them. (leads a turn of four battles; PRESS.md:65 'Garrison at Lisbon reinforced: 12,000 -> 14,000' leads turns 29–35 while the Congress of Paris sits; FLAG.md:165 'Leon has been taken by Britain' leads the turn Massena beat Archduke Charles before Vienna)"
+   }
+  },
+  "cite": "REACH-AAR.md:862: - DISPATCH: Sire — Marshal Lannes's claim is 34 turns in arrears and has stopped being a household matter. It is now a question of the army.",
+  "flag": "The arrears sentence leads the dispatch with only its number changing on 20+ consecutive mornings on REACH-AAR, VOLTE and CMD-H — a human should check whether a standing grievance should keep the headline once it has been said."
+ },
+ "ai_aliveness": {
+  "anchor": 8.5,
+  "adjust": 0,
+  "score": 8.5,
+  "eyes": {},
+  "cite": "CMD-ULM.md:732:   - RAIL diplomatic_vassal_defected: THE DEFECTION: Russia's gold turns Holland against France.",
+  "flag": "Courts repeatedly harden 'prepared now to go as far as war' (e.g. CMD-ULM.md:825 Russia over Arbiter of Europe) yet no AI court opens a war of its own on any of the 29 arms — a human should check whether the tether line promises something the board never delivers."
+ },
+ "agendas": {
+  "anchor": 7.0,
+  "adjust": 0.25,
+  "score": 7.25,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "cannot judge from a digest: no frames/ folder exists in the panel_packet (the client arm did not run), and no digest records a client surface; no Proclamation fired on any of the 29 arms, so the surface never appeared even as text"
+   }
+  },
+  "cite": "REACH-AAR.md:83: - CMD `license Prussia against Hanover` → ✓ The licence is granted: France blesses Prussia's design against Hanover and pledges non-interference. Talleyrand: \"Consent costs nothing today, Sire. Tomorrow it is the …",
+  "flag": "The Proclamation never fired in 29 arms (no formation reached), so the formables road stays unjudged even where the licence, the Revanche promotions and the tether lines all read well."
+ }
+}

@@ -65,7 +65,20 @@ CLOSED = re.compile(r"\b(FIXED|CLOSED|LANDED|BUILT|RULED|DECIDED|TAKEN|"
                     r"RESOLVED)\b")
 DISPOSED = re.compile(r"\b(REFUTED|STRUCK|DUPLICATE|WITHDRAWN|RETIRED|"
                       r"DECLINED|NOT REPRODUCED|NOT TAKEN|CANONIZED|"
-                      r"SUPERSEDED|ACCEPTED)\b")
+                      r"SUPERSEDED|ACCEPTED|RE-HOMED)\b")
+# SF-0 (September 29, 2026): a row that is closed for the half that landed
+# and OPEN for the rest says so with these two words, and the marker wins
+# over every other occurrence of the id (NPC-12: the seven surfaces landed,
+# RS-26 owns the remainder).
+OPEN_REMAINDER = re.compile(r"\bOPEN REMAINDER\b")
+# SF-0: every live row carries ONE tag naming the step (or gate) that owns
+# it and the pillar it is scored under — `⟨SF step=2 · SR-6a · pillar=narration⟩`.
+# The pillar keys are SCORE_FINISH_SPEC.md §2's fourteen, plus `none` for a
+# row no pillar reads (test hygiene, a harness defect, a modding example).
+SF_TAG = re.compile(r"⟨SF\s+(?P<body>[^⟩]*)⟩")
+PILLARS = ("ending", "diplomacy", "first_contact", "economy", "naval",
+           "living_balance", "combat_legibility", "marshal_drama", "vassals",
+           "ui_ux", "command", "narration", "ai_aliveness", "agendas", "none")
 PARTIAL = re.compile(r"\b(HALF FIXED|PARTIAL)\b")
 STILL_OPEN = re.compile(r"\b(ROUTED|OPEN|DEFERRED)\b|Owner:")
 HEADING_CLOSED = re.compile(r"ALL\b[^()]{0,40}?\b(FIXED|CLOSED|DISPOSED)|"
@@ -102,6 +115,8 @@ def _leads_with(cell: str, pattern: re.Pattern) -> bool:
 def classify(cells: list[str], heading_closed: bool,
              table_of_fixes: bool, status_cols: tuple[int, ...] = ()) -> str:
     first, last = cells[0], cells[-1]
+    if OPEN_REMAINDER.search(" ".join(cells)):
+        return "partial"
     if "~~" in first or TICK in first:
         return "closed"
     if CROSS in first:
@@ -128,6 +143,20 @@ def classify(cells: list[str], heading_closed: bool,
     if (heading_closed or table_of_fixes) and not STILL_OPEN.search(row_text):
         return "closed"
     return "OPEN"
+
+
+def _parse_tag(body: str) -> dict:
+    """`step=2 · SR-6a · pillar=narration` -> {"step", "slice", "pillar"}."""
+    out = {"pillar": "", "step": "", "slice": ""}
+    parts = [p.strip() for p in re.split(r"\s*[·|]\s*", body) if p.strip()]
+    for part in parts:
+        if part.startswith("pillar="):
+            out["pillar"] = part[len("pillar="):].strip()
+        elif part.startswith("step="):
+            out["step"] = part[len("step="):].strip()
+        else:
+            out["slice"] = (out["slice"] + " " + part).strip()
+    return out
 
 
 def collect() -> dict[str, dict]:
@@ -191,9 +220,18 @@ def collect() -> dict[str, dict]:
                 "finding": _clean(finding, 160),
                 "owner": _clean(cells[-1], 200),
                 "occurrences": 0,
+                "pillar": "", "step": "", "slice": "",
             })
             entry["occurrences"] += 1
-            if entry["state"] in ("OPEN", "partial") and state not in (
+            row_text = " ".join(cells)
+            if OPEN_REMAINDER.search(row_text):
+                entry["open_remainder"] = True
+            tag = SF_TAG.search(row_text)
+            if tag and not entry["pillar"]:
+                entry.update(_parse_tag(tag.group("body")))
+            if entry.get("open_remainder"):
+                entry["state"] = "partial"
+            elif entry["state"] in ("OPEN", "partial") and state not in (
                     "OPEN", "partial"):
                 entry["state"] = state
     return rows
@@ -210,12 +248,53 @@ def closed_elsewhere() -> set[str]:
     return found
 
 
+def by_pillar(open_rows: list[dict]) -> dict:
+    """{pillar: {"open": n, "p1": [ids], "p2": n, "rows": [ids]}} plus
+    "untagged": the open rows that carry no SF tag (SF-0's done-when is
+    that this list is empty)."""
+    table: dict[str, dict] = {}
+    untagged: list[str] = []
+    for entry in open_rows:
+        pillar = entry.get("pillar") or ""
+        if pillar not in PILLARS:
+            untagged.append(entry["id"])
+            continue
+        bucket = table.setdefault(pillar, {"open": 0, "p1": [], "p2": 0,
+                                           "rows": []})
+        bucket["open"] += 1
+        bucket["rows"].append(entry["id"])
+        if entry["severity"] == "P1":
+            bucket["p1"].append(entry["id"])
+        elif entry["severity"] == "P2":
+            bucket["p2"] += 1
+    return {"pillars": dict(sorted(table.items())), "untagged": untagged}
+
+
+def print_by_pillar(open_rows: list[dict]) -> None:
+    view = by_pillar(open_rows)
+    print(f"\n{'pillar':18} {'open':>5} {'P1':>4} {'P2':>4}  rows")
+    for pillar, bucket in view["pillars"].items():
+        rows = ", ".join(bucket["rows"])
+        print(f"{pillar:18} {bucket['open']:>5} {len(bucket['p1']):>4} "
+              f"{bucket['p2']:>4}  {rows}")
+        for p1 in bucket["p1"]:
+            print(f"{'':18} {'':>5} {'':>4} {'':>4}  P1 open: {p1}")
+    if view["untagged"]:
+        print(f"\nUNTAGGED open rows ({len(view['untagged'])}): "
+              + ", ".join(view["untagged"]))
+    else:
+        print("\nevery open row carries an SF tag")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--open", action="store_true",
                         help="list every open row")
     parser.add_argument("--json", metavar="PATH",
                         help="write every row as JSON")
+    parser.add_argument("--by-pillar", action="store_true",
+                        help="the open rows grouped by the pillar their SF "
+                             "tag names, with the P1s and the untagged")
     args = parser.parse_args()
     # The ledgers carry arrows and dashes a Windows console code page cannot
     # print; replace what it cannot show rather than die mid-list.
@@ -260,6 +339,9 @@ def main() -> int:
                     mark = "*" if e["closing_word_elsewhere"] else " "
                     sev = e["severity"] or "--"
                     print(f" {mark}{e['id']:<14} {sev:<3} {e['finding']}")
+
+    if args.by_pillar:
+        print_by_pillar(open_rows)
 
     if args.json:
         out = pathlib.Path(args.json)

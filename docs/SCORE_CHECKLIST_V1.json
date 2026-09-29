@@ -1,0 +1,1131 @@
+{
+ "version": 1,
+ "title": "The Score Finish checklist, version 1 (SCORE_FINISH_SPEC.md Appendix A)",
+ "frozen": "September 29, 2026 — taken at the recommended default of SCORE_FINISH_SPEC.md §6 row 2 under the user's 'proceed' (the user may amend; a new version re-reads the baseline archive before comparing, §4.3)",
+ "rule": "§4.4: both floors pass and no verified open P1 in the pillar -> 5.5 + 0.5 per ceiling passed; otherwise 5.0 + 0.25 per ceiling, at most 6.0. Exercised at >= 6 of 8 measured; 6-7 measured = a range; < 6 = NOT EXERCISED.",
+ "done_when": "56 of 84 ceilings passed with every floor green = every pillar at its target = the directional 7.5",
+ "kinds": {
+  "AUTO": "read from the digests, tests and tools",
+  "PROBE": "a small read-only probe in tools/_score_probes.py",
+  "EYES": "a person or a screenshot; the user's marks override the panel's"
+ },
+ "pillars": [
+  {
+   "key": "ending",
+   "name": "The ending",
+   "target_ceilings": 3,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "Pressburg reaches THE IMPERIAL PEACE by turn 36",
+     "arms": [
+      "PRESS"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The Verdict arm reaches its turn-44 register",
+     "arms": [
+      "VERDICT"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "On CONG, the Congress is never dissolved by a cession reopened in a war France neither declared nor joined, and a fall names its cause (RS-2)",
+     "arms": [
+      "CONG"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "The CONG summons names the league gate it lowers (RS-10)",
+     "arms": [
+      "CONG"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "The CONG alarm forecast matches the next tick ±1 (RS-16)",
+     "arms": [
+      "CONG"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "T ≥ 40 at turn 40 on 2 of 3 CMD seeds",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "Some benchmark road reaches T ≥ 45 by turn 40",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "CMD-ULM",
+      "REACH-AAR",
+      "REACH-GEVB"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "PROBE",
+     "text": "On CONG, each refuser's price can be paid within the sitting, or the table says it cannot (RS-D1)",
+     "arms": [
+      "CONG"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "diplomacy",
+   "name": "Diplomacy",
+   "target_ceilings": 3,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The propose arm ratifies a peace on every seed",
+     "arms": [
+      "PROP-H",
+      "PROP-A",
+      "PROP-M"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The advisor arm ticks at least 2 mission types",
+     "arms": [
+      "ADV"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "PROBE",
+     "text": "No French peace is broken within 5 turns by another court's cascade (RS-1)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "PROP-H",
+      "PROP-A",
+      "PROP-M"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "A ratification label names only the covered courts (RS-9)",
+     "arms": [
+      "OP",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "VOLTE fires volte_face (RS-27)",
+     "arms": [
+      "VOLTE"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's eight Cabinet phrasings each start a mission or give a priced refusal (RS-7)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "DL's 'request terms from Austria' is answered honestly: by Austria, or by the coalition's leader named as the court that answers for the war (PC15-6)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "No treaty France accepts from an AI offer fails its own ratification (SF-V1)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "VOLTE",
+      "OP",
+      "PROP-H",
+      "PROP-A",
+      "PROP-M"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "first_contact",
+   "name": "First contact",
+   "target_ceilings": 4,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "FC has 0 shrugs and 0 refusals",
+     "arms": [
+      "FC"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "SCH reaches card XIX",
+     "arms": [
+      "SCH"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "PROBE",
+     "text": "At most 2 of HOLD's 20 questions shrug",
+     "arms": [
+      "HOLD"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "EYES",
+     "text": "No HOLD answer contradicts the save",
+     "arms": [
+      "HOLD"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "DL's 'where are the Russians' and 'why is Europe alarmed' are answered (RS-14)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's 'what can I do' at 0 military actions names a legal order (RS-15)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "Every TODAY order in the boot briefing executes",
+     "arms": []
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "OP's first loop has 0 reading refusals",
+     "arms": [
+      "OP"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "economy",
+   "name": "Economy",
+   "target_ceilings": 3,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "net_residual is 0 on every record",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "OP",
+      "LAW",
+      "VOLTE"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "PROBE",
+     "text": "Britain's turn-1 Net exceeds France's (SR-5a)",
+     "arms": [
+      "CMD-H"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "On LAW, the Staff is enacted by loop 9",
+     "arms": [
+      "LAW"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "Every Net-line move of 10% or more names its cause",
+     "arms": [
+      "CMD-H"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "The quoted Charges and Laws equal what the next turn applies",
+     "arms": [
+      "LAW",
+      "CMD-H"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "Every priced order charges what it quoted",
+     "arms": []
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "DL's levy at 0 military actions executes (AAR-6)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "PROBE",
+     "text": "On CMD turns 20–40, 'what can I do' names an affordable purchase on ≥ 80% of turns (RS-D3)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "naval",
+   "name": "Naval",
+   "target_ceilings": 3,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The naval-gate tests are green",
+     "arms": [
+      "SUITE"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "SEA has no blocker and no SCRIPT PRECONDITION",
+     "arms": [
+      "SEA"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "SEA quotes the second diversion at readiness −25, and both throws print",
+     "arms": [
+      "SEA"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "A fleet action leads the next dispatch",
+     "arms": [
+      "SEA",
+      "DESC",
+      "SHUT-H"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "The descent quote names the odds and a lever, and Munster falls",
+     "arms": [
+      "DESC"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "On the shut-out arm, Britain sues by turn 10 on 3 of 3 seeds",
+     "arms": [
+      "SHUT-H",
+      "SHUT-A",
+      "SHUT-M"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "The ports lever explains '(now 0)' during a truce (RS-25)",
+     "arms": [
+      "CONG",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The Admiralty and fleet frames pass",
+     "arms": [
+      "CLI"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "living_balance",
+   "name": "Living balance",
+   "target_ceilings": 3,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "On CMD, France holds ≥ 20 provinces at turn 40 on 3 of 3 seeds",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "BASELINE_SERIES and M1–M7 are green",
+     "arms": [
+      "SUITE"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "AIV-C shows at least one war between two AI courts",
+     "arms": [
+      "AIV"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "AIV-C shows at least one standalone third-party settlement",
+     "arms": [
+      "AIV"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "AIV-C shows exhaustion-driven pair peaces on every seed",
+     "arms": [
+      "AIV"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "On CMD, after the general peace, a court declares war on France beyond the fresh-peace floor and not by cascade (PB-D1)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "On CMD after the peace, every sponsorship against France and every great power that newly qualifies for a league leads or sub-beats the next dispatch, and each quoted keep-out lever flips qualifies_for_coalition(relation_shift=) (Step 7b)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "On every AIV-C seed, an AI court takes a province from another AI court",
+     "arms": [
+      "AIV"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "combat_legibility",
+   "name": "Combat legibility",
+   "target_ceilings": 4,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "Every player battle is logged with both sides' losses",
+     "arms": [
+      "OP",
+      "FLD",
+      "CMD-H"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "OP's turn-4 scout of Vienna names the garrison",
+     "arms": [
+      "OP"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "Every attack that fought printed its muster first, including through an objection (RS-13)",
+     "arms": [
+      "OP",
+      "FLD",
+      "CMD-H"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "The bands are monotone: 'favorable' attacks out-bleed the enemy ≥ 70% of the time, and more often than 'even'",
+     "arms": [
+      "OP",
+      "FLD",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "An occupied capital's garrison fights, or is named (RS-3)",
+     "arms": [
+      "OP",
+      "FLD",
+      "CMD-H"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's what-if for a fortified marshal refuses as the order would (RS-12)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "No raw marshal keys in combat text (RS-26)",
+     "arms": [
+      "OP",
+      "FLD",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The diorama frames pass at both scales",
+     "arms": [
+      "CLI"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "marshal_drama",
+   "name": "Marshal drama",
+   "target_ceilings": 4,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "PROBE",
+     "text": "On the flagship arm, _pc15_10_acceptance_probe.py shows ≤ 4 petition modals and 0 silent losses",
+     "arms": [
+      "FLAG"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "On OP, a grievance fires, is heard and resolves",
+     "arms": [
+      "OP"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "OP shows ≤ 3 petition modals and ≥ 3 audiences",
+     "arms": [
+      "OP"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "A Trust answer names only a man we can see and reach, and a refused Trust keeps the order (RS-5)",
+     "arms": [
+      "OP",
+      "FLD"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "No marshal repeats a victory line within his last three wins (RS-24)",
+     "arms": [
+      "OP",
+      "FLD",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "The crown moves only on ≥ 3 glory, and the line names where it went",
+     "arms": [
+      "OP",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "FLD"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "An unmet expectation is announced before trust erodes",
+     "arms": [
+      "OP",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "Five sampled petitions each read in the marshal's own voice",
+     "arms": [
+      "OP",
+      "FLD"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "vassals",
+   "name": "Vassals",
+   "target_ceilings": 4,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "On CMD, ≥ 2 of 3 satellites remain at turn 40 on 3 of 3 seeds",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "CMD-H with --client-petition refuse loses a satellite by turn 30",
+     "arms": [
+      "CMDR-H"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "CMD shows ≥ 4 priced petitions",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "PROBE",
+     "text": "A petition's applied effect equals its quote",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "No French peace leaves a client state at war (SR-1b)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "Loyalty under 40 draws a line naming the remedy",
+     "arms": [
+      "CMDR-H",
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "An attacked client capital is contested within 2 turns (VD-C)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The VASSALS tab frame passes",
+     "arms": [
+      "CLI"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "ui_ux",
+   "name": "UI/UX",
+   "target_ceilings": 4,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "CLI: 0 SCRIPT ERROR, 0 blank frames, every shot ok",
+     "arms": [
+      "CLI"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The parse harness exits 0 and the boot smoke test is clean",
+     "arms": [
+      "CLI"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "No frame has buttons_offscreen",
+     "arms": [
+      "CLI"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "No frame has clipped_text",
+     "arms": [
+      "CLI"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "No frame's text shows a raw key, <null> or (s)",
+     "arms": [
+      "CLI"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "On OP, no end turn raises more than 3 blocking popups (a rail audience is not a blocking popup)",
+     "arms": [
+      "OP"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "EYES",
+     "text": "The user signs off ≥ 9 of 10 named frames",
+     "arms": [
+      "CLI"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "In a 5-turn Mode C session, nothing is blocked and every hotkey works",
+     "arms": [
+      "CLI"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "command",
+   "name": "Command & parsing",
+   "target_ceilings": 5,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The golden corpus passes 100%",
+     "arms": [
+      "PEVAL"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "The keyless replay passes 100%",
+     "arms": [
+      "PEVAL"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "OP: ≤ 1 shrug in 127 lines",
+     "arms": [
+      "OP"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "OP: 0 reading refusals (of the 'Cannot find marshal Of Ney' kind)",
+     "arms": [
+      "OP"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "≥ 18 of HOLD's 20 orders execute as meant",
+     "arms": [
+      "HOLD"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "AUTO",
+     "text": "DL's 'in support of', 'march on X and destroy Y' and 'take' execute (RS-6/8/11), and 'attack Zorglub' / 'attack Alsace' ask without spending anything (SF-V4)",
+     "arms": [
+      "DL"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "On typed_road.json, question turns spend 0 actions and order turns spend them",
+     "arms": [
+      "TYPED"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "OP on the live parser has ≤ 1 misread",
+     "arms": [
+      "OP-LIVE"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "narration",
+   "name": "Narration",
+   "target_ceilings": 5,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "Every turn has a headline, and none shows a raw key",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "A dispatch carries ≤ 2 routine intent lines plus a tail",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "No headline class leads more than 4 of any 10 turns (RS-D2, Step 7b)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "No rail row repeats more than 3 times a turn, and every war entry names its enemy (RS-23)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "OP"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "The near-miss and summonable headlines fire (RS-17)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "REACH-AAR",
+      "REACH-GEVB"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "The dispatch's intel row matches the intel store (AAR-5)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "Le Moniteur keeps its cadence and its special editions",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "Ten sampled dispatches each lead with the turn's biggest event",
+     "arms": [
+      "CMD-H"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "ai_aliveness",
+   "name": "AI aliveness",
+   "target_ceilings": 5,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "test_ai_intent_assurance.py is green",
+     "arms": [
+      "SUITE"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "AUTO",
+     "text": "No arm has a blocker or a traceback",
+     "arms": [
+      "*"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "The rival courts enact 13–18 laws with 0 lapses",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "Every 40-turn arm has ≥ 1 design promotion",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "CMD-ULM",
+      "VOLTE",
+      "REACH-AAR",
+      "REACH-GEVB"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "AUTO",
+     "text": "Britain lands on the continent on every CMD arm",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "No AI assaults a garrison under 500 men three times running (AAR-D8)",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C5",
+     "kind": "PROBE",
+     "text": "No AI corps fortifies, unfortifies and fortifies again within 3 turns",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "AUTO",
+     "text": "On CMD, visible AI attacks occur on ≥ 50% of the turns at war",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    }
+   ]
+  },
+  {
+   "key": "agendas",
+   "name": "Agendas & formables",
+   "target_ceilings": 6,
+   "items": [
+    {
+     "id": "F1",
+     "kind": "AUTO",
+     "text": "The agenda and formables tests are green",
+     "arms": [
+      "SUITE"
+     ]
+    },
+    {
+     "id": "F2",
+     "kind": "PROBE",
+     "text": "/formables on every CMD save lists each template with its gate terms",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M"
+     ]
+    },
+    {
+     "id": "C1",
+     "kind": "AUTO",
+     "text": "Every 40-turn arm has ≥ 2 agenda_shift events",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "CMD-ULM",
+      "VOLTE",
+      "REACH-AAR",
+      "REACH-GEVB"
+     ]
+    },
+    {
+     "id": "C2",
+     "kind": "AUTO",
+     "text": "On AIV-B, a variance seed opens with a different design (D7)",
+     "arms": [
+      "AIV"
+     ]
+    },
+    {
+     "id": "C3",
+     "kind": "PROBE",
+     "text": "A gate term flips to met during play",
+     "arms": [
+      "CMD-H",
+      "CMD-A",
+      "CMD-M",
+      "CMD-ULM"
+     ]
+    },
+    {
+     "id": "C4",
+     "kind": "PROBE",
+     "text": "The TILSIT probe raises nation_proclamation",
+     "arms": []
+    },
+    {
+     "id": "C5",
+     "kind": "AUTO",
+     "text": "On SF-AGD-1's arm, a carve states its terms and the Proclamation card fires",
+     "arms": [
+      "AGD"
+     ]
+    },
+    {
+     "id": "C6",
+     "kind": "EYES",
+     "text": "The Proclamation and formables frames pass",
+     "arms": [
+      "CLI"
+     ]
+    }
+   ]
+  }
+ ]
+}

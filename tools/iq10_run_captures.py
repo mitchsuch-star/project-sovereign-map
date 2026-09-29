@@ -788,6 +788,31 @@ SHOTS: list[dict] = [
 ]
 
 
+# ── Score Finish Step 0 (SF-M, Sept 29, 2026): the two shots SCORE_FINISH_SPEC.md §4.6 names.
+# REGISTERED on a machine without the Godot binary — not yet shot; the first run with --godot takes them.
+SHOTS += [
+    {
+        "id": "proclamation_warsaw",
+        "surface": "The Proclamation — a client carved at the peace table (NA-6c)",
+        "payload": "proclamation_warsaw",
+        "scene": "res://scenes/proclamation_popup.tscn",
+        "mode": "call", "method": "show_proclamation",
+        "must_show": "A NATION IS PROCLAIMED over the Duchy of Warsaw's flag; 'By your hand.'; no struck old "
+                     "name (nothing died to make it); the engraved forms line; one Acknowledge; no raw tag",
+    },
+    {
+        "id": "wizard_formables_entry",
+        "surface": "The Cabinet wizard — step 1 with the Formable Nations entry (NA-6d §11.6-8)",
+        "payload": "formables_after_carve",
+        "scene": "res://scenes/diplomacy_wizard.tscn",
+        "mode": "call", "method": "open", "args": [],
+        "must_show": "the one-line step-1 prompt; the nation list; the 'Formable Nations' entry present and "
+                     "enabled. ⚠ The step-3 chip rows fetch GET /formables over a raw HTTPRequest the harness "
+                     "cannot stub — they need a live backend on SOVEREIGN_PORT; owed to Step 7's client pass",
+    },
+]
+
+
 def load_manifest(payload_dir: pathlib.Path) -> dict:
     m = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))
     return {c["name"]: c for c in m["captures"]}

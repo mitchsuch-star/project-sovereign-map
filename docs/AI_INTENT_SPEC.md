@@ -1796,7 +1796,7 @@ has built a simulation of statecraft without its texture.
 
 | # | Scene | The mechanic that reaches it | Arm |
 |---|---|---|---|
-| 1 | **The Confederation of the Rhine** — a cluster of minors bandwagons to the hegemon | `bandwagon` (§3.1) + the vassalage on-ramp (§4.5), timing per §3.4's minors paragraph | either — but note that with a passive France the hegemony share may never reach the P-Bandwagon gate (`ai_diplomacy.py:1094`) |
+| 1 | **The Confederation of the Rhine** — a cluster of minors bandwagons to the hegemon | `bandwagon` (§3.1) + the vassalage on-ramp (§4.5), timing per §3.4's minors paragraph | either — but note that with a passive France the hegemony share may never reach the P-Bandwagon gate (`ai_diplomacy.py:1094`) | **⚑ Homed Sept 29, 2026 (SF-0):** unreachable at `c20d5bba` because the German minors carry no agenda deck (their intent reads `indifferent`) even where France's bloc share opens the bandwagon gate → `SCORE_FINISH_SPEC.md` Step 5 **SR-8c**'s deck review owns it. |
 | 2 | **Schönbrunn** — a design bought off with compensation elsewhere | D5 instrument 1, creating a standing expectation (§3.3) | either (D5 works AI↔AI) |
 | 3 | **Jena** — that bargain broken, and the war that follows says so | §3.3 reneged compensation as the highest-weight casus belli, carried as the war's stated reason | either |
 | 4 | **Tilsit** — a beaten enemy reverses and is aimed at a third party | the volte-face (§3.6) + the `sponsor` branch (AI-2b's directed record) + **the §12.2 second design as the aim's object** — a reversed Russia advances to *The Gulf and the Straits* | either — §3.6 calls it "a *player-caused* surprise" |

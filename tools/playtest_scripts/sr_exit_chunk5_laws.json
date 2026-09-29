@@ -55,6 +55,7 @@
    "recruit 10000 infantry with Soult"
   ],
   "7": [
+   "enact the Staff",
    "repeal the Code Abroad",
    "what laws are in force",
    "economy",
@@ -63,6 +64,7 @@
    "Murat, attack Archduke Charles"
   ],
   "8": [
+   "enact the Staff",
    "enact the Code Abroad",
    "status",
    "Davout, attack Archduke Charles",
@@ -71,6 +73,7 @@
    "Massena, move to Milan"
   ],
   "9": [
+   "enact the Staff",
    "what happened last turn",
    "status",
    "Ney, unfortify",
@@ -79,11 +82,13 @@
    "recruit 10000 cavalry with Murat"
   ],
   "10": [
+   "enact the Staff",
    "what laws are in force",
    "economy",
    "Ney, move to Franconia",
    "Davout, fortify",
    "Soult, move to Bavaria"
   ]
- }
+ },
+ "_note_sf_v3": "SF-V3 (SCORE_FINISH_SPEC.md §1.4; fixed Sept 29, 2026 by SF-M): since SR-5a the treasury reaches the Staff's 9,000 only around turn 8, and the arm typed the enactment for the last time at loop 6, so the LAW arm no longer bought the Staff. It now types `enact the Staff` at the head of every loop from 3 to 10 (a refused enactment is free); economy C1 reads the loop it is enacted by."
 }

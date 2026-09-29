@@ -993,6 +993,25 @@ The rule for any session:
   never subtracted from it.
 - **Count the ledgers with** `.venv/Scripts/python.exe tools/defect_census.py --open`.
 
+**The instrument itself (SF-M, September 29, 2026 — `tools/score_run.py`):**
+
+```
+# play the fixed benchmark (§4.2) on a tree; --tree points at a detached worktree of the baseline SHA
+.venv/Scripts/python.exe tools/score_run.py run --out tools/playtest_runs/score_<date>_<sha> [--tree <worktree>] [--jobs 3] [--godot <Godot exe>] [--only ARM,ARM] [--skip ARM]
+# read the 112 items -> checklist.json, scores.json, census_by_pillar.json, findings_rate.json (prints the pillar table + the directional)
+.venv/Scripts/python.exe tools/score_run.py check --run tools/playtest_runs/score_<date>_<sha> [--eyes eyes.json]
+# assemble the blind panel's folder (digests, checklist, scores, census, findings rate, frames; nothing that carries an old score)
+.venv/Scripts/python.exe tools/score_run.py packet --run tools/playtest_runs/score_<date>_<sha>
+# item flips + "MOVED / held" per pillar between two readings (§4.5's spread rule)
+.venv/Scripts/python.exe tools/score_run.py compare --base docs/audits/score_runs/2026_09_29_c20d5bba --run tools/playtest_runs/score_<date>_<sha>
+```
+
+- The arms are named in `score_run.ARMS`; the PROBE items live in `tools/_score_probes.py`; the checklist is `docs/SCORE_CHECKLIST_V1.json` (frozen v1 — a new version re-reads the baseline archive before comparing).
+- **HOLD is written fresh for every full reading** (`tools/playtest_scripts/score_hold_<date>.json`, 20 blind questions + 20 blind orders, named by `score_run.HOLD_SCRIPT`), by an agent that has not seen the corpus.
+- The run directory is gitignored; a full reading is archived by copying each arm's `digest.md`, `digest.jsonl`, `meta.json`, `titled.json`/`result.json` plus the five top-level JSONs, `AIV/`, the packet README and `panel.json` into `docs/audits/score_runs/<date>_<sha>/` — never the saves. The baseline is `docs/audits/score_runs/2026_09_29_c20d5bba/`.
+- No Godot on the reading machine → UI/UX reads NOT EXERCISED and the directional averages the other pillars (§4.6); pass `--godot` to run the client arm.
+- A session exit runs `check` over the items its slices touched and reports the FLIPS (`compare` against the baseline), never a new score (§5).
+
 ## Known limits (deliberate)
 
 - **Heavy process concurrency can FREEZE a driver child** (seen Aug 21,

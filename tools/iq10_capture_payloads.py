@@ -1428,7 +1428,42 @@ def cap_laws():
            facts={"britain_laws": britain.get("laws")})
 
 
+def cap_proclamation():
+    """SF-M (Score Finish Step 0, Sept 29, 2026) — the two shots the spec's
+    §4.6 names: the Proclamation card for a client carved at the peace
+    table (the Tilsit road of the IGR-D fixture: France six turns at war
+    with Prussia, holding Posen, ratifies the Warsaw `create_client` carve —
+    the SAME steps `tests/test_igr_d_carve_completable.py` pins), and the
+    Formables payload the wizard's step 3 renders, before and after the carve."""
+    T = test_module("test_igr_d_carve_completable")
+    world2, c2 = fresh()
+    record("formables_boot", get(c2, "/formables"), source="GET /formables",
+           staging="fresh 1805 boot — every template unavailable, each row stating its gate terms",
+           facts={"rows": [(r.get("tag") or r.get("id"), r.get("available"),
+                            [(t.get("text"), t.get("met")) for t in (r.get("gate_terms") or [])][:3])
+                           for r in ((get(c2, "/formables").get("formables") or get(c2, "/formables").get("rows") or []))][:8]})
+    with _quiet():
+        world = T._europe_world()
+        c = adopt(world)
+        world._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Prussia",
+                              "sweeteners": [], "demands": [T._carve_demand()]})
+    card = world.nation_proclamation_popup or {}
+    record("proclamation_warsaw", card,
+           source="world.nation_proclamation_popup after _ratify_treaty(create_client Posen → DuchyOfWarsaw)",
+           staging="the IGR-D fixture (France six turns at war with Prussia, Posen held and secured) ratifies the "
+                   "Tilsit carve as a bilateral peace — a DIRECT ratify at the seam the dialogue's accept reaches",
+           facts={"display_name": card.get("display_name"), "subtitle": card.get("subtitle"),
+                  "old_display_name": card.get("old_display_name"), "flag_tag": card.get("flag_tag"),
+                  "keys": sorted(card.keys())[:16]})
+    after = get(c, "/formables")
+    record("formables_after_carve", after, source="GET /formables",
+           staging="the same board after the carve — the Warsaw row formed, Poland's watcher opened",
+           facts={"rows": [(r.get("tag") or r.get("id"), r.get("available"), r.get("formed"))
+                           for r in (after.get("formables") or after.get("rows") or [])][:8]})
+
+
 CAPTURES = {
+    "proclamation": cap_proclamation,
     "congress": cap_congress,
     "campaign_end": cap_campaign_end,
     "layout_f3": cap_layout_f3,
