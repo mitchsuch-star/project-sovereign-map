@@ -312,6 +312,20 @@ def _live_covered_for_offer(
     if accepting_side not in VALID_SIDES:
         return covered, []
     coverable = set(get_coverable_enemy_participants(war, accepting_side))
+    # SF-V5 (Score Finish Step 1, Sept 29, 2026): a court that signed a
+    # TRUCE with our side since the letter was written is no party to this
+    # peace either — the letter was ratifiable when sent (the emitter's own
+    # rule), and the board moved under it inside the same phase (measured on
+    # the OP arm's turn 10: Russia's truce, answered the same enemy phase the
+    # letter arrived, hard-stopped the review with
+    # `no_direct_war_score_for_covered_enemy`). Read through the ONE reader
+    # the emitter uses; a truce court is reported as such, never as settled.
+    from backend.game_logic.ai_diplomacy import THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR
+    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR:
+        from backend.game_logic.settlement_staging import covered_courts_at_war
+        player = str(getattr(world, "player_nation", "France") or "France")
+        at_war = set(covered_courts_at_war(world, war, player=player))
+        coverable = {n for n in coverable if n in at_war}
     live = [nation for nation in covered if nation in coverable]
     departed = [nation for nation in covered if nation not in coverable]
     return live, departed
@@ -379,7 +393,14 @@ def _departed_courts_note(
         n for n in rows
         if _exit_path_for(world, n, war_id) == "eliminated"
     ] if world is not None else []
-    settled = [n for n in rows if n not in destroyed]
+    # SF-V5: a court in a TRUCE with us is neither destroyed nor settled.
+    player = str(getattr(world, "player_nation", "France") or "France") if world is not None else "France"
+    truced = [
+        n for n in rows
+        if n not in destroyed and world is not None
+        and str(world.get_diplomatic_state(n, player) or "") == "ARMISTICE"
+    ]
+    settled = [n for n in rows if n not in destroyed and n not in truced]
 
     def _listed(names: List[str]) -> str:
         shown = [humanize_entity_name(n) for n in names]
@@ -393,6 +414,12 @@ def _departed_courts_note(
             f"{_listed(destroyed)} "
             + ("no longer exists" if len(destroyed) == 1
                else "no longer exist")
+        )
+    if truced:
+        clauses.append(
+            f"{_listed(truced)} "
+            + ("stands in a truce with us" if len(truced) == 1
+               else "stand in a truce with us")
         )
     if settled:
         clauses.append(

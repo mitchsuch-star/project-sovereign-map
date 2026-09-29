@@ -162,6 +162,8 @@ class TestRefusalRecord:
             _make_proposal as make_proposal,
             deliver_ai_proposal,
         )
+        # SF-V1 (Score Finish Step 1, Sept 29, 2026): the transport withholds a letter the table would refuse, so a staged letter must be one the ratifier would sign — the relation at the treaty's own floor (`STATE_RELATION_REQUIREMENTS`).
+        world.nation_relations[world._make_diplo_key("Prussia", "France")] = 0
         terms = build_terms("Prussia", "non_aggression", 0, world)
         proposal = make_proposal("Prussia", "non_aggression", 4, terms,
                                  world)

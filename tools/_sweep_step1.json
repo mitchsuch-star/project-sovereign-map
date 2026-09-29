@@ -1,0 +1,506 @@
+[
+ {
+  "id": "RS-1 bar: the fresh-peace read is gone",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if peace_with_target_is_fresh(callee, world, target):\n        return f\"fresh peace with {target}\"\n",
+  "new": "    if False:\n        return f\"fresh peace with {target}\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheCascadeKeepsAFreshPeace"
+ },
+ {
+  "id": "RS-1 bar: the cooldown read is gone",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if cooldown > 0:\n        return f\"a truce's cooldown binds it to {target} ({cooldown} more turns)\"\n",
+  "new": "    if cooldown > 0 and False:\n        return f\"a truce's cooldown binds it to {target} ({cooldown} more turns)\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheCascadeKeepsAFreshPeace"
+ },
+ {
+  "id": "RS-1 bar: the Congress arm is gone",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if spared:\n        return f\"{spared} — the Congress of Paris sits\"\n",
+  "new": "    if spared and False:\n        return f\"{spared} — the Congress of Paris sits\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheCascadeKeepsAFreshPeace"
+ },
+ {
+  "id": "RS-1 cascade: the bar is not read before the roads",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "                bar = offensive_call_bar(world, nation, target)\n                if bar:\n                    _append_war_entry(",
+  "new": "                bar = \"\"\n                if bar:\n                    _append_war_entry(",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheCascadeKeepsAFreshPeace"
+ },
+ {
+  "id": "RS-1 preview: the barred ally is promised",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "                bar = offensive_call_bar(world, nation, target)\n                if bar:\n                    offensive_barred.append",
+  "new": "                bar = \"\"\n                if bar:\n                    offensive_barred.append",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheWarPreviewNamesTheBarredAlly"
+ },
+ {
+  "id": "RS-1 floor: not written by the transition helper",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    write_settlement_peace_floors(world, resolved_pairs)\n    return resolved_pairs, state_clauses_applied\n",
+  "new": "    return resolved_pairs, state_clauses_applied\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSettlementWritesThePairCooldown"
+ },
+ {
+  "id": "RS-1 floor: written for a pair that was already at peace",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "        if pair and before in (\"WAR\", \"ARMISTICE\") and after == \"PEACE\":\n",
+  "new": "        if pair and after == \"PEACE\":\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSettlementWritesThePairCooldown"
+ },
+ {
+  "id": "RS-1 floor: a longer cooldown is overwritten",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "            cooldowns[pair] = max(int(cooldowns.get(pair, 0) or 0), int(floor))\n",
+  "new": "            cooldowns[pair] = int(floor)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSettlementWritesThePairCooldown"
+ },
+ {
+  "id": "RS-2 sword: a declaration is always the Emperor's",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    if reason == \"war_declaration\":\n        return nation_a == player\n",
+  "new": "    if reason == \"war_declaration\":\n        return True\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 shelter: every war shelters",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    return not player_drew_the_sword(world, nation_a, nation_b, reason)\n",
+  "new": "    return True\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 break: no contest, the old break",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if shelter and _house(world, rec) == player and rec.get(\"from\") != player:\n",
+  "new": "        if False:\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 resolve: a signed peace keeps the mark",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if signed:\n            rec.pop(\"contested\", None)\n",
+  "new": "        if signed:\n            pass\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 resolve: an unsigned end never reopens",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        else:\n            _reopen_record(rec, turn)\n            reopened.append(region_name)\n    return reopened\n\n\ndef lapse_contested_titles",
+  "new": "        else:\n            reopened.append(region_name)\n    return reopened\n\n\ndef lapse_contested_titles",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 setter: the war's end resolves nothing",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if (old_state in (\"WAR\", \"ARMISTICE\")\n            and new_state not in (\"WAR\", \"ARMISTICE\")):\n        from backend.game_logic.game_end import (\n            SIGNED_PEACE_REASONS as _SIGNED,",
+  "new": "    if False:\n        from backend.game_logic.game_end import (\n            SIGNED_PEACE_REASONS as _SIGNED,",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 lapse: a truce ends the contest",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        at_war = state in (\"WAR\", \"ARMISTICE\")\n",
+  "new": "        at_war = state in (\"WAR\",)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 lapse: the sitting's end never reopens",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if not sits:\n            _reopen_record(rec, turn)\n            reopened.append(region_name)\n",
+  "new": "        if not sits:\n            pass\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 lapse: not called by the per-turn pass",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    lapse_contested_titles(world)\n    disrupted = None\n",
+  "new": "    disrupted = None\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 reconcile: the backup break ignores the contest",
+  "file": "backend/game_logic/game_end.py",
+  "old": "            if isinstance(rec.get(\"contested\"), dict):\n                continue\n            former = str(rec.get(\"from\") or \"\")\n",
+  "new": "            former = str(rec.get(\"from\") or \"\")\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheTurn24ReplayHolds"
+ },
+ {
+  "id": "RS-2 hold: the contest is not named",
+  "file": "backend/game_logic/congress.py",
+  "old": "        contested = _contested_by_war(world)\n        if contested:\n            causes.append(contested)\n",
+  "new": "        contested = _contested_by_war(world)\n        if False:\n            causes.append(contested)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 hold: a short count names the contest, not the loss",
+  "file": "backend/game_logic/congress.py",
+  "old": "        if lost:\n            from backend.campaign_log import and_join\n            causes.append(f\"{and_join(lost[:4])}{' …' if len(lost) > 4 else ''} taken by force\")\n",
+  "new": "        if False:\n            from backend.campaign_log import and_join\n            causes.append(f\"{and_join(lost[:4])}{' …' if len(lost) > 4 else ''} taken by force\")\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 log: the event carries another phase",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                \"type\": \"congress\", \"phase\": \"contested\", \"nation\": player,\n",
+  "new": "                \"type\": \"congress\", \"phase\": \"contested_x\", \"nation\": player,\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 dispatch: no contested lead",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if phase == \"contested\":\n        # RS-2: the titles the ceder's war contests, counted while it sits.\n",
+  "new": "    if phase == \"contested_x\":\n        # RS-2: the titles the ceder's war contests, counted while it sits.\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-2 chronicle: no contested line",
+  "file": "backend/campaign_log.py",
+  "old": "    if phase == \"contested\":\n        # RS-2: a ceder's war while the Congress sits contests its cessions\n",
+  "new": "    if phase == \"contested_x\":\n        # RS-2: a ceder's war while the Congress sits contests its cessions\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "RS-D1 latch: capital_kept ignored",
+  "file": "backend/game_logic/congress.py",
+  "old": "    kept_set = (set(capital_kept or ())\n                if A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES else set())\n",
+  "new": "    kept_set = set()\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
+ },
+ {
+  "id": "RS-D1 latch: the capital outranks a cession",
+  "file": "backend/game_logic/congress.py",
+  "old": "        kind = (\"table\" if now_sitting else\n                \"beaten\" if court in beaten_set else \"capital\")\n",
+  "new": "        kind = (\"table\" if now_sitting else\n                \"capital\" if court in kept_set else \"beaten\")\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
+ },
+ {
+  "id": "RS-D1 latch: never breaks when the capital leaves",
+  "file": "backend/game_logic/congress.py",
+  "old": "    if (A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES and rec.get(\"kind\") == \"capital\"\n            and not capital_in_our_hands(world, court)):\n        return None\n",
+  "new": "    if (A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES and rec.get(\"kind\") == \"capital\"\n            and False):\n        return None\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheThreeBreakers"
+ },
+ {
+  "id": "RS-D1 tick: the break is stamped with no reason",
+  "file": "backend/game_logic/congress.py",
+  "old": "                rec[\"broken\"] = {\"turn\": turn,\n                                 \"reason\": f\"{rec.get('capital') or 'its capital'} \"\n                                           f\"left our hands\"}\n",
+  "new": "                rec[\"broken\"] = {\"turn\": turn, \"reason\": \"x\"}\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheThreeBreakers"
+ },
+ {
+  "id": "RS-D1 ratify: the map is not read for the capital",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if holder and world._top_overlord(holder) == player:\n            capital_kept.add(court)\n",
+  "new": "        if False:\n            capital_kept.add(court)\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
+ },
+ {
+  "id": "RS-D1 answer: the capital reason is the plain one",
+  "file": "backend/game_logic/congress.py",
+  "old": "        if signed.get(\"kind\") == \"capital\":\n            # RS-D1: \"it signed the peace that left Vienna in our hands (turn 16)\".\n",
+  "new": "        if signed.get(\"kind\") == \"capital_x\":\n            # RS-D1: \"it signed the peace that left Vienna in our hands (turn 16)\".\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
+ },
+ {
+  "id": "RS-D1 projection: the road is not named",
+  "file": "backend/game_logic/congress.py",
+  "old": "            if taken and A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES:\n",
+  "new": "            if False:\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
+ },
+ {
+  "id": "RS-D1 rider: the retained capital is not a loss",
+  "file": "backend/game_logic/settlement_scoring.py",
+  "old": "    if capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST:\n        capital_lost = True\n",
+  "new": "    if capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST:\n        capital_lost = capital_lost\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
+ },
+ {
+  "id": "RS-D1 rider: the kept-all bonus survives",
+  "file": "backend/game_logic/settlement_scoring.py",
+  "old": "        and not (capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST)\n",
+  "new": "        and True\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
+ },
+ {
+  "id": "RS-D1 rider: an ally's hand counts as ours",
+  "file": "backend/game_logic/settlement_scoring.py",
+  "old": "    if holder_top != str(world._top_overlord(leader) or leader):\n        return False\n",
+  "new": "    if False:\n        return False\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
+ },
+ {
+  "id": "RS-D1 rider: a returned capital still counts",
+  "file": "backend/game_logic/settlement_scoring.py",
+  "old": "        if term.get(\"type\") in _TERRITORY_TERM_TYPES and capital in _term_regions(term):\n            return False\n    return True\n",
+  "new": "        if term.get(\"type\") in _TERRITORY_TERM_TYPES and capital in _term_regions(term):\n            continue\n    return True\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
+ },
+ {
+  "id": "RS-D1 rider: not wired into step 6",
+  "file": "backend/game_logic/settlement_scoring.py",
+  "old": "        capital_retained_by_proposer=capital_retained_by_proposer_bloc(\n",
+  "new": "        capital_retained_by_proposer=False and capital_retained_by_proposer_bloc(\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
+ },
+ {
+  "id": "RS-D1 turns: points are turns",
+  "file": "backend/game_logic/congress.py",
+  "old": "    turns = int(math.ceil(int(points) / float(per)))\n",
+  "new": "    turns = int(points)\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
+ },
+ {
+  "id": "RS-D1 turns: the relation lever drops the clause",
+  "file": "backend/game_logic/congress.py",
+  "old": "                                + courtship_clause(world, min(gap, 100 - rel) if gap > 0 else 100 - rel)\n",
+  "new": "                                + \"\"\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
+ },
+ {
+  "id": "RS-D1 turns: the bundle row drops the clause",
+  "file": "backend/game_logic/congress.py",
+  "old": "                         \"turns_clause\": courtship_clause(world, need),\n",
+  "new": "                         \"turns_clause\": \"\",\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
+ },
+ {
+  "id": "RS-D1 turns: the bundle sentence drops the clause",
+  "file": "backend/game_logic/congress.py",
+  "old": "        return (f\"{int(lever.get('value') or 0)} more relations (court them\"\n                f\"{lever.get('turns_clause') or ''})\")\n",
+  "new": "        return (f\"{int(lever.get('value') or 0)} more relations (court them\"\n                f\"{''})\")\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
+ },
+ {
+  "id": "RS-D1 wording: no recognition line",
+  "file": "backend/game_logic/congress.py",
+  "old": "        if kind != \"capital\":\n            continue\n        capital = str(world.get_nation_capital(court) or \"its capital\")\n",
+  "new": "        if True:\n            continue\n        capital = str(world.get_nation_capital(court) or \"its capital\")\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheWording"
+ },
+ {
+  "id": "RS-D1 wording: the stash is never cleared",
+  "file": "backend/game_logic/game_end.py",
+  "old": "    lines = getattr(world, \"_recognition_lines\", None)\n    world._recognition_lines = []\n",
+  "new": "    lines = getattr(world, \"_recognition_lines\", None)\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheWording"
+ },
+ {
+  "id": "RS-D1 preview: a returned capital still promises",
+  "file": "backend/game_logic/congress.py",
+  "old": "        if capital and capital not in returned and capital_in_our_hands(world, court):\n",
+  "new": "        if capital and capital_in_our_hands(world, court):\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheWording"
+ },
+ {
+  "id": "RS-D1 review: the note is not on the text",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    if _recognition_note:\n        text = f\"{text} {_recognition_note}\"\n",
+  "new": "    if False:\n        text = f\"{text} {_recognition_note}\"\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
+ },
+ {
+  "id": "RS-D1 summary: the bilateral treaty drops the line",
+  "file": "backend/models/world_state.py",
+  "old": "                _sq_lines = list(_sq_lines) + take_recognition_lines(self)\n",
+  "new": "                _sq_lines = list(_sq_lines)\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheWording"
+ },
+ {
+  "id": "RS-D1 summary: the table drops the line",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "    if _rec_lines:\n        result_message = result_message + \" \" + \" \".join(_rec_lines)\n",
+  "new": "    if False:\n        result_message = result_message + \" \" + \" \".join(_rec_lines)\n",
+  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheCapitalLatch"
+ },
+ {
+  "id": "RS-10 warning: one refuser is enough",
+  "file": "backend/game_logic/congress.py",
+  "old": "    if len(refusers) < 2:\n        return \"\"\n    gate = _int(world, \"congress_alarm_gate\", CONGRESS_ALARM_GATE)\n",
+  "new": "    if len(refusers) < 1:\n        return \"\"\n    gate = _int(world, \"congress_alarm_gate\", CONGRESS_ALARM_GATE)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
+ },
+ {
+  "id": "RS-10 gate line: no warning",
+  "file": "backend/game_logic/congress.py",
+  "old": "    warning = league_warning(world)\n    if warning:\n        line += f\" · {warning}\"\n",
+  "new": "    warning = league_warning(world)\n    if False:\n        line += f\" · {warning}\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
+ },
+ {
+  "id": "RS-10 summons: no warning",
+  "file": "backend/game_logic/congress.py",
+  "old": "    warning = league_warning(world, table)\n    if warning:\n",
+  "new": "    warning = league_warning(world, table)\n    if False:\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
+ },
+ {
+  "id": "RS-10 blocker: the brewing arm is gone",
+  "file": "backend/game_logic/congress.py",
+  "old": "        if (THE_SUMMONS_NAMES_THE_LOWERED_GATE and brewing\n",
+  "new": "        if (False and brewing\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
+ },
+ {
+  "id": "RS-10 warning: a brewing league is not named",
+  "file": "backend/game_logic/congress.py",
+  "old": "    if brewing and (brewing.get(\"target_nation\") or player) == player:\n        from backend.display_names import plural\n",
+  "new": "    if False:\n        from backend.display_names import plural\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheSummonsNamesTheLoweredGate"
+ },
+ {
+  "id": "RS-16 forecast: no decay",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    decay = int(_calculate_threat_decay(world))\n    after = int(max(0, raised - decay)) if decay > 0 else raised\n",
+  "new": "    decay = 0\n    after = int(max(0, raised - decay)) if decay > 0 else raised\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheAlarmLineIsAForecast"
+ },
+ {
+  "id": "RS-16 forecast: the bloc's weight is not counted",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if hegemon == france and int(increment) > 0:\n            gains.append((\"our bloc's weight in Europe\", int(increment)))\n",
+  "new": "        if False:\n            gains.append((\"our bloc's weight in Europe\", int(increment)))\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheAlarmLineIsAForecast"
+ },
+ {
+  "id": "RS-16 forecast: no cap",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        raised = int(min(100, max(0, raised + int(amount))))\n",
+  "new": "        raised = raised + int(amount)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheAlarmLineIsAForecast"
+ },
+ {
+  "id": "RS-16 line: rising reads falling",
+  "file": "backend/game_logic/congress.py",
+  "old": "        if net > 0:\n            head = f\"rising {net} a turn\"\n",
+  "new": "        if net > 0:\n            head = f\"falling {net} a turn\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheAlarmLineIsAForecast"
+ },
+ {
+  "id": "SF-V1 refusal: the floor is not read",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if not check_relation_requirement(current, state, relation):\n        need = STATE_RELATION_REQUIREMENTS.get(state)\n",
+  "new": "    if False:\n        need = STATE_RELATION_REQUIREMENTS.get(state)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V1 refusal: a downgrade is an upgrade",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            and _UPGRADE_ORDER.index(state) <= _UPGRADE_ORDER.index(current)):\n",
+  "new": "            and False):\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V1 ladder: not walked",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    for ptype in _TREATY_LADDER[_TREATY_LADDER.index(wanted):]:\n",
+  "new": "    for ptype in [wanted]:\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V1 transport: the letter is sent anyway",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        _why = treaty_offer_refusal(world, nation, _ptype, player)\n        if _why:\n",
+  "new": "        _why = treaty_offer_refusal(world, nation, _ptype, player)\n        if False:\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V1 auction: the defensive alliance regardless",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            ptype = (best_ratifiable_treaty(world, nation, \"defensive_alliance\", player)\n                     if NO_OFFER_THE_TABLE_REFUSES else \"defensive_alliance\")\n",
+  "new": "            ptype = \"defensive_alliance\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V1 auction: no-pact reads as an offer",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            else:\n                outcome = \"player_won_no_pact\"\n",
+  "new": "            else:\n                outcome = \"player_offer\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V1 copy: the number is gone",
+  "file": "backend/models/world_state.py",
+  "old": "                        f\"stand at {int(relation)}; {_treaty} needs {_need}.\"\n",
+  "new": "                        f\"stand at X; {_treaty} needs {_need}.\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestNoOfferTheTableRefuses"
+ },
+ {
+  "id": "SF-V5 coverage: a truce court is at war",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "        if any(world.is_at_war(member, nation) for member in ours):\n            out.append(nation)\n",
+  "new": "        out.append(nation)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterCoversOnlyThePairsAtWar"
+ },
+ {
+  "id": "SF-V5 answer: the truce court stays covered",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        coverable = {n for n in coverable if n in at_war}\n",
+  "new": "        coverable = set(coverable)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsReadAtTheAnswer"
+ },
+ {
+  "id": "SF-V5 answer: the truce court is called settled",
+  "file": "backend/game_logic/settlement_offers.py",
+  "old": "        and str(world.get_diplomatic_state(n, player) or \"\") == \"ARMISTICE\"\n",
+  "new": "        and False\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsReadAtTheAnswer"
+ },
+ {
+  "id": "SF-END-1 line: the cooldown carries no cause",
+  "file": "backend/game_logic/congress.py",
+  "old": "        cause_clause = f\" — {cause}\" if c.get(\"dissolve_key\") and cause else \"\"\n",
+  "new": "        cause_clause = \"\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestAWarWhileTheCongressSitsContests"
+ },
+ {
+  "id": "SF-V5 eligibility: no refusal",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR and not _covered_at_war(\n            world, war, player=player):\n        return \"no_covered_enemy_at_war\"\n",
+  "new": "    if False:\n        return \"no_covered_enemy_at_war\"\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterCoversOnlyThePairsAtWar"
+ },
+ {
+  "id": "SF-V5 emitter: coverage not filtered",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        covered_enemies = [n for n in covered_enemies if n in at_war]\n",
+  "new": "        covered_enemies = list(covered_enemies)\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterCoversOnlyThePairsAtWar"
+ },
+ {
+  "id": "SF-V5 emitter: the proposer in a truce keeps the pen",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        if proposer_nation not in covered_enemies:\n            from backend.game_logic.settlement_staging import (\n",
+  "new": "        if False:\n            from backend.game_logic.settlement_staging import (\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterCoversOnlyThePairsAtWar"
+ },
+ {
+  "id": "SF-V5 dry run: not asked",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "    if THE_LETTER_IS_RATIFIABLE_WHEN_SENT and not _letter_would_carry(\n",
+  "new": "    if False and not _letter_would_carry(\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsRatifiableWhenSent"
+ },
+ {
+  "id": "SF-V5 dry run: no consent",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            consenting_courts=list(covered),\n        )\n    except Exception:\n        return True\n",
+  "new": "            consenting_courts=[],\n        )\n    except Exception:\n        return True\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsRatifiableWhenSent"
+ },
+ {
+  "id": "SF-V5 request: the lapse is silent",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "                who = leader or \"the enemy court\"\n                world.notifications.add(create_notification(\n                    notification_type=SETTLEMENT_TERMS_REQUEST_RESULT,\n                    priority=NotificationPriority.NORMAL,\n                    title=f\"No terms from {who}\",\n",
+  "new": "                who = leader or \"the enemy court\"\n                world.notifications.add(create_notification(\n                    notification_type=SETTLEMENT_TERMS_REQUEST_RESULT,\n                    priority=NotificationPriority.NORMAL,\n                    title=f\"No terms\",\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsRatifiableWhenSent"
+ },
+ {
+  "id": "SF-V5 request: the reason is lost",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "                entry[\"resolve_reason\"] = \"no_ratifiable_terms\"\n                entry[\"cooldown_until_turn\"] = int(\n",
+  "new": "                entry[\"resolve_reason\"] = \"terms_granted\"\n                entry[\"cooldown_until_turn\"] = int(\n",
+  "tests": "tests/test_step1_the_peace_holds.py::TestTheLetterIsRatifiableWhenSent"
+ }
+]

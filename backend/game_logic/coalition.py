@@ -14,7 +14,7 @@ All coalition logic lives in this file. Functions are called from:
 """
 
 import contextlib
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
@@ -1115,6 +1115,94 @@ def _calculate_defensive_refusal_memory_threat(world) -> int:
 # ════════════════════════════════════════════════════════════════
 # §2b. THREAT DECAY
 # ════════════════════════════════════════════════════════════════
+
+def forecast_alarm_tick(world) -> Dict[str, Any]:
+    """RS-16 (Score Finish Step 1, September 29, 2026): ONE forecast of the
+    next coalition tick on the PLAYER's slot — the gains the tick's producers
+    would add, in the tick's own order and with the store's 100 cap, and the
+    decay it subtracts. Pure: it reads the same helpers the tick calls and
+    writes nothing (the two marker producers prune expired markers in place,
+    so the forecast counts the unexpired ones itself). The Congress's alarm
+    line reads it (`congress.alarm_road`); before it, the line quoted the
+    gross decay alone and promised a fall on a board that rose.
+
+    Returns {now, gains: [(label, amount)], decay, next, net, capped}."""
+    france = world.player_nation
+    now = int(world.threat_by_target.get(france, 0) or 0)
+    gains: List[tuple] = []
+    nobody_left = NOBODY_LEFT_TO_ALARM_IS_SILENT and no_court_left_to_alarm(world, france)
+    total_regions = len(world.regions)
+    if not nobody_left and total_regions > 0:
+        _europe = getattr(world, "sovereign_map", "legacy") == "europe"
+        _gates = ((0.50, 3), (0.40, 2), (0.30, 1)) if _europe else \
+                 ((0.80, 3), (0.70, 2), (0.60, 1))
+        control_pct = len(world.get_nation_regions(france)) / total_regions
+        for _threshold, _amount in _gates:
+            if control_pct > _threshold:
+                gains.append(("our share of Europe", int(_amount)))
+                break
+    hegemony = _calculate_hegemony_pressure(world)
+    if hegemony and not nobody_left:
+        hegemon, increment = next(iter(hegemony.items()))
+        if hegemon == france and int(increment) > 0:
+            gains.append(("our bloc's weight in Europe", int(increment)))
+    if not nobody_left and getattr(world, "sovereign_map", "legacy") == "europe":
+        totals = _standing_strength_by_nation(world)
+        europe = sum(totals.values())
+        if europe >= ESTABLISHMENT_MIN_EUROPE_STRENGTH and france not in set(
+                getattr(world, "vassals", {}).keys()):
+            share = totals.get(france, 0) / europe
+            amount = 2 if share > ESTABLISHMENT_THREAT_SHARE_HIGH else (
+                1 if share > ESTABLISHMENT_THREAT_SHARE else 0)
+            if amount:
+                gains.append(("the size of our army", amount))
+    refusal = _calculate_defensive_refusal_memory_threat(world)
+    if refusal > 0:
+        gains.append(("our refused calls to arms", int(refusal)))
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    schemer = getattr(world, "schemer_rejection_pressure", None)
+    if isinstance(schemer, dict) and schemer:
+        live = sum(1 for exp in schemer.values() if int(exp) > turn)
+        amount = int(min(SCHEMER_PEACE_REJECTION_PRESSURE_CAP,
+                         live * SCHEMER_PEACE_REJECTION_PRESSURE_AMOUNT))
+        if amount > 0:
+            gains.append(("the peace overtures we spurned", amount))
+    agenda = _calculate_agenda_grudge_threat(world)
+    if agenda > 0:
+        gains.append(("the designs we deny", int(agenda)))
+    from backend.game_logic.agendas import AGENDA_GRUDGE_CAP as _GRUDGE_CAP
+    from backend.game_logic.formations import get_formation_grudge_contributions
+    spent = int(agenda)
+    for contribution in get_formation_grudge_contributions(
+            world, budget=_GRUDGE_CAP - agenda):
+        amount = int(contribution.get("amount", 0))
+        if amount > 0:
+            gains.append((str(contribution.get("label") or "a formation's grudge"), amount))
+            spent += amount
+    from backend.game_logic.congress import grudge_contributions
+    for contribution in grudge_contributions(world, budget=_GRUDGE_CAP - spent):
+        amount = int(contribution.get("amount", 0))
+        if amount > 0:
+            gains.append(("the refusers' grudge", amount))
+    defied = getattr(world, "ultimatum_rejection_pressure", None)
+    if isinstance(defied, dict) and defied:
+        live = sum(1 for exp in defied.values() if int(exp) > turn)
+        amount = int(min(ULTIMATUM_REJECTION_PRESSURE_CAP,
+                         live * ULTIMATUM_REJECTION_PRESSURE_AMOUNT))
+        if amount > 0:
+            gains.append(("the ultimatums we defied", amount))
+    raised = now
+    capped = False
+    for _label, amount in gains:
+        before = raised
+        raised = int(min(100, max(0, raised + int(amount))))
+        if raised - before < int(amount):
+            capped = True
+    decay = int(_calculate_threat_decay(world))
+    after = int(max(0, raised - decay)) if decay > 0 else raised
+    return {"now": now, "gains": gains, "decay": decay, "next": after,
+            "net": after - now, "capped": capped}
+
 
 def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
     """Calculate per-turn threat decay (§2b; AI-4a step 6 per-target).

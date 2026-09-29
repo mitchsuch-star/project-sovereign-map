@@ -257,12 +257,19 @@ class TestWhatARetainedTitleIsAndIsNot:
             assert rec["since"] == w.current_turn
             assert rec["reopened_by"] == "Austria"
 
-    def test_it_does_not_latch_the_congress(self, vienna_road):
+    def test_it_does_not_latch_the_congress_as_a_cession(self, vienna_road):
         """A retention is not a cession the court signed: the Congress's
-        beaten-court latch reads applied cessions and stays empty."""
+        beaten-court latch reads applied cessions and writes no `beaten`
+        record. FLIPPED CONSCIOUSLY by RS-D1 (Score Finish Step 1, Sept 29,
+        2026 — `tests/test_rs_d1_recognition_by_defeat.py`): the same white
+        peace leaves VIENNA in French hands, and a signed peace that keeps a
+        great power's capital now latches by the CAPITAL, a third kind."""
         w = vienna_road
         _ratify(w, "Austria", "France")
-        assert not (congress.record(w) or {}).get("signed")
+        signed = (congress.record(w) or {}).get("signed") or {}
+        assert signed["Austria"]["kind"] == "capital"
+        assert signed["Austria"]["capital"] == "Vienna"
+        assert not any(rec.get("kind") == "beaten" for rec in signed.values())
 
     def test_the_record_round_trips(self, vienna_road):
         w = vienna_road

@@ -337,18 +337,30 @@ class TestOfferProducerReadsTheWar:
     France is actually fighting, not the leader pair."""
 
     def _emit(self, world, war):
-        from backend.game_logic.ai_diplomacy import (
-            _emit_settlement_offer_for_war,
-        )
-        return _emit_settlement_offer_for_war(
-            world, "war_1", war, player="France",
-            current_turn=int(world.current_turn), pending=[], cooldowns={})
+        from unittest.mock import patch
+
+        from backend.game_logic import ai_diplomacy
+        # SF-V5 (Score Finish Step 1, Sept 29, 2026): the emitter dry-runs
+        # the letter through the per-court table and withholds one it would
+        # not carry; these pins read the TERMS the producer writes, so the
+        # dry run is held open here (its own pins: test_step1_the_peace_holds).
+        with patch.object(ai_diplomacy, "_letter_would_carry", return_value=True):
+            return ai_diplomacy._emit_settlement_offer_for_war(
+                world, "war_1", war, player="France",
+                current_turn=int(world.current_turn), pending=[], cooldowns={})
 
     def _world_and_war(self, decisive_vs_austria=True):
         world = WorldFactory.with_marshals(
             [MarshalFactory.infantry(name="Ney", location="Paris")],
             current_turn=15)
         key_a = world._make_diplo_key("France", "Austria")
+        # SF-V5 (Score Finish Step 1, Sept 29, 2026): the letter covers only
+        # the opposing courts with a live WAR pair against our side — a
+        # defender in the instance stands at WAR with France, as it would on
+        # any real board (the fixture had left Austria at PEACE).
+        world.diplomatic_states[key_a] = "WAR"
+        world.diplomatic_states[world._make_diplo_key("France", "Prussia")] = "WAR"
+        world.invalidate_active_nations_cache()
         if decisive_vs_austria:
             world.war_scores = {
                 key_a: (50 if key_a.split("|")[0] == "France" else -50)}

@@ -165,6 +165,18 @@ def ending_c3_alarm_forecast(arms, ctx):
     quotes = [
         (t, l) for t, l in _lines(a, "falls") if re.search(r"falls (\d+) a turn", l)
     ]
+    # RS-16 (built Sept 29, 2026): the road is ONE forecast of the tick —
+    # "rising 1 a turn: … against 3 of decay" / "falling 2 a turn" / "holding"
+    # — read as a signed net; the pre-RS-16 "it falls N a turn" reads as −N.
+    def _promised_net(text):
+        m = re.search(r"\b(rising|falling) (\d+) a turn", text)
+        if m:
+            return int(m.group(2)) * (1 if m.group(1) == "rising" else -1)
+        if re.search(r"\bholding\b", text):
+            return 0
+        m = re.search(r"falls (\d+) a turn", text)
+        return -int(m.group(1)) if m else None
+
     if not quotes:
         # the road is quoted on the Congress table, not the digest: read it off the summoned board
         try:
@@ -182,10 +194,9 @@ def ending_c3_alarm_forecast(arms, ctx):
             return _un(
                 f"no alarm road on the CONG digest and the board could not be asked: {exc}"
             )
-        m = re.search(r"falls (\d+) a turn", road)
-        if not m:
-            return _un(f"the Congress quotes no per-turn fall: {road[:120]}")
-        promised = int(m.group(1))
+        promised = _promised_net(road)
+        if promised is None:
+            return _un(f"the Congress quotes no per-turn forecast: {road[:120]}")
         if len(threats) < 2:
             return _un("CONG has fewer than two ledger readings")
         # the promise is the QUIET road: a tick that carries a league's dissolution (the halving) or its brewing is not the road quoted
@@ -198,7 +209,7 @@ def ending_c3_alarm_forecast(arms, ctx):
                 txt,
             ):
                 continue
-            falls.append(threats[i - 1] - threats[i])
+            falls.append(threats[i] - threats[i - 1])
         if not falls:
             return _un(
                 "every CONG tick carried a league event; no quiet tick to read the promise against"
@@ -210,14 +221,14 @@ def ending_c3_alarm_forecast(arms, ctx):
         return _res(
             True,
             ok,
-            f"the table promises a fall of {promised} a turn ('{road[:70]}…'); the quiet ticks on the CONG arm fell {falls} (median {med}); alarm series {threats}",
+            f"the table forecasts a net of {promised:+d} a turn ('{road[:70]}…'); the quiet ticks on the CONG arm moved {falls} (median {med:+.1f}); alarm series {threats}",
         )
     t, line = quotes[0]
-    promised = int(re.search(r"falls (\d+) a turn", line).group(1))
+    promised = _promised_net(line)
     idx = [i for i, g in enumerate(_groups(a)) if g and g[0].get("turn") == t]
-    if not idx or idx[0] + 1 >= len(threats):
+    if promised is None or not idx or idx[0] + 1 >= len(threats):
         return _un("no ledger tick after the quoted line")
-    actual = threats[idx[0]] - threats[idx[0] + 1]
+    actual = threats[idx[0] + 1] - threats[idx[0]]
     return _res(
         True,
         abs(actual - promised) <= 1,
@@ -251,6 +262,14 @@ def ending_c6_refuser_prices(arms, ctx):
             str(c.get("price", ""))
         ]
         joined = " · ".join(texts)
+        if str(c.get("by") or "") == "war" or c.get("score") is None:
+            # A refuser AT WAR is priced by the field — the war score, its
+            # capital, the peace it would sign — which no calendar can quote;
+            # the honest price names that road (RS-D1 built Sept 29, 2026).
+            if re.search(r"win the war|take its capital|sign a peace|shut \d+ of", joined, re.I):
+                continue
+            bad.append(f"{c.get('nation')} (at war): {joined[:150]}")
+            continue
         gains = [int(x) for x in re.findall(r"\(\+(\d+)\)", joined)]
         score = c.get("score")
         threshold = c.get("threshold")

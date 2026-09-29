@@ -111,10 +111,19 @@ class TestTheLedgersTellTheTruth:
         assert rows["NPC-D2"]["state"] == "disposed" and rows["NPC-D3"]["state"] == "disposed"
 
     def test_the_two_p1s_are_where_the_rule_reads_them(self, rows):
+        """Step 0 read the two P1s in their pillars' p1 lists (the rule's
+        cap). Step 1 CLOSED them (Sept 29, 2026): the reader now shows them
+        gone from the open view, and the rows carry their closing state — so
+        the ending's and diplomacy's caps are lifted where the rule reads."""
         open_rows = [r for r in rows.values() if r["state"] in ("OPEN", "partial")]
         view = census.by_pillar(open_rows)
-        assert "RS-1" in view["pillars"]["diplomacy"]["p1"]
-        assert "RS-2" in view["pillars"]["ending"]["p1"]
+        assert "RS-1" not in (view["pillars"].get("diplomacy") or {}).get("p1", [])
+        assert "RS-2" not in (view["pillars"].get("ending") or {}).get("p1", [])
+        assert rows["RS-1"]["state"] not in ("OPEN", "partial")
+        assert rows["RS-2"]["state"] not in ("OPEN", "partial")
+        # the reader itself still hands a P1 to the rule when one is open
+        staged = [dict(rows["RS-2"], state="OPEN", severity="P1", pillar="ending")]
+        assert "RS-2" in census.by_pillar(staged)["pillars"]["ending"]["p1"]
 
 
 # ═══════════════════════════ SF-M — the rule ═══════════════════════════

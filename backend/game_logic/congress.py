@@ -58,6 +58,28 @@ THE_CONGRESS_LOWERS_THE_GATE = True   # coalition gate 60 → 40, the refuser ar
 LONDON_FUNDS_THE_REFUSERS = True      # the paymaster at the Congress
 THE_BILLS_COME_DUE = True             # petitions at the summons, ×1.5 rentes, ×2 stakes
 THE_UNIVERSAL_MONARCHY = True         # E1 — no great power left to answer
+# ── Score Finish Step 1 "The peace holds" (September 29, 2026) ──
+# RS-D1 "Recognition by defeat" (SCORE_FINISH_SPEC §6.1, RULED Sept 28, 2026):
+# a SIGNED peace that leaves a great power's capital held by France or her
+# vassal chain latches its recognition (`kind: "capital"`); it breaks when the
+# capital leaves the bloc. Measured: at −90 the table could not reach 50 in
+# one sitting by any lever; the retest's two Austrian peaces ceded nothing by
+# clause, so no latch was ever written while Vienna stood in French hands.
+A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES = True
+# RS-D1's second half: every courtship lever quotes its cost in TURNS beside
+# its points ("court them to 40 — about 17 turns at +8 a turn; not within
+# this sitting"), so the table never prints a price that cannot be paid in
+# time without saying so.
+THE_LEVERS_QUOTE_THEIR_TURNS = True
+# RS-10: before the summons, the gate line and the summons' own report say
+# that summoning lowers the league's gate to `congress_alarm_gate` while two
+# great powers refuse, and name the courts it would take to war; while it
+# sits, the refuser rows read the BREWING league, not only a standing one.
+THE_SUMMONS_NAMES_THE_LOWERED_GATE = True
+# RS-16: the alarm line is ONE forecast of the coalition tick — its gains
+# (`coalition.forecast_alarm_tick`) against its decay — never the gross decay
+# alone ("it falls 3 a turn" on a board that rose 1 a turn for nine turns).
+THE_ALARM_LINE_IS_A_FORECAST = True
 
 # ════════════════════════════════════════════════════════════════════════
 # The numbers (ENDGAME_PLAN §2.7). Every one is read through
@@ -308,21 +330,87 @@ def _alarm(world) -> int:
 
 
 def alarm_road(world) -> str:
-    """SR-1c: what lowers Europe's alarm, and by how much — the decay the
-    coalition tick applies (`_calculate_threat_decay`: one, plus one for
+    """SR-1c: what moves Europe's alarm, and by how much. RS-16: ONE forecast
+    of the coalition tick (`coalition.forecast_alarm_tick`) — the gains the
+    tick's producers would add (our share of Europe, our bloc's weight, the
+    standing grudges …) against the decay it subtracts (one, plus one for
     each court at peace with us, at most three, plus one under the
-    Continental System) and the league-spent rule (a treaty that dissolves
-    a league halves it). Read off the same helpers the tick uses."""
+    Continental System), stated as the net the next tick applies; and the
+    league-spent rule (a treaty that dissolves a league halves it). Before
+    RS-16 the line read only the gross decay, and promised a fall of 3 on a
+    board that rose 1 a turn for nine turns."""
     from backend.game_logic import coalition as _co
     decay = int(_co._calculate_threat_decay(world))
     cs = ""
     if len(getattr(world, "continental_system_members", []) or []) >= 2:
         cs = ", plus one for the Continental System"
-    parts = [f"it falls {decay} a turn (one, plus one for each court at peace "
-             f"with us, at most three{cs})"]
+    decay_clause = (f"{decay} of decay (one, plus one for each court at peace "
+                    f"with us, at most three{cs})")
+    if THE_ALARM_LINE_IS_A_FORECAST:
+        fc = _co.forecast_alarm_tick(world)
+        net = int(fc.get("net", 0))
+        gains = [f"{label} +{int(amount)}" for label, amount in fc.get("gains") or []
+                 if int(amount) > 0]
+        if net > 0:
+            head = f"rising {net} a turn"
+        elif net < 0:
+            head = f"falling {-net} a turn"
+        else:
+            head = "holding"
+        if gains:
+            body = f"{head}: {', '.join(gains)} against {decay_clause}"
+        else:
+            body = f"{head}: nothing adds to it; {decay_clause}"
+        if fc.get("capped"):
+            body += " — the alarm cannot rise past 100"
+        parts = [body]
+    else:
+        parts = [f"it falls {decay} a turn (one, plus one for each court at peace "
+                 f"with us, at most three{cs})"]
     if getattr(_co, "THE_LEAGUE_SPENDS_ITS_ALARM", False):
         parts.append("a treaty that dissolves a league halves it")
     return "; ".join(parts)
+
+
+def league_warning(world, table: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
+    """RS-10: what the summons does to the league's gate — "the summons
+    lowers the league's gate to 40 while two great powers refuse (Europe's
+    alarm stands at 56): Russia and Austria would gather against us" — and,
+    while a league already brews, when it declares. '' when the lowered
+    gate is not authored, the count is not met, or fewer than two great
+    powers would refuse. `table` = the answers already taken (the summons);
+    else the projection `answer` reads before a summons."""
+    if not (THE_SUMMONS_NAMES_THE_LOWERED_GATE and THE_CONGRESS_LOWERS_THE_GATE):
+        return ""
+    if not armed(world):
+        return ""
+    player = _player(world)
+    rows = table if table is not None else {c: answer(world, c) for c in great_powers(world)}
+    refusers = sorted(c for c, row in rows.items() if row.get("stance") == REFUSES)
+    if len(refusers) < 2:
+        return ""
+    gate = _int(world, "congress_alarm_gate", CONGRESS_ALARM_GATE)
+    alarm = _alarm(world)
+    from backend.campaign_log import and_join
+    vassals = getattr(world, "vassals", {}) or {}
+    marchers = [c for c in refusers
+                if str(world.get_diplomatic_state(c, player) or "PEACE")
+                in ("PEACE", "NON_AGGRESSION", "OPEN_BORDERS")
+                and c not in vassals]
+    who = (f"{and_join([_display(c) for c in marchers])} would gather against us"
+           if marchers else "the refusers at war with us already march")
+    text = (f"the summons lowers the league's gate to {gate} while two great "
+            f"powers refuse (Europe's alarm stands at {alarm}): {who}")
+    brewing = getattr(world, "coalition_brewing", None) or {}
+    if brewing and (brewing.get("target_nation") or player) == player:
+        from backend.display_names import plural
+        text += (f" — a league already brews; it declares in "
+                 f"{plural(int(brewing.get('turns_remaining', 0) or 0), 'turn')}")
+    elif alarm >= gate:
+        text += " — it would brew at once"
+    else:
+        text += f" — once the alarm reaches {gate}"
+    return text
 
 
 def cooldown_left(world) -> int:
@@ -529,6 +617,10 @@ def summon(world) -> Dict[str, Any]:
         f"Hold {hold_titled(world)} titled provinces, "
         f"{world.get_nation_capital(_player(world)) or 'the capital'} and the "
         f"Emperor's freedom — and declare no war.")
+    # RS-10: the summons names the league it makes possible.
+    warning = league_warning(world, table)
+    if warning:
+        message += f" {warning[:1].upper()}{warning[1:]}."
     if bills:
         message += " " + " ".join(bills)
     return {"success": True, "message": message, "congress": number,
@@ -707,6 +799,13 @@ def _signed_record(world, court: str) -> Optional[Dict[str, Any]]:
     c = record(world) or {}
     rec = (c.get("signed") or {}).get(court)
     if not isinstance(rec, dict) or rec.get("broken"):
+        return None
+    # RS-D1: a recognition bought by the capital lasts while the capital
+    # stays in our hands — handed back, retaken, taken by a third party, or
+    # lost to its holder's rebellion, the latch is broken (derived here; the
+    # tick stamps the break with its reason).
+    if (A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES and rec.get("kind") == "capital"
+            and not capital_in_our_hands(world, court)):
         return None
     return rec
 
@@ -1069,8 +1168,14 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
         return row
     signed = None if ov.get("ignore_treaty") else _signed_record(world, court)
     if signed is not None:
-        row.update(stance=RECOGNIZES, by="treaty",
-                   reason=f"it signed our peace on turn {int(signed.get('turn', 0))}")
+        if signed.get("kind") == "capital":
+            # RS-D1: "it signed the peace that left Vienna in our hands (turn 16)".
+            reason = (f"it signed the peace that left "
+                      f"{signed.get('capital') or 'its capital'} in our hands "
+                      f"(turn {int(signed.get('turn', 0))})")
+        else:
+            reason = f"it signed our peace on turn {int(signed.get('turn', 0))}"
+        row.update(stance=RECOGNIZES, by="treaty", reason=reason)
         return row
     shut = _shut_out_reading(world, court, ov)
     if shut["holds"]:
@@ -1098,6 +1203,10 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
                 # Congress's; the coalition's loyalty holds a member to −50):
                 # the table says what the summons WOULD read (review #9/#25).
                 reason += " — it would sue once the Congress sits"
+            if taken and A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES:
+                # RS-D1: the SUES projection names the road the ruling opened.
+                reason += (f"; a peace that leaves {world.get_nation_capital(court)} "
+                           f"in our hands recognizes the order")
             row.update(stance=SUES, by="war", reason=reason, projected=bool(projected))
         else:
             row.update(stance=REFUSES, by="war",
@@ -1222,9 +1331,45 @@ def _treaty_lever(world, court: str, base: int) -> Optional[Dict[str, Any]]:
         if value > 0:
             return {"key": "treaty", "value": value, "state": "ALLIANCE",
                     "relation": courted,
-                    "text": (f"court them to {int(need)} ({_signed(courted)} relations), "
+                    "text": (f"court them to {int(need)} ({_signed(courted)} relations"
+                             f"{courtship_clause(world, courted)}), "
                              f"then an alliance with {_display(court)} (+{value})")}
     return None
+
+
+def courting_rate(world) -> int:
+    """Relations a turn the IMPROVE mission earns — the applied figure the
+    Cabinet quotes (skill included); 5 when the table cannot be read."""
+    try:
+        from backend.game_logic.diplomatic_dialogue import mission_effect_magnitude
+        per = int(mission_effect_magnitude(world, "IMPROVE_RELATIONS", "relation_change"))
+    except Exception:
+        per = 0
+    return per if per > 0 else 5
+
+
+def courtship_clause(world, points: int) -> str:
+    """RS-D1: a courtship's cost in TURNS beside its points — " — about 17
+    turns at +8 a turn — not within this sitting (7 turns remain)" — so the
+    price never prints a road that cannot be walked in time without saying
+    so. '' with the lever down or nothing to court."""
+    if not THE_LEVERS_QUOTE_THEIR_TURNS or int(points) <= 0:
+        return ""
+    per = courting_rate(world)
+    turns = int(math.ceil(int(points) / float(per)))
+    from backend.display_names import plural
+    if sitting(world):
+        left = max(0, congress_turns(world) - day_of_sitting(world))
+        if turns > left:
+            tail = f" — not within this sitting ({plural(left, 'turn')} remain{'s' if left == 1 else ''})"
+        else:
+            tail = f" ({plural(left, 'turn')} remain{'s' if left == 1 else ''} of this sitting)"
+    else:
+        total = congress_turns(world)
+        tail = f"; the Congress sits {total}"
+        if turns > total:
+            tail += " — not within one sitting"
+    return f" — about {plural(turns, 'turn')} at +{per} a turn{tail}"
 
 
 def _sweetener_gold(paid: int, per: int, points: int) -> int:
@@ -1361,11 +1506,14 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         treaty = _treaty_lever(world, court, base)
         if treaty is not None:
             levers.append(treaty)
-    # 4. Relations — the universal lever, and the slowest.
+    # 4. Relations — the universal lever, and the slowest (RS-D1: with its
+    # cost in turns to the gap, not to +100).
     rel = int(comps.get("relation", 0))
     if rel < 100:
         levers.append({"key": "relation", "value": 100 - rel,
-                       "text": "better relations (court them)"})
+                       "text": ("better relations (court them"
+                                + courtship_clause(world, min(gap, 100 - rel) if gap > 0 else 100 - rel)
+                                + ")")})
     # 5. The ports (the trade-dominance court): SHUT OUT satisfies the table
     # without the formula (review #6 — the at-peace arm never offered it).
     ports = _ports_lever(row, world)
@@ -1393,7 +1541,9 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         courted = int(ov.get("relation", 0))
         if rel + courted + need <= 100:
             rel_lever = {"key": "relation", "value": need,
-                         "text": f"{need} more relations (court them)"}
+                         "turns_clause": courtship_clause(world, need),
+                         "text": (f"{need} more relations (court them"
+                                  f"{courtship_clause(world, need)})")}
             chosen.append(rel_lever)
             _apply_lever_override(ov, rel_lever)
             now = recognition_score(world, court, ov)["score"]
@@ -1458,7 +1608,8 @@ def _apply_lever_override(ov: Dict[str, Any], lever: Dict[str, Any]) -> None:
 
 def _bundle_text(lever: Dict[str, Any]) -> str:
     if lever.get("key") == "relation":
-        return f"{int(lever.get('value') or 0)} more relations (court them)"
+        return (f"{int(lever.get('value') or 0)} more relations (court them"
+                f"{lever.get('turns_clause') or ''})")
     return str(lever.get("text") or "")
 
 
@@ -1484,8 +1635,26 @@ def hold_conditions(world) -> List[Dict[str, Any]]:
                for t, ally in sorted(joined.items())]
     reopened = _reopened_by_war(world, view)
     titled_text = f"{view['needed']} titled provinces ({view['count']} of {view['needed']})"
-    if reopened and view["count"] < view["needed"]:
-        titled_text += f" — {reopened}"
+    causes: List[str] = []
+    if view["count"] < view["needed"]:
+        # The count fell short: name what took it — the provinces lost by
+        # force (SF-END-1, Sept 29, 2026: the played sitting dissolved with
+        # "Austria's war contests what it ceded — counted while the Congress
+        # sits" as its reason, while four titled provinces had been TAKEN),
+        # then a ceder's war that reopened its cessions.
+        if lost:
+            from backend.campaign_log import and_join
+            causes.append(f"{and_join(lost[:4])}{' …' if len(lost) > 4 else ''} taken by force")
+        if reopened:
+            causes.append(reopened)
+    else:
+        # RS-2: the count stands — a ceder's war contests what it ceded,
+        # counted while the Congress sits.
+        contested = _contested_by_war(world)
+        if contested:
+            causes.append(contested)
+    if causes:
+        titled_text += " — " + "; ".join(causes)
     return [
         {"key": "titled", "met": view["count"] >= view["needed"],
          "text": titled_text},
@@ -1532,6 +1701,20 @@ def _reopened_by_war(world, view: Dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
+def _contested_by_war(world) -> str:
+    """RS-2: the titles a ceder's war CONTESTS while the Congress sits —
+    counted still ("Austria's war contests what it ceded (Bohemia, Carniola,
+    Dresden …) — counted while the Congress sits")."""
+    from backend.game_logic import game_end as _ge
+    by = _ge.contested_titles(world, _player(world))
+    if not by:
+        return ""
+    parts = [f"{_display(court)}'s war contests what it ceded "
+             f"({', '.join(names[:3])}{' …' if len(names) > 3 else ''})"
+             for court, names in sorted(by.items())]
+    return "; ".join(parts) + " — counted while the Congress sits"
+
+
 def _lost_satellites_phrase(c: Dict[str, Any], rebels: List[str]) -> str:
     """"Saxony rose in rebellion" / "Saxony defected to Britain" — joined."""
     defections = c.get("defections") or {}
@@ -1559,6 +1742,17 @@ def _take_answers(world, first: bool = False) -> Dict[str, Dict[str, Any]]:
     prior = dict(c.get("answers") or {})
     table: Dict[str, Dict[str, Any]] = {}
     turn = _turn(world)
+    if A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES:
+        # RS-D1: the capital latch's breaker, stamped with its reason once
+        # the capital has left our hands (the read is derived; the record
+        # keeps the why).
+        for court, rec in list((c.get("signed") or {}).items()):
+            if (isinstance(rec, dict) and not rec.get("broken")
+                    and rec.get("kind") == "capital"
+                    and not capital_in_our_hands(world, court)):
+                rec["broken"] = {"turn": turn,
+                                 "reason": f"{rec.get('capital') or 'its capital'} "
+                                           f"left our hands"}
     # The courts standing with the peace, updated in logging order so each
     # signature's beat counts only the signatures before it (review #50b).
     standing = {court: (prior.get(court) or {}).get("stance") in SATISFIED
@@ -1858,6 +2052,15 @@ def march_blocker(world, court: str) -> str:
     coalition = getattr(world, "active_coalition", None) or {}
     if coalition.get("target_nation") != player:
         from backend.game_logic.coalition import brewing_gate
+        brewing = getattr(world, "coalition_brewing", None) or {}
+        if (THE_SUMMONS_NAMES_THE_LOWERED_GATE and brewing
+                and (brewing.get("target_nation") or player) == player):
+            # RS-10: a league already brews — the row says when it declares
+            # instead of "no coalition stands" while one gathers.
+            from backend.display_names import plural
+            return (f"no coalition stands against us yet — a league brews and "
+                    f"declares in {plural(int(brewing.get('turns_remaining', 0) or 0), 'turn')} "
+                    f"(alarm {_alarm(world)} against a gate of {brewing_gate(world)})")
         return (f"no coalition stands against us to join — a league gathers "
                 f"only at alarm {brewing_gate(world)} (now {_alarm(world)})")
     if court in (coalition.get("members") or []):
@@ -2018,8 +2221,16 @@ def _dissolve(world, turn_ended: int, table: Dict[str, Dict[str, Any]],
 # returns at once when no Congress sits and no treaty latch exists.
 # ════════════════════════════════════════════════════════════════════════
 
+def capital_in_our_hands(world, court: str) -> bool:
+    """RS-D1: `court`'s capital is held by the Emperor or his vassal chain
+    (carved clients included; an ally is NOT the bloc) — the same test the
+    sue rung, GEV-1 and the title rule already make."""
+    return _capital_taken(world, court)
+
+
 def note_ratification(world, parties: Iterable[str], war_ending: bool,
-                      beaten: Iterable[str] = ()) -> None:
+                      beaten: Iterable[str] = (),
+                      capital_kept: Iterable[str] = ()) -> Dict[str, str]:
     """A war-ending treaty the player ratified with a great power latches
     its recognition (§2.4 — "the beaten court SUES; ratifying it flips the
     court to recognizes"). Called from `game_end.note_ratification` (both
@@ -2038,23 +2249,82 @@ def note_ratification(world, parties: Iterable[str], war_ending: bool,
 
     Any other peace feeds the at-peace formula like every court's. A truce
     that RUNS OUT into peace is not a signature and never latches (the ARMISTICE
-    arm's price names the signed peace, the one road that does)."""
+    arm's price names the signed peace, the one road that does).
+
+    RS-D1 (`A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES`): a third kind —
+    `capital_kept`, the great powers whose capital the signed peace leaves in
+    the Emperor's bloc (the caller reads the map after the clauses apply).
+    Its latch is `kind: "capital"` naming the capital, and it breaks when the
+    capital leaves the bloc (`_signed_record`). A peace at the table still
+    writes `table`; a cession peace still writes `beaten`. Returns
+    {court: kind} for the latches written here."""
     if not war_ending or not armed(world):
-        return
+        return {}
     powers = set(great_powers(world))
     beaten_set = set(beaten or ())
+    kept_set = (set(capital_kept or ())
+                if A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES else set())
     now_sitting = sitting(world)
     signers = [p for p in (parties or []) if p in powers
-               and (now_sitting or p in beaten_set)]
+               and (now_sitting or p in beaten_set or p in kept_set)]
     if not signers:
-        return
+        return {}
     c = _store(world)
+    written: Dict[str, str] = {}
     for court in signers:
-        c.setdefault("signed", {})[court] = {
-            "turn": _turn(world), "broken": None,
-            "kind": "table" if now_sitting else "beaten"}
+        kind = ("table" if now_sitting else
+                "beaten" if court in beaten_set else "capital")
+        rec: Dict[str, Any] = {"turn": _turn(world), "broken": None, "kind": kind}
+        if kind == "capital":
+            rec["capital"] = str(world.get_nation_capital(court) or "")
+        c.setdefault("signed", {})[court] = rec
+        written[court] = kind
         if now_sitting:
             (c.get("withdrawn") or {}).pop(court, None)
+    return written
+
+
+def recognition_lines(world, latched: Dict[str, str]) -> List[str]:
+    """RS-D1's wording for the settlement review and the ratification
+    summary: "Recognition: Austria will recognize the order at the Congress
+    — Vienna stays ours by this treaty." (one line per court latched by its
+    capital; the table and beaten kinds keep their own surfaces)."""
+    out: List[str] = []
+    for court, kind in sorted((latched or {}).items()):
+        if kind != "capital":
+            continue
+        capital = str(world.get_nation_capital(court) or "its capital")
+        out.append(f"Recognition: {_display(court)} will recognize the order at "
+                   f"the Congress — {capital} stays ours by this treaty.")
+    return out
+
+
+def recognition_by_capital_preview(world, courts: Iterable[str],
+                                   terms: Iterable[Dict[str, Any]] = ()) -> List[str]:
+    """RS-D1 on the settlement REVIEW, before the signature: the great powers
+    among `courts` whose capital stands in our hands today and which no term
+    of the package hands back — each would recognize the order at the
+    Congress by signing. Pure read; '' lines when the lever is down."""
+    if not A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES or not armed(world):
+        return []
+    try:
+        from backend.game_logic.settlement_validation import _territory_term_regions
+    except Exception:
+        return []
+    returned = set()
+    for term in terms or []:
+        if isinstance(term, dict) and term.get("type") in (
+                "territory_cede", "territory", "territory_return"):
+            returned.update(_territory_term_regions(term))
+    latched = {}
+    powers = set(great_powers(world))
+    for court in sorted({str(c) for c in courts if c}):
+        if court not in powers or court_gone(world, court):
+            continue
+        capital = str(world.get_nation_capital(court) or "")
+        if capital and capital not in returned and capital_in_our_hands(world, court):
+            latched[court] = "capital"
+    return recognition_lines(world, latched)
 
 
 def note_war_entry(world, nation_a: str, nation_b: str) -> None:
@@ -2603,7 +2873,16 @@ def state_line(world) -> Optional[str]:
         from backend.display_names import plural
         left = cooldown_left(world)
         again = int(c.get("dissolved_turn", 0)) + cooldown_turns(world)
-        return (f"THE CONGRESS OF PARIS — dissolved on turn {c.get('dissolved_turn')}; "
+        # SF-END-1 (Sept 29, 2026): the cooldown line carries the cause for
+        # the whole cooldown — a reader who missed the morning it fell still
+        # learns why ("the titled provinces fell short (43 of 45) — Moravia,
+        # Carniola, Bohemia and Vienna taken by force").
+        from backend.campaign_log import congress_dissolve_reason
+        cause = congress_dissolve_reason(str(c.get("dissolve_key") or ""),
+                                         str(c.get("dissolve_reason") or ""))
+        cause_clause = f" — {cause}" if c.get("dissolve_key") and cause else ""
+        return (f"THE CONGRESS OF PARIS — dissolved on turn {c.get('dissolved_turn')}"
+                f"{cause_clause}; "
                 f"it may be summoned again on turn {again} ({plural(left, 'turn')} "
                 f"{'remains' if left == 1 else 'remain'}) · {have} of {need} titled")
     held = view["held"]
@@ -2620,8 +2899,13 @@ def state_line(world) -> Optional[str]:
         # had read as true while he sat in a cell).
         return (f"THE CONGRESS OF PARIS — {have} of {need} titled · "
                 f"{blocker.get('breach') or blocker['text']}")
-    return (f"THE CONGRESS OF PARIS — {have} of {need} titled · the powers may be "
+    line = (f"THE CONGRESS OF PARIS — {have} of {need} titled · the powers may be "
             f"summoned — {CABINET_HINT}")
+    # RS-10: the gate line teaches what the summons does to the league.
+    warning = league_warning(world)
+    if warning:
+        line += f" · {warning}"
+    return line
 
 
 def clock_severity(world) -> str:

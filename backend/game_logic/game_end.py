@@ -1057,7 +1057,160 @@ def title_signed_cessions(world, terms: Iterable[Dict[str, Any]]) -> None:
                                       house=world._top_overlord(receiver))
 
 
-def break_signed_titles(world, nation_a: str, nation_b: str) -> None:
+# RS-2 "The peace holds" (Score Finish Step 1, September 29, 2026): while
+# the Congress of Paris sits, a war France NEITHER DECLARED NOR JOINED does
+# not break the treaty titles the ceder gave the Emperor — it CONTESTS them.
+# Measured on the September-28 retest's turn-24 save: the league the summons
+# made possible marched Austria on day 3, Austria's war unsigned every
+# province it had ceded (47 -> 41 of 45) and the Congress dissolved on the
+# same end turn, at the moment Austria's own answer became "SUES — we hold
+# Vienna" — a P1 the GE-3 review (#10/#19/#41) had fixed for recognizers only.
+# A contested title stays a treaty title for the COUNT (the hold names the
+# contest); the break applies when that war ends without a signature, or
+# when the sitting ends with the war still on; a peace signed while the
+# Congress sits re-signs them and latches the court's recognition; a
+# province actually LOST still breaks the hold (`congress.note_capture`).
+# The Emperor's own sword — a war he declared, or an ally's offensive war he
+# joined — breaks the titles as before (the hold already dissolves on it).
+# Player titles only: the Congress is France's. False = the pre-RS-2 break
+# byte-for-byte.
+A_CONGRESS_WAR_CONTESTS_NOT_BREAKS = True
+
+
+def player_drew_the_sword(world, nation_a: str, nation_b: str, reason: str) -> bool:
+    """Whether the WAR entry `(nation_a, nation_b, reason)` at the ONE
+    diplomatic-state setter was the Emperor's own act — the setter's
+    argument order is the seam's own: `declare_war` passes (aggressor,
+    target); the offensive cascade (joiner, target); the defensive cascade
+    (joiner, root aggressor). Any other road (a treaty repudiated, a cheat)
+    is read as the Emperor's, so the shelter never widens by accident."""
+    player = str(getattr(world, "player_nation", "") or "")
+    if not player or player not in (nation_a, nation_b):
+        return True
+    if reason == "war_declaration":
+        return nation_a == player
+    if reason == "offensive_cascade":
+        return nation_a == player
+    if reason == "defensive_cascade":
+        return nation_b == player
+    return True
+
+
+def congress_shelters_titles(world, nation_a: str, nation_b: str, reason: str) -> bool:
+    """RS-2's shelter: the lever up, the Congress sitting, and a war the
+    Emperor neither declared nor joined."""
+    if not A_CONGRESS_WAR_CONTESTS_NOT_BREAKS:
+        return False
+    try:
+        from backend.game_logic import congress as _congress
+        if not _congress.sitting(world):
+            return False
+    except Exception:
+        return False
+    return not player_drew_the_sword(world, nation_a, nation_b, reason)
+
+
+def _reopen_record(rec: Dict[str, Any], turn: int) -> None:
+    """The break itself: a treaty record becomes a conquest record whose
+    quiet clock starts now, naming the ceder whose war reopened it."""
+    rec["kind"] = TITLE_CONQUEST
+    rec["since"] = int(turn)
+    # Display only (GE-3 review #12): which court's war reopened the
+    # cession, so the Congress's hold can name it rather than read
+    # "the titled provinces fell short" with no cause.
+    rec["reopened_by"] = str(rec.get("from") or "")
+    rec["reopened_turn"] = int(turn)
+    rec.pop("contested", None)
+
+
+def contested_titles(world, leader: Optional[str] = None) -> Dict[str, List[str]]:
+    """{ceder: [regions]} — the treaty titles a sitting Congress shelters
+    (RS-2), for the hold's text, the ledger and the dispatch. Pure read."""
+    out: Dict[str, List[str]] = {}
+    store = getattr(world, "province_title", None)
+    if not isinstance(store, dict):
+        return out
+    leader = leader or str(getattr(world, "player_nation", "") or "")
+    for region_name, rec in store.items():
+        if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
+            continue
+        contest = rec.get("contested")
+        if not isinstance(contest, dict) or _house(world, rec) != leader:
+            continue
+        out.setdefault(str(contest.get("by") or rec.get("from") or ""), []).append(region_name)
+    return {k: sorted(v) for k, v in out.items() if k}
+
+
+def resolve_contested_titles(world, nation_a: str, nation_b: str,
+                             signed: bool) -> List[str]:
+    """The contest ends with the war (RS-2): a SIGNED peace keeps the titles
+    (the record loses its contest mark — the retention pass re-signs them
+    at the same setter, and `congress.note_ratification` latches the court);
+    an unsigned end (a truce that ran out into peace, an elimination, a
+    repudiation) applies the deferred break now. Called from the ONE
+    diplomatic-state setter when a pair leaves WAR. Returns the regions
+    reopened."""
+    store = getattr(world, "province_title", None)
+    if not isinstance(store, dict):
+        return []
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    pair = {str(nation_a or ""), str(nation_b or "")}
+    reopened: List[str] = []
+    for region_name, rec in store.items():
+        if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
+            continue
+        if not isinstance(rec.get("contested"), dict):
+            continue
+        if {str(rec.get("from") or ""), _house(world, rec)} != pair:
+            continue
+        if signed:
+            rec.pop("contested", None)
+        else:
+            _reopen_record(rec, turn)
+            reopened.append(region_name)
+    return reopened
+
+
+def lapse_contested_titles(world) -> List[str]:
+    """The shelter lasts only while the Congress sits: once it has
+    dissolved or concluded with a contested war still on, the break the
+    contest deferred is applied (the per-turn pass calls this; a war that
+    ended by any road the setter saw was resolved there). Returns the
+    regions reopened."""
+    store = getattr(world, "province_title", None)
+    if not isinstance(store, dict):
+        return []
+    try:
+        from backend.game_logic import congress as _congress
+        sits = bool(_congress.sitting(world))
+    except Exception:
+        sits = False
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    reopened: List[str] = []
+    for region_name, rec in list(store.items()):
+        if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
+            continue
+        if not isinstance(rec.get("contested"), dict):
+            continue
+        former = str(rec.get("from") or "")
+        house = _house(world, rec)
+        # A truce is not the war's end: the contest stands through it.
+        state = str(world.get_diplomatic_state(world._top_overlord(former),
+                                               world._top_overlord(house)) or "") if former else ""
+        at_war = state in ("WAR", "ARMISTICE")
+        if not at_war:
+            # The war ended by a road the setter did not carry to us
+            # (a load, a fixture): the contest is over, the title stands.
+            rec.pop("contested", None)
+            continue
+        if not sits:
+            _reopen_record(rec, turn)
+            reopened.append(region_name)
+    return reopened
+
+
+def break_signed_titles(world, nation_a: str, nation_b: str,
+                        reason: str = "") -> None:
     """A renewed WAR between the two courts that SIGNED a cession breaks the
     signature (§2.2's renewed-war restart): the treaty record becomes a
     conquest record whose quiet clock starts now. A later treaty that
@@ -1075,23 +1228,42 @@ def break_signed_titles(world, nation_a: str, nation_b: str) -> None:
     diplomatic-state setter on every entry into WAR (the settlement's
     vassalage bookkeeping hop excepted), and from the two roads that
     repudiate a treaty without war (`diplomacy.break_treaty`, the paradox
-    choice)."""
+    choice).
+
+    RS-2: while the Congress of Paris sits, a war the Emperor neither
+    declared nor joined (`reason`, the setter's own) CONTESTS the player's
+    treaty titles instead of breaking them — `congress_shelters_titles`."""
     store = getattr(world, "province_title", None)
     if not isinstance(store, dict):
         return
     turn = int(getattr(world, "current_turn", 0) or 0)
     pair = {str(nation_a or ""), str(nation_b or "")}
-    for rec in store.values():
+    player = str(getattr(world, "player_nation", "") or "")
+    shelter = congress_shelters_titles(world, nation_a, nation_b, reason)
+    contested: Dict[str, List[str]] = {}
+    for region_name, rec in store.items():
         if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
             continue
-        if {str(rec.get("from") or ""), _house(world, rec)} == pair:
-            rec["kind"] = TITLE_CONQUEST
-            rec["since"] = turn
-            # Display only (GE-3 review #12): which court's war reopened the
-            # cession, so the Congress's hold can name it rather than read
-            # "the titled provinces fell short" with no cause.
-            rec["reopened_by"] = str(rec.get("from") or "")
-            rec["reopened_turn"] = turn
+        if {str(rec.get("from") or ""), _house(world, rec)} != pair:
+            continue
+        if shelter and _house(world, rec) == player and rec.get("from") != player:
+            # Counted while the Congress sits; the break waits on the war.
+            ceder = str(rec.get("from") or "")
+            rec["contested"] = {"by": ceder, "turn": turn}
+            contested.setdefault(ceder, []).append(region_name)
+            continue
+        _reopen_record(rec, turn)
+    for ceder, names in sorted(contested.items()):
+        try:
+            world.log_event({
+                "type": "congress", "phase": "contested", "nation": player,
+                "court": ceder, "regions": sorted(names), "turn": turn,
+                "message": (f"{ceder}'s war contests what it ceded "
+                            f"({', '.join(sorted(names))}) — counted while "
+                            f"the Congress sits."),
+            })
+        except Exception:
+            pass
 
 
 def reconcile_province_titles(world) -> None:
@@ -1104,6 +1276,9 @@ def reconcile_province_titles(world) -> None:
     if not isinstance(store, dict) or not store:
         return
     turn = int(getattr(world, "current_turn", 0) or 0)
+    # RS-2: a contest outlives its sitting by nothing — the deferred break
+    # falls due here once the Congress has ended with the war still on.
+    lapse_contested_titles(world)
     disrupted = None
     for region_name in list(store.keys()):
         rec = store.get(region_name)
@@ -1142,6 +1317,11 @@ def reconcile_province_titles(world) -> None:
             # signature too. Never a satellite's own leftover sub-war, older
             # than the cession — that pauses the reconciliation
             # (`reconciled_regions` reads it) without unsigning the treaty.
+            # RS-2: a title the sitting Congress shelters is left to its
+            # contest (`lapse_contested_titles` applies the break when the
+            # sitting ends with the war still on).
+            if isinstance(rec.get("contested"), dict):
+                continue
             former = str(rec.get("from") or "")
             if former and world.is_at_war(world._top_overlord(former),
                                           world._top_overlord(rec["house"])):
@@ -1355,6 +1535,15 @@ def reconciled_regions(world, nation: str) -> set:
 # The ratification seams — title, totals, and the Humbled Peace.
 # ════════════════════════════════════════════════════════════════════════
 
+def take_recognition_lines(world) -> List[str]:
+    """RS-D1: the recognition lines the last ratification wrote, read once
+    by the ratifier that is speaking (the settlement's summary, the bilateral
+    treaty's terms list) and cleared."""
+    lines = getattr(world, "_recognition_lines", None)
+    world._recognition_lines = []
+    return [str(x) for x in (lines or []) if x]
+
+
 def count_peace(world, nation_a: str, nation_b: str) -> None:
     """A peace that no ratifier signs — an armistice that runs out into
     PEACE (`diplomacy._process_armistice_expiration`). The truce itself was
@@ -1456,7 +1645,23 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
             beaten.add(giver)
             beaten.add(str(world._top_overlord(giver) or giver))
     from backend.game_logic import congress as _congress
-    _congress.note_ratification(world, parties, bool(war_ending), beaten=beaten)
+    # RS-D1: the great powers whose capital this signed peace leaves in the
+    # Emperor's bloc (read off the map AFTER the clauses applied — a clause
+    # handing the capital back has already run).
+    capital_kept = set()
+    for court in set(parties):
+        if court not in set(_congress.great_powers(world)):
+            continue
+        capital = str(world.get_nation_capital(court) or "")
+        region = regions.get(capital) if capital else None
+        holder = getattr(region, "controller", None) if region is not None else None
+        if holder and world._top_overlord(holder) == player:
+            capital_kept.add(court)
+    latched = _congress.note_ratification(world, parties, bool(war_ending),
+                                          beaten=beaten, capital_kept=capital_kept)
+    # The wording rides the ratifier's own summary (`take_recognition_lines`
+    # — a same-turn hand-off, like the status-quo stash).
+    world._recognition_lines = _congress.recognition_lines(world, latched or {})
     if not THE_HUMBLED_PEACE_IS_MARKED:
         return None
     homeland = list((getattr(world, "nation_starting_regions", {}) or {}).get(player, []) or [])

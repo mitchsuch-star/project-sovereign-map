@@ -89,6 +89,11 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # sitting, below a broken corps of our own (at equal scale the wound to
     # our own body still leads).
     "congress_war": 88,
+    # RS-2 (Score Finish Step 1): a ceder's war contests the titles it
+    # signed away — counted while the Congress sits. Beside the cannon, one
+    # below it (the war is the news; the contest is what it means for the
+    # count).
+    "congress_contested": 87,
     # A signature taken back — the hold is not broken, but the eighth turn
     # now reads one court short. Above a routine lost province (75): it
     # costs the ending, not a province.
@@ -401,6 +406,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "congress_summoned": "Sire — {line}",
     "congress_dissolved": "Sire — {line}",
     "congress_war": "Sire — {line}",
+    "congress_contested": "Sire — {line}",
     "congress_withdrawn": "Sire — {line}",
     "congress_recognized": "Sire — {line}",
     "congress_warning": "Sire — {line}",
@@ -612,6 +618,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "congress_summoned": "The powers have been asked, Sire; every turn now is an answer. Hold what we have, and declare no war.",
     "congress_dissolved": "Not a defeat, Sire — a peace postponed. The marshals were promised it, and they will ask what became of it.",
     "congress_war": "The Congress forbids the war we declare, Sire, not the one declared on us — though a court that ceded us provinces reopens them by taking up arms. Beat them to the table, and lose no titled province doing it.",
+    "congress_contested": "A contested title is a title still, Sire — while the Congress sits. Sign the peace that court sues for before the sitting ends, and the cession stands; let the sitting end with its war still on, and the count falls.",
     "congress_withdrawn": "A signature given can be taken back, Sire. Every province we take by force is read at every table in Europe.",
     "congress_recognized": "One signature is not yet a peace, Sire — but it is one court fewer that must be beaten, bought or shut out.",
     "congress_warning": "A warning is a price named while it can still be paid, Sire. Pay it, or be ready for the cannon.",
@@ -778,9 +785,20 @@ def _congress_candidate(world, e: Dict[str, Any], _add) -> None:
                    f"and the powers will not answer another summons for "
                    f"{plural(cooldown, 'turn')}."))
         return
-    if not court or phase not in ("war", "recognized", "withdrew", "warning"):
+    if not court or phase not in ("war", "recognized", "withdrew", "warning",
+                                   "contested"):
         return  # the London purse and a sweetener are the chronicle's, not the lead's
     where = _congress.seat(world, court)
+    if phase == "contested":
+        # RS-2: the titles the ceder's war contests, counted while it sits.
+        regions = [str(r) for r in (e.get("regions") or []) if r]
+        named = (f" ({', '.join(regions[:3])}{' …' if len(regions) > 3 else ''})"
+                 if regions else "")
+        _add("congress_contested", f"congress_contested:{court}:{now}",
+             line=(f"{where}'s war contests what it ceded{named} — the "
+                   f"provinces still count while the Congress sits; a peace "
+                   f"signed at the table keeps them, a dissolution reopens them."))
+        return
     if phase == "war":
         # A court the EMPEROR declared on did not "answer with cannon" —
         # the hold's own line (and the dissolution beside it) tells that.

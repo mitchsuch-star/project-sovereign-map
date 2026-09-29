@@ -3463,6 +3463,14 @@ def build_settlement_confirm_dialogue(
             budget_bound_voice,
             str(budget_bound_recommendation["recommendation_voice"]),
         ])
+    # RS-D1 (SCORE_FINISH_SPEC §6.1 item 4): the review says which great
+    # power would recognize the order at the Congress by signing this package
+    # — its capital left in our hands by the signature.
+    from backend.game_logic import congress as _congress
+    _recognition_note = " ".join(_congress.recognition_by_capital_preview(
+        world, covered, preview.get("settlement_terms") or []))
+    if _recognition_note:
+        text = f"{text} {_recognition_note}"
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
@@ -3580,6 +3588,9 @@ def build_settlement_confirm_dialogue(
         "terminal_recovery_copy": "" if war_detail_actionability.get("actionable") or can_ratify else _terminal_recovery_copy(war_id),
         "message": text,
         "talleyrand_text": text,
+        # RS-D1: the recognition this package would buy at the Congress
+        # (a great power's capital left in our hands by the signature).
+        "recognition_note": _recognition_note,
         "turn_created": int(getattr(world, "current_turn", 0) or 0),
         # Re-front §10: PROPOSE is an authoring surface (like EDIT) — NOT a
         # hard stop, so the player is never trapped and can end the turn from
@@ -3662,6 +3673,28 @@ def build_settlement_confirm_dialogue(
             preview.get("forced_alliance_continental_toggle_differential") or []
         ),
     }
+
+
+def covered_courts_at_war(world: Any, war: Mapping[str, Any], *, player: str) -> List[str]:
+    """SF-V5 (Score Finish Step 1, Sept 29, 2026): the opposing courts with at
+    least one live WAR pair against a court on the player's side — the only
+    courts a whole-war letter can cover without hard-stopping at the table
+    (`compute_direct_scores_by_enemy` reads WAR pairs only; a truce is not a
+    war to settle). ONE reader for the emitter (`ai_diplomacy`) and the accept
+    seam (`settlement_offers._live_covered_for_offer`). Pure."""
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    if player_side not in ("attackers", "defenders"):
+        return []
+    opposing_side = "defenders" if player_side == "attackers" else "attackers"
+    ours = [n for n, side in side_by_nation.items() if side == player_side]
+    out: List[str] = []
+    for nation, side in side_by_nation.items():
+        if side != opposing_side or nation == player:
+            continue
+        if any(world.is_at_war(member, nation) for member in ours):
+            out.append(nation)
+    return out
 
 
 def stage_settlement_confirm(

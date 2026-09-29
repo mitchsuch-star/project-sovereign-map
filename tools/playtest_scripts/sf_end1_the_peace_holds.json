@@ -1,0 +1,24 @@
+{
+ "name": "sf-end1-the-peace-holds",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "SF-END-1 (SCORE_FINISH_SPEC.md §3 Step 1's exit; Sept 29, 2026): the retest's frozen turn-24 state (docs/audits/playtest_digests/rs0928-hand-played/retest_t24_summonable.json, 47 of 45 titled) played BY HAND through the fixed sitting — the orders below were chosen off the Congress table the board printed (Prussia refused at 32 with a 1,800-gold sweetener priced at +18; Britain at war at -4, 'sign a peace'; Austria and Russia beyond any lever in one sitting), not off a policy. Loop 1 summons, buys Prussia, offers Britain the peace and puts the two corps on the contested frontier into their works; every later loop reads the table and lets the driver answer what Europe offers (--diplomacy accept --settlement accept). Run with --from-save <that save> --diplomacy accept --settlement accept --turns 9 --stop-on-ending.",
+ "turns": {
+  "1": [
+   "summon the congress",
+   "offer Prussia 1800 gold for recognition",
+   "Talleyrand, propose peace with Britain",
+   "Massena, fortify",
+   "Davout, fortify",
+   "status"
+  ],
+  "2": ["Talleyrand, assess our situation", "status"],
+  "3": ["status"],
+  "4": ["Talleyrand, assess our situation", "status"],
+  "5": ["status"],
+  "6": ["Talleyrand, assess our situation", "status"],
+  "7": ["status"],
+  "8": ["Talleyrand, assess our situation", "status"],
+  "9": ["status"]
+ }
+}

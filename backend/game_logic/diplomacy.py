@@ -2437,6 +2437,10 @@ def preview_war_declaration(
     penalty_factor = 0.5 if casus_belli else 1.0
     defensive_joiners = []
     offensive_joiners = []
+    # RS-1: an ally the cascade would refuse (a fresh peace with the target,
+    # a pair cooldown, a court answering the Congress) is named apart, with
+    # the cascade's own reason, so the review never promises it.
+    offensive_barred = []
     for nation in world.get_active_nations():
         if nation in (aggressor, target):
             continue
@@ -2445,7 +2449,11 @@ def preview_war_declaration(
                 defensive_joiners.append(nation)
         if world.get_diplomatic_state(nation, aggressor) == "ALLIANCE":
             if not world.is_at_war(nation, target):
-                offensive_joiners.append(nation)
+                bar = offensive_call_bar(world, nation, target)
+                if bar:
+                    offensive_barred.append({"nation": nation, "reason": bar})
+                else:
+                    offensive_joiners.append(nation)
 
     pair_key = world._make_diplo_key(aggressor, target)
     treaty = getattr(world, 'active_treaties', {}).get(pair_key)
@@ -2468,6 +2476,7 @@ def preview_war_declaration(
         "war_threat": 10 if casus_belli else 20,
         "breach_preview": breach_preview,
         "defensive_joiners": defensive_joiners,
+        "offensive_barred": offensive_barred,
         "offensive_joiners": offensive_joiners,
     }
 
@@ -2753,6 +2762,20 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
     # Set new state
     world.diplomatic_states[key] = new_state
 
+    # RS-2: a war that ends resolves the treaty titles it contested — kept
+    # by a SIGNED road (the signed-peace vocabulary the retention pass
+    # reads), reopened by an unsigned one. A truce is not the war's end: the
+    # contest rides WAR -> ARMISTICE, and a truce that runs out into PEACE
+    # (`armistice_expired_peace`) is the unsigned end that reopens.
+    if (old_state in ("WAR", "ARMISTICE")
+            and new_state not in ("WAR", "ARMISTICE")):
+        from backend.game_logic.game_end import (
+            SIGNED_PEACE_REASONS as _SIGNED,
+            resolve_contested_titles as _resolve_contests,
+        )
+        _resolve_contests(world, nation_a, nation_b,
+                          signed=str(reason or "") in _SIGNED)
+
     # W6-7 Marshal Fates §9.2: peace between two nations returns ALL
     # mutual prisoners. A single chokepoint here covers bilateral peace
     # treaties, common-peace settlement ratification, and armistice
@@ -2900,7 +2923,9 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         # carve the same ratification had just signed.
         if reason != "common_peace_vassalage_ratification":
             from backend.game_logic.game_end import break_signed_titles
-            break_signed_titles(world, nation_a, nation_b)
+            # RS-2: the setter's reason tells the break whether the Emperor
+            # drew the sword (a contest while the Congress sits otherwise).
+            break_signed_titles(world, nation_a, nation_b, reason)
             # GE-3: a new war between the Emperor and a great power breaks
             # that court's treaty recognition (the Congress's latch).
             from backend.game_logic.congress import note_war_entry
@@ -8472,6 +8497,49 @@ def _resolve_defensive_call_path(
     return {**context, "path": path, "reason": f"honored {context['side']} call"}
 
 
+# RS-1 "The peace holds" (Score Finish Step 1, September 29, 2026): the
+# OFFENSIVE cascade keeps a fresh peace. Measured on the September-28 retest:
+# Britain and Russia signed with France on turn 10 and were dragged back to
+# war on turn 12 by Austria's coalition declaration, through the boot's
+# Austria-Britain-Russia ALLIANCE triangle, inside FRESH_PEACE_FLOOR_TURNS.
+# The offensive arm read only whether the ally was at war with the declarer;
+# PR-1's floor (`peace_with_target_is_fresh`) guarded coalition ENROLMENT and
+# the pair cooldown (`armistice_cooldowns`) guarded every war-entry gate but
+# this one. ONE predicate now bars the call on all three readings, and the
+# ally review (`preview_war_declaration`) reads it too, so the player is
+# never promised an ally the cascade then refuses. The DEFENSIVE arm is
+# untouched by design: there the aggressor reopens its own war, and the
+# defender's ally answers an attack, not a summons. False = the pre-RS-1
+# cascade byte-for-byte.
+THE_CASCADE_KEEPS_A_FRESH_PEACE = True
+
+
+def offensive_call_bar(world, callee: str, target: str) -> str:
+    """Why `callee` cannot be called into an OFFENSIVE war against `target`
+    by an ally's declaration — '' when nothing bars it. Three readings, in
+    order: the fresh-peace floor (PR-1's own predicate); the pair cooldown
+    (the truce floor the exhausted-pair exit and RS-1's settlement write,
+    which `declare_war` R99 also reads); and, while the Congress of Paris
+    sits, a court that ANSWERS it (recognizing, shut out, or in a truce
+    with the Emperor — RS-D1's rider: a recognizing court is not dragged
+    into the league by an alliance). Read at the cascade AND at the war
+    preview, so the two never disagree."""
+    if not THE_CASCADE_KEEPS_A_FRESH_PEACE:
+        return ""
+    from backend.game_logic.coalition import peace_with_target_is_fresh
+    if peace_with_target_is_fresh(callee, world, target):
+        return f"fresh peace with {target}"
+    cooldown = int((getattr(world, "armistice_cooldowns", {}) or {}).get(
+        world._make_diplo_key(callee, target), 0) or 0)
+    if cooldown > 0:
+        return f"a truce's cooldown binds it to {target} ({cooldown} more turns)"
+    from backend.game_logic.congress import spared_from_coalition
+    spared = spared_from_coalition(world, callee, target)
+    if spared:
+        return f"{spared} — the Congress of Paris sits"
+    return ""
+
+
 def _resolve_offensive_call_path(
     world,
     *,
@@ -8490,6 +8558,8 @@ def _resolve_offensive_call_path(
     }
     if world.is_at_war(callee, aggressor):
         return {**context, "path": "hard_illegal", "reason": f"already at war with {aggressor}"}
+    # RS-1: the fresh-peace / cooldown / Congress bar is read ONCE, in the
+    # cascade, before either road reaches this resolver.
     if override in ("refuse", "refused", "decline"):
         return {**context, "path": "refused_discretionary", "reason": "refused attacker call"}
     return {**context, "path": "honored", "reason": "ALLIANCE with attacker"}
@@ -9368,6 +9438,22 @@ def _process_war_cascade(
         state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
         if state_with_aggressor == "ALLIANCE":
             if not world.is_at_war(nation, target):
+                # RS-1: a fresh peace, a pair cooldown, or a court answering
+                # the sitting Congress bars the call BEFORE either road (the
+                # resolver, or an explicit ally-entry decision the player
+                # bargained for) — no penalty, no refusal episode: the court
+                # was never free to be called.
+                bar = offensive_call_bar(world, nation, target)
+                if bar:
+                    _append_war_entry(
+                        war_entry_entries,
+                        nation=nation,
+                        path="hard_illegal",
+                        side="attacker",
+                        reason=bar,
+                        treaty_state=state_with_aggressor,
+                    )
+                    continue
                 entry_decision = ally_entry_decisions.get(nation, {})
                 if suppress_unresolved_offensive_cascade and not entry_decision:
                     _append_war_entry(

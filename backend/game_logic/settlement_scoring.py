@@ -481,6 +481,15 @@ TIER_LEGITIMACY_MISMATCH = -10
 TIER_LEGITIMACY_CLAMP = (-20, 15)
 
 # Leader own losses (spec line 1117 + line 1186 mapped-holdings amendment).
+# RS-D1's price rider (SCORE_FINISH_SPEC §6.1 item 3; built Step 1, Sept 29,
+# 2026): the scorer reads a great power's RETAINED capital — held by the
+# proposer's bloc and handed back by no clause — as a capital lost, so
+# recognition by defeat costs a defeat, not a white peace. Measured on the
+# retest's turn-16 shape: Austria read 52/50 for a white peace plus 100 gold
+# while France held Vienna; the rider reads it at 32/50 and the peace is
+# signed for a real sweetener instead. False = the pre-rider scorer.
+A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST = True
+
 LEADER_LOSS_PER_REGION = -5
 LEADER_LOSS_CAPITAL = -15
 LEADER_KEEPS_ALL_BONUS = 5
@@ -817,8 +826,13 @@ def calculate_leader_own_losses(
     settlement_terms: Iterable[Mapping[str, Any]],
     accepting_leader_regions_at_evaluation: Optional[Iterable[str]] = None,
     accepting_leader_mapped_holdings_at_entry: Optional[Iterable[str]] = None,
+    capital_retained_by_proposer: bool = False,
 ) -> Dict[str, Any]:
     """Spec §6.acceptance line 1117 + line 1186 mapped-holdings amendment.
+
+    RS-D1's price rider: `capital_retained_by_proposer` (the caller reads it
+    off the map — `capital_retained_by_proposer_bloc`) counts as the capital
+    lost and forfeits the kept-all bonus.
 
     Sums sub-components BEFORE clamping to `[-25, 5]`. Lost-mapped-holdings
     is internally capped at `-10` (spec line 1186) and then summed into
@@ -861,6 +875,8 @@ def calculate_leader_own_losses(
     if home_capital is not None:
         if home_capital in ceded_regions or forced_aligned:
             capital_lost = True
+    if capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST:
+        capital_lost = True
 
     if accepting_leader_regions_at_evaluation is None:
         try:
@@ -874,6 +890,7 @@ def calculate_leader_own_losses(
     cedes_any_owned_region = any(r in current_regions for r in ceded_regions)
     keeps_all = (
         has_regions_at_eval and not cedes_any_owned_region and not forced_aligned
+        and not (capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST)
     )
 
     if accepting_leader_mapped_holdings_at_entry is None:
@@ -911,6 +928,8 @@ def calculate_leader_own_losses(
         "regions_ceded_count": len(ceded_regions),
         "ceded_regions": list(ceded_regions),
         "capital_lost": capital_lost,
+        "capital_retained_by_proposer": bool(
+            capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST),
         "home_capital": home_capital,
         "kept_all_with_holdings": keeps_all,
         "has_regions_at_evaluation": has_regions_at_eval,
@@ -920,6 +939,51 @@ def calculate_leader_own_losses(
         "components": components,
         "clamp": LEADER_OWN_LOSSES_CLAMP,
     }
+
+
+def capital_retained_by_proposer_bloc(
+    world: Any,
+    war_instance: Mapping[str, Any],
+    *,
+    proposer_side: str,
+    accepting_leader: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+) -> bool:
+    """RS-D1's price rider, the read: the accepting leader is a great power,
+    its home capital stands in the PROPOSER LEADER's own bloc (the leader or
+    its vassal chain — the same read as the latch, `congress.capital_in_our_hands`;
+    never a co-belligerent ally: Spain holding Vienna buys France no
+    recognition, so it costs Austria no capital), and no term of the package
+    hands it back. Pure."""
+    if not A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST or not accepting_leader:
+        return False
+    try:
+        from backend.game_logic.game_end import great_powers as _great_powers
+        if accepting_leader not in set(_great_powers(world)):
+            return False
+    except Exception:
+        return False
+    getter = getattr(world, "get_settlement_home_capital", None)
+    capital = getter(accepting_leader) if callable(getter) else None
+    if not capital:
+        return False
+    region = (getattr(world, "regions", {}) or {}).get(capital)
+    holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+    if not holder:
+        return False
+    leader_key = "attacker_leader" if proposer_side == "attackers" else "defender_leader"
+    leader = str((war_instance or {}).get(leader_key) or "")
+    if not leader:
+        return False
+    holder_top = str(world._top_overlord(holder) or holder)
+    if holder_top != str(world._top_overlord(leader) or leader):
+        return False
+    if holder_top == str(world._top_overlord(accepting_leader) or accepting_leader):
+        return False
+    for term in _iter_terms(settlement_terms):
+        if term.get("type") in _TERRITORY_TERM_TYPES and capital in _term_regions(term):
+            return False
+    return True
 
 
 def _enemy_pays_burden_term(
@@ -2151,13 +2215,20 @@ def calculate_common_peace_acceptance(
     )
     harshness_debug = calculate_term_harshness_penalty(raw_total_harshness)
 
-    # Step 6: leader_own_losses.
+    # Step 6: leader_own_losses (RS-D1: a retained great-power capital is a
+    # capital lost — `capital_retained_by_proposer_bloc`).
     leader_loss_debug = calculate_leader_own_losses(
         world,
         accepting_leader=accepting_leader,
         settlement_terms=settlement_terms,
         accepting_leader_regions_at_evaluation=accepting_leader_regions_at_evaluation,
         accepting_leader_mapped_holdings_at_entry=accepting_leader_mapped_holdings_at_entry,
+        capital_retained_by_proposer=capital_retained_by_proposer_bloc(
+            world, war_instance,
+            proposer_side=proposer_side,
+            accepting_leader=accepting_leader,
+            settlement_terms=settlement_terms,
+        ),
     )
 
     # Step 7: burdened participant penalty (collect war objectives by enemy).

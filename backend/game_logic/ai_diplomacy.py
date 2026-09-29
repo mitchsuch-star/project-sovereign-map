@@ -2499,6 +2499,71 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     }
 
 
+# SF-V1 (Score Finish Step 1, September 29, 2026): an AI court never offers
+# a treaty its own ratification would refuse. Measured on five of the
+# retest's driver arms: Sweden offered France a defensive alliance from the
+# allegiance auction at relations below the floor, the driver accepted it
+# every time, and `_ratify_treaty` refused it 14 times — "Relations with
+# France are insufficient for DEFENSIVE_ALLIANCE" — because IGR-X3 kept the
+# floors on the rows above peace and the producer never read them. ONE
+# predicate (`treaty_offer_refusal`) reads the ratifier's two guards — the
+# no-downgrade rule and `check_relation_requirement` — and the transport
+# withholds an offer they would refuse; the auction offers the best pact the
+# relation permits instead. False = the pre-SF-V1 transport byte-for-byte.
+NO_OFFER_THE_TABLE_REFUSES = True
+
+_TREATY_TYPE_TO_STATE = {
+    "alliance": "ALLIANCE",
+    "defensive_alliance": "DEFENSIVE_ALLIANCE",
+    "non_aggression": "NON_AGGRESSION",
+    "open_borders": "OPEN_BORDERS",
+}
+_TREATY_LADDER = ("alliance", "defensive_alliance", "non_aggression", "open_borders")
+
+
+def treaty_offer_refusal(world, nation: str, proposal_type: str,
+                         recipient: Optional[str] = None) -> str:
+    """Why `_ratify_treaty` would refuse `nation`'s `proposal_type` treaty
+    with `recipient` (the player by default) — '' when it would sign. Reads
+    the ratifier's OWN guards: the no-downgrade rule (`_UPGRADE_ORDER`) and
+    the relation floor (`check_relation_requirement`,
+    `STATE_RELATION_REQUIREMENTS`). Only the four state treaties are
+    governed; a peace, a truce, a gift, a petition or an ultimatum is not."""
+    state = _TREATY_TYPE_TO_STATE.get(str(proposal_type or ""))
+    if not state:
+        return ""
+    from backend.game_logic.diplomacy import (
+        STATE_RELATION_REQUIREMENTS,
+        _UPGRADE_ORDER,
+        check_relation_requirement,
+    )
+    recipient = recipient or getattr(world, "player_nation", "France")
+    current = str(world.get_diplomatic_state(nation, recipient) or "PEACE")
+    if (current in _UPGRADE_ORDER and state in _UPGRADE_ORDER
+            and _UPGRADE_ORDER.index(state) <= _UPGRADE_ORDER.index(current)):
+        return f"already at {current} — {state} would be no upgrade"
+    relation = int(world.nation_relations.get(
+        world._make_diplo_key(nation, recipient), 0) or 0)
+    if not check_relation_requirement(current, state, relation):
+        need = STATE_RELATION_REQUIREMENTS.get(state)
+        return f"relations {relation} are below the {need} a {state} needs"
+    return ""
+
+
+def best_ratifiable_treaty(world, nation: str, wanted: str,
+                           recipient: Optional[str] = None) -> Optional[str]:
+    """The highest treaty at or below `wanted` the table would sign today,
+    walking the ladder down (alliance → defensive alliance → non-aggression
+    → open borders); None when none is. A type outside the ladder is
+    returned as it is (the floor does not govern it)."""
+    if wanted not in _TREATY_LADDER:
+        return wanted
+    for ptype in _TREATY_LADDER[_TREATY_LADDER.index(wanted):]:
+        if not treaty_offer_refusal(world, nation, ptype, recipient):
+            return ptype
+    return None
+
+
 def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     """Take a proposal dict and set up world.pending_diplomatic_dialogue.
 
@@ -2520,6 +2585,18 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     recipient = proposal.get("recipient") or player
     if recipient != player:
         return _resolve_ai_ai_proposal(proposal, world) or {}
+
+    if NO_OFFER_THE_TABLE_REFUSES:
+        # SF-V1: the letter the table would refuse is never sent. The
+        # ratifier reads the TERMS' type (an opportunistic ask ratifies as a
+        # non-aggression pact; a design purchase as its upgrade).
+        _terms = proposal.get("terms") or {}
+        _ptype = str(_terms.get("type") or proposal.get("proposal_type") or "")
+        _why = treaty_offer_refusal(world, nation, _ptype, player)
+        if _why:
+            from backend.utils.debug import debug_print
+            debug_print(f"[DIPLOMACY] {nation}'s {_ptype} offer withheld — {_why}")
+            return None
 
     dialogue = build_ai_proposal_dialogue(proposal, world)
 
@@ -3391,13 +3468,19 @@ def process_allegiance_auctions(world) -> List[Dict]:
 
         if best == player:
             # The player wins the bidding — the pact still arrives as an
-            # OFFER (never an imposed ally): the minor proposes.
-            terms = _build_proposal_terms(nation, "defensive_alliance", 0,
-                                          world)
-            proposal = _make_proposal(nation, "defensive_alliance", 9,
-                                      terms, world)
-            deliver_ai_proposal(proposal, world)
-            outcome = "player_offer"
+            # OFFER (never an imposed ally): the minor proposes. SF-V1: the
+            # pact is the best one the relation lets the table sign (the
+            # defensive alliance needs 20; a minor won at 12 offers a
+            # non-aggression pact instead of a letter France cannot accept).
+            ptype = (best_ratifiable_treaty(world, nation, "defensive_alliance", player)
+                     if NO_OFFER_THE_TABLE_REFUSES else "defensive_alliance")
+            if ptype:
+                terms = _build_proposal_terms(nation, ptype, 0, world)
+                proposal = _make_proposal(nation, ptype, 9, terms, world)
+                deliver_ai_proposal(proposal, world)
+                outcome = "player_offer"
+            else:
+                outcome = "player_won_no_pact"
         else:
             state = world.get_diplomatic_state(nation, best)
             outcome = "flipped"
@@ -3954,6 +4037,20 @@ def _settlement_offer_next_seq(
 # envoy for that same war. False = both envoys, as measured.
 THE_COURT_SENDS_ONE_ENVOY_PER_WAR = True
 
+# SF-V5 (Score Finish Step 1, September 29, 2026): an AI court never sends a
+# whole-war letter its own ratification refuses. Measured on the OP arm:
+# Britain's letter covered Russia and Austria while each was in a TRUCE with
+# every court on France's side, so the staged review hard-stopped on
+# `no_direct_war_score_for_covered_enemy` and printed "Vilna is unbeaten" of
+# a court that had signed a truce; three letters in six turns, each part of
+# a 4–5-modal stack. Two rules at the ONE emitter: the letter covers only
+# the opposing courts with a live WAR pair against the player's side (a
+# truce is not a war to settle), and it is dry-run through the per-court
+# scorer with the offering courts' consent (SR-2a's trio) — a package that
+# would not carry is not sent. False = the pre-SF-V5 emitter.
+THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR = True
+THE_LETTER_IS_RATIFIABLE_WHEN_SENT = True
+
 
 def _settlement_offer_already_pending(
     pending: List[Dict],
@@ -4185,6 +4282,9 @@ def _settlement_offer_eligible_for_war(
     ]
     if not covered_enemies:
         return "no_covered_enemy"
+    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR and not _covered_at_war(
+            world, war, player=player):
+        return "no_covered_enemy_at_war"
     created_turn = int(war.get("created_turn") or current_turn)
     # PR-D1d lever (b): the pair's own reopening, when later.
     created_turn = max(created_turn, settlement_war_age_start(war, player=player))
@@ -4202,6 +4302,42 @@ def _settlement_offer_eligible_for_war(
     return None
 
 
+def _covered_at_war(world, war: Dict, *, player: str) -> List[str]:
+    """SF-V5: the opposing courts with at least one live WAR pair against a
+    court on the player's side — ONE reader, `settlement_staging.
+    covered_courts_at_war`, shared with the accept seam."""
+    from backend.game_logic.settlement_staging import covered_courts_at_war
+    return covered_courts_at_war(world, war, player=player)
+
+
+def _letter_would_carry(world, war_id: str, war: Dict, *, player: str,
+                        covered: List[str], terms: List[Dict]) -> bool:
+    """SF-V5: the ratifier's own reading of the letter before it is sent —
+    the per-court table with the offering courts' consent (SR-2a's trio).
+    True when the package carries (no hard stop, every court consenting or
+    at the threshold); an unreadable table (a fixture without a scoreable
+    war) is treated as carrying so no producer is silenced by a harness."""
+    side_by_nation = war.get("side_by_nation") or {}
+    player_side = side_by_nation.get(player)
+    opposing_side = "defenders" if player_side == "attackers" else "attackers"
+    try:
+        from backend.game_logic.settlement_baseline import compute_per_court_acceptance
+        view = compute_per_court_acceptance(
+            world,
+            war_id=str(war_id),
+            war_instance=war,
+            proposer_side=player_side,
+            accepting_side=opposing_side,
+            proposer_side_leader=player,
+            covered_enemy_participants=list(covered),
+            settlement_terms=list(terms),
+            consenting_courts=list(covered),
+        )
+    except Exception:
+        return True
+    return bool((view.get("overall_acceptance") or {}).get("carries"))
+
+
 def _emit_settlement_offer_for_war(
     world,
     war_id: str,
@@ -4213,7 +4349,7 @@ def _emit_settlement_offer_for_war(
     cooldowns: Dict[str, int],
     requested_by_player: bool = False,
     mediator: str = "",
-) -> Dict:
+) -> Optional[Dict]:
     """Author one incoming settlement offer for an already-vetted war.
 
     Shared by the periodic producer scan, the SC-30 request-terms grant
@@ -4231,6 +4367,20 @@ def _emit_settlement_offer_for_war(
         for nation, side in side_by_nation.items()
         if side == opposing_side and nation != player
     ]
+    if THE_LETTER_COVERS_ONLY_THE_PAIRS_AT_WAR:
+        # SF-V5: a truce is not a war to settle — the letter covers the
+        # courts still at war with our side, and the senior covered court
+        # writes it when the leader itself stands in a truce.
+        at_war = set(_covered_at_war(world, war, player=player))
+        covered_enemies = [n for n in covered_enemies if n in at_war]
+        if not covered_enemies:
+            return None
+        if proposer_nation not in covered_enemies:
+            from backend.game_logic.settlement_staging import (
+                accepting_leader_for_coverage,
+            )
+            proposer_nation = (accepting_leader_for_coverage(
+                war, opposing_side, covered_enemies) or covered_enemies[0])
     war_age_turns = current_turn - int(war.get("created_turn") or current_turn)
 
     # AUD-c: war score from the player's perspective decides whether the
@@ -4261,6 +4411,15 @@ def _emit_settlement_offer_for_war(
         accepter_war_score=player_war_score,
         world=world,
     )
+    if THE_LETTER_IS_RATIFIABLE_WHEN_SENT and not _letter_would_carry(
+            world, str(war_id), war, player=player,
+            covered=covered_enemies, terms=terms):
+        # SF-V5: a letter the table would refuse is never sent (no cooldown
+        # is spent — the war is read again next turn).
+        from backend.utils.debug import debug_print
+        debug_print(f"[SETTLEMENT OFFER] {proposer_nation}'s letter on {war_id} "
+                    f"withheld — its own table would not carry it")
+        return None
     seq = _settlement_offer_next_seq(
         pending, war_id=str(war_id), current_turn=current_turn,
     )
@@ -4471,6 +4630,43 @@ def _resolve_settlement_terms_requests(
                 pending=pending, cooldowns=cooldowns,
                 requested_by_player=True,
             )
+            if offer is None:
+                # SF-V5: no letter the table would carry can be written —
+                # the request lapses with its reason rather than "granting"
+                # terms that never arrive, and the player is TOLD (a lapse
+                # nobody announces is the silent loss the row was filed for).
+                entry["status"] = "refused"
+                entry["resolved_turn"] = int(current_turn)
+                entry["resolve_reason"] = "no_ratifiable_terms"
+                entry["cooldown_until_turn"] = int(
+                    current_turn + REQUEST_TERMS_COOLDOWN_TURNS
+                )
+                who = leader or "the enemy court"
+                world.notifications.add(create_notification(
+                    notification_type=SETTLEMENT_TERMS_REQUEST_RESULT,
+                    priority=NotificationPriority.NORMAL,
+                    title=f"No terms from {who}",
+                    message=(f"{who}'s envoy can write no terms its own court "
+                             f"would sign this turn — the request lapses. Ask "
+                             f"again when the field has moved."),
+                    turn_created=int(current_turn),
+                    details={
+                        "war_id": str(war_id),
+                        "result": "refused",
+                        "resolve_reason": "no_ratifiable_terms",
+                    },
+                ))
+                if hasattr(world, "log_event"):
+                    world.log_event({
+                        "type": "settlement_terms_request_refused",
+                        "nation": player,
+                        "war_id": str(war_id),
+                        "war_label": war_label,
+                        "answering_leader": who,
+                        "resolve_reason": "no_ratifiable_terms",
+                        "turn": int(current_turn),
+                    })
+                continue
             entry["status"] = "granted"
             entry["resolved_turn"] = int(current_turn)
             entry["resolve_reason"] = "terms_granted"
@@ -4626,11 +4822,13 @@ def process_settlement_offer_phase(world) -> List[Dict]:
                 world, war, player=player):
             continue
 
-        produced.append(_emit_settlement_offer_for_war(
+        offer = _emit_settlement_offer_for_war(
             world, str(war_id), war,
             player=player, current_turn=current_turn,
             pending=pending, cooldowns=cooldowns,
-        ))
+        )
+        if offer is not None:
+            produced.append(offer)
 
     return produced
 
@@ -4754,11 +4952,13 @@ def process_mediation_offers(world) -> List[Dict]:
         proposal_cooldowns[f"{mediator}|mediation"] = int(
             MEDIATION_COOLDOWN_TURNS)
         _set_cooldowns(world, proposal_cooldowns)
-        produced.append(_emit_settlement_offer_for_war(
+        offer = _emit_settlement_offer_for_war(
             world, str(war_id), war,
             player=player, current_turn=current_turn,
             pending=pending, cooldowns=cooldowns,
             mediator=mediator,
-        ))
+        )
+        if offer is not None:
+            produced.append(offer)
         break  # one arbiter speaks at a time, world-wide
     return produced

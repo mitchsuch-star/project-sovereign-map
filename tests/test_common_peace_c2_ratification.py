@@ -213,7 +213,12 @@ def test_confirm_armistice_pair_resolves_to_peace_and_clears_armistice():
     assert result["success"] is True
     assert world.diplomatic_states[armistice_pair] == "PEACE"
     assert armistice_pair not in world.armistice_turns
-    assert armistice_pair not in world.armistice_cooldowns
+    # RS-1 (Score Finish Step 1, Sept 29, 2026 — FLIPPED CONSCIOUSLY): the
+    # truce's own cooldown is popped on the way out, and the PEACE the table
+    # signed writes the fresh-peace floor in its place, so the ally cascade
+    # and every war-entry gate read the same store (`test_step1_the_peace_holds`).
+    from backend.game_logic.coalition import FRESH_PEACE_FLOOR_TURNS
+    assert world.armistice_cooldowns[armistice_pair] == FRESH_PEACE_FLOOR_TURNS
     assert armistice_pair in war["resolved_diplo_keys"]
 
 

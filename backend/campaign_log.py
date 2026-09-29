@@ -1608,6 +1608,16 @@ def _format_congress_event(event: dict) -> str:
         court = _congress_court(event)
         return (f"{court} warns the Congress: one more turn of refusal, and "
                 f"it answers with cannon.")
+    if phase == "contested":
+        # RS-2: a ceder's war while the Congress sits contests its cessions
+        # — counted still; the break waits on the war.
+        court = _congress_court(event)
+        regions = [str(r) for r in (event.get("regions") or []) if r]
+        named = (f" ({', '.join(regions[:3])}{' …' if len(regions) > 3 else ''})"
+                 if regions else "")
+        return (f"{court}'s war contests what it ceded{named} — counted while "
+                f"the Congress sits; a peace re-signs it, a dissolution "
+                f"reopens it.")
     if phase == "subsidy":
         payer = _congress_court(event, "payer")
         court = _congress_court(event)

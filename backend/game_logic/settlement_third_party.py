@@ -56,9 +56,11 @@ PAIR_EXIT_STAGNANT_SCORE = 15       # |pair war score| within this band
 # half-month turn: longer than a negotiated armistice's 5 (a collapse
 # holds longer than a choice), shorter than PAIR_EXIT_MIN_TURNS, so the
 # worst-case churn period is >= 18 turns — a campaign season, not zero.
-# KNOWN GAP, deliberate: declare_war's ally CASCADE does not read the
-# pair cooldown — a floored pair can be re-welded by a third court's
-# fresh war; owner = the PC15-15 row's residual in DESIGN_REFINEMENT.
+# The former KNOWN GAP is CLOSED (RS-1, Score Finish Step 1, September 29,
+# 2026): the offensive ally CASCADE reads this store too
+# (`diplomacy.offensive_call_bar` — a fresh peace, a pair cooldown, or a
+# court answering the sitting Congress bars the call), so a floored pair can
+# no longer be re-welded by a third court's fresh war.
 PAIR_EXIT_TRUCE_FLOOR_TURNS = 8
 
 

@@ -271,12 +271,26 @@ class TestTheSitting:
         assert not getattr(mack, "occupation_region", None)
 
     def test_12_a_ceders_war_names_what_it_reopened(self):
-        from backend.game_logic.diplomacy import declare_war
+        """RE-SEATED CONSCIOUSLY by RS-2 (Score Finish Step 1, Sept 29,
+        2026): while the Congress sits, a war the Emperor neither declared
+        nor joined CONTESTS the ceder's titles — counted, named on the hold
+        — and the break falls due only when that war ends UNSIGNED (or the
+        sitting ends with it still on). The "reopened" wording survives on
+        that road, and the dissolution names it."""
+        from backend.game_logic.diplomacy import declare_war, set_diplomatic_state
         w = _boot()
         _sit(w)
         with _quiet():
             _tick(w)
             declare_war(w, "Hanover", "France")
+        titled = next(h for h in congress.hold_conditions(w) if h["key"] == "titled")
+        assert titled["met"] is True
+        assert "Hanover's war contests what it ceded" in titled["text"]
+        assert "counted while the Congress sits" in titled["text"]
+        # the war ends by an unsigned road: a truce that ran out into peace
+        with _quiet():
+            set_diplomatic_state(w, "Hanover", "France", "ARMISTICE", "test_truce")
+            set_diplomatic_state(w, "Hanover", "France", "PEACE", "armistice_expired_peace")
         titled = next(h for h in congress.hold_conditions(w) if h["key"] == "titled")
         assert titled["met"] is False
         assert "Hanover's war reopened what it ceded" in titled["text"]
@@ -1063,7 +1077,11 @@ class TestTheArmsDriven:
         dissolved = [line for line in digest.splitlines()
                      if "THE CONGRESS OF PARIS — dissolved on turn" in line]
         assert dissolved, "the Congress never dissolved"
-        on = int(dissolved[0].split("dissolved on turn ")[1].split(";")[0])
+        # SF-END-1 (Sept 29, 2026): the cooldown line now carries the cause
+        # ("dissolved on turn 5 — the titled provinces fell short …; it may be
+        # summoned again …"), so the turn is read as the integer it starts with.
+        import re as _re
+        on = int(_re.search(r"dissolved on turn (\d+)", dissolved[0]).group(1))
         # before its eighth day (summoned turn 1 → the eighth answer is turn 9)
         assert on < 9
 

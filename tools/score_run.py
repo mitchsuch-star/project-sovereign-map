@@ -1188,7 +1188,11 @@ def r_ending_C1(arms, ctx):
     if _need(arms, "CONG"):
         return _unmeasured("CONG did not run")
     a = arms["CONG"]
-    diss = _blocks_with(a, "dissolv")
+    # Step 1 (Sept 29, 2026): the CONGRESS's own dissolution — the CONGRESS
+    # line ("dissolved on turn N — <cause>") or the dispatch beat — never a
+    # league's ("Coalition against France has dissolved — the league is
+    # spent"), which the first reader took as the named cause.
+    diss = [(t, l) for t, l in _blocks_with(a, "dissolv") if "congress" in l.lower()]
     if not diss:
         peace = _blocks_with(a, "IMPERIAL PEACE")
         return _res(

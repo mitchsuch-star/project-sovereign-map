@@ -452,6 +452,7 @@ class TestConflictAlertWiring:
         # France at WAR with Prussia
         key_fp = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key_fp] = "WAR"
+        world.nation_relations[key_fp] = 60  # SF-V1 (Score Finish Step 1, Sept 29, 2026): the transport withholds a letter the table would refuse, so a staged letter must be one the ratifier would sign — the relation at the treaty's own floor (`STATE_RELATION_REQUIREMENTS`).
 
         # Prussia has ALLIANCE with Austria
         key_pa = world._make_diplo_key("Prussia", "Austria")
@@ -576,6 +577,7 @@ class TestConflictAlertWiring:
 
         key_fp = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key_fp] = "WAR"
+        world.nation_relations[key_fp] = 60  # SF-V1 (Score Finish Step 1, Sept 29, 2026): the transport withholds a letter the table would refuse, so a staged letter must be one the ratifier would sign — the relation at the treaty's own floor (`STATE_RELATION_REQUIREMENTS`).
         key_pa = world._make_diplo_key("Prussia", "Austria")
         world.diplomatic_states[key_pa] = "ALLIANCE"
         key_fa = world._make_diplo_key("France", "Austria")

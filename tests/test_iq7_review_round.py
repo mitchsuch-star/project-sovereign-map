@@ -312,6 +312,11 @@ def _make_proposal(w, vassal):
     }
 
 
+def _lawful(w, nation, relation=0):
+    """SF-V1 (Score Finish Step 1, Sept 29, 2026): the transport withholds a letter the table would refuse, so a staged letter must be one the ratifier would sign — the relation at the treaty's own floor (`STATE_RELATION_REQUIREMENTS`)."""
+    w.nation_relations[w._make_diplo_key(nation, PLAYER)] = int(relation)
+
+
 def _ordinary(nation, ptype):
     return {"source": nation, "recipient": PLAYER, "proposal_type": ptype,
             "priority": 1,
@@ -1049,6 +1054,7 @@ class TestR4OneRepricerOnTheStoredSubject:
         letter would stamp `is_petition` on Prussia's non-aggression pact)."""
         w = _europe()
         _clear_slot(w)
+        _lawful(w, "Prussia")
         letter = _deliver(w, _ordinary("Prussia", "non_aggression"))
         before = copy.deepcopy(letter)
         assert refresh_client_petition_dialogue(w, letter) is None
@@ -1702,6 +1708,7 @@ class TestR9TheMatterNounIsAnAddressee:
     def test_the_family_rules_at_the_guard(self):
         w = _europe()
         _clear_slot(w)
+        _lawful(w, "Prussia")
         letter = _deliver(w, _ordinary("Prussia", "non_aggression"))
         petition = _deliver(w, _make_proposal(w, SWISS))
         assert w.dialogue_manager.peek() is letter and petition in list(w.dialogue_manager.iter_queue())
@@ -1718,6 +1725,7 @@ class TestR9TheMatterNounIsAnAddressee:
         # the other families, and the court named with its article
         w2 = _europe()
         _clear_slot(w2)
+        _lawful(w2, "Prussia")
         letter2 = _deliver(w2, _ordinary("Prussia", "non_aggression"))
         _set_rel(w2, KOI, PLAYER, -60)
         _deliver(w2, _make_proposal(w2, KOI))
@@ -1970,6 +1978,7 @@ class TestX5TheDeadPopupIsReaped:
     def test_an_ordinary_letter_activated_and_rejected(self, monkeypatch):
         w = _europe()
         _clear_slot(w)
+        _lawful(w, "Prussia")
         dlg = _deliver(w, _ordinary("Prussia", "non_aggression"))
         assert self._cached(w, dlg)
         client = _swap(monkeypatch, w)
@@ -1991,6 +2000,7 @@ class TestX5TheDeadPopupIsReaped:
     def test_two_letters_the_queued_petition_activated_then_both_answered(self, monkeypatch):
         w = _europe()
         _clear_slot(w)
+        _lawful(w, "Prussia")
         a = _deliver(w, _ordinary("Prussia", "non_aggression"))
         b = _deliver(w, _make_proposal(w, SWISS))
         assert self._cached(w, a) and b in list(w.dialogue_manager.iter_queue())

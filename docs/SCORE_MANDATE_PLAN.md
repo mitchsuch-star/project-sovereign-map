@@ -86,7 +86,7 @@ Sizes are sessions; every chunk's 30% reserve (§0-3) is inside its size.
 
 ### Chunk 1 — THE ENDING: "Paris must be reachable" (≈3.0; the ending 5.5 → 7.0; diplomacy +0.25)
 
-> **⚑ Amended September 28, 2026:** RS-D1 "recognition by defeat" amends **SR-1a's ruling (2)** (`SCORE_FINISH_SPEC.md` §6.1). A signed peace that leaves a great power's capital held by France or her vassal chain now latches that court's recognition, and a price rider makes the peace table read a retained capital as lost. Ruling (1) stands: a retained province is not reconciled. It is built in the Score Finish's Step 1.
+> **⚑ Amended September 28, 2026:** RS-D1 "recognition by defeat" amends **SR-1a's ruling (2)** (`SCORE_FINISH_SPEC.md` §6.1). A signed peace that leaves a great power's capital held by France or her vassal chain now latches that court's recognition, and a price rider makes the peace table read a retained capital as lost. Ruling (1) stands: a retained province is not reconciled. ✅ Built in the Score Finish's Step 1, September 29, 2026 (`SYSTEMS_REFERENCE.md` §81.3; the sr1a pin flipped consciously).
 
 The road to the Congress, built from what was measured, not from the number. Order:
 

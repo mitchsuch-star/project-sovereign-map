@@ -761,6 +761,8 @@ class TestT7Lapse:
                             "sweeteners": [], "demands": []},
                   "talleyrand_assessment": "", "decision_reason": "hegemony_pressure",
                   "turn_generated": 1}
+        # SF-V1 (Score Finish Step 1, Sept 29, 2026): the transport withholds a letter the table would refuse, so a staged letter must be one the ratifier would sign — the relation at the treaty's own floor (`STATE_RELATION_REQUIREMENTS`).
+        w.nation_relations[w._make_diplo_key("Prussia", PLAYER)] = 0
         with _quiet():
             head = deliver_ai_proposal(letter, w)
         dlg = _deliver(w, "Switzerland")

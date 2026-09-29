@@ -32,6 +32,51 @@ from typing import (
     Tuple,
 )
 from backend.game_logic.settlement_baseline import compute_per_court_acceptance
+
+# RS-1 "The peace holds" (Score Finish Step 1, September 29, 2026): the
+# settlement WRITES the pair cooldown it signs for. Measured on the
+# September-28 retest: the table set PEACE and stamped `resolved_turn` only,
+# so a peace France ratified on turn 10 carried no truce floor — `declare_war`
+# R99, the war council and the ally-entry gates all read `armistice_cooldowns`
+# and found nothing there. The floor is PR-1's own (`FRESH_PEACE_FLOOR_TURNS`,
+# the value the coalition's fresh-peace exemption already honours), written
+# for every pair the plan moved OUT of war (or a truce) INTO peace, and for
+# the clients that followed their lord (SR-1b) — one write floors every
+# channel, the PC15-D4 idiom. False = the pre-RS-1 ratifier byte-for-byte.
+THE_SETTLEMENT_WRITES_THE_PAIR_COOLDOWN = True
+
+
+def _settlement_peace_floor() -> Optional[int]:
+    """The truce floor a settlement peace carries (None with the lever down)."""
+    if not THE_SETTLEMENT_WRITES_THE_PAIR_COOLDOWN:
+        return None
+    from backend.game_logic.coalition import FRESH_PEACE_FLOOR_TURNS
+    return int(FRESH_PEACE_FLOOR_TURNS)
+
+
+def write_settlement_peace_floors(world: Any, resolved_pairs: Iterable[Mapping[str, Any]]) -> List[str]:
+    """RS-1: every pair the table moved out of WAR/ARMISTICE into PEACE gets
+    the fresh-peace floor in `armistice_cooldowns` — the store every war-entry
+    gate reads. Returns the pair keys written (display / pins). Runs AFTER the
+    setter, which pops the ARMISTICE cooldown on the way out."""
+    floor = _settlement_peace_floor()
+    written: List[str] = []
+    if floor is None:
+        return written
+    cooldowns = getattr(world, "armistice_cooldowns", None)
+    if not isinstance(cooldowns, dict):
+        cooldowns = {}
+        world.armistice_cooldowns = cooldowns
+    for row in resolved_pairs or []:
+        if not isinstance(row, Mapping):
+            continue
+        before = str(row.get("current_state_before") or "")
+        after = str(row.get("final_state") or "")
+        pair = str(row.get("pair") or "")
+        if pair and before in ("WAR", "ARMISTICE") and after == "PEACE":
+            cooldowns[pair] = max(int(cooldowns.get(pair, 0) or 0), int(floor))
+            written.append(pair)
+    return written
 from backend.game_logic.settlement_routes import (
     _error_display,
     _reopen_target,
@@ -844,7 +889,8 @@ def _resolve_pair_state_transitions(
         if str(row.get("final_state") or "") in ("WAR", "ARMISTICE"):
             continue
         for moved in _follow(world, row["proposer_member"], row["covered_enemy"],
-                             "PEACE", "common_peace_settlement"):
+                             "PEACE", "common_peace_settlement",
+                             truce_floor=_settlement_peace_floor()):
             x, y = moved["nations"]
             resolved_pairs.append({
                 "pair": moved["pair"],
@@ -857,6 +903,11 @@ def _resolve_pair_state_transitions(
                 "followed_the_lord": row["pair"],
             })
 
+    # RS-1: the peace this table signed carries its truce floor — written
+    # here, in the ONE transition helper the player's table and the AI-AI
+    # third-party road (`settlement_third_party`) both call, so both inherit
+    # it (GR5).
+    write_settlement_peace_floors(world, resolved_pairs)
     return resolved_pairs, state_clauses_applied
 
 
@@ -1615,6 +1666,12 @@ def ratify_settlement_confirm(
     )
     if _sq_lines:
         result_message = result_message + " " + " ".join(_sq_lines)
+    # RS-D1: the recognition a capital-keeping peace just bought, on the
+    # same summary line the status quo rides.
+    _rec_lines = _ge.take_recognition_lines(world)
+    if _rec_lines:
+        result_message = result_message + " " + " ".join(_rec_lines)
+        _sq_lines = list(_sq_lines) + list(_rec_lines)
     # SC-14c: result feedback consumes the staged route id verbatim. The
     # summary event already echoes the staged id, so prefer that path; fall
     # back to the staged dialogue's id (same value) before minting a fresh

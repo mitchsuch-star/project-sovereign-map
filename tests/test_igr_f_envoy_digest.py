@@ -74,7 +74,17 @@ def _hand_back_the_active_world():
 
 
 def _world():
-    return WorldState(player_nation="France")
+    w = WorldState(player_nation="France")
+    # SF-V1 (Score Finish Step 1, Sept 29, 2026): the transport withholds a letter the table would refuse, so a staged letter must be one the ratifier would sign — the relation at the treaty's own floor (`STATE_RELATION_REQUIREMENTS`). Every court a letter here comes from stands at PEACE at the
+    # defensive-alliance floor (the legacy board had Prussia at WAR at -40
+    # and Saxony already at OPEN_BORDERS — letters no table could sign).
+    for court in set(w.enemy_nations) | {"Bavaria", "Hesse", "PapalStates", "Saxony",
+                                         "Denmark", "Prussia", "Britain", "Austria"}:
+        key = w._make_diplo_key(court, "France")
+        w.diplomatic_states[key] = "PEACE"
+        w.nation_relations[key] = 20
+    w.invalidate_active_nations_cache()
+    return w
 
 
 def _proposal(nation, proposal_type, terms_type=None, recipient="France"):

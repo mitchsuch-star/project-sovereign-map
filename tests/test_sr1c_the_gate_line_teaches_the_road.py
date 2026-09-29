@@ -123,15 +123,25 @@ class TestTheSurfaces:
         payload = congress.build_congress_payload(vienna)
         assert [r["region"] for r in payload["held_roads"]] == ["Bohemia", "Vienna"]
         assert all(isinstance(r["turns_left"], int) for r in payload["held_roads"])
-        assert payload["alarm_road"].startswith("it falls ")
+        # RS-16 (Score Finish Step 1, Sept 29, 2026): the road is ONE forecast
+        # of the tick — "rising N a turn: … against D of decay" / "falling N
+        # a turn" / "holding" — never the gross decay alone (re-seated
+        # consciously; the old "it falls 3 a turn" lied on a rising board).
+        assert payload["alarm_road"].split(" ")[0] in ("rising", "falling", "holding")
         alarm = next(t for t in payload["gate_terms"] if t["text"].startswith("Europe's alarm"))
         assert payload["alarm_road"] in alarm["text"]
 
     def test_the_alarm_road_reads_the_ticks_own_decay(self, vienna):
-        from backend.game_logic.coalition import _calculate_threat_decay
+        from backend.game_logic.coalition import _calculate_threat_decay, forecast_alarm_tick
         decay = _calculate_threat_decay(vienna)
-        assert congress.alarm_road(vienna).startswith(f"it falls {decay} a turn (one, plus one for each court at peace with us, at most three")
-        assert "a treaty that dissolves a league halves it" in congress.alarm_road(vienna)
+        fc = forecast_alarm_tick(vienna)
+        assert fc["decay"] == decay
+        road = congress.alarm_road(vienna)
+        assert f"{decay} of decay (one, plus one for each court at peace with us, at most three" in road
+        head = ("holding" if fc["net"] == 0 else
+                f"rising {fc['net']} a turn" if fc["net"] > 0 else f"falling {-fc['net']} a turn")
+        assert road.startswith(head + ": ")
+        assert "a treaty that dissolves a league halves it" in road
 
     def test_the_state_line_is_untouched(self, vienna):
         line = congress.state_line(vienna)

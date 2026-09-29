@@ -11898,10 +11898,24 @@ class WorldState:
             from backend.game_logic.diplomacy import check_relation_requirement
             relation = self.nation_relations.get(diplo_key, 0)
             if not check_relation_requirement(current_state, target_state, relation):
+                # SF-V1: the treaty and the court by their names, and the
+                # floor by its number — never the raw state key ("Relations
+                # with France are insufficient for DEFENSIVE_ALLIANCE").
+                from backend.display_names import (
+                    STATE_DISPLAY, with_definite_article, with_indefinite_article,
+                )
+                from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
+                from backend.game_logic.formations import formed_display_name
+                _other = player_counterpart or target_nation
+                _need = STATE_RELATION_REQUIREMENTS.get(target_state)
+                _treaty = with_indefinite_article(STATE_DISPLAY.get(target_state, target_state))
                 return {
                     "type": "diplomatic_treaty_failed",
                     "target": target_nation,
-                    "message": f"Relations with {target_nation} are insufficient for {target_state}.",
+                    "message": (
+                        f"Relations with {with_definite_article(formed_display_name(self, _other))} "
+                        f"stand at {int(relation)}; {_treaty} needs {_need}."
+                    ),
                 }
 
             # R98: Validate AP clause demands require war_score > 80
@@ -12874,6 +12888,10 @@ class WorldState:
                 from backend.game_logic.game_end import status_quo_summary_lines
                 _sq_entries = _take_sq(self, [diplo_key])
                 _sq_lines = status_quo_summary_lines(self, _sq_entries, self.player_nation)
+                # RS-D1: "Recognition: Austria will recognize the order at the
+                # Congress — Vienna stays ours by this treaty."
+                from backend.game_logic.game_end import take_recognition_lines
+                _sq_lines = list(_sq_lines) + take_recognition_lines(self)
                 if _sq_lines:
                     peace_ratification_summary.setdefault("terms_ratified", []).extend(_sq_lines)
                 peace_ratification_summary["status_quo_titled"] = sorted(
