@@ -527,7 +527,12 @@ class TestTheExchangeIsOneCopy:
         class Region:
             garrison_strength = garrison
             garrison_detachment = detachment
-        fights = garrison > 0 and (detachment or garrison >= 5000)
+        # Score Finish Step 3 SR-7a (October 2, 2026): a detachment under
+        # `SMALL_GARRISON_SURRENDER_FLOOR` (500) lays down its arms — it no
+        # longer fights (AAR-D8's grind on a 47-man garrison).
+        fights = garrison > 0 and (
+            (detachment and garrison >= GR.SMALL_GARRISON_SURRENDER_FLOOR)
+            or garrison >= 5000)
         assert GR.garrison_fights(Region) is fights
         breaks = garrison <= 0 if detachment else garrison < 5000
         assert GR.garrison_breaks(Region, garrison) is breaks

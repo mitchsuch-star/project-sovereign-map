@@ -269,4 +269,13 @@ class TestTheMeasuredBoard:
             encoding="utf-8"))
         assert drill["arms"]["1"]["series"] == sr5a["recorded"]
         assert sr5a["arms"]["0"]["series"] == sr5a["recorded"]
-        assert BASELINE_SERIES == sr5a["arms"]["1"]["series"]
+        # RE-SEATED by Score Finish Step 3 "Europe acts without France" (October
+        # 2, 2026): one more link — SR-5a's arm 1 is the prior record Step 3's
+        # arm 0 (every Step-3 lever down in the child) reproduces byte for
+        # byte, and Step 3's ALL arm (the shipped tree) is the standing series
+        # (`tools/_step3_series_arms_final.json`, fifteen arms).
+        step3 = json.loads((ROOT / "tools" / "_step3_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert sr5a["arms"]["1"]["series"] == step3["prior"]
+        assert step3["arms"]["0"]["series"] == step3["prior"]
+        assert BASELINE_SERIES == step3["arms"]["ALL"]["series"]

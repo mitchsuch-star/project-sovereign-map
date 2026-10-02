@@ -85,6 +85,40 @@ LEAGUE_SPEND_EXEMPT_SOURCES = (
 # False = the >50 arm alone, byte-for-byte.
 TALLEYRAND_READS_THE_PROJECTION = True
 
+# ── SR-G7 / PB-D1 "THE ARMED PEACE" (Score Finish Step 3, October 2, 2026;
+# gate record SCORE_FINISH_SPEC.md §6.2, RULED September 28, 2026) ──
+# The long peace ended by machinery. Measured on the three commanded arms:
+# the general peace spends the league (95→47 …), after which only hegemony
+# (+1) and the agenda grudge run against decay (−3) and the alarm falls to 0
+# by turns 36–38 while Britain, Russia and Austria all QUALIFY for a league
+# from turns 15–20 on — the league is loaded, only the alarm is missing, and
+# no AI road reaches a quiet France. The drafted "≥ 40% of the map" never
+# fires (France holds 21–25%). The ruling: a WATCH line below the brewing
+# gate, and a visible armed-peace FUSE.
+#   The predicate (all four): the hegemon leads the largest bloc at ≥ 1/3 of
+#   Europe's power (the band the code already names "anti-decay"); no
+#   league is active or brewing against it; some court is left to alarm;
+#   the Congress is not sitting (the player's hegemony only).
+#   Quiet turns: the current turn minus the latest `last_battle_turn` among
+#   the hegemon's marshals — any battle by the hegemon restarts the count.
+#   The watch (45, in-band 40–50): while the predicate holds, decay stops at
+#   45; below 45 decay does not run at all, so hegemony lifts a spent alarm
+#   back up. The fuse (16 quiet turns, in-band 12–20, never shorter than the
+#   12-turn title clock): after it, the alarm rises +3 a turn (source
+#   `armed_peace`) until it reaches the brewing gate, where it holds; the
+#   existing brewing countdown and `qualifies_for_coalition` do the rest.
+# Written on THE HEGEMON (D3's frame, GR5): a non-player hegemon's slot is
+# watched the same way. Zero new serialized fields; one roster pass (GR8).
+# ONE reading (`armed_peace_reading`) feeds the tick, the RS-16 forecast, the
+# Balance-of-Europe rows, the war room and the dispatch beat. False = the
+# alarm decays to 0 at a long peace, byte for byte (the flip arm of
+# tools/_step3_series_arms.py).
+THE_ARMED_PEACE = True
+ARMED_PEACE_WATCH = 45
+ARMED_PEACE_FUSE_TURNS = 20
+ARMED_PEACE_RISE = 3
+ARMED_PEACE_SHARE_FLOOR = 0.33
+
 # Brewing countdown (§3c)
 BREWING_COUNTDOWN = 3
 
@@ -1199,9 +1233,22 @@ def forecast_alarm_tick(world) -> Dict[str, Any]:
         if raised - before < int(amount):
             capped = True
     decay = int(_calculate_threat_decay(world))
-    after = int(max(0, raised - decay)) if decay > 0 else raised
+    # SR-G7 / PB-D1: the Armed Peace's clamp and rise are the tick's own
+    # (one reading, one arithmetic) — the forecast cannot promise a fall the
+    # watch withholds, nor miss the rise the fuse adds.
+    _armed = armed_peace_reading(world)
+    applied = armed_peace_decay(_armed, france, int(raised), decay)
+    after = int(max(0, raised - applied)) if applied > 0 else raised
+    held = int(decay - applied) if (decay > applied and _armed.get("holds")
+                                    and _armed.get("hegemon") == france) else 0
+    rise = armed_peace_rise(_armed, france, int(after))
+    if rise > 0:
+        gains.append(("the armed peace — the courts re-arm", int(rise)))
+        after = int(min(100, after + rise))
     return {"now": now, "gains": gains, "decay": decay, "next": after,
-            "net": after - now, "capped": capped}
+            "net": after - now, "capped": capped,
+            "decay_applied": int(applied), "decay_held": held,
+            "armed_peace": _armed}
 
 
 def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
@@ -1235,6 +1282,140 @@ def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
             decay += 1
 
     return int(decay)
+
+
+# ════════════════════════════════════════════════════════════════
+# SR-G7 / PB-D1 — THE ARMED PEACE (one reading, five readers)
+# ════════════════════════════════════════════════════════════════
+
+def hegemon_quiet_turns(world, hegemon: str) -> int:
+    """Turns since the hegemon's last battle — the latest `last_battle_turn`
+    among its standing marshals (both sides of a battle stamp it, so a
+    defence restarts the count too). A roster that never fought counts from
+    the boot."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    latest = 0
+    for m in world.marshals.values():
+        if m.nation != hegemon or getattr(m, "strength", 0) <= 0:
+            continue
+        latest = max(latest, int(getattr(m, "last_battle_turn", -1) or -1))
+    return max(0, turn - latest)
+
+
+def armed_peace_reading(world) -> Dict[str, Any]:
+    """The ONE reading of the Armed Peace (SR-G7 / PB-D1, gate §6.2):
+
+        holds       the four-part predicate
+        reason      why not, when it does not ("lever" / "no_hegemon" /
+                    "league" / "nobody_left" / "congress")
+        hegemon     the court watched (the largest bloc's leader)
+        share       its bloc's share of Europe's power
+        quiet_turns turns since its last battle
+        fuse_turns_left   turns until the rise begins (0 once it has)
+        rise        the alarm added this tick by the fuse (0 before it)
+        watch       the floor the alarm holds at
+        gate        the brewing gate the rise climbs to
+        courts      the courts that would consult (qualify for a league)
+
+    Pure: writes nothing. The tick, the RS-16 forecast, the ledger rows,
+    the war room and the dispatch beat all read this and nothing else."""
+    out: Dict[str, Any] = {
+        "holds": False, "reason": "lever", "hegemon": None, "share": 0.0,
+        "quiet_turns": 0, "fuse_turns_left": int(ARMED_PEACE_FUSE_TURNS),
+        "rise": 0, "watch": int(ARMED_PEACE_WATCH), "gate": int(THREAT_BREWING_MIN),
+        "courts": [],
+    }
+    if not THE_ARMED_PEACE:
+        return out
+    hegemon, share = _identify_max_bloc_share(world)
+    out["hegemon"] = hegemon
+    out["share"] = float(share or 0.0)
+    if hegemon is None or float(share) < ARMED_PEACE_SHARE_FLOOR:
+        out["reason"] = "no_hegemon"
+        return out
+    player = getattr(world, "player_nation", "France")
+    coalition = getattr(world, "active_coalition", None)
+    if coalition and (coalition.get("target_nation") or player) == hegemon:
+        out["reason"] = "league"
+        return out
+    brewing = getattr(world, "coalition_brewing", None)
+    if brewing and (brewing.get("target_nation") or player) == hegemon:
+        out["reason"] = "league"
+        return out
+    if no_court_left_to_alarm(world, hegemon):
+        out["reason"] = "nobody_left"
+        return out
+    if hegemon == player:
+        from backend.game_logic import congress as _congress
+        if _congress.sitting(world):
+            out["reason"] = "congress"
+            return out
+    out["holds"] = True
+    out["reason"] = ""
+    gate = int(brewing_gate(world, hegemon))
+    out["gate"] = gate
+    quiet = hegemon_quiet_turns(world, hegemon)
+    out["quiet_turns"] = int(quiet)
+    out["fuse_turns_left"] = int(max(0, ARMED_PEACE_FUSE_TURNS - quiet))
+    out["rise"] = int(ARMED_PEACE_RISE) if quiet >= ARMED_PEACE_FUSE_TURNS else 0
+    out["courts"] = list(get_qualifying_nations(world, target=hegemon))
+    return out
+
+
+def armed_peace_watch_label(world, reading: Dict[str, Any]) -> str:
+    """The watch row's label: 'Europe watches — the French bloc leads 40%
+    of Europe's power (the alarm holds at 45)'."""
+    from backend.display_names import nation_adjective
+    hegemon = str(reading.get("hegemon") or "")
+    try:
+        adjective = nation_adjective(hegemon) if hegemon else "the hegemon's"
+    except Exception:
+        adjective = hegemon
+    pct = int(round(float(reading.get("share", 0.0)) * 100))
+    return (f"Europe watches — the {adjective} bloc leads {pct}% of Europe's "
+            f"power (the alarm holds at {int(reading.get('watch', ARMED_PEACE_WATCH))})")
+
+
+def armed_peace_decay(reading: Dict[str, Any], target: str, level: int,
+                      decay: int) -> int:
+    """The decay the tick actually applies to `target`'s slot under the
+    reading: the gross decay, clamped so the slot never falls below the
+    watch while the Armed Peace holds for that court (and none at all
+    once it stands at or under the watch). The tick and the RS-16
+    forecast both call this, so they cannot disagree."""
+    decay = int(max(0, decay))
+    if decay <= 0:
+        return 0
+    if not reading.get("holds") or reading.get("hegemon") != target:
+        return int(min(decay, max(0, int(level))))
+    if int(reading.get("rise", 0)) > 0:
+        # THE FUSE HAS LAPSED: the courts re-arm and the alarm only climbs —
+        # no decay on the hegemon's slot below the brewing gate, and the
+        # gate itself is the floor above it ("… until it reaches the
+        # brewing gate, where it holds"). Measured on the first cut: a +3
+        # ADDED above a fixed floor was undone by the next tick's decay back
+        # to 45 (CMD-A oscillated 48 / 50 / 47) and the gate was never
+        # reached.
+        gate = int(reading.get("gate", THREAT_BREWING_MIN))
+        if int(level) <= gate:
+            return 0
+        return int(min(decay, int(level) - gate))
+    watch = int(reading.get("watch", ARMED_PEACE_WATCH))
+    if int(level) <= watch:
+        return 0
+    return int(min(decay, int(level) - watch))
+
+
+def armed_peace_rise(reading: Dict[str, Any], target: str, level: int) -> int:
+    """The fuse's rise this tick for `target`: +ARMED_PEACE_RISE once the
+    fuse has lapsed, never past the brewing gate."""
+    if not reading.get("holds") or reading.get("hegemon") != target:
+        return 0
+    rise = int(reading.get("rise", 0))
+    if rise <= 0:
+        return 0
+    gate = int(reading.get("gate", THREAT_BREWING_MIN))
+    return int(max(0, min(rise, gate - int(level))))
 
 
 # ════════════════════════════════════════════════════════════════
@@ -2806,15 +2987,31 @@ def process_coalition_turn(world) -> List[Dict]:
     if ultimatum_rejection_threat > 0:
         add_threat(world, ultimatum_rejection_threat, "ultimatum_defied")
 
+    # SR-G7 / PB-D1 — THE ARMED PEACE: one reading for the tick (and the
+    # RS-16 forecast reads the same one, so they agree to the point).
+    _armed = armed_peace_reading(world)
+
     decay = _calculate_threat_decay(world)
     if decay > 0:
         old_threat = world.threat_level
-        world.threat_level = int(max(0, world.threat_level - decay))
+        _applied = armed_peace_decay(_armed, france, int(old_threat), decay)
+        world.threat_level = int(max(0, world.threat_level - _applied))
         actual_decay = old_threat - world.threat_level
         if actual_decay > 0:
             world.threat_sources_this_turn.append({
                 "source": "decay",
                 "amount": int(-actual_decay),
+            })
+        if _armed.get("holds") and _armed.get("hegemon") == france \
+                and actual_decay < decay:
+            # The watch, said on the Balance-of-Europe rows (amount 0: the
+            # alarm HELD; the label carries the share and the floor).
+            world.threat_sources_this_turn.append({
+                "source": "armed_peace_watch",
+                "amount": 0,
+                "target": france,
+                "label": armed_peace_watch_label(world, _armed),
+                "held": int(decay - actual_decay),
             })
 
     # AI-4a step 6: every NON-player slot decays on the same schedule the
@@ -2829,8 +3026,31 @@ def process_coalition_turn(world) -> List[Dict]:
         if _slot <= 0:
             continue
         _tgt_decay = _calculate_threat_decay(world, target=_tgt)
+        _tgt_decay = armed_peace_decay(_armed, _tgt, _slot, _tgt_decay)
         if _tgt_decay > 0:
             reduce_threat(world, min(_tgt_decay, _slot), "decay", target=_tgt)
+
+    # The fuse: after the quiet turns, the courts re-arm — +3 a turn on the
+    # hegemon's slot up to the brewing gate (the existing countdown and
+    # `qualifies_for_coalition` do the rest). The beat fires on the tick the
+    # fuse lapses; the ledger row names it every tick it rises.
+    _hegemon = _armed.get("hegemon")
+    if _armed.get("holds") and _hegemon:
+        _level = int(world.threat_by_target.get(_hegemon, 0) or 0)
+        _rise = armed_peace_rise(_armed, _hegemon, _level)
+        if _rise > 0:
+            add_threat(world, _rise, "armed_peace", target=_hegemon)
+            if (_hegemon == france
+                    and int(_armed.get("quiet_turns", 0)) == int(ARMED_PEACE_FUSE_TURNS)):
+                from backend.game_logic.dispatch import queue_dispatch_event
+                from backend.game_logic.diplomatic_ledger import courts_display
+                queue_dispatch_event(world, "diplomatic_armed_peace_fuse", {
+                    "quiet": int(_armed["quiet_turns"]),
+                    "rise": int(ARMED_PEACE_RISE),
+                    "gate": int(_armed.get("gate", THREAT_BREWING_MIN)),
+                    "courts": (courts_display(world, list(_armed.get("courts") or []))
+                               if _armed.get("courts") else "no court yet"),
+                }, "always")
 
     # ────────── 3. War exhaustion per-turn (§10a) ──────────
     # EC-W2: France wearies of war like everyone else (GR5) — the same

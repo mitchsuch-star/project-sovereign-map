@@ -1068,8 +1068,17 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # 23; `tools/_rf3_board_events.py`). Attribution measured through
         # THIS runner: with the PRE-SLICE scenario booted in the child it
         # reads 15 / 16 verbatim (`tools/_sr5a_wo_attribution.py`, measured).
-        assert uncapped == 17, uncapped
-        assert capped == 23, capped
+        # Re-measured by Score Finish Step 3 "Europe acts without France"
+        # (October 2, 2026): the balance block re-times the ambient board
+        # from turn 13 (the BASELINE_SERIES attribution block). Uncapped 14,
+        # capped 18 — the cap buys FOUR turns; the contract holds. The capped
+        # exit is a true rebellion (`vassal_broke_free`,
+        # exit=vassal_rebellion, turn 18; `tools/_rf3_board_events.py`).
+        # Attribution measured through THIS runner: with the thirteen Step-3
+        # levers down in the child it reads 17 / 23 verbatim
+        # (`tools/_step3_wo_attribution.py`, measured).
+        assert uncapped == 14, uncapped
+        assert capped == 18, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1194,8 +1203,19 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     index + 1.
         # Should the elimination move, the named step fails the first line;
         # should it vanish, the exclusion still leaves the rebellion unique.
-        ELIMINATION_STEP = 24
-        assert steps[ELIMINATION_STEP] == -13, steps
+        # Score Finish Step 3 (October 2, 2026). The re-recorded series keeps
+        # this pin's general form. Traced with `tools/_rf3_board_events.py`:
+        #   - The Kingdom of Italy is eliminated out of France's web at world
+        #     turn 13 (the step from index 12 to 13, 46 -> 34). The decay
+        #     there is -2, so the signature is -12 — the "-12/-13 signature"
+        #     at its -12 end. Named and excluded.
+        #   - The capped exit is the unique largest ORDINARY fall, -13 (26 ->
+        #     13, the step from index 16 to 17, world turn 18): -3 decay - 10
+        #     as Switzerland rebels (`vassal_broke_free`,
+        #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 18 =
+        #     index + 1.
+        ELIMINATION_STEP = 12
+        assert steps[ELIMINATION_STEP] == -12, steps
         ordinary = [0 if i == ELIMINATION_STEP else step
                     for i, step in enumerate(steps)]
         worst = min(ordinary)

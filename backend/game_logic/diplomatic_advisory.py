@@ -935,6 +935,10 @@ def _assess_situation(world) -> Dict:
                     f"declaration of war would carry the alarm to "
                     f"{_projection}, and {courts_display(world, _courts)} "
                     f"would stand ready to join one.")
+        # SR-G7 / PB-D1 "The Armed Peace": the fuse's turns left, the courts
+        # that would consult, and the levers — stated, so the quiet can be
+        # played against (gate §6.2 item 6).
+        lines.extend(armed_peace_war_room_lines(world))
 
     # ── What alarmed Europe this turn (top 3, already itemized) ──
     # Stage D review fix [r1]: this list explains FRANCE's alarm delta —
@@ -1283,6 +1287,57 @@ def _assess_nation(nation: str, world) -> Dict:
 # ═══════════════════════════════════════════════════════
 # THREAT COMPARISON
 # ═══════════════════════════════════════════════════════
+
+def armed_peace_war_room_lines(world) -> List[str]:
+    """SR-G7 / PB-D1 "The Armed Peace" (Score Finish Step 3, October 2,
+    2026): the war room's reading of the quiet — the watch, the fuse's turns
+    left (or the rise under way), the courts that would consult, and the
+    four levers the ruling states. [] when the Armed Peace does not hold for
+    the player's hegemony (the reading is the tick's own, so the figures
+    here are the figures the tick applies)."""
+    from backend.game_logic.coalition import (
+        ARMED_PEACE_RISE, THE_ARMED_PEACE, armed_peace_reading)
+    from backend.game_logic.diplomacy import declaration_alarm
+    from backend.game_logic.diplomatic_ledger import courts_display
+    from backend.game_logic.formations import formed_display_name as _realm_name
+    from backend.display_names import plural
+    if not THE_ARMED_PEACE:
+        return []
+    reading = armed_peace_reading(world)
+    player = getattr(world, "player_nation", "France")
+    if not reading.get("holds") or reading.get("hegemon") != player:
+        return []
+    pct = int(round(float(reading.get("share", 0.0)) * 100))
+    watch = int(reading.get("watch", 0))
+    gate = int(reading.get("gate", 0))
+    quiet = int(reading.get("quiet_turns", 0))
+    left = int(reading.get("fuse_turns_left", 0))
+    courts = list(reading.get("courts") or [])
+    who = (f"{courts_display(world, courts)} would consult"
+           if courts else "no court yet qualifies to consult")
+    lines = [
+        "",
+        f"  THE ARMED PEACE: {_realm_name(world, player)} leads {pct}% of "
+        f"Europe's power, so the alarm holds at {watch} — Europe watches.",
+    ]
+    if left > 0:
+        lines.append(
+            f"  {plural(quiet, 'quiet turn')} without a French battle; in "
+            f"{plural(left, 'turn')} the courts re-arm and the alarm rises "
+            f"{ARMED_PEACE_RISE} a turn to the league gate at {gate} — {who}.")
+    else:
+        lines.append(
+            f"  {plural(quiet, 'quiet turn')} without a French battle — the courts "
+            f"re-arm: the alarm rises {ARMED_PEACE_RISE} a turn toward the league "
+            f"gate at {gate} and no longer falls ({who}).")
+    lines.append(
+        f"  The levers: a court raised above -10 will not join; a bloc under a "
+        f"third of Europe ends the watch; the Congress suspends it; a battle "
+        f"restarts the count; a declaration of war takes the alarm from "
+        f"{int(world.threat_level)} to "
+        f"{int(min(100, int(world.threat_level) + declaration_alarm()))}.")
+    return lines
+
 
 def _compare_threats(world) -> Dict:
     """Compare all nations as threats to France. Deterministic ranking."""

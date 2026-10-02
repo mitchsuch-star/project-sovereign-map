@@ -466,6 +466,18 @@ def apply_acceptance_cooldown(nation: str, world, *, deferred: bool = False,
 # once per this many turns — the AI-AI trigger poll re-fires every turn
 # and must not spam the record or the campaign log. Blessed, in-band.
 REFUSAL_DEDUPE_TURNS = 6
+# SF-LB-1 "Europe's own quarrels" (Score Finish Step 3, October 2, 2026):
+# A DESIGN IS ASKED BEFORE IT IS FOUGHT. Measured at the boot: Prussia's
+# `hanoverian_prize` stands at `align` (59) over Hanover, and the design ask
+# fired only at `ask`/`buy` (25-54) -- so an acquire design, whose base
+# weight is 55, NEVER asked, never collected the two refusals AI-3's ladder
+# gate wants, and never opened a war: AI-3r's "0 council wars on every
+# seed with the predicate written" was this gap, not Europe's temper. The
+# ask now fires at every rung below `coerce` (ask / buy / align /
+# bandwagon) -- a court still prepared to bargain asks before it marches.
+# AI-vs-AI only by construction (trigger 0a). False = ask/buy alone.
+A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT = True
+DESIGN_ASK_RUNGS = ("ask", "buy", "align", "bandwagon")
 # Retention: refusals older than this are pruned at write time. AI-3's
 # ladder gate ("cheaper instruments tried and refused") reads inside this
 # window; matching the agenda-grudge horizon keeps one memory scale.
@@ -3731,7 +3743,9 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
         # resolve to nothing — skip it so the pair's OTHER triggers
         # (both-at-war-with-France alliance etc.) are not shadowed for
         # six turns per ask.
-        if (view.against == target and view.price in ("ask", "buy")
+        _ask_rungs = (DESIGN_ASK_RUNGS if A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT
+                      else ("ask", "buy"))
+        if (view.against == target and view.price in _ask_rungs
                 and not world.is_at_war(proposer, target)):
             recent = [e for e in get_refused_asks(world, proposer, target)
                       if e.get("type") == "design_ask"

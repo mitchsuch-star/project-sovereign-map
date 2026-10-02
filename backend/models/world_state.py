@@ -1185,6 +1185,12 @@ ELIMINATION_RELIEVES_THE_LORD = True
 FREED_SATELLITE_KEEPS_ITS_ARMY = True
 
 
+# AAR-D4 "Dispersion" (Score Finish Step 3 / SR-7c) — the module-level lever
+# the class reads through `WorldState._dispersion_lever()` (see the rule at
+# `WorldState.CROWDING_FREE_CORPS`). False = the shipped press and scan.
+DISPERSION_IS_NOT_PUNISHED = True
+
+
 class WorldState:
     """
     The complete game state.
@@ -5177,8 +5183,9 @@ class WorldState:
                 debug_print("      -> PRIORITY 5: At-war soil (desperation only)")
                 continue
 
-            # Friendly region (controlled by our nation)
-            if controller == marshal_nation:
+            # Friendly region (controlled by our nation — AAR-D4: or by a
+            # court whose soil feeds us, an ally's or a vassal's)
+            if self.retreat_soil_is_friendly(marshal_nation, controller):
                 if allied_marshals:
                     # Priority 1: Ally to cover us!
                     entry["ally"] = allied_marshals[0].name
@@ -7382,6 +7389,64 @@ class WorldState:
     # PC15-D1 flip flag (the HOST_RULE_ACTIVE idiom): False reproduces the
     # pre-ruling retreat scan for BASELINE_SERIES attribution experiments.
     RETREAT_MOVEMENT_LAW_ACTIVE = True
+    # AAR-D4 "Dispersion" (Score Finish Step 3 / SR-7c, October 2, 2026).
+    # The AAR: three corps in any province bled to the crowding tax and the
+    # fourth starved, the muster then rewarded concentration, and a cornered
+    # corps at Tyrol could retreat only to Bohemia — Milan (a vassal's
+    # capital with Massena in it) and Munich (an ally's capital with Davout
+    # in it) were not "friendly" to the retreat scan. Two rules, one lever:
+    #   (1) THE PRESS the crowding tax counts — a corps on a SUPPORT order
+    #       whose lead stands in the same province is a muster, not a crowd
+    #       (the engine's own reinforcement asks for exactly that
+    #       concentration), and a capital or major city feeds one more corps
+    #       free (the threshold rises to four corps there, three elsewhere);
+    #   (2) THE RETREAT'S FRIENDLY SET is the soil France may enter AND be
+    #       fed on — ALLY_SUPPLY_STATES, PC15-D1's law and PC15-D2's table —
+    #       so an ally's or a vassal's province ranks with our own (tiers 1
+    #       and 2), not below an empty province of ours (tiers 3 and 4).
+    # Both boards. False = the shipped press and scan, byte for byte (the
+    # flip arm of tools/_step3_series_arms.py).
+    # (the lever itself is the MODULE global `DISPERSION_IS_NOT_PUNISHED`
+    # below the class, so the driver's `--lever` and the series arms can
+    # flip it; the class reads it through `_dispersion_lever()`)
+    CROWDING_FREE_CORPS = 2            # the third corps starts the tax …
+    CROWDING_FREE_CORPS_CITY = 3       # … the fourth on a capital or major city
+
+    @staticmethod
+    def _dispersion_lever() -> bool:
+        return bool(globals().get("DISPERSION_IS_NOT_PUNISHED", True))
+
+    def crowding_press(self, region, marshals_here) -> tuple:
+        """AAR-D4: `(press, free_corps)` — the corps the crowding tax counts
+        on `region` and the number it feeds free. Lever down: every corps
+        counts and two are free (the shipped arithmetic)."""
+        count = len(marshals_here)
+        if not self._dispersion_lever():
+            return count, self.CROWDING_FREE_CORPS
+        names_here = {m.name for m in marshals_here}
+        press = 0
+        for m in marshals_here:
+            order = getattr(m, "strategic_order", None)
+            if (order is not None
+                    and getattr(order, "command_type", "") == "SUPPORT"
+                    and getattr(order, "target", None) in names_here
+                    and getattr(order, "target", None) != m.name):
+                continue        # a muster beside its lead is not a crowd
+            press += 1
+        free = (self.CROWDING_FREE_CORPS_CITY
+                if getattr(region, "region_type", "") in ("capital", "major_city")
+                else self.CROWDING_FREE_CORPS)
+        return press, free
+
+    def retreat_soil_is_friendly(self, marshal_nation: str, controller) -> bool:
+        """AAR-D4 (2): the retreat scan's friendly set — our own soil, and
+        (lever up) the soil of a court whose state with us FEEDS a guest
+        army (ALLY_SUPPLY_STATES)."""
+        if controller == marshal_nation:
+            return True
+        if not self._dispersion_lever() or not controller:
+            return False
+        return self.get_diplomatic_state(marshal_nation, controller) in self.ALLY_SUPPLY_STATES
 
     def get_effective_supply_cap(self, nation: str, region,
                                  _shore_cache: Optional[dict] = None) -> int:
@@ -7458,7 +7523,8 @@ class WorldState:
         return multiplier
 
     @staticmethod
-    def supply_attrition_rate(total: int, cap: int, num_marshals: int) -> float:
+    def supply_attrition_rate(total: int, cap: int, num_marshals: int,
+                              free_corps: int = 2) -> float:
         """WO slice 8: the ONE attrition-rate arithmetic, extracted verbatim
         from `process_supply_attrition`'s loop so the muster preview can
         quote the price the engine will bill (shown = applied by
@@ -7473,7 +7539,9 @@ class WorldState:
         stacking_penalty = max(0, num_marshals - 1) * 0.01  # +1% per extra marshal
         if cap <= 0 or total <= cap:
             # Even under capacity, stacking penalty applies for death-balling
-            if stacking_penalty > 0 and num_marshals >= 3:
+            # (AAR-D4: `free_corps` corps are fed free — the default 2 is the
+            # shipped threshold of three).
+            if stacking_penalty > 0 and num_marshals >= int(free_corps) + 1:
                 attrition = stacking_penalty
             else:
                 return 0.0
@@ -7516,7 +7584,9 @@ class WorldState:
 
             # Per-marshal attrition: home territory gets 1.5x supply capacity
             # Death-ball penalty: +1% per marshal beyond the 1st in the region
-            num_marshals = len(marshals_here)
+            # (AAR-D4: the PRESS — a SUPPORT corps beside its lead is a muster,
+            # and a capital or major city feeds one more corps free).
+            num_marshals, free_corps = self.crowding_press(region, marshals_here)
 
             for m in marshals_here:
                 # HC-4a "The Royal Navy's lifeline" (gate §5a): the
@@ -7534,7 +7604,7 @@ class WorldState:
                 # `supply_attrition_rate` so the muster preview quotes
                 # the same bill this loop collects.
                 attrition = self.supply_attrition_rate(
-                    total, cap, num_marshals)
+                    total, cap, num_marshals, free_corps=free_corps)
                 if attrition <= 0.0:
                     continue
                 losses = int(m.strength * attrition)

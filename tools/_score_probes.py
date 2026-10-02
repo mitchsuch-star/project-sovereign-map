@@ -794,6 +794,14 @@ def combat_c3_capital_garrison(arms, ctx):
                     cases.append(f"{n} t{t} {cap}")
                     if not re.search(r"garrison", text, re.I):
                         bad.append(f"{n} t{t} {cap}")
+                elif (
+                    re.search(rf"halts before {re.escape(cap)}'s works", text)
+                    and "⚔" in text
+                ):
+                    # RS-3 (Step 3): the field win no longer walks into the
+                    # capital — the works halt names the garrison that must
+                    # be assaulted. The garrison is NAMED: the item's pass arm.
+                    cases.append(f"{n} t{t} {cap} (halted before the works)")
     if not cases:
         return _un("no capital taken after a field battle on the arms")
     return _res(

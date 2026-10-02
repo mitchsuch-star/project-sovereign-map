@@ -112,6 +112,19 @@ HOLDER_EXHAUSTION_BAND = 100         # N5: WE floor for the read
 WEIGHT_OWN_REAR_QUIET = 6            # N6: a safe rear invites adventure
 REAR_QUIET_FRACTION = 0.20           # N6: reserve below 20% of standing
 WEIGHT_SURVIVAL = 95
+# SF-LB-1 (Score Finish Step 3): A REFUSAL HARDENS THE ASKER. The ladder's
+# own record -- `diplomatic_refusals`, the section-5 pin-8 substrate -- read
+# back into the weight: each refused design ask within the 12-turn memory
+# adds WEIGHT_REFUSED_ASK, capped. A court that asked twice and was refused
+# twice is angrier than one that never asked, and the fight bar (85, kept
+# where AI-3r left it) becomes reachable for an AI-vs-AI acquire design
+# whose holder is busy and whose own rear is quiet -- measured, Prussia over
+# Hanover never passed 81 without it. Both boards read the same record
+# (a refused ask of France hardens its asker too -- GR5). False = the
+# refusal record feeds the ladder gate alone.
+A_REFUSAL_HARDENS_THE_ASKER = True
+WEIGHT_REFUSED_ASK = 6
+WEIGHT_REFUSED_ASK_CAP = 12
 # AI-5c (§12.5): the hegemon REFUSED this court's offered mediation —
 # the arbiter scorned hardens. Derived from the pin-8 refusal record,
 # so it expires with that record's 12-turn memory window: refusing the
@@ -387,6 +400,11 @@ def _derive_weight(nation: str, agenda: AgendaView,
         # the may-skip-rungs casus belli).
         if has_renege_grievance(world, nation, against):
             weight += WEIGHT_RENEGED_BARGAIN
+        if A_REFUSAL_HARDENS_THE_ASKER:
+            from backend.game_logic.ai_diplomacy import get_refused_asks
+            refused = [e for e in get_refused_asks(world, nation, against)
+                       if e.get("type") in ("design_ask", "design_purchase")]
+            weight += min(WEIGHT_REFUSED_ASK_CAP, WEIGHT_REFUSED_ASK * len(refused))
         # AI-5c (§12.5): scorned good offices. A contain/arbiter court
         # whose offered mediation `against` refused reads the refusal
         # record (pin 8) and hardens — fully derived, expiring with the

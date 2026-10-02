@@ -723,6 +723,13 @@
                 "regions": ["Munich", "Swabia"],
                 "order_group": 1,
                 "blurb": "Mack's thrust to the Iller - Bavaria's defection to France must be punished and the German lands held for the Habsburg crown."
+            },
+            {
+                "id": "the_eastern_question",
+                "type": "acquire_regions",
+                "title": "The Eastern Question",
+                "regions": ["Albania", "Rumelia"],
+                "blurb": "The Porte is failing, and the Habsburg frontier runs where the Turk is weakest. If Italy and Germany are closed to Vienna, the Danube and the Adriatic are not: Albania and Rumelia would make the House of Austria the master of the Balkans before St Petersburg can be."
             }
         ],
         "Prussia": [

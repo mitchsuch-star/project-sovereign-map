@@ -1,0 +1,74 @@
+{
+ "tree": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map",
+ "sha": "53f476feb01929e1fa762d91106f5b9ee1531f02",
+ "started": "2026-10-02T17:11",
+ "jobs": 3,
+ "arms": {
+  "CMD-H": {
+   "arm": "CMD-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 19.9,
+   "cmd": [
+    "--name",
+    "CMD-H",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\docs\\audits\\score_runs\\2026_10_02_step3\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 31,
+     "hold_titled": 45,
+     "provinces": 26
+    },
+    {
+     "save": "CMD-H_t10.json",
+     "turn": 10,
+     "titled": 31,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t20.json",
+     "turn": 20,
+     "titled": 33,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t30.json",
+     "turn": 30,
+     "titled": 33,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t40.json",
+     "turn": 40,
+     "titled": 31,
+     "hold_titled": 45,
+     "provinces": 26
+    }
+   ]
+  }
+ },
+ "skipped": {
+  "CLI": "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (\u00a74.6)"
+ },
+ "finished": "2026-10-02T17:11"
+}

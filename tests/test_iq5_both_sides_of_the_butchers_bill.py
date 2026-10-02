@@ -56,6 +56,20 @@ GD = ROOT / "godot-client" / "project-sovereign" / "scripts"
 CE = CombatExecutor
 
 
+@pytest.fixture(autouse=True)
+def _iq5_measures_the_full_strength_split(monkeypatch):
+    """IQ5-R1 (Score Finish Step 3 / SR-7a, October 2, 2026) changed the
+    SPLIT of a reinforced side's pool — by the men committed, no longer by
+    full strength. Every figure in this module was measured on the shipped
+    board under the full-strength split, and its subject is the SURFACE
+    (scope labels, prose, the digest), never the arithmetic; the split's
+    own pins live in `tests/test_sr7a_the_ais_odds_gate.py`. The module
+    reads the pre-R1 arithmetic by lever, so its figures stay the measured
+    ones and the surfaces stay pinned on what they are about."""
+    import backend.commands.combat_executor as _ce_mod
+    monkeypatch.setattr(_ce_mod, "BLEED_BY_THE_MEN_COMMITTED", False)
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Staging — the recon's own geometries, on the shipped board
 # ═══════════════════════════════════════════════════════════════════════

@@ -29,6 +29,30 @@ THE_SCOUT_NAMES_THE_GARRISON = True
 # with the reason and the remedy. Lever False = the melee escalade.
 GUNS_DO_NOT_STORM_WORKS = True
 THE_DESK_READS_THE_GARRISON_FOG = True
+# AAR-D8 (Score Finish Step 3 / SR-7a, October 2, 2026): A SMALL GARRISON
+# SURRENDERS. The AI's garrison grind — Charles and Mack spent turns 13–16
+# assaulting Bavaria's Franconia detachment of 47 → 24 → 12 → 6 → 3 men,
+# losing 12, 6, 3 and 1 — had no floor and no futility: a detachment "fights
+# to the last man" however few the men. Now a detachment under the floor
+# lays down its arms to the first corps that stands beside it (it is NOT a
+# garrison that fights: `garrison_fights` is False, so the march walks in,
+# the attack takes the province without an escalade, P4.25 never assaults
+# it and P4.5 prices it as open ground). Both boards, ONE predicate. Lever
+# False = the last-man detachment, byte for byte (the flip arm of
+# tools/_step3_series_arms.py).
+A_SMALL_GARRISON_SURRENDERS = True
+SMALL_GARRISON_SURRENDER_FLOOR = 500
+
+
+def detachment_surrenders(region) -> bool:
+    """AAR-D8: a detachment garrison that gives way rather than fights —
+    standing, under the floor, with the lever up."""
+    if not A_SMALL_GARRISON_SURRENDERS:
+        return False
+    garrison = int(getattr(region, "garrison_strength", 0) or 0)
+    return (garrison > 0
+            and bool(getattr(region, "garrison_detachment", False))
+            and garrison < SMALL_GARRISON_SURRENDER_FLOOR)
 
 
 def works_bonus(region) -> float:
@@ -89,7 +113,11 @@ def describe_garrison(world, region, viewer: str) -> str:
     whose = formed_display_name(world, holder) if holder else "Unknown"
     if not (holder and world.is_at_war(viewer, holder)):
         return f"Garrison: {strength:,} ({whose}'s){works_clause}."
-    if getattr(region, "garrison_detachment", False):
+    if detachment_surrenders(region):
+        kind = (f"a detachment too few to hold (below "
+                f"{SMALL_GARRISON_SURRENDER_FLOOR:,}) — it lays down its arms "
+                f"to the first corps that marches in")
+    elif getattr(region, "garrison_detachment", False):
         kind = "a detachment that fights to the last man — it must be assaulted"
     elif strength >= MARCH_HALTS_AT_GARRISON:
         kind = "it must be assaulted — a march halts before it"
@@ -175,7 +203,8 @@ def garrison_fights(region) -> bool:
     if garrison <= 0:
         return False
     if getattr(region, "garrison_detachment", False):
-        return True
+        # AAR-D8: under the surrender floor it gives way, it does not fight.
+        return not detachment_surrenders(region)
     return garrison >= MARCH_HALTS_AT_GARRISON
 
 

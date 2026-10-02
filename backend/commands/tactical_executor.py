@@ -17,6 +17,19 @@ from backend.display_names import (STRATEGIC_ORDER_DISPLAY,
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 
 
+# CQ-22 (Score Finish Step 3 / SR-7a, October 2, 2026 — §6 row 5 ruled the
+# direction): ONE STANCE RULE FOR DRILL ON EVERY ROAD. The stance gate lived
+# only in the player's pre-objection battery; the executor — the AI's road,
+# and the player's strategic/autonomous executions that skip the battery —
+# never had it, so the AI drilled in AGGRESSIVE stance while the player could
+# not (CN-4 measured it and left it, because flipping it moved the series).
+# Now `_execute_drill` reads the gate, and the AI's two drill rungs (P6's
+# shock drill, P4.9's heal) ask the same predicate before ordering one, so
+# the AI never orders a drill the executor refuses. False = the asymmetry,
+# byte for byte (the flip arm of tools/_step3_series_arms.py).
+ONE_STANCE_RULE_FOR_DRILL = True
+
+
 def _aggressive_stance_refusal(marshal, verb: str):
     """The stance gate the player's road has always applied to drill and
     fortify BEFORE the executor ran (the pre-objection battery), in its own
@@ -437,10 +450,11 @@ class TacticalExecutor:
         self._auto_break_square(marshal, "drill")
 
         # CN-4: the gates live in `drill_refusal` (via the one response
-        # builder), so the Drill chips dim with this very reason. No stance
-        # gate here — this road never had one (see `drill_refusal`).
+        # builder), so the Drill chips dim with this very reason. CQ-22
+        # (SR-7a): the stance gate is read here too — ONE rule on every
+        # road (lever down = the road without it, as CN-4 shipped it).
         refusal = order_refusal_response(world, marshal, "drill",
-                                         stance_gate=False)
+                                         stance_gate=ONE_STANCE_RULE_FOR_DRILL)
         if refusal:
             return refusal
 

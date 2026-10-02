@@ -3230,6 +3230,9 @@ def peace_overture(status_payload, turn_index):
 # reaches an ending is then evidence about what the screen says, not only
 # that it fired. False = the GE-1 one-liner alone.
 THE_DIGEST_RENDERS_THE_END_SCREEN = True
+# Score Finish Step 3 (Oct 2 2026): the answered interrupt's reply prints its
+# muster line under the POPUP row (combat C1's reader looks for it there).
+THE_DIGEST_PRINTS_THE_ANSWERED_MUSTER = True
 
 
 def _end_screen_lines(row: dict) -> list:
@@ -3334,6 +3337,17 @@ def drain(transport, digest, answerer, response, strict):
     answerer.begin_post()
     while queue and seen < MAX_ANSWERS_PER_POST:
         current = queue.pop(0)
+        if THE_DIGEST_PRINTS_THE_ANSWERED_MUSTER and current is not response:
+            # Score Finish Step 3 (combat C1): the reply to an answered
+            # interrupt (`attack_anyway` on a contact question) carries the
+            # muster block the battle opened on — the digest printed the
+            # question and the battle and never the muster between them,
+            # so the instrument read a muster-less fight the game had
+            # mustered. One sub-line, under the POPUP line.
+            _msg = str((current or {}).get("message") or "") if isinstance(current, dict) else ""
+            _muster = next((ln.strip() for ln in _msg.splitlines() if "MUSTER" in ln), "")
+            if _muster:
+                digest._md(f"  - ↳ {_muster[:240]}")
         followups = answerer.scan(current)
         seen += len(followups)
         queue.extend(followups)

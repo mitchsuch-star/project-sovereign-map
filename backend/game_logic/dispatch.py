@@ -6072,6 +6072,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
     "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
     "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
+    # SR-G7 / PB-D1 "The Armed Peace" (Score Finish Step 3): the fuse lapses.
+    "diplomatic_armed_peace_fuse": (
+        "THE ARMED PEACE: {quiet} turns without a French battle — the courts "
+        "re-arm. Europe's alarm rises {rise} a turn toward the league gate at "
+        "{gate}; {courts} would consult."),
     # §4.4b (Stage D review fix [r6]): the eclipse variants — a coalition
     # against ANOTHER power must never wear the anti-France copy.
     "diplomatic_coalition_formed_other": "A coalition has formed against {target}. Members: {member_list}.",
@@ -6395,6 +6400,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_coalition_formed": "HIGH",
     "diplomatic_coalition_dissolved": "MEDIUM",
     "diplomatic_coalition_brewing": "MEDIUM",
+    "diplomatic_armed_peace_fuse": "HIGH",
     "balance_of_europe_shifted": "NORMAL",
     "diplomatic_dp_regen": "LOW",
     "sovereign_takes_field": "MEDIUM",

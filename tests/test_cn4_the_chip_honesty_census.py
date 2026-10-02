@@ -525,20 +525,25 @@ class TestTheDrillRefusalIsTheExecutors:
             assert not response.get("success")
             assert response.get("message") == f"{sentence}\n{suggestion}", verb
         # The executor's road: fortify refuses in the same words (it always
-        # had the stance gate). Drill does NOT — that road (the AI's, and the
+        # had the stance gate). Drill did NOT — that road (the AI's, and the
         # player's strategic/autonomous executions that skip the battery)
         # never had the gate, and giving it one moved BASELINE_SERIES, so
-        # this UX slice leaves it and files the asymmetry (CQ-22). Pinned as
-        # CURRENT so the fix flips it consciously.
+        # CN-4 left it and filed the asymmetry (CQ-22). ⚑ FLIPPED CONSCIOUSLY
+        # by Score Finish Step 3 / SR-7a (October 2, 2026, §6 row 5): ONE
+        # stance rule for drill on every road — the executor refuses too,
+        # in the same words, and the series was re-recorded once.
         sentence, _ = fortify_refusal(M.world, lannes)
         assert order_refusal_response(M.world, lannes, "fortify")["message"] == sentence
         assert order_refusal_response(M.world, lannes, "drill", stance_gate=False) is None
+        drill_sentence, _ = drill_refusal(M.world, lannes)
+        assert order_refusal_response(M.world, lannes, "drill")["message"] == drill_sentence
         # Driven on the executor itself (the road the battery never sees):
-        # he drills — the asymmetry as it stands, until CQ-22's gate.
+        # he no longer drills in AGGRESSIVE stance.
         from backend.commands.executor import CommandExecutor
         direct = CommandExecutor()._tactical._execute_drill(
             {"marshal": "Lannes", "action": "drill"}, {"world": M.world})
-        assert direct.get("success") is True, direct.get("message")
+        assert direct.get("success") is False
+        assert direct.get("message") == drill_sentence
 
     def test_no_objection_speaks_for_an_order_the_executor_refuses(self, monkeypatch):
         """The pre-objection battery reads the WHOLE gate. The objection roll

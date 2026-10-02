@@ -635,6 +635,67 @@ A_SPENT_CORPS_DOES_NOT_SHARE_THE_FIELD = True
 # flip arm of tools/_sr4_reserve_series_arms.py).
 COUNTER_PUNCH_CREDITS_THE_ASSAULT = True
 
+# RS-3 (Score Finish Step 3, October 2, 2026): A FIELD WIN HALTS BEFORE THE
+# WORKS. Played, turn 4 of the retest: the scout read "Garrison: 25,000 — it
+# must be assaulted — a march halts before it"; Davout then broke Charles
+# INSIDE Vienna and "advanced into Vienna" beside that garrison, Ney broke
+# John's last 1,024, and "Vienna has been captured by France!" — the
+# garrison never fought and the capture seam erased it (25,000 -> 0). GR5
+# read it the other way too: a French corps standing in Paris made Paris
+# EASIER to take, not harder. The rule, ONE predicate shared with the
+# order's own garrison branch and the desk's forecast
+# (`garrison_report.garrison_fights`): a victory over the corps standing in
+# a province whose garrison still fights ends at the works — the victor
+# does not advance and the province is not taken; the loser flees or
+# falls, the garrison stands and must be assaulted (the assault resolver's
+# own idiom — the attacker stays outside until the walls give way). All
+# three post-battle advance seams read it: the field win, the
+# auto-bombardment kill and the charge. False = the shipped advance, byte
+# for byte (the flip arm of tools/_step3_series_arms.py).
+A_FIELD_WIN_HALTS_BEFORE_THE_WORKS = True
+
+# XR-3 (Score Finish Step 3 / SR-7a, the remaining half): an in-place capture
+# marches nowhere. AAR-22 stopped the sentence saying "marches from Bohemia
+# into Bohemia"; the bill still charged the road — measured, "Ney takes
+# Bohemia where he stands! (900 lost to march)". False = the charge.
+AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE = True
+
+# IQ5-R1 (Score Finish Step 3 / SR-7a): THE POOL SPLITS BY THE MEN COMMITTED.
+# FA-D29 sized each side's casualty pool by its ENGAGED bodies — the lead's
+# whole corps plus COMMITTED_ALPHA × strength × the pair scale of each
+# reinforcer — and `_distribute_casualties` then split that pool by FULL
+# strength, so a half-committed man bled a full share of a pool he had
+# half-filled (IQ-5: Davout lost 3,547 at scale 0.5 against 3,533 at 1.0 on
+# the same seed). The split now weighs each participant by the same bodies
+# the pool was sized by — the ONE arithmetic of `_committed_bodies`, applied
+# per man — so a corps that commits six-tenths of itself bleeds six-tenths
+# of a share, and a hostile reinforcer who commits nothing bleeds nothing.
+# Both boards (the resolver's two call sites pass each side's lead). False =
+# the full-strength split, byte for byte.
+BLEED_BY_THE_MEN_COMMITTED = True
+
+
+def works_halt_line(world, marshal, region) -> str:
+    """RS-3: '' when the victor may advance, else the one sentence every
+    advance seam prints when a hostile garrison still fights in the
+    province the battle was over. Pure (reads the ONE predicate)."""
+    if not A_FIELD_WIN_HALTS_BEFORE_THE_WORKS or region is None:
+        return ""
+    holder = getattr(region, "controller", None)
+    if not holder or holder == marshal.nation:
+        return ""
+    if not world.is_at_war(marshal.nation, holder):
+        return ""
+    from backend.game_logic.garrison_report import garrison_fights
+    if not garrison_fights(region):
+        return ""
+    garrison = int(getattr(region, "garrison_strength", 0) or 0)
+    kind = ("a detachment that fights to the last man"
+            if getattr(region, "garrison_detachment", False)
+            else "the garrison")
+    return (f" {marshal.name} halts before {region.name}'s works — "
+            f"{kind} of {garrison:,} still stands and must be assaulted.")
+
 
 class CombatExecutor:
     """Handles all combat-related execution: attack, charge, bombardment, garrison."""
@@ -1960,8 +2021,12 @@ class CombatExecutor:
                 # muster-alone quote. Exact-parity arms pinned: own soil,
                 # enemy soil uncaptured, stacking-under-cap.
                 fed = int(world.get_effective_supply_cap(nation, region))
+                # AAR-D4: the free allowance the engine grants this
+                # province (a capital feeds one more corps free); the
+                # muster's own corps are the press the quote prices.
+                _press, _free = world.crowding_press(region, [])
                 rate = world.supply_attrition_rate(
-                    total_bodies, fed, n_corps)
+                    total_bodies, fed, n_corps, free_corps=_free)
                 per_turn = sum(int(s * rate) for s in standing_bodies)
                 preview["supply"] = {
                     "fed": fed,
@@ -2725,13 +2790,29 @@ class CombatExecutor:
     # alongside non-artillery units (positioned behind front lines).
     ARTILLERY_CASUALTY_FACTOR = 0.5
 
-    def _distribute_casualties(self, raw_casualties: int, participants: list) -> dict:
+    def _committed_weight(self, lead, p) -> float:
+        """IQ5-R1: the men `p` actually ENGAGED on `lead`'s side — the lead's
+        whole corps, a reinforcer's COMMITTED_ALPHA × strength × pair scale
+        (the per-man term of `_committed_bodies`, so the split and the pool
+        read ONE arithmetic). A participant who committed nothing weighs 0."""
+        if lead is None or p is lead or p.name == lead.name:
+            return float(p.strength)
+        scale = self._pair_contribution_scale(lead, p)
+        if scale <= 0.0:
+            return 0.0
+        return self.COMMITTED_ALPHA * float(p.strength) * scale
+
+    def _distribute_casualties(self, raw_casualties: int, participants: list,
+                               lead=None) -> dict:
         """Distribute casualties proportionally among participating marshals.
 
         Returns: dict of marshal_name -> int(casualties)
 
         Rules:
         - Proportional by strength fraction: marshal_strength / total_strength * raw_casualties
+          IQ5-R1 (`BLEED_BY_THE_MEN_COMMITTED`, `lead` given): by the COMMITTED
+          bodies instead — the lead's whole corps, each reinforcer's
+          COMMITTED_ALPHA × strength × pair scale (the pool's own sizing).
         - Round DOWN each marshal's share (int())
         - Artillery rear-position advantage: when fighting alongside non-artillery
           units, artillery takes 50% of proportional share (the saved casualties
@@ -2747,12 +2828,22 @@ class CombatExecutor:
         if not active:
             return {}
 
-        total_strength = sum(p.strength for p in active)
+        by_committed = bool(BLEED_BY_THE_MEN_COMMITTED and lead is not None)
+        if by_committed:
+            weights = {p.name: self._committed_weight(lead, p) for p in active}
+            total_strength = sum(weights.values())
+            if total_strength <= 0:
+                # Nobody committed a man (a lone lead at 0 cannot be here);
+                # fall back to the full-strength split rather than divide by 0.
+                by_committed = False
+        if not by_committed:
+            weights = {p.name: float(p.strength) for p in active}
+            total_strength = sum(p.strength for p in active)
         if total_strength <= 0:
             return {}
 
-        # Sort by strength descending (strongest first for remainder assignment)
-        sorted_active = sorted(active, key=lambda p: p.strength, reverse=True)
+        # Sort by weight descending (strongest first for remainder assignment)
+        sorted_active = sorted(active, key=lambda p: weights[p.name], reverse=True)
 
         # Artillery casualty reduction: only when fighting with non-artillery allies
         has_non_artillery = any(not getattr(p, 'artillery', False) for p in active)
@@ -2760,7 +2851,7 @@ class CombatExecutor:
         # Compute proportional shares (round down)
         shares = {}
         for p in sorted_active:
-            fraction = p.strength / total_strength
+            fraction = weights[p.name] / total_strength
             raw_share = int(raw_casualties * fraction)
             # Artillery positioned behind lines takes fewer casualties
             if getattr(p, 'artillery', False) and has_non_artillery:
@@ -6472,8 +6563,17 @@ class CombatExecutor:
                             garrison_result["counter_punch_used"] = True
                         return garrison_result
 
-                    # If garrison exists but below collapse threshold, it collapses — clear it
+                    # If garrison exists but below collapse threshold, it collapses — clear it.
+                    # AAR-D8 (SR-7a): a detachment under the surrender floor
+                    # lays down its arms — said, so the player learns the floor.
+                    surrender_note = ""
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
+                        from backend.game_logic.garrison_report import (
+                            detachment_surrenders as _detachment_surrenders)
+                        if _detachment_surrenders(target_region):
+                            surrender_note = (
+                                f" The detachment of {int(target_region.garrison_strength):,} "
+                                f"at {resolved_target} lays down its arms.")
                         target_region.garrison_strength = 0
                         target_region.garrison_detachment = False
 
@@ -6519,8 +6619,16 @@ class CombatExecutor:
                     marshal.idle_turns = 0
                     marshal.acted_this_turn = True
 
-                    # Movement attrition (Phase 6.2.F)
-                    attrition_info = self._executor._calculate_movement_attrition(marshal, resolved_target, world)
+                    # Movement attrition (Phase 6.2.F). XR-3 (SR-7a, the
+                    # remaining half): a corps already standing on the
+                    # province marched nowhere and bleeds nothing to the road
+                    # — AAR-22 fixed the sentence, this fixes the bill.
+                    if (AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE
+                            and old_location == resolved_target):
+                        attrition_info = {"march_losses": 0, "harassment_losses": 0,
+                                          "total_losses": 0, "depot_bonus": False}
+                    else:
+                        attrition_info = self._executor._calculate_movement_attrition(marshal, resolved_target, world)
 
                     # Attempt capture (Phase 6.2.F: contested capture)
                     capture_result = self._attempt_region_capture(
@@ -6533,6 +6641,8 @@ class CombatExecutor:
                         capture_message = f"{marshal.name} takes {resolved_target} where he stands!"
                     else:
                         capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed!"
+                    if surrender_note:
+                        capture_message = surrender_note.strip() + " " + capture_message
                     if attrition_info["total_losses"] > 0:
                         capture_message += f" ({attrition_info['march_losses']:,} lost to march"
                         if attrition_info.get("depot_bonus"):
@@ -6687,8 +6797,12 @@ class CombatExecutor:
         # gate too (the free attack was already earned and consumed).
         # ════════════════════════════════════════════════════════════
         muster_preview = None
+        # Step 3 (combat C1): a strategic re-issue the player CONFIRMED
+        # (the answered contact question, `_muster_confirmed`) still builds
+        # its muster — the block rides the battle with the gate off.
         if (command is not None
-                and not command.get("_strategic_execution")
+                and (not command.get("_strategic_execution")
+                     or command.get("_muster_confirmed"))
                 and not command.get("_autonomous_execution")
                 and not _attack_is_unordered(command)
                 and marshal.nation == world.player_nation):
@@ -7214,8 +7328,13 @@ class CombatExecutor:
 
             # Advance attacker if not artillery
             advance_msg = ""
+            # RS-3: the works halt reads the same predicate on this exit.
+            auto_works_line = works_halt_line(
+                world, marshal, world.get_region(battle_region_name))
             if not getattr(marshal, 'artillery', False) and marshal.location != battle_region_name:
-                if pursuit_block and pursuit_block["arm"] == "neutral":
+                if auto_works_line:
+                    advance_msg = auto_works_line
+                elif pursuit_block and pursuit_block["arm"] == "neutral":
                     advance_msg = (
                         f" {marshal.name} halts at the frontier of "
                         f"{battle_region_name} — {pursuit_block['owner']}'s soil, "
@@ -7234,7 +7353,11 @@ class CombatExecutor:
                     if m.location == battle_region_name and m.strength > 0 and m.nation != marshal.nation
                     and world.is_at_war(marshal.nation, m.nation)
                 ]
-                if pursuit_block is not None and not remaining_defenders:
+                if not remaining_defenders and auto_works_line:
+                    # RS-3: the garrison still fights — nothing is taken.
+                    if auto_works_line not in advance_msg:
+                        conquest_msg = auto_works_line
+                elif pursuit_block is not None and not remaining_defenders:
                     if pursuit_block["arm"] == "ally":
                         conquest_msg = pursuit_block["message"]
                     # PC15-D1(c): a JEALOUSY-AUTONOMOUS attack never stages
@@ -7460,11 +7583,12 @@ class CombatExecutor:
                 defender_bodies=self._committed_bodies(enemy_marshal, def_participants),
             )
 
-            # Distribute raw casualties proportionally among participants
+            # Distribute raw casualties proportionally among participants —
+            # IQ5-R1: by the men each committed (the pool's own sizing).
             atk_distribution = self._distribute_casualties(
-                battle_result["attacker_raw_casualties"], atk_participants)
+                battle_result["attacker_raw_casualties"], atk_participants, lead=marshal)
             def_distribution = self._distribute_casualties(
-                battle_result["defender_raw_casualties"], def_participants)
+                battle_result["defender_raw_casualties"], def_participants, lead=enemy_marshal)
 
             # F1a fix: resolve_battle builds the outcome description BEFORE the
             # caller distributes casualties, so it bakes the WHOLE-CORPS raw total
@@ -8428,6 +8552,10 @@ class CombatExecutor:
         # ARTILLERY: No advance on win — positional platform stays in place
         pursuit_halted = False
         advance_losses = 0  # LV-11: the advance's own toll, shown beside the locked figure
+        # RS-3: the works halt — read once, before the advance and again at
+        # the capture (a co-located victor never moved, but takes nothing
+        # from a province whose garrison still fights either).
+        works_line = works_halt_line(world, marshal, world.get_region(target_location))
         is_artillery_no_advance = getattr(marshal, 'artillery', False) and marshal.location != target_location
         if is_artillery_no_advance:
             if can_advance:
@@ -8436,7 +8564,14 @@ class CombatExecutor:
             print(f"[ATTACK MOVEMENT] Artillery {marshal.name} stays at {marshal.location} (no advance on win)")
         elif can_advance and marshal.strength > 0 and not getattr(self._executor, '_current_sortie', False):
             if marshal.location != target_location:
-                if pursuit_block and pursuit_block["arm"] == "neutral":
+                if works_line:
+                    # RS-3: the victor halts before the works — the garrison
+                    # inside still fights (the assault resolver's own rule:
+                    # the attacker stays outside until the walls give way).
+                    pursuit_halted = True
+                    movement_msg = works_line
+                    print(f"[ATTACK MOVEMENT] RS-3 works halt: {marshal.name} stays at {marshal.location}")
+                elif pursuit_block and pursuit_block["arm"] == "neutral":
                     # The frontier halt: no uninvited army on a peaceful
                     # court's soil — the movement rule this seam mirrors.
                     pursuit_halted = True
@@ -8534,6 +8669,12 @@ class CombatExecutor:
                         f" To seize it is to make war on "
                         f"{pursuit_block['owner']} — choose our purpose, "
                         f"or let the province stand.")
+            # RS-3: the garrison still fights — the province is not taken by
+            # a field win (the works line already printed if the victor was
+            # halted outside; a co-located victor hears it here).
+            elif not remaining_defenders and works_line:
+                if works_line not in movement_msg:
+                    conquest_msg = works_line
             # If no defenders left, attempt capture (may start occupation if fortified)
             elif not remaining_defenders:
                 conquest_from = target_region.controller or ""
@@ -9841,7 +9982,13 @@ class CombatExecutor:
             # NV-9: one advance seam for every post-combat move, reach-aware.
             _charge_cross_ok = self._naval_advance_allowed(
                 marshal, charge_battle_region, world)
-            if (marshal.location != charge_battle_region
+            # RS-3: the works halt — cavalry does not ride through a
+            # garrison that still fights either.
+            charge_works_line = works_halt_line(
+                world, marshal, world.get_region(charge_battle_region))
+            if marshal.location != charge_battle_region and charge_works_line:
+                movement_msg = charge_works_line
+            elif (marshal.location != charge_battle_region
                     and _ws_mod.CHARGE_FRONTIER_HALT_ACTIVE
                     and pursuit_block and pursuit_block["arm"] == "neutral"):
                 # The frontier halt: the cavalry stops at the border it
@@ -9934,6 +10081,13 @@ class CombatExecutor:
                             f" To seize it is to make war on "
                             f"{pursuit_block['owner']} — choose our purpose, "
                             f"or let the province stand.")
+                elif not remaining_defenders and works_halt_line(world, marshal, target_region):
+                    # RS-3: the garrison still fights — the field is won,
+                    # the province is not (a co-located charge never moved,
+                    # so it hears the line here).
+                    _cw = works_halt_line(world, marshal, target_region)
+                    if _cw not in movement_msg:
+                        conquest_msg = _cw
                 elif not remaining_defenders and marshal.location == charge_battle_region:
                     charge_conquest_from = target_region.controller or ""
                     capture_result = self._attempt_region_capture(

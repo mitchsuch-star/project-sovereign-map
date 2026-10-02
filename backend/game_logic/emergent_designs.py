@@ -679,10 +679,23 @@ def maybe_fire_volte_face(world, nation_a: str, nation_b: str) -> Optional[Dict]
         return None
     power, hegemon = pair
 
-    from backend.game_logic.agendas import _live_nation_name
+    from backend.game_logic.agendas import _live_nation_name, get_active_agenda
     power_display = _live_nation_name(world, power)
     hegemon_display = _live_nation_name(world, hegemon)
-    next_design = _next_design_after_contain(world, power)
+    # SF-LB-1: the state has landed, so the deck's own answer is the live
+    # design (an ally is not coveted -- the reversed court's acquire designs
+    # against its new ally sleep); the contain-order fallback stays for a
+    # deck whose live answer is still the old design.
+    next_design = None
+    try:
+        world.invalidate_active_nations_cache()
+        live = get_active_agenda(power, world)
+        if live is not None and not live.survival:
+            next_design = {"id": live.id, "title": live.title}
+    except Exception:
+        next_design = None
+    if next_design is None:
+        next_design = _next_design_after_contain(world, power)
     next_title = str((next_design or {}).get("title") or "")
     if next_title:
         gaze = f"Her court turns its gaze to {next_title}."

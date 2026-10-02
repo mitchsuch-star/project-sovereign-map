@@ -386,12 +386,14 @@ def _build_territories(world, player: str) -> list:
         # the engine bills with, so the death-ball arm shows too — three
         # corps under the cap read "Crowded" (2%+/turn), not "OK", on the
         # tab beside the muster preview that quotes that exact cost.
-        living_occupants = sum(
-            1 for m in world.marshals.values()
-            if m.location == region.name and m.strength > 0)
+        living = [m for m in world.marshals.values()
+                  if m.location == region.name and m.strength > 0]
+        # AAR-D4: the SAME press the engine bills — a SUPPORT corps beside
+        # its lead is a muster, a capital feeds one more corps free.
+        living_occupants, free_corps = world.crowding_press(region, living)
         attrition_rate = world.supply_attrition_rate(
             int(total_occupant_strength), int(effective_cap),
-            living_occupants)
+            living_occupants, free_corps=free_corps)
         supply_status = "OK"
         if total_occupant_strength > effective_cap:
             supply_status = "Over capacity"

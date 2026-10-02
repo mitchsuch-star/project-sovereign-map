@@ -910,6 +910,7 @@ class MovementExecutor:
         # routes player->pending_capture_choice popup and AI->auto-decision, so
         # this is GR5-symmetric for free. Fortified/garrisoned provinces remain a
         # genuine ATTACK contest and are intentionally out of scope.
+        from backend.game_logic.garrison_report import garrison_fights as _garrison_fights
         dest_region = world.get_region(target_name)
         captured_on_move = False
         walk_in_open = (dest_region is not None
@@ -918,9 +919,10 @@ class MovementExecutor:
                 and world.is_at_war(marshal.nation, dest_region.controller)
                 and not discovered_enemies
                 and not dest_region.has_building("fortification")
-                and not (dest_region.garrison_strength >= MARCH_HALTS_AT_GARRISON
-                         or (dest_region.garrison_detachment
-                             and dest_region.garrison_strength > 0)))
+                # AAR-D8 (SR-7a): the ONE predicate — a detachment under the
+                # surrender floor gives way to the march, a bigger one or a
+                # capital's 5,000 halt it.
+                and not _garrison_fights(dest_region))
         capture_refused_recovering = False
         capture_refused_raiding_party = False
         if walk_in_open and corps_takes_no_ground(marshal):
@@ -1112,9 +1114,11 @@ class MovementExecutor:
                     enemies_there = world.get_marshals_in_region(adj_name)
                     enemy_marshals = [m for m in enemies_there if m.nation != marshal.nation and m.strength > 0
                                       and world.is_at_war(marshal.nation, m.nation)]
-                    has_garrison = adj_region.garrison_strength >= MARCH_HALTS_AT_GARRISON or (
-                        adj_region.garrison_detachment and adj_region.garrison_strength > 0
-                    )
+                    # AAR-D8 (SR-7a): the hint reads the ONE predicate the
+                    # walk-in reads — a surrendering detachment is open ground.
+                    from backend.game_logic.garrison_report import (
+                        garrison_fights as _hint_garrison_fights)
+                    has_garrison = _hint_garrison_fights(adj_region)
                     if not enemy_marshals and not has_garrison:
                         capture_hints.append(adj_name)
 

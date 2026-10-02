@@ -46,6 +46,8 @@ THE_SIGHTING_IS_LIVE = True
 THE_SURFACES_NAME_THE_GARRISON = True
 # AAR24-X4: a known enemy garrison's regrowth rides the dispatch.
 THE_ENEMY_WORKS_REGROW_ALOUD = True
+# Score Finish Step 3 exit: a captured man's frozen snapshot is not a sighting.
+A_PRISONER_IS_NOT_A_SIGHTING = True
 
 GARRISON_ROW_KIND = "garrison"
 
@@ -110,6 +112,16 @@ def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
             if km.get("nation") == viewer:
                 continue
             name = km.get("name", "Unknown")
+            if A_PRISONER_IS_NOT_A_SIGHTING:
+                # Score Finish Step 3 exit (narration C4): a man the roster
+                # knows to be a PRISONER never rides as a frozen snapshot —
+                # measured on CMD-H turn 40, Deroy taken at Franche-Comte in
+                # the enemy phase and his three-turn-old Franconia label still
+                # on the morning's intelligence rows. The prisoner surface
+                # names him; the live read already skips him (`captured_by`).
+                _man = world.marshals.get(name) if hasattr(world, "marshals") else None
+                if _man is not None and getattr(_man, "captured_by", ""):
+                    continue
             updated = int(intel.last_updated_turn)
             existing = sightings.get(name)
             if existing is not None:

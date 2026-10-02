@@ -446,6 +446,8 @@ Every seam below was re-read by the review at HEAD `652d23d7` (code identical to
 
 ## §7 The build slices — Chunk 7's head, "SR-7d The Doctrines"
 
+> **Status October 2, 2026:** Score Finish Step 3 landed its seven other slices (RS-3 → SF-LB-1; `SCORE_FINISH_SPEC.md` §3 Step 3) and the long-peace measurement the doctrines must not confound is DONE. **SR-7d is NEXT, as its own session** — nothing under this section is built yet.
+
 | Slice | Scope | Size (sessions) |
 |---|---|---|
 | **DC-0** | **The substrate.**<br>• The `doctrines` and `poor_country` scenario keys and their validator blocks (§1, without `cured_by`).<br>• The save field and its 1805-only backfill (§9).<br>• `backend/game_logic/doctrines.py`: the accessors, the forward-reading poor-or-stripped predicate, `refresh_doctrine_terms`, and `set_marshal_nation` with its AST census.<br>• The ONE arrival bar with `assume_order` (RV-1: the resolver and the odds row call `_arrival_threshold`, byte-identical, pinned).<br>No doctrine is active yet. | 0.4 |

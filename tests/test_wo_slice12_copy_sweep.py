@@ -218,9 +218,12 @@ class TestWO10TheQualifiedEstimate:
 class TestWO12TheConcentrationTax:
 
     def _crowded_paris(self):
+        # Score Finish Step 3 SR-7c "Dispersion" (October 2, 2026): the first
+        # three corps on a capital are free of the crowding tax
+        # (`CROWDING_FREE_CORPS_CITY`), so the crowd is FOUR corps now.
         corps = [MarshalFactory.infantry(name=f"Corps{i}", location="Paris",
                                          strength=4000, personality="cautious")
-                 for i in range(3)]
+                 for i in range(4)]
         return WorldFactory.with_marshals(corps)
 
     def test_an_under_capacity_stack_is_a_crowd(self):
@@ -231,7 +234,7 @@ class TestWO12TheConcentrationTax:
         assert ours, "the death-ball tax did not fire"
         assert all(e["cause"] == "concentration" for e in ours)
         assert all(e["message"].startswith("Crowded at Paris") for e in ours)
-        assert all("3 corps" in e["message"] for e in ours)
+        assert all("4 corps" in e["message"] for e in ours)
 
     def test_an_over_capacity_stack_is_a_shortage(self):
         horde = MarshalFactory.infantry(name="Horde", location="Brittany",

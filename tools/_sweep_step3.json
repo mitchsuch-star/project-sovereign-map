@@ -1,0 +1,415 @@
+[
+ {
+  "id": "lever down: A_FIELD_WIN_HALTS_BEFORE_THE_WORKS",
+  "file": "backend/commands/combat_executor.py",
+  "old": "A_FIELD_WIN_HALTS_BEFORE_THE_WORKS = True",
+  "new": "A_FIELD_WIN_HALTS_BEFORE_THE_WORKS = False",
+  "tests": "tests/test_rs3_the_garrison_stands.py"
+ },
+ {
+  "id": "RS-3: the main field-win advance ignores the works",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if works_line:\n                    # RS-3: the victor halts before the works",
+  "new": "                if False:\n                    # RS-3: the victor halts before the works",
+  "tests": "tests/test_rs3_the_garrison_stands.py"
+ },
+ {
+  "id": "RS-3: the capture branch ignores the works",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            elif not remaining_defenders and works_line:",
+  "new": "            elif False:",
+  "tests": "tests/test_rs3_the_garrison_stands.py"
+ },
+ {
+  "id": "RS-3: the charge exit ignores the works",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if marshal.location != charge_battle_region and charge_works_line:",
+  "new": "            if False:",
+  "tests": "tests/test_rs3_the_garrison_stands.py"
+ },
+ {
+  "id": "RS-3: the works line reads peace as war",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    if not world.is_at_war(marshal.nation, holder):\n        return \"\"\n    from backend.game_logic.garrison_report import garrison_fights",
+  "new": "    from backend.game_logic.garrison_report import garrison_fights",
+  "tests": "tests/test_rs3_the_garrison_stands.py"
+ },
+ {
+  "id": "lever down: A_SMALL_GARRISON_SURRENDERS",
+  "file": "backend/game_logic/garrison_report.py",
+  "old": "A_SMALL_GARRISON_SURRENDERS = True",
+  "new": "A_SMALL_GARRISON_SURRENDERS = False",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "AAR-D8: the surrender floor at 50",
+  "file": "backend/game_logic/garrison_report.py",
+  "old": "SMALL_GARRISON_SURRENDER_FLOOR = 500",
+  "new": "SMALL_GARRISON_SURRENDER_FLOOR = 50",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "AAR-D8: garrison_fights ignores the surrender",
+  "file": "backend/game_logic/garrison_report.py",
+  "old": "        return not detachment_surrenders(region)",
+  "new": "        return True",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "AAR-D8: P4.5 still skips a surrendering detachment",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if _garrison_fights(adj_region):\n                ai_debug(f\"        -> Skip: garrison defense",
+  "new": "            if adj_region.garrison_strength > 0:\n                ai_debug(f\"        -> Skip: garrison defense",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "AAR-D8: the surrender sentence is dropped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if surrender_note:\n                        capture_message = surrender_note.strip() + \" \" + capture_message",
+  "new": "                    if False:\n                        capture_message = surrender_note.strip() + \" \" + capture_message",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "lever down: AI_ATTACKS_OBEY_THE_MUSTER_GATE",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "AI_ATTACKS_OBEY_THE_MUSTER_GATE = True",
+  "new": "AI_ATTACKS_OBEY_THE_MUSTER_GATE = False",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "AAR-D8: the gate holds every personality",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if self._get_effective_personality(marshal, world) in MUSTER_GATE_PERSONALITIES:\n                from backend.game_logic.jealousy import glory_attack_odds",
+  "new": "            if True:\n                from backend.game_logic.jealousy import glory_attack_odds",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "lever down: ONE_STANCE_RULE_FOR_DRILL",
+  "file": "backend/commands/tactical_executor.py",
+  "old": "ONE_STANCE_RULE_FOR_DRILL = True",
+  "new": "ONE_STANCE_RULE_FOR_DRILL = False",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py tests/test_cn4_the_chip_honesty_census.py"
+ },
+ {
+  "id": "CQ-22: P6 ignores the stance",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        if ONE_STANCE_RULE_FOR_DRILL and _aggressive_stance_refusal(marshal, \"drill\"):",
+  "new": "        if False:",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "CQ-22: P4.9 ignores the stance",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        refused, _short = drill_refusal(world, marshal,\n                                        stance_gate=ONE_STANCE_RULE_FOR_DRILL)",
+  "new": "        refused, _short = drill_refusal(world, marshal,\n                                        stance_gate=False)",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "lever down: BLEED_BY_THE_MEN_COMMITTED",
+  "file": "backend/commands/combat_executor.py",
+  "old": "BLEED_BY_THE_MEN_COMMITTED = True",
+  "new": "BLEED_BY_THE_MEN_COMMITTED = False",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "IQ5-R1: the reinforcer's weight is his whole corps",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        return self.COMMITTED_ALPHA * float(p.strength) * scale\n\n    def _distribute_casualties",
+  "new": "        return float(p.strength)\n\n    def _distribute_casualties",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "IQ5-R1: the attacker's call site drops the lead",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                battle_result[\"attacker_raw_casualties\"], atk_participants, lead=marshal)",
+  "new": "                battle_result[\"attacker_raw_casualties\"], atk_participants)",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "lever down: AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE",
+  "file": "backend/commands/combat_executor.py",
+  "old": "AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE = True",
+  "new": "AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE = False",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "lever down: A_HELD_CORPS_IS_NOT_IDLE",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "A_HELD_CORPS_IS_NOT_IDLE = True",
+  "new": "A_HELD_CORPS_IS_NOT_IDLE = False",
+  "tests": "tests/test_sr7a_the_ais_odds_gate.py"
+ },
+ {
+  "id": "lever down: THE_ARMED_PEACE",
+  "file": "backend/game_logic/coalition.py",
+  "old": "THE_ARMED_PEACE = True",
+  "new": "THE_ARMED_PEACE = False",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the watch at 0",
+  "file": "backend/game_logic/coalition.py",
+  "old": "ARMED_PEACE_WATCH = 45",
+  "new": "ARMED_PEACE_WATCH = 0",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the fuse at 300",
+  "file": "backend/game_logic/coalition.py",
+  "old": "ARMED_PEACE_FUSE_TURNS = 20",
+  "new": "ARMED_PEACE_FUSE_TURNS = 300",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the rise at 0",
+  "file": "backend/game_logic/coalition.py",
+  "old": "ARMED_PEACE_RISE = 3",
+  "new": "ARMED_PEACE_RISE = 0",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: a league does not end it",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if coalition and (coalition.get(\"target_nation\") or player) == hegemon:\n        out[\"reason\"] = \"league\"\n        return out",
+  "new": "    if False:\n        out[\"reason\"] = \"league\"\n        return out",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the Congress does not suspend it",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if _congress.sitting(world):\n            out[\"reason\"] = \"congress\"\n            return out",
+  "new": "        if False:\n            out[\"reason\"] = \"congress\"\n            return out",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the share floor ignored",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    if hegemon is None or float(share) < ARMED_PEACE_SHARE_FLOOR:\n        out[\"reason\"] = \"no_hegemon\"",
+  "new": "    if hegemon is None:\n        out[\"reason\"] = \"no_hegemon\"",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: decay runs after the fuse",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        gate = int(reading.get(\"gate\", THREAT_BREWING_MIN))\n        if int(level) <= gate:\n            return 0\n        return int(min(decay, int(level) - gate))\n    watch = int(reading.get(\"watch\", ARMED_PEACE_WATCH))",
+  "new": "        pass\n    watch = int(reading.get(\"watch\", ARMED_PEACE_WATCH))",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the forecast skips the rise",
+  "file": "backend/game_logic/coalition.py",
+  "old": "    rise = armed_peace_rise(_armed, france, int(after))\n    if rise > 0:\n        gains.append((\"the armed peace — the courts re-arm\", int(rise)))\n        after = int(min(100, after + rise))",
+  "new": "    rise = 0",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the tick skips the rise",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if _rise > 0:\n            add_threat(world, _rise, \"armed_peace\", target=_hegemon)",
+  "new": "        if False:\n            add_threat(world, _rise, \"armed_peace\", target=_hegemon)",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the watch row is never written",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if _armed.get(\"holds\") and _armed.get(\"hegemon\") == france \\\n                and actual_decay < decay:",
+  "new": "        if False:",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the quiet count ignores the dead",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if m.nation != hegemon or getattr(m, \"strength\", 0) <= 0:\n            continue\n        latest = max(latest",
+  "new": "        if m.nation != hegemon:\n            continue\n        latest = max(latest",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the war room is silent",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "        lines.extend(armed_peace_war_room_lines(world))",
+  "new": "        pass",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the ledger prints (+0)",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "                \"display\": (label if (amount == 0 and s.get(\"label\"))\n                            else f\"{label} ({sign}{amount})\"),",
+  "new": "                \"display\": f\"{label} ({sign}{amount})\",",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "SR-G7: the beat never queues",
+  "file": "backend/game_logic/coalition.py",
+  "old": "                queue_dispatch_event(world, \"diplomatic_armed_peace_fuse\", {",
+  "new": "                (lambda *a, **k: None)(world, \"diplomatic_armed_peace_fuse\", {",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "lever down: DISPERSION_IS_NOT_PUNISHED",
+  "file": "backend/models/world_state.py",
+  "old": "DISPERSION_IS_NOT_PUNISHED = True",
+  "new": "DISPERSION_IS_NOT_PUNISHED = False",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "AAR-D4: a capital feeds no extra corps",
+  "file": "backend/models/world_state.py",
+  "old": "    CROWDING_FREE_CORPS_CITY = 3       # … the fourth on a capital or major city",
+  "new": "    CROWDING_FREE_CORPS_CITY = 2       # … the fourth on a capital or major city",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "AAR-D4: the support corps counts",
+  "file": "backend/models/world_state.py",
+  "old": "                continue        # a muster beside its lead is not a crowd",
+  "new": "                pass        # a muster beside its lead is not a crowd",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "AAR-D4: the engine ignores the press",
+  "file": "backend/models/world_state.py",
+  "old": "            num_marshals, free_corps = self.crowding_press(region, marshals_here)",
+  "new": "            num_marshals, free_corps = len(marshals_here), 2",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "AAR-D4: the ledger ignores the press",
+  "file": "backend/game_logic/ledger.py",
+  "old": "        living_occupants, free_corps = world.crowding_press(region, living)",
+  "new": "        living_occupants, free_corps = len(living), 2",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "AAR-D4: the retreat's friendly set is our soil alone",
+  "file": "backend/models/world_state.py",
+  "old": "            if self.retreat_soil_is_friendly(marshal_nation, controller):\n                if allied_marshals:",
+  "new": "            if controller == marshal_nation:\n                if allied_marshals:",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "AAR-D4: non-aggression soil counts as fed",
+  "file": "backend/models/world_state.py",
+  "old": "        return self.get_diplomatic_state(marshal_nation, controller) in self.ALLY_SUPPLY_STATES",
+  "new": "        return self.get_diplomatic_state(marshal_nation, controller) in self.ALLY_SUPPLY_STATES or self.get_diplomatic_state(marshal_nation, controller) == \"NON_AGGRESSION\"",
+  "tests": "tests/test_sr7c_dispersion.py"
+ },
+ {
+  "id": "lever down: A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT = True",
+  "new": "A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT = False",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "SF-LB-1: the ask at coerce too",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "DESIGN_ASK_RUNGS = (\"ask\", \"buy\", \"align\", \"bandwagon\")",
+  "new": "DESIGN_ASK_RUNGS = (\"ask\", \"buy\", \"align\", \"bandwagon\", \"coerce\", \"fight\")",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "lever down: A_REFUSAL_HARDENS_THE_ASKER",
+  "file": "backend/game_logic/intent.py",
+  "old": "A_REFUSAL_HARDENS_THE_ASKER = True",
+  "new": "A_REFUSAL_HARDENS_THE_ASKER = False",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "SF-LB-1: the refusal cap at 6",
+  "file": "backend/game_logic/intent.py",
+  "old": "WEIGHT_REFUSED_ASK_CAP = 12",
+  "new": "WEIGHT_REFUSED_ASK_CAP = 6",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "SF-LB-1: the refusal term ignores the memory window",
+  "file": "backend/game_logic/intent.py",
+  "old": "            refused = [e for e in get_refused_asks(world, nation, against)\n                       if e.get(\"type\") in (\"design_ask\", \"design_purchase\")]",
+  "new": "            refused = [e for e in ((getattr(world, 'diplomatic_refusals', {}) or {}).get(f\"{nation}>{against}\") or [])\n                       if e.get(\"type\") in (\"design_ask\", \"design_purchase\")]",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "lever down: AN_ALLY_IS_NOT_COVETED",
+  "file": "backend/game_logic/agendas.py",
+  "old": "AN_ALLY_IS_NOT_COVETED = True",
+  "new": "AN_ALLY_IS_NOT_COVETED = False",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "SF-LB-1: the ally's bloc is coveted",
+  "file": "backend/game_logic/agendas.py",
+  "old": "        if (world.get_diplomatic_state(nation, other) in ALLIED_STATES\n                and holder in set(world.get_bloc_members(other))):\n            return True\n",
+  "new": "        pass\n",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "lever down: A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE",
+  "file": "backend/game_logic/agendas.py",
+  "old": "A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE = True",
+  "new": "A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE = False",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "SF-LB-1: the contain design sleeps at war too",
+  "file": "backend/game_logic/agendas.py",
+  "old": "    if A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE \\\n            and world.get_diplomatic_state(nation, hegemon) == \"PEACE\":",
+  "new": "    if A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE:",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "SF-LB-1: the beat names the old design",
+  "file": "backend/game_logic/emergent_designs.py",
+  "old": "        if live is not None and not live.survival:\n            next_design = {\"id\": live.id, \"title\": live.title}",
+  "new": "        if False:\n            next_design = {\"id\": live.id, \"title\": live.title}",
+  "tests": "tests/test_sf_lb1_europes_own_quarrels.py"
+ },
+ {
+  "id": "lever down: THE_ANSWERED_CONTACT_PRINTS_ITS_MUSTER",
+  "file": "backend/commands/strategic.py",
+  "old": "THE_ANSWERED_CONTACT_PRINTS_ITS_MUSTER = True",
+  "new": "THE_ANSWERED_CONTACT_PRINTS_ITS_MUSTER = False",
+  "tests": "tests/test_step3_the_contact_prints_its_muster.py"
+ },
+ {
+  "id": "C1: the contact re-issue drops _muster_confirmed",
+  "file": "backend/commands/strategic.py",
+  "old": "                _contact_cmd[\"_muster_confirmed\"] = True",
+  "new": "                pass",
+  "tests": "tests/test_step3_the_contact_prints_its_muster.py"
+ },
+ {
+  "id": "C1: the muster gate ignores a confirmed strategic re-issue",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                and (not command.get(\"_strategic_execution\")\n                     or command.get(\"_muster_confirmed\"))",
+  "new": "                and not command.get(\"_strategic_execution\")",
+  "tests": "tests/test_step3_the_contact_prints_its_muster.py"
+ },
+ {
+  "id": "SR-G7: the fuse constant back to 16",
+  "file": "backend/game_logic/coalition.py",
+  "old": "ARMED_PEACE_FUSE_TURNS = 20",
+  "new": "ARMED_PEACE_FUSE_TURNS = 16",
+  "tests": "tests/test_sr_g7_the_armed_peace.py"
+ },
+ {
+  "id": "lever down: A_PRISONER_IS_NOT_A_SIGHTING",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "A_PRISONER_IS_NOT_A_SIGHTING = True",
+  "new": "A_PRISONER_IS_NOT_A_SIGHTING = False",
+  "tests": "tests/test_step3_exit_fixes.py"
+ },
+ {
+  "id": "narration C4: the prisoner's snapshot rides",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "                if _man is not None and getattr(_man, \"captured_by\", \"\"):\n                    continue",
+  "new": "                if _man is not None and getattr(_man, \"captured_by\", \"\"):\n                    pass",
+  "tests": "tests/test_step3_exit_fixes.py"
+ },
+ {
+  "id": "combat C1 instrument: the digest drops the answered muster",
+  "file": "tools/playtest_driver.py",
+  "old": "            if _muster:\n                digest._md(f\"  - ↳ {_muster[:240]}\")",
+  "new": "            if _muster:\n                pass",
+  "tests": "tests/test_step3_exit_fixes.py"
+ }
+]

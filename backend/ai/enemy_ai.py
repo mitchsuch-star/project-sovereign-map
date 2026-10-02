@@ -174,6 +174,23 @@ DRILLING_CORPS_IS_LEFT_TO_DRILL = True   # R1-5: no stance / fortify / supply-mo
 # campaign below 70 morale (Mack 27 turns, down to 0).
 AI_DRILLS_TO_HEAL = True
 HEAL_MORALE_BELOW = 70                   # band 60-75
+# AAR-D8 (Score Finish Step 3 / SR-7a, October 2, 2026): the cautious kit's
+# odds gate on the AI's P4 attack rung — the muster band the player's
+# confirm arms on (`objection_v2.muster_gate_arms`), read through the same
+# `jealousy.glory_attack_odds` the glory hunt obeys (VP-R1 c). A cautious
+# marshal held at `unfavorable` makes no attack from P4 this phase. Down:
+# the personality ratio threshold alone (Archduke John's two captures).
+AI_ATTACKS_OBEY_THE_MUSTER_GATE = True
+# AAR-D8's dithering half (SR-7a): measured on the commanded arm the moment
+# the gate landed — a cautious corps HELD by the odds read as idle to the
+# stagnation breaker, which force-unfortified it after two quiet turns, and
+# P2's threat-response fortify (the one fortify site that never read the
+# re-fortify cooldown) put it back behind its works the next turn:
+# fortify → unfortify → fortify within three turns, 2 dithers on CMD-H
+# where the baseline had none. Two rules, one lever: a corps held by the
+# odds has DECIDED (it is not idle), and every fortify site respects the
+# re-fortify cooldown the stagnation breaker writes.
+A_HELD_CORPS_IS_NOT_IDLE = True
 # Every drill the AI orders (the heal and P6's shock drill) first asks the ONE
 # reach predicate, `drill_reach_threat`. Down: P6 keeps its fog-adjacent
 # check alone.
@@ -1194,6 +1211,8 @@ class EnemyAI:
 
         # Fix: Track marshals force-unfortified by stagnation this turn (prevent immediate re-fortify)
         self._unfortified_this_turn: set = set()
+        # SR-7a: the corps the muster gate held this phase (not idle)
+        self._held_by_the_odds_this_phase: set = set()
 
         # AI Garrison: 1 per nation per turn cap (prevents AP waste)
         self._garrison_placed_this_turn: bool = False
@@ -1766,14 +1785,15 @@ class EnemyAI:
                     }, 1)
                 # Validate intent is still valid (region still undefended and enemy-controlled)
                 region = world.get_region(intent_target)
-                from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
                 from backend.commands.movement_executor import raiding_party_holds_no_ground
+                from backend.game_logic.garrison_report import garrison_fights as _intent_garrison_fights
                 if (region and region.controller != nation
                         and world.is_at_war(nation, region.controller)
                         # July 2026 AI audit: garrisoned regions need P4.25's
-                        # ratio-gated assault, never a blind intent attack
-                        and getattr(region, 'garrison_strength', 0) < MARCH_HALTS_AT_GARRISON
-                        and not getattr(region, 'garrison_detachment', None)
+                        # ratio-gated assault, never a blind intent attack.
+                        # AAR-D8 (SR-7a): the ONE predicate — a surrendering
+                        # detachment is open ground.
+                        and not _intent_garrison_fights(region)
                         # VP-R1 (b): a raiding party takes no homeland
                         and not raiding_party_holds_no_ground(marshal, region, world)):
                     defenders = world.get_live_visible_enemies_in_region(intent_target, nation)
@@ -1822,9 +1842,11 @@ class EnemyAI:
                 and not self._corps_takes_no_ground(marshal)
                 and world.is_at_war(nation, current_region.controller)):
             enemies_here = world.get_live_visible_enemies_in_region(marshal.location, marshal.nation)
-            # Region with garrison >= 5000 is NOT undefended — requires assault via P4
-            from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
-            has_garrison = current_region.garrison_strength >= MARCH_HALTS_AT_GARRISON
+            # Region with a garrison that FIGHTS is NOT undefended — requires
+            # assault via P4. AAR-D8 (SR-7a): the ONE predicate (a surrendering
+            # detachment is open ground; a fighting one is not).
+            from backend.game_logic.garrison_report import garrison_fights as _own_garrison_fights
+            has_garrison = _own_garrison_fights(current_region)
             from backend.commands.movement_executor import raiding_party_holds_no_ground
             if (not enemies_here and not has_garrison
                     # VP-R1 (b): a raiding party takes no homeland
@@ -2902,6 +2924,13 @@ class EnemyAI:
                     # line below, applied to the same rung.
                     if self._get_hostile_marshals_in_same_region(marshal, world):
                         return None
+                    # SR-7a: the one fortify site that never read the
+                    # re-fortify cooldown — the dither's return road.
+                    if A_HELD_CORPS_IS_NOT_IDLE and (
+                            marshal.name in getattr(self, '_unfortified_this_turn', set())
+                            or world.ai_refortify_cooldown.get(marshal.name, 0) > 0):
+                        ai_debug(f"  P2: {marshal.name} on re-fortify cooldown — no fortify")
+                        return None
                     # S5-1: never fortify while holding square — breaking a valid
                     # square to fortify (then re-forming next turn) is a
                     # self-cancelling loop that burns nation-turns.
@@ -3518,6 +3547,28 @@ class EnemyAI:
                 target = self._pick_personality_target(
                     attackable, personality, nation, world)
 
+        # AAR-D8 (SR-7a): the cautious kit's own odds gate on the AI's attack
+        # rung — the SAME reading the player's muster confirm arms on
+        # (`objection_v2.muster_gate_arms`: the band, the personality), the
+        # same band the glory attack obeys (VP-R1 c). Archduke John attacked
+        # Deroy twice at "unfavorable odds" with a cautious penalty and was
+        # captured; a cautious French marshal would have been stopped by the
+        # confirm. Held = no attack from this rung this phase.
+        if AI_ATTACKS_OBEY_THE_MUSTER_GATE and not getattr(marshal, 'artillery', False):
+            from backend.commands.objection_v2 import (
+                MUSTER_GATE_BAND, MUSTER_GATE_PERSONALITIES)
+            if self._get_effective_personality(marshal, world) in MUSTER_GATE_PERSONALITIES:
+                from backend.game_logic.jealousy import glory_attack_odds
+                _odds = glory_attack_odds(world, self.executor, marshal, target)
+                if _odds.get("band") == MUSTER_GATE_BAND:
+                    ai_debug(f"    P4: {marshal.name} held by the odds — "
+                             f"{_odds.get('band')} against {target.name}")
+                    if A_HELD_CORPS_IS_NOT_IDLE:
+                        if not hasattr(self, '_held_by_the_odds_this_phase'):
+                            self._held_by_the_odds_this_phase = set()
+                        self._held_by_the_odds_this_phase.add(marshal.name)
+                    return None
+
         # Check if should switch to aggressive stance first
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
         shock_bonus = getattr(marshal, 'shock_bonus', 0)
@@ -3721,8 +3772,10 @@ class EnemyAI:
                 # Check garrison
                 garrison = getattr(lost_region, 'garrison_strength', 0) or 0
                 detachment = getattr(lost_region, 'garrison_detachment', False)
-                from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
-                if garrison >= MARCH_HALTS_AT_GARRISON or (detachment and garrison > 0):
+                # AAR-D8 (SR-7a): the ONE predicate — a surrendering
+                # detachment is open ground, a fighting one needs the assault.
+                from backend.game_logic.garrison_report import garrison_fights as _home_garrison_fights
+                if _home_garrison_fights(world.get_region(best_target)):
                     # Garrisoned — only attack if strong enough
                     if marshal.strength >= garrison * 1.5:
                         print(f"  [HOMELAND DEFENSE] {marshal.name} assaulting garrison at {best_target} ({garrison:,} troops)")
@@ -4008,13 +4061,12 @@ class EnemyAI:
                 continue
 
             # Skip garrisoned regions (handled by P4.25 garrison assault)
-            # Capital garrisons >= 5k and detachment garrisons (any size) both require assault
-            from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
-            if adj_region.garrison_strength >= MARCH_HALTS_AT_GARRISON:
+            # Capital garrisons >= 5k and detachment garrisons that FIGHT both
+            # require assault. AAR-D8 (SR-7a): ONE predicate — a detachment
+            # under the surrender floor gives way, so the province is open.
+            from backend.game_logic.garrison_report import garrison_fights as _garrison_fights
+            if _garrison_fights(adj_region):
                 ai_debug(f"        -> Skip: garrison defense ({adj_region.garrison_strength:,} troops)")
-                continue
-            if adj_region.garrison_detachment and adj_region.garrison_strength > 0:
-                ai_debug(f"        -> Skip: detachment garrison ({adj_region.garrison_strength:,} troops)")
                 continue
 
             # VP-R1 (b): a raiding party takes no homeland — the executor
@@ -4092,12 +4144,16 @@ class EnemyAI:
             return None
 
         from backend.commands.movement_executor import MARCH_HALTS_AT_GARRISON
+        from backend.game_logic.garrison_report import garrison_fights as _garrison_fights
         for adj_name in marshal_region.adjacent_regions:
             adj_region = world.get_region(adj_name)
             if not adj_region or adj_region.garrison_strength <= 0:
                 continue
-            # Skip garrisons below the march floor UNLESS they are detachment garrisons (fight to death)
-            if adj_region.garrison_strength < MARCH_HALTS_AT_GARRISON and not adj_region.garrison_detachment:
+            # Skip garrisons below the march floor UNLESS they are detachment
+            # garrisons that fight. AAR-D8 (SR-7a): the ONE predicate — a
+            # detachment under the surrender floor gives way to the first
+            # corps beside it, so it is P4.5's walk-in, never an escalade.
+            if not _garrison_fights(adj_region):
                 continue
             if adj_region.controller == nation:
                 continue
@@ -4396,9 +4452,27 @@ class EnemyAI:
             # R1-4: a corps that drills, or has already acted this phase,
             # is not idle — the counter it is judged by is last phase's.
             return None
+        if (A_HELD_CORPS_IS_NOT_IDLE
+                and marshal.name in getattr(self, '_held_by_the_odds_this_phase', set())):
+            # SR-7a: a corps the odds gate held has decided — holding its
+            # ground at bad odds is the cautious kit's whole point, not
+            # idleness to be broken by a forced unfortify.
+            print(f"  [STAGNATION] {marshal.name}: held by the odds this phase — not idle")
+            return None
 
         # ── TURN 2+: Force unfortify to reposition ──
         if stagnation >= 2:
+            if (A_HELD_CORPS_IS_NOT_IDLE and getattr(marshal, 'fortified', False)
+                    and not self._get_enemy_contacts(nation, world, marshal=marshal)
+                    and not self._get_strategic_enemy_regions(nation, world)):
+                # SR-7a: the breaker unfortifies a corps to MARCH it toward
+                # an enemy; a court with no enemy to march toward (at peace
+                # with every court it could reach) left its works for
+                # nothing and re-dug them two turns later — the fortify /
+                # unfortify / fortify churn the commanded arm measured on
+                # Brunswick at Berlin. A corps at peace holds its works.
+                print(f"  [STAGNATION] {marshal.name}: fortified at peace — nothing to march toward, holding the works")
+                return None
             if getattr(marshal, 'fortified', False):
                 print(f"  [STAGNATION] {marshal.name}: Force unfortify after {stagnation} idle turns")
                 self._unfortified_this_turn.add(marshal.name)
@@ -4739,8 +4813,11 @@ class EnemyAI:
             return None
         if self._corps_takes_no_ground(marshal):
             return None
-        from backend.commands.tactical_executor import drill_refusal
-        refused, _short = drill_refusal(world, marshal, stance_gate=False)
+        from backend.commands.tactical_executor import (
+            ONE_STANCE_RULE_FOR_DRILL, drill_refusal)
+        # CQ-22 (SR-7a): the rung asks the executor's own gate, stance included.
+        refused, _short = drill_refusal(world, marshal,
+                                        stance_gate=ONE_STANCE_RULE_FOR_DRILL)
         if refused:
             return None
         threat = drill_reach_threat(world, marshal)
@@ -4797,6 +4874,17 @@ class EnemyAI:
             if threat is not None:
                 ai_debug(f"    P6: Can't drill - {threat.name} could reach him")
                 return None
+
+        # CQ-22 (SR-7a): the rung asks the executor's STANCE gate — the one
+        # rule the player's road always had — so no drill the executor now
+        # refuses for the stance is ever ordered. (The rung keeps its own
+        # fog-adjacent and reach checks above; the executor's other gates
+        # are its own.)
+        from backend.commands.tactical_executor import (
+            ONE_STANCE_RULE_FOR_DRILL, _aggressive_stance_refusal)
+        if ONE_STANCE_RULE_FOR_DRILL and _aggressive_stance_refusal(marshal, "drill"):
+            ai_debug(f"    P6: Can't drill - {marshal.name} is in AGGRESSIVE stance")
+            return None
 
         return {
             "marshal": marshal.name,

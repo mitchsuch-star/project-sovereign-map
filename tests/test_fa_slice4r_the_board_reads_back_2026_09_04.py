@@ -359,7 +359,11 @@ class TestStagnationReadsThePhase:
         world = _legacy()
         _british_soil(world)
         blu = world.marshals["Blucher"]
-        blu.location, blu.strength, blu.stance, blu.fortified = "Hanover", 40000, Stance.AGGRESSIVE, False
+        # RE-SEATED by CQ-22 (Score Finish Step 3 / SR-7a, October 2, 2026):
+        # ONE stance rule for drill on every road — a corps in AGGRESSIVE
+        # stance is refused the drill on the AI's road too, so the breaker's
+        # corps stands NEUTRAL here (the stance was incidental to the pin).
+        blu.location, blu.strength, blu.stance, blu.fortified = "Hanover", 40000, Stance.NEUTRAL, False
         world.marshals["Gneisenau"].location = "Berlin"
         for m in world.marshals.values():
             if m.nation == "Britain":

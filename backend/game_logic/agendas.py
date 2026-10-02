@@ -49,6 +49,23 @@ AGENDA_GRUDGE_CAP = 2                 # +threat/turn cap across all nations
 AGENDA_VIOLATION_RELATION_PENALTY = -25  # the Ansbach trap, one-time per pair
 AGENDA_VIOLATION_COOLDOWN = 10        # turns between violation firings per pair
 HEGEMON_BLOC_SHARE_FLOOR = 0.33       # default share floor (deny / contain)
+# SF-LB-1 "Europe's own quarrels" (Score Finish Step 3, October 2, 2026):
+# AN ALLY IS NOT COVETED -- an acquire design whose obstacle (the top
+# overlord of the holder) is a court the coveter is ALLIED with sleeps
+# while the alliance stands, so a reversed Austria (the volte-face) stops
+# aiming at France's own bloc and her deck advances to a design aimed at a
+# third party (IQ6-D1's "no follow-on design"). The design wakes the turn
+# the alliance ends. False = the design covets its ally's provinces.
+AN_ALLY_IS_NOT_COVETED = True
+ALLIED_STATES = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+# A CONTAIN DESIGN SLEEPS IN THE ARMED PEACE: while the hegemon's bloc is
+# watched at the Armed Peace's floor (SR-G7 -- no league active or brewing)
+# and the court is at PEACE with it, its contain design is dormant and the
+# deck advances -- Russia turns to the Gulf and the Straits without a
+# volte-face (`gulf_and_straits` wakes); the league the fuse brings ends
+# the Armed Peace and the contain design wakes with it. False = the contain
+# design holds the deck for as long as the hegemon leads a third of Europe.
+A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE = True
 
 # The closed set of code-owned agenda types (spec §3.1).
 AGENDA_TYPES = (
@@ -170,10 +187,34 @@ def survival_override_active(world, nation: str) -> bool:
 
 def _acquire_active(world, nation: str, regions) -> bool:
     """Active while >=1 target is not controlled by self (and the holder is
-    not self's vassal)."""
-    return any(
-        not _controlled_by_self_or_vassal(world, nation, r) for r in regions
-    )
+    not self's vassal). SF-LB-1: a target held by an ALLY's bloc does not
+    keep the design awake (an ally is not coveted)."""
+    for r in regions:
+        if _controlled_by_self_or_vassal(world, nation, r):
+            continue
+        if AN_ALLY_IS_NOT_COVETED:
+            holder = _region_controller(world, r)
+            effective = (world._top_overlord(holder) or holder) if holder else None
+            if effective and effective != nation and _held_by_an_allys_bloc(world, nation, effective):
+                continue
+        return True
+    return False
+
+
+def _held_by_an_allys_bloc(world, nation: str, holder: str) -> bool:
+    """SF-LB-1: is `holder` an ally of `nation`, or inside an ally's bloc
+    (its allies and dependents — `get_bloc_members`)? A reversed Austria's
+    Munich is Bavaria's, and Bavaria is France's ally: the design sleeps
+    while Austria stands in France's camp."""
+    if world.get_diplomatic_state(nation, holder) in ALLIED_STATES:
+        return True
+    for other in world.get_active_nations():
+        if other in (nation, holder):
+            continue
+        if (world.get_diplomatic_state(nation, other) in ALLIED_STATES
+                and holder in set(world.get_bloc_members(other))):
+            return True
+    return False
 
 
 def _deny_active(world, nation: str, regions) -> bool:
@@ -191,11 +232,20 @@ def _deny_active(world, nation: str, regions) -> bool:
 
 def _contain_active(world, nation: str, share_floor: float) -> bool:
     """Active while the hegemon bloc share >= floor AND self is outside
-    that bloc."""
+    that bloc. SF-LB-1: dormant while the Armed Peace holds for that
+    hegemon and this court is at PEACE with it."""
     hegemon, share = _hegemon(world, nation)
     if hegemon is None or share < share_floor:
         return False
-    return nation not in set(world.get_bloc_members(hegemon))
+    if nation in set(world.get_bloc_members(hegemon)):
+        return False
+    if A_CONTAIN_DESIGN_SLEEPS_IN_THE_ARMED_PEACE \
+            and world.get_diplomatic_state(nation, hegemon) == "PEACE":
+        from backend.game_logic.coalition import armed_peace_reading
+        reading = armed_peace_reading(world)
+        if reading.get("holds") and reading.get("hegemon") == hegemon:
+            return False
+    return True
 
 
 def _paymaster_active(world, nation: str, treasury_floor: int) -> bool:

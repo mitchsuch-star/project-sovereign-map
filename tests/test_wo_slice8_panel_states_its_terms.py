@@ -904,11 +904,14 @@ class TestReviewRoundFixes:
         effective = world.get_effective_supply_cap("France", region)
         french = [m for m in world.marshals.values()
                   if m.nation == "France" and m.strength > 0]
-        assert len(french) >= 3
+        # Score Finish Step 3 SR-7c "Dispersion" (October 2, 2026): three
+        # corps on a capital are free of the tax (`CROWDING_FREE_CORPS_CITY`);
+        # the crowd under the cap is FOUR corps now.
+        assert len(french) >= 4
         for m in french:
             m.location = "Picardy"
-        per_corps = max(1000, (effective // 4) // 1000 * 1000)
-        for m in french[:3]:
+        per_corps = max(1000, (effective // 5) // 1000 * 1000)
+        for m in french[:4]:
             m.location = "Paris"
             m.strength = per_corps
         rows = _build_territories(world, "France")

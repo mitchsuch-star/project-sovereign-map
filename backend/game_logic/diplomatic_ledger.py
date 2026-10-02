@@ -138,6 +138,11 @@ _THREAT_SOURCE_LABELS = {
     # once, and each court that would not sign keeps a ten-turn grudge.
     "congress_dissolved": "Summoned a Congress that failed",
     "congress_grudge": "Courts that would not sign at Paris",
+    # SR-G7 / PB-D1 "The Armed Peace" (Score Finish Step 3): the fuse's rise
+    # and the watch (the watch row carries its own composed label — share
+    # and floor — and an amount of 0: the alarm HELD).
+    "armed_peace": "The courts re-arm",
+    "armed_peace_watch": "Europe watches",
 }
 
 
@@ -208,6 +213,30 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
 def _congress_payload(world):
     from backend.game_logic import congress
     return congress.build_congress_payload(world)
+
+
+def _armed_peace_payload(world):
+    """SR-G7 / PB-D1: the Armed Peace reading as the client reads it — ints
+    only (GR2), the courts as display names, None when the lever is down."""
+    from backend.display_names import display_nation
+    from backend.game_logic.coalition import THE_ARMED_PEACE, armed_peace_reading
+    if not THE_ARMED_PEACE:
+        return None
+    reading = armed_peace_reading(world)
+    courts = list(reading.get("courts") or [])
+    return {
+        "holds": bool(reading.get("holds")),
+        "reason": str(reading.get("reason") or ""),
+        "hegemon": reading.get("hegemon"),
+        "share_pct": int(round(float(reading.get("share", 0.0)) * 100)),
+        "watch": int(reading.get("watch", 0)),
+        "quiet_turns": int(reading.get("quiet_turns", 0)),
+        "fuse_turns_left": int(reading.get("fuse_turns_left", 0)),
+        "rise": int(reading.get("rise", 0)),
+        "gate": int(reading.get("gate", 0)),
+        "courts": [display_nation(c) for c in courts],
+        "courts_display": courts_display(world, courts) if courts else "",
+    }
 
 
 # ============================================================================
@@ -1152,13 +1181,17 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         if isinstance(s, dict):
             source_key = s.get("source", "")
             amount = int(s.get("amount") or 0)
-            label = _threat_source_label(world, source_key)
+            # SR-G7: a producer may compose its own label (the Armed Peace's
+            # watch names the share and the floor); a row of 0 is a row that
+            # HELD, shown without a figure.
+            label = str(s.get("label") or _threat_source_label(world, source_key))
             sign = "+" if amount >= 0 else ""
             threat_sources.append({
                 "source": source_key,
                 "label": label,
                 "amount": amount,
-                "display": f"{label} ({sign}{amount})",
+                "display": (label if (amount == 0 and s.get("label"))
+                            else f"{label} ({sign}{amount})"),
             })
         else:
             threat_sources.append({"source": str(s), "label": str(s), "amount": 0, "display": str(s)})
@@ -1322,6 +1355,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "threat_sources_this_turn": threat_sources,
         "qualifying_nations": get_qualifying_nations(world),
         "threat_projection": threat_projection,
+        # SR-G7 / PB-D1 "The Armed Peace": the ONE reading, for the client
+        # (holds / share / watch / fuse_turns_left / rise / courts).
+        "armed_peace": _armed_peace_payload(world),
         # Derived from the ONLY two conditions `coalition.check_dissolution`
         # actually tests, so the stated rule cannot drift from the code
         # again. The retired `dissolution_war_exhaustion_limit: 80` was a

@@ -141,7 +141,7 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P4 | Attack (standard) | 75 | Valid target + meets threshold; NA-3 agenda bias — equal-ratio ties break toward, and nearest-picks credit 2 hops to, the nation's active design targets (agendas.get_agenda_military_targets — the acquire-only,
 never-self-conquest narrowing; NOT get_agenda_covets, which is the wider
 diplomacy-facing set and is non-empty for deny/contain courts) |
-| P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold; SKIPPED when a visible field army stands in the province (P4's business — FA slice 4) |
+| P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold; SKIPPED when a visible field army stands in the province (P4's business — FA slice 4); **SKIPPED for a detachment under 500 — it surrenders to the first corps that marches in** (`garrison_report.garrison_fights` → `detachment_surrenders`, Score Finish Step 3 SR-7a / AAR-D8) |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
 | P4.6 | Coordinated Attack Setup | 78 | Combined > 1.5x but solo < 1.5x, relationship >= Rival |
 | P4.75 | Ally Support | 78 | Move toward outnumbered/engaged ally (relationship >= Rival, Devoted priority); the "attacking X to join" arm picks an ENEMY on the ally (FA slice 4) and is PRICED like P4 — the field, the mood floor, the futility brake, the crossing gate (slice-4 review round R1-2) |
@@ -723,6 +723,8 @@ AI marshals evaluate whether to attack a garrisoned region. Handles both capital
 - **Artillery skip:** Artillery marshals are excluded entirely from P4.25 — garrison combat requires same-region presence, and artillery cannot bombard garrisons (Session 50)
 
 Aggressive marshals will assault garrisons more readily (threshold 0.7), while cautious marshals need a stronger advantage (threshold 1.3).
+
+**Step 3 (October 2, 2026, SR-7a):** a detachment under `SMALL_GARRISON_SURRENDER_FLOOR` (500) is never assaulted — `garrison_fights` reads `detachment_surrenders` and the march takes the province, the detachment laying down its arms (AAR-D8's four-turn grind on a 47-man garrison cannot recur). **The cautious kit's odds gate on P4** (`AI_ATTACKS_OBEY_THE_MUSTER_GATE`): a CAUTIOUS effective personality whose chosen target reads the muster band the player's own confirm gate arms on holds instead; a corps so held is not "idle" to the stagnation breaker, and a corps at peace keeps its works (`A_HELD_CORPS_IS_NOT_IDLE` — the dither guard). A drill in AGGRESSIVE stance is refused on the AI's roads too (P4.9 and P6, `tactical_executor.ONE_STANCE_RULE_FOR_DRILL`, CQ-22).
 
 ### AI Garrison Placement (P6.75)
 

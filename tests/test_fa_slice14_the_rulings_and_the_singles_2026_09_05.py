@@ -120,8 +120,20 @@ class TestTheGarrisonFloorReadsTheGarrison:
         The ASSAULT COUNT is deliberately unchanged: the ruling took the
         loss half of FA-D28's fix shape and not the odds-scaling half.
         """
-        n_before, lost_before = self._grind(False, garrison, 40000)
-        n_after, lost_after = self._grind(True, garrison, 40000)
+        # Score Finish Step 3 SR-7a (October 2, 2026): a detachment under
+        # 500 SURRENDERS (`garrison_report.A_SMALL_GARRISON_SURRENDERS`), so
+        # the grind ends six assaults in with the attacker 8,604 down and
+        # the row's absurdity no longer reproduces on either arm — measured
+        # lever by lever, the surrender is the sole mover. This pin measures
+        # FA-D28's loss floor, not the surrender: the grind runs with it down.
+        from backend.game_logic import garrison_report as _GR
+        _was = _GR.A_SMALL_GARRISON_SURRENDERS
+        _GR.A_SMALL_GARRISON_SURRENDERS = False
+        try:
+            n_before, lost_before = self._grind(False, garrison, 40000)
+            n_after, lost_after = self._grind(True, garrison, 40000)
+        finally:
+            _GR.A_SMALL_GARRISON_SURRENDERS = _was
 
         # The defect, stated as the row states it.
         if garrison < 25000:

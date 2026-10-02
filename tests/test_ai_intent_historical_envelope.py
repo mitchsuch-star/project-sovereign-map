@@ -263,8 +263,11 @@ class TestTierTwoBanded:
 
     def test_ulm_opens_germany_first(self, worlds):
         # The pinned live-order-band seed: Mack's actual deployment.
+        # SF-LB-1 (Score Finish Step 3, October 2, 2026) authored Austria's
+        # third, UNGROUPED entry (The Eastern Question) behind the band: the
+        # band's permutation is unchanged, the deck is one entry longer.
         assert [e["id"] for e in worlds["ulm"].agendas["Austria"]] == \
-            ["primacy_germany", "redeem_italy"]
+            ["primacy_germany", "redeem_italy", "the_eastern_question"]
         assert get_active_agenda("Austria", worlds["ulm"]).id == \
             "primacy_germany"
 

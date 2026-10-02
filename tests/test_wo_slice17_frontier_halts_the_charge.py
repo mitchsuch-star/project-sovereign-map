@@ -121,6 +121,11 @@ def _charge_world(reck, enemy_loc="Rhineland", host_state="PEACE",
     world = WorldFactory.with_marshals([ney, wel])
     _pair(world, "France", "Britain", "WAR")
     _pair(world, "France", "Prussia", host_state)
+    # RS-3 (Score Finish Step 3): a field win halts before a garrison that
+    # still fights, and the legacy Netherlands is Britain's garrisoned
+    # capital. These pins are about the FRONTIER, not the works — the
+    # garrison stands down so the subject stays the subject.
+    world.get_region("Netherlands").garrison_strength = 0
     return world, ney, wel
 
 
@@ -629,6 +634,7 @@ def _sally_world(enemy_loc="Netherlands", host_state="PEACE", with_order=True):
     world = WorldFactory.with_marshals([ney, wel], current_turn=2)
     _pair(world, "France", "Britain", "WAR")
     _pair(world, "France", "Prussia", host_state)
+    world.get_region("Netherlands").garrison_strength = 0   # RS-3: see _charge_world
     return world, ney
 
 
@@ -686,6 +692,7 @@ class TestWO31TheSallyDoesNotTakeTheGround:
         wel.morale = 26
         world = WorldFactory.with_marshals([ney, wel])
         _pair(world, "France", "Britain", "WAR")
+        world.get_region("Netherlands").garrison_strength = 0   # RS-3: see _charge_world
         ex = _executor()
         res = _quiet(ex.execute,
                      _attack_cmd("Ney", "Wellington", _strategic_execution=True,

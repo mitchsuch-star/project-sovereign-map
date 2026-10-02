@@ -1750,7 +1750,13 @@ def r_living_balance_C4(arms, ctx):
                 if mm and not re.search(
                     r"enters the war|joins|cascade|calls? .* to arms", line, re.I
                 ):
-                    court = mm.group(1).strip().split()[-1]
+                    # "Britain has declared war on France" — the court is the
+                    # word before the auxiliary, never the auxiliary (Step 3
+                    # found the reader reading "has" as the court, so every
+                    # league declaration was invisible to it).
+                    words = [w for w in mm.group(1).strip().split()
+                             if w.lower() not in ("has", "have", "had")]
+                    court = words[-1] if words else mm.group(1).strip()
                     pt = peace_turn.get(court)
                     if pt is not None and turn - pt > 5:
                         found = True
@@ -1776,17 +1782,39 @@ def r_combat_legibility_F1(arms, ctx):
     )
 
 
+_BOARD_REFUSAL = re.compile(
+    r"recovering from retreat|cannot scout|is broken|is captured|is a prisoner|"
+    r"out of range|not in range|no longer stands",
+    re.I,
+)
+
+
 def r_combat_legibility_F2(arms, ctx):
-    if _need(arms, "OP"):
-        return _unmeasured("OP did not run")
-    for c in _cmd_blocks(arms["OP"]):
-        if re.search(r"scout Vienna", c["text"], re.I):
+    """The scout of a hostile capital names its garrison. §4.2: a BOARD
+    refusal (the scout refused because the man is recovering, captured or
+    out of range) is counted separately from a reading refusal — it does
+    not test the item. The reader looks across the arms for a scout of a
+    capital the board let through; when every one was board-refused the
+    item is unmeasured with the refusals counted."""
+    board = []
+    for n in ("OP", "FLD", "CMD-H"):
+        if n not in arms:
+            continue
+        for c in _cmd_blocks(arms[n]):
+            if not re.search(r"scout (Vienna|Berlin|London|Madrid|Munich|Dresden)", c["text"], re.I):
+                continue
+            if not c["ok"] and _BOARD_REFUSAL.search(c["head"]):
+                board.append(f"{n} t{c['turn']}: {c['head'][:80]}")
+                continue
             return _res(
                 True,
                 "Garrison" in c["head"] or any("Garrison" in s for s in c["sub"]),
-                f"turn {c['turn']}: {c['head'][:200]}",
+                f"{n} turn {c['turn']}: {c['head'][:200]}"
+                + (f"; board refusals counted separately: {board}" if board else ""),
             )
-    return _unmeasured("OP never scouted Vienna")
+    if board:
+        return _unmeasured(f"every capital scout was a board refusal: {board}")
+    return _unmeasured("no arm scouted a capital")
 
 
 def r_combat_legibility_C1(arms, ctx):
@@ -2479,18 +2507,55 @@ def r_ai_aliveness_C6(arms, ctx):
     ev = {}
     ok = True
     for n in need:
-        eps = arms[n].kind("enemy_phase")
-        leds = arms[n].kind("ledger")
-        # at war while the threat reading is above zero and Europe still attacks somewhere
-        last_attack = max(
-            [i for i, e in enumerate(eps) if int(e.get("attacks", 0)) > 0], default=-1
-        )
-        war_turns = [i for i, e in enumerate(eps) if i <= last_attack]
-        visible = sum(1 for i in war_turns if int(eps[i].get("attacks", 0)) > 0)
+        war_turns = _turns_at_war(arms[n])
+        attacks = _attacks_by_turn(arms[n])
+        visible = sum(1 for t in war_turns if attacks.get(t, 0) > 0)
         ratio = visible / len(war_turns) if war_turns else 0.0
         ev[n] = f"{visible}/{len(war_turns)}"
         ok = ok and ratio >= 0.5
     return _res(True, ok, f"turns with a visible AI attack over the turns at war: {ev}")
+
+
+def _attacks_by_turn(arm: Arm) -> dict[int, int]:
+    """Enemy-phase attack counts keyed by the turn whose end they close."""
+    out = {}
+    turn = 0
+    for r in arm.records:
+        if r.get("kind") == "turn":
+            turn = int(r.get("turn") or turn)
+        elif r.get("kind") == "enemy_phase":
+            out[turn] = out.get(turn, 0) + int(r.get("attacks", 0) or 0)
+    return out
+
+
+def _turns_at_war(arm: Arm) -> list[int]:
+    """The turns on which France stood in a war, read off the digest's own
+    war and peace rows: the boot wars until a whole-war settlement or the
+    league's dissolution ends them; a declaration or a formed league opens
+    them again. (Step 3: the Armed Peace puts twenty quiet turns between
+    two wars — reading "every turn up to the last attack" as war had
+    counted the peace against the AI.)"""
+    at_war = True
+    out = []
+    turn = 0
+    seen = None
+    for r in arm.records:
+        if r.get("kind") == "turn":
+            if seen is not None and at_war:
+                out.append(seen)
+            turn = int(r.get("turn") or turn)
+            seen = turn
+            continue
+        if r.get("kind") not in ("rail", "dispatch_row", "campaign_log"):
+            continue
+        d = r.get("dtype") or ""
+        if d in ("diplomatic_war_declared", "diplomatic_coalition_formed", "coalition_declared"):
+            at_war = True
+        elif d in ("settlement_summary", "diplomatic_coalition_dissolved", "coalition_dissolved"):
+            at_war = False
+    if seen is not None and at_war and seen not in out:
+        out.append(seen)
+    return out
 
 
 # ═════════════════════════ AGENDAS ═════════════════════════

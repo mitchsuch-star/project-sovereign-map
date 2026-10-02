@@ -1145,6 +1145,12 @@ def _cannon_fire_concerns(world, marshal, battle) -> bool:
             return True
     return False
 ANSWERED_CONTACT_READS_THE_BOARD = True
+# Score Finish Step 3 (Oct 2 2026) — combat legibility C1, RS-13's family:
+# the attack an answered contact question commits to prints its muster
+# (the question itself carries only the odds word). False = the re-issue
+# rides `_strategic_execution` alone and opens straight onto the combat
+# lines, as shipped.
+THE_ANSWERED_CONTACT_PRINTS_ITS_MUSTER = True
 
 
 def fought_battle_victor(result, marshal_name: str) -> Optional[str]:
@@ -2242,15 +2248,17 @@ class StrategicOrderProcessor:
                         "action_taken": "contact_retired",
                     }
             # Attack the blocking enemy
-            result = self.executor.execute(
-                {"command": {
-                    "marshal": marshal.name,
-                    "action": "attack",
-                    "target": enemy_name,
-                    "_strategic_execution": True
-                }},
-                game_state
-            )
+            _contact_cmd = {
+                "marshal": marshal.name,
+                "action": "attack",
+                "target": enemy_name,
+                "_strategic_execution": True,
+            }
+            if THE_ANSWERED_CONTACT_PRINTS_ITS_MUSTER:
+                # the player has seen the odds word and commits: the muster
+                # block rides the battle, the confirm popup stays off
+                _contact_cmd["_muster_confirmed"] = True
+            result = self.executor.execute({"command": _contact_cmd}, game_state)
             if attack_was_refused(result):
                 # FA-15 (slice 3): the answered 'attack' the executor REFUSED
                 # read "Davout attacks Moore. <barred>. Assault failed —

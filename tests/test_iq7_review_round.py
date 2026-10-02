@@ -1306,6 +1306,14 @@ class TestR7TheCardTellsTheTruth:
                 # standing is staged explicitly, like its relation, so the
                 # countdown is what this pin measures.
                 w.vassals[SWISS]["loyalty"] = 80
+            if int(w.current_turn) >= 7:
+                # Score Finish Step 3 (October 2, 2026): the balance block
+                # (RS-3, the AI's odds gate) re-times the unattended lord's
+                # battles again and the Swiss fell under the loyal line at
+                # turn 12 ("no standing to petition"). The standing is staged
+                # on EVERY turn of the second cycle, as SR-5a already staged
+                # it for turn 13 — the countdown is what this pin measures.
+                w.vassals[SWISS]["loyalty"] = max(int(w.vassals[SWISS]["loyalty"]), 80)
             _end_turn(client)
             if w.vassals[SWISS].get("petitioned_turn") == w.current_turn:
                 issued.add(int(w.current_turn))
@@ -2857,6 +2865,11 @@ class TestP42TheCardSeesThePetitionOnTheDesk:
         _activate(client, pet)                                          # CURRENT
         card = _ledger_card(client, SWISS)
         assert (card["standing"], card["standing_key"]) == ("petition on the desk", "pending")
+        # Score Finish Step 3 (October 2, 2026): on the re-timed board the
+        # Swiss stand just above the loyal line at the snapshot, and the
+        # refusal's -10 took them under it ("no standing (loyalty)") — the
+        # standing is staged so the card's CADENCE arm is what is measured.
+        w.vassals[SWISS]["loyalty"] = max(int(w.vassals[SWISS]["loyalty"]), 80)
         r = _respond(client, "reject_ai_proposal", pet["dialogue_id"])
         assert r.get("success") is True
         card = _ledger_card(client, SWISS)

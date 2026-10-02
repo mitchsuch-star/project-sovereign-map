@@ -85,6 +85,7 @@ Region names verified against the live registry (there is no "Lombardy"/"Venetia
 |--------|---|----|------|----------------|----------------------|
 | **Austria** | 1 | `redeem_italy` | acquire | Milan, Piedmont, Savoy | The priority theater of 1805 — Charles held the main army in Italy; Campo Formio/Lunéville losses. |
 | | 2 | `primacy_germany` | acquire | Munich, Swabia | Mack's thrust to the Iller; contesting Bavaria's defection to France. (Boot-active pin: Mack@Swabia — but `redeem_italy` outranks it while Milan is French-bloc.) |
+| | 3 | `the_eastern_question` | acquire | Albania, Rumelia | **Authored Oct 2, 2026 (Score Finish Step 3, SF-LB-1 / IQ6-D1):** the Ottoman frontier Vienna turned to whenever Italy and Germany were closed — the design an Austria allied to France (or reversed by a volte-face) advances to, since an ally's holdings are not coveted (`agendas.AN_ALLY_IS_NOT_COVETED`). |
 | **Prussia** | 1 | `hanoverian_prize` | acquire | Hanover | Schönbrunn: Napoleon's bait; Prussia occupied it in 1806. The buy-Prussia lever. |
 | | 2 | `armed_neutrality` | guard_neutrality | Hanover, Westphalia, Brunswick, Berlin, Brandenburg | Ansbach: a belligerent marching through north Germany enrages Berlin (§5.9). |
 | **Britain** | 1 | `low_countries` | deny | Flanders, Brabant, Amsterdam | The Scheldt obsession — the invasion coast may not be French. Britain won't rest while the bloc holds them. |

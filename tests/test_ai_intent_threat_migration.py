@@ -1157,11 +1157,48 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # 27 / 20 / 29) and Britain 11 / 11 / 11 (before: 11 / 19 / 11); a played
 # France is not overrun and a rich Britain does not become a land empire.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [
-    70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 38,
-    36, 37, 35, 33, 31, 19, 17, 15, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0,
-]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — Score Finish Step 3 "Europe acts without France"
+# (October 2, 2026; `tools/_step3_series_arms.py`, fifteen arms, every Step-3
+# lever set IN THE CHILD, every seam's reach COUNTED; record =
+# `tools/_step3_series_arms_final.json`):
+#   0.  every Step-3 lever DOWN ............. the SR-5a series above,
+#                                              BYTE-FOR-BYTE
+#   A.  RS-3 a field win halts before the works ... diverges at [12] (9 halts)
+#   B.  AAR-D8 a small garrison surrenders ........ BYTE-IDENTICAL (no AI
+#                                              assault on a detachment under
+#                                              500 on the ambient board)
+#   C.  the AI's odds gate (cautious P4 holds
+#       at the muster band) ...................... diverges at [15]
+#   D.  CQ-22 one stance rule for drill ........... diverges at [18] (2 of 3
+#                                              AI drills were in AGGRESSIVE)
+#   E.  IQ5-R1 bleed by the men committed ......... diverges at [24] (36 splits)
+#   F.  XR-3 an in-place capture marches nowhere .. diverges at [5]  (2 moves)
+#   G.  SR-G7 the Armed Peace (fuse 20) ........... diverges at [23] (18 holds)
+#   H.  SR-7c dispersion is not punished .......... diverges at [25] (23 of 45
+#                                              three-corps reads relieved)
+#   I.  SR-7a a held corps is not idle ............ diverges at [18]
+#   J/K/L/M. SF-LB-1's four levers ................ BYTE-IDENTICAL alone (12
+#                                              design asks fire; no refusal
+#                                              hardens anything the ambient
+#                                              board acts on; nobody allied
+#                                              to France; the Armed Peace
+#                                              never holds with G down)
+#   ALL. the shipped tree ......................... the series below,
+#                                              diverging at [13]
+# Eight of thirteen levers move the series on their own; Step 3 moves it BY
+# DESIGN (the spec's §3 Step 3 says so) and this is its ONE re-record.
+# Passive-France guard, stated honestly: the UNATTENDED France ends turn 40
+# with 3 provinces on arm 0 and 3 on the shipped arm — no worse. The alarm
+# reaches 0 at [22] (was [27]) because the AI's odds gate and the works halt
+# shorten the opening war; the Armed Peace then never holds on THIS board
+# (a France of 3 provinces leads no bloc). Measured on the COMMANDED arms
+# (three seeds, fuse 20): France holds 26 / 28 / 19 at turn 40 — the league
+# the fuse brings arrives at turns 30 / 40 / 35 and the marengo France,
+# 57,000 men against the league, loses the F1 floor by one province (the
+# landing record, SCORE_FINISH_SPEC.md §3 Step 3).
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 34, 32, 29, 26, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:
