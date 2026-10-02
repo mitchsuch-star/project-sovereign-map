@@ -191,6 +191,21 @@
         "says": "Berthier's headquarters grown into a true general staff: one more order carried each day."
       },
       {
+        "id": "train_des_equipages",
+        "name": "The Train des Équipages",
+        "date": "decree of 26 March 1807",
+        "currency": "gold",
+        "price": 3500,
+        "upkeep": 200,
+        "effects": [
+          {
+            "type": "cures",
+            "flaw": "Living off the land"
+          }
+        ],
+        "says": "A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quartier Général stands to run it."
+      },
+      {
         "id": "artillery_reserve",
         "name": "The Artillery Reserve",
         "date": "the Guard's reserve batteries, 1806–09",

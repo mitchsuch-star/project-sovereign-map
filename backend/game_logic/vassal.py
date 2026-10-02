@@ -241,6 +241,13 @@ _WAVERING_REGIMENTS_CLAUSE = (
     "reinforcements until its loyalty is mended.")
 
 
+def _set_nation(world, marshal, nation: str) -> None:
+    """SR-7d RV-6: every change of a marshal's court goes through the ONE
+    setter so his standing doctrine term follows the flag he fights under."""
+    from backend.game_logic.doctrines import set_marshal_nation
+    set_marshal_nation(world, marshal, nation)
+
+
 def lord_fields_the_vassals_regiments(world, lord: Optional[str],
                                       vassal_name: str) -> bool:
     """IQ-7 R1: does the lord field a marshal of the vassal's own colours
@@ -1433,7 +1440,7 @@ def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
     for marshal in list(world.marshals.values()):
         if (getattr(marshal, 'original_nation', None) == vassal_name
                 and getattr(marshal, 'nation', '') == lord):
-            marshal.nation = vassal_name
+            _set_nation(world, marshal, vassal_name)
             marshal.original_nation = None
             marshal.trust = Trust()
             if hasattr(marshal, 'relationship_with_lord'):
@@ -1634,7 +1641,7 @@ def check_vassal_rebellion(world) -> List[dict]:
             for marshal in list(world.marshals.values()):
                 if (getattr(marshal, 'original_nation', None) == vassal_name
                         and getattr(marshal, 'nation', '') == lord):
-                    marshal.nation = vassal_name
+                    _set_nation(world, marshal, vassal_name)
                     marshal.original_nation = None
                     marshal.trust = Trust()
                     if hasattr(marshal, 'relationship_with_lord'):
@@ -4212,7 +4219,7 @@ def transfer_vassal(world, vassal_name: str, to_lord: str,
     for marshal in list(world.marshals.values()):
         if (getattr(marshal, 'original_nation', None) == vassal_name
                 and getattr(marshal, 'nation', '') == from_lord):
-            marshal.nation = to_lord
+            _set_nation(world, marshal, to_lord)
             if hasattr(marshal, 'trust') and hasattr(marshal.trust, 'value'):
                 marshal.trust.modify(ASSIMILATION_TRUST - marshal.trust.value)
             marshal.relationship_with_lord = "Professional"
@@ -4318,7 +4325,7 @@ def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
             # Record original nation for rebellion transfer-back
             marshal.original_nation = vassal_name
             # Transfer to lord
-            marshal.nation = lord
+            _set_nation(world, marshal, lord)
             # Set trust to assimilation level
             if hasattr(marshal, 'trust') and hasattr(marshal.trust, 'value'):
                 marshal.trust.modify(ASSIMILATION_TRUST - marshal.trust.value)
@@ -4516,7 +4523,7 @@ def release_vassal(
     # Restore marshals to vassal nation
     for marshal in list(world.marshals.values()):
         if getattr(marshal, 'original_nation', None) == vassal_name:
-            marshal.nation = vassal_name
+            _set_nation(world, marshal, vassal_name)
             # ⛔ FA-S15-1 (P1, found while building slice 15). This was
             # `delattr(marshal, 'original_nation')`, and `Marshal.to_dict`
             # reads `self.original_nation` BARE — so releasing a vassal that
@@ -4955,7 +4962,7 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     for marshal in list(world.marshals.values()):
         if (getattr(marshal, 'original_nation', None) == vassal_name
                 and getattr(marshal, 'nation', '') == lord):
-            marshal.nation = vassal_name
+            _set_nation(world, marshal, vassal_name)
             marshal.original_nation = None
             marshal.trust = Trust()
             if hasattr(marshal, 'relationship_with_lord'):

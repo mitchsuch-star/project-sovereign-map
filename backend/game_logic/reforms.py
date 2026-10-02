@@ -60,6 +60,7 @@ WIRED_EFFECT_TYPES = (
     "actions",
     "manpower_regen", "recruit_price", "recruit_morale", "drill_morale",
     "supply_capacity", "satellite_loyalty", "cs_closure", "blockade_denial",
+    "cures",              # SR-7d DC-2: read at the doctrine's own seam (DOCTRINES_SPEC §3)
 )
 # RF-2: each wired type's clause parameters — what the validator checks (a
 # number inside a type is in-band; a new type or a new parameter is
@@ -454,6 +455,8 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
                                     if quote["currency"] == "gold" else 0)
     authority = int(quote["price"]) if quote["currency"] == "authority" else 0
     authority_before = _court_authority(world, nation)
+    from backend.game_logic.doctrines import flaw_cured as _flaw_cured
+    _cured_before = _flaw_cured(world, nation)
     if gold:
         world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) - gold
         world.record_gold_spent(nation, gold)
@@ -473,9 +476,43 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
     })
     queue_law_beat(world, nation, row,
                    "restored" if quote["kind"] == "restore" else "enacted")
+    # SR-7d DC-2 (DOCTRINES_SPEC §4 "the catch-up is announced"): the cure
+    # takes effect the moment its law AND the court's Staff both stand —
+    # once, derived from the before/after read, zero new fields.
+    _cured_now = _flaw_cured(world, nation)
+    _refresh_doctrines(world)
+    if _cured_now and not _cured_before:
+        queue_cure_beat(world, nation, "cured")
     return {"quote": quote, "gold": int(gold), "authority": int(authority),
             "authority_before": int(authority_before),
-            "authority_after": int(_court_authority(world, nation))}
+            "authority_after": int(_court_authority(world, nation)),
+            "cure_took_effect": bool(_cured_now and not _cured_before)}
+
+
+def _refresh_doctrines(world) -> None:
+    """SR-7d RV-6: every enactment, repeal and lapse refreshes the marshals'
+    standing terms (the cure may have changed)."""
+    from backend.game_logic.doctrines import refresh_doctrine_terms
+    refresh_doctrine_terms(world)
+
+
+def queue_cure_beat(world, nation: str, kind: str) -> None:
+    """SR-7d DC-3b: the cure's beat — a rival's catch-up ("Vienna adopts the
+    corps d'armée — the Hofkriegsrat's delays are over") or its lapse
+    ("Vienna can no longer pay for its corps"); the player's own lapse is a
+    wound. Diplomacy has no fog."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.game_logic.doctrines import cure_beat_vars
+    player = getattr(world, "player_nation", None)
+    vars_ = cure_beat_vars(world, nation)
+    if kind == "cured":
+        if nation == player:
+            return      # the verb's own answer names it
+        queue_dispatch_event(world, "doctrine_cured_abroad", vars_, "always")
+        return
+    queue_dispatch_event(
+        world, "doctrine_cure_lost_home" if nation == player else "doctrine_cure_lost_abroad",
+        vars_, "always")
 
 
 def repeal_refusal(world, nation: str, law_id: str,
@@ -499,6 +536,8 @@ def repeal_refusal(world, nation: str, law_id: str,
 def repeal_law(world, nation: str, row: Dict) -> None:
     """R4: out of force at once, nothing refunded. A repeal never records
     `lapsed_turn`, so re-enacting a repealed law costs its full price (R8)."""
+    from backend.game_logic.doctrines import flaw_cured as _flaw_cured
+    _cured_before = _flaw_cured(world, nation)
     row.pop("enacted_turn", None)
     world.log_event({
         "type": "law_repealed",
@@ -507,6 +546,9 @@ def repeal_law(world, nation: str, row: Dict) -> None:
         "name": str(row.get("name") or ""),
         "upkeep": int(row.get("upkeep", 0) or 0),
     })
+    _refresh_doctrines(world)
+    if _cured_before and not _flaw_cured(world, nation):
+        queue_cure_beat(world, nation, "lost")
 
 
 def lapse_order(world, nation: str) -> List[Dict]:
@@ -545,8 +587,13 @@ def process_law_lapses(world) -> List[Dict]:
                 break
             row = order[0]
             refund = int(row.get("upkeep", 0) or 0)
+            from backend.game_logic.doctrines import flaw_cured as _flaw_cured
+            _cured_before = _flaw_cured(world, nation)
             row.pop("enacted_turn", None)
             row["lapsed_turn"] = int(getattr(world, "current_turn", 0) or 0)
+            _refresh_doctrines(world)
+            if _cured_before and not _flaw_cured(world, nation):
+                queue_cure_beat(world, nation, "lost")
             world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) + refund
             applied = (getattr(world, "_income_phase_results", None) or {}).get(nation)
             if applied:
@@ -667,6 +714,9 @@ def effect_line(clause) -> str:
         from backend.game_logic.naval import blockade_cut_percent
         return (f"a blockade it lays cuts the enemy's trade by "
                 f"{blockade_cut_percent(float(value))}%, not half (×{float(value):g})")
+    if etype == "cures":
+        # SR-7d DC-2 (DOCTRINES_SPEC D-R4, RV-15)
+        return f"cures {clause.get('flaw')} — the court's doctrine flaw — while its Staff stands"
     return ""
 
 
@@ -759,6 +809,12 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
                 chip["reason"] = refusal
             else:
                 chip["note"] = terms_line(world, nation, row)
+        # SR-7d DC-3a (DOCTRINES_SPEC §4): a cure law says what it cures,
+        # what it would lift THIS turn, and the Staff it needs.
+        from backend.game_logic.doctrines import law_cure_line
+        _cure = law_cure_line(world, nation, row)
+        if _cure:
+            entry["cure_line"] = _cure
         entry["spoken"] = spoken
         entry["chip"] = chip
         out.append(entry)
@@ -982,6 +1038,14 @@ def staff_arrival(world, nation: str) -> Optional[str]:
 # BASELINE_SERIES reproduces byte for byte.
 THE_AI_ENACTS = True
 AI_ENACTMENT_EVERY_TURNS = 3
+# SR-7d DC-2 (DOCTRINES_SPEC §5, REFORMS_SPEC §7 "the recommended fix"):
+# every rival's cure rides its Staff (RV-15), and measured at RF-3 only
+# Austria's Staff came in on the ambient historical board (turn 33) — the
+# rung took cheaper laws first and their upkeep raised the Staff's bar. With
+# this lever the rung SAVES for the Staff: once the chest passes half the
+# Staff's price it enacts nothing cheaper until the Staff is in force.
+THE_AI_SAVES_FOR_THE_STAFF = True
+AI_SAVES_FOR_THE_STAFF_FROM = 0.5     # of the Staff's price
 AI_PURSE_RESERVE = 1000          # the chest keeps a reserve …
 AI_PURSE_UPKEEP_TURNS = 5        # … and five turns of the slate's upkeep
 AI_AUTHORITY_FLOOR = 30          # a political act never takes the court below 30
@@ -1062,8 +1126,16 @@ def find_ai_enactment(world, nation: str, treasury: int,
     now = int(getattr(world, "current_turn", 0) or 0)
     if last is not None and now - last < AI_ENACTMENT_EVERY_TURNS:
         return None
+    saving = False
+    if THE_AI_SAVES_FOR_THE_STAFF:
+        staff = next((r for r in rows if isinstance(r, dict) and is_staff(r)), None)
+        if (staff is not None and not is_in_force(staff)
+                and int(treasury) >= int(staff.get("price", 0) or 0) * AI_SAVES_FOR_THE_STAFF_FROM):
+            saving = True
     for row in rows:
         if not isinstance(row, dict) or is_in_force(row):
+            continue
+        if saving and not is_staff(row):
             continue
         law_id = str(row.get("id") or "")
         if law_refusal(world, nation, law_id, admin_actions=admin_ap):

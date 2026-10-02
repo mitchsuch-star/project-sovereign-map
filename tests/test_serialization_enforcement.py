@@ -254,7 +254,11 @@ class TestMarshalSerializationEnforcement:
     # ⚠ FA-91. Points AT the production constant. Copying it is what rots:
     # `test_the_exemption_is_not_a_copy` in the played-world census file
     # fails if this ever becomes a literal set again.
-    PRIVATE_EXEMPT = Marshal.COORDINATION_TRANSIENT_FIELDS
+    # SR-7d RV-6 (FA-91's rule, widened on the record): the UNION of the two
+    # declared production sets — the transient coordination stamps and the
+    # standing DERIVED terms. Neither name is copied here.
+    PRIVATE_EXEMPT = (tuple(Marshal.COORDINATION_TRANSIENT_FIELDS)
+                      + tuple(Marshal.DERIVED_STANDING_FIELDS))
 
     def test_all_marshal_fields_serialized(self):
         """Every Marshal instance attribute must be in to_dict()."""

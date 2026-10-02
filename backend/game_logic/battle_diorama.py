@@ -225,6 +225,9 @@ def _side_contingents(world, lead, participants: list, distribution: dict,
             status=status, lead=False, world=world)
         entry["absence_reason"] = _ABSENCE_LABELS.get(
             reason, _ABSENCE_DEFAULT)
+        # SR-7d RV-16: the court's flaw on the shelf, by its name.
+        if reason == "doctrine_delayed" and r.get("doctrine"):
+            entry["absence_reason"] = f"{r.get('doctrine')}: the orders came too late"
         contingents.append(entry)
 
     return contingents

@@ -1,0 +1,429 @@
+[
+ {
+  "id": "lever down: DOCTRINES_ACTIVE",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "DOCTRINES_ACTIVE = True",
+  "new": "DOCTRINES_ACTIVE = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: FRANCE_DOCTRINE",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "FRANCE_DOCTRINE = True",
+  "new": "FRANCE_DOCTRINE = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: BRITAIN_DOCTRINE",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "BRITAIN_DOCTRINE = True",
+  "new": "BRITAIN_DOCTRINE = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: RUSSIA_DOCTRINE",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "RUSSIA_DOCTRINE = True",
+  "new": "RUSSIA_DOCTRINE = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: AUSTRIA_DOCTRINE",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "AUSTRIA_DOCTRINE = True",
+  "new": "AUSTRIA_DOCTRINE = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: PRUSSIA_DOCTRINE",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "PRUSSIA_DOCTRINE = True",
+  "new": "PRUSSIA_DOCTRINE = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: THE_CURES_HEAL",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "THE_CURES_HEAL = True",
+  "new": "THE_CURES_HEAL = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "lever down: THE_AI_SAVES_FOR_THE_STAFF",
+  "file": "backend/game_logic/reforms.py",
+  "old": "THE_AI_SAVES_FOR_THE_STAFF = True",
+  "new": "THE_AI_SAVES_FOR_THE_STAFF = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "RV-2: the strength overrides the man",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    if shift < 0 and character_keeps_him_away(reinforcer, primary):\n        return 0, \"\"",
+  "new": "    if False:\n        return 0, \"\"",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "a flaw is never carried",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "        if role == \"flaw\" and flaw_cured(world, nation):\n            return None",
+  "new": "        if role == \"flaw\":\n            return None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "RV-15: the cure ignores the Staff",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    if law_up and staff_up:\n        out[\"cured\"] = True",
+  "new": "    if law_up:\n        out[\"cured\"] = True",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the supply flaw never bites",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    return ground[\"factor\"], ground[\"name\"]",
+  "new": "    return 1.0, ground[\"name\"]",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "stripped is not read forward",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "        damage = max(0.0, damage - WAR_DAMAGE_RECOVERY_TICK)",
+  "new": "        damage = damage",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "RV-5: the homeland is not exempt",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    if name in _homeland(world, nation):\n        return None",
+  "new": "    if False:\n        return None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "RV-5: an ally's soil is not exempt",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "            if world.get_diplomatic_state(nation, controller) in world.ALLY_SUPPLY_STATES:\n                return None",
+  "new": "            if False:\n                return None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the recruit clause never prices",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    return clause_name(c), float(c.get(\"value\", 1.0) or 1.0)",
+  "new": "    return None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the defeat penalty is not scaled",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    applied = int(round(base * factor))",
+  "new": "    applied = base",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the setter does not refresh",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    marshal.nation = nation\n    marshal._doctrine_terms = derive_terms(world, str(nation or \"\"))",
+  "new": "    marshal.nation = nation",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the stripped mark ignores the fog",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    if not econ_visible:\n        return {\"poor\": False, \"line\": \"Stripped? unknown — scout it\"}",
+  "new": "    if False:\n        return {\"poor\": False, \"line\": \"Stripped? unknown — scout it\"}",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the morale term is not derived",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "        terms[key] = (1.0 + value) if ctype in (\"attack\", \"defense\") else value",
+  "new": "        terms[key] = (1.0 + value) if ctype in (\"attack\", \"defense\") else 1.0",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the poor country list is dropped at load",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "            \"poor_country\": [str(r) for r in poor if isinstance(r, str)]}",
+  "new": "            \"poor_country\": []}",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the no-show copy is silent",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    if row.get(\"reason\") == \"doctrine_delayed\":",
+  "new": "    if False:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the morale line inverts",
+  "file": "backend/game_logic/doctrines.py",
+  "old": "    if applied < base:",
+  "new": "    if False:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the resolver ignores the doctrine's bar",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            threshold = self._arrival_threshold(\n                candidate, primary, battle_region, world,\n                assume_order=has_explicit_order)",
+  "new": "            threshold = self._arrival_threshold(\n                candidate, primary, battle_region, world,\n                assume_order=has_explicit_order, with_doctrine=False)",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "RV-16: doctrine_delayed never classified",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if (_doctrine_shift > 0\n                        and base_threshold < score <= threshold):\n                    reason = \"doctrine_delayed\"",
+  "new": "                if False:\n                    reason = \"doctrine_delayed\"",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "RV-16: the dock charges the flaw",
+  "file": "backend/commands/combat_executor.py",
+  "old": "\"eyes_on_a_crown\", \"neutral_soil\", \"doctrine_delayed\"):",
+  "new": "\"eyes_on_a_crown\", \"neutral_soil\"):",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the with-support odds read a literal 60",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            det + 10, self._arrival_threshold(m, lead, battle_region, world,\n                                              assume_order=True))",
+  "new": "            det + 10, 60)",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the muster row does not name the bar",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if _shift < 0:\n            note += f\" ({_dname} lowers the bar by {-_shift})\"",
+  "new": "        if False:\n            note += f\" ({_dname} lowers the bar by {-_shift})\"",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the corps never march apart",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if len(origins) >= 2:",
+  "new": "            if len(origins) >= 99:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the enemy's slow concentration is unnamed",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            if _enemy_flaw and int(_enemy_flaw[1].get(\"value\", 0) or 0) > 0:",
+  "new": "            if _enemy_flaw and int(_enemy_flaw[1].get(\"value\", 0) or 0) > 99:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the muster's supply note is silent",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                if _dc_ground and _dc_ground[\"applies\"]:\n                    _pct = int(round(_dc_ground[\"factor\"] * 100))",
+  "new": "                if False:\n                    _pct = int(round(_dc_ground[\"factor\"] * 100))",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "a doctrine-decided arrival is never named",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            _doctrine_arrived = bool(_doctrine_shift < 0 and arrived\n                                     and score <= base_threshold)",
+  "new": "            _doctrine_arrived = False",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the draft is not priced",
+  "file": "backend/commands/economy_executor.py",
+  "old": "                if _dterm:\n                    cost = int(round(cost * _dterm[1]))",
+  "new": "                if False:\n                    cost = int(round(cost * _dterm[1]))",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the enemy-phase recruit note is empty",
+  "file": "backend/commands/economy_executor.py",
+  "old": "            \"doctrine_note\": f\"{_dnote[0]}, ×{_dnote[1]:g}\" if _dnote else \"\",",
+  "new": "            \"doctrine_note\": \"\",",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the attack term is not read",
+  "file": "backend/models/marshal.py",
+  "old": "        modifier *= float(self._doctrine_term(\"attack\"))",
+  "new": "        modifier *= 1.0",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the defence term is not read",
+  "file": "backend/models/marshal.py",
+  "old": "        modifier *= float(self._doctrine_term(\"defense\"))",
+  "new": "        modifier *= 1.0",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the attack row is not printed",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "    if _dterm > 1.0001:",
+  "new": "    if _dterm > 99:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the defence row is not printed",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "        if _share > 1.0001:",
+  "new": "        if _share > 99:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the morale line is dropped",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "        \"morale_line\": str(_morale_line),",
+  "new": "        \"morale_line\": \"\",",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the doctrine rows are not listed",
+  "file": "backend/game_logic/battle_report.py",
+  "old": "            if isinstance(row, dict) and row.get(\"doctrine\"):",
+  "new": "            if isinstance(row, dict) and False:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the cures clause renders nothing",
+  "file": "backend/game_logic/reforms.py",
+  "old": "        return f\"cures {clause.get('flaw')} — the court's doctrine flaw — while its Staff stands\"",
+  "new": "        return \"\"",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the cure line is dropped",
+  "file": "backend/game_logic/reforms.py",
+  "old": "        if _cure:\n            entry[\"cure_line\"] = _cure",
+  "new": "        if False:\n            entry[\"cure_line\"] = _cure",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the cure beat never fires",
+  "file": "backend/game_logic/reforms.py",
+  "old": "    if _cured_now and not _cured_before:\n        queue_cure_beat(world, nation, \"cured\")",
+  "new": "    if False:\n        queue_cure_beat(world, nation, \"cured\")",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the rung does not save",
+  "file": "backend/game_logic/reforms.py",
+  "old": "        if saving and not is_staff(row):\n            continue",
+  "new": "        if False:\n            continue",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the supply seam ignores the factor",
+  "file": "backend/models/world_state.py",
+  "old": "            multiplier *= factor\n        return multiplier",
+  "new": "            multiplier *= 1.0\n        return multiplier",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the filtered summary drops the mark",
+  "file": "backend/models/world_state.py",
+  "old": "            filtered_region[\"doctrine_supply\"] = region_data.get(\"doctrine_supply\")",
+  "new": "            filtered_region[\"doctrine_supply\"] = None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the fog sentinel is 0 again",
+  "file": "backend/models/world_state.py",
+  "old": "                filtered_region[\"war_damage\"] = -1",
+  "new": "                filtered_region[\"war_damage\"] = 0",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the bill reads the forecast",
+  "file": "backend/models/world_state.py",
+  "old": "                # SR-7d: the BILL reads the post-recovery value (forecast=False)\n                forecast=False)",
+  "new": "                # SR-7d: the BILL reads the post-recovery value (forecast=False)\n                forecast=True)",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the load does not refresh the terms",
+  "file": "backend/models/world_state.py",
+  "old": "        # would be missed. Never serialized (Marshal.DERIVED_STANDING_FIELDS).\n        from backend.game_logic.doctrines import refresh_doctrine_terms\n        refresh_doctrine_terms(world)",
+  "new": "        # would be missed. Never serialized (Marshal.DERIVED_STANDING_FIELDS).\n        from backend.game_logic.doctrines import refresh_doctrine_terms\n        pass",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the backfill never arms",
+  "file": "backend/save_manager.py",
+  "old": "        if store:\n            world.doctrines = store",
+  "new": "        if False:\n            world.doctrines = store",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the band is not checked",
+  "file": "backend/modding/validator.py",
+  "old": "            if not ok_type or not (low <= value <= high):\n                result.add_error(cp, f\"{ctype}.value must be {kind} in [{low}, {high}], got {value!r}\")",
+  "new": "            if False:\n                result.add_error(cp, f\"{ctype}.value must be {kind} in [{low}, {high}], got {value!r}\")",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "cured_by is not checked",
+  "file": "backend/modding/validator.py",
+  "old": "            if law is None:\n                result.add_error(f\"{path}.cured_by\",",
+  "new": "            if False:\n                result.add_error(f\"{path}.cured_by\",",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the first morning names no doctrine",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            \"doctrine\": boot_line(world, player_nation) or \"\"}",
+  "new": "            \"doctrine\": \"\"}",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the headline does not name the Train",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if _ground and _ground[\"applies\"]:\n        _pct = int(round(_ground[\"factor\"] * 100))",
+  "new": "    if False:\n        _pct = int(round(_ground[\"factor\"] * 100))",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the desk does not classify our doctrine",
+  "file": "backend/ai/question_desk.py",
+  "old": "        if kind == \"doctrine_own\":\n            return {\"kind\": kind, \"subject\": \"\", \"subject_type\": \"board\"}",
+  "new": "        if False:\n            return {\"kind\": kind, \"subject\": \"\", \"subject_type\": \"board\"}",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the desk does not answer",
+  "file": "backend/ai/question_desk.py",
+  "old": "        if kind in (\"doctrine_own\", \"doctrine_nation\"):\n            from backend.game_logic.doctrines import doctrine_answer",
+  "new": "        if False:\n            from backend.game_logic.doctrines import doctrine_answer",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the nation card drops the line",
+  "file": "backend/game_logic/diplomatic_ledger.py",
+  "old": "    return doctrine_card_line(world, nation)",
+  "new": "    return None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the Generals screen drops the block",
+  "file": "backend/main.py",
+  "old": "    payload[\"doctrine\"] = doctrine_payload(world, world.player_nation)",
+  "new": "    payload[\"doctrine\"] = None",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "a vassal write bypasses the setter",
+  "file": "backend/game_logic/vassal.py",
+  "old": "    set_marshal_nation(world, marshal, nation)",
+  "new": "    marshal.nation = nation",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "a commission does not refresh",
+  "file": "backend/game_logic/recruitment.py",
+  "old": "    refresh_doctrine_terms(world, [marshal])",
+  "new": "    pass",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ },
+ {
+  "id": "the shelf does not name the flaw",
+  "file": "backend/game_logic/battle_diorama.py",
+  "old": "        if reason == \"doctrine_delayed\" and r.get(\"doctrine\"):",
+  "new": "        if False:",
+  "tests": "tests/test_sr7d_the_doctrines.py"
+ }
+]

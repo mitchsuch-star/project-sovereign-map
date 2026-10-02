@@ -976,6 +976,25 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                                 cp, "The Staff mints exactly one action "
                                     "(value 1 — R7)")
                         staffs.append(row)
+                    elif etype == "cures":
+                        # SR-7d DC-2 (DOCTRINES_SPEC D-R4): `cures` names the
+                        # court's own doctrine flaw; the cross-check against
+                        # the doctrine lives in `_validate_doctrines`.
+                        flaw = clause.get("flaw")
+                        if not isinstance(flaw, str) or not flaw.strip():
+                            result.add_error(cp, "cures needs 'flaw' (the doctrine flaw's name)")
+                        extra_c = sorted(set(clause) - {"type", "flaw"})
+                        if extra_c:
+                            result.add_error(cp, f"cures does not read {extra_c}")
+                        doctrine = (data.get("doctrines") or {}).get(court) if isinstance(data.get("doctrines"), dict) else None
+                        if isinstance(doctrine, dict):
+                            flaw_name = str(((doctrine.get("flaw") or {}) if isinstance(doctrine.get("flaw"), dict) else {}).get("name") or "")
+                            if flaw and flaw_name and flaw != flaw_name:
+                                result.add_error(cp, f"cures names {flaw!r}; {court}'s doctrine flaw is {flaw_name!r}")
+                        else:
+                            # the tutorial carries France's deck and no doctrine
+                            # (DOCTRINES_SPEC §9): the cure removes nothing there
+                            result.add_warning(cp, f"{court} authors no doctrine for this cure to remove")
                     else:
                         _validate_law_clause(result, cp, etype, clause,
                                              CLAUSE_SHAPES.get(etype) or {})
@@ -992,6 +1011,142 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
             "reforms", "The Staff costs every court the same — one price, "
                        "one upkeep, one currency (REFORMS_SPEC §5, Q3, GR5); "
                        f"found {sorted(set(staff_terms.values()), key=str)}")
+
+
+
+
+def _known_region_names(data: dict) -> Set[str]:
+    """The province names a scenario can name — its own `regions` when it
+    carries them, else the registry's (the NUI-2 idiom)."""
+    if isinstance(data.get("regions"), dict) and data["regions"]:
+        return set(data["regions"])
+    try:
+        from backend.models.region import create_europe_regions, create_regions
+        europe = str(data.get("sovereign_map") or "legacy").strip().lower() == "europe"
+        return set((create_europe_regions() if europe else create_regions()).keys())
+    except Exception:                                    # pragma: no cover
+        return set()
+
+
+def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:
+    """SR-7d DC-0 (DOCTRINES_SPEC §1, §9): the authored `doctrines` block —
+    {court: {name, says, strength, flaw, cured_by, shared_on_purpose?}} and
+    the geography list `poor_country`. Every court is a scenario nation; at
+    most one doctrine per court; every clause is from the closed set with
+    its number inside the clamp band; from DC-2 `cured_by` names a law in
+    the SAME court's reforms deck whose `cures` clause names this flaw, and
+    the court's deck carries a Staff (RV-15); every `poor_country` name
+    exists; two courts sharing an identical clause without
+    `shared_on_purpose` is a warning (RV-9)."""
+    if "doctrines" not in data and "poor_country" not in data:
+        return
+    from backend.game_logic.doctrines import (
+        CLAUSE_BANDS, CLAUSE_TYPES, GREAT_POWERS, STRIPPED_BAND)
+    block = data.get("doctrines")
+    if block is None:
+        block = {}
+    if not isinstance(block, dict):
+        result.add_error("doctrines", f"Must be an object, got {type(block).__name__}")
+        return
+    reforms = data.get("reforms") if isinstance(data.get("reforms"), dict) else {}
+    seen_clauses: Dict[tuple, str] = {}
+    for court, row in block.items():
+        if str(court).startswith("_"):
+            continue
+        path = f"doctrines.{court}"
+        if known_nations and court not in known_nations:
+            result.add_error(path, f"Unknown nation '{court}'")
+        if court not in GREAT_POWERS:
+            result.add_warning(path, "v1's doctrines are the five great powers only (§8)")
+        if not isinstance(row, dict):
+            result.add_error(path, "Must be an object")
+            continue
+        for key in ("name", "says", "strength", "flaw"):
+            if key not in row:
+                result.add_error(path, f"Missing required field '{key}'")
+        extra = sorted(set(row) - {"name", "says", "strength", "flaw", "cured_by",
+                                   "shared_on_purpose"})
+        if extra:
+            result.add_error(path, f"A doctrine does not read {extra}")
+        flaw_name = ""
+        for role in ("strength", "flaw"):
+            clause = row.get(role)
+            cp = f"{path}.{role}"
+            if not isinstance(clause, dict):
+                if role in row:
+                    result.add_error(cp, "Must be an object")
+                continue
+            ctype = clause.get("type")
+            if ctype not in CLAUSE_TYPES:
+                result.add_error(cp, f"Unknown clause type {ctype!r} — the set is closed "
+                                     f"(DOCTRINES_SPEC §3): {CLAUSE_TYPES}")
+                continue
+            if not str(clause.get("name") or "").strip():
+                result.add_error(cp, "A clause carries its own `name` (the word every surface prints)")
+            kind, low, high = CLAUSE_BANDS[ctype]
+            value = clause.get("value")
+            ok_type = (isinstance(value, int) and not isinstance(value, bool)
+                       if kind == "int" else
+                       isinstance(value, (int, float)) and not isinstance(value, bool))
+            if not ok_type or not (low <= value <= high):
+                result.add_error(cp, f"{ctype}.value must be {kind} in [{low}, {high}], got {value!r}")
+            elif ctype in ("attack", "defense") and value == 0:
+                result.add_error(cp, f"{ctype}.value of 0 does nothing")
+            elif ctype in ("recruit_price", "defeat_morale", "supply") and value == 1.0:
+                result.add_error(cp, f"{ctype}.value of 1.0 does nothing")
+            elif ctype == "arrival_bar" and value == 0:
+                result.add_error(cp, "arrival_bar.value of 0 does nothing")
+            if ctype == "recruit_price" and clause.get("arm") not in ("all",):
+                result.add_error(cp, "recruit_price prices the draft of every arm (`arm`: \"all\") — RV-17")
+            if ctype == "supply":
+                at = clause.get("stripped_at")
+                if (not isinstance(at, (int, float)) or isinstance(at, bool)
+                        or not (STRIPPED_BAND[0] <= at <= STRIPPED_BAND[1])):
+                    result.add_error(cp, f"supply.stripped_at must be in {STRIPPED_BAND}, got {at!r}")
+            allowed = {"type", "value", "name"} | ({"arm"} if ctype == "recruit_price" else set()) \
+                | ({"stripped_at"} if ctype == "supply" else set())
+            extra_keys = sorted(set(clause) - allowed)
+            if extra_keys:
+                result.add_error(cp, f"{ctype} does not read {extra_keys}")
+            if role == "flaw":
+                flaw_name = str(clause.get("name") or "")
+            signature = (ctype, role, value, clause.get("arm"), clause.get("stripped_at"))
+            other = seen_clauses.get(signature)
+            if other and not row.get("shared_on_purpose") and not block.get(other, {}).get("shared_on_purpose"):
+                result.add_warning(
+                    cp, f"{court} and {other} share an identical clause without "
+                        f"`shared_on_purpose` (RV-9)")
+            seen_clauses.setdefault(signature, str(court))
+        cured_by = row.get("cured_by")
+        if cured_by is not None:
+            deck = reforms.get(court) if isinstance(reforms.get(court), list) else []
+            law = next((r for r in deck if isinstance(r, dict) and r.get("id") == cured_by), None)
+            if law is None:
+                result.add_error(f"{path}.cured_by",
+                                 f"'{cured_by}' is not a law in {court}'s reforms deck")
+            else:
+                cures = [c for c in (law.get("effects") or [])
+                         if isinstance(c, dict) and c.get("type") == "cures"]
+                if not cures or not any(str(c.get("flaw") or "") == flaw_name for c in cures):
+                    result.add_error(
+                        f"{path}.cured_by",
+                        f"'{cured_by}' carries no `cures` clause naming the flaw "
+                        f"{flaw_name!r} (DOCTRINES_SPEC §1)")
+                if not any(isinstance(r, dict) and any(
+                        isinstance(c, dict) and c.get("type") == "actions"
+                        for c in (r.get("effects") or [])) for r in deck):
+                    result.add_error(f"{path}.cured_by",
+                                     f"{court}'s deck carries no Staff — a cure works only "
+                                     f"while the Staff is in force (RV-15)")
+    poor = data.get("poor_country")
+    if poor is not None:
+        if not isinstance(poor, list):
+            result.add_error("poor_country", "Must be a list of province names")
+        else:
+            names = _known_region_names(data)
+            for i, name in enumerate(poor):
+                if not isinstance(name, str) or (names and name not in names):
+                    result.add_error(f"poor_country[{i}]", f"Unknown province {name!r}")
 
 
 def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
@@ -1759,6 +1914,10 @@ def validate_scenario(
 
     # SR-5r RF-0 (REFORMS_SPEC §1/§4/§5): the authored `reforms` block.
     _validate_reforms(result, data, statecraft_known)
+
+    # SR-7d DC-0 (DOCTRINES_SPEC §1/§9): the authored `doctrines` block and
+    # the `poor_country` list.
+    _validate_doctrines(result, data, statecraft_known)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

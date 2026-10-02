@@ -3721,6 +3721,30 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
                       f"{disperse_clause}")
 
     # ────────────────────────────────────────────────────────────────────
+    # SR-7d DC-3b (DOCTRINES_SPEC §4): when the court's own flaw is what
+    # feeds the army short here, the headline says so and names the Train —
+    # only when the player can enact it (`law_refusal`), the CA9-F10 rule.
+    # ────────────────────────────────────────────────────────────────────
+    from backend.game_logic.doctrines import supply_ground as _dc_ground_fn
+    _ground = _dc_ground_fn(world, player_nation, region)
+    if _ground and _ground["applies"]:
+        _pct = int(round(_ground["factor"] * 100))
+        _kind = "poor country" if _ground["poor"] else "stripped country"
+        _lead = f"{_ground['name']}: this {_kind} feeds a French army {_pct}%."
+        from backend.game_logic.doctrines import cure_law as _dc_cure_law
+        from backend.game_logic.reforms import display_name as _law_name, law_refusal as _law_refusal
+        _cure = _dc_cure_law(world, player_nation)
+        if _cure is not None:
+            _refusal = _law_refusal(world, player_nation, str(_cure.get("id") or ""))
+            _name = _law_name(_cure)
+            _name = _name[0].upper() + _name[1:]
+            if not _refusal:
+                _lead += f" {_name} would lift it — enact it."
+            else:
+                _lead += f" {_name} would lift it, but {_refusal[0].lower() + _refusal[1:].rstrip('.')}."
+        remedy = f"{_lead} {remedy}"
+
+    # ────────────────────────────────────────────────────────────────────
     # CA8-2 (b)+(c): NAME THE MEN WHO ARE THERE. `slot["marshals"]`
     # accumulates across the whole 3-turn window, and the live-occupancy
     # fallback was unreachable whenever the window held any name at all —
@@ -4015,7 +4039,11 @@ def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
         # A briefing must never fail to build; with no counsel the doors
         # still stand.
         orders = []
-    return {"orders": orders, "doors": THREE_DOORS, "cabinet": CABINET_DOOR}
+    # SR-7d DC-3a (DOCTRINES_SPEC §4a discoverability): one line on the
+    # first morning naming our doctrine and the screen that shows it.
+    from backend.game_logic.doctrines import boot_line
+    return {"orders": orders, "doors": THREE_DOORS, "cabinet": CABINET_DOOR,
+            "doctrine": boot_line(world, player_nation) or ""}
 
 
 # ============================================================================
@@ -6184,6 +6212,14 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # knowledge across Europe — its enactments and lapses are beats; the
     # player's own lapse is named as a lapse.
     "law_enacted_abroad": "THE LAWS: {nation} {verb} {law} — {effect}.",
+    # SR-7d DC-3b (DOCTRINES_SPEC §4): the catch-up announced, the window
+    # reopened. Diplomacy has no fog.
+    "doctrine_cured_abroad": ("THE DOCTRINES: {nation} brings {law} into force beside its Staff — "
+                              "{flaw} is over; its army gathers as ours does."),
+    "doctrine_cure_lost_abroad": ("THE DOCTRINES: {nation} can no longer field {law} — "
+                                  "{flaw} returns to its army."),
+    "doctrine_cure_lost_home": ("Sire — {law} no longer stands with its Staff, and "
+                                "{flaw} returns to our army."),
     "law_lapsed_abroad": (
         "THE LAWS: {nation} cannot pay for {law} — the law lapses."
     ),
@@ -6350,6 +6386,9 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     # SR-5r RF-4b: a rival's act of state is news; the player's own lapse
     # is a wound.
     "law_enacted_abroad": "MEDIUM",
+    "doctrine_cured_abroad": "MEDIUM",
+    "doctrine_cure_lost_abroad": "MEDIUM",
+    "doctrine_cure_lost_home": "HIGH",
     "law_lapsed_abroad": "MEDIUM",
     "law_lapsed_home": "HIGH",
     "cs_tier_shift": "MEDIUM",

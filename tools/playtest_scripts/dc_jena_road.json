@@ -1,0 +1,170 @@
+{
+  "name": "dc-jena-road",
+  "seed": "historical",
+  "llm": "mock",
+  "_note": "SR-7d DC-1 (DOCTRINES_SPEC §6 T3 / T6 / T10): the Jena road — a REAL campaign that goes to war with Prussia on turn 1 and marches east, concentrated, to Posen and East Prussia (1806–07), so Prussia's and Russia's clauses are reached and France's living-off-the-land flaw bites on the listed poor country. The script carries its own declare_war policy (RV-14): the reach census passes no --declare-war and would otherwise cancel the war at Talleyrand's confirm. The road: Rhineland → Swabia → Franconia → Dresden → Silesia / Posen → East Prussia. Pursuit orders plot their own lawful road and fight what they find; the marches that follow take the provinces the war has opened. 'recruit' keeps the army fed from the pool; 'status' is a free read. The Emperor stays in Paris: a first cut marched his 10,000 alone to Franconia and he was taken on turn 10.",
+  "policy": {
+    "declare_war": "proceed",
+    "objection": "insist",
+    "diplomacy": "decline"
+  },
+  "turns": {
+    "1": [
+      "declare war on Prussia",
+      "Davout, pursue Hohenlohe",
+      "Ney, pursue Hohenlohe"
+    ],
+    "2": [
+      "Soult, pursue Brunswick",
+      "Lannes, pursue Brunswick"
+    ],
+    "3": [
+      "Bernadotte, pursue Hohenlohe",
+      "Murat, pursue Brunswick"
+    ],
+    "4": [
+      "status"
+    ],
+    "5": [
+      "Davout, march to Silesia",
+      "Ney, march to Silesia"
+    ],
+    "6": [
+      "Soult, march to Berlin",
+      "Lannes, march to Berlin"
+    ],
+    "7": [
+      "Davout, march to Posen",
+      "Ney, march to East Prussia"
+    ],
+    "8": [
+      "Bernadotte, march to Posen",
+      "Murat, march to East Prussia"
+    ],
+    "9": [
+      "recruit infantry",
+      "Soult, march to Brandenburg",
+      "Lannes, march to Pomerania"
+    ],
+    "10": [
+      "Davout, hold",
+      "Ney, hold"
+    ],
+    "11": [
+      "status"
+    ],
+    "12": [
+      "Davout, march to East Prussia",
+      "Ney, pursue Kutuzov"
+    ],
+    "13": [
+      "Bernadotte, march to East Prussia",
+      "Murat, pursue Kutuzov"
+    ],
+    "14": [
+      "recruit infantry",
+      "Soult, march to Posen"
+    ],
+    "15": [
+      "Davout, hold",
+      "Ney, hold"
+    ],
+    "16": [
+      "Lannes, march to Posen"
+    ],
+    "17": [
+      "Davout, pursue Bennigsen",
+      "Ney, pursue Bennigsen"
+    ],
+    "18": [
+      "Murat, pursue Bagration",
+      "Bernadotte, hold"
+    ],
+    "19": [
+      "recruit infantry",
+      "status"
+    ],
+    "20": [
+      "Davout, march to Lithuania",
+      "Ney, march to Lithuania"
+    ],
+    "21": [
+      "Soult, march to East Prussia",
+      "Lannes, march to East Prussia"
+    ],
+    "22": [
+      "Davout, hold",
+      "Ney, hold"
+    ],
+    "23": [
+      "Murat, march to Lithuania",
+      "Bernadotte, march to Posen"
+    ],
+    "24": [
+      "recruit infantry",
+      "status"
+    ],
+    "25": [
+      "Davout, pursue Bennigsen",
+      "Ney, pursue Bagration"
+    ],
+    "26": [
+      "Soult, hold",
+      "Lannes, hold"
+    ],
+    "27": [
+      "Davout, hold",
+      "Ney, hold"
+    ],
+    "28": [
+      "recruit infantry"
+    ],
+    "29": [
+      "Murat, pursue Bagration",
+      "Bernadotte, pursue Bennigsen"
+    ],
+    "30": [
+      "status",
+      "Davout, march to East Prussia"
+    ],
+    "31": [
+      "Ney, march to East Prussia",
+      "Soult, march to Lithuania"
+    ],
+    "32": [
+      "recruit infantry",
+      "Lannes, march to Lithuania"
+    ],
+    "33": [
+      "Davout, hold",
+      "Ney, hold"
+    ],
+    "34": [
+      "Murat, hold",
+      "Bernadotte, hold"
+    ],
+    "35": [
+      "Davout, pursue Bennigsen",
+      "Ney, pursue Bagration"
+    ],
+    "36": [
+      "recruit infantry",
+      "status"
+    ],
+    "37": [
+      "Soult, hold",
+      "Lannes, hold"
+    ],
+    "38": [
+      "Davout, hold",
+      "Ney, hold"
+    ],
+    "39": [
+      "Murat, pursue Kutuzov",
+      "Bernadotte, hold"
+    ],
+    "40": [
+      "status"
+    ]
+  }
+}

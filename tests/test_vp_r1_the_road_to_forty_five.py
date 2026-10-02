@@ -690,7 +690,17 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert sr5a["arms"]["1"]["series"] == step3["prior"]
         assert step3["arms"]["0"]["series"] == step3["prior"]
-        assert BASELINE_SERIES == step3["arms"]["ALL"]["series"]
+        # RE-SEATED by SR-7d "The Doctrines" (October 3, 2026): one more link —
+        # Step 3's ALL arm is the prior record SR-7d's arm 0 (every doctrine
+        # lever down in the child) reproduces byte for byte, and SR-7d's ALL
+        # arm (the shipped tree: the five doctrines, the cures, the rung that
+        # saves for the Staff) is the standing series
+        # (`tools/_sr7d_series_arms_final.json`, nine arms).
+        sr7d = json.loads((ROOT / "tools" / "_sr7d_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert step3["arms"]["ALL"]["series"] == sr7d["prior"]
+        assert sr7d["arms"]["0"]["series"] == sr7d["prior"]
+        assert BASELINE_SERIES == sr7d["arms"]["ALL"]["series"]
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

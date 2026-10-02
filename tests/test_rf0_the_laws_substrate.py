@@ -64,7 +64,11 @@ class TestTheAuthoredCatalogue:
             assert len(staffs) == 1, court
             s = staffs[0]
             terms.add((s["currency"], s["price"], s["upkeep"]))
-            assert s["effects"] == [{"type": "actions", "value": 1}]
+            # SR-7d "The Doctrines" (October 3, 2026): Austria's and Russia's Staff carry
+            # their cure as a SECOND clause (DOCTRINES_SPEC D-R4, RV-15) — the
+            # actions clause leads, and nothing but a cure may follow it.
+            assert s["effects"][0] == {"type": "actions", "value": 1}
+            assert all(c["type"] == "cures" for c in s["effects"][1:])
         assert terms == {("gold", 9000, 300)}, "§5: one price for every court"
 
     def test_nothing_is_in_force_at_boot(self, scenario, world):
@@ -113,7 +117,11 @@ class TestTheValidator:
         errs = _with(scenario, lambda b: b["France"][0].__setitem__("lapsed_turn", 1))
         assert errs
 
-    def test_an_unwired_effect_type_is_refused(self, scenario):
+    def test_an_unwired_effect_type_is_refused(self, scenario, monkeypatch):
+        # SR-7d "The Doctrines" (October 3, 2026): every type is wired now (DC-2 wired
+        # `cures`); the guard is pinned by un-wiring one for the test.
+        monkeypatch.setattr(R, "WIRED_EFFECT_TYPES",
+                            tuple(t for t in R.WIRED_EFFECT_TYPES if t != "drill_morale"))
         unwired = next(t for t in R.EFFECT_TYPES if t not in R.WIRED_EFFECT_TYPES)
         errs = _with(scenario, lambda b: b["France"].append({
             "id": "x", "name": "X", "date": "1806", "currency": "gold",

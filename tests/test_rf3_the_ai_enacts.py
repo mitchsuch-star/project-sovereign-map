@@ -70,12 +70,22 @@ class TestTheRung:
         order = R.find_ai_enactment(world, "Austria", 60000, 2)
         assert order == {"action": "enact_law", "target": "corps_d_armee"}, order
 
-    def test_the_staff_unaffordable_it_takes_the_next(self, world, carried):
+    def test_the_staff_unaffordable_it_takes_the_next(self, world, carried, monkeypatch):
         """The chest (9,500) pays the Staff's price, so `law_refusal` passes
         it — but not the purse bar (9,000 + 1,000 + 5 x 300 = 11,500), so the
-        rung walks on to the Landwehr."""
+        rung walks on to the Landwehr.
+
+        RE-SEATED by SR-7d DC-2 (October 3, 2026, `reforms.THE_AI_SAVES_FOR_THE_STAFF`):
+        the shipped rung SAVES for the Staff once the chest passes half its
+        price — every rival's cure rides its Staff (RV-15), and RF-3 measured
+        the cheaper laws' upkeep raising the Staff's bar past turn 30. The
+        walk-on is the lever-down behaviour, pinned here with the lever down;
+        the shipped arm holds (None) and is pinned in
+        `tests/test_sr7d_the_doctrines.py::TestTheAISavesForTheStaff`."""
         rich(world, "Austria", 9500)
         assert R.law_refusal(world, "Austria", "corps_d_armee", admin_actions=2) == ""
+        assert R.find_ai_enactment(world, "Austria", 9500, 2) is None
+        monkeypatch.setattr(R, "THE_AI_SAVES_FOR_THE_STAFF", False)
         order = R.find_ai_enactment(world, "Austria", 9500, 2)
         assert order == {"action": "enact_law", "target": "landwehr"}, order
 
@@ -278,4 +288,14 @@ class TestTheMeasuredBoard:
             encoding="utf-8"))
         assert sr5a["arms"]["1"]["series"] == step3["prior"]
         assert step3["arms"]["0"]["series"] == step3["prior"]
-        assert BASELINE_SERIES == step3["arms"]["ALL"]["series"]
+        # RE-SEATED by SR-7d "The Doctrines" (October 3, 2026): one more link —
+        # Step 3's ALL arm is the prior record SR-7d's arm 0 (every doctrine
+        # lever down in the child) reproduces byte for byte, and SR-7d's ALL
+        # arm (the shipped tree: the five doctrines, the cures, the rung that
+        # saves for the Staff) is the standing series
+        # (`tools/_sr7d_series_arms_final.json`, nine arms).
+        sr7d = json.loads((ROOT / "tools" / "_sr7d_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert step3["arms"]["ALL"]["series"] == sr7d["prior"]
+        assert sr7d["arms"]["0"]["series"] == sr7d["prior"]
+        assert BASELINE_SERIES == sr7d["arms"]["ALL"]["series"]

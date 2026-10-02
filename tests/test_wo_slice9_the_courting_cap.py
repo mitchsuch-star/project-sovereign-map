@@ -1077,8 +1077,13 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # Attribution measured through THIS runner: with the thirteen Step-3
         # levers down in the child it reads 17 / 23 verbatim
         # (`tools/_step3_wo_attribution.py`, measured).
+        # Re-measured by SR-7d "The Doctrines" (October 3, 2026): the five
+        # doctrines re-time the ambient board from index 13. Uncapped 14,
+        # capped 17 — the cap buys THREE turns; the contract holds. With the
+        # eight SR-7d levers down in the child it reads 14 / 18 verbatim
+        # (`tools/_sr7d_wo_attribution.py`, measured).
         assert uncapped == 14, uncapped
-        assert capped == 18, capped
+        assert capped == 17, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1214,8 +1219,14 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     as Switzerland rebels (`vassal_broke_free`,
         #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 18 =
         #     index + 1.
+        # SR-7d "The Doctrines" (October 3, 2026): the re-recorded series
+        # keeps the form — the elimination still steps from index 12 to 13,
+        # now 46 -> 33 (the decay there is -3 under the doctrines' board), so
+        # the signature reads -13; the capped exit is the unique largest
+        # ORDINARY fall, 27 -> 14 at the step from index 15 to 16 (world turn
+        # 17 = index + 1, `_rebellion_turn(True)`).
         ELIMINATION_STEP = 12
-        assert steps[ELIMINATION_STEP] == -12, steps
+        assert steps[ELIMINATION_STEP] == -13, steps
         ordinary = [0 if i == ELIMINATION_STEP else step
                     for i, step in enumerate(steps)]
         worst = min(ordinary)

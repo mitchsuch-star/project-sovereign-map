@@ -1098,7 +1098,12 @@ class TestTheAmbientBoard:
         # the UNGATED board from turn 13 (the BASELINE_SERIES attribution
         # block). With the thirteen Step-3 levers down in the child this arm
         # reads 11 again (`tools/_step3_wo_attribution.py`, measured).
-        assert seams == {"_fuzzy_match_enemy": 22, "_broad_fuzzy_diplomatic_check": 1}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package)
+        # SR-7d "The Doctrines" (October 3, 2026): the five doctrines, in force
+        # from turn 1, re-time the UNGATED board from index 13 (the
+        # BASELINE_SERIES attribution block, `tools/_sr7d_series_arms.py`).
+        # With the eight SR-7d levers down in the child this arm reads the
+        # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
+        assert seams == {"_fuzzy_match_enemy": 32}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1166,10 +1171,14 @@ class TestTheAmbientBoard:
         # is still a PROVINCE collapsing onto a marshal — the defect's shape,
         # unchanged. With the thirteen Step-3 levers down in the child the
         # SR-5a split returns (`tools/_step3_wo_attribution.py`, measured).
-        assert dict(pairs) == {("Bern", "Brunswick"): 2,
-                               ("Champagne", "Ney"): 6,
-                               ("Gascony", "Ney"): 12,
-                               ("Leon", "Napoleon"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a
+        # SR-7d "The Doctrines" (October 3, 2026): the five doctrines, in force
+        # from turn 1, re-time the UNGATED board from index 13 (the
+        # BASELINE_SERIES attribution block, `tools/_sr7d_series_arms.py`).
+        # With the eight SR-7d levers down in the child this split returns to the
+        # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
+        assert dict(pairs) == {("Champagne", "Ney"): 20,
+                               ("Leon", "Napoleon"): 3,
+                               ("Maine", "Ney"): 9}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 -> 2+6+12+3 -> 20+3+9 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a, Step 3, SR-7d
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1303,7 +1312,14 @@ class TestTheAmbientBoard:
         # gated one (the BASELINE_SERIES attribution block). With the thirteen
         # Step-3 levers down in the child the SR-5a list returns
         # byte-for-byte (`tools/_step3_wo_attribution.py`, measured).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
+        # Step 3 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14,
+        #  11, 8, 5, 2, 0, 0, ...]
+        # Re-recorded by SR-7d "The Doctrines" (October 3, 2026): the five
+        # doctrines re-time this arm from index [13] (the BASELINE_SERIES
+        # attribution block). With the eight SR-7d levers down in the child the
+        # Step-3 list returns byte-for-byte (`tools/_sr7d_wo_attribution.py`).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -2005,7 +2021,12 @@ class TestTheAiIsNotFrozenInstead:
         # IS the standing series board, re-recorded once). With the thirteen
         # Step-3 levers down in the child both read 12 / 0 again
         # (`tools/_step3_wo_attribution.py`, measured).
-        assert cooldowns["ungated"] == 22, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package)
+        # SR-7d "The Doctrines" (October 3, 2026): the five doctrines, in force
+        # from turn 1, re-time the UNGATED board from index 13 (the
+        # BASELINE_SERIES attribution block, `tools/_sr7d_series_arms.py`).
+        # With the eight SR-7d levers down in the child both read the
+        # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
+        assert cooldowns["ungated"] == 32, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines)
         assert cooldowns["gated"] == 0, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package)
 
 

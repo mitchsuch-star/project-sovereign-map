@@ -977,6 +977,21 @@
                 "says": "Berthier's headquarters grown into a true general staff: one more order carried each day."
             },
             {
+                "id": "train_des_equipages",
+                "name": "The Train des \u00c9quipages",
+                "date": "decree of 26 March 1807",
+                "currency": "gold",
+                "price": 3500,
+                "upkeep": 200,
+                "effects": [
+                    {
+                        "type": "cures",
+                        "flaw": "Living off the land"
+                    }
+                ],
+                "says": "A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quartier G\u00e9n\u00e9ral stands to run it."
+            },
+            {
                 "id": "artillery_reserve",
                 "name": "The Artillery Reserve",
                 "date": "the Guard's reserve batteries, 1806\u201309",
@@ -1051,9 +1066,13 @@
                     {
                         "type": "actions",
                         "value": 1
+                    },
+                    {
+                        "type": "cures",
+                        "flaw": "The Hofkriegsrat"
                     }
                 ],
-                "says": "The Archduke's corps d'arm\u00e9e, the system France has used since 1800, copied at last: one more order carried each day."
+                "says": "The Archduke's corps d'arm\u00e9e, the system France has used since 1800, copied at last: one more order carried each day, and the Hofkriegsrat's delays are over - the corps gather as France's do."
             },
             {
                 "id": "landwehr",
@@ -1163,9 +1182,13 @@
                         "type": "recruit_morale",
                         "arm": "infantry",
                         "value": 10
+                    },
+                    {
+                        "type": "cures",
+                        "flaw": "Brittle"
                     }
                 ],
-                "says": "Flogging abolished and promotion opened to merit: infantry recruits muster 10 morale higher."
+                "says": "Flogging abolished and promotion opened to merit: infantry recruits muster 10 morale higher, and - once the General Staff stands - the army is no longer brittle: a lopsided defeat costs what it costs France."
             },
             {
                 "id": "reorganisation_commission",
@@ -1211,9 +1234,13 @@
                     {
                         "type": "actions",
                         "value": 1
+                    },
+                    {
+                        "type": "cures",
+                        "flaw": "Slow to concentrate"
                     }
                 ],
-                "says": "Permanent divisions on the French pattern: one more order carried each day."
+                "says": "Permanent divisions on the French pattern: one more order carried each day, and the columns gather as France's do - the army is no longer slow to concentrate."
             },
             {
                 "id": "arakcheev_artillery",
@@ -1327,9 +1354,13 @@
                         "type": "manpower_regen",
                         "pool": "infantry",
                         "value": 25
+                    },
+                    {
+                        "type": "cures",
+                        "flaw": "Irreplaceable"
                     }
                 ],
-                "says": "Castlereagh draws volunteers from the militia into the line: infantry manpower returns 25% faster."
+                "says": "Castlereagh draws volunteers from the militia into the line: infantry manpower returns 25% faster, and - once the Horse Guards Reforms stand - the draft is no longer irreplaceable: recruits cost what France's do."
             },
             {
                 "id": "commissariat",
@@ -1364,6 +1395,53 @@
             }
         ]
     },
+    "_doctrines_comment": "SR-7d 'The Doctrines' (docs/DOCTRINES_SPEC.md, gate record section 0 RULED September 27, 2026; readings 0.1 and the seven RV amendments CONFIRMED; built October 3, 2026). One doctrine per great power: a strength and a flaw, each a clause from the closed set (arrival_bar / attack / defense / recruit_price / defeat_morale / supply) with its number inside the validator's clamp band. In force from turn 1, never bought, never lost; only the flaw is removed - by cured_by, a law in the court's own reforms deck whose 'cures' clause names the flaw, and only while the court's Staff is in force (RV-15). Whether a flaw is cured is DERIVED from the laws at every read, never stored. A doctrine is the army's, never the man's (RV-2): no clause overrides a marshal's own character. The court's flaw never costs the man trust (RV-16). The recruit clauses price the draft, never the substitute market (RV-17). France's supply clause reads against the 1805 homeland, not the flag (RV-5): outside it, in the listed poor_country or in stripped country (war damage at or above stripped_at), a French army draws the clause's share; never on an ally's or vassal's soil. Numbers are DRAFT (in-band tunable, section 2); who a doctrine applies to and what a clause does are structural.",
+    "doctrines": {
+        "France": {
+            "name": "The Corps System",
+            "says": "The corps march apart and fight together - and eat what the country gives them.",
+            "strength": {"type": "arrival_bar", "value": -10, "name": "The corps system"},
+            "flaw": {"type": "supply", "value": 0.8, "stripped_at": 0.25, "name": "Living off the land"},
+            "cured_by": "train_des_equipages"
+        },
+        "Britain": {
+            "name": "The Line Holds",
+            "says": "A small army that cannot be replaced, and a line that does not give way.",
+            "strength": {"type": "defense", "value": 0.15, "name": "The Line Holds"},
+            "flaw": {"type": "recruit_price", "value": 1.25, "arm": "all", "name": "Irreplaceable"},
+            "cured_by": "militia_transfer"
+        },
+        "Russia": {
+            "name": "Stubborn",
+            "says": "Easier to kill than to beat - and slow to gather from the ends of an empire.",
+            "strength": {"type": "defeat_morale", "value": 0.5, "name": "Stubborn"},
+            "flaw": {"type": "arrival_bar", "value": 10, "name": "Slow to concentrate"},
+            "cured_by": "divisional_system",
+            "shared_on_purpose": "RV-9: Russia and Austria share the flaw France's strength answers - the absence of the corps system - and both cure it by copying it (Russia's divisions, 1806; Austria's corps, 1809)."
+        },
+        "Austria": {
+            "name": "The Hereditary Lands",
+            "says": "Beaten, and back with another army - once Vienna has written the orders.",
+            "strength": {"type": "recruit_price", "value": 0.85, "arm": "all", "name": "The Hereditary Lands"},
+            "flaw": {"type": "arrival_bar", "value": 10, "name": "The Hofkriegsrat"},
+            "cured_by": "corps_d_armee",
+            "shared_on_purpose": "RV-9: the one shared clause - see Russia."
+        },
+        "Prussia": {
+            "name": "Frederick's Drill",
+            "says": "Frederick's army still attacks as it did at Leuthen, and it breaks all at once.",
+            "strength": {"type": "attack", "value": 0.1, "name": "Frederick's Drill"},
+            "flaw": {"type": "defeat_morale", "value": 1.5, "name": "Brittle"},
+            "cured_by": "articles_of_war"
+        }
+    },
+    "_poor_country_comment": "D-R1 (DOCTRINES_SPEC.md, CONFIRMED September 27, 2026): poor country is AUTHORED, not derived - the map marks nothing poor where history does. Where the 1807 and 1812 campaigns starved (East Prussia, Posen, Samogitia, Lithuania, White Russia, Volhynia); the Spanish war (Leon, Aragon, Galicia - the Spanish Galicia); Massena's 1810 invasion of Portugal (Alentejo, Beira); the Balkans (Rumelia, Epirus, Albania). Geography, not France's: any court whose doctrine carries a supply clause reads it. Stripped country (RV-5) is read from war damage, never authored.",
+    "poor_country": [
+        "East Prussia", "Posen", "Samogitia", "Lithuania", "White Russia", "Volhynia",
+        "Leon", "Aragon", "Galicia",
+        "Alentejo", "Beira",
+        "Rumelia", "Epirus", "Albania"
+    ],
     "_navies_comment": "The Wooden Wall (docs/NAVAL_SPEC.md section 3.2): the authored 1805 navies. ONE record per nation - ships/readiness become the live fleet; ports weight the Continental System closure denominator (island rows excluded); dockyards are the build SITES (conquest grants the yard, never ships); island marks the blockade war-weariness clause + the RN blockade doctrine; trade_dominance absorbs the old Britain naval_income literal; camp_provinces are the Descent staging shores (section 5.3). Ships-0 rows are ports-only (closure denominator authored, no fleet record). Corrections vs the spec table recorded in the NV-0 landing record: Britain's third yard is East Anglia (the Nore/Medway) - the map's Wessex is drawn inland. NUI-2 (Sept 24, 2026; tools/gen_port_anchors.py): a dockyard must reach open water in the art, so three yards moved - Holland's Amsterdam -> Friesland (the Frisian coast and the Texel roadstead; the art draws Amsterdam inland), France's Channel yard Flanders -> Normandy (Le Havre and Cherbourg; the art draws Flanders inland, and it stays a camp province - Davout's camp at Bruges), Russia's Estonia -> Livonia (Riga; the art gives the province named Estonia a lake pocket, not a shore). The map draws each fleet on the water off its senior yard (the registry's port_anchor). DEF-14 (Sept 24, 2026; tools/audit_province_names.py): two yards' provinces were renamed to where the art paints them - Sweden's Scania is Stralsund (Swedish Pomerania's port, where Armfelt's army stood in 1805) and Spain's Toledo is Cartagena (the south-east coast; Spain's Mediterranean arsenal in 1805); the yards did not move. EB-2 (Econ Balance gate Aug 7 2026, ECON_BALANCE_GATE_2026_08_07.md section 3): overseas_income = the authored colonial/overseas pool, colonies as a MODIFIER never map objects - the dominance holder scales it by (1 - CS closure) like trade_dominance; a non-holder colonial power loses it under blockade and keeps a quarter while at war with the dominance holder (the RN on the sea lanes: the 1804 silver seizure). France deliberately authors NONE - its overseas arm is continental extraction (Requisitions). Britain 1,000 (SR-5a, September 28 2026, was 500) = the India/sugar trade + the fiscal machine; trade_dominance 450 (SR-5a, was 300) = the City's carrying trade; Spain 250 = American silver; Holland 150 = the East Indies; Portugal 150 = Brazil.",
     "navies": {
         "Britain": {

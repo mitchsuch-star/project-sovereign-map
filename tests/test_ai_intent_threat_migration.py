@@ -1198,7 +1198,7 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # 57,000 men against the league, loses the F1 floor by one province (the
 # landing record, SCORE_FINISH_SPEC.md §3 Step 3).
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 34, 32, 29, 26, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

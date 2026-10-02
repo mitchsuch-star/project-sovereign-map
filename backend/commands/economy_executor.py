@@ -1311,6 +1311,15 @@ class EconomyExecutor:
             # Named on the terms list (T8), before the Intendance (applied
             # last, MC-2b).
             if draft:
+                # SR-7d DC-1 (DOCTRINES_SPEC §3, RV-17): the court's recruit
+                # clause — the Hereditary Lands ×0.85, Irreplaceable ×1.25 —
+                # ONE named term on the DRAFT, before the laws and the
+                # Intendance; the substitute market never reads it.
+                from backend.game_logic.doctrines import recruit_price_term
+                _dterm = recruit_price_term(world, nation)
+                if _dterm:
+                    cost = int(round(cost * _dterm[1]))
+                    terms.append(f"×{_dterm[1]:g} {_dterm[0]}")
                 from backend.game_logic.reforms import recruit_price_terms
                 for law_name, mult in recruit_price_terms(
                         world, nation, arm or _levy_arm_of(marshal, base_cost)):
@@ -1722,8 +1731,15 @@ class EconomyExecutor:
             "location": recruitment_location,
         })
 
+        # SR-7d DC-3b (DOCTRINES_SPEC §4): the enemy-phase recruit line
+        # carries ONLY the doctrine's own term (the CA8-6 structured-field
+        # idiom) — the full list's "over the ordinance" would reveal the
+        # enemy's army against its force limit.
+        from backend.game_logic.doctrines import recruit_price_term as _dc_recruit
+        _dnote = _dc_recruit(world, acting_nation)
         return {
             "success": True,
+            "doctrine_note": f"{_dnote[0]}, ×{_dnote[1]:g}" if _dnote else "",
             "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{shorncliffe_note}{morale_law_note}{pool_line}{morale_warning}",
             "events": [{
                 "type": "recruit",

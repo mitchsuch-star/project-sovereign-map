@@ -59,7 +59,18 @@ def _volte_turns(rows):
 
 class TestTheVolteFaceFiresOnItsArm:
     def test_the_beat_fires_inside_the_window(self, tmp_path):
-        rows = _drive(tmp_path)
+        """RE-SEATED by SR-7d "The Doctrines" (October 3, 2026), measured with
+        a per-court bisect (`docs/DOCTRINES_SPEC.md` §7 landing record): with
+        every doctrine lever down the beat fires three times on this arm;
+        with France's corps system alone UP it never fires in forty turns —
+        Austria's losing armistice at turn 11, the peace this arm was
+        scripted around, becomes a coalition-wide status-quo settlement at
+        turn 12 in which Austria is not the beaten party, so the volte-face's
+        own "beaten" clause has nothing to stand on. The arm keeps its
+        purpose (the beat fires on a court beaten and then courted) with
+        France's doctrine lever down; a re-script of the arm for the doctrine
+        board is homed as SR-7d-X1 (`BUG_FIXES.md`)."""
+        rows = _drive(tmp_path, "--lever", "backend.game_logic.doctrines:FRANCE_DOCTRINE=0")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20
@@ -78,5 +89,10 @@ class TestTheVolteFaceFiresOnItsArm:
             "--lever", "backend.commands.combat_executor:AN_IN_PLACE_CAPTURE_MARCHES_NOWHERE=0",
             "--lever", "backend.game_logic.coalition:THE_ARMED_PEACE=0",
             "--lever", "backend.models.world_state:DISPERSION_IS_NOT_PUNISHED=0",
+            # SR-7d "The Doctrines" (October 3, 2026): the doctrines re-time this arm too; the
+            # baseline's miss is the pre-Step-3, pre-doctrine board.
+            "--lever", "backend.game_logic.doctrines:DOCTRINES_ACTIVE=0",
+            "--lever", "backend.game_logic.doctrines:THE_CURES_HEAL=0",
+            "--lever", "backend.game_logic.reforms:THE_AI_SAVES_FOR_THE_STAFF=0",
         )
         assert not _volte_turns(rows)

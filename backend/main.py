@@ -6540,6 +6540,11 @@ def get_marshal_overview():
         # Marshal recruitment: the commissionable candidate pool
         "recruitment": build_recruitment_payload(world),
     }
+    # SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE above the ladder — name,
+    # says, strength and flaw with their numbers, the cure's status. None on
+    # a world whose scenario authors none.
+    from backend.game_logic.doctrines import doctrine_payload
+    payload["doctrine"] = doctrine_payload(world, world.player_nation)
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
     return payload
 

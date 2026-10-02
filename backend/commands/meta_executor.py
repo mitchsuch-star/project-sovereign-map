@@ -724,6 +724,8 @@ class MetaExecutor:
         # SR-5r RF-4b: the laws of state — the Strategic Ledger's Laws tab.
         (("law", "laws", "reform", "reforms", "enact", "repeal", "staff",
           "decree", "decrees"), "laws"),
+        # SR-7d: the doctrines live on the Generals screen with the marshals.
+        (("doctrine", "doctrines"), "marshals"),
         (("order", "orders", "standing", "march", "pursue", "cancel",
           "halt"), "orders"),
         (("supply", "supplies", "manpower", "recruit", "recruits", "levy",
@@ -904,6 +906,12 @@ MILITARY COMMANDS:
                authority) once and gold every turn; a law the chest
                cannot pay lapses. The Laws tab: press T, then 8.
   repeal     - "repeal the Code Abroad" (1 Admin AP, nothing refunded)
+  doctrine   - "what is our doctrine?" / "what is Austria's doctrine?"
+               Each great power's army has a strength and a flaw (ours:
+               the corps system, and living off the land beyond the
+               frontier). A reform law cures the flaw while the Staff
+               stands. Ours: the Generals screen (G); every court's: the
+               Nations tab (D).
 
 TACTICAL COMMANDS:
   fortify    - Dig in for growing defense; cannot move/attack

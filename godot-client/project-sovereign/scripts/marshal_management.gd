@@ -67,6 +67,9 @@ var cached_data: Array = []
 # same /marshal_overview payload.
 var cached_ladder: Array = []
 var cached_recruitment: Dictionary = {}
+# SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE — `/marshal_overview`'s
+# `doctrine` payload (name, says, strength, flaw with the cure's status).
+var cached_doctrine: Dictionary = {}
 # A11 (CA9 row 3): the glory window, served by the backend so the ladder
 # caption cannot drift from `jealousy.GLORY_WINDOW` again.
 var cached_glory_window: int = 8
@@ -208,6 +211,8 @@ func _on_data_received(response):
 	# payload; the caption used to say 5, three turns adrift of the engine.
 	cached_glory_window = int(response.get("glory_window", 8))
 	cached_recruitment = response.get("recruitment", {})
+	var _doctrine = response.get("doctrine")
+	cached_doctrine = _doctrine if _doctrine is Dictionary else {}
 	# A wiped standing roster must STILL render the glory ladder + Commission
 	# link (the sole UI door to the Marshalate recovery feature) when a bench
 	# exists — otherwise losing every marshal strands the player with no path
@@ -277,6 +282,25 @@ func _render_glory_ladder() -> String:
 	var bbcode = ""
 	var candidates = cached_recruitment.get("candidates", [])
 	var has_bench = candidates is Array and candidates.size() > 0
+
+	# SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE — name, says, strength
+	# and flaw with their applied numbers, the cure's status. Backend-composed
+	# lines (R7); an empty payload omits the block (a world with no doctrines).
+	if cached_doctrine is Dictionary and not cached_doctrine.is_empty():
+		var d_strength = cached_doctrine.get("strength", {})
+		var d_flaw = cached_doctrine.get("flaw", {})
+		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
+		bbcode += " [color=#" + Utils.COLOR_GOLD + "]OUR DOCTRINE — " + str(cached_doctrine.get("name", "")) + "[/color]\n"
+		var d_says = str(cached_doctrine.get("says", ""))
+		if d_says != "":
+			bbcode += "  [color=#" + COLOR_DIM + "]\"" + d_says + "\"[/color]\n"
+		if d_strength is Dictionary:
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]Strength — " + str(d_strength.get("name", "")) + ":[/color] " + str(d_strength.get("line", "")) + "\n"
+		if d_flaw is Dictionary:
+			var flaw_color = Utils.COLOR_GREY if bool(d_flaw.get("cured", false)) else Utils.COLOR_WARNING
+			bbcode += "  [color=#" + flaw_color + "]Flaw — " + str(d_flaw.get("name", "")) + ":[/color] " + str(d_flaw.get("line", "")) \
+				+ "  [color=#" + COLOR_DIM + "](" + str(d_flaw.get("status_line", "")) + ")[/color]\n"
+		bbcode += "\n"
 
 	if cached_ladder is Array and cached_ladder.size() > 1:
 		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)

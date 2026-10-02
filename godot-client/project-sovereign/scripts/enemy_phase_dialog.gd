@@ -244,6 +244,11 @@ func _format_action(action: Dictionary) -> String:
 			action_str += "holds position"
 		"recruit":
 			action_str += "recruits troops"
+			# SR-7d DC-3b (DOCTRINES_SPEC §4): the doctrine's own term only, from
+			# a structured field (the CA8-6 idiom) — "the Hereditary Lands, ×0.85".
+			var dnote = ai_action.get("doctrine_note", "")
+			if dnote is String and dnote != "":
+				action_str += " (" + dnote + ")"
 		"scout":
 			action_str += "scouts " + target
 		"build":

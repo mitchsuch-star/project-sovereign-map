@@ -560,6 +560,17 @@ _PRICEABLE = {
 }
 
 _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
+    # SR-7d DC-3a (DOCTRINES_SPEC §4a): "what is our doctrine?" / "what is
+    # Austria's doctrine?" / "what are Austria's weaknesses?" — read FIRST,
+    # before any kind that could claim "what is … doctrine" as a subject.
+    ("doctrine_own", re.compile(
+        _LEAD + r"(?:what(?:" + _APOS + r"s|\s+is)\s+(?:our|my|france" + _APOS + r"s)\s+"
+        r"(?:army" + _APOS + r"s\s+)?doctrine"
+        r"|how\s+(?:does|do)\s+(?:our|my)\s+army\s+fight)" + _TAIL, re.IGNORECASE)),
+    ("doctrine_nation", re.compile(
+        _LEAD + r"what(?:" + _APOS + r"s|\s+is|\s+are)\s+(?:the\s+)?(?P<name>[A-Za-z][\w .-]*?)"
+        r"(?:" + _APOS + r"s)?\s+(?:army" + _APOS + r"s\s+)?"
+        r"(?P<what>doctrine|weakness(?:es)?|flaws?|strengths?)" + _TAIL, re.IGNORECASE)),
     # "what's my income" / "how much gold do we have" / "how rich are we"
     ("treasury", re.compile(
         _LEAD + r"(?:what(?:" + _APOS + r"s|\s+is|\s+are)\s+(?:my|our|the)\s+"
@@ -871,6 +882,14 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
             return weighed
         if kind in _SUBJECTLESS_KINDS:
             return {"kind": kind, "subject": "", "subject_type": "board"}
+        if kind == "doctrine_own":
+            return {"kind": kind, "subject": "", "subject_type": "board"}
+        if kind == "doctrine_nation":
+            nation = _resolve_nation(groups.get("name") or "", nations)
+            if not nation:
+                continue
+            return {"kind": kind, "subject": nation, "subject_type": "nation",
+                    "weaknesses": str(groups.get("what") or "").lower().startswith(("weak", "flaw"))}
         if kind == "safe":
             where = _resolve(groups.get("name") or "", (), (), regions,
                              kind="who_holds")
@@ -2444,6 +2463,11 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_at_war(world, player, subject)
         if kind == "wants":
             return _answer_wants(world, subject)
+        if kind in ("doctrine_own", "doctrine_nation"):
+            from backend.game_logic.doctrines import doctrine_answer
+            court = player if kind == "doctrine_own" else subject
+            return doctrine_answer(world, court, court == player,
+                                   weaknesses=bool(question.get("weaknesses")))
         if kind == "demanded":
             return _answer_demanded(world, player, subject)
         if kind == "where_nation":

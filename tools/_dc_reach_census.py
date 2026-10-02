@@ -72,6 +72,12 @@ ARMS = {
                  "script": "sr1e_aar_road.json"},
     "pressburg-road": {"mode": "driver", "seed": "historical",
                        "script": "gev_pressburg_road.json"},
+    # SR-7d DC-1 (DOCTRINES_SPEC T3 / T6): the Jena road — a real campaign
+    # that goes to war with Prussia and marches east to Posen and East
+    # Prussia, so Prussia's and Russia's clauses are reached and France's
+    # flaw bites on the listed poor country.
+    "jena-road": {"mode": "driver", "seed": "historical",
+                  "script": "dc_jena_road.json"},
 }
 
 
@@ -102,6 +108,61 @@ def child(mode: str, seed: str, script: str) -> None:
 
     C = collections.Counter()
     ARR = collections.defaultdict(list)
+
+    # ── SR-7d (the lever-up tree): the doctrine seams themselves, counted
+    # where they fire — a supply BITE is the bill (forecast=False) reading a
+    # factor under 1.0, never a predicate hit (T6).
+    try:
+        import backend.game_logic.doctrines as DC
+        _o_supply = DC.supply_factor
+
+        def _supply(world, nation, region, forecast=True, extra_damage=0.0):
+            out = _o_supply(world, nation, region, forecast, extra_damage)
+            if out[0] < 1.0:
+                key = "bill" if not forecast else "forecast"
+                C[f"doctrine_supply_{key}|{nation}"] += 1
+                if key == "bill" and region is not None and getattr(region, "controller", None) == nation:
+                    C[f"doctrine_supply_bill_on_conquered|{nation}"] += 1
+            return out
+        DC.supply_factor = _supply
+
+        _o_shift = DC.arrival_bar_shift
+
+        def _shift(world, reinforcer, primary):
+            out = _o_shift(world, reinforcer, primary)
+            if out[0]:
+                C[f"doctrine_arrival_shift|{nation_of(reinforcer)}|{out[1]}"] += 1
+            return out
+        DC.arrival_bar_shift = _shift
+
+        _o_rec = DC.recruit_price_term
+
+        def _rec(world, nation):
+            out = _o_rec(world, nation)
+            if out:
+                C[f"doctrine_recruit_term|{nation}"] += 1
+            return out
+        DC.recruit_price_term = _rec
+
+        _o_pen = DC.scaled_defeat_penalty
+
+        def _pen(marshal, base):
+            out = _o_pen(marshal, base)
+            if out[1] is not None:
+                C[f"doctrine_defeat_scaled|{nation_of(marshal)}|{out[1]['name']}"] += 1
+            return out
+        DC.scaled_defeat_penalty = _pen
+
+        _o_cured = DC.flaw_cured
+
+        def _cured(world, nation):
+            out = _o_cured(world, nation)
+            if out:
+                C[f"doctrine_cured_reads|{nation}"] += 1
+            return out
+        DC.flaw_cured = _cured
+    except Exception as exc:                              # pragma: no cover
+        C["doctrine_spy_error"] = repr(exc)
     DEC = collections.defaultdict(list)
     SUP = collections.defaultdict(list)
     DRILL = collections.defaultdict(list)
@@ -143,6 +204,10 @@ def child(mode: str, seed: str, script: str) -> None:
         for r in out or []:
             if r.get("reason") == "literal_personality":
                 C[f"literal_no_march|{nation_of(world.marshals.get(r.get('marshal')))}"] += 1
+            if r.get("reason") == "doctrine_delayed":
+                C[f"doctrine_delayed|{nation_of(world.marshals.get(r.get('marshal')))}"] += 1
+            if r.get("doctrine_arrived"):
+                C[f"doctrine_arrived|{nation_of(world.marshals.get(r.get('marshal')))}"] += 1
         return out
 
     CE.CombatExecutor._calculate_reinforcements = reinf
@@ -411,9 +476,14 @@ def main() -> int:
         print("   recruits:", r["recruits"])
         print("   drills:", r["drills"])
         print("   lopsided defeats:", r["lopsided_defeats"])
-        print("   counters:", r["counters"])
+        print("   counters:", {k: v for k, v in r["counters"].items() if not k.startswith("doctrine_")})
+        print("   doctrine:", {k: v for k, v in r["counters"].items() if k.startswith("doctrine_")})
     Path(args.out).write_text(json.dumps({
-        "about": "DOCTRINES_SPEC §0.2 reach census (pre-build, levers do not exist yet)",
+        "about": ("DOCTRINES_SPEC §0.2 reach census; re-run at SR-7d DC-1 on the lever-up "
+                  "tree with the Jena road (T6) — the doctrine_* counters are the seams "
+                  "themselves (a supply BITE = the bill reading a factor under 1.0); the "
+                  "pre-build france_flaw_* counters are kept for the comparison and now read "
+                  "against a cap the flaw has already reduced"),
         "poor_country_draft": POOR,
         "arms": {name: {"spec": ARMS[name], "census": results[name]} for name in wanted}},
         indent=1), encoding="utf-8")

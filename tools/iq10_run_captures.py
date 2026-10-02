@@ -790,6 +790,58 @@ SHOTS: list[dict] = [
 
 # ── Score Finish Step 0 (SF-M, Sept 29, 2026): the two shots SCORE_FINISH_SPEC.md §4.6 names.
 # REGISTERED on a machine without the Godot binary — not yet shot; the first run with --godot takes them.
+# ── SR-7d DC-3c: the doctrines' boards (DOCTRINES_SPEC §4a) ──────────────────
+SHOTS += [
+    {
+        "id": "generals_doctrine",
+        "surface": "Generals — OUR DOCTRINE above the ladder",
+        "payload": "marshal_overview_doctrine",
+        "scene": "res://scenes/marshal_management.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_marshal_overview",
+        "must_show": "OUR DOCTRINE — The Corps System: the says line, the strength and the flaw "
+                     "with their numbers, the flaw's cure status; THE LAURELS below it; "
+                     "nothing clipped at scale 2.0",
+    },
+    {
+        "id": "diplo_doctrine_nations",
+        "surface": "Diplomatic Ledger — Nations (every court's doctrine)",
+        "payload": "diplo_doctrine",
+        "scene": "res://scenes/diplomatic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 0,
+        "must_show": "a Doctrine line on each great power's card — Austria's reading 'cured since "
+                     "turn 1' beside its Laws line, the others 'uncured — <law> would end it once "
+                     "<Staff> stands'; at most two lines per court with the laws line",
+    },
+    {
+        "id": "ledger_laws_train",
+        "surface": "Strategic Ledger — Laws (the Train's cure line)",
+        "payload": "ledger_laws_train",
+        "scene": "res://scenes/strategic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_ledger", "tab": 7,
+        "must_show": "the Train des Équipages row carrying 'Cures Living off the land — 1 corps "
+                     "drawing 80% now ; needs the Grand Quartier Général in force'",
+    },
+    *[
+        {
+            "id": f"region_doctrine_{region.lower()}",
+            "surface": f"Region Action Panel — {region} ({label})",
+            "payload": "game_state_doctrine_regions",
+            "scene": "res://scenes/region_panel.tscn",
+            "mode": "map_stub", "method": "show_region",
+            "args": [region, "$map"],
+            "must_show": must,
+        }
+        for region, label, must in [
+            ("Posen", "Prussian, unscouted — the poor mark is geography",
+             "'Poor country — a French army here draws 80% (living off the land)' under the "
+             "Supply line, with Income / Stability / Supply reading Unknown"),
+            ("Tyrol", "Austrian, stripped by war, FULL",
+             "'Stripped by war (35%) — poor country for a French army until it recovers below "
+             "25%' under the Supply line, beside the War damage figure"),
+        ]
+    ],
+]
+
 SHOTS += [
     {
         "id": "proclamation_warsaw",

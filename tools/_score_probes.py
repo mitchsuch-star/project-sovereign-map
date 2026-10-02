@@ -932,6 +932,14 @@ def drama_c5_expectation_before_erosion(arms, ctx):
             m = re.search(
                 r"Marshal ([A-Z][a-z]+)'s (household goes unpaid|claim|patience)", l
             )
+            # SR-7d exit (October 3, 2026): the "N turns without settlement on
+            # Marshal X" line IS the first notice of an unmet claim (the SR-6a
+            # standing class) and the reader had not counted it — CMD-H's
+            # Bernadotte was announced at t13 and escalated at t15, and the
+            # item read "first notice None". One more notice form.
+            m2 = re.search(r"turns without settlement on Marshal ([A-Z][a-z]+)", l)
+            if m2 and m2.group(1) not in first_notice:
+                first_notice[m2.group(1)] = t
             if m:
                 who = m.group(1)
                 if (

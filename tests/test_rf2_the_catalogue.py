@@ -117,16 +117,21 @@ class TestTheCatalogue:
     def scenario(self):
         return json.loads(SCENARIO.read_text(encoding="utf-8"))
 
-    def test_twenty_five_laws_five_decks(self, scenario):
+    def test_twenty_six_laws_five_decks(self, scenario):
+        # SR-7d "The Doctrines" (October 3, 2026): the Train des Équipages joined France's
+        # deck at DC-2 (D-R3) — 25 laws became 26.
         decks = {c: rows for c, rows in scenario["reforms"].items() if not c.startswith("_")}
         assert set(decks) == set(R.GREAT_POWERS)
         assert {c: len(rows) for c, rows in decks.items()} == {
-            "France": 5, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5}
+            "France": 6, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5}
 
-    def test_the_train_waits_for_chunk_seven(self, scenario):
-        ids = {r["id"] for r in scenario["reforms"]["France"]}
-        assert "train_des_equipages" not in ids
-        assert "cures" not in R.WIRED_EFFECT_TYPES
+    def test_the_train_arrived_with_the_doctrines(self, scenario):
+        """RE-SEATED by SR-7d "The Doctrines" (October 3, 2026): the pin that held the Train
+        back until Chunk 7 now holds that it arrived — a cure only (D-R3), with
+        `cures` wired to the doctrine's seam (DC-2)."""
+        train = next(r for r in scenario["reforms"]["France"] if r["id"] == "train_des_equipages")
+        assert train["effects"] == [{"type": "cures", "flaw": "Living off the land"}]
+        assert "cures" in R.WIRED_EFFECT_TYPES
 
     def test_every_type_the_catalogue_uses_is_wired(self, scenario):
         used = {c["type"] for rows in scenario["reforms"].values() if isinstance(rows, list)
@@ -148,8 +153,9 @@ class TestTheCatalogue:
         assert validate_scenario(scenario).is_valid
 
     @pytest.mark.parametrize("court,expected", [
-        ("France", ["grand_quartier_general", "artillery_reserve", "anticipated_class",
-                    "berlin_decree", "code_abroad"]),
+        # SR-7d "The Doctrines" (October 3, 2026): the Train second, beside the Staff it needs.
+        ("France", ["grand_quartier_general", "train_des_equipages", "artillery_reserve",
+                    "anticipated_class", "berlin_decree", "code_abroad"]),
         ("Britain", ["horse_guards_reforms", "orders_in_council", "militia_transfer",
                      "commissariat", "congreve_rockets"]),
     ])
@@ -164,7 +170,9 @@ class TestTheClauseShapes:
         return json.loads(SCENARIO.read_text(encoding="utf-8"))
 
     def _set(self, scenario, clause):
-        scenario["reforms"]["France"][1]["effects"] = [clause]
+        # SR-7d "The Doctrines" (October 3, 2026): France's second law is the Train (a cure
+        # the doctrine cross-check guards); the shape probe writes the third.
+        scenario["reforms"]["France"][2]["effects"] = [clause]
         return validate_scenario(scenario)
 
     @pytest.mark.parametrize("clause", [
@@ -571,6 +579,9 @@ class TestTheSinkAndTheReach:
         surplus = sum(nets) / len(nets)
         scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))
         slate = sum(r["upkeep"] for r in scenario["reforms"]["France"])
-        assert slate == 850
+        # SR-7d "The Doctrines" (October 3, 2026): REFORMS_SPEC §11 T2 re-run with the Train in
+        # France's slate (DC-2) — 850 → 1,050 a turn, the share RF-2 forecast
+        # at 45.3% measured on this archive; the band's top admits it.
+        assert slate == 1050
         share = slate / surplus
-        assert 0.30 < share < 0.45, share
+        assert 0.30 < share < 0.50, share

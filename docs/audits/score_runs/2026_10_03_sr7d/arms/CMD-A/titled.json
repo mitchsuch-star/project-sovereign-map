@@ -1,0 +1,39 @@
+{
+ "rows": [
+  {
+   "save": "autosave.json",
+   "turn": 41,
+   "titled": 26,
+   "hold_titled": 45,
+   "provinces": 21
+  },
+  {
+   "save": "CMD-A_t10.json",
+   "turn": 10,
+   "titled": 35,
+   "hold_titled": 45,
+   "provinces": 29
+  },
+  {
+   "save": "CMD-A_t20.json",
+   "turn": 20,
+   "titled": 36,
+   "hold_titled": 45,
+   "provinces": 27
+  },
+  {
+   "save": "CMD-A_t30.json",
+   "turn": 30,
+   "titled": 36,
+   "hold_titled": 45,
+   "provinces": 27
+  },
+  {
+   "save": "CMD-A_t40.json",
+   "turn": 40,
+   "titled": 28,
+   "hold_titled": 45,
+   "provinces": 23
+  }
+ ]
+}

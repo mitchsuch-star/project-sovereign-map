@@ -180,8 +180,10 @@ class TestTheEffectLines:
         body = NV.blockade_trade_words.__code__.co_names
         assert "blockade_cut_percent" in body
 
-    def test_an_unwired_clause_renders_nothing(self):
-        assert R.effect_line({"type": "cures", "flaw": "x"}) == ""
+    def test_an_unknown_clause_renders_nothing(self):
+        # SR-7d "The Doctrines" (October 3, 2026): `cures` renders now (DC-2); an unknown type still renders nothing.
+        assert "cures x" in R.effect_line({"type": "cures", "flaw": "x"})
+        assert R.effect_line({"type": "research", "value": 1}) == ""
         assert R.effect_line(None) == ""
 
 

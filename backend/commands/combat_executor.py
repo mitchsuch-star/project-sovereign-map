@@ -909,6 +909,39 @@ class CombatExecutor:
             return "enemy"
         return None
 
+    def _doctrine_lines(self, world, marshal, enemy_marshal,
+                        attacker_reinforcements, defender_reinforcements) -> list:
+        """SR-7d DC-3b: the battle report's doctrine lines — a doctrine-decided
+        arrival or no-show on either side (the enemy's only where the player
+        can SEE the man, the report's own fog), and the Berthier line when the
+        player's lead was joined by corps from two or more provinces."""
+        from backend.game_logic.doctrines import arrival_copy
+        player = getattr(world, "player_nation", None)
+        visible = set()
+        if hasattr(world, "get_visible_enemies") and player:
+            visible = {m.name for m in world.get_visible_enemies(player)}
+        lines = []
+        for lead, rows in ((marshal, attacker_reinforcements or []),
+                           (enemy_marshal, defender_reinforcements or [])):
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                who = world.marshals.get(row.get("marshal"))
+                if who is not None and who.nation != player and who.name not in visible:
+                    continue
+                line = arrival_copy(row, getattr(lead, "name", ""))
+                if line:
+                    lines.append(line)
+        for lead, rows in ((marshal, attacker_reinforcements or []),
+                           (enemy_marshal, defender_reinforcements or [])):
+            if getattr(lead, "nation", None) != player:
+                continue
+            origins = {row.get("origin") for row in rows
+                       if isinstance(row, dict) and row.get("arrived") and row.get("origin")}
+            if len(origins) >= 2:
+                lines.append("Berthier: the corps marched apart and arrived together.")
+        return lines
+
     def _compose_trust_note(self, world, attacker, defender, records) -> str:
         """IQ-5 R9 — `battle_report["trust_note"]`, display-only (GR6).
 
@@ -1943,6 +1976,16 @@ class CombatExecutor:
                 f"{battle_region} would march to him."
             )
 
+        # SR-7d DC-3b (DOCTRINES_SPEC §4): the enemy's arrival flaw on his
+        # reinforcement line — "slow to concentrate" / "the Hofkriegsrat".
+        if seen_joining:
+            from backend.game_logic.doctrines import active_clause as _dc_active
+            _enemy_flaw = _dc_active(world, enemy_marshal.nation, "arrival_bar")
+            if _enemy_flaw and int(_enemy_flaw[1].get("value", 0) or 0) > 0:
+                defender_note += (
+                    f" Their columns gather slowly — {_enemy_flaw[1].get('name')}: "
+                    f"the bar {int(_enemy_flaw[1]['value'])} higher.")
+
         preview = {
             "attacker": {"name": marshal.name,
                          "strength": int(marshal.strength),
@@ -2020,7 +2063,16 @@ class CombatExecutor:
                 # pools nation-blind) would raise the real bill above a
                 # muster-alone quote. Exact-parity arms pinned: own soil,
                 # enemy soil uncaptured, stacking-under-cap.
-                fed = int(world.get_effective_supply_cap(nation, region))
+                # SR-7d RV-5 / §3: the muster's own battle adds war damage
+                # (0.10, or 0.20 when the two leads number 50,000 or more),
+                # and the forecast reads the damage the next pass will read.
+                from backend.game_logic.doctrines import supply_ground as _dc_ground_fn
+                _battle_damage = (0.20 if int(marshal.strength) + int(enemy_marshal.strength)
+                                  >= 50000 else 0.10)
+                _dc_ground = _dc_ground_fn(world, nation, region,
+                                           extra_damage=_battle_damage)
+                fed = int(world.get_effective_supply_cap(
+                    nation, region, extra_war_damage=_battle_damage))
                 # AAR-D4: the free allowance the engine grants this
                 # province (a capital feeds one more corps free); the
                 # muster's own corps are the press the quote prices.
@@ -2045,6 +2097,12 @@ class CombatExecutor:
                         f"{battle_region} feeds {fed:,} — the whole muster "
                         f"can stand there fed."
                     )
+                if _dc_ground and _dc_ground["applies"]:
+                    _pct = int(round(_dc_ground["factor"] * 100))
+                    _kind = "poor country" if _dc_ground["poor"] else "stripped country"
+                    preview["supply_note"] += (
+                        f" {_dc_ground['name']}: this {_kind} feeds our army "
+                        f"{_pct}% of what it would otherwise draw.")
             else:
                 preview["supply"] = {
                     "fed": -1,
@@ -2339,24 +2397,43 @@ class CombatExecutor:
     }
 
     def _arrival_threshold(self, reinforcing_marshal, primary_combatant,
-                           battle_region, world) -> int:
+                           battle_region, world, assume_order=None,
+                           with_doctrine: bool = True) -> int:
         """The A-I4 variable threshold, as ONE source.
 
         A written order is worth +15 effective: +10 on the score (the
         SUPPORT bonus) and −5 here. Extracted so the muster preview reads
         the same number the resolver compares against.
+
+        SR-7d DC-0 (DOCTRINES_SPEC RV-1): the resolver's inline bar and the
+        odds row's hard-coded 60 both call THIS now — `assume_order` forces
+        the written-order bar (the with-support odds), None derives it. The
+        court's arrival clause moves the BAR, never the score, so the 5%
+        fumble is judged on the unmodified roll and a strength can never
+        lower the odds it names (T7). RV-2's exemption lives in
+        `doctrines.arrival_bar_shift`, so every reader inherits it;
+        `with_doctrine=False` is the unshifted bar the resolver compares
+        against to name a doctrine-decided arrival or no-show (RV-16).
         """
-        order = getattr(reinforcing_marshal, 'strategic_order', None)
-        has_explicit_order = False
-        if order is not None:
-            if (order.command_type == "SUPPORT"
-                    and order.target == primary_combatant.name):
-                has_explicit_order = True
-            elif order.command_type == "PURSUE":
-                pursue_tgt = world.marshals.get(order.target)
-                if pursue_tgt and pursue_tgt.location == battle_region:
+        if assume_order is None:
+            order = getattr(reinforcing_marshal, 'strategic_order', None)
+            has_explicit_order = False
+            if order is not None:
+                if (order.command_type == "SUPPORT"
+                        and order.target == primary_combatant.name):
                     has_explicit_order = True
-        return 60 if has_explicit_order else 65
+                elif order.command_type == "PURSUE":
+                    pursue_tgt = world.marshals.get(order.target)
+                    if pursue_tgt and pursue_tgt.location == battle_region:
+                        has_explicit_order = True
+        else:
+            has_explicit_order = bool(assume_order)
+        base = 60 if has_explicit_order else 65
+        if not with_doctrine or world is None:
+            return base
+        from backend.game_logic.doctrines import arrival_bar_shift
+        shift, _name = arrival_bar_shift(world, reinforcing_marshal, primary_combatant)
+        return int(base + shift)
 
     def _arrival_odds_row(self, lead, m, battle_region, world, code) -> dict:
         """VP-R1 (a): one WILL JOIN row's arrival odds, in the words the
@@ -2374,7 +2451,11 @@ class CombatExecutor:
         det = self._arrival_deterministic(m, lead, world)
         thr = self._arrival_threshold(m, lead, battle_region, world)
         p = self._arrival_probability(det, thr)
-        p_support = self._arrival_probability(det + 10, 60)
+        # SR-7d RV-1: the with-support odds read the SAME bar source
+        # (assume_order=True) — byte-identical 60 with the lever down.
+        p_support = self._arrival_probability(
+            det + 10, self._arrival_threshold(m, lead, battle_region, world,
+                                              assume_order=True))
         pct = int(round(p * 100))
         pct_support = int(round(p_support * 100))
         dep = world.get_region(m.location) if world else None
@@ -2393,6 +2474,14 @@ class CombatExecutor:
         if (code != "has_support_order" and pct_support >= pct + 15):
             note += (f"; order '{m.name}, support {lead.name}' and it "
                      f"rises to about {pct_support}%")
+        # SR-7d DC-3b (DOCTRINES_SPEC §4): the muster row names the doctrine
+        # that moved his bar — "the corps system lowers the bar".
+        from backend.game_logic.doctrines import arrival_bar_shift
+        _shift, _dname = arrival_bar_shift(world, m, lead)
+        if _shift < 0:
+            note += f" ({_dname} lowers the bar by {-_shift})"
+        elif _shift > 0:
+            note += f" ({_dname} raises the bar by {_shift})"
         return {"arrival_odds": pct,
                 "arrival_odds_with_support": pct_support,
                 "arrival_note": note}
@@ -2578,8 +2667,23 @@ class CombatExecutor:
                     pursue_tgt = world.marshals.get(order.target)
                     if pursue_tgt and pursue_tgt.location == battle_region:
                         has_explicit_order = True
-            threshold = 60 if has_explicit_order else 65
+            # SR-7d DC-0 (RV-1): the ONE bar source; `base_threshold` is
+            # the unshifted bar, read only to NAME a doctrine-decided roll.
+            base_threshold = self._arrival_threshold(
+                candidate, primary, battle_region, world,
+                assume_order=has_explicit_order, with_doctrine=False)
+            threshold = self._arrival_threshold(
+                candidate, primary, battle_region, world,
+                assume_order=has_explicit_order)
             arrived = score > threshold
+            _doctrine_shift = int(threshold - base_threshold)
+            _doctrine_name = ""
+            if _doctrine_shift:
+                from backend.game_logic.doctrines import arrival_bar_shift
+                _doctrine_name = arrival_bar_shift(world, candidate, primary)[1]
+            # a strength decided it: he arrived on a roll the unshifted bar refused
+            _doctrine_arrived = bool(_doctrine_shift < 0 and arrived
+                                     and score <= base_threshold)
 
             # ═══ FUMBLE ROLL (I3) ═══
             near_miss = False
@@ -2596,13 +2700,22 @@ class CombatExecutor:
                 reason = "fate_intervened"
             else:
                 reason = "low_score"
+                # SR-7d RV-16: a roll between the unshifted bar and the
+                # shifted one is the court's flaw, not the man's — its own
+                # reason, named ("the Hofkriegsrat's orders reached him too
+                # late") and exempt from the trust dock below. Checked FIRST:
+                # without the flaw he would have arrived, whatever else is
+                # true of him.
+                if (_doctrine_shift > 0
+                        and base_threshold < score <= threshold):
+                    reason = "doctrine_delayed"
                 # MC-1 review fix: Bernadotte's ability-driven no-show is
                 # by-design character (like the literal no-march), not a
                 # logistics failure — classify it honestly so the failure
                 # copy and the Session-61a trust seam treat it as such.
                 # A failed arrival UNDER a written SUPPORT order stays
                 # "low_score" (the player ordered him and was stood up).
-                if (not has_explicit_order and hasattr(candidate, 'ability')
+                elif (not has_explicit_order and hasattr(candidate, 'ability')
                         and candidate.ability.get("name") == "Eyes on a Crown"):
                     reason = "eyes_on_a_crown"
                 # ══════════════════════════════════════════════════════
@@ -2657,6 +2770,12 @@ class CombatExecutor:
                 "near_miss": near_miss,
                 "near_miss_reason": near_miss_reason,
                 "has_explicit_order": has_explicit_order,
+                # SR-7d: the doctrine that moved his bar (RV-16 copy), the
+                # unshifted bar, and whether the strength decided his arrival
+                "doctrine": _doctrine_name,
+                "doctrine_arrived": _doctrine_arrived,
+                "base_threshold": int(base_threshold),
+                "origin": candidate.location,
             })
 
         return reinforcement_results
@@ -9172,6 +9291,16 @@ class CombatExecutor:
                     # preview's honest arm — ambition, not the roads.
                     friendly_reason = (f"{_who} hesitated — the I Corps weighed "
                                        f"its own ambitions and did not march.")
+                elif reason == "doctrine_delayed":
+                    # SR-7d RV-16: the court's flaw, named — never the roads.
+                    # "did not march" is both clients' failure marker (IQ-5);
+                    # the doctrine's name is concatenated, not interpolated,
+                    # because the IQ-5 census allows only `_who` / `_rn(...)`
+                    # as a no-show line's placeholders.
+                    _doctrine_name = str(r.get("doctrine") or "the court")
+                    friendly_reason = (
+                        f"{_who} did not march in time — " + _doctrine_name
+                        + "'s orders reached him too late.")
                 elif reason == "neutral_soil":
                     # CA9 review round: he did not fail to arrive — he was
                     # STOPPED, by our own peace. Saying "could not reach
@@ -9380,6 +9509,16 @@ class CombatExecutor:
         # UNDER a written SUPPORT order keeps reason "low_score" and is
         # still docked.
         # ════════════════════════════════════════════════════════════
+        # SR-7d DC-3b (DOCTRINES_SPEC §4, RV-7, RV-16): the doctrine-decided
+        # arrivals and no-shows, named, and Berthier's "the corps marched apart
+        # and arrived together" — composed for every caller of this seam.
+        if isinstance(result.get("battle_report"), dict):
+            _dlines = self._doctrine_lines(
+                world, marshal, enemy_marshal,
+                attacker_reinforcements, defender_reinforcements)
+            if _dlines:
+                result["battle_report"]["doctrine_lines"] = _dlines
+
         all_reinforcements = attacker_reinforcements + defender_reinforcements
         for reinf_result in all_reinforcements:
             # CA9 review round: `neutral_soil` added. F13 flips a
@@ -9398,7 +9537,7 @@ class CombatExecutor:
             # `TestA6TrustDockUnchanged`.
             if not reinf_result["arrived"] and reinf_result["reason"] not in (
                     "literal_personality", "fate_intervened",
-                    "eyes_on_a_crown", "neutral_soil"):
+                    "eyes_on_a_crown", "neutral_soil", "doctrine_delayed"):
                 failing = world.marshals.get(reinf_result["marshal"])
                 if failing:
                     # Determine which primary this marshal was trying to reinforce

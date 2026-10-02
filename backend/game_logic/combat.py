@@ -809,6 +809,13 @@ class CombatResolver:
         # applied to the LOSER of each outcome below (winners never pay it).
         _dec_def = decisiveness_morale_penalty(defender_casualties, attacker_casualties)
         _dec_atk = decisiveness_morale_penalty(attacker_casualties, defender_casualties)
+        # SR-7d DC-1 (DOCTRINES_SPEC §2, §3): the loser's doctrine scales the
+        # penalty AFTER its own cap — Stubborn halves it, Brittle deepens it
+        # (a side is one court by construction: Rule 1 and the casualty
+        # participants both filter on nation, so the uniform delta is safe).
+        from backend.game_logic.doctrines import scaled_defeat_penalty as _sdp
+        _dec_def, _dm_def = _sdp(defender, _dec_def)
+        _dec_atk, _dm_atk = _sdp(attacker, _dec_atk)
 
         # Determine victor (AFTER applying casualties).
         # W6-11 (E-CA-1): a WINNER's morale delta = outcome bonus MINUS the
@@ -1082,6 +1089,11 @@ class CombatResolver:
         result_dict = {
             "outcome": outcome,
             "victor": victor.name if victor else None,
+            # SR-7d: the scaled lopsided-defeat penalty the LOSER paid, or None
+            "doctrine_morale": (
+                _dm_atk if outcome in ("defender_victory", "defender_tactical_victory")
+                else _dm_def if outcome in ("attacker_victory", "attacker_tactical_victory")
+                else None),
             "attacker": {
                 "name": attacker.name,
                 "casualties": int(attacker_casualties),
@@ -1435,6 +1447,13 @@ class CombatResolver:
         # coordinated battles break lopsidedly-outnumbered defenders too.
         _dec_def = decisiveness_morale_penalty(defender_casualties, attacker_casualties)
         _dec_atk = decisiveness_morale_penalty(attacker_casualties, defender_casualties)
+        # SR-7d DC-1 (DOCTRINES_SPEC §2, §3): the loser's doctrine scales the
+        # penalty AFTER its own cap — Stubborn halves it, Brittle deepens it
+        # (a side is one court by construction: Rule 1 and the casualty
+        # participants both filter on nation, so the uniform delta is safe).
+        from backend.game_logic.doctrines import scaled_defeat_penalty as _sdp
+        _dec_def, _dm_def = _sdp(defender, _dec_def)
+        _dec_atk, _dm_atk = _sdp(attacker, _dec_atk)
 
         # C2: Victor from PROJECTED strength (never modify .strength)
         # FA-D29: the pool is the bodies on the field, so the projection is
@@ -1533,6 +1552,11 @@ class CombatResolver:
         result_dict = {
             "outcome": outcome,
             "victor": victor.name if victor else None,
+            # SR-7d: the scaled lopsided-defeat penalty the LOSER paid, or None
+            "doctrine_morale": (
+                _dm_atk if outcome in ("defender_victory", "defender_tactical_victory")
+                else _dm_def if outcome in ("attacker_victory", "attacker_tactical_victory")
+                else None),
             "attacker": {
                 "name": attacker.name,
                 "casualties": int(attacker_casualties),

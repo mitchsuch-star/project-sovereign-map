@@ -506,6 +506,12 @@ func _render_nations():
 		var laws_row = n.get("laws")
 		if laws_row != null and str(laws_row) != "":
 			bbcode += "  Laws: [color=#" + Utils.COLOR_GOLD + "]" + str(laws_row) + "[/color]\n"
+		# SR-7d DC-3a (DOCTRINES_SPEC §4a): the court's doctrine — name,
+		# strength, flaw and the cure's status, ONE line (the two-line budget
+		# with the laws line). Backend-composed; null omits.
+		var doctrine_row = n.get("doctrine")
+		if doctrine_row != null and str(doctrine_row) != "":
+			bbcode += "  Doctrine: [color=#" + Utils.COLOR_INFO + "]" + str(doctrine_row) + "[/color]\n"
 
 		# N1: AI-AI Relations (DPF-1: includes relation descriptor)
 		var ai_relations = n.get("ai_relations", [])

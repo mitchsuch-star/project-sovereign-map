@@ -279,6 +279,11 @@ class Marshal:
         self.starting_strength = strength  # NEW: Track original strength
         self.personality = personality
         self.nation = nation
+        # SR-7d RV-6: neutral until `doctrines.refresh_doctrine_terms` derives
+        # the court's clauses (a bare marshal reads neutral by construction).
+        self._doctrine_terms: Dict[str, object] = {
+            "attack": 1.0, "attack_name": "", "defense": 1.0, "defense_name": "",
+            "defeat_morale": 1.0, "defeat_morale_name": ""}
         self.original_nation = None  # Track pre-vassalage nation for cleanup on rebellion
         # Spawn location: where marshal respawns when army is broken
         # For France: Paris (capital)
@@ -808,6 +813,18 @@ class Marshal:
     READ_ONCE_NOTE_FIELDS = (
         '_sovereign_toll_note',   # NP-4: the Guard's toll, combat_executor
         '_fate_note',             # FA-1: a question retired by the open road
+    )
+
+    # SR-7d RV-6 (DOCTRINES_SPEC §3): standing DERIVED terms — re-derived
+    # whole at every load and at every change of the marshal's court by ONE
+    # writer (`doctrines.refresh_doctrine_terms` / `set_marshal_nation`),
+    # never serialized (storing it would add a second copy that can drift —
+    # the one pinned exception to REFORMS_SPEC §2's "no second store").
+    # Never in COORDINATION_TRANSIENT_FIELDS: every clear path zeroes those
+    # on purpose, and a doctrine is not a battle stamp (the Presence lesson).
+    # Both serialization censuses exempt the UNION of the declared sets.
+    DERIVED_STANDING_FIELDS = (
+        '_doctrine_terms',        # SR-7d: the court's combat clauses, cure applied
     )
 
     def clear_coordination_transients(self) -> None:
@@ -1384,6 +1401,12 @@ class Marshal:
         # NOT serialized — read via getattr, cleared after combat.
         modifier *= (1.0 - getattr(self, 'overwatch_penalty', 0.0))
 
+        # SR-7d DC-1 (DOCTRINES_SPEC §2, §3): the court's attack clause —
+        # Frederick's Drill — read off the standing derived term (RV-6). Read
+        # when a lead attacks and for every reinforcer's committed weight on
+        # either side (`_committed_share`); a defending lead never reads it.
+        modifier *= float(self._doctrine_term("attack"))
+
         return modifier
 
     def get_defense_modifier(self, is_outnumbered: bool = False,
@@ -1494,10 +1517,38 @@ class Marshal:
             modifier *= (
                 1.0 + self.SOVEREIGN_PRESENCE_DEFENSE * _presence_def)
 
+        # SR-7d DC-1 (DOCTRINES_SPEC §2, §3): the court's defence clause —
+        # The Line Holds — before the cap, which may absorb part of it (the
+        # battle report prints the share that survived, RV-7).
+        modifier *= float(self._doctrine_term("defense"))
+
         # Hard cap: no marshal can exceed 1.75x total defense (prevents invincible turtling)
         modifier = min(modifier, 1.75)
 
         return modifier
+
+    def _doctrine_term(self, key: str):
+        """SR-7d RV-6: the standing derived term, neutral when absent."""
+        terms = getattr(self, "_doctrine_terms", None)
+        if not isinstance(terms, dict):
+            return 1.0 if key in ("attack", "defense", "defeat_morale") else ""
+        return terms.get(key, 1.0 if key in ("attack", "defense", "defeat_morale") else "")
+
+    def doctrine_defense_share(self, is_outnumbered: bool = False) -> float:
+        """RV-7: the share of the defence clause that APPLIED after the 1.75
+        cap — the modifier with the term over the modifier without it, read
+        with consume=False (a pure read; the term is swapped and restored)."""
+        terms = getattr(self, "_doctrine_terms", None)
+        if not isinstance(terms, dict) or float(terms.get("defense", 1.0)) == 1.0:
+            return 1.0
+        with_term = self.get_defense_modifier(is_outnumbered, consume=False)
+        saved = terms
+        try:
+            self._doctrine_terms = dict(terms, defense=1.0)
+            without = self.get_defense_modifier(is_outnumbered, consume=False)
+        finally:
+            self._doctrine_terms = saved
+        return with_term / without if without else 1.0
 
     # NP-2 The Presence (Aug 15, 2026 gate, NAPOLEON_SPEC §11 N1/N2 —
     # in-band tunable; structural changes re-escalate): "his presence on

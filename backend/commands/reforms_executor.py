@@ -120,8 +120,23 @@ class ReformsExecutor:
         staff = (" From the next refill, one more order each day."
                  if reforms.is_staff(row) else "")
         upkeep = int(row.get("upkeep", 0) or 0)
+        # SR-7d DC-2 (DOCTRINES_SPEC §4): the player's own cure is named by
+        # the verb's answer — in effect, or waiting on the Staff (RV-15).
+        cure_note = ""
+        if any(isinstance(c, dict) and c.get("type") == "cures"
+               for c in (row.get("effects") or [])) or reforms.is_staff(row):
+            from backend.game_logic.doctrines import cure_status
+            status = cure_status(world, actor)
+            if outcome.get("cure_took_effect"):
+                flaw = next((str(c.get("flaw")) for c in (row.get("effects") or [])
+                             if isinstance(c, dict) and c.get("type") == "cures"), "")
+                if not flaw:
+                    flaw = "the army's flaw"
+                cure_note = f" {flaw} is cured while {status['staff']} stands."
+            elif status.get("needs") and not status.get("cured") and not reforms.is_staff(row):
+                cure_note = f" Its cure waits on {status['needs']}."
         message = (f"{name[0].upper() + name[1:]} is in force — {paid}. "
-                   f"It costs {upkeep:,} gold a turn from now on.{staff}"
+                   f"It costs {upkeep:,} gold a turn from now on.{staff}{cure_note}"
                    f"{_authority_note(outcome)}")
         result = {
             "success": True,

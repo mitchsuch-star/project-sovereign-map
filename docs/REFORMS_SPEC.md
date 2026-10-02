@@ -175,7 +175,7 @@ Every seam below was verified at HEAD `b858b806`.
 | `satellite_loyalty` | +N a turn for every satellite of the enacting lord | `vassal.process_vassal_loyalty` and `vassal.forecast_vassal_loyalty` (applied and forecast from one term) |
 | `cs_closure` | who counts toward the closure | `naval.closure_against` |
 | `blockade_denial` | ×m on a blockaded court's trade loss — the BLOCKADER's law | `naval.blockade_trade_loss` (RF-2 correction: `process_trade_income` only subtracts that function's figure, and five other surfaces read it directly — a multiplier at `process_trade_income` would have shown the old loss everywhere) |
-| `cures` | removes one named doctrine flaw | the doctrine's own seam (`DOCTRINES_SPEC.md` §3). **Added September 27, 2026 by the doctrines ruling (D-R4); lands at Chunk 7 (DC-2).** No cure clause is authored before its flaw exists. |
+| `cures` | removes one named doctrine flaw | the doctrine's own seam (`DOCTRINES_SPEC.md` §3). **Added September 27, 2026 by the doctrines ruling (D-R4); ✅ WIRED October 3, 2026 at DC-2** — `{"type": "cures", "flaw": "<the court's flaw name>"}`, read by `doctrines.cure_status` (the cure law in force AND the court's Staff in force, RV-15); the validator cross-checks the flaw against the court's doctrine, and a cure on a court that authors no doctrine (the tutorial) is a WARNING. |
 
 Rules:
 - **Strike, never invent.** If the build cannot site a type on ONE existing single source, the type is struck with its laws and recorded — never invented. A new type is structural and escalates; a number inside a type is in-band.
@@ -306,6 +306,10 @@ Rules:
 - The series is re-recorded ONCE, with a flip-arm attribution in the `tools/_vpr1_series_arms.py` pattern, counting enactments and lapses per court.
 
 ---
+
+### §12.9 DC-2 (SR-7d "The Doctrines") — LANDED October 3, 2026 (the reforms' half)
+
+The Train des Équipages authored second in France's deck (3,500 / 200, a cure only — D-R3; the tutorial's deck mirrors it); `cures` wired; the four cure clauses on the Corps d'Armée, the Divisional System, the Militia Transfer and the Articles of War (their `says` name what they copy from France); `effect_line` renders a cure; `laws_payload` rows carry `cure_line` (what it cures, what it would lift THIS turn, the Staff it needs); the enact answer names its cure; the beats `doctrine_cured_abroad` / `doctrine_cure_lost_abroad` / `doctrine_cure_lost_home` from a before/after read at the enact, repeal and lapse seams. **The rung saves for the Staff** (`reforms.THE_AI_SAVES_FOR_THE_STAFF`, `AI_SAVES_FOR_THE_STAFF_FROM = 0.5`): §7's recommended fix — once the chest passes half the Staff's price the court enacts nothing cheaper; T8 passes (Austria's cure turns 20–22, Britain's 19–24 on the four ambient seeds; without the rule 29–37 and 25–28); Prussia and Russia never afford the Staff in forty turns, held every turn by the chest half — this rung's, recorded. §11 T2 re-run with the Train in the slate: 1,050 a turn, 45.3% of the surplus (the pin's band widened to admit it). The RF-3 "takes the next law" pin is re-seated on the lever. Landing record `DOCTRINES_SPEC.md` §7.1.
 
 ## §8 What the player sees
 

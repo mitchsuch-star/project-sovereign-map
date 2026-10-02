@@ -578,9 +578,19 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # name and what they cost it a turn — diplomacy has no fog.
             # None omits the row.
             "laws": _laws_line(nation, world),
+            # SR-7d DC-3a (DOCTRINES_SPEC §4a): the court's doctrine, ONE line
+            # beside the laws line — name, strength, flaw and the cure's
+            # status. Diplomacy has no fog. None omits.
+            "doctrine": _doctrine_line(nation, world),
         })
 
     return nations
+
+
+def _doctrine_line(nation: str, world):
+    """SR-7d: `doctrines.doctrine_card_line` — the one source for the row."""
+    from backend.game_logic.doctrines import doctrine_card_line
+    return doctrine_card_line(world, nation)
 
 
 def _laws_line(nation: str, world):

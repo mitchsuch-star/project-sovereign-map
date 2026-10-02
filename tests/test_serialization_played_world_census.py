@@ -202,8 +202,10 @@ def _exempt_for(obj):
     in a test file is how the next one gets waved through.
     """
     if isinstance(obj, Marshal):
+        # SR-7d RV-6: the standing derived terms are a third declared set.
         return (set(Marshal.COORDINATION_TRANSIENT_FIELDS)
-                | set(Marshal.READ_ONCE_NOTE_FIELDS))
+                | set(Marshal.READ_ONCE_NOTE_FIELDS)
+                | set(Marshal.DERIVED_STANDING_FIELDS))
     return set()
 
 
@@ -383,7 +385,11 @@ class TestTheGateSeesPrivates:
         eleven names, and they had already fallen behind."""
         import test_serialization_enforcement as tse
         cls = tse.TestMarshalSerializationEnforcement
-        assert cls.PRIVATE_EXEMPT is Marshal.COORDINATION_TRANSIENT_FIELDS
+        # SR-7d RV-6 (a conscious widening, recorded): the exemption is the
+        # UNION of the declared production sets, never a literal.
+        assert set(cls.PRIVATE_EXEMPT) == (set(Marshal.COORDINATION_TRANSIENT_FIELDS)
+                                           | set(Marshal.DERIVED_STANDING_FIELDS))
+        assert set(Marshal.DERIVED_STANDING_FIELDS).isdisjoint(Marshal.COORDINATION_TRANSIENT_FIELDS)
         assert "total_coordination_attack_bonus" not in cls.KNOWN_EXCLUSIONS
         assert "total_coordination_defense_bonus" not in cls.KNOWN_EXCLUSIONS
 

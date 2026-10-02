@@ -1462,6 +1462,78 @@ def cap_proclamation():
                            for r in (after.get("formables") or after.get("rows") or [])][:8]})
 
 
+def cap_doctrines():
+    """SR-7d DC-3c (DOCTRINES_SPEC §4a): the doctrines' boards — OUR DOCTRINE on
+    the Generals screen, every court's doctrine line on the Nations tab (one
+    cured, read as such), the Train's cure line on the LAWS tab with its live
+    "would lift" count, and the poor / stripped marks on the region panel —
+    Posen unscouted (geography always shows) and a stripped Tyrol at FULL.
+    Every board is REAL state through the ONE mutation seam each surface
+    reads (`reforms.enact_law`, a location write, a war-damage write)."""
+    from backend.game_logic import reforms as RF
+
+    # 1. OUR DOCTRINE above the ladder (the boot board)
+    world, c = fresh()
+    mo = get(c, "/marshal_overview")
+    record("marshal_overview_doctrine", mo, source="GET /marshal_overview",
+           staging="1805 boot",
+           facts={"doctrine": (mo.get("doctrine") or {}).get("name"),
+                  "flaw_status": ((mo.get("doctrine") or {}).get("flaw") or {}).get("status_line")})
+
+    # 2. every court's doctrine line — Austria's Staff in force so its card
+    #    reads "cured since turn N" beside the uncured courts
+    world, c = fresh()
+    world.nation_gold["Austria"] = 20000
+    RF.enact_law(world, "Austria", RF.find_law(world, "Austria", "corps_d_armee"))
+    dl = get(c, "/diplomatic_ledger")
+    nations = (dl.get("ledger") or {}).get("nations") or []
+    record("diplo_doctrine", dl, source="GET /diplomatic_ledger",
+           staging="1805 boot; Austria's Corps d'Armée (its Staff and its cure) in force",
+           facts={n.get("name") or n.get("nation"): n.get("doctrine") for n in nations
+                  if (n.get("name") or n.get("nation")) in ("Austria", "Prussia", "Russia", "Britain")})
+
+    # 3. the Train's cure line on the LAWS tab — Ney standing in French-held Posen
+    world, c = fresh()
+    posen = world.regions["Posen"]
+    posen.controller = PLAYER
+    ney = world.marshals["Ney"]
+    for m in world.marshals.values():
+        if m.location == "Posen":
+            m.location = "Berlin"
+    ney.location = "Posen"
+    with _quiet():
+        world.invalidate_active_nations_cache()
+        world.calculate_visibility()
+    ledger = get(c, "/ledger")
+    laws = (ledger.get("ledger") or {}).get("laws") or {}
+    train = next((r for r in laws.get("rows", []) if r.get("id") == "train_des_equipages"), {})
+    record("ledger_laws_train", ledger, source="GET /ledger",
+           staging="1805 boot; Posen written French-held, Ney moved there (one corps drawing 80%)",
+           facts={"cure_line": train.get("cure_line")})
+
+    # 4. the region marks — Posen (Prussian, unscouted: the poor mark is
+    #    geography) and Tyrol stripped by war at FULL (Lannes standing there)
+    world, c = fresh()
+    tyrol = world.regions["Tyrol"]
+    tyrol.war_damage = 0.35
+    lannes = world.marshals["Lannes"]
+    lannes.location = "Tyrol"
+    with _quiet():
+        world.invalidate_active_nations_cache()
+        world.calculate_visibility()
+    test = get(c, "/test")
+    gs = test.get("game_state") or {}
+    md = gs.get("map_data") or {}
+    record("game_state_doctrine_regions", gs,
+           source="GET /test → game_state (map_data — what main.gd hands the map node)",
+           staging="1805 boot; Tyrol's war damage written to 0.35 with Lannes standing there "
+                   "(FULL); Posen untouched (Prussian, unscouted)",
+           facts={"posen": {k: (md.get("Posen") or {}).get(k) for k in
+                            ("controller", "visibility_status", "war_damage", "doctrine_supply")},
+                  "tyrol": {k: (md.get("Tyrol") or {}).get(k) for k in
+                            ("controller", "visibility_status", "war_damage", "doctrine_supply")}})
+
+
 CAPTURES = {
     "proclamation": cap_proclamation,
     "congress": cap_congress,
@@ -1469,6 +1541,7 @@ CAPTURES = {
     "layout_f3": cap_layout_f3,
     "boot": cap_boot,
     "laws": cap_laws,
+    "doctrines": cap_doctrines,
     "spent": cap_spent,
     "ceiling": cap_ceiling_states,
     "collapse": cap_collapse,

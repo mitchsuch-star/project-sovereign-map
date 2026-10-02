@@ -1464,6 +1464,19 @@ class Digest:
             _trust_note = report.get("trust_note")
             if isinstance(_trust_note, str) and _trust_note.strip():
                 head += f" — {' '.join(_trust_note.split())}"
+            # SR-7d DC-3b: the report's doctrine lines and morale line ride the
+            # digest (T10's census reads them; a doctrine moment the digest
+            # cannot show is the IGR-B trap one instrument over).
+            if THE_DIGEST_PRINTS_THE_DOCTRINE:
+                for _dl in (report.get("doctrine_lines") or []):
+                    if isinstance(_dl, str) and _dl.strip():
+                        head += f" — {' '.join(_dl.split())}"
+                _ml = report.get("morale_line")
+                if isinstance(_ml, str) and _ml.strip():
+                    head += f" — {' '.join(_ml.split())}"
+                for _dr in (report.get("doctrine_rows") or []):
+                    if isinstance(_dr, str) and _dr.strip():
+                        head += f" — {' '.join(_dr.split())}"
         else:
             head = (first_line(dig(report, "headline", "summary", "outcome",
                                    "observation", "message"))
@@ -3374,6 +3387,11 @@ def drain(transport, digest, answerer, response, strict):
                     f"for one post — see jsonl")
         if strict:
             raise RuntimeError("answer chain cap hit under --strict")
+
+
+# SR-7d DC-3b: the digest prints the battle report's doctrine lines and its
+# morale line (False = the Step-3 digest byte for byte).
+THE_DIGEST_PRINTS_THE_DOCTRINE = True
 
 
 def _apply_levers(specs) -> None:

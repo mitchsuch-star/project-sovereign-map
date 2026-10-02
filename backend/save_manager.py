@@ -232,6 +232,7 @@ def load_game(filepath: Path) -> Dict:
         # carries no `reforms` store; an in-flight 1805 campaign is armed
         # with the scenario's authored decks, nothing in force.
         _backfill_reforms(world)
+        _backfill_doctrines(world)
 
         # GE-1 verification round: a fallen campaign's save that does not
         # name its own Final file — written by 975f1f13, which stamped
@@ -467,6 +468,34 @@ def _backfill_reforms(world: WorldState) -> None:
                 for k, v in block.items()
                 if not str(k).startswith("_") and isinstance(v, list)
             }
+            return
+
+
+def _backfill_doctrines(world: WorldState) -> None:
+    """SR-7d RV-8 (DOCTRINES_SPEC §9): arm a pre-doctrine save with the
+    doctrines its scenario NOW authors — ONLY the 1805 campaign (the
+    `_backfill_reforms` idiom): a tutorial or modded save receives none, and
+    a save already carrying a store is never overwritten. The marshals'
+    derived terms are refreshed afterwards (RV-6)."""
+    if getattr(world, "doctrines", None):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    from backend.game_logic.doctrines import refresh_doctrine_terms, store_from_data
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                store = store_from_data(json.load(fh))
+        except (OSError, ValueError):
+            continue
+        if store:
+            world.doctrines = store
+            refresh_doctrine_terms(world)
             return
 
 

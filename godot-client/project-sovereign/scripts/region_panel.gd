@@ -175,6 +175,12 @@ func _render() -> void:
 	if visibility == "unknown" or visibility == "last_known":
 		var intel_note = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
 		bbcode += "[color=#" + Utils.COLOR_GREY + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
+		# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor-country mark is geography
+		# and shows on an unscouted province too; the stripped mark reads
+		# "Stripped? unknown — scout it" here (the backend applied the fog).
+		var dmark_fog = data.get("doctrine_supply")
+		if dmark_fog is Dictionary and str(dmark_fog.get("line", "")) != "":
+			bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(dmark_fog.get("line", "")) + "[/color]\n"
 	else:
 		if visibility == "partial":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]Intel: Partial (reports only)[/color]\n"
@@ -199,6 +205,13 @@ func _render() -> void:
 		var supply_cap := int(data.get("supply_capacity", 0))
 		var supply_text := "Unknown" if supply_cap < 0 else Utils.format_number(supply_cap)
 		bbcode += "   Supply: " + supply_text + "\n"
+		# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor / stripped mark where our
+		# own supply clause could bite — composed by the backend with the fog
+		# applied (the stripped mark reads the econ fog; the poor mark is
+		# geography and always shows). Absent = no mark.
+		var dmark = data.get("doctrine_supply")
+		if dmark is Dictionary and str(dmark.get("line", "")) != "":
+			bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(dmark.get("line", "")) + "[/color]\n"
 		var garrison_info = _map_node.region_garrisons.get(_region, null)
 		if garrison_info != null:
 			var g_strength = int(garrison_info.get("strength", 0))

@@ -1331,6 +1331,11 @@ class WorldState:
         # `lapsed_turn`). Empty on a world whose scenario authors none
         # (the legacy world, N1).
         self.reforms: Dict[str, list] = {}
+        # SR-7d DC-0 (DOCTRINES_SPEC §9): the ONE doctrines field —
+        # {courts: {court: row}, poor_country: [...]} copied from the
+        # scenario at from_scenario; empty on a world whose scenario authors
+        # none (the legacy world, the tutorial, a created client).
+        self.doctrines: Dict[str, object] = {}
         # AI-3r §2.6 (gate ruling R1): the authored statecraft OVERRIDE —
         # scenario key `statecraft`, per-nation, `wary_of` sub-key only in
         # v1. Merged over the nation_config code table at get_statecraft.
@@ -4725,7 +4730,8 @@ class WorldState:
                 for _marshal in list(self.marshals.values()):
                     if (getattr(_marshal, "original_nation", None) == _freed
                             and getattr(_marshal, "nation", "") == nation):
-                        _marshal.nation = _freed
+                        from backend.game_logic.doctrines import set_marshal_nation
+                        set_marshal_nation(self, _marshal, _freed)
                         _marshal.original_nation = None
                         if hasattr(_marshal, "relationship_with_lord"):
                             delattr(_marshal, "relationship_with_lord")
@@ -7449,7 +7455,9 @@ class WorldState:
         return self.get_diplomatic_state(marshal_nation, controller) in self.ALLY_SUPPLY_STATES
 
     def get_effective_supply_cap(self, nation: str, region,
-                                 _shore_cache: Optional[dict] = None) -> int:
+                                 _shore_cache: Optional[dict] = None,
+                                 forecast: bool = True,
+                                 extra_war_damage: float = 0.0) -> int:
         """HC-4a single source: the supply capacity an army of `nation`
         standing on `region` is actually held to — the 1.5× home-turf
         multiplier (PC15-D2: an ALLY/VASSAL host's soil counts as fed
@@ -7463,10 +7471,14 @@ class WorldState:
         one-water abstraction makes the verdict region-independent).
         """
         return int(region.supply_capacity
-                   * self._supply_multiplier(nation, region, _shore_cache))
+                   * self._supply_multiplier(nation, region, _shore_cache,
+                                             forecast=forecast,
+                                             extra_war_damage=extra_war_damage))
 
     def _supply_multiplier(self, nation: str, region,
-                           _shore_cache: Optional[dict] = None) -> float:
+                           _shore_cache: Optional[dict] = None,
+                           forecast: bool = True,
+                           extra_war_damage: float = 0.0) -> float:
         """WO slice 8: the fed/naval multiplier DECISION, split from the
         capacity so the depot chip can price its counterfactual gain by
         the same decision the live cap uses (`cap = int(base × M)`,
@@ -7520,6 +7532,20 @@ class WorldState:
                 multiplier = fed_multiplier
             elif verdict == "strangled" and is_fed:
                 multiplier = 1.0
+        # SR-7d DC-1 (DOCTRINES_SPEC RV-5, §3): living off the land — outside
+        # the court's 1805 homeland, in the listed poor country or in stripped
+        # country, an army of a court whose doctrine carries a supply clause
+        # draws the clause's share of what it would otherwise draw. The
+        # decision reads the nation, the province's IDENTITY (the list, the
+        # homeland) and its war damage — never its capacity — so the WO
+        # slice-8 invariant holds and the depot chip's counterfactual stays
+        # exact. Stripped is read FORWARD (`forecast`): the next attrition
+        # pass runs after the recovery tick. The bill passes forecast=False.
+        if self.doctrines:
+            from backend.game_logic.doctrines import supply_factor
+            factor, _name = supply_factor(self, nation, region, forecast=forecast,
+                                          extra_damage=extra_war_damage)
+            multiplier *= factor
         return multiplier
 
     @staticmethod
@@ -7599,7 +7625,9 @@ class WorldState:
                 # supply_strain headline reads the SAME helper (shown =
                 # applied). Verdicts cached per (nation, region).
                 cap = self.get_effective_supply_cap(
-                    m.nation, region, _shore_cache=_shore_cache)
+                    m.nation, region, _shore_cache=_shore_cache,
+                # SR-7d: the BILL reads the post-recovery value (forecast=False)
+                forecast=False)
                 # WO slice 8: the rate arithmetic lives in
                 # `supply_attrition_rate` so the muster preview quotes
                 # the same bill this loop collects.
@@ -8046,6 +8074,8 @@ class WorldState:
             "agendas": copy.deepcopy(self.agendas),
             # SR-5r RF-0: the laws (deck + in-force state, one store).
             "reforms": copy.deepcopy(self.reforms),
+            # SR-7d DC-0: the doctrines (one store, scenario and save).
+            "doctrines": copy.deepcopy(self.doctrines),
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -8591,6 +8621,12 @@ class WorldState:
             for k, v in (data.get("reforms", {}) or {}).items()
             if not str(k).startswith("_") and isinstance(v, list)
         }
+        # SR-7d DC-0 (DOCTRINES_SPEC §9): the doctrines — the scenario's
+        # `doctrines` + `poor_country` keys and the save's one `doctrines`
+        # field read by ONE shape function. A pre-doctrine 1805 save is
+        # backfilled by `save_manager._backfill_doctrines`.
+        from backend.game_logic.doctrines import store_from_data as _doctrine_store
+        world.doctrines = _doctrine_store(data)
         # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
         # posture). Absent on pre-AI-3r saves = empty = code table only.
         # The scenario key and the save key are one ("statecraft").
@@ -9456,6 +9492,12 @@ class WorldState:
         # now that the marshals, the treaties and the dialogues are all back.
         world._retire_stale_restored_popups()
 
+        # SR-7d RV-6: every marshal's standing doctrine term is DERIVED here,
+        # as the last statement — after the `reforms` store, or a loaded cure
+        # would be missed. Never serialized (Marshal.DERIVED_STANDING_FIELDS).
+        from backend.game_logic.doctrines import refresh_doctrine_terms
+        refresh_doctrine_terms(world)
+
         return world
 
     def _record_popup_retired(self, clause: str, slot: str) -> None:
@@ -9883,6 +9925,10 @@ class WorldState:
             from backend.game_logic.game_end import seed_opening
             seed_opening(world)
 
+        # SR-7d RV-6: the last statement of from_scenario, as of from_dict.
+        from backend.game_logic.doctrines import refresh_doctrine_terms
+        refresh_doctrine_terms(world)
+
         return world
 
     def _region_build_terms(self, region, stables_marginal: int,
@@ -10177,6 +10223,11 @@ class WorldState:
                 # survives untouched.
                 "supply_capacity": int(self.get_effective_supply_cap(
                     self.player_nation, region, _shore_cache=_shore_cache)),
+                # SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor / stripped mark
+                # where the player's own supply clause could bite — composed
+                # with the fog applied (the stripped mark reads the SAME
+                # `region_econ_visible` the econ block gates on). None omits.
+                "doctrine_supply": self._doctrine_supply_mark(region),
                 # Aug 30, 2026 review: what a levy COSTS HERE. The region
                 # panel had been quoting `levy_status.infantry_price`, which
                 # `get_levy_status` prices at the CAPITAL, on the same row as
@@ -10381,6 +10432,15 @@ class WorldState:
         except Exception:
             return 0
 
+    def _doctrine_supply_mark(self, region) -> Optional[dict]:
+        """SR-7d RV-13: {poor, line} for the player's own supply clause on
+        this province, fog applied; None when no mark applies."""
+        if not self.doctrines or region is None:
+            return None
+        from backend.game_logic.doctrines import supply_mark
+        return supply_mark(self, self.player_nation, region,
+                           self.region_econ_visible(region.name))
+
     def region_econ_visible(self, region_name: str) -> bool:
         """WO slice 8: the ONE predicate for whether the player's screens
         may state a province's economic block (income / stability /
@@ -10442,6 +10502,10 @@ class WorldState:
                 "fogged_forces": [],  # PARTIAL/STALE enemies rendered as silhouettes
             }
 
+            # SR-7d DC-3a (RV-13): the doctrine's province mark rides BOTH
+            # branches — the producer composed it with the fog applied (the
+            # poor mark is geography; the stripped mark read the econ fog).
+            filtered_region["doctrine_supply"] = region_data.get("doctrine_supply")
             # Economic data: always for own regions, only at FULL for enemy
             # (WO slice 8: the branch is the shared `region_econ_visible`
             # predicate, so the muster preview's supply quote and this
@@ -10487,7 +10551,10 @@ class WorldState:
                 filtered_region["effective_income"] = -1
                 filtered_region["stability"] = -1
                 filtered_region["stability_label"] = "Unknown"
-                filtered_region["war_damage"] = 0
+                # SR-7d RV-13: war damage below FULL is NOT KNOWN — the −1
+                # sentinel, never 0 or the true value (both .gd readers
+                # branch on `> 0`, so a fogged province draws no mark).
+                filtered_region["war_damage"] = -1
                 filtered_region["supply_capacity"] = -1
                 filtered_region["buildings"] = []
                 filtered_region["building_under_construction"] = None

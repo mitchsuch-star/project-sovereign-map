@@ -37,6 +37,19 @@ from types import SimpleNamespace
 
 import pytest
 
+
+@pytest.fixture(autouse=True)
+def _pre_doctrine_board(monkeypatch):
+    """SR-7d "The Doctrines" (October 3, 2026): this family pins PROSE and the
+    casualty figures on staged boards, never the doctrines — and the
+    Hofkriegsrat now keeps a staged Archduke John away on seeds where he used
+    to arrive (the Austrian bar is 75, not 65), which re-times every figure
+    beneath it. The family runs with the doctrine lever DOWN (the board it
+    was recorded on); the doctrine's own prose and figures are pinned in
+    `tests/test_sr7d_the_doctrines.py`."""
+    from backend.game_logic import doctrines as DC
+    monkeypatch.setattr(DC, "DOCTRINES_ACTIVE", False)
+
 from backend.campaign_log import format_event_oneliner
 from backend.commands.combat_executor import (
     CombatExecutor,

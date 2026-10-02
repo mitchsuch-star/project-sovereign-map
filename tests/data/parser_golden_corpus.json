@@ -6822,6 +6822,39 @@
       },
       "source": "SR-5b \"The second road at sea\" / NV-D9 (Score Mandate Chunk 5, September 28, 2026; SYSTEMS_REFERENCE.md §77)",
       "notes": "'shipyard' must not route to build_fleet: the fleet verb wants ship/ships/fleet/navy/sail as a whole word."
+    },
+    {
+      "id": "sr7d-what-is-our-doctrine",
+      "utterance": "what is our doctrine?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "source": "SR-7d DC-3a (docs/DOCTRINES_SPEC.md section 4a, discoverability) — the desk answers, nothing executes.",
+      "notes": "The board desk's `doctrine_own` kind: Berthier names our doctrine, its strength and its flaw with the cure's status. A question, never an order."
+    },
+    {
+      "id": "sr7d-what-is-austrias-doctrine",
+      "utterance": "what is Austria's doctrine?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "source": "SR-7d DC-3a (docs/DOCTRINES_SPEC.md section 4a).",
+      "notes": "The `doctrine_nation` kind resolves the court and reads the same payload the nation card prints. Diplomacy has no fog."
+    },
+    {
+      "id": "sr7d-what-are-austrias-weaknesses",
+      "utterance": "what are Austria's weaknesses?",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "status"
+      },
+      "source": "SR-7d DC-3a (docs/DOCTRINES_SPEC.md section 4a).",
+      "notes": "The flaw alone, with its cure status — 'strike Austria before Vienna adopts the corps' is a plan the player can read off the desk."
     }
   ]
 }

@@ -288,6 +288,9 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
     world.manpower_pools[nation][arm] = (
         int(world.manpower_pools[nation].get(arm, 0)) - size)
     world.marshals[name] = marshal
+    # SR-7d RV-6: a commissioned marshal takes his court's doctrine at once.
+    from backend.game_logic.doctrines import refresh_doctrine_terms
+    refresh_doctrine_terms(world, [marshal])
 
     # Relationship seeds — symmetric both directions (MC-3 authoring
     # convention), only toward marshals actually in service.

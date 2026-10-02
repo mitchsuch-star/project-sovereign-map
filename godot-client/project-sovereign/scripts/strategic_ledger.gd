@@ -1035,6 +1035,11 @@ func _render_laws_tab():
 			bbcode += "  " + says + "\n"
 		for line in row.get("effects", []):
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "]• " + str(line) + "[/color]\n"
+		# SR-7d DC-3a (DOCTRINES_SPEC §4): a cure law says what it cures, what it
+		# would lift THIS turn, and the Staff it needs (`laws[].cure_line`).
+		var cure_line = str(row.get("cure_line", ""))
+		if cure_line != "" and cure_line != "<null>":
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]• " + cure_line + "[/color]\n"
 		bbcode += "  [color=#" + Utils.COLOR_GREY + "]" + str(row.get("price_words", "")) \
 			+ " to enact · " + Utils.format_number(int(row.get("upkeep", 0))) + " gold a turn[/color]\n"
 		# A refused row's reason is the chip's own — said once, beside the chip.

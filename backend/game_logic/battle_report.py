@@ -227,6 +227,13 @@ def snapshot_attacker_modifiers(
     # (Phase 8.5).  The bonuses still affect combat via marshal transient
     # fields — they are just not shown as raw stats here.
 
+    # --- SR-7d DC-3b (DOCTRINES_SPEC RV-7): the court's attack clause ---
+    _dterm = float(getattr(attacker, "_doctrine_term", lambda k: 1.0)("attack") or 1.0)
+    if _dterm > 1.0001:
+        mods.append({"label": str(attacker._doctrine_term("attack_name") or "Doctrine"),
+                     "value": int(round((_dterm - 1.0) * 100)), "type": "bonus",
+                     "doctrine": True})
+
     return mods
 
 
@@ -339,6 +346,17 @@ def snapshot_defender_modifiers(
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().
+
+    # --- SR-7d DC-3b (DOCTRINES_SPEC RV-7): the court's defence clause, the
+    # share that APPLIED after the 1.75 cap ---
+    if hasattr(defender, "doctrine_defense_share"):
+        # the resolver's own rule (`resolve_battle`): outnumbered = fewer men
+        _outnumbered = int(getattr(defender, 'strength', 0)) < int(getattr(attacker, 'strength', 0))
+        _share = float(defender.doctrine_defense_share(_outnumbered))
+        if _share > 1.0001:
+            mods.append({"label": str(defender._doctrine_term("defense_name") or "Doctrine"),
+                         "value": int(round((_share - 1.0) * 100)), "type": "bonus",
+                         "doctrine": True})
 
     return mods
 
@@ -1212,7 +1230,23 @@ def generate_battle_report(battle_result: Dict, player_nation: str = "France") -
 
     observation = _pick_observation(battle_result, player_nation)
 
+    # SR-7d DC-3b (RV-7): the morale line for a doctrine-scaled lopsided defeat.
+    from backend.game_logic.doctrines import morale_line as _doctrine_morale_line
+    _morale_line = _doctrine_morale_line(battle_result.get("doctrine_morale") or {})
+
+    # SR-7d: the doctrine rows named with their side, for the surfaces that
+    # cannot print the whole breakdown (the driver's digest, T10's census).
+    _doctrine_rows = []
+    for side, rows in (("attacker", modifier_snapshot.get("attacker", [])),
+                       ("defender", modifier_snapshot.get("defender", []))):
+        who = humanize_entity_name(str((attacker_data if side == "attacker" else defender_data).get("name", side)))
+        for row in rows or []:
+            if isinstance(row, dict) and row.get("doctrine"):
+                _doctrine_rows.append(f"{row.get('label')} +{int(row.get('value', 0))}% ({who})")
+
     return {
+        "morale_line": str(_morale_line),
+        "doctrine_rows": _doctrine_rows,
         "modifier_breakdown": {
             "attacker": modifier_snapshot.get("attacker", []),
             "defender": modifier_snapshot.get("defender", []),

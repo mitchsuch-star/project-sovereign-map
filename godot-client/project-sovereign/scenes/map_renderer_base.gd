@@ -2732,6 +2732,12 @@ func _draw_region_tooltip():
 	var war_damage = int(data.get("war_damage", 0))
 	if war_damage > 0:
 		_push_tooltip_line(lines, "War Damage: %s%%" % war_damage, Color(0.85, 0.4, 0.4))
+	# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor / stripped mark, fog applied
+	# by the backend (a fogged province's war damage arrives as -1 and draws
+	# no War Damage line above).
+	var dmark = data.get("doctrine_supply")
+	if dmark is Dictionary and str(dmark.get("line", "")) != "":
+		_push_tooltip_line(lines, str(dmark.get("line", "")), Color(0.9, 0.75, 0.4))
 
 	var watchtower_status = str(data.get("watchtower", "none"))
 	if watchtower_status != "none":

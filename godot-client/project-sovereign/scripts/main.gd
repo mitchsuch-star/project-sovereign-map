@@ -3876,6 +3876,19 @@ func _display_berthier_report(report: Dictionary):
 	if tr_note is String and tr_note != "":
 		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + tr_note + "[/color]")
 
+	# SR-7d DC-3b (DOCTRINES_SPEC RV-7, RV-16): a doctrine-decided arrival or
+	# no-show named ("The corps system brought Davout in"), Berthier's "the
+	# corps marched apart and arrived together", and the morale line of a
+	# doctrine-scaled lopsided defeat. Backend-composed; absent when none.
+	var doctrine_lines = report.get("doctrine_lines", [])
+	if doctrine_lines is Array:
+		for dl in doctrine_lines:
+			if dl is String and dl != "":
+				add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + dl + "[/color]")
+	var morale_line = report.get("morale_line", "")
+	if morale_line is String and morale_line != "":
+		add_output("[color=#" + Utils.COLOR_OBSERVATION + "]  " + morale_line + "[/color]")
+
 	# Modifier breakdown
 	var breakdown = report.get("modifier_breakdown", {})
 
@@ -4723,6 +4736,11 @@ func _display_morning_dispatch(data: Dictionary):
 		var today_cabinet = str(today.get("cabinet", ""))
 		if today_cabinet != "":
 			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_cabinet + "[/color]")
+		# SR-7d DC-3a (DOCTRINES_SPEC §4a): our doctrine, named on the first
+		# morning with the screen that shows it.
+		var today_doctrine = today.get("doctrine", "")
+		if today_doctrine is String and today_doctrine != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_doctrine + "[/color]")
 		add_output("")
 
 	# ═══ BERTHIER'S NOTE ═══
