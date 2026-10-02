@@ -414,6 +414,43 @@ def _imperial_peace_caption(world) -> str:
 # SR-1c: how close to the summons the Moniteur starts counting the road.
 NEAR_MISS_PROVINCES = 5
 
+# SR-6c (RS-17's Moniteur half, Oct 2 2026): the near-miss column spoke only
+# at a gap of 1–5 and went SILENT the morning the gate opened (47 of 45).
+# False = the gap <= 0 case stays quiet, as shipped.
+THE_MONITEUR_SEES_THE_OPEN_GATE = True
+
+
+def _open_gate_line(world, view) -> str:
+    """The paper's line once the titled count is met: the summons is open,
+    with the table as it stands, or the one term it still waits on."""
+    from backend.campaign_log import and_join
+    from backend.game_logic import congress as _congress
+    have, need = int(view["count"]), int(view["needed"])
+    terms = _congress.gate_terms(world)
+    blocking = [t for t in terms if not t.get("met") and t.get("key") != "admin"]
+    if blocking:
+        return (f"THE CONGRESS OF PARIS — {have} of {need} provinces titled, "
+                f"yet the summons waits: {blocking[0].get('text') or 'a term unmet'}.")
+    powers = _congress.great_powers(world)
+    rows = {c: _congress.answer(world, c) for c in powers}
+
+    def seats(courts):
+        return and_join([_congress.seat(world, c) for c in courts])
+
+    parts = []
+    refusers = [c for c in powers if rows[c].get("stance") == _congress.REFUSES]
+    sues = [c for c in powers if rows[c].get("stance") == _congress.SUES]
+    signers = [c for c in powers if rows[c].get("stance") in _congress.SATISFIED]
+    if refusers:
+        parts.append(f"{seats(refusers)} would refuse today")
+    if sues:
+        parts.append(f"{seats(sues)} would sue for peace")
+    if signers:
+        parts.append(f"{seats(signers)} would sign")
+    table = (" " + "; ".join(parts) + ".") if parts else ""
+    return (f"THE CONGRESS OF PARIS — {have} of {need} provinces titled: the "
+            f"Emperor may summon the powers.{table}")
+
 
 def _congress_column(world, special_reason: Optional[str]) -> List[str]:
     """Le Moniteur's Congress column (GE-3, ENDGAME_PLAN §2.5): the table in
@@ -473,6 +510,8 @@ def _congress_column(world, special_reason: Optional[str]) -> List[str]:
                 if roads:
                     head += " " + "; ".join(r["short"] for r in roads[:3]) + "."
                 lines = [head]
+            elif gap <= 0 and THE_MONITEUR_SEES_THE_OPEN_GATE:
+                lines = [_open_gate_line(world, view)]
     if special_reason in ("THE IMPERIAL PEACE", "THE UNIVERSAL MONARCHY"):
         rec = _imperial_peace_record(world) or {}
         proclaimed = str((rec.get("detail") or {}).get("moniteur_line") or "")

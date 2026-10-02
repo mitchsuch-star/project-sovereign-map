@@ -9181,6 +9181,84 @@ def declare_war(
     }
 
 
+def _note_alliance_cascade(world, nation: str, ally: str, against: str) -> None:
+    """SR-6a RS-23 (Score Finish Step 2, Oct 2 2026): the cascade's rail
+    row and dispatch event. Played, turn 12: sixty diplomatic rows,
+    "Prussia enters the war via alliance with France." eight times — eight
+    DIFFERENT wars (one per declaring court), none naming the enemy, and
+    the rail counting them "(x8)". The rail now keeps ONE row per ally per
+    turn naming every court that entered and every enemy they entered
+    against; the dispatch event carries `against` and is grouped per ally
+    by `_build_diplomatic_events_section`. Lever down (dispatch.
+    THE_CASCADE_IS_GROUPED) = the per-court row and event, byte for byte."""
+    from backend.game_logic import dispatch as _dispatch
+    from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.notifications import (
+        create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
+    )
+    turn = int(world.current_turn)
+    if not _dispatch.THE_CASCADE_IS_GROUPED:
+        world.notifications.add(create_notification(
+            ALLIANCE_CASCADE_WAR,
+            NotificationPriority.HIGH,
+            f"{nation} Enters War!",
+            f"{nation} enters the war via alliance with {ally}.",
+            turn,
+        ))
+        queue_dispatch_event(world, "diplomatic_alliance_cascade",
+                             {"nation": nation, "ally": ally},
+                             "partial_on_nation")
+        return
+    key = f"cascade:{ally}:{turn}"
+    for existing in list(getattr(world.notifications, "_pending", []) or []):
+        details = existing.get("details") or {}
+        if existing.get("type") != ALLIANCE_CASCADE_WAR or details.get("war_id") != key:
+            continue
+        nations = [n for n in (details.get("nations") or [])]
+        enemies = [n for n in (details.get("against") or [])]
+        if nation not in nations:
+            nations.append(nation)
+        if against and against not in enemies:
+            enemies.append(against)
+        details["nations"], details["against"] = nations, enemies
+        existing["details"] = details
+        existing["title"], existing["message"] = alliance_cascade_rail_text(
+            world, ally, nations, enemies)
+        existing["turn_created"] = turn
+        break
+    else:
+        title, message = alliance_cascade_rail_text(world, ally, [nation],
+                                                    [against] if against else [])
+        world.notifications.add(create_notification(
+            ALLIANCE_CASCADE_WAR,
+            NotificationPriority.HIGH,
+            title,
+            message,
+            turn,
+            details={"war_id": key, "ally": ally, "nations": [nation],
+                     "against": [against] if against else []},
+        ))
+    queue_dispatch_event(world, "diplomatic_alliance_cascade",
+                         {"nation": nation, "ally": ally, "against": against},
+                         "partial_on_nation")
+
+
+def alliance_cascade_rail_text(world, ally: str, nations, enemies):
+    """(title, message) for the grouped cascade row — display names, the
+    enemies named, the verb agreeing."""
+    from backend.campaign_log import and_join
+    from backend.game_logic.formations import formed_display_name
+    shown = [formed_display_name(world, n) for n in nations]
+    foes = [formed_display_name(world, n) for n in enemies]
+    one = len(shown) == 1
+    title = f"{and_join(shown)} Enter{'s' if one else ''} War!"
+    against = f" against {and_join(foes)}" if foes else ""
+    message = (f"{and_join(shown)} enter{'s' if one else ''} the war{against} "
+               f"via {'its' if one else 'their'} alliance with "
+               f"{formed_display_name(world, ally)}.")
+    return title, message
+
+
 def _process_war_cascade(
     world,
     aggressor: str,
@@ -9410,23 +9488,9 @@ def _process_war_cascade(
                     "against": aggressor,
                 })
 
-                # Notification: alliance cascade (Session 8C)
-                from backend.notifications import (
-                    create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
-                )
-                world.notifications.add(create_notification(
-                    ALLIANCE_CASCADE_WAR,
-                    NotificationPriority.HIGH,
-                    f"{nation} Enters War!",
-                    f"{nation} enters the war via alliance with {target}.",
-                    int(world.current_turn),
-                ))
-
-                # Dispatch event (Session 8D)
-                from backend.game_logic.dispatch import queue_dispatch_event
-                queue_dispatch_event(world, "diplomatic_alliance_cascade",
-                                    {"nation": nation, "ally": target},
-                                    "partial_on_nation")
+                # Notification: alliance cascade (Session 8C). SR-6a RS-23:
+                # the enemy named, one rail row per ally per turn.
+                _note_alliance_cascade(world, nation, target, aggressor)
 
     # ── OFFENSIVE CASCADE: Aggressor's ALLIANCE partners join against target ──
     for nation in all_nations:

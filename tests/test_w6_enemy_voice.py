@@ -57,11 +57,16 @@ class TestVoicePicking:
         line = pick_enemy_voice("Mack", "cautious", "repelled_you", 0)
         assert "Mack does not leave his ground" in line
 
-    def test_named_falls_back_to_personality_for_missing_situation(self):
-        # Mack has no beat_you_attacking row — his cautious register speaks.
-        line = pick_enemy_voice("Mack", "cautious", "beat_you_attacking", 0)
+    def test_named_falls_back_to_personality_for_missing_situation(self, monkeypatch):
+        # SF-MD-1: every marquee row now covers every situation, so the
+        # fallback is pinned on a row authored WITHOUT one.
+        from backend.game_logic import enemy_voice as EV
+        monkeypatch.setitem(EV._NAMED_LINES, "Zorglub", {"repelled_you": ["Mine."]})
+        line = pick_enemy_voice("Zorglub", "cautious", "beat_you_attacking", 0)
         assert line != ""
-        assert "Mack" in line
+        assert "Zorglub" in line
+        assert line.split(": ", 1)[1].strip('"') in \
+            EV._PERSONALITY_LINES["cautious"]["beat_you_attacking"]
 
     def test_deterministic_across_identical_inputs(self):
         a = pick_enemy_voice("Kutuzov", "cautious", "lost_ground", 3)
@@ -85,8 +90,9 @@ class TestVoicePicking:
                 assert len(bank[situation]) >= 2
 
     def test_named_rows_are_marquee_only(self):
+        # SF-MD-1 (Oct 2 2026): the second Archduke gained his own row.
         assert set(_NAMED_LINES) == {"Mack", "Kutuzov", "ArchdukeCharles",
-                                     "Wellington", "Blucher"}
+                                     "ArchdukeJohn", "Wellington", "Blucher"}
 
 
 class TestEnemyVoiceEndToEnd:

@@ -760,15 +760,84 @@ def _handle_settlement_tier2_action(
         covered_enemy_participants=new_covered,
     )
     verb = "Added" if action == "settlement_cover_add" else "Dropped"
+    message = f"{verb} {nation}; the settlement was re-drafted."
+    if THE_DIAL_SURVIVES_THE_DROP:
+        # SF-DIP-1: the dial survives the drop. The remaining courts keep the
+        # terms the player dialled; only the dropped court's clauses are
+        # struck, and an added court receives the baseline slice authored
+        # for it. Each court's change is named.
+        new_terms, message = _terms_after_cover_edit(
+            dialogue, action=action, nation=nation,
+            baseline_terms=baseline["settlement_terms"], new_covered=new_covered)
     return _restage_settlement_after_redraw(
         world,
         dialogue,
         action=action,
         new_terms=new_terms,
         new_covered=new_covered,
-        message=f"{verb} {nation}; the settlement was re-drafted.",
+        message=message,
         extra={"ignored_participants": ignored, "remaining_wars": remaining},
     )
+
+
+# SF-DIP-1 "The dial survives the drop" (Score Finish Step 2, Oct 2 2026):
+# every cover add/drop re-drew the WHOLE package from the baseline, so a
+# pressed Austria was reset to the bare peace the moment Russia was dropped.
+# False = the whole-package redraw, as shipped.
+THE_DIAL_SURVIVES_THE_DROP = True
+
+_CLAUSE_COURT_KEYS = ("from", "to", "nation", "court", "vassal", "lord",
+                      "target", "beneficiary", "payer", "recipient", "client",
+                      "subject", "overlord", "counterparty")
+
+
+def clause_names_court(clause: Mapping[str, Any], court: str) -> bool:
+    """Does this clause name `court` as a party? (The shared `peace` clause
+    names nobody.)"""
+    if not isinstance(clause, Mapping) or not court:
+        return False
+    for key in _CLAUSE_COURT_KEYS:
+        if str(clause.get(key) or "") == court:
+            return True
+    return False
+
+
+def _court_change_line(court: str, clauses: list) -> str:
+    n = len(clauses)
+    if n == 0:
+        return f"{court} keeps no clause of its own"
+    kinds = sorted({str(c.get("type") or "clause").replace("_", " ") for c in clauses})
+    return f"{court} keeps {n} clause{'s' if n != 1 else ''} ({', '.join(kinds)})"
+
+
+def _terms_after_cover_edit(dialogue: Mapping[str, Any], *, action: str, nation: str,
+                            baseline_terms: Iterable[Mapping[str, Any]],
+                            new_covered: Iterable[str]):
+    """(terms, message) for a coverage edit that keeps the standing dial."""
+    current = [dict(t) for t in (dialogue.get("settlement_terms") or [])
+               if isinstance(t, Mapping)]
+    if action == "settlement_cover_drop":
+        kept = [t for t in current if not clause_names_court(t, nation)]
+        struck = len(current) - len(kept)
+        terms = kept
+        head = (f"Dropped {nation} — {struck} clause{'s' if struck != 1 else ''} "
+                f"naming it struck.")
+    else:
+        added = [dict(t) for t in (baseline_terms or [])
+                 if isinstance(t, Mapping) and clause_names_court(t, nation)]
+        terms = list(current)
+        for t in added:
+            if t not in terms:
+                terms.append(t)
+        head = (f"Added {nation} — {len(added)} baseline clause"
+                f"{'s' if len(added) != 1 else ''} authored for it.")
+    if not any(str(t.get("type") or "") == "peace" for t in terms):
+        terms.insert(0, {"type": "peace"})
+    others = [c for c in sorted({str(n) for n in (new_covered or []) if n})]
+    lines = [_court_change_line(c, [t for t in terms if clause_names_court(t, c)])
+             for c in others]
+    message = head + (" " + "; ".join(lines) + "." if lines else "")
+    return terms, message
 
 
 # GT-Slice-1 (Guided Terms §3.1/§4): the per-court demand-mutation verbs.

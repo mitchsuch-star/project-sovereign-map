@@ -672,6 +672,129 @@ CATEGORY_MAP = {
 # pre-IQ-2 filter byte-for-byte.
 PLAYER_LOSSES_ARE_PLAYER_EVENTS = True
 
+# EAS-2 (SR-6c, Oct 2 2026): the campaign log has an importance tier. The
+# client renders every row at one size, coloured by category and never by
+# weight; this is the BACKEND half — a display-only `tier` on every row
+# `GET /campaign_log` returns (lead / notable / routine), read by nothing
+# mechanical. Every CAMPAIGN_LOG_TYPES member is classified in exactly one
+# of the three sets (a census pin fails for an unclassified new type); two
+# types refine on the event's own fields. False = no `tier` key.
+THE_LOG_HAS_AN_IMPORTANCE_TIER = True
+
+LOG_TIER_LEAD = frozenset({
+    "bankruptcy", "campaign_ending", "coalition_declared",
+    "coalition_dissolved", "coalition_dissolved_for_france", "congress",
+    "diplomatic_treaty_broken", "diplomatic_treaty_signed",
+    "diplomatic_war_declared", "expedition_landed", "last_stand",
+    "marshal_captured", "marshal_destroyed", "nation_eliminated",
+    "nation_formed", "peace_ratified", "trafalgar", "ultimatum_issued",
+    "vassal_broke_free", "vassal_defected", "vassal_liberated",
+    "volte_face", "war_declaration",
+})
+
+LOG_TIER_NOTABLE = frozenset({
+    "agenda_shift", "agenda_violation", "balance_of_europe_shifted",
+    "bargain_breached", "bargain_reneged", "battle", "blockade_begins",
+    "blockade_broken", "bombardment", "boulogne_camp",
+    "call_to_arms_honored_costly", "call_to_arms_refused_defensive",
+    "call_to_arms_refused_offensive", "coalition_brewing_started",
+    "coalition_member_left", "coercive_demand", "crisis_brewing",
+    "crisis_passed", "defensive_cascade", "design_bought_off",
+    "design_promoted", "desertion", "diplomatic_alliance_cascade",
+    "estate_confiscated", "estate_lost", "expedition_intercepted",
+    "fleet_action", "fontainebleau_petition", "forced_alliance_imposed",
+    "garrison_assault", "glory_crowned", "jealousy_autonomous",
+    "jealousy_confrontation", "jealousy_escalation", "jealousy_fired",
+    "law_enacted", "marshal_broken", "marshal_commissioned",
+    "marshal_released", "marshal_wounded", "offensive_cascade",
+    "proposal_arrived", "region_captured", "retreat",
+    "rivalry_confrontation", "settlement_summary", "strait_open",
+    "strait_shut", "third_party_peace", "ultimatum_accepted",
+    "ultimatum_rejected", "vassal_refuses_call", "vassal_transferred",
+})
+
+LOG_TIER_ROUTINE = frozenset({
+    "ai_ai_proposal_refused", "ai_proposal_accepted",
+    "ai_proposal_counter_failed", "ai_proposal_rejected",
+    "ai_ultimatum_accepted", "ai_ultimatum_rejected", "ai_ultimatum_void",
+    "allegiance_auction_opened", "allegiance_auction_resolved",
+    "ally_entry_accepted", "ally_entry_refused", "ally_refused_free_join",
+    "amends_offered", "auto_downgrade", "bargain_fulfilled",
+    "bargain_ratified", "bargain_repudiated", "bargain_triggered",
+    "bargain_voided", "british_subsidy", "building_completed",
+    "building_damaged", "building_started", "client_petition_answered",
+    "coalition_brewing_cancelled", "commitment_paradox_resolved",
+    "counter_bargain_accepted", "counter_bargain_rejected",
+    "counter_offer_accepted", "counter_offer_rejected", "cs_tier_shift",
+    "declaration_backed_out", "defiance", "diplomatic_ai_ai_treaty",
+    "diplomatic_discrepancy", "diplomatic_downgrade",
+    "diplomatic_mission_cancelled_eliminated", "diplomatic_mission_ended",
+    "diplomatic_mission_started", "diplomatic_proposal_sent",
+    "dotation_granted", "estate_respected", "evacuation_granted",
+    "evacuation_lapsing", "expedition_turned_back", "fleet_laid_down",
+    "fleet_posture", "garrison_placed", "glory_crown_lost",
+    "guarantee_abandoned", "guarantee_honored", "guarantee_pledged",
+    "hard_block_surfaced", "hard_reject_posture_cleared",
+    "hard_reject_posture_triggered", "instrument_lapsed",
+    "jealousy_resolved", "law_lapsed", "law_repealed", "literal_fidelity",
+    "marshal_recovered", "naval_turnback", "oathbreaker_posture_cleared",
+    "oathbreaker_posture_triggered", "objection", "offer_lapsed",
+    "order_voided_by_battle", "proposal_dropped_overflow",
+    "proposal_expired_unseen", "proposal_voided_by_coalition",
+    "recruitment", "relationship_change", "rente_defaulted",
+    "rente_granted", "rente_revoked", "settlement_ally_petition_declined",
+    "settlement_ally_petition_granted", "settlement_bargain_honored",
+    "settlement_digest", "settlement_recurring_gold_cancelled",
+    "settlement_recurring_gold_completed", "settlement_recurring_gold_paid",
+    "settlement_recurring_gold_partial",
+    "settlement_terms_request_granted", "settlement_terms_request_refused",
+    "settlement_terms_requested", "sponsorship_expired",
+    "sponsorship_granted", "sponsorship_reneged", "strategic_order",
+    "substitutes_purchased", "vassal_auto_join_war", "war_entry_ledger",
+    "war_objective_declared", "war_objective_ticking_started",
+})
+
+LOG_TIERS = ("lead", "notable", "routine")
+
+
+def event_tier(event: dict, world=None) -> str:
+    """The importance tier of one campaign-log row (EAS-2, display only).
+
+    `battle` and `region_captured` refine: a battle that took the
+    province, destroyed or routed a corps, or was decisive LEADS; a
+    capital changing hands LEADS (read off the world's region, so no
+    producer needs a new key); the rest of each family is notable.
+    Unknown types read routine. "" with the lever down.
+    """
+    if not THE_LOG_HAS_AN_IMPORTANCE_TIER:
+        return ""
+    etype = str(event.get("type") or "")
+    if etype == "battle":
+        outcome = str(event.get("outcome") or "")
+        if (event.get("region_conquered") or event.get("auto_bombardment_kill")
+                or event.get("marshal_destroyed") or event.get("marshal_captured")
+                or "decisive" in outcome or outcome == "mutual_destruction"):
+            return "lead"
+        for side in ("attacker", "defender"):
+            block = event.get(side)
+            if isinstance(block, dict) and block.get("forced_retreat"):
+                return "lead"
+        if event.get("forced_retreat") or event.get("capture_choice"):
+            return "lead"
+        return "notable"
+    if etype == "region_captured":
+        region = None
+        if world is not None:
+            region = (getattr(world, "regions", None) or {}).get(str(event.get("region") or ""))
+        if event.get("capital") or (region is not None and getattr(region, "is_capital", False)):
+            return "lead"
+        return "notable"
+    if etype in LOG_TIER_LEAD:
+        return "lead"
+    if etype in LOG_TIER_NOTABLE:
+        return "notable"
+    return "routine"
+
 
 def _is_player_event(event: dict, player_nation: str) -> bool:
     """Check if an event belongs to the player (always shown regardless of fog)."""
@@ -2511,6 +2634,10 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     if event_type == "diplomatic_alliance_cascade":
         nation = event.get("defender") or event.get("nation", "Unknown")
         ally = event.get("ally", "Unknown")
+        # SR-6a RS-23: the enemy named where the event carries it.
+        against = event.get("against")
+        if against:
+            return f"Alliance cascade: {nation} enters war against {against} via {ally}"
         return f"Alliance cascade: {nation} enters war via {ally}"
 
     if event_type == "diplomatic_ai_ai_treaty":

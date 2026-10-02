@@ -266,9 +266,15 @@ def _derive_status(marshal) -> str:
     return "idle"
 
 
-def _derive_strategic_order_summary(marshal) -> str:
-    """Format strategic order summary string (player-facing verbs, R7)."""
+def _derive_strategic_order_summary(marshal, current_turn=None) -> str:
+    """Format strategic order summary string (player-facing verbs, R7).
+
+    CRT-4-X1 (SR-6a): "(N turns left)" is the ONE clock
+    (`strategic.order_turns_remaining`, range-aware, +1 on an order issued
+    this turn — the Ledger is read before the tick), never the road's length.
+    """
     from backend.display_names import get_strategic_display
+    from backend.commands import strategic as _road
 
     order = marshal.strategic_order
     if order is None:
@@ -279,7 +285,13 @@ def _derive_strategic_order_summary(marshal) -> str:
         # FA-N36: no turns-left count for a man who is not moving.
         return f"{get_strategic_display(cmd)} {target} — HALTED, awaiting your word"
     if cmd == "MOVE_TO":
-        turns_left = len(order.path)
+        if _road.ONE_CLOCK and current_turn is not None:
+            turns_left = _road.order_turns_remaining(
+                order, int(current_turn),
+                movement_range=getattr(marshal, "movement_range", 1),
+                before_tick=True)
+        else:
+            turns_left = len(order.path)
         return f"{get_strategic_display(cmd)} {target} ({turns_left} turns left)"
     if cmd == "PURSUE":
         return f"{get_strategic_display(cmd)} {target} (tracking)"
@@ -315,7 +327,8 @@ def _build_forces(world, player: str) -> list:
             "trust": int(marshal.trust.value),
             "stance": marshal.stance.value,
             "status": _derive_status(marshal),
-            "strategic_order": _derive_strategic_order_summary(marshal),
+            "strategic_order": _derive_strategic_order_summary(
+                marshal, current_turn=int(world.current_turn)),
             "battles_won": int(marshal.battles_won),
             "battles_lost": int(marshal.battles_lost),
             "special_flags": {
@@ -999,14 +1012,53 @@ def _format_strength_display(strength: int) -> str:
 
 
 def _build_intel(world, player: str) -> dict:
-    """Build intel section: fog-filtered enemy sightings."""
+    """Build intel section: fog-filtered enemy sightings.
+
+    SR-6a (AAR-5 / AAR4-X2): the rows come from the ONE surface reader
+    (`intel_surfaces.enemy_sightings` — a FULL province read live, the
+    frozen snapshot only where the fog is real) in this tab's own
+    vocabulary, and every known enemy garrison is named after the nation
+    summaries (a garrison is not a marshal, so it never counts as one).
+    Lever down = the snapshot walk below, byte for byte.
+    """
+    from backend.game_logic import intel_surfaces as _surf
     known_enemies = []
     # Track best sighting per marshal name to dedup
     best_sightings: Dict[str, dict] = {}
 
     unknown_count = 0
 
+    if _surf.THE_SIGHTING_IS_LIVE:
+        for region_name in world.regions:
+            if world.get_region_intel(region_name).visibility == UNKNOWN:
+                unknown_count += 1
+        for s in _surf.enemy_sightings(world, player):
+            vis = s["visibility"]
+            if vis == FULL:
+                strength_display = _format_strength_display(s["strength"])
+            elif vis == PARTIAL:
+                strength_display = s["strength_display"]
+            elif vis == STALE:
+                band = (s["strength_display"] if s["strength_display"]
+                        else get_strength_band(s["strength"]))
+                strength_display = f"last seen: {band}"
+            else:  # LAST_KNOWN
+                strength_display = "unknown"
+            best_sightings[s["roster_name"]] = {
+                # NPC-12 / RS-26 (SR-6b): the tab prints the display name —
+                # the client translates nation keys only, so "ArchdukeCharles"
+                # reached the Ledger raw. The roster key rides beside it.
+                "name": s["name"],
+                "roster_name": s["roster_name"],
+                "nation": s["nation"],
+                "location": s["location"],
+                "strength_display": strength_display,
+                "visibility": vis,
+            }
+
     for region_name, region in world.regions.items():
+        if _surf.THE_SIGHTING_IS_LIVE:
+            break
         intel = world.get_region_intel(region_name)
         if intel.visibility == UNKNOWN:
             unknown_count += 1
@@ -1102,6 +1154,17 @@ def _build_intel(world, player: str) -> dict:
         nd["regions_controlled"] = int(nd["regions_controlled"])
         nd["known_marshals"] = int(nd["known_marshals"])
         nation_summaries.append(nd)
+
+    # SR-6a (AAR4-X2): the known garrisons, after the marshal rows.
+    for g in _surf.known_garrisons(world, player):
+        known_enemies.append({
+            "name": g["name"],
+            "nation": g["nation"],
+            "location": g["location"],
+            "strength_display": g["strength_display"],
+            "visibility": g["visibility"],
+            "kind": _surf.GARRISON_ROW_KIND,
+        })
 
     return {
         "known_enemies": known_enemies,

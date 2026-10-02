@@ -239,6 +239,15 @@ class TestDispatchIntelFreshness:
         full.last_updated_turn = 5
 
         world.intel = {"Bavaria": partial, "Rhineland": full}
+        # SR-6a AAR-5 (Oct 2, 2026) — CONSCIOUS RE-SEAT: a FULL label is
+        # read live, so the tie is real only when the man STANDS in the FULL
+        # province; a FULL snapshot naming a man who is not there is
+        # yesterday's label and loses to this turn's PARTIAL truth.
+        from backend.models.marshal import Marshal
+        world.marshals["Mack"] = Marshal(name="Mack", location="Rhineland",
+                                         strength=49000, personality="cautious",
+                                         nation="Austria")
+        world._build_marshal_index()
         rows = _build_intelligence(world, "France")
         mack_rows = [r for r in rows if r["name"] == "Mack"]
         assert mack_rows[0]["location"] == "Rhineland"

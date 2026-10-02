@@ -21,6 +21,7 @@ from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
 from backend.display_names import humanize_entity_name  # LV-2 (row EP F2)
+from backend.display_names import marshal_honorific  # NPC-17 (SR-6 reserve)
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # Slice-8 review [B-F4]: the region-fortification defense bonus was six
@@ -431,6 +432,56 @@ def friendly_fire_refusal(world, marshal, target_nation: str) -> Optional[Dict]:
         message = (f"{marshal.name} cannot attack {target_nation} — they are our "
                    f"{relation}, Sire, and we are not at war with them.")
     return {"success": False, "message": message}
+
+
+# SF-MD-1 "Every man his own voice" (RS-24, Oct 2 2026): the voice banks
+# rotate on the SPEAKER's own battles, not the province's count — Ney kept
+# fighting the "Second Battle of X" (key 1) and Davout the first (key 0),
+# so each man said one line five times in six. False = the province key.
+THE_VOICE_ROTATES_ON_HIS_OWN_RECORD = True
+
+# NPC-11 (Score Finish Step 2 reserve, Oct 2 2026): the literal marshal's
+# "verbatim" quote on an auto-upgraded pursuit was FABRICATED from internal
+# keys (`"Soult attack ArchdukeJohn." Understood to the letter.`); the
+# typed text now rides the upgrade. False = the synthetic line, as shipped.
+THE_LITERAL_QUOTES_THE_TYPED_ORDER = True
+
+# NPC-17 (the same reserve): the muster hedged "if he marches" when the
+# Emperor IS the attacker, and the hostile-refusal row called the lead
+# "this marshal". False = both, as shipped.
+THE_MUSTER_NAMES_THE_LEAD = True
+
+# NPC-25 (the same reserve): the charge refusal names its threshold — one
+# victory. False = "build momentum", as shipped.
+THE_CHARGE_NAMES_ITS_THRESHOLD = True
+
+
+def _voice_rotation_key_for(world, marshal, region_name: str,
+                            situation: str = "") -> int:
+    """A 0-BASED index of the battles THIS man has fought before today's.
+
+    `resolve_combat` has already counted a decided battle on both records
+    (combat.py's win/loss increments precede the voice sites), so a decided
+    battle subtracts itself back out; a draw counts on neither record and
+    is read from the log instead (today's draw is not yet logged). Every
+    battle therefore advances the key by exactly one, draws included.
+    """
+    if not THE_VOICE_ROTATES_ON_HIS_OWN_RECORD:
+        return _voice_rotation_key(world, region_name)
+    won = int(getattr(marshal, "battles_won", 0) or 0)
+    lost = int(getattr(marshal, "battles_lost", 0) or 0)
+    counted_now = 0 if situation == "stalemate" else 1
+    name = getattr(marshal, "name", "")
+    draws = 0
+    for e in (getattr(world, "event_log", None) or []):
+        if e.get("type") != "battle" or e.get("outcome") != "stalemate":
+            continue
+        sides = []
+        for side in (e.get("attacker"), e.get("defender")):
+            sides.append(side.get("name") if isinstance(side, dict) else side)
+        if name in sides:
+            draws += 1
+    return max(0, won + lost - counted_now + draws)
 
 
 def _voice_rotation_key(world, region_name: str) -> int:
@@ -1648,7 +1699,11 @@ class CombatExecutor:
                 "location": m.location,
                 "will_join": bool(will_join),
                 "reason": code,
-                "reason_display": MUSTER_REASON_DISPLAY.get(code, code),
+                "reason_display": (
+                    MUSTER_REASON_DISPLAY.get(code, code).replace(
+                        "this marshal", marshal_honorific(world, marshal.name))
+                    if THE_MUSTER_NAMES_THE_LEAD
+                    else MUSTER_REASON_DISPLAY.get(code, code)),
             }
             if code == "literal_awaits_orders":
                 # §6.3: surface the standing order that already exists.
@@ -1819,8 +1874,10 @@ class CombatExecutor:
         defender_note = ""
         if seen_joining:
             corps = "corps" if len(seen_joining) == 1 else "corps"
+            # RS-26 (SR-6b, Oct 2 2026): "ArchdukeCharles does not stand
+            # alone" — the display name, never the roster key.
             defender_note = (
-                f"{enemy_marshal.name} does not stand alone: at least "
+                f"{humanize_entity_name(enemy_marshal.name)} does not stand alone: at least "
                 f"{len(seen_joining)} enemy {corps} within reach of "
                 f"{battle_region} would march to him."
             )
@@ -1979,7 +2036,9 @@ class CombatExecutor:
                 # Arrival is a roll (PT-A2), so hedge exactly as the
                 # muster's own "if all march" idiom does when he is not
                 # already standing on the field.
-                _hedge = ("" if _sov_present.location == battle_region
+                _hedge = ("" if (_sov_present.location == battle_region
+                                 or (THE_MUSTER_NAMES_THE_LEAD
+                                     and _sov_present is marshal))
                           else ", if he marches")
                 preview["presence_note"] = (
                     f"The Emperor commands in person{_dims} — every corps "
@@ -6121,7 +6180,11 @@ class CombatExecutor:
                         # pre-check above is priced off this very local, so the
                         # gate and the charge move together.
                         "auto_upgrade": priced_as_auto_upgrade,
-                        "raw_input": f"{marshal.name} attack {target}",
+                        # NPC-11: the player's own words, where the command
+                        # carries them; the synthetic line only as a fallback.
+                        "raw_input": ((str((command or {}).get("_raw_input") or "").strip()
+                                       if THE_LITERAL_QUOTES_THE_TYPED_ORDER else "")
+                                      or f"{marshal.name} attack {target}"),
                         "strategic_score": 60,
                         "ambiguity": 15,
                     }
@@ -7908,7 +7971,8 @@ class CombatExecutor:
                     _enemy_m.name,
                     getattr(_enemy_m, "personality", "cautious"),
                     _situation,
-                    _voice_rotation_key(world, target_location))
+                    _voice_rotation_key_for(world, _enemy_m, target_location,
+                                            _situation))
                 if _voice:
                     battle_result["enemy_voice"] = _voice
                     if isinstance(battle_result.get("log_battle_event"), dict):
@@ -7935,7 +7999,8 @@ class CombatExecutor:
                     _own_m.name,
                     getattr(_own_m, "personality", "cautious"),
                     _own_situation,
-                    _voice_rotation_key(world, target_location))
+                    _voice_rotation_key_for(world, _own_m, target_location,
+                                            _own_situation))
                 if _own_voice:
                     battle_result["marshal_voice"] = _own_voice
 
@@ -9489,8 +9554,12 @@ class CombatExecutor:
         if recklessness < 1:
             return {
                 "success": False,
-                "message": f"{marshal.name} needs to build momentum first! "
-                          f"Win battles as attacker to increase recklessness (currently {recklessness}).",
+                "message": ((f"{marshal.name} needs one victory first: a single "
+                             f"battle won as the attacker arms the charge "
+                             f"(recklessness {recklessness} of 1).")
+                            if THE_CHARGE_NAMES_ITS_THRESHOLD else
+                            (f"{marshal.name} needs to build momentum first! "
+                             f"Win battles as attacker to increase recklessness (currently {recklessness}).")),
                 "recklessness": recklessness
             }
 

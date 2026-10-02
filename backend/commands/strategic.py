@@ -27,13 +27,20 @@ from backend.display_names import plural as _plural_lv9  # LV-9 (row EP F2)
 from backend.game_logic.marshal_voice import interrupt_speaker
 
 
+# SR-6b RS-29: False = the plural phrase.
+A_SUPPORT_ORDER_IS_SINGULAR = True
+
+
 def _strategic_command_flavor(cmd_type: str) -> str:
     """Convert internal command type to player-facing flavor text."""
+    # SR-6b RS-29 (Score Finish Step 2, Oct 2 2026): "reinforcement orders
+    # stands and resumes" — the SUPPORT phrase was plural while every
+    # consumer conjugates for one order.
     return {
         "MOVE_TO": "his march",
         "PURSUE": "the pursuit",
         "HOLD": "his position",
-        "SUPPORT": "reinforcement orders",
+        "SUPPORT": "his support order" if A_SUPPORT_ORDER_IS_SINGULAR else "reinforcement orders",
     }.get(cmd_type, "his orders")
 
 
@@ -1391,13 +1398,30 @@ def order_is_timed(order) -> bool:
             and not getattr(condition, "require_all", False))
 
 
+# CRT-4-X1 (SR-6a, Score Finish Step 2, Oct 2 2026): ONE clock for every
+# ETA surface. The road's length was the count on the dispatch, the report
+# rows and the Ledger (a cavalry corps overstated: Murat -> Normandy read 5
+# where 3 were driven), and the relay's ceil(len / range) forgot that the
+# issuing turn's tick is skipped (one short on a just-issued march). The
+# clock is `march_turns`'s: end turns until he stands at the end —
+# ceil(steps / range), +1 on a surface read BEFORE the issuing turn's
+# skipped tick (the Ledger, the relay, the desk) for an order issued that
+# turn. The report rows are read AT the tick and take no +1. Lever False =
+# the road's length everywhere, byte for byte.
+ONE_CLOCK = True
+
+
 def order_turns_remaining(order, current_turn: int, *,
-                          including_current: bool = True) -> int:
+                          including_current: bool = True,
+                          movement_range: int = 1,
+                          before_tick: bool = False) -> int:
     """LV-D3 (row EP F3): ONE arithmetic for "how much of this order is
     left" — the strategic report at the tick and the morning dispatch's
     MARSHAL STATUS (which inherited the retired recap modal's lines) must
     agree. A timed order counts its turns (`count_order_turns`); any other
-    order counts the steps of road still ahead of the man.
+    order counts the END TURNS until the man stands at the end of his road
+    (CRT-4-X1: ceil(steps / `movement_range`), +1 when `before_tick` and the
+    order was issued this turn — that turn's tick is skipped).
 
     ``including_current`` is the timer's own knob: True at the tick (the turn
     being closed counts), False on a start-of-turn surface (the dispatch, the
@@ -1408,15 +1432,26 @@ def order_turns_remaining(order, current_turn: int, *,
                    - count_order_turns(order, int(current_turn),
                                        including_current=including_current))
     path = getattr(order, "path", None)
-    return len(path) if path else 0
+    steps = len(path) if path else 0
+    if not ONE_CLOCK or steps <= 0:
+        return steps
+    reach = max(1, int(movement_range or 1))
+    ticks = -(-steps // reach)
+    issued = getattr(order, "issued_turn", None)
+    if before_tick and issued is not None and int(issued) == int(current_turn):
+        ticks += 1
+    return int(ticks)
 
 
-def order_eta_phrase(order, current_turn: int) -> str:
+def order_eta_phrase(order, current_turn: int, *, movement_range: int = 1) -> str:
     """LV-D3: the dispatch's clause for a standing order — "" when there is
     nothing to say, else " — arrives next turn" / " — 3 turns out" /
     " — holds 2 more turns" and the pursuit/support variants. Start-of-turn
-    reading (the turn is still to play)."""
-    remaining = order_turns_remaining(order, current_turn, including_current=False)
+    reading (the turn is still to play; CRT-4-X1: read before the tick, on
+    the one clock)."""
+    remaining = order_turns_remaining(order, current_turn, including_current=False,
+                                      movement_range=movement_range,
+                                      before_tick=True)
     cmd = getattr(order, "command_type", "")
     if order_is_timed(order):
         if remaining <= 0:
@@ -1589,7 +1624,9 @@ class StrategicOrderProcessor:
                 # LV-D3: ONE arithmetic with the dispatch's MARSHAL STATUS
                 # (order_turns_remaining) — the two surfaces cannot drift.
                 timed = order_is_timed(order)
-                remaining = order_turns_remaining(order, int(world.current_turn))
+                remaining = order_turns_remaining(
+                    order, int(world.current_turn),
+                    movement_range=getattr(marshal, "movement_range", 1))
 
                 # Context-appropriate message based on order type and position
                 # LV-4 / LV-9 (row EP F2): "(2 turn(s) remaining)" was the
@@ -1642,7 +1679,8 @@ class StrategicOrderProcessor:
                     "order_status": "active",
                     "destination": order.target,
                     "turns_remaining": int(order_turns_remaining(
-                        order, int(world.current_turn))),
+                        order, int(world.current_turn),
+                        movement_range=getattr(marshal, "movement_range", 1))),
                     "message": (f"{marshal.name} answered the guns this turn "
                                 f"and stands at {marshal.location}; "
                                 f"{_strategic_command_flavor(order.command_type)} "
@@ -2826,13 +2864,18 @@ class StrategicOrderProcessor:
 
         if moves_made:
             remaining = len(order.path)
+            # CRT-4-X1: the row's count is the ONE clock (end turns, range-
+            # aware); the sentence keeps the road's length as a fact.
+            turns_left = order_turns_remaining(
+                order, int(world.current_turn),
+                movement_range=getattr(marshal, "movement_range", 1))
             return {
                 "marshal": marshal.name,
                 "command": "MOVE_TO",
                 "order_status": "continues",
                 "regions_moved": moves_made,
                 "destination": destination,
-                "turns_remaining": int(remaining),
+                "turns_remaining": int(turns_left),
                 "message": f"{marshal.name} marches to {moves_made[-1]}. "
                            f"{_plural_lv9(int(remaining), 'region')} to {destination}."
             }

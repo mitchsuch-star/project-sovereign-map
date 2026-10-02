@@ -537,6 +537,34 @@ def _relevance(nation: str, view: IntentView, world) -> float:
     return RELEVANCE_FAR
 
 
+# IQ6-D3 (SR-6a, Score Finish Step 2, Oct 2 2026): no hysteresis in the
+# intent narration — Austria went eases -> hardens -> eases on consecutive
+# turns as its weight hovered at a rung's floor. A rung change is reported
+# only once the weight has moved INTENT_DEAD_BAND points from the weight at
+# which the last reported rung was taken (the anchor rides the serialized
+# seen string as a third field; a two-field string from an older save
+# reads as "no anchor" and reports as before). Display only. And the tail
+# names its courts ("And Prussia and Sweden stir at their own designs")
+# instead of counting them. Levers False = the pre-slice lines byte for byte.
+THE_NARRATION_HAS_A_DEAD_BAND = True
+THE_TAIL_NAMES_ITS_COURTS = True
+INTENT_DEAD_BAND = 5   # weight points; blessed, in-band tunable
+
+
+def _seen_parts(previous: str):
+    """(want, price, anchor weight or None) from a seen string."""
+    parts = str(previous or "").split("|")
+    want = parts[0] if parts else ""
+    price = parts[1] if len(parts) > 1 else ""
+    anchor = None
+    if len(parts) > 2:
+        try:
+            anchor = int(parts[2])
+        except (TypeError, ValueError):
+            anchor = None
+    return want, price, anchor
+
+
 def process_intent_movements(world) -> List[Dict]:
     """AI-6 (§4.6, Stage F): the dispatch reports ROUTINE movement on the
     ladder as news — a court hardening, a court easing — under the hard
@@ -574,15 +602,27 @@ def process_intent_movements(world) -> List[Dict]:
             # owns that drama): clear the record silently.
             seen.pop(nation, None)
             continue
-        current = f"{view.want_id}|{view.price}"
+        current = (f"{view.want_id}|{view.price}|{int(view.weight)}"
+                   if THE_NARRATION_HAS_A_DEAD_BAND else f"{view.want_id}|{view.price}")
         previous = seen.get(nation)
         seen[nation] = current
         if previous is None:
             continue  # first observation is bookkeeping, never news
-        prev_want, _, prev_price = previous.partition("|")
+        prev_want, prev_price, anchor = _seen_parts(previous)
         if prev_want != view.want_id:
             continue  # the want changed — agenda_shift announced it
         if prev_price == view.price:
+            if THE_NARRATION_HAS_A_DEAD_BAND and anchor is None:
+                # An older record gains its anchor on the first quiet read.
+                seen[nation] = current
+            elif THE_NARRATION_HAS_A_DEAD_BAND:
+                seen[nation] = f"{view.want_id}|{view.price}|{anchor}"
+            continue
+        if (THE_NARRATION_HAS_A_DEAD_BAND and anchor is not None
+                and abs(int(view.weight) - int(anchor)) < INTENT_DEAD_BAND):
+            # Inside the dead band: the rung flickered at its floor. Keep
+            # the reported rung and its anchor; say nothing.
+            seen[nation] = f"{view.want_id}|{prev_price}|{anchor}"
             continue
         movements.append({
             "nation": nation,
@@ -627,12 +667,18 @@ def process_intent_movements(world) -> List[Dict]:
         })
     overflow = len(movements) - INTENT_DISPATCH_CAP
     if overflow > 0:
-        queue_dispatch_event(world, "intent_movement_tail", {
+        tail_vars = {
             "count": str(overflow),
             "plural": "" if overflow == 1 else "s",
             "verb": "s" if overflow == 1 else "",
             "poss": "its" if overflow == 1 else "their",
-        }, "always")
+        }
+        if THE_TAIL_NAMES_ITS_COURTS:
+            from backend.campaign_log import and_join
+            tail_vars["courts"] = and_join(
+                [_live_nation_name(world, m["nation"])
+                 for m in movements[INTENT_DISPATCH_CAP:]])
+        queue_dispatch_event(world, "intent_movement_tail", tail_vars, "always")
         events.append({"type": "intent_movement_tail", "count": overflow})
     return events
 

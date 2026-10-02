@@ -58,9 +58,11 @@ class TestOwnSituationDerivation:
 
 class TestOwnVoicePicking:
     def test_personality_matches_situation(self):
-        line = MV.pick_marshal_voice("Bernadotte", "cautious",
+        # SF-MD-1: Bernadotte has his own row now; the personality register
+        # speaks through an UNNAMED man.
+        line = MV.pick_marshal_voice("Mortier", "cautious",
                                      "held_the_line", 0)
-        assert line.startswith("Bernadotte:")
+        assert line.startswith("Mortier:")
         assert line.split(": ", 1)[1].strip('"') in \
             MV._OWN_PERSONALITY_LINES["cautious"]["held_the_line"]
 
@@ -69,9 +71,12 @@ class TestOwnVoicePicking:
                                      "carried_the_field", 0)
         assert "The Third Corps does not require luck" in line
 
-    def test_named_falls_back_for_missing_situation(self):
-        # Murat has no stalemate row — his aggressive register speaks.
-        line = MV.pick_marshal_voice("Murat", "aggressive", "stalemate", 0)
+    def test_named_falls_back_for_missing_situation(self, monkeypatch):
+        # SF-MD-1: every French row now covers every situation, so the
+        # fallback is pinned on a row authored WITHOUT one.
+        monkeypatch.setitem(MV._OWN_NAMED_LINES, "Zorglub",
+                            {"carried_the_field": ["Mine."]})
+        line = MV.pick_marshal_voice("Zorglub", "aggressive", "stalemate", 0)
         assert line != ""
         assert line.split(": ", 1)[1].strip('"') in \
             MV._OWN_PERSONALITY_LINES["aggressive"]["stalemate"]
@@ -93,7 +98,9 @@ class TestOwnVoicePicking:
                 assert len(bank[situation]) >= 3, (personality, situation)
 
     def test_named_rows_are_marquee_only(self):
-        assert set(MV._OWN_NAMED_LINES) == {"Ney", "Davout", "Murat"}
+        # SF-MD-1 (Oct 2 2026): every French marshal of 1805 has a row.
+        assert set(MV._OWN_NAMED_LINES) == {"Ney", "Davout", "Murat", "Lannes",
+                                            "Soult", "Bernadotte", "Massena"}
 
     def test_unknown_situation_is_silent(self):
         assert MV.pick_marshal_voice("Ney", "aggressive", "repelled_you",

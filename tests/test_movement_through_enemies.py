@@ -44,8 +44,11 @@ class TestMoveThroughEnemyToEnemyBlocked:
         result = executor.execute(command, {"world": world})
 
         assert result["success"] is False
-        assert "Cannot advance while engaged with enemy forces" in result["message"]
-        assert "friendly territory" in result["message"]
+        # NPC-13 (SR-6 reserve, Oct 2 2026): the refusal names the enemy.
+        assert "Cannot advance while engaged with " in result["message"]
+        assert ("He may fall back to friendly ground" in result["message"]
+                or "he must fight or stand" in result["message"])
+        assert "friendly ground" in result["message"]
         assert ney.location == "Belgium"  # Ney didn't move
 
     def test_move_to_enemy_territory_blocked_error_includes_engaged_with(self):
@@ -174,7 +177,10 @@ class TestEnemyAIFollowsSameRules:
         result = executor.execute(command, {"world": world})
 
         assert result["success"] is False
-        assert "Cannot advance while engaged with enemy forces" in result["message"]
+        # NPC-13 (SR-6 reserve, Oct 2 2026): the refusal names the enemy.
+        assert "Cannot advance while engaged with " in result["message"]
+        assert ("He may fall back to friendly ground" in result["message"]
+                or "he must fight or stand" in result["message"])
         assert wellington.location == "Waterloo"
 
     def test_enemy_can_retreat_to_own_territory_when_engaged(self):

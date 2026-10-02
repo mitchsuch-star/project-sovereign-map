@@ -240,6 +240,15 @@ def _marshal_not_a_province(world, marshal, target, region_error):
     return region_error
 
 
+# WO-D11 copy half (SR-6b): False = the bare "The province is secured."
+THE_MARCH_NAMES_THE_FORFEIT = True
+
+# NPC-13 (Score Finish Step 2 reserve, Oct 2 2026): the engaged-move refusal
+# names the enemy it already computed and offers only a retreat that exists.
+# False = "You may retreat to friendly territory." + a dangling empty label.
+THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY = True
+
+
 class MovementExecutor:
     """Handles movement and reconnaissance actions: move, scout, retreat."""
 
@@ -370,11 +379,40 @@ class MovementExecutor:
                         and world.is_at_war(marshal.nation, m.nation)]
 
         if enemies_here and target_region.controller != marshal.nation:
+            friendly_adjacent = [
+                r for r in current_region.adjacent_regions
+                if world.get_region(r) and world.get_region(r).controller == marshal.nation]
+            if THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY:
+                # NPC-13: name the enemy the check already found, and offer
+                # only a retreat that exists — never a dangling empty label.
+                from backend.campaign_log import and_join
+                from backend.display_names import humanize_entity_name as _hname
+                _foes = and_join([_hname(e.name) for e in enemies_here])
+                _msg = (f"Cannot advance while engaged with {_foes} at "
+                        f"{marshal.location}.")
+                if friendly_adjacent:
+                    _msg += (f" He may fall back to friendly ground — "
+                             f"{', '.join(friendly_adjacent)} — or fight.")
+                    _hint = (f"'{marshal.name}, retreat' falls back to "
+                             f"{friendly_adjacent[0]}; '{marshal.name}, attack "
+                             f"{_hname(enemies_here[0].name)}' fights.")
+                else:
+                    _msg += " No friendly province adjoins him: he must fight or stand."
+                    _hint = (f"'{marshal.name}, attack "
+                             f"{_hname(enemies_here[0].name)}' fights; "
+                             f"'{marshal.name}, hold' stands.")
+                return {
+                    "success": False,
+                    "message": _msg,
+                    "engaged_with": [e.name for e in enemies_here],
+                    "retreat_options": list(friendly_adjacent),
+                    "suggestion": _hint,
+                }
             return {
                 "success": False,
                 "message": "Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
                 "engaged_with": [e.name for e in enemies_here],
-                "suggestion": f"Friendly regions adjacent: {', '.join([r for r in current_region.adjacent_regions if world.get_region(r) and world.get_region(r).controller == marshal.nation])}"
+                "suggestion": f"Friendly regions adjacent: {', '.join(friendly_adjacent)}"
             }
 
         # THE CROSSING GATE (DEF-5 naval — NAVAL_SPEC §4.1). Sited BEFORE the
@@ -846,6 +884,10 @@ class MovementExecutor:
             world.calculate_visibility()
 
         move_message = f"{marshal.name} moves from {old_location} to {target_name}"
+        # WO-D11 copy half (SR-6b): the capture's own sentence(s), stamped
+        # on the result so the strategic road can carry them — its first
+        # step composes its own " Moves to X." and used to drop them.
+        capture_note = ""
         if drill_cancelled_message:
             move_message = drill_cancelled_message + move_message
         if move_substitution_note:
@@ -951,7 +993,22 @@ class MovementExecutor:
                 # test used to fire — an AI marshal's own secure still
                 # narrates through the enemy phase, not here.
                 if capture_result.get("auto_secured"):
-                    move_message += " The province is secured."
+                    capture_note = " The province is secured."
+                    # WO-D11's copy half (SR-6b, Oct 2 2026): a mid-march
+                    # capture auto-secures, so no plunder/secure question
+                    # mounts and the estate prune strips the holder's title
+                    # at the advance — said where the player reads it.
+                    _holder = next(
+                        (m for m in world.marshals.values()
+                         if m.nation != marshal.nation
+                         and target_name in (getattr(m, "dotation_regions", None) or [])),
+                        None)
+                    if THE_MARCH_NAMES_THE_FORFEIT and _holder is not None:
+                        from backend.display_names import humanize_entity_name as _hum
+                        capture_note += (f" {_hum(_holder.name)}'s estate there is "
+                                         f"forfeit — the column takes no windfall "
+                                         f"and buys no goodwill.")
+                    move_message += capture_note
 
         events = [{
             "type": "move",
@@ -1075,6 +1132,7 @@ class MovementExecutor:
         result = {
             "success": True,
             "message": move_message + capture_hint_msg,
+            "capture_note": capture_note,
             "drill_cancelled": bool(drill_cancelled_message),
             "events": events,
             "new_state": game_state

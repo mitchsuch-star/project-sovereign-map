@@ -121,9 +121,16 @@ def _standing_state(marshal) -> Optional[str]:
     return None
 
 
-def _eta_turns(marshal, order) -> int:
+def _eta_turns(marshal, order, current_turn=None) -> int:
+    """CRT-4-X1 (SR-6a): the ONE clock, read before the tick (the relay
+    judges a tail at issue time, so a just-issued march counts the skipped
+    issuing tick). Lever down = ceil(len / range), one short on that march."""
+    from backend.commands import strategic as _road
     path = list(getattr(order, "path", None) or [])
     rng = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    if _road.ONE_CLOCK and current_turn is not None and path:
+        return max(1, int(_road.order_turns_remaining(
+            order, int(current_turn), movement_range=rng, before_tick=True)))
     return max(1, int(math.ceil(len(path) / rng))) if path else 1
 
 
@@ -199,7 +206,8 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
                 dest = resolve_order_destination(world, marshal, order)
             except Exception:
                 dest = getattr(order, "target", "his destination")
-            eta = _eta_turns(marshal, order)
+            eta = _eta_turns(marshal, order,
+                             int(getattr(world, "current_turn", 0) or 0))
             return done("moment",
                         f"{lead}Sent now it would take {who}'s next turn where he "
                         f"stands, not at {dest} — he reaches it in ~{_plural(int(eta), 'turn')}. "

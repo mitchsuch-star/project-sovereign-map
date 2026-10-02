@@ -55,6 +55,33 @@ THE_OBJECTION_NAMES_ITS_CONCERN = True
 # restores the note on the defaulted hold.
 THE_DEFAULT_HOLD_READS_NO_NAME = True
 
+# WO-D11 copy half (SR-6b, Oct 2 2026): a strategic first step that captures
+# a province used to report only " Moves to X." — the movement executor's
+# capture sentence (and the estate forfeit it names) never reached the line
+# the player reads. False = the bare first-step message.
+THE_MARCH_REPORTS_ITS_CAPTURE = True
+
+# RS-5 backstop (Score Finish Step 2 reserve, Oct 2 2026): the strategic
+# objection was cleared BEFORE the Trust arm re-executed, and the authority
+# tracker recorded a "trust" answer — so when the preferred order was
+# REFUSED ("No intelligence on Kutuzov's position"), the question was gone,
+# "Insist" answered "No objection pending", and the player's original order
+# was never issued. A refused Trust now keeps the objection on the desk and
+# the tracker unmoved. False = the cleared question, as shipped.
+A_REFUSED_TRUST_KEEPS_THE_OBJECTION = True
+
+# NPC-D4 (the same reserve): `attack <marshal>` at range silently became a
+# multi-turn PURSUE announced as an attack that happened to move. The
+# auto-upgrade now states its own terms at issue time. False = the bare line.
+THE_PURSUIT_STATES_ITS_TERMS = True
+
+
+def _capture_tail(move_result) -> str:
+    """The capture sentence(s) a first-step move stamped on its result."""
+    if not THE_MARCH_REPORTS_ITS_CAPTURE:
+        return ""
+    return str((move_result or {}).get("capture_note") or "")
+
 
 def _defiant_verb(action: str) -> str:
     """Slice 17 review round (L2-11): the defiance notice's SECOND clause
@@ -1481,6 +1508,7 @@ class StrategicExecutor:
         # ── Execute first step immediately ────────────────────────────
         # Cavalry (movement_range=2) moves UP TO movement_range regions per step
         first_step_msg = ""
+        capture_tail = ""  # WO-D11 copy half: the capture rides the march's own line
         movement_range = getattr(marshal, 'movement_range', 1)
         print(f"[STRATEGIC INIT] {marshal.name}: Path = {path}, movement_range = {movement_range}")
         print(f"[STRATEGIC INIT] {marshal.name}: Executing first step from {marshal.location}...")
@@ -1565,6 +1593,7 @@ class StrategicExecutor:
                 if move_result.get("success"):
                     order.path.pop(0)
                     moved_regions.append(next_region)
+                    capture_tail += _capture_tail(move_result)
                     print(f"[STRATEGIC INIT] {marshal.name}: Moved to {next_region} OK")
                 else:
                     print(f"[STRATEGIC INIT] {marshal.name}: Move FAILED - {move_result.get('message', '?')}")
@@ -1624,6 +1653,7 @@ class StrategicExecutor:
                     if move_result.get("success"):
                         order.path.pop(0)
                         moved_regions.append(next_region)
+                        capture_tail += _capture_tail(move_result)
                     else:
                         break
                 if moved_regions:
@@ -1670,6 +1700,7 @@ class StrategicExecutor:
                 if move_result.get("success"):
                     order.path.pop(0)
                     moved_regions.append(next_region)
+                    capture_tail += _capture_tail(move_result)
                 else:
                     # Move failed — check if target is in this region (PURSUE should attack)
                     enemy_m = world.get_marshal(target)
@@ -1749,6 +1780,7 @@ class StrategicExecutor:
                 if move_result.get("success"):
                     order.path.pop(0)
                     moved_regions.append(next_region)
+                    capture_tail += _capture_tail(move_result)
                 else:
                     break
             if moved_regions:
@@ -1768,6 +1800,7 @@ class StrategicExecutor:
                 order.arrived_turn = world.current_turn
 
         # ── Build response ────────────────────────────────────────────
+        first_step_msg = f"{first_step_msg}{capture_tail}"
         remaining = len(order.path) if order.path else 0
         route_str = " → ".join([marshal.location] + (order.path or []))  # LV-19: one arrow
 
@@ -1801,6 +1834,22 @@ class StrategicExecutor:
                        or "unknown")
             msg = (f"{marshal.name} pursues {humanize_entity_name(target)} "
                    f"(at {loc}).{first_step_msg}")
+            _upgraded = (bool(parsed_command.get("attack_on_arrival"))
+                         and str((parsed_command.get("command") or {}).get("action") or "") == "attack")
+            if THE_PURSUIT_STATES_ITS_TERMS and _upgraded:
+                # NPC-D4: the upgrade announces what it IS — a standing
+                # order with a pace, a road, an interrupt and a lapse.
+                from backend.commands.strategic import march_turns
+                _steps = len(order.path or [])
+                _turns = march_turns(_steps, movement_range) if _steps else 0
+                _pace = (f"{movement_range} province"
+                         f"{'s' if movement_range != 1 else ''} a turn")
+                _road = (f" — about {_turns} turn{'s' if _turns != 1 else ''} to {loc}"
+                         if _turns and loc != "unknown" else "")
+                msg += (f" A standing order, not a single attack: he closes {_pace}"
+                        f"{_road}, attacks on arrival, may be diverted by an "
+                        f"interrupt, and stands down if intelligence on him lapses. "
+                        f"'{marshal.name}, cancel' recalls him.")
         elif strategic_type == "HOLD":
             hold_loc = target or marshal.location
             # A HOLD is a STANDING order, and the CR-5 rider-(d)
@@ -2216,6 +2265,7 @@ class StrategicExecutor:
             # ── Execute first step immediately (same as normal strategic path) ──
             # Without this, compromise orders lose a turn sitting idle.
             first_step_msg = ""
+            capture_tail = ""
             if order.path:
                 movement_range = getattr(marshal, 'movement_range', 1)
                 steps = min(movement_range, len(order.path))
@@ -2253,6 +2303,7 @@ class StrategicExecutor:
                     if move_result.get("success"):
                         order.path.pop(0)
                         moved_regions.append(next_region)
+                        capture_tail += _capture_tail(move_result)
                     else:
                         break
                 if moved_regions:
@@ -2268,6 +2319,7 @@ class StrategicExecutor:
                         order.arrived_turn = world.current_turn
 
             # Build success message
+            first_step_msg = f"{first_step_msg}{capture_tail}"
             if condition and condition.max_turns:
                 if strategic_type == "SUPPORT":
                     msg = f"{marshal.name} agrees to support {target} for {condition.max_turns} turns.{first_step_msg}"
@@ -2863,6 +2915,11 @@ class StrategicExecutor:
         # Clear the pending strategic objection BEFORE re-execution
         world.pending_strategic_objection = None
 
+        # RS-5 backstop: snapshot the tracker so a REFUSED Trust can put it
+        # back exactly (record_response moves authority and the window).
+        _tracker_before = (int(world.authority_tracker.authority),
+                           list(world.authority_tracker.recent_responses))
+
         # Record response in authority tracker (V2b: enriched with turn)
         authority_event = world.authority_tracker.record_response(choice, world.current_turn)
 
@@ -3073,6 +3130,27 @@ class StrategicExecutor:
 
             # Execute the strategic command (this will skip objection check)
             result = self._execute_strategic_command(parsed_command, original_command, game_state)
+
+        # RS-5 backstop: a Trust whose preferred order the executor REFUSED
+        # (no battle fought, nothing issued) keeps the objection on the desk
+        # — the player may still Insist on the order he gave — and the
+        # authority tracker records nothing, because nothing happened.
+        if (A_REFUSED_TRUST_KEEPS_THE_OBJECTION
+                and strategic_response == "preferred"
+                and isinstance(result, dict)
+                and result.get("success") is False
+                and not result.get("battle_report")
+                and not result.get("pending_objection")
+                and world.pending_strategic_objection is None):
+            world.pending_strategic_objection = objection
+            world.authority_tracker.authority = _tracker_before[0]
+            world.authority_tracker.recent_responses = _tracker_before[1]
+            result["objection_kept"] = True
+            result["pending_strategic_objection"] = objection
+            result["message"] = (
+                f"{result.get('message', '')} The objection stands — "
+                f"'insist' presses your original order, or give {marshal.name} "
+                f"another.").strip()
 
         # Append failed-roll Berthier text if defiance roll failed
         if _failed_roll_berthier and result and result.get("message"):

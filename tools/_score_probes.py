@@ -1194,13 +1194,16 @@ def narration_c4_intel_row(arms, ctx):
                 "intelligence"
             ) or []
             for row in rows:
+                if row.get("kind") == "garrison":
+                    continue   # SR-6a: a garrison row is a province, not a man
                 checked += 1
                 shown = str(row.get("name", ""))
-                candidates = [shown, shown.replace(" ", "")] + [
+                candidates = [str(row.get("roster_name") or ""), shown, shown.replace(" ", "")] + [
                     k
                     for k in w.marshals
                     if k.replace(" ", "").lower() == shown.replace(" ", "").lower()
                 ]
+                candidates = [c for c in candidates if c]
                 lk = next(
                     (
                         w.get_last_known_location(c)
@@ -1209,7 +1212,17 @@ def narration_c4_intel_row(arms, ctx):
                     ),
                     None,
                 )
-                if not lk or lk[0] != row.get("location"):
+                # AAR-5 (Step 2): a LIVE row places the man where he STANDS in a
+                # province in full view this morning — the store's last sighting
+                # may be a turn older (it is written before the enemy phase).
+                live_ok = False
+                if row.get("source") == "live":
+                    from backend.models.intel import FULL as _FULL
+                    _m = next((w.marshals.get(c) for c in candidates if w.marshals.get(c)), None)
+                    _intel = w.intel.get(str(row.get("location") or ""))
+                    live_ok = bool(_m is not None and _m.location == row.get("location")
+                                   and _intel is not None and _intel.visibility == _FULL)
+                if not live_ok and (not lk or lk[0] != row.get("location")):
                     bad.append(
                         f"{n} t{_save_turn(p)}: {shown} shown at {row.get('location')}, store says {lk[0] if lk else None}"
                     )
@@ -1220,7 +1233,7 @@ def narration_c4_intel_row(arms, ctx):
         not bad,
         f"{checked} intel rows; disagreeing with the store: {bad[:3]}"
         if bad
-        else f"{checked} intel rows, each where the store last saw the man",
+        else f"{checked} intel rows, each where the store last saw the man or where he stands in full view",
     )
 
 

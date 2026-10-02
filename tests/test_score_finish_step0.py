@@ -106,8 +106,11 @@ class TestTheLedgersTellTheTruth:
         assert rows["IQ6-D2"]["state"] == "OPEN" and rows["IQ6-D2"]["step"] == "3"
 
     def test_the_heading_form_design_rows_are_counted(self, rows):
-        assert rows["NPC-D1"]["state"] == "OPEN" and rows["NPC-D1"]["pillar"] == "narration"
-        assert rows["NPC-D4"]["state"] == "OPEN"
+        # Step 0 read NPC-D1 / NPC-D4 OPEN; Step 2 BUILT both (Oct 2, 2026),
+        # so the heading-form rows are now counted as CLOSED — the point of
+        # the pin (the table form is read at all, with its pillar) stands.
+        assert rows["NPC-D1"]["state"] == "closed" and rows["NPC-D1"]["pillar"] == "narration"
+        assert rows["NPC-D4"]["state"] == "closed"
         assert rows["NPC-D2"]["state"] == "disposed" and rows["NPC-D3"]["state"] == "disposed"
 
     def test_the_two_p1s_are_where_the_rule_reads_them(self, rows):

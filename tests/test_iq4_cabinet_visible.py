@@ -1200,7 +1200,10 @@ class TestTheLaunchIsNotARejection:
         w, client = http
         assert _start_http(client, "court Prussia").get("success")
         rows = _proposal_results(w)
-        assert [n["title"] for n in rows] == ["Diplomatic Action Rejected"]
+        # SR-6a RS-20 (Oct 2, 2026) — CONSCIOUS RE-SEAT: with THIS lever
+        # down the launch still rides the PL-14 net (the pin's point), but
+        # the net's own fallback is now neutral ("Noted"), never "Rejected".
+        assert [n["title"] for n in rows] == ["Diplomatic Action Noted"]
 
 
 # ════════════════════════════════════════════════════════════════════

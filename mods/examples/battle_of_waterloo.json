@@ -1,63 +1,101 @@
 {
-    "_comment": "Full scenario example: Battle of Waterloo",
+    "_comment": "Full scenario example: Battle of Waterloo — NP-X5 (Oct 2, 2026): every nation on the field needs its capital among the scenario regions (the validator's runtime_support rule), so Britain's seat (Netherlands, the legacy proxy) and Prussia's (Berlin) stand off the map's edge.",
     "scenario_name": "Battle of Waterloo",
     "scenario_description": "June 18, 1815 - The final confrontation between Napoleon and the Allied forces",
     "scenario_author": "Example Modder",
     "scenario_version": "1.0",
-
     "player_nation": "France",
     "current_turn": 1,
     "max_turns": 10,
     "gold": 500,
-
     "regions": {
         "Waterloo": {
             "name": "Waterloo",
-            "adjacent_regions": ["Brussels", "Wavre", "Charleroi"],
+            "adjacent_regions": [
+                "Brussels",
+                "Wavre",
+                "Charleroi"
+            ],
             "income_value": 50,
             "is_capital": false,
             "controller": "Britain"
         },
         "Brussels": {
             "name": "Brussels",
-            "adjacent_regions": ["Waterloo", "Antwerp"],
+            "adjacent_regions": [
+                "Waterloo",
+                "Antwerp"
+            ],
             "income_value": 150,
-            "is_capital": true,
+            "is_capital": false,
             "controller": "Britain"
         },
         "Wavre": {
             "name": "Wavre",
-            "adjacent_regions": ["Waterloo", "Liege"],
+            "adjacent_regions": [
+                "Waterloo",
+                "Liege"
+            ],
             "income_value": 30,
             "controller": "Prussia"
         },
         "Charleroi": {
             "name": "Charleroi",
-            "adjacent_regions": ["Waterloo", "Paris"],
+            "adjacent_regions": [
+                "Waterloo",
+                "Paris"
+            ],
             "income_value": 40,
             "controller": "France"
         },
         "Paris": {
             "name": "Paris",
-            "adjacent_regions": ["Charleroi"],
+            "adjacent_regions": [
+                "Charleroi"
+            ],
             "income_value": 200,
             "is_capital": true,
             "controller": "France"
         },
         "Liege": {
             "name": "Liege",
-            "adjacent_regions": ["Wavre"],
+            "adjacent_regions": [
+                "Berlin",
+                "Wavre"
+            ],
             "income_value": 50,
             "controller": "Prussia"
         },
         "Antwerp": {
             "name": "Antwerp",
-            "adjacent_regions": ["Brussels"],
+            "adjacent_regions": [
+                "Brussels",
+                "Netherlands"
+            ],
             "income_value": 80,
             "controller": "Britain"
+        },
+        "Netherlands": {
+            "name": "Netherlands",
+            "adjacent_regions": [
+                "Antwerp"
+            ],
+            "income_value": 120,
+            "is_capital": true,
+            "controller": "Britain",
+            "region_type": "capital"
+        },
+        "Berlin": {
+            "name": "Berlin",
+            "adjacent_regions": [
+                "Liege"
+            ],
+            "income_value": 120,
+            "is_capital": true,
+            "controller": "Prussia",
+            "region_type": "capital"
         }
     },
-
     "marshals": {
         "Napoleon": {
             "name": "Napoleon",

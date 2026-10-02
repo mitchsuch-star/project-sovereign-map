@@ -144,7 +144,10 @@ class TestTheTableTellsTheTruth:
         assert row["stance"] == congress.REFUSES
         pr = congress.price(w, "Britain", row)
         assert any(lv["key"] == "ports" for lv in pr["levers"])
-        assert "ports" in pr["text"]
+        # RS-25 (SR-6b, Oct 2 2026): the lever stays on the table at peace but
+        # tells the truth about it — the System shuts a port only against a
+        # court at WAR with it, so at peace no port is closed to her.
+        assert "the System shuts a port only against a court at war with it — at peace, no port is closed to her" in pr["text"]
 
     def test_7_quote_charge_receipt_and_score_agree_on_a_part_paid_court(self):
         w = _boot()

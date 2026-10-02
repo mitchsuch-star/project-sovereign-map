@@ -81,6 +81,16 @@ def generate_intel_report(world) -> Dict[str, Any]:
     last_known = []      # LAST_KNOWN
     no_intelligence = [] # UNKNOWN
 
+    # SR-6a (AAR-5 / AAR4-X2): the report follows the ONE surface rule —
+    # a man confirmed LIVE at a FULL province is not also a "recent report"
+    # at the province he left, and a known enemy garrison is named on
+    # the tier its fog admits (exact at FULL, the band below).
+    from backend.game_logic import intel_surfaces as _surf
+    live_elsewhere = (set(_surf.live_sightings(world, player_nation))
+                      if _surf.THE_SIGHTING_IS_LIVE else set())
+    garrison_rows = {g["location"]: g
+                     for g in _surf.known_garrisons(world, player_nation)}
+
     for region_name, region in world.regions.items():
         intel = world.get_region_intel(region_name)
         visibility = intel.visibility
@@ -114,16 +124,40 @@ def generate_intel_report(world) -> Dict[str, Any]:
                         "stance": stance_val,
                         "ability": ability_name if ability_name not in ("", "None") else "",
                     })
-            if enemies:
-                region_info["enemies"] = enemies
+            garrison = garrison_rows.get(region_name)
+            if garrison is not None and garrison["visibility"] == FULL:
+                region_info["garrison"] = {
+                    "nation": garrison["nation"],
+                    "strength": int(garrison["strength"]),
+                    "display": garrison["strength_display"],
+                }
+            if enemies or "garrison" in region_info:
+                if enemies:
+                    region_info["enemies"] = enemies
                 region_info["intel_source"] = intel.intel_source
                 region_info["last_updated_turn"] = int(intel.last_updated_turn)
                 confirmed.append(region_info)
 
         elif visibility in (PARTIAL, STALE):
             # Strength band only, from intel snapshot (may be stale)
-            if intel.known_marshals:
-                region_info["known_marshals"] = intel.known_marshals
+            known = [km for km in intel.known_marshals
+                     if km.get("name") not in live_elsewhere]
+            garrison = garrison_rows.get(region_name)
+            if garrison is not None:
+                region_info["garrison"] = {
+                    "nation": garrison["nation"],
+                    "display": garrison["strength_display"],
+                }
+                if not known:
+                    region_info["intel_source"] = intel.intel_source
+                    region_info["last_updated_turn"] = int(intel.last_updated_turn)
+                    region_info["turns_ago"] = int(
+                        world.current_turn - intel.last_updated_turn)
+                    if visibility == STALE:
+                        region_info["stale"] = True
+                    recent_reports.append(region_info)
+            if known:
+                region_info["known_marshals"] = known
                 region_info["strength_band"] = intel.strength_band
                 region_info["intel_source"] = intel.intel_source
                 region_info["last_updated_turn"] = int(intel.last_updated_turn)
@@ -197,16 +231,23 @@ def generate_intel_report(world) -> Dict[str, Any]:
                 famed = f" — famed for '{e['ability']}'" if e.get("ability") else ""
                 lines.append(f"  {humanize_entity_name(e['name'])} ({e['nation']}): {e['strength']:,} troops at {r['region']}, "
                              f"{e['stance']} stance, morale {e['morale']}{famed}")
+            if r.get("garrison"):
+                g = r["garrison"]
+                lines.append(f"  {r['region']} ({g['nation']}): {g['display']} holds the works")
         lines.append("")
 
     # Recent Reports (PARTIAL/STALE)
     if recent_reports:
         lines.append("RECENT REPORTS:")
         for r in recent_reports:
-            names = [humanize_entity_name(m.get("name", "Unknown")) for m in r.get("known_marshals", [])]
-            names_str = ", ".join(names)
             stale_marker = f" [{r['turns_ago']} turns ago]" if r.get("stale") else ""
-            lines.append(f"  {names_str}: {r['strength_band']} near {r['region']}{stale_marker}")
+            if r.get("known_marshals"):
+                names = [humanize_entity_name(m.get("name", "Unknown")) for m in r.get("known_marshals", [])]
+                names_str = ", ".join(names)
+                lines.append(f"  {names_str}: {r['strength_band']} near {r['region']}{stale_marker}")
+            if r.get("garrison"):
+                g = r["garrison"]
+                lines.append(f"  {r['region']} ({g['nation']}): {g['display']} holds the works{stale_marker}")
         lines.append("")
 
     # Last Known

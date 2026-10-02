@@ -1567,6 +1567,10 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     return out
 
 
+# SR-6b RS-25: False = the bare count through a truce.
+THE_SYSTEM_NAMES_ITS_CONDITION = True
+
+
 def _ports_lever(row: Dict[str, Any], world=None) -> Optional[Dict[str, Any]]:
     """Shut the ports (SHUT OUT). A shut-out spent this sitting is no lever
     (the ports must hold at EVERY end turn of it). SR5B-D1: the corps that
@@ -1575,6 +1579,17 @@ def _ports_lever(row: Dict[str, Any], world=None) -> Optional[Dict[str, Any]]:
     shut = row.get("shut_out") or {}
     if not shut.get("applies") or shut.get("broken"):
         return None
+    if THE_SYSTEM_NAMES_ITS_CONDITION and world is not None and row.get("court"):
+        # SR-6b RS-25 (Oct 2, 2026): "shut 13 of 26 ports (now 0)" through a
+        # truce, with no word of why nothing could be shut. The System counts
+        # only a court at war with Britain (`naval.closure_against`), so in a
+        # truce or at peace no port is closed to her — said, not implied.
+        state = str(_state(world, row["court"]) or "PEACE")
+        if state != "WAR":
+            standing = "in a truce" if state == "ARMISTICE" else "at peace"
+            return {"key": "ports", "value": None,
+                    "text": (f"the System shuts a port only against a court at "
+                             f"war with it — {standing}, no port is closed to her")}
     need = int(shut.get("needed", 0))
     closed = int(shut.get("closed", 0) or 0)
     total = int(shut.get("total", 0) or 0)

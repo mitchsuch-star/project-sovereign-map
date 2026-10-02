@@ -331,7 +331,11 @@ class TestTheLegitimacySentence:
         _world, _client, dialogue = table
         text = str(dialogue.get("talleyrand_text", ""))
         rows = {r["nation"]: r for r in dialogue["per_court_acceptance"]}
-        assert "the terms claim a victory the field has not delivered" in text, text
+        # SRX-6 (SR-6b, Oct 2 2026): a white peace speaks its OWN blocker —
+        # it claims no victory, so the old clause was false on this table.
+        assert ("it claims no victory, but a whole-war peace still needs every "
+                "covered court's consent, and not every court consents") in text, text
+        assert "the terms claim a victory the field has not delivered" not in text, text
         assert "London and Vilna are unbeaten — a whole-war peace needs their consent (" in text, text
         for court in ("Austria", "Britain", "Russia"):
             assert f"{court} {rows[court]['total']}/{rows[court]['threshold']}" in text, text
@@ -352,7 +356,9 @@ class TestTheLegitimacySentence:
         _set_france_score(world, "Britain", 30)
         sentence = SS.legitimacy_sentence(world, rows, holdouts, 50)
         assert sentence.startswith("Vilna is unbeaten — a whole-war peace needs its consent")
-        assert "Press Austria and Britain alone" in sentence
+        # RS-22 (SR-6b): ONE court to press, the rest priced apiece.
+        assert "Press Austria alone: the separate peace." in sentence
+        assert "The others — Britain — can each be treated with alone, at" in sentence
         _set_france_score(world, "Britain", 0)
 
     def test_no_holdouts_no_sentence(self, table):

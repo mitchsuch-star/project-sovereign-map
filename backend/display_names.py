@@ -1380,6 +1380,21 @@ def humanize_entity_name(name: str) -> str:
     return _CAMEL_BOUNDARY_RE.sub(" ", str(name)).replace("_", " ")
 
 
+# SR-6b RS-29: the court's own rank in the honorific. False = "Marshal" for
+# everyone but a sovereign.
+THE_HONORIFIC_IS_THE_COURTS_OWN = True
+_RANK_WORDS = frozenset({"archduke", "prince", "duke", "count", "earl", "lord",
+                         "general", "admiral", "king", "tsar", "kaiser"})
+
+
+class _TombRank:
+    """The rank facts a tombstone keeps (`fallen_marshals`): nation and
+    sovereignty — enough for `marshal_honorific`."""
+    def __init__(self, tomb: dict):
+        self.nation = tomb.get("nation")
+        self.is_sovereign = bool(tomb.get("is_sovereign") or tomb.get("sovereign"))
+
+
 def marshal_honorific(world, name: str) -> str:
     """NP-V: "Marshal Ney" — but "the Emperor Napoleon" for a sovereign.
 
@@ -1389,8 +1404,16 @@ def marshal_honorific(world, name: str) -> str:
     not a marshal, and the one man the whole court orbits must not be
     demoted by a template.
 
-    Single source for every surface that prefixes a rank. Returns the
-    humanised name WITH its honorific; falls back to "Marshal <name>"
+    The ONE honorific for the surfaces that can name the Emperor or a
+    foreign commander: the dispatch's rank lines (capture, wound, death,
+    destruction — `dispatch._rank`), the desk's own-marshal answers, the
+    muster's Emperor copy, the battle report's victory line and the
+    campaign log's capture row. NP-X7 (SR-6b, Oct 2 2026): the executors'
+    refusal and receipt lines ("Marshal {name} not found", the rente and
+    estate receipts) keep the literal "Marshal" — they name the player's
+    own French marshals by construction and are not routed here; the
+    docstring used to claim "EVERY surface" at 3 of 49 call sites. Returns
+    the humanised name WITH its honorific; falls back to "Marshal <name>"
     for anyone the world does not know (the pre-row behaviour, so a
     sovereign-free world is byte-identical).
     """
@@ -1398,8 +1421,25 @@ def marshal_honorific(world, name: str) -> str:
     marshal = None
     if world is not None and name:
         marshal = getattr(world, "marshals", {}).get(name)
+        if marshal is None:
+            # NP-X7: a fallen man keeps the rank his court gave him.
+            tomb = (getattr(world, "fallen_marshals", None) or {}).get(name)
+            if isinstance(tomb, dict):
+                marshal = _TombRank(tomb)
     if marshal is not None and getattr(marshal, "is_sovereign", False):
         return f"the Emperor {display}"
+    if THE_HONORIFIC_IS_THE_COURTS_OWN and marshal is not None:
+        # SR-6b RS-29 (Oct 2, 2026): "Marshal Archduke John of Austria" —
+        # a foreign commander titled as a French marshal. A name that
+        # carries its court's own rank keeps it ("the Archduke John"); a
+        # foreign commander without one is a general; only the player's
+        # own men are marshals.
+        first = display.split(" ", 1)[0].lower() if display else ""
+        if first in _RANK_WORDS:
+            return f"the {display}"
+        player = getattr(world, "player_nation", None)
+        if player and getattr(marshal, "nation", None) not in (None, player):
+            return f"General {display}"
     return f"Marshal {display}"
 
 

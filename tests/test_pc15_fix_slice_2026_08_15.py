@@ -721,7 +721,10 @@ class TestPC15n12SupplyHeadlineGrammar:
         fields = {"who": "Massena", "stand": "stands", "have": "has",
                   "strength": "21,858", "region": "Munich",
                   "capacity": "15,000", "over": "6,858",
-                  "losses": "4,000 men", "turns": "4", "remedy": "Move."}
+                  "losses": "4,000 men", "turns": "4", "remedy": "Move.",
+                  # NPC-24 (Score Finish Step 2, Oct 2 2026): the second
+                  # variant counts its dead — the builder supplies the field.
+                  "losses_dead": "4,000 men dead"}
         primary = _HEADLINE_TEMPLATES["supply_strain"].format(**fields)
         assert "Massena stands 21,858 men" in primary
         variant = _STANDING_ESCALATION["supply_strain"][1].format(**fields)

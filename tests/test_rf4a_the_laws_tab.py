@@ -168,7 +168,7 @@ class TestTheEffectLines:
          "fed provinces feed 25% more men (×1.25)"),
         ({"type": "satellite_loyalty", "value": 1}, "+1 loyalty a turn in every client"),
         ({"type": "cs_closure", "rule": "every_client"},
-         "every client shuts its ports to Britain, whatever its autonomy"),
+         "every client shuts its ports to Britain at war, whatever its autonomy"),
     ])
     def test_each_type_in_numbers(self, clause, line):
         assert R.effect_line(clause) == line

@@ -1473,10 +1473,15 @@ class Digest:
         # instrument can read "no marshal repeats a victory line within his
         # last three wins" (drama C3) off the archive. Absent -> unchanged.
         _voice = report.get("marshal_voice") if isinstance(report, dict) else None
+        # SF-MD-1 (Oct 2, 2026): the enemy commander's line rides the same
+        # record, so the per-marshal repeat census reads both mouths.
+        _enemy_voice = report.get("enemy_voice") if isinstance(report, dict) else None
+        _extra = {}
         if _voice:
-            self.record("battle", headline=head, voice=_voice)
-        else:
-            self.record("battle", headline=head)
+            _extra["voice"] = _voice
+        if _enemy_voice:
+            _extra["enemy_voice"] = _enemy_voice
+        self.record("battle", headline=head, **_extra)
 
     def popup(self, key, summary, answer):
         self.counters["popups"] += 1

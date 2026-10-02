@@ -1937,6 +1937,10 @@ def _apply_command_result_layers(response: dict, result: dict, world) -> None:
     _finalize_command_notifications(response, world)
 
 
+# SR-6a RS-20: the PL-14 net's fallback outcome. False = REJECT.
+THE_NET_FALLS_BACK_NEUTRAL = True
+
+
 def _derive_proposal_result_outcome(result: dict) -> str:
     """Best-effort ACCEPT/REJECT normalization for fallback proposal popups."""
     raw_outcome = result.get("outcome", result.get("result", ""))
@@ -1971,6 +1975,12 @@ def _derive_proposal_result_outcome(result: dict) -> str:
             or "expect an answer" in message or "en route" in message):
         return "PENDING"
 
+    # SR-6a RS-20 (Score Finish Step 2, Oct 2 2026): a result that names no
+    # outcome and says none of the words is NEUTRAL — the hard REJECT
+    # default titled the player's own declaration of war "Diplomatic Action
+    # Rejected" (IQ7-X4 / SR-2-X3's family, closed here).
+    if THE_NET_FALLS_BACK_NEUTRAL:
+        return "RESOLVED"
     return "REJECT"
 
 
@@ -2027,6 +2037,8 @@ def _queue_informational_diplomacy_notices(response: dict, world) -> None:
         "PENDING": "Dispatched",
         # IQ-7 review [12]/[23] (R10): never "Rejected" for a withdrawal.
         "WITHDRAWN": "Withdrawn",
+        # SR-6a RS-20: the neutral fallback — noted, not refused.
+        "RESOLVED": "Noted",
     }.get(outcome, "Rejected")
     # PF-5: at most one proposal-result notice per counterparty on the rail —
     # each diplomatic command otherwise appended a fresh "Action Accepted/
@@ -5690,7 +5702,8 @@ def get_campaign_log():
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
     from backend.campaign_log import (filter_campaign_log, format_event_oneliner,
-                                      CATEGORY_MAP, collapse_refusal_family)
+                                      CATEGORY_MAP, collapse_refusal_family,
+                                      event_tier)
 
     # IGR-B: aggregate the O(n^2) court-to-court refusal bursts for DISPLAY
     # only — the producer's record is AI-3's ladder-gate substrate.
@@ -5713,6 +5726,9 @@ def get_campaign_log():
                 world, format_event_oneliner(
                     event, player_nation=world.player_nation), event),
             "category": CATEGORY_MAP.get(event.get("type", ""), "unknown"),
+            # EAS-2 (SR-6c): the importance tier, display only — the client
+            # half (size by weight) is Step 7's.
+            "tier": event_tier(event, world),
         })
 
     # Hide empty turns (0 visible events after fog filtering)

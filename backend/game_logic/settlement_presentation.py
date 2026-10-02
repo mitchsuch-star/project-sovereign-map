@@ -556,6 +556,13 @@ def _enrich_ally_row(ally: Mapping[str, Any]) -> Dict[str, Any]:
     return row
 
 
+# SR-6b RS-21 (Score Finish Step 2, Oct 2 2026): a warning row names its
+# component by the ONE display table (`acceptance_component_display`:
+# "Settlement legitimacy", "National design") with the signed value, never
+# a title-cased raw key ("Settlement Tier Legitimacy"). False = the raw key.
+THE_WARNING_NAMES_ITS_COMPONENT = True
+
+
 def _enrich_warning_row(warning: Mapping[str, Any]) -> Dict[str, Any]:
     row = dict(warning)
     code = str(row.get("code", "") or row.get("category", "") or "")
@@ -566,7 +573,17 @@ def _enrich_warning_row(warning: Mapping[str, Any]) -> Dict[str, Any]:
         if isinstance(items, Sequence) and not isinstance(items, (str, bytes)):
             row["detail"] = ", ".join(_display_from_raw(str(i)) for i in items)
         elif row.get("component"):
-            row["detail"] = _display_from_raw(str(row.get("component")))
+            if THE_WARNING_NAMES_ITS_COMPONENT:
+                from backend.display_names import acceptance_component_display
+                label = acceptance_component_display(str(row.get("component")))
+                value = row.get("value")
+                try:
+                    signed = f" ({int(value):+d})" if value is not None else ""
+                except (TypeError, ValueError):
+                    signed = ""
+                row["detail"] = f"{label}{signed}"
+            else:
+                row["detail"] = _display_from_raw(str(row.get("component")))
     return row
 
 
@@ -648,16 +665,56 @@ def compose_summary_oneliner(
         f"{head_term} ({', '.join(_awe_tag_display(t) for t in awe_tags)})"
     )
     template_key = _voice_summary_template_key(event)
+    restored_claim, limited_concession = head_term, head_term
+    if THE_SUMMARY_FILLS_ITS_SLOTS:
+        # SR-6b RS-18 (Score Finish Step 2, Oct 2 2026): "Returning Gold
+        # indemnity: 100 gold from France to Austria steadies the coalition,
+        # while Gold indemnity: 100 gold from France to Austria buys quiet"
+        # — the same term in both slots, and a payment France makes voiced
+        # as a return. The slots are a clause the proposing side RECEIVES
+        # and one it PAYS; a package that lacks either leaves the defensive
+        # register for the common-peace one.
+        received, paid = _summary_slots(event)
+        if received and paid:
+            restored_claim, limited_concession = received, paid
+        elif template_key == "settlement_advisory_defensive_talleyrand":
+            template_key = "settlement_advisory_common_peace_talleyrand"
     voiced = resolve_settlement_voice_line(
         template_key,
         war_label=war_label,
         standing_summary=standing_summary,
         contribution_summary=contribution_summary,
         top_blocker=top_blocker,
-        restored_claim=head_term,
-        limited_concession=head_term,
+        restored_claim=restored_claim,
+        limited_concession=limited_concession,
     )
     return voiced or fallback
+
+
+def _summary_slots(event: Mapping[str, Any]) -> Tuple[str, str]:
+    """RS-18: (a clause the proposing side receives, one it pays) from the
+    event's applied clauses, each in the term display's own words; "" for a
+    slot the package does not fill."""
+    proposer_members = {str(n) for n in (event.get("proposer_members") or []) if n}
+    leader = str(event.get("proposer_leader") or "")
+    if leader:
+        proposer_members.add(leader)
+    received, paid = "", ""
+    for clause in event.get("applied_clauses") or []:
+        if not isinstance(clause, Mapping):
+            continue
+        payer = str(clause.get("payer") or clause.get("from") or clause.get("vassal_nation") or "")
+        recipient = str(clause.get("recipient") or clause.get("to") or clause.get("overlord") or "")
+        if not payer and not recipient:
+            continue
+        text = _term_display(clause)
+        if not received and recipient in proposer_members and payer not in proposer_members:
+            received = text
+        elif not paid and payer in proposer_members and recipient not in proposer_members:
+            paid = text
+        if received and paid:
+            break
+    return received, paid
 
 
 def compose_digest_oneliner(event: Mapping[str, Any]) -> str:
@@ -1306,6 +1363,34 @@ def _slice_for_density(
     return rows_list[:cap], len(rows_list) - cap
 
 
+# SR-6a RS-19: the coverage chips and scope read the WAR, not the capped
+# ally rows. False = the pre-slice chips and labels, byte for byte.
+THE_COVERAGE_LINE_KEEPS_EVERY_COURT = True
+# SR-6b RS-18: the voiced summary's two slots are a clause received and a
+# clause paid. False = the head term in both.
+THE_SUMMARY_FILLS_ITS_SLOTS = True
+
+
+def _uncovered_courts(world, war_id: str, accepting_side: str, covered_set) -> List[str]:
+    """RS-19: the accepting side's live courts not on the table — read
+    from the war instance (no cap, no fog), in roster order."""
+    instance = (getattr(world, "war_instances", None) or {}).get(war_id)
+    if not isinstance(instance, Mapping):
+        return []
+    side = str(accepting_side or "")
+    members = list(instance.get(side) or []) if side in ("attackers", "defenders") else []
+    active = set(world.get_active_nations()) if hasattr(world, "get_active_nations") else None
+    out: List[str] = []
+    for nation in members:
+        nation = str(nation or "")
+        if not nation or nation in covered_set:
+            continue
+        if active is not None and nation not in active:
+            continue
+        out.append(nation)
+    return out
+
+
 def build_settlement_review(
     *,
     war_id: str,
@@ -1321,6 +1406,8 @@ def build_settlement_review(
     awe_tags: Sequence[str] = (),
     forced_alliance_threat_preview: Mapping[str, Any] | None = None,
     world: Any | None = None,
+    leaders_for_label: Mapping[str, str] | None = None,
+    table_covered: Sequence[str] | None = None,
 ) -> Dict[str, Any]:
     """Sectioned settlement review payload per spec §16.2 line 1636.
 
@@ -1436,17 +1523,48 @@ def build_settlement_review(
     # the confirm popup so multi-enemy partial settlements show who
     # remains hostile after ratification.
     covered_set = {str(n) for n in (covered_enemy_participants or []) if n}
+    if THE_COVERAGE_LINE_KEEPS_EVERY_COURT and table_covered is not None:
+        # RS-19: the TABLE's coverage, not the review's fog-filtered copy
+        # (`review_covered` keeps only courts with a corps in view — so a
+        # covered Britain read as "still at war" while her army was out of
+        # sight). Diplomacy has no fog.
+        covered_set = {str(n) for n in table_covered if n}
     uncovered_chips: List[str] = []
-    for ally in enriched_allies:
-        if not isinstance(ally, Mapping):
-            continue
-        nation = str(ally.get("nation", "") or "")
-        ally_side = str(ally.get("side", "") or "")
-        if not nation or nation in covered_set:
-            continue
-        if accepting_side and ally_side and ally_side != accepting_side:
-            continue
-        uncovered_chips.append(nation)
+    if THE_COVERAGE_LINE_KEEPS_EVERY_COURT and world is not None and war_id:
+        # SR-6a RS-19 (Score Finish Step 2, Oct 2 2026): the chips were
+        # taken from the ally rows, which are CAPPED at five and fog-
+        # filtered — so "Still at war:" named Britain only after Russia
+        # was dropped too, vanished after six drops, and named only Sweden
+        # after seven. Uncovered = the accepting side's live courts minus
+        # the covered ones: no cap, no fog (diplomacy has none).
+        uncovered_chips = _uncovered_courts(world, war_id, accepting_side,
+                                            covered_set)
+    else:
+        for ally in enriched_allies:
+            if not isinstance(ally, Mapping):
+                continue
+            nation = str(ally.get("nation", "") or "")
+            ally_side = str(ally.get("side", "") or "")
+            if not nation or nation in covered_set:
+                continue
+            if accepting_side and ally_side and ally_side != accepting_side:
+                continue
+            uncovered_chips.append(nation)
+    if THE_COVERAGE_LINE_KEEPS_EVERY_COURT:
+        # RS-19: "Whole-war" only when nothing is uncovered; the popup had
+        # printed "Whole-war settlement" over a table that left Britain at war.
+        whole_war = not uncovered_chips and bool(covered_set)
+        coverage_scope_display = ("Whole-war settlement" if whole_war
+                                  else "Separate settlement")
+        war_scope_display = "Whole war" if whole_war else "Partial war"
+        if not whole_war and len(covered_set) <= 1:
+            war_scope_display = "Bilateral war"
+    else:
+        coverage_scope_display = ("Whole-war settlement"
+                                  if len(covered_enemy_participants or []) > 1
+                                  else "Separate settlement")
+        war_scope_display = ("Whole war" if len(covered_enemy_participants or []) > 1
+                             else "Bilateral war")
 
     # SC-15 / SC-16: live preview enrichment. Each helper returns a
     # structurally stable list; callers (popup, dispatch preview,
@@ -1478,14 +1596,21 @@ def build_settlement_review(
         "proposer_side": proposer_side,
         "accepting_side": accepting_side,
         "covered_enemy_participants": list(covered_enemy_participants or []),
-        "covered_enemy_display_chips": list(covered_enemy_participants or []),
+        "covered_enemy_display_chips": (
+            sorted(covered_set) if THE_COVERAGE_LINE_KEEPS_EVERY_COURT and table_covered is not None
+            else list(covered_enemy_participants or [])),
         "uncovered_enemy_display_chips": uncovered_chips,
-        "coverage_scope_display": (
-            "Whole-war settlement" if len(covered_enemy_participants or []) > 1
-            else "Separate settlement"
-        ),
-        "war_scope_display": (
-            "Whole war" if len(covered_enemy_participants or []) > 1 else "Bilateral war"
+        "coverage_scope_display": coverage_scope_display,
+        "war_scope_display": war_scope_display,
+        # RS-19: the coverage label, stamped so a reader of the sections
+        # never has to re-derive it (the row found `review_sections.
+        # war_label` wrong and unread).
+        "coverage_label": (
+            f"{(leaders_for_label or {}).get(proposer_side) or ''} vs "
+            f"{' + '.join(sorted(covered_set))}"
+            if THE_COVERAGE_LINE_KEEPS_EVERY_COURT and covered_set
+            and isinstance(proposer_side, str)
+        and (leaders_for_label or {}).get(proposer_side) else war_label
         ),
         "density": density,
         "sections": {

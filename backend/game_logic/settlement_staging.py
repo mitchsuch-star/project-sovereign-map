@@ -1769,6 +1769,7 @@ def _settlement_remaining_war_courts(
 def consent_kwargs_for_restage(
     dialogue: Mapping[str, Any],
     terms: Iterable[Mapping[str, Any]],
+    covered: Optional[Iterable[str]] = None,
 ) -> Dict[str, Any]:
     """SR-2a (AAR-3): the consent a mounted draft carries, for a restage of
     the SAME package — `consenting_courts` / `consent_terms` /
@@ -1785,6 +1786,14 @@ def consent_kwargs_for_restage(
     live_terms = [dict(t) for t in (terms or []) if isinstance(t, Mapping)]
     if not consent_terms_equal(consent_terms, live_terms):
         return {}
+    # SF-DIP-1 (Oct 2 2026): the dial survives a cover drop, so the TERMS can
+    # be unchanged while the COVERAGE is not — a dropped or added court
+    # changes the package the courts consented to, and the draft is a
+    # counter again (SR-2a's rule, now read on both halves).
+    if covered is not None:
+        prior = sorted({str(n) for n in (dialogue.get("covered_enemy_participants") or []) if n})
+        if sorted({str(n) for n in covered if n}) != prior:
+            return {}
     return {
         "consenting_courts": consenting,
         "consent_terms": consent_terms,
@@ -1859,7 +1868,7 @@ def _restage_settlement_after_redraw(
     # SR-2a (AAR-3): consent rides the redraw only while the package is
     # still the one the courts offered; the moment it changes the draft is a
     # counter, scored normally, and the letter it answered is consumed.
-    consent = consent_kwargs_for_restage(dialogue, terms)
+    consent = consent_kwargs_for_restage(dialogue, terms, covered)
     preview = build_settlement_preview(
         world,
         war_id=war_id,
@@ -2070,11 +2079,16 @@ def build_settlement_preview(
         "consenting_courts": sorted(
             {str(n) for n in (consenting_courts or []) if n} & set(covered)
         ),
+        # SR-6b RS-21: a review every covered court CONSENTED to carries no
+        # acceptance concern — these are their own terms (the footer had
+        # read "Acceptance concern – Settlement Tier Legitimacy" under
+        # "consents — these are their own terms").
+        "warnings_before_consent": list(warnings),
+        "warnings": _warnings_after_consent(warnings, consenting_courts, covered),
         "baseline_generated": baseline_generated,
         "baseline_per_court": (
             baseline_payload.get("per_court_baseline") if baseline_payload else {}
         ),
-        "warnings": warnings,
         "density": density if density in ("compact", "medium", "verbose") else "medium",
     }
     contribution = build_contribution_share_rows(
@@ -2140,6 +2154,10 @@ def build_settlement_preview(
         awe_tags=preview_awe_tags,
         forced_alliance_threat_preview=forced_alliance_threat_preview,
         world=world,
+        # SR-6a RS-19: the coverage label's proposer leader, and the TABLE's
+        # own coverage (the review's copy above is fog-filtered).
+        leaders_for_label={side: str(proposer_leader or "")},
+        table_covered=list(covered),
     )
     # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
     # POST preview is the source of truth for `losing_for_concession_baseline`,
@@ -2280,6 +2298,44 @@ def _join_names(names: List[str]) -> str:
     return ", ".join(names[:-1]) + f" and {names[-1]}"
 
 
+# SR-6b RS-22: one court to press, the others priced apiece. False = the
+# joined list with one price.
+THE_HINT_PRESSES_ONE_COURT = True
+
+
+def _verdict_beside_the_button(overall_acceptance, *, white_peace: bool,
+                               can_ratify: bool):
+    """SF-V2 (SR-6b, Oct 2 2026): no screen shows "Will NOT carry" beside an
+    enabled Ratify. A white peace keeps the leader gate (G4F-19), so its
+    header speaks that gate's own verdict instead of the per-court one."""
+    if not (THE_HINT_PRESSES_ONE_COURT and white_peace and can_ratify
+            and isinstance(overall_acceptance, Mapping)):
+        return overall_acceptance
+    verdict = str(overall_acceptance.get("carry_verdict_display") or "")
+    if not verdict.startswith("Will NOT carry"):
+        return overall_acceptance
+    out = dict(overall_acceptance)
+    out["carry_verdict_display"] = (
+        "Carries on the leader's word — a white peace asks no court to sign "
+        "away anything, and its leader's consent is the gate.")
+    out["per_court_verdict_display"] = verdict
+    return out
+
+
+def _warnings_after_consent(warnings, consenting_courts, covered):
+    """RS-21: the acceptance-component warnings are dropped when every
+    covered court consents; hard stops and every other row stand."""
+    if not THE_HINT_PRESSES_ONE_COURT:   # the SR-6b copy-pass lever family
+        return warnings
+    consenting = {str(n) for n in (consenting_courts or []) if n}
+    covered_set = {str(n) for n in (covered or []) if n}
+    if not covered_set or not consenting >= covered_set:
+        return warnings
+    return [w for w in warnings
+            if not (isinstance(w, Mapping)
+                    and str(w.get("category") or "") == "acceptance_component")]
+
+
 def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
                         accept_threshold: int) -> str:
     """"London and St Petersburg are unbeaten — a whole-war peace needs
@@ -2313,7 +2369,8 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         scores.append(f"{formed_display_name(world, court)} {int(total)}/{row_threshold}")
         if int(total) >= row_threshold and not row.get("hard_stops") and court not in holdouts:
             ready.append(court)
-    press = [formed_display_name(world, n) for n in beaten + [c for c in ready if c not in beaten]]
+    press_courts = beaten + [c for c in ready if c not in beaten]
+    press = [formed_display_name(world, n) for n in press_courts]
     if unbeaten:
         seats = _join_names([_court_seat(world, n) for n in unbeaten])
         verb = "is" if len(unbeaten) == 1 else "are"
@@ -2325,16 +2382,27 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         sentence += f" ({', '.join(scores)})"
     sentence += "."
     if press:
-        sentence += f" Press {_join_names(press)} alone: the separate peace."
         # SR-1c (AAR-D5): the counsel names the DP price of the road it
         # recommends — the executor's own quote for a peace with the first
         # court to press, beside what the player has today.
         from backend.game_logic.diplomacy import diplomatic_price_quote
-        first = (beaten + [c for c in ready if c not in beaten])[0]
+        first = press_courts[0]
         quote = diplomatic_price_quote(world, "peace", first)
-        sentence += (f" It costs {quote['cost']} diplomatic "
-                     f"{'point' if quote['cost'] == 1 else 'points'}; you have "
-                     f"{quote['have']}.")
+        points = f"{quote['cost']} diplomatic {'point' if quote['cost'] == 1 else 'points'}"
+        if THE_HINT_PRESSES_ONE_COURT:
+            # SR-6b RS-22 (Oct 2, 2026): "Press Austria, Naples, Ottoman
+            # Empire, Papal States, Portugal and Sweden alone" quoted ONE
+            # price for six courts. One court is named; the others can
+            # each be treated with alone, at the same price apiece.
+            sentence += f" Press {press[0]} alone: the separate peace."
+            sentence += f" It costs {points}; you have {quote['have']}."
+            if len(press) > 1:
+                sentence += (f" The others — {_join_names(press[1:])} — can each "
+                             f"be treated with alone, at {quote['cost']} "
+                             f"{'point' if quote['cost'] == 1 else 'points'} apiece.")
+        else:
+            sentence += f" Press {_join_names(press)} alone: the separate peace."
+            sentence += f" It costs {points}; you have {quote['have']}."
     return sentence
 
 
@@ -2568,11 +2636,21 @@ def build_settlement_confirm_dialogue(
         )
     # REFRONT-V: each per-court row speaks through its NAMED diplomat (chancery
     # fallback — never an anonymous beat), and Talleyrand narrates the table.
+    # SRX-6 (SR-6b): the per-court holdout line speaks the white peace's
+    # OWN blocker — the G4F-19 derivation below (every term is the bare
+    # peace clause) is read here too, so a stripped package is voiced as
+    # the white peace it is about to be labelled.
+    _terms_for_voice = list(preview.get("settlement_terms") or [])
+    _white_for_voice = bool(white_peace) or bool(
+        _terms_for_voice
+        and all(isinstance(t, Mapping) and t.get("type") == "peace"
+                for t in _terms_for_voice))
     multi_court_voice = resolve_multi_court_settlement_voice(
         world,
         per_court_acceptance=per_court_acceptance,
         overall_acceptance=overall_acceptance,
         war_label=war_label,
+        white_peace=_white_for_voice,
     )
     _voice_by_court = {
         str(v.get("nation")): v for v in multi_court_voice.get("per_court_voice") or []
@@ -2713,7 +2791,8 @@ def build_settlement_confirm_dialogue(
     # empty-editor / no-dominant-pressure literals pass through unchanged.
     from backend.game_logic.diplomatic_templates import spoken_blocker_phrase
     top_blocker_spoken = (
-        spoken_blocker_phrase(top_blocker_component, top_blocker_display)
+        spoken_blocker_phrase(top_blocker_component, top_blocker_display,
+                              white_peace=bool(white_peace))
         if top_blocker_component else top_blocker_display)
     player_nation = str(getattr(world, "player_nation", "France") or "France")
     all_members = {
@@ -3481,7 +3560,9 @@ def build_settlement_confirm_dialogue(
         # REFRONT-V: each per-court row carries `voice_line` + `speaker_display`
         # (named diplomat / chancery fallback); Talleyrand narrates the table.
         "per_court_acceptance": per_court_acceptance,
-        "overall_acceptance": overall_acceptance,
+        "overall_acceptance": _verdict_beside_the_button(
+            overall_acceptance, white_peace=bool(white_peace),
+            can_ratify=bool(can_ratify)),
         # FA-3: the courts whose own terms these are. Carried on the dialogue
         # so the ratification re-score reads the same fact the review did —
         # a consent honoured only at staging is killed by the fresh re-score

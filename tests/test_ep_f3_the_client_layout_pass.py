@@ -178,9 +178,15 @@ class TestTheRecapModalIsRetired:
     def test_the_report_and_the_dispatch_share_the_arithmetic(self):
         src = _read(REPO / "backend" / "commands" / "strategic.py")
         body = src[src.index("def process_strategic_orders"):]
-        assert "remaining = order_turns_remaining(order, int(world.current_turn))" in body
+        # CRT-4-X1 (SR-6a, Oct 2 2026) — CONSCIOUS RE-SEAT: both surfaces
+        # now hand the man's `movement_range` to the ONE clock; the shared
+        # arithmetic is the same function, read range-aware.
+        assert ("remaining = order_turns_remaining(\n"
+                "                    order, int(world.current_turn),\n"
+                "                    movement_range=getattr(marshal, \"movement_range\", 1))") in body
         dsrc = _read(REPO / "backend" / "game_logic" / "dispatch.py")
-        assert "eta = order_eta_phrase(order, int(world.current_turn))" in dsrc
+        assert ("eta = order_eta_phrase(order, int(world.current_turn),\n"
+                "                               movement_range=getattr(marshal, \"movement_range\", 1))") in dsrc
 
 
 # ═══════════════════════════════════════════════════════════════════════════

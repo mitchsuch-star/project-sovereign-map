@@ -1707,6 +1707,16 @@ def _line_is_addressed(text: str,
     return (bool(_ADDRESSED_LINE_RE.match(text))
             or address_of(text, roster) is not None)
 
+# SRX-5 (SR-6a): "tell me what …" / "remind me where …" asks. False = the
+# pre-slice gate (the desk never saw the line).
+TELL_ME_IS_A_QUESTION = True
+_TELL_ME_RE = re.compile(
+    r"^\s*(?:(?:marshal\s+|general\s+|sire\s+)?[A-Za-z][\w'’-]*\s*,\s*)?"
+    r"(?:please\s+)?(?:remind|tell)\s+me\s+(?:of\s+|about\s+|please\s+)?"
+    r"(?:what|where|who|whom|how|why|which|whether|when)\b",
+    re.IGNORECASE)
+
+
 def is_question(command_text: str,
                 subjects: Optional[Iterable[str]] = None) -> bool:
     """True for "how do I attack?" — a request for guidance, not an order.
@@ -1739,6 +1749,12 @@ def is_question(command_text: str,
     # CRT-3 (CXR1-4): a hedge is a question — "perhaps build ships" laid a
     # keel. Read before the lead: a hedge has none.
     if A_HEDGE_IS_NOT_AN_ORDER and text and _HEDGE_LEAD_RE.match(text):
+        return True
+    # SRX-5 (SR-6a, Oct 2 2026): "remind me what the Russians demanded at
+    # the table" / "tell me where Ney is" — an imperative whose object is
+    # the SPEAKER and whose complement is a WH-clause asks a question; no
+    # marshal is ordered by "tell me". Read before the lead (it has none).
+    if TELL_ME_IS_A_QUESTION and text and _TELL_ME_RE.match(text):
         return True
     _lead_re = (_INTERROGATIVE_LEAD_RE if MODAL_LEADS_ARE_QUESTIONS
                 else _INTERROGATIVE_LEAD_RE_LEGACY)

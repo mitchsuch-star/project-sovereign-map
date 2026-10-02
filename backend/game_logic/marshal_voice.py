@@ -20,6 +20,13 @@ from typing import Dict, List, Optional
 
 from backend.display_names import humanize_entity_name
 
+# SF-MD-1 "Every man his own voice" (RS-24, Oct 2 2026): a named row no
+# longer ENDS the bank — the personality lines follow it, so a man with two
+# authored lines has five to rotate through (the rotation key is now his
+# own battle count, `combat_executor._voice_rotation_key_for`). Index 0 of
+# every bank is unchanged. False = the named row alone, as shipped.
+THE_NAMED_BANK_FALLS_THROUGH = True
+
 # ── Acknowledgment: the order is repeated back, verbatim ──
 LITERAL_ACK: List[str] = [
     "\"{order}.\" It will be done exactly, Sire.",
@@ -199,6 +206,9 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "before dusk.",
             "They broke like green wood, Sire. I want the pursuit.",
             "A hard charge settles most arguments. It settled this one.",
+            # SF-MD-1: banks grow to five (append-only; index 0 is pinned).
+            "Give me the road and I will give you his baggage by nightfall.",
+            "They ran, Sire. I have never learned to walk after a running man.",
         ],
         "held_the_line": [
             "They came, they bled, they left. I would have preferred to "
@@ -206,23 +216,31 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "We held — though my sword-arm calls it half a battle.",
             "Let them come again with more men. The result will travel "
             "faster.",
+            "They tested the line and the line tested back.",
+            "Held, yes — but a wall wins nothing. Let me be the hammer.",
         ],
         "lost_ground": [
             "We were checked — it will not stand. Give the word and I "
             "return the favor.",
             "A borrowed field, Sire. I mean to collect with interest.",
             "They had the ground and the luck. Luck runs out.",
+            "We were out-weighed, not out-fought. The next field is mine.",
+            "Mark the hour, Sire. I will pay this one back with interest.",
         ],
         "driven_back": [
             "We fell back with our teeth still in, Sire. They will feel "
             "them again.",
             "A withdrawal, not a defeat. My temper survives intact.",
             "Driven from a field. It is not a habit I intend to form.",
+            "They pushed us off it; they did not break us. Tomorrow we push.",
+            "A step back to gather the fist. Nothing more.",
         ],
         "stalemate": [
             "Neither side yielded. Unfinished business sits badly with me.",
             "A drawn field insults both armies. Let me finish it.",
             "We traded blood for nothing. I want tomorrow.",
+            "Blood on both sides and no verdict — I despise an unfinished page.",
+            "We stand where we stood. I did not come to stand.",
         ],
     },
     "cautious": {
@@ -232,11 +250,15 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "Victory, at an acceptable price. The pickets are already "
             "posted.",
             "We won because the ground was right. I chose it so.",
+            "The field is ours; so is the army. I am content with both.",
+            "They attacked prepared ground. The result was never in doubt.",
         ],
         "held_the_line": [
             "The position held, as prepared positions do.",
             "They paid for every yard and kept none. Sound arithmetic.",
             "We held. The butcher's bill is theirs, not ours.",
+            "Prepared ground, a steady line, and their dead in front of it.",
+            "They came on and found the arithmetic against them.",
         ],
         "lost_ground": [
             "We lost the field but kept the army — the second is harder "
@@ -244,12 +266,16 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "I yielded ground rather than men, and stand ready to be "
             "judged on it.",
             "A reverse, Sire. I have already chosen the next position.",
+            "The ground is theirs for a season. The corps is mine for the war.",
+            "I gave up a field, not an army. The distinction will matter soon.",
         ],
         "driven_back": [
             "We were driven, but in order — the corps is whole and still "
             "dangerous.",
             "I gave ground to save the army. Time will return the ground.",
             "A retreat conducted properly is a battle postponed.",
+            "We fell back in order and left them a hill, not a corps.",
+            "Ground is cheap; men are not. We paid in the cheaper coin.",
         ],
         "stalemate": [
             "No decision — which favors whoever husbands his men better. "
@@ -257,6 +283,8 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "They gained nothing and paid for the privilege. I can "
             "continue this indefinitely.",
             "An indecisive field. I decline to waste men decorating it.",
+            "They bled against a prepared line and gained nothing. I call that profit.",
+            "No decision today. Tomorrow's will be on ground of my choosing.",
         ],
     },
     "literal": {
@@ -266,29 +294,40 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "The field is ours, as ordered. Awaiting further instruction.",
             "Executed. Their dispositions were insufficient; mine were "
             "yours.",
+            "The order was executed and the field is held. Nothing was added.",
+            "Objective secured as written. The returns follow.",
         ],
         "held_the_line": [
             "The position was held. The line stands where you drew it.",
             "Orders were to hold. The order is fulfilled.",
             "The attack was received and repelled. Nothing was improvised.",
+            "The position is unchanged, which was the instruction.",
+            "Held as ordered. No deviation to report.",
         ],
         "lost_ground": [
             "The position could not be held with the forces assigned. I "
             "await revised instructions.",
             "The field is lost. I record the reverse without ornament.",
             "The returns are attached, Sire. They speak plainly enough.",
+            "The position is lost. The order could not be carried out with "
+            "the force assigned.",
+            "Reverse recorded. I await the next written order.",
         ],
         "driven_back": [
             "Withdrawal conducted in good order. The army is intact.",
             "The line was forced. I have re-formed as regulation "
             "prescribes.",
             "I retire in accordance with necessity, not inclination.",
+            "Withdrawal executed by regulation. Order of battle preserved.",
+            "The line was forced; the corps retired intact, as prescribed.",
         ],
         "stalemate": [
             "I have recorded the engagement as indecisive, which it was.",
             "Both lines remain where they stood. Nothing further to "
             "report.",
             "No decision was reached. The returns will say precisely that.",
+            "Engagement indecisive; the position is as it was.",
+            "No result to record beyond the returns.",
         ],
     },
 }
@@ -296,6 +335,10 @@ _OWN_PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
 # Marquee player marshals override the personality default when a row
 # exists for the situation (the enemy_voice named-row idiom).
 _OWN_NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
+    # SF-MD-1 (Oct 2 2026): every French marshal of 1805 has a row in every
+    # situation (append-only; the shipped lines keep index 0), and the
+    # personality bank follows each row, so no man says a line twice in
+    # five battles.
     "Ney": {
         "carried_the_field": [
             "They stood, Sire. Briefly.",
@@ -304,9 +347,20 @@ _OWN_NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
         ],
         "held_the_line": [
             "They found me standing exactly where I said I would be.",
+            "They came at the one place I was standing. Poor judgment.",
+        ],
+        "lost_ground": [
+            "They had the ground, Sire — they will not keep the man who "
+            "took it from me.",
+            "A field lost is a debt. Ney pays his debts in person.",
         ],
         "driven_back": [
             "I was the last man off that field, Sire. I always am.",
+            "We left the field. We did not leave our honour on it.",
+        ],
+        "stalemate": [
+            "Neither side gave way. I will give them a reason to tomorrow.",
+            "A drawn field, Sire — the bravest of the brave does not draw twice.",
         ],
     },
     "Davout": {
@@ -317,9 +371,19 @@ _OWN_NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
         "held_the_line": [
             "They mistook discipline for weakness. The error has been "
             "corrected.",
+            "The line was drawn with a rule. It held like one.",
+        ],
+        "lost_ground": [
+            "The Third Corps yielded ground. It did not yield its order.",
+            "A reverse, correctly recorded. The correction will be exact.",
+        ],
+        "driven_back": [
+            "We retired by the book, Sire. The book will bring us back.",
+            "Driven, not broken. Discipline keeps its shape in retreat.",
         ],
         "stalemate": [
             "Iron does not tire. We continue when you wish.",
+            "Nothing decided; nothing conceded. We resume on your word.",
         ],
     },
     "Murat": {
@@ -328,8 +392,118 @@ _OWN_NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
             "line, Sire.",
             "Their squares were a suggestion. My cavalry declined it.",
         ],
+        "held_the_line": [
+            "Cavalry that stands its ground — the enemy did not expect it. "
+            "Neither, Sire, did I.",
+            "They came within sabre-reach and thought better of it.",
+        ],
+        "lost_ground": [
+            "The field is theirs. The plume is still mine.",
+            "A horseman loses a field as he loses a race — by a length, "
+            "not for good.",
+        ],
         "driven_back": [
             "Even the finest horseman must sometimes ride the other way.",
+            "We rode off it at a trot, not a gallop. Note the difference.",
+        ],
+        "stalemate": [
+            "A day of circling. Tomorrow the charge.",
+            "No verdict, Sire — the horses are impatient with the judges.",
+        ],
+    },
+    "Lannes": {
+        "carried_the_field": [
+            "The grenadiers went in with the bayonet and asked no questions.",
+            "A hussar's way, Sire — straight through, and ask the dead "
+            "afterwards.",
+        ],
+        "held_the_line": [
+            "They came at Lannes. Lannes was not elsewhere.",
+            "Hold? I held them by the throat.",
+        ],
+        "lost_ground": [
+            "They have the ground; they do not have me. I will be back for it.",
+            "A check, Sire. Checks are paid.",
+        ],
+        "driven_back": [
+            "I came off that field last, swearing. The swearing continues.",
+            "They pushed; we gave; we did not break. That is the whole report.",
+        ],
+        "stalemate": [
+            "Neither of us fell. One of us will.",
+            "Drawn. I detest the word.",
+        ],
+    },
+    "Soult": {
+        "carried_the_field": [
+            "The orders were carried out and the field is ours. The returns "
+            "are attached.",
+            "Executed, Sire. The enemy's dispositions did not survive the "
+            "instruction.",
+        ],
+        "held_the_line": [
+            "The position was held as written. Nothing was improvised.",
+            "Held. The line is where your order drew it.",
+        ],
+        "lost_ground": [
+            "The ground could not be kept with the force assigned. I await "
+            "orders.",
+            "A reverse, recorded without ornament.",
+        ],
+        "driven_back": [
+            "Retired in order, per regulation. The corps is whole.",
+            "The line was forced; the withdrawal was not.",
+        ],
+        "stalemate": [
+            "Recorded as indecisive. The position stands.",
+            "No decision. The returns say so plainly.",
+        ],
+    },
+    "Bernadotte": {
+        "carried_the_field": [
+            "Won without waste, Sire. I keep my men as other men keep gold.",
+            "The field is ours — and I did not have to spend the corps to "
+            "buy it.",
+        ],
+        "held_the_line": [
+            "They came at a prepared position. Prepared positions win.",
+            "Held, with the loss of very little. I count that twice.",
+        ],
+        "lost_ground": [
+            "I gave the ground to keep the men. You may judge me for it.",
+            "A field is a field. My corps is still an army.",
+        ],
+        "driven_back": [
+            "We withdrew intact, which was the only object left.",
+            "In order, Sire, and with the guns. Few retreats can say both.",
+        ],
+        "stalemate": [
+            "Neither side profited. I will not be the one who overpays "
+            "tomorrow.",
+            "A drawn field. I did not waste a battalion on it.",
+        ],
+    },
+    "Massena": {
+        "carried_the_field": [
+            "The spoilt child of victory, Sire — the field agrees with the "
+            "title.",
+            "They stood on a hill; now we stand on it. Simple.",
+        ],
+        "held_the_line": [
+            "They came and found a wall with teeth.",
+            "Held — and I kept count of what they left behind.",
+        ],
+        "lost_ground": [
+            "Lost it. I will have it back, and something of theirs besides.",
+            "They took the ground. They will find it expensive to keep.",
+        ],
+        "driven_back": [
+            "Pushed off, not beaten. I know the difference better than most.",
+            "A withdrawal with my eye on the baggage. Theirs.",
+        ],
+        "stalemate": [
+            "Nothing settled. I do not leave accounts open for long.",
+            "Drawn. Tomorrow I close the ledger.",
         ],
     },
 }
@@ -404,15 +578,27 @@ def pick_marshal_voice(name: str, personality: str, situation: str,
     # Emperor's mouth.
     if personality == "sovereign":
         return ""
-    bank = _OWN_NAMED_LINES.get(name, {}).get(situation)
-    if not bank:
-        bank = _OWN_PERSONALITY_LINES.get(personality, {}).get(situation)
-    if not bank:
-        bank = _OWN_PERSONALITY_LINES["cautious"].get(situation, [])
+    bank = voice_bank(name, personality, situation)
     if not bank:
         return ""
     line = bank[int(rotation_key) % len(bank)]
     return f"{humanize_entity_name(name)}: \"{line}\""
+
+
+def voice_bank(name: str, personality: str, situation: str) -> List[str]:
+    """The lines a man can say in a situation, in rotation order: his own
+    row first, then his personality's (SF-MD-1), never a line twice."""
+    named = list(_OWN_NAMED_LINES.get(name, {}).get(situation) or [])
+    personality_bank = list(_OWN_PERSONALITY_LINES.get(personality, {}).get(situation) or [])
+    if not personality_bank:
+        personality_bank = list(_OWN_PERSONALITY_LINES["cautious"].get(situation, []))
+    if not THE_NAMED_BANK_FALLS_THROUGH:
+        return named or personality_bank
+    bank = list(named)
+    for line in personality_bank:
+        if line not in bank:
+            bank.append(line)
+    return bank
 
 
 # ── Acknowledgment: the standing order is answered in register ──────────

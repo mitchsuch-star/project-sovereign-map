@@ -222,6 +222,12 @@ def _reissue_displaced_hybrid(world, requested_id) -> str:
                     "to you.")
     return ""
 
+# NPC-21 (Score Finish Step 2 reserve, Oct 2 2026): a typed answer that picks
+# an option the dialogue marked closed is refused with that option's own
+# reason. False = the option is processed and refused downstream, as shipped.
+A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON = True
+
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -2715,6 +2721,10 @@ class DiplomaticExecutor:
                     "success": True,
                     "message": world.diplomatic_objection_popup["objection_text"],
                     "diplomatic_objection_popup": world.diplomatic_objection_popup,
+                    # SR-6a RS-20: Talleyrand's objection is a question, not
+                    # an outcome — the PL-14 net titled it "Diplomatic
+                    # Action Rejected" on the rail.
+                    "suppress_proposal_result_popup": True,
                 }
 
         # ════════════════════════════════════════════════════════════
@@ -2827,6 +2837,10 @@ class DiplomaticExecutor:
             world.diplomatic_points -= dp_cost
             # R23: Marshal trust reactions for war declaration
             self._apply_diplomatic_trust_reactions(world, "war_declaration", target_nation)
+            # SR-6a RS-20: the declaration's own rail row ("War with
+            # Hanover!") is written by `declare_war`; the PL-14 net had
+            # titled the same act "Diplomatic Action Rejected" beside it.
+            result["suppress_proposal_result_popup"] = True
 
         return result
 
@@ -4167,6 +4181,24 @@ class DiplomaticExecutor:
             numbered = format_numbered_options(dialogue)
             return _unresolved_choice_failure(
                 f"I don't understand that choice, Sire. Options: {numbered}")
+
+        # NPC-21 (Score Finish Step 2 reserve, Oct 2 2026): an option the
+        # dialogue itself marked closed (honest availability — WIN-1's
+        # "Send as suggested" under a commitment block) is refused by the
+        # typed route with its own reason, and the dialogue stays on the
+        # desk; it is never re-served as if nothing had been said.
+        # Scoped to the row's seam: the petition families process a closed
+        # arm on purpose (IQ7-RV2's "a DP-short Grant STANDS", the ally
+        # petition's own refusal road) and keep their own words.
+        _dtype = str(dialogue.get("type") or dialogue.get("dialogue_type") or "")
+        if (A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON
+                and _dtype == "proposal_confirm"
+                and (selected.get("enabled") is False
+                     or selected.get("available") is False)):
+            _why = str(selected.get("unavailable_reason")
+                       or selected.get("description") or "that arm is closed").strip()
+            return _unresolved_choice_failure(
+                f"'{selected.get('label', '?')}' is not open, Sire — {_why}")
 
         # Process the selected action
         action = selected.get("action", "dismiss")

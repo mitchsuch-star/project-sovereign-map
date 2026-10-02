@@ -39,6 +39,25 @@ MAX_MAJOR_OBJECTIONS_PER_TURN = MAX_OBJECTION_POPUPS_PER_TURN
 # ════════════════════════════════════════════════════════════════════════════
 
 
+# VP-R1-X1 (Score Finish Step 2 reserve, Oct 2 2026): the objection's
+# alternative came from the nearest FOREIGN corps in range — an ALLY's
+# included — so a trust answer offered "attack Deroy" (a French satellite's
+# corps) and executed nothing. The ONE source now keeps only courts at WAR
+# with the marshal's, and for the player's man only enemies in VIEW (a
+# fogged corps is not an offer). False = every foreign corps, as shipped.
+THE_ALTERNATIVE_IS_A_FOE_AT_WAR = True
+
+# RS-5 (the same reserve): the aggressive objection's Trust arm offered a
+# man we had never seen, measured to his TRUE province, across water the
+# navy holds shut — and the refused press destroyed the player's order.
+# For the player's marshal the candidates come from `get_visible_enemies`,
+# a man counts only where the player's own intel places him
+# (`pursue_known_location`), the distance is measured to THAT province,
+# and a step across a shut crossing is skipped. False = the omniscient
+# chain, as shipped.
+THE_OBJECTION_OFFERS_A_MAN_WE_HAVE_SEEN = True
+
+
 def get_enemies_in_range(marshal, game_state) -> List:
     """Get all enemy marshals within this marshal's attack range."""
     if game_state is None:
@@ -47,9 +66,21 @@ def get_enemies_in_range(marshal, game_state) -> List:
     enemies = []
     movement_range = getattr(marshal, 'movement_range', 2)
 
+    visible_names = None
+    if THE_ALTERNATIVE_IS_A_FOE_AT_WAR:
+        if (marshal.nation == getattr(game_state, "player_nation", None)
+                and hasattr(game_state, "get_visible_enemies")):
+            visible_names = {m.name for m in game_state.get_visible_enemies(marshal.nation)}
+
     for enemy in game_state.get_enemy_marshals():
         if enemy.strength <= 0:
             continue
+        if THE_ALTERNATIVE_IS_A_FOE_AT_WAR:
+            is_at_war = getattr(game_state, "is_at_war", None)
+            if is_at_war is not None and not is_at_war(marshal.nation, enemy.nation):
+                continue
+            if visible_names is not None and enemy.name not in visible_names:
+                continue
         distance = game_state.get_distance(marshal.location, enemy.location)
         if distance <= movement_range:
             enemies.append(enemy)
@@ -2555,26 +2586,58 @@ def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
     """
     from backend.models.marshal import Stance
 
-    # 1. Attack adjacent enemy
     region = world.get_region(marshal.location)
-    if region:
-        for adj_name in region.adjacent_regions:
-            enemies = world.get_enemies_in_region(adj_name, marshal.nation)
-            if enemies:
-                return {"action": "attack", "target": enemies[0].name}
-
-    # 2. PURSUE nearest enemy within 3 regions
-    nearest_enemy = None
-    nearest_dist = float('inf')
-    for m in world.marshals.values():
-        if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation):
-            dist = world.get_distance(marshal.location, m.location)
+    if (THE_OBJECTION_OFFERS_A_MAN_WE_HAVE_SEEN
+            and marshal.nation == getattr(world, "player_nation", None)
+            and hasattr(world, "get_visible_enemies")):
+        # RS-5: the player's man is offered only a foe the player has SEEN,
+        # where the player believes him to be, over a road the navy leaves
+        # open — the executor's own gates, asked first.
+        from backend.commands.strategic import pursue_known_location
+        adjacent = set(region.adjacent_regions) if region else set()
+        candidates = []
+        for m in world.get_visible_enemies(marshal.nation):
+            if m.strength <= 0 or not world.is_at_war(marshal.nation, m.nation):
+                continue
+            believed = pursue_known_location(world, marshal, m)
+            if not believed:
+                continue
+            candidates.append((m, believed))
+        candidates.sort(key=lambda pair: pair[0].name)
+        # 1. Attack an adjacent enemy the navy lets us reach.
+        for m, believed in candidates:
+            if believed in adjacent and _crossing_open(world, marshal, believed):
+                return {"action": "attack", "target": m.name}
+        # 2. PURSUE the nearest believed position within 3 provinces.
+        nearest_enemy, nearest_dist = None, float('inf')
+        for m, believed in candidates:
+            if believed in adjacent and not _crossing_open(world, marshal, believed):
+                continue   # the pursuit's first leg is the shut water
+            dist = world.get_distance(marshal.location, believed)
             if dist <= 3 and dist < nearest_dist:
-                nearest_enemy = m
-                nearest_dist = dist
+                nearest_enemy, nearest_dist = m, dist
+        if nearest_enemy:
+            return {"action": "pursue", "target": nearest_enemy.name, "strategic_type": "PURSUE"}
+    else:
+        # 1. Attack adjacent enemy
+        if region:
+            for adj_name in region.adjacent_regions:
+                enemies = world.get_enemies_in_region(adj_name, marshal.nation)
+                if enemies:
+                    return {"action": "attack", "target": enemies[0].name}
 
-    if nearest_enemy:
-        return {"action": "pursue", "target": nearest_enemy.name, "strategic_type": "PURSUE"}
+        # 2. PURSUE nearest enemy within 3 regions
+        nearest_enemy = None
+        nearest_dist = float('inf')
+        for m in world.marshals.values():
+            if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation):
+                dist = world.get_distance(marshal.location, m.location)
+                if dist <= 3 and dist < nearest_dist:
+                    nearest_enemy = m
+                    nearest_dist = dist
+
+        if nearest_enemy:
+            return {"action": "pursue", "target": nearest_enemy.name, "strategic_type": "PURSUE"}
 
     # 3. Aggressive stance
     current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
@@ -2589,6 +2652,21 @@ def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
 
     # Chain exhausted
     return None
+
+
+def _crossing_open(world, marshal, destination: str) -> bool:
+    """RS-5: may this corps step from where it stands onto `destination`
+    without the navy's leave? The crossing gate's own verdict; True where
+    no naval layer exists."""
+    try:
+        from backend.game_logic.naval import crossing_check, has_naval_layer
+    except ImportError:  # pragma: no cover - the naval module always ships
+        return True
+    if not has_naval_layer(world):
+        return True
+    verdict = crossing_check(world, marshal.nation, marshal.location, destination,
+                             int(getattr(marshal, "strength", 0) or 0))
+    return bool((verdict or {}).get("allowed", True))
 
 
 def _build_strategic_options(

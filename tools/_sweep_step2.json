@@ -1,0 +1,478 @@
+[
+ {
+  "id": "lever down: THE_SIGHTING_IS_LIVE",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "THE_SIGHTING_IS_LIVE = True",
+  "new": "THE_SIGHTING_IS_LIVE = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_SURFACES_NAME_THE_GARRISON",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "THE_SURFACES_NAME_THE_GARRISON = True",
+  "new": "THE_SURFACES_NAME_THE_GARRISON = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_ENEMY_WORKS_REGROW_ALOUD",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "THE_ENEMY_WORKS_REGROW_ALOUD = True",
+  "new": "THE_ENEMY_WORKS_REGROW_ALOUD = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE = True",
+  "new": "THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_FALLEN_PROVINCE_NAMES_ITS_CAPTOR",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_FALLEN_PROVINCE_NAMES_ITS_CAPTOR = True",
+  "new": "THE_FALLEN_PROVINCE_NAMES_ITS_CAPTOR = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_BRIEFING_SHOWS_THE_GRIP",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_BRIEFING_SHOWS_THE_GRIP = True",
+  "new": "THE_BRIEFING_SHOWS_THE_GRIP = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_AURA_HAS_ITS_BEAT",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_AURA_HAS_ITS_BEAT = True",
+  "new": "THE_AURA_HAS_ITS_BEAT = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_LEVY_YIELDS_ONCE_STATED",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_LEVY_YIELDS_ONCE_STATED = True",
+  "new": "THE_LEVY_YIELDS_ONCE_STATED = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_CASCADE_IS_GROUPED",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_CASCADE_IS_GROUPED = True",
+  "new": "THE_CASCADE_IS_GROUPED = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_SUMMONABLE_GATE_IS_NEWS",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_SUMMONABLE_GATE_IS_NEWS = True",
+  "new": "THE_SUMMONABLE_GATE_IS_NEWS = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: THE_DEFENDERS_ARE_JOINED_IN_SERIES",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_DEFENDERS_ARE_JOINED_IN_SERIES = True",
+  "new": "THE_DEFENDERS_ARE_JOINED_IN_SERIES = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_FAMINE_COUNTS_ITS_DEAD",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_FAMINE_COUNTS_ITS_DEAD = True",
+  "new": "THE_FAMINE_COUNTS_ITS_DEAD = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_RANK_IS_THE_COURTS_OWN",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_RANK_IS_THE_COURTS_OWN = True",
+  "new": "THE_RANK_IS_THE_COURTS_OWN = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "RS-D2: the levy never yields",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "LEVY_STATEMENTS = 3",
+  "new": "LEVY_STATEMENTS = 300",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py"
+ },
+ {
+  "id": "lever down: ONE_CLOCK",
+  "file": "backend/commands/strategic.py",
+  "old": "ONE_CLOCK = True",
+  "new": "ONE_CLOCK = False",
+  "tests": "tests/test_crt4_x1_one_clock.py"
+ },
+ {
+  "id": "lever down: A_SUPPORT_ORDER_IS_SINGULAR",
+  "file": "backend/commands/strategic.py",
+  "old": "A_SUPPORT_ORDER_IS_SINGULAR = True",
+  "new": "A_SUPPORT_ORDER_IS_SINGULAR = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_NARRATION_HAS_A_DEAD_BAND",
+  "file": "backend/game_logic/intent.py",
+  "old": "THE_NARRATION_HAS_A_DEAD_BAND = True",
+  "new": "THE_NARRATION_HAS_A_DEAD_BAND = False",
+  "tests": "tests/test_ai_intent_narration.py"
+ },
+ {
+  "id": "lever down: THE_TAIL_NAMES_ITS_COURTS",
+  "file": "backend/game_logic/intent.py",
+  "old": "THE_TAIL_NAMES_ITS_COURTS = True",
+  "new": "THE_TAIL_NAMES_ITS_COURTS = False",
+  "tests": "tests/test_ai_intent_narration.py"
+ },
+ {
+  "id": "IQ6-D3: the dead band is zero",
+  "file": "backend/game_logic/intent.py",
+  "old": "INTENT_DEAD_BAND = 5",
+  "new": "INTENT_DEAD_BAND = 0",
+  "tests": "tests/test_ai_intent_narration.py"
+ },
+ {
+  "id": "lever down: THE_RECORD_NAMES_THE_COVERAGE",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "THE_RECORD_NAMES_THE_COVERAGE = True",
+  "new": "THE_RECORD_NAMES_THE_COVERAGE = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_COVERAGE_LINE_KEEPS_EVERY_COURT",
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "THE_COVERAGE_LINE_KEEPS_EVERY_COURT = True",
+  "new": "THE_COVERAGE_LINE_KEEPS_EVERY_COURT = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_WARNING_NAMES_ITS_COMPONENT",
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "THE_WARNING_NAMES_ITS_COMPONENT = True",
+  "new": "THE_WARNING_NAMES_ITS_COMPONENT = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_SUMMARY_FILLS_ITS_SLOTS",
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "THE_SUMMARY_FILLS_ITS_SLOTS = True",
+  "new": "THE_SUMMARY_FILLS_ITS_SLOTS = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_HINT_PRESSES_ONE_COURT",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "THE_HINT_PRESSES_ONE_COURT = True",
+  "new": "THE_HINT_PRESSES_ONE_COURT = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_WHITE_PEACE_SPEAKS_ITS_OWN_BLOCKER",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "THE_WHITE_PEACE_SPEAKS_ITS_OWN_BLOCKER = True",
+  "new": "THE_WHITE_PEACE_SPEAKS_ITS_OWN_BLOCKER = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_NET_FALLS_BACK_NEUTRAL",
+  "file": "backend/main.py",
+  "old": "THE_NET_FALLS_BACK_NEUTRAL = True",
+  "new": "THE_NET_FALLS_BACK_NEUTRAL = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_CARD_SHOWS_THE_PRESENCE_TODAY",
+  "file": "backend/game_logic/marshal_overview.py",
+  "old": "THE_CARD_SHOWS_THE_PRESENCE_TODAY = True",
+  "new": "THE_CARD_SHOWS_THE_PRESENCE_TODAY = False",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_HONORIFIC_IS_THE_COURTS_OWN",
+  "file": "backend/display_names.py",
+  "old": "THE_HONORIFIC_IS_THE_COURTS_OWN = True",
+  "new": "THE_HONORIFIC_IS_THE_COURTS_OWN = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_DESK_READS_THE_TABLE",
+  "file": "backend/ai/question_desk.py",
+  "old": "THE_DESK_READS_THE_TABLE = True",
+  "new": "THE_DESK_READS_THE_TABLE = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_DESK_PLACES_A_COURT",
+  "file": "backend/ai/question_desk.py",
+  "old": "THE_DESK_PLACES_A_COURT = True",
+  "new": "THE_DESK_PLACES_A_COURT = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_DESK_READS_THE_ALARM",
+  "file": "backend/ai/question_desk.py",
+  "old": "THE_DESK_READS_THE_ALARM = True",
+  "new": "THE_DESK_READS_THE_ALARM = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: TELL_ME_IS_A_QUESTION",
+  "file": "backend/ai/clause_guards.py",
+  "old": "TELL_ME_IS_A_QUESTION = True",
+  "new": "TELL_ME_IS_A_QUESTION = False",
+  "tests": "tests/test_sr6a_the_dispatch_pass.py"
+ },
+ {
+  "id": "lever down: THE_SYSTEM_NAMES_ITS_CONDITION",
+  "file": "backend/game_logic/congress.py",
+  "old": "THE_SYSTEM_NAMES_ITS_CONDITION = True",
+  "new": "THE_SYSTEM_NAMES_ITS_CONDITION = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_MARCH_NAMES_THE_FORFEIT",
+  "file": "backend/commands/movement_executor.py",
+  "old": "THE_MARCH_NAMES_THE_FORFEIT = True",
+  "new": "THE_MARCH_NAMES_THE_FORFEIT = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY",
+  "file": "backend/commands/movement_executor.py",
+  "old": "THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY = True",
+  "new": "THE_ENGAGED_REFUSAL_NAMES_THE_ENEMY = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_FIELD_SPEAKS_DISPLAY_NAMES",
+  "file": "backend/game_logic/combat.py",
+  "old": "THE_FIELD_SPEAKS_DISPLAY_NAMES = True",
+  "new": "THE_FIELD_SPEAKS_DISPLAY_NAMES = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: THE_MARCH_REPORTS_ITS_CAPTURE",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "THE_MARCH_REPORTS_ITS_CAPTURE = True",
+  "new": "THE_MARCH_REPORTS_ITS_CAPTURE = False",
+  "tests": "tests/test_sr6b_the_copy_pass.py"
+ },
+ {
+  "id": "lever down: A_REFUSED_TRUST_KEEPS_THE_OBJECTION",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "A_REFUSED_TRUST_KEEPS_THE_OBJECTION = True",
+  "new": "A_REFUSED_TRUST_KEEPS_THE_OBJECTION = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_PURSUIT_STATES_ITS_TERMS",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "THE_PURSUIT_STATES_ITS_TERMS = True",
+  "new": "THE_PURSUIT_STATES_ITS_TERMS = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_MONITEUR_SEES_THE_OPEN_GATE",
+  "file": "backend/game_logic/gazette.py",
+  "old": "THE_MONITEUR_SEES_THE_OPEN_GATE = True",
+  "new": "THE_MONITEUR_SEES_THE_OPEN_GATE = False",
+  "tests": "tests/test_sr6c_the_near_miss_is_a_story.py"
+ },
+ {
+  "id": "lever down: THE_LOG_HAS_AN_IMPORTANCE_TIER",
+  "file": "backend/campaign_log.py",
+  "old": "THE_LOG_HAS_AN_IMPORTANCE_TIER = True",
+  "new": "THE_LOG_HAS_AN_IMPORTANCE_TIER = False",
+  "tests": "tests/test_sr6c_the_near_miss_is_a_story.py"
+ },
+ {
+  "id": "lever down: THE_VOICE_ROTATES_ON_HIS_OWN_RECORD",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_VOICE_ROTATES_ON_HIS_OWN_RECORD = True",
+  "new": "THE_VOICE_ROTATES_ON_HIS_OWN_RECORD = False",
+  "tests": "tests/test_sf_md1_every_man_his_own_voice.py"
+ },
+ {
+  "id": "lever down: THE_LITERAL_QUOTES_THE_TYPED_ORDER",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_LITERAL_QUOTES_THE_TYPED_ORDER = True",
+  "new": "THE_LITERAL_QUOTES_THE_TYPED_ORDER = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_MUSTER_NAMES_THE_LEAD",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_MUSTER_NAMES_THE_LEAD = True",
+  "new": "THE_MUSTER_NAMES_THE_LEAD = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_CHARGE_NAMES_ITS_THRESHOLD",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_CHARGE_NAMES_ITS_THRESHOLD = True",
+  "new": "THE_CHARGE_NAMES_ITS_THRESHOLD = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: marshal_voice.THE_NAMED_BANK_FALLS_THROUGH",
+  "file": "backend/game_logic/marshal_voice.py",
+  "old": "THE_NAMED_BANK_FALLS_THROUGH = True",
+  "new": "THE_NAMED_BANK_FALLS_THROUGH = False",
+  "tests": "tests/test_sf_md1_every_man_his_own_voice.py"
+ },
+ {
+  "id": "lever down: enemy_voice.THE_NAMED_BANK_FALLS_THROUGH",
+  "file": "backend/game_logic/enemy_voice.py",
+  "old": "THE_NAMED_BANK_FALLS_THROUGH = True",
+  "new": "THE_NAMED_BANK_FALLS_THROUGH = False",
+  "tests": "tests/test_sf_md1_every_man_his_own_voice.py"
+ },
+ {
+  "id": "lever down: THE_ALTERNATIVE_IS_A_FOE_AT_WAR",
+  "file": "backend/commands/disobedience.py",
+  "old": "THE_ALTERNATIVE_IS_A_FOE_AT_WAR = True",
+  "new": "THE_ALTERNATIVE_IS_A_FOE_AT_WAR = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_OBJECTION_OFFERS_A_MAN_WE_HAVE_SEEN",
+  "file": "backend/commands/disobedience.py",
+  "old": "THE_OBJECTION_OFFERS_A_MAN_WE_HAVE_SEEN = True",
+  "new": "THE_OBJECTION_OFFERS_A_MAN_WE_HAVE_SEEN = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER",
+  "file": "backend/commands/meta_executor.py",
+  "old": "THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER = True",
+  "new": "THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON = True",
+  "new": "A_DISABLED_OPTION_REFUSES_WITH_ITS_REASON = False",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "lever down: THE_DIAL_SURVIVES_THE_DROP",
+  "file": "backend/game_logic/settlement_actions.py",
+  "old": "THE_DIAL_SURVIVES_THE_DROP = True",
+  "new": "THE_DIAL_SURVIVES_THE_DROP = False",
+  "tests": "tests/test_sf_dip1_the_dial_survives_the_drop.py"
+ },
+ {
+  "id": "SF-MD-1: a decided battle is not subtracted back out",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    counted_now = 0 if situation == \"stalemate\" else 1\n",
+  "new": "    counted_now = 0\n",
+  "tests": "tests/test_sf_md1_every_man_his_own_voice.py"
+ },
+ {
+  "id": "SF-MD-1: the enemy bank never falls through",
+  "file": "backend/game_logic/enemy_voice.py",
+  "old": "    bank = list(named)\n    for line in personality_bank:\n        if line not in bank:\n            bank.append(line)\n    return bank",
+  "new": "    bank = list(named)\n    for line in personality_bank:\n        if False:\n            bank.append(line)\n    return bank",
+  "tests": "tests/test_sf_md1_every_man_his_own_voice.py"
+ },
+ {
+  "id": "EAS-2: a lead type reads notable",
+  "file": "backend/campaign_log.py",
+  "old": "    if etype in LOG_TIER_LEAD:\n        return \"lead\"\n",
+  "new": "    if etype in LOG_TIER_LEAD:\n        return \"notable\"\n",
+  "tests": "tests/test_sr6c_the_near_miss_is_a_story.py"
+ },
+ {
+  "id": "EAS-2: a capital capture is not a lead",
+  "file": "backend/campaign_log.py",
+  "old": "        if event.get(\"capital\") or (region is not None and getattr(region, \"is_capital\", False)):\n            return \"lead\"",
+  "new": "        if False:\n            return \"lead\"",
+  "tests": "tests/test_sr6c_the_near_miss_is_a_story.py"
+ },
+ {
+  "id": "RS-17 Moniteur: the blocking term is never named",
+  "file": "backend/game_logic/gazette.py",
+  "old": "    if blocking:\n        return (f\"THE CONGRESS OF PARIS \u2014 {have} of {need} provinces titled, \"",
+  "new": "    if False:\n        return (f\"THE CONGRESS OF PARIS \u2014 {have} of {need} provinces titled, \"",
+  "tests": "tests/test_sr6c_the_near_miss_is_a_story.py"
+ },
+ {
+  "id": "SF-DIP-1: the dropped court's clauses are kept",
+  "file": "backend/game_logic/settlement_actions.py",
+  "old": "        kept = [t for t in current if not clause_names_court(t, nation)]\n",
+  "new": "        kept = list(current)\n",
+  "tests": "tests/test_sf_dip1_the_dial_survives_the_drop.py"
+ },
+ {
+  "id": "RS-5 backstop: never fires",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                and strategic_response == \"preferred\"\n                and isinstance(result, dict)\n                and result.get(\"success\") is False\n",
+  "new": "                and strategic_response == \"preferred\"\n                and isinstance(result, dict)\n                and False\n",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "RS-5: the shut crossing is not skipped on the pursuit",
+  "file": "backend/commands/disobedience.py",
+  "old": "            if believed in adjacent and not _crossing_open(world, marshal, believed):\n                continue   # the pursuit's first leg is the shut water\n",
+  "new": "            if False:\n                continue   # the pursuit's first leg is the shut water\n",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "NPC-13: friendly ground is always claimed",
+  "file": "backend/commands/movement_executor.py",
+  "old": "                if friendly_adjacent:\n                    _msg += (f\" He may fall back to friendly ground \u2014 \"",
+  "new": "                if True:\n                    _msg += (f\" He may fall back to friendly ground \u2014 \"",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "NPC-D4: an explicit pursuit also states terms",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "            _upgraded = (bool(parsed_command.get(\"attack_on_arrival\"))\n                         and str((parsed_command.get(\"command\") or {}).get(\"action\") or \"\") == \"attack\")",
+  "new": "            _upgraded = True",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "VP-R1-X1: the fog half is gone",
+  "file": "backend/commands/disobedience.py",
+  "old": "            if visible_names is not None and enemy.name not in visible_names:\n                continue\n",
+  "new": "            if False:\n                continue\n",
+  "tests": "tests/test_sr6_reserve_the_quick_wins.py"
+ },
+ {
+  "id": "NPC-14 yield: the occupation never yields the lead",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "HOMELAND_STATEMENTS = 3",
+  "new": "HOMELAND_STATEMENTS = 300",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py::TestTheFallenHomelandStandsOnThePage"
+ },
+ {
+  "id": "NPC-14 yield: a changed set does not reset the count",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if homeland_said.get(\"key\") != key:\n        homeland_said = {\"key\": key, \"count\": 0}\n",
+  "new": "    if False:\n        homeland_said = {\"key\": key, \"count\": 0}\n",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py::TestTheFallenHomelandStandsOnThePage"
+ },
+ {
+  "id": "SF-DIP-1: a cover change keeps the letter's consent",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    if covered is not None:\n        prior = sorted({str(n) for n in (dialogue.get(\"covered_enemy_participants\") or []) if n})\n        if sorted({str(n) for n in covered if n}) != prior:\n            return {}\n",
+  "new": "    if False:\n        prior = sorted({str(n) for n in (dialogue.get(\"covered_enemy_participants\") or []) if n})\n        if sorted({str(n) for n in covered if n}) != prior:\n            return {}\n",
+  "tests": "tests/test_sr2a_one_verdict_per_screen.py::TestTheRevisionCarriesConsent"
+ },
+ {
+  "id": "NPC-21: the refusal is not scoped to proposal_confirm",
+  "file": "backend/commands/diplomatic_executor.py",
+  "old": "                and _dtype == \"proposal_confirm\"\n",
+  "new": "                and True\n",
+  "tests": "tests/test_iq7_review_round.py::TestR37ATypedGrantStatesItsReason tests/test_sr6_reserve_the_quick_wins.py::TestADisabledOptionRefusesWithItsReason"
+ },
+ {
+  "id": "NPC-14: the homeland speaks over the collapse class",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            and realm_collapse.get_collapse_state(world, player_nation) is None\n",
+  "new": "            and True\n",
+  "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py::TestTheFallenHomelandStandsOnThePage"
+ }
+]

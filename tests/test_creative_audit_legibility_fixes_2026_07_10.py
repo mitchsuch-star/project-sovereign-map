@@ -48,6 +48,9 @@ class TestIntelReportHumanizesMarshalKeys:
         enemy.name = "ArchdukeJohn"
         world.marshals["ArchdukeJohn"] = world.marshals.pop(
             next(k for k, v in world.marshals.items() if v is enemy))
+        # SR-6a (AAR-5): a FULL province is read LIVE off the marshal index,
+        # so a renamed key must be re-indexed to stand where the intel says.
+        world._build_marshal_index()
         from backend.models.intel import FULL
         intel = world.intel.get(enemy.location)
         assert intel is not None
@@ -75,10 +78,15 @@ class TestDispatchSightingsHumanized:
         player = world.player_nation
         enemy = next(m for m in world.marshals.values()
                      if m.nation != player)
-        from backend.models.intel import FULL
+        # SR-6a (AAR-5, Oct 2 2026): a FULL province is read LIVE off the map
+        # (the man standing there, under his own name), so a snapshot that
+        # names a man who does not stand there is yesterday's label and is
+        # dropped; the snapshot road — the one this pin humanises — is read
+        # where the fog is real (PARTIAL).
+        from backend.models.intel import PARTIAL
         intel = world.intel.get(enemy.location)
         assert intel is not None
-        intel.visibility = FULL
+        intel.visibility = PARTIAL
         intel.known_marshals = [{
             "name": "ArchdukeJohn", "nation": enemy.nation,
             "strength": 12000,

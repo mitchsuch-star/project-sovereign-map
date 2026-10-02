@@ -1063,6 +1063,11 @@ def plan_courts(plan) -> set:
             for key in ("proposer_member", "covered_enemy")} - {""}
 
 
+# SR-6a RS-9: the settlement record (rail / dispatch / ledger) is labelled
+# by its COVERAGE, as the dialogue is. False = the whole-war label.
+THE_RECORD_NAMES_THE_COVERAGE = True
+
+
 def ratify_settlement_confirm(
     world: Any,
     dialogue: Mapping[str, Any],
@@ -1475,7 +1480,15 @@ def ratify_settlement_confirm(
     pre_cleanup_war_label = ""
     pre_cleanup_attackers = list(war_instance.get("attackers") or [])
     pre_cleanup_defenders = list(war_instance.get("defenders") or [])
-    if pre_cleanup_attackers and pre_cleanup_defenders:
+    if THE_RECORD_NAMES_THE_COVERAGE and str(dialogue.get("war_label") or ""):
+        # SR-6a RS-9 (Score Finish Step 2, Oct 2 2026): the rail, the
+        # dispatch and the ledger named the WHOLE war ("France + Spain +
+        # Holland + Bavaria + Kingdom of Italy vs Britain + Austria +
+        # Russia") — dropped courts included — while the terminal beside
+        # them read the dialogue's own coverage label ("France vs Austria").
+        # The record carries the label the table signed under.
+        pre_cleanup_war_label = str(dialogue.get("war_label"))
+    elif pre_cleanup_attackers and pre_cleanup_defenders:
         # G4F-11 (term-reflection audit): name BOTH full sides — the
         # first-vs-first pair label rendered the multilateral ratification
         # as "Settlement of France vs Britain" on the dispatch/ledger

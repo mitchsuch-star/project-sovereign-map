@@ -14,6 +14,12 @@ from typing import Dict, List, Optional
 
 from backend.display_names import humanize_entity_name
 
+# SF-MD-1 "Every man his own voice" (RS-24, Oct 2 2026): a named row no
+# longer ENDS the bank — the personality lines follow it (index 0 of every
+# bank unchanged), and the rotation key is the speaker's own battle count
+# (`combat_executor._voice_rotation_key_for`). False = the named row alone.
+THE_NAMED_BANK_FALLS_THROUGH = True
+
 # Situations, always from the ENEMY commander's perspective:
 #   repelled_you      — he defended and held/won against your attack
 #   beat_you_attacking — he attacked you and won
@@ -33,26 +39,37 @@ _PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "Come again, and I will bury you where you stand.",
             "Is that the best France sends against me?",
             "Your dead mark the high-water line. Study it.",
+            # SF-MD-1: banks grow to five (append-only; index 0 is pinned).
+            "You came to take my ground and left your dead to hold it.",
+            "Twice more and you will have an army of ghosts.",
         ],
         "beat_you_attacking": [
             "Forward! They break — give them no time to breathe!",
             "Your line bent like green wood. Next time it snaps.",
             "I asked for one gap in your line. You gave me three.",
+            "I struck where you were thin. You are thin everywhere.",
+            "The French line is a rumour. I have just disproved it.",
         ],
         "lost_ground": [
             "This field is borrowed, not surrendered. I will collect.",
             "You have my ground. Keep it warm for me.",
             "Enjoy the campfires tonight. They are the last quiet ones.",
+            "Keep the ground. I will come for it with the sun behind me.",
+            "You hold a field. I hold a grudge. Mine lasts longer.",
         ],
         "forced_retreat": [
             "A withdrawal, nothing more. My sword is still drawn.",
             "Mark this place. I will answer for it in kind.",
             "I go to fetch more men. Do wait.",
+            "We fall back to find better ground to kill you on.",
+            "A step back; the sword stays drawn.",
         ],
         "stalemate": [
             "Neither of us yields? Good. I prefer a foe worth killing.",
             "Tomorrow, then. My men are not done with you.",
             "Blood for blood and nothing settled — so we do it again.",
+            "Nothing decided. I decide things with steel; tomorrow I decide this.",
+            "We both bled. Only one of us enjoyed it.",
         ],
     },
     "cautious": {
@@ -60,26 +77,36 @@ _PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "I do not leave my ground. You were warned.",
             "Every step you took was counted, and paid for.",
             "The approach was obvious. I had it measured a week ago.",
+            "You tested a prepared position. The result was never in doubt.",
+            "My line was drawn a week ago. You found it this morning.",
         ],
         "beat_you_attacking": [
             "The moment was measured twice before I struck.",
             "I attack only when the ledger favors it. It did.",
             "You were overextended. I merely presented the invoice.",
+            "I struck when the sums were right. They were right.",
+            "You stood where I had measured. The rest followed.",
         ],
         "lost_ground": [
             "Noted. The next position will cost you double.",
             "You bought this field dearly. I doubt you can afford another.",
             "Ground can be repurchased. Armies cannot.",
+            "The ground is yours; the war is longer than a field.",
+            "I spend ground as a miser spends coin — rarely, and never twice.",
         ],
         "forced_retreat": [
             "An army preserved is a battle not yet lost.",
             "I trade ground for time. Time is on my side.",
             "I decline a battle on your terms; the next is on mine.",
+            "Retired in order. The army outlives the field.",
+            "You have the hill. I have the army that will take it back.",
         ],
         "stalemate": [
             "You gained nothing. I call that a victory of arithmetic.",
             "Patience wins wars, not charges.",
             "A day of arithmetic. The sums still favor me.",
+            "You gained nothing and paid. I can afford this; can you?",
+            "A day of arithmetic. The sums still favour patience.",
         ],
     },
     "literal": {
@@ -87,26 +114,36 @@ _PERSONALITY_LINES: Dict[str, Dict[str, List[str]]] = {
             "My orders were to hold. The position is held.",
             "The line stands where it was drawn. Precisely.",
             "The instruction said hold. Holding has occurred.",
+            "The position is held as ordered. Nothing further.",
+            "Orders: hold. Result: held.",
         ],
         "beat_you_attacking": [
             "The objective was taken as instructed. Nothing further.",
             "Executed as ordered. Your dispositions were insufficient.",
             "The attack proceeded per timetable. The timetable was correct.",
+            "The attack was ordered and carried out. The objective is taken.",
+            "Executed per instruction. Your line did not meet the specification.",
         ],
         "lost_ground": [
             "The position could not be held with the forces assigned. So reported.",
             "I shall await revised instructions.",
             "Losses are recorded. Blame is a separate column.",
+            "The ground is lost. The report has been forwarded.",
+            "Position not held. The force assigned was insufficient; so stated.",
         ],
         "forced_retreat": [
             "Withdrawal conducted in order. The army is intact.",
             "The field is yours. My orders now read otherwise.",
             "The retirement was executed by the book. The book is intact.",
+            "Retired per regulation. The order of battle is intact.",
+            "Withdrawal ordered; withdrawal performed.",
         ],
         "stalemate": [
             "The engagement is recorded as indecisive. Accurately.",
             "Both lines remain. The report writes itself.",
             "Result: nil. The paperwork, however, is complete.",
+            "No result. The returns are complete.",
+            "Indecisive, as recorded.",
         ],
     },
 }
@@ -137,11 +174,21 @@ _NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
             "An honorable pause. My calculations required nothing more today.",
             "You failed to break me, which the system predicted. Consult it.",
         ],
+        # SF-MD-1 (Oct 2 2026): the missing situations, append-only.
+        "beat_you_attacking": [
+            "The system attacked. The system was correct.",
+            "You were where my calculations placed you. Unfortunate for you.",
+            "Vienna will read of this. I have already drafted the dispatch.",
+        ],
     },
     "Kutuzov": {
         "repelled_you": [
             "Russia is patient, Frenchman. You will learn what that costs.",
             "The old man sleeps with one eye open. It was open today.",
+        ],
+        "beat_you_attacking": [
+            "The old man strikes once, and only when the snow agrees.",
+            "You expected a Russian to wait. Today Russia moved.",
         ],
         "lost_ground": [
             "Take the ground. Winter will take it back.",
@@ -173,6 +220,34 @@ _NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
             "France pays full price for every Austrian mile now.",
             "Your Emperor needs quick victories. I need only deny them.",
         ],
+        "forced_retreat": [
+            "Austria retires to fight again — it is the thing we do best.",
+            "I give up the field to keep the army. Vienna will thank me later.",
+        ],
+    },
+    # SF-MD-1: the second Archduke had no row and borrowed his personality's
+    # "I trade ground for time" three battles running (RS-24).
+    "ArchdukeJohn": {
+        "repelled_you": [
+            "The Tyrol holds its passes. So do I.",
+            "You came up the valley in column. The valley answered.",
+        ],
+        "beat_you_attacking": [
+            "A measured blow at a careless hour. Austria still has a sting.",
+            "You thought the younger Archduke only waited. Today he moved.",
+        ],
+        "lost_ground": [
+            "You have the field; the mountains keep their own counsel.",
+            "Ground is lent in the Alps, never sold.",
+        ],
+        "forced_retreat": [
+            "I withdraw into the hills, where your cavalry is worth nothing.",
+            "Retired in order. Every pass behind me is a fortress.",
+        ],
+        "stalemate": [
+            "Neither yields. The Alps are patient, and so am I.",
+            "A day without decision suits the defender. I am the defender.",
+        ],
     },
     "Wellington": {
         "repelled_you": [
@@ -186,6 +261,14 @@ _NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
         "stalemate": [
             "Hard pounding, gentlemen. We shall see who pounds longest.",
             "Steady is not glamorous, monsieur. It is merely undefeated.",
+        ],
+        "beat_you_attacking": [
+            "We came on in our own style, and it answered.",
+            "Steady pounding wins. We pounded.",
+        ],
+        "forced_retreat": [
+            "A retirement, sir, conducted by gentlemen.",
+            "We fall back to the next ridge. There is always a next ridge.",
         ],
     },
     "Blucher": {
@@ -204,6 +287,10 @@ _NAMED_LINES: Dict[str, Dict[str, List[str]]] = {
         "stalemate": [
             "Tomorrow we go again. I did not get old by stopping.",
             "My men can bleed longer than your men can march.",
+        ],
+        "lost_ground": [
+            "You have the ground. I have the schnapps and the next attack.",
+            "Papa Blücher loses a field as other men lose a hat — briefly.",
         ],
     },
 }
@@ -249,12 +336,24 @@ def pick_enemy_voice(enemy_name: str, personality: str, situation: str,
     # or silence, never the cautious filler below). NAPOLEON_SPEC §2/§10.
     if personality == "sovereign":
         return ""
-    bank = _NAMED_LINES.get(enemy_name, {}).get(situation)
-    if not bank:
-        bank = _PERSONALITY_LINES.get(personality, {}).get(situation)
-    if not bank:
-        bank = _PERSONALITY_LINES["cautious"].get(situation, [])
+    bank = voice_bank(enemy_name, personality, situation)
     if not bank:
         return ""
     line = bank[int(rotation_key) % len(bank)]
     return f"{humanize_entity_name(enemy_name)}: \"{line}\""
+
+
+def voice_bank(enemy_name: str, personality: str, situation: str) -> List[str]:
+    """The lines a man can say in a situation, in rotation order: his own
+    row first, then his personality's (SF-MD-1), never a line twice."""
+    named = list(_NAMED_LINES.get(enemy_name, {}).get(situation) or [])
+    personality_bank = list(_PERSONALITY_LINES.get(personality, {}).get(situation) or [])
+    if not personality_bank:
+        personality_bank = list(_PERSONALITY_LINES["cautious"].get(situation, []))
+    if not THE_NAMED_BANK_FALLS_THROUGH:
+        return named or personality_bank
+    bank = list(named)
+    for line in personality_bank:
+        if line not in bank:
+            bank.append(line)
+    return bank

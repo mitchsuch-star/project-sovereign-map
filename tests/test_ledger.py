@@ -493,7 +493,11 @@ def test_intel_full_visibility_exact_strength():
     enemies = ledger["intel"]["known_enemies"]
     well = [e for e in enemies if e["name"] == "Wellington"]
     assert len(well) > 0
-    assert well[0]["strength_display"] == "68,000"
+    # SR-6a (AAR-5, Oct 2 2026): at FULL the row is the LIVE sighting — the
+    # man's strength as he stands, never a frozen snapshot behind the label.
+    live = int(world.marshals["Wellington"].strength)
+    assert well[0]["strength_display"] == f"{live:,}"
+    assert well[0]["strength_display"] != "68,000"
     assert well[0]["visibility"] == "full"
 
 
@@ -563,7 +567,11 @@ def test_intel_nation_summary_marshal_count():
     summaries = ledger["intel"]["nation_summaries"]
     britain = [s for s in summaries if s["nation"] == "Britain"]
     assert len(britain) > 0
-    assert britain[0]["known_marshals"] == 2
+    # SR-6a (AAR-5, Oct 2 2026): a FULL label is read LIVE — a snapshot name
+    # with no man standing there (Uxbridge) is yesterday's label, not a
+    # sighting; the count is the British corps actually at Waterloo.
+    standing = [m for m in world.get_marshals_in_region("Waterloo") if m.nation == "Britain"]
+    assert britain[0]["known_marshals"] == len(standing) == 1
 
 
 def test_intel_nation_summary_estimated_strength():

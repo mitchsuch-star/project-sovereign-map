@@ -10,9 +10,37 @@ Features:
 """
 
 from typing import Dict
+from backend.display_names import humanize_entity_name
 from backend.models.marshal import Marshal
 from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
 from backend.utils import ordinal
+
+# RS-26 / NPC-12 (SR-6b "The copy pass", Score Finish Step 2, Oct 2 2026):
+# the resolver's narration interpolated the roster KEY at seventy sites
+# ("[Shield] ArchdukeCharles's DEFENSIVE stance strengthens the line!",
+# "Davout gains the advantage over ArchdukeCharles", "[!] ArchdukeJohn's
+# troops are BROKEN") and the client's name net rewrites nation tags only.
+# ONE seam: the description the resolver returns passes both combatants'
+# keys through the humaniser (whole words, longest key first), so every
+# line it composes — prefix, narrative, outcome, rout — reads the display
+# name. Mechanics untouched (the keys stay in every structured field).
+# False = the raw keys.
+THE_FIELD_SPEAKS_DISPLAY_NAMES = True
+
+
+def _field_names(text: str, *marshals) -> str:
+    """The two combatants' roster keys as their display names, in prose."""
+    if not THE_FIELD_SPEAKS_DISPLAY_NAMES or not text:
+        return text
+    import re as _re
+    keys = sorted({str(getattr(m, "name", "") or "") for m in marshals if m is not None},
+                  key=len, reverse=True)
+    for key in keys:
+        shown = humanize_entity_name(key)
+        if not key or shown == key:
+            continue
+        text = _re.sub(r"(?<![A-Za-z])" + _re.escape(key) + r"(?![A-Za-z])", shown, text)
+    return text
 
 
 def _build_tactical_prefix(
@@ -1086,7 +1114,8 @@ class CombatResolver:
             "terrain_defense_message": terrain_defense_message,  # Phase 6.1: Terrain defense
             "cavalry_terrain_message": cavalry_terrain_message,  # Phase 6.1: Cavalry terrain
             "cavalry_counter_message": cavalry_counter_message,  # Phase 6: Cavalry vs artillery
-            "description": tactical_prefix + base_description + retreat_message,
+            "description": _field_names(tactical_prefix + base_description + retreat_message,
+                                        attacker, defender),
             # Berthier's After-Action Report
             "attacker_nation": getattr(attacker, "nation", ""),
             "defender_nation": getattr(defender, "nation", ""),
@@ -1536,7 +1565,8 @@ class CombatResolver:
             "terrain_defense_message": terrain_defense_message,
             "cavalry_terrain_message": cavalry_terrain_message,
             "cavalry_counter_message": cavalry_counter_message,
-            "description": tactical_prefix + base_description,
+            "description": _field_names(tactical_prefix + base_description,
+                                        attacker, defender),
             "attacker_nation": getattr(attacker, "nation", ""),
             "defender_nation": getattr(defender, "nation", ""),
             "attacker_original_strength": int(attacker_original_strength),

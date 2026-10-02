@@ -73,8 +73,10 @@ _PERSONALITY_DESCRIPTIONS = {
     # unusual commander explained nothing. Every clause is a shipped
     # mechanic (NAPOLEON_SPEC §4.2/§5.1/§5.2/§6.2/§8).
     "sovereign": (
-        "Sovereign: You, in the field. He never objects and never asks — "
-        "his orders are your own will, and cost 1 AP, not 2. Where he "
+        "Sovereign: You, in the field. He never objects — his orders are "
+        "your own will, and cost 1 AP, not 2 (with the live parser, a "
+        "delegated order such as 'deal with Mack' is read back to you by "
+        "Berthier for its target before he marches). Where he "
         "stands, every corps of his nation fights +10% harder on attack "
         "and defence, and enemy commanders will not accept odds against "
         "him that they would take against any marshal. But victories won "
@@ -186,7 +188,7 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         **_build_identity(marshal),
 
         # ═══════ SIGNATURE ABILITY ═══════
-        **_build_ability(marshal),
+        **_build_ability(marshal, world),
 
         # ═══════ COMBAT STATS ═══════
         **_build_combat_stats(marshal, world),
@@ -261,7 +263,12 @@ THE_PRISONER_NOTE_TAKES_THE_ARTICLE = True
 CAPTIVITY_SUSPENDS_THE_ABILITY = True
 
 
-def _build_ability(marshal: Marshal) -> Dict[str, Any]:
+# SR-6a NPC-D1: the Presence card names today's strength. False = the
+# authored text alone.
+THE_CARD_SHOWS_THE_PRESENCE_TODAY = True
+
+
+def _build_ability(marshal: Marshal, world=None) -> Dict[str, Any]:
     """Signature ability section. Only includes ability data for wired abilities."""
     ability = marshal.ability or {}
     ability_name = ability.get("name") or ""
@@ -293,11 +300,23 @@ def _build_ability(marshal: Marshal) -> Dict[str, Any]:
     is_active = (marshal.name in _WIRED_ABILITY_MARSHALS
                  and ability_name not in ("", "None"))
     if is_active:
+        effect = ability.get("effect", "")
+        if (THE_CARD_SHOWS_THE_PRESENCE_TODAY and world is not None
+                and getattr(marshal, "is_sovereign", False)):
+            # SR-6a NPC-D1 (Oct 2, 2026): the Presence at its CURRENT
+            # strength, not its authored one — the aura decays with the
+            # Empire's grip (`sovereign_aura_strength`) and the card had
+            # kept promising +10% through a collapse to +4%.
+            from backend.models.authority import sovereign_aura_strength
+            pct = int(round(10 * float(sovereign_aura_strength(world, marshal.nation))))
+            if pct < 10:
+                effect = (f"{effect} Today it stands at +{pct}% — "
+                          f"{'his star is out' if pct <= 0 else 'his star dims'}.")
         return {
             "ability_name": ability_name,
             "ability_description": ability.get("description", ""),
             "ability_trigger": ability.get("trigger", ""),
-            "ability_effect": ability.get("effect", ""),
+            "ability_effect": effect,
             "ability_active": True,
         }
     # No active ability — omit ability fields entirely

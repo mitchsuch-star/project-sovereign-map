@@ -2679,7 +2679,21 @@ def crowned_incoming_clause(world, opposing_nation: str) -> str:
     return line.format(marshal=slots[0], location=slots[1])
 
 
-def spoken_blocker_phrase(component: str, fallback: str = "") -> str:
+# SRX-6 (SR-6b, Oct 2 2026): a WHITE PEACE claims nothing, so the
+# legitimacy blocker cannot say "the terms claim a victory the field has not
+# delivered" of it — F5's corrected sentence stood beside that clause on the
+# typed route and the `settlement_confirm` payload alike. The white-peace
+# register of the same component. False = the one phrase for every package.
+THE_WHITE_PEACE_SPEAKS_ITS_OWN_BLOCKER = True
+SPOKEN_BLOCKER_PHRASES_WHITE_PEACE = {
+    "settlement_tier_legitimacy": (
+        "it claims no victory, but a whole-war peace still needs every "
+        "covered court's consent, and not every court consents"),
+}
+
+
+def spoken_blocker_phrase(component: str, fallback: str = "",
+                          *, white_peace: bool = False) -> str:
     """The spoken form of a top-blocking acceptance component (CA8-17).
 
     The `{blocker_clause}` slot demands a CLAUSE — the register frames
@@ -2690,6 +2704,10 @@ def spoken_blocker_phrase(component: str, fallback: str = "") -> str:
     WRAPPED into a clause, and the no-information default is itself a
     clause. No path leaks raw braces through `_MissingSettlementSlot`.
     """
+    if white_peace and THE_WHITE_PEACE_SPEAKS_ITS_OWN_BLOCKER:
+        phrase = SPOKEN_BLOCKER_PHRASES_WHITE_PEACE.get(str(component or ""))
+        if phrase:
+            return phrase
     phrase = SPOKEN_BLOCKER_PHRASES.get(str(component or ""))
     if phrase:
         return phrase
@@ -2705,6 +2723,7 @@ def resolve_multi_court_settlement_voice(
     per_court_acceptance: Any,
     overall_acceptance: Any = None,
     war_label: str = "",
+    white_peace: bool = False,
 ) -> Dict[str, Any]:
     """Re-front Slice 1 / REFRONT-V — resolve the multi-court table voice.
 
@@ -2729,7 +2748,8 @@ def resolve_multi_court_settlement_voice(
         # CA8-17 (close-out gate 10.3): the SPOKEN clause for the court's
         # top-blocking component; the table label is only the fallback.
         blocker_clause = spoken_blocker_phrase(
-            str(row.get("top_blocker_component") or ""), top_blocker)
+            str(row.get("top_blocker_component") or ""), top_blocker,
+            white_peace=bool(white_peace))
         if hard_stopped:
             template_key = "settlement_multi_court_court_hard_stop"
         else:

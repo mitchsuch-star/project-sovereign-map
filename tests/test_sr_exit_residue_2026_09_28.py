@@ -235,7 +235,7 @@ class TestTheFallenProvinceNamesItsOccupierAsPrinted:
         from backend.game_logic import dispatch as D
         self._stage(world)
         headline = D._HEADLINE_TEMPLATES["home_captured"].format(
-            region="Rhineland",
+            region="Rhineland", captor_clause="",   # SR-6a NPC-15 added the slot
             lever=D._home_captured_lever(world, "Rhineland", "France", dict(self.EVT)))
         assert "ArchdukeCharles" not in headline and "Archduke Charles's corps" in headline
 

@@ -198,7 +198,11 @@ class TestLevyHeadline:
         # escalated wording is what the player sees, forever. Every variant
         # now names the place a marshal must stand.
         assert any("nobody has gone to collect them" in t for t in seen), seen
-        assert all("Paris" in t for t in seen), seen
+        # SR-6a RS-D2 (Oct 2, 2026) — CONSCIOUS RE-SEAT: after three
+        # statements the levy yields the page to the quiet-morning floor,
+        # so only its own lines are held to the recipient condition.
+        levy_lines = [t for t in seen if "ordinance" in t or "levy" in t.lower()]
+        assert levy_lines and all("Paris" in t for t in levy_lines), seen
 
     def test_it_never_outranks_a_wound(self):
         """An opportunity sits below every crisis — pin 13's discipline."""

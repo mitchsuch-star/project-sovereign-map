@@ -404,7 +404,12 @@ class TestIntelligence:
         intel = _build_intelligence(world, "France")
         assert len(intel) == 1
         assert intel[0]["name"] == "Wellington"
-        assert intel[0]["strength_display"] == "45,000"
+        # SR-6a AAR-5 (Oct 2, 2026) — CONSCIOUS RE-SEAT: a FULL province is
+        # read LIVE (the map's rule), so the row carries the man's strength
+        # this morning, not the figure frozen in the snapshot (the injected
+        # 45,000 was the defect's own shape: a label over a stale number).
+        live = int(world.marshals["Wellington"].strength)
+        assert intel[0]["strength_display"] == f"{live:,}"
         assert intel[0]["visibility"] == FULL
 
     def test_partial_visibility_shows_band(self):

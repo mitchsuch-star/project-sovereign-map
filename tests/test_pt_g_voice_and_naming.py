@@ -60,7 +60,11 @@ class TestTheRotationKeyIsZeroBased:
         simply start where the banks were authored to start."""
         src = (REPO / "backend" / "commands"
                / "combat_executor.py").read_text(encoding="utf-8")
-        assert src.count("_voice_rotation_key(world, target_location)") == 2
+        # SF-MD-1 (Oct 2 2026): both sides read the SPEAKER's own key
+        # through the one range-aware helper, still in phase with each other.
+        assert src.count("_voice_rotation_key_for(world, _enemy_m, target_location,") == 1
+        assert src.count("_voice_rotation_key_for(world, _own_m, target_location,") == 1
+        assert src.count("_voice_rotation_key(world, target_location)") == 0
         assert "int(world.battle_counts.get(target_location, 0)))" not in src
 
     def test_the_authored_opening_line_is_now_reachable(self):

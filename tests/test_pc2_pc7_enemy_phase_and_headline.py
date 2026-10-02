@@ -173,6 +173,10 @@ def test_escalation_copy_is_formattable():
             # base-placeholder proxy under-approximates this class's own
             # field set.
             allowed |= {"have", "stand"}
+            # NPC-24 (Score Finish Step 2, Oct 2 2026): the builder also
+            # supplies {losses_dead} ("1,351 men dead") for the second
+            # variant — the base template keeps the bare {losses}.
+            allowed |= {"losses_dead"}
         for text in variants:
             used = _placeholders(text)
             assert used <= allowed, (

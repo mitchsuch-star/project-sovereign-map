@@ -138,8 +138,9 @@ PERSONALITY_DESCRIPTIONS = {
         'name': 'Sovereign',
         'summary': 'The player embodied',
         'description': 'The reigning head of state in the field. His orders '
-                      'are your orders — he never objects, never asks, and '
-                      'never competes with his own marshals.',
+                      'are your orders — he never objects and never competes '
+                      'with his own marshals; a delegated order is read back '
+                      'to you for its target before he marches.',
         'strengths': ['Total obedience', 'The Presence on the field'],
         'weaknesses': ['Can only be in one place', 'The Empire rides with him'],
         'examples': ['Napoleon'],

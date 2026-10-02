@@ -210,6 +210,23 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # {region}") about a province where a fight had actually been won.
     "garrison_held": 82,
     "enemy_on_our_soil": 80,    # enemy army stands on own-controlled soil
+    # SR-6a NPC-14: homeland soil HELD by the enemy — one above the enemy
+    # merely standing on it (he has stopped marching and started ruling),
+    # below a repulsed assault (82) and the fresh news of the loss (99/100),
+    # which restates it the morning it happens and is not re-told beside it.
+    "homeland_occupied": 81,
+    # SR-6a NPC-D1: the Emperor's aura crossing a band — graver than a
+    # mauled corps (85) is not; it is the myth, not a body. Beside
+    # `marshal_wounded` (84).
+    "aura_dimmed": 83,
+    # SR-6a RS-17: the Congress becomes summonable — the gate opens. Above
+    # `own_mauled` (85), one below `congress_contested` (87): an act of
+    # state the player can now choose; each refuser's gap, the lowered-gate
+    # fuse and the ceder risk ride beneath it at 69 (below a warning).
+    "congress_summonable": 86,
+    "congress_summonable_term": 69,
+    # SR-6a RS-D2's floor: a quiet page says so, beneath everything.
+    "quiet_morning": 5,
     # CA8-22 (creative audit, Aug 4 2026): the same province, when it was a
     # marshal's duchy. Ranked one above the bare map fact BECAUSE it is the
     # same event told better — the played campaign generated
@@ -310,7 +327,42 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
 # the same cooldown and escalation ladder rather than leading forever.
 STANDING_HEADLINE_CLASSES = frozenset({"estate_eroding", "enemy_on_our_soil",
                                        "levy_open", "supply_strain",
-                                       "empire_reduced"})
+                                       "empire_reduced",
+                                       # SR-6a NPC-14: a homeland province
+                                       # in enemy hands is a STATE, told
+                                       # until it is retaken.
+                                       "homeland_occupied"})
+
+# ── SR-6a "The dispatch pass" (Score Finish Step 2, October 2, 2026) ──────
+# One lever per row; each False arm reproduces the pre-slice page byte for
+# byte. Renderer-side: no AI reads any of them.
+THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE = True   # NPC-14: a standing class for homeland soil in enemy hands
+THE_FALLEN_PROVINCE_NAMES_ITS_CAPTOR = True     # NPC-15: "{region} has fallen to {captor}"
+THE_BRIEFING_SHOWS_THE_GRIP = True              # NPC-27: the derived grip beside the raw authority
+THE_AURA_HAS_ITS_BEAT = True                    # NPC-D1: a band crossing of the Presence is a briefing beat
+THE_LEVY_YIELDS_ONCE_STATED = True              # RS-D2: an offer three times declined leaves the page
+THE_CASCADE_IS_GROUPED = True                   # RS-23: one line per ally per turn, the enemy named
+THE_SUMMONABLE_GATE_IS_NEWS = True              # RS-17: a `congress_summonable` headline, once per opening
+# ── SR-6b "The copy pass" (Score Finish Step 2, October 2, 2026) ─────────
+THE_DEFENDERS_ARE_JOINED_IN_SERIES = True      # NPC-23: "Lannes, Murat and Napoleon stand in his path"
+THE_FAMINE_COUNTS_ITS_DEAD = True              # NPC-24: "1,351 men dead", never a bare figure
+THE_RANK_IS_THE_COURTS_OWN = True              # RS-29 / NP-X7: `marshal_honorific` at the dispatch's rank sites
+# RS-D2's numbers (display only, in-band tunable): the levy may LEAD once
+# and be stated (lead or sub-beat) three times before it yields to the
+# ledger's own line; a material change in headroom (a fifth either way)
+# or price, a new war, or the gate re-opening restates it.
+LEVY_LEAD_MAX = 1
+LEVY_STATEMENTS = 3
+LEVY_HEADROOM_CHANGE = 0.20
+# NPC-14's standing class takes RS-D2's yield too (Oct 2 2026, the Step 2
+# exit's own reading): "the enemy has held Lyonnais and Provence N turns"
+# led 6 of 9 mornings on the OP arm at 81 and buried the first erosion
+# notice (55). After HOMELAND_STATEMENTS statements of the SAME occupied set
+# the class drops to HOMELAND_YIELDED_WEIGHT — still on the page as a
+# sub-beat, never the lead — until the set changes (a province lost or
+# regained), when it is news again.
+HOMELAND_STATEMENTS = 3
+HOMELAND_YIELDED_WEIGHT = 40
 
 # Consecutive turns a standing class may hold the lead before it must yield
 # to any other candidate. Blessed default, display-only, tunable in band.
@@ -373,8 +425,10 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
         "not one of them to the enemy. {remedy}",
         # PC15-12: {have} agrees with the subject — "Massena has been",
         # "Ney and Soult have been".
+        # NPC-24 (SR-6b): "{losses_dead}" — "1,351 men dead", never a bare
+        # figure that reads as the overage collapsing.
         "Sire — {who} {have} been {turns} turns over what {region} can "
-        "feed. {losses}. The country will ask where the army went. {remedy}",
+        "feed. {losses_dead}. The country will ask where the army went. {remedy}",
     ],
     # IQ-2: the realm's standing fact rides {line} (the producer composes it
     # from the collapse phrases), so every variant re-states it whole. The
@@ -384,6 +438,14 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
         "Sire — {turns} turns now the Empire has stood reduced. {line}",
         "Sire — the Empire has stood reduced {turns} turns, and every "
         "province retaken would pay again. {line}",
+    ],
+    # SR-6a NPC-14: the run is the occupation's own clock.
+    "homeland_occupied": [
+        "Sire — {turns} turns now with {provinces} in enemy hands{capital_clause}. "
+        "The country counts every one of them.",
+        "Sire — the enemy has held {provinces} {turns} turns{capital_clause}. "
+        "Each turn he holds them is a turn his recruiting sergeants work "
+        "our ground.",
     ],
     "levy_open": [
         "Sire — {turns} turns now with the establishment under the ordinance "
@@ -424,7 +486,18 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "capital_lost": ("Sire — {region} HAS FALLEN. Our capital is in "
                      "{captor}'s hands, and every courier in Europe is "
                      "already carrying the news."),
-    "home_captured": "Sire — {region} has fallen. Enemy colours fly over French homeland soil.{lever}",
+    # SR-6a NPC-15: `{captor_clause}` is " to {captor}" (the lever up) or
+    # "" — the pre-slice sentence byte for byte with the lever down.
+    "home_captured": "Sire — {region} has fallen{captor_clause}. Enemy colours fly over French homeland soil.{lever}",
+    # SR-6a NPC-14: the standing fact — composed backend-side (the count,
+    # the capital, the holders all vary).
+    "homeland_occupied": "Sire — {provinces} {lie} in enemy hands{capital_clause}. {holders_clause}",
+    # SR-6a NPC-D1: the myth, cracking or mending, composed backend-side.
+    "aura_dimmed": "Sire — {line}",
+    # SR-6a RS-17: the gate opens — composed backend-side.
+    "congress_summonable": "Sire — {line}",
+    "congress_summonable_term": "{line}",
+    "quiet_morning": "Sire — a quiet morning on the front. The marshals await your word.",
     "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
     # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
     # because the captive court and the field are both optional.
@@ -622,6 +695,13 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "congress_withdrawn": "A signature given can be taken back, Sire. Every province we take by force is read at every table in Europe.",
     "congress_recognized": "One signature is not yet a peace, Sire — but it is one court fewer that must be beaten, bought or shut out.",
     "congress_warning": "A warning is a price named while it can still be paid, Sire. Pay it, or be ready for the cannon.",
+    # SR-6a (Oct 2, 2026): the three new classes close on the decision
+    # each creates.
+    "homeland_occupied": "A province held is a province the enemy taxes, Sire. March on it, or treat for it — the country will not forget which.",
+    "aura_dimmed": "The Presence is read at every table in Europe, Sire. A victory with him at its head restores more than a province; a defeat under him costs more than one.",
+    "congress_summonable": "The gate is open, Sire — the summons is yours to give from the Cabinet, and every turn it waits the count may fall.",
+    "quiet_morning": "Nothing presses, Sire. The Ledger holds the standing matters — the levy among them.",
+    "congress_summonable_term": "Each refuser's price is a road, Sire — pay it, or march it.",
     # NP-4: the Brétigny counsel — the fastest road home is the table.
     "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
     # IQ-2: the census fallback. `_pick_berthier_note` answers this class
@@ -957,6 +1037,351 @@ def _imperial_peace_line(world) -> str:
             f"the Emperor made is the order Europe recognizes.")
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# SR-6a "The dispatch pass" (Score Finish Step 2, October 2, 2026) — the
+# producers of the four new classes and the two memory riders. Display
+# only; every one reads a seam the mechanic itself reads.
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _rank(world, roster_name: str, shown: str) -> str:
+    """NP-X7 (SR-6b): the dispatch's rank prefix through the ONE honorific
+    (`marshal_honorific` — "the Emperor Napoleon", "the Archduke John",
+    "General Kutuzov", "Marshal Ney"). Lever down = the literal "Marshal"."""
+    if THE_RANK_IS_THE_COURTS_OWN and roster_name:
+        return marshal_honorific(world, roster_name)
+    return f"Marshal {shown}"
+
+
+def _on_our_side(world, player_nation: str, vassals_of_player, nation: str) -> bool:
+    """WO-11's rule, hoisted: the player, their satellites, their allies."""
+    return bool(nation) and (
+        nation == player_nation
+        or nation in vassals_of_player
+        or world.are_allies(player_nation, nation))
+
+
+def _join_places(names) -> str:
+    names = [str(n) for n in names if n]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _homeland_occupied_fields(world, player_nation: str, home_regions,
+                              vassals_of_player) -> Optional[Dict[str, Any]]:
+    """NPC-14: the homeland provinces in enemy hands this morning — the
+    capital first, then alphabetical; the holders named. None while every
+    home province is on our side."""
+    occupied = []
+    capital = world.get_nation_capital(player_nation)
+    for region_name in sorted(home_regions):
+        region = world.regions.get(region_name)
+        if region is None:
+            continue
+        holder = str(getattr(region, "controller", "") or "")
+        if _on_our_side(world, player_nation, vassals_of_player, holder):
+            continue
+        occupied.append((region_name, holder))
+    if not occupied:
+        return None
+    occupied.sort(key=lambda pair: (pair[0] != capital, pair[0]))
+    names = [r for r, _h in occupied]
+    shown = names[:3]
+    more = len(names) - len(shown)
+    provinces = _join_places(shown) + (f" and {more} more" if more > 0 else "")
+    holders = []
+    for _r, holder in occupied:
+        shown_holder = formed_display_name(world, holder)
+        if shown_holder not in holders:
+            holders.append(shown_holder)
+    holders_clause = (f"{_join_places(holders)} "
+                      f"{'holds' if len(holders) == 1 else 'hold'} "
+                      f"{'it' if len(names) == 1 else 'them'}.")
+    capital_clause = " — the capital among them" if capital in names else ""
+    if capital in names and len(names) == 1:
+        capital_clause = " — our capital"
+    return {
+        "provinces": provinces,
+        "lie": "lies" if len(names) == 1 else "lie",
+        "capital_clause": capital_clause,
+        "holders_clause": holders_clause,
+        "count": int(len(names)),
+        # The occupied SET, for the statement count's reset.
+        "occupied_key": "|".join(sorted(names)),
+    }
+
+
+def _grip_fields(world, player_nation: str, authority: int) -> Dict[str, Any]:
+    """NPC-27 / NPC-D1: the derived grip (the number the game acts on) and
+    the Presence (the aura, as the percentage a corps would read on the
+    field). `label_tail` is "" when the grip equals the court figure and
+    the Presence is full — the boot line is byte-identical."""
+    from backend.models.authority import (get_imperial_grip,
+                                          sovereign_aura_strength)
+    grip = int(get_imperial_grip(world, player_nation))
+    sovereign = _standing_sovereign(world, player_nation)
+    aura_pct = -1
+    if sovereign is not None:
+        aura_pct = int(round(10 * float(sovereign_aura_strength(world, player_nation))))
+    out = {"grip": grip, "grip_word": _grip_word(grip), "aura_pct": aura_pct,
+           "label_tail": ""}
+    tail = ""
+    if grip != int(authority):
+        tail = f" at court; the Empire's grip {grip} ({out['grip_word']})"
+    if 0 <= aura_pct < 10:
+        tail += f"; the Presence at +{aura_pct}%"
+    out["label_tail"] = tail
+    return out
+
+
+def _grip_word(grip: int) -> str:
+    from backend.models.authority import AURA_GRIP_BROKEN, AURA_GRIP_FULL
+    if grip >= AURA_GRIP_FULL:
+        return "firm"
+    if grip >= 60:
+        return "shaken"
+    if grip > AURA_GRIP_BROKEN:
+        return "cracking"
+    return "broken"
+
+
+def _standing_sovereign(world, player_nation: str):
+    """The player's embodied sovereign, standing (not captive, under arms)."""
+    for m in world.marshals.values():
+        if (m.nation == player_nation and getattr(m, "is_sovereign", False)
+                and not getattr(m, "captured_by", "")
+                and int(getattr(m, "strength", 0) or 0) > 0):
+            return m
+    return None
+
+
+def _aura_band(aura_pct: int) -> str:
+    if aura_pct >= 10:
+        return "full"
+    if aura_pct >= 7:
+        return "dimming"
+    if aura_pct >= 4:
+        return "fading"
+    if aura_pct >= 1:
+        return "guttering"
+    return "out"
+
+
+def _aura_band_line(world, player_nation: str, record: bool = True) -> str:
+    """NPC-D1: the briefing beat when the Presence crosses a band — up or
+    down. The last band told rides `headline_lead_memory["aura_band"]`;
+    the first observation records silently. "" when nothing crossed, or
+    no sovereign stands to project anything."""
+    from backend.models.authority import sovereign_aura_strength
+    sovereign = _standing_sovereign(world, player_nation)
+    if sovereign is None:
+        return ""
+    pct = int(round(10 * float(sovereign_aura_strength(world, player_nation))))
+    band = _aura_band(pct)
+    memory = getattr(world, "headline_lead_memory", None)
+    if not isinstance(memory, dict):
+        world.headline_lead_memory = {}
+        memory = world.headline_lead_memory
+    prior = memory.get("aura_band")
+    if record:
+        memory["aura_band"] = band
+    if prior is None or prior == band:
+        return ""
+    who = humanize_entity_name(sovereign.name)
+    order = ["out", "guttering", "fading", "dimming", "full"]
+    if order.index(band) < order.index(prior):
+        if band == "out":
+            return (f"the Emperor's star is out. The Presence that gave his "
+                    f"corps +10% on the field gives nothing this morning — "
+                    f"Europe has learned that {who} can be beaten.")
+        return (f"the Emperor's star dims. The Presence that gave his corps "
+                f"+10% on the field gives +{pct}% this morning; the courts "
+                f"have begun to notice that he can be beaten.")
+    if band == "full":
+        return (f"the Emperor's star burns full again. The Presence stands "
+                f"at +10%, and Europe remembers what it feared.")
+    return (f"the Emperor's star rises. The Presence stands at +{pct}% "
+            f"this morning, up from where the defeats had left it.")
+
+
+def _congress_summonable_candidates(world, player_nation: str,
+                                    record: bool = True):
+    """RS-17: (class, identity, line) triples — the lead the morning the
+    gate opens, and beneath it each refuser's price, the lowered-gate fuse
+    (RS-10) and the ceder risk (RS-2). Told ONCE per opening: the latch
+    `summonable_told` lives inside `world.congress` (no new serialized
+    field) and is cleared whenever the gate closes again."""
+    from backend.game_logic import congress as _congress
+    if not _congress.armed(world):
+        return []
+    terms = _congress.gate_terms(world)
+    if not terms:
+        return []
+    blocking = [t for t in terms if not t.get("met") and t.get("key") != "admin"]
+    # The store is READ here and only CREATED at the latch: a world that never
+    # summoned keeps `world.congress is None` (the summons pins read it).
+    existing = _congress.record(world)
+    told = existing.get("summonable_told") if isinstance(existing, dict) else None
+    if blocking:
+        if record and isinstance(existing, dict) and told is not None:
+            existing.pop("summonable_told", None)
+        return []
+    if told is not None:
+        return []
+    view = _congress.titled(world)
+    have, need = int(view["count"]), int(view["needed"])
+    if record:
+        _congress._store(world)["summonable_told"] = {"turn": int(world.current_turn), "count": have}
+    capital = world.get_nation_capital(player_nation) or "the capital"
+    powers = _congress.great_powers(world)
+    rows = {c: _congress.answer(world, c) for c in powers}
+    refusers = [c for c in powers if rows[c].get("stance") == _congress.REFUSES]
+    signers = [c for c in powers if rows[c].get("stance") in _congress.SATISFIED]
+    sues = [c for c in powers if rows[c].get("stance") == _congress.SUES]
+    parts = []
+    if refusers:
+        parts.append(f"{_join_places(_seats(world, refusers))} would refuse today")
+    if sues:
+        parts.append(f"{_join_places(_seats(world, sues))} would sue for peace")
+    if signers:
+        parts.append(f"{_join_places(_seats(world, signers))} would sign")
+    table = ("; ".join(parts) + ".") if parts else ""
+    out = [("congress_summonable", f"congress_summonable:{world.current_turn}",
+            (f"THE CONGRESS OF PARIS MAY BE SUMMONED — {have} of {need} titled "
+             f"provinces are held and {capital} is ours. {table} "
+             f"Summon it from the Cabinet (F1), or type "
+             f"'{_congress.SUMMON_COMMAND}'.").replace("  ", " "))]
+    for court in refusers:
+        price = str(_congress.price(world, court, rows[court]).get("text") or "")
+        if price:
+            out.append(("congress_summonable_term",
+                        f"congress_summonable_term:{court}",
+                        f"{_congress.seat(world, court)} refuses: {price}."))
+    fuse = _congress.league_warning(world, rows)
+    if fuse:
+        out.append(("congress_summonable_term", "congress_summonable_term:league",
+                    f"The league: {fuse}."))
+    ceders = _ceded_titles_by_court(world, player_nation)
+    if ceders:
+        clauses = [f"{formed_display_name(world, c)} ({n})"
+                   for c, n in sorted(ceders.items(), key=lambda kv: (-kv[1], kv[0]))]
+        out.append(("congress_summonable_term", "congress_summonable_term:ceders",
+                    f"A war by a ceding court — {_join_places(clauses)} titled "
+                    f"provinces — would contest what it ceded while the "
+                    f"Congress sits."))
+    return out
+
+
+def _ceded_titles_by_court(world, player_nation: str) -> Dict[str, int]:
+    """{ceder: count} of the treaty titles our house holds (RS-2's risk)."""
+    from backend.game_logic import game_end as _ge
+    store = getattr(world, "province_title", None)
+    out: Dict[str, int] = {}
+    if not isinstance(store, dict):
+        return out
+    for _region, rec in store.items():
+        if not isinstance(rec, dict) or rec.get("kind") != _ge.TITLE_TREATY:
+            continue
+        if _ge._house(world, rec) != player_nation:
+            continue
+        ceder = str(rec.get("from") or "")
+        if ceder:
+            out[ceder] = out.get(ceder, 0) + 1
+    return out
+
+
+def _levy_said_now(world, levy_candidate: Dict[str, Any]) -> Dict[str, Any]:
+    fields = levy_candidate.get("fields") or {}
+    def _n(s):
+        try:
+            return int(str(s).replace(",", ""))
+        except (TypeError, ValueError):
+            return 0
+    player = world.player_nation
+    return {"headroom": _n(fields.get("headroom")),
+            "price": _n(fields.get("price")),
+            "wars": int(len(world.get_nations_at_war_with(player) or []))}
+
+
+def _levy_yields(world, candidates, levy_said: Dict[str, Any]):
+    """RS-D2: drop the levy candidate once it has been stated LEVY_STATEMENTS
+    times with no material change; reset the count on a flip, a change in
+    headroom (LEVY_HEADROOM_CHANGE either way) or price, or a new war.
+    Returns (candidates, levy_said)."""
+    levy = next((c for c in candidates if c["class"] == "levy_open"), None)
+    if levy is None:
+        return candidates, {}          # the gate is shut: a re-opening is news again
+    now = _levy_said_now(world, levy)
+    count = int(levy_said.get("count") or 0)
+    if count:
+        old_headroom = int(levy_said.get("headroom") or 0)
+        changed = (
+            abs(now["headroom"] - old_headroom) >= LEVY_HEADROOM_CHANGE * max(1, old_headroom)
+            or now["price"] != int(levy_said.get("price") or 0)
+            or now["wars"] > int(levy_said.get("wars") or 0))
+        if changed:
+            levy_said = {"count": 0, **now}
+            count = 0
+    if count >= LEVY_STATEMENTS:
+        return [c for c in candidates if c is not levy], levy_said
+    return candidates, levy_said
+
+
+def _levy_count_statement(world, candidates, top, sub_beats, levy_said):
+    """RS-D2: one more statement if the levy is on this page (lead or sub-beat)."""
+    levy = next((c for c in candidates if c["class"] == "levy_open"), None)
+    if levy is None:
+        return levy_said
+    on_page = top is levy or top.get("identity") == levy["identity"] or levy["text"] in sub_beats
+    if not on_page:
+        return levy_said
+    now = _levy_said_now(world, levy)
+    return {"count": int(levy_said.get("count") or 0) + 1, **now}
+
+
+def _homeland_yields(candidates, homeland_said: Dict[str, Any]):
+    """NPC-14 + RS-D2's rule: the occupied-homeland class, stated
+    HOMELAND_STATEMENTS times for the same set, yields the lead (its weight
+    drops to HOMELAND_YIELDED_WEIGHT; it stays a sub-beat). A changed set
+    resets the count. Returns (candidates, homeland_said)."""
+    cand = next((c for c in candidates if c["class"] == "homeland_occupied"), None)
+    if cand is None:
+        return candidates, {}          # nothing occupied: a new fall is news again
+    key = str((cand.get("fields") or {}).get("occupied_key") or "")
+    if homeland_said.get("key") != key:
+        homeland_said = {"key": key, "count": 0}
+    if int(homeland_said.get("count") or 0) >= HOMELAND_STATEMENTS:
+        cand["weight"] = min(int(cand["weight"]), HOMELAND_YIELDED_WEIGHT)
+    return candidates, homeland_said
+
+
+def _homeland_count_statement(candidates, top, sub_beats, homeland_said):
+    """One more statement if the occupied homeland is on this page."""
+    cand = next((c for c in candidates if c["class"] == "homeland_occupied"), None)
+    if cand is None:
+        return homeland_said
+    on_page = top is cand or top.get("identity") == cand["identity"] or cand["text"] in sub_beats
+    if not on_page:
+        return homeland_said
+    return {"key": str(homeland_said.get("key") or ""),
+            "count": int(homeland_said.get("count") or 0) + 1}
+
+
+def _quiet_morning_candidate(world) -> Dict[str, Any]:
+    """RS-D2's floor: the page that would have carried only a thrice-stated
+    levy says it is quiet, once, instead of nagging (Step 7b's front page
+    replaces this line)."""
+    return {
+        "class": "quiet_morning",
+        "weight": int(HEADLINE_WEIGHTS["quiet_morning"]),
+        "text": _HEADLINE_TEMPLATES["quiet_morning"],
+        "identity": "quiet_morning",
+        "fields": {},
+    }
+
+
 def _build_headline(world, player_nation: str,
                     record: bool = True) -> Optional[Dict[str, Any]]:
     """W6-3 §5.1: score the turn's fog-visible events; return the headline.
@@ -1070,6 +1495,9 @@ def _build_headline(world, player_nation: str,
                     # still_fill_both_slots` and four siblings). Collapsing
                     # here reds all five. Two designs, one already chosen.
                     _add("home_captured", f"home_captured:{region}", region=region,
+                         captor_clause=(f" to {formed_display_name(world, captor)}"
+                                        if THE_FALLEN_PROVINCE_NAMES_ITS_CAPTOR
+                                        else ""),
                          lever=_home_captured_lever(world, region, player_nation, e))
                 elif _ours_to_lose:
                     # CA8-22: if the province was a marshal's endowment, the
@@ -1253,7 +1681,7 @@ def _build_headline(world, player_nation: str,
                 _w_until = int(e.get("until_turn") or 0)
                 _add("marshal_wounded",
                      f"marshal_wounded:{e.get('marshal', '?')}",
-                     line=(f"Marshal {_w_marshal} is WOUNDED{_w_at} — carried "
+                     line=(f"{_rank(world, e.get('marshal', ''), _w_marshal)} is WOUNDED{_w_at} — carried "
                            f"from the field"
                            + (f", out until turn {_w_until}" if _w_until else "")
                            + f". His corps stands under its colonels."))
@@ -1279,7 +1707,7 @@ def _build_headline(world, player_nation: str,
                            f"has no heir; the Empire dies with him."))
             elif des_nation == player_nation:
                 if e.get("cause") == "attrition":
-                    des_line = (f"Marshal {des_marshal}'s corps has wasted "
+                    des_line = (f"{_rank(world, e.get('marshal', ''), des_marshal)}'s corps has wasted "
                                 f"away{des_at} — starved out to the last "
                                 f"man. He will not return to the order of "
                                 f"battle.")
@@ -1291,7 +1719,7 @@ def _build_headline(world, player_nation: str,
                     _host = e.get("victor") or ""
                     _by = (f" by {formed_display_name(world, _host)}"
                            if _host else "")
-                    des_line = (f"Marshal {des_marshal}'s corps was interned"
+                    des_line = (f"{_rank(world, e.get('marshal', ''), des_marshal)}'s corps was interned"
                                 f"{des_at}{_by} — its safe passage had "
                                 f"expired and it had not come home. The men "
                                 f"are disarmed and the colours are lost.")
@@ -1305,11 +1733,11 @@ def _build_headline(world, player_nation: str,
                     _passage = (f" {_men:,} men pass to {humanize_entity_name(_to)}."
                                 if _to and _men else
                                 (f" {_men:,} men disperse." if _men else ""))
-                    des_line = (f"Marshal {des_marshal} has been KILLED{des_at} "
+                    des_line = (f"{_rank(world, e.get('marshal', ''), des_marshal)} has been KILLED{des_at} "
                                 f"— struck down at the head of his corps.{_passage} "
                                 f"He will not return to the order of battle.")
                 else:
-                    des_line = (f"Marshal {des_marshal}'s corps has been "
+                    des_line = (f"{_rank(world, e.get('marshal', ''), des_marshal)}'s corps has been "
                                 f"DESTROYED{des_at}. He will not return to "
                                 f"the order of battle.")
                 _add("marshal_destroyed",
@@ -1320,7 +1748,7 @@ def _build_headline(world, player_nation: str,
                        if des_nation else "")
                 _add("enemy_marshal_destroyed",
                      f"enemy_marshal_destroyed:{e.get('marshal', '?')}",
-                     line=(f"Marshal {des_marshal}{_of} is destroyed{des_at} "
+                     line=(f"{_rank(world, e.get('marshal', ''), des_marshal)}{_of} is destroyed{des_at} "
                            f"— his corps annihilated, his name struck from "
                            f"their order of battle."))
         elif (etype in ("trafalgar", "fleet_action")
@@ -1770,8 +2198,12 @@ def _build_headline(world, player_nation: str,
                      if m.nation == player_nation and m.strength > 0]
         if defenders:
             # WO slice 12 (found in passing): "Ney stand in his path."
+            # SR-6b NPC-23: "Lannes and Murat and Napoleon" — the serial join.
             _verb = "stands" if len(defenders) == 1 else "stand"
-            defenders_line = f"{' and '.join(defenders)} {_verb} in his path."
+            _names = [humanize_entity_name(n) for n in defenders]
+            _joined = (_join_places(_names) if THE_DEFENDERS_ARE_JOINED_IN_SERIES
+                       else ' and '.join(defenders))
+            defenders_line = f"{_joined} {_verb} in his path."
         else:
             defenders_line = "No French corps stands in his path."
         # FA-12 (slice 11): the identity was keyed on the PROVINCE, so the
@@ -1832,6 +2264,51 @@ def _build_headline(world, player_nation: str,
     if _strain:
         _add("supply_strain", identity=f"supply_strain:{_strain['region']}",
              **_strain["fields"])
+
+    # ── SR-6a NPC-14: the fallen homeland stands on the page ────────────
+    # A fallen province (Paris included) was news for ONE turn — the window
+    # above reads the event log — and then vanished: one turn after Paris
+    # fell the lead went to an unpaid household (55). The occupation is a
+    # STATE; this producer re-manufactures its candidate every turn the
+    # state holds and rides PC-7's cooldown + ladder like its siblings. It
+    # is silent on the morning the loss is fresh news (`home_captured` /
+    # `capital_lost` on this page restate it), so the run starts the day
+    # after. The controller of a province is public knowledge (R5).
+    # IQ-2's one-source rule (found by the full suite, Oct 2 2026): while
+    # the realm's collapse state is live, `empire_reduced` owns the page —
+    # "Paris, Artois and Normandy and 12 more lie in enemy hands" is the
+    # SAME fact as "the Empire is reduced to one province", and a second
+    # voice on it took the hand-back from the money rung the collapsed
+    # France needed to hear. The class is silent until the realm recovers.
+    if (THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE
+            and realm_collapse.get_collapse_state(world, player_nation) is None
+            and not any(c["class"] in ("home_captured", "capital_lost")
+                        for c in candidates)):
+        _occupied = _homeland_occupied_fields(world, player_nation, home_regions,
+                                              vassals_of_player)
+        if _occupied:
+            _add("homeland_occupied", identity="homeland_occupied", **_occupied)
+
+    # ── SR-6a RS-17: the Congress becomes summonable ─────────────────────
+    # The gate opening produced no event, so the morning the count reached
+    # 47 of 45 led with the levy nag. Told once per opening, latched inside
+    # `world.congress` (no new serialized field), with each refuser's gap,
+    # the lowered-gate fuse (RS-10) and the ceder risk (RS-2) beneath it.
+    if THE_SUMMONABLE_GATE_IS_NEWS:
+        for _cls, _identity, _line in _congress_summonable_candidates(
+                world, player_nation, record=record):
+            _add(_cls, _identity, line=_line)
+
+    # ── SR-6a NPC-D1: the myth cracks aloud ───────────────────────────────
+    # The aura fell +10% -> +4% over 22 turns with no beat anywhere but a
+    # battle row — and the arc that cracks it is the arc in which you stop
+    # fighting. A crossed band is a briefing beat; the last band told rides
+    # `headline_lead_memory` (an extra key — the no-new-field idiom).
+    if THE_AURA_HAS_ITS_BEAT:
+        _aura_line = _aura_band_line(world, player_nation, record=record)
+        if _aura_line:
+            _add("aura_dimmed", identity=f"aura_dimmed:{world.current_turn}",
+                 line=_aura_line)
 
     # "The Levy is Open" (econ spec review §6 (a)) — state-based, Europe-only.
     # The measured defect: France boots +59,000 OVER its force limit, teaching
@@ -2015,6 +2492,12 @@ def _build_headline(world, player_nation: str,
         candidates.insert(0, candidates.pop())
 
     if not candidates:
+        if record and THE_LEVY_YIELDS_ONCE_STATED:
+            # RS-D2: an empty page means the levy's gate is shut — its
+            # statement series ends, so the next opening is news again.
+            memory = getattr(world, "headline_lead_memory", None)
+            if isinstance(memory, dict):
+                memory.pop("levy_said", None)
         return None
 
     return _select_headline(world, candidates, record=record)
@@ -2032,6 +2515,11 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     `record=False` (LV-1): select, but leave `headline_lead_memory` as it
     was — the boot briefing is not a turn in the lead's streak.
     """
+    # NPC-14's yield runs BEFORE the ranking: a thrice-stated occupation
+    # ranks as a sub-beat from here on (memory read early for this alone).
+    homeland_said = dict((getattr(world, "headline_lead_memory", None) or {}).get("homeland_said") or {})
+    if THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
+        candidates, homeland_said = _homeland_yields(candidates, homeland_said)
     candidates.sort(key=lambda c: c["weight"], reverse=True)
 
     # Creative audit July 19 2026: several candidates are STATE-based
@@ -2060,6 +2548,23 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     # a passive campaign is made of — freeing the standing class to lead
     # again immediately, which is the defect.
     memory = dict(getattr(world, "headline_lead_memory", None) or {})
+    # ── SR-6a RS-D2: the levy yields its standing class once stated ─────
+    # The levy is an OFFER, not a crisis, and an offer the player keeps
+    # declining is not news: it led five dispatches and sat in eight more
+    # over turns 15–27 of the retest. After LEVY_STATEMENTS statements with
+    # no material change it leaves the page for the ledger's own line;
+    # it returns on a flip (the gate closed and re-opened), a change in
+    # headroom (a fifth) or price, or a new war. The memory rides
+    # `headline_lead_memory` as the key `levy_said` (no new field).
+    levy_said = dict(memory.get("levy_said") or {})
+    if THE_LEVY_YIELDS_ONCE_STATED:
+        candidates, levy_said = _levy_yields(world, candidates, levy_said)
+        if not candidates:
+            # The levy was the only candidate and has had its say: the
+            # page is quiet, and says so once rather than nagging —
+            # the quiet-morning floor (narration F1 keeps its headline;
+            # Step 7b's front page replaces this line).
+            candidates = [_quiet_morning_candidate(world)]
     top_candidate = candidates[0]
     streak = 0
     if (top_candidate["class"] == memory.get("class")
@@ -2133,7 +2638,13 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
             continue
     top_candidate = candidates[0]
 
-    if top_candidate["class"] in STANDING_HEADLINE_CLASSES and streak >= STANDING_LEAD_MAX:
+    _lead_max = STANDING_LEAD_MAX
+    if THE_LEVY_YIELDS_ONCE_STATED and top_candidate["class"] == "levy_open":
+        # RS-D2: the levy leads at most LEVY_LEAD_MAX times per statement
+        # series (the streak is its lead count; the statements counted in
+        # `levy_said` are the page appearances).
+        _lead_max = min(STANDING_LEAD_MAX, LEVY_LEAD_MAX)
+    if top_candidate["class"] in STANDING_HEADLINE_CLASSES and streak >= _lead_max:
         # Yield to any other candidate; the standing one falls to a sub-beat
         # through the loop below, so it is reported, never deleted.
         for _i, _c in enumerate(candidates):
@@ -2143,7 +2654,7 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
 
     top = candidates[0]
     if record:
-        world.headline_lead_memory = {
+        _new_memory = {
             "class": top["class"],
             "identity": top["identity"],
             "streak": (streak + 1
@@ -2152,6 +2663,15 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
                        else 1),
             "runs": runs,
         }
+        # SR-6a: the extra keys the no-new-field idiom keeps here (the
+        # levy's statement is counted once the page is assembled, below).
+        if THE_LEVY_YIELDS_ONCE_STATED:
+            _new_memory["levy_said"] = levy_said
+        if THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
+            _new_memory["homeland_said"] = homeland_said
+        if memory.get("aura_band") is not None:
+            _new_memory["aura_band"] = memory["aura_band"]
+        world.headline_lead_memory = _new_memory
     # ────────────────────────────────────────────────────────────────────
     # CA8-5: dedupe on (class, identity), not on rendered TEXT.
     #
@@ -2213,6 +2733,14 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
         seen_keys.update(_headline_keys(pick))
         seen_classes.add(pick["class"])
         sub_beats.append(pick["text"])
+    if record and THE_LEVY_YIELDS_ONCE_STATED:
+        # RS-D2: a statement is a levy line the player actually READ —
+        # the lead or a sub-beat — never a candidate the page had no room for.
+        world.headline_lead_memory["levy_said"] = _levy_count_statement(
+            world, candidates, top, sub_beats, levy_said)
+    if record and THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
+        world.headline_lead_memory["homeland_said"] = _homeland_count_statement(
+            candidates, top, sub_beats, homeland_said)
     return {
         "class": top["class"],
         "weight": int(top["weight"]),
@@ -3222,6 +3750,8 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
             "capacity": f"{cap:,}",
             "region": region_name,
             "losses": f"{int(slot['losses']):,} men",
+            "losses_dead": (f"{int(slot['losses']):,} men dead" if THE_FAMINE_COUNTS_ITS_DEAD
+                            else f"{int(slot['losses']):,} men"),
             "turns": str(len(slot["turns"])),
             "remedy": remedy,
         },
@@ -3305,7 +3835,8 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         "situation": _build_situation(world, player_nation, boot=boot),
         "marshals": _build_marshal_status(world, player_nation),
         "intelligence": _build_intelligence(world, player_nation),
-        "turn_events": _build_turn_events(tactical_events or [], player_nation),
+        "turn_events": _build_turn_events(tactical_events or [], player_nation,
+                                          world=world),
     }
 
     # W6-3 §5.1: the dispatch opens with the turn's top story — one prose
@@ -3658,6 +4189,15 @@ def _build_situation(world, player_nation: str,
         authority_label = "Normal"
     else:
         authority_label = "Weak"
+    # SR-6a NPC-27: the number the game ACTS on beside the number that did
+    # not move. `get_imperial_grip` read 52 while the briefing said 100 /
+    # Strong over 19 provinces to 107 and the capital lost. The label
+    # carries the grip whenever it differs from the court figure, and the
+    # Presence whenever it is below full — so the boot line ("100 (Strong)")
+    # is byte-identical, and a cracking Empire reads as one.
+    grip_fields = _grip_fields(world, player_nation, authority) if THE_BRIEFING_SHOWS_THE_GRIP else {}
+    if grip_fields.get("label_tail"):
+        authority_label = f"{authority_label}{grip_fields['label_tail']}"
 
     # SR-5r RF-4b (REFORMS_SPEC §8): the forecast, the one source the LAWS
     # tab and the end-turn banner read too; and the Staff's first refill,
@@ -3717,6 +4257,11 @@ def _build_situation(world, player_nation: str,
         "authority": int(authority),
         "authority_label": authority_label,
     }
+    if grip_fields:
+        # SR-6a NPC-27 / NPC-D1: the derived figures, int (GR2).
+        situation["imperial_grip"] = int(grip_fields["grip"])
+        situation["grip_label"] = str(grip_fields["grip_word"])
+        situation["aura_pct"] = int(grip_fields["aura_pct"])
     if at_war is not None:
         # LV-7: `enemy_regions` counted only the courts at war with us, and
         # the client's sentence says so. Absent (legacy, lever down) = the
@@ -4016,7 +4561,8 @@ def _derive_marshal_status(marshal, world) -> tuple:
         # retired; its "N turns remaining" reading rides this line instead,
         # from the one arithmetic the report uses (strategic.order_eta_phrase).
         from backend.commands.strategic import order_eta_phrase
-        eta = order_eta_phrase(order, int(world.current_turn))
+        eta = order_eta_phrase(order, int(world.current_turn),
+                               movement_range=getattr(marshal, "movement_range", 1))
         if cmd == "MOVE_TO":
             # PC-9 (quiet-France played campaign, Aug 3 2026): the dispatch
             # reported a marshal "Moving to Swabia" while he was standing in
@@ -4066,8 +4612,52 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
     """
     Build fog-filtered INTELLIGENCE section.
 
-    Iterates over all RegionIntel, extracts enemy marshals from
-    known_marshals at PARTIAL+ visibility. Deduplicates by marshal name.
+    SR-6a (AAR-5 / AAR4-X2, Score Finish Step 2, Oct 2 2026): ONE reader for
+    every intelligence surface — `intel_surfaces.enemy_sightings` reads a
+    FULL province LIVE (the map's rule; the frozen snapshot had placed a man
+    at the province he left the morning after a visible advance) and
+    `known_garrisons` names every known enemy garrison through the map's
+    garrison fog rule. Lever down = the snapshot reader below, byte for byte.
+    """
+    from backend.game_logic import intel_surfaces as _surf
+    if _surf.THE_SIGHTING_IS_LIVE or _surf.THE_SURFACES_NAME_THE_GARRISON:
+        rows: List[Dict[str, Any]] = []
+        if _surf.THE_SIGHTING_IS_LIVE:
+            source = _surf.enemy_sightings(world, player_nation)
+        else:
+            source = _build_intelligence_snapshot(world, player_nation)
+        for s in source:
+            rows.append({
+                "name": s["name"],
+                "roster_name": s.get("roster_name", s["name"]),
+                "location": s["location"],
+                "strength_display": s["strength_display"],
+                "visibility": s["visibility"],
+                "intel_turn": int(s["intel_turn"]),
+                "nation": s.get("nation", ""),
+                # AAR-5: a LIVE sighting (the man stands in a province in full
+                # view this morning) against a frozen snapshot.
+                "source": s.get("source", "snapshot"),
+            })
+        for g in _surf.known_garrisons(world, player_nation):
+            rows.append({
+                "name": g["name"],
+                "location": g["location"],
+                "strength_display": g["strength_display"],
+                "visibility": g["visibility"],
+                "intel_turn": int(g["intel_turn"]),
+                "nation": g.get("nation", ""),
+                "kind": _surf.GARRISON_ROW_KIND,
+            })
+        return rows
+    return _build_intelligence_snapshot(world, player_nation)
+
+
+def _build_intelligence_snapshot(world, player_nation: str) -> List[Dict[str, Any]]:
+    """
+    The pre-SR-6a reader (the lever-down arm): iterates over all RegionIntel,
+    extracts enemy marshals from the FROZEN known_marshals snapshots at
+    PARTIAL+ visibility. Deduplicates by marshal name.
 
     W6-1 (BUG-CA-6): the dedup prefers RECENCY first, visibility rank as
     the tiebreak — a stale FULL snapshot must never beat this turn's
@@ -4230,13 +4820,18 @@ _DISPATCH_EVENT_TYPES = {
 
 
 def _build_turn_events(
-    tactical_events: List[Dict], player_nation: str
+    tactical_events: List[Dict], player_nation: str, world=None
 ) -> List[Dict[str, str]]:
     """
     Build the TURN EVENTS section from tactical events.
 
     Filters to player-relevant events and produces short one-liner messages.
     Each entry has 'message' (str) and 'severity' ('info' | 'warning' | 'good').
+
+    SR-6a (AAR24-X4): a KNOWN enemy garrison's regrowth is kept, fog-honestly
+    (`intel_surfaces.garrison_regen_line` — exact at FULL, the band at
+    PARTIAL / STALE, dropped below); every other foreign event is dropped as
+    before. `world` is optional so the legacy callers keep their shape.
     """
     result = []
     for event in tactical_events:
@@ -4257,6 +4852,12 @@ def _build_turn_events(
         if not event_nation:
             continue  # Skip events with no nation (safety net)
         if event_nation != player_nation:
+            if event_type == "garrison_regen" and world is not None:
+                from backend.game_logic import intel_surfaces as _surf
+                line = _surf.garrison_regen_line(world, event, player_nation)
+                if line:
+                    result.append({"message": line, "severity": "info",
+                                   "type": event_type, "_source": event})
             continue  # Skip enemy attrition etc.
 
         severity = "info"
@@ -5555,6 +6156,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "And {count} other court{plural} stir{verb} at {poss} own "
         "design{plural}."
     ),
+    # IQ6-D3 (SR-6a): the tail names its courts; the producer sends
+    # `courts` only with the lever up, and the formatter picks this
+    # template when it does (`_format_dispatch_event_text`).
+    "intent_movement_tail_named": (
+        "And {courts} stir{verb} at {poss} own design{plural}."
+    ),
     # AI-5b(ii) beat 5 (§4.6a) — The Volte-Face: the beaten great power,
     # courted rather than humiliated, reverses in one signing. Tilsit.
     "volte_face": (
@@ -5958,6 +6565,10 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     # hard_reject_posture_* types) were removed; format_commitments_notice
     # owns their copy.
 
+    if event_type == "intent_movement_tail" and template_vars.get("courts"):
+        # IQ6-D3 (SR-6a): the tail names its courts when the producer did.
+        event_type = "intent_movement_tail_named"
+
     if (event_type == "diplomatic_ai_proposal"
             and str(template_vars.get("proposal_type") or "") == "client_petition"):
         # IQ-7 review [14] (R10): a client's petition announces itself as
@@ -6194,6 +6805,25 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             continue
 
         template_vars = event.get("template_vars", {})
+        if event_type == "diplomatic_alliance_cascade" and THE_CASCADE_IS_GROUPED:
+            # SR-6a RS-23: one line per ally per turn, the enemies named —
+            # the witness-strike grouping idiom (one row, rebuilt as the
+            # group grows; the fog filter above admitted each member).
+            ally = str(template_vars.get("ally") or "")
+            key = f"cascade:{ally}"
+            if key not in witness_group_indexes:
+                witness_group_indexes[key] = {"index": len(result), "ally": ally,
+                                              "nations": [], "against": []}
+                result.append({})
+            group = witness_group_indexes[key]
+            nation = str(template_vars.get("nation") or "")
+            against = str(template_vars.get("against") or "")
+            if nation and nation not in group["nations"]:
+                group["nations"].append(nation)
+            if against and against not in group["against"]:
+                group["against"].append(against)
+            result[group["index"]] = _format_cascade_grouped_dispatch_event(world, group)
+            continue
         if event_type == "witness_strike_recorded":
             episode_id = str(template_vars.get("episode_id", "") or "")
             key = episode_id or f"unkeyed_{len(result)}"
@@ -6256,6 +6886,22 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
     if settlement_indexes:
         result = _enforce_settlement_primary_beat_cap(result, settlement_indexes)
     return result
+
+
+def _format_cascade_grouped_dispatch_event(world, group: Dict[str, Any]) -> Dict[str, Any]:
+    """SR-6a RS-23: the grouped cascade row — the same words the rail uses
+    (`diplomacy.alliance_cascade_rail_text`), so the two surfaces agree."""
+    from backend.game_logic.diplomacy import alliance_cascade_rail_text
+    _title, message = alliance_cascade_rail_text(
+        world, group.get("ally") or "", group.get("nations") or [],
+        group.get("against") or [])
+    return {
+        "type": "diplomatic_alliance_cascade",
+        "text": message,
+        "priority": _DIPLOMATIC_EVENT_PRIORITY.get("diplomatic_alliance_cascade", "HIGH"),
+        "nations": list(group.get("nations") or []),
+        "against": list(group.get("against") or []),
+    }
 
 
 def _enforce_settlement_primary_beat_cap(

@@ -1,0 +1,263 @@
+{
+ "tree": "/home/user/project-sovereign-map",
+ "sha": "b83c126d26acc7ee0616a184ed4485c450bb862a",
+ "started": "2026-10-02T18:21",
+ "jobs": 3,
+ "arms": {
+  "CMD-A": {
+   "arm": "CMD-A",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 16.4,
+   "cmd": [
+    "--name",
+    "CMD-A",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/docs/audits/score_runs/2026_10_02_step2/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "austerlitz"
+   ],
+   "titled": [
+    {
+     "save": "CMD-A_t10.json",
+     "turn": 10,
+     "titled": 32,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t20.json",
+     "turn": 20,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t30.json",
+     "turn": 30,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t40.json",
+     "turn": 40,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    }
+   ]
+  },
+  "CMD-M": {
+   "arm": "CMD-M",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 16.4,
+   "cmd": [
+    "--name",
+    "CMD-M",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/docs/audits/score_runs/2026_10_02_step2/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "marengo"
+   ],
+   "titled": [
+    {
+     "save": "CMD-M_t10.json",
+     "turn": 10,
+     "titled": 32,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-M_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-M_t40.json",
+     "turn": 40,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    }
+   ]
+  },
+  "CMD-H": {
+   "arm": "CMD-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 17.1,
+   "cmd": [
+    "--name",
+    "CMD-H",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/docs/audits/score_runs/2026_10_02_step2/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "CMD-H_t10.json",
+     "turn": 10,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-H_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-H_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "CMD-H_t40.json",
+     "turn": 40,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    },
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 30
+    }
+   ]
+  },
+  "DL": {
+   "arm": "DL",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 3.2,
+   "cmd": [
+    "--name",
+    "DL",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/docs/audits/score_runs/2026_10_02_step2/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_docked_lines.json",
+    "--turns",
+    "3"
+   ]
+  },
+  "FLD": {
+   "arm": "FLD",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 6.7,
+   "cmd": [
+    "--name",
+    "FLD",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/docs/audits/score_runs/2026_10_02_step2/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_chunk4_field.json",
+    "--turns",
+    "10",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "decline"
+   ]
+  },
+  "OP": {
+   "arm": "OP",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 12.4,
+   "cmd": [
+    "--name",
+    "OP",
+    "--fresh",
+    "--out",
+    "/home/user/project-sovereign-map/docs/audits/score_runs/2026_10_02_step2/arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_aar_typed.json",
+    "--turns",
+    "18",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept"
+   ]
+  }
+ },
+ "skipped": {
+  "CLI": "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (\u00a74.6)"
+ },
+ "finished": "2026-10-02T18:21"
+}

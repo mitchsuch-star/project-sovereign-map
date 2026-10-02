@@ -115,8 +115,10 @@ class TestMovementDetection:
                              price="fight", weight=90)})
         world.nation_intent_seen["Prussia"] = "hanoverian_prize|ask"
         assert process_intent_movements(world) == []
+        # IQ6-D3 (SR-6a, Oct 2, 2026) — CONSCIOUS RE-SEAT: the seen string
+        # carries the weight anchor as a third field.
         assert world.nation_intent_seen["Prussia"] == (
-            "revanche_prussia|fight")
+            "revanche_prussia|fight|90")
 
     def test_survival_stays_silent(self, world, monkeypatch):
         """The Knife at the Throat belongs to the crisis machinery."""
@@ -203,8 +205,10 @@ class TestTheCap:
             "Sweden": "c|align"})
         process_intent_movements(world)
         tail = _tail_events(world)[0]["template_vars"]
+        # IQ6-D3 (SR-6a, Oct 2, 2026) — CONSCIOUS RE-SEAT: the tail now
+        # names its court; the grammar fields are unchanged.
         assert tail == {"count": "1", "plural": "", "verb": "s",
-                        "poss": "its"}
+                        "poss": "its", "courts": "Sweden"}
 
     def test_no_tail_when_under_the_cap(self, world, monkeypatch):
         process_intent_movements(world)
@@ -345,3 +349,93 @@ class TestTempo:
         assert foregrounded == ["Prussia"], (
             "one foregrounded crisis at a time, world-wide — and the "
             "oldest waits the shortest")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# IQ6-D3 (SR-6a, Score Finish Step 2, October 2, 2026) — the dead band and
+# the tail that names its courts
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestTheDeadBand:
+
+    def test_a_flicker_at_the_floor_is_not_news(self, world, monkeypatch):
+        process_intent_movements(world)
+        world.nation_intent_seen["Prussia"] = "a|align|60"
+        _patch_views(monkeypatch, {
+            "Prussia": _view("Prussia", want="a", price="coerce", weight=63)})
+        assert process_intent_movements(world) == []
+        assert world.nation_intent_seen["Prussia"] == "a|align|60", "the anchor holds"
+
+    def test_a_real_move_is_reported_and_re_anchors(self, world, monkeypatch):
+        process_intent_movements(world)
+        world.nation_intent_seen["Prussia"] = "a|align|60"
+        _patch_views(monkeypatch, {
+            "Prussia": _view("Prussia", want="a", price="coerce", weight=66)})
+        events = process_intent_movements(world)
+        assert [e["type"] for e in events] == ["intent_hardens"]
+        assert world.nation_intent_seen["Prussia"] == "a|coerce|66"
+
+    def test_no_flip_flop_across_a_floor(self, world, monkeypatch):
+        """Austria went eases -> hardens -> eases on consecutive turns."""
+        process_intent_movements(world)
+        world.nation_intent_seen["Austria"] = "b|coerce|73"
+        said = []
+        for price, weight in (("align", 71), ("coerce", 73), ("align", 70),
+                              ("coerce", 72), ("align", 60)):
+            _patch_views(monkeypatch, {
+                "Austria": _view("Austria", want="b", price=price, weight=weight)})
+            said.extend(e["type"] for e in process_intent_movements(world))
+        assert said == ["intent_eases"], said
+
+    def test_an_older_record_reports_as_before(self, world, monkeypatch):
+        process_intent_movements(world)
+        world.nation_intent_seen["Prussia"] = "a|align"
+        _patch_views(monkeypatch, {
+            "Prussia": _view("Prussia", want="a", price="coerce", weight=61)})
+        assert [e["type"] for e in process_intent_movements(world)] == ["intent_hardens"]
+
+    def test_lever_down_is_the_two_field_string(self, world, monkeypatch):
+        monkeypatch.setattr(intent_module, "THE_NARRATION_HAS_A_DEAD_BAND", False)
+        process_intent_movements(world)
+        world.nation_intent_seen["Prussia"] = "a|align|60"
+        _patch_views(monkeypatch, {
+            "Prussia": _view("Prussia", want="a", price="coerce", weight=63)})
+        assert [e["type"] for e in process_intent_movements(world)] == ["intent_hardens"]
+        assert world.nation_intent_seen["Prussia"] == "a|coerce"
+
+
+class TestTheTailNamesItsCourts:
+
+    def test_the_courts(self, world, monkeypatch):
+        process_intent_movements(world)
+        views = {
+            "Prussia": _view("Prussia", want="a", price="coerce", weight=80, against="France"),
+            "Austria": _view("Austria", want="b", price="coerce", weight=70, against="France"),
+            "Sweden": _view("Sweden", want="c", price="coerce", weight=20, against="Russia"),
+            "Denmark": _view("Denmark", want="d", price="coerce", weight=10, against="Russia"),
+        }
+        _patch_views(monkeypatch, views)
+        world.nation_intent_seen.update({"Prussia": "a|align", "Austria": "b|align",
+                                         "Sweden": "c|align", "Denmark": "d|align"})
+        process_intent_movements(world)
+        tail = _tail_events(world)[0]["template_vars"]
+        assert tail["courts"] == "Sweden and Denmark"
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        assert _format_dispatch_event_text("intent_movement_tail", tail) == (
+            "And Sweden and Denmark stir at their own designs.")
+
+    def test_lever_down_counts_them(self, world, monkeypatch):
+        monkeypatch.setattr(intent_module, "THE_TAIL_NAMES_ITS_COURTS", False)
+        process_intent_movements(world)
+        _patch_views(monkeypatch, {
+            "Prussia": _view("Prussia", want="a", price="coerce", weight=80, against="France"),
+            "Austria": _view("Austria", want="b", price="coerce", weight=70, against="France"),
+            "Sweden": _view("Sweden", want="c", price="coerce", weight=20, against="Russia")})
+        world.nation_intent_seen.update({"Prussia": "a|align", "Austria": "b|align",
+                                         "Sweden": "c|align"})
+        process_intent_movements(world)
+        tail = _tail_events(world)[0]["template_vars"]
+        assert "courts" not in tail
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        assert _format_dispatch_event_text("intent_movement_tail", tail) == (
+            "And 1 other court stirs at its own design.")

@@ -660,7 +660,9 @@ def effect_line(clause) -> str:
     if etype == "satellite_loyalty":
         return f"+{int(value or 0)} loyalty a turn in every client"
     if etype == "cs_closure":
-        return "every client shuts its ports to Britain, whatever its autonomy"
+        # SR-6b RS-25: true only AT WAR (`naval._decree_counts` sits behind
+        # the lord-at-war test).
+        return "every client shuts its ports to Britain at war, whatever its autonomy"
     if etype == "blockade_denial":
         from backend.game_logic.naval import blockade_cut_percent
         return (f"a blockade it lays cuts the enemy's trade by "

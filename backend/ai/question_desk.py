@@ -347,24 +347,27 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
 
 
 def _answer_own_marshal(world, kind: str, marshal) -> str:
-    name = _display(marshal.name)
+    # NP-X7 (SR-6b, Oct 2 2026): the rank through the ONE honorific — "the
+    # Emperor Napoleon stands at Lorraine", never "Marshal Napoleon".
+    from backend.display_names import marshal_honorific
+    name = marshal_honorific(world, marshal.name)
     if getattr(marshal, "captured_by", ""):
-        return (f"Marshal {name} is a prisoner of {_court(world, marshal.captured_by)}, "
+        return (f"{name} is a prisoner of {_court(world, marshal.captured_by)}, "
                 f"Sire — no order can reach him until his release.")
-    where = (f"Marshal {name} stands at {marshal.location} with "
+    where = (f"{name} stands at {marshal.location} with "
              f"{int(marshal.strength):,} men (morale {int(marshal.morale)}).")
     if kind == "how_many":
-        return (f"Marshal {name} commands {int(marshal.strength):,} men at "
+        return (f"{name} commands {int(marshal.strength):,} men at "
                 f"{marshal.location}, morale {int(marshal.morale)}.")
     if kind == "doing":
         states = _state_words(marshal)
         clause = _order_clause(marshal)
         if clause:
-            return f"Marshal {name} is at {marshal.location}.{clause}" + (
+            return f"{name} is at {marshal.location}.{clause}" + (
                 f" He is {', '.join(states)}." if states else "")
         if states:
-            return f"Marshal {name} is {', '.join(states)} at {marshal.location}."
-        return f"Marshal {name} awaits orders at {marshal.location}."
+            return f"{name} is {', '.join(states)} at {marshal.location}."
+        return f"{name} awaits orders at {marshal.location}."
     return where + _order_clause(marshal)
 
 
@@ -651,6 +654,46 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         r"|(?:bring\s+me\s+up\s+to\s+date|catch\s+me\s+up|brief\s+me))" + _TAIL,
         re.IGNORECASE)),
     # "what does Austria want"
+    # SRX-5 (SR-6a, Score Finish Step 2, Oct 2 2026): "remind me what the
+    # Russians demanded at the table" / "what did Austria offer" — the
+    # court's last letter, read off the letter-book, the event log and the
+    # Congress table (diplomacy has no fog). Sited ABOVE `wants`: the past
+    # tense and the letter/table tails are its own; "what does Austria
+    # want" keeps the design answer.
+    ("demanded", re.compile(
+        _LEAD + r"(?:(?:remind|tell)\s+me\s+(?:of\s+|about\s+)?)?"
+        r"what\s+(?:"
+        # "what did Austria demand / ask for / offer / propose / want"
+        r"(?:did|has|have|had)\s+(?:the\s+)?(?P<name>.+?)\s+"
+        r"(?:demand(?:ed)?|ask(?:ed)?(?:\s+for)?|offer(?:ed)?|propose[d]?"
+        r"|put\s+(?:on\s+the\s+table|forward)|want(?:ed)?)"
+        # "what the Russians demanded / asked for / offered" (no auxiliary:
+        # the past tense alone; "what does Austria want" stays the design)
+        r"|(?:the\s+)?(?P<name2>.+?)\s+"
+        r"(?:demanded|asked(?:\s+for)?|offered|proposed|wanted"
+        r"|put\s+(?:on\s+the\s+table|forward)))"
+        r"(?:\s+(?:of|from)\s+(?:me|us|france))?"
+        r"(?:\s+(?:at\s+the\s+table|in\s+(?:its|their|his|her|the)\s+"
+        r"(?:letter|offer|terms|proposal|last\s+letter)))?" + _TAIL,
+        re.IGNORECASE)),
+    # RS-14 (the Step 2 reserve): "where are the Russians" / "where is the
+    # enemy" — a court's corps in view (the older `where` kind takes a
+    # marshal or a province and returns None on a court, which fell here).
+    ("where_nation", re.compile(
+        _LEAD + r"where(?:" + _APOS + r"s|\s+is|\s+are)\s+(?:the\s+)?"
+        r"(?P<name>.+?)(?:" + _APOS + r"s?\s+(?:army|armies|corps|forces|men|troops))?"
+        + _TAIL, re.IGNORECASE)),
+    # RS-14: the alarm — "why is Europe alarmed", "how alarmed is Europe",
+    # "what is the threat level", "is a coalition brewing".
+    ("alarm", re.compile(
+        _LEAD + r"(?:why\s+(?:is|are)\s+(?:europe|the\s+powers|the\s+courts)\s+"
+        r"(?:alarmed|afraid|worried|angry|hostile|against\s+us|so\s+alarmed)"
+        r"|how\s+(?:alarmed|worried|afraid|hostile)\s+(?:is|are)\s+(?:europe|the\s+powers)"
+        r"|what(?:" + _APOS + r"s|\s+is)\s+(?:the\s+)?(?:threat|alarm|coalition)"
+        r"\s*(?:level|risk|gauge|at)?"
+        r"|how\s+(?:close|near|far)\s+(?:is|are)\s+(?:a|the|another)\s+coalition"
+        r"|is\s+(?:a|the|another)\s+coalition\s+(?:brewing|forming|coming|near)"
+        r"|how\s+alarmed\s+is\s+europe)" + _TAIL, re.IGNORECASE)),
     ("wants", re.compile(
         _LEAD + r"what\s+(?:does|do)\s+(?:the\s+)?(?P<name>.+?)\s+"
         r"(?:want|seek|desire)(?:\s+from\s+(?:me|us|france))?" + _TAIL,
@@ -777,10 +820,16 @@ def classify_points_question(text: str) -> Optional[Dict]:
 
 # The kinds whose captured `name` is a COURT, resolved against the nations the
 # parser already knows rather than against the marshal/region rosters.
-_NATION_KINDS = frozenset({"at_war", "wants"})
+_NATION_KINDS = frozenset({"at_war", "wants", "demanded"})
 # The kinds that need no subject at all.
 _SUBJECTLESS_KINDS = frozenset({"treasury", "winning", "options", "own_army",
-                                "wars", "allies", "war_effort", "news"})
+                                "wars", "allies", "war_effort", "news",
+                                "alarm"})
+# SRX-5 / RS-14 (SR-6a + the Step 2 reserve): the desk reads the table's
+# history, a court's corps in view, and the alarm. False = the shrug.
+THE_DESK_READS_THE_TABLE = True
+THE_DESK_PLACES_A_COURT = True
+THE_DESK_READS_THE_ALARM = True
 # CRT-7 / AAR-17: the kinds the war-question lever owns, so the lever down
 # returns every one of them to the shrug byte-for-byte.
 _WAR_QUESTION_KINDS = frozenset({"wars", "allies", "safe", "truce_clock",
@@ -811,6 +860,8 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
         if not match:
             continue
         groups = match.groupdict()
+        if kind == "alarm" and not THE_DESK_READS_THE_ALARM:
+            continue
         if kind in ("what_if_named", "what_if_odds"):
             weighed = _classify_the_weighed(groups, marshals, enemies, regions)
             if weighed is _NO_SUBSTITUTE:
@@ -840,6 +891,24 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
             if not priced:
                 continue
             return {"kind": kind, "subject": priced, "subject_type": "price"}
+        if kind == "demanded":
+            if not THE_DESK_READS_THE_TABLE:
+                continue
+            phrase = groups.get("name") or groups.get("name2") or ""
+            nation = _resolve_nation(phrase, nations)
+            if not nation:
+                continue
+            return {"kind": kind, "subject": nation, "subject_type": "nation"}
+        if kind == "where_nation":
+            if not THE_DESK_PLACES_A_COURT:
+                continue
+            phrase = groups.get("name") or ""
+            if _norm(phrase) in ("enemy", "enemies", "foe", "foes", "the enemy"):
+                return {"kind": kind, "subject": "", "subject_type": "board"}
+            nation = _resolve_nation(phrase, nations)
+            if not nation:
+                continue
+            return {"kind": kind, "subject": nation, "subject_type": "nation"}
         if kind in _NATION_KINDS:
             nation = _resolve_nation(groups.get("name") or "", nations)
             if not nation:
@@ -899,18 +968,32 @@ def _classify_the_weighed(groups, marshals, enemies, regions):
     return None
 
 
+def _demonym_forms(nation: str) -> List[str]:
+    """RS-14: "russian" / "russians" / "the russians" for Russia — the ONE
+    adjective table (`display_names.nation_adjective`), pluralised."""
+    from backend.display_names import nation_adjective
+    adjective = _norm(nation_adjective(nation))
+    if not adjective or adjective == _norm(nation):
+        return []
+    plural = adjective + ("es" if adjective.endswith(("s", "sh", "ch")) else "s")
+    return [adjective, plural]
+
+
 def _resolve_nation(phrase: str, nations: Iterable[str]) -> Optional[str]:
     """A court name, matched whole. Never a guess: two candidates or none
-    returns None, exactly as `_resolve` does for the other rosters."""
+    returns None, exactly as `_resolve` does for the other rosters. RS-14:
+    the court's demonym counts as a form ("the Russians" is Russia)."""
     want = _norm(phrase)
     if not want:
         return None
+    nations = list(nations)
     for nation in nations:
-        if want in _forms(nation):
+        if want in _forms(nation) or want in _demonym_forms(nation):
             return nation
     hits = [n for n in nations
             if any(f and re.search(r"(?:^|\s)" + re.escape(f) + r"(?:\s|$)",
-                                   want) for f in _forms(n))]
+                                   want)
+                   for f in (_forms(n) + _demonym_forms(n)))]
     return hits[0] if len(hits) == 1 else None
 
 
@@ -1100,6 +1183,172 @@ def _answer_wants(world, nation: str) -> Optional[str]:
         line += f" The provinces in question: {regions}."
     pointer = surface_pointer("courts")
     return f"{line} Every court's design is listed in {pointer}." if pointer else line
+
+
+def _letters_from(world, court: str) -> List[Dict]:
+    """SRX-5: the court's letters on the desk — the active dialogue and
+    the mailbox queue (the letter-book) — newest first."""
+    manager = getattr(world, "dialogue_manager", None)
+    if manager is None:
+        return []
+    rows = []
+    current = getattr(manager, "_current", None)
+    for d in ([current] if current else []) + list(getattr(manager, "_queue", []) or []):
+        if not isinstance(d, dict):
+            continue
+        ctx = d.get("context") or {}
+        source = str(d.get("proposer_nation") or d.get("target_nation")
+                     or ctx.get("source_nation") or ctx.get("source") or "")
+        if source != court:
+            continue
+        rows.append(d)
+    rows.sort(key=lambda d: -int(d.get("turn_created", 0) or 0))
+    return rows
+
+
+def _letter_terms_lines(world, letter: Dict, court: str) -> List[str]:
+    dtype = str(letter.get("type") or letter.get("dialogue_type") or "")
+    if dtype == "incoming_settlement_offer":
+        summary = [str(s) for s in (letter.get("terms_summary") or []) if s]
+        if summary:
+            return summary
+        from backend.game_logic.settlement_presentation import _term_display
+        return [_term_display(t) for t in (letter.get("settlement_terms") or [])
+                if isinstance(t, dict)]
+    ctx = letter.get("context") or {}
+    terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
+    ptype = str(ctx.get("proposal_type") or letter.get("proposal_type")
+                or (terms.get("type") if isinstance(terms, dict) else "") or "")
+    if isinstance(terms, dict) and terms:
+        from backend.display_names import format_terms_for_display
+        return [str(line) for line in format_terms_for_display(terms, ptype, court)]
+    from backend.display_names import proposal_display_name
+    return [proposal_display_name(ptype)] if ptype else []
+
+
+def _answer_demanded(world, player: str, court_tag: str) -> str:
+    """SRX-5: what the court last asked of us — its letter on the desk,
+    its Congress answer, or the log's record of a letter since answered.
+    Diplomacy has no fog; the desk says so when there was none."""
+    court = _court(world, court_tag)
+    letters = _letters_from(world, court_tag)
+    if letters:
+        letter = letters[0]
+        turn = int(letter.get("turn_created", 0) or 0)
+        dtype = str(letter.get("type") or letter.get("dialogue_type") or "")
+        lines = _letter_terms_lines(world, letter, court_tag)
+        what = ("a settlement" if dtype == "incoming_settlement_offer"
+                else "a proposal")
+        when = f" on turn {turn}" if turn else ""
+        terms = "; ".join(lines) if lines else "terms the letter does not state"
+        more = (f" {len(letters) - 1} older letter{'s' if len(letters) > 2 else ''} "
+                f"of {court}'s also wait{'s' if len(letters) == 2 else ''} in the mailbox."
+                if len(letters) > 1 else "")
+        return (f"{court}'s envoy brought {what}{when}, Sire — it asks: {terms}. "
+                f"The letter waits in the mailbox.{more}")
+    from backend.game_logic import congress as _congress
+    record = _congress.record(world) or {}
+    answers = record.get("answers") or {}
+    if court_tag in answers and record.get("status"):
+        row = dict(answers.get(court_tag) or {})
+        stance = str(row.get("stance") or "")
+        price = str(_congress.price(world, court_tag, row).get("text") or "")
+        sitting = "while the Congress sits" if _congress.sitting(world) else "at the last Congress"
+        if price:
+            return (f"At the table {sitting}, {court} {stance.lower()}, Sire — "
+                    f"its price: {price}.")
+        return f"At the table {sitting}, {court} {stance.lower()}, Sire."
+    for event in reversed(list(getattr(world, "event_log", []) or [])):
+        if not isinstance(event, dict):
+            continue
+        etype = str(event.get("type") or "")
+        if etype == "proposal_arrived" and str(event.get("source") or "") == court_tag:
+            from backend.display_names import proposal_display_name
+            what = proposal_display_name(str(event.get("proposal_type") or "")) or "a proposal"
+            return (f"{court}'s last letter came on turn {int(event.get('turn', 0) or 0)}, "
+                    f"Sire — {what.lower() if what[:1].isupper() else what}; it has "
+                    f"been answered and its terms are no longer on the desk.")
+    return f"No letter from {court} has reached the desk, Sire — nothing was demanded."
+
+
+def _answer_where_nation(world, player: str, court_tag: str) -> str:
+    """RS-14: a court's corps in view, each where the fog places it; the
+    last report of those out of view; "no word" when there is none."""
+    from backend.models.intel import FULL, get_strength_band
+    courts = ([court_tag] if court_tag
+              else sorted(world.get_nations_at_war_with(player) or []))
+    if not courts:
+        return "We are at war with no one, Sire — there is no enemy to place."
+    visible = {m.name: m for m in world.get_visible_enemies(player)}
+    parts: List[str] = []
+    for tag in courts:
+        court = _court(world, tag)
+        corps = sorted((m for m in world.marshals.values()
+                        if m.nation == tag and int(getattr(m, "strength", 0) or 0) > 0
+                        and not getattr(m, "captured_by", "")),
+                       key=lambda m: m.name)
+        if not corps:
+            parts.append(f"{court} fields no corps we know of")
+            continue
+        seen, unseen = [], []
+        for m in corps:
+            if m.name in visible:
+                intel = world.get_region_intel(m.location)
+                if intel.visibility == FULL:
+                    seen.append(f"{_display(m.name)} at {m.location} "
+                                f"({int(m.strength):,} men, confirmed)")
+                else:
+                    seen.append(f"{_display(m.name)} at {m.location} "
+                                f"({get_strength_band(int(m.strength))})")
+            else:
+                last = _last_report_of(world, m.name)
+                if last:
+                    region_name, ago = last
+                    when = "this turn" if ago <= 0 else f"{ago} turn{'s' if ago != 1 else ''} ago"
+                    unseen.append(f"{_display(m.name)} last reported at {region_name}, {when}")
+                else:
+                    unseen.append(f"no word of {_display(m.name)}")
+        clause = f"{court}: " + "; ".join(seen + unseen)
+        parts.append(clause)
+    return "Sire — " + ". ".join(parts) + "."
+
+
+def _answer_alarm(world, player: str) -> str:
+    """RS-14: Europe's alarm — the gauge every surface shows, its tier,
+    this turn's sources, the next tick's forecast, and the screen it lives
+    on (the Diplomatic Ledger's Balance of Europe tab)."""
+    from backend.game_logic import coalition as C
+    level = int(C.displayed_threat(world))
+    formed = bool(getattr(world, "active_coalition", None))
+    tier = C.get_threat_tier(level, coalition_formed=formed)
+    head = f"Europe's alarm stands at {level} — {tier}, Sire."
+    sources = []
+    try:
+        from backend.game_logic.diplomatic_ledger import _threat_source_label
+        for s in getattr(world, "threat_sources_this_turn", None) or []:
+            if not isinstance(s, dict) or s.get("target", player) != player:
+                continue
+            amount = int(s.get("amount") or 0)
+            label = _threat_source_label(world, str(s.get("source") or ""))
+            if label and amount:
+                sources.append(f"{label} ({'+' if amount > 0 else ''}{amount})")
+    except Exception:
+        sources = []
+    if sources:
+        head += f" This turn it is fed by {', '.join(sources[:4])}."
+    try:
+        forecast = C.forecast_alarm_tick(world)
+        nxt = int(forecast.get("next", level))
+        if nxt != level:
+            head += f" The next tick reads {nxt}."
+    except Exception:
+        pass
+    if formed:
+        head += " A coalition stands against us already."
+    pointer = surface_pointer("balance") or surface_pointer("courts")
+    if pointer:
+        head += f" The whole account is on {pointer}."
+    return head
 
 
 def _answer_reach(world, player: str, marshal_name: str,
@@ -2195,6 +2444,12 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_at_war(world, player, subject)
         if kind == "wants":
             return _answer_wants(world, subject)
+        if kind == "demanded":
+            return _answer_demanded(world, player, subject)
+        if kind == "where_nation":
+            return _answer_where_nation(world, player, subject)
+        if kind == "alarm":
+            return _answer_alarm(world, player)
         if kind == "reach":
             return _answer_reach(world, player, subject,
                                  str(question.get("place") or ""))

@@ -212,6 +212,12 @@ def _missions_help_block(world) -> str:
     return "\n".join(lines) + "\n"
 
 
+# RS-13 (Score Finish Step 2 reserve, Oct 2 2026): an attack pressed through
+# an objection prints its muster. False = it opens straight onto the combat
+# lines with no odds text, as shipped.
+THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER = True
+
+
 class MetaExecutor:
     """Handles meta-game actions: end_turn, status, help, debug, cheat, objection responses."""
 
@@ -2317,6 +2323,9 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             disobey_order = alternative if alternative else None
 
             if disobey_order:
+                # RS-13: the disobey arm is the one pressed attack that prints
+                # no muster — the player did not order it.
+                disobey_order = dict(disobey_order, _disobedience=True)
                 parsed_command = {
                     "success": True,
                     "command": disobey_order
@@ -2557,7 +2566,18 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         if action == "attack":
             marshal = world.get_marshal(marshal_name)
             if marshal:
-                result = self._executor._combat._execute_attack(marshal, command.get("target"), world, game_state)
+                # RS-13 (Score Finish Step 2 reserve, Oct 2 2026): an attack
+                # pressed through an objection (trust / insist / compromise)
+                # prints its muster like any ordered attack — the confirm
+                # popup stays off (`_muster_confirmed`), so the one-popup pin
+                # holds. The disobey arm keeps none: nobody ordered it.
+                _pressed = ({"_muster_confirmed": True}
+                            if (THE_PRESSED_ATTACK_PRINTS_ITS_MUSTER
+                                and not command.get("_disobedience"))
+                            else None)
+                result = self._executor._combat._execute_attack(
+                    marshal, command.get("target"), world, game_state,
+                    command=_pressed)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "defend":

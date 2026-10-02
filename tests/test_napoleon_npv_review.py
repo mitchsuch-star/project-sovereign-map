@@ -87,6 +87,15 @@ def fixed_rng(monkeypatch):
                         lambda self, marshal, flanking_bonus=0: dict(FIXED_DICE))
     monkeypatch.setattr(_random, "uniform", lambda a, b: (a + b) / 2.0)
     monkeypatch.setattr(_random, "random", lambda: 0.5)
+    # RS-28 (Score Finish Step 2 reserve, Oct 2 2026): the reinforcement
+    # pipeline's FUMBLE roll (`random.randint(1, 20) == 1`) was the one die
+    # this fixture left live. Measured, it is NOT the 1-in-1,008 failure's
+    # mechanism — a co-located sovereign's arrival takes no die (the
+    # reserve's `test_the_colocated_emperor_takes_no_die`), and twenty hash
+    # seeds pass standalone — so the leak is cross-file state and still
+    # unisolated; the precondition pinned in the P1 test below is the
+    # instrument that names it next time. The die is fixed as hygiene.
+    monkeypatch.setattr(_random, "randint", lambda a, b: max(a, min(b, (a + b) // 2)))
 
 
 def attack(world, who, target):
@@ -134,6 +143,17 @@ class TestPresenceReachesTheMarchingArmy:
         mack = make_marshal("Mack", location="Waterloo", strength=20000,
                             nation="Austria")
         w = make_world(nap, ney, mack)
+        # RS-28: the inputs the aura is derived from, pinned BEFORE the
+        # attack — a recurrence of the shard failure names the leaked input
+        # instead of the symptom (grip, the lever, the sovereign's own flag).
+        from backend.commands import combat_executor as _ce
+        from backend.models.authority import (get_imperial_grip,
+                                              sovereign_aura_strength)
+        assert _ce.SOVEREIGN_PRESENCE_ACTIVE is True
+        assert nap.is_sovereign, nap.personality
+        assert get_imperial_grip(w, "France") == 100, (
+            int(w.authority_tracker.authority), w.nation_starting_regions.get("France"))
+        assert sovereign_aura_strength(w, "France") == 1.0
         seen = self._spy(monkeypatch)
         result = attack(w, "Ney", "Mack")
         assert result.get("success"), result.get("message")
