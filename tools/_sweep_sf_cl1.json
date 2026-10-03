@@ -1,0 +1,121 @@
+[
+ {
+  "id": "lever down: THE_MUSTER_PRICES_THE_COORDINATION",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_MUSTER_PRICES_THE_COORDINATION = True",
+  "new": "THE_MUSTER_PRICES_THE_COORDINATION = False",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_emperors_co_located_muster_is_the_battle_to_the_man tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_mirror_follows_the_resolver_on_both_roads"
+ },
+ {
+  "id": "lever down: THE_REPORT_NAMES_THE_MASSED_STRENGTH",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_REPORT_NAMES_THE_MASSED_STRENGTH = True",
+  "new": "THE_REPORT_NAMES_THE_MASSED_STRENGTH = False",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheWire::test_a_coordinated_attack_carries_its_muster_and_its_massed_strength"
+ },
+ {
+  "id": "a joiner assumed present on every road",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                away.append(j.name)\n                if field_is_here:\n                    present.append(j)",
+  "new": "                away.append(j.name)\n                if True:\n                    present.append(j)",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_ceiling_bounds_the_battle_from_next_door"
+ },
+ {
+  "id": "the co-located partner never marches off",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if not field_is_here:\n                        gone.append(j.name)  # he marches off to the field\n                        away.append(j.name)",
+  "new": "                    if not field_is_here:\n                        away.append(j.name)",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_mirror_follows_the_resolver_on_both_roads tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_ceiling_bounds_the_battle_from_next_door"
+ },
+ {
+  "id": "the transients are not restored",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if had:\n                        setattr(m, f, value)\n                    elif hasattr(m, f):\n                        delattr(m, f)",
+  "new": "                    if had:\n                        pass\n                    elif hasattr(m, f):\n                        delattr(m, f)",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_transients_are_restored tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_mirror_follows_the_resolver_on_both_roads"
+ },
+ {
+  "id": "the contributors are not stamped",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                \"contributors\": [str(_n) for _n in (locals().get(\"_iq5_atk_contrib\") or [])],",
+  "new": "                \"contributors\": [],",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_emperors_co_located_muster_is_the_battle_to_the_man"
+ },
+ {
+  "id": "the massed total drops the committed sum",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                \"total\": _ms_lead + _ms_committed,",
+  "new": "                \"total\": _ms_lead,",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheWire::test_a_coordinated_attack_carries_its_muster_and_its_massed_strength tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_emperors_co_located_muster_is_the_battle_to_the_man"
+ },
+ {
+  "id": "assume_present ignored by the unit-type count",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        for extra in (assume_present or []):\n            if extra.nation == nation and all(extra.name != c.name for c in candidates):\n                candidates.append(extra)",
+  "new": "        for extra in []:\n            if extra.nation == nation and all(extra.name != c.name for c in candidates):\n                candidates.append(extra)",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_assume_present_and_absent"
+ },
+ {
+  "id": "assume_absent ignored by the unit-type count",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        gone = set(assume_absent or [])\n        candidates = [m for m in world.marshals.values()\n                      if m.location == region and m.nation == nation\n                      and m.name not in gone]",
+  "new": "        gone = set()\n        candidates = [m for m in world.marshals.values()\n                      if m.location == region and m.nation == nation\n                      and m.name not in gone]",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_assume_present_and_absent"
+ },
+ {
+  "id": "the wire drops massed_strength",
+  "file": "backend/main.py",
+  "old": "    \"muster_preview\",\n    \"massed_strength\",\n",
+  "new": "    \"muster_preview\",\n",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheWire"
+ },
+ {
+  "id": "the census calls every miss a lie",
+  "file": "tools/forecast_census.py",
+  "old": "                if wj <= fought:",
+  "new": "                if True:",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheCensus::test_a_lie_and_a_die_are_different_classes"
+ },
+ {
+  "id": "the census pairs a band with any muster",
+  "file": "tools/forecast_census.py",
+  "old": "                       and m.get(\"seq\", 0) > j.get(\"seq\", 0)), None)",
+  "new": "                       and True), None)",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheCensus::test_the_band_pairs_with_the_muster_that_followed"
+ },
+ {
+  "id": "the census forgets the regen allowance",
+  "file": "tools/forecast_census.py",
+  "old": "                allowed = regen_per_turn * gap",
+  "new": "                allowed = 0",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheCensus::test_the_scout_is_read_against_the_assault_with_regen"
+ },
+ {
+  "id": "the ledger reads the objection flag alone",
+  "file": "tools/playtest_driver.py",
+  "old": "            obj = _as_dict(response.get(\"objection\"))",
+  "new": "            obj = {}",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheLedger::test_the_objection_rides_as_a_flag_with_its_detail_beside_it"
+ },
+ {
+  "id": "the ledger forgets the contributors",
+  "file": "tools/playtest_driver.py",
+  "old": "            if ms and isinstance(ms.get(\"contributors\"), list):\n                for n in ms[\"contributors\"]:\n                    if str(n) not in arrived:\n                        arrived.append(str(n))",
+  "new": "            if False:\n                for n in ms[\"contributors\"]:\n                    if str(n) not in arrived:\n                        arrived.append(str(n))",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheLedger::test_a_muster_with_its_battle_is_one_row"
+ },
+ {
+  "id": "the ledger drops the quoted odds",
+  "file": "tools/playtest_driver.py",
+  "old": "            \"arrival_odds\": {r.get(\"marshal\"): r.get(\"arrival_odds\") for r in rows\n                             if r.get(\"will_join\")},",
+  "new": "            \"arrival_odds\": {},",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheLedger::test_a_muster_with_its_battle_is_one_row"
+ },
+ {
+  "id": "the ledger is never attached",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_DIGEST_KEEPS_THE_FORECAST = True",
+  "new": "THE_DIGEST_KEEPS_THE_FORECAST = False",
+  "tests": "tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheLedger::test_the_digest_attaches_the_ledger_under_the_lever"
+ }
+]

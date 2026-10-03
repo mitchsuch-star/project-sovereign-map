@@ -1086,20 +1086,75 @@ def vassals_c5_client_capital_contested(arms, ctx):
 
 
 # ═════════════════════════ COMMAND ═════════════════════════
-_ACTION_WORDS = {
+# ═══ THE ONE JUDGE of a reply to a typed line (SF-CMD-1, October 3, 2026) ═══
+# Read by `command_c3_hold_orders` (the HOLD arm) and by
+# tools/unrehearsed_census.py (the 300-line held-out census) — never a second
+# copy. Every regex here names a SHAPE of reply, not a game rule.
+#
+# ACTION_WORDS: the words a reply uses when it did the intended family.
+ACTION_WORDS = {
     "attack": r"MUSTER|attack|pursu|⚔|marches on|falls upon|engag",
-    "move": r"moves? to|begins march|march|Route:",
+    "move": r"moves? (to|from)|begins march|march|Route:|road to",
     "hold": r"hold|defend|DEFENSIVE|stands? fast",
+    "defend": r"hold|defend|DEFENSIVE|stands? fast",
     "scout": r"scout",
     "fortify": r"fortif",
+    "unfortify": r"unfortif|breaks? camp|abandons? (the )?works",
     "drill": r"drill",
-    "retreat": r"retreat|falls? back|withdraw",
+    "retreat": r"retreat|falls? back|withdraw|begins march|moves? to",
     "recruit": r"recruit|levy|raises|substitut",
+    "substitutes": r"substitut",
     "build": r"build|construct|laid|depot|training ground|fort",
-    "diplomacy": r"Talleyrand|proposal|mission|envoy|guarantee|sponsor|departs|relations",
+    "repair": r"repair",
+    "garrison": r"garrison|detach",
+    "invest": r"invest",
+    "reward": r"estate|rente|pension|endow|duchy|duke|reward",
+    "enact": r"enact|law|Staff|ordinance|Quartier",
+    "repeal": r"repeal",
+    "commission": r"commission|joins|Marshalate|takes up",
+    "naval_build": r"keel|ships?|yard|sail",
+    "naval_posture": r"fleet|posture|blockade|guard home|sortie|Admiralty",
+    "naval_land": r"transport|land|expedition|lift|descent|ashore|ports",
+    "naval_diversion": r"diversion",
+    "diplomacy": r"Talleyrand|proposal|mission|envoy|guarantee|sponsor|departs|relations|court|state of Europe|"
+                 r"Sire,.*(peace|alliance|terms|tribute|design)",
+    "declare_war": r"declar|war",
+    "break_treaty": r"break|treaty|tears? up",
+    "vassal": r"vassal",
+    "cede": r"cede|grant|ceded",
+    "form_square": r"square",
+    "end_turn": r"Turn \d+ ended|begins",
     "support": r"support|march|moves? to",
     "pursue": r"pursu|attack|MUSTER",
 }
+_ACTION_WORDS = ACTION_WORDS  # the HOLD reader's older name
+# BOARD_GATE_RX: the BOARD refused a line it read right, and said why.
+BOARD_GATE_RX = re.compile(
+    r"No administrative actions|Not enough actions|actions remaining|treasury cannot|cannot support this|out of range|"
+    r"enemy forces (nearby|present)|is a prisoner|not at war|cannot (drill|fortify|move|attack) (with|while|into)|"
+    r"already (fortified|in|lies|have|met|full)|costs [\d,]+ gold|the treasury holds|is not in force|not currently fortified|"
+    r"has not opened her ports|No damaged|No war damage|needs one victory|is a nation, not a province|only conquered land|"
+    r"no eligible province|loyalty is already full|we do not court a belligerent|at WAR with|no treaty with|"
+    r"not found\. Did you mean|supply lines cannot|blocks the path|destination blocked|runs through enemy country|"
+    r"No intelligence on|No marshal of artillery can reach|cannot reach|not controlled by France|We do not hold|"
+    r"still stands|No province is eligible|I am a diplomat, not a general",
+    re.I,
+)
+# ASKED_RX: the game asked before acting (a clarification, an objection).
+ASKED_RX = re.compile(
+    r"Which marshal|which marshal should act|Name the marshal|Whom did you intend|Did you mean|How shall I proceed|"
+    r"Your orders\?|raises concerns|firmly objects|objects:|Shall I|One order at a time",
+    re.I,
+)
+# REFUSED_RX: the game could not read the line and said so (spending nothing).
+REFUSED_RX = re.compile(
+    r"cannot interpret|await clear|Cannot find|not found|eludes me|cannot parse|instruction is unclear|"
+    r"in the order of battle|await your instructions|could not make out a destination|contingency, not an order|"
+    r"I do not find|cannot determine|cannot make sense|then no order goes out|relayed nothing|appears in no roster|"
+    r"I confess myself",
+    re.I,
+)
+MISREAD_RX = REFUSED_RX  # the HOLD reader's older name
 
 
 def command_c3_hold_orders(arms, ctx):
@@ -1122,23 +1177,11 @@ def command_c3_hold_orders(arms, ctx):
         who = str(intended.get("marshal", ""))
         msg = str(c.get("message", ""))
         # a refusal that names the board's own reason (out of reach, engaged, no gold) counts as "read as meant" only if it names the intended marshal
-        names_action = bool(re.search(_ACTION_WORDS.get(action, action), msg, re.I))
-        board_gate = bool(
-            re.search(
-                r"No administrative actions|Not enough actions|actions remaining|treasury cannot|cannot support this|out of range|enemy forces (nearby|present)|"
-                r"is a prisoner|not at war|cannot (drill|fortify|move|attack) (with|while|into)|already (fortified|in)",
-                msg,
-                re.I,
-            )
-        )
-        misread = bool(
-            re.search(
-                r"cannot interpret|await clear|Cannot find|not found|eludes me|cannot parse|instruction is unclear|in the order of battle|await your instructions|"
-                r"could not make out a destination|contingency, not an order",
-                msg,
-                re.I,
-            )
-        )
+        # SF-CMD-1 (October 3, 2026): the ONE judge's regexes (module constants
+        # above), shared with tools/unrehearsed_census.py.
+        names_action = bool(re.search(ACTION_WORDS.get(action, action), msg, re.I))
+        board_gate = bool(BOARD_GATE_RX.search(msg))
+        misread = bool(REFUSED_RX.search(msg))
         read_ok = (not misread) and (
             c.get("success") is True
             and names_action
@@ -1203,6 +1246,7 @@ def narration_c4_intel_row(arms, ctx):
     """AAR-5: every intelligence row in the stored dispatch places its marshal where the intel store last saw him."""
     checked = 0
     bad = []
+    stale_after_refresh = []
     for n in CMD_ARMS:
         for p in _saves_of(arms, n):
             w = _load_world(ctx, p)
@@ -1238,18 +1282,43 @@ def narration_c4_intel_row(arms, ctx):
                     _intel = w.intel.get(str(row.get("location") or ""))
                     live_ok = bool(_m is not None and _m.location == row.get("location")
                                    and _intel is not None and _intel.visibility == _FULL)
-                if not live_ok and (not lk or lk[0] != row.get("location")):
+                # SF-CL-1 exit (October 3, 2026): the dispatch is the MORNING's
+                # and the save is the evening's. A frozen snapshot row whose
+                # province the store RE-READ after the row's own turn (its
+                # `last_updated_turn` is later than the row's `intel_turn`)
+                # was true when written — measured CMD-A turn 10: Brunswick's
+                # turn-2 Berlin snapshot rode the morning rows, then Berlin
+                # was read again that turn (partial, empty: he had marched to
+                # Hanover's war) and the region-keyed store forgot him. The
+                # row said what the store last said; the store moved on.
+                refreshed_after = False
+                if row.get("source") == "snapshot" and not live_ok:
+                    _region = w.intel.get(str(row.get("location") or ""))
+                    try:
+                        refreshed_after = (
+                            _region is not None
+                            and int(getattr(_region, "last_updated_turn", 0) or 0)
+                            > int(row.get("intel_turn") or 0))
+                    except (TypeError, ValueError):
+                        refreshed_after = False
+                if refreshed_after:
+                    stale_after_refresh.append(
+                        f"{n} t{_save_turn(p)}: {shown} at {row.get('location')} (row t{row.get('intel_turn')}, "
+                        f"province re-read t{getattr(w.intel.get(str(row.get('location') or '')), 'last_updated_turn', '?')})")
+                elif not live_ok and (not lk or lk[0] != row.get("location")):
                     bad.append(
                         f"{n} t{_save_turn(p)}: {shown} shown at {row.get('location')}, store says {lk[0] if lk else None}"
                     )
     if checked == 0:
         return _un("no intelligence rows on the saves")
+    note = (f"; {len(stale_after_refresh)} morning rows whose province the store re-read later that turn: "
+            f"{stale_after_refresh[:2]}" if stale_after_refresh else "")
     return _res(
         True,
         not bad,
-        f"{checked} intel rows; disagreeing with the store: {bad[:3]}"
-        if bad
-        else f"{checked} intel rows, each where the store last saw the man or where he stands in full view",
+        (f"{checked} intel rows; disagreeing with the store: {bad[:3]}" if bad
+         else f"{checked} intel rows, each where the store last saw the man or where he stands in full view")
+        + note,
     )
 
 

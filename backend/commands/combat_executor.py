@@ -4,6 +4,7 @@ Handles all combat-related execution: attack, charge, bombardment, garrison.
 
 Extracted from executor.py in R10A (Architecture Refactoring Session 10A).
 """
+import contextlib
 import re
 from typing import Dict, Optional
 from backend.models.world_state import (
@@ -575,6 +576,24 @@ SORTIE_CAPTURE_REQUIRES_STANDING_ACTIVE = True
 # only — `committed_strength` / `ceiling_strength` and the odds band are
 # unchanged, so nothing that reads the band can move.
 MUSTER_ROWS_NAME_THEIR_ODDS = True
+# SF-CL-1 "The forecast keeps its word" (October 3, 2026): the attack result
+# carries `massed_strength` {lead, committed, total} — the CO-6 figures as a
+# structured key, read by the playtest driver's forecast ledger. Display
+# only. False = the key is absent, byte for byte.
+THE_REPORT_NAMES_THE_MASSED_STRENGTH = True
+# SF-CL-1 fix 1 (October 3, 2026): THE MUSTER PRICES THE COORDINATION. The
+# resolver stamps a coordination attack bonus (combined arms + per-ally +
+# dedicated + adjacent, capped +25%) on every participant BEFORE it sums the
+# committed strength, and `get_attack_modifier` carries it — so the resolver's
+# massed strength ran up to a quarter above the muster's own ceiling
+# (measured FLD t1: "up to 112,775 if all march" against 138,604 fought;
+# every reinforcer's modifier 1.1 → 1.375). The preview now computes its
+# expected figure, its ceiling, the defender's committed term and the odds
+# band under the SAME context, stamped for the hypothetical "every WILL JOIN
+# present" set and restored afterwards (`_priced_coordination`). Player-only
+# by construction (the preview is built for the player's marshal alone), so
+# the AI's series cannot move. False = the pre-SF-CL-1 preview byte for byte.
+THE_MUSTER_PRICES_THE_COORDINATION = True
 
 
 def _attack_is_unordered(command) -> bool:
@@ -716,7 +735,8 @@ class CombatExecutor:
     # Extracted from executor.py in R10B (Architecture Refactoring Session 10B).
     # ════════════════════════════════════════════════════════════════════════════════
 
-    def _count_unit_types(self, region: str, nation: str, world: WorldState) -> int:
+    def _count_unit_types(self, region: str, nation: str, world: WorldState,
+                          assume_present=None, assume_absent=None) -> int:
         """
         Count distinct unit types among eligible same-nation marshals in a region.
 
@@ -727,9 +747,17 @@ class CombatExecutor:
         Returns 1-3 (infantry, cavalry, artillery).
         """
         types_seen = set()
-        for m in world.marshals.values():
-            if m.location != region or m.nation != nation:
-                continue
+        # SF-CL-1: `assume_present` — marshals priced AS IF standing in the
+        # region (the muster's WILL JOIN set, before they march). Same
+        # eligibility filters as the men who are there.
+        gone = set(assume_absent or [])
+        candidates = [m for m in world.marshals.values()
+                      if m.location == region and m.nation == nation
+                      and m.name not in gone]
+        for extra in (assume_present or []):
+            if extra.nation == nation and all(extra.name != c.name for c in candidates):
+                candidates.append(extra)
+        for m in candidates:
             if m.strength <= 0:
                 continue
             if getattr(m, 'broken', False):
@@ -1203,7 +1231,9 @@ class CombatExecutor:
 
     def _calculate_coordination_context(self, primary, world: WorldState,
                                          reinforcement_results=None,
-                                         exclude_from_adjacent=None) -> dict:
+                                         exclude_from_adjacent=None,
+                                         assume_present=None,
+                                         assume_absent=None) -> dict:
         """
         Calculate coordination bonuses for primary marshal and same-nation allies.
 
@@ -1228,7 +1258,21 @@ class CombatExecutor:
         nation = primary.nation
 
         # Count distinct unit types among eligible same-nation marshals in region
-        type_count = self._count_unit_types(region, nation, world)
+        # SF-CL-1: `assume_present` prices the muster's WILL JOIN set as if
+        # they already stood here (the resolver relocates arrivals before it
+        # calls this) and keeps them out of the adjacent count, exactly as
+        # the resolver's `exclude_from_adjacent=arrived_names` does.
+        # `assume_absent` is the mirror: the muster's joiners who stand in
+        # the LEAD's region today but relocate into the battle province at
+        # resolve (an attack from next door) leave his context behind.
+        assumed = [m for m in (assume_present or []) if m.nation == nation]
+        gone = set(assume_absent or [])
+        if assumed:
+            exclude_from_adjacent = (list(exclude_from_adjacent or [])
+                                     + [m.name for m in assumed])
+        type_count = self._count_unit_types(region, nation, world,
+                                            assume_present=assumed or None,
+                                            assume_absent=gone or None)
         combined_arms_atk, combined_arms_def = self._get_combined_arms_bonus(type_count)
 
         # Adjacent support (S60) — ATTACK ONLY per A-M2, calculated ONCE (shared value)
@@ -1239,10 +1283,18 @@ class CombatExecutor:
         # Find all eligible same-nation marshals in region
         eligible = [m for m in world.marshals.values()
                     if m.location == region and m.nation == nation
+                    and m.name not in gone
                     and m.strength > 0
                     and not getattr(m, 'broken', False)
                     and not getattr(m, 'retreated_this_turn', False)
                     and getattr(m, 'retreat_recovery', 0) == 0]
+        for extra in assumed:
+            if (all(extra.name != e.name for e in eligible)
+                    and extra.strength > 0
+                    and not getattr(extra, 'broken', False)
+                    and not getattr(extra, 'retreated_this_turn', False)
+                    and getattr(extra, 'retreat_recovery', 0) == 0):
+                eligible.append(extra)
 
         # NP-2 The Presence (NAPOLEON_SPEC §5.1): a sovereign among the
         # eligible set (himself included — he carries his own presence)
@@ -1747,6 +1799,69 @@ class CombatExecutor:
         return joining, self._committed_reinforcement_strength(
             enemy_marshal, joining, world, expected_at=battle_region)
 
+    @contextlib.contextmanager
+    def _priced_coordination(self, marshal, joiners, enemy_marshal, enemy_joiners,
+                             world, battle_region):
+        """SF-CL-1 fix 1: stamp the coordination context the resolver will
+        stamp — for the attacker, with every WILL JOIN corps that would
+        relocate into his region counted as present; for the defender, with
+        his own joiners likewise — then restore every transient field. The
+        resolver reads `primary.location` for the context, so a joiner is
+        assumed present only where the resolver would find him: in the
+        attacker's own region when that is the field (adjacent guns never
+        relocate and stay out of the adjacent count, as an arrival does).
+        Lever down: a no-op."""
+        if not THE_MUSTER_PRICES_THE_COORDINATION:
+            yield
+            return
+        fields = tuple(Marshal.COORDINATION_TRANSIENT_FIELDS) + ("sovereign_presence",)
+        nations = {marshal.nation, enemy_marshal.nation}
+        touched = [m for m in world.marshals.values() if m.nation in nations]
+        saved = {m.name: {f: (hasattr(m, f), getattr(m, f, None)) for f in fields}
+                 for m in touched}
+
+        def _assumed(lead, team):
+            """(present, away, gone): the joiners the resolver will find in
+            the lead's region, the names it keeps out of the adjacent count
+            (every arrival), and the joiners who LEAVE the lead's region —
+            when the field is next door, every joiner relocates into it,
+            including the ones standing beside the lead today."""
+            present, away, gone = [], [], []
+            field_is_here = lead.location == battle_region
+            for j in team:
+                if j.name == lead.name:
+                    continue
+                if getattr(j, "artillery", False) and j.location != battle_region:
+                    away.append(j.name)      # guns fire from where they stand
+                    continue
+                if j.location == lead.location:
+                    if not field_is_here:
+                        gone.append(j.name)  # he marches off to the field
+                        away.append(j.name)
+                    continue
+                away.append(j.name)
+                if field_is_here:
+                    present.append(j)
+            return present, away, gone
+
+        try:
+            atk_present, atk_away, atk_gone = _assumed(marshal, joiners)
+            self._calculate_coordination_context(
+                marshal, world, exclude_from_adjacent=atk_away,
+                assume_present=atk_present, assume_absent=atk_gone)
+            def_present, def_away, def_gone = _assumed(enemy_marshal, enemy_joiners)
+            self._calculate_coordination_context(
+                enemy_marshal, world, exclude_from_adjacent=def_away,
+                assume_present=def_present, assume_absent=def_gone)
+            yield
+        finally:
+            for m in touched:
+                for f, (had, value) in saved[m.name].items():
+                    if had:
+                        setattr(m, f, value)
+                    elif hasattr(m, f):
+                        delattr(m, f)
+
     def _build_muster_preview(self, marshal, enemy_marshal, world, game_state):
         """W6-4 §6.1: who will fight, who won't, and why — before the shot.
 
@@ -1893,71 +2008,78 @@ class CombatExecutor:
                                                   world, code))
             rows.append(row)
 
-        # CO-2: the odds band reflects the TOTAL committed force (lead + the
-        # personality/relationship-scaled contribution of every marshal that
-        # WILL JOIN) so the preview matches what CO-1 resolves.
-        # PT-A2: `expected_at` — these men have not marched yet. Each is
-        # priced at the probability of the arrival roll the resolver will
-        # make for him, not at certainty.
-        committed_attacker = self._committed_reinforcement_strength(
-            marshal, will_join_marshals, world, expected_at=battle_region)
+        # SF-CL-1 fix 1: the expected figure, the ceiling, the defender's
+        # committed term and the odds band are read under the coordination
+        # context the resolver will stamp (`_priced_coordination`); the
+        # defender's joiners are read first so his context can assume them.
+        _defender_joining_pre, _ = self._defender_muster(enemy_marshal, world)
+        with self._priced_coordination(marshal, will_join_marshals, enemy_marshal,
+                                       _defender_joining_pre, world, battle_region):
+            # CO-2: the odds band reflects the TOTAL committed force (lead + the
+            # personality/relationship-scaled contribution of every marshal that
+            # WILL JOIN) so the preview matches what CO-1 resolves.
+            # PT-A2: `expected_at` — these men have not marched yet. Each is
+            # priced at the probability of the arrival roll the resolver will
+            # make for him, not at certainty.
+            committed_attacker = self._committed_reinforcement_strength(
+                marshal, will_join_marshals, world, expected_at=battle_region)
 
-        # FA-61: the CEILING, on the resolver's own basis.
-        #
-        # `committed_attacker` is arrival-WEIGHTED — a probability-weighted
-        # mean, not a bound — and the label above it read "if all march".
-        # Measured on the shipped board: the panel printed "78,676 if all
-        # march" and the resolver reached 84,266 with one of the four
-        # candidates ABSENT.
-        #
-        # Two causes, and the row names only the first. The second is the
-        # sovereign aura: `sovereign_presence` is stamped on every
-        # participant at RESOLVE time only, so at preview time every joiner
-        # is under-priced by the Emperor's +10% — in the same panel that
-        # already prints "every corps on this field fights +10% harder, if
-        # he marches". The row's own prescribed fix (`expected_at=None`
-        # alone) prints 90,172 against a reachable 96,789, which is the same
-        # defect one layer up.
-        #
-        # ⚠ A NEW KEY. `committed_strength` is NOT display-only —
-        # `objection_v2.muster_gate_arms` reads the `odds_band` derived from
-        # it, which is the CA9-row-2 attack-confirm gate — so the figure
-        # must not move. The ceiling rides beside it.
-        ceiling_attacker = committed_attacker
-        if will_join_marshals:
-            _saved = {m.name: getattr(m, "sovereign_presence", 0.0)
-                      for m in [marshal] + will_join_marshals}
-            try:
-                _aura = 0.0
-                if SOVEREIGN_PRESENCE_ACTIVE:
-                    from backend.models.authority import sovereign_aura_strength
+            # FA-61: the CEILING, on the resolver's own basis.
+            #
+            # `committed_attacker` is arrival-WEIGHTED — a probability-weighted
+            # mean, not a bound — and the label above it read "if all march".
+            # Measured on the shipped board: the panel printed "78,676 if all
+            # march" and the resolver reached 84,266 with one of the four
+            # candidates ABSENT.
+            #
+            # Two causes, and the row names only the first. The second is the
+            # sovereign aura: `sovereign_presence` is stamped on every
+            # participant at RESOLVE time only, so at preview time every joiner
+            # is under-priced by the Emperor's +10% — in the same panel that
+            # already prints "every corps on this field fights +10% harder, if
+            # he marches". The row's own prescribed fix (`expected_at=None`
+            # alone) prints 90,172 against a reachable 96,789, which is the same
+            # defect one layer up.
+            #
+            # ⚠ A NEW KEY. `committed_strength` is NOT display-only —
+            # `objection_v2.muster_gate_arms` reads the `odds_band` derived from
+            # it, which is the CA9-row-2 attack-confirm gate — so the figure
+            # must not move. The ceiling rides beside it.
+            ceiling_attacker = committed_attacker
+            if will_join_marshals:
+                _saved = {m.name: getattr(m, "sovereign_presence", 0.0)
+                          for m in [marshal] + will_join_marshals}
+                try:
+                    _aura = 0.0
+                    if SOVEREIGN_PRESENCE_ACTIVE:
+                        from backend.models.authority import sovereign_aura_strength
+                        for m in [marshal] + will_join_marshals:
+                            if getattr(m, "is_sovereign", False):
+                                _aura = sovereign_aura_strength(world, m.nation)
+                                break
                     for m in [marshal] + will_join_marshals:
-                        if getattr(m, "is_sovereign", False):
-                            _aura = sovereign_aura_strength(world, m.nation)
-                            break
-                for m in [marshal] + will_join_marshals:
-                    m.sovereign_presence = _aura
-                ceiling_attacker = self._committed_reinforcement_strength(
-                    marshal, will_join_marshals, world)
-            finally:
-                for m in [marshal] + will_join_marshals:
-                    if m.name in _saved:
-                        m.sovereign_presence = _saved[m.name]
-        # CA9-F1: and the same term for the other side. The RATIO reads
-        # ground truth, exactly as the fort/terrain terms already do and for
-        # the reason given in `inferred_attack_favorable`'s docstring — this
-        # is a safety gate on the player's own marshal, not enemy intel
-        # surfaced to the player, and under-protecting in fog is the wrong
-        # failure direction. The PRINTED figures stay fog-legal below.
-        defender_joining, committed_defender = self._defender_muster(
-            enemy_marshal, world)
-        from backend.commands.objection_v2 import (
-            inferred_attack_odds_reading, odds_band_note)
-        odds_band, _weighed = inferred_attack_odds_reading(
-            marshal, enemy_marshal, game_state,
-            committed_attacker=committed_attacker,
-            committed_defender=committed_defender,
-            fold_modifiers=True)
+                        m.sovereign_presence = _aura
+                    ceiling_attacker = self._committed_reinforcement_strength(
+                        marshal, will_join_marshals, world)
+                finally:
+                    for m in [marshal] + will_join_marshals:
+                        if m.name in _saved:
+                            m.sovereign_presence = _saved[m.name]
+            # CA9-F1: and the same term for the other side. The RATIO reads
+            # ground truth, exactly as the fort/terrain terms already do and for
+            # the reason given in `inferred_attack_favorable`'s docstring — this
+            # is a safety gate on the player's own marshal, not enemy intel
+            # surfaced to the player, and under-protecting in fog is the wrong
+            # failure direction. The PRINTED figures stay fog-legal below.
+            defender_joining, committed_defender = self._defender_muster(
+                enemy_marshal, world)
+            from backend.commands.objection_v2 import (
+                inferred_attack_odds_reading, odds_band_note)
+            odds_band, _weighed = inferred_attack_odds_reading(
+                marshal, enemy_marshal, game_state,
+                committed_attacker=committed_attacker,
+                committed_defender=committed_defender,
+                fold_modifiers=True)
         # AAR32-D1: what the word promises ("even" — a hard fight that may
         # well decide nothing), printed after it on the band line.
         odds_note = odds_band_note(odds_band, _weighed)
@@ -9491,6 +9613,35 @@ class CombatExecutor:
 
         if reinf_messages:
             result["reinforcement_messages"] = reinf_messages
+
+        # SF-CL-1 "The forecast keeps its word" (October 3, 2026): the
+        # resolver's massed effective strength as a STRUCTURED key beside the
+        # CO-6 prose — the lead's pre-battle corps plus the committed sum the
+        # resolver actually weighed (`_committed_reinforcement_strength` over
+        # the men who ARRIVED) — so the forecast ledger can set the muster's
+        # "expect about X … up to Y" beside what fought, on the same α-scaled
+        # basis the preview priced. Display only; stamped on every coordinated
+        # battle (the solo path has no committed sum: the lead IS the mass).
+        if THE_REPORT_NAMES_THE_MASSED_STRENGTH and "_co6_lead_pre_strength" in locals():
+            _ms_lead = int(locals().get("_co6_lead_pre_strength", 0) or 0)
+            _ms_committed = int(locals().get("_co6_committed_attacker", 0) or 0)
+            result["massed_strength"] = {
+                "lead": _ms_lead,
+                "committed": _ms_committed,
+                "total": _ms_lead + _ms_committed,
+                # The men who ARRIVED (roster keys) — the diorama's contingent
+                # list is capped, so the ledger reads the arrivals here.
+                "arrived": [str(_n) for _n in (locals().get("arrived_names") or [])],
+                # The men the committed sum COUNTED: arrivals plus the corps
+                # standing on the field beside the lead (IQ-5 R3's own list —
+                # a co-located corps rolls no die and never "arrives").
+                "contributors": [str(_n) for _n in (locals().get("_iq5_atk_contrib") or [])],
+                # And the shelf: every reinforcer who did not, with the
+                # resolver's own reason (the diorama's shelf is capped too).
+                "absent": [[str(_r.get("marshal")), str(_r.get("reason") or "unknown")]
+                           for _r in (locals().get("attacker_reinforcements") or [])
+                           if isinstance(_r, dict) and not _r.get("arrived")],
+            }
 
         # Mark as free action for Davout's Counter-Punch
         if is_counter_punch:

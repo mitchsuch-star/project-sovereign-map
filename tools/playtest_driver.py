@@ -175,6 +175,15 @@ THE_REVISION_IGNORES_LINE_ENDINGS = True
 # script's LINE COUNT, never a measurement — the driver had no AP counter at
 # all. False = the four pre-IQ-8 counters only.
 THE_HARNESS_COUNTS_ACTION_POINTS = True
+# SF-CL-1 "The forecast keeps its word" (October 3, 2026): every POST response
+# that carries a prediction — the muster's "expect about X … up to Y" and its
+# band, the WILL JOIN / WILL NOT rows, an objection's or a bad-odds
+# interrupt's band, a scout's garrison figure — is recorded to the jsonl as a
+# `forecast` row beside what the resolver then committed (`massed_strength`,
+# the diorama's contingents, the casualty summary, a garrison assault's
+# figures). `tools/forecast_census.py` reads the rows. False = the pre-SF-CL-1
+# digest byte for byte (no `forecast` rows).
+THE_DIGEST_KEEPS_THE_FORECAST = True
 
 # The variables that shape the board, recorded AFTER `import backend.main` (so
 # the record is what the engine read, `.env` included).
@@ -401,6 +410,170 @@ def provenance_lines(meta) -> list:
     if warning:
         lines.append(warning)
     return lines
+
+
+
+_BAND_RX = re.compile(r"balance of force looks (\w+)")
+_BAND_WORD_RX = re.compile(r"\b(unfavou?rable|favou?rable|even)\b", re.I)
+
+
+def _band_word(text: str) -> str:
+    """The odds band a sentence names: the muster's own phrase first, else
+    the bare word. 'unfavorable' is checked before 'favorable' by the regex's
+    alternation order; British spellings fold."""
+    if not isinstance(text, str) or not text:
+        return ""
+    m = _BAND_RX.search(text) or _BAND_WORD_RX.search(text)
+    if not m:
+        return ""
+    word = m.group(1).lower().replace("favourable", "favorable")
+    for band in ("unfavorable", "favorable", "even"):
+        if word.startswith(band):
+            return band
+    return ""
+
+
+class ForecastLedger:
+    """SF-CL-1: prediction beside commitment, as a `Transport` observer.
+
+    Every POST response the run receives passes through `observe`; the rows
+    it writes (`kind: forecast`) are the census's input
+    (`tools/forecast_census.py`). Families:
+      muster      a `muster_preview` (the muster the attack printed, or the
+                  what-if's) — predicted {lead, expected, ceiling, band,
+                  will_join, will_not}; committed {total, lead, committed,
+                  arrived, absent, own_losses, enemy_losses} when the same
+                  response carried the battle, else None (refused, objected,
+                  interrupted, or a question)
+      objection   a `pending_objection` on an attack, with the band its
+                  message names (if any)
+      interrupt   a `pending_interrupt` (contact_bad_odds and kin), with
+                  the band its message names
+      scout       a `scout` event's garrison figure for its province
+      garrison_assault  a `garrison_assault` event: the garrison met
+                  (`garrison_before` = remaining + losses), losses, remaining
+    `seq` orders rows inside a turn so an objection can be paired with the
+    muster that followed it."""
+
+    def __init__(self, digest):
+        self.d = digest
+        self.seq = 0
+
+    def _emit(self, **fields):
+        self.seq += 1
+        self.d.record("forecast", seq=self.seq, **fields)
+
+    @staticmethod
+    def _turn(response):
+        summary = response.get("action_summary")
+        if isinstance(summary, dict) and isinstance(summary.get("turn"), int):
+            return summary["turn"]
+        return None
+
+    def observe(self, path, payload, response):
+        if not isinstance(response, dict):
+            return
+        turn = self._turn(response)
+        text = ""
+        if isinstance(payload, dict):
+            text = str(payload.get("command") or payload.get("choice") or "")
+        pv = response.get("muster_preview")
+        if isinstance(pv, dict) and isinstance(pv.get("attacker"), dict):
+            self._muster(path, text, turn, pv, response)
+        obj = response.get("pending_objection")
+        if obj and not isinstance(obj, dict):
+            # The wire carries a bare flag with the detail on the sibling
+            # key (the answerer reads it the same way).
+            obj = _as_dict(response.get("objection"))
+        if isinstance(obj, dict) and obj:
+            order = obj.get("original_order") if isinstance(obj.get("original_order"), dict) else {}
+            self._emit(family="objection", path=path, turn=turn, text=text,
+                       marshal=obj.get("marshal"), action=order.get("action"),
+                       target=order.get("target"), band=_band_word(obj.get("message")),
+                       message=first_line(obj.get("message"), 240))
+        itr = response.get("pending_interrupt")
+        if itr and not isinstance(itr, dict):
+            itr = _as_dict(response.get("strategic_interrupt"))
+        if isinstance(itr, dict) and itr:
+            self._emit(family="interrupt", path=path, turn=turn, text=text,
+                       marshal=itr.get("marshal"), kind=itr.get("interrupt_type") or itr.get("type"),
+                       target=itr.get("enemy") or itr.get("target"),
+                       band=_band_word(itr.get("message")),
+                       message=first_line(itr.get("message"), 240))
+        for ev in response.get("events") or []:
+            if not isinstance(ev, dict):
+                continue
+            if ev.get("type") == "scout" and isinstance(ev.get("intel"), dict):
+                intel = ev["intel"]
+                self._emit(family="scout", path=path, turn=turn, text=text,
+                           marshal=ev.get("marshal"), region=ev.get("target"),
+                           garrison=(int(intel["garrison"]) if intel.get("garrison") is not None else None),
+                           works_bonus=intel.get("works_bonus"))
+            elif ev.get("type") == "garrison_assault":
+                losses = int(ev.get("garrison_losses", 0) or 0)
+                remaining = int(ev.get("garrison_remaining", 0) or 0)
+                self._emit(family="garrison_assault", path=path, turn=turn, text=text,
+                           marshal=ev.get("marshal"), region=ev.get("region"),
+                           garrison_before=losses + remaining, garrison_losses=losses,
+                           garrison_remaining=remaining,
+                           attacker_losses=int(ev.get("attacker_losses", 0) or 0))
+
+    def _muster(self, path, text, turn, pv, response):
+        atk, tgt = pv["attacker"], pv.get("target") or {}
+        rows = pv.get("rows") or []
+        predicted = {
+            "lead_name": atk.get("name"),
+            "lead": int(atk.get("strength", 0) or 0),
+            "expected": int(atk.get("committed_strength", atk.get("strength", 0)) or 0),
+            "ceiling": int(atk.get("ceiling_strength", 0) or 0) or None,
+            "band": pv.get("odds_band"),
+            "target": tgt.get("name"),
+            "location": tgt.get("location"),
+            "will_join": [r.get("marshal") for r in rows if r.get("will_join")],
+            "will_not": [r.get("marshal") for r in rows if not r.get("will_join")],
+            # VP-R1 (a): each WILL JOIN row's quoted arrival odds (percent;
+            # None where the row quotes none — a co-located corps rolls no die).
+            "arrival_odds": {r.get("marshal"): r.get("arrival_odds") for r in rows
+                             if r.get("will_join")},
+        }
+        committed = None
+        report = response.get("battle_report")
+        if isinstance(report, dict):
+            ms = response.get("massed_strength") if isinstance(response.get("massed_strength"), dict) else None
+            bd = response.get("battle_diorama") if isinstance(response.get("battle_diorama"), dict) else None
+            arrived, absent = [], []
+            if ms and isinstance(ms.get("arrived"), list):
+                arrived = [str(n) for n in ms["arrived"]]
+            if ms and isinstance(ms.get("contributors"), list):
+                for n in ms["contributors"]:
+                    if str(n) not in arrived:
+                        arrived.append(str(n))
+            if ms and isinstance(ms.get("absent"), list):
+                absent = [[str(a[0]), str(a[1])] for a in ms["absent"] if isinstance(a, list) and len(a) == 2]
+            if bd:
+                side = bd.get(bd.get("player_side") or "attacker") or {}
+                for c in side.get("contingents") or []:
+                    if c.get("lead"):
+                        continue
+                    if c.get("status") in ("engaged", "reinforced", "destroyed", "routed"):
+                        if c.get("name") not in arrived:
+                            arrived.append(c.get("name"))
+                    elif all(c.get("name") != a[0] for a in absent):
+                        absent.append([c.get("name"), c.get("status")])
+            cs = report.get("casualty_summary") if isinstance(report.get("casualty_summary"), dict) else {}
+            own = cs.get("attacker_casualties")
+            enemy = cs.get("defender_casualties")
+            committed = {
+                "total": (int(ms["total"]) if ms else None),
+                "lead": (int(ms["lead"]) if ms else None),
+                "committed": (int(ms["committed"]) if ms else None),
+                "arrived": arrived, "absent": absent,
+                "own_losses": (int(own) if isinstance(own, (int, float)) else None),
+                "enemy_losses": (int(enemy) if isinstance(enemy, (int, float)) else None),
+                "victor": (bd.get("victor") if bd else None),
+            }
+        self._emit(family="muster", path=path, turn=turn, text=text,
+                   predicted=predicted, committed=committed)
 
 
 class ActionPointMeter:
@@ -1314,6 +1487,8 @@ class Digest:
             self.counters.update({"ap_available": 0, "ap_spent": 0,
                                   "cmd_refused": 0})
             self.ap_meter = ActionPointMeter()
+        # SF-CL-1: the forecast ledger (prediction beside commitment).
+        self.forecast = ForecastLedger(self) if THE_DIGEST_KEEPS_THE_FORECAST else None
         header = (f"# Playtest digest — {meta['name']}\n\n"
                   f"seed `{meta['seed']}` · llm `{meta['llm']}` · "
                   f"transport {meta['transport']} · policy "
@@ -3513,6 +3688,10 @@ def run(args):
     meter = getattr(digest, "ap_meter", None)
     if meter is not None and isinstance(getattr(transport, "observers", None), list):
         transport.observers.append(meter.observe)
+    # SF-CL-1: every POST response feeds the forecast ledger too.
+    forecast = getattr(digest, "forecast", None)
+    if forecast is not None and isinstance(getattr(transport, "observers", None), list):
+        transport.observers.append(forecast.observe)
 
     # Boot ------------------------------------------------------------------
     if not args.http:

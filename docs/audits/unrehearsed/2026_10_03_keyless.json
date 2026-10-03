@@ -1,0 +1,3922 @@
+{
+ "blind": "unrehearsed-2026-10-03",
+ "llm": "mock",
+ "rows": [
+  {
+   "kind": "order",
+   "line": "Ney, attack Mack",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "Ney attacks Mack at Swabia from Rhineland, with the muster and objection seams as usual."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Ney (24,000; expect about 85,373 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers ",
+   "secs": 0.12
+  },
+  {
+   "kind": "order",
+   "line": "ney attack mack",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "Lower case changes nothing: Ney attacks Mack."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Ney (24,000; expect about 85,373 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers ",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Davout, march to Swabia",
+   "intended": {
+    "action": "move",
+    "marshal": "Davout",
+    "target": "Swabia",
+    "note": "A march into an enemy-held province with Mack standing on it should engage or warn, never silently walk in."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Davout respectfully raises concerns: 'That road to Swabia runs through enemy country, Sire. It is dangerous.'",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Soult move to Rhineland please",
+   "intended": {
+    "action": "move",
+    "marshal": "Soult",
+    "target": "Rhineland",
+    "note": "Soult marches from Lorraine to Rhineland; the politeness is noise."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Soult moves from Lorraine to Rhineland",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Murat, pursue Mack",
+   "intended": {
+    "action": "pursue",
+    "marshal": "Murat",
+    "target": "Mack",
+    "note": "A standing PURSUE on Mack; Murat closes from Franche-Comte."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Murat pursues Mack (at Swabia). Mack spotted at Swabia! Engaging!\n\n\n[Combat] Murat leads the charge! (Aggressive: +15% attack)\n[Combat] Adjacent allies bolster Murat's attack! (+2%)\nMurat's forces advance steadily. Brutal stalemate between Murat and Mack. Heavy casualties on both sides: Murat's army",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Lannes, scout Swabia",
+   "intended": {
+    "action": "scout",
+    "marshal": "Lannes",
+    "target": "Swabia",
+    "note": "Lannes scouts Swabia if it is in his scout range, else refused with the range named."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Lannes scouts Swabia: Controlled by Bavaria. Terrain: Plains. Enemy forces: Mack (Austria): ~52,000 troops",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney hold",
+   "intended": {
+    "action": "hold",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney takes a defensive stance at Rhineland."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney will hold Rhineland. Holding position. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Davout, fortify",
+   "intended": {
+    "action": "fortify",
+    "marshal": "Davout",
+    "target": null,
+    "note": "Davout digs in at Rhineland; Iron Resolve begins coiling."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Davout fortifies position at Rhineland. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Bernadotte, drill your men",
+   "intended": {
+    "action": "drill",
+    "marshal": "Bernadotte",
+    "target": null,
+    "note": "Bernadotte drills at Franconia; refused only if an enemy is in reach."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Bernadotte cannot drill with enemy forces nearby! Mack is at Swabia, just one region away.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Massena fall back to Piedmont",
+   "intended": {
+    "action": "retreat",
+    "marshal": "Massena",
+    "target": "Piedmont",
+    "note": "A free retreat from Milan toward Piedmont."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Massena begins march to Piedmont. Moves to Piedmont. Massena: \"Good. An army rots standing still.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Lannes, support Ney",
+   "intended": {
+    "action": "support",
+    "marshal": "Lannes",
+    "target": "Ney",
+    "note": "A standing SUPPORT order at 1 action; Lannes marches toward Ney's guns."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Lannes: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?'",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Ney, form square, Austrian cavalry is near",
+   "intended": {
+    "action": "form_square",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney forms square; the reason clause after the comma is not a target."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney firmly objects: 'Form square, Sire? There is no battle in it. Give me the enemy.' (Trust him and he will attack Mack at Swabia instead.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "recruit infantry at Paris for Davout",
+   "intended": {
+    "action": "recruit",
+    "marshal": "Davout",
+    "target": "Paris",
+    "note": "Infantry levied at Paris and credited to Davout, priced at the quoted rate; refused honestly if Davout is out of range of Paris."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Davout recruits 3,000 infantry at Rhineland (field levy — no depot; capped at 3,000) - Cost: 741 gold (×3 at war) (×1.45 over the ordinance) (Davout's intendance: -15%). Morale: 100% -> 93%\nInfantry pool: 80,000 -> 77,000",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "raise some artillery at Paris",
+   "intended": {
+    "action": "recruit",
+    "marshal": "none",
+    "target": "Paris",
+    "note": "No marshal named: the game picks the nearest gun-capable marshal or refuses naming that no artillery marshal is in reach and that one can be commissioned."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Berthier checks the order of battle. 'No marshal of artillery can reach Paris, Sire — none of ours stands within reach.' No commander of guns serves us — commission Marmont (4500g) and he raises a corps of guns. Nothing was spent.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "buy substitutes",
+   "intended": {
+    "action": "substitutes",
+    "marshal": "none",
+    "target": null,
+    "note": "The substitute market quote, applied to the first infantryman or asked for a marshal."
+   },
+   "class": "asked",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Name the marshal who is to receive them, Sire. (\"buy substitutes for Ney\")",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "build a supply depot at Rhineland",
+   "intended": {
+    "action": "build",
+    "marshal": "state",
+    "target": "Rhineland",
+    "note": "A depot is built at Rhineland for its price and an admin action."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Construction started: Supply Depot in Rhineland (2 turns, 300 gold)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "repair the fort at Lorraine",
+   "intended": {
+    "action": "repair",
+    "marshal": "state",
+    "target": "Lorraine",
+    "note": "Repair at Lorraine, or a refusal saying nothing there is damaged."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "No damaged fortification in Lorraine",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "garrison Paris",
+   "intended": {
+    "action": "garrison",
+    "marshal": "none",
+    "target": "Paris",
+    "note": "A detachment left at Paris by a marshal who stands there, else refused with the reason that nobody is at Paris."
+   },
+   "class": "asked",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Berthier clears his throat. 'Which marshal should garrison, Your Majesty?'",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "invest in Holland",
+   "intended": {
+    "action": "invest",
+    "marshal": "state",
+    "target": "Holland",
+    "note": "Invest in Holland if it is a French vassal; otherwise refuse and say it is not ours."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Holland's loyalty is already full (100/100) — the investment would buy nothing, so nothing is charged.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "grant Ney an estate",
+   "intended": {
+    "action": "reward",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Opens or executes the estate endowment for Ney; refused with the reason if no conquered province is endowable."
+   },
+   "class": "as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "We hold no eligible province, Sire. An estate must stand on conquered soil — non-capital, outside the homeland, and not already endowed.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "give Davout a rente",
+   "intended": {
+    "action": "reward",
+    "marshal": "Davout",
+    "target": null,
+    "note": "A pension for Davout sized to his expectation gap, stating its per-turn cost."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Marshal Davout's expectation is already met — no rente is needed, Sire.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "enact the Staff",
+   "intended": {
+    "action": "enact",
+    "marshal": "state",
+    "target": "the Staff",
+    "note": "The Staff law is enacted (after its confirm) for its price and an admin action."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "The Grand Quartier Général costs 9,000 gold; the treasury holds 800.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "repeal the Train des Equipages",
+   "intended": {
+    "action": "repeal",
+    "marshal": "state",
+    "target": "Train des Equipages",
+    "note": "Repealed if in force; otherwise refused saying it is not enacted."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "The Train des Équipages is not in force.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "commission Mortier",
+   "intended": {
+    "action": "commission",
+    "marshal": "state",
+    "target": "Mortier",
+    "note": "Mortier is commissioned from the bench for his gold price and an admin action."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Commissioning Mortier costs 4,000g — the treasury holds 800g.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "build ships at Brittany",
+   "intended": {
+    "action": "naval_build",
+    "marshal": "state",
+    "target": "Brittany",
+    "note": "Keels laid at a Brittany yard if one exists there, else refused naming the yards we have."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "A keel is laid at Bordelais (400g). The fleet stands at 46 sail — readiness 69 (down 1 — new crews come aboard green at 40; only sea-time makes a navy), and Britain's blockade rots her 5 a turn at anchor — that is the number to fix. 0 more keels possible this turn.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "set the fleet to guard home waters",
+   "intended": {
+    "action": "naval_posture",
+    "marshal": "state",
+    "target": "guard",
+    "note": "Fleet posture becomes guard."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "The fleet already lies at guard, Sire — no signal is needed and none has been sent.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "land Massena in Naples with 10,000 men",
+   "intended": {
+    "action": "naval_land",
+    "marshal": "Massena",
+    "target": "Naples",
+    "note": "An expedition quote for Massena to Naples with 10,000 men, then a confirm; refused if the crossing is shut or Massena is not at a port."
+   },
+   "class": "as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Naples has not opened her ports to our army, Sire — a court receives an expedition only as a friend (relation 25 or better), an ally, or a vassal. Court them first, or make it war.",
+   "secs": 0.07
+  },
+  {
+   "kind": "order",
+   "line": "launch a naval diversion",
+   "intended": {
+    "action": "naval_diversion",
+    "marshal": "state",
+    "target": null,
+    "note": "The Grand Diversion is attempted or refused with its gate terms named."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "The Grand Diversion is drawn up, Sire. The fleet sails to draw the enemy squadrons off station: 45 times in 100 at her readiness (70) the strait opens for 2 turns; otherwise she is caught coming home and fights at readiness 60. Whatever the outcome, she may try it again 4 turns from now. No army is ",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Talleyrand, propose peace to Austria",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Austria",
+    "note": "A peace proposal to Austria through Talleyrand, with the acceptance preview."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "declare war on Prussia",
+   "intended": {
+    "action": "declare_war",
+    "marshal": "state",
+    "target": "Prussia",
+    "note": "The declaration path with its warning and confirm; Prussia is at peace with us."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Choose your war purpose against Prussia.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "break the treaty with Prussia",
+   "intended": {
+    "action": "break_treaty",
+    "marshal": "state",
+    "target": "Prussia",
+    "note": "Breaks whatever treaty stands with Prussia; if none, refuse naming that there is no treaty."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "There is no treaty with Prussia to break, Your Excellency.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "make Bavaria a vassal",
+   "intended": {
+    "action": "vassal",
+    "marshal": "state",
+    "target": "Bavaria",
+    "note": "Refused: Bavaria is not beaten; the game names what subjugation requires."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Regarding Bavaria, Sire — I need a marshal and an action. For example: 'Ney, move to Bavaria'.\" Berthier taps the map pointedly.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "cede Savoy to the Kingdom of Italy",
+   "intended": {
+    "action": "cede",
+    "marshal": "state",
+    "target": "Savoy",
+    "note": "Grant Savoy to the Italian vassal if the grant rules allow, else refuse with the rule (homeland or not conquered)."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Cannot cede Savoy: Savoy is France's own homeland — only conquered land may be ceded.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "end turn",
+   "intended": {
+    "action": "end_turn",
+    "marshal": "state",
+    "target": null,
+    "note": "The turn ends."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -326g | Upkeep: -2420g (incl. 208g over-limit, 756g Grande Armée) | Other: +1295g | Net: +830g | Treasury: 1,630g",
+   "secs": 0.11
+  },
+  {
+   "kind": "order",
+   "line": "Ney, do NOT attack Mack, hold",
+   "intended": {
+    "action": "hold",
+    "marshal": "Ney",
+    "target": null,
+    "note": "The negated attack is dropped; the surviving order is HOLD."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney will hold Rhineland. Holding position. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "nobody attack",
+   "intended": {
+    "action": "refuse",
+    "marshal": "none",
+    "target": null,
+    "note": "No attack is issued by anyone; the game acknowledges and executes nothing."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "no one move",
+   "intended": {
+    "action": "refuse",
+    "marshal": "none",
+    "target": null,
+    "note": "No move is issued; at most a confirmation that the army stands."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, march to Swabia and attack Mack when you get there",
+   "intended": {
+    "action": "move",
+    "marshal": "Ney",
+    "target": "Swabia",
+    "note": "A march to Swabia whose arrival carries the attack on Mack; the tail is not swallowed."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'when you get there' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrives'.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "if Mack is still in Swabia, attack him",
+   "intended": {
+    "action": "attack",
+    "marshal": "none",
+    "target": "Mack",
+    "note": "No marshal named: the game asks which marshal, keeping the condition."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if Mack is still in Swabia' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrive",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, hold until Davout arrives",
+   "intended": {
+    "action": "hold",
+    "marshal": "Ney",
+    "target": null,
+    "note": "A HOLD with the arrival of Davout as its until condition."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney will hold Rhineland. Holding position. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.) (until Davout arrives) Berthier: \"Davout is already at Rhinelan",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, attack Mack if he moves",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "A conditional attack on Mack keyed to his movement; nothing fires now."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if he moves' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrives'.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "maybe we should fall back, Soult",
+   "intended": {
+    "action": "refuse",
+    "marshal": "Soult",
+    "target": null,
+    "note": "A hedge is not an order; the game asks or advises, and does not retreat Soult."
+   },
+   "class": "refused_as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Bernadote, move to Bavaria",
+   "intended": {
+    "action": "move",
+    "marshal": "Bernadotte",
+    "target": "Bavaria",
+    "note": "The one-letter slip resolves to Bernadotte, disclosed; he marches on Bavaria."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.55,
+   "message": "Bavaria is a nation, not a province. Name a province, Sire — theirs are Franconia, Munich, Swabia.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Archduke Jhon is at Tyrol, Massena attack him",
+   "intended": {
+    "action": "attack",
+    "marshal": "Massena",
+    "target": "Archduke John",
+    "note": "The leading clause names the enemy; Massena attacks Archduke John, the typo disclosed."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs more than the men: th",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Davout march to Swabbia",
+   "intended": {
+    "action": "move",
+    "marshal": "Davout",
+    "target": "Swabia",
+    "note": "Swabbia reads as Swabia, disclosed; Davout marches."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Davout respectfully raises concerns: 'That road to Swabia runs through enemy country, Sire. It is dangerous.'",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "would you kindly have Ney scout Swabia",
+   "intended": {
+    "action": "scout",
+    "marshal": "Ney",
+    "target": "Swabia",
+    "note": "Ney scouts Swabia."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Ney scouts Swabia: Controlled by Bavaria. Terrain: Plains. Enemy forces: Mack (Austria): ~52,000 troops",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "could Ney please fortify",
+   "intended": {
+    "action": "fortify",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney fortifies."
+   },
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, fall back - I don't like Swabia",
+   "intended": {
+    "action": "retreat",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney retreats; Swabia after the dash is a reason, never a destination."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "I could not make out a destination in that order, Sire - name a province (e.g. 'Ney, move to Rhineland').",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Davout, hold, Mack is attacking",
+   "intended": {
+    "action": "hold",
+    "marshal": "Davout",
+    "target": null,
+    "note": "Davout holds; Mack in the reason clause is not an attack target."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Davout will hold Rhineland. Holding position. Davout: \"Good. Let them come to us.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "hunt Mack down",
+   "intended": {
+    "action": "pursue",
+    "marshal": "none",
+    "target": "Mack",
+    "note": "A pursuit of Mack with no marshal named: ask which marshal; the word down is not a name or place."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "I do not find 'down' in the order of battle, Sire. Did you mean Davout?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Murat, hunt Mack down",
+   "intended": {
+    "action": "pursue",
+    "marshal": "Murat",
+    "target": "Mack",
+    "note": "Murat pursues Mack."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Cannot find 'Mack Down' to pursue.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "send more men to Swabia",
+   "intended": {
+    "action": "move",
+    "marshal": "none",
+    "target": "Swabia",
+    "note": "Ask which marshal to send; the word more must never resolve to Moore."
+   },
+   "class": "as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Swabia, but which marshal should act? Ney has the shortest road — try 'Ney, move to Swabia'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, pass through Burgundy to Savoy",
+   "intended": {
+    "action": "move",
+    "marshal": "Ney",
+    "target": "Savoy",
+    "note": "A march to Savoy by way of Burgundy; pass is a verb, not a province."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Ney firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Mack at Swabia instead.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "the moor is covered in cavalry, Ney form square",
+   "intended": {
+    "action": "form_square",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney forms square; the moor is terrain talk, not Moore."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney firmly objects: 'Form square, Sire? There is no battle in it. Give me the enemy.' (Trust him and he will attack Mack at Swabia instead.)",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Berthier, propose peace to Austria",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Austria",
+    "note": "Wrong desk: either route the proposal to Talleyrand with a word, or refuse naming that Berthier does not treat with courts."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Talleyrand, attack Mack",
+   "intended": {
+    "action": "refuse",
+    "marshal": "none",
+    "target": "Mack",
+    "note": "Refused: Talleyrand commands no corps; the game names a marshal who can."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 1.0,
+   "message": "Sire, I am a diplomat, not a general. Perhaps you meant to address one of your marshals?",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Zorglub, attack Mack",
+   "intended": {
+    "action": "refuse",
+    "marshal": "none",
+    "target": "Mack",
+    "note": "Refused: no marshal Zorglub; nothing is spent and no other marshal is substituted."
+   },
+   "class": "refused_as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "There is no Marshal 'Zorglub' in the order of battle, Sire. Whom did you intend?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Ney, march to Atlantis",
+   "intended": {
+    "action": "refuse",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Refused: no province Atlantis; no nearby province is substituted silently."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Region 'Atlantis' not found. Did you mean 'Albania'?",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney and Davout, attack Mack",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney, Davout",
+    "target": "Mack",
+    "note": "Both engage Mack together (one leads, the other joins); the second name is not dropped."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Ney (24,000; expect about 85,373 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers ",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Lannes support Ney, Murat support Lannes",
+   "intended": {
+    "action": "support",
+    "marshal": "Lannes, Murat",
+    "target": "Ney",
+    "note": "Two SUPPORT orders: Lannes on Ney, Murat on Lannes; neither is swallowed."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Lannes: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?'",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "the Bravest of the Brave, attack Mack",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "The epithet is Ney; he attacks Mack."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "There is no Marshal 'Bravest' in the order of battle, Sire. Whom did you intend?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Iron Marshal, dig in",
+   "intended": {
+    "action": "fortify",
+    "marshal": "Davout",
+    "target": null,
+    "note": "The epithet is Davout; he fortifies."
+   },
+   "class": "asked",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "There is no 'Iron Marshal' in the order of battle, Sire. Whom did you intend?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Soult, attack Mack?",
+   "intended": {
+    "action": "attack",
+    "marshal": "Soult",
+    "target": "Mack",
+    "note": "Ambiguous: a correct game either asks to confirm the attack or answers with the odds; it must not attack silently."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Soult (30,000; expect about 113,432 with the corps likely to arrive, up to 123,852 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — but he and Soult are at odds; expect about half his weight — like",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Ney retreat",
+   "intended": {
+    "action": "retreat",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney retreats to safety, free."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney firmly objects: 'Retreat? We can still fight!' (Trust him and he will attack Mack at Swabia instead.)",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "unfortify Davout",
+   "intended": {
+    "action": "unfortify",
+    "marshal": "Davout",
+    "target": null,
+    "note": "Davout breaks camp, or is told he is not fortified."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Davout is not currently fortified.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Davout, break camp and march to Swabia",
+   "intended": {
+    "action": "move",
+    "marshal": "Davout",
+    "target": "Swabia",
+    "note": "The march breaks camp itself; one move order to Swabia."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Davout: 'Enemy holds Swabia — destination blocked. How shall I proceed, Sire?'",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "let's have Murat charge Mack",
+   "intended": {
+    "action": "attack",
+    "marshal": "Murat",
+    "target": "Mack",
+    "note": "Murat attacks Mack (a cavalry charge), with the charge warning if odds are bad."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Murat needs one victory first: a single battle won as the attacker arms the charge (recklessness 0 of 1).",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "we're exposed at Rhineland, Davout fortify",
+   "intended": {
+    "action": "fortify",
+    "marshal": "Davout",
+    "target": null,
+    "note": "Davout fortifies; the leading clause is a reason."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Davout fortifies position at Rhineland. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "don't move anyone this turn, just end the turn",
+   "intended": {
+    "action": "end_turn",
+    "marshal": "state",
+    "target": null,
+    "note": "The negated move is dropped; the turn ends."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "end the turn",
+   "intended": {
+    "action": "end_turn",
+    "marshal": "state",
+    "target": null,
+    "note": "The turn ends."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret that order. Our marshals (Ney, Davout, Soult) await clear commands — 'Ney, attack Mack', perhaps? Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command refere",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "next turn",
+   "intended": {
+    "action": "end_turn",
+    "marshal": "state",
+    "target": null,
+    "note": "The turn ends, or the game asks if that is what was meant."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -321g | Upkeep: -2420g (incl. 208g over-limit, 756g Grande Armée) | Other: +1295g | Net: +835g | Treasury: 1,635g",
+   "secs": 0.1
+  },
+  {
+   "kind": "order",
+   "line": "Ney, attack Deroy",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney",
+    "target": "Deroy",
+    "note": "Ney attacks Deroy if in reach, else refused naming the range and where Deroy was last seen."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Ney cannot attack Bavaria — they are our ally, Sire, and we are not at war with them.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Massena, march to Venetia then on to Vienna",
+   "intended": {
+    "action": "move",
+    "marshal": "Massena",
+    "target": "Venetia",
+    "note": "A march to Venetia with the onward leg to Vienna carried, not dropped."
+   },
+   "class": "asked",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Region 'Venetia' not found. Did you mean 'Vienna'?\n\nBerthier: \"One order at a time, Sire — and the first did not go out, so \"on to Vienna\", written to follow it, is not relayed.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Soult, go to Swabia",
+   "intended": {
+    "action": "move",
+    "marshal": "Soult",
+    "target": "Swabia",
+    "note": "Soult marches on Swabia; Mack standing there is named."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Cannot move into Swabia - enemy forces present! Use ATTACK to engage Mack.\nTry: 'Soult, attack Mack'",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Napoleon, march to Rhineland",
+   "intended": {
+    "action": "move",
+    "marshal": "Napoleon",
+    "target": "Rhineland",
+    "note": "The Emperor and the Guard march to Rhineland at the sovereign's price."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Napoleon begins march to Rhineland. Moves to Rhineland. (1 AP — the Emperor commands in his own name.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Emperor to Rhineland",
+   "intended": {
+    "action": "move",
+    "marshal": "Napoleon",
+    "target": "Rhineland",
+    "note": "Same march, terse form."
+   },
+   "class": "as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Rhineland, but which marshal should act? Soult has the shortest road — try 'Soult, move to Rhineland'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Guard, hold at Lorraine",
+   "intended": {
+    "action": "hold",
+    "marshal": "Napoleon",
+    "target": null,
+    "note": "The Guard (Napoleon) holds at Lorraine."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall hold, Sire?\n\nBerthier: \"One order at a time, Sire — \"hold at Lorraine\" waits behind it. It waits behind the question Berthier has put to you. Answer, and it returns to the line; another order, or the turn's end, lets it go.\"",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "Ney, Davout, Soult: everyone converge on Swabia",
+   "intended": {
+    "action": "move",
+    "marshal": "Ney, Davout, Soult",
+    "target": "Swabia",
+    "note": "Three marches on Swabia; all three names heard."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Berthier asks carefully.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "all marshals hold",
+   "intended": {
+    "action": "hold",
+    "marshal": "none",
+    "target": null,
+    "note": "Every French marshal takes a defensive stance, or the game asks to confirm the collective order."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall hold, Sire?",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "everybody fortify",
+   "intended": {
+    "action": "fortify",
+    "marshal": "none",
+    "target": null,
+    "note": "A collective fortify across the roster, priced per marshal, or a confirm."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall carry out this order, Sire?",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "Murat, scout Bavaria",
+   "intended": {
+    "action": "scout",
+    "marshal": "Murat",
+    "target": "Bavaria",
+    "note": "Murat scouts Bavaria if in range."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Bavaria is a nation, not a province. Name a province, Sire — theirs are Franconia, Munich, Swabia.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "scout Tyrol",
+   "intended": {
+    "action": "scout",
+    "marshal": "none",
+    "target": "Tyrol",
+    "note": "The nearest marshal in range scouts Tyrol (Massena), or the game asks whom."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Massena scouts Tyrol: Controlled by Austria. Terrain: Mountains (+25% defense). Enemy forces: Archduke John (Austria): ~20,000 troops",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Bernadotte, keep an eye on Berlin",
+   "intended": {
+    "action": "scout",
+    "marshal": "Bernadotte",
+    "target": "Berlin",
+    "note": "A scout of Berlin if in range, else a refusal naming the range; Prussia is at peace so no war is started."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Sire, Marshal Bernadotte awaits your command, but I cannot parse this order. Might you mean 'Bernadotte, scout' or 'Bernadotte, defend'?\" Berthier asks carefully.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Bernadotte, do not provoke Prussia, stay in Franconia",
+   "intended": {
+    "action": "hold",
+    "marshal": "Bernadotte",
+    "target": null,
+    "note": "Bernadotte holds at Franconia; nothing diplomatic fires."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Bernadotte holds position at Franconia, awaiting further orders. (Current stance: neutral)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Lannes, pursue Archduke Charles",
+   "intended": {
+    "action": "pursue",
+    "marshal": "Lannes",
+    "target": "Archduke Charles",
+    "note": "A standing pursuit of Charles, fog-honest about where he was last seen."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "No intelligence on Archduke Charles's position, Sire. Scout for him before Lannes can give chase.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "pursue the Archduke",
+   "intended": {
+    "action": "pursue",
+    "marshal": "none",
+    "target": null,
+    "note": "Ambiguous twice: the game asks which Archduke (Charles or John) and which marshal."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall lead the attack, Sire?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Massena attack Archduke Charles at Tyrol",
+   "intended": {
+    "action": "attack",
+    "marshal": "Massena",
+    "target": "Archduke Charles",
+    "note": "Massena attacks Charles if Tyrol is in his reach, else refused with the reach named."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs more than the men: th",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, attack Mack, then march to Munich",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "The attack runs now; the march to Munich rides as the tail after the battle."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "MUSTER — Ney (24,000; expect about 85,373 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers ",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Davout, support Ney until the battle is won",
+   "intended": {
+    "action": "support",
+    "marshal": "Davout",
+    "target": "Ney",
+    "note": "A SUPPORT with a battle-won until clause."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Davout moves to support Ney (at Rhineland). Davout holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself once Ney is out of danger — name a duration to hold him to it. Davout: \"He will not stand alone while I am in range.\" (until the ba",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, hold your ground until I say otherwise",
+   "intended": {
+    "action": "hold",
+    "marshal": "Ney",
+    "target": null,
+    "note": "An open-ended HOLD."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney will hold Rhineland. Holding position. Ney: \"Standing guard while others win laurels. As you command.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.) Berthier: \"'until i say otherwise' is not a clause I can hold —",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Davout, wait for Soult, then attack Mack together",
+   "intended": {
+    "action": "hold",
+    "marshal": "Davout",
+    "target": null,
+    "note": "A HOLD until Soult arrives, carrying the attack on Mack as its tail."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Davout holds position at Rhineland, awaiting further orders. (Current stance: neutral)\n\nBerthier: \"One order at a time, Sire — I have relayed the first. \"attack Mack together\" waits behind it. It is on the line — send it when you are ready.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "recruit 5000 cavalry at Burgundy for Murat",
+   "intended": {
+    "action": "recruit",
+    "marshal": "Murat",
+    "target": "Burgundy",
+    "note": "Cavalry levied at Burgundy for Murat if in reach, 5,000 men, priced; otherwise refused with the ground named."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Berthier shakes his head. 'The treasury cannot support this, Sire. Need 1504 gold, have 800.'",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Murat, recruit cavalry",
+   "intended": {
+    "action": "recruit",
+    "marshal": "Murat",
+    "target": null,
+    "note": "Cavalry levied where Murat stands (Franche-Comte) if the levy is open there."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Berthier shakes his head. 'The treasury cannot support this, Sire. Need 1504 gold, have 800.'",
+   "secs": 0.07
+  },
+  {
+   "kind": "order",
+   "line": "levy infantry in Normandy",
+   "intended": {
+    "action": "recruit",
+    "marshal": "none",
+    "target": "Normandy",
+    "note": "Infantry at Normandy by the nearest marshal in reach, or a refusal naming who could."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Normandy, but which marshal should act? Soult has the shortest road — try 'Soult, move to Normandy'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "build a fort at Rhineland",
+   "intended": {
+    "action": "build",
+    "marshal": "state",
+    "target": "Rhineland",
+    "note": "A fort at Rhineland for its price."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Construction started: Fortification in Rhineland (3 turns, 400 gold)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "put up a watchtower at Franconia",
+   "intended": {
+    "action": "build",
+    "marshal": "state",
+    "target": "Franconia",
+    "note": "A watchtower at Franconia."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Franconia, but which marshal should act? Ney has the shortest road — try 'Ney, move to Franconia'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "build a market at Paris",
+   "intended": {
+    "action": "build",
+    "marshal": "state",
+    "target": "Paris",
+    "note": "A market at Paris."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Construction started: Market in Paris (2 turns, 350 gold)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "training ground at Lorraine please",
+   "intended": {
+    "action": "build",
+    "marshal": "state",
+    "target": "Lorraine",
+    "note": "A training ground at Lorraine; no verb needed."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Which marshal shall carry out this order, Sire?",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "stables in Burgundy",
+   "intended": {
+    "action": "build",
+    "marshal": "state",
+    "target": "Burgundy",
+    "note": "Stables at Burgundy."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Burgundy, but which marshal should act? Soult has the shortest road — try 'Soult, move to Burgundy'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "build a depot at Swabia",
+   "intended": {
+    "action": "refuse",
+    "marshal": "state",
+    "target": "Swabia",
+    "note": "Refused: Swabia is not ours."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Cannot build in Swabia — not controlled by France",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "repair Paris",
+   "intended": {
+    "action": "repair",
+    "marshal": "state",
+    "target": "Paris",
+    "note": "Repair at Paris, or a word that nothing is damaged."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "No war damage to repair in Paris",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "garrison Lorraine with 5000 men from Soult",
+   "intended": {
+    "action": "garrison",
+    "marshal": "Soult",
+    "target": "Lorraine",
+    "note": "Soult leaves a 5,000-man detachment at Lorraine."
+   },
+   "class": "as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Berthier shakes his head. 'We already maintain 3 garrisons, Your Majesty. Our supply lines cannot support another. Maximum 3 garrisons per nation.'",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "give Ney a pension",
+   "intended": {
+    "action": "reward",
+    "marshal": "Ney",
+    "target": null,
+    "note": "A rente for Ney, its per-turn cost stated."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Marshal Ney's expectation is already met — no rente is needed, Sire.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "reward Lannes",
+   "intended": {
+    "action": "reward",
+    "marshal": "Lannes",
+    "target": null,
+    "note": "Opens the reward choice for Lannes (estate or rente) with each option's terms."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Sire, Marshal Lannes awaits your command, but I cannot parse this order. Might you mean 'Lannes, scout' or 'Lannes, defend'?\" Berthier asks carefully.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "endow Davout with the Duchy of Swabia",
+   "intended": {
+    "action": "refuse",
+    "marshal": "Davout",
+    "target": "Swabia",
+    "note": "Refused: Swabia is not conquered; the game names what can be endowed."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "We do not hold Swabia — an estate must stand on our own soil.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "enact the Train des Equipages",
+   "intended": {
+    "action": "enact",
+    "marshal": "state",
+    "target": "Train des Equipages",
+    "note": "The Train law enacted after its confirm, priced."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "The Train des Équipages costs 3,500 gold; the treasury holds 800.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "repeal the Staff",
+   "intended": {
+    "action": "repeal",
+    "marshal": "state",
+    "target": "the Staff",
+    "note": "Repealed if in force, naming the fifth action it takes away; else refused."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "The Grand Quartier Général is not in force.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "pass the Staff law",
+   "intended": {
+    "action": "enact",
+    "marshal": "state",
+    "target": "the Staff",
+    "note": "Pass is a verb here: enact the Staff."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "There is no Marshal 'Staff' in the order of battle, Sire. Whom did you intend?",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "commission Suchet and Oudinot",
+   "intended": {
+    "action": "commission",
+    "marshal": "state",
+    "target": "Suchet, Oudinot",
+    "note": "Both commissioned if affordable, or the second refused by name; neither dropped silently."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Commissioning Suchet costs 5,500g — the treasury holds 800g.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "hire Zorglub",
+   "intended": {
+    "action": "refuse",
+    "marshal": "state",
+    "target": null,
+    "note": "Refused: no such man on the bench; the bench is named."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret that order. Our marshals (Ney, Davout, Soult) await clear commands — 'Ney, attack Mack', perhaps? Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command refere",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "lay down keels at Normandy",
+   "intended": {
+    "action": "naval_build",
+    "marshal": "state",
+    "target": "Normandy",
+    "note": "Keels at the Normandy yard, priced, or refused if no yard."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "A keel is laid at Bordelais (400g). The fleet stands at 46 sail — readiness 69 (down 1 — new crews come aboard green at 40; only sea-time makes a navy), and Britain's blockade rots her 5 a turn at anchor — that is the number to fix. 0 more keels possible this turn.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "build ships",
+   "intended": {
+    "action": "naval_build",
+    "marshal": "state",
+    "target": null,
+    "note": "Keels at our yard, or the game asks which port if several."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "A keel is laid at Bordelais (400g). The fleet stands at 46 sail — readiness 69 (down 1 — new crews come aboard green at 40; only sea-time makes a navy), and Britain's blockade rots her 5 a turn at anchor — that is the number to fix. 0 more keels possible this turn.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "fleet, blockade London",
+   "intended": {
+    "action": "naval_posture",
+    "marshal": "state",
+    "target": "blockade",
+    "note": "Posture becomes blockade, with the honest warning about the Royal Navy's strength."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "There is no Marshal 'fleet' in the order of battle, Sire. Whom did you intend?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Admiralty, sortie against the Royal Navy",
+   "intended": {
+    "action": "naval_posture",
+    "marshal": "state",
+    "target": "sortie",
+    "note": "Posture becomes sortie; the fleet action odds are quoted."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "There is no Marshal 'Admiralty' in the order of battle, Sire. Whom did you intend?",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "bring the fleet home",
+   "intended": {
+    "action": "naval_posture",
+    "marshal": "state",
+    "target": "guard",
+    "note": "Posture becomes guard home waters."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier peers at the dispatch with concern. \"I cannot make sense of this, Sire. A clear order might be: 'Ney, attack Mack' or 'Davout, march to Lorraine'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference. For any",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "land Lannes in Hanover with 15,000 men",
+   "intended": {
+    "action": "naval_land",
+    "marshal": "Lannes",
+    "target": "Hanover",
+    "note": "An expedition quote for Lannes to Hanover, refused or warned if the crossing is covered by the Royal Navy or Lannes is inland."
+   },
+   "class": "as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Hanover has not opened her ports to our army, Sire — a court receives an expedition only as a friend (relation 25 or better), an ally, or a vassal. Court them first, or make it war.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "ship Davout to London",
+   "intended": {
+    "action": "naval_land",
+    "marshal": "Davout",
+    "target": "London",
+    "note": "Refused or heavily warned: the Channel is shut by the Royal Navy and 26,000 is over the lift."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier adjusts his spectacles. \"Sire, I understand this concerns Marshal Davout, but I cannot determine the order. Perhaps: 'Davout, attack Mack' or 'Davout, move to Paris'?\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "stage a diversion in the Channel",
+   "intended": {
+    "action": "naval_diversion",
+    "marshal": "state",
+    "target": null,
+    "note": "The Grand Diversion attempted or its gates named."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "The Grand Diversion is drawn up, Sire. The fleet sails to draw the enemy squadrons off station: 45 times in 100 at her readiness (70) the strait opens for 2 turns; otherwise she is caught coming home and fights at readiness 60. Whatever the outcome, she may try it again 4 turns from now. No army is ",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Talleyrand, offer Austria a white peace",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Austria",
+    "note": "A status-quo peace proposal to Austria with its acceptance preview."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, regarding the Peace Treaty proposal to Austria, I have prepared terms appropriate to the current military situation.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "propose an alliance to Prussia",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Prussia",
+    "note": "An alliance proposal to Prussia, or a refusal naming the relation band required."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier peers at the dispatch with concern. \"I cannot make sense of this, Sire. A clear order might be: 'Ney, attack Mack' or 'Davout, march to Lorraine'. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference. For any",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "non-aggression pact with Prussia",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Prussia",
+    "note": "A non-aggression proposal to Prussia."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, regarding the Non-Aggression Pact proposal to Prussia, I have prepared terms that reflect the current diplomatic climate.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "open borders with Bavaria",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Bavaria",
+    "note": "Refused: we are at war with Bavaria; peace is named as the road."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "We already have Alliance with Bavaria. Talleyrand sees no purpose in proposing what we already possess.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "improve relations with Russia",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Russia",
+    "note": "Talleyrand's improve-relations mission on Russia, its DP cost stated."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, we do not court a belligerent — Russia is at war with us. The armistice and the settlement table are the war-time levers; intelligence and undermining are the missions a war allows.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "ask Austria for terms",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Austria",
+    "note": "A request for terms sent to Austria."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Sire, I must confess this order eludes me,\" Berthier admits. \"Shall I relay an order to Ney? Valid actions include: attack, move, scout, defend, fortify, recruit. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "guarantee Prussia",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Prussia",
+    "note": "A guarantee of Prussia for 1 DP, with the deterrent explained."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "France guarantees Prussia. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire — if it is tested and we do not march, all Europe will know what our word weighs.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "sponsor Prussia's design on Hanover",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Prussia",
+    "note": "Sponsorship of Prussia's Hanover design, priced."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "France sponsors Prussia's design against Hanover — 200 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "buy off Austria's design",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Austria",
+    "note": "A compensation bargain against Austria's active design, with the price."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Talleyrand: \"We are at WAR with Austria, Sire. Designs are bought off at the peace table, not across a battlefield.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "declare war on Britain",
+   "intended": {
+    "action": "refuse",
+    "marshal": "state",
+    "target": "Britain",
+    "note": "Refused: already at war with Britain."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "We are already at war with Britain, Sire.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Talleyrand, demand tribute from Bavaria",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": "Bavaria",
+    "note": "Refused or redirected: we are at war with Bavaria, so tribute is a peace term, not a demand."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, Bavaria views us favorably. Their court speaks well of France. The time may be ripe to deepen our ties.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "vassalize Austria",
+   "intended": {
+    "action": "refuse",
+    "marshal": "state",
+    "target": "Austria",
+    "note": "Refused: Austria is unbeaten; the subjugation conditions are named."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Austria still stands — Vienna is its own and 3 of its corps are in the field (its war score +0; it submits at -40). Take the capital, beat it in the field, or demand vassalage at the peace table.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "cede Posen to Warsaw",
+   "intended": {
+    "action": "refuse",
+    "marshal": "state",
+    "target": "Posen",
+    "note": "Refused: France holds neither Posen nor a vassal called Warsaw."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "No province is eligible to cede to Posen — it must be conquered land (not your homeland, not a capital, not a marshal's estate) adjoining their territory.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Talleyrand, assess the situation",
+   "intended": {
+    "action": "diplomacy",
+    "marshal": "state",
+    "target": null,
+    "note": "The war-room assessment with executable counsel; nothing is spent."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire — the state of Europe, plainly told.\n\n  THE CONGRESS OF PARIS — 35 of 45 titled · summon from the Cabinet (F1)\n\n  Against Britain + Austria + Russia: the war hangs in the balance (+0) — 0 battles across 0 turns.\n    Britain's design: The Low Countries — They will not suffer France's bloc in Fla",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Ney, don't attack, scout Swabia instead",
+   "intended": {
+    "action": "scout",
+    "marshal": "Ney",
+    "target": "Swabia",
+    "note": "The attack is dropped; Ney scouts Swabia."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Ney scouts Swabia: Controlled by Bavaria. Terrain: Plains. Enemy forces: Mack (Austria): ~52,000 troops",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Davout, do not fortify, march to Swabia",
+   "intended": {
+    "action": "move",
+    "marshal": "Davout",
+    "target": "Swabia",
+    "note": "The fortify is dropped; Davout marches."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Davout respectfully raises concerns: 'That road to Swabia runs through enemy country, Sire. It is dangerous.'",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "no one attack Mack, we're not ready",
+   "intended": {
+    "action": "refuse",
+    "marshal": "none",
+    "target": "Mack",
+    "note": "No attack is issued; a collective negation with a reason."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney attack Mack, Davout support him",
+   "intended": {
+    "action": "attack",
+    "marshal": "Ney, Davout",
+    "target": "Mack",
+    "note": "Ney attacks Mack with Davout under a SUPPORT on Ney; him is Ney, not Mack."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Cannot find marshal 'Him' to support.\nAvailable French marshals: Davout, Soult, Lannes, Murat, Bernadotte, Massena, Napoleon",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Murat, charge!",
+   "intended": {
+    "action": "attack",
+    "marshal": "Murat",
+    "target": null,
+    "note": "No target: the game asks whom to charge, naming foes in reach."
+   },
+   "class": "board_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Murat needs one victory first: a single battle won as the attacker arms the charge (recklessness 0 of 1).",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "attack",
+   "intended": {
+    "action": "attack",
+    "marshal": "none",
+    "target": null,
+    "note": "A bare attack: the game asks which marshal and which enemy."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall lead the attack, Sire?",
+   "secs": 0.07
+  },
+  {
+   "kind": "order",
+   "line": "move",
+   "intended": {
+    "action": "move",
+    "marshal": "none",
+    "target": null,
+    "note": "A bare move: the game asks whom and where."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall march to, Sire?",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "Ney, go",
+   "intended": {
+    "action": "move",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney addressed with no destination: the game asks where."
+   },
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?\" Berthier asks carefully.",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "fortify everything",
+   "intended": {
+    "action": "fortify",
+    "marshal": "none",
+    "target": null,
+    "note": "A collective fortify across the roster, or a confirm."
+   },
+   "class": "asked",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall carry out this order, Sire?",
+   "secs": 0.06
+  },
+  {
+   "kind": "order",
+   "line": "Ney, I would not attack Mack",
+   "intended": {
+    "action": "refuse",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "A negated modal: no attack; at most a question answered."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney, couldn't we attack Mack",
+   "intended": {
+    "action": "refuse",
+    "marshal": "Ney",
+    "target": "Mack",
+    "note": "A question, not an order: answer the odds and attack nothing."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Ney retreat as they attack",
+   "intended": {
+    "action": "retreat",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Ney retreats; the attack belongs to the enemy in the reason clause."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Ney bristles at the retreat order but obeys. Ney retreats from Rhineland to Lorraine.  Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns.",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "nobody retreat",
+   "intended": {
+    "action": "refuse",
+    "marshal": "none",
+    "target": null,
+    "note": "No retreat is issued by anyone."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier lowers the dispatch. \"Then no order goes out, Sire — I have relayed nothing. If a standing order is to be stood down, say 'cancel his order'; otherwise tell me what the marshal IS to do.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Davout please hold Rhineland at all costs",
+   "intended": {
+    "action": "hold",
+    "marshal": "Davout",
+    "target": null,
+    "note": "Davout holds at Rhineland; at all costs is flavour, not a condition."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Davout will hold Rhineland At All Costs. Davout: \"A sound instruction. Ground held is ground the enemy pays for.\" (2 AP — a standing strategic order to hold this ground turn after turn. For a single-turn tactical hold, order 'defend' at 1 AP.)",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Lannes, head for Swabia but stop if Mack turns on you",
+   "intended": {
+    "action": "move",
+    "marshal": "Lannes",
+    "target": "Swabia",
+    "note": "A march on Swabia with a stop condition on Mack engaging him; the condition is honoured or named as unmeetable."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if Mack turns on you' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrives'.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Soult, once Ney engages Mack, hit his flank",
+   "intended": {
+    "action": "attack",
+    "marshal": "Soult",
+    "target": "Mack",
+    "note": "A conditional attack on Mack keyed to Ney engaging him (a SUPPORT of Ney is an acceptable reading); nothing fires now."
+   },
+   "class": "honest_refusal",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'once Ney engages Mack' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrives'.\"",
+   "secs": 0.04
+  },
+  {
+   "kind": "order",
+   "line": "Massena stay put",
+   "intended": {
+    "action": "hold",
+    "marshal": "Massena",
+    "target": null,
+    "note": "Massena holds at Milan."
+   },
+   "class": "as_meant",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Massena grumbles about defensive orders but complies. Massena holds position at Milan, awaiting further orders. (Current stance: neutral)",
+   "secs": 0.05
+  },
+  {
+   "kind": "order",
+   "line": "Ney, swap places with Davout",
+   "intended": {
+    "action": "refuse",
+    "marshal": "Ney",
+    "target": null,
+    "note": "Refused or answered: both already stand at Rhineland, so there is nothing to swap; no march is issued."
+   },
+   "class": "refused_as_meant",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier frowns at the dispatch. \"I see Marshal Ney's name, Sire, but the instruction is unclear. Valid orders include: attack, move, scout, defend, fortify, recruit.\"",
+   "secs": 0.05
+  },
+  {
+   "kind": "question",
+   "line": "where is Mack?",
+   "intended": "Names Swabia, adjacent to Rhineland, and his sighting status.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Mack of Austria was reported at Swabia — large force."
+  },
+  {
+   "kind": "question",
+   "line": "where's Archduke Charles",
+   "intended": "Tyrol if he has been sighted; otherwise an honest last-known or unknown with the offer to scout.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "We have no word of Archduke Charles's whereabouts, Sire."
+  },
+  {
+   "kind": "question",
+   "line": "how strong is Mack",
+   "intended": "A strength figure or band at the fog level we have, never an exact number we have not earned.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Mack of Austria was reported at Swabia — large force."
+  },
+  {
+   "kind": "question",
+   "line": "how many men does Ney have",
+   "intended": "24,000 infantry at Rhineland.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Marshal Ney commands 24,000 men at Rhineland, morale 100."
+  },
+  {
+   "kind": "question",
+   "line": "how many men does Davout have?",
+   "intended": "26,000 infantry at Rhineland.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Marshal Davout commands 26,000 men at Rhineland, morale 100."
+  },
+  {
+   "kind": "question",
+   "line": "what are the odds if Ney attacks Mack",
+   "intended": "An odds band for Ney against Mack with the committed strength and any support named.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "if Ney attacks Mack, what are his chances",
+   "intended": "The same odds reading; no attack is executed.",
+   "class": "answered",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier sets down his pen. \"Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if Ney attacks Mack' comes to pass. Nothing has been relayed. Give me the order for THIS turn and I shall carry it at once; a standing order I can hold is 'hold until Davout arrives'.\""
+  },
+  {
+   "kind": "question",
+   "line": "how long for Massena to reach Vienna",
+   "intended": "A turn count along the lawful road, or a refusal naming the closed leg.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is Paris safe",
+   "intended": "Who holds it, the garrison, and the nearest enemy and his distance.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Paris is ours, Sire, held by a garrison of 25,000. No enemy corps stands within two marches of it, so far as our intelligence reaches — it looks safe today."
+  },
+  {
+   "kind": "question",
+   "line": "is Rhineland safe?",
+   "intended": "Not safe: Mack stands next door at Swabia, named with his strength band.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Rhineland is ours, Sire; Ney's 24,000 and Davout's 26,000 stand there. Threats we can see: Mack of Austria is at Swabia, one march away (large force). It is held, but threatened."
+  },
+  {
+   "kind": "question",
+   "line": "who are we at war with",
+   "intended": "Austria, Britain, Russia and Bavaria (the Third Coalition); Prussia is at peace.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "We are at war with the Third Coalition (Britain, Austria and Russia), Sire — war score +0 (evenly matched), declared this turn. Our purpose: the defense of the homeland — 28 of 28 provinces held. Their designs: Britain pursues The Low Countries; Austria pursues Redeem Italy; Russia pursues Arbiter o"
+  },
+  {
+   "kind": "question",
+   "line": "why are we at war with Austria",
+   "intended": "The war's stated purpose or cause and the coalition it belongs to.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the war banner on the left (click the war).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in"
+  },
+  {
+   "kind": "question",
+   "line": "what is our income",
+   "intended": "The per-turn net with its signed components (upkeep, blockade, laws).",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The treasury holds 800 gold, Sire. In: the provinces 2,590, vassal tribute 937, trade 350, the administration 50. Out: the army 1,512, the surcharge above the force limit 1,118, the blockade 175, the Admiralty 90. Net +1,032 a turn. The full account is in the Strategic Ledger's Economy tab (press T,"
+  },
+  {
+   "kind": "question",
+   "line": "how much gold do we have",
+   "intended": "The treasury figure.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The treasury holds 800 gold, Sire. In: the provinces 2,590, vassal tribute 937, trade 350, the administration 50. Out: the army 1,512, the surcharge above the force limit 1,118, the blockade 175, the Admiralty 90. Net +1,032 a turn. The full account is in the Strategic Ledger's Economy tab (press T,"
+  },
+  {
+   "kind": "question",
+   "line": "what's our net",
+   "intended": "The net gold per turn, matching the ledger.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does recruiting infantry cost",
+   "intended": "The quoted price per levy at the current rate, naming the war price if it applies.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "what does it cost to commission Mortier",
+   "intended": "Mortier's gold price and the admin action.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "what can I do",
+   "intended": "A list of orders the board takes this turn with the actions left.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "kind": "question",
+   "line": "what happened last turn",
+   "intended": "The morning dispatch's headline and events, or on turn 1 that nothing has happened yet.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The campaign has just opened, Sire — there is no last turn to report. The whole briefing is on this morning's dispatch (press R); the record in Le Moniteur (press N)."
+  },
+  {
+   "kind": "question",
+   "line": "who is winning the war",
+   "intended": "The war score per belligerent court from the war status.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the war banner on the left (click the war).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in"
+  },
+  {
+   "kind": "question",
+   "line": "how many actions do I have",
+   "intended": "Military and admin action counts remaining.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Talleyrand holds 5 diplomatic points of 5; what he leaves unspent carries one turn, to at most 7. Today 4 of 4 orders remain, and 2 of 2 administrative actions."
+  },
+  {
+   "kind": "question",
+   "line": "how many diplomatic points do we have",
+   "intended": "The DP pool, the refill and the carry.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Talleyrand holds 5 diplomatic points of 5; what he leaves unspent carries one turn, to at most 7. Today 4 of 4 orders remain, and 2 of 2 administrative actions."
+  },
+  {
+   "kind": "question",
+   "line": "what are the Congress of Paris terms",
+   "intended": "The summons condition (titled provinces against the bar) and what the sitting demands.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The Congress of Paris — ✓ 1 administrative action (you have 2); ✗ 45 titled provinces (35 of 45); ✓ Paris held; ✓ the Emperor free; ✓ no satellite on the brink of rebellion; ✓ Europe's alarm below 80 (now 70 — falling 2 a turn: our bloc's weight in Europe +1 against 3 of decay (one, plus one for eac"
+  },
+  {
+   "kind": "question",
+   "line": "which laws are in force",
+   "intended": "The enacted laws and their upkeep, or none at boot.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The laws of state, Sire. No law is in force. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 800. The Train des Équipages: 3,500 gold, then 200 gold a turn — the treasury holds 800. The Artillery Reserve: 3,000 gold, then 150 gold a turn — the treasury holds 800. Th"
+  },
+  {
+   "kind": "question",
+   "line": "what does the Staff cost",
+   "intended": "The Staff's price, its upkeep per turn and the admin action.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "The laws of state, Sire. No law is in force. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 800. Berthier's headquarters grown into a true general staff: one more order carried each day. The Train des Équipages: 3,500 gold, then 200 gold a turn — the treasury holds"
+  },
+  {
+   "kind": "question",
+   "line": "what is Ney's trust",
+   "intended": "Ney's trust value.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "what does Davout's ability do",
+   "intended": "Iron Resolve: fortify stacks consumed as an attack bonus.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how do Davout and Bernadotte get on",
+   "intended": "Their relationship, hostile, and that it hurts coordination.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is Prussia against us",
+   "intended": "Prussia is at peace; its relation, its intent reading and its Hanover design.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is our force limit",
+   "intended": "The force limit against the men fielded and the over-limit bill.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "where is Zorglub",
+   "intended": "A refusal: no such marshal; nothing is substituted.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how strong is Brunswick",
+   "intended": "A fog-honest figure or unknown for Prussia's army at Berlin.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Brunswick of Prussia was reported at Berlin — large force."
+  },
+  {
+   "kind": "question",
+   "line": "whats mack doing",
+   "intended": "His stance and last movement as far as we have seen.",
+   "class": "answered",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "Berthier studies the map. \"Sire, I note the reference to Mack, but which marshal should act? Try: 'Ney, attack Mack' or 'Ney, move to Mack'.\""
+  },
+  {
+   "kind": "question",
+   "line": "how many men does Mack have?",
+   "intended": "A fog-honest figure or band.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Mack of Austria was reported at Swabia — large force."
+  },
+  {
+   "kind": "question",
+   "line": "where is Archduke Jhon",
+   "intended": "The typo resolves to Archduke John, disclosed; Tyrol if sighted.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how far is Vienna from Rhineland",
+   "intended": "The province count or turns along the road.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "can Ney reach Swabia this turn",
+   "intended": "Yes, adjacent, and that Mack stands there.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Yes, Sire — Ney can reach Swabia from Rhineland this very turn — the march arrives on the order: Rhineland -> Swabia. Mack stands on the road at Swabia — the march will meet him there."
+  },
+  {
+   "kind": "question",
+   "line": "is Swabia next to Rhineland",
+   "intended": "Yes.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "who holds Hanover",
+   "intended": "Its holder as the map shows.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Hanover is held by its own crown, Sire."
+  },
+  {
+   "kind": "question",
+   "line": "what is Bavaria's army",
+   "intended": "Deroy and a fog-honest strength.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how many enemy marshals are near Rhineland",
+   "intended": "Mack at Swabia, plus any other sighted foe adjacent.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "is Deroy still at Munich",
+   "intended": "A fog-honest answer; if unseen, say so and offer a scout.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "where are the Russians",
+   "intended": "That Russia is at war and marching, and honestly that their position is unknown until scouted; shrug is acceptable on the position.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Sire — Russia: no word of Buxhowden; no word of Kutuzov."
+  },
+  {
+   "kind": "question",
+   "line": "how big is the Russian army",
+   "intended": "Unknown until scouted; shrug is acceptable.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "does Britain have troops on the continent",
+   "intended": "A fog-honest answer from what has been sighted.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what are my marshals doing",
+   "intended": "Each marshal with his location, stance and any standing order.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "which of my marshals is strongest",
+   "intended": "Soult with 30,000.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "who's closest to Mack",
+   "intended": "Ney and Davout at Rhineland.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is Murat's morale",
+   "intended": "Murat's morale figure.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is anyone fortified",
+   "intended": "The list of fortified marshals, or none.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is Ney drilling",
+   "intended": "Ney's current state.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what standing orders are active",
+   "intended": "The orders list with turns remaining, or none.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Orders tab (press T, then 6).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply"
+  },
+  {
+   "kind": "question",
+   "line": "when does Lannes arrive at Swabia",
+   "intended": "The ETA if he has such an order, else that he has none.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "where is Bernadote right now",
+   "intended": "Franconia, the typo disclosed.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what turn is it",
+   "intended": "The turn number and the calendar label.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what date is it",
+   "intended": "Late September 1805 at boot, then the calendar label.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how much does a supply depot cost",
+   "intended": "The depot price and its upkeep.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "A supply depot costs 300 gold and 2 turns, Sire."
+  },
+  {
+   "kind": "question",
+   "line": "what does a fort do",
+   "intended": "Its defence effect and cost.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "what does drilling do",
+   "intended": "Restores morale and gives a one-shot bonus; cannot drill in reach of the enemy.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does fortify do",
+   "intended": "The defence bonus and the attack penalty while fortified.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what happens if I fortify at Rhineland",
+   "intended": "The same, named for the marshal there, and the counter-punch.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does form square do",
+   "intended": "Protection against cavalry at a cost to mobility.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does support mean",
+   "intended": "A standing order to march to a friendly marshal's guns, one action.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how much AP does a march cost",
+   "intended": "Two actions for a strategic march, one for a literal marshal or the sovereign.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "how much does scouting cost",
+   "intended": "The scout's action cost.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "what will it cost to keep the army for a turn",
+   "intended": "The upkeep bill with its surcharges.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "why is our upkeep so high",
+   "intended": "The over-limit and Grande Armee surcharges named with their figures.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "why did we lose gold last turn",
+   "intended": "The ledger's signed components that moved.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "how much are we paying in rentes",
+   "intended": "The rentes line, or zero.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "what is the blockade costing us",
+   "intended": "The Blockade and Admiralty lines in gold.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in THE ADMIRALTY (press T, then 7).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "how many ships do we have",
+   "intended": "The fleet's sail count and readiness.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in THE ADMIRALTY (press T, then 7).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "where is the fleet",
+   "intended": "Its port and posture.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in THE ADMIRALTY (press T, then 7).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "how strong is the Royal Navy",
+   "intended": "Britain's sail count (about 100) against ours.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in THE ADMIRALTY (press T, then 7).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "can we cross to London",
+   "intended": "No: the Channel is shut by the Royal Navy, with the ratio.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what are the odds of landing in Ireland",
+   "intended": "The expedition odds and the levers that move them.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in THE ADMIRALTY (press T, then 7).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "how long to build a ship",
+   "intended": "The yard rate and whether the blockade slows it.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "what is the Continental System closure",
+   "intended": "The closure percentage.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is the Channel open",
+   "intended": "The crossing verdict for the Channel links.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "can Lannes land in Naples",
+   "intended": "The crossing verdict for that water and whether Lannes is at a port.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is the fleet's readiness",
+   "intended": "The readiness figure.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in THE ADMIRALTY (press T, then 7).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "would Austria accept peace",
+   "intended": "The acceptance forecast for a peace offer, with the main terms.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Cabinet (press F1).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nF"
+  },
+  {
+   "kind": "question",
+   "line": "what does Austria want",
+   "intended": "Austria's active design.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Austria pursues Redeem Italy, Sire. The priority theater of 1805 - Charles holds the main army in Italy; the losses of Campo Formio and Luneville must be undone. The provinces in question: Milan, Piedmont, Savoy. Every court's design is listed in the Diplomatic Ledger (press D)."
+  },
+  {
+   "kind": "question",
+   "line": "what terms would Britain accept",
+   "intended": "A forecast, or an honest statement that Britain will not sign now and why.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is Prussia's design",
+   "intended": "Hanover.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "Prussia pursues The Hanoverian Prize, Sire. Napoleon dangles the Electorate at Schoenbrunn; Berlin covets it openly. The buy-Prussia lever. The provinces in question: Hanover. Every court's design is listed in the Diplomatic Ledger (press D)."
+  },
+  {
+   "kind": "question",
+   "line": "is Prussia likely to join the coalition",
+   "intended": "Its intent reading and the alarm level.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "what is the coalition's threat level",
+   "intended": "The alarm figure and whether a league is brewing.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "how much would it cost to buy off Prussia's design",
+   "intended": "The buy-off price.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "can we ally with Prussia",
+   "intended": "Whether the relation band allows it and the DP cost.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "Sire, I must be frank — Full Alliance with Prussia faces serious obstacles. My assessment is only 13. The largest obstacle is our poor relations. Talleyrand reports the key obstacle was the weight of the bloc pressing against them. We would need 4 diplomatic steps to reach ALLIANCE. The proposal its"
+  },
+  {
+   "kind": "question",
+   "line": "what is our relation with Russia",
+   "intended": "The relation value.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "who leads the coalition",
+   "intended": "The coalition leader and the paymaster.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "what would peace with Austria cost us",
+   "intended": "The likely terms and whether they favour us.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "I must warn you — my information is incomplete. Proceed with caution. We are at war with Austria, Sire. War score stands at 0 from our perspective. Their military strength is overmatched relative to ours. Metternich is calculating — skill 9. Embattled, but allied with Russia, Britain."
+  },
+  {
+   "kind": "question",
+   "line": "is Bavaria a vassal of Austria",
+   "intended": "Bavaria's status (an ally at war beside Austria, not a vassal).",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Cabinet (press F1).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nF"
+  },
+  {
+   "kind": "question",
+   "line": "who are our vassals",
+   "intended": "The French vassal list.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Cabinet (press F1).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nF"
+  },
+  {
+   "kind": "question",
+   "line": "how loyal is Holland",
+   "intended": "Holland's loyalty if it is our vassal, else that it is not.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "what tribute do we get from vassals",
+   "intended": "The tribute line in gold.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Cabinet (press F1).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nF"
+  },
+  {
+   "kind": "question",
+   "line": "what is Talleyrand doing",
+   "intended": "His mission status or that he is idle.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.95,
+   "message": "An astute question, Sire. Let me assess our position.\n\n  Austria — At war, relations -80. Military: overmatched.\n  Britain — At war, relations -90. Military: unknown.\n  Russia — At war, relations -80. Military: unknown.\n  Sardinia — At peace, relations -70. Military: unknown.\n  Sweden — At peace, re"
+  },
+  {
+   "kind": "question",
+   "line": "how many turns until the truce expires",
+   "intended": "That no truce stands, or the clock if one does.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "No armistice stands, Sire — every war is a war and every peace a peace."
+  },
+  {
+   "kind": "question",
+   "line": "what's the war score against Austria",
+   "intended": "The war score with its components.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the war banner on the left (click the war).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in"
+  },
+  {
+   "kind": "question",
+   "line": "what is Britain's war weariness",
+   "intended": "A fogged figure or band, or unknown.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "what is Prussia's agenda toward Hanover",
+   "intended": "The Hanover design and its progress.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "what does guaranteeing Prussia do",
+   "intended": "The deterrent and the obligation.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does sponsoring a design do",
+   "intended": "Funding a court's design in exchange for standing.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Diplomatic Ledger (press D).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland "
+  },
+  {
+   "kind": "question",
+   "line": "what is Ney's ability",
+   "intended": "Its name and effect.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does the Rally do",
+   "intended": "Command skill speeds recovery from retreat.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is Murat's shock skill",
+   "intended": "The figure.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "who is the best general for an assault",
+   "intended": "The highest shock on the roster.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "which marshal has the most glory",
+   "intended": "The glory ladder's top.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "is anyone jealous",
+   "intended": "Any standing grievances, or none.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "does Ney dislike Massena",
+   "intended": "Their relationship value.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does Soult think of Ney",
+   "intended": "Their relationship value.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is the Emperor's authority",
+   "intended": "The authority figure.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how is my grip",
+   "intended": "The imperial grip reading.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does the Presence do",
+   "intended": "The Emperor's aura on nearby corps.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "can Napoleon be captured",
+   "intended": "Yes, by encirclement, and what the Guard does about it.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is Mack fortified",
+   "intended": "A fog-honest answer.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what terrain is Swabia",
+   "intended": "Its terrain type.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what is Tyrol like",
+   "intended": "Mountains, with the combat effect.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how many provinces do we hold",
+   "intended": "The count.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how many provinces does Austria hold",
+   "intended": "The count.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what did Mack do last turn",
+   "intended": "His enemy-phase action if seen, or nothing yet.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in Le Moniteur (press N).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFo"
+  },
+  {
+   "kind": "question",
+   "line": "did anyone attack us last turn",
+   "intended": "The enemy-phase battles, or none.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in Le Moniteur (press N).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFo"
+  },
+  {
+   "kind": "question",
+   "line": "what's new",
+   "intended": "The dispatch headline.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The campaign has just opened, Sire — there is no last turn to report. The whole briefing is on this morning's dispatch (press R); the record in Le Moniteur (press N)."
+  },
+  {
+   "kind": "question",
+   "line": "any news from the courts",
+   "intended": "The diplomatic events and letters of the turn.",
+   "class": "shrug",
+   "success": false,
+   "parse_mode": "mock",
+   "parse_confidence": null,
+   "message": "\"Sire, I must confess this order eludes me,\" Berthier admits. \"Shall I relay an order to Ney? Valid actions include: attack, move, scout, defend, fortify, recruit. Type 'what can I do' for the orders this board will take, 'status' for the state of the board, or 'help' for the full command reference."
+  },
+  {
+   "kind": "question",
+   "line": "has Russia moved",
+   "intended": "A fog-honest answer.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does Mack's garrison at Swabia look like",
+   "intended": "The garrison and works at Swabia as far as scouted.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how many men guard Vienna",
+   "intended": "The garrison if known, else unknown; shrug is acceptable.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what's the garrison at Paris",
+   "intended": "The capital garrison figure.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what's the stability of Rhineland",
+   "intended": "Its stability.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how much does Rhineland earn",
+   "intended": "Its income value.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what buildings are at Paris",
+   "intended": "The structures there, or none.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "can I build at Swabia",
+   "intended": "No: not ours.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Economy tab (press T, then 3).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build suppl"
+  },
+  {
+   "kind": "question",
+   "line": "what does an estate do for Ney",
+   "intended": "Its income redirect and how it meets his expectation.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "is anyone expecting a reward",
+   "intended": "Each marshal's expectation state, or none yet.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "why is Lannes unhappy",
+   "intended": "His grievance or expectation if any, else that he is content.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the campaign log (press L).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300"
+  },
+  {
+   "kind": "question",
+   "line": "how much is Mortier",
+   "intended": "His commission price.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "who can I commission",
+   "intended": "The bench with prices.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Generals screen (press G).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — "
+  },
+  {
+   "kind": "question",
+   "line": "can Massena hold Milan",
+   "intended": "An assessment against the Archdukes at Tyrol.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what if Mack attacks Davout",
+   "intended": "The defensive odds for Davout.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what would happen if I march Ney into Swabia",
+   "intended": "That it engages Mack, with the odds.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Orders tab (press T, then 6).\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply"
+  },
+  {
+   "kind": "question",
+   "line": "who should I attack first",
+   "intended": "Berthier's counsel naming a target and the odds.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "whats the best move",
+   "intended": "Counsel, not an order.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Which marshal shall march to, Sire?"
+  },
+  {
+   "kind": "question",
+   "line": "are we ready to fight",
+   "intended": "A readiness summary of the army.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what's the French army's total strength",
+   "intended": "The roster's sum, about 189,000.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how many men do we have in total",
+   "intended": "The same sum.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "is Atlantis ours",
+   "intended": "A refusal: no such province.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "where is Wellington",
+   "intended": "That no such marshal is on the board, or an honest unknown.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "what does the Train des Equipages do",
+   "intended": "The law's effect and cost.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "The laws of state, Sire. No law is in force. The Train des Équipages: 3,500 gold, then 200 gold a turn — the treasury holds 800. A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quarti"
+  },
+  {
+   "kind": "question",
+   "line": "which laws can I enact",
+   "intended": "The deck with prices and gates.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The laws of state, Sire. No law is in force. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 800. The Train des Équipages: 3,500 gold, then 200 gold a turn — the treasury holds 800. The Artillery Reserve: 3,000 gold, then 150 gold a turn — the treasury holds 800. Th"
+  },
+  {
+   "kind": "question",
+   "line": "is Bernadotte reliable",
+   "intended": "His trust and his hostile relationship with Davout.",
+   "class": "shrug",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.8,
+   "message": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\n\nFor any matter of state, press F1 for the Cab"
+  },
+  {
+   "kind": "question",
+   "line": "how long until the Congress can be summoned",
+   "intended": "The titled count against the bar and the roads to title more.",
+   "class": "answered",
+   "success": true,
+   "parse_mode": "mock",
+   "parse_confidence": 0.9,
+   "message": "The Congress of Paris — ✓ 1 administrative action (you have 2); ✗ 45 titled provinces (35 of 45); ✓ Paris held; ✓ the Emperor free; ✓ no satellite on the brink of rebellion; ✓ Europe's alarm below 80 (now 70 — falling 2 a turn: our bloc's weight in Europe +1 against 3 of decay (one, plus one for eac"
+  }
+ ],
+ "totals": {
+  "order": {
+   "as_meant": 53,
+   "asked": 28,
+   "board_refusal": 25,
+   "honest_refusal": 18,
+   "refused_as_meant": 17,
+   "shrug": 9
+  },
+  "question": {
+   "answered": 36,
+   "shrug": 114
+  }
+ },
+ "live_parses": 0,
+ "dangerous": []
+}

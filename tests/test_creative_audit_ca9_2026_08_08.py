@@ -788,28 +788,38 @@ class TestF1SymmetricCommittedDefender:
         preview = combat._build_muster_preview(ney, mack, world, gs)
         atk_committed = (preview["attacker"]["committed_strength"]
                          - preview["attacker"]["strength"])
-        _, def_committed = combat._defender_muster(mack, world)
-        assert def_committed > 0, "board precondition broken"
+        ney_joiners = [world.marshals[r["marshal"]] for r in preview["rows"]
+                       if r.get("will_join") and r["marshal"] in world.marshals]
+        def_joiners, _ = combat._defender_muster(mack, world)
 
         # SR-4a (Sept 26, 2026) — CONSCIOUS RE-SEAT: the preview's band now
         # folds both leads' standing modifiers (AAR-32), so the shared
         # formula it must equal is the FOLDED one; the pin's point — both
         # committed terms, the defender's half never dropped — is unchanged.
-        assert preview["odds_band"] == inferred_attack_odds_band(
-            ney, mack, gs, committed_attacker=atk_committed,
-            committed_defender=def_committed, fold_modifiers=True)
-        # …and it is NOT the band the attacker-only formula would give, or
-        # this test could not tell the two apart.
-        assert preview["odds_band"] != inferred_attack_odds_band(
-            ney, mack, gs, committed_attacker=atk_committed,
-            fold_modifiers=True), (
-            "the preview still reports the attacker-only band")
-        # The omission was never neutral — it always flattered the attacker.
-        with_def = inferred_attack_effective_ratio(
-            ney, mack, gs, committed_attacker=atk_committed,
-            committed_defender=def_committed)
-        without = inferred_attack_effective_ratio(
-            ney, mack, gs, committed_attacker=atk_committed)
+        # SF-CL-1 (Oct 3, 2026) — CONSCIOUS RE-SEAT: the preview reads the
+        # formula under the coordination context the resolver will stamp
+        # (`_priced_coordination`), so the shared formula is read under the
+        # same context here — John beside Mack coordinates Mack's defence,
+        # exactly as he will on the field.
+        with combat._priced_coordination(ney, ney_joiners, mack, def_joiners,
+                                         world, mack.location):
+            _, def_committed = combat._defender_muster(mack, world)
+            assert def_committed > 0, "board precondition broken"
+            assert preview["odds_band"] == inferred_attack_odds_band(
+                ney, mack, gs, committed_attacker=atk_committed,
+                committed_defender=def_committed, fold_modifiers=True)
+            # …and it is NOT the band the attacker-only formula would give, or
+            # this test could not tell the two apart.
+            assert preview["odds_band"] != inferred_attack_odds_band(
+                ney, mack, gs, committed_attacker=atk_committed,
+                fold_modifiers=True), (
+                "the preview still reports the attacker-only band")
+            # The omission was never neutral — it always flattered the attacker.
+            with_def = inferred_attack_effective_ratio(
+                ney, mack, gs, committed_attacker=atk_committed,
+                committed_defender=def_committed)
+            without = inferred_attack_effective_ratio(
+                ney, mack, gs, committed_attacker=atk_committed)
         assert without > with_def
 
     def test_the_printed_target_strength_stays_fog_banded(

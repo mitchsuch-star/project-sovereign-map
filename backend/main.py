@@ -914,6 +914,13 @@ _COMMAND_RESULT_SIMPLE_FIELDS = (
     # picture (the BD §14.1 lesson).
     "naval_diorama",
     "reinforcement_messages",
+    # SF-CL-1 "The forecast keeps its word" (October 3, 2026): the structured
+    # muster block (W6-4 built it for the result; it never reached the wire —
+    # the client renders the muster from `message`) and the resolver's massed
+    # strength ride the response as display-only keys, so the playtest
+    # driver's forecast ledger can set prediction beside commitment.
+    "muster_preview",
+    "massed_strength",
     "coordination_tutorial",
     "opening_attack_guidance",
     "mild_concerns",
@@ -4540,6 +4547,8 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
         _fill_popup_keys_without_draining(response)
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
+        # SF-CL-1: the muster and the massed strength ride this road too.
+        _copy_truthy_result_fields(response, result, ("muster_preview", "massed_strength"))
 
         # CA8-25 sibling (Aug 2026 health-check audit): the insist path
         # re-enters _execute_attack, which can produce a diorama and a
@@ -5030,6 +5039,8 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         _fill_popup_keys_without_draining(response)
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
+        # SF-CL-1: the muster and the massed strength ride this road too.
+        _copy_truthy_result_fields(response, result, ("muster_preview", "massed_strength"))
         # Verify-fleet correction (Aug 2026): BOTH charge arms can conquer —
         # the hand-enumerated build dropped pending_capture_choice /
         # capture_data (and the restrain arm's reinforcement messages), so a

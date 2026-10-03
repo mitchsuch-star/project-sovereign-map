@@ -262,11 +262,20 @@ class TestBandInvariance:
         with an `or` — a disjunction here would pass against almost any
         number, which is the inert-pin shape this project keeps finding."""
         world, ex, ney, murat, mack = field
-        expected_extra = ex._combat._committed_reinforcement_strength(
-            ney, [ney, murat], world)
+        # RE-SEATED by SF-CL-1 "The forecast keeps its word" (October 3,
+        # 2026): the preview now prices the committed figure under the
+        # coordination context the resolver will stamp
+        # (`_priced_coordination`), so the production formula is read
+        # under the same context here — the equality stays exact, and a
+        # second arm pins that the context is what moved it.
+        with ex._combat._priced_coordination(ney, [murat], mack, [], world, mack.location):
+            expected_extra = ex._combat._committed_reinforcement_strength(
+                ney, [ney, murat], world)
         assert expected_extra > 0, "precondition: a clean ally contributes"
         _band, committed = self._band_and_committed(world, ex, ney, mack)
         assert committed == int(ney.strength + expected_extra)
+        bare_extra = ex._combat._committed_reinforcement_strength(ney, [ney, murat], world)
+        assert expected_extra >= bare_extra
 
 
 # ════════════════════════════════════════════════════════════════════════
