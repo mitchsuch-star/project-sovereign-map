@@ -426,3 +426,174 @@ def notes_sentence(notes: List[str], unread: List[str]) -> str:
     if not parts:
         return ""
     return " Berthier: \"" + " ".join(parts) + "\""
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SF-CMD-1 W2 (Oct 3, 2026) — THE CONTINGENCY PHRASINGS, said in CR-7's own
+# vocabulary where the engine can hold them, refused where it cannot.
+#
+# Measured on the blind census: "march to Swabia and attack Mack when you get
+# there", "if Mack is still in Swabia, attack him", "once Ney engages Mack,
+# hit his flank" and "head for Swabia but stop if Mack turns on you" were all
+# refused as "a contingency, not an order", while each is an order the
+# engine already takes in other words:
+#   • "when you get there" IS the arrival tail (CR-7-1 fuses "march to X and
+#     attack Y" — the idiom is an adverb of the tail, not a condition);
+#   • "if Mack is still in Swabia" is a PREMISE about the present board,
+#     checked once at issuance (fog-honestly) — true, the order runs now;
+#     false or unseen, it is refused free by name;
+#   • "once Ney engages Mack, hit his flank" is the SUPPORT road — Soult
+#     marches to Ney and joins his battle;
+#   • "but stop if Mack turns on you" is the march's own rule — the contact
+#     interrupt halts the column and asks when an enemy stands in the road.
+# "attack Mack if he moves" stays a refusal: nothing watches an enemy's
+# movement, and §2e holds no order for a later turn. The refusal names the
+# road that does follow him (pursue).
+# Each reader is PURE and lever-gated; the levers restore the refusal.
+# ═══════════════════════════════════════════════════════════════════════════
+THE_ARRIVAL_IDIOM_IS_THE_TAIL = True
+A_PREMISE_IS_CHECKED_AT_ISSUANCE = True
+AN_ENGAGEMENT_CLAUSE_IS_SUPPORT = True
+A_HALT_TAIL_IS_THE_ROADS_OWN_RULE = True
+
+_ON_ARRIVAL_IDIOM_RE = re.compile(
+    r"\s*,?\s*(?:(?:when|once|as\s+soon\s+as|the\s+moment|after|if)\s+"
+    r"(?:you|he|she|they|it)\s+(?:get|gets|got|arrive|arrives|arrived|reach|reaches|reached"
+    r"|is|are)(?:\s+(?:there|it|him|the\s+place|the\s+field|at\s+the\s+walls))?"
+    r"|(?:up)?on\s+(?:your\s+|his\s+)?arrival(?:\s+there)?)\s*[.!]*\s*$",
+    re.IGNORECASE)
+_PREMISE_RE = re.compile(
+    r"^\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*)\s*[,:]\s*)?"
+    r"(?:if|provided|provided\s+that|so\s+long\s+as|as\s+long\s+as)\s+"
+    r"(?P<foe>(?:the\s+)?[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+"
+    r"(?:is|are|'s|stands|sits|remains)\s+(?:still\s+)?(?:in|at|standing\s+in|sitting\s+in|holding|near)\s+"
+    r"(?P<place>[A-Za-z][\w'’ -]{2,40}?)\s*,\s*(?P<rest>.+)$", re.IGNORECASE)
+_HALT_TAIL_RE = re.compile(
+    r"\s*,?\s*(?:but|and)\s+(?:stop|halt|hold|wait|pause|pull\s+up|turn\s+back|fall\s+back|withdraw)"
+    r"\s+(?:if|when|should|once|the\s+moment)\s+.+$", re.IGNORECASE)
+
+
+def strip_arrival_idiom(text: str) -> Tuple[str, bool]:
+    """"… and attack Mack when you get there" -> "… and attack Mack", True."""
+    if not THE_ARRIVAL_IDIOM_IS_THE_TAIL or not text:
+        return text, False
+    m = _ON_ARRIVAL_IDIOM_RE.search(text)
+    if not m or m.start() == 0:
+        return text, False
+    return text[:m.start()].rstrip(), True
+
+
+def split_premise(text: str, enemy_names, region_names) -> Tuple[str, Optional[Dict]]:
+    """"if Mack is still in Swabia, attack him" -> ("attack Mack", {"marshal":
+    "Mack", "region": "Swabia"}); a sentence of any other shape is returned
+    unchanged with None. A bare object pronoun in the rest is the premise's
+    own man. Names are matched against the rosters handed in (pure)."""
+    if not A_PREMISE_IS_CHECKED_AT_ISSUANCE or not text:
+        return text, None
+    m = _PREMISE_RE.match(text)
+    if not m:
+        return text, None
+    foe_text = re.sub(r"^the\s+", "", m.group("foe").strip(), flags=re.I).lower()
+    place_text = m.group("place").strip().lower()
+    foe = next((n for n in enemy_names
+                if foe_text in {p.lower() for p in _patterns(n)} | {str(n).lower()}), None)
+    place = next((r for r in region_names if str(r).lower() == place_text), None)
+    if not foe or not place:
+        return text, None
+    rest = m.group("rest").strip()
+    rest = re.sub(r"\b(?:him|them|it)\b", foe, rest, count=1, flags=re.I)
+    addr = (m.group("addr") or "").strip()
+    rebuilt = f"{addr}, {rest}" if addr else rest
+    return rebuilt, {"marshal": foe, "region": place, "clause": text[m.start('foe') - 3:m.end('place')].strip() if m.start('foe') >= 3 else text[:m.end('place')]}
+
+
+def _patterns(name):
+    from backend.ai.llm_client import name_match_patterns
+    return list(name_match_patterns(str(name)))
+
+
+def premise_refusal(world, premise: Optional[Dict]) -> Optional[str]:
+    """The sentence that refuses an order whose premise does not hold on the
+    board the player can SEE — or None when it holds. Fog-honest: an unseen
+    man is "no word", never a guess."""
+    if not premise or world is None:
+        return None
+    from backend.display_names import humanize_entity_name
+    from backend.models.intel import PARTIAL
+    name = str(premise.get("marshal") or "")
+    place = str(premise.get("region") or "")
+    shown = humanize_entity_name(name)
+    enemy = world.get_marshal(name)
+    if enemy is None or int(getattr(enemy, "strength", 0) or 0) <= 0:
+        return (f"The order rested on {shown} standing at {place}, Sire, and he leads "
+                f"no army our maps know — nothing has been relayed.")
+    if getattr(enemy, "captured_by", ""):
+        return (f"The order rested on {shown} standing at {place}, Sire, and he is a "
+                f"prisoner — nothing has been relayed.")
+    try:
+        seen = world.get_region_intel(enemy.location).visibility_at_least(PARTIAL)
+    except Exception:
+        seen = False
+    if not seen:
+        return (f"The order rested on {shown} standing at {place}, Sire, and we have no "
+                f"word of him — scout before you condition an order on his position. "
+                f"Nothing has been relayed.")
+    if enemy.location != place:
+        return (f"The order rested on {shown} standing at {place}, Sire, and our last "
+                f"word places him at {enemy.location} — so it does not go out. Nothing "
+                f"has been relayed.")
+    return None
+
+
+def rewrite_engagement_support(text: str, friendly_names) -> Tuple[str, Optional[str]]:
+    """"Soult, once Ney engages Mack, hit his flank" -> ("Soult, support Ney",
+    "Ney"). The friend must be one of OURS, the clause a single engagement
+    verb, the residue a flank/rear/join phrase; anything else is unchanged."""
+    if not AN_ENGAGEMENT_CLAUSE_IS_SUPPORT or not text:
+        return text, None
+    friends = sorted({str(n) for n in friendly_names if n}, key=len, reverse=True)
+    if not friends:
+        return text, None
+    names = "|".join(re.escape(n) for n in friends)
+    m = re.match(
+        r"^\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*)\s*[,:]\s*)?"
+        r"(?:once|when|as\s+soon\s+as|after|if)\s+(?:" + HONORIFIC + r")?(?P<friend>" + names + r")\s+"
+        r"(?:engages?|attacks?|fights?|strikes?|closes?\s+with|is\s+engaged\s+with|hits?|goes?\s+in"
+        r"|has\s+engaged|makes?\s+contact\s+with)\b[^,]*,\s*"
+        r"(?:(?:hit|strike|attack|fall\s+on|take|turn\s+on|go\s+for|roll\s+up)\s+(?:his|their|the|its)\s+(?:flank|rear|flanks|left|right)"
+        r"|(?:join|support|back|second)\s+(?:him|them|the\s+attack|in|the\s+fight|the\s+battle)"
+        r"|(?:come|go)\s+in\s+(?:behind|beside)\s+him|pile\s+in)\b",
+        text, flags=re.IGNORECASE)
+    if not m:
+        # the trailing form: "charge Mack when Ney engages (him)"
+        m2 = re.match(
+            r"^\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*)\s*[,:]\s*)?"
+            r"(?:charge|attack|hit|strike|fall\s+on|join|go\s+in|pile\s+in|engage)\b[^,]*?\s+"
+            r"(?:when|once|as\s+soon\s+as|after)\s+(?:" + HONORIFIC + r")?(?P<friend>" + names + r")\s+"
+            r"(?:engages?|attacks?|fights?|strikes?|closes?\s+with|is\s+engaged|goes?\s+in|makes?\s+contact)"
+            r"(?:\s+(?:him|them|the\s+enemy|[A-Z][\w'’-]*))?\s*[.!]*$", text, flags=re.IGNORECASE)
+        if not m2:
+            return text, None
+        friend = next(n for n in friends if n.lower() == m2.group("friend").lower())
+        addr = (m2.group("addr") or "").strip()
+        return (f"{addr}, support {friend}" if addr else f"support {friend}"), friend
+    friend = next(n for n in friends if n.lower() == m.group("friend").lower())
+    addr = (m.group("addr") or "").strip()
+    rebuilt = f"{addr}, support {friend}" if addr else f"support {friend}"
+    return rebuilt, friend
+
+
+def strip_halt_tail(text: str) -> Tuple[str, Optional[str]]:
+    """"Lannes, head for Swabia but stop if Mack turns on you" -> ("Lannes,
+    head for Swabia", "but stop if Mack turns on you")."""
+    if not A_HALT_TAIL_IS_THE_ROADS_OWN_RULE or not text:
+        return text, None
+    m = _HALT_TAIL_RE.search(text)
+    if not m or m.start() == 0:
+        return text, None
+    return text[:m.start()].rstrip(" ,"), text[m.start():].strip(" ,")
+
+
+HALT_TAIL_NOTE = ("The march halts of itself when an enemy stands in the road, Sire, and "
+                  "asks for your orders — that is the road's own rule, so the '{tail}' "
+                  "is kept without a dispatch.")

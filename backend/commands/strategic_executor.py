@@ -635,6 +635,30 @@ class StrategicExecutor:
                 "success": False,
                 "message": f"{marshal.name} is recovering from retreat ({_plural(int(turns_left), 'turn')} remaining) and cannot accept strategic orders."
             }
+        # RS-4 / CQ-28 — CRT-9 (Oct 3, 2026): the standing-order road reads
+        # the state probe's fortified and drill-locked arms for the PLAYER's
+        # own orders (the AI's rungs unfortify before they march — P0 — and
+        # never drill a corps they then order; scoped to keep the ambient
+        # series untouched and recorded as such). HOLD is exempt: a
+        # fortified corps may be told to hold where it stands.
+        from backend.commands.strategic import THE_STATE_SPEAKS_FIRST as _speaks
+        if (_speaks and marshal.nation == getattr(world, "player_nation", None)
+                and str(parsed_command.get("strategic_type") or "").upper() not in ("HOLD", "SUPPORT")):
+            if getattr(marshal, 'fortified', False):
+                from backend.display_names import humanize_entity_name as _hn
+                return {
+                    "success": False,
+                    "message": (f"{_hn(marshal.name)} is fortified at {marshal.location} "
+                                f"and cannot march from his works — '{_hn(marshal.name)}, "
+                                f"unfortify' first. Nothing spent."),
+                }
+            if getattr(marshal, 'drilling_locked', False) or getattr(marshal, 'drilling', False):
+                from backend.display_names import humanize_entity_name as _hn
+                return {
+                    "success": False,
+                    "message": (f"{_hn(marshal.name)} is locked in drill exercises this "
+                                f"turn and cannot receive a standing order. Nothing spent."),
+                }
         if getattr(marshal, 'broken', False):
             return {
                 "success": False,

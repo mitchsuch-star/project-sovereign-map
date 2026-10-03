@@ -1254,6 +1254,20 @@ class DiplomaticExecutor:
         # §4c: Pre-validate treaty exists with Talleyrand-voiced message
         active_treaties = getattr(world, 'active_treaties', {})
         if pair_key not in active_treaties:
+            # CQ-36 / CRT-8 (Oct 3, 2026): a boot bond with no treaty record
+            # is refused by its true name, and the lever that moves it is
+            # named — the same sentence the Cabinet's dimmed row carries.
+            from backend.game_logic.diplomacy import COMMITMENT_STATES as _CS
+            _state = world.get_diplomatic_state(player, target_nation)
+            if _state in _CS:
+                _pretty = str(_state).replace("_", " ").lower()
+                return {
+                    "success": False,
+                    "message": (f"Our {_pretty} with {target_nation} is a bond of 1805, "
+                                f"not a treaty of ours, Your Excellency — there is nothing "
+                                f"to break. 'Talleyrand, downgrade relations with "
+                                f"{target_nation}' loosens it."),
+                }
             return {
                 "success": False,
                 "message": f"There is no treaty with {target_nation} to break, Your Excellency.",

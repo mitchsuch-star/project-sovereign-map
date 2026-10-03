@@ -440,7 +440,7 @@ def _msg_unrest(location: str, region) -> str:
 
 
 def _msg_pool_short(world, nation: str, arm: str, available: int,
-                    need: int) -> str:
+                    need: int, who: str = "") -> str:
     if arm == "artillery":
         regen_rate = world.get_artillery_regen_rate(nation)
     elif arm == "cavalry":
@@ -449,15 +449,27 @@ def _msg_pool_short(world, nation: str, arm: str, available: int,
         regen_rate = world.get_manpower_regen_rates(nation)["infantry"]
     turns_until = max(1, (need - available + regen_rate - 1) // regen_rate)
     plural = "s" if turns_until > 1 else ""
-    return (f"Berthier consults his ledgers. 'Sire, our {arm} reserves are "
+    head = ""
+    if who:
+        from backend.display_names import humanize_entity_name
+        head = f"{humanize_entity_name(who)}'s {arm} levy: "
+    return (f"{head}Berthier consults his ledgers. 'Sire, our {arm} reserves are "
             f"insufficient. Pool: {available:,}, need: {need:,}. "
             f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} "
             f"turn{plural}.'")
 
 
-def _msg_treasury(cost: int, have: int) -> str:
-    return (f"Berthier shakes his head. 'The treasury cannot support this, "
-            f"Sire. Need {cost} gold, have {have}.'")
+def _msg_treasury(cost: int, have: int, who: str = "", arm: str = "") -> str:
+    """SF-CMD-1 W9 / CRT-9 (Oct 3, 2026): the refusal names the man and the
+    order it refused — "Murat's cavalry levy: … Need 1,504 gold, have 800."
+    A board refusal that names neither reads as the parser's (the HOLD
+    rule), and the player cannot tell which order was priced."""
+    head = ""
+    if who:
+        from backend.display_names import humanize_entity_name
+        head = f"{humanize_entity_name(who)}'s {arm + ' ' if arm else ''}levy: "
+    return (f"{head}Berthier shakes his head. 'The treasury cannot support this, "
+            f"Sire. Need {int(cost):,} gold, have {int(have):,}.'")
 
 
 def _msg_subs_closed() -> str:
@@ -845,7 +857,7 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
     quote["pool"] = available
     if available < amount:
         quote.update(kind="pool_short", reason=_msg_pool_short(
-            world, marshal.nation, levy_arm, available, amount))
+            world, marshal.nation, levy_arm, available, amount, who=marshal.name))
         return quote
     price, price_terms = _levy_pricer()._recruit_cost_terms(
         region, world, base_cost=cost_base, nation=marshal.nation,
@@ -857,7 +869,8 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
     quote["price_terms"] = list(price_terms)
     have = int(world.nation_gold.get(marshal.nation, 0))
     if have < price:
-        quote.update(kind="treasury", reason=_msg_treasury(price, have),
+        quote.update(kind="treasury",
+                     reason=_msg_treasury(price, have, who=marshal.name, arm=levy_arm),
                      have=have)
         return quote
     quote.update(ok=True, kind="ok")
@@ -1591,7 +1604,8 @@ class EconomyExecutor:
             return {
                 "success": False,
                 "message": _msg_pool_short(world, acting_nation, recruit_type,
-                                           available, NEW_TROOPS),
+                                           available, NEW_TROOPS,
+                                           who=getattr(recruit_marshal, "name", "")),
             }
 
         # --- Gold cost calculation ---
@@ -1609,7 +1623,9 @@ class EconomyExecutor:
         if nation_treasury < gold_cost:
             return {
                 "success": False,
-                "message": _msg_treasury(gold_cost, nation_treasury),
+                "message": _msg_treasury(gold_cost, nation_treasury,
+                                         who=getattr(recruit_marshal, "name", ""),
+                                         arm=recruit_type),
             }
 
         # SR-5r RF-2 (REFORMS_SPEC §4 `recruit_morale`): a law's term sits on

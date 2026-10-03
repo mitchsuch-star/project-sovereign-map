@@ -147,6 +147,10 @@ class VassalExecutor:
             result["new_state"] = game_state
         return result
 
+    # CRT-8 §8a (Oct 3, 2026): the typed vassal verb is gated. False restores
+    # the free subjugation (CX-X3's defect) byte-for-byte.
+    THE_VASSAL_VERB_IS_GATED = True
+
     def _execute_make_vassal(self, command: Dict, game_state: Dict) -> Dict:
         """Create a vassal from treaty or conquest path."""
         from backend.models.world_state import WorldState
@@ -168,6 +172,24 @@ class VassalExecutor:
 
         # Determine path: if at WAR → conquest, if OPEN_BORDERS+ → treaty
         current_state = world.get_diplomatic_state(player, target)
+        # CRT-8 §8a / CX-X3 (SF-CMD-1 part (ii), Oct 3, 2026; SCORE_FINISH
+        # _SPEC §6 row 7 at its default): a typed `make_vassal` is gated at
+        # the VERB, never in `create_vassal_conquest` (the settlement clause
+        # and the AI rung call it legitimately). At WAR the court must be
+        # BEATEN — GEV-1's three proofs (`vassal.subjugation_refusal`); at
+        # peace the order is the Cabinet's priced proposal (acceptance plus
+        # DP), to which it is routed rather than minted free.
+        if self.THE_VASSAL_VERB_IS_GATED and player == getattr(world, "player_nation", player):
+            from backend.game_logic.vassal import subjugation_refusal
+            if current_state == "WAR":
+                refusal = subjugation_refusal(world, player, target)
+                if refusal:
+                    return {"success": False, "message": refusal}
+            else:
+                return self._executor._diplomatic._execute_diplomatic_proposal(
+                    {"target_nation": target, "proposal_type": "vassalage",
+                     "tone": "propose", "raw_command": command.get("raw_command", "")},
+                    world)
         if current_state == "WAR":
             result = create_vassal_conquest(world, player, target)
         else:

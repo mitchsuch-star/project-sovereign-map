@@ -252,6 +252,27 @@ def _is_enemy_marshal(world, name: Optional[str]) -> bool:
             and getattr(marshal, "nation", None) != getattr(world, "player_nation", None))
 
 
+# SF-CMD-1 W5: the pronoun after a support verb is the marshal last addressed.
+A_SUPPORTED_PRONOUN_IS_OURS = True
+# SF-CMD-1 (ii): "hold it" names the province the same line named.
+A_SAME_LINE_IT_IS_THE_PROVINCE = True
+
+
+def _last_addressed_marshal(world) -> Optional[str]:
+    """The marshal of ours the last REAL order named as its executor."""
+    player = getattr(world, "player_nation", None)
+    for entry in reversed(_history(world)):
+        if entry.get("action") in _NON_ORDER_ACTIONS:
+            continue
+        name = entry.get("marshal")
+        if not name:
+            continue
+        marshal = world.get_marshal(name)
+        if marshal is not None and getattr(marshal, "nation", None) == player:
+            return name
+    return None
+
+
 def _last_enemy_target(world) -> Optional[str]:
     for target in _recent_targets(world):
         if _is_enemy_marshal(world, target):
@@ -400,6 +421,39 @@ def resolve_context_references(command_text: str, world) -> Dict:
     # dialogue decline or a correction like "no, attack him") — fall through
     # to the substitution phase on the cue-stripped remainder rather than
     # short-circuiting.
+    # SF-CMD-1 (ii): the SAME line's own province outranks history for a
+    # bare "it" / "there" — read BEFORE the history-driven "there" arm below.
+    changed_same_line = False
+    # SF-CMD-1 (ii), the fresh census (Oct 3, 2026): "fortify Rhineland and
+    # hold it" — a bare "it" after a hold-family verb is the province the
+    # SAME line named before it; nothing else is read into it.
+    if A_SAME_LINE_IT_IS_THE_PROVINCE:
+        _it = re.search(r"\b(?:hold|defend|garrison|fortify|keep|secure)\s+it\b", text, re.I)
+        if _it:
+            _before = text[:_it.start()]
+            _regions = sorted((getattr(world, "regions", None) or {}).keys(), key=len, reverse=True)
+            _named = next((r for r in _regions if re.search(r"\b" + re.escape(r) + r"\b", _before, re.I)), None)
+            if _named:
+                text = text[:_it.start()] + _it.group(0)[:-2] + _named + text[_it.end():]
+                changed_same_line = True
+        # "… in Rhineland, and build a supply depot there" — a "there" that
+        # FOLLOWS a province named on the same line is that province, not
+        # the last turn's objective (history is read only when the line
+        # itself names no place).
+        _there = re.search(r"\bthere\b", text, re.I)
+        # … but never the arrival idiom's "there" ("attack Mack when you get
+        # there" — W2's tail), which the parser reads as the tail itself.
+        if _there and re.search(r"\b(?:get|gets|got|arrive|arrives|arrived|reach|reaches|reached|be|am|are|is|go|goes|went|up|over|down|out)\s*$",
+                                text[:_there.start()], re.I):
+            _there = None
+        if _there:
+            _before = text[:_there.start()]
+            _regions = sorted((getattr(world, "regions", None) or {}).keys(), key=len, reverse=True)
+            _named = next((r for r in _regions if re.search(r"\b" + re.escape(r) + r"\b", _before, re.I)), None)
+            if _named:
+                text = text[:_there.start()] + "in " + _named + text[_there.end():]
+                text = re.sub(r"\b(?:in|at|to)\s+in\s+" + re.escape(_named), "in " + _named, text, flags=re.I)
+                changed_same_line = True
     substitution_base = text
     cue = _READDRESS_CUE_RE.match(text)
     if cue:
@@ -421,7 +475,7 @@ def resolve_context_references(command_text: str, world) -> Dict:
 
     # 3. In-command substitutions.
     working = substitution_base
-    changed = False
+    changed = changed_same_line
 
     same = _SAME_TARGET_RE.search(working)
     if same:
@@ -445,6 +499,19 @@ def resolve_context_references(command_text: str, world) -> Dict:
     # (finding-2: not "all of them", "hold them off", "get them all").
     for person_match in _PERSON_PRONOUN_RE.finditer(working):
         _prev = _preceding_word(working, person_match.start())
+        # SF-CMD-1 W5 (Oct 3, 2026): "Davout support him" — after a SUPPORT
+        # verb the pronoun is one of OURS: the marshal last ADDRESSED ("Ney
+        # attack Mack, Davout support him" — the relayed tail reads Ney, the
+        # head's man). Read BEFORE the enemy arm, which would have handed
+        # him Mack.
+        if (A_SUPPORTED_PRONOUN_IS_OURS and _prev in _FIRST_PERSON_SUPPORT_ANCHORS
+                and person_match.group(0).lower() in ("him", "her")):
+            friend = _last_addressed_marshal(world)
+            if friend:
+                working = (working[:person_match.start()] + friend
+                           + working[person_match.end():])
+                changed = True
+                break
         if _prev in _TARGETING_ANCHORS or _is_give_combat_idiom(
                 _prev, working[person_match.end():]):
             enemy = _last_enemy_target(world)

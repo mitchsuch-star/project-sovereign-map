@@ -295,6 +295,9 @@ STRATEGIC_KEYWORDS = {
         "pull back towards", "pull back toward", "pull back to",
         "retire towards", "retire toward", "retire to",
         "advance upon", "advance on", "onwards to", "onward to", "forward to",
+        # SF-CMD-1 W3 (Oct 3, 2026): the collective march's own verb, and
+        # the mock's "head for" (the march had the verb, the table did not).
+        "converge on", "converge upon", "converge at", "head for",
         # Bare verbs for cardinal directions ("march north", "fall back north")
         # V2-57: Removed "advance", "push", "head" — mock parser requires directional
         # suffixes ("advance to", "push to", "head to") so bare forms are unreachable
@@ -734,6 +737,11 @@ def _clean_target_text(text: str) -> Optional[str]:
     text = re.sub(
         r'\s+(?:in\s+order\s+to|so\s+as\s+to|so\s+that|to)\s+\w+.*$',
         '', text, flags=re.IGNORECASE)
+    # SF-CMD-1 W7 / CRT-2 (Oct 3, 2026): a phrasal verb's PARTICLE is not
+    # part of the name. "hunt Mack down" / "run him off" / "drive them back"
+    # read 'Mack Down' as the quarry and refused him. No province or
+    # commander on the board ends in one of these words.
+    text = re.sub(r'\s+(?:down|out|off|away|up|back)\s*$', '', text, flags=re.IGNORECASE)
     return text.strip() if text.strip() else None
 
 

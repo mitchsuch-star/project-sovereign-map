@@ -880,6 +880,11 @@ def march_road(world, marshal, dest: str, strategic_type: str = "MOVE_TO"):
     return road, None, None
 
 
+# CRT-9 (RS-4 / CQ-28): the fortified and drill-locked arms of the state
+# probe. False restores the pre-slice probe (and the taken-and-stalled march).
+THE_STATE_SPEAKS_FIRST = True
+
+
 def march_state_refusal(world, marshal) -> Optional[str]:
     """CRT-4: why `<marshal>, march to <X>` would be refused before any road
     is read — the executor's own sentences (recovering, broken, engaged) and
@@ -895,6 +900,20 @@ def march_state_refusal(world, marshal) -> Optional[str]:
     if getattr(marshal, 'broken', False):
         return (f"{marshal.name}'s army is broken and cannot accept strategic "
                 f"orders. Rally them first.")
+    # RS-4 / CQ-28 — CRT-9 "the state speaks first" (SF-CMD-1 part (ii),
+    # Oct 3, 2026): the fortified and drill-locked arms the probe lacked. A
+    # fortified corps took a march it could never make (2 actions, "could
+    # not advance" every turn, the ledger holding it forever); a drill-
+    # locked one took a standing order the lock refuses to every tactical
+    # order. Refused free at issuance, by the executor's own words.
+    if THE_STATE_SPEAKS_FIRST:
+        if getattr(marshal, 'fortified', False):
+            return (f"{humanize_entity_name(marshal.name)} is fortified at "
+                    f"{marshal.location} and cannot march from his works — "
+                    f"'{humanize_entity_name(marshal.name)}, unfortify' first.")
+        if getattr(marshal, 'drilling_locked', False) or getattr(marshal, 'drilling', False):
+            return (f"{humanize_entity_name(marshal.name)} is locked in drill "
+                    f"exercises this turn and cannot receive a standing order.")
     enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
     if enemies_here:
         names = ", ".join(humanize_entity_name(e.name) for e in enemies_here)

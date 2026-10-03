@@ -1699,7 +1699,16 @@ func _is_end_turn_phrasing(command: String) -> bool:
 	# could not fail for the right reason. It is deleted; the behaviour is
 	# pinned by evaluation instead, and this comment may now say `attack`.
 	c = _strip_desk_address(c)
-	return c == "end turn" or c == "end_turn" or c == "next turn"
+	# SF-CMD-1 W3 (Oct 3, 2026): the vocabulary widens with the backend's
+	# END_TURN_PHRASINGS, word for word, and one leading filler word is
+	# stripped as `is_bare_end_turn` strips it (a trailing word is not).
+	for filler in ["just", "now", "then", "so", "and", "please", "ok", "okay", "right"]:
+		if c.begins_with(filler + " "):
+			c = c.substr(filler.length()).strip_edges()
+			while c.begins_with(","):
+				c = c.substr(1).strip_edges()
+			break
+	return c == "end turn" or c == "end_turn" or c == "next turn" or c == "end the turn" or c == "end my turn" or c == "end this turn" or c == "finish the turn" or c == "pass the turn" or c == "end of turn"
 
 
 func _execute_end_turn():
@@ -3326,6 +3335,11 @@ func _on_command_result(response):
 		var _parser_notice = response.get("parser_notice", null)
 		if _parser_notice is String and _parser_notice != "":
 			add_output("[color=#" + Utils.COLOR_DIMMED + "]" + _parser_notice + "[/color]")
+		# SF-CMD-1 W3 (Oct 3, 2026): "reward Lannes" — the Reward desk's answer
+		# prints below, and his Reward dialog opens on the key the desk sets.
+		var _reward_for = response.get("open_reward_for", null)
+		if _reward_for is String and _reward_for != "":
+			call_deferred("_open_reward_for_marshal", _reward_for)
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry

@@ -366,7 +366,7 @@ Every seam below was re-read by the review at HEAD `652d23d7` (code identical to
 - Names come from the doctrine's own `name` and its clause names, never raw keys (R7).
 - Colours come from the `Utils` palette: a strength in the success colour, a flaw in the warning colour, a cured flaw greyed with its turn.
 - **Both Interface Scales.** `tools/iq10_capture_payloads.py` gains `cap_doctrines()`, with staged boards for each surface above. `tools/iq10_surface_screenshot.gd` renders them at 1.0 and 2.0, and its machine record must show no overflowing label and no button off the viewport. The frames are committed, dated.
-- **The user's visual sign-off closes DC-3** (the standing UI convention).
+- ~~**The user's visual sign-off closes DC-3** (the standing UI convention).~~ ✅ **DC-3 SIGNED OFF October 3, 2026** — self-served under the user's "close open items like visual sign-offs" direction (the U2/U3/U5/UI-6 precedent): the ten frames dated 2026_10_03 read frame by frame — the Generals card's doctrine block, the region panel's "Stripped by war (35%) — poor country for a French army" line, the Nations tab's doctrine lines, at both Interface Scales — no overflow, no clipped string, the wording as authored.
 
 **Bandwidth.** The client work is about 1.1 of the doctrines' 2.5 sessions, split across DC-3a, DC-3b and DC-3c (§7).
 

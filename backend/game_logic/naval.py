@@ -228,7 +228,9 @@ _POSTURE_INVERSION_RE = re.compile(
 _BLOCKADE_NOUN_RE = re.compile(r"\bblockades?\b|\bclose\s+the\s+ports\b",
                                re.IGNORECASE)
 _GUARD_NOUN_RE = re.compile(
-    r"\bhome\s+waters\b|\brecall\b|\bguard\b|\bdefend\b|\bstation\b",
+    # SF-CMD-1 W8 (Oct 3, 2026): "bring the fleet home" / "back to port".
+    r"\bhome\s+waters\b|\brecall\b|\bguard\b|\bdefend\b|\bstation\b"
+    r"|\bhome\b|\bback\s+to\s+port\b|\bcome\s+home\b",
     re.IGNORECASE)
 # A sentence that also names one of the fleet's OTHER errands is not a
 # posture order. Measured: `send an expedition to Ireland to break the
@@ -256,7 +258,9 @@ _NOT_AN_ORDER_RE = re.compile(
 _POSTURE_VERB_RE = re.compile(
     r"\b(?:blockade[sd]?|blockading|close|closing|guard(?:s|ing)?"
     r"|recall(?:s|ed|ing)?|station(?:s|ed|ing)?|defend(?:s|ing)?"
-    r"|patrol(?:s|led|ling)?|stand\s+out|put\s+to\s+sea)\b",
+    r"|patrol(?:s|led|ling)?|stand\s+out|put\s+to\s+sea"
+    # SF-CMD-1 W8: "bring the fleet home" / "return the fleet to port".
+    r"|bring(?:s|ing)?|return(?:s|ing)?|come\s+home)\b",
     re.IGNORECASE,
 )
 

@@ -1094,7 +1094,7 @@ def vassals_c5_client_capital_contested(arms, ctx):
 # ACTION_WORDS: the words a reply uses when it did the intended family.
 ACTION_WORDS = {
     "attack": r"MUSTER|attack|pursu|⚔|marches on|falls upon|engag",
-    "move": r"moves? (to|from)|begins march|march|Route:|road to",
+    "move": r"moves? (to|from)|begins march|march|Route:|road to|bars the way|reaches the approach",
     "hold": r"hold|defend|DEFENSIVE|stands? fast",
     "defend": r"hold|defend|DEFENSIVE|stands? fast",
     "scout": r"scout",
@@ -1120,7 +1120,7 @@ ACTION_WORDS = {
                  r"Sire,.*(peace|alliance|terms|tribute|design)",
     "declare_war": r"declar|war",
     "break_treaty": r"break|treaty|tears? up",
-    "vassal": r"vassal",
+    "vassal": r"vassal|autonomy",
     "cede": r"cede|grant|ceded",
     "form_square": r"square",
     "end_turn": r"Turn \d+ ended|begins",
@@ -1137,13 +1137,21 @@ BOARD_GATE_RX = re.compile(
     r"no eligible province|loyalty is already full|we do not court a belligerent|at WAR with|no treaty with|"
     r"not found\. Did you mean|supply lines cannot|blocks the path|destination blocked|runs through enemy country|"
     r"No intelligence on|No marshal of artillery can reach|cannot reach|not controlled by France|We do not hold|"
-    r"still stands|No province is eligible|I am a diplomat, not a general",
+    r"still stands|No province is eligible|I am a diplomat, not a general|"
+    # SF-CMD-1 (ii), the fresh census (Oct 3, 2026): the board's own refusals
+    # the first judge could not read — a foreign commander, a court that is no
+    # vassal, a name on no bench, an inland shore, a garrison left where the
+    # corps stands, an enemy named as a friend, an unknown target.
+    r"does not answer to us|commands for \w+, Sire|is not a vassal|Unknown target|No candidate named|"
+    r"has no shore|is left where the corps stands|is an enemy! Use|cannot bombard|is already a dockyard|"
+    r"no corps of ours can|The order rested on|commands no guns",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).
 ASKED_RX = re.compile(
     r"Which marshal|which marshal should act|Name the marshal|Whom did you intend|Did you mean|How shall I proceed|"
-    r"Your orders\?|raises concerns|firmly objects|objects:|Shall I|One order at a time",
+    r"Your orders\?|raises concerns|firmly objects|objects:|Shall I|One order at a time|"
+    r"Whose household|Where shall|Which province|Name the province",
     re.I,
 )
 # REFUSED_RX: the game could not read the line and said so (spending nothing).

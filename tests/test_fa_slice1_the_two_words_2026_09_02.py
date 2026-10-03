@@ -327,10 +327,13 @@ class TestTheClientGateSpeaksTheSameVocabulary:
         assert 'c.find("next turn")' not in body
 
     def test_the_vocabulary_itself_is_unchanged(self):
-        """This fix is a NARROWING. `end the turn` is deliberately still not
-        a phrasing (it shrugs, as it did before); adding it would be a
-        widening rather than this row."""
-        assert END_TURN_PHRASINGS == ("end turn", "end_turn", "next turn")
+        """This fix was a NARROWING; `end the turn` was deliberately left
+        out. SF-CMD-1 W3 (Oct 3, 2026) widened the vocabulary CONSCIOUSLY,
+        in both gates at once, after the blind census found "end the turn"
+        shrugging — the three original phrasings are still the first three,
+        and the whole-command rule is untouched."""
+        assert END_TURN_PHRASINGS[:3] == ("end turn", "end_turn", "next turn")
+        assert "end the turn" in END_TURN_PHRASINGS
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -467,9 +470,12 @@ class TestTheAdmiraltyTakesItsOrdersFromTheEmperor:
 
 class TestAnUnboundAddresseeRefuses:
 
+    # SF-CMD-1 W6 (Oct 3, 2026): "the Iron Marshal" is Davout now — an
+    # epithet the game itself prints resolves to its man. The unbound
+    # addressee this class pins is a title the board does not carry.
     ADDRESSED = [
-        "the Iron Marshal, attack Mack",
-        "Iron Marshal, attack Mack",
+        "the Duke of Nowhere, attack Mack",
+        "Duke of Nowhere, attack Mack",
         "Berthier, attack Mack",
         "Prince of Moskowa, attack Mack",
         "the cavalry, attack Mack",
@@ -496,11 +502,11 @@ class TestAnUnboundAddresseeRefuses:
         assert M.world.actions_remaining == ap_before
 
     def test_the_refusal_names_what_the_player_typed(self, shipped):
-        message = run(shipped, "the Iron Marshal, attack Mack").get("message")
-        assert "no 'Iron Marshal' in the order of battle" in (message or "")
+        message = run(shipped, "the Duke of Nowhere, attack Mack").get("message")
+        assert "no 'Duke of Nowhere' in the order of battle" in (message or "")
 
     @pytest.mark.parametrize("command", [
-        "Berthier, retreat", "the Iron Marshal, retreat",
+        "Berthier, retreat", "the Duke of Nowhere, retreat",
     ])
     def test_the_army_wide_retreat_is_covered_too(self, shipped, command):
         """Wider than the row: this ran a WHOLE-ARMY retreat — eight

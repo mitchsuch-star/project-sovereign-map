@@ -850,7 +850,8 @@ _WAR_QUESTION_KINDS = frozenset({"wars", "allies", "safe", "truce_clock",
 def classify_board_question(text: str, marshals: Iterable[str] = (),
                             enemies: Iterable[str] = (),
                             regions: Iterable[str] = (),
-                            nations: Iterable[str] = ()) -> Optional[Dict]:
+                            nations: Iterable[str] = (),
+                            bench: Iterable[str] = ()) -> Optional[Dict]:
     """The CX-2 board question in `text`, or None.
 
     Separate from `classify_question` so the five older kinds keep precedence
@@ -957,7 +958,15 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
                 return {"kind": kind, "subject": where[0],
                         "subject_type": "region"}
             return {"kind": kind, "subject": "", "subject_type": "here"}
-    return classify_points_question(stripped)
+    points = classify_points_question(stripped)
+    if points:
+        return points
+    # SF-CMD-1 W1 / CRT-9 "the state speaks first" (Oct 3, 2026): the second
+    # table — every class the blind census found the desk shrugging. Sited
+    # LAST so every older kind keeps precedence on the phrasings it owns.
+    from backend.ai.state_desk import classify_state_question
+    return classify_state_question(stripped, marshals=marshals, enemies=enemies,
+                                   regions=regions, nations=nations, bench=bench)
 
 
 def _classify_the_weighed(groups, marshals, enemies, regions):
@@ -2454,6 +2463,11 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
     kind = str(question.get("kind") or "")
     subject = str(question.get("subject") or "")
     player = world.player_nation
+    # SF-CMD-1 W1 / CRT-9: the state desk's kinds are answered by its own
+    # module (one dispatcher there, one here).
+    from backend.ai.state_desk import STATE_KINDS, answer_state_question
+    if kind in STATE_KINDS or kind == "alarm_natural":
+        return answer_state_question(world, question)
     try:
         if kind == "treasury":
             return _answer_treasury(world, player)

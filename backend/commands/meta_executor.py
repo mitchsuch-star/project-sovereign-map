@@ -664,17 +664,29 @@ class MetaExecutor:
                 # a fall-through rather than a branch and the older five can
                 # never be shadowed.
                 answer = answer_board_question(world, question)
+            if not answer and str(question.get("kind") or "") == "unknown_name":
+                # SF-CMD-1 W1: the state desk stood aside (the world knows
+                # the name) — the router answers, as before the slice.
+                routed = self._route_unanswered_question(
+                    str(question.get("asked") or ""), game_state)
+                if routed:
+                    return {"success": True, "free_action": True,
+                            "message": routed, "question_answered": True}
             if not answer:
                 # Review round (R2-14): the report is not the answer to a
                 # question the desk classified and could not resolve.
                 answer = (f"I cannot say, Sire — our maps hold no entry for "
                           f"{question.get('subject') or 'that name'}.")
-            return {
+            out = {
                 "success": True,
                 "free_action": True,
                 "message": answer,
                 "question_answered": True,
             }
+            # SF-CMD-1 W3: the Reward desk opens the man's Reward dialog.
+            if str(question.get("kind") or "") == "reward" and question.get("subject"):
+                out["open_reward_for"] = str(question.get("subject"))
+            return out
         report = generate_intel_report(world)
         return {
             "success": True,

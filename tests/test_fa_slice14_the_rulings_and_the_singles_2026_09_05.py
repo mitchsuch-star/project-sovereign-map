@@ -858,7 +858,8 @@ class TestTheDeskMayBeAddressed:
     @pytest.mark.parametrize("sentence", [
         "what happens next turn",
         "Davout, fortify until next turn",
-        "end the turn",
+        # "end the turn" left this list on Oct 3, 2026 (SF-CMD-1 W3): it is a
+        # phrasing now, in both gates.
         "Ney, hold Bavaria until the end turn",
         "Berthier, Sire, end turn",
         "Berthier, status",
@@ -871,8 +872,10 @@ class TestTheDeskMayBeAddressed:
         assert is_bare_end_turn(sentence) is False, sentence
 
     def test_the_phrasing_vocabulary_is_still_the_same_three(self):
+        """The three FA-6 phrasings lead the tuple; SF-CMD-1 W3 (Oct 3,
+        2026) widened it consciously, both gates together."""
         from backend.ai.clause_guards import END_TURN_PHRASINGS
-        assert END_TURN_PHRASINGS == ("end turn", "end_turn", "next turn")
+        assert END_TURN_PHRASINGS[:3] == ("end turn", "end_turn", "next turn")
 
     def test_the_backend_and_the_client_share_one_desk_vocabulary(self):
         """The client cannot import Python, so the parity is a pin. The

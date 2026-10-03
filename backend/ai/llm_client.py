@@ -348,6 +348,20 @@ def repair_leading_verb_typo(command_text: str, game_state: Optional[Dict]):
             start, end = match.span("verb")
             repaired = text[:start] + verb + text[end:]
             return repaired, f"(Berthier read '{token}' as '{verb}'.)"
+    # SF-CMD-1 (ii), the fresh census (Oct 3, 2026): the verb after an
+    # UNMARKED address — "Ney attak Mack" (CX-R1 reads the name at the head
+    # as the address; the typo sits one token in).
+    roster = {p.lower() for name in _game_state_dict(game_state, "marshals")
+              for p in _name_match_patterns(name)} | {
+        str(name).lower() for name in _game_state_dict(game_state, "marshals")}
+    m = re.match(r"^\s*(?:" + HONORIFIC + r")?(?P<name>[A-Za-z][\w'’-]*)\s+(?P<verb>[A-Za-z]{4,})\b", text)
+    if m and m.group("name").lower() in roster:
+        low = m.group("verb").lower()
+        if not (low in ADDRESS_NON_NAME_WORDS or low in known or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
+            hits = [v for v in _TYPO_VERBS if v[0] == low[0] and osa_distance_at_most(low, v, 1)]
+            if len(hits) == 1:
+                start, end = m.span("verb")
+                return text[:start] + hits[0] + text[end:], f"(Berthier read '{m.group('verb')}' as '{hits[0]}'.)"
     return None, None
 
 
@@ -711,6 +725,49 @@ def _game_state_dict(game_state: Optional[Dict], key: str) -> Dict:
         return {}
     value = game_state.get(key)
     return value if isinstance(value, dict) else {}
+
+
+_REWARD_REQUEST_RE = re.compile(
+    r"^\s*(?:so\s+|and\s+|then\s+|now\s+|please\s+|let(?:'s| us)\s+)?"
+    r"(?:reward|honou?r|recompense|decorate)\s+(?:marshal\s+|general\s+)?"
+    r"(?P<name>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s*[.!]*$", re.IGNORECASE)
+
+
+def _reward_request(text: str, roster) -> Optional[str]:
+    """SF-CMD-1 W3: `reward <one of our marshals>` -> his roster name, else
+    None (a word after the name — "reward Ney with Swabia" — is the ES-7
+    endow verb's, which the chain reads below)."""
+    m = _REWARD_REQUEST_RE.match(text or "")
+    if not m:
+        return None
+    want = m.group("name").strip().lower()
+    for name in roster or []:
+        if want in {p.lower() for p in _name_match_patterns(str(name))} | {str(name).lower()}:
+            return str(name)
+    return None
+
+
+def _keeps_an_eye_on_a_province(command_lower: str, game_state) -> bool:
+    m = re.search(r"\bkeep\s+an?\s+eye\s+on\s+(?:the\s+)?([a-z][a-z' -]{2,30}?)\s*[.!]*$", command_lower or "")
+    if not m:
+        return False
+    want = m.group(1).strip()
+    return any(want == str(r).lower() for r in _game_state_dict(game_state, "map_data"))
+
+
+def _bench_names(game_state: Optional[Dict]) -> list:
+    """SF-CMD-1 W1: the men on the Marshalate bench, by name only — a roster
+    like the others, so "how much is Mortier" can be classified without the
+    parser touching the world's state (Golden Rule 6)."""
+    world = (game_state or {}).get("world") if isinstance(game_state, dict) else None
+    if world is None:
+        return []
+    try:
+        from backend.game_logic.recruitment import get_marshal_pool
+        return [str(c.get("name")) for c in (get_marshal_pool(world, world.player_nation) or [])
+                if c.get("name")]
+    except Exception:
+        return []
 
 
 def _question_subjects(game_state: Optional[Dict]) -> list:
@@ -1178,6 +1235,90 @@ _PEACE_INTENT_RE = re.compile(
 
 def _mentions_peace_intent(command_lower: str) -> bool:
     return bool(_PEACE_INTENT_RE.search(command_lower))
+
+
+# SF-CMD-1 W4 / RS-7 (Oct 3, 2026): the Cabinet's verbs, read without the
+# address. The verb must OPEN the sentence (after a filler), so "Ney,
+# propose …" and "if we offer …" never reach it; the court is checked by the
+# caller against the parser's own nation roster.
+THE_CABINET_VERBS_NEED_NO_ADDRESS = True
+_BARE_CABINET_VERB_RE = re.compile(
+    r"^\s*(?:so\s+|and\s+|then\s+|now\s+|please\s+|let(?:'s| us)\s+)?"
+    r"(?:propose|offer|suggest|negotiate|seek|request|ask|demand|insist\s+on|"
+    r"improve|better|warm|mend|repair|strengthen|cultivate|open|"
+    r"court|charm|woo|reassure|undermine|"
+    r"make\s+(?:friends|peace|an?\s+(?:alliance|pact|treaty|truce|armistice)|amends)|"
+    r"seek\s+(?:friendship|peace|an?\s+alliance)|sue\s+for|"
+    r"form\s+an?\s+alliance|ally|befriend|approach|treat\s+with|open\s+talks|"
+    r"send\s+(?:an?\s+)?(?:envoy|ambassador|minister|emissary|word))\b",
+    re.IGNORECASE)
+# The verbs a field order also uses ("offer", "request", "ask", "repair",
+# "strengthen", "send") are the Cabinet's only beside a NOUN of state.
+_CABINET_NOUN_RE = re.compile(
+    r"\b(?:relations?|relationship|ties|standing|rapport|friendship|friends|alliance|"
+    r"peace|treaty|armistice|truce|terms|pact|borders|non-?\s?aggression|vassal(?:age)?|"
+    r"envoy|ambassador|minister|emissary|amends|tribute|subsidy|subsidies|design|court)\b",
+    re.IGNORECASE)
+_UNAMBIGUOUS_CABINET_VERB_RE = re.compile(
+    r"^\s*(?:so\s+|and\s+|then\s+|now\s+|please\s+|let(?:'s| us)\s+)?"
+    r"(?:propose|negotiate|court|charm|woo|reassure|undermine|befriend|"
+    r"make\s+(?:friends|peace|amends)|seek\s+(?:friendship|peace)|sue\s+for|"
+    r"form\s+an?\s+alliance|ally|treat\s+with|open\s+talks|open\s+(?:our\s+|the\s+)?borders)\b", re.IGNORECASE)
+_ASKS_FOR_TERMS_RE = re.compile(
+    r"\b(?:ask|request|demand|seek|invite)\s+(?:the\s+)?(?:[\w'’-]+\s+){0,3}"
+    r"(?:for\s+|to\s+(?:name|state|give|send)\s+)(?:their\s+|its\s+|her\s+|his\s+|peace\s+)?terms\b",
+    re.IGNORECASE)
+
+
+_RELATION_PHRASINGS_RE = re.compile(
+    r"\b(?:improve|better|warm|mend|repair|strengthen|build|cultivate|raise|restore)\s+"
+    r"(?:up\s+)?(?:our\s+|the\s+|my\s+|france's\s+)?(?:relations?|relationship|ties|standing|rapport|friendship)"
+    r"(?:\s+with)?\b|\b(?:make\s+friends|seek\s+friendship|win\s+the\s+friendship\s+of|get\s+closer\s+to"
+    r"|be\s+friends|become\s+friends|work\s+on|warm\s+up)(?:\s+with)?\b",
+    re.IGNORECASE)
+NORMALIZE_RELATION_PHRASINGS = True
+
+
+def normalize_relation_phrasings(text: str) -> str:
+    """RS-7: every way of asking for warmer relations reads as the mission's
+    own phrase, "improve relations with"; "open our borders to X" as the
+    open-borders proposal's."""
+    if not NORMALIZE_RELATION_PHRASINGS or not text:
+        return text
+    text = _RELATION_PHRASINGS_RE.sub("improve relations with", text)
+    return re.sub(r"\bopen\s+(?:our\s+|the\s+)?borders\s+(?:to|for)\b", "open borders with", text, flags=re.I)
+
+
+def _bare_cabinet_verb(command_lower: str) -> bool:
+    text = command_lower or ""
+    if not _BARE_CABINET_VERB_RE.match(text):
+        return False
+    return bool(_UNAMBIGUOUS_CABINET_VERB_RE.match(text) or _CABINET_NOUN_RE.search(text))
+
+
+def _asks_a_court_for_terms(command_lower: str) -> bool:
+    """"ask Austria for terms" / "request that Britain name her terms" —
+    the Request Terms lifecycle in the player's words."""
+    return bool(_ASKS_FOR_TERMS_RE.search(command_lower or ""))
+
+
+def _names_a_known_court(command_text: str, game_state) -> bool:
+    try:
+        from backend.game_logic.diplomatic_dialogue import extract_nation_from_command
+        if extract_nation_from_command(command_text):
+            return True
+    except Exception:
+        pass
+    low = (command_text or "").lower()
+    world = (game_state or {}).get("world") if isinstance(game_state, dict) else None
+    own = str(getattr(world, "player_nation", "") or "").lower()
+    for nation in _known_nation_names(game_state) or []:
+        if str(nation).lower() == own:
+            continue  # "Ile-de-France" names no foreign court
+        for form in _name_match_patterns(str(nation)):
+            if re.search(r"\b" + re.escape(form.lower()) + r"\b", low):
+                return True
+    return False
 
 
 # WO-20: "break the alliance with Austria" PROPOSED an alliance when
@@ -2390,7 +2531,8 @@ class LLMClient:
         # SC-30 / Slice G1: Request Terms lifecycle keywords route to
         # diplomacy without requiring "Talleyrand".
         _request_terms_keywords = ["request terms", "request their terms"]
-        if any(kw in command_lower for kw in _request_terms_keywords):
+        if (any(kw in command_lower for kw in _request_terms_keywords)
+                or _asks_a_court_for_terms(command_lower)):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
 
@@ -2498,6 +2640,28 @@ class LLMClient:
                 key_source=self.key_source,
                 raw_command=original_text,
                 question=_points_question,
+            )
+
+        # SF-CMD-1 W3 (Oct 3, 2026): "reward Lannes" / "reward Marshal Ney"
+        # — the Reward desk: the man's expectation and each instrument's
+        # terms, and the client opens his Reward dialog (`open_reward_for`).
+        _reward_ask = _reward_request(original_text, _player_roster)
+        if _reward_ask:
+            return ParseResult(
+                matched=True,
+                command_type="tactical",
+                marshals=[],
+                action="status",
+                target=None,
+                ambiguity=5,
+                strategic_score=0,
+                interpretation=f"Reward desk — {_reward_ask}",
+                confidence=0.9,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=original_text,
+                question={"kind": "reward", "subject": _reward_ask,
+                          "subject_type": "marshal"},
             )
 
         # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
@@ -2614,6 +2778,19 @@ class LLMClient:
         if re.search(r'\bcourt\b(?!\s+martial)', command_lower):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
+        # SF-CMD-1 W4 / RS-7 (Oct 3, 2026): A BARE CABINET VERB NAMING A
+        # COURT IS THE CABINET'S. "propose an alliance to Prussia", "offer
+        # Austria an armistice", "improve our relations with Prussia", "make
+        # friends with Saxony" shrugged without "Talleyrand," in front (the
+        # proposal list matched only the article-less "propose alliance").
+        # Gated: no marshal addressed or at the head (CX-R1's rule), a verb of
+        # state at the head of the sentence, and a court the parser knows.
+        if (THE_CABINET_VERBS_NEED_NO_ADDRESS and not _addressed_marshal
+                and not _leads_with_marshal_word(command_lower, _player_roster)
+                and _bare_cabinet_verb(command_lower)
+                and _names_a_known_court(command_text, game_state)):
+            return self._parse_diplomatic_command(
+                command_text, command_lower, question=_shared_question)
 
         # ════════════════════════════════════════════════════════════
         # PARSE-NEG: A QUESTION IS NOT AN ORDER.
@@ -2674,7 +2851,8 @@ class LLMClient:
                         marshals=_marshals,
                         enemies=_enemies,
                         regions=_regions,
-                        nations=_known_nation_names(game_state))
+                        nations=_known_nation_names(game_state),
+                        bench=_bench_names(game_state))
                 if _question:
                     return ParseResult(
                         matched=True,
@@ -2856,6 +3034,30 @@ class LLMClient:
         # itself — the exact-match routes read past a non-name address.
         _desk_text = (_DESK_ADDRESS_RE.sub("", command_lower).strip()
                       if PLAIN_SPEECH_ACTIVE else command_lower.strip())
+        # SF-CMD-1 W3 (Oct 3, 2026): "don't move anyone this turn, just end
+        # the turn" — the negation guard blanks the forbidden clause and what
+        # survives is a bare end-turn phrasing. It is NOT ended here: the
+        # client's lapse-confirm gate reads the RAW line and cannot see past
+        # the negation, so ending the turn on this road would advance it
+        # behind the unanswered-envoys confirm (the UX23 class). The desk
+        # says what it heard and asks for the two words.
+        if (negation_applied
+                and is_bare_end_turn(re.sub(r"^[\s,;]+", "", guarded or ""))):
+            return ParseResult(
+                matched=True,
+                command_type="tactical",
+                marshals=[],
+                action="status",
+                target=None,
+                ambiguity=5,
+                strategic_score=0,
+                interpretation="The desk — an end turn behind a negation",
+                confidence=0.9,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=original_text,
+                question={"kind": "end_turn_asked", "subject": "", "subject_type": "board"},
+            )
         if _desk_text in ("help", "help me", "i need help", "commands", "what can i do") or _desk_text == "?":
             action = "help"
         # FA-6: the BARE form only. This arm sits above every order verb,
@@ -2866,6 +3068,13 @@ class LLMClient:
         # gate (`main.gd::_is_end_turn_phrasing`) cannot drift from it.
         elif is_bare_end_turn(command_lower):
             action = "end_turn"
+        # SF-CMD-1 W3 (Oct 3, 2026): "don't move anyone this turn, just end
+        # the turn" — the negation guard blanks the forbidden clause and
+        # what survives is a bare end-turn phrasing. It is NOT ended here:
+        # the client's lapse-confirm gate reads the RAW line and cannot see
+        # past the negation, so ending the turn on this road would advance
+        # it behind the unanswered-envoys confirm (the UX23 class). The
+        # desk says what it heard and asks for the two words.
         # PT-2 FIX: "status" keyword — exact match to prevent false positives
         elif _desk_text == "status":
             action = "status"
@@ -3015,6 +3224,13 @@ class LLMClient:
             # which must not become a march on the province "war".
             re.search(r'\bgo(?:es)?\s+(?:to|into|towards?|for)\b', command_lower)
             and "go to war" not in command_lower
+        ) or (
+            # SF-CMD-1 W3 (Oct 3, 2026): "Ney, go" / "Ney, go now" — a march
+            # with no destination; the movement executor asks where.
+            re.search(r'^\s*(?:(?:marshal\s+|general\s+)?[a-z][\w\'’-]*\s*[,:]\s*)?go(?:\s+(?:now|forth|on|then))?\s*[.!]*$', command_lower)
+        ) or (
+            # SF-CMD-1 W3: "everyone converge on Swabia" — the collective march.
+            re.search(r'\bconverge\s+(?:on|upon|at|toward|towards)\b', command_lower)
         ) or re.search(r'\bmove\b', command_lower) or re.search(
             # Possessive-object forms: "take your corps to Ulm", "bring your
             # men to Vienna". Anchored on the corps noun + a destination
@@ -3034,7 +3250,13 @@ class LLMClient:
               or "recon" in command_lower or "acout" in command_lower
               or "scou" in command_lower
               or re.search(r'\bobserv(?:e|es|ing)\b', command_lower)
-              or re.search(r'\bkeep\s+watch\b', command_lower)):
+              or re.search(r'\bkeep\s+watch\b', command_lower)
+              # SF-CMD-1 W3 (Oct 3, 2026): "keep an eye on Berlin" — the
+              # PROVINCE form only; "keep an eye on Mack" stays below the gate
+              # (the IQ-9 cassette: the model reads the man's province).
+              or _keeps_an_eye_on_a_province(command_lower, game_state)
+              # the fresh census: "have a look at Swabia" / "take a look at".
+              or re.search(r'\b(?:have|take)\s+a\s+look\s+at\b', command_lower)):
             action = "scout"
         # F4 fix: recruit MUST be checked before reinforce/support — the noun
         # "reinforcements" contains the substring "reinforce", so "recruit
@@ -3057,12 +3279,22 @@ class LLMClient:
             action = "build_fleet"
         elif (_orders_the_diversion(command_lower)
               or "draw off the fleet" in command_lower
-              or "draw them off" in command_lower):
+              or "draw them off" in command_lower
+              or re.search(r"\b(?:launch|begin|start|make|order|try)\s+(?:the\s+|a\s+)?(?:grand\s+)?diversion\b", command_lower)):
             action = "naval_diversion"
         elif ("expedition" in command_lower
               or re.search(r'\bembark\b', command_lower)
               or re.search(r"\bland\b\s+(?!to\b)(?:[\w']+\s+){0,2}(?:in|at|on)\b",
-                           command_lower)):
+                           command_lower)
+              # SF-CMD-1 W8 (Oct 3, 2026): "ship Davout to London" / "transport
+              # the corps to Munster" / "ferry Lannes over to Naples" / "send
+              # Davout by sea to London" — the landing verb in the player's
+              # words. "ship of the line" and "build ships" never reach it
+              # (the keel branch runs first; the verb needs a destination).
+              or re.search(r"\b(?:ship|transport|ferry|carry)\s+(?!of\b)(?:[\w']+\s+){1,3}(?:to|into|over\s+to|across\s+to)\b",
+                           command_lower)
+              or re.search(r"\bby\s+sea\b", command_lower)
+              or re.search(r"\bashore\b", command_lower)):
             # "land Soult in Munster" / "land the corps at Ulster" — the
             # two-word window keeps "hold the land between the rivers"
             # (and every "land to" VS-3 grant phrasing) on their own paths.
@@ -3078,7 +3310,9 @@ class LLMClient:
         elif (re.search(r'\bblockade\b', command_lower)
               or "home waters" in command_lower
               or (re.search(r'\bfleet\b', command_lower)
-                  and re.search(r'\b(guard|recall|port|station)\b', command_lower))):
+                  # SF-CMD-1 W8 (Oct 3, 2026): "bring the fleet home" /
+                  # "bring the fleet back to port" — the guard posture.
+                  and re.search(r'\b(guard|recall|port|station|home|back)\b', command_lower))):
             action = "set_fleet_posture"
         # Marshal Recruitment (Jealousy v3.2): "commission Grouchy" /
         # "recruit (a new) marshal Grouchy" / "appoint Grouchy to the
@@ -3095,7 +3329,12 @@ class LLMClient:
         elif (("commission" in command_lower and not _mentions_pension(command_lower))
               or re.search(r'\brecruit\b.{0,12}\bmarshal\b', command_lower)
               or re.search(r'\bappoint\b.*\bmarshal', command_lower)
-              or "marshalate" in command_lower):
+              or "marshalate" in command_lower
+              # the fresh census: "give Grouchy a command" / "call up Suchet
+              # from the bench" / "bring Suchet off the bench".
+              or re.search(r'\bgive\s+\w+\s+a\s+(?:command|corps)\b', command_lower)
+              or re.search(r'\b(?:call|bring)\s+(?:up\s+)?\w+\s+(?:up\s+)?(?:from|off)\s+the\s+bench\b', command_lower)
+              or re.search(r'\bcall\s+up\s+[a-z]+\s*[.!]?$', command_lower)):
             action = "recruit_marshal"
         # IQ-1 SW-1 "The Substitute Market". ORDERING RULE: above the troop
         # recruit branch, because "purchase a levy" and "hire replacements"
@@ -3132,7 +3371,8 @@ class LLMClient:
             action = "fortify"
         # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train").
         # ORDERING RULE: "build " (with space) before "train" keyword in drill block.
-        elif any(kw in command_lower for kw in ["build ", "construct ", "bould ", "biuld ", "buld ", "buid "]):
+        elif any(kw in command_lower for kw in ["build ", "construct ", "bould ", "biuld ", "buld ", "buid ",
+                                                "put up ", "erect ", "raise a fort", "raise a depot"]):
             action = "build"
         # Restrain must be checked BEFORE drill (restrain contains "train")
         elif "restrain" in command_lower:
@@ -3253,9 +3493,14 @@ class LLMClient:
             + [f"release the {n}" for n in known_nations_lower]
         )):
             action = "release_vassal"
-        elif any(kw in command_lower for kw in [
-            "make vassal", "vassalize", "subjugate",
-        ]):
+        elif (any(kw in command_lower for kw in [
+                "make vassal", "vassalize", "subjugate",
+              ])
+              # SF-CMD-1 W7 (Oct 3, 2026): "make Bavaria a vassal" / "make
+              # Saxony our vassal" / "take Bavaria as a vassal". The executor's
+              # CRT-8 gate decides whether the court is beaten (CX-X3).
+              or re.search(r"\b(?:make|take)\s+(?:the\s+)?[\w'’ -]{2,30}?\s+(?:a|an|our|as\s+a|as\s+our|into\s+a)\s+(?:vassal|satellite|client\s+state|puppet)\b",
+                           command_lower)):
             action = "make_vassal"
         # ES-7 Estate Endowment (Economy Revisit S7): "endow Ney with Swabia" /
         # "grant Swabia to Ney" (debug-tier typed forms). Bare "grant" is
@@ -3850,6 +4095,13 @@ class LLMClient:
             extract_mission_type, FEASIBILITY_KEYWORDS,
         )
 
+        # RS-7 / CRT-8 (SF-CMD-1 part (ii), Oct 3, 2026): "improve OUR
+        # relations with Prussia", "mend relations", "make friends with
+        # Saxony", "warm our ties" — the IMPROVE_RELATIONS mission in the
+        # player's words. Normalised ONCE here, so the mission extractor and
+        # the keyword list read the canonical phrase.
+        command_text = normalize_relation_phrasings(command_text)
+        command_lower = command_text.lower()
         # Extract components
         target_nation = extract_nation_from_command(command_text)
         proposal_type = extract_proposal_type(command_text)
@@ -4017,9 +4269,9 @@ class LLMClient:
         # SC-30 / Slice G1 — Request Terms lifecycle (ask the enemy war
         # leader to name settlement terms). Checked before the generic
         # demand branch ("request" alone is not a demand keyword).
-        elif any(kw in command_lower for kw in [
-            "request terms", "request their terms", "ask them to name terms",
-        ]):
+        elif (any(kw in command_lower for kw in [
+                "request terms", "request their terms", "ask them to name terms",
+              ]) or _asks_a_court_for_terms(command_lower)):
             action = "request_terms"
         # W6-9 (EXP-D1) — the strategic assessment verb. "Talleyrand,
         # assess our situation" dead-ended in the proposal nation-picker

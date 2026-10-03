@@ -74,7 +74,10 @@ HONORIFIC = r"(?:marshal|general|gen\.|mar[eé]chal)\s+"
 # contrastive connector. `and` is deliberately NOT a terminator: "don't attack
 # and hold" reads as two negated verbs at least as often as one, and refusing
 # an ambiguous order is the safe half of the trade.
-_CLAUSE_END_RE = re.compile(r"[,;.!?]|\s+then\s+|\s+but\s+", re.IGNORECASE)
+# SF-CMD-1 (ii), the fresh census (Oct 3, 2026): a DASH ends a clause too —
+# "I'd rather you didn't move — hold Rhineland" had its hold eaten by the
+# negation guard, which ran the blanked clause through the dash.
+_CLAUSE_END_RE = re.compile(r"[,;.!?]|\s+then\s+|\s+but\s+|\s*[—–]\s*|\s+-\s+", re.IGNORECASE)
 
 # `until` is the ONE condition the engine actually implements (StrategicCondition
 # until_marshal_arrives / until_destroyed / until_relieved), so its clause runs
@@ -240,7 +243,18 @@ def _negation_re() -> "re.Pattern":
 # `_is_end_turn_phrasing` cannot drift; what changed is that it must be the
 # WHOLE command. `end the turn` is deliberately still not a phrasing — it
 # shrugs today, and adding it would be a widening rather than this fix.
-END_TURN_PHRASINGS = ("end turn", "end_turn", "next turn")
+# SF-CMD-1 W3 (Oct 3, 2026): "end the turn" — the blind census's own
+# headline shrug — joins the vocabulary with its siblings, in BOTH gates
+# (main.gd's `_is_end_turn_phrasing` mirrors this tuple word for word; the
+# parity pin in test_fa_slice1 evaluates both). A leading filler word
+# ("just end the turn", "now end turn") is stripped by `is_bare_end_turn`
+# and by the client the same way. The FA-6 rule is unchanged: it must still
+# be the WHOLE command.
+END_TURN_PHRASINGS = ("end turn", "end_turn", "next turn", "end the turn",
+                      "end my turn", "end this turn", "finish the turn",
+                      "pass the turn", "end of turn")
+END_TURN_LEADING_FILLER = ("just", "now", "then", "so", "and", "please",
+                           "ok", "okay", "right")
 
 # FA slice 7: the chief of staff (or the sovereign's own title) addressed
 # before a desk verb — "Berthier, status", "Sire, help". FA-R4 (slice 14)
@@ -290,7 +304,15 @@ def is_bare_end_turn(text: str) -> bool:
     """
     stripped = (text or "").strip().lower().rstrip(".!? \t")
     stripped = strip_desk_address(stripped).strip().rstrip(".!? \t")
-    return stripped.strip() in END_TURN_PHRASINGS
+    stripped = stripped.strip()
+    # SF-CMD-1 W3: one leading filler word ("just end the turn") — mirrored
+    # in main.gd. A trailing word is NOT stripped: "end turn now" stays
+    # outside the vocabulary (FA-6's whole-command rule, pinned).
+    for filler in END_TURN_LEADING_FILLER:
+        if stripped.startswith(filler + " "):
+            stripped = stripped[len(filler):].strip(" ,")
+            break
+    return stripped in END_TURN_PHRASINGS
 
 
 def negation_marker_spans(text: str) -> List[Tuple[int, int]]:
@@ -1717,6 +1739,25 @@ _TELL_ME_RE = re.compile(
     re.IGNORECASE)
 
 
+# SF-CMD-1 W1 / CRT-9 (Oct 3, 2026): the natural leads — see `is_question`.
+NATURAL_QUESTION_LEADS = True
+# SF-CMD-1 W3: "could Ney please fortify" is an order (the subject arm).
+A_PLEASE_IS_AN_ORDER = True
+_PLEASE_AFTER_SUBJECT_RE = re.compile(
+    r"^\s*(?:the\s+)?(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?\s+"
+    r"(?:please|kindly)\b", re.IGNORECASE)
+_BARE_CONTRACTION_LEAD_RE = re.compile(
+    r"^\s*(?:so\s+|and\s+|but\s+|ok(?:ay)?\s*,?\s*|well\s*,?\s*)?"
+    r"(?:whats|wheres|whos|hows|whens|whys|whichs)\b", re.IGNORECASE)
+_ANY_NEWS_LEAD_RE = re.compile(
+    r"^\s*(?:is\s+there\s+)?any(?:thing)?\s+(?:new|news|word|letters?|envoys?|"
+    r"messages?|dispatches?|developments?|reports?)\b", re.IGNORECASE)
+_CONDITIONAL_QUESTION_RE = re.compile(
+    r"^\s*(?:if|when|once|should|suppose|supposing|say)\b[^,;]{2,80}[,;]\s*"
+    r"(?:what|how|who|whom|where|which|why|would|will|can|could|should|is|are|do|does|"
+    r"am|might|may)\b", re.IGNORECASE)
+
+
 def is_question(command_text: str,
                 subjects: Optional[Iterable[str]] = None) -> bool:
     """True for "how do I attack?" — a request for guidance, not an order.
@@ -1746,6 +1787,20 @@ def is_question(command_text: str,
             and not _line_is_addressed(text, subjects)
             and not is_bare_end_turn(text)):
         return True
+    # SF-CMD-1 W1 / CRT-9 (Oct 3, 2026): three leads the census found
+    # falling to the order parser. (i) the contraction typed without its
+    # apostrophe — "whats mack doing", "whats the best move" (read as a
+    # MOVE and asked "which marshal?"); (ii) "any news from the courts" —
+    # no lead, no auxiliary; (iii) a conditional whose MAIN clause is a
+    # question — "if Ney attacks Mack, what are his chances" was refused as
+    # a contingency. Each on the one lever.
+    if NATURAL_QUESTION_LEADS and text:
+        if _BARE_CONTRACTION_LEAD_RE.match(text):
+            return True
+        if _ANY_NEWS_LEAD_RE.match(text) and not _line_is_addressed(text, subjects):
+            return True
+        if _CONDITIONAL_QUESTION_RE.match(text):
+            return True
     # CRT-3 (CXR1-4): a hedge is a question — "perhaps build ships" laid a
     # keel. Read before the lead: a hedge has none.
     if A_HEDGE_IS_NOT_AN_ORDER and text and _HEDGE_LEAD_RE.match(text):
@@ -1811,6 +1866,13 @@ def is_question(command_text: str,
             if word in _THIRD_PERSON_SUBJECTS:
                 return True
             if subjects and _names_a_subject(rest, subjects):
+                # SF-CMD-1 W3 (Oct 3, 2026): "could Ney please fortify" —
+                # a request made of a man by name with the word PLEASE
+                # (or KINDLY) is a polite order, not a question about him;
+                # "can Ney attack Mack" stays a question. No "?" either way.
+                if (A_PLEASE_IS_AN_ORDER and not text.endswith("?")
+                        and _PLEASE_AFTER_SUBJECT_RE.search(rest)):
+                    return False
                 return True
     if A_QUESTION_NEVER_ORDERS and lead_word in _WH_WORDS:
         # "where's Ney" — the auxiliary is contracted onto the lead.

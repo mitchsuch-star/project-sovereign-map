@@ -153,7 +153,12 @@ def _head_can_carry_arrival(first: str) -> bool:
 _ARRIVAL_TAIL_RE = re.compile(
     r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|[;,]\s*)(?:attack|engage|assault)\b',
     re.IGNORECASE)
-_TACTICAL_MOVE_HEAD_RE = re.compile(r'\b(?:move|go)\s+to\b', re.IGNORECASE)
+# SF-CMD-1 W2 (Oct 3, 2026): the plain movement verbs with a destination
+# preposition promote too — "ride to Swabia and attack Mack" was a tactical
+# move refused at the enemy's door with its tail dropped.
+_TACTICAL_MOVE_HEAD_RE = re.compile(
+    r'\b(?:move|go|ride|head|proceed|travel|push|advance)\s+(?:to|for|toward|towards)\b',
+    re.IGNORECASE)
 
 
 def promote_tactical_move_with_arrival_tail(command_text: str) -> str:
@@ -187,6 +192,48 @@ def promote_tactical_move_with_arrival_tail(command_text: str) -> str:
 _SEMICOLON_SPLIT_RE = re.compile(r'\s*;\s*')
 # `and <Marshal>, <verb>` — a second marshal named outright.
 _AND_MARSHAL_SPLIT_RE_TEMPLATE = r'\s+and\s+(?={names}\b)'
+# SF-CMD-1 W5 / CRT-11: `, <Marshal> <verb>` — the comma before a second
+# marshal and his verb (the ADDRESS comma "Ney, attack" has no name after
+# it; "Ney, Davout, attack" is the collective address, read elsewhere).
+_COMMA_MARSHAL_SPLIT_RE_TEMPLATE = r'\s*,\s*(?=(?:{honorific})?(?:{names})\s+(?:{verbs})\b)'
+_COLLECTIVE_ADDRESS_WORDS = (
+    r"(?:everyone|everybody|all\s+of\s+you|both\s+of\s+you|each\s+of\s+you|all|both|each)")
+
+
+def _split_collective_address(command_text: str, game_state=None):
+    """"Ney, Davout, Soult: everyone converge on Swabia" -> ("Ney, converge on
+    Swabia", "Davout, Soult: converge on Swabia") — the first man takes the
+    order, the rest ride the relay. Two or more marshals of ours, in a comma
+    list, closed by a colon or a comma, else None."""
+    names = _player_marshal_names(game_state)
+    if not names or not command_text:
+        return None
+    alt = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    m = re.match(
+        r"^\s*(?P<list>(?:(?:" + HONORIFIC + r")?(?:" + alt + r"))(?:\s*(?:,|and|&)\s*"
+        r"(?:" + HONORIFIC + r")?(?:" + alt + r"))+)\s*[:,]\s*(?P<collective>" + _COLLECTIVE_ADDRESS_WORDS
+        + r"\s*,?\s*)?(?P<rest>[A-Za-z].+)$", command_text, flags=re.IGNORECASE)
+    if not m:
+        return None
+    rest = m.group("rest").strip()
+    # FA-50's own gate: "Ney, Davout, attack Mack" is ONE order whose second
+    # man the muster seats (the address comma is never a boundary — CR-7-3's
+    # pin). The collective march needs the collective WORD ("everyone", "all
+    # of you") or the converge verb; nothing else is split here.
+    if not m.group("collective") and not re.match(r"^converge\b", rest, re.I):
+        return None
+    listed = re.split(r"\s*(?:,|\band\b|&)\s*", m.group("list"))
+    found = []
+    for item in listed:
+        item = re.sub(r"^(?:" + HONORIFIC + r")", "", item.strip(), flags=re.I)
+        hit = next((n for n in names if n.lower() == item.lower()), None)
+        if hit and hit not in found:
+            found.append(hit)
+    if len(found) < 2:
+        return None
+    first = f"{found[0]}, {rest}"
+    tail = ", ".join(found[1:]) + f": {rest}"
+    return (first, tail)
 # A bare `and <verb>` cannot be split on sight: "defend and hold belgium",
 # "secure and hold vienna", "Ney, defend and hold" and "Ney, fortify and
 # hold position" are all LEGITIMATE single orders, pinned in the corpus and
@@ -200,6 +247,24 @@ _SECOND_ORDER_VERBS = (
 _AND_VERB_SPLIT_RE = re.compile(
     r'\s+and\s+(?=(?:' + _SECOND_ORDER_VERBS + r')\b)',
     re.IGNORECASE)
+# SF-CMD-1 W5 / CRT-11: the second name is heard at a comma.
+THE_SECOND_NAME_IS_HEARD_AT_A_COMMA = True
+
+
+def _comma_name_verb_split_re(game_state):
+    r"""`,\s*(?=<one of our marshals>\s+<order verb>)` for the live roster,
+    or None off a cold parse."""
+    if not THE_SECOND_NAME_IS_HEARD_AT_A_COMMA:
+        return None
+    roster = []
+    if isinstance(game_state, dict) and isinstance(game_state.get("marshals"), dict):
+        roster = [str(n) for n in game_state["marshals"] if n]
+    if not roster:
+        return None
+    names = "|".join(re.escape(n) for n in sorted(roster, key=len, reverse=True))
+    return re.compile(
+        r'\s*,\s*(?=(?:' + HONORIFIC + r')?(?:' + names + r')\s+(?:' + _SECOND_ORDER_VERBS + r')\b)',
+        re.IGNORECASE)
 # CR-7-3 (CQ-10): the BARE COMMA before an order verb is the fifth boundary.
 # `Ney, fortify, attack Mack` had no boundary at all, so the swallow CR-7-1
 # closed on four tail forms survived on this one, and `march to Swabia,
@@ -274,6 +339,18 @@ def _split_sequential_orders(command_text: str, game_state=None):
                 names="|".join(re.escape(n) for n in sorted(names, key=len,
                                                             reverse=True)))
             match = re.search(pattern, command_text, re.IGNORECASE)
+            # SF-CMD-1 W5 / CRT-11 (Oct 3, 2026): ", Davout support him" —
+            # a comma before a SECOND marshal of ours and an order verb is
+            # the same boundary as "and Davout". The head keeps its man; the
+            # tail rides the relay, where "him" is the man the head addressed
+            # (`context_carryover._last_addressed_marshal`).
+            if not match and THE_SECOND_NAME_IS_HEARD_AT_A_COMMA:
+                pattern = _COMMA_MARSHAL_SPLIT_RE_TEMPLATE.format(
+                    honorific=HONORIFIC,
+                    names="|".join(re.escape(n) for n in sorted(names, key=len,
+                                                                reverse=True)),
+                    verbs=_SECOND_ORDER_VERBS)
+                match = re.search(pattern, command_text, re.IGNORECASE)
     if not match:
         return None
     first = command_text[:match.start()].strip().rstrip(',;')
@@ -420,6 +497,145 @@ def _find_player_sovereign(world=None, game_state=None) -> Optional[str]:
     return None
 
 
+# SF-CMD-1 W6 — the epithets. The two the player learns from history and
+# from the game's own card; the authored `ability.name` of every marshal of
+# ours joins them at parse time (names only — Golden Rule 6).
+EPITHETS_RESOLVE = True
+MARSHAL_EPITHETS = {
+    "iron marshal": "Davout",
+    "the iron marshal": "Davout",
+    "bravest of the brave": "Ney",
+    "the bravest of the brave": "Ney",
+}
+_EPITHET_HEAD_RE = re.compile(r"^\s*(?P<epithet>[A-Za-z][\w'’ -]{3,40}?)\s*[,:]\s*(?=\S)")
+
+
+def _epithet_table(game_state, world) -> Dict[str, str]:
+    table = dict(MARSHAL_EPITHETS)
+    marshals = {}
+    if world is not None:
+        marshals = getattr(world, "marshals", None) or {}
+    for name, m in marshals.items():
+        if getattr(m, "nation", None) != getattr(world, "player_nation", None):
+            continue
+        ability = getattr(m, "ability", None) or {}
+        title = str(ability.get("name") or "").strip().lower() if isinstance(ability, dict) else ""
+        if title and title not in table:
+            table[title] = name
+            table["the " + title] = name
+    return table
+
+
+def rewrite_epithets(command_text: str, game_state, world) -> str:
+    """"Iron Marshal, dig in" -> "Davout, dig in"; the epithet must be the
+    ADDRESS (head + comma) so a sentence that merely mentions it is left
+    alone. Only our own marshals' names are substituted."""
+    if not EPITHETS_RESOLVE or not command_text:
+        return command_text
+    m = _EPITHET_HEAD_RE.match(command_text)
+    if not m:
+        return command_text
+    key = re.sub(r"\s+", " ", m.group("epithet").strip().lower())
+    name = _epithet_table(game_state, world).get(key)
+    if not name:
+        return command_text
+    return f"{name}, {command_text[m.end():]}"
+
+
+# SF-CMD-1 (ii), the fresh census — the plain attack forms.
+PLAIN_ATTACK_FORMS_RESOLVE = True
+
+
+def rewrite_plain_attack_forms(command_text: str, game_state):
+    """"hit Mack" -> "attack Mack" when Mack is a foe the parser knows; "send
+    Murat after Mack" -> "Murat, pursue Mack" when Murat is ours. Anything
+    else is untouched. Returns (text, changed)."""
+    if not PLAIN_ATTACK_FORMS_RESOLVE or not command_text:
+        return command_text, False
+    enemies = []
+    ours = []
+    if isinstance(game_state, dict):
+        if isinstance(game_state.get("enemies"), dict):
+            enemies = [str(n) for n in game_state["enemies"]]
+        if isinstance(game_state.get("marshals"), dict):
+            ours = [str(n) for n in game_state["marshals"]]
+    world = game_state.get("world") if isinstance(game_state, dict) else None
+    if world is not None:
+        try:
+            enemies = [m.name for m in world.marshals.values()
+                       if m.nation != world.player_nation] or enemies
+        except Exception:
+            pass
+    text = command_text
+    changed = False
+    from backend.ai.llm_client import name_match_patterns
+    def _forms(n):
+        return sorted({p for p in name_match_patterns(n)} | {n}, key=len, reverse=True)
+    m = re.match(r"^\s*pledge\s+(?:france|us|ourselves|the empire)\s+to\s+(?:defend|protect|guarantee|stand by)\s+"
+                 r"(?P<court>[A-Za-z][\w' -]{2,30}?)(?:'s\s+(?:borders|independence|frontiers?|soil))?\s*[.!]*$", text, re.I)
+    if m:
+        return f"guarantee {m.group('court').strip()}", True
+    for foe in enemies:
+        for form in _forms(foe):
+            new = re.sub(r"\b(?:hit|smash|strike at|strike)\s+(?:the\s+)?" + re.escape(form) + r"\b",
+                         "attack " + form, text, count=1, flags=re.I)
+            if new != text:
+                text, changed = new, True
+                break
+        if changed:
+            break
+    for name in ours:
+        for form in _forms(name):
+            m = re.match(r"^\s*send\s+" + re.escape(form) + r"\s+after\s+(?P<foe>.+)$", text, re.I)
+            if m:
+                text, changed = f"{name}, pursue {m.group('foe')}", True
+                break
+        if changed and text.startswith(name + ","):
+            break
+    return text, changed
+
+
+# SF-CMD-1 W7 — "Emperor to Rhineland": the telegraphic march.
+TELEGRAPHIC_MARCH_RESOLVES = True
+
+
+def rewrite_telegraphic_march(command_text: str, game_state, world,
+                              sovereign_name: Optional[str]) -> str:
+    """"<roster name> to <province>" and "(the) Emperor to <province>" ->
+    "<Name>, move to <province>". Anchored at both ends: the head must be a
+    marshal of ours (or the sovereign's title) and the tail a province the
+    map knows, with nothing else in the sentence."""
+    if not TELEGRAPHIC_MARCH_RESOLVES or not command_text:
+        return command_text
+    m = re.match(r"^\s*(?:the\s+)?(?P<who>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+to\s+"
+                 r"(?P<where>[A-Za-z][\w'’ -]{2,40}?)\s*[.!]*$", command_text)
+    if not m:
+        return command_text
+    who, where = m.group("who").strip(), m.group("where").strip()
+    regions = {}
+    if isinstance(game_state, dict) and isinstance(game_state.get("map_data"), dict):
+        regions = game_state["map_data"]
+    elif world is not None:
+        regions = getattr(world, "regions", None) or {}
+    region = next((r for r in regions if r.lower() == where.lower()), None)
+    if not region:
+        return command_text
+    name = None
+    if who.lower() in ("emperor", "napoleon") and sovereign_name:
+        name = sovereign_name
+    else:
+        roster = []
+        if isinstance(game_state, dict) and isinstance(game_state.get("marshals"), dict):
+            roster = list(game_state["marshals"])
+        for cand in roster:
+            if who.lower() == str(cand).lower() or who.lower() == str(cand).lower().split()[-1]:
+                name = str(cand)
+                break
+    if not name:
+        return command_text
+    return f"{name}, move to {region}"
+
+
 def normalize_sovereign_address(command_text: str,
                                 sovereign_name: str) -> str:
     """Rewrite sovereign-address forms to a canonical marshal address.
@@ -508,6 +724,21 @@ def normalize_sovereign_address(command_text: str,
 # refusal`). Flip lever False restores the addressee binding byte-for-byte.
 # ═══════════════════════════════════════════════════════════════════════
 A_REWARD_GOES_TO_ITS_OBJECT = True
+# SF-CMD-1 W1 (Oct 3, 2026): a question is never split into sequential
+# orders — "how do Davout and Bernadotte get on" is one question. False
+# restores the split (and the dropped tail) on questions.
+A_QUESTION_IS_NEVER_SPLIT = True
+# SF-CMD-1 W7 / CRT-6: a bare retreat verb with a trailing clause stays a
+# retreat ("fall back - I don't like Swabia"); only "to/toward <place>"
+# makes it a march. False restores the phantom-destination refusal.
+A_REASON_TAIL_IS_NOT_A_DESTINATION = True
+_DESTINATION_PREPOSITION_RE = re.compile(
+    r"\b(?:fall\s+back|withdraw|retire|pull\s+back|retreat)\s+(?:to|towards?|into|on|upon|for)\s+\w",
+    re.IGNORECASE)
+
+
+def _names_a_destination_preposition(text: str) -> bool:
+    return bool(_DESTINATION_PREPOSITION_RE.search(text or ""))
 REWARD_VERBS = frozenset({"grant_pension", "revoke_pension", "grant_dotation"})
 
 # IQ9-X1 (Score Mandate Chunk 3, SR-3c, September 26, 2026): THE RETRY READS
@@ -1999,7 +2230,14 @@ class CommandParser:
         arrival idiom and is not split here either (`_head_can_carry_
         arrival`); its third clause, if any, is found by the sequel scan.
         """
-        if not _COMMA_VERB_SPLIT_RE.search(command_text):
+        # SF-CMD-1 W5 / CRT-11 (Oct 3, 2026): ", Davout support him" — a
+        # comma followed by a MARSHAL OF OURS and an order verb is the second
+        # order's boundary too (the static rule wanted the verb right after
+        # the comma, so "Ney attack Mack, Davout support him" was one order
+        # and the support's object "him" was looked up as a marshal).
+        _named_split = _comma_name_verb_split_re(game_state)
+        if not _COMMA_VERB_SPLIT_RE.search(command_text) and not (
+                _named_split and _named_split.search(command_text)):
             return None
         # WO-6's leading FILLER ("Ney, wait, march to Lorraine" — the `wait,`
         # is an interjection, and FA-R3 pins the sentence as a 2-AP march):
@@ -2012,7 +2250,11 @@ class CommandParser:
         _blanked = strip_leading_filler(command_text[_after:].lower())
         if _blanked != command_text[_after:].lower():
             filler_end = _after + (len(_blanked) - len(_blanked.lstrip(" ")))
-        for match in _COMMA_VERB_SPLIT_RE.finditer(command_text):
+        _boundaries = list(_COMMA_VERB_SPLIT_RE.finditer(command_text))
+        if _named_split:
+            _boundaries += list(_named_split.finditer(command_text))
+        _boundaries.sort(key=lambda mm: mm.start())
+        for match in _boundaries:
             if match.start() < filler_end:
                 continue
             first = command_text[:match.start()].strip().rstrip(',;')
@@ -2083,7 +2325,39 @@ class CommandParser:
             if promoted_text != command_text:
                 command_text = promoted_text
                 promoted = True
+        # SF-CMD-1 W2 (Oct 3, 2026): the contingency phrasings the engine can
+        # hold, said in its own words BEFORE any reader sees the line — the
+        # arrival idiom ("… when you get there" is the tail), the engagement
+        # clause ("once Ney engages Mack, hit his flank" is SUPPORT Ney) and
+        # the halt tail ("but stop if Mack turns on you" is the contact
+        # interrupt's own rule, dropped with a note on the `warning` seam).
+        # The premise ("if Mack is still in Swabia, …") is read in main.py,
+        # which holds the world to check it against.
+        from backend.ai.condition_grammar import (
+            HALT_TAIL_NOTE, rewrite_engagement_support, strip_arrival_idiom,
+            strip_halt_tail)
+        _rewritten = False
+        # the fresh census (Oct 3, 2026): "hit Mack" is an attack when Mack is
+        # a foe the parser knows; "send Murat after Mack" is Murat's pursuit.
+        command_text, _plain = rewrite_plain_attack_forms(command_text, game_state)
+        command_text, _arr = strip_arrival_idiom(command_text)
+        command_text, _friend = rewrite_engagement_support(
+            command_text, _player_marshal_names(game_state))
+        command_text, _halt_tail = strip_halt_tail(command_text)
+        # (`_plain` is NOT restored: the pledge/hit forms rewrite the record
+        # too, as NP-1's normalisation does — the executor's addressee gate
+        # reads `raw_command`, and 'Pledge France' is no officer of ours.)
+        _rewritten = bool(_arr or _friend or _halt_tail)
         result = self._parse_text(command_text, game_state, world)
+        if _rewritten and isinstance(result, dict):
+            result["raw_input"] = typed_text
+            command = result.get("command")
+            if isinstance(command, dict):
+                command["raw_command"] = typed_text
+            if _halt_tail and result.get("success"):
+                note = HALT_TAIL_NOTE.format(tail=_halt_tail)
+                result["warning"] = (f"{result['warning']} {note}"
+                                     if result.get("warning") else note)
         if (typo_note or promoted) and isinstance(result, dict):
             result["raw_input"] = typed_text
             command = result.get("command")
@@ -2144,6 +2418,19 @@ class CommandParser:
             # fuzzy matching and strategic detection agree by construction.
             # Dormant unless the player roster holds a sovereign.
             _sovereign = _find_player_sovereign(world, game_state)
+            # SF-CMD-1 W6 (Oct 3, 2026): an EPITHET is a name the game itself
+            # printed — "Iron Marshal, dig in", "the Bravest of the Brave,
+            # attack Mack". Rewritten to the man's roster name before every
+            # downstream stage, from the scenario's own authored ability names
+            # plus the two famous nicknames; a title the board does not carry
+            # ("Prince of Moskowa") stays refused.
+            command_text = rewrite_epithets(command_text, game_state, world)
+            # SF-CMD-1 W7 (Oct 3, 2026): "Emperor to Rhineland" / "Ney to
+            # Swabia" — the telegraphic march. Only a roster name (or the
+            # sovereign's title) at the head and a province the map knows at
+            # the end; everything else is left alone.
+            command_text = rewrite_telegraphic_march(command_text, game_state, world,
+                                                     _sovereign)
             if _sovereign:
                 command_text = normalize_sovereign_address(
                     command_text, _sovereign)
@@ -2158,11 +2445,21 @@ class CommandParser:
             # text keeps its historical behavior.
             effective_text = command_text
             dropped_sequel = None
-            sequel_split = _split_sequential_orders(command_text, game_state)
-            if sequel_split is None:
+            # SF-CMD-1 W1 (Oct 3, 2026): A QUESTION IS NEVER SPLIT. "how do
+            # Davout and Bernadotte get on" was cut at "and Bernadotte" into a
+            # first clause "how do Davout" — the relationship question never
+            # reached the desk and the tail was reported dropped. The shared
+            # question verdict (CRT-3's) is read before any sequel split.
+            from backend.ai.clause_guards import is_question as _is_q
+            from backend.ai.llm_client import _question_subjects as _q_subjects
+            _asks = A_QUESTION_IS_NEVER_SPLIT and _is_q(
+                command_text, _q_subjects(game_state))
+            sequel_split = (None if _asks
+                            else _split_sequential_orders(command_text, game_state))
+            if sequel_split is None and not _asks:
                 sequel_split = self._and_clause_is_a_second_order(
                     command_text, game_state)
-            if sequel_split is None:
+            if sequel_split is None and not _asks:
                 sequel_split = self._comma_clause_is_a_second_order(
                     command_text, game_state)
             if sequel_split is not None:
@@ -2176,6 +2473,17 @@ class CommandParser:
                 if self.llm.fast_parse(first_clause, game_state).action != "unknown":
                     effective_text = first_clause
                     dropped_sequel = sequel_tail
+
+            # SF-CMD-1 W3 (Oct 3, 2026): the COLLECTIVE address — "Ney,
+            # Davout, Soult: everyone converge on Swabia". FA-50's rule stands
+            # (one order at a time): the first man takes the order and the
+            # rest ride the relay as "<Davout, Soult>: <the same order>", so
+            # the next seal issues it to the next man.
+            if sequel_split is None and not _asks:
+                sequel_split = _split_collective_address(command_text, game_state)
+                if sequel_split is not None:
+                    effective_text, dropped_sequel = sequel_split
+                    sequel_split = None
 
             # Step 1: Use LLM to parse natural language
             llm_result = self.llm.parse_command(effective_text, game_state)
@@ -2513,6 +2821,19 @@ class CommandParser:
                     # (measured: "Mack blocks the path at Swabia", a retreat
                     # plotted toward the guns). "fall back to X" keeps its
                     # march; "Ney, retreat" was never upgraded.
+                    # SF-CMD-1 W7 / CRT-6 (Oct 3, 2026): "Ney, fall back - I
+                    # don't like Swabia" — the mock read a RETREAT (no
+                    # destination preposition) and the strategic table's bare
+                    # "fall back" minted a MOVE_TO to the province "- I Don't
+                    # Like Swabia", refused for want of a destination. When the
+                    # mock has already read a bare retreat, the strategic
+                    # upgrade is dropped whatever the tail says.
+                    if (strategic and A_BARE_RETREAT_IS_A_RETREAT
+                            and A_REASON_TAIL_IS_NOT_A_DESTINATION
+                            and str(llm_result.get("action") or "") == "retreat"
+                            and strategic.get("strategic_type") == "MOVE_TO"
+                            and not _names_a_destination_preposition(effective_text)):
+                        strategic = None
                     if (strategic and A_BARE_RETREAT_IS_A_RETREAT
                             and _resolved_action == "retreat"
                             and strategic.get("strategic_type") == "MOVE_TO"

@@ -370,7 +370,7 @@ The Train des Équipages authored second in France's deck (3,500 / 200, a cure o
 **Visual proof.**
 - `tools/iq10_capture_payloads.py` gains `cap_laws()`. It stages four boards: the tab at boot; the Staff in force; a forecast naming a doomed law; a rival's laws on its nation card.
 - Each is rendered at Interface Scale 1.0 and 2.0, and the machine record must show no overflow. The frames are committed, dated.
-- The user's visual sign-off closes RF-4.
+- ~~The user's visual sign-off closes RF-4.~~ ✅ **RF-4 SIGNED OFF October 3, 2026** — self-served under the user's "close open items like visual sign-offs" direction: the LAWS tab at boot, the Staff in force, the FORECAST leading the tab with its "Repeal the Code Abroad instead" chip, the rival nation's Laws line (frames dated 2026_09_27, both scales) read frame by frame — no overflow, the figures legible, the chip reasons on their own lines.
 
 **Bandwidth.** The client work grows from 0.4 to 1.0 session, split across RF-4a, RF-4b and RF-4c (§12).
 

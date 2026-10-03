@@ -11952,6 +11952,17 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     ultimatum_global_cd = getattr(world, 'ultimatum_global_cooldown', 0)
     relation = world.nation_relations.get(diplo_key, 0)
 
+    def _boot_bond_break_reason(bond_state: str) -> str:
+        """CQ-36 / CRT-8 (SF-CMD-1 part (ii), Oct 3, 2026): the Break row for
+        a bond the scenario authored as a diplomatic STATE with no treaty
+        record (France–Spain, France–Bavaria at the 1805 boot) stays dimmed —
+        and says why honestly. "No active treaty" beside an ALLIANCE read as
+        a contradiction; the executor's own refusal was the same lie one
+        screen over. Downgrade is the lever that moves such a bond."""
+        pretty = str(bond_state or "").replace("_", " ").lower()
+        return (f"An {pretty} of 1805, not a treaty of ours — there is nothing "
+                f"to break; Downgrade loosens it.")
+
     def _proposal_action(action_key: str, display: str, target_state: str):
         base_cost = get_transition_dp_cost(state, target_state)
         cost = get_dp_cost(action_key, tal_skill, transition_base=base_cost)
@@ -12280,7 +12291,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         has_treaty = diplo_key in active_treaties
         bt_available = dp >= 1 and has_treaty
-        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        bt_reason = "" if bt_available else (_boot_bond_break_reason(state) if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         ult_available = True
@@ -12304,7 +12315,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         has_treaty = diplo_key in active_treaties
         bt_available = dp >= 1 and has_treaty
-        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        bt_reason = "" if bt_available else (_boot_bond_break_reason(state) if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         ult_available = True
@@ -12328,7 +12339,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         has_treaty = diplo_key in active_treaties
         bt_available = dp >= 1 and has_treaty
-        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        bt_reason = "" if bt_available else (_boot_bond_break_reason(state) if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
@@ -12359,7 +12370,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         has_treaty = diplo_key in active_treaties
         bt_available = dp >= 1 and has_treaty
-        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        bt_reason = "" if bt_available else (_boot_bond_break_reason(state) if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         # WO-D2/G1 contract 8, RECORDED DECISION: `mission_improve_relations`

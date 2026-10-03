@@ -379,6 +379,10 @@ class TestTheSweepIsUnmoved:
         assert importers == {
             "backend/ai/strategic_parser.py", "backend/commands/strategic_executor.py",
             "backend/game_logic/ledger.py", "backend/main.py",
+            # SF-CMD-1 W2 (Oct 3, 2026): the parser reads the contingency
+            # phrasings (the arrival idiom, the engagement clause, the halt
+            # tail) from the ONE vocabulary before any other reader.
+            "backend/commands/parser.py",
             # CR-7-9: the all-of progress beat names the arms still waited
             # for from the ONE sentence (`describe_condition(only_unmet=True)`).
             "backend/commands/strategic.py",

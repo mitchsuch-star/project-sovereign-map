@@ -713,7 +713,9 @@ class TestEveryEndTurnPhrasingMeetsTheGate:
         set lives in `tests/test_fa_slice1_the_two_words_2026_09_02.py`.
         """
         from backend.ai.clause_guards import END_TURN_PHRASINGS
-        assert END_TURN_PHRASINGS == ("end turn", "end_turn", "next turn")
+        # SF-CMD-1 W3 (Oct 3, 2026) widened the tuple consciously; the
+        # original three still lead it.
+        assert END_TURN_PHRASINGS[:3] == ("end turn", "end_turn", "next turn")
         src = _read("backend/ai/llm_client.py")
         assert "elif is_bare_end_turn(command_lower):" in src, (
             "the parser arm moved — re-derive the client's list")

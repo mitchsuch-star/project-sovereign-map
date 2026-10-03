@@ -1117,7 +1117,10 @@ class TestAuditFixes:
         actions = get_available_diplomatic_actions(world, "Austria")
         bt = next(a for a in actions if a["action"] == "break_treaty")
         assert bt["available"] is False
-        assert "No active treaty" in bt["disabled_reason"]
+        # SF-CMD-1 (ii) / CQ-36 (Oct 3, 2026): the reason is honest now — a
+        # bond the scenario authored with no treaty record is "of 1805, not
+        # a treaty of ours"; the row stays dimmed as it did.
+        assert "not a treaty of ours" in bt["disabled_reason"]
 
     def test_break_treaty_with_active_treaties_available(self):
         """Break Treaty should be available when active_treaties entry exists."""

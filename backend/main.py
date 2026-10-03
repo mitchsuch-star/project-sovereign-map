@@ -892,6 +892,9 @@ def _message_with_suggestion(result: dict) -> str:
 
 _COMMAND_RESULT_SIMPLE_FIELDS = (
     "show_load_dialog",
+    # SF-CMD-1 W3 (Oct 3, 2026): "reward Lannes" — the client opens his
+    # Reward dialog off this key.
+    "open_reward_for",
     # CR-7-3: the relay keys ride the ordinary /command response (the early
     # returns carry them through `**extra`; this whitelist is the main path).
     # `relay_command` is absent — not null — on every kind but `ready`, which
@@ -3314,6 +3317,28 @@ def execute_command(request: CommandRequest):
         # Parse command
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()
+        # SF-CMD-1 W2 (Oct 3, 2026): A PREMISE IS CHECKED AT ISSUANCE. "if Mack
+        # is still in Swabia, attack him" is an order about the present board,
+        # not a contingency: the premise is read off the sentence (pure), then
+        # checked here against what the player can SEE — true, the rest runs
+        # now; false or unseen, the order is refused free by name.
+        _premise = None
+        try:
+            from backend.ai.condition_grammar import (A_PREMISE_IS_CHECKED_AT_ISSUANCE,
+                                                      premise_refusal, split_premise)
+            if A_PREMISE_IS_CHECKED_AT_ISSUANCE:
+                _enemy_names = [m.name for m in world.marshals.values()
+                                if m.nation != world.player_nation]
+                command_text, _premise = split_premise(
+                    command_text, _enemy_names, list(world.regions.keys()))
+                if _premise:
+                    _premise_block = premise_refusal(world, _premise)
+                    if _premise_block:
+                        return build_base_response(
+                            world, success=False, message=_premise_block,
+                            refusal="premise", free_action=True)
+        except Exception as _exc:
+            print(f"[PREMISE] {_exc}")
         parsed = parser.parse(command_text, llm_game_state, world=world)
         # FA-39: record the PLAYER's own parse. Deliberately NOT the CR-5
         # delegation re-issues further down — those re-parse a sentence the
@@ -3858,13 +3883,43 @@ def execute_command(request: CommandRequest):
                     else:
                         _named = (f" until '{_clause}' comes to pass"
                                   if _clause else " until the enemy moves")
+                        # SF-CMD-1 W2 (Oct 3, 2026): a condition on the
+                        # ENEMY's movement ("if he moves", "should Mack
+                        # advance") is answered with the road that follows
+                        # him — pursue — not with a hold on a friend's
+                        # arrival.
+                        _foe_named = parsed.get("partial_target") or ""
+                        if not _foe_named:
+                            # the enemy the sentence NAMES, by the printed form
+                            from backend.ai.llm_client import name_match_patterns as _nmp
+                            _low = (command_text or "").lower()
+                            for _m in world.marshals.values():
+                                if _m.nation == world.player_nation:
+                                    continue
+                                if any(re.search(r"\b" + re.escape(p.lower()) + r"\b", _low)
+                                       for p in _nmp(_m.name)):
+                                    from backend.display_names import humanize_entity_name as _hn
+                                    _foe_named = _hn(_m.name)
+                                    break
+                        _enemy_moves = bool(re.search(
+                            r"\b(?:he|she|they|it|the\s+enemy|[A-Z][\w'’-]+)\s+"
+                            r"(?:moves?|advances?|marches|comes|turns|attacks?|"
+                            r"retreats?|withdraws?|leaves?|stirs?|shifts?)\b",
+                            _clause or ""))
+                        _road = "'hold until Davout arrives'"
+                        if _enemy_moves:
+                            _road += (f"; the road that follows him is 'pursue {_foe_named}' — "
+                                      f"the pursuit follows him wherever he goes and attacks on contact"
+                                      if _foe_named else
+                                      "; the road that follows an enemy is 'pursue <him>' — "
+                                      "the pursuit attacks on contact wherever he goes")
                         refusal_msg = (
                             f"Berthier sets down his pen. \"Sire, that is a "
                             f"contingency, not an order — I have no way to hold a "
                             f"dispatch{_named}. Nothing has been "
                             f"relayed. Give me the order for THIS turn and I shall "
                             f"carry it at once; a standing order I can hold is "
-                            f"'hold until Davout arrives'.\"")
+                            f"{_road}.\"")
                 elif parsed["refusal"] == "condition":
                     # CR-7-4: a condition the engine READ and cannot meet —
                     # an unmet referent, a hold of no turns, a turn behind
