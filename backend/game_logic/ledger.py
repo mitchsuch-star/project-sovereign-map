@@ -684,6 +684,26 @@ def why_the_bills_moved(world, nation: str, upkeep_data: dict,
     return out
 
 
+def chest_forecast(world, nation: str) -> dict:
+    """THE ONE projection of where a court's chest stands when this turn
+    ends: the live chest plus the ledger's own forecast Net
+    (`_build_economy` with no applied record — the forward projection the
+    LAWS tab and the end-turn banner already quote). `reforms.lapse_forecast`
+    reads it for the lapse rule; `war_council._restraint_block_reason`
+    reads it for the crisis OPENING (SF-LB-2b, October 3, 2026 — the chest
+    the council can SPEND is the turn's income, since the council sits
+    after the admin phase's spending and before the income phase). Never a
+    second copy: every reader of "the chest after this turn" comes here.
+
+    Returns {"chest": int, "net": int, "projected": int}."""
+    if nation == getattr(world, "player_nation", None):
+        chest = int(getattr(world, "gold", 0) or 0)
+    else:
+        chest = int((getattr(world, "nation_gold", {}) or {}).get(nation, 0) or 0)
+    net = int(_build_economy(world, nation).get("net", 0) or 0)
+    return {"chest": chest, "net": net, "projected": chest + net}
+
+
 def _build_economy(world, player: str, income_data: dict = None) -> dict:
     """Build economy section.
 

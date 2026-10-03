@@ -1221,3 +1221,57 @@ class TestSweepSeedIsNotEscapable:
         assert (hostile["derived"]["beats"] == bare["derived"]["beats"])
         assert (len(hostile["derived"]["pair_peaces"])
                 == len(bare["derived"]["pair_peaces"]))
+
+
+class TestTheStandingRuleOnCouncilWars:
+    """THE STANDING RULE (the user, October 3, 2026): a seeded game — a
+    council war, league, settlement or beat whose turn is the same on every
+    seed is a defect to measure and fix, not a fact to record. Arm C's
+    ten-seed sweep runs offline (`tools/ai_v_sweep.py`); in the suite the
+    rule reads the committed seven-seed probe record
+    (`docs/audits/probes/sf_lb2/`, SF-LB-2b's acceptance evidence) and binds
+    it to a LIVE run: the historical seed's recorded opening must be the
+    opening `hist1` plays."""
+
+    RECORD = REPO_ROOT / "docs" / "audits" / "probes" / "sf_lb2"
+
+    def _openings(self):
+        """The FIRST opening per pair per seed (a crisis can cool and re-open;
+        marengo's did — 5 then 10 — and the clause reads the first)."""
+        openings: dict = {}
+        for path in sorted(self.RECORD.glob("shipped_*.json")):
+            rec = json.loads(path.read_text(encoding="utf-8"))
+            for crisis in rec["crises_opened"]:
+                key = f"{crisis['coveter']}->{crisis['target']}"
+                prior = openings.setdefault(key, {}).get(rec["seed"])
+                turn = int(crisis["opened_turn"])
+                openings[key][rec["seed"]] = turn if prior is None else min(prior, turn)
+        return openings
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason=("The standing rule, MEASURED NOT MET October 3, 2026 after SF-LB-2b: "
+                "Prussia->Hanover's first opening reads turn 5 on six of seven seeds and 9 "
+                "on eylau (the ladder is climbed after turn 3-4 everywhere but eylau and "
+                "turn 4's projected chest reads 497 against the floor of 500 on Prussia's "
+                "seed-identical peacetime economy). SCORE_FINISH_SPEC.md §6 row 15, the "
+                "user's. Flips the day the record spans three turns."),
+    )
+    def test_every_pair_that_opens_on_three_seeds_spans_three_turns(self):
+        openings = self._openings()
+        assert openings, "the probe record is empty"
+        for pair, by_seed in openings.items():
+            if len(by_seed) >= 3:
+                assert len(set(by_seed.values())) >= 3, (pair, by_seed)
+
+    def test_the_record_is_the_live_boards_opening(self, hist1):
+        """The record is not a fact to record — it is what the engine plays:
+        the first turn `war_intents` carries Prussia's crisis on the live
+        historical run equals the record's historical opening."""
+        openings = self._openings()["Prussia->Hanover"]
+        live = next((int(row["war_intents"]["Prussia"]["opened_turn"])
+                     for row in hist1["turns"]
+                     if "Prussia" in row.get("war_intents", {})), None)
+        assert live is not None, "hist1 never carried a Prussian crisis"
+        assert live == openings["historical"], (live, openings)
+        assert len(hist1["derived"]["ai_initiated_wars"]) <= SWEEP_WAR_ALARM

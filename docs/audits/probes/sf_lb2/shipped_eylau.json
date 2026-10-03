@@ -14,6 +14,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 800,
+   "chest_forecast": 1214,
    "at_war": false,
    "outmatched": true
   },
@@ -30,6 +33,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 614,
+   "chest_forecast": 1128,
    "at_war": false,
    "outmatched": true
   },
@@ -46,6 +52,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 583,
+   "chest_forecast": 1152,
    "at_war": false,
    "outmatched": true
   },
@@ -62,6 +71,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 807,
+   "chest_forecast": 1356,
    "at_war": false,
    "outmatched": true
   },
@@ -78,6 +90,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 835,
+   "chest_forecast": 1413,
    "at_war": false,
    "outmatched": true
   },
@@ -94,6 +109,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 905,
+   "chest_forecast": 1475,
    "at_war": false,
    "outmatched": true
   },
@@ -110,6 +128,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 925,
+   "chest_forecast": 1445,
    "at_war": false,
    "outmatched": true
   },
@@ -126,6 +147,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 1187,
+   "chest_forecast": 1631,
    "at_war": false,
    "outmatched": true
   },
@@ -142,6 +166,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 1681,
+   "chest_forecast": 2125,
    "at_war": false,
    "outmatched": true
   },
@@ -158,6 +185,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 2050,
+   "chest_forecast": 2394,
    "at_war": false,
    "outmatched": true
   },
@@ -174,6 +204,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 2441,
+   "chest_forecast": 2770,
    "at_war": true,
    "outmatched": true
   },
@@ -190,6 +223,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 2746,
+   "chest_forecast": 3099,
    "at_war": true,
    "outmatched": true
   },
@@ -206,6 +242,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 3966,
+   "chest_forecast": 4998,
    "at_war": false,
    "outmatched": true
   },
@@ -222,6 +261,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 7637,
+   "chest_forecast": 7870,
    "at_war": false,
    "outmatched": false
   },
@@ -238,6 +280,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 4539,
+   "chest_forecast": 5510,
    "at_war": false,
    "outmatched": true
   },
@@ -254,6 +299,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 8070,
+   "chest_forecast": 8298,
    "at_war": false,
    "outmatched": false
   },
@@ -270,6 +318,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5234,
+   "chest_forecast": 6155,
    "at_war": false,
    "outmatched": true
   },
@@ -286,6 +337,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 8498,
+   "chest_forecast": 8721,
    "at_war": false,
    "outmatched": false
   },
@@ -302,6 +356,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 6484,
+   "chest_forecast": 7295,
    "at_war": false,
    "outmatched": true
   },
@@ -318,6 +375,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 8921,
+   "chest_forecast": 9138,
    "at_war": false,
    "outmatched": false
   },
@@ -334,6 +394,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 7541,
+   "chest_forecast": 8243,
    "at_war": false,
    "outmatched": true
   },
@@ -350,6 +413,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12266,
+   "chest_forecast": 12780,
    "at_war": false,
    "outmatched": false
   },
@@ -366,6 +432,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 9338,
+   "chest_forecast": 9550,
    "at_war": false,
    "outmatched": false
   },
@@ -382,6 +451,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8705,
+   "chest_forecast": 9297,
    "at_war": false,
    "outmatched": true
   },
@@ -398,6 +470,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12504,
+   "chest_forecast": 12947,
    "at_war": false,
    "outmatched": false
   },
@@ -414,6 +489,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 9550,
+   "chest_forecast": 9760,
    "at_war": false,
    "outmatched": false
   },
@@ -430,6 +508,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 9743,
+   "chest_forecast": 10214,
    "at_war": false,
    "outmatched": true
   },
@@ -446,6 +527,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13046,
+   "chest_forecast": 13451,
    "at_war": false,
    "outmatched": false
   },
@@ -462,6 +546,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 9760,
+   "chest_forecast": 9967,
    "at_war": false,
    "outmatched": false
   },
@@ -478,6 +565,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 10667,
+   "chest_forecast": 11030,
    "at_war": false,
    "outmatched": true
   },
@@ -494,6 +584,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5999,
+   "chest_forecast": 7343,
    "at_war": false,
    "outmatched": false
   },
@@ -510,6 +603,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 9967,
+   "chest_forecast": 10172,
    "at_war": false,
    "outmatched": false
   },
@@ -526,6 +622,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 10991,
+   "chest_forecast": 11264,
    "at_war": false,
    "outmatched": true
   },
@@ -542,6 +641,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 7365,
+   "chest_forecast": 8703,
    "at_war": false,
    "outmatched": false
   },
@@ -558,6 +660,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 10172,
+   "chest_forecast": 10374,
    "at_war": false,
    "outmatched": false
   },
@@ -574,6 +679,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11309,
+   "chest_forecast": 11519,
    "at_war": false,
    "outmatched": true
   },
@@ -590,6 +698,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8941,
+   "chest_forecast": 10320,
    "at_war": false,
    "outmatched": false
   },
@@ -606,6 +717,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 10374,
+   "chest_forecast": 10574,
    "at_war": false,
    "outmatched": false
   },
@@ -622,6 +736,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11572,
+   "chest_forecast": 11732,
    "at_war": false,
    "outmatched": true
   },
@@ -638,6 +755,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 7966,
+   "chest_forecast": 9508,
    "at_war": false,
    "outmatched": false
   },
@@ -654,6 +774,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 10574,
+   "chest_forecast": 10772,
    "at_war": false,
    "outmatched": false
   },
@@ -670,6 +793,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 10829,
+   "chest_forecast": 10994,
    "at_war": false,
    "outmatched": true
   },
@@ -686,6 +812,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8660,
+   "chest_forecast": 10193,
    "at_war": false,
    "outmatched": false
   },
@@ -702,6 +831,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 10772,
+   "chest_forecast": 10967,
    "at_war": false,
    "outmatched": false
   },
@@ -718,6 +850,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11008,
+   "chest_forecast": 11123,
    "at_war": false,
    "outmatched": true
   },
@@ -734,6 +869,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 9764,
+   "chest_forecast": 11166,
    "at_war": false,
    "outmatched": false
   },
@@ -750,6 +888,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 10967,
+   "chest_forecast": 11160,
    "at_war": false,
    "outmatched": false
   },
@@ -766,6 +907,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11167,
+   "chest_forecast": 11264,
    "at_war": false,
    "outmatched": true
   },
@@ -782,6 +926,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 10811,
+   "chest_forecast": 12370,
    "at_war": false,
    "outmatched": false
   },
@@ -798,6 +945,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 11160,
+   "chest_forecast": 11351,
    "at_war": false,
    "outmatched": false
   },
@@ -814,6 +964,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11324,
+   "chest_forecast": 11419,
    "at_war": false,
    "outmatched": true
   },
@@ -830,6 +983,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11476,
+   "chest_forecast": 12963,
    "at_war": false,
    "outmatched": false
   },
@@ -846,6 +1002,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 11351,
+   "chest_forecast": 11539,
    "at_war": false,
    "outmatched": false
   },
@@ -862,6 +1021,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11464,
+   "chest_forecast": 11544,
    "at_war": false,
    "outmatched": true
   },
@@ -878,6 +1040,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 10980,
+   "chest_forecast": 12476,
    "at_war": false,
    "outmatched": false
   },
@@ -894,6 +1059,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 11539,
+   "chest_forecast": 11725,
    "at_war": false,
    "outmatched": false
   },
@@ -910,6 +1078,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11588,
+   "chest_forecast": 11654,
    "at_war": false,
    "outmatched": true
   },
@@ -926,6 +1097,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12071,
+   "chest_forecast": 13428,
    "at_war": false,
    "outmatched": false
   },
@@ -942,6 +1116,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 11725,
+   "chest_forecast": 11909,
    "at_war": false,
    "outmatched": false
   },
@@ -958,6 +1135,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11706,
+   "chest_forecast": 11766,
    "at_war": false,
    "outmatched": true
   },
@@ -974,6 +1154,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12976,
+   "chest_forecast": 14174,
    "at_war": false,
    "outmatched": false
   },
@@ -990,6 +1173,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 11909,
+   "chest_forecast": 12091,
    "at_war": false,
    "outmatched": false
   },
@@ -1006,6 +1192,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11811,
+   "chest_forecast": 11860,
    "at_war": false,
    "outmatched": true
   },
@@ -1022,6 +1211,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13007,
+   "chest_forecast": 14099,
    "at_war": false,
    "outmatched": false
   },
@@ -1038,6 +1230,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 12091,
+   "chest_forecast": 12270,
    "at_war": false,
    "outmatched": false
   },
@@ -1054,6 +1249,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11904,
+   "chest_forecast": 11942,
    "at_war": false,
    "outmatched": true
   },
@@ -1070,6 +1268,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13489,
+   "chest_forecast": 14500,
    "at_war": false,
    "outmatched": false
   },
@@ -1086,6 +1287,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 12270,
+   "chest_forecast": 12447,
    "at_war": false,
    "outmatched": false
   },
@@ -1102,6 +1306,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 11995,
+   "chest_forecast": 12031,
    "at_war": false,
    "outmatched": true
   },
@@ -1118,6 +1325,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13333,
+   "chest_forecast": 14322,
    "at_war": false,
    "outmatched": false
   },
@@ -1134,6 +1344,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 12447,
+   "chest_forecast": 12622,
    "at_war": false,
    "outmatched": false
   },
@@ -1150,6 +1363,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12075,
+   "chest_forecast": 12102,
    "at_war": false,
    "outmatched": true
   },
@@ -1166,6 +1382,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13556,
+   "chest_forecast": 14462,
    "at_war": false,
    "outmatched": false
   },
@@ -1182,6 +1401,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 12622,
+   "chest_forecast": 12795,
    "at_war": false,
    "outmatched": false
   },
@@ -1198,6 +1420,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12146,
+   "chest_forecast": 12165,
    "at_war": false,
    "outmatched": true
   },
@@ -1214,6 +1439,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 14056,
+   "chest_forecast": 14900,
    "at_war": false,
    "outmatched": false
   },
@@ -1230,6 +1458,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 12795,
+   "chest_forecast": 12966,
    "at_war": false,
    "outmatched": false
   },
@@ -1246,6 +1477,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12218,
+   "chest_forecast": 12237,
    "at_war": false,
    "outmatched": true
   },
@@ -1262,6 +1496,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13638,
+   "chest_forecast": 14471,
    "at_war": false,
    "outmatched": false
   },
@@ -1278,6 +1515,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 12966,
+   "chest_forecast": 13135,
    "at_war": false,
    "outmatched": false
   },
@@ -1294,6 +1534,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12281,
+   "chest_forecast": 12293,
    "at_war": false,
    "outmatched": true
   },
@@ -1310,6 +1553,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13652,
+   "chest_forecast": 14435,
    "at_war": false,
    "outmatched": false
   },
@@ -1326,6 +1572,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 13135,
+   "chest_forecast": 13302,
    "at_war": false,
    "outmatched": false
   },
@@ -1342,6 +1591,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12337,
+   "chest_forecast": 12343,
    "at_war": false,
    "outmatched": true
   },
@@ -1358,6 +1610,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 14015,
+   "chest_forecast": 14739,
    "at_war": false,
    "outmatched": false
   },
@@ -1374,6 +1629,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 13302,
+   "chest_forecast": 13467,
    "at_war": false,
    "outmatched": false
   },
@@ -1390,6 +1648,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12395,
+   "chest_forecast": 12402,
    "at_war": false,
    "outmatched": true
   },
@@ -1406,6 +1667,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13415,
+   "chest_forecast": 14145,
    "at_war": false,
    "outmatched": false
   },
@@ -1422,6 +1686,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 13467,
+   "chest_forecast": 13630,
    "at_war": false,
    "outmatched": false
   },
@@ -1438,6 +1705,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 12455,
+   "chest_forecast": 12464,
    "at_war": false,
    "outmatched": true
   },
@@ -1454,6 +1724,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 13340,
+   "chest_forecast": 14043,
    "at_war": false,
    "outmatched": false
   },
@@ -1470,6 +1743,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 13630,
+   "chest_forecast": 13791,
    "at_war": false,
    "outmatched": false
   }

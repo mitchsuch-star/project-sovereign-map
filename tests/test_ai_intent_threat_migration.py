@@ -1234,7 +1234,37 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # shipped arm — no worse. The commanded arms are the exit's (SCORE_FINISH_SPEC
 # §3 Step 4's landing record).
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — SF-LB-2b "The Chest the Council Can Spend"
+# (October 3, 2026; SCORE_FINISH_SPEC.md §6 row 14, RULED — the slice MOVES
+# the series BY DESIGN: the crisis opens on the ladder's turn, not the
+# chest's). `tools/_sf_lb2b_series_arms.py`, ONE lever
+# (`war_council.THE_COUNCIL_SPENDS_THE_TURNS_INCOME`) set IN THE CHILD, the
+# opening's reads COUNTED (record = `tools/_sf_lb2b_series_arms_final.json`):
+#   0.   the lever DOWN ...................... the SF-LB-2 series above,
+#                                               BYTE-FOR-BYTE (the opening read
+#                                               `penniless` 5 times on
+#                                               Prussia>Hanover, opened on the
+#                                               sixth: turn 9)
+#   ALL. the lever UP (the shipped tree) ..... the series below, diverging at
+#                                               [21]: the opening read
+#                                               `penniless` ONCE (turn 4's
+#                                               projection, 497 against the
+#                                               floor of 500) and opened on
+#                                               turn 5; the war is declared on
+#                                               9 (was 11) and over by 12 (was
+#                                               14); the alarm's tail 7/4/1 at
+#                                               [21..23] is gone — Hanover
+#                                               falls before the league's
+#                                               business reaches it
+# The sole mover is the one lever (there is no other). Russia>Sweden stays
+# `busy` on every read (27), Sardinia>Austria `outmatched` (18) — the
+# forecast read opens nothing the live read forbade for any other cause.
+# Passive-France guard, stated honestly: the UNATTENDED France ends turn 40
+# with 3 provinces on both arms — no worse. Per-seed: this is the historical
+# seed's measurement; the seven-seed record is `docs/audits/probes/sf_lb2/`.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

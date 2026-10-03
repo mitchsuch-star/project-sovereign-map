@@ -710,7 +710,17 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert sr7d["arms"]["ALL"]["series"] == sflb2["prior"]
         assert sflb2["arms"]["0"]["series"] == sflb2["prior"]
-        assert BASELINE_SERIES == sflb2["arms"]["ALL"]["series"]
+        # RE-SEATED by SF-LB-2b "The Chest the Council Can Spend" (October 3,
+        # 2026): one more link — SF-LB-2's ALL arm is the prior record
+        # SF-LB-2b's arm 0 (the one lever down in the child) reproduces byte
+        # for byte, and SF-LB-2b's ALL arm (the shipped tree: the crisis opens
+        # on the ladder's turn) is the standing series
+        # (`tools/_sf_lb2b_series_arms_final.json`, two arms).
+        sflb2b = json.loads((ROOT / "tools" / "_sf_lb2b_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert sflb2["arms"]["ALL"]["series"] == sflb2b["prior"]
+        assert sflb2b["arms"]["0"]["series"] == sflb2b["prior"]
+        assert BASELINE_SERIES == sflb2b["arms"]["ALL"]["series"]
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

@@ -19,6 +19,11 @@ slice's harness: every row also records the ONE outmatched reading
 council opened (coveter, target, the turn and the RUNG it opened at) and
 every AI-initiated war with its declaration turn, and the aggregate reports
 them per seed — the acceptance's variance clause reads the opening turns.
+
+SF-LB-2b "The Chest the Council Can Spend" (October 3, 2026): every row also
+carries the OPENING's restraint read (`restraint_forecast`, the chest the
+court will have when the turn ends) beside the live one, with both chests;
+the aggregate reports the opening turns per seed and their spread.
 """
 from __future__ import annotations
 
@@ -40,6 +45,7 @@ def run(seed: str, turns: int) -> dict:
     from backend.game_logic import war_council as WC
     from backend.game_logic.intent import get_nation_intent
     from backend.game_logic.ai_diplomacy import get_refused_asks
+    from backend.game_logic.ledger import chest_forecast
     from backend.game_logic.turn_manager import TurnManager
     from backend.models.world_state import WorldState
 
@@ -78,6 +84,12 @@ def run(seed: str, turns: int) -> dict:
                 "refusals": len(refusals),
                 "ladder": bool(WC._ladder_climbed(world, nation, against)),
                 "restraint": WC._restraint_block_reason(world, nation, against),
+                # SF-LB-2b: the OPENING's read (the chest the court can spend)
+                # beside the live one, and both chests.
+                "restraint_forecast": WC._restraint_block_reason(
+                    world, nation, against, forecast=True),
+                "chest": int((getattr(world, "nation_gold", {}) or {}).get(nation, 0)),
+                "chest_forecast": int(chest_forecast(world, nation)["projected"]),
                 "at_war": bool(world.is_at_war(nation, against)),
                 "outmatched": bool(WC.holder_outmatched(world, nation, against)),
             })
@@ -132,6 +144,13 @@ def run(seed: str, turns: int) -> dict:
             "wars_at_end": wars}
 
 
+def _openings_by_pair(crises):
+    out = {}
+    for c in sorted(crises, key=lambda c: (int(c.get("opened_turn", 0)), str(c.get("coveter")))):
+        out.setdefault(f"{c['coveter']}->{c['target']}", []).append(int(c["opened_turn"]))
+    return out
+
+
 def aggregate(paths):
     out = {}
     for p in paths:
@@ -164,6 +183,12 @@ def aggregate(paths):
                 "ladder_climbed_turns": ladder_turns[:6],
             }
         out[d["seed"]] = {"ai_initiated_wars": d["ai_initiated_wars"],
+                          # SF-LB-2b: EVERY opening per pair (a crisis can cool and
+                          # re-open — marengo's did, 5 then 10) and the FIRST, which is
+                          # what the variance clause reads.
+                          "crisis_opening_turns": _openings_by_pair(d.get("crises_opened", [])),
+                          "first_opening_turn": {k: v[0] for k, v in
+                                                 _openings_by_pair(d.get("crises_opened", [])).items()},
                           "ai_initiated_wars_ever": d.get("ai_initiated_wars_ever"),
                           "wars_declared": d.get("wars_declared", []),
                           "crises_opened": d.get("crises_opened", []),

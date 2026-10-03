@@ -1106,6 +1106,8 @@ class TestTheAmbientBoard:
         # SF-LB-2 (October 3, 2026): unchanged at 32 — the Prussian campaign
         # names no province that collapses onto a marshal
         # (`tools/_sf_lb2_wo_attribution.py`, measured both arms).
+        # SF-LB-2b (October 3, 2026): unchanged at 32 on both arms
+        # (`tools/_sf_lb2b_wo_attribution.py`, measured).
         assert seams == {"_fuzzy_match_enemy": 32}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
@@ -1329,7 +1331,17 @@ class TestTheAmbientBoard:
         # 21 gated (the BASELINE_SERIES attribution block). With the five
         # SF-LB-2 levers down in the child this arm reads the SR-7d figure
         # again (`tools/_sf_lb2_wo_attribution.py`, measured).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 29, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
+        # SF-LB-2 record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 29, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # SF-LB-2b "The Chest the Council Can Spend" (October 3, 2026): the
+        # crisis opens on turn 5 (was 9) and the war runs 9–12 (was 11–14),
+        # re-timing this arm from index 15 — on the UNGATED board the earlier
+        # war happens to land the list on the SR-7d figures again (a
+        # coincidence of the alarm's arithmetic, not a reversion: the gated
+        # arm is the BASELINE_SERIES, which moved at [21]). With the SF-LB-2b
+        # lever down in the child the SF-LB-2 record above returns byte for
+        # byte (`tools/_sf_lb2b_wo_attribution.py`, measured).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -2038,6 +2050,8 @@ class TestTheAiIsNotFrozenInstead:
         # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
         # SF-LB-2 (October 3, 2026): unchanged, 32 / 0 on both arms
         # (`tools/_sf_lb2_wo_attribution.py`, measured).
+        # SF-LB-2b (October 3, 2026): unchanged, 32 / 0 on both arms
+        # (`tools/_sf_lb2b_wo_attribution.py`, measured).
         assert cooldowns["ungated"] == 32, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines)
         assert cooldowns["gated"] == 0, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package)
 

@@ -255,10 +255,20 @@ class TestTheOpeningAtCoerce:
         assert "Prussia" not in world.war_intents
 
     def test_the_coerce_road_needs_the_restraints_clear(self, world):
+        """RE-SEATED by SF-LB-2b "The Chest the Council Can Spend" (October
+        3, 2026): the OPENING reads the chest the court will have when the
+        turn ends (`ledger.chest_forecast`), so `penniless` at the opening
+        now means the PROJECTED chest under the floor — the live chest is
+        staged so that chest + this turn's Net = floor - 1 (the SF-LB-2 pin
+        had staged the live chest alone at floor - 1, which the forecast
+        read carries over by design — see TestTheChestTheCouncilCanSpend)."""
+        from backend.game_logic.ledger import chest_forecast
         _climb_ladder(world)
-        world.nation_gold["Prussia"] = WC.AI_WAR_TREASURY_FLOOR - 1
+        net = int(chest_forecast(world, "Prussia")["net"])
+        world.nation_gold["Prussia"] = WC.AI_WAR_TREASURY_FLOOR - 1 - net
         _fresh(world)
         assert WC._restraint_block_reason(world, "Prussia", "Hanover") == "penniless"
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover", forecast=True) == "penniless"
         _poll_next_turn(world)
         assert "Prussia" not in world.war_intents
         world.nation_gold["Prussia"] = 2000
@@ -654,6 +664,7 @@ class TestAFullLabelKeepsItsLastSighting:
 # ════════════════════════════════════════════════════════════════════════
 
 DRIVEN_SEEDS = ("historical", "austerlitz", "eylau")
+PROBE_RECORD_DIR = REPO_ROOT / "docs" / "audits" / "probes" / "sf_lb2"
 
 
 def _run_probe(seed: str, out_dir: Path) -> dict:
@@ -710,13 +721,282 @@ class TestTheDrivenBoard:
     @pytest.mark.xfail(
         strict=True,
         reason=("SF-LB-2 §6.4's variance clause — the crisis turn spans >= 3 turns across "
-                "the seeds — is MEASURED NOT MET (October 3, 2026): the opening waits on "
-                "Prussia's chest clearing AI_WAR_TREASURY_FLOOR at the council's "
-                "pre-income siting, which the unseeded economy reaches on turn 9 (10 on "
-                "marengo) on every seed. Not tuned, by the ruling's own instruction; put "
-                "to the user. This xfail flips the day the clause is met."),
+                "the seeds — is MEASURED NOT MET (October 3, 2026, twice). SF-LB-2 read "
+                "{9, 10}: the opening waited on Prussia's chest clearing AI_WAR_TREASURY_FLOOR "
+                "at the council's pre-income siting. SF-LB-2b (§6 row 14) made the opening "
+                "read the chest the court will have when the turn ends, and the FIRST "
+                "openings read {5, 9}: on six seeds the ladder (any two refused asks, "
+                "constant-driven) is climbed after turn 3 or 4 and turn 4's projection reads "
+                "497 against the floor of 500 on Prussia's seed-identical peacetime economy, "
+                "so turn 5 is the first turn both gates clear; eylau's second refusal lands on "
+                "turn 8. Marengo opens on 5, cools when its seeded weight dips below coerce "
+                "(turns 5-8) and re-opens on 10 — the war varies (declared 9 x5 / 11 / 12), "
+                "the opening does not. Not tuned; put to the user as §6 row 15 (seeded "
+                "patience on the design ask, recommended). This xfail flips the day the "
+                "clause is met."),
     )
     def test_the_crisis_turn_varies_across_seeds(self, records):
-        turns = {next(c for c in rec["crises_opened"] if c["coveter"] == "Prussia")["opened_turn"]
+        turns = {min(c["opened_turn"] for c in rec["crises_opened"] if c["coveter"] == "Prussia")
                  for rec in records.values()}
         assert len(turns) >= 3, turns
+
+    def test_the_opening_no_longer_waits_on_the_spent_purse(self, records):
+        """SF-LB-2b's own clause on the driven seeds: the FIRST opening is the
+        turn after the ladder first reads True on the after-turn snapshot
+        (both gates clear by then — on the historical seed turn 5, where the
+        SF-LB-2 tree waited to turn 9 on the pre-income chest). Eylau's
+        ladder is climbed after turn 8 and it opens on 9. A measurement on
+        each seed, not a schedule."""
+        for seed, rec in records.items():
+            opened = min(c["opened_turn"] for c in rec["crises_opened"] if c["coveter"] == "Prussia")
+            first_ladder = min(r["turn"] for r in rec["rows"]
+                               if r.get("nation") == "Prussia" and r.get("against") == "Hanover"
+                               and r["ladder"])
+            assert opened <= first_ladder + 2, (seed, opened, first_ladder)
+            assert opened < 9 or seed == "eylau", (seed, opened)
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason=("THE STANDING RULE (the user, October 3, 2026): a seeded game — a council "
+                "war whose turn is the same on every seed is a defect. Over the committed "
+                "seven-seed record Prussia->Hanover's FIRST opening reads turn 5 on six seeds "
+                "and 9 on eylau (SF-LB-2b's measurement; the cause is in "
+                "test_the_crisis_turn_varies_across_seeds). Flips the day the record spans "
+                "three turns for every pair that opens on three seeds."),
+    )
+    def test_the_seven_seed_record_spans_three_turns(self):
+        """Every coveter→target pair that opens on >= 3 seeds spans >= 3
+        distinct FIRST-opening turns. The record is the probe's own output
+        (`tools/_sf_lb1_fight_bar_probe.py --seed <s> --out
+        docs/audits/probes/sf_lb2/shipped_<s>.json`), re-run and overwritten
+        by the slice that moves it."""
+        openings = _first_openings_in_record()
+        assert "Prussia->Hanover" in openings
+        for pair, by_seed in openings.items():
+            if len(by_seed) >= 3:
+                assert len(set(by_seed.values())) >= 3, (pair, by_seed)
+
+    def test_the_record_is_seven_seeds_and_marengo_cooled_and_reopened(self):
+        """The record's shape, pinned so a re-run that loses it is noticed:
+        seven seeds; on marengo the first crisis (turn 5) cooled when the
+        seeded weight dipped below coerce and a second opened on turn 10 —
+        the one place on the record where the seed moves the campaign's
+        story, and why the WAR's turn spans three values while the opening
+        spans two."""
+        paths = sorted(PROBE_RECORD_DIR.glob("shipped_*.json"))
+        assert len(paths) == 7, [p.name for p in paths]
+        marengo = json.loads((PROBE_RECORD_DIR / "shipped_marengo.json").read_text(encoding="utf-8"))
+        prussian = [c["opened_turn"] for c in marengo["crises_opened"] if c["coveter"] == "Prussia"]
+        assert len(prussian) >= 2 and prussian[0] < prussian[1], prussian
+        war_turns = set()
+        for path in paths:
+            rec = json.loads(path.read_text(encoding="utf-8"))
+            for war in rec["wars_declared"]:
+                if war["attackers"] == ["Prussia"] and war["defenders"] == ["Hanover"]:
+                    war_turns.add(int(war["started_turn"]))
+        assert len(war_turns) >= 3, war_turns
+
+
+def _first_openings_in_record() -> dict:
+    openings: dict = {}
+    for path in sorted(PROBE_RECORD_DIR.glob("shipped_*.json")):
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        for crisis in rec["crises_opened"]:
+            key = f"{crisis['coveter']}->{crisis['target']}"
+            prior = openings.setdefault(key, {}).get(rec["seed"])
+            turn = int(crisis["opened_turn"])
+            openings[key][rec["seed"]] = turn if prior is None else min(prior, turn)
+    return openings
+
+# ════════════════════════════════════════════════════════════════════════
+# SF-LB-2b "The Chest the Council Can Spend" (SCORE_FINISH_SPEC.md §6 row 14,
+# RULED + BUILT October 3, 2026; rules SYSTEMS_REFERENCE.md §85.8)
+# ════════════════════════════════════════════════════════════════════════
+
+def _open_crisis_fixture(world, coveter="Prussia", holder="Hanover"):
+    """A fore-warned Prussian crisis on the record, two turns old, with the
+    ladder climbed — the declaration gate's own geometry."""
+    world.current_turn = 10  # the record's turn stamps must be positive
+    _climb_ladder(world, coveter, holder)
+    turn = int(world.current_turn)
+    world.war_intents = {coveter: {
+        "coveter": coveter, "target": holder, "design_id": "hanoverian_prize",
+        "want_title": "The Hanoverian Prize", "opened_turn": turn - 3,
+        "foregrounded": True, "foregrounded_turn": turn - 3,
+        "coerce_recorded_turn": turn - 2, "treaty_broken_turn": None,
+        "opened_at_price": "coerce",
+    }}
+    _fresh(world)
+
+
+class TestTheChestTheCouncilCanSpend:
+    def test_the_lever_down_is_the_live_read(self, world, monkeypatch):
+        """Lever down = SF-LB-2 byte for byte: `forecast=True` is inert."""
+        monkeypatch.setattr(WC, "THE_COUNCIL_SPENDS_THE_TURNS_INCOME", False)
+        world.nation_gold["Prussia"] = 120
+        _fresh(world)
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover") == "penniless"
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover", forecast=True) == "penniless"
+
+    def test_the_opening_reads_the_chest_the_court_can_spend(self, world):
+        """A court whose live chest is under the floor and whose income
+        carries it over OPENS (the forecast read is None); the live read
+        still says penniless — the two reads differ only at the chest."""
+        from backend.game_logic.ledger import chest_forecast
+        world.nation_gold["Prussia"] = 120
+        _fresh(world)
+        forecast = chest_forecast(world, "Prussia")
+        assert forecast["chest"] == 120
+        assert forecast["projected"] == 120 + forecast["net"]
+        assert forecast["net"] >= WC.AI_WAR_TREASURY_FLOOR - 120, forecast
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover") == "penniless"
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover", forecast=True) is None
+
+    def test_an_income_that_does_not_carry_it_is_still_penniless(self, world, monkeypatch):
+        """The forecast is a projection, not a waiver: a court whose chest
+        plus this turn's Net stays under the floor reads penniless on the
+        opening too."""
+        import backend.game_logic.ledger as LG
+        world.nation_gold["Prussia"] = 120
+        _fresh(world)
+        real = LG.chest_forecast
+
+        def starved(w, nation):
+            out = real(w, nation)
+            return {"chest": out["chest"], "net": 100, "projected": out["chest"] + 100}
+        monkeypatch.setattr(LG, "chest_forecast", starved)
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover", forecast=True) == "penniless"
+
+    def test_the_forecast_is_the_ledgers_own_net(self, world):
+        """ONE seam: the projection is the chest plus the Net the LAWS tab
+        and the end-turn banner quote (`ledger._build_economy` with no
+        applied record) — for the player's chest too."""
+        from backend.game_logic.ledger import _build_economy, chest_forecast
+        for nation, chest in (("Prussia", int(world.nation_gold["Prussia"])),
+                              (world.player_nation, int(world.gold))):
+            out = chest_forecast(world, nation)
+            assert out["chest"] == chest
+            assert out["net"] == int(_build_economy(world, nation)["net"])
+            assert out["projected"] == out["chest"] + out["net"]
+
+    def test_the_lapse_forecast_reads_the_same_seam(self, world, monkeypatch):
+        """`reforms.lapse_forecast` and the council read ONE projection —
+        move the seam and both move. Staged: the player's first authored
+        law is marked in force (no law is in force on the boot world — a
+        saving France buys the Staff on turn 7)."""
+        import backend.game_logic.ledger as LG
+        from backend.game_logic import reforms as RF
+        player = world.player_nation
+        row = RF.deck(world, player)[0]
+        row["enacted_turn"] = 1
+        assert RF.laws_in_force(world, player)
+        monkeypatch.setattr(LG, "chest_forecast",
+                            lambda w, n: {"chest": 10, "net": -5000, "projected": -4990})
+        doomed = RF.lapse_forecast(world, player)
+        assert doomed is not None and doomed["shortfall"] == 4990, doomed
+        assert "10" in doomed["line"] and "-5,000" in doomed["line"], doomed["line"]
+
+    def test_no_second_copy_of_the_projection(self):
+        """An AST census: `war_council.py` never calls `_build_economy`
+        (its chest read comes to the one seam), and `reforms.lapse_forecast`
+        — the projection's other reader — calls `chest_forecast` and never
+        `_build_economy`. (`reforms.ai_purse_refusal` reads the forecast NET
+        alone, a different question from "where does the chest stand when
+        the turn ends"; it is not a projection and is not counted.)"""
+        def _calls(node, name):
+            return [n for n in ast.walk(node) if isinstance(n, ast.Call)
+                    and getattr(n.func, "id", getattr(n.func, "attr", "")) == name]
+        wc = ast.parse((BACKEND / "game_logic" / "war_council.py").read_text(encoding="utf-8"))
+        assert not _calls(wc, "_build_economy")
+        assert _calls(wc, "chest_forecast"), "war_council never reads chest_forecast"
+        rf = ast.parse((BACKEND / "game_logic" / "reforms.py").read_text(encoding="utf-8"))
+        lapse = next(n for n in ast.walk(rf) if isinstance(n, ast.FunctionDef)
+                     and n.name == "lapse_forecast")
+        assert not _calls(lapse, "_build_economy"), "lapse_forecast grew its own projection"
+        assert _calls(lapse, "chest_forecast")
+
+    def test_the_opening_calls_the_forecast_read_and_the_declaration_does_not(self):
+        """The call-site census: inside `process_war_council`, exactly one
+        `_restraint_block_reason(...)` call passes `forecast=True` (step 3,
+        the opening) and the declaration's call (step 1) passes nothing."""
+        src = (BACKEND / "game_logic" / "war_council.py").read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
+                  and n.name == "process_war_council")
+        calls = [n for n in ast.walk(fn) if isinstance(n, ast.Call)
+                 and getattr(n.func, "id", "") == "_restraint_block_reason"]
+        assert len(calls) == 2, [c.lineno for c in calls]
+        forecast_flags = [any(k.arg == "forecast" and getattr(k.value, "value", None) is True
+                              for k in c.keywords) for c in calls]
+        assert sorted(forecast_flags) == [False, True], forecast_flags
+
+    def test_the_declaration_still_refuses_a_live_chest_under_the_floor(self, world):
+        """Step 1 keeps the live chest: a fore-warned crisis whose court holds
+        120 gold with an income that would clear the floor is NOT declared —
+        the soft block names `penniless`; with the chest filled the same
+        poll declares."""
+        _open_crisis_fixture(world)
+        world.nation_gold["Prussia"] = 120
+        _fresh(world)
+        assert WC._restraint_block_reason(world, "Prussia", "Hanover", forecast=True) is None
+        before = set(world.get_nations_at_war_with("Prussia"))
+        _quiet(process_war_council, world)
+        record = world.war_intents.get("Prussia")
+        assert record is not None and record.get("last_soft_block") == "penniless", record
+        assert set(world.get_nations_at_war_with("Prussia")) == before
+        world.nation_gold["Prussia"] = 2000
+        _fresh(world)
+        _quiet(process_war_council, world)
+        assert "Prussia" not in world.war_intents
+        assert "Hanover" in world.get_nations_at_war_with("Prussia")
+
+    def test_the_opening_opens_on_the_forecast(self, world):
+        """Step 3 end to end: the ladder climbed, the live chest at 120, the
+        income carrying it over — the crisis OPENS at coerce this poll (the
+        SF-LB-2 tree read penniless here)."""
+        _climb_ladder(world)
+        world.nation_gold["Prussia"] = 120
+        _fresh(world)
+        view = get_nation_intent("Prussia", world)
+        assert view.against == "Hanover" and crisis_rung_holds(world, "Prussia", view)
+        _quiet(process_war_council, world)
+        record = world.war_intents.get("Prussia")
+        assert record is not None and record["target"] == "Hanover", world.war_intents
+        assert record["opened_at_price"] == "coerce"
+
+    def test_lever_down_the_opening_waits_on_the_live_chest(self, world, monkeypatch):
+        monkeypatch.setattr(WC, "THE_COUNCIL_SPENDS_THE_TURNS_INCOME", False)
+        _climb_ladder(world)
+        world.nation_gold["Prussia"] = 120
+        _fresh(world)
+        _quiet(process_war_council, world)
+        assert "Prussia" not in world.war_intents
+
+    def test_every_court_reads_the_same_seam(self, world):
+        """GR5: the forecast arm is not Prussia's. Six courts pacified toward
+        France for the test, each with 50 gold live: every one reads
+        `penniless` live, and the OPENING's read is None exactly where the
+        court's own forecast Net carries 50 over the floor (measured at boot:
+        Russia 1,515 / Britain 3,647 / Spain 1,717 / Sweden 1,004 / the
+        Ottoman 1,808 carry it; Austria's 405 does not — 455 against 500, so
+        Vienna reads penniless on BOTH arms). Both verdicts are asserted
+        against the seam's own figure, never a list."""
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.ledger import chest_forecast
+        courts = ("Austria", "Russia", "Britain", "Spain", "Sweden", "Ottoman")
+        for court in courts:
+            for enemy in list(world.get_nations_at_war_with(court)):
+                set_diplomatic_state(world, enemy, court, "PEACE")
+            world.nation_gold[court] = 50
+        _fresh(world)
+        verdicts = {}
+        for court in courts:
+            projected = int(chest_forecast(world, court)["projected"])
+            assert WC._restraint_block_reason(world, court, "Hanover") == "penniless", court
+            fc = WC._restraint_block_reason(world, court, "Hanover", forecast=True)
+            expected = None if projected >= WC.AI_WAR_TREASURY_FLOOR else "penniless"
+            assert fc == expected, (court, projected, fc)
+            verdicts[court] = fc
+        # both arms are reachable on this board — a pin that only ever saw
+        # None (or only ever penniless) would be inert about the floor.
+        assert None in verdicts.values() and "penniless" in verdicts.values(), verdicts

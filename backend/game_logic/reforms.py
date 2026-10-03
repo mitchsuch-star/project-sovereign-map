@@ -844,10 +844,13 @@ def lapse_forecast(world, nation: str) -> Optional[Dict]:
     in_force = laws_in_force(world, nation)
     if not in_force:
         return None
-    from backend.game_logic.ledger import _build_economy
-    chest = _court_gold(world, nation)
-    net = int(_build_economy(world, nation).get("net", 0) or 0)
-    projected = chest + net
+    # SF-LB-2b: the ONE projection seam (`ledger.chest_forecast`) — the war
+    # council's crisis opening reads the same figure; never a second copy.
+    from backend.game_logic.ledger import chest_forecast
+    forecast = chest_forecast(world, nation)
+    chest = int(forecast["chest"])
+    net = int(forecast["net"])
+    projected = int(forecast["projected"])
     if projected >= 0:
         return None
     shortfall = -projected

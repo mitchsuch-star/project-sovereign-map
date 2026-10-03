@@ -1,0 +1,65 @@
+[
+ {
+  "id": "lever down: THE_COUNCIL_SPENDS_THE_TURNS_INCOME",
+  "file": "backend/game_logic/war_council.py",
+  "old": "THE_COUNCIL_SPENDS_THE_TURNS_INCOME = True",
+  "new": "THE_COUNCIL_SPENDS_THE_TURNS_INCOME = False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend"
+ },
+ {
+  "id": "the forecast arm reads the live chest",
+  "file": "backend/game_logic/war_council.py",
+  "old": "        treasury = int(chest_forecast(world, coveter)[\"projected\"])",
+  "new": "        treasury = int(chest_forecast(world, coveter)[\"chest\"])",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_reads_the_chest_the_court_can_spend tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_opens_on_the_forecast"
+ },
+ {
+  "id": "the forecast arm always clears",
+  "file": "backend/game_logic/war_council.py",
+  "old": "        treasury = int(chest_forecast(world, coveter)[\"projected\"])",
+  "new": "        treasury = int(chest_forecast(world, coveter)[\"projected\"]) + 100000",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_an_income_that_does_not_carry_it_is_still_penniless"
+ },
+ {
+  "id": "the opening call drops forecast=True",
+  "file": "backend/game_logic/war_council.py",
+  "old": "                if _restraint_block_reason(world, nation, target,\n                                           forecast=True) is not None:",
+  "new": "                if _restraint_block_reason(world, nation, target,\n                                           forecast=False) is not None:",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_calls_the_forecast_read_and_the_declaration_does_not tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_opens_on_the_forecast"
+ },
+ {
+  "id": "the declaration reads the forecast too",
+  "file": "backend/game_logic/war_council.py",
+  "old": "        soft_block = (\"ladder\" if not _ladder_climbed(world, coveter, target)\n                      else _restraint_block_reason(world, coveter, target))",
+  "new": "        soft_block = (\"ladder\" if not _ladder_climbed(world, coveter, target)\n                      else _restraint_block_reason(world, coveter, target, forecast=True))",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_declaration_still_refuses_a_live_chest_under_the_floor tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_calls_the_forecast_read_and_the_declaration_does_not"
+ },
+ {
+  "id": "chest_forecast projects the chest alone",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    return {\"chest\": chest, \"net\": net, \"projected\": chest + net}",
+  "new": "    return {\"chest\": chest, \"net\": net, \"projected\": chest}",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_forecast_is_the_ledgers_own_net tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_reads_the_chest_the_court_can_spend"
+ },
+ {
+  "id": "chest_forecast reads a zero net",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    net = int(_build_economy(world, nation).get(\"net\", 0) or 0)\n    return {\"chest\": chest, \"net\": net, \"projected\": chest + net}",
+  "new": "    net = 0\n    return {\"chest\": chest, \"net\": net, \"projected\": chest + net}",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_forecast_is_the_ledgers_own_net"
+ },
+ {
+  "id": "lapse_forecast grows its own copy",
+  "file": "backend/game_logic/reforms.py",
+  "old": "    from backend.game_logic.ledger import chest_forecast\n    forecast = chest_forecast(world, nation)\n    chest = int(forecast[\"chest\"])\n    net = int(forecast[\"net\"])\n    projected = int(forecast[\"projected\"])",
+  "new": "    from backend.game_logic.ledger import _build_economy\n    chest = _court_gold(world, nation)\n    net = int(_build_economy(world, nation).get(\"net\", 0) or 0)\n    projected = chest + net",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_no_second_copy_of_the_projection tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_lapse_forecast_reads_the_same_seam"
+ },
+ {
+  "id": "the floor at fifty thousand",
+  "file": "backend/game_logic/war_council.py",
+  "old": "AI_WAR_TREASURY_FLOOR = 500        # no bankrupt adventures",
+  "new": "AI_WAR_TREASURY_FLOOR = 50000        # no bankrupt adventures",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_opening_reads_the_chest_the_court_can_spend tests/test_sf_lb2_the_defenceless_prize.py::TestTheChestTheCouncilCanSpend::test_the_declaration_still_refuses_a_live_chest_under_the_floor"
+ }
+]

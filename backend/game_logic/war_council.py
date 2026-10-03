@@ -121,6 +121,20 @@ HOLDER_OUTMATCHED_FRACTION = 0.5   # blessed §6.4-1: "at most HALF"
 # restraint that APPEARS after the opening still cools the crisis on
 # screen (the soft stall). False = AI-3's fight-road opening byte for byte.
 A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE = True
+# SF-LB-2b "The Chest the Council Can Spend" (SCORE_FINISH_SPEC.md §6 row
+# 14, RULED October 3, 2026): the council sits AFTER the admin phase's
+# spending and BEFORE the income phase, so the chest it read at the
+# OPENING was the post-spending, pre-income purse — an AI court that
+# spends its whole purse every turn read `penniless` on every seed until
+# its unseeded economy cleared AI_WAR_TREASURY_FLOOR on the same turn
+# everywhere (Prussia→Hanover: turn 9 on six of seven seeds). With this
+# lever the OPENING (step 3) reads the chest the court will have when
+# this turn ends — the ledger's own projection, `ledger.chest_forecast`,
+# the ONE seam `reforms.lapse_forecast` reads (never a second copy); the
+# DECLARATION (step 1) keeps the live chest, so no bankrupt adventure is
+# ever declared. Every court reads the same seam (GR5). False = the
+# SF-LB-2 tree byte for byte (the turn-9 lockstep returns).
+THE_COUNCIL_SPENDS_THE_TURNS_INCOME = True
 
 # The §12.1 cause taxonomy for beat 7 (display strings composed
 # backend-side, R7), widened by AI-3r §2.5-1 + ruling R2: every cause the
@@ -555,7 +569,8 @@ def _ladder_climbed(world, coveter: str, target: str) -> bool:
     return len(get_refused_asks(world, coveter, target)) >= CRISIS_REFUSALS_REQUIRED
 
 
-def _restraint_block_reason(world, coveter: str, target: str) -> Optional[str]:
+def _restraint_block_reason(world, coveter: str, target: str,
+                            forecast: bool = False) -> Optional[str]:
     """§4.3's restraint gates, decomposed so beat 7 can name the TRUE
     cause (§2.5-1's honesty pin): None while all gates clear, else
     "busy" / "penniless" / "outmatched" / "exposed".
@@ -565,10 +580,21 @@ def _restraint_block_reason(world, coveter: str, target: str) -> Optional[str]:
     with Austria armed and cold on its flank cannot campaign in Hanover;
     Prussia after Austria is beaten, bankrupt or friendly can. The
     defender defends with everything — `theirs` stays standing strength.
+
+    SF-LB-2b — `forecast=True` is the OPENING's read (step 3): the
+    `penniless` gate weighs the chest the court will have when this turn
+    ends (`ledger.chest_forecast`, the ONE projection seam), because the
+    council sits between the admin phase's spending and the income phase.
+    The declaration (step 1) and every other caller keep the live chest.
+    Lever-gated: with `THE_COUNCIL_SPENDS_THE_TURNS_INCOME` down the
+    parameter is inert.
     """
     if world.get_nations_at_war_with(coveter):
         return "busy"  # a court already at war opens no second design war
     treasury = int((getattr(world, "nation_gold", {}) or {}).get(coveter, 0))
+    if forecast and THE_COUNCIL_SPENDS_THE_TURNS_INCOME:
+        from backend.game_logic.ledger import chest_forecast
+        treasury = int(chest_forecast(world, coveter)["projected"])
     if treasury < AI_WAR_TREASURY_FLOOR:
         return "penniless"
     own = _standing_strength(world, coveter)
@@ -1085,7 +1111,11 @@ def process_war_council(world) -> List[Dict]:
                 # so a defenceless prize never fore-warns a war its court
                 # cannot wage — and, under the addendum lever, the fight
                 # road reads the same predicate (pin 15, one gate over).
-                if _restraint_block_reason(world, nation, target) is not None:
+                # SF-LB-2b: the OPENING reads the chest the court can
+                # SPEND — the turn's income forecast (`forecast=True`);
+                # the declaration above keeps the live chest.
+                if _restraint_block_reason(world, nation, target,
+                                           forecast=True) is not None:
                     continue
             preview = can_declare_war(world, nation, target)
             if not preview["ok"] and preview["reason"] != "treaty_in_the_way":

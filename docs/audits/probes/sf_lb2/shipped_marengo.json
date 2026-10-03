@@ -14,6 +14,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 700,
+   "chest_forecast": 1105,
    "at_war": true,
    "outmatched": true
   },
@@ -30,6 +33,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 800,
+   "chest_forecast": 1214,
    "at_war": false,
    "outmatched": true
   },
@@ -46,6 +52,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 507,
+   "chest_forecast": 1006,
    "at_war": true,
    "outmatched": true
   },
@@ -62,6 +71,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 514,
+   "chest_forecast": 928,
    "at_war": false,
    "outmatched": true
   },
@@ -78,6 +90,9 @@
    "refusals": 0,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 845,
+   "chest_forecast": 1403,
    "at_war": true,
    "outmatched": true
   },
@@ -94,6 +109,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 658,
+   "chest_forecast": 1127,
    "at_war": false,
    "outmatched": true
   },
@@ -110,6 +128,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": "penniless",
+   "restraint_forecast": null,
+   "chest": 497,
+   "chest_forecast": 986,
    "at_war": false,
    "outmatched": true
   },
@@ -126,6 +147,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 800,
+   "chest_forecast": 1328,
    "at_war": false,
    "outmatched": true
   },
@@ -142,6 +166,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 788,
+   "chest_forecast": 1276,
    "at_war": false,
    "outmatched": true
   },
@@ -158,6 +185,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 716,
+   "chest_forecast": 1144,
    "at_war": false,
    "outmatched": true
   },
@@ -174,6 +204,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 879,
+   "chest_forecast": 1267,
    "at_war": false,
    "outmatched": true
   },
@@ -190,6 +223,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 1297,
+   "chest_forecast": 1665,
    "at_war": false,
    "outmatched": true
   },
@@ -206,6 +242,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 1715,
+   "chest_forecast": 2083,
    "at_war": false,
    "outmatched": true
   },
@@ -222,6 +261,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": null,
+   "restraint_forecast": null,
+   "chest": 2008,
+   "chest_forecast": 2276,
    "at_war": false,
    "outmatched": true
   },
@@ -238,6 +280,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 2325,
+   "chest_forecast": 2582,
    "at_war": true,
    "outmatched": true
   },
@@ -254,6 +299,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 1921,
+   "chest_forecast": 2218,
    "at_war": true,
    "outmatched": true
   },
@@ -270,6 +318,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 7108,
+   "chest_forecast": 7712,
    "at_war": false,
    "outmatched": true
   },
@@ -286,6 +337,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 6940,
+   "chest_forecast": 7529,
    "at_war": false,
    "outmatched": true
   },
@@ -302,6 +356,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 6738,
+   "chest_forecast": 7342,
    "at_war": false,
    "outmatched": true
   },
@@ -318,6 +375,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5722,
+   "chest_forecast": 6422,
    "at_war": false,
    "outmatched": true
   },
@@ -334,6 +394,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5621,
+   "chest_forecast": 6332,
    "at_war": false,
    "outmatched": true
   },
@@ -350,6 +413,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5138,
+   "chest_forecast": 5865,
    "at_war": false,
    "outmatched": true
   },
@@ -366,6 +432,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5009,
+   "chest_forecast": 5750,
    "at_war": false,
    "outmatched": true
   },
@@ -382,6 +451,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5195,
+   "chest_forecast": 5916,
    "at_war": false,
    "outmatched": true
   },
@@ -398,6 +470,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5676,
+   "chest_forecast": 6359,
    "at_war": false,
    "outmatched": true
   },
@@ -414,6 +489,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 5931,
+   "chest_forecast": 6561,
    "at_war": false,
    "outmatched": true
   },
@@ -430,6 +508,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 6622,
+   "chest_forecast": 7191,
    "at_war": false,
    "outmatched": true
   },
@@ -446,6 +527,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 6763,
+   "chest_forecast": 7292,
    "at_war": false,
    "outmatched": true
   },
@@ -462,6 +546,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 7336,
+   "chest_forecast": 7801,
    "at_war": false,
    "outmatched": true
   },
@@ -478,6 +565,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 7845,
+   "chest_forecast": 8253,
    "at_war": false,
    "outmatched": true
   },
@@ -494,6 +584,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8313,
+   "chest_forecast": 8684,
    "at_war": false,
    "outmatched": true
   },
@@ -510,6 +603,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8272,
+   "chest_forecast": 8640,
    "at_war": false,
    "outmatched": true
   },
@@ -526,6 +622,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8684,
+   "chest_forecast": 9006,
    "at_war": false,
    "outmatched": true
   },
@@ -542,6 +641,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 9058,
+   "chest_forecast": 9346,
    "at_war": false,
    "outmatched": true
   },
@@ -558,6 +660,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 9390,
+   "chest_forecast": 9641,
    "at_war": false,
    "outmatched": true
   },
@@ -574,6 +679,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8467,
+   "chest_forecast": 8501,
    "at_war": false,
    "outmatched": false
   },
@@ -590,6 +698,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 23475,
+   "chest_forecast": 23518,
    "at_war": false,
    "outmatched": false
   },
@@ -606,6 +717,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 9685,
+   "chest_forecast": 9903,
    "at_war": false,
    "outmatched": true
   },
@@ -622,6 +736,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8055,
+   "chest_forecast": 8141,
    "at_war": false,
    "outmatched": false
   },
@@ -638,6 +755,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 23918,
+   "chest_forecast": 23955,
    "at_war": false,
    "outmatched": false
   },
@@ -654,6 +774,9 @@
    "refusals": 2,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 9475,
+   "chest_forecast": 9692,
    "at_war": false,
    "outmatched": true
   },
@@ -670,6 +793,9 @@
    "refusals": 1,
    "ladder": true,
    "restraint": "busy",
+   "restraint_forecast": "busy",
+   "chest": 8496,
+   "chest_forecast": 8494,
    "at_war": false,
    "outmatched": false
   },
@@ -686,6 +812,9 @@
    "refusals": 1,
    "ladder": false,
    "restraint": "outmatched",
+   "restraint_forecast": "outmatched",
+   "chest": 24355,
+   "chest_forecast": 24387,
    "at_war": false,
    "outmatched": false
   }
@@ -707,6 +836,12 @@
   }
  ],
  "crises_opened": [
+  {
+   "coveter": "Prussia",
+   "target": "Hanover",
+   "opened_turn": 5,
+   "opened_at_price": "coerce"
+  },
   {
    "coveter": "Prussia",
    "target": "Hanover",
