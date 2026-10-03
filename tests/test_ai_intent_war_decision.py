@@ -260,16 +260,30 @@ class TestCrisisPasses:
         # AI-3r re-anchor: the guarantor must be AT PEACE — a busy
         # guarantor's pledge is hollow (the N3 allies-committed +6 eats
         # most of the -8 deterrent, a deliberate interplay pinned in
-        # test_ai_war_decision_ai3r.py). Saxony stands idle.
-        pledge_guarantee(world, guarantor="Saxony", protected="Hanover")
+        # test_ai_war_decision_ai3r.py). Saxony stood idle here until:
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4. Saxony's
+        # small army cannot lift an army-less Hanover out of the outmatched
+        # reading (97 - 8 = 89, still fight), so the guarantor that deters
+        # is the one whose army enters Hanover's scale — the player's own
+        # pledge, the ruling's named counter (France at peace with Hanover).
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        from backend.game_logic.war_council import holder_outmatched
+        assert holder_outmatched(world, "Prussia", "Hanover")
+        # A guarantor AT WAR pledges hollow (N3's +6 against the -8): the
+        # Emperor makes his peace first, so the pledge is the clean counter.
+        for court in list(world.get_nations_at_war_with("France")):
+            set_diplomatic_state(world, "France", court, "PEACE", "test")
+        pledge_guarantee(world, guarantor="France", protected="Hanover")
         world.invalidate_bloc_members_cache()
+        assert not holder_outmatched(world, "Prussia", "Hanover"), \
+            "the Emperor's army in Hanover's scale lifts the prize out of reach"
         events = _poll_next_turn(world)
         passed = [e for e in events if e["type"] == "crisis_passed"]
         # Review fix [r9]: a HARD assert, not a skip — if a retune ever
-        # keeps the rung at fight through the -8 deterrent, this test must
-        # fail loudly, not go dark (weight 87 - 8 = 79 < 85 today).
+        # keeps the rung at fight through the deterrent, this test must
+        # fail loudly, not go dark (weight 97 - 8 - 10 = 79 < 85 today).
         assert get_nation_intent("Prussia", world).price != "fight", \
-            "the -8 deterrent must drop the fixture's rung below fight"
+            "the -8 deterrent (and the lifted +10) must drop the rung below fight"
         assert passed and passed[0]["cause"] == "deterred"
 
     def test_satisfied_when_the_want_is_won(self, world):

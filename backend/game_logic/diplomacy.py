@@ -12539,15 +12539,30 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         guarantee_ok, reason = False, "The guarantee already stands."
     else:
         guarantee_ok, reason = True, ""
-    actions.append(_chip(
-        "guarantee_nation",
-        "Guarantee Their Borders",
-        guarantee_ok, reason,
+    guarantee_effect = (
         # single-sourced (Aug 2026 audit): quote the applied constant, never
         # a hardcoded copy that drifts on retune
         f"Raises every coveter's bar for war "
         f"(-{int(GUARANTEE_WEIGHT_DETERRENT)} weight) — and stakes "
-        "French credibility on the pledge being honoured.",
+        "French credibility on the pledge being honoured.")
+    # SF-LB-2 (SCORE_FINISH_SPEC §6.4): where this court is a defenceless
+    # prize, the chip says whose reach the pledge lifts it out of — the
+    # same predicate the war council opens on.
+    from backend.game_logic.war_council import coveters_of_prize
+    from backend.game_logic.formations import formed_display_name as _fdn_prize
+    prize_coveters = coveters_of_prize(world, target_nation)
+    if prize_coveters:
+        names = " and ".join(_fdn_prize(world, c) for c in prize_coveters)
+        guarantee_effect = (
+            f"{_fdn_prize(world, target_nation)} cannot defend itself — our army in "
+            f"their scale lifts them out of {names}'s reach. "
+            + guarantee_effect)
+    actions.append(_chip(
+        "guarantee_nation",
+        "Guarantee Their Borders",
+        guarantee_ok, reason,
+        guarantee_effect,
+        prize_coveters=list(prize_coveters),
     ))
     return actions
 

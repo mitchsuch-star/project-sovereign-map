@@ -478,6 +478,19 @@ REFUSAL_DEDUPE_TURNS = 6
 # AI-vs-AI only by construction (trigger 0a). False = ask/buy alone.
 A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT = True
 DESIGN_ASK_RUNGS = ("ask", "buy", "align", "bandwagon")
+# SF-LB-2 "The Defenceless Prize" (SCORE_FINISH_SPEC.md §6.4, October 3,
+# 2026): A COURT ASKS BEFORE IT DEMANDS. The ladder is climbed only by
+# asks, and the ask arm stopped at `bandwagon` — so a court that the
+# holder-outmatched term lifts STRAIGHT to `coerce` (measured: Prussia on
+# the eylau seed, at coerce from turn 2 with one refusal on record) could
+# neither ask again nor demand (the coercive demand is the OPEN crisis's
+# beat, and a crisis opens only on a climbed ladder). The dead end was
+# AI-3's own for a court at `fight` with no refusals; the +10 made it
+# ordinary. With this lever the AI-AI design ask also fires at `coerce`
+# while the ladder is NOT climbed — the demand still waits on two
+# refusals, exactly as pin 8 requires. The player-targeted road (NA-5)
+# is untouched. False = the four rungs above, byte for byte.
+A_COURT_ASKS_BEFORE_IT_DEMANDS = True
 # Retention: refusals older than this are pruned at write time. AI-3's
 # ladder gate ("cheaper instruments tried and refused") reads inside this
 # window; matching the agenda-grudge horizon keeps one memory scale.
@@ -3745,6 +3758,13 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
         # six turns per ask.
         _ask_rungs = (DESIGN_ASK_RUNGS if A_DESIGN_IS_ASKED_BEFORE_IT_IS_FOUGHT
                       else ("ask", "buy"))
+        if (A_COURT_ASKS_BEFORE_IT_DEMANDS and view.price == "coerce"
+                and view.against == target):
+            # SF-LB-2: at `coerce` the court may only DEMAND once it has
+            # asked and been refused twice — until then it still asks.
+            from backend.game_logic.war_council import _ladder_climbed
+            if not _ladder_climbed(world, proposer, target):
+                _ask_rungs = tuple(_ask_rungs) + ("coerce",)
         if (view.against == target and view.price in _ask_rungs
                 and not world.is_at_war(proposer, target)):
             recent = [e for e in get_refused_asks(world, proposer, target)

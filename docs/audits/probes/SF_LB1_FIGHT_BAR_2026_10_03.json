@@ -1,0 +1,580 @@
+{
+ "austerlitz": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 72,
+    "price_at_max": "coerce",
+    "turn_at_max": 9,
+    "refusals_at_max": 2,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 27,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 72,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 29,
+    "weight_max": 76,
+    "price_at_max": "coerce",
+    "turn_at_max": 13,
+    "refusals_at_max": 1,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 26,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 76,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 27,
+    "weight_max": 77,
+    "price_at_max": "coerce",
+    "turn_at_max": 21,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.14,
+    "turns_at_coerce_plus": 17,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 77,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     20,
+     21,
+     22,
+     23,
+     24,
+     25
+    ]
+   },
+   "Russia->Sweden": {
+    "turns_seen": 26,
+    "weight_max": 67,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 22,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.88,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 77,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   }
+  }
+ },
+ "eylau": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 72,
+    "price_at_max": "coerce",
+    "turn_at_max": 9,
+    "refusals_at_max": 2,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 27,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 72,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     8,
+     9,
+     10,
+     11,
+     12,
+     13
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 28,
+    "weight_max": 76,
+    "price_at_max": "coerce",
+    "turn_at_max": 14,
+    "refusals_at_max": 1,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 25,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 76,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   },
+   "Russia->Sweden": {
+    "turns_seen": 26,
+    "weight_max": 63,
+    "price_at_max": "align",
+    "turn_at_max": 22,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.78,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 73,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 24,
+    "weight_max": 76,
+    "price_at_max": "coerce",
+    "turn_at_max": 24,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.12,
+    "turns_at_coerce_plus": 15,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 76,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     23,
+     24,
+     25,
+     26,
+     27,
+     28
+    ]
+   }
+  }
+ },
+ "friedland": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 73,
+    "price_at_max": "coerce",
+    "turn_at_max": 11,
+    "refusals_at_max": 2,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 27,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 73,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 28,
+    "weight_max": 80,
+    "price_at_max": "coerce",
+    "turn_at_max": 16,
+    "refusals_at_max": 1,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 25,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 80,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   },
+   "Russia->Sweden": {
+    "turns_seen": 26,
+    "weight_max": 77,
+    "price_at_max": "coerce",
+    "turn_at_max": 22,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.72,
+    "turns_at_coerce_plus": 16,
+    "cf_A_plus10_at_2to1_reaches_85": true,
+    "cf_A_weight_max": 87,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 24,
+    "weight_max": 73,
+    "price_at_max": "coerce",
+    "turn_at_max": 24,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.23,
+    "turns_at_coerce_plus": 15,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 73,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     23,
+     24,
+     25,
+     26,
+     27,
+     28
+    ]
+   }
+  }
+ },
+ "historical": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 71,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 9,
+    "refusals_at_max": 2,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 71,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 28,
+    "weight_max": 76,
+    "price_at_max": "coerce",
+    "turn_at_max": 13,
+    "refusals_at_max": 0,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 28,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 76,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   },
+   "Russia->Sweden": {
+    "turns_seen": 26,
+    "weight_max": 71,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 22,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.87,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 81,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 24,
+    "weight_max": 71,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 24,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.1,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 71,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     23,
+     24,
+     25,
+     26,
+     27,
+     28
+    ]
+   }
+  }
+ },
+ "jena": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 70,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 9,
+    "refusals_at_max": 2,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 70,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 28,
+    "weight_max": 79,
+    "price_at_max": "coerce",
+    "turn_at_max": 13,
+    "refusals_at_max": 0,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 28,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 79,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   },
+   "Russia->Sweden": {
+    "turns_seen": 26,
+    "weight_max": 75,
+    "price_at_max": "coerce",
+    "turn_at_max": 22,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.87,
+    "turns_at_coerce_plus": 16,
+    "cf_A_plus10_at_2to1_reaches_85": true,
+    "cf_A_weight_max": 85,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 24,
+    "weight_max": 76,
+    "price_at_max": "coerce",
+    "turn_at_max": 24,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.1,
+    "turns_at_coerce_plus": 15,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 76,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     23,
+     24,
+     25,
+     26,
+     27,
+     28
+    ]
+   }
+  }
+ },
+ "marengo": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 64,
+    "price_at_max": "align",
+    "turn_at_max": 0,
+    "refusals_at_max": 0,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 64,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   "Russia->Sweden": {
+    "turns_seen": 21,
+    "weight_max": 70,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 27,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.86,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 80,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     26,
+     27,
+     28,
+     29,
+     30,
+     31
+    ]
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 3,
+    "weight_max": 60,
+    "price_at_max": "align",
+    "turn_at_max": 39,
+    "refusals_at_max": 1,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.34,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 60,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     38,
+     39,
+     40
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 3,
+    "weight_max": 79,
+    "price_at_max": "coerce",
+    "turn_at_max": 38,
+    "refusals_at_max": 0,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 3,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 79,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   }
+  }
+ },
+ "ulm": {
+  "ai_initiated_wars": 0,
+  "war_intents": {},
+  "pairs": {
+   "Prussia->Hanover": {
+    "turns_seen": 41,
+    "weight_max": 71,
+    "price_at_max": "bandwagon",
+    "turn_at_max": 9,
+    "refusals_at_max": 2,
+    "restraint_at_max": null,
+    "free_ratio_max": 99,
+    "turns_at_coerce_plus": 0,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 71,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     3,
+     4,
+     5,
+     6,
+     7,
+     8
+    ]
+   },
+   "Sardinia->Austria": {
+    "turns_seen": 29,
+    "weight_max": 82,
+    "price_at_max": "coerce",
+    "turn_at_max": 12,
+    "refusals_at_max": 0,
+    "restraint_at_max": "outmatched",
+    "free_ratio_max": 0.0,
+    "turns_at_coerce_plus": 29,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 82,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": []
+   },
+   "Austria->Ottoman": {
+    "turns_seen": 27,
+    "weight_max": 74,
+    "price_at_max": "coerce",
+    "turn_at_max": 21,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 1.14,
+    "turns_at_coerce_plus": 17,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 74,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     20,
+     21,
+     22,
+     23,
+     24,
+     25
+    ]
+   },
+   "Russia->Sweden": {
+    "turns_seen": 26,
+    "weight_max": 73,
+    "price_at_max": "coerce",
+    "turn_at_max": 22,
+    "refusals_at_max": 2,
+    "restraint_at_max": "busy",
+    "free_ratio_max": 2.88,
+    "turns_at_coerce_plus": 16,
+    "cf_A_plus10_at_2to1_reaches_85": false,
+    "cf_A_weight_max": 83,
+    "cf_B_coerce_and_2to1_and_clear_turns": [],
+    "ladder_climbed_turns": [
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   }
+  }
+ }
+}

@@ -94,11 +94,22 @@ class TestNA5CoerceRung:
         world.invalidate_active_nations_cache()
         world.nation_relations[
             world._make_diplo_key("France", "Prussia")] = -20
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4. A France of
+        # 2,000 men holding Hanover IS a defenceless prize and the term
+        # honestly lifts Prussia to coerce, which is NA-5's own road — so the
+        # "has not climbed" fixture keeps France at 40,000 men: under NA-5's
+        # 1.25x ratio against Prussia's 80,000 (two corps of 40,000), above
+        # half of Prussia's free strength (50,601 — not outmatched). The pin
+        # keeps its meaning.
+        french = [m for m in world.marshals.values() if m.nation == "France"]
         for m in world.marshals.values():
             if m.nation == "France":
-                m.strength = 2000
+                m.strength = 40000 // len(french)
             elif m.nation == "Prussia":
                 m.strength = 40000
+        world.invalidate_bloc_members_cache()
+        from backend.game_logic.war_council import holder_outmatched
+        assert not holder_outmatched(world, "Prussia", "France")
         view = get_nation_intent("Prussia", world)
         assert rung_index(view.price) < rung_index("coerce")
         assert _generate_agenda_ultimatum("Prussia", world) is None

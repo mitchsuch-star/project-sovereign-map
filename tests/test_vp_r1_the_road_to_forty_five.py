@@ -700,7 +700,17 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert step3["arms"]["ALL"]["series"] == sr7d["prior"]
         assert sr7d["arms"]["0"]["series"] == sr7d["prior"]
-        assert BASELINE_SERIES == sr7d["arms"]["ALL"]["series"]
+        # RE-SEATED by SF-LB-2 "The Defenceless Prize" (October 3, 2026): one
+        # more link — SR-7d's ALL arm is the prior record SF-LB-2's arm 0
+        # (every SF-LB-2 lever down in the child) reproduces byte for byte,
+        # and SF-LB-2's ALL arm (the shipped tree: Prussia takes Hanover) is
+        # the standing series (`tools/_sf_lb2_series_arms_final.json`, ten
+        # arms).
+        sflb2 = json.loads((ROOT / "tools" / "_sf_lb2_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert sr7d["arms"]["ALL"]["series"] == sflb2["prior"]
+        assert sflb2["arms"]["0"]["series"] == sflb2["prior"]
+        assert BASELINE_SERIES == sflb2["arms"]["ALL"]["series"]
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

@@ -943,10 +943,31 @@ class TestArmBScriptedFrance:
                                 for e in row["events"]))
         after = rows[signed_at:]
         assert len(after) >= 8, len(after)
-        for row in after:
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026), re-seated
+        # consciously: the scene now plays FURTHER than this pin imagined.
+        # Sweden is outmatched (the holder-outmatched +10), so the
+        # volte-faced design climbs to the council's war on Sweden — the
+        # Finnish War, turn 22 on the historical soil arm, France and
+        # Britain joining — and only THEN does Russia's deck move on
+        # (arbiter against the next hegemon). The shape the scene asks for:
+        # from the signing until the design's own war opens, Russia wants
+        # the named design against a third party; after it, the deck may
+        # advance, but never back against the partner it took by the hand.
+        fought_at = None
+        for i, row in enumerate(after):
+            if any(set(w.get("attackers") or []) >= {"Russia"}
+                   and "Sweden" in (w.get("defenders") or [])
+                   for w in (row.get("wars_opened") or [])):
+                fought_at = i
+                break
+        pursued = after if fought_at is None else after[:fought_at + 1]
+        assert len(pursued) >= 4, (fought_at, [r["intents"]["Russia"] for r in after[:6]])
+        for row in pursued:
             want, against = row["intents"]["Russia"][0], row["intents"]["Russia"][1]
             assert want == "gulf_and_straits", row["intents"]["Russia"]
             assert against not in ("France", ""), row["intents"]["Russia"]
+        for row in after:
+            assert row["intents"]["Russia"][1] not in ("France", ""), row["intents"]["Russia"]
         # The control in the same session: the exhaustion-only arm is shut.
         assert not scripted["derived"]["volte_faces"]
 

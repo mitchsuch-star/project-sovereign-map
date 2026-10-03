@@ -571,7 +571,19 @@ def test_intel_nation_summary_marshal_count():
     # with no man standing there (Uxbridge) is yesterday's label, not a
     # sighting; the count is the British corps actually at Waterloo.
     standing = [m for m in world.get_marshals_in_region("Waterloo") if m.nation == "Britain"]
-    assert britain[0]["known_marshals"] == len(standing) == 1
+    assert len(standing) == 1
+    # SF-LB-2's exit (narration C4, Oct 3 2026), re-seated consciously:
+    # Uxbridge stands at Hanover in fog, so his Waterloo label is the
+    # player's genuine LAST SIGHTING of him and rides as `last_known`
+    # (`intel_surfaces.A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING` — the store's
+    # own reader, `get_last_known_location`, says Waterloo too). The count
+    # is the British corps the player KNOWS of: Wellington in view,
+    # Uxbridge last seen. A label with no man behind it still rides nothing.
+    assert britain[0]["known_marshals"] == 2
+    rows = {r.get("roster_name"): r for r in ledger["intel"]["known_enemies"]
+            if r.get("nation") == "Britain"}
+    assert rows["Wellington"]["visibility"] == FULL
+    assert rows["Uxbridge"]["visibility"] == "last_known"
 
 
 def test_intel_nation_summary_estimated_strength():

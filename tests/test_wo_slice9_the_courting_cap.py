@@ -1082,6 +1082,9 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # capped 17 — the cap buys THREE turns; the contract holds. With the
         # eight SR-7d levers down in the child it reads 14 / 18 verbatim
         # (`tools/_sr7d_wo_attribution.py`, measured).
+        # Re-measured by SF-LB-2 "The Defenceless Prize" (October 3, 2026):
+        # unchanged, 14 / 17 on both arms — Prussia's war on Hanover never
+        # reaches the Swiss countdown (`tools/_sf_lb2_wo_attribution.py`).
         assert uncapped == 14, uncapped
         assert capped == 17, capped
         assert capped - uncapped >= 1, (

@@ -1013,6 +1013,60 @@ def _assess_situation(world) -> Dict:
                 f"— while {threat_display} stands armed at their back, "
                 f"{row['want_title'] or 'their design'} stays a grievance.")
 
+    # ── The defenceless prize (SF-LB-2, SCORE_FINISH_SPEC §6.4) ──
+    # A court whose acquire design aims at a holder that cannot defend
+    # itself opens its crisis at an ultimatum, not at war — and the
+    # player's guarantee of the holder is the counter (the guarantor's
+    # whole army enters the holder's scale). Reads the SAME predicate the
+    # war council opens on; one line per prize, honestly gated on the DP
+    # the guarantee costs.
+    from backend.game_logic.instruments import INSTRUMENT_DP_COST, guarantors_of
+    from backend.game_logic.intent import rung_index as _rung_index
+    from backend.game_logic.war_council import (
+        defenceless_prize, defenceless_prize_line,
+    )
+    prize_rows: List[Dict] = []
+    for court in sorted(world.get_active_nations()):
+        if court == player or court in _adv_vassals:
+            continue
+        court_view = get_nation_intent(court, world)
+        holder = defenceless_prize(world, court, court_view)
+        if holder is None or world.is_at_war(court, holder):
+            continue
+        crisis_open = get_war_intent(world, court) is not None
+        if (not crisis_open
+                and _rung_index(court_view.price) < _rung_index("coerce")):
+            continue  # the clause is read; the design has not climbed yet
+        dp = int(getattr(world, "diplomatic_points", 0) or 0)
+        if player in guarantors_of(world, holder):
+            counter = (f"Our guarantee of {_fdn(world, holder)} already "
+                       f"stands in their scale.")
+        elif world.is_at_war(player, holder):
+            counter = (f"We are at war with {_fdn(world, holder)} — no "
+                       f"guarantee of ours can lift them out of reach.")
+        elif dp >= INSTRUMENT_DP_COST:
+            counter = (f"A guarantee of {_fdn(world, holder)} "
+                       f"({INSTRUMENT_DP_COST} DP — {dp} in hand) puts our "
+                       f"army in their scale.")
+        else:
+            counter = (f"A guarantee of {_fdn(world, holder)} would put our "
+                       f"army in their scale — it needs "
+                       f"{INSTRUMENT_DP_COST} DP, none in hand.")
+        prize_rows.append({
+            "nation": court,
+            "holder": holder,
+            "price": court_view.price,
+            "crisis_open": bool(crisis_open),
+            "guaranteed_by_player": player in guarantors_of(world, holder),
+            "text": (f"  {defenceless_prize_line(world, court, holder)}"
+                     f"{' — the crisis is open' if crisis_open else ''}, "
+                     f"Sire. {counter}"),
+        })
+    if prize_rows:
+        lines.append("")
+        for row in prize_rows[:2]:
+            lines.append(row["text"])
+
     # ── IQ-6 V4: the open door (a beaten great power we may yet court) ──
     # The volte-face window was on no surface a player reads (the AI-V
     # memo: a real player would need Talleyrand to find it). One sentence
@@ -1142,6 +1196,9 @@ def _assess_situation(world) -> Dict:
             "threat_sources": sources_context,
             # AI-3r §2.5-4: courts whose design the exposure gate pins.
             "designs_in_check": checked_designs,
+            # SF-LB-2 (SCORE_FINISH_SPEC §6.4): the prizes that cannot
+            # defend themselves, with the guarantee named as the counter.
+            "defenceless_prizes": prize_rows,
             "vassals": vassal_context,
             "recommendation": (dict(recommendation)
                                if recommendation else None),

@@ -57,7 +57,10 @@ class TestTheAskAtEveryRungBelowCoerce:
     def test_prussia_at_align_asks_hanover(self):
         world = _boot()
         view = get_nation_intent("Prussia", world)
-        assert view.against == "Hanover" and view.price == "align"
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4. The ask fires
+        # at every rung in DESIGN_ASK_RUNGS — bandwagon included.
+        assert view.against == "Hanover" and view.price == "bandwagon"
+        assert view.price in AD.DESIGN_ASK_RUNGS
         proposal = _quiet(AD._evaluate_ai_ai_proposal, "Prussia", "Hanover", world)
         assert proposal == {"type": "design_ask", "proposer": "Prussia", "target": "Hanover"}
 

@@ -138,6 +138,12 @@
 ---
 
 
+## SF-LB-2 "The Defenceless Prize" — filed October 3, 2026 (**1 row SF-LB-2-X1, FIXED in the slice**; landing record `docs/SCORE_FINISH_SPEC.md` §6.4 addendum)
+
+| ID | Priority | Finding | Owner / landing |
+|----|----------|---------|-----------------|
+| ~~**SF-LB-2-X1**~~ | P1 | **The AI could declare a war on Hanover and never fight it: a province that shares its name with the attacker's own marshal is unreachable by `attack`.** Prussia's marshal Brunswick and Hanover's province Brunswick (beside Berlin) share a name; the undefended-capture rung (P4.5) emits `attack Brunswick` for the province and the attack arm's 4D-4 refusal read the name as the friendly marshal ("Cannot attack friendly marshal Brunswick!") — WO-13's one exact collision, one seam over. Measured on the ambient board after the council's declaration (turn 11): "No valid actions remaining for Prussia" for twelve turns, both corps in Berlin, Hanover untouched at turn 40. `move to Brunswick` worked all along. | **FIXED in SF-LB-2:** `combat_executor.A_PROVINCE_OUTRANKS_A_FRIENDLY_NAMESAKE` — where no enemy answered the name and a province on the map carries it, the province is the reading (a friend who is no province is still refused; the enemy-marshal read stays first). Prussia takes Brunswick and the Hanover capital by turn 14 on every seed. Pins `tests/test_sf_lb2_the_defenceless_prize.py::TestAProvinceOutranksAFriendlyNamesake`; rules §85.5. ⟨SF step=4 · SF-LB-2 · pillar=living_balance⟩ |
+
 ## SR-7d "The Doctrines" — filed October 3, 2026 (**2 rows SR-7d-X1 … SR-7d-X2, both OPEN, each owned; 0 P1 · 1 P2 · 1 P3** — found while landing the doctrines; landing record `docs/DOCTRINES_SPEC.md` §7.1)
 
 | ID | Priority | Finding | Owner / landing |

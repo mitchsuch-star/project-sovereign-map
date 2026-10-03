@@ -61,6 +61,8 @@ from pathlib import Path
 import pytest
 
 from backend.game_logic import ai_diplomacy as AD
+from backend.game_logic import intent as _IN
+from backend.game_logic import war_council as _WC
 from backend.game_logic import diplomacy as D
 from backend.game_logic import diplomatic_advisory as ADV
 from backend.game_logic import emergent_designs as ED
@@ -329,8 +331,20 @@ def _drive(script, turns, name, levers=(), hooks=True):
 # in-process and the subprocess control alike, plays the same board. The
 # board as shipped is measured by SR-1d's own record (the `prd1b-cmd-*`
 # archives: the offer at t9 / t10 / t11).
-_PRE_SR1D_LEAGUE = ((AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False),)
-_PRE_SR1D_LEAGUE_CLI = ["--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0"]
+# SF-LB-2 "The Defenceless Prize" (October 3, 2026): the same ruling, one
+# slice on — Prussia's war on Hanover (the two §6.4 clauses: the
+# holder-outmatched +10 and the crisis opening at coerce) re-times the
+# Austrian courtship (measured in-process: with the two clauses down the
+# door opens at t20 again; shipped, never within 23 turns). These arms
+# measure the volte-face machinery, so they play the pre-SF-LB-2 board —
+# the slice's own board is measured by its landing record
+# (SCORE_FINISH_SPEC.md §6.4 addendum, the seven-seed probe).
+_PRE_SR1D_LEAGUE = ((AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False),
+                    (_IN, "A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE", False),
+                    (_WC, "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE", False))
+_PRE_SR1D_LEAGUE_CLI = ["--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0",
+                        "--lever", "backend.game_logic.intent:A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE=0",
+                        "--lever", "backend.game_logic.war_council:THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE=0"]
 
 
 @pytest.fixture(scope="module")

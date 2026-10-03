@@ -97,7 +97,10 @@ class TestBootNeutrality:
     def test_boot_intents_unmoved_by_statecraft(self, world):
         # The Stage B measured pins hold with the statecraft wire live.
         view = get_nation_intent("Prussia", world)
-        assert (view.weight, view.price) == (59, "align")
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4.
+        from backend.game_logic.intent import WEIGHT_HOLDER_OUTMATCHED
+        assert (view.weight, view.price) == (59 + WEIGHT_HOLDER_OUTMATCHED,
+                                             "bandwagon")
         assert get_nation_intent("Austria", world).price == "fight"
 
 

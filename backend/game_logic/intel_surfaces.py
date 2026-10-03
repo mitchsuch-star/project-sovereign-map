@@ -48,6 +48,18 @@ THE_SURFACES_NAME_THE_GARRISON = True
 THE_ENEMY_WORKS_REGROW_ALOUD = True
 # Score Finish Step 3 exit: a captured man's frozen snapshot is not a sighting.
 A_PRISONER_IS_NOT_A_SIGHTING = True
+# SF-LB-2's exit (narration C4, October 3, 2026): A FULL LABEL KEEPS ITS LAST
+# SIGHTING. The rule above skipped every frozen snapshot in a province that is
+# in full view today — right for the LIVE read (the man is plainly not there),
+# wrong for the KNOWLEDGE: on the historical commanded seed at turn 30
+# Archduke Charles was last seen at Franconia on turn 10 (FULL then, FULL
+# still, and empty of him now), and skipping that snapshot handed the row an
+# OLDER Tyrol sighting from turn 8 — while the store's own reader
+# (`get_last_known_location`) ranked by turn and said Franconia. A frozen
+# snapshot in a full-view province rides as a `last_known` sighting with its
+# own turn, so the most recent knowledge wins the dedupe; the live read still
+# outranks every snapshot. False = the skip, byte for byte.
+A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING = True
 
 GARRISON_ROW_KIND = "garrison"
 
@@ -104,14 +116,34 @@ def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
         vis = intel.visibility
         if vis == UNKNOWN:
             continue
+        frozen_full = False
         if THE_SIGHTING_IS_LIVE and vis == FULL:
             # Read live above; a frozen FULL snapshot naming a man who is
-            # not there is yesterday's label, not a sighting.
-            continue
+            # not there is yesterday's LABEL — but it is still the player's
+            # most recent KNOWLEDGE of him, so it rides as last_known with
+            # its own turn (A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING) — unless
+            # the man STANDS in a full-view province today, where the live
+            # read is the whole truth and already decided (an empty corps,
+            # a prisoner, a man in plain sight), or he is on no roster at
+            # all (a phantom label: SR-6a's own ledger pin).
+            if not A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING:
+                continue
+            frozen_full = True
+            vis = LAST_KNOWN
         for km in intel.known_marshals:
             if km.get("nation") == viewer:
                 continue
             name = km.get("name", "Unknown")
+            if frozen_full and name not in (getattr(world, "marshals", {}) or {}):
+                continue  # a label with no man behind it is no sighting
+            if A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING:
+                # A man STANDING in a full-view province today is the live
+                # read's to show or to omit (an empty corps, a prisoner) —
+                # no frozen snapshot of him, here or elsewhere, rides.
+                _standing = world.marshals.get(name) if hasattr(world, "marshals") else None
+                _where = world.intel.get(str(getattr(_standing, "location", "") or ""))
+                if _standing is not None and _where is not None and _where.visibility == FULL:
+                    continue  # the live read already spoke for him
             if A_PRISONER_IS_NOT_A_SIGHTING:
                 # Score Finish Step 3 exit (narration C4): a man the roster
                 # knows to be a PRISONER never rides as a frozen snapshot —

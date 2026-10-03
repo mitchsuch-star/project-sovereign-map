@@ -245,7 +245,8 @@ class TestAlignmentAsk:
         # reads hostile to Hanover.
         _set_relation(world, "France", "Hanover", -20)
         view = get_nation_intent("Prussia", world)
-        assert view.price == "align" and view.against == "Hanover"
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4. The alignment ask fires at align AND bandwagon.
+        assert view.price in ("align", "bandwagon") and view.against == "Hanover"
         proposal = process_diplomatic_phase("Prussia", world)
         assert proposal is not None
         assert proposal["intent_ask"] is True

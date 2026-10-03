@@ -842,9 +842,14 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 **The War Council (AI-3, Stage D — `war_council.py`, the ladder's `fight` rung):**
 
 `process_war_council` runs once per turn in `advance_turn` (after the AI-AI diplomatic phase). A
-court with a live ACQUIRE design at intent price `fight` (weight ≥ 85), a CLIMBED ladder (≥ 2
+court with a live ACQUIRE design at intent price `fight` (weight ≥ 85) — **or at `coerce` (72) when the
+holder cannot defend the prize: SF-LB-2 (October 3, 2026, `SCORE_FINISH_SPEC.md` §6.4), the holder plus
+its guarantors at most half the asker's FREE strength (`war_council.holder_outmatched`, read once by the
+weight term's +10 and the opening); the coerce road requires the restraints clear at the opening, and
+under `A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE` so does the fight road** — a CLIMBED ladder (≥ 2
 refusals on the serialized `diplomatic_refusals` record, or a §3.3 renege grievance which may skip
-rungs), and passing restraints (no existing wars · treasury ≥ 500 · strength ≥ 1.25× the target
+rungs; **the AI-AI design ask also fires at `coerce` while the ladder is unclimbed — a court asks before
+it demands**), and passing restraints (no existing wars · treasury ≥ 500 · strength ≥ 1.25× the target
 plus its guarantors · the `can_declare_war` preview · the D1 world-wide cap of **2** live
 AI-initiated wars) opens a **crisis**: beat 2 fore-warns (one foregrounded crisis world-wide), the
 coercive demand lands refused on the record (beat 3's AI-AI arm), and after 2 foregrounded turns

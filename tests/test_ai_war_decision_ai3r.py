@@ -235,17 +235,29 @@ class TestRestraintReasons:
 # §2.2 — the moment (opportunity terms; readings, never latches)
 # ════════════════════════════════════════════════════════════════════════
 
+# SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4.
+PRUSSIA_BOOT_WEIGHT = 59 + intent_module.WEIGHT_HOLDER_OUTMATCHED
+
+
 class TestMomentTerms:
     def test_hollow_guarantee_interplay(self, world):
         """DELIBERATE (gate-era re-anchor): a guarantor who is himself at
         war deters -8 but reads allies-committed +6 — the pledge of a
-        fully-committed power is nearly hollow. Russia boots at war."""
+        fully-committed power is nearly hollow. Russia boots at war.
+
+        SF-LB-2: Russia's whole army enters Hanover's scale, so the
+        outmatched +10 falls away with the pledge — a hollow pledge still
+        LIFTS the prize out of reach (the deterrent and the scale are two
+        different things, both pinned)."""
+        from backend.game_logic.war_council import holder_outmatched
         before = get_nation_intent("Prussia", world).weight
-        assert before == 59
+        assert before == PRUSSIA_BOOT_WEIGHT
         pledge_guarantee(world, guarantor="Russia", protected="Hanover")
         world.invalidate_bloc_members_cache()
+        assert not holder_outmatched(world, "Prussia", "Hanover")
         after = get_nation_intent("Prussia", world).weight
-        assert after == before - 8 + intent_module.WEIGHT_HOLDER_ALLIES_COMMITTED
+        assert after == (before - 8 + intent_module.WEIGHT_HOLDER_ALLIES_COMMITTED
+                         - intent_module.WEIGHT_HOLDER_OUTMATCHED)
 
     def test_allies_committed_via_treaty_ally(self, world):
         # War FIRST, alliance second — a declaration cascades the new
@@ -256,7 +268,7 @@ class TestMomentTerms:
         world.invalidate_bloc_members_cache()
         assert intent_module._holder_allies_committed("Prussia", "Hanover", world)
         view = get_nation_intent("Prussia", world)
-        assert view.weight == 59 + intent_module.WEIGHT_HOLDER_ALLIES_COMMITTED
+        assert view.weight == PRUSSIA_BOOT_WEIGHT + intent_module.WEIGHT_HOLDER_ALLIES_COMMITTED
 
     def test_recently_beaten_capital_arm(self, world):
         assert not intent_module._holder_recently_beaten("Hanover", world)
@@ -287,7 +299,7 @@ class TestMomentTerms:
             intent_module.HOLDER_EXHAUSTION_BAND + 20)
         world.invalidate_bloc_members_cache()
         view = get_nation_intent("Prussia", world)
-        assert view.weight == 59 + intent_module.WEIGHT_HOLDER_EXHAUSTED
+        assert view.weight == PRUSSIA_BOOT_WEIGHT + intent_module.WEIGHT_HOLDER_EXHAUSTED
 
     def test_rear_quiet_wire(self, world, monkeypatch):
         """N6 rides the war council's own view (monkeypatched at the
@@ -298,7 +310,7 @@ class TestMomentTerms:
                             lambda w, n: dict(quiet))
         world.invalidate_bloc_members_cache()
         view = get_nation_intent("Prussia", world)
-        assert view.weight == 59 + intent_module.WEIGHT_OWN_REAR_QUIET
+        assert view.weight == PRUSSIA_BOOT_WEIGHT + intent_module.WEIGHT_OWN_REAR_QUIET
 
     def test_at_war_term_retired(self, world):
         """Ruling R5: no +10 for being at war with the holder — the
@@ -309,8 +321,10 @@ class TestMomentTerms:
         view = get_nation_intent("Prussia", world)
         assert view.price == "fight"          # the war IS the pursuit
         # cold? no (-45 fixture not applied here; boot 0 → chilly +4).
-        # Hanover now in 1 war (+6). No +10 anywhere.
-        assert view.weight == 55 + 4 + 6
+        # Hanover now in 1 war (+6). No at-war +10 anywhere — the +10 that
+        # DOES read is SF-LB-2's holder-outmatched term (an army-less
+        # Hanover, at war or not), pinned by name.
+        assert view.weight == 55 + 4 + 6 + intent_module.WEIGHT_HOLDER_OUTMATCHED
 
 
 # ════════════════════════════════════════════════════════════════════════

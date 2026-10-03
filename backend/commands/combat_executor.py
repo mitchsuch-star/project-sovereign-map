@@ -653,6 +653,11 @@ COUNTER_PUNCH_CREDITS_THE_ASSAULT = True
 # auto-bombardment kill and the charge. False = the shipped advance, byte
 # for byte (the flip arm of tools/_step3_series_arms.py).
 A_FIELD_WIN_HALTS_BEFORE_THE_WORKS = True
+# SF-LB-2 (October 3, 2026): a province outranks a friendly namesake at the
+# attack arm's 4D-4 refusal — `attack Brunswick` from a Prussian corps names
+# Hanover's province, never Prussia's own marshal. False = the refusal, byte
+# for byte (and the shipped board's Prussia never marches on Hanover).
+A_PROVINCE_OUTRANKS_A_FRIENDLY_NAMESAKE = True
 
 # XR-3 (Score Finish Step 3 / SR-7a, the remaining half): an in-place capture
 # marches nowhere. AAR-22 stopped the sentence saying "marches from Bohemia
@@ -6225,7 +6230,24 @@ class CombatExecutor:
                 if m.nation == marshal.nation and m.name.lower() == target_lower:
                     friendly_match = m
                     break
-            if friendly_match:
+            # SF-LB-2 (SCORE_FINISH_SPEC §6.4, October 3, 2026): a PROVINCE
+            # outranks a friendly namesake. Measured on the shipped board:
+            # Prussia's own marshal is named Brunswick and so is Hanover's
+            # province beside Berlin, so the undefended-capture rung's
+            # `attack Brunswick` was refused here as an attack on a friend
+            # — twelve turns of "No valid actions remaining" after the war
+            # the council declared, and the Prussian army never left Berlin.
+            # No order to attack one's own man is ever meant; where the
+            # name is also a province on the map, the province is the only
+            # reading. WO-13's order (target -> ENEMY marshal first) is
+            # untouched — this arm runs only after no enemy answered.
+            namesake_region = None
+            if A_PROVINCE_OUTRANKS_A_FRIENDLY_NAMESAKE and friendly_match:
+                for region_name in world.regions:
+                    if region_name.lower() == target_lower:
+                        namesake_region = region_name
+                        break
+            if friendly_match and namesake_region is None:
                 return {
                     "success": False,
                     "message": f"Cannot attack friendly marshal {friendly_match.name}!"

@@ -85,6 +85,43 @@ COERCIVE_DEMAND_TYPE = "coercive_demand"
 CRISIS_ELIGIBLE_DESIGNS = ("acquire_regions", "deny_regions",
                            "contain_hegemon")
 
+# SF-LB-2 "The Defenceless Prize" (SCORE_FINISH_SPEC.md §6.4, RULED
+# October 3, 2026). Measured on seven 40-turn ambient seeds
+# (tools/_sf_lb1_fight_bar_probe.py): Prussia's design on Hanover had the
+# ladder climbed (turns 3–13), every restraint clear and a holder fielding
+# NO corps — and never opened, because the only gate left was the `fight`
+# bar (85) that AI-3r's N7 keeps where it is ("the terms climb to the bar,
+# the bar stays"). The ruling adds ONE derived reading, shared by the two
+# clauses it feeds (never two copies — pinned by an AST census):
+#   `holder_outmatched`: the holder's standing strength plus its
+#   guarantors' is at most HOLDER_OUTMATCHED_FRACTION of the asker's FREE
+#   strength (the restraint gate's own arithmetic); an armyless holder
+#   counts.
+# Clause 1 lives in intent.py (`WEIGHT_HOLDER_OUTMATCHED`, under
+# `A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE`). Clause 2 lives here: an AI-vs-AI
+# ACQUIRE crisis opens at `coerce` (72) instead of `fight` (85) when that
+# reading holds AND `_restraint_block_reason` is None; everything after the
+# opening — the fore-warning, the coercive demand, the ladder and every
+# restraint at the declaration — is exactly AI-3's. The fight bar stays 85
+# for everything else. False = AI-3r's tree byte for byte.
+THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE = True
+HOLDER_OUTMATCHED_FRACTION = 0.5   # blessed §6.4-1: "at most HALF"
+# SF-LB-2 addendum (AI_WAR_DECISION_SPEC.md §8, October 3, 2026 — a
+# consequence the ruling did not foresee, measured on the seven-seed probe):
+# the §6.4 terms lift courts the restraints already forbid onto the
+# `fight` road, which never read the restraints at the OPENING — Sardinia
+# fore-warned a war on Austria twice with a free strength of 0 (cooling
+# `outmatched` eight turns later, twice), Russia a war on Sweden while at
+# war with France (cooling `starved`). A fore-warning with no road is pin
+# 15's lie one gate over ("never fore-warn a refused predicate"), and pin
+# 13's soap opera. The ruling made the coerce road open only with every
+# restraint clear; with this lever the fight road honours the SAME
+# predicate — a crisis opens only where its court could declare today.
+# The restraints are re-read at the declaration exactly as before, and a
+# restraint that APPEARS after the opening still cools the crisis on
+# screen (the soft stall). False = AI-3's fight-road opening byte for byte.
+A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE = True
+
 # The §12.1 cause taxonomy for beat 7 (display strings composed
 # backend-side, R7), widened by AI-3r §2.5-1 + ruling R2: every cause the
 # engine can produce has its OWN copy — `starved` never again renders for
@@ -380,8 +417,8 @@ def _crisis_cause_of_death(world, coveter: str, record: Dict) -> Optional[str]:
     view = get_nation_intent(coveter, world)
     if view.against != target:
         return "satisfied"  # the obstacle changed — this quarrel is over
-    if view.price == "fight":
-        return None  # still live
+    if crisis_rung_holds(world, coveter, view):
+        return None  # still live (fight; or coerce on a defenceless prize)
 
     # The rung fell below fight: name why (§12.1's taxonomy).
     for guarantee in getattr(world, "diplomatic_guarantees", []) or []:
@@ -549,6 +586,93 @@ def _restraint_block_reason(world, coveter: str, target: str) -> Optional[str]:
     if theirs == 0 and own <= 0:
         return "outmatched"
     return None
+
+
+def _holder_scale(world, coveter: str, target: str) -> int:
+    """The holder's standing strength plus its guarantors' — the exact
+    `theirs` the restraint gate weighs (one arithmetic, two readers)."""
+    theirs = _standing_strength(world, target)
+    for guarantee in getattr(world, "diplomatic_guarantees", []) or []:
+        if (guarantee.get("protected") == target
+                and guarantee.get("guarantor") not in (coveter, target)):
+            theirs += _standing_strength(world, str(guarantee.get("guarantor")))
+    return int(theirs)
+
+
+def holder_outmatched(world, asker: str, holder: str) -> bool:
+    """SF-LB-2 §6.4-1 — THE one outmatched reading: the holder (plus its
+    guarantors) stands at most `HOLDER_OUTMATCHED_FRACTION` of the asker's
+    FREE strength; an armyless holder counts; an asker with no free
+    strength threatens nobody. Read by the intent weight term AND the
+    crisis opening — never duplicated. A guarantor's whole army enters the
+    holder's scale, which is how `guarantee_nation` lifts a prize out of
+    reach (the D5 instrument earning its keep)."""
+    if not asker or not holder or asker == holder:
+        return False
+    free = int(get_free_strength(world, asker))
+    if free <= 0:
+        return False
+    return _holder_scale(world, asker, holder) <= HOLDER_OUTMATCHED_FRACTION * free
+
+
+def defenceless_prize(world, coveter: str, view=None) -> Optional[str]:
+    """The holder's tag when `coveter`'s CURRENT intent is an AI-vs-AI
+    acquire design on a holder that cannot defend the prize — the §6.4
+    clause as a surface reads it (lever-gated; None everywhere else)."""
+    if not THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE:
+        return None
+    if view is None:
+        from backend.game_logic.intent import get_nation_intent
+        view = get_nation_intent(coveter, world)
+    if view.survival or view.want_type != "acquire_regions" or not view.against:
+        return None
+    player = getattr(world, "player_nation", "France")
+    vassals = set((getattr(world, "vassals", {}) or {}).keys())
+    if coveter == player or coveter in vassals:
+        return None
+    if view.against == player or view.against in vassals:
+        return None
+    if not holder_outmatched(world, coveter, view.against):
+        return None
+    return str(view.against)
+
+
+def crisis_rung_holds(world, coveter: str, view) -> bool:
+    """Is `coveter`'s intent at a rung that opens — or keeps — a crisis?
+    `fight` always; `coerce` only for a defenceless prize (§6.4-2). ONE
+    reading for the opening (step 3) and the liveness poll (step 1), so a
+    crisis opened at coerce is not read dead at the next poll."""
+    from backend.game_logic.intent import rung_index
+    if view.price == "fight":
+        return True
+    if rung_index(view.price) < rung_index("coerce"):
+        return False
+    return defenceless_prize(world, coveter, view) is not None
+
+
+def defenceless_prize_line(world, coveter: str, holder: str) -> str:
+    """ONE composition for every surface that names the clause (the
+    ledger's Intent row, Talleyrand's war room, the guarantee chip)."""
+    # NA-6 §11.8 stage 3: a FORMED nation is never named by its dead name
+    # in composed prose — the formation-aware chokepoint, not the static map.
+    from backend.game_logic.formations import formed_display_name
+    return (f"{formed_display_name(world, holder)} cannot defend itself — "
+            f"{formed_display_name(world, coveter)}'s design opens at an "
+            f"ultimatum, not at war")
+
+
+def coveters_of_prize(world, holder: str) -> List[str]:
+    """Every AI court whose live design reads `holder` as a defenceless
+    prize (the guarantee chip's reason to exist on that court). Lever-gated
+    through `defenceless_prize` itself — no second guard (the sweep found
+    one here inert, October 3, 2026)."""
+    out: List[str] = []
+    for court in sorted(world.get_active_nations()):
+        if court == holder:
+            continue
+        if defenceless_prize(world, court) == holder:
+            out.append(court)
+    return out
 
 
 def _declare_design_war(world, coveter: str, record: Dict,
@@ -943,7 +1067,7 @@ def process_war_council(world) -> List[Dict]:
             if nation == player or nation in vassals or nation in store:
                 continue
             view = get_nation_intent(nation, world)
-            if (view.price != "fight" or view.survival
+            if (view.survival
                     or view.want_type not in CRISIS_ELIGIBLE_DESIGNS):
                 continue
             target = view.against
@@ -953,6 +1077,16 @@ def process_war_council(world) -> List[Dict]:
                 continue
             if world.is_at_war(nation, target):
                 continue
+            if not crisis_rung_holds(world, nation, view):
+                continue
+            if view.price != "fight" or A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE:
+                # §6.4-2: the coerce road opens only with every restraint
+                # already clear (busy / penniless / outmatched / exposed),
+                # so a defenceless prize never fore-warns a war its court
+                # cannot wage — and, under the addendum lever, the fight
+                # road reads the same predicate (pin 15, one gate over).
+                if _restraint_block_reason(world, nation, target) is not None:
+                    continue
             preview = can_declare_war(world, nation, target)
             if not preview["ok"] and preview["reason"] != "treaty_in_the_way":
                 continue  # pin 15: never fore-warn a refused predicate
@@ -970,6 +1104,9 @@ def process_war_council(world) -> List[Dict]:
                 "foregrounded_turn": turn if foreground_free else None,
                 "coerce_recorded_turn": None,
                 "treaty_broken_turn": None,
+                # SF-LB-2: the rung the crisis opened at (display + the
+                # variance pin), inside the already-serialized record.
+                "opened_at_price": view.price,
             }
             store[nation] = record
             if foreground_free:

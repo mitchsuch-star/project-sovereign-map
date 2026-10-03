@@ -287,20 +287,39 @@ class TestIntentCoupling:
         to show — a guarantor at war reads as a hollow pledge (the N3
         allies-committed +6 nets it to -2; pinned as an interplay in
         test_ai_war_decision_ai3r.py). Denmark stands idle at boot."""
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4.
+        # Denmark's small army does not lift Hanover out of the outmatched
+        # reading (its standing stays under half Prussia's free strength),
+        # so the clean -8 shows and the rung falls ONE step (bandwagon ->
+        # align); the old "below the align floor" read a 59 that no longer
+        # boots.
+        from backend.game_logic.intent import (
+            WEIGHT_HOLDER_OUTMATCHED, rung_index,
+        )
+        from backend.game_logic.war_council import holder_outmatched
         before = get_nation_intent("Prussia", world)
-        assert before.price == "align" and before.weight == 59
+        assert before.price == "bandwagon"
+        assert before.weight == 59 + WEIGHT_HOLDER_OUTMATCHED
         pledge_guarantee(world, guarantor="Denmark", protected="Hanover")
+        assert holder_outmatched(world, "Prussia", "Hanover"), \
+            "Denmark's pledge is too small to lift Hanover out of reach"
         after = get_nation_intent("Prussia", world)
         assert after.weight == before.weight - GUARANTEE_WEIGHT_DETERRENT
-        assert after.price == "buy"
+        assert rung_index(after.price) == rung_index(before.price) - 1
+        assert after.price == "align"
 
     def test_coveters_own_guarantee_does_not_deter_itself(self, world):
         """Prussia guaranteeing Hanover itself deters nothing — but the
         pledge's +5 relation bonus lifts Prussia|Hanover from the boot 0
         into the warm band, dropping the CHILLY +4 term: 59 → 55. The
-        −8 deterrent (which would read 47) must NOT apply."""
+        −8 deterrent (which would read 47) must NOT apply.
+
+        SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4. The own-pledge
+        never enters the holder's scale (the guarantor is the coveter), so
+        the +10 stays: 65."""
+        from backend.game_logic.intent import WEIGHT_HOLDER_OUTMATCHED
         pledge_guarantee(world, guarantor="Prussia", protected="Hanover")
-        assert get_nation_intent("Prussia", world).weight == 55
+        assert get_nation_intent("Prussia", world).weight == 55 + WEIGHT_HOLDER_OUTMATCHED
 
     def test_renege_surge_against_the_breaker(self, world):
         """France buys off Sweden's anti-France design then attacks

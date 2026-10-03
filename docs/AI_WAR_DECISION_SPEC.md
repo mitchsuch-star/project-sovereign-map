@@ -493,3 +493,13 @@ deliberate interplay pinned in the new suite;
 (unrelated wars no longer block; the constant's absence asserted);
 `test_ai_intent_peacetime.py`'s buy-rung fixture quiets France's treaty
 allies (their boot wars read as N3 +6 on every court eyeing France).
+
+### 8.4 Addendum — SF-LB-2 "The Defenceless Prize" (October 3, 2026; gate `SCORE_FINISH_SPEC.md` §6.4)
+
+**N7's reason stands — "the terms climb to the bar, the bar stays" — and the bar is 85 for everything but one case:** an AI-vs-AI ACQUIRE design whose holder cannot defend the prize (the holder plus its guarantors at most half the asker's free strength, an armyless holder counting — `war_council.holder_outmatched`, the restraint gate's own arithmetic read once) opens its crisis at `coerce` (72) instead, and the asker's weight reads the holder's weakness (+10). Measured before the ruling: Prussia's design on Hanover had the ladder climbed, every restraint clear and a holder with no army on 7 of 7 seeds, and never opened, because the bar was the only gate left; +10 alone reached 80–83 and opened nothing. After: Prussia opens on every seed and takes Hanover by turn 14, as Berlin did in 1806.
+
+**Two consequences the ruling did not foresee, built here:**
+- **The opening reads the restraints on the fight road too** (`A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE`). The +10 and the refusal hardening lifted Sardinia (free strength 0, `outmatched`) and Russia (at war with France, `busy`) to 85, and the fight road fore-warned wars they could never declare — twice each, cooling eight turns later with the cause named. Pin 15 ("never fore-warn a refused predicate") now covers the restraints: a crisis opens only where its court could declare today; a restraint that appears after the opening still cools it on screen (the soft stall), exactly as before.
+- **A court asks before it demands** (`ai_diplomacy.A_COURT_ASKS_BEFORE_IT_DEMANDS`): the design ask fires at `coerce` while the ladder is unclimbed, so a court lifted straight to coerce can still collect pin 8's two refusals; the demand itself still waits on them.
+
+The §8.2 reading "ambient council wars = 0/40 turns on every seed with the blocking predicate WRITTEN" is superseded: one council war per seed, Prussia's, by machinery. `SWEEP_WAR_ALARM` holds.

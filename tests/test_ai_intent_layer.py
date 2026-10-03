@@ -62,7 +62,11 @@ class TestBootIntents:
         # the Potsdam winter, read straight off the authored opening.
         # UNMOVED by AI-3r: no moment term fires against a quiet,
         # ally-less Hanover — the marquee case still needs its moment.
-        ("Prussia", "hanoverian_prize", "Hanover", 59, "align"),
+        # MOVED by SF-LB-2 "The Defenceless Prize" (October 3, 2026,
+        # SCORE_FINISH_SPEC.md §6.4): an army-less Hanover IS the moment —
+        # the holder-outmatched term (+10) reads from the boot, 59 -> 69,
+        # align -> bandwagon. Re-seated consciously.
+        ("Prussia", "hanoverian_prize", "Hanover", 69, "bandwagon"),
         # Gustav IV mobilises (the allies-committed read lifts Stockholm
         # to the war rung — but its design aims at the player-hegemon,
         # which stays the coalition's business, D3); Turin seethes; the
@@ -163,7 +167,9 @@ class TestWeightJitter:
         assert world1805.campaign_seed == "historical"
         deep = WorldState.from_dict(world1805.to_dict())
         deep.current_turn = 20
-        assert get_nation_intent("Prussia", deep).weight == 59
+        # SF-LB-2 "The Defenceless Prize" (October 3, 2026): an armyless Hanover reads as a prize the moment the campaign boots, so Prussia's boot weight carries intent.WEIGHT_HOLDER_OUTMATCHED (59 -> 69, align -> bandwagon) — re-seated consciously, SCORE_FINISH_SPEC.md §6.4.
+        from backend.game_logic.intent import WEIGHT_HOLDER_OUTMATCHED
+        assert get_nation_intent("Prussia", deep).weight == 59 + WEIGHT_HOLDER_OUTMATCHED
 
     def test_variance_seed_jitter_ramps_weighted_late(self):
         # Same seeded world at turn 1 vs turn 20: the weight moves by

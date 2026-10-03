@@ -1198,7 +1198,43 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # 57,000 men against the league, loses the F1 floor by one province (the
 # landing record, SCORE_FINISH_SPEC.md §3 Step 3).
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — Score Finish Step 4's head, SF-LB-2 "The
+# Defenceless Prize" (October 3, 2026; SCORE_FINISH_SPEC.md §6.4, RULED —
+# the slice MOVES the series BY DESIGN: Prussia takes Hanover).
+# `tools/_sf_lb2_series_arms.py`, ten arms, every lever set IN THE CHILD,
+# every seam's reach COUNTED (record = `tools/_sf_lb2_series_arms_final.json`):
+#   0.   every SF-LB-2 lever DOWN ............ the SR-7d series above,
+#                                               BYTE-FOR-BYTE
+#   W.   the holder-outmatched +10 alone ..... BYTE-IDENTICAL (74 reads on
+#                                               Prussia>Hanover; the term alone
+#                                               reaches no rung that opens)
+#   C.   the coerce opening alone ............ BYTE-IDENTICAL (without the +10
+#                                               Prussia never reaches coerce)
+#   K.   the ask at coerce alone ............. BYTE-IDENTICAL (opens Sardinia's
+#                                               fight-road theatre twice; the
+#                                               series does not read it)
+#   R.   the opening guard alone ............. BYTE-IDENTICAL (nothing on the
+#                                               prior board fore-warned)
+#   N.   the province-over-namesake fix alone  BYTE-IDENTICAL (no Prussian war)
+#   WC.  the two §6.4 clauses together ....... diverges at [28] — ONE crisis
+#                                               (Prussia>Hanover@coerce), ONE
+#                                               council war; the war is DECLARED
+#                                               and never fought (the namesake)
+#   WCK / WCKR ............................... the same [28]
+#   ALL. the shipped tree .................... the series below, diverging at
+#                                               [21]: Prussia MARCHES (turns
+#                                               11–14), Hanover 6 → 1, Prussia
+#                                               6 → 11 provinces at turn 40
+# The sole mover is the pair W+C (the ruling's two clauses); N is what turns
+# the declaration into a campaign (WO-13's own collision: the AI's `attack
+# Brunswick` named Hanover's province and was refused as an attack on
+# Prussia's marshal Brunswick). Passive-France guard, stated honestly: the
+# UNATTENDED France ends turn 40 with 3 provinces on arm 0 and 3 on the
+# shipped arm — no worse. The commanded arms are the exit's (SCORE_FINISH_SPEC
+# §3 Step 4's landing record).
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

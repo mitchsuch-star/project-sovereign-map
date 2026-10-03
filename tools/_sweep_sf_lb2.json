@@ -1,0 +1,198 @@
+[
+ {
+  "id": "lever down: A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE",
+  "file": "backend/game_logic/intent.py",
+  "old": "A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE = True",
+  "new": "A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE = False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheWeightTerm"
+ },
+ {
+  "id": "the term is zero",
+  "file": "backend/game_logic/intent.py",
+  "old": "WEIGHT_HOLDER_OUTMATCHED = 10",
+  "new": "WEIGHT_HOLDER_OUTMATCHED = 0",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheWeightTerm::test_boot_prussia_carries_the_term tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_the_crisis_opens_at_coerce"
+ },
+ {
+  "id": "the term applied without the predicate",
+  "file": "backend/game_logic/intent.py",
+  "old": "            if holder_outmatched(world, nation, against):\n                weight += WEIGHT_HOLDER_OUTMATCHED",
+  "new": "            if True:\n                weight += WEIGHT_HOLDER_OUTMATCHED",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheWeightTerm::test_no_other_boot_court_moves tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_the_rung_holds_at_coerce_only_for_a_prize"
+ },
+ {
+  "id": "lever down: THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE",
+  "file": "backend/game_logic/war_council.py",
+  "old": "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE = True",
+  "new": "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE = False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces"
+ },
+ {
+  "id": "the fraction at a third",
+  "file": "backend/game_logic/war_council.py",
+  "old": "HOLDER_OUTMATCHED_FRACTION = 0.5",
+  "new": "HOLDER_OUTMATCHED_FRACTION = 0.34",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestOnePredicate::test_half_is_the_edge"
+ },
+ {
+  "id": "the fraction at two thirds",
+  "file": "backend/game_logic/war_council.py",
+  "old": "HOLDER_OUTMATCHED_FRACTION = 0.5",
+  "new": "HOLDER_OUTMATCHED_FRACTION = 0.67",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestOnePredicate::test_half_is_the_edge"
+ },
+ {
+  "id": "guarantors left out of the holder's scale",
+  "file": "backend/game_logic/war_council.py",
+  "old": "            theirs += _standing_strength(world, str(guarantee.get(\"guarantor\")))\n    return int(theirs)",
+  "new": "            theirs += 0\n    return int(theirs)",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestOnePredicate::test_a_guarantor_lifts_the_holder_out tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_the_players_guarantee_passes_it_deterred"
+ },
+ {
+  "id": "the coveter's own pledge counted",
+  "file": "backend/game_logic/war_council.py",
+  "old": "                and guarantee.get(\"guarantor\") not in (coveter, target)):\n            theirs += _standing_strength(world, str(guarantee.get(\"guarantor\")))\n    return int(theirs)",
+  "new": "                and guarantee.get(\"guarantor\") != target):\n            theirs += _standing_strength(world, str(guarantee.get(\"guarantor\")))\n    return int(theirs)",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestOnePredicate::test_the_coveters_own_pledge_lifts_nothing"
+ },
+ {
+  "id": "an asker with no free strength counts",
+  "file": "backend/game_logic/war_council.py",
+  "old": "    free = int(get_free_strength(world, asker))\n    if free <= 0:\n        return False",
+  "new": "    free = int(get_free_strength(world, asker))\n    if free < 0:\n        return False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestOnePredicate::test_an_asker_with_no_free_strength_threatens_nobody"
+ },
+ {
+  "id": "the opening reads the player as a prize",
+  "file": "backend/game_logic/war_council.py",
+  "old": "    if view.against == player or view.against in vassals:\n        return None\n    if not holder_outmatched(world, coveter, view.against):",
+  "new": "    if view.against in vassals:\n        return None\n    if not holder_outmatched(world, coveter, view.against):",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheWeightTerm::test_gr5_a_defenceless_player_hardens_its_coveter_too"
+ },
+ {
+  "id": "a deny design opens at coerce",
+  "file": "backend/game_logic/war_council.py",
+  "old": "    if view.survival or view.want_type != \"acquire_regions\" or not view.against:\n        return None",
+  "new": "    if view.survival or not view.against:\n        return None",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_only_an_acquire_design_is_a_prize"
+ },
+ {
+  "id": "the liveness poll reads fight alone",
+  "file": "backend/game_logic/war_council.py",
+  "old": "    if crisis_rung_holds(world, coveter, view):\n        return None  # still live (fight; or coerce on a defenceless prize)",
+  "new": "    if view.price == \"fight\":\n        return None  # still live (fight; or coerce on a defenceless prize)",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_a_coerce_crisis_survives_the_next_poll"
+ },
+ {
+  "id": "the coerce road ignores the restraints",
+  "file": "backend/game_logic/war_council.py",
+  "old": "            if view.price != \"fight\" or A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE:",
+  "new": "            if False:",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_the_coerce_road_needs_the_restraints_clear tests/test_sf_lb2_the_defenceless_prize.py::TestTheFightRoadReadsTheRestraints::test_a_busy_court_never_fore_warns"
+ },
+ {
+  "id": "lever down: A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE",
+  "file": "backend/game_logic/war_council.py",
+  "old": "A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE = True",
+  "new": "A_CRISIS_OPENS_ONLY_WHERE_IT_CAN_DECLARE = False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheFightRoadReadsTheRestraints::test_a_busy_court_never_fore_warns"
+ },
+ {
+  "id": "the opening rung dropped to bandwagon",
+  "file": "backend/game_logic/war_council.py",
+  "old": "    if rung_index(view.price) < rung_index(\"coerce\"):\n        return False\n    return defenceless_prize(world, coveter, view) is not None",
+  "new": "    if rung_index(view.price) < rung_index(\"bandwagon\"):\n        return False\n    return defenceless_prize(world, coveter, view) is not None",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_a_climbed_ladder_at_bandwagon_opens_nothing"
+ },
+ {
+  "id": "the record forgets the rung it opened at",
+  "file": "backend/game_logic/war_council.py",
+  "old": "                \"opened_at_price\": view.price,",
+  "new": "                \"opened_at_price\": \"fight\",",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheOpeningAtCoerce::test_the_crisis_opens_at_coerce"
+ },
+ {
+  "id": "lever down: A_COURT_ASKS_BEFORE_IT_DEMANDS",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "A_COURT_ASKS_BEFORE_IT_DEMANDS = True",
+  "new": "A_COURT_ASKS_BEFORE_IT_DEMANDS = False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheAskAtCoerce::test_the_ask_fires_at_coerce_while_the_ladder_is_unclimbed"
+ },
+ {
+  "id": "the ask at coerce ignores the ladder",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "            if not _ladder_climbed(world, proposer, target):\n                _ask_rungs = tuple(_ask_rungs) + (\"coerce\",)",
+  "new": "            if True:\n                _ask_rungs = tuple(_ask_rungs) + (\"coerce\",)",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheAskAtCoerce::test_once_climbed_the_court_demands_instead"
+ },
+ {
+  "id": "the Intent row drops the clause",
+  "file": "backend/game_logic/intent.py",
+  "old": "    if prize_line:\n        summary = f\"{summary} — {prize_line}\"",
+  "new": "    if False:\n        summary = f\"{summary} — {prize_line}\"",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_the_intent_row_names_the_clause"
+ },
+ {
+  "id": "the war room drops the counsel",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "    if prize_rows:\n        lines.append(\"\")\n        for row in prize_rows[:2]:\n            lines.append(row[\"text\"])",
+  "new": "    if False:\n        lines.append(\"\")\n        for row in prize_rows[:2]:\n            lines.append(row[\"text\"])",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_the_war_room_names_the_counter"
+ },
+ {
+  "id": "the war room's DP gate lies",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "        elif dp >= INSTRUMENT_DP_COST:\n            counter = (f\"A guarantee of {_fdn(world, holder)} \"",
+  "new": "        elif True:\n            counter = (f\"A guarantee of {_fdn(world, holder)} \"",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_the_war_room_is_honest_about_the_dp"
+ },
+ {
+  "id": "the war room counsels before the climb",
+  "file": "backend/game_logic/diplomatic_advisory.py",
+  "old": "        if (not crisis_open\n                and _rung_index(court_view.price) < _rung_index(\"coerce\")):\n            continue  # the clause is read; the design has not climbed yet",
+  "new": "        if False:\n            continue  # the clause is read; the design has not climbed yet",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_the_war_room_waits_for_the_climb"
+ },
+ {
+  "id": "the guarantee chip forgets the prize",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    prize_coveters = coveters_of_prize(world, target_nation)\n    if prize_coveters:",
+  "new": "    prize_coveters = coveters_of_prize(world, target_nation)\n    if False:",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_the_guarantee_chip_names_the_reach"
+ },
+ {
+  "id": "the prize read without the lever",
+  "file": "backend/game_logic/war_council.py",
+  "old": "    if not THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE:\n        return None\n    if view is None:",
+  "new": "    if False:\n        return None\n    if view is None:",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_coveters_of_prize_is_lever_gated tests/test_sf_lb2_the_defenceless_prize.py::TestTheSurfaces::test_lever_down_the_row_is_silent"
+ },
+ {
+  "id": "lever down: A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING = True",
+  "new": "A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING = False",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestAFullLabelKeepsItsLastSighting::test_the_latest_sighting_wins"
+ },
+ {
+  "id": "the full label rides as FULL, not last_known",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "            frozen_full = True\n            vis = LAST_KNOWN",
+  "new": "            frozen_full = True\n            vis = FULL",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestAFullLabelKeepsItsLastSighting::test_the_latest_sighting_wins"
+ },
+ {
+  "id": "a man in plain sight keeps a stale row",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "                if _standing is not None and _where is not None and _where.visibility == FULL:\n                    continue  # the live read already spoke for him",
+  "new": "                if False:\n                    continue  # the live read already spoke for him",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestAFullLabelKeepsItsLastSighting::test_a_man_in_plain_sight_keeps_no_stale_row tests/test_sr6_the_dispatch_tells_the_truth.py::TestAFullProvinceIsReadLive::test_no_row_for_a_prisoner_or_an_empty_corps"
+ },
+ {
+  "id": "a phantom label rides",
+  "file": "backend/game_logic/intel_surfaces.py",
+  "old": "            if frozen_full and name not in (getattr(world, \"marshals\", {}) or {}):\n                continue  # a label with no man behind it is no sighting",
+  "new": "            if False:\n                continue  # a label with no man behind it is no sighting",
+  "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestAFullLabelKeepsItsLastSighting::test_a_phantom_label_rides_no_row tests/test_ledger.py::test_intel_nation_summary_marshal_count"
+ }
+]

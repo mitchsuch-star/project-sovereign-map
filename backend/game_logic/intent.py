@@ -130,6 +130,19 @@ WEIGHT_REFUSED_ASK_CAP = 12
 # so it expires with that record's 12-turn memory window: refusing the
 # good offices is the ramp toward the next coalition, by machinery.
 WEIGHT_MEDIATION_REBUFFED = 6
+# SF-LB-2 "The Defenceless Prize" (SCORE_FINISH_SPEC.md §6.4-1, RULED
+# October 3, 2026): the asker's weight reads the holder's WEAKNESS. When
+# the holder — plus its guarantors — stands at most half the asker's FREE
+# strength (`war_council.holder_outmatched`, the ONE reading the crisis
+# opening shares; an armyless holder counts), the design weighs ten more.
+# Measured: Prussia over an army-less Hanover topped at 70–73 on seven
+# seeds and never reached a rung that opens; a `guarantee_nation` of the
+# holder puts the guarantor's whole army in the scale and the term falls
+# away with the −8 deterrent (the counter). Both boards (GR5); the
+# player-targeted case keeps NA-5's road (the opening is AI-vs-AI only).
+# False = the weight without the term, byte for byte.
+A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE = True
+WEIGHT_HOLDER_OUTMATCHED = 10
 INTENT_WEIGHT_JITTER = 8             # §3.8 amplitude, ramps in over turns
 
 # weight -> rung thresholds (highest rung whose floor is met).
@@ -441,6 +454,12 @@ def _derive_weight(nation: str, agenda: AgendaView,
                 and exposure["reserve"]
                 < REAR_QUIET_FRACTION * exposure["standing"]):
             weight += WEIGHT_OWN_REAR_QUIET
+        # SF-LB-2 §6.4-1: the holder cannot defend the prize. The SAME
+        # reading the war council's coerce opening consults (one source).
+        if A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE:
+            from backend.game_logic.war_council import holder_outmatched
+            if holder_outmatched(world, nation, against):
+                weight += WEIGHT_HOLDER_OUTMATCHED
     # §3.8 threshold jitter — 0 at boot on every seed, 0 forever on the
     # historical seed; the bars move, never the choices.
     weight += seeded_jitter(
@@ -492,6 +511,17 @@ def build_intent_payload(nation: str, world) -> Optional[dict]:
                    f"stands in the way (weight {view.weight})")
     else:
         summary = f"{reach} (weight {view.weight})"
+    # SF-LB-2 §6.4: the Intent row NAMES the clause — the holder cannot
+    # defend itself and the design opens at an ultimatum, not at war
+    # (one composition, `war_council.defenceless_prize_line`).
+    from backend.game_logic.war_council import (
+        defenceless_prize, defenceless_prize_line,
+    )
+    prize = defenceless_prize(world, nation, view)
+    prize_line = (defenceless_prize_line(world, nation, prize)
+                  if prize else None)
+    if prize_line:
+        summary = f"{summary} — {prize_line}"
     return {
         "want_id": view.want_id,
         "want_title": view.want_title,
@@ -501,6 +531,8 @@ def build_intent_payload(nation: str, world) -> Optional[dict]:
         "price": view.price,
         "price_display": price_display,
         "summary": summary,
+        "defenceless_prize": prize,
+        "defenceless_prize_line": prize_line,
     }
 
 
