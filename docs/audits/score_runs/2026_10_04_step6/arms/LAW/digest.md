@@ -1,0 +1,302 @@
+# Playtest digest — LAW
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 1 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `d10182082767` (dirty) · content `1ecab161811e` · driver `fe441ad83bb4`
+  - new game → New campaign started. Autosave refreshed.
+
+## Turn 1 — Late September 1805
+- CMD `what laws are in force` → ✓ The laws of state, Sire. No law is in force. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 800. The Train des Équipages: 3,500 gold, …
+- CMD `what does the Staff cost` → ✓ The laws of state, Sire. No law is in force. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 800. Berthier's headquarters grown into a …
+- CMD `laws` → ✓ The laws of state, Sire. No law is in force. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 800. The Train des Équipages: 3,500 gold, …
+- CMD `enact the Anticipated Class` → ✓ The Anticipated Class (the senatus-consultes calling the class early, 1806–07): The Senate calls each year's conscripts before their time: infantry manpower returns 25% …
+  - POPUP clarification: The Council of State, The Anticipated Class (the senatus-consultes calling the class early, 1806–07): The Senate calls each year's conscripts before their time: infantry manpower returns 25% faster. 15 authority now, then 150 gold a turn. Authority 100 → 85 — the marshals' calm holds above 70. The treasury holds 800 gold. Enact it? (yes / no) → 1 (first option: Enact the Anticipated Class)
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (24,000; expect about 85,373 with the corps likely to arrive, up to 96,789 if all march) vs Mack (large force) at Swabia — the balance of force looks favora…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 2157, own corps) vs Mack (lost 17054) — Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position — though Soult and Bernadotte never arr… — The corps system brought Murat in. — Berthier: the corps marched apart and arrived together.
+- CMD `Davout, move to Swabia` → ✗ Davout is already in Swabia.
+- CMD `Lannes, move to Rhineland` → ✓ Lannes moves from Swabia to Rhineland
+- CMD `end turn` → ✓ Turn 1 ended. (Warning: 2 actions unused) Turn 2 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles's forces press forward aggressively. Brutal stalemate between Archduke Charles and Massena. Heavy casu…
+  - ⚔ Archduke Charles (lost 4213) vs Massena (lost 6225) — Stalemate. Massena and Archduke Charles glare at each other across the field.
+  - verbs: attack×1, wait×1
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+  - POPUP diplomatic_dialogue: Prussia, open_borders #2 → accept
+  - POPUP proposal_result: You have accepted Prussia's proposal. Treaty signed: Peace → Open Borders with Prussia. → display-only
+- ENVOYS WAITING 3 · Prussia open borders · Ottoman open borders · Portugal open borders
+- LEDGER treasury 1470 · net +1319 · threat 76 · provinces 28 · ceiling 31441 · army 173942 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 99
+  - NET income 2590 · trade 400 · admin 50 · tribute 895 · upkeep 2126 · blockade 250 · admiralty 90 · laws 150
+- DISPATCH: Supply cost you 2,636 men, at Swabia.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - TURN EVENTS 5
+- DIPLO +8 medium/low (law_enacted_abroad, diplomatic_dp_regen, sovereign_takes_field, diplomatic_vassal_contingent ×2, blockade_begins ×3)
+  - LOG ai_ai_proposal_refused: Britain rebuffs Prussia and Bavaria (open borders agreement)
+
+## Turn 2 — Early October 1805
+  - LETTER Ottoman: Open Borders Agreement → accept
+  - LETTER Portugal: Open Borders Agreement → accept
+- CMD `what does the Code Abroad do` → ✓ The laws of state, Sire. In force: the Anticipated Class. The Code Abroad: 15 authority, then 100 gold a turn — ready to enact. The Civil Code carried into the client st…
+- CMD `enact the Code Abroad` → ✓ The Code Abroad (the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)): The Civil Code carried into the client states binds them to the Empire: +1…
+  - POPUP clarification: The Council of State, The Code Abroad (the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)): The Civil Code carried into the client states binds them to the Empire: +1 loyalty a turn in every one. 15 authority now, then 100 gold a turn. Authority 90 → 75 — the marshals' calm holds above 70. The treasury holds 1,530 gold. Enact it? (yes / no) → 1 (first option: Enact the Code Abroad)
+- CMD `economy` → ✓ FRANCE TREASURY REPORT
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (20,808; expect about 94,391 with the corps likely to arrive, up to 103,588 if all march) vs Mack (substantial force) at Munich — the balance of force looks…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 803, own corps) vs Mack (lost 21656) — Davout, Massena and Teulie arrived to reinforce Ney, but Napoleon failed to reach the field in time. — Berthier: the corps marched apart and arrived together.
+- CMD `Davout, attack Mack` → ✓ MUSTER — Davout (23,071; expect about 40,115 with the corps likely to arrive) vs Mack (large force) at Tyrol — the balance of force looks favorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Davout (lost 5258, own corps) vs Archduke Charles (lost 2031, own corps) — Ney marched to Davout's guns as ordered. It was not enough.
+- CMD `Soult, move to Alsace` → ✗ Region 'Alsace' not found. From Lorraine the roads lead to: Swabia, Rhineland, Franche-Comte, Orleanais.
+- CMD `Murat, move to Franche-Comte` → ✓ Murat moves from Swabia to Franche-Comte
+- CMD `end turn` → ✓ Turn 2 ended. (Warning: 1 action unused) Turn 3 begins!
+- enemy phase: 5 actions, 3 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles strikes back after successfully defending! · Deroy's forces advance steadily. Archduke John holds the line. Casualties: Deroy 3,032, Archduke John 1,631. Both armie… · Deroy engages in solid combat. Archduke John holds the line. Casualties: Deroy 2,866, Archduke John 1,282. Both armies …
+  - ⚔ Archduke Charles (lost 2018) vs Bernadotte (lost 5561) — Bernadotte's army has been badly mauled. Archduke Charles proved the stronger force today.
+  - ⚔ Deroy (lost 3032) vs Archduke John (lost 1631) — Archduke John's fortifications held firm, Sire. Deroy broke against our walls.
+  - ⚔ Deroy (lost 2866) vs Archduke John (lost 1282) — The prepared defenses proved their worth. Deroy could not dislodge Archduke John.
+  - verbs: attack×3, fortify×1, wait×1
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Davout seeks an audience → acknowledge
+  -     ↳ Davout's grievance runs its course.
+- ENVOYS WAITING 2 · Denmark non aggression · Saxony open borders
+- LEDGER treasury 2521 · net +1783 · threat 82 · provinces 28 (+0) · ceiling 31640 · army 154533 · vassals Holland 98 · Kingdom of Italy 97 · Switzerland 95
+  - NET income 2590 · trade 450 · admin 50 · tribute 901 · upkeep 1556 · charges 31 · blockade 281 · admiralty 90 · laws 250
+- DISPATCH: Sire — Bernadotte was mauled at Franconia: a quarter of his corps — 5,561 men — lost in a single action.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - TURN EVENTS 8
+- DIPLO +8 medium/low (diplomatic_treaty_signed ×3, diplomatic_we_threshold ×2, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 26 approaches from Prussia, Bavaria and Austria are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: Naples rebuffs Prussia (defensive alliance)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+
+## Turn 3 — Late October 1805
+  - LETTER Denmark: Non-Aggression Pact → accept
+  - LETTER Saxony: Open Borders Agreement → accept
+- CMD `what laws are in force` → ✓ The laws of state, Sire. In force: the Anticipated Class, the Code Abroad. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 2,603. The T…
+- CMD `enact the Staff` → ✗ The Grand Quartier Général costs 9,000 gold; the treasury holds 2,603.
+- CMD `Ney, attack Mack` → ✓ MUSTER — Ney (16,150; expect about 24,894 with the corps likely to arrive, up to 29,891 if all march) vs Mack (11,380 men) at Tyrol — the balance of force looks even — a…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 1306, own corps) vs Mack (lost 3465, own corps) — Massena and Teulie's timely arrival aided Ney. Davout, however, was conspicuously absent.
+- CMD `Davout, attack Mack` → ✓ Davout: 'Enemy holds Tyrol — destination blocked. How shall I proceed, Sire?'
+  - POPUP strategic_interrupt: Davout, contact, Davout: 'Enemy holds Tyrol — destination blocked. How shall I proceed, Sire?' → attack
+  - ↳ Davout attacks ArchdukeJohn and wins! Continuing the pursuit. MUSTER — Davout (16,998; expect about 71,839 with the corps likely to arrive) vs Archduke John (12,979 men) at Tyrol — the balance of force looks favorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Davout (lost 320, own corps) vs Archduke John (lost 6681) — Davout broke through fortified positions — extraordinary courage from the men.
+  - POPUP capture_choice[capture]: Tyrol, Davout → secure
+- CMD `Lannes, move to Swabia` → ✓ Lannes moves from Rhineland to Swabia (167 lost to march)
+- CMD `recruit 10000 infantry with Soult` → ✓ Soult recruits 3,000 infantry at Lorraine (field levy — no depot; capped at 3,000) - Cost: 686 gold (×3 at war) (×1.14 over the ordinance). Morale: 100% -> 94%
+- CMD `end turn` → ✓ Turn 3 ended. (Warning: 1 action unused) Turn 4 begins!
+- SPENT 686g on this turn's orders
+- enemy phase: 4 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — Deroy launches a decisive assault. Deroy gains the advantage over Mack. Casualties: Deroy 169, Mack 4,843. Both armies … · Deroy holds them at Bohemia while allies attack from Franconia! (+1 coordination)
+  - 🏴 Bavaria: [!] MARSHAL CAPTURED — Mack is taken by Bavaria at Bohemia!
+  - 🏴 Bavaria: [!] Archduke John's troops are BROKEN (morale 0%)! FORCED RETREAT! Bohemia has been captured by Bavaria!
+  - ⚔ Deroy (lost 169) vs Mack (lost 4843) — A grievous defeat for Mack, Sire. The losses are severe. And Mack was taken on that field — Bavaria holds him.
+  - ⚔ Deroy (lost 192) vs Archduke John (lost 2649) — The toll on Archduke John's forces is heavy, Sire. This defeat will be felt.
+  - verbs: attack×2, wait×1, move×1
+- ORDER Davout [active]: Davout is pursuing Mack (1 turn remaining).
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Massena seeks an audience → acknowledge
+  -     ↳ Massena's grievance runs its course.
+- ENVOYS WAITING 2 · Hesse non aggression · PapalStates open borders
+- LEDGER treasury 3698 · net +1777 · threat 88 · provinces 29 (+1) · ceiling 22208 · army 150737 · vassals Holland 100 · Kingdom of Italy 99 · Switzerland 96
+  - NET income 2609 · trade 525 · admin 50 · tribute 905 · upkeep 1428 · charges 163 · occupation 52 · blockade 329 · admiralty 90 · laws 250
+- DISPATCH: Sire — Marshal Davout holds the field at Tyrol — Archduke John's corps is driven from Tyrol yet again — broken, and fleeing.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - RAIL design_promoted: REVANCHE: Austria will not forgive Bavaria the loss of Bohemia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 6
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as an ultimatum.
+- DIPLO +5 medium/low (diplomatic_treaty_signed ×2, diplomatic_we_threshold, diplomatic_dp_regen, agenda_shift)
+  - LOG ai_ai_proposal_refused: 25 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: 3 approaches from Prussia, Bavaria and Spain are rebuffed (open borders agreement)
+
+## Turn 4 — Early November 1805
+  - LETTER Hesse: Non-Aggression Pact → accept
+  - LETTER PapalStates: Open Borders Agreement → accept
+- CMD `enact the Staff` → ✗ The Grand Quartier Général costs 9,000 gold; the treasury holds 3,803.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, attack Mack` → ✗ Mack is a prisoner of Bavaria at Munich, Sire — he leads no army.
+- CMD `Davout, fortify` → ✓ [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Davout fortifies position at Tyrol. Defense bonus: +7% (grows +3% per turn, max…
+- CMD `Massena, move to Tyrol` → ✗ Massena is already in Tyrol.
+- CMD `end turn` → ✓ Turn 4 ended. (Warning: 2 actions unused) Turn 5 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Prussia and 6 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Vienna into Bohemia unopposed! (1,287 lost to march) Captured: Bavaria → Austria
+  - 🏴 Austria: ArchdukeCharles marches from Vienna into Bohemia unopposed! (1,287 lost to march) Captured: Bavaria → Austria
+  - verbs: attack×1, fortify×1
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Bernadotte seeks an audience → acknowledge
+  -     ↳ Bernadotte's grievance runs its course.
+- LEDGER treasury 5693 · net +1697 · threat 86 · provinces 29 (+0) · ceiling 22796 · army 147373 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 95
+  - NET income 2610 · trade 587 · admin 50 · tribute 910 · upkeep 1334 · charges 366 · occupation 52 · blockade 368 · admiralty 90 · laws 250
+- DISPATCH: Sire — Bohemia has been taken by Austria.
+  - TURN EVENTS 7
+- DIPLO +5 medium/low (diplomatic_treaty_signed ×2, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: Naples, Denmark and Bavaria rebuff Prussia (open borders agreement)
+  - LOG design_promoted: REVANCHE: Austria swears to retake Bohemia and 1 more — Bavaria is not forgiven
+  - LOG ai_ai_proposal_refused: 17 approaches rebuffed, chiefly from Prussia and Austria (open borders agreement)
+  - LOG ai_ai_proposal_refused: 2 approaches from Prussia and Spain are rebuffed (open borders agreement)
+
+## Turn 5 — Late November 1805
+- CMD `enact the Staff` → ✗ The Grand Quartier Général costs 9,000 gold; the treasury holds 5,693.
+- CMD `what does the Staff cost` → ✓ The laws of state, Sire. In force: the Anticipated Class, the Code Abroad. The Grand Quartier Général: 9,000 gold, then 300 gold a turn — the treasury holds 5,693. Berth…
+- CMD `Ney, attack Archduke Charles` → ✓ MUSTER — Ney (12,835; expect about 19,526 with the corps likely to arrive) vs Archduke Charles (41,636 men) at Bohemia — the balance of force looks unfavorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 5003, own corps) vs Archduke Charles (lost 1456) — The reinforcement arrived, Sire. The verdict of the field went against us regardless.
+- CMD `Lannes, attack Mack` → ✗ Mack is a prisoner of Bavaria at Munich, Sire — he leads no army.
+- CMD `Soult, move to Swabia` → ✓ Soult moves from Lorraine to Swabia (990 lost to march)
+- CMD `Murat, move to Swabia` → ✓ Murat moves from Franche-Comte to Swabia (234 lost to march)
+- CMD `end turn` → ✓ Turn 5 ended. (Warning: 1 action unused) Turn 6 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 7 other courts stirred, but their formations remain beyond our sight.
+- ORDER Teulie [retired]: Teulie's question is overtaken, Sire — Teulie has marched clear of Bohemia. He awaits new orders.
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Lannes seeks an audience → acknowledge
+  -     ↳ Lannes's grievance runs its course.
+  - POPUP diplomatic_dialogue: KingdomOfItaly, client_petition #11 → grant the petition
+  - POPUP proposal_result: Tyrol is ceded to the Kingdom of Italy. Loyalty +4 (96 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP. Our net rises by 6g a turn — 63g of income forfeited, 30g of occupation relieved, 47g returned as tribute at today's 75% rate, the force limit falls 2,500 (+8g surcharge). → display-only
+- ENVOYS WAITING 1 · KingdomOfItaly client petition
+- LEDGER treasury 7514 · net +1982 · threat 84 · provinces 28 (-1) · ceiling 32923 · army 135610 · vassals Holland 99 · Kingdom of Italy 100 · Switzerland 92
+  - NET income 2590 · trade 587 · admin 50 · tribute 961 · upkeep 1068 · charges 430 · blockade 368 · admiralty 90 · laws 250
+- DISPATCH: Sire — Ney, crowned four turns ago, has been beaten in the field.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.
+  - RAIL diplomatic_ai_proposal: An envoy from the Kingdom of Italy has arrived with a petition.
+  - RAIL crisis_brewing: THE BREWING CRISIS: Prussia will move on Hanover. You may compensate (1,200g — you can afford it); guarantee Hanover (1 DP — 7 in hand); or let the w…
+  - TURN EVENTS 8
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: 7 courts rebuff Prussia (defensive alliance)
+
+## Turn 6 — Early December 1805
+- CMD `enact the Staff` → ✗ The Grand Quartier Général costs 9,000 gold; the treasury holds 7,514.
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `how many diplomatic points do I have` → ✓ Talleyrand holds 6 diplomatic points of 7 — 5 came with this morning's refill and 2 were carried from last turn; what he leaves unspent carries one turn, to at most 7. T…
+- CMD `Ney, drill` → ✗ Ney is recovering from retreat and cannot drill. Recovery: 2 turns remaining.
+- CMD `Davout, unfortify` → ✓ Davout efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile.
+- CMD `Lannes, fortify` → ✓ Lannes grumbles about defensive orders but complies. [Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Lannes fortifies position …
+- CMD `recruit 10000 infantry with Soult` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 6 ended. (Warning: 2 actions unused) Turn 7 begins!
+- enemy phase: 5 actions, 1 attacks — Britain, Russia, Prussia and 6 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeJohn marches from Bohemia into Carniola unopposed! (162 lost to march) Captured: Bavaria → Austria
+  - 🏴 Austria: ArchdukeJohn marches from Bohemia into Carniola unopposed! (162 lost to march) Captured: Bavaria → Austria
+  - verbs: move×3, unfortify×1, attack×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Murat demands to be heard → acknowledge
+  -     ↳ Murat's grievance runs its course.
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #12 → grant the petition
+  - POPUP proposal_result: Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +9 (91 → 100); bond 0 → 20 (+1 a turn). Cost: 1 DP. → display-only
+- ENVOYS WAITING 1 · Switzerland client petition
+- LEDGER treasury 9267 · net +1315 · threat 82 · provinces 28 (+0) · ceiling 21091 · army 131937 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 2590 · trade 587 · admin 50 · tribute 742 · upkeep 1028 · charges 808 · contributions 110 · blockade 368 · admiralty 90 · laws 250
+- DISPATCH: Sire — Paget has crossed into Gascony. No French corps stands in his path.
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 8
+- DIPLO +3 medium/low (enemy_marshal_commissioned, diplomatic_dp_regen, coercive_demand)
+  - LOG sponsorship_granted: Russia sponsors Britain against France (200g/turn)
+  - LOG sponsorship_granted: Britain sponsors Sardinia against France (200g/turn)
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 7 approaches to Britain and Russia are rebuffed (open borders agreement)
+
+## Turn 7 — Late December 1805
+- CMD `enact the Staff` → ✓ The Grand Quartier Général (Berthier's Imperial Headquarters, expanded 1805–07): Berthier's headquarters grown into a true general staff: one more order carried each day…
+  - POPUP clarification: The Council of State, The Grand Quartier Général (Berthier's Imperial Headquarters, expanded 1805–07): Berthier's headquarters grown into a true general staff: one more order carried each day. 9,000 gold now, then 300 gold a turn; one more order each day from the next refill. The treasury holds 9,267 gold. Enact it? (yes / no) → 1 (first option: Enact the Grand Quartier Général)
+- CMD `repeal the Code Abroad` → ✓ The Code Abroad is repealed — its 100 gold a turn ends, and nothing is refunded. Enacting it again costs its full price (15 authority).
+- CMD `what laws are in force` → ✓ The laws of state, Sire. In force: the Grand Quartier Général, the Anticipated Class. The Grand Quartier Général is in force (since turn 7, 300 gold a turn). The Train d…
+- CMD `economy` → ✓ FRANCE TREASURY REPORT
+- CMD `Ney, attack Archduke Charles` → ✗ Ney is recovering from retreat and cannot attack. Recovery: 1 turn remaining.
+- CMD `Davout, move to Bohemia` → ✗ Cannot move into Bohemia - enemy forces present! Use ATTACK to engage Archduke Charles.
+- CMD `Murat, attack Archduke Charles` → ✓ MUSTER — Murat (19,067; expect about 21,732 with the corps likely to arrive, up to 29,337 if all march) vs Archduke Charles (40,180 men) at Bohemia — the balance of forc…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Murat (lost 6478, own corps) vs Archduke Charles (lost 1999) — Reinforcements from Teulie bolstered Murat's position — though Davout never arrived, Sire. — The corps system brought Teulie in. — The Hofkriegsrat's orders reached Archduke John too late.
+- CMD `end turn` → ✓ Turn 7 ended. (Warning: 3 actions unused) Turn 8 begins!
+- SPENT 9000g on this turn's orders
+- enemy phase: 9 actions, 5 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles strikes back after successfully defending! · ArchdukeJohn strikes back after successfully defending! · Archduke Charles's forces press forward aggressively. Archduke Charles gains the advantage over Massena. Casualties: Ar… · Archduke John launches a decisive assault. Archduke John gains the advantage over Davout. Casualties: Archduke John 472…
+  - 🏴 Austria: Casualties: Archduke John 2,068, Ney's army 5,960. Both armies remain in the field. Franconia has been captured by Austria!
+  - 🏴 Austria: Both armies remain in the field. ArchdukeJohn advances into Tyrol. (211 lost to march) Tyrol has been captured by Austria!
+  - 🏴 Bavaria: Deroy moves from Croatia to Carniola. Carniola falls to Bavaria!
+  - 🏴 Bavaria: Deroy moves from Carniola to Bohemia. Bohemia falls to Bavaria!
+  - 🏴 Bavaria: Deroy marches from Bohemia into Franconia unopposed! (61 lost to march — forward supply lines reduce losses) Captured: Austria → Bavaria
+  - ⚔ Archduke Charles (lost 727, own corps) vs Bernadotte (lost 6715) — Where was Soult? Bernadotte held the field alone — reinforcement never came.
+  - ⚔ Archduke John (lost 607, own corps) vs Ney (lost 2008, own corps) — Reinforcements from Davout and Napoleon bolstered Ney's position — though Soult never arrived, Sire. — Berthier: the corps marched apart and arrived together.
+  - ⚔ Archduke Charles (lost 916) vs Massena (lost 10299, own corps) — Even the favorable ground could not save Massena, Sire. Archduke Charles overcame the terrain.
+  - ⚔ Archduke John (lost 146, own corps) vs Davout (lost 3560) — Even the favorable ground could not save Davout, Sire. Archduke John overcame the terrain.
+  - verbs: attack×5, move×3, unfortify×1
+- LEDGER treasury 672 · net +2187 · threat 80 · provinces 28 (+0) · ceiling 16979 · army 94577 · vassals Holland 94 · Kingdom of Italy 94 · Switzerland 93
+  - NET income 2590 · trade 587 · admin 50 · tribute 698 · upkeep 720 · contributions 110 · blockade 368 · admiralty 90 · laws 450
+- DISPATCH: Sire — Bernadotte's corps has been broken at Franconia. He must reform before he fights again.
+  - RAIL diplomatic_war_declared: Prussia has declared war on Hanover.
+  - TURN EVENTS 11
+- COURTS: The court of Sardinia hardens over The House of Savoy Restored — prepared now to go as far as war.
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as war.
+- DIPLO +4 medium/low (diplomatic_we_threshold, diplomatic_dp_regen, paymaster_subsidy, diplomatic_relation_shift)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 28 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)
+
+## Turn 8 — Early January 1806
+- CMD `enact the Staff` → ✗ The Grand Quartier Général is already in force (since turn 7).
+- CMD `enact the Code Abroad` → ✓ The Code Abroad (the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)): The Civil Code carried into the client states binds them to the Empire: +1…
+  - POPUP clarification: The Council of State, The Code Abroad (the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)): The Civil Code carried into the client states binds them to the Empire: +1 loyalty a turn in every one. 15 authority now, then 100 gold a turn. Authority 75 → 60 — the marshals' calm above 70 is lost. The treasury holds 672 gold. Enact it? (yes / no) → 1 (first option: Enact the Code Abroad)
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Davout, attack Archduke Charles` → ✗ Davout is recovering from retreat and cannot attack. Recovery: 1 turn remaining.
+- CMD `Ney, fortify` → ✗ Ney is recovering from retreat and cannot fortify. Recovery: 2 turns remaining.
+- CMD `Soult, drill` → ✓ Soult drills his corps with Boulogne-camp precision at Swabia. Sharpen today, strike tomorrow — bonus ready turn 9, and he remains at your orders (though he cannot shift…
+- CMD `Massena, move to Milan` → ✗ Massena is already in Milan.
+- CMD `end turn` → ✓ Turn 8 ended. (Warning: 4 actions unused) Turn 9 begins!
+- enemy phase: 6 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles marches from Tyrol into Bohemia unopposed! (932 lost to march) Captured: Bavaria → Austria · Archduke Charles delivers an effective strike. Archduke Charles gains the advantage over Deroy. Casualties: Archduke Ch…
+  - 🏴 Austria: ArchdukeCharles marches from Tyrol into Bohemia unopposed! (932 lost to march) Captured: Bavaria → Austria
+  - ⚔ Archduke Charles (lost 1310) vs Deroy (lost 3488) — A standard affair. Nothing unusual to report.
+  - verbs: attack×2, retreat×1, stance_change×1, wait×1, recruit×1
+- LEDGER treasury 2763 · net +1987 · threat 78 · provinces 28 (+0) · ceiling 14505 · army 90797 · vassals Holland 95 · Kingdom of Italy 98 · Switzerland 93
+  - NET income 2590 · trade 587 · admin 50 · tribute 703 · upkeep 696 · charges 129 · contributions 110 · blockade 368 · admiralty 90 · laws 550
+- DISPATCH: Sire — the Emperor's star dims. The Presence that gave his corps +10% on the field gives +5% this morning; the courts have begun to notice that he can be beaten.
+  - TURN EVENTS 9
+- DIPLO +4 medium/low (law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Austria against France (300g/turn)
+
+## Turn 9 — Late January 1806
+- CMD `enact the Staff` → ✗ The Grand Quartier Général is already in force (since turn 7).
+- CMD `what happened last turn` → ✓ This morning's dispatch leads with: Sire — the Emperor's star dims. The Presence that gave his corps +10% on the field gives +5% this morning; the courts have begun to n…
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `Ney, unfortify` → ✗ Ney is not currently fortified.
+- CMD `Lannes, move to Bohemia` → ✗ Lannes is fortified at Swabia and cannot move. Order 'unfortify' first to make the army mobile.
+- CMD `Murat, drill` → ✗ Murat cannot drill with enemy forces nearby! Archduke Charles is at Franconia, just one region away.
+- CMD `recruit 10000 cavalry with Murat` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 9 ended. (Warning: 5 actions unused) Turn 10 begins!
+- enemy phase: 4 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles takes Franconia where he stands! Captured: Bavaria → Austria · Archduke Charles launches a decisive assault. Archduke Charles gains the advantage over Deroy. Casualties: Archduke Cha…
+  - 🏴 Austria: ArchdukeCharles takes Franconia where he stands! Captured: Bavaria → Austria
+  - ⚔ Archduke Charles (lost 1222) vs Deroy (lost 4760) — Deroy held superior ground, yet Archduke Charles prevailed. A grim day, Sire.
+  - verbs: attack×2, wait×1, recruit×1
+- LEDGER treasury 4746 · net +1639 · threat 76 · provinces 28 (+0) · ceiling 14250 · army 86735 · vassals Holland 96 · Kingdom of Italy 100 · Switzerland 93
+  - NET income 2590 · trade 587 · admin 50 · tribute 707 · upkeep 664 · charges 473 · contributions 150 · blockade 368 · admiralty 90 · laws 550
+- DISPATCH: Sire — the enemy has stood on our ground 4 turns. Every turn of it is worth a province to their recruiting sergeants.
+  - RAIL design_promoted: REVANCHE: Hanover will not forgive Prussia the loss of Brunswick and 2 more provinces. A new design hardens in their court.
+  - TURN EVENTS 8
+- DIPLO +3 medium/low (diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: 16 approaches from Bavaria and Austria are rebuffed (open borders agreement)
+
+## Turn 10 — Early February 1806
+- CMD `enact the Staff` → ✗ The Grand Quartier Général is already in force (since turn 7).
+- CMD `what laws are in force` → ✓ The laws of state, Sire. In force: the Grand Quartier Général, the Anticipated Class, the Code Abroad. The Grand Quartier Général is in force (since turn 7, 300 gold a t…
+- CMD `economy` → ✓ FRANCE TREASURY REPORT
+- CMD `Ney, move to Franconia` → ✗ Cannot move into Franconia - enemy forces present! Use ATTACK to engage Archduke Charles.
+- CMD `Davout, fortify` → ✓ Davout fortifies position at Milan. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortifie…
+- CMD `Soult, move to Bavaria` → ✗ Bavaria is a nation, not a province. Name a province, Sire — theirs are Munich, Swabia.
+- CMD `end turn` → ✓ Turn 10 ended. (Warning: 4 actions unused) Turn 11 begins!
+- enemy phase: 5 actions, 2 attacks — Russia, Prussia, Spain and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles assaults the Munich garrison! Garrison: 10,000 -> 5,000 (-5,000). ArchdukeCharles loses 3,404 troops. G… · ArchdukeCharles assaults the Munich garrison! Garrison collapses (5,000 -> 0). ArchdukeCharles loses 1,872 troops in th…
+  - 🏴 Austria: [Materiel] Guns, horses and stores lost with the fallen: Austria -93g, Bavaria -125g. Captured: Bavaria → Austria
+  - verbs: attack×2, naval_expedition×1, move×1, form_square×1
+- ENVOYS WAITING 1 · Austria armistice losing
+- LEDGER treasury 6422 · net +1373 · threat 74 · provinces 28 (+0) · ceiling 14238 · army 83494 · vassals Holland 97 · Kingdom of Italy 100 · Switzerland 93
+  - NET income 2590 · trade 587 · admin 50 · tribute 712 · upkeep 632 · charges 776 · contributions 150 · blockade 368 · admiralty 90 · laws 550
+- DISPATCH: Sire — the enemy has stood on our ground 5 turns. Every turn of it is worth a province to their recruiting sergeants.
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 5,000 men ashore at Andalusia.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - RAIL third_party_peace: THE CONGRESS: Hanover and Prussia have made their peace without France. Hanover pays 2,126 gold. Prussia is now free to look elsewhere.
+  - RAIL design_promoted: REVANCHE: Bavaria will not forgive Austria the loss of Franconia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 4
+- DIPLO +4 medium/low (diplomatic_dp_regen, paymaster_subsidy, agenda_shift ×2)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: 11 courts rebuff Bavaria (open borders agreement)
+
+---
+finished: **completed** · commands 75 · popups 31 · battles 19

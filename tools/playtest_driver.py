@@ -184,6 +184,14 @@ THE_HARNESS_COUNTS_ACTION_POINTS = True
 # figures). `tools/forecast_census.py` reads the rows. False = the pre-SF-CL-1
 # digest byte for byte (no `forecast` rows).
 THE_DIGEST_KEEPS_THE_FORECAST = True
+# SF-V7 (Score Finish Step 6, October 4, 2026): the bill an end turn APPLIED —
+# the `turn_end` event's `state_charges` and `laws`, with the end turn's own
+# Butcher's Bill (`materiel`) — recorded once per ended turn as an
+# `applied_bill` row. The `economy` row the driver writes after an end turn
+# comes from `/ledger`, a FORWARD projection: it is the NEXT turn's quote, so a
+# reader that held a quote against it compared two forecasts a turn apart
+# (economy C3, "one tick low"). False = no applied_bill rows.
+THE_DIGEST_RECORDS_THE_APPLIED_BILL = True
 
 # The variables that shape the board, recorded AFTER `import backend.main` (so
 # the record is what the engine read, `.env` included).
@@ -2055,6 +2063,35 @@ class Digest:
             self._turn_spend_peak = spent
             self._turn_spend_treasury = int(economy.get("treasury", 0) or 0)
 
+    def applied_bill(self, response):
+        """SF-V7: record what the end turn BILLED — the `turn_end` event both
+        end-turn producers stamp (`executor.py` auto-advance, `meta_executor`
+        end turn) — once per ended turn. Lazily-created state only (FA slice
+        15: a method the driver calls must survive a stub Digest)."""
+        if not THE_DIGEST_RECORDS_THE_APPLIED_BILL or not isinstance(response, dict):
+            return
+        seen = getattr(self, "_applied_bill_turns", None)
+        if seen is None:
+            seen = set()
+            self._applied_bill_turns = seen
+        for event in (response.get("events") or []):
+            if not isinstance(event, dict) or event.get("type") != "turn_end":
+                continue
+            turn = int(event.get("old_turn", 0) or 0)
+            if turn in seen:
+                continue
+            seen.add(turn)
+            # `materiel` is the Butcher's Bill paid INSIDE this end turn — the
+            # enemy phase's battles, fought before the income phase drew the
+            # bill (the window opens at the end turn's start, meta_executor
+            # PT-C4). A battle there moves the chest and the campaign's dead
+            # (the pensions term) after the quote was read, so a reader can
+            # tell that explained gap from a forecast that lied.
+            self.record("applied_bill", turn=turn,
+                        charges=int(event.get("state_charges", 0) or 0),
+                        laws=int(event.get("laws", 0) or 0),
+                        materiel=int(event.get("materiel", 0) or 0))
+
     def observe_end_turn_spend(self, response):
         """⚠ REVIEW-ROUND SYNTHESIS: close the auto-advance hole rather than
         restate it.
@@ -3904,6 +3941,7 @@ def run(args):
                 continue
             response = transport.post("/command", {"command": text})
             digest.command(text, response)
+            digest.applied_bill(response)                # SF-V7: an auto-advance bills too
             expeditions.observe(text, response)          # FA-85
             # IQ1-2 review round: keep the turn's spend HIGH-WATER MARK as we
             # go. `/command` auto-ends the turn on the last action point and
@@ -3983,6 +4021,7 @@ def run(args):
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
         digest.observe_end_turn_spend(response)
+        digest.applied_bill(response)                    # SF-V7
         digest.loyalty_tick(response)
         digest.turn_spend(None)
         digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
@@ -4021,6 +4060,7 @@ def run(args):
             # what it could — retry ONCE, then stop rather than spin.
             response = transport.post("/command", {"command": "end turn"})
             digest.command("end turn (retry)", response)
+            digest.applied_bill(response)                # SF-V7
             digest.loyalty_tick(response)
             digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
                                response.get("enemy_phase"))

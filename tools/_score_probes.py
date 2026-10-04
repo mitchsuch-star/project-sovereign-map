@@ -527,50 +527,82 @@ def economy_c2_bills_named(arms, ctx):
     )
 
 
+def economy_c3_verdict(rows):
+    """The C3 rule on its rows — `(turn, quoted charges, applied, quoted laws,
+    applied, materiel)` — kept pure so the rule itself is pinned.
+
+    A turn whose end fought in the enemy phase (the record's `materiel`, the
+    Butcher's Bill paid INSIDE the end turn) is EXPLAINED, never a pass by
+    itself: those battles land before the income phase draws the bill, so they
+    move the chest and the campaign's dead (the pensions term) after the quote
+    was read. The item passes only when every battle-free turn bills its quote
+    to the gold, and at least one battle-free turn was compared."""
+    calm = [r for r in rows if not r[5]]
+    fought = [r for r in rows if r[5]]
+    bad = [r for r in calm if r[1] != r[2] or r[3] != r[4]]
+    explained = [r for r in fought if r[1] != r[2] or r[3] != r[4]]
+    tail = ""
+    if explained:
+        tail += (" — explained by the end turn's own battles (turn, quoted, applied, "
+                 "quoted laws, applied, materiel): " + str(explained))
+    if bad:
+        tail += " — mismatches on battle-free turns " + str(bad)
+    if not calm:
+        return _un("every compared turn fought in its enemy phase — no battle-free "
+                   "turn to hold the quote against" + tail)
+    return _res(
+        True,
+        not bad,
+        f"{len(calm)} battle-free turns, quoted == billed on "
+        f"{len(calm) - len(bad)}: (turn, quoted charges, applied, quoted laws, applied): "
+        + str([r[:5] for r in calm])
+        + tail,
+    )
+
+
 def economy_c3_quote_equals_applied(arms, ctx):
-    """The quoted Charges (and Laws) at a save turn equal what the next turn's record applies."""
+    """The quoted Charges (and Laws) at a save turn equal what that turn's end BILLED.
+
+    SF-V7 (Score Finish Step 6, October 4, 2026): the bill is the end turn's own
+    `applied_bill` record (the `turn_end` event). Until Step 6 this reader held the
+    quote against the `economy` record written after the end turn — a `/ledger`
+    forward projection, i.e. the NEXT turn's quote — so it compared two forecasts a
+    turn apart and read every mismatch as "one tick low". The bill is drawn on the
+    same pre-income chest the quote reads (measured: 216 quoted, 216 billed at a
+    20,000 chest with no battle in the end turn); the one gap the game owns is the
+    enemy phase's battles, which `economy_c3_verdict` names."""
     a = arms.get("CMD-H")
     if not a:
         return _un("CMD-H did not run")
     saves = _saves_of(arms, "CMD-H")
     if not saves:
         return _un("no saves")
-    groups = _groups(a)
-    by_turn = {g[0].get("turn"): g for g in groups if g}
+    bills = {int(r.get("turn") or 0): r for r in a.kind("applied_bill")}
+    if not bills:
+        return _un("a pre-SF-V7 archive — the driver did not record the applied bill")
     rows = []
     from backend.game_logic import ledger as L
 
     for p in saves:
-        t = _save_turn(p)
         w = _load_world(ctx, p)
+        t = int(w.current_turn)   # the save is taken before this turn's end
         eco = L._build_economy(w, w.player_nation)
-        quoted_ch = int(eco.get("state_charges", 0) or 0)
-        quoted_laws = int(eco.get("laws", 0) or 0)
-        nxt = by_turn.get(
-            t
-        )  # the record written when turn t ended (the driver's ledger block of that loop)
-        applied = next((r for r in (nxt or []) if r.get("kind") == "economy"), None)
+        applied = bills.get(t)
         if applied is None:
             continue
         rows.append(
             (
                 t,
-                quoted_ch,
+                int(eco.get("state_charges", 0) or 0),
                 int(applied.get("charges", 0) or 0),
-                quoted_laws,
+                int(eco.get("laws", 0) or 0),
                 int(applied.get("laws", 0) or 0),
+                int(applied.get("materiel", 0) or 0),
             )
         )
     if not rows:
-        return _un("no save turn has a matching economy record")
-    bad = [r for r in rows if r[1] != r[2] or r[3] != r[4]]
-    return _res(
-        True,
-        not bad,
-        "(turn, quoted charges, applied, quoted laws, applied): "
-        + str(rows)
-        + ("" if not bad else " — mismatches " + str(bad)),
-    )
+        return _un("no save turn has a matching applied bill")
+    return economy_c3_verdict(rows)
 
 
 def economy_c4_priced_orders(arms, ctx):

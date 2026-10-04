@@ -1,0 +1,123 @@
+{
+ "pillars": {
+  "combat_legibility": {
+   "open": 3,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "RS-12",
+    "NPC-12",
+    "SF-CL-1-D1"
+   ]
+  },
+  "command": {
+   "open": 23,
+   "p1": [],
+   "p2": 3,
+   "rows": [
+    "SF5-RV13",
+    "SF-V9",
+    "CQ-8",
+    "CQ-33",
+    "NP-X1",
+    "NP-X8",
+    "NP-X9",
+    "NP-X10",
+    "NPC-9",
+    "NPC-10",
+    "NPC-18",
+    "NPC-26",
+    "PC15-13",
+    "CX-BEHAV-1",
+    "CX5-L5-F3",
+    "CX5-L5-F4",
+    "CX5-L5-F5",
+    "CX5-L5-F6",
+    "CX5-L5-F7",
+    "CX5-L5-N4",
+    "CX5-L5-N5",
+    "CX3-X2",
+    "CX3-X3"
+   ]
+  },
+  "diplomacy": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SR-7d-X1"
+   ]
+  },
+  "economy": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SF-V7"
+   ]
+  },
+  "first_contact": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "RS-15"
+   ]
+  },
+  "living_balance": {
+   "open": 2,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "SR-7d-X2",
+    "SR-D2"
+   ]
+  },
+  "marshal_drama": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "CQ-38"
+   ]
+  },
+  "narration": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SF5-X3"
+   ]
+  },
+  "naval": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SF-V6"
+   ]
+  },
+  "ui_ux": {
+   "open": 12,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "S5-4",
+    "CX3-R10",
+    "CX3-R11",
+    "CX3-R12",
+    "CX3-R2",
+    "CX3-R4",
+    "CX3-R5",
+    "CX3-R6",
+    "CX3-R9",
+    "WO-V-D1",
+    "WO-V-D2",
+    "WO-D14"
+   ]
+  }
+ },
+ "untagged": [],
+ "counted_at": "2026-10-04T02:51",
+ "open_total": 46
+}

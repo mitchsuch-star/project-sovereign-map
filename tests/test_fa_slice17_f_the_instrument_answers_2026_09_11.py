@@ -423,15 +423,31 @@ class TestFA75TheMailboxIsReadWhole:
 
 class TestTheRunSaysWhatItCouldNotDo:
 
-    def test_the_naval_script_stages_at_a_yard_outside_the_camp(self):
+    def test_the_naval_script_stages_its_expedition_at_a_yard(self):
         """FA-85 (part f) staged Soult at Bordelais; FA-S17-4 (Phase 3, Sept 11,
         2026) found no boot French corps is under the 15,000-man lift, so the
         script now follows the lift counsel's own marshalate road: commission
-        Oudinot (a 5,000-man corps) and stage HIM at the Atlantic yard."""
+        Oudinot (a 5,000-man corps) and stage HIM at a French yard.
+
+        CONSCIOUSLY RE-PINNED by Score Finish Step 6 (SF-V6, October 4, 2026)
+        — this pin read `commission Oudinot` on loop 3 and a march to
+        Bordelais on loop 4. SR-5a's trim (September 28) left the loop-3
+        purse unable to bear the commission, so it moves to loop 4 with no
+        gold spent before it; and Oudinot marches to the NORMANDY yard, one
+        march from Paris where he is raised, and sails the next loop — the
+        Bordelais road is three marches and now crosses Britain's Peninsula
+        corps (SF6-X2, the SEA arm). FA-85 kept the corps out of the camp
+        provinces so it would not perturb the Descent's staging; measured:
+        Oudinot stands in the camp for ONE end turn, Ney's and Davout's corps
+        (24,000 + 26,000) already decide the camp's 40,000-man tick, and the
+        Grand Diversion's quote reads 25 in 100 at readiness 50 on Step 5's
+        tree and on Step 6's."""
         script = json.loads((REPO_ROOT / "tools" / "playtest_scripts" / "naval_descent.json").read_text(encoding="utf-8"))
-        assert "commission Oudinot" in script["turns"]["3"]
-        assert "Oudinot, march to Bordelais" in script["turns"]["4"]
-        assert any(x.startswith("land Oudinot in Munster") for turn in script["turns"].values() for x in turn)
+        loops = {int(k): v for k, v in script["turns"].items()}
+        commission = min(k for k, v in loops.items() if "commission Oudinot" in v)
+        assert commission == 4
+        assert "Oudinot, march to Normandy" in loops[commission]
+        assert any(x.startswith("land Oudinot in Munster") for x in loops[commission + 1])
         assert not any("Soult" in x and ("Bordelais" in x or "Munster" in x) for turn in script["turns"].values() for x in turn)
         assert not any("Normandy" in x and "Soult" in x for turn in script["turns"].values() for x in turn)
 

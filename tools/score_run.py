@@ -247,6 +247,71 @@ ARMS: dict[str, dict] = {
         "argv": ["--script", f"{SCRIPTS}/naval_descent.json", "--turns", "14"],
         "feeds": ["naval"],
     },
+    # SF-NAV-1 (Score Finish Step 6): the strangulation, played — read by
+    # tools/sf_nav1_strangulation_probe.py; no checklist item reads it (v1 is frozen).
+    "NAV1-H": {
+        "argv": [
+            "--script",
+            f"{SCRIPTS}/sf_nav1_strangulation.json",
+            "--turns",
+            "30",
+            "--declare-war",
+            "proceed",
+            "--objection",
+            "insist",
+            "--diplomacy",
+            "accept",
+            "--decline-from",
+            "Britain,Portugal,PapalStates,Naples",
+            "--save-at",
+            "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30",
+            "--seed",
+            "historical",
+        ],
+        "feeds": ["naval"],
+    },
+    "NAV1-A": {
+        "argv": [
+            "--script",
+            f"{SCRIPTS}/sf_nav1_strangulation.json",
+            "--turns",
+            "30",
+            "--declare-war",
+            "proceed",
+            "--objection",
+            "insist",
+            "--diplomacy",
+            "accept",
+            "--decline-from",
+            "Britain,Portugal,PapalStates,Naples",
+            "--save-at",
+            "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30",
+            "--seed",
+            "austerlitz",
+        ],
+        "feeds": ["naval"],
+    },
+    "NAV1-M": {
+        "argv": [
+            "--script",
+            f"{SCRIPTS}/sf_nav1_strangulation.json",
+            "--turns",
+            "30",
+            "--declare-war",
+            "proceed",
+            "--objection",
+            "insist",
+            "--diplomacy",
+            "accept",
+            "--decline-from",
+            "Britain,Portugal,PapalStates,Naples",
+            "--save-at",
+            "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30",
+            "--seed",
+            "marengo",
+        ],
+        "feeds": ["naval"],
+    },
     "PROP-H": {
         "argv": ["--turns", "20", "--diplomacy", "propose", "--seed", "historical"],
         "feeds": ["diplomacy"],
@@ -1628,7 +1693,11 @@ def r_naval_C3(arms, ctx):
     lever = bool(re.search(r"readiness|sail|diversion|corps|squadron|ally", q, re.I))
     fell = bool(
         re.search(
-            r"Munster.*(captured|falls|taken)|captured Munster|landing at Munster",
+            # SF-V6 (Step 6): the capture question IS the province falling — the
+            # digest records a landing that takes ground as its plunder/secure
+            # popup, never as "captured" prose.
+            r"Munster.*(captured|falls|taken)|captured Munster|landing at Munster"
+            r"|capture_choice\[capture\]: Munster",
             a.md,
             re.I,
         )

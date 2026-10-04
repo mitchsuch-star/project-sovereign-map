@@ -1,0 +1,121 @@
+[
+ {
+  "id": "SF6-X1 lever down: SAILING_ENDS_THE_STANDING_ORDER",
+  "file": "backend/commands/naval_executor.py",
+  "old": "SAILING_ENDS_THE_STANDING_ORDER = True",
+  "new": "SAILING_ENDS_THE_STANDING_ORDER = False",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestSailingEndsTheStandingOrder::test_a_confirmed_expedition_clears_the_march"
+ },
+ {
+  "id": "SF6-X1 the order kept after sailing",
+  "file": "backend/commands/naval_executor.py",
+  "old": "            marshal.strategic_order = None\n            if getattr(_old, \"command_type\", \"\") == \"HOLD\":",
+  "new": "            pass\n            if getattr(_old, \"command_type\", \"\") == \"HOLD\":",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestSailingEndsTheStandingOrder::test_a_confirmed_expedition_clears_the_march"
+ },
+ {
+  "id": "SF-V7 lever down: THE_DIGEST_RECORDS_THE_APPLIED_BILL",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_DIGEST_RECORDS_THE_APPLIED_BILL = True",
+  "new": "THE_DIGEST_RECORDS_THE_APPLIED_BILL = False",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheChargesQuoteIsTheBill::test_the_driver_records_the_applied_bill"
+ },
+ {
+  "id": "SF-V7 the end turn's materiel not recorded",
+  "file": "tools/playtest_driver.py",
+  "old": "                        laws=int(event.get(\"laws\", 0) or 0),\n                        materiel=int(event.get(\"materiel\", 0) or 0))",
+  "new": "                        laws=int(event.get(\"laws\", 0) or 0))",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheChargesQuoteIsTheBill::test_the_driver_records_the_applied_bill"
+ },
+ {
+  "id": "SF-V7 one bill per ended turn dropped",
+  "file": "tools/playtest_driver.py",
+  "old": "            if turn in seen:\n                continue\n            seen.add(turn)\n            # `materiel`",
+  "new": "            if False:\n                continue\n            seen.add(turn)\n            # `materiel`",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheChargesQuoteIsTheBill::test_the_driver_records_the_applied_bill"
+ },
+ {
+  "id": "SF-V7 the rule: a fought turn counted as battle-free",
+  "file": "tools/_score_probes.py",
+  "old": "    calm = [r for r in rows if not r[5]]",
+  "new": "    calm = list(rows)",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheC3Rule::test_a_fought_turn_is_explained_not_failed"
+ },
+ {
+  "id": "SF-V7 the rule: the laws left unread",
+  "file": "tools/_score_probes.py",
+  "old": "    bad = [r for r in calm if r[1] != r[2] or r[3] != r[4]]",
+  "new": "    bad = [r for r in calm if r[1] != r[2]]",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheC3Rule::test_a_laws_mismatch_fails_too"
+ },
+ {
+  "id": "SF-V7 the rule: only fought turns read as measured",
+  "file": "tools/_score_probes.py",
+  "old": "    if not calm:\n        return _un(\"every compared turn fought",
+  "new": "    if False:\n        return _un(\"every compared turn fought",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheC3Rule::test_only_fought_turns_prove_nothing"
+ },
+ {
+  "id": "SF-V7 the rule: a battle-free mismatch passes",
+  "file": "tools/_score_probes.py",
+  "old": "        not bad,\n        f\"{len(calm)} battle-free turns",
+  "new": "        True,\n        f\"{len(calm)} battle-free turns",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheC3Rule::test_a_battle_free_mismatch_fails"
+ },
+ {
+  "id": "SF-NAV-1 probe: the popup envoy unread",
+  "file": "tools/sf_nav1_strangulation_probe.py",
+  "old": "POPUP diplomatic_dialogue:?",
+  "new": "POPUP diplomatic_dialogue",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheStrangulationArm::test_the_probe_reads_a_run"
+ },
+ {
+  "id": "SF-NAV-1 probe: one envoy read as two asks",
+  "file": "tools/sf_nav1_strangulation_probe.py",
+  "old": "                if kind.startswith(\"armistice\"):\n                    kind = \"armistice\"",
+  "new": "                if False:\n                    kind = \"armistice\"",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheStrangulationArm::test_the_probe_reads_a_run"
+ },
+ {
+  "id": "SF-NAV-1 benchmark: the arm signs with Britain's friends",
+  "file": "tools/score_run.py",
+  "old": "            \"Britain,Portugal,PapalStates,Naples\",\n            \"--save-at\",\n            \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30\",\n            \"--seed\",\n            \"historical\",",
+  "new": "            \"Britain\",\n            \"--save-at\",\n            \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30\",\n            \"--seed\",\n            \"historical\",",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheStrangulationArm::test_the_benchmark_keeps_the_war_with_britain_alone"
+ },
+ {
+  "id": "SF-V6 naval C3 reader: the capture question unread",
+  "file": "tools/score_run.py",
+  "old": "            r\"|capture_choice\\[capture\\]: Munster\",",
+  "new": "            r\"\",",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheNavalC3ReaderSeesTheCapture"
+ },
+ {
+  "id": "SF-V6 descent arm: the commission back on loop 3",
+  "file": "tools/playtest_scripts/naval_descent.json",
+  "old": "    \"3\": [\n      \"status\"\n    ],",
+  "new": "    \"3\": [\n      \"commission Oudinot\",\n      \"status\"\n    ],",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheDescentArmStagesItsLanding::test_the_purse_is_spared_before_the_commission"
+ },
+ {
+  "id": "SF-V6 descent arm: no landing the loop after the commission",
+  "file": "tools/playtest_scripts/naval_descent.json",
+  "old": "    \"5\": [\n      \"land Oudinot in Munster with 5,000 men\",\n      \"order the diversion\"\n    ],",
+  "new": "    \"5\": [\n      \"order the diversion\"\n    ],",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheDescentArmStagesItsLanding::test_the_corps_marches_to_a_french_yard_and_sails_next"
+ },
+ {
+  "id": "SF-V6 descent arm: staged at Bordelais (the FA-85 re-pin)",
+  "file": "tools/playtest_scripts/naval_descent.json",
+  "old": "      \"commission Oudinot\",\n      \"Oudinot, march to Normandy\",",
+  "new": "      \"commission Oudinot\",\n      \"Oudinot, march to Bordelais\",",
+  "tests": "tests/test_fa_slice17_f_the_instrument_answers_2026_09_11.py::TestTheRunSaysWhatItCouldNotDo::test_the_naval_script_stages_its_expedition_at_a_yard"
+ },
+ {
+  "id": "SF6-X2 SEA arm: back on the Bordelais road",
+  "file": "tools/playtest_scripts/sr_exit_chunk5_sea.json",
+  "old": "\"5\": [\"Oudinot, march to Normandy\", \"build ships\"],",
+  "new": "\"5\": [\"Oudinot, march to Bordelais\", \"build ships\"],",
+  "tests": "tests/test_sf_nav1_the_strangulation_played.py::TestTheSeaArmReachesAYard"
+ }
+]

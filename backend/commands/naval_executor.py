@@ -20,6 +20,15 @@ from backend.display_names import nation_adjective  # AAR-22
 # forget Ney. The posture verb already carried this arm; now all three do.
 ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL = True
 
+# SF6-X1 (Score Finish Step 6, October 4, 2026 — found playing the descent
+# arm's re-stage): a CONFIRMED expedition ends the corps' standing order. The
+# march that brought it to the yard is spent the moment it sails; left
+# standing, it walked the corps off its own beachhead (measured: Oudinot,
+# landed at Munster, "marches to Ulster. 7 regions to Normandy"). The QUOTE is
+# a question and touches nothing — "Stand down" leaves the march as it was.
+# False = the standing order survives the crossing, byte for byte.
+SAILING_ENDS_THE_STANDING_ORDER = True
+
 
 def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
     if not ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL:
@@ -478,6 +487,17 @@ class NavalExecutor:
 
         # Confirmed: resolve now (shown = applied — same quote function).
         outcome = naval.resolve_expedition(world, marshal, target)
+        if SAILING_ENDS_THE_STANDING_ORDER and getattr(
+                marshal, "strategic_order", None) is not None:
+            # SF6-X1: landed, intercepted or turned back, the corps sailed —
+            # its old march is spent (interrupts raised by it go with it).
+            from backend.commands.strategic import clear_order_bound_interrupt
+            _old = marshal.strategic_order
+            marshal.strategic_order = None
+            if getattr(_old, "command_type", "") == "HOLD":
+                marshal.holding_position = False
+                marshal.hold_region = ""
+            clear_order_bound_interrupt(marshal)
         if outcome["landed"]:
             message = (
                 f"THE LANDING: {marshal.name} slips past "

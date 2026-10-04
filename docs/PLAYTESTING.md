@@ -1031,6 +1031,8 @@ The rule for any session:
 - The run directory is gitignored; a full reading is archived by copying each arm's `digest.md`, `digest.jsonl`, `meta.json`, `titled.json`/`result.json` plus the five top-level JSONs, `AIV/`, the packet README and `panel.json` into `docs/audits/score_runs/<date>_<sha>/` — never the saves. The baseline is `docs/audits/score_runs/2026_09_29_c20d5bba/`.
 - No Godot on the reading machine → UI/UX reads NOT EXERCISED and the directional averages the other pillars (§4.6); pass `--godot` to run the client arm.
 - A session exit runs `check` over the items its slices touched and reports the FLIPS (`compare` against the baseline), never a new score (§5).
+- **The applied bill (SF-V7, October 4, 2026):** the `economy` row after an end turn is the NEXT turn's forecast; what the end turn billed is the `applied_bill` row (`turn`, `charges`, `laws`, `materiel`). Hold a quote against the bill, never against the next forecast — and a turn whose `materiel` is above 0 fought in its enemy phase, after the quote was read.
+- **The strangulation arm (SF-NAV-1):** `NAV1-H/A/M` plays the Continental System on a 30-turn board; read it with `PYTHONPATH=. .venv/Scripts/python.exe tools/sf_nav1_strangulation_probe.py <run_dir>`.
 
 ## Known limits (deliberate)
 
