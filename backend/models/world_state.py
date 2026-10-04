@@ -1890,6 +1890,14 @@ class WorldState:
         # make "no cold-open wars" a lie across a save/load.
         self.diplomatic_refusals: Dict[str, List[Dict]] = {}
 
+        # SF-LB-2c "The patient ask" (SCORE_FINISH_SPEC.md §6 row 15):
+        # {"{asker}>{holder}": turn} — the turn a court first stood at its
+        # design-ask rung against that holder, written only where the
+        # seeded patience is > 0 (the historical seed writes nothing). The
+        # first court-to-court design ask waits the patience out from this
+        # turn. SERIALIZED: re-deriving it would restart the dwell on load.
+        self.design_ask_first_stood: Dict[str, int] = {}
+
         # AI-3 (AI_INTENT_SPEC §4.3, Stage D): the war council's open
         # crises — coveter → {target, design_id, want_title, opened_turn,
         # foregrounded, foregrounded_turn, coerce_recorded_turn,
@@ -8264,6 +8272,10 @@ class WorldState:
                 k: [dict(e) for e in v]
                 for k, v in self.diplomatic_refusals.items()
             },
+            # SF-LB-2c: the turn a court first stood at its design-ask rung.
+            "design_ask_first_stood": {
+                str(k): int(v) for k, v in self.design_ask_first_stood.items()
+            },
             # AI-3: the war council's open crises (fore-warning survives a save).
             "war_intents": {
                 k: dict(v) for k, v in self.war_intents.items()
@@ -9038,6 +9050,12 @@ class WorldState:
         world.diplomatic_refusals = {
             str(k): [dict(e) for e in (v or [])]
             for k, v in (data.get("diplomatic_refusals") or {}).items()
+        }
+        # SF-LB-2c: a pre-SF-LB-2c save reads {} — a court standing at its
+        # rung on load starts its dwell that turn (bounded: <= 4 turns).
+        world.design_ask_first_stood = {
+            str(k): int(v)
+            for k, v in (data.get("design_ask_first_stood") or {}).items()
         }
         # AI-3: open crises — pre-Stage-D saves read {}.
         world.war_intents = {

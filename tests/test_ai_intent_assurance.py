@@ -1248,16 +1248,12 @@ class TestTheStandingRuleOnCouncilWars:
                 openings[key][rec["seed"]] = turn if prior is None else min(prior, turn)
         return openings
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=("The standing rule, MEASURED NOT MET October 3, 2026 after SF-LB-2b: "
-                "Prussia->Hanover's first opening reads turn 5 on six of seven seeds and 9 "
-                "on eylau (the ladder is climbed after turn 3-4 everywhere but eylau and "
-                "turn 4's projected chest reads 497 against the floor of 500 on Prussia's "
-                "seed-identical peacetime economy). SCORE_FINISH_SPEC.md §6 row 15, the "
-                "user's. Flips the day the record spans three turns."),
-    )
     def test_every_pair_that_opens_on_three_seeds_spans_three_turns(self):
+        """The standing rule over the committed seven-seed record. Was a
+        strict xfail (SF-LB-2b: Prussia->Hanover opened on turn 5 on six of
+        seven seeds and 9 on eylau); flipped by SF-LB-2c "The patient ask"
+        (SCORE_FINISH_SPEC.md §6 row 15, October 3, 2026) — the first openings
+        now read 5 / 7 / 7 / 5 / 8 / 5 / 13."""
         openings = self._openings()
         assert openings, "the probe record is empty"
         for pair, by_seed in openings.items():

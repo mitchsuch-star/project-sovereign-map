@@ -656,6 +656,10 @@ numbers), varied *across* them.
    what moves is *when* she reaches for it. This is the cheap, high-yield lever, because the system
    compounds: a few turns' difference in one court's timing changes which war France is busy with,
    which changes who is opportune, which forks the mid-game entirely.
+   *(SF-LB-2c, October 3, 2026: the court-to-court design ask was the one cadence this item missed —
+   it fired the first turn the court stood at its rung and the refusal cooldowns are unseeded, so the
+   ladder climbed on the same turns on every seed. The first ask now waits a seeded dwell of 0..4 turns,
+   historical 0 — `SYSTEMS_REFERENCE.md` §85.9.)*
 2. **Tie-breaks.** Where two designs or two targets score equal, the seed chooses. Today "first
    predicate wins" quietly makes authored deck order into destiny, and this costs nothing to fix.
 3. **Weighted late, not early.** The band widens with turn number. Turn 1 of 1805 *should* look like

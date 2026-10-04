@@ -28,8 +28,11 @@ Pins carried here:
   out of.
 - The driven 40-turn board on three seeds (the probe runner IS the
   harness): the war is produced on every seed, at coerce, by Prussia on
-  Hanover; the variance clause is recorded as MEASURED NOT MET (an xfail
-  that must flip the day it is).
+  Hanover; the variance clause — MEASURED NOT MET twice (SF-LB-2, SF-LB-2b)
+  — is MET by SF-LB-2c "The patient ask" (§6 row 15): the strict xfails
+  flipped on the shipped tree.
+- SF-LB-2c's own pins (`TestThePatientAsk`): the seeded dwell before a
+  court's FIRST design ask, historical = 0, the anchor serialized.
 """
 
 from __future__ import annotations
@@ -718,55 +721,48 @@ class TestTheDrivenBoard:
                        and r["turn"] == opened["opened_turn"])
             assert row["outmatched"] and row["ladder"], (seed, row)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=("SF-LB-2 §6.4's variance clause — the crisis turn spans >= 3 turns across "
-                "the seeds — is MEASURED NOT MET (October 3, 2026, twice). SF-LB-2 read "
-                "{9, 10}: the opening waited on Prussia's chest clearing AI_WAR_TREASURY_FLOOR "
-                "at the council's pre-income siting. SF-LB-2b (§6 row 14) made the opening "
-                "read the chest the court will have when the turn ends, and the FIRST "
-                "openings read {5, 9}: on six seeds the ladder (any two refused asks, "
-                "constant-driven) is climbed after turn 3 or 4 and turn 4's projection reads "
-                "497 against the floor of 500 on Prussia's seed-identical peacetime economy, "
-                "so turn 5 is the first turn both gates clear; eylau's second refusal lands on "
-                "turn 8. Marengo opens on 5, cools when its seeded weight dips below coerce "
-                "(turns 5-8) and re-opens on 10 — the war varies (declared 9 x5 / 11 / 12), "
-                "the opening does not. Not tuned; put to the user as §6 row 15 (seeded "
-                "patience on the design ask, recommended). This xfail flips the day the "
-                "clause is met."),
-    )
     def test_the_crisis_turn_varies_across_seeds(self, records):
+        """SF-LB-2 §6.4's variance clause — the crisis turn spans >= 3 turns
+        across the seeds. MEASURED NOT MET twice (SF-LB-2 {9, 10}; SF-LB-2b
+        {5, 9}: the ladder was climbed on the same turns everywhere because
+        the court-to-court design ask fired the first turn the court stood
+        at its rung). MET by SF-LB-2c "The patient ask" (§6 row 15, October
+        3, 2026): the first ask waits a seeded dwell of 0..4 turns, and the
+        driven seeds open on historical 5 / austerlitz 7 / eylau 13. Was a
+        strict xfail; it flipped on the shipped tree."""
         turns = {min(c["opened_turn"] for c in rec["crises_opened"] if c["coveter"] == "Prussia")
                  for rec in records.values()}
         assert len(turns) >= 3, turns
 
     def test_the_opening_no_longer_waits_on_the_spent_purse(self, records):
         """SF-LB-2b's own clause on the driven seeds: the FIRST opening is the
-        turn after the ladder first reads True on the after-turn snapshot
-        (both gates clear by then — on the historical seed turn 5, where the
-        SF-LB-2 tree waited to turn 9 on the pre-income chest). Eylau's
-        ladder is climbed after turn 8 and it opens on 9. A measurement on
-        each seed, not a schedule."""
+        turn after the first after-turn snapshot on which the court is READY
+        — the ladder climbed AND the rung at `coerce` or above (the two
+        gates the opening reads besides the restraints) — so the purse never
+        delays it (on the historical seed turn 5, where the SF-LB-2 tree
+        waited to turn 9 on the pre-income chest). Re-stated by SF-LB-2c
+        (October 3, 2026): the SF-LB-2b form read `opened <= first_ladder +
+        2`, which held only while the design ask fired on the same turn as
+        the ladder's other refusal; with the seeded dwell the ask's own
+        refusal is what lifts the weight to `coerce` (austerlitz: ladder on
+        turn 4, refusal on 5, coerce on 6, open on 7), so the clause is now
+        read against READY, the purse-free condition it always meant. A
+        measurement on each seed, not a schedule."""
         for seed, rec in records.items():
             opened = min(c["opened_turn"] for c in rec["crises_opened"] if c["coveter"] == "Prussia")
-            first_ladder = min(r["turn"] for r in rec["rows"]
-                               if r.get("nation") == "Prussia" and r.get("against") == "Hanover"
-                               and r["ladder"])
-            assert opened <= first_ladder + 2, (seed, opened, first_ladder)
-            assert opened < 9 or seed == "eylau", (seed, opened)
+            first_ready = min(r["turn"] for r in rec["rows"]
+                              if r.get("nation") == "Prussia" and r.get("against") == "Hanover"
+                              and r["ladder"] and r.get("price") in ("coerce", "fight"))
+            assert opened <= first_ready + 1, (seed, opened, first_ready)
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=("THE STANDING RULE (the user, October 3, 2026): a seeded game — a council "
-                "war whose turn is the same on every seed is a defect. Over the committed "
-                "seven-seed record Prussia->Hanover's FIRST opening reads turn 5 on six seeds "
-                "and 9 on eylau (SF-LB-2b's measurement; the cause is in "
-                "test_the_crisis_turn_varies_across_seeds). Flips the day the record spans "
-                "three turns for every pair that opens on three seeds."),
-    )
     def test_the_seven_seed_record_spans_three_turns(self):
-        """Every coveter→target pair that opens on >= 3 seeds spans >= 3
-        distinct FIRST-opening turns. The record is the probe's own output
+        """THE STANDING RULE (the user, October 3, 2026): a seeded game — a
+        council war whose turn is the same on every seed is a defect. Every
+        coveter→target pair that opens on >= 3 seeds spans >= 3 distinct
+        FIRST-opening turns. Was a strict xfail (SF-LB-2b's record: turn 5 on
+        six seeds, 9 on eylau); flipped by SF-LB-2c "The patient ask" —
+        Prussia->Hanover now opens historical 5 / austerlitz 7 / friedland 7 /
+        jena 5 / ulm 8 / marengo 5 / eylau 13. The record is the probe's own output
         (`tools/_sf_lb1_fight_bar_probe.py --seed <s> --out
         docs/audits/probes/sf_lb2/shipped_<s>.json`), re-run and overwritten
         by the slice that moves it."""
@@ -1000,3 +996,114 @@ class TestTheChestTheCouncilCanSpend:
         # both arms are reachable on this board — a pin that only ever saw
         # None (or only ever penniless) would be inert about the floor.
         assert None in verdicts.values() and "penniless" in verdicts.values(), verdicts
+
+
+# ════════════════════════════════════════════════════════════════════════
+# SF-LB-2c "The Patient Ask" (SCORE_FINISH_SPEC.md §6 row 15, RULED
+# October 3, 2026 under the user's delegation; rules SYSTEMS_REFERENCE.md
+# §85.9) — a seeded dwell of 0..4 turns before a court's FIRST
+# court-to-court design ask of a holder; the historical seed collapses it
+# to 0, so BASELINE_SERIES and every historical pin are byte-identical.
+# ════════════════════════════════════════════════════════════════════════
+
+def _design_ask(world, asker="Prussia", holder="Hanover"):
+    _fresh(world)
+    prop = AD._evaluate_ai_ai_proposal(asker, holder, world)
+    return bool(prop and prop.get("type") == "design_ask"
+                and prop.get("proposer") == asker and prop.get("target") == holder)
+
+
+class TestThePatientAsk:
+    def test_the_court_stands_at_its_ask_rung_at_the_boot(self, world):
+        """The fixture's own geometry, pinned so the arms below are not
+        vacuous: Prussia stands at a design-ask rung over Hanover at the
+        boot, so trigger 0a would ask this very turn."""
+        view = get_nation_intent("Prussia", world)
+        assert view.against == "Hanover"
+        assert view.price in AD.DESIGN_ASK_RUNGS
+
+    def test_the_historical_seed_never_waits_and_writes_nothing(self, world):
+        assert world.campaign_seed == "historical"
+        assert AD.design_ask_patience(world, "Prussia", "Hanover") == 0
+        assert _design_ask(world)
+        assert world.design_ask_first_stood == {}
+
+    def test_the_dwell_is_the_seeds_own_term(self, world):
+        """The namespace is the ruling's, read through the raw helper — so a
+        renamed key (which would silently re-draw every seed) is red."""
+        from backend.game_logic.campaign_variance import seeded_int
+        for seed in ("austerlitz", "friedland", "jena", "ulm", "marengo", "eylau"):
+            world.campaign_seed = seed
+            assert AD.design_ask_patience(world, "Prussia", "Hanover") == seeded_int(
+                seed, "design_ask_patience::Prussia::Hanover", 0, 4), seed
+        # the measured draws the record rests on (eylau waits the most)
+        world.campaign_seed = "eylau"
+        assert AD.design_ask_patience(world, "Prussia", "Hanover") == 4
+        world.campaign_seed = "jena"
+        assert AD.design_ask_patience(world, "Prussia", "Hanover") == 0
+
+    def test_the_first_ask_waits_out_the_dwell(self, world):
+        world.campaign_seed = "eylau"          # patience 4 for this pair
+        start = int(world.current_turn)
+        for offset in range(4):
+            world.current_turn = start + offset
+            assert not _design_ask(world), offset
+        assert world.design_ask_first_stood == {"Prussia>Hanover": start}
+        world.current_turn = start + 4
+        assert _design_ask(world)
+        # the anchor is the FIRST stand, never re-written
+        assert world.design_ask_first_stood == {"Prussia>Hanover": start}
+
+    def test_a_pair_already_asked_never_waits_again(self, world):
+        world.campaign_seed = "eylau"
+        assert record_diplomatic_refusal(world, "Prussia", "Hanover", "design_ask")
+        assert not AD.design_ask_patience_holds(world, "Prussia", "Hanover")
+        assert world.design_ask_first_stood == {}
+
+    def test_a_zero_dwell_seed_writes_nothing(self, world):
+        world.campaign_seed = "jena"
+        assert _design_ask(world)
+        assert world.design_ask_first_stood == {}
+
+    def test_the_lever_down_is_byte_for_byte(self, world, monkeypatch):
+        monkeypatch.setattr(AD, "A_COURT_IS_PATIENT_BEFORE_IT_ASKS", False)
+        world.campaign_seed = "eylau"
+        assert AD.design_ask_patience(world, "Prussia", "Hanover") == 0
+        assert _design_ask(world)
+        assert world.design_ask_first_stood == {}
+
+    def test_the_wait_does_not_shadow_the_pairs_other_triggers(self, world):
+        """Like the dedupe window, the dwell skips the ASK, not the pair:
+        trigger 4 (a poor court and a rich one at peace → open borders)
+        still answers while Prussia waits."""
+        world.campaign_seed = "eylau"
+        world.nation_gold["Prussia"] = 100
+        world.nation_gold["Hanover"] = 1000
+        _fresh(world)
+        assert world.get_diplomatic_state("Prussia", "Hanover") == "PEACE"
+        prop = AD._evaluate_ai_ai_proposal("Prussia", "Hanover", world)
+        assert prop and prop["type"] == "open_borders", prop
+        assert world.design_ask_first_stood == {"Prussia>Hanover": int(world.current_turn)}
+
+    def test_the_anchor_survives_a_save(self, world):
+        world.campaign_seed = "eylau"
+        assert not _design_ask(world)
+        anchor = dict(world.design_ask_first_stood)
+        assert anchor
+        loaded = WorldState.from_dict(world.to_dict())
+        assert loaded.design_ask_first_stood == anchor
+        assert loaded.campaign_seed == "eylau"
+
+    def test_the_player_targeted_purchase_is_untouched(self):
+        """AI-vs-AI only by construction: the patience is read in trigger 0a
+        and nowhere on the player road (`_generate_intent_ask`)."""
+        src = (BACKEND / "game_logic" / "ai_diplomacy.py").read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        callers = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                for sub in ast.walk(node):
+                    if (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name)
+                            and sub.func.id == "design_ask_patience_holds"):
+                        callers.add(node.name)
+        assert callers == {"_evaluate_ai_ai_proposal"}, callers

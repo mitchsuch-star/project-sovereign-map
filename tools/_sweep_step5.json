@@ -1,0 +1,65 @@
+[
+  {
+    "id": "SF-LB-2c lever down: A_COURT_IS_PATIENT_BEFORE_IT_ASKS",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "A_COURT_IS_PATIENT_BEFORE_IT_ASKS = True",
+    "new": "A_COURT_IS_PATIENT_BEFORE_IT_ASKS = False",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_first_ask_waits_out_the_dwell"
+  },
+  {
+    "id": "SF-LB-2c the historical collapse dropped",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "    if not A_COURT_IS_PATIENT_BEFORE_IT_ASKS or is_historical(seed):\n        return 0",
+    "new": "    if not A_COURT_IS_PATIENT_BEFORE_IT_ASKS:\n        return 0",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_historical_seed_never_waits_and_writes_nothing"
+  },
+  {
+    "id": "SF-LB-2c the namespace renamed",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "f\"design_ask_patience::{asker}::{holder}\"",
+    "new": "f\"design_ask_dwell::{asker}::{holder}\"",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_dwell_is_the_seeds_own_term"
+  },
+  {
+    "id": "SF-LB-2c the already-asked exemption dropped",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "    if any(e.get(\"type\") == \"design_ask\"\n           for e in get_refused_asks(world, asker, holder)):\n        return False",
+    "new": "    if False and any(e.get(\"type\") == \"design_ask\"\n           for e in get_refused_asks(world, asker, holder)):\n        return False",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_a_pair_already_asked_never_waits_again"
+  },
+  {
+    "id": "SF-LB-2c a zero dwell writes an anchor",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "    patience = design_ask_patience(world, asker, holder)\n    if patience <= 0:\n        return False",
+    "new": "    patience = design_ask_patience(world, asker, holder)\n    if patience < 0:\n        return False",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_a_zero_dwell_seed_writes_nothing"
+  },
+  {
+    "id": "SF-LB-2c the anchor re-written every call",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "    first = store.setdefault(key, turn)",
+    "new": "    first = store[key] = turn",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_first_ask_waits_out_the_dwell"
+  },
+  {
+    "id": "SF-LB-2c the gate unwired from trigger 0a",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "            if not recent and not design_ask_patience_holds(\n                    world, proposer, target):",
+    "new": "            if not recent and not (False and design_ask_patience_holds(\n                    world, proposer, target)):",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_first_ask_waits_out_the_dwell"
+  },
+  {
+    "id": "SF-LB-2c the wait shadows the pair",
+    "file": "backend/game_logic/ai_diplomacy.py",
+    "old": "            if not recent and not design_ask_patience_holds(\n                    world, proposer, target):\n                return {\"type\": \"design_ask\", \"proposer\": proposer,\n                        \"target\": target}",
+    "new": "            if not recent and design_ask_patience_holds(\n                    world, proposer, target):\n                return None\n            if not recent:\n                return {\"type\": \"design_ask\", \"proposer\": proposer,\n                        \"target\": target}",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_wait_does_not_shadow_the_pairs_other_triggers"
+  },
+  {
+    "id": "SF-LB-2c the anchor not serialized",
+    "file": "backend/models/world_state.py",
+    "old": "            \"design_ask_first_stood\": {\n                str(k): int(v) for k, v in self.design_ask_first_stood.items()\n            },",
+    "new": "",
+    "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_anchor_survives_a_save"
+  }
+]

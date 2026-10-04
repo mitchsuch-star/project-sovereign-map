@@ -491,6 +491,21 @@ DESIGN_ASK_RUNGS = ("ask", "buy", "align", "bandwagon")
 # refusals, exactly as pin 8 requires. The player-targeted road (NA-5)
 # is untouched. False = the four rungs above, byte for byte.
 A_COURT_ASKS_BEFORE_IT_DEMANDS = True
+# SF-LB-2c "The patient ask" (SCORE_FINISH_SPEC.md §6 row 15, RULED
+# October 3, 2026 under the user's delegation): A COURT IS PATIENT BEFORE
+# IT ASKS. Measured by SF-LB-2b: the court-to-court design ask fired the
+# first turn the court stood at its rung, and the refusal cooldowns are
+# unseeded, so Prussia's ladder was climbed on the same turn on six of seven
+# seeds and the war council opened on the same turn everywhere — the one
+# cadence AI-0b's §3.8 contract ("cooldowns and dwell are the seed's own
+# terms") missed. The first ask now waits a seeded dwell of 0..4 turns after
+# the court first stands at its rung against that holder; the historical
+# seed collapses it to 0 (byte-identical), and the dwell only ever delays
+# the FIRST ask of a pair — once a design ask is on the record, the court
+# asks on its old cadence. AI-vs-AI only (trigger 0a); the player-targeted
+# design purchase is untouched. False = no dwell, byte for byte.
+A_COURT_IS_PATIENT_BEFORE_IT_ASKS = True
+DESIGN_ASK_PATIENCE_MAX = 4   # turns; the ruling's band [0, 4]
 # Retention: refusals older than this are pruned at write time. AI-3's
 # ladder gate ("cheaper instruments tried and refused") reads inside this
 # window; matching the agenda-grudge horizon keeps one memory scale.
@@ -536,6 +551,42 @@ def get_refused_asks(world, proposer: str, recipient: str) -> List[Dict]:
     turn = int(getattr(world, 'current_turn', 0))
     return [e for e in (store.get(f"{proposer}>{recipient}") or [])
             if turn - int(e.get("turn", 0)) < REFUSAL_MEMORY_TURNS]
+
+
+def design_ask_patience(world, asker: str, holder: str) -> int:
+    """SF-LB-2c: the seeded dwell (turns) before a court's FIRST design ask
+    of `holder`. 0 on the historical seed (the caller's collapse contract,
+    `campaign_variance.seeded_int` is raw) and with the lever down."""
+    from backend.game_logic.campaign_variance import is_historical, seeded_int
+    seed = getattr(world, "campaign_seed", None)
+    if not A_COURT_IS_PATIENT_BEFORE_IT_ASKS or is_historical(seed):
+        return 0
+    return seeded_int(str(seed), f"design_ask_patience::{asker}::{holder}",
+                      0, DESIGN_ASK_PATIENCE_MAX)
+
+
+def design_ask_patience_holds(world, asker: str, holder: str) -> bool:
+    """SF-LB-2c: True while the court must still WAIT before its first
+    design ask of `holder`. Called only when the court stands at its ask
+    rung against the holder (trigger 0a), so the first call that finds no
+    anchor IS the turn it first stood there — it writes the anchor. A pair
+    that already has a design ask on the record never waits again (the
+    dwell delays the first ask only), and a zero dwell writes nothing, so
+    the historical seed's save is byte-identical too."""
+    patience = design_ask_patience(world, asker, holder)
+    if patience <= 0:
+        return False
+    if any(e.get("type") == "design_ask"
+           for e in get_refused_asks(world, asker, holder)):
+        return False
+    store = getattr(world, "design_ask_first_stood", None)
+    if store is None:
+        store = {}
+        world.design_ask_first_stood = store
+    key = f"{asker}>{holder}"
+    turn = int(getattr(world, "current_turn", 0))
+    first = store.setdefault(key, turn)
+    return turn - int(first) < patience
 
 
 def effective_peace_threshold(nation: str, opponent: str, world) -> int:
@@ -3771,7 +3822,11 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
                       if e.get("type") == "design_ask"
                       and int(world.current_turn) - int(e.get("turn", 0))
                       < REFUSAL_DEDUPE_TURNS]
-            if not recent:
+            # SF-LB-2c: the court still waits out its seeded dwell before
+            # its FIRST ask — skipped like the dedupe window, so the pair's
+            # other triggers are not shadowed while it waits.
+            if not recent and not design_ask_patience_holds(
+                    world, proposer, target):
                 return {"type": "design_ask", "proposer": proposer,
                         "target": target}
         # 0b — THE ALIGNMENT ASK: a court at `align` courts the enemies
