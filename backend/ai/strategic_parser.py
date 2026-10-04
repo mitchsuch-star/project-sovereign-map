@@ -638,6 +638,31 @@ def _friendly_head(after: str, friendly_forms) -> Optional[str]:
     return None
 
 
+# ───────────────────────────────────────────────────────────────────────────
+# SF-CMD-2's head (Score Finish Step 7, October 4, 2026) — CX5-L5-F7: A
+# POSITION IS NOT A PLACE. `Ney, protect the rear` took a 2-action standing
+# HOLD and MARCHED to Lorraine ("our maps read Lorraine as the province nearest
+# your order" — the executor's region matcher read "Rear"); `Ney, guard the
+# rear` the same; `Lannes, guard the retreat` was refused "Region 'Retreat'
+# not found. Did you mean 'Crete'?"; `Davout, protect our flank` "could not
+# make out a destination" (measured at `POST /command` on a fresh 1805 boot).
+# The army's own positions — its rear, its flank(s), its retreat, its line,
+# its front, its wing — are where the marshal stands: the HOLD is read with
+# no target, which is the in-place hold. "cover the retreat" stays the
+# SUPPORT family's (a man must follow it); "protect Ney's flank" stays a
+# SUPPORT of Ney (`_friendly_head` reads first). Lever down: the noun is a
+# target, as before.
+# ───────────────────────────────────────────────────────────────────────────
+A_POSITION_IS_NOT_A_PLACE = True
+_POSITION_NOUN_RE = re.compile(
+    r"^(?:(?:our|my|his|your|the|this|that)\s+)?"
+    r"(?:(?:left|right|northern|southern|eastern|western)\s+)?"
+    r"(?:rear(?:\s*guard)?|flanks?|retreat|lines?|positions?|ground|front|"
+    r"cent(?:re|er)|wings?)"
+    r"(?:\s+of\s+(?:the|our)\s+army)?\s*[.!]*$",
+    re.IGNORECASE)
+
+
 def _extract_target_text(command_lower: str, strategic_type: str,
                          friendly_forms=()) -> Optional[str]:
     """
@@ -674,7 +699,14 @@ def _extract_target_text(command_lower: str, strategic_type: str,
                 head = _friendly_head(after, friendly_forms)
                 if head:
                     return head
-                return _clean_target_text(after) if after else None
+                target = _clean_target_text(after) if after else None
+                # CX5-L5-F7 (Step 7): "protect the rear", "guard the retreat",
+                # "hold our flank" name a POSITION of the army, never a
+                # province — the order is to hold where he stands.
+                if (A_POSITION_IS_NOT_A_PLACE and target
+                        and _POSITION_NOUN_RE.match(target)):
+                    return None
+                return target
 
     # For SUPPORT: target is after the keyword
     if strategic_type == "SUPPORT":

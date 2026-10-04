@@ -1739,6 +1739,66 @@ _TELL_ME_RE = re.compile(
     re.IGNORECASE)
 
 
+# ───────────────────────────────────────────────────────────────────────────
+# SF5-RV13 (Score Finish Step 7, SF-CMD-2's head, October 4, 2026) — AN
+# EMPHATIC ORDER IS AN ORDER. The Emperor's impatience is not a question:
+# "attack, what are you waiting for", "hold, do as I say", "do what I say:
+# attack". Measured on the shipped board with Ney's bad-odds interrupt
+# pending, all four phrasings (with and without the "?") were answered "A
+# question is not an answer" — SF5-X1's guard read the TAIL's mood — and on
+# the general road "Ney, do as I say and attack Mack" got the desk's shrug.
+# A CLOSED list of emphatic clauses, each a whole clause between separators,
+# is removed before the question tests run — and only when what remains still
+# carries an order verb, so a line that is ONLY the rhetoric ("what are you
+# waiting for?") stays a question. The residue is then put through every
+# question test: "should we attack, what are you waiting for" is still a
+# question (CRT-3's rule — a real question never orders — is untouched).
+# Lever down: the question tests read the whole line, as before.
+# ───────────────────────────────────────────────────────────────────────────
+AN_EMPHATIC_ORDER_IS_AN_ORDER = True
+EMPHATIC_CLAUSES = (
+    "what are you waiting for", "what're you waiting for",
+    "what are we waiting for", "what're we waiting for",
+    "do as i say", "do as i tell you", "do as you are told",
+    "do as you're told", "do as you are bid", "do as you're bid",
+    "do what i say", "do what i tell you",
+    "that is an order", "that's an order", "this is an order",
+    "i command it", "i order it",
+)
+
+
+def _emphasis_alternation() -> str:
+    parts = []
+    for phrase in sorted(EMPHATIC_CLAUSES, key=len, reverse=True):
+        words = [re.escape(w).replace("'", "['’]") for w in phrase.split()]
+        parts.append(r"\s+".join(words))
+    return "|".join(parts)
+
+
+_EMPHASIS_RE = re.compile(
+    r"(?:^|[,;:.!?—–]|\band\b|(?<=\s)-+)\s*(?:" + _emphasis_alternation()
+    + r")\s*(?:[,;:.!?—–]+|\band\b|-+|$)",
+    re.IGNORECASE)
+
+
+def strip_emphasis(text: str) -> str:
+    """SF5-RV13: the line with its emphatic clauses removed, or the line
+    unchanged when none is present or nothing ordered would remain."""
+    raw = str(text or "")
+    if not AN_EMPHATIC_ORDER_IS_AN_ORDER or not raw.strip():
+        return raw
+    residue, count = _EMPHASIS_RE.subn(", ", raw)
+    if not count:
+        return raw
+    residue = re.sub(r"\s+", " ", residue)
+    residue = re.sub(r"\s*(?:,\s*){2,}", ", ", residue)
+    residue = re.sub(r"\s+([,;:.!?])", r"\1", residue)
+    residue = residue.strip(" ,;:")
+    if not residue or not order_after_address(residue):
+        return raw
+    return residue
+
+
 # SF-CMD-1 W1 / CRT-9 (Oct 3, 2026): the natural leads — see `is_question`.
 NATURAL_QUESTION_LEADS = True
 # SF-CMD-1 W3: "could Ney please fortify" is an order (the subject arm).
@@ -1781,6 +1841,10 @@ def is_question(command_text: str,
     opening run now.
     """
     text = (command_text or "").strip()
+    # SF5-RV13: an emphatic clause is not the line's mood (see
+    # `strip_emphasis`); the residue still passes every test below.
+    if AN_EMPHATIC_ORDER_IS_AN_ORDER and text:
+        text = strip_emphasis(text).strip()
     # CX: an UNADDRESSED line ending in a question mark is a question.
     # `retreat?` marched eight corps; `Ney, attack Mack?` keeps its order.
     if (A_QUESTION_NEVER_ORDERS and text.endswith("?")

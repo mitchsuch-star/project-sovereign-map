@@ -1,0 +1,93 @@
+[
+ {
+  "id": "SF5-RV13 lever down: AN_EMPHATIC_ORDER_IS_AN_ORDER",
+  "file": "backend/ai/clause_guards.py",
+  "old": "AN_EMPHATIC_ORDER_IS_AN_ORDER = True",
+  "new": "AN_EMPHATIC_ORDER_IS_AN_ORDER = False",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAnEmphaticOrderIsAnOrder"
+ },
+ {
+  "id": "SF5-RV13 rhetoric alone becomes an empty order (the residue check removed)",
+  "file": "backend/ai/clause_guards.py",
+  "old": "    if not residue or not order_after_address(residue):\n        return raw",
+  "new": "    if not residue:\n        return raw",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAnEmphaticOrderIsAnOrder::test_the_rule_reads_the_clause"
+ },
+ {
+  "id": "SF5-RV13 the interrupt answer reads the whole line",
+  "file": "backend/commands/dialogue_routing.py",
+  "old": "    text = strip_emphasis(text)\n    if \"?\" in text or bool(is_question(text)):",
+  "new": "    if \"?\" in text or bool(is_question(text)):",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAnEmphaticOrderIsAnOrder::test_the_impatient_attack_answers_the_interrupt"
+ },
+ {
+  "id": "SF5-RV13 the general road's readers see the rhetoric",
+  "file": "backend/commands/parser.py",
+  "old": "        _emphatic = strip_emphasis(command_text)\n        _emphasis_stripped = _emphatic != command_text",
+  "new": "        _emphatic = command_text\n        _emphasis_stripped = _emphatic != command_text",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAnEmphaticOrderIsAnOrder::test_the_general_road_reads_the_order"
+ },
+ {
+  "id": "CQ-33 lever down: THE_GUARD_MARCHES_WITH_THE_EMPEROR",
+  "file": "backend/commands/parser.py",
+  "old": "THE_GUARD_MARCHES_WITH_THE_EMPEROR = True",
+  "new": "THE_GUARD_MARCHES_WITH_THE_EMPEROR = False",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestTheGuardIsSometimesANoun"
+ },
+ {
+  "id": "CQ-33 the Guard note never set",
+  "file": "backend/commands/parser.py",
+  "old": "                note = GUARD_COMPANION_NOTE.format(marshal=named)",
+  "new": "                note = None",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestTheGuardIsSometimesANoun::test_a_march_with_the_guard_marches"
+ },
+ {
+  "id": "CQ-33 the Emperor is told the Guard is not his",
+  "file": "backend/commands/parser.py",
+  "old": "            if named and named != sovereign:",
+  "new": "            if named:",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestTheGuardIsSometimesANoun::test_the_emperor_with_his_guard_needs_no_note"
+ },
+ {
+  "id": "CQ-33 the levy for the Guard is not the Emperor's",
+  "file": "backend/commands/parser.py",
+  "old": "        text = _GUARD_BENEFICIARY_RE.sub(f\" with {sovereign}\" if sovereign else \"\", text)",
+  "new": "        text = _GUARD_BENEFICIARY_RE.sub(\"\", text)",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestTheGuardIsSometimesANoun::test_a_levy_for_the_guard_is_the_emperors"
+ },
+ {
+  "id": "NPC-9 lever down: A_REFLEXIVE_IS_NEVER_A_PLACE",
+  "file": "backend/commands/parser.py",
+  "old": "A_REFLEXIVE_IS_NEVER_A_PLACE = True",
+  "new": "A_REFLEXIVE_IS_NEVER_A_PLACE = False",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAReflexiveIsNeverAPlace"
+ },
+ {
+  "id": "NP-X1 the sovereign-free strip removed",
+  "file": "backend/commands/parser.py",
+  "old": "            command_text = strip_self_markers(command_text)",
+  "new": "            pass",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAReflexiveIsNeverAPlace::test_with_no_emperor_ney_marches_to_lorraine"
+ },
+ {
+  "id": "NPC-9 the normaliser keeps the end-anchored marker",
+  "file": "backend/commands/parser.py",
+  "old": "        marker = _SELF_MARKER_ANYWHERE_RE.search(command_text)\n        if marker:\n            stripped = strip_self_markers(command_text)",
+  "new": "        marker = _SOVEREIGN_SELF_MARKER_RE.search(command_text)\n        if marker:\n            stripped = strip_self_markers(command_text)",
+  "tests": "tests/test_sf_cmd2_the_head.py::TestAReflexiveIsNeverAPlace::test_taking_the_field_himself_is_the_emperors_march"
+ },
+ {
+  "id": "CX5-L5-F7 lever down: A_POSITION_IS_NOT_A_PLACE",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "A_POSITION_IS_NOT_A_PLACE = True",
+  "new": "A_POSITION_IS_NOT_A_PLACE = False",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestAPositionIsNotAPlace"
+ },
+ {
+  "id": "CX5-L5-F7 the retreat is a place again",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    r\"(?:rear(?:\\s*guard)?|flanks?|retreat|lines?|positions?|ground|front|\"",
+  "new": "    r\"(?:rear(?:\\s*guard)?|flanks?|lines?|positions?|ground|front|\"",
+  "tests": "tests/test_crt6_the_retreat_is_a_word.py::TestAPositionIsNotAPlace"
+ }
+]

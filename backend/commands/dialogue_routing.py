@@ -1258,6 +1258,12 @@ def line_asks_a_question(typed: str, options: List[dict]) -> bool:
         return False
     if _carries_a_question_label(text, options):
         return False
+    # SF5-RV13 (Step 7): "attack, what are you waiting for?" is an order with
+    # its impatience attached — the question tests read what remains once
+    # the closed list of emphatic clauses is removed (`strip_emphasis`); a
+    # line that is only the rhetoric is unchanged and still a question.
+    from backend.ai.clause_guards import strip_emphasis
+    text = strip_emphasis(text)
     if "?" in text or bool(is_question(text)):
         return True
     return bool(A_QUESTION_NEVER_ANSWERS

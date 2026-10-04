@@ -493,6 +493,36 @@ _SOVEREIGN_FIRST_PERSON_RE = re.compile(
 # other two arms require.
 _SOVEREIGN_SELF_MARKER_RE = re.compile(
     r"\b(?:myself|in\s+person)\s*[.!]?\s*$", re.IGNORECASE)
+# ───────────────────────────────────────────────────────────────────────────
+# SF-CMD-2's head (Score Finish Step 7, October 4, 2026) — NPC-9 / NP-X1: A
+# REFLEXIVE IS NEVER A PLACE. The marker above is `$`-anchored, so a "myself"
+# mid-sentence was never consumed: `I will march to Lorraine myself and attack
+# Mack` marched the Emperor to "Lorraine Myself" for an action, and `I will
+# take the field myself and march to Lorraine` asked which marshal. And the
+# strip lived only inside the sovereign normaliser, so on a board with no
+# Emperor `Ney, march to Lorraine myself` took a 2-action march on "Lorraine
+# Myself" (all measured at `POST /command`). The marker is read ANYWHERE now:
+# with an Emperor on the board the first-person line is his (the normaliser's
+# own arms); on every board the reflexive is taken out of the line after that,
+# so it never reaches a destination; with no Emperor the first person is
+# nobody's and the ordinary ask follows ("Which marshal shall march to
+# Lorraine?"). Lever down: the `$`-anchored marker, the sovereign-only strip.
+# ───────────────────────────────────────────────────────────────────────────
+A_REFLEXIVE_IS_NEVER_A_PLACE = True
+_SELF_MARKER_ANYWHERE_RE = re.compile(
+    r"\s*,?\s*\b(?:by\s+)?(?:myself|in\s+person)\b(?:\s*[.!]+(?=\s*$))?",
+    re.IGNORECASE)
+
+
+def strip_self_markers(text: str) -> str:
+    """NPC-9 / NP-X1: every reflexive self-marker taken out of the line."""
+    if not A_REFLEXIVE_IS_NEVER_A_PLACE or not text:
+        return text
+    if not _SELF_MARKER_ANYWHERE_RE.search(text):
+        return text
+    out = _SELF_MARKER_ANYWHERE_RE.sub("", text)
+    out = re.sub(r"\s+([,;:.!?])", r"\1", re.sub(r"\s{2,}", " ", out)).strip()
+    return out or text
 _SOVEREIGN_BODY_HAS_VERB_RE = re.compile(
     r"\b(?:" + _SOVEREIGN_ORDER_VERBS + r")(?:e?s|ing|ed)?\b", re.IGNORECASE)
 
@@ -699,6 +729,62 @@ def _province_is_hostile(world, province: str, player: Optional[str]) -> bool:
         return False
 
 
+# ───────────────────────────────────────────────────────────────────────────
+# SF-CMD-2's head (Score Finish Step 7, October 4, 2026) — CQ-33: THE GUARD
+# MARCHES WITH THE EMPEROR. "with the Guard" is company, not an order: the
+# hold family's bare "guard" keyword claimed the NOUN, so `Ney, move to Paris
+# with the Guard` and `Ney, scout Swabia with the guard` each became a 2-action
+# standing HOLD at Rhineland (measured at `POST /command` on a fresh 1805
+# boot), and `recruit 5000 men for the guard` asked "which marshal shall
+# hold". The Guard is the Emperor's own corps (the scenario names it so), so
+# the phrase is removed BEFORE any reader and the sentence's own verb runs; a
+# marshal who is not the Emperor is told the Guard is not his to take. "for
+# the Guard" on a levy names the Emperor's corps as the recipient. A sentence
+# left with no verb gets the ordinary ask — never a HOLD. `Ney, guard Paris`
+# and `guard home waters` (the verb) are untouched. Lever down: the phrase
+# reaches the readers as before.
+# ───────────────────────────────────────────────────────────────────────────
+THE_GUARD_MARCHES_WITH_THE_EMPEROR = True
+_GUARD_WORDS = r"(?:the\s+|his\s+|my\s+|our\s+|your\s+)?(?:imperial\s+|old\s+|young\s+)?guards?\b"
+_GUARD_COMPANION_RE = re.compile(
+    r"\s*,?\s*\b(?:together\s+with|along\s+with|alongside|beside|with)\s+"
+    + _GUARD_WORDS, re.IGNORECASE)
+_GUARD_BENEFICIARY_RE = re.compile(r"\s*\bfor\s+" + _GUARD_WORDS, re.IGNORECASE)
+_LEVY_VERB_RE = re.compile(r"\b(?:recruit|raise|levy|enlist|conscript|draft)\w*\b",
+                           re.IGNORECASE)
+_LEADING_ADDRESS_NAME_RE = re.compile(
+    r"^\s*(?:marshal\s+|general\s+)?(?P<name>[A-Za-z][\w'’-]*(?:\s+[A-Za-z][\w'’-]*)?)\s*[,:]",
+    re.IGNORECASE)
+GUARD_COMPANION_NOTE = ("The Guard marches with the Emperor alone, Sire — {marshal} "
+                        "goes with his own corps.")
+
+
+def rewrite_guard_company(command_text: str, game_state, world):
+    """CQ-33: `(text, note, changed)` — the line with "with the Guard" taken
+    out (and "for the Guard" on a levy pointed at the Emperor's corps); the
+    note names the Guard's commander when the addressee is someone else."""
+    if not THE_GUARD_MARCHES_WITH_THE_EMPEROR or not command_text:
+        return command_text, None, False
+    text = command_text
+    note = None
+    sovereign = _find_player_sovereign(world, game_state)
+    if _GUARD_COMPANION_RE.search(text):
+        text = _GUARD_COMPANION_RE.sub("", text)
+        head = _LEADING_ADDRESS_NAME_RE.match(text)
+        roster = {n.lower(): n for n in _player_marshal_names(game_state)}
+        if head:
+            words = head.group("name").strip()
+            named = roster.get(words.lower()) or roster.get(words.split()[-1].lower())
+            if named and named != sovereign:
+                note = GUARD_COMPANION_NOTE.format(marshal=named)
+    if _GUARD_BENEFICIARY_RE.search(text) and _LEVY_VERB_RE.search(text):
+        text = _GUARD_BENEFICIARY_RE.sub(f" with {sovereign}" if sovereign else "", text)
+    if text == command_text:
+        return command_text, None, False
+    text = re.sub(r"\s+([,;:.!?])", r"\1", re.sub(r"\s{2,}", " ", text)).strip()
+    return text, note, True
+
+
 def rewrite_take_objective(command_text: str, game_state, world):
     """RS-11 — ``(text, note)``: "take <province|foe>" restated as the order
     the objective resolves to (see the rule above), and the note naming the
@@ -847,11 +933,18 @@ def normalize_sovereign_address(command_text: str,
     # fires the ORIGINAL text is returned untouched — a sentence we do not
     # rewrite never silently loses a word.
     text = command_text
-    marker = _SOVEREIGN_SELF_MARKER_RE.search(command_text)
-    if marker:
-        stripped = command_text[:marker.start()].rstrip().rstrip(",")
-        if stripped:
-            text = stripped
+    if A_REFLEXIVE_IS_NEVER_A_PLACE:
+        marker = _SELF_MARKER_ANYWHERE_RE.search(command_text)
+        if marker:
+            stripped = strip_self_markers(command_text)
+            if stripped and stripped != command_text:
+                text = stripped
+    else:
+        marker = _SOVEREIGN_SELF_MARKER_RE.search(command_text)
+        if marker:
+            stripped = command_text[:marker.start()].rstrip().rstrip(",")
+            if stripped:
+                text = stripped
 
     match = _SOVEREIGN_EMPEROR_COMMA_RE.match(text)
     if match:
@@ -2519,6 +2612,15 @@ class CommandParser:
         # sees `march to` by construction. The typed text stays the record
         # (R1-11): `raw_input` / `raw_command` carry what the player wrote,
         # and none of their readers re-derive the march from them.
+        # SF5-RV13 (Step 7): the Emperor's impatience is taken out before any
+        # reader sees the line — "Ney, do as I say and attack Mack" is
+        # `Ney, attack Mack` (the question tests read the same residue, so a
+        # line that is only the rhetoric is left whole and stays a question).
+        from backend.ai.clause_guards import strip_emphasis
+        _emphatic = strip_emphasis(command_text)
+        _emphasis_stripped = _emphatic != command_text
+        if _emphasis_stripped:
+            command_text = _emphatic
         promoted = False
         if TAIL_FUSES_ONLY_ONTO_A_MARCH:
             promoted_text = promote_tactical_move_with_arrival_tail(command_text)
@@ -2556,10 +2658,14 @@ class CommandParser:
         command_text, _take_note = rewrite_take_objective(command_text, game_state, world)
         _friend = _friend or (command_text != _before_take)
         command_text, _halt_tail = strip_halt_tail(command_text)
+        # SF-CMD-2's head (Step 7): "with the Guard" is company, not an order.
+        command_text, _guard_note, _guard_changed = rewrite_guard_company(
+            command_text, game_state, world)
         # (`_plain` is NOT restored: the pledge/hit forms rewrite the record
         # too, as NP-1's normalisation does — the executor's addressee gate
         # reads `raw_command`, and 'Pledge France' is no officer of ours.)
-        _rewritten = bool(_arr or _friend or _halt_tail)
+        _rewritten = bool(_arr or _friend or _halt_tail or _guard_changed
+                          or _emphasis_stripped)
         result = self._parse_text(command_text, game_state, world)
         if _rewritten and isinstance(result, dict):
             result["raw_input"] = typed_text
@@ -2573,6 +2679,9 @@ class CommandParser:
             if _take_note and result.get("success"):
                 result["warning"] = (f"{result['warning']} {_take_note}"
                                      if result.get("warning") else _take_note)
+            if _guard_note and result.get("success"):
+                result["warning"] = (f"{result['warning']} {_guard_note}"
+                                     if result.get("warning") else _guard_note)
         if (typo_note or promoted) and isinstance(result, dict):
             result["raw_input"] = typed_text
             command = result.get("command")
@@ -2649,6 +2758,9 @@ class CommandParser:
             if _sovereign:
                 command_text = normalize_sovereign_address(
                     command_text, _sovereign)
+            # SF-CMD-2's head: on every board, the reflexive never reaches a
+            # destination (NP-X1 — the sovereign-free arm).
+            command_text = strip_self_markers(command_text)
 
             # CR-2: sequential compound orders — parse the FIRST clause and
             # report the dropped tail instead of letting the second clause

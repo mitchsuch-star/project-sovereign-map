@@ -7066,6 +7066,126 @@
       },
       "source": "SF-V8 the landing names its man (CRT-2's naval twin, October 3, 2026)",
       "notes": "'land' fuzzy-matched 'Lannes' (75) in the word scan; a routed order word is never a name now."
+    },
+    {
+      "id": "sfcmd2-move-with-the-guard",
+      "utterance": "Ney, move to Paris with the Guard",
+      "world": "1805",
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Paris"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "CQ-33: 'with the Guard' is company, not an order — the march runs (was a 2-action HOLD at Rhineland)."
+    },
+    {
+      "id": "sfcmd2-scout-with-the-guard",
+      "utterance": "Ney, scout Swabia with the guard",
+      "world": "1805",
+      "expected": {
+        "action": "scout",
+        "marshal": "Ney",
+        "target": "Swabia"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "CQ-33: the 1-action scout, not a HOLD."
+    },
+    {
+      "id": "sfcmd2-recruit-for-the-guard",
+      "utterance": "recruit 5000 men for the guard",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "marshal": "Napoleon"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "CQ-33: 'for the Guard' names the Emperor's corps (was 'Which marshal shall hold?')."
+    },
+    {
+      "id": "sfcmd2-protect-the-rear",
+      "utterance": "Ney, protect the rear",
+      "world": "1805",
+      "expected": {
+        "action": "hold",
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "target": "Rhineland"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "CX5-L5-F7: the rear is a position, not a province — the in-place HOLD (was a march to Lorraine)."
+    },
+    {
+      "id": "sfcmd2-guard-the-retreat",
+      "utterance": "Lannes, guard the retreat",
+      "world": "1805",
+      "expected": {
+        "marshal": "Lannes",
+        "strategic_type": "HOLD",
+        "target": "Franche-Comte"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "CX5-L5-F7: was 'Region Retreat not found. Did you mean Crete?'."
+    },
+    {
+      "id": "sfcmd2-protect-our-flank",
+      "utterance": "Davout, protect our flank",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "strategic_type": "HOLD",
+        "target": "Rhineland"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "CX5-L5-F7: was 'could not make out a destination'."
+    },
+    {
+      "id": "sfcmd2-reflexive-mid-sentence",
+      "utterance": "I will march to Lorraine myself and attack Mack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "strategic_type": "MOVE_TO",
+        "target": "Lorraine"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "NPC-9: a reflexive is never a place (was 'Lorraine Myself')."
+    },
+    {
+      "id": "sfcmd2-take-the-field-myself",
+      "utterance": "I will take the field myself and march to Lorraine",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "strategic_type": "MOVE_TO",
+        "target": "Lorraine"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "NPC-9: the Emperor's own march (was 'Which marshal shall march to Lorraine?')."
+    },
+    {
+      "id": "sfcmd2-reflexive-sovereign-free",
+      "utterance": "Ney, march to Belgium myself",
+      "world": "legacy",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Belgium"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "NP-X1: on a board with no Emperor the reflexive never reaches the destination (was 'Belgium Myself')."
+    },
+    {
+      "id": "sfcmd2-emphatic-lead",
+      "utterance": "Ney, do as I say and attack Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack"
+      },
+      "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
+      "notes": "SF5-RV13: an emphatic clause is not the line's mood (was the desk's shrug)."
     }
   ]
 }
