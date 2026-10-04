@@ -1124,11 +1124,28 @@ def _mentions_screening_idiom(command_lower: str) -> bool:
 # Falling through to unknown is the right outcome for the rest, and it is
 # FA-73's own recorded ruling for the pinned member: *"Falling through to
 # unknown is the correct outcome (Berthier asks) — screening is not a
-# modelled action."* Since CX-2 the shrug answers with orders that would
-# actually be carried out, so the fall-through is now useful rather than bare.
+# modelled action."*
+#
+# ⚠ CORRECTED by SF-CMD-2's remainder (Score Finish Step 7 slice 5a,
+# CX5-L5-F3 / F4 / F5): two claims above were measured FALSE. "They are the
+# whole set a player reaches for" — `carry out / conduct / beat / perform /
+# effect / undertake the retreat` and the CONTINUED retreat (`keep / go on /
+# carry on / resume retreating`, `keep falling back`) all shrugged; they are
+# `THE_RETREAT_IS_CARRIED_OUT` below. And the shrug did NOT offer an order
+# that would be carried out: it suggested scout / defend, never the retreat
+# and never why — `THE_SHRUG_OFFERS_THE_RETREAT` now says how the line was
+# read and gives both orders (his own retreat; the attack on a foe in sight).
 #
 # Flip lever: False restores the four-verb allowlist byte-for-byte.
 A_RETREAT_CAN_BE_A_NOUN = True
+
+# CX5-L5-F5 (Step 7 slice 5a): the addressed shrug offers the retreat and
+# says why when the line named one (lever down: the random scout/defend
+# templates).
+THE_SHRUG_OFFERS_THE_RETREAT = True
+_RETREAT_WORD_RE = re.compile(
+    r"\b(?:retreat\w*|withdraw\w*|fall(?:ing)?\s+back|pull(?:ing)?\s+back)\b",
+    re.IGNORECASE)
 
 # A determiner, an optional adjective, then the noun — plus the participle,
 # which is always adjectival ("the retreating Austrians").
@@ -1173,11 +1190,41 @@ _ORDER_THE_RETREAT_RE = re.compile(
     re.IGNORECASE)
 
 
+# SF-CMD-2's remainder (Score Finish Step 7 slice 5a; CX5-L5-F3 / F4): the
+# "whole set a player reaches for" was measured short — `Lannes, carry out
+# the retreat` and `Lannes, keep retreating` both shrugged (the first read as
+# somebody else's retreat, the second caught by the participle rule meant
+# for "the retreating Austrians"). The carrying verbs gain `carry out`,
+# `conduct`, `beat` ("beat a retreat"), `perform`, `effect`, `undertake`
+# (and "your retreat"); a retreat CONTINUED is his own ("keep / continue /
+# go on / carry on retreating", "keep falling back"). Flip lever: False
+# restores the four-verb set and the participle rule byte for byte.
+THE_RETREAT_IS_CARRIED_OUT = True
+_ORDER_THE_RETREAT_WIDE_RE = re.compile(
+    r"\b(?:sound|order|begin|start|commence|call|signal|blow|announce|make"
+    r"|continue|resume|execute|carry\s+out|conduct|beat|perform|effect"
+    r"|undertake)\s+(?:the|our|your|an?)\s+(?:\w+\s+)?"
+    r"(?:retreat|withdrawal)\b",
+    re.IGNORECASE)
+_CONTINUE_RETREATING_RE = re.compile(
+    r"\b(?:keep(?:\s+on)?|continue|go\s+on|carry\s+on|resume)\s+"
+    r"(?:retreating|withdrawing|falling\s+back|pulling\s+back)\b",
+    re.IGNORECASE)
+
+
+def _retreat_is_carried_on(command_lower: str) -> bool:
+    """CX5-L5-F4: "keep retreating" is his own retreat, continued."""
+    return bool(THE_RETREAT_IS_CARRIED_OUT
+                and _CONTINUE_RETREATING_RE.search(command_lower))
+
+
 def _retreat_is_a_noun(command_lower: str) -> bool:
     """True when the sentence acts on SOMEBODY ELSE'S retreat."""
     if not A_RETREAT_CAN_BE_A_NOUN:
         return False
-    if _ORDER_THE_RETREAT_RE.search(command_lower):
+    order_re = (_ORDER_THE_RETREAT_WIDE_RE if THE_RETREAT_IS_CARRIED_OUT
+                else _ORDER_THE_RETREAT_RE)
+    if order_re.search(command_lower):
         return False
     noun_re = (_RETREAT_NOUN_WIDE_RE if THE_RETREAT_NOUN_TAKES_A_POSSESSIVE
                else _RETREAT_NOUN_RE)
@@ -2116,6 +2163,16 @@ class LLMClient:
         recognized_marshal = partial_parse.get("recognized_marshal")
         recognized_target = partial_parse.get("recognized_target")
 
+        # CX5-L5-F5 (Step 7 slice 5a): a line that mentions a retreat the
+        # parser read as somebody ELSE'S (the CX-5 noun rule) was answered
+        # with "scout" or "defend" — never the retreat, never why.
+        if (recognized_marshal and THE_SHRUG_OFFERS_THE_RETREAT
+                and _RETREAT_WORD_RE.search(raw_command or "")):
+            return (f"Berthier frowns at the dispatch. \"I read the retreat "
+                    f"in your words as the enemy's, Sire. To withdraw "
+                    f"{recognized_marshal} himself, say '{recognized_marshal}, "
+                    f"retreat'; to strike at a foe who falls back, "
+                    f"'{recognized_marshal}, attack {first_enemy}'.\"")
         if recognized_marshal:
             templates = [
                 (f"Berthier adjusts his spectacles. \"Sire, I understand this concerns "
@@ -3195,7 +3252,10 @@ class LLMClient:
                   and not _retreat_is_a_noun(command_lower))
               # FA slice 7 (FA-80): "pull back" / "retire" without a
               # destination are the retreat verb.
-              or (PLAIN_SPEECH_ACTIVE and _mentions_plain_retreat(command_lower))):
+              or (PLAIN_SPEECH_ACTIVE and _mentions_plain_retreat(command_lower))
+              # CX5-L5-F4: "keep falling back" — the retreat continued (the
+              # plain-retreat rule reads only the bare "fall back").
+              or _retreat_is_carried_on(command_lower)):
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [

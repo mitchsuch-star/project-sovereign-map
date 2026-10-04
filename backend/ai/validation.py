@@ -14,6 +14,9 @@ from typing import List, Optional, Set
 
 from .schemas import ParseResult
 
+# CQ-8 (Score Finish Step 7 slice 5a) — see the multi-marshal arm below.
+THE_SECOND_NAME_RIDES_THE_RELAY = True
+
 
 # =============================================================================
 # VALID GAME ENTITIES
@@ -429,11 +432,18 @@ def validate_parse_result(
             result.suggestion = f"Unknown marshal: {invalid_marshals[0]}. Available: {available}"
             return result
 
-    # Multi-marshal commands: not yet implemented
+    # Multi-marshal commands. CQ-8 (Score Finish Step 7 slice 5a): the first
+    # marshal takes the order and the rest ride the relay — "Multi-marshal
+    # commands coming in a future update!" was a player-facing promise with
+    # no landing (GR9). Lever down: the refusal.
     if result.marshals and len(result.marshals) > 1:
-        result.matched = False
-        result.suggestion = "Multi-marshal commands coming in a future update!"
-        return result
+        if THE_SECOND_NAME_RIDES_THE_RELAY:
+            result.second_marshals = list(result.marshals[1:])
+            result.marshals = list(result.marshals[:1])
+        else:
+            result.matched = False
+            result.suggestion = "Multi-marshal commands coming in a future update!"
+            return result
 
     # (Sweep-5 invented-marshal guard hoisted above the META bypass — see the
     # block near the top of this function. It is a live-LLM hallucination

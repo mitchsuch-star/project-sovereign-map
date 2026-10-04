@@ -1,0 +1,212 @@
+[
+ {
+  "id": "F3/F4 lever down: THE_RETREAT_IS_CARRIED_OUT",
+  "file": "backend/ai/llm_client.py",
+  "old": "THE_RETREAT_IS_CARRIED_OUT = True",
+  "new": "THE_RETREAT_IS_CARRIED_OUT = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheRetreatIsCarriedOut"
+ },
+ {
+  "id": "F4 the continued 'falling back' never reaches the retreat branch",
+  "file": "backend/ai/llm_client.py",
+  "old": "              or _retreat_is_carried_on(command_lower)):\n            action = \"retreat\"",
+  "new": "              or False):\n            action = \"retreat\"",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheRetreatIsCarriedOut::test_the_line_is_his_own_retreat"
+ },
+ {
+  "id": "F5 lever down: THE_SHRUG_OFFERS_THE_RETREAT",
+  "file": "backend/ai/llm_client.py",
+  "old": "THE_SHRUG_OFFERS_THE_RETREAT = True",
+  "new": "THE_SHRUG_OFFERS_THE_RETREAT = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheShrugOffersTheRetreat tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_he_does_not_march_away"
+ },
+ {
+  "id": "F5 the shrug fires with no retreat word",
+  "file": "backend/ai/llm_client.py",
+  "old": "        if (recognized_marshal and THE_SHRUG_OFFERS_THE_RETREAT\n                and _RETREAT_WORD_RE.search(raw_command or \"\")):",
+  "new": "        if (recognized_marshal and THE_SHRUG_OFFERS_THE_RETREAT\n                and True):",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheShrugOffersTheRetreat::test_a_shrug_with_no_retreat_word_is_untouched"
+ },
+ {
+  "id": "F6 the noun rule pins bind: A_RETREAT_CAN_BE_A_NOUN down",
+  "file": "backend/ai/llm_client.py",
+  "old": "A_RETREAT_CAN_BE_A_NOUN = True",
+  "new": "A_RETREAT_CAN_BE_A_NOUN = False",
+  "tests": "tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_the_noun_rule_is_what_holds_it"
+ },
+ {
+  "id": "N4 lever down: A_PURSUIT_NAMES_THE_MAN",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "A_PURSUIT_NAMES_THE_MAN = True",
+  "new": "A_PURSUIT_NAMES_THE_MAN = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestThePursuitNamesTheMan"
+ },
+ {
+  "id": "N5 lever down: THE_DISCLOSURE_KEEPS_ITS_TENSE",
+  "file": "backend/commands/executor.py",
+  "old": "THE_DISCLOSURE_KEEPS_ITS_TENSE = True",
+  "new": "THE_DISCLOSURE_KEEPS_ITS_TENSE = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheDisclosureKeepsItsTense"
+ },
+ {
+  "id": "NP-X9 lever down: THE_ORDER_VERB_LOSES_ITS_INFLECTION",
+  "file": "backend/commands/parser.py",
+  "old": "THE_ORDER_VERB_LOSES_ITS_INFLECTION = True",
+  "new": "THE_ORDER_VERB_LOSES_ITS_INFLECTION = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheInflectedOrder"
+ },
+ {
+  "id": "NPC-10 lever down: TALKS_ARE_NOT_A_HOLD",
+  "file": "backend/commands/parser.py",
+  "old": "TALKS_ARE_NOT_A_HOLD = True",
+  "new": "TALKS_ARE_NOT_A_HOLD = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTalksAreNotAHold"
+ },
+ {
+  "id": "NPC-18 lever down: THE_EMPEROR_IS_A_REFERENT",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "THE_EMPEROR_IS_A_REFERENT = True",
+  "new": "THE_EMPEROR_IS_A_REFERENT = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheEmperorIsAReferent"
+ },
+ {
+  "id": "NPC-18 'his Majesty' is not the sovereign",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "if _word in (\"emperor\", \"his majesty\"):",
+  "new": "if _word in (\"emperor\",):",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheEmperorIsAReferent::test_ney_supports_the_sovereign"
+ },
+ {
+  "id": "NPC-26 lever down: A_FOE_IS_RIDDEN_DOWN",
+  "file": "backend/ai/attack_vocabulary.py",
+  "old": "A_FOE_IS_RIDDEN_DOWN = True",
+  "new": "A_FOE_IS_RIDDEN_DOWN = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheNamedCourtIsAnswered::test_riding_down_a_foe_is_the_attack tests/test_cx1_a_question_never_orders.py::TestTheRetreatIsSometimesANoun::test_riding_down_a_retreating_foe_is_an_attack"
+ },
+ {
+  "id": "NPC-26 lever down: A_NAMED_NATION_IS_ANSWERED",
+  "file": "backend/commands/combat_executor.py",
+  "old": "A_NAMED_NATION_IS_ANSWERED = True",
+  "new": "A_NAMED_NATION_IS_ANSWERED = False",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheNamedCourtIsAnswered::test_no_named_court_at_the_province_is_said_of_that_court tests/test_iq9_keyless_parser_gate.py::TestBelowGatePhrasings::test_hit_the_prussians_is_refused_honestly_out_of_reach"
+ },
+ {
+  "id": "NPC-26 the holder named is refused as a stranger",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            or named_nation == getattr(region, \"controller\", None)):",
+  "new": "            or False):",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheNamedCourtIsAnswered::test_the_holder_named_keeps_its_own_refusal"
+ },
+ {
+  "id": "NPC-26 a court in sight there is refused anyway",
+  "file": "backend/commands/combat_executor.py",
+  "old": "    if any(_in_sight(m) for m in world.get_marshals_in_region(province)):\n        return None",
+  "new": "    if False:\n        return None",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheNamedCourtIsAnswered::test_riding_down_a_foe_is_the_attack"
+ },
+ {
+  "id": "NPC-26 the court beside a province is never stamped",
+  "file": "backend/commands/parser.py",
+  "old": "                             or _named_beside_province)",
+  "new": "                             or False)",
+  "tests": "tests/test_sf_cmd2_the_remainder.py::TestTheNamedCourtIsAnswered::test_no_named_court_at_the_province_is_said_of_that_court"
+ },
+ {
+  "id": "SF7-X8 the court as a noun again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    _court = (nation_adjective(_nation_hint)",
+  "new": "                    _court = (display_nation(_nation_hint)",
+  "tests": "tests/test_iq9_keyless_parser_gate.py::TestBelowGatePhrasings::test_hit_the_prussians_is_refused_honestly_out_of_reach"
+ },
+ {
+  "id": "CQ-8 lever down: THE_SECOND_NAME_IS_HEARD",
+  "file": "backend/commands/parser.py",
+  "old": "THE_SECOND_NAME_IS_HEARD = True",
+  "new": "THE_SECOND_NAME_IS_HEARD = False",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_the_attack_runs_and_soults_support_is_relayed tests/test_crt11_the_second_name_is_heard.py::TestTheSecondRewardIsHeard"
+ },
+ {
+  "id": "CQ-8 lever down: THE_SECOND_NAME_RIDES_THE_RELAY",
+  "file": "backend/ai/validation.py",
+  "old": "THE_SECOND_NAME_RIDES_THE_RELAY = True",
+  "new": "THE_SECOND_NAME_RIDES_THE_RELAY = False",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_no_reply_carries_the_future_update_promise"
+ },
+ {
+  "id": "CQ-8 the second man's order is never his support",
+  "file": "backend/commands/parser.py",
+  "old": "                        if (_second[\"kind\"] == \"address\"\n                                and _head in SECOND_NAME_SUPPORT_ACTIONS):",
+  "new": "                        if (_second[\"kind\"] == \"address\"\n                                and False):",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_the_attack_runs_and_soults_support_is_relayed"
+ },
+ {
+  "id": "CQ-8 the live reading's second name is dropped",
+  "file": "backend/commands/parser.py",
+  "old": "                        and llm_result.get(\"second_marshals\")",
+  "new": "                        and False",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_the_live_reading_rides_the_same_relay"
+ },
+ {
+  "id": "CQ-8 a man the muster counts is relayed anyway",
+  "file": "backend/commands/relay.py",
+  "old": "    if muster_counts(result, second):",
+  "new": "    if False:",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_a_man_the_muster_counts_is_acknowledged_not_relayed"
+ },
+ {
+  "id": "CQ-8 the support's price is never named",
+  "file": "backend/commands/relay.py",
+  "old": "            if ap > 0:\n                price = f\" ({_plural(ap, 'action')} when sent)\"",
+  "new": "            if False:\n                price = f\" ({_plural(ap, 'action')} when sent)\"",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_the_attack_runs_and_soults_support_is_relayed"
+ },
+ {
+  "id": "CQ-8 every further name needs his own order",
+  "file": "backend/commands/relay.py",
+  "old": "    bits = [(f\"{o} marches already\" if muster_counts(result, o)",
+  "new": "    bits = [(f\"{o} marches already\" if False",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_every_further_name_gets_its_clause"
+ },
+ {
+  "id": "CQ-8 a refused lead's support keeps the sequence's sentence",
+  "file": "backend/main.py",
+  "old": "            elif _second_man and _relay_obj.get(\"relay_kind\") == \"refused_head\":",
+  "new": "            elif False:",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed::test_a_refused_lead_relays_no_support"
+ },
+ {
+  "id": "CQ-38 a parallel order dies with the first's refusal",
+  "file": "backend/commands/relay.py",
+  "old": "    if not independent and not (isinstance(result, dict) and result.get(\"success\")):",
+  "new": "    if not (isinstance(result, dict) and result.get(\"success\")):",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondRewardIsHeard::test_the_first_refused_does_not_cancel_the_second"
+ },
+ {
+  "id": "CQ-38 a met rente is relayed anyway",
+  "file": "backend/commands/relay.py",
+  "old": "                if not rente_would_change(marshal, world):",
+  "new": "                if False:",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondRewardIsHeard::test_a_second_rente_that_changes_nothing_is_said_not_relayed"
+ },
+ {
+  "id": "CQ-38 the reward's second name is never heard",
+  "file": "backend/commands/parser.py",
+  "old": "_REWARD_SECOND_NAME_VERBS = r\"(?:grant|give|award|pay|endow|pension)\"",
+  "new": "_REWARD_SECOND_NAME_VERBS = r\"(?:zzzzzz)\"",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSecondRewardIsHeard"
+ },
+ {
+  "id": "V2-61 the collective words split as two names",
+  "file": "backend/commands/parser.py",
+  "old": "        if re.match(r\"^\" + _COLLECTIVE_ADDRESS_WORDS, rest, flags=re.IGNORECASE):\n            return None",
+  "new": "        if False:\n            return None",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheLiveSplitterKeepsV2_61::test_these_are_never_two_names"
+ },
+ {
+  "id": "V2-61 a name named twice counts as two men",
+  "file": "backend/commands/parser.py",
+  "old": "        if len(found) < 2:\n            return None\n        return {\"first_text\": f\"{found[0]}, {rest}\",",
+  "new": "        if len(found) < 0:\n            return None\n        return {\"first_text\": f\"{found[0]}, {rest}\",",
+  "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheLiveSplitterKeepsV2_61::test_these_are_never_two_names"
+ }
+]

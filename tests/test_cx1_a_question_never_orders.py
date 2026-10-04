@@ -668,6 +668,15 @@ class TestEachArmOfTheGuardDirectly:
 
 class TestTheRetreatIsSometimesANoun:
 
+    # CX5-L5-F6 (Score Finish Step 7 slice 5a, SF-CMD-2's remainder): the
+    # class's ten rows were one end-to-end list, and 3 of the 10 passed with
+    # the fix DELETED (`harry` is a pursuit verb; `cover` / `screen` are the
+    # screening idiom's), while the 7 that bound went falsely green on 6 of
+    # 60 seeds behind an aggressive marshal's objection to the retreat —
+    # nothing moved, so "inert" held. Split by the guard that HOLDS each row
+    # and pinned at the PARSE (deterministic) with both arms of its lever.
+    #
+    # Held by the noun rule (`llm_client.A_RETREAT_CAN_BE_A_NOUN`) alone:
     SOMEBODY_ELSES = [
         "Lannes, cut down the retreat",
         "Lannes, cut off the retreat",
@@ -675,11 +684,18 @@ class TestTheRetreatIsSometimesANoun:
         "Lannes, block the retreat",
         "Lannes, exploit the retreat",
         "Lannes, punish the retreat",
-        "Lannes, ride down the retreating Austrians",
-        "Lannes, harry the retreat",
-        "Lannes, cover the retreat",
-        "Lannes, screen the withdrawal",
     ]
+    # Held by ANOTHER guard (named), so they pass with the noun rule deleted:
+    HELD_ELSEWHERE = [
+        ("Lannes, harry the retreat", "pursuit"),       # harry: a pursuit verb
+        ("Lannes, cover the retreat", "screening"),     # _mentions_screening_idiom
+        ("Lannes, screen the withdrawal", "screening"),
+    ]
+    # NPC-26 (the same slice) — consciously MOVED out of SOMEBODY_ELSES:
+    # riding down a FOE is an attack, and the retreating Austrians are a foe
+    # (`attack_vocabulary.A_FOE_IS_RIDDEN_DOWN`). The noun rule still holds it
+    # from his own retreat with that lever down.
+    RIDDEN_DOWN = "Lannes, ride down the retreating Austrians"
     HIS_OWN = [
         "Lannes, retreat",
         "Lannes, fall back",
@@ -691,10 +707,76 @@ class TestTheRetreatIsSometimesANoun:
         "Lannes, call the retreat",
     ]
 
+    @staticmethod
+    def _verb(text, **levers):
+        """The parse's verb on a fresh shipped board, with the named levers
+        (an `llm_client` or `attack_vocabulary` constant) held for the call.
+        A successful parse nests the verb under `command`; a refused one
+        reports its reading as `partial_action`."""
+        from backend.ai import attack_vocabulary as AV
+        from backend.ai import llm_client as LC
+        from backend.commands.parser import CommandParser
+        world, _client = _fresh_board()
+        parser = CommandParser(use_real_llm=False)
+        saved = {}
+        try:
+            for name, value in levers.items():
+                module = AV if hasattr(AV, name) else LC
+                assert hasattr(module, name), name
+                saved[(module, name)] = getattr(module, name)
+                setattr(module, name, value)
+            with _quiet():
+                result = parser.parse(text, {"world": world})
+        finally:
+            for (module, name), value in saved.items():
+                setattr(module, name, value)
+        return ((result.get("command") or {}).get("action")
+                or result.get("action") or result.get("partial_action"))
+
     @pytest.mark.parametrize("utterance", SOMEBODY_ELSES)
     def test_he_does_not_march_away(self, utterance):
+        """End to end — and no longer green behind an objection: the reply
+        is the noun rule's OWN sentence (CX5-L5-F5's shrug), which neither a
+        retreat nor a marshal's objection to one can produce."""
         response, footprint = _drive(utterance)
         _assert_inert(utterance, response, footprint)
+        message = response.get("message") or response.get("error") or ""
+        assert "I read the retreat in your words as the enemy's" in message, (
+            utterance, message[:200])
+
+    @pytest.mark.parametrize("utterance", SOMEBODY_ELSES)
+    def test_the_noun_rule_is_what_holds_it(self, utterance):
+        """CX5-L5-F6: binds — with the noun rule down every row reads as his
+        own retreat again."""
+        assert self._verb(utterance) != "retreat", utterance
+        assert self._verb(utterance, A_RETREAT_CAN_BE_A_NOUN=False) == "retreat", (
+            "lever off = the defect reproduces", utterance)
+
+    @pytest.mark.parametrize("utterance,guard", HELD_ELSEWHERE)
+    def test_a_row_another_guard_holds_names_that_guard(self, utterance, guard):
+        """CX5-L5-F6: these three passed with the fix deleted because a
+        DIFFERENT guard holds them — pinned on that guard, so the class no
+        longer counts them as the noun rule's evidence."""
+        import re as _re
+        from backend.ai.llm_client import _mentions_screening_idiom
+        body = utterance.split(", ", 1)[1].lower()
+        assert self._verb(utterance) != "retreat", utterance
+        assert self._verb(utterance, A_RETREAT_CAN_BE_A_NOUN=False) != "retreat", utterance
+        if guard == "pursuit":
+            # the mock chain's pursuit branch reads it as the attack
+            assert _re.search(r"\b(pursue|chase|hunt|intercept|harry|hound|shadow)\b", body)
+            assert self._verb(utterance) == "attack", utterance
+        else:
+            assert _mentions_screening_idiom(body), utterance
+
+    def test_riding_down_a_retreating_foe_is_an_attack(self):
+        """NPC-26 — moved consciously out of SOMEBODY_ELSES (it was inert;
+        it is an attack now). With the ride-down lever down the noun rule
+        still keeps him from his own retreat."""
+        assert self._verb(self.RIDDEN_DOWN) == "attack"
+        assert self._verb(self.RIDDEN_DOWN, A_FOE_IS_RIDDEN_DOWN=False) != "retreat"
+        assert self._verb(self.RIDDEN_DOWN, A_FOE_IS_RIDDEN_DOWN=False,
+                          A_RETREAT_CAN_BE_A_NOUN=False) == "retreat"
 
     @pytest.mark.parametrize("utterance", HIS_OWN)
     def test_a_real_retreat_still_retreats(self, utterance):

@@ -377,6 +377,15 @@ def guessed_target_refusal(world, marshal, command, target,
                 f"{humanize_entity_name(chosen.location)}, the nearest in "
                 f"sight. Name another and he will turn."
             )
+            # CX5-L5-N5 (Score Finish Step 7 slice 5a): on the branch that
+            # FIGHTS, "he will turn" is false — the battle has been fought.
+            command["_target_disclosure_fought"] = (
+                f"Your words named no foe our maps know, Sire — "
+                f"{marshal.name} engaged "
+                f"{humanize_entity_name(chosen.name)} at "
+                f"{humanize_entity_name(chosen.location)}, the nearest in "
+                f"sight."
+            )
         return None
 
     # The PARSER substituted one real foe for the name the player typed. Ask.
@@ -433,6 +442,65 @@ def friendly_fire_refusal(world, marshal, target_nation: str) -> Optional[Dict]:
         message = (f"{marshal.name} cannot attack {target_nation} — they are our "
                    f"{relation}, Sire, and we are not at war with them.")
     return {"success": False, "message": message}
+
+
+# NPC-26 (Score Finish Step 7 slice 5a): a named court beside a province is
+# answered about that court (see `_named_nation_not_at_province`). Flip
+# lever: False = the province's own refusal, the court never named.
+A_NAMED_NATION_IS_ANSWERED = True
+
+
+def _named_nation_not_at_province(world, marshal, named_nation: str,
+                                  province: str, region) -> Optional[Dict]:
+    """The free refusal for "attack the <demonym> at <province>" when no
+    corps of the NAMED court is in sight in that province — else None (the
+    order proceeds as today). Never for a court that IS the province's
+    holder (its own refusal names it already), never for the AI."""
+    if (not A_NAMED_NATION_IS_ANSWERED or not named_nation
+            or marshal.nation != world.player_nation
+            or named_nation == getattr(region, "controller", None)):
+        return None
+    from backend.display_names import display_nation, nation_adjective
+    from backend.models.intel import FULL as _FULL, PARTIAL as _PARTIAL
+
+    def _in_sight(m) -> bool:
+        return (m.nation == named_nation and m.strength > 0
+                and not getattr(m, "captured_by", "")
+                and world.get_region_intel(m.location).visibility
+                in (_FULL, _PARTIAL))
+
+    if any(_in_sight(m) for m in world.get_marshals_in_region(province)):
+        return None
+    court = nation_adjective(named_nation)
+    holder = getattr(region, "controller", None)
+    soil = (f" — {province} is {display_nation(holder)}'s soil" if holder
+            and holder != marshal.nation else "")
+    # The nearest of the NAMED court in sight — any court, at war or not
+    # (`find_nearest_enemy` reads only the hostile roster).
+    nearest = None
+    for _m in world.marshals.values():
+        if _in_sight(_m):
+            _d = world.get_distance(marshal.location, _m.location)
+            if nearest is None or _d < nearest[1]:
+                nearest = (_m, _d)
+    if nearest:
+        foe = nearest[0]
+        tail = (f" The nearest {court} force in sight is "
+                f"{humanize_entity_name(foe.name)}, at "
+                f"{humanize_entity_name(foe.location)}.")
+        suggestion = (f"Order '{marshal.name}, attack {humanize_entity_name(foe.name)}'."
+                      if world.is_at_war(marshal.nation, named_nation)
+                      else f"We are not at war with {display_nation(named_nation)}, Sire.")
+    else:
+        tail = f" No {court} force is in sight anywhere, Sire."
+        suggestion = "Scout for them first, or name the corps you mean."
+    return {
+        "success": False,
+        "message": (f"No {court} force is in sight at {province}, "
+                    f"Sire{soil}.{tail}"),
+        "suggestion": suggestion,
+        "variable_action_cost": 0,
+    }
 
 
 # SF-MD-1 "Every man his own voice" (RS-24, Oct 2 2026): the voice banks
@@ -6260,12 +6328,17 @@ class CombatExecutor:
                 if result is None and _nation_hint:
                     # He named a court with nobody in reach. Say THAT,
                     # rather than silently attacking somebody else.
-                    from backend.display_names import display_nation
+                    from backend.display_names import display_nation, nation_adjective
 
+                    # SF7-X8 (Score Finish Step 7 slice 5a): "No Prussia force"
+                    # — the court as an adjective, like its NPC-26 sibling.
+                    _court = (nation_adjective(_nation_hint)
+                              if A_NAMED_NATION_IS_ANSWERED
+                              else display_nation(_nation_hint))
                     return {
                         "success": False,
                         "message": (
-                            f"No {display_nation(_nation_hint)} force is "
+                            f"No {_court} force is "
                             f"within {marshal.name}'s reach, Sire."),
                         "suggestion": (
                             "Name the marshal you mean, or move him closer "
@@ -6536,6 +6609,19 @@ class CombatExecutor:
             target_region = world.get_region(resolved_target)
             if target_region:
                 target_location = resolved_target
+                # NPC-26 (Score Finish Step 7 slice 5a): "Murat, ride down
+                # the Austrians at Swabia" with no Austrian at Swabia was
+                # answered "cannot attack Bavaria — they are our ally" (Swabia
+                # is Bavaria's soil) and the word Austria never appeared. A
+                # named court and a province are answered about THAT court:
+                # no force of it in sight there is a free refusal that says
+                # so, whose soil the province is, and where the nearest of
+                # them stands in sight. Fog-honest ("in sight"); the
+                # player's orders only (the AI names no courts in words).
+                _refusal = _named_nation_not_at_province(
+                    world, marshal, _nation_hint, resolved_target, target_region)
+                if _refusal is not None:
+                    return _refusal
 
         # If we found a valid target location, check range
         if target_location:

@@ -50,6 +50,7 @@ only be created by the player's own `/command`.
 """
 
 import math
+import re
 from typing import Dict, Optional
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
@@ -142,11 +143,17 @@ def _readdress(tail: str, tail_marshal: Optional[str], marshal_name: Optional[st
 
 def build_relay(world, parser, llm_game_state, *, tail: str,
                 marshal_name: Optional[str], head_action: Optional[str],
-                result: Dict, question: bool, answered: bool = False) -> Dict:
+                result: Dict, question: bool, answered: bool = False,
+                independent: bool = False) -> Dict:
     """Judge one dropped tail against the head's outcome and the live board.
 
     Returns ``{"dropped_sequel", "relay_kind", "relay_command", "relay_note"}``.
     ``relay_command`` is a string only for kind ``ready``.
+
+    ``independent`` (CQ-8 / CQ-38, Score Finish Step 7 slice 5a): the tail is
+    a second marshal's OWN order, parallel to the head rather than written to
+    follow it ("grant Ney and Murat a rente", "Ney and Soult, fortify") — so
+    the head's refusal does not cancel it (Rule 4 is the sequence's rule).
     """
     tail = (tail or "").strip()
     reading = _tail_reading(parser, tail, llm_game_state)
@@ -155,7 +162,10 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
                                               and tail_marshal == marshal_name)
     marshal = world.get_marshal(marshal_name) if (world is not None and marshal_name) else None
     who = marshal_name or "the marshal"
-    relay: Dict = {"dropped_sequel": tail, "relay_command": None}
+    # `tail_action` is read by the second-name rule (CQ-38's met rente); it
+    # is never stamped on a response (`attach` copies named keys only).
+    relay: Dict = {"dropped_sequel": tail, "relay_command": None,
+                   "tail_action": reading["action"]}
 
     def done(kind: str, note: str, command: Optional[str] = None) -> Dict:
         relay["relay_kind"] = kind
@@ -182,7 +192,7 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
                     f"the turn's end, lets it go.")
 
     # Rule 4 — the head did not go out.
-    if not (isinstance(result, dict) and result.get("success")):
+    if not independent and not (isinstance(result, dict) and result.get("success")):
         return done("refused_head",
                     f'One order at a time, Sire — and the first did not go out, '
                     f'so "{tail}", written to follow it, is not relayed.')
@@ -233,6 +243,91 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
     return done("ready",
                 f"{lead}It is on the line — send it when you are ready.",
                 command)
+
+
+def second_name_relay_note(world, second: str, order: str, *,
+                           spliced: bool = True) -> str:
+    """CQ-8 / CQ-38 (Score Finish Step 7 slice 5a): the second man's own
+    order, on the line for the seal — never sent by the game. Priced when it
+    is his SUPPORT of the first (the order the muster names), from
+    `Marshal.strategic_order_ap`, the executor's own source; the same order
+    re-addressed is priced by the executor when sent, so no figure is quoted
+    for it here (a quote that could differ from the bill is worse than none).
+
+    ``spliced``: the parser's sentence ("<second>'s own waits behind it.")
+    stands before it — the head went out. Otherwise (the head was refused and
+    the parser's sentence was not printed) the note names him itself."""
+    price = ""
+    if re.search(r",\s*support\s+", order or "", flags=re.IGNORECASE):
+        marshal = world.get_marshal(second) if world is not None else None
+        if marshal is not None:
+            try:
+                ap = int(marshal.strategic_order_ap(order_type="SUPPORT"))
+            except Exception:
+                ap = 0
+            if ap > 0:
+                price = f" ({_plural(ap, 'action')} when sent)"
+    if spliced:
+        return (f'His order is "{order}"{price}: it is on the line — send it '
+                f'when you are ready.')
+    return (f'You named {second} too, Sire — his own order, "{order}"{price}, '
+            f'is on the line; send it when you are ready.')
+
+
+def second_name_refused_note(lead: str, second: str, order: str) -> str:
+    """CQ-8: his SUPPORT of a first order that did not go out is not relayed
+    — there is nothing yet for him to support."""
+    return (f"{lead}'s order did not go out, Sire, so {second}'s — "
+            f'"{order}" — is not relayed either.')
+
+
+def muster_counts(result: Dict, name: str) -> bool:
+    """CQ-8: the head's muster already counts this marshal as marching."""
+    rows = ((result or {}).get("muster_preview") or {}).get("rows") or []
+    return any(isinstance(r, dict) and r.get("marshal") == name and r.get("will_join")
+               for r in rows)
+
+
+def second_name_unneeded(world, second: str, tail_action: Optional[str],
+                         result: Dict, lead: str) -> Optional[str]:
+    """CQ-8 / CQ-38: the second man needs no order of his own — the muster
+    already counts him as marching, or the rente the line would grant him
+    changes nothing (`dotation.rente_would_change`, the one "is he met"
+    source the executor refuses by). The clause said instead of a relay, so
+    the line never holds an order the game would refuse. None otherwise."""
+    if muster_counts(result, second):
+        return f"{second} marches with {lead} already — the muster counts him."
+    if tail_action == "grant_pension" and world is not None:
+        marshal = world.get_marshal(second)
+        if marshal is not None:
+            try:
+                from backend.game_logic.dotation import rente_would_change
+                if not rente_would_change(marshal, world):
+                    return f"{second}'s expectation is met already — he needs no rente."
+            except Exception:
+                return None
+    return None
+
+
+def second_name_others_clause(result: Dict, others) -> str:
+    """CQ-8: every further marshal the line named — marching already, or
+    needing his own order (one clause each; empty when none)."""
+    bits = [(f"{o} marches already" if muster_counts(result, o)
+             else f"{o} needs his own order") for o in (others or [])]
+    return (" " + "; ".join(bits) + ".") if bits else ""
+
+
+def splice_second_name(response: Dict, second: str, sentence: str) -> None:
+    """Put a second-name sentence where the player reads it: in place of the
+    parser's "<second>'s own waits behind it." when that was printed (the
+    head went out), else as its own remark naming him."""
+    waits = f"{second}'s own waits behind it."
+    message = response.get("message") or ""
+    if waits in message:
+        response["message"] = message.replace(waits, sentence, 1)
+    else:
+        line = f"You named {second} too, Sire: {sentence}"
+        response["message"] = f"{message}\n\nBerthier: \"{line}\"".strip()
 
 
 def let_go_line(pending: Dict) -> str:

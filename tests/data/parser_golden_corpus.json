@@ -7186,6 +7186,147 @@
       },
       "source": "SF-CMD-2's head (Score Finish Step 7, October 4, 2026)",
       "notes": "SF5-RV13: an emphatic clause is not the line's mood (was the desk's shrug)."
+    },
+    {
+      "id": "sfcmd2r-carry-out-the-retreat",
+      "utterance": "Lannes, carry out the retreat",
+      "world": "1805",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Lannes"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CX5-L5-F3: the carrying verbs (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-beat-a-retreat",
+      "utterance": "Lannes, beat a retreat",
+      "world": "1805",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Lannes"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CX5-L5-F3: 'beat a retreat' (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-keep-retreating",
+      "utterance": "Lannes, keep retreating",
+      "world": "1805",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Lannes"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CX5-L5-F4: the retreat continued is his own (was the participle rule's shrug)."
+    },
+    {
+      "id": "sfcmd2r-keep-falling-back",
+      "utterance": "Lannes, keep falling back",
+      "world": "1805",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Lannes"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CX5-L5-F4."
+    },
+    {
+      "id": "sfcmd2r-pursue-the-mans-retreat",
+      "utterance": "Lannes, pursue Mack's retreat",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "PURSUE",
+        "marshal": "Lannes",
+        "target": "Mack"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CX5-L5-N4: the pursuit names the man (was \"Cannot find 'Mack'S Retreat'\")."
+    },
+    {
+      "id": "sfcmd2r-ney-moves",
+      "utterance": "Ney moves to Lorraine",
+      "world": "1805",
+      "expected": {
+        "action": "move",
+        "marshal": "Ney",
+        "target": "Lorraine"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "NP-X9: the inflected order is the order, every marshal (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-emperor-moves",
+      "utterance": "the Emperor moves to Rhineland",
+      "world": "1805",
+      "expected": {
+        "action": "move",
+        "marshal": "Napoleon",
+        "target": "Rhineland"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "NP-X9: the Emperor's title at the head (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-ride-down-a-foe",
+      "utterance": "Murat, ride down Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Murat",
+        "target": "Mack"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "NPC-26: riding down a foe is the attack (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-hold-talks",
+      "utterance": "hold talks with Prussia",
+      "world": "1805",
+      "expected": {
+        "not_action": "hold",
+        "action": "diplomatic_proposal",
+        "target": "Prussia"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "NPC-10: talks are not a hold (was 'Which marshal shall hold Talks?')."
+    },
+    {
+      "id": "sfcmd2r-support-the-emperor",
+      "utterance": "Ney, support the Emperor",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "SUPPORT",
+        "marshal": "Ney"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "NPC-18: the executor reads 'the Emperor' as the sovereign (pinned at POST /command)."
+    },
+    {
+      "id": "sfcmd2r-second-name-support",
+      "utterance": "Ney and Soult, attack Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack",
+        "dropped_sequel": "Soult, support Ney",
+        "warning_contains": "You named Soult beside Ney"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CQ-8: the first man takes the order; the second man's support rides the relay."
+    },
+    {
+      "id": "sfcmd2r-second-name-reward",
+      "utterance": "grant Ney and Murat a rente",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension",
+        "marshal": "Ney",
+        "dropped_sequel": "grant Murat a rente"
+      },
+      "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
+      "notes": "CQ-38: the second reward rides the relay, never silent."
     }
   ]
 }

@@ -354,11 +354,21 @@ class TestTheBareComma:
         "Marshal Ney, attack Mack",            # the honorific
     ])
     def test_the_address_comma_is_never_a_boundary(self, shipped, command):
+        """Consciously re-seated (Score Finish Step 7 slice 5a, CQ-8): a
+        LIST of addressees now hands the second man's own order to the relay
+        on the same `dropped_sequel` carrier — but as kind "second_name"
+        (his support of the first, never a tail of the sentence). What this
+        pin protects still holds: the comma never cuts the ORDER — the head
+        is the whole attack on Mack."""
         reply = M.parser.parse(command, M.get_llm_game_state(), world=M.world)
         assert reply.get("success"), reply
         assert reply["command"]["action"] == "attack"
         assert reply["command"]["target"] == "Mack"
-        assert reply.get("dropped_sequel") is None
+        if "Davout" in command:
+            assert reply.get("dropped_sequel_kind") == "second_name", reply
+            assert reply.get("dropped_sequel") == "Davout, support Ney"
+        else:
+            assert reply.get("dropped_sequel") is None
 
     def test_the_muster_control_is_re_measured(self, shipped):
         """FA-50's pin, re-taken here rather than trusted: the address form

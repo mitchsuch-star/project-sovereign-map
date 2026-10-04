@@ -4232,6 +4232,27 @@ def execute_command(request: CommandRequest):
                 _relay_obj = None
                 return
             _cmd = parsed.get("command") or {}
+            # CQ-8 / CQ-38 (Score Finish Step 7 slice 5a): THE SECOND NAME IS
+            # HEARD. The parser's own sentence ends "<second>'s own waits behind
+            # it."; what became of him is said in its place, so the player reads
+            # ONE remark: a man the muster already counts as marching (or whose
+            # rente would change nothing) is acknowledged in one clause and NOT
+            # relayed (the rule BUG_FIXES CQ-8 decided); otherwise his own order
+            # rides the relay below for the player's seal, priced.
+            _second_man = (parsed.get("second_marshal")
+                           if parsed.get("dropped_sequel_kind") == "second_name" else None)
+            _second_lead = parsed.get("second_marshal_lead") or _cmd.get("marshal") or ""
+            _others = _relay.second_name_others_clause(
+                result, parsed.get("second_marshal_others") if _second_man else None)
+            if _second_man:
+                _unneeded = _relay.second_name_unneeded(
+                    world, _second_man,
+                    _relay._tail_reading(parser, _tail, llm_game_state)["action"],
+                    result, _second_lead)
+                if _unneeded:
+                    _relay.splice_second_name(result, _second_man, _unneeded + _others)
+                    _relay_obj = None
+                    return
             _question = (_result_carries_question(result)
                          or bool(result.get("pending_objection"))
                          or bool(result.get("pending_interrupt")))
@@ -4248,10 +4269,26 @@ def execute_command(request: CommandRequest):
                 _first = (result.get("events") or [None])[0]
                 if isinstance(_first, dict) and isinstance(_first.get("marshal"), str):
                     _who = _first["marshal"]
+            _supports = bool(_second_man and parsed.get("second_marshal_supports"))
             _relay_obj = _relay.build_relay(
                 world, parser, llm_game_state, tail=_tail,
                 marshal_name=_who, head_action=_cmd.get("action"),
-                result=result, question=_question)
+                result=result, question=_question,
+                # CQ-8 / CQ-38: the second man's own order (not his support of
+                # the first) stands on its own — the first's refusal does not
+                # cancel it.
+                independent=bool(_second_man) and not _supports)
+            # CQ-8: the second man's own order says what it is and its price.
+            if _second_man and _relay_obj.get("relay_kind") == "ready":
+                _relay_obj["relay_note"] = _relay.second_name_relay_note(
+                    world, _second_man, _relay_obj.get("relay_command") or _tail,
+                    spliced=bool(result.get("success"))) + _others
+            elif _second_man and _relay_obj.get("relay_kind") == "refused_head":
+                _relay_obj["relay_note"] = _relay_obj["relay_line"] = (
+                    _relay.second_name_refused_note(
+                        _second_lead or (_who or "the first"), _second_man, _tail))
+            elif _second_man and _others:
+                _relay_obj["relay_note"] = _relay_obj["relay_note"] + _others
             _relay.attach(result, _relay_obj)
             _relay.append_note(result, _relay_obj, standalone=False)
             if _relay_obj["relay_kind"] == "question":

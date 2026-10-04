@@ -6,7 +6,7 @@ Tests for 8 bugs across parsing and AI:
 - V2-56: "dig in" → fortify vs HOLD conflict
 - V2-59: "commands" substring false positive
 - V2-60: Reynier missing from mock parser
-- V2-61: parse_multiple splits on " and " naively
+- V2-61: parse_multiple splits on " and " naively (retired, CQ-8)
 - V2-62: "court " matches "court martial"
 - V2-57: Bare verbs dead code in strategic parser
 - V2-22: AI stance change doesn't verify follow-up budget
@@ -221,44 +221,12 @@ class TestBareVerbCleanup:
 
 
 # ═══════════════════════════════════════════════════════
-# V2-61: parse_multiple smart splitting
+# V2-61: parse_multiple smart splitting — RETIRED by SF-CMD-2's remainder
+# (Score Finish Step 7 slice 5a). `parse_multiple` had zero production
+# callers and CQ-8's decided rule deleted it; V2-61's invariant ("defend and
+# hold" is never split as two marshals) is pinned on the LIVE splitter in
+# tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed.
 # ═══════════════════════════════════════════════════════
-
-class TestParseMultipleSplitting:
-    """V2-61: parse_multiple should only split on ' and ' between marshal names."""
-
-    def test_marshal_and_marshal_splits(self):
-        """'Ney and Davout, attack' should split into two commands."""
-        parser = make_parser()
-        results = parser.parse_multiple("Ney and Davout, attack Wellington")
-        assert len(results) == 2
-        # Both should have the attack action
-        for r in results:
-            assert r["success"]
-            assert r["command"]["action"] == "attack"
-
-    def test_defend_and_hold_no_split(self):
-        """'Ney, defend and hold' should NOT split on ' and '."""
-        parser = make_parser()
-        results = parser.parse_multiple("Ney, defend and hold")
-        assert len(results) == 1
-
-    def test_action_phrase_with_and_no_split(self):
-        """'fortify and hold position' should NOT split."""
-        parser = make_parser()
-        results = parser.parse_multiple("Ney, fortify and hold position")
-        assert len(results) == 1
-
-    def test_shared_action_propagated(self):
-        """When splitting, the action from one part should apply to the bare marshal."""
-        parser = make_parser()
-        results = parser.parse_multiple("Ney and Davout, attack Wellington")
-        assert len(results) == 2
-        # First result should have Ney with attack
-        marshals = [r["command"].get("marshal") for r in results if r["success"]]
-        assert "Ney" in marshals
-        assert "Davout" in marshals
-
 
 # ═══════════════════════════════════════════════════════
 # V2-22: AI stance change AP budget check

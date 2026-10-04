@@ -469,6 +469,23 @@ Falling through to unknown is the right outcome for the rest, and it is
 answers with orders that would actually be carried out, so that fall-through
 is now useful rather than bare.
 
+> **⚠ Corrected October 4, 2026 — SF-CMD-2's remainder (Score Finish Step 7
+> slice 5a; rows CX5-L5-F3 / F4 / F5 / F6; rules `SYSTEMS_REFERENCE.md`
+> §50.10 + §93.6).** Two claims above were measured false at `POST /command`.
+> *"They are the whole set a player reaches for"* — `carry out`, `conduct`,
+> `beat`, `perform`, `effect` and `undertake` the retreat, and the continued
+> retreat (`keep / go on / carry on / resume retreating`, `keep falling
+> back`), all shrugged; the carrying set is widened behind
+> `llm_client.THE_RETREAT_IS_CARRIED_OUT`. And the shrug did **not** offer the
+> retreat: a line about somebody else's retreat was answered with scout or
+> defend and never said why — it now says how the line was read and gives
+> both orders (`THE_SHRUG_OFFERS_THE_RETREAT`). The class's own pins were
+> rebuilt the same day (F6): three of its ten rows were held by other guards
+> and passed with the fix deleted, and the rest went falsely green behind an
+> objection; each row is now pinned at the parse on the guard that holds it,
+> with both arms of its lever, and "ride down the retreating Austrians" moved
+> out of the class — riding down a foe is an attack (NPC-26).
+
 ⚠ **`_mentions_screening_idiom` is KEPT, not replaced** — FA-73 pins its
 exact wording, and `cover the rear / army / corps / flank` is its own idiom
 the noun rule does not reach.

@@ -564,15 +564,13 @@ class TestGameStateShapeHardening:
 
 
 class TestMultiMarshalAndStrategicRosters:
-    """parse_multiple and the strategic marshal-target fuzzy path use the
-    live rosters."""
+    """The strategic marshal-target fuzzy path uses the live rosters.
 
-    def test_parse_multiple_1805_names(self, parser, world1805, gs1805):
-        results = parser.parse_multiple("Soult and Lannes, attack Mack",
-                                        gs1805, world=world1805)
-        assert len(results) == 2
-        marshals = {r["command"]["marshal"] for r in results if r["success"]}
-        assert marshals == {"Soult", "Lannes"}
+    `parse_multiple` — and its 1805-names pin — was deleted by SF-CMD-2's
+    remainder (Score Finish Step 7 slice 5a, CQ-8's decided rule): it had
+    zero production callers. The live road's second name is pinned in
+    tests/test_crt11_the_second_name_is_heard.py::TestTheSecondNameIsRelayed.
+    """
 
     def test_strategic_pursue_1805_enemy(self, parser, world1805, gs1805):
         result = parser.parse("Soult, pursue Kutuzov", gs1805, world=world1805)

@@ -689,7 +689,7 @@ def _extract_target_text(command_lower: str, strategic_type: str,
         for keyword in STRATEGIC_KEYWORDS["PURSUE"]:
             if keyword in cleaned:
                 after = cleaned.split(keyword, 1)[1].strip()
-                return _clean_target_text(after) if after else None
+                return _possessive_quarry(_clean_target_text(after)) if after else None
 
     # For HOLD: target is after the keyword (or current location if absent)
     if strategic_type == "HOLD":
@@ -719,6 +719,24 @@ def _extract_target_text(command_lower: str, strategic_type: str,
                 return _clean_target_text(after) if after else None
 
     return None
+
+
+# CX5-L5-N4 (Score Finish Step 7 slice 5a): "Lannes, pursue Mack's retreat"
+# answered "Cannot find 'Mack'S Retreat' to pursue." — the chain read Mack and
+# the strategic PURSUE layer took the possessive phrase whole. A pursuit's
+# quarry is the MAN whose retreat, column or army is named. Flip lever: False.
+A_PURSUIT_NAMES_THE_MAN = True
+_POSSESSIVE_QUARRY_RE = re.compile(
+    r"^(?P<name>[a-z][\w .'-]*?)['’]s\s+(?:retreat(?:ing\s+\w+)?|withdrawal|flight"
+    r"|columns?|army|armies|corps|men|troops|forces?|rear(?:\s*guard)?|baggage"
+    r"|train)$", re.IGNORECASE)
+
+
+def _possessive_quarry(target: Optional[str]) -> Optional[str]:
+    if not A_PURSUIT_NAMES_THE_MAN or not target:
+        return target
+    m = _POSSESSIVE_QUARRY_RE.match(target.strip())
+    return m.group("name").strip() if m else target
 
 
 def _strip_conditions(text: str) -> str:

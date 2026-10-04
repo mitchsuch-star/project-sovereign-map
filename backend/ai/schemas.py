@@ -38,6 +38,9 @@ class ParseResult:
     matched: bool = True
     command_type: str = "tactical"  # tactical | strategic
     marshals: List[str] = field(default_factory=list)
+    # CQ-8 (Score Finish Step 7 slice 5a): the marshals after the first a
+    # live reading named — they ride the relay, never the order.
+    second_marshals: List[str] = field(default_factory=list)
     action: str = "unknown"
     target: Optional[str] = None
 
@@ -169,6 +172,8 @@ class ParseResult:
         # shape is unchanged for every ordinary parse.
         if self.condition_handoff:
             result["condition_handoff"] = self.condition_handoff
+        if self.second_marshals:
+            result["second_marshals"] = list(self.second_marshals)
         if self.standing_order:
             result["standing_order"] = self.standing_order
         if self.condition:

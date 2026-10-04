@@ -137,6 +137,18 @@ IDIOM_FILLER_WORDS = frozenset({
 })
 
 
+# NPC-26 (Score Finish Step 7 slice 5a): "ride down" a FOE — "Murat, ride
+# down the Austrians at Swabia", "ride down Mack" — is an attack. Never a road
+# ("ride down to Naples", "down the valley") and never somebody's retreat
+# (CX-5's noun rule owns "cut down the retreat"). Flip lever: False restores
+# the pronoun-only "ride them down".
+A_FOE_IS_RIDDEN_DOWN = True
+RIDE_DOWN_A_FOE_RE = re.compile(
+    r"\bride\s+down\s+(?!to\b|towards?\b|into\b|the\s+(?:road|valley|river"
+    r"|coast|hill|slope|line|retreat|withdrawal|rear|flank)\b)(?:the\s+)?[a-z]",
+    re.IGNORECASE)
+
+
 def mentions_attack(command_lower: str) -> bool:
     """True when the text carries a battle verb, capture verb, or attack
     idiom. Deterministic; the single predicate the fast parser's attack
@@ -145,6 +157,7 @@ def mentions_attack(command_lower: str) -> bool:
         BATTLE_VERB_RE.search(command_lower)
         or CAPTURE_VERB_RE.search(command_lower)
         or ATTACK_IDIOM_RE.search(command_lower)
+        or (A_FOE_IS_RIDDEN_DOWN and RIDE_DOWN_A_FOE_RE.search(command_lower))
     )
 
 

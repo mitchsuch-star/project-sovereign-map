@@ -248,6 +248,152 @@ def _split_collective_address(command_text: str, game_state=None):
     first = f"{found[0]}, {rest}"
     tail = ", ".join(found[1:]) + f": {rest}"
     return (first, tail)
+# ═══════════════════════════════════════════════════════════════════════
+# CQ-8 / CQ-38 (Score Finish Step 7 slice 5a) — THE SECOND NAME IS HEARD.
+# The decided rule (BUG_FIXES CQ-8): the order runs exactly as today, and the
+# named marshal's own order is handed back through CR-7-3's relay for the
+# player's seal, priced, never sent by the game; a second marshal the muster
+# already counts as marching is acknowledged in one clause, not relayed.
+# FA-50's gate stands: "Ney and Davout, attack Mack" is still ONE order the
+# muster seats — the second name rides beside it. Flip lever: False restores
+# the silent second name.
+# ═══════════════════════════════════════════════════════════════════════
+THE_SECOND_NAME_IS_HEARD = True
+SECOND_NAME_SUPPORT_ACTIONS = frozenset({"attack", "charge", "pursue", "bombard"})
+_REWARD_SECOND_NAME_VERBS = r"(?:grant|give|award|pay|endow|pension)"
+
+
+def _split_second_name(command_text: str, game_state=None):
+    """{"first_text", "order", "first", "second", "kind"} for an address of
+    two or more of our marshals ("Ney and Soult, attack Mack") or a reward
+    naming two ("grant Ney and Murat a rente"), else None. `order` is the
+    second man's default order (the same order, re-addressed); the success
+    path swaps in his support of the first when the order is an attack."""
+    names = _player_marshal_names(game_state)
+    if not names or not command_text:
+        return None
+    alt = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    one = r"(?:" + HONORIFIC + r")?(?:" + alt + r")"
+    m = re.match(
+        r"^\s*(?P<list>" + one + r"(?:\s*(?:,|\band\b|&)\s*" + one + r")+)"
+        r"\s*[:,]\s*(?P<rest>[A-Za-z].+)$", command_text, flags=re.IGNORECASE)
+    if m:
+        rest = m.group("rest").strip()
+        if re.match(r"^" + _COLLECTIVE_ADDRESS_WORDS, rest, flags=re.IGNORECASE):
+            return None
+        found = []
+        for item in re.split(r"\s*(?:,|\band\b|&)\s*", m.group("list")):
+            item = re.sub(r"^(?:" + HONORIFIC + r")", "", item.strip(), flags=re.I)
+            hit = next((n for n in names if n.lower() == item.lower()), None)
+            if hit and hit not in found:
+                found.append(hit)
+        if len(found) < 2:
+            return None
+        return {"first_text": f"{found[0]}, {rest}",
+                "order": f"{found[1]}, {rest}",
+                "first": found[0], "second": found[1],
+                "others": found[2:], "kind": "address"}
+    r = re.search(
+        r"\b" + _REWARD_SECOND_NAME_VERBS + r"\s+(?P<a>" + one + r")\s*(?:\band\b|&|,)\s*"
+        r"(?P<b>" + one + r")\b", command_text, flags=re.IGNORECASE)
+    if r:
+        def _name(token):
+            token = re.sub(r"^(?:" + HONORIFIC + r")", "", token.strip(), flags=re.I)
+            return next((n for n in names if n.lower() == token.lower()), None)
+        first, second = _name(r.group("a")), _name(r.group("b"))
+        if not first or not second or first == second:
+            return None
+        span = command_text[r.start("a"):r.end("b")]
+        return {"first_text": command_text.replace(span, r.group("a"), 1),
+                "order": command_text.replace(span, r.group("b"), 1),
+                "first": first, "second": second, "others": [],
+                "kind": "reward"}
+    return None
+
+
+def _second_from_live(command: dict, extras):
+    """The second name a LIVE reading carried (`second_marshals`): his
+    support of the first beside an attack, else the same verb re-addressed."""
+    first = str(command.get("marshal") or "")
+    extras = [str(e) for e in (extras or []) if e and str(e) != first]
+    if not first or not extras:
+        return None
+    action = str(command.get("action") or "")
+    target = str(command.get("target") or "")
+    order = (f"{extras[0]}, support {first}" if action in SECOND_NAME_SUPPORT_ACTIONS
+             else f"{extras[0]}, {action} {target}".strip())
+    return {"first_text": "", "order": order, "first": first,
+            "second": extras[0], "others": extras[1:], "kind": "live"}
+
+
+def second_name_note(second: dict) -> str:
+    """The parser's half of the second name's sentence: who took the order,
+    and that the second man's own waits. main.py splices in what became of
+    him once the order has run — relayed with its price, or already marching
+    (`relay.splice_second_name` / the `waits behind it.` splice
+    `relay.append_note` reads) — and a clause for each further name."""
+    named = [second["second"]] + list(second.get("others") or [])
+    who = (named[0] if len(named) == 1
+           else ", ".join(named[:-1]) + " and " + named[-1])
+    return (f'You named {who} beside {second["first"]}, Sire — '
+            f'{second["first"]} takes the order; '
+            f'{second["second"]}\'s own waits behind it.')
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# NPC-10 (Score Finish Step 7 slice 5a) — TALKS ARE NOT A HOLD. "I will hold
+# talks with Prussia myself" became "Napoleon, hold talks with Prussia" and
+# then a HOLD on the province "Talks" ("Region 'Talks' not found. Did you
+# mean 'Wales'?"); "hold talks with Prussia" asked "Which marshal shall hold
+# Talks, Sire?". To hold talks, a parley or a conference with a court is to
+# negotiate with it — the game's own diplomatic reading. Flip lever: False.
+# ═══════════════════════════════════════════════════════════════════════
+TALKS_ARE_NOT_A_HOLD = True
+_HOLD_TALKS_RE = re.compile(
+    r"\bhold(?:ing)?\s+(?:(?:a|the)\s+)?(?:talks|negotiations|parleys?|"
+    r"conferences?|discussions|councils?|court)\s+with\b", re.IGNORECASE)
+
+
+def rewrite_hold_talks(command_text: str) -> str:
+    if not TALKS_ARE_NOT_A_HOLD or not command_text:
+        return command_text
+    return _HOLD_TALKS_RE.sub("negotiate with", command_text)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# NP-X9 (Score Finish Step 7 slice 5a) — THE INFLECTED ORDER IS THE ORDER.
+# "Ney moves to Lorraine", "Napoleon moves to Rhineland" and "the Emperor
+# moves to Rhineland" each shrugged (the movement keyword was "move "; the
+# Emperor-lead arm kept the inflection: "Napoleon, moves to Rhineland"). One
+# of OUR marshals (or the Emperor's title) at the head, then a third-person
+# order verb, is restated in the imperative before any reader. An ENEMY
+# name at the head stays narration (WO-1's `_NARRATION_NEXT_WORDS`); a line
+# ending in "?" is left to the question guard. Flip lever: False.
+# ═══════════════════════════════════════════════════════════════════════
+THE_ORDER_VERB_LOSES_ITS_INFLECTION = True
+
+
+def rewrite_inflected_order(command_text: str, game_state, sovereign: str = "") -> str:
+    if not THE_ORDER_VERB_LOSES_ITS_INFLECTION or not command_text:
+        return command_text
+    if command_text.rstrip().endswith("?"):
+        return command_text
+    names = list(_player_marshal_names(game_state))
+    heads = [re.escape(n) for n in sorted(names, key=len, reverse=True)]
+    if sovereign:
+        heads.append(r"(?:the\s+)?emperor")
+    if not heads:
+        return command_text
+    m = re.match(
+        r"^\s*(?P<name>" + "|".join(heads) + r")\s+"
+        r"(?:(?P<y>fortif)ies|(?P<verb>" + _SOVEREIGN_ORDER_VERBS + r")(?:es|s))\b",
+        command_text, flags=re.IGNORECASE)
+    if not m:
+        return command_text
+    base = "fortify" if m.group("y") else m.group("verb")
+    return f"{m.group('name')}, {base}{command_text[m.end():]}"
+
+
 # A bare `and <verb>` cannot be split on sight: "defend and hold belgium",
 # "secure and hold vienna", "Ney, defend and hold" and "Ney, fortify and
 # hold position" are all LEGITIMATE single orders, pinned in the corpus and
@@ -527,14 +673,13 @@ _SOVEREIGN_BODY_HAS_VERB_RE = re.compile(
     r"\b(?:" + _SOVEREIGN_ORDER_VERBS + r")(?:e?s|ing|ed)?\b", re.IGNORECASE)
 
 
-def _find_player_sovereign(world=None, game_state=None) -> Optional[str]:
+def _find_player_sovereign(world=None) -> Optional[str]:
     """The player roster's standing sovereign marshal name, or None.
 
-    Live world first (the CR-0 discipline); the LLM game_state's
-    player-only marshals dict as the fallback so mock-only parses see the
-    same roster. A captured sovereign still resolves — the downstream
-    prisoner guard answers the order honestly ("he sits in a foreign
-    capital") instead of a phantom-marshal error.
+    Read from the live world (the CR-0 discipline). NP-X10 (Score Finish
+    Step 7 slice 5a): the `game_state` fallback was production-dead — it read
+    a `personality` key the LLM game-state marshals dict never carries, so it
+    returned None even when it ran — and is deleted. No world, no sovereign.
     """
     if world is not None:
         player_nation = getattr(world, "player_nation", None)
@@ -553,13 +698,6 @@ def _find_player_sovereign(world=None, game_state=None) -> Optional[str]:
                     and not getattr(m, "captured_by", "")):
                 return m.name
         return None
-    if game_state:
-        marshals = game_state.get("marshals")
-        if isinstance(marshals, dict):
-            for name, info in marshals.items():
-                if (isinstance(info, dict)
-                        and info.get("personality") == "sovereign"):
-                    return info.get("name", name)
     return None
 
 
@@ -767,7 +905,7 @@ def rewrite_guard_company(command_text: str, game_state, world):
         return command_text, None, False
     text = command_text
     note = None
-    sovereign = _find_player_sovereign(world, game_state)
+    sovereign = _find_player_sovereign(world)
     if _GUARD_COMPANION_RE.search(text):
         text = _GUARD_COMPANION_RE.sub("", text)
         head = _LEADING_ADDRESS_NAME_RE.match(text)
@@ -2741,7 +2879,14 @@ class CommandParser:
             # BEFORE every downstream stage, so the fast parser, LLM,
             # fuzzy matching and strategic detection agree by construction.
             # Dormant unless the player roster holds a sovereign.
-            _sovereign = _find_player_sovereign(world, game_state)
+            _sovereign = _find_player_sovereign(world)
+            # NPC-10 (Score Finish Step 7 slice 5a): "hold talks with Prussia"
+            # is diplomacy — never the HOLD order on a province "Talks".
+            command_text = rewrite_hold_talks(command_text)
+            # NP-X9: "Ney moves to Lorraine" / "the Emperor marches to Swabia"
+            # — the inflected order is the order, restated in the imperative.
+            command_text = rewrite_inflected_order(command_text, game_state,
+                                                   _sovereign)
             # SF-CMD-1 W6 (Oct 3, 2026): an EPITHET is a name the game itself
             # printed — "Iron Marshal, dig in", "the Bravest of the Brave,
             # attack Mack". Rewritten to the man's roster name before every
@@ -2811,6 +2956,20 @@ class CommandParser:
                 if sequel_split is not None:
                     effective_text, dropped_sequel = sequel_split
                     sequel_split = None
+
+            # CQ-8 / CQ-38 (Score Finish Step 7 slice 5a): THE SECOND NAME IS
+            # HEARD. "Ney and Soult, attack Mack" ran Ney's attack and named
+            # Soult nowhere but the muster's own line telling the player to
+            # type the order his sentence had already given; "grant Ney and
+            # Murat a rente" paid Ney and said nothing of Murat. The first man
+            # takes the order as today; the second man's OWN order rides the
+            # relay (CR-7-3) for the player's seal — never spent by the game.
+            _second = None
+            if dropped_sequel is None and not _asks and THE_SECOND_NAME_IS_HEARD:
+                _second = _split_second_name(command_text, game_state)
+                if _second is not None:
+                    effective_text = _second["first_text"]
+                    dropped_sequel = _second["order"]
 
             # Step 1: Use LLM to parse natural language
             llm_result = self.llm.parse_command(effective_text, game_state)
@@ -3245,8 +3404,40 @@ class CommandParser:
                 # CR-2: tell the player the sequel clause was not relayed —
                 # design pillar: every input gets a response, nothing is
                 # silently dropped.
+                # CQ-8: a second name that arrived with the live reading.
+                if (_second is None and dropped_sequel is None
+                        and THE_SECOND_NAME_IS_HEARD
+                        and llm_result.get("second_marshals")
+                        and result["command"].get("marshal")):
+                    _second = _second_from_live(result["command"],
+                                                llm_result["second_marshals"])
+                    if _second is not None:
+                        dropped_sequel = _second["order"]
                 if dropped_sequel:
-                    _note = sequel_note(dropped_sequel)
+                    if _second is not None:
+                        # The order the second man takes BESIDE an attack is
+                        # his support of the first — the order the muster
+                        # itself names ("order 'Soult, support Ney' and he
+                        # will march"); any other order is the same order,
+                        # re-addressed (the collective rule's).
+                        _head = (result.get("command") or {}).get("action")
+                        if (_second["kind"] == "address"
+                                and _head in SECOND_NAME_SUPPORT_ACTIONS):
+                            dropped_sequel = (f"{_second['second']}, support "
+                                              f"{_second['first']}")
+                        _note = second_name_note(_second)
+                        result["dropped_sequel_kind"] = "second_name"
+                        result["second_marshal"] = _second["second"]
+                        result["second_marshal_lead"] = _second["first"]
+                        result["second_marshal_others"] = list(_second.get("others") or [])
+                        # His support of the first is tied to the first's
+                        # order; any other order of his stands on its own
+                        # (the relay's `independent` reading).
+                        result["second_marshal_supports"] = (
+                            dropped_sequel.lower().startswith(
+                                f"{_second['second'].lower()}, support "))
+                    else:
+                        _note = sequel_note(dropped_sequel)
                     result["warning"] = (f"{result['warning']} {_note}"
                                          if result.get("warning") else _note)
                     result["dropped_sequel"] = dropped_sequel
@@ -3263,9 +3454,21 @@ class CommandParser:
                 # The DROP itself is untouched — it is the fix for
                 # "the Austrians" -> the Spanish province Asturias.
                 # ══════════════════════════════════════════════════════
+                # NPC-26 (Score Finish Step 7 slice 5a): the court named
+                # BESIDE a province too ("ride down the Austrians at
+                # Swabia") — read only by the attack's named-nation arm
+                # (`combat_executor.A_NAMED_NATION_IS_ANSWERED`); the
+                # targetless reader never sees a targeted order.
+                _cmd_d = result.get("command")
+                _named_beside_province = (
+                    isinstance(_cmd_d, dict) and world is not None
+                    and _cmd_d.get("target")
+                    and _cmd_d.get("action") in ("attack", "charge", "bombard")
+                    and world.get_region(_cmd_d.get("target")) is not None)
                 if (world is not None
                         and isinstance(result.get("command"), dict)
-                        and not result["command"].get("target")
+                        and (not result["command"].get("target")
+                             or _named_beside_province)
                         and result["command"].get("action")
                         not in VASSAL_FAMILY_ACTIONS):
                     _hint = demonym_to_nation(command_text, world)
@@ -3400,74 +3603,6 @@ class CommandParser:
 
         # Default fallback
         return "specific"
-    def parse_multiple(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> List[Dict]:
-        """
-        Parse commands that mention multiple marshals.
-
-        Example: "Ney and Davout, attack Wellington"
-
-        Returns list of individual commands.
-        """
-
-        # V2-61: Only split on " and " when it appears between marshal names,
-        # not mid-phrase (e.g. "defend and hold" should NOT split).
-        all_marshal_names = set(n.lower() for n in (self._get_player_marshals(world) + self._get_known_enemies(world)))
-
-        if " and " in command_text.lower():
-            # Find all " and " positions and check if both sides have marshal names
-            lower = command_text.lower()
-            split_pos = None
-            idx = 0
-            while True:
-                pos = lower.find(" and ", idx)
-                if pos == -1:
-                    break
-                # Check word before " and " — is it a marshal name?
-                before = lower[:pos].strip()
-                before_word = before.split()[-1] if before.split() else ""
-                # Check word after " and " — is it a marshal name?
-                after = lower[pos + 5:].strip()
-                after_word = after.split()[0].rstrip(",.!") if after.split() else ""
-                if before_word in all_marshal_names and after_word in all_marshal_names:
-                    split_pos = pos
-                    break
-                idx = pos + 1
-
-            if split_pos is not None:
-                # Split at the marshal-and-marshal boundary
-                before_text = command_text[:split_pos].strip()
-                after_text = command_text[split_pos + 5:].strip()
-
-                # Extract the shared action/target from whichever part has it
-                # Typically: "Ney and Davout, attack Wellington"
-                # before = "Ney", after = "Davout, attack Wellington"
-                results = []
-                # If before is just a marshal name, apply after's action to both
-                before_lower = before_text.lower().strip().rstrip(",")
-                if before_lower in all_marshal_names:
-                    # "Ney" + "Davout, attack Wellington" → make "Ney, attack Wellington"
-                    # Extract action part from after_text (everything after the marshal name)
-                    after_parts = after_text.split(",", 1)
-                    if len(after_parts) > 1:
-                        action_part = after_parts[1].strip()
-                    else:
-                        # No comma — try splitting after first word
-                        after_words = after_text.split(None, 1)
-                        action_part = after_words[1] if len(after_words) > 1 else ""
-                    if action_part:
-                        results.append(self.parse(f"{before_text}, {action_part}", game_state, world=world))
-                    else:
-                        results.append(self.parse(before_text, game_state, world=world))
-                    results.append(self.parse(after_text, game_state, world=world))
-                else:
-                    # Both parts have their own actions
-                    results.append(self.parse(before_text, game_state, world=world))
-                    results.append(self.parse(after_text, game_state, world=world))
-                return results
-
-        # Single command (no marshal-and-marshal split found)
-        return [self.parse(command_text, game_state, world=world)]
-
     def get_help(self) -> str:
         """
         Return help text for players.
@@ -3546,20 +3681,6 @@ if __name__ == "__main__":
             if result.get("suggestion"):
                 print(f"  Suggestion: {result['suggestion']}")
 
-    print("\n" + "=" * 60)
-    print("TEST 3: Multiple Marshals")
-    print("=" * 60)
-
-    multi_command = "Ney and Davout, attack Wellington"
-    print(f"\nCommand: '{multi_command}'")
-    results = parser.parse_multiple(multi_command)
-
-    for i, result in enumerate(results, 1):
-        print(f"\n  Command {i}:")
-        if result["success"]:
-            print(f"  ✓ {result['command']}")
-        else:
-            print(f"  ✗ {result['error']}")
     print("\n" + "=" * 60)
     print("TEST 5: General Orders (No Marshal Specified)")
     print("=" * 60)

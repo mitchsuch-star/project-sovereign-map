@@ -650,7 +650,9 @@ class TestBelowGatePhrasings:
         world, replay = endpoint(FILE_CASSETTES.values(), utt)
         data = endpoint.post(utt)
         assert data["success"] is False
-        assert "No Prussia force is within Ney's reach" in data["message"]
+        # Consciously re-seated (SF7-X8, Score Finish Step 7 slice 5a): the
+        # court as an adjective — "No Prussia force" was the defect.
+        assert "No Prussian force is within Ney's reach" in data["message"]
         assert int(world.actions_remaining) == 4
         assert replay.call_kinds() == ["parse"]
 

@@ -64,6 +64,10 @@ OBJECTION_FREE_READS = frozenset({
 # restores the pre-slice rule, in which "Davout, hold Rhineland and wait"
 # attached a two-turn HOLD for nothing while the reply quoted 2 AP.
 STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER = True
+# CX5-L5-N5 (Score Finish Step 7 slice 5a): the engine-picked target's
+# disclosure is told in the past tense on the branch that fought ("Name
+# another and he will turn" was printed after the battle). Flip lever.
+THE_DISCLOSURE_KEEPS_ITS_TENSE = True
 
 # Combat methods delegated to CombatExecutor (R10A+R10B backward compat)
 _COMBAT_DELEGATED = {
@@ -3339,6 +3343,11 @@ class CommandExecutor:
         # as the _auto_assigned note above: an interrupt or clarification
         # already owns its copy.
         _disclosure = command.get("_target_disclosure")
+        # CX5-L5-N5: the branch that fought tells it in the past tense.
+        if (THE_DISCLOSURE_KEEPS_ITS_TENSE and isinstance(result, dict)
+                and result.get("battle_report")
+                and command.get("_target_disclosure_fought")):
+            _disclosure = command["_target_disclosure_fought"]
         if (_disclosure and isinstance(result, dict) and result.get("message")
                 and not result.get("requires_input")
                 and not result.get("pending_glorious_charge")

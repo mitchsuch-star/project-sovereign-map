@@ -35,6 +35,10 @@ from backend.commands.movement_executor import destination_grounding_note
 # while its `fortified` sibling one line up was live. False reproduces the
 # silence; True reads the PRE-break state and states the consequence.
 SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
+# NPC-18 (Score Finish Step 7 slice 5a): "the Emperor" is the sovereign
+# as a referent on the support road, and the refusal lists him by his
+# title. Flip lever: False restores "Cannot find marshal 'Emperor'".
+THE_EMPEROR_IS_A_REFERENT = True
 
 # AAR-31 (CRT-7, Score Mandate Chunk 3 SR-3a part (ii), Sept 26 2026): a
 # strategic objection names its order and its object — the builder read
@@ -772,6 +776,20 @@ class StrategicExecutor:
                         if m.nation == marshal.nation and m.name != marshal.name
                     )
                 }
+            # NPC-18 (Score Finish Step 7 slice 5a): "the Emperor" is the
+            # sovereign as a REFERENT too — `Ney, support the Emperor` answered
+            # "Cannot find marshal 'Emperor'" while `support Napoleon` worked.
+            if THE_EMPEROR_IS_A_REFERENT and target:
+                _word = target.strip().lower()
+                if _word.startswith("the "):
+                    _word = _word[4:]
+                if _word in ("emperor", "his majesty"):
+                    _sov = next((m.name for m in world.marshals.values()
+                                 if m.nation == marshal.nation
+                                 and getattr(m, "is_sovereign", False)
+                                 and not getattr(m, "captured_by", "")), None)
+                    if _sov:
+                        target = _sov
             ally = world.get_marshal(target)
             if not ally:
                 # Check if it's a region name (Bug #4)
@@ -791,10 +809,13 @@ class StrategicExecutor:
                 msg = f"Cannot find marshal '{target}' to support."
                 if near:
                     msg += f" Did you mean '{near}'?"
+                # NPC-18: the sovereign is listed by his title, not as a marshal.
+                _listed = [("the Emperor" if THE_EMPEROR_IS_A_REFERENT and getattr(
+                    world.get_marshal(n), "is_sovereign", False) else n) for n in roster]
                 return {
                     "success": False,
                     "message": msg,
-                    "suggestion": "Available French marshals: " + ", ".join(roster),
+                    "suggestion": "Available French marshals: " + ", ".join(_listed),
                     "variable_action_cost": 0,
                 }
             if ally.nation != marshal.nation:
