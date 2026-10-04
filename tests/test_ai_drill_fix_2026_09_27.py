@@ -406,4 +406,13 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert sflb2b["arms"]["ALL"]["series"] == vdc["prior"]
         assert vdc["arms"]["0"]["series"] == vdc["prior"]
-        assert BASELINE_SERIES == vdc["arms"]["ALL"]["series"]
+        # RE-SEATED by §6 row 16 "the coordination is read on the field"
+        # (October 4, 2026): one more link — VD-C's ALL arm is the prior
+        # record the field read's arm 0 (both levers down in the child)
+        # reproduces byte for byte, and its ALL arm (the shipped tree) is the
+        # standing series (`tools/_coord_field_series_arms_final.json`).
+        coord = json.loads((ROOT / "tools" / "_coord_field_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert vdc["arms"]["ALL"]["series"] == coord["prior"]
+        assert coord["arms"]["0"]["series"] == coord["prior"]
+        assert BASELINE_SERIES == coord["arms"]["ALL"]["series"]

@@ -83,6 +83,23 @@ def _iq5_measures_the_full_strength_split(monkeypatch):
     monkeypatch.setattr(_ce_mod, "BLEED_BY_THE_MEN_COMMITTED", False)
 
 
+@pytest.fixture(autouse=True)
+def _iq5_reads_the_leads_province(monkeypatch, request):
+    """§6 row 16 (Score Finish Step 7, October 4, 2026) reads the lead's
+    coordination on the FIELD: an arrival from next door carries his own
+    coordination into his committed share (Davout's 18,750 becomes 19,312)
+    and on A_ADJ Ney now wins and advances into Swabia (587 lost to the
+    march), so every staged figure beneath moves. Like the two fixtures
+    above, the module's subject is the SURFACE, never the coordination: it
+    reads the lead's-province coordination by lever, so its figures stay
+    the measured ones. `TestTheLabelsOnTheFieldRead` reads the labels on the
+    shipped field read."""
+    if request.cls is not None and request.cls.__name__ == "TestTheLabelsOnTheFieldRead":
+        return
+    import backend.commands.combat_executor as _ce_mod
+    monkeypatch.setattr(_ce_mod, "THE_COORDINATION_IS_READ_ON_THE_FIELD", False)
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Staging — the recon's own geometries, on the shipped board
 # ═══════════════════════════════════════════════════════════════════════
@@ -2214,3 +2231,28 @@ class TestTheCardPricesTheIncrement:
                     calls.append(path.name)
         assert calls == ["jealousy.py"]
         assert inspect.getsource(J._standing_cost_detail).count("without_grievance=True)") == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# §6 row 16 — the labels on the shipped field read
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheLabelsOnTheFieldRead:
+    """The figures above are recorded with the lead's coordination read in
+    his own province (`_iq5_reads_the_leads_province`); the LABELS are read
+    here on the shipped tree, where Ney wins A_ADJ's field and advances."""
+
+    def test_a_reinforced_attacker_is_labelled_on_the_field(self):
+        import backend.commands.combat_executor as _ce_mod
+        assert _ce_mod.THE_COORDINATION_IS_READ_ON_THE_FIELD is True
+        w, res, _logs, losses = _battle(A_ADJ, "Ney", "Mack")
+        cs = _cs(res)
+        assert cs["attacker_casualties_scope"] == "own corps"
+        assert cs["defender_casualties_scope"] == ""
+        side = _side(res, "attacker")
+        assert side["casualties_scope"] == "army"
+        # the army's loss is the lead's battle loss plus his arrival's; the
+        # lead's STRENGTH loss may also carry a march (he took the field)
+        assert side["casualties"] == cs["attacker_casualties"] + losses["Davout"]
+        assert losses["Ney"] >= cs["attacker_casualties"]
+        assert "casualties_scope" not in _side(res, "defender")

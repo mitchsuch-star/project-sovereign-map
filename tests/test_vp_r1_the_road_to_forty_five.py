@@ -264,7 +264,19 @@ class TestATheMusterNamesItsOdds:
         the arrival on 8 of 10 driven strikes — ten supported strikes on the
         shipped boot in four geometries, each on the driver's own per-turn
         seed, realized = the lead plus every arrival's committed share on
-        pre-battle strengths (the resolver's term)."""
+        pre-battle strengths (the resolver's term).
+
+        §6 row 16 (Score Finish Step 7, October 4, 2026) — CONSCIOUSLY
+        RE-SEATED: the realized side reads the resolver's OWN figure,
+        `massed_strength.total` (SF-CL-1's structured key: the lead's
+        pre-battle corps plus the committed sum the resolver weighed), where
+        it is stamped. The test's own reconstruction read each arrival's
+        share OUTSIDE the context the resolver stamps — which matched while
+        the lead's context was read in his own province (the arrivals were
+        never stamped), and stopped matching once the context is read on the
+        field, where every arrival carries his coordination into his share:
+        measured 6 of 11 within on the reconstruction against 9 of 11 on the
+        resolver's figure (9 of 11 on both with the lever down)."""
         ce = M.executor._combat
         geometries = []
         for lead in ("Ney", "Lannes", "Davout", "Murat"):
@@ -305,6 +317,9 @@ class TestATheMusterNamesItsOdds:
                        ((res.get("reinforcement_results") or {}).get("attacker") or [])
                        if x.get("arrived")]
             realized = pre[lead_name] + sum(shares.get(n, 0.0) for n in arrived)
+            massed = (res.get("massed_strength") or {}).get("total")
+            if massed:
+                realized = int(massed)   # the resolver's own term (see above)
             quoted = int(pv["attacker"]["committed_strength"])
             driven += 1
             if abs(quoted - realized) <= 0.2 * max(realized, 1):
@@ -463,7 +478,16 @@ class TestBARaidingPartyHoldsNoHomeland:
 # (c) — the glory attack obeys the odds
 # ═══════════════════════════════════════════════════════════════════════
 
-def _murat_eyeing_john(world, john_strength=20000, fortified=True):
+def _murat_eyeing_john(world, john_strength=60000, fortified=True):
+    # §6 row 16 (Score Finish Step 7, October 4, 2026) — CONSCIOUSLY
+    # RE-STAGED, 20,000 → 60,000 with Mack sent to Bohemia: with the lead's
+    # coordination read on the FIELD, the corps who answer Murat (Ney,
+    # Davout and Lannes beside him, Massena from the south) fight together at
+    # Tyrol and lift a 20,000-man John to 'even' (r 0.89) — the ruling's own
+    # effect. At 60,000 the attack is unfavorable on both readings (r 0.50
+    # lever down / 0.65 up) and the gate's band equals the preview's on both;
+    # Mack leaves Swabia because a 60,000-man John is no longer the glory
+    # hunt's pick while Mack stands in reach.
     murat = world.marshals["Murat"]
     john = world.marshals["ArchdukeJohn"]
     charles = world.marshals["ArchdukeCharles"]
@@ -476,6 +500,7 @@ def _murat_eyeing_john(world, john_strength=20000, fortified=True):
     john.fortified = fortified
     john.defense_bonus = 0.12 if fortified else 0.0
     charles.location = "Carniola"
+    world.marshals["Mack"].location = "Bohemia"
     for name in ("Ney", "Davout", "Lannes"):
         world.marshals[name].location = "Munich"
     _refresh(world)
@@ -730,7 +755,16 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert sflb2b["arms"]["ALL"]["series"] == vdc["prior"]
         assert vdc["arms"]["0"]["series"] == vdc["prior"]
-        assert BASELINE_SERIES == vdc["arms"]["ALL"]["series"]
+        # RE-SEATED by §6 row 16 "the coordination is read on the field"
+        # (October 4, 2026): one more link — VD-C's ALL arm is the prior
+        # record the field read's arm 0 (both levers down in the child)
+        # reproduces byte for byte, and its ALL arm (the shipped tree) is the
+        # standing series (`tools/_coord_field_series_arms_final.json`).
+        coord = json.loads((ROOT / "tools" / "_coord_field_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert vdc["arms"]["ALL"]["series"] == coord["prior"]
+        assert coord["arms"]["0"]["series"] == coord["prior"]
+        assert BASELINE_SERIES == coord["arms"]["ALL"]["series"]
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

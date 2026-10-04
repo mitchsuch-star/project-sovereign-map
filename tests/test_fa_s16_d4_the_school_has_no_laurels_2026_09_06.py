@@ -137,8 +137,17 @@ class TestTheChokepointIsComplete:
 # Driven: the lesson, twelve turns, both levers
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _drive(script, turns=12, glory=True, restless=True):
+def _drive(script, turns=12, glory=True, restless=True, field=None):
     """The real driver, IN-PROCESS.
+
+    `field` sets `combat_executor.THE_COORDINATION_IS_READ_ON_THE_FIELD` for
+    the drive (None = the shipped tree). §6 row 16 (Score Finish Step 7,
+    October 4, 2026): with the coordination read on the field the lesson's
+    battles fall differently (Kienmayer loses 7,134 men at Swabia, not 6,659)
+    and NOBODY is crowned in it, guards up or down, over 12, 14, 16 or 20
+    turns — so the controls that need a crown to exist run on the board
+    where the lesson crowns (the field read down), and the guard's own pin
+    runs on both.
 
     ⚠ `playtest_driver.main()` re-execs a subprocess, which silently
     discards a monkeypatched lever — an arm taken that way measures HEAD
@@ -166,6 +175,8 @@ def _drive(script, turns=12, glory=True, restless=True):
 
     prev_glory = jealousy.GLORY_DORMANT_ACTIVE
     prev_rest = jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL
+    from backend.commands import combat_executor as _ce
+    prev_field = _ce.THE_COORDINATION_IS_READ_ON_THE_FIELD
     prev_save = os.environ.get("INK_IRON_SAVE_DIR")
     prev_seed = os.environ.get("SOVEREIGN_SEED")
     prev_llm = os.environ.get("LLM_MODE")
@@ -173,6 +184,8 @@ def _drive(script, turns=12, glory=True, restless=True):
     try:
         jealousy.GLORY_DORMANT_ACTIVE = glory
         jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL = restless
+        if field is not None:
+            _ce.THE_COORDINATION_IS_READ_ON_THE_FIELD = field
         jealousy.process_turn = wrapped
         os.environ["INK_IRON_SAVE_DIR"] = os.path.join(tmp, "saves")
         os.environ["SOVEREIGN_SEED"] = "historical"
@@ -193,6 +206,7 @@ def _drive(script, turns=12, glory=True, restless=True):
         jealousy.process_turn = real
         jealousy.GLORY_DORMANT_ACTIVE = prev_glory
         jealousy.RESTLESSNESS_SLEEPS_IN_SCHOOL = prev_rest
+        _ce.THE_COORDINATION_IS_READ_ON_THE_FIELD = prev_field
         for k, v in (("INK_IRON_SAVE_DIR", prev_save),
                      ("SOVEREIGN_SEED", prev_seed), ("LLM_MODE", prev_llm)):
             if v is None:
@@ -206,18 +220,24 @@ def _drive(script, turns=12, glory=True, restless=True):
                     reason="driver")
 class TestTheLessonIsSilent:
 
-    def test_no_glory_beat_of_either_kind(self):
+    @pytest.mark.parametrize("field", [None, False])
+    def test_no_glory_beat_of_either_kind(self, field):
         """⚠ Reads the DELIVERED events, not `event_log`. The loss beat is
         never logged — only the gain branch calls `world.log_event` — so an
-        `event_log` census cannot see half the leak."""
-        got = _drive("tutorial_lesson_trust")
+        `event_log` census cannot see half the leak. Run on the shipped
+        board and on the board where the lesson crowns (§6 row 16: the
+        shipped lesson crowns nobody, so the shipped arm alone is vacuous)."""
+        got = _drive("tutorial_lesson_trust", field=field)
         assert [c for c in got if c[1] in ("glory_crowned",
                                            "glory_crown_lost")] == []
 
     def test_the_negative_control_produces_both_kinds(self):
         """If the lever-False arm produced nothing, the pin above would be
         green on a lesson that never crowns anyone anyway."""
-        got = _drive("tutorial_lesson_trust", glory=False, restless=False)
+        # §6 row 16: on the board where the lesson crowns (the field read
+        # down — the shipped lesson crowns nobody, guards up or down).
+        got = _drive("tutorial_lesson_trust", glory=False, restless=False,
+                     field=False)
         gained = [c for c in got if c[1] == "glory_crowned"]
         lost = [c for c in got if c[1] == "glory_crown_lost"]
         # Re-measured by FA slice 17 Phase 2 (September 11, 2026): the
@@ -258,7 +278,9 @@ class TestTheLessonIsSilent:
         separate contract. This is the one combination that can tell them
         apart, and nothing else in the file drives it.
         """
-        got = _drive("tutorial_lesson_trust", glory=False, restless=True)
+        # §6 row 16: on the board where the lesson crowns (see `_drive`).
+        got = _drive("tutorial_lesson_trust", glory=False, restless=True,
+                     field=False)
         assert [c for c in got if c[1] == "jealousy_restlessness"] == []
         # …and glory is genuinely back, so the arm is not vacuous
         assert [c for c in got if c[1] == "glory_crowned"]

@@ -319,18 +319,29 @@ class TestTheMusterPricesTheCoordination:
         assert combat._count_unit_types(ney.location, "France", world, assume_absent=everyone) == 0
         assert combat._count_unit_types(ney.location, "France", world, assume_absent=[davout.name]) <= base
 
-    def test_the_mirror_follows_the_resolver_on_both_roads(self, client):
+    def test_the_mirror_follows_the_resolver_on_both_roads(self, client, monkeypatch):
         """`_priced_coordination` assumes a joiner present only where the
         resolver will find him — in the lead's region when that IS the
         field — and marks the co-located partner gone when the field is next
-        door."""
+        door.
+
+        §6 row 16 (Score Finish Step 7, October 4, 2026) — CONSCIOUSLY
+        RE-PINNED: the resolver reads the lead's context on the FIELD now, so
+        Davout, marching from Ney's side to Swabia, stands beside him there
+        and the mirror prices him (per-ally coordination > 0). Lever down
+        keeps the old reading — he marches off and is gone from Ney's."""
         world = M.world
         combat = M.executor._combat
         ney, mack, davout = world.marshals["Ney"], world.marshals["Mack"], world.marshals["Davout"]
         assert ney.location != mack.location and davout.location == ney.location
         with combat._priced_coordination(ney, [davout], mack, [], world, mack.location):
-            # Davout marches off: no per-ally coordination from him for Ney
+            # Davout stands beside Ney on the field: his coordination counts
+            assert getattr(ney, "_display_coordination_atk", 0.0) > 0.0
+        monkeypatch.setattr(CE, "THE_COORDINATION_IS_READ_ON_THE_FIELD", False)
+        with combat._priced_coordination(ney, [davout], mack, [], world, mack.location):
+            # lever down: Davout marches off: no per-ally coordination for Ney
             assert getattr(ney, "_display_coordination_atk", 0.0) == 0.0
+        monkeypatch.setattr(CE, "THE_COORDINATION_IS_READ_ON_THE_FIELD", True)
         # Napoleon's field: Mack and the lead share the province
         nap = world.marshals["Napoleon"]
         nap.location = mack.location

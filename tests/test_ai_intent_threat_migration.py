@@ -1301,7 +1301,55 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # with 6 provinces on the shipped arm against 3 on arm 0 — better, not worse;
 # the commanded arms are the exit's (SCORE_FINISH_SPEC §3 Step 5).
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 37, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — §6 row 16 "the coordination is read on the field"
+# (SF-CL-1-D1; October 4, 2026; SCORE_FINISH_SPEC.md §6 row 16, RULED by the
+# user October 3 — the slice MOVES combat BY DESIGN: an attack from next door
+# reads the lead's coordination context on the BATTLE province, where the
+# corps that answer him stand once the resolver has relocated them, not in
+# the province he left). `tools/_coord_field_series_arms.py`, TWO levers set
+# IN THE CHILD, the reads COUNTED, plus a SAME-BOARD shadow (record =
+# `tools/_coord_field_series_arms_final.json`):
+#   F = `combat_executor.THE_COORDINATION_IS_READ_ON_THE_FIELD` (the
+#       resolver's field read and the preview's lockstep);
+#   G = `combat_executor.THE_GATE_READS_THE_PREVIEWS_CONTEXT` (the glory
+#       gate's `muster_odds` weighs the band under the preview's own priced
+#       context, not the transient stamps the last battle left).
+#   0.   both DOWN ........................... the VD-C series above,
+#                                               BYTE-FOR-BYTE
+#   G.   G alone ............................. byte-identical to 0: on the
+#                                               old reading its 46 gate reads
+#                                               (Austria 26 / Britain 14 /
+#                                               France 6) weigh the same band
+#                                               either way
+#   F.   F alone ............................. diverges at [6]; France ends
+#                                               turn 40 with 16 provinces
+#   ALL. both UP (the shipped tree) .......... the series below: F's through
+#                                               [31], then three gate reads
+#                                               (Austria 2, France 1) weigh a
+#                                               band the stale stamps had read
+#                                               differently; France ends turn
+#                                               40 with 4 provinces (was 6),
+#                                               Britain 21 (was 22), Austria 26
+#                                               (was 27), Holland keeps 4
+# F is the mover; G moves only on top of it. THE SHADOW reads arm 0's own 40
+# turns and takes F's reading beside every resolver read with a field next
+# door, its transient fields restored before the real read (its series ==
+# arm 0's, checked — the shadow is pure): 44 such reads. Most AI attacks from
+# next door are LONE attacks that borrowed coordination from friends at the
+# lead's origin who never marched — the credit the ruling rejected — so on
+# the field the lead's bonus FALLS on 16 of 28 Austrian reads (mean -1.5
+# points) and 8 of 12 British (mean -2.3); France's 4 converging attacks RISE
+# (mean +15.2; Murat at Swabia on turn 21: 0.02 -> 0.25 with five arrivals),
+# and the arrivals, never stamped before, carry their own coordination into
+# their committed share (France 14 arrival reads, mean +19.7 points). The
+# defender is read on the field already (he stands on it): unchanged.
+# Passive-France guard, stated honestly: the UNATTENDED France ends turn 40
+# with 4 provinces on the shipped arm against 6 on arm 0 — two fewer, a late
+# swing on this seed (F alone holds 16); the commanded arms are the slice's
+# own measurement and the session exit's (SCORE_FINISH_SPEC.md §3 Step 7).
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 0]
 
 
 def _run_series_subprocess() -> dict:

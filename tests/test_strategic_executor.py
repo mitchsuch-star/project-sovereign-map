@@ -2517,6 +2517,16 @@ class TestAggressiveRedirectActuallyMoves:
         # Give Ney order going elsewhere (e.g. Brittany)
         _set_strategic_order(ney, "MOVE_TO", "Brittany", path=["Brittany"])
 
+        # The pin's own dice (§6 row 16, Score Finish Step 7, October 4,
+        # 2026): Ney is cavalry (range 2) and Gneisenau stands at Rhineland,
+        # so the redirect ATTACKS from Paris and Ney reaches Rhineland only
+        # on a win — on 37 of 40 seeds with the lead's coordination read in
+        # his own province, 30 of 40 with it read on the field (his friends
+        # at Paris no longer lend a lone charger their coordination). Left
+        # to whatever the file's earlier battles had drawn, the order of the
+        # file decided the pin; seed 1 wins on both readings.
+        import random
+        random.seed(1)
         with _suppress_output():
             reports = strategic_executor.process_strategic_orders(world, game_state)
 

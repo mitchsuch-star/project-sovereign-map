@@ -1,0 +1,72 @@
+[
+ {
+  "id": "row 16 lever down: THE_COORDINATION_IS_READ_ON_THE_FIELD",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_COORDINATION_IS_READ_ON_THE_FIELD = True",
+  "new": "THE_COORDINATION_IS_READ_ON_THE_FIELD = False",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheFieldIsWhereTheCoordinationIsRead"
+ },
+ {
+  "id": "row 16 the field never replaces the region",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if (field and field != region\n                and THE_COORDINATION_IS_READ_ON_THE_FIELD):",
+  "new": "        if (False and field and field != region\n                and THE_COORDINATION_IS_READ_ON_THE_FIELD):",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheFieldIsWhereTheCoordinationIsRead::test_the_corps_that_answer_count_for_the_lead"
+ },
+ {
+  "id": "row 16 the lead is not counted present on the field",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            assume_present = list(assume_present or []) + [primary]",
+  "new": "            assume_present = list(assume_present or [])",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheFieldIsWhereTheCoordinationIsRead::test_the_lead_is_no_ally_of_himself_next_door"
+ },
+ {
+  "id": "row 16 the lead counts as his own adjacent ally (the assumed-present exclusion removed)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            exclude_from_adjacent = (list(exclude_from_adjacent or [])\n                                     + [m.name for m in assumed])",
+  "new": "            exclude_from_adjacent = (list(exclude_from_adjacent or [])\n                                     + [])",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheFieldIsWhereTheCoordinationIsRead::test_the_lead_is_no_ally_of_himself_next_door"
+ },
+ {
+  "id": "row 16 the resolver never hands the attacker his field",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            reinforcement_results=attacker_reinforcements,\n            exclude_from_adjacent=arrived_names,\n            field=battle_region_name)",
+  "new": "            reinforcement_results=attacker_reinforcements,\n            exclude_from_adjacent=arrived_names,\n            field=None)",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheMusterFollowsInLockstep::test_every_promised_corps_that_fights_makes_the_ceiling_exact"
+ },
+ {
+  "id": "row 16 the forecast prices the lead in his own province",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            on_the_field = (THE_COORDINATION_IS_READ_ON_THE_FIELD\n                            and not field_is_here)",
+  "new": "            on_the_field = (False\n                            and not field_is_here)",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheMusterFollowsInLockstep tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_mirror_follows_the_resolver_on_both_roads"
+ },
+ {
+  "id": "row 16 the forecast keeps the gun out of the adjacent count",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    if not THE_COORDINATION_IS_READ_ON_THE_FIELD:\n                        away.append(j.name)",
+  "new": "                    if True:\n                        away.append(j.name)",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheMusterFollowsInLockstep::test_every_promised_corps_that_fights_makes_the_ceiling_exact"
+ },
+ {
+  "id": "row 16 the forecast's attacker call is given no field",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                marshal, world, exclude_from_adjacent=atk_away,\n                assume_present=atk_present, assume_absent=atk_gone,\n                field=battle_region)",
+  "new": "                marshal, world, exclude_from_adjacent=atk_away,\n                assume_present=atk_present, assume_absent=atk_gone,\n                field=None)",
+  "tests": "tests/test_sf_cl1_d1_the_coordination_is_read_on_the_field.py::TestTheMusterFollowsInLockstep tests/test_sf_cl1_the_forecast_keeps_its_word.py::TestTheMusterPricesTheCoordination::test_the_mirror_follows_the_resolver_on_both_roads"
+ },
+ {
+  "id": "SF7-X4 lever down: THE_GATE_READS_THE_PREVIEWS_CONTEXT",
+  "file": "backend/commands/combat_executor.py",
+  "old": "THE_GATE_READS_THE_PREVIEWS_CONTEXT = True",
+  "new": "THE_GATE_READS_THE_PREVIEWS_CONTEXT = False",
+  "tests": "tests/test_vp_r1_the_road_to_forty_five.py::TestCTheGloryAttackObeysTheOdds::test_muster_odds_is_the_previews_own_band"
+ },
+ {
+  "id": "SF7-X4 the gate reads outside the priced context",
+  "file": "backend/commands/combat_executor.py",
+  "old": "            _priced = self._priced_coordination(marshal, joining, enemy_marshal,\n                                                _defender_pre, world, battle_region)",
+  "new": "            _priced = contextlib.nullcontext()",
+  "tests": "tests/test_vp_r1_the_road_to_forty_five.py::TestCTheGloryAttackObeysTheOdds::test_muster_odds_is_the_previews_own_band"
+ }
+]

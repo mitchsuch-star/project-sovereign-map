@@ -1095,8 +1095,15 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # exit=vassal_rebellion, turn 12; `tools/_rf3_board_events.py`). With
         # every VD-C lever down in the child it reads 14 / 17 verbatim
         # (`tools/_vdc_wo_attribution.py`, measured).
-        assert uncapped == 11, uncapped
-        assert capped == 12, capped
+        # Re-measured by §6 row 16 "the coordination is read on the field" (Score Finish Step 7, October 4, 2026): the field read re-times the ambient board
+        # from index 6. Uncapped 12, capped 18 — the cap buys SIX turns; the
+        # contract holds. The capped exit is a true rebellion
+        # (`vassal_broke_free`, exit=vassal_rebellion, turn 18;
+        # `tools/_rf3_board_events.py`). With both field-read levers down in
+        # the child it reads 11 / 12 verbatim
+        # (`tools/_coord_field_wo_attribution.py`, measured).
+        assert uncapped == 12, uncapped
+        assert capped == 18, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")
 
@@ -1250,8 +1257,19 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     as Switzerland rebels (`vassal_broke_free`,
         #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 12 =
         #     index + 1.
+        # §6 row 16 "the coordination is read on the field" (Score Finish Step 7, October 4, 2026): the re-recorded series keeps the form.
+        # Traced with `tools/_rf3_board_events.py`:
+        #   - the Kingdom of Italy is eliminated out of France's web at world
+        #     turn 6 (logged; the step from index 5 to 6, 60 -> 47); the decay
+        #     there is -3, so the signature is -13 — the "-12/-13 signature"
+        #     at its -13 end. Named and excluded;
+        #   - the capped exit is the unique largest ORDINARY fall, -13 (17 ->
+        #     4, the step from index 16 to 17, world turn 18): -3 decay - 10
+        #     as Switzerland rebels (`vassal_broke_free`,
+        #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 18 =
+        #     index + 1.
         ELIMINATION_STEP = 5
-        assert steps[ELIMINATION_STEP] == -12, steps
+        assert steps[ELIMINATION_STEP] == -13, steps
         ordinary = [0 if i == ELIMINATION_STEP else step
                     for i, step in enumerate(steps)]
         worst = min(ordinary)

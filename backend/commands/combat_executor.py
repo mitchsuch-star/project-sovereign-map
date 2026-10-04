@@ -594,6 +594,14 @@ THE_REPORT_NAMES_THE_MASSED_STRENGTH = True
 # by construction (the preview is built for the player's marshal alone), so
 # the AI's series cannot move. False = the pre-SF-CL-1 preview byte for byte.
 THE_MUSTER_PRICES_THE_COORDINATION = True
+# §6 row 16 (SF-CL-1-D1): the lead's coordination context is read on the
+# FIELD (see `_calculate_coordination_context`). Lever down: his own province.
+THE_COORDINATION_IS_READ_ON_THE_FIELD = True
+# §6 row 16's lockstep, the gate's half: `muster_odds` (the band the jealousy
+# glory gate reads, both boards) reads under the SAME priced context the
+# preview prints its band from. Lever down: it reads whatever transient
+# coordination stamps the last battle left (the pre-slice drift).
+THE_GATE_READS_THE_PREVIEWS_CONTEXT = True
 
 
 def _attack_is_unordered(command) -> bool:
@@ -1233,7 +1241,8 @@ class CombatExecutor:
                                          reinforcement_results=None,
                                          exclude_from_adjacent=None,
                                          assume_present=None,
-                                         assume_absent=None) -> dict:
+                                         assume_absent=None,
+                                         field=None) -> dict:
         """
         Calculate coordination bonuses for primary marshal and same-nation allies.
 
@@ -1256,6 +1265,24 @@ class CombatExecutor:
         """
         region = primary.location
         nation = primary.nation
+        # §6 row 16 (SF-CL-1-D1, ruled October 3, 2026 by the user; built at
+        # Score Finish Step 7): the lead's context is read on the FIELD — the
+        # battle province, where every corps that answers him stands once
+        # the resolver has relocated it. Before this, an attack from next
+        # door read the lead's OWN province: the arrivals at the field
+        # counted for nothing, and corps beside him that never marched were
+        # credited instead (Ney at Rhineland on Mack at Swabia: Davout,
+        # Lannes, Murat and the Emperor all marched to Swabia and none
+        # counted). On the field the lead stands among the arrivals: he is
+        # counted present, and so — like every assumed-present corps below —
+        # he is no ally of himself next door (kept out of the adjacent count,
+        # which now reads the province the adjacent-support docstring always
+        # named: the battle's). A field that IS the lead's province changes
+        # nothing. Lever down: the lead's own province, as before.
+        if (field and field != region
+                and THE_COORDINATION_IS_READ_ON_THE_FIELD):
+            region = field
+            assume_present = list(assume_present or []) + [primary]
 
         # Count distinct unit types among eligible same-nation marshals in region
         # SF-CL-1: `assume_present` prices the muster's WILL JOIN set as if
@@ -1742,18 +1769,35 @@ class CombatExecutor:
                 m, marshal, battle_region, nation, world)
             if will_join:
                 joining.append(m)
-        committed = self._committed_reinforcement_strength(
-            marshal, joining, world, expected_at=battle_region)
-        _joiners, committed_defender = self._defender_muster(enemy_marshal, world)
-        game_state = {"world": world}
-        band = inferred_attack_odds_band(
-            marshal, enemy_marshal, game_state,
-            committed_attacker=committed, committed_defender=committed_defender,
-            fold_modifiers=True)
-        ratio = inferred_attack_effective_ratio(
-            marshal, enemy_marshal, game_state,
-            committed_attacker=committed, committed_defender=committed_defender,
-            fold_modifiers=True)
+        # §6 row 16 (Score Finish Step 7): the preview prints its band under
+        # the coordination context the resolver will stamp
+        # (`_priced_coordination`, SF-CL-1) — read on the FIELD now — so the
+        # gate's reading follows it there. Read outside that context, the
+        # gate weighed whatever transient stamps the last battle left and
+        # parted from the screen (measured on the boot board: Murat on Mack,
+        # 'even' here against 'favorable' on the preview — and with the field
+        # read down too, a 25,000-man John read 'even' here while 20,000 and
+        # 30,000 read 'unfavorable', the preview 'unfavorable' on all three).
+        # Lever `THE_GATE_READS_THE_PREVIEWS_CONTEXT` down: as before.
+        if THE_GATE_READS_THE_PREVIEWS_CONTEXT:
+            _defender_pre, _ = self._defender_muster(enemy_marshal, world)
+            _priced = self._priced_coordination(marshal, joining, enemy_marshal,
+                                                _defender_pre, world, battle_region)
+        else:
+            _priced = contextlib.nullcontext()
+        with _priced:
+            committed = self._committed_reinforcement_strength(
+                marshal, joining, world, expected_at=battle_region)
+            _joiners, committed_defender = self._defender_muster(enemy_marshal, world)
+            game_state = {"world": world}
+            band = inferred_attack_odds_band(
+                marshal, enemy_marshal, game_state,
+                committed_attacker=committed, committed_defender=committed_defender,
+                fold_modifiers=True)
+            ratio = inferred_attack_effective_ratio(
+                marshal, enemy_marshal, game_state,
+                committed_attacker=committed, committed_defender=committed_defender,
+                fold_modifiers=True)
         return {"band": band, "ratio": float(ratio),
                 "committed_attacker": float(committed),
                 "committed_defender": float(committed_defender),
@@ -1825,14 +1869,32 @@ class CombatExecutor:
             the lead's region, the names it keeps out of the adjacent count
             (every arrival), and the joiners who LEAVE the lead's region —
             when the field is next door, every joiner relocates into it,
-            including the ones standing beside the lead today."""
+            including the ones standing beside the lead today.
+
+            §6 row 16: with the context read on the FIELD, a lead attacking
+            from next door is priced where the resolver now reads him —
+            every marching joiner is present on the field (the context call
+            below is given `field=` and counts the lead there itself)."""
             present, away, gone = [], [], []
             field_is_here = lead.location == battle_region
+            on_the_field = (THE_COORDINATION_IS_READ_ON_THE_FIELD
+                            and not field_is_here)
             for j in team:
                 if j.name == lead.name:
                     continue
                 if getattr(j, "artillery", False) and j.location != battle_region:
-                    away.append(j.name)      # guns fire from where they stand
+                    # Guns fire from where they stand. The resolver keeps an
+                    # arriving gun OUT of `arrived_names`, so he stays in
+                    # the adjacent count (+2%); keeping him out of it here
+                    # under-priced every gun next to the field — the common
+                    # case once the context is read there (§6 row 16).
+                    # Lever down: as before.
+                    if not THE_COORDINATION_IS_READ_ON_THE_FIELD:
+                        away.append(j.name)
+                    continue
+                if on_the_field:
+                    present.append(j)        # he relocates into the field
+                    away.append(j.name)
                     continue
                 if j.location == lead.location:
                     if not field_is_here:
@@ -1848,11 +1910,13 @@ class CombatExecutor:
             atk_present, atk_away, atk_gone = _assumed(marshal, joiners)
             self._calculate_coordination_context(
                 marshal, world, exclude_from_adjacent=atk_away,
-                assume_present=atk_present, assume_absent=atk_gone)
+                assume_present=atk_present, assume_absent=atk_gone,
+                field=battle_region)
             def_present, def_away, def_gone = _assumed(enemy_marshal, enemy_joiners)
             self._calculate_coordination_context(
                 enemy_marshal, world, exclude_from_adjacent=def_away,
-                assume_present=def_present, assume_absent=def_gone)
+                assume_present=def_present, assume_absent=def_gone,
+                field=battle_region)
             yield
         finally:
             for m in touched:
@@ -7365,11 +7429,13 @@ class CombatExecutor:
         attacker_coord = self._calculate_coordination_context(
             marshal, world,
             reinforcement_results=attacker_reinforcements,
-            exclude_from_adjacent=arrived_names)
+            exclude_from_adjacent=arrived_names,
+            field=battle_region_name)
         defender_coord = self._calculate_coordination_context(
             enemy_marshal, world,
             reinforcement_results=defender_reinforcements,
-            exclude_from_adjacent=arrived_names)
+            exclude_from_adjacent=arrived_names,
+            field=battle_region_name)
 
         # ════════════════════════════════════════════════════════════
         # [S62] CASUALTY DISTRIBUTION: Build participant lists BEFORE

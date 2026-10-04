@@ -79,9 +79,19 @@ class TestTheVolteFaceFiresOnItsArm:
         window. Measured on this drive: the shipped tree 0 beats; the raise
         lever down 3; IQ6-D2's lever down alone 0; both down 3 — the raise is
         the mover here. The arm keeps its purpose with the raise lever down
-        too; SR-7d-X1's re-script now carries both constraints."""
+        too; SR-7d-X1's re-script now carries both constraints.
+
+        RE-SEATED again by §6 row 16 "the coordination is read on the field"
+        (Score Finish Step 7 slice 3, October 4, 2026): with the two levers
+        above down, the shipped field read gives 0 beats in forty turns; the
+        field read down, the beat at turn 25; the glory gate's lockstep lever
+        down alone, 0 — the field read is the mover (the arm's war takes
+        another course when converging corps fight together on the field).
+        The arm keeps its purpose with the field read down too; SR-7d-X1's
+        re-script (Step 7's SF-DC-1) now carries all three constraints."""
         rows = _drive(tmp_path, "--lever", "backend.game_logic.doctrines:FRANCE_DOCTRINE=0",
-                      "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0")
+                      "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0",
+                      "--lever", "backend.commands.combat_executor:THE_COORDINATION_IS_READ_ON_THE_FIELD=0")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20
