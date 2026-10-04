@@ -437,8 +437,14 @@ GR8-trivial), same executor verbs as the player:
 
 - **A1:** France cannot reach RN effective parity by building alone before turn ~25 at
   sustained spend.
-- **A2:** ≥80% closure + blockade brings Britain to sue within 12–18 turns absent a
-  continental war revival.
+- **A2 (re-anchored October 4, 2026 — SF-NAV-1-D1, ruled under the user's delegation,
+  FOR USER CONFIRMATION; gate record `SCORE_FINISH_SPEC.md` §6.6):** SHUT OUT — the System at
+  ≥ `cs_shutout_pct` of the Continent's ports with no British corps on the Continent — holds for
+  8 consecutive turns (a sitting's length) on a played road, on at least 2 of 3 benchmark seeds.
+  Britain sues from her own war; the System is the squeeze that keeps her at the table, not the
+  cause. ~~≥80% closure + blockade brings Britain to sue within 12–18 turns absent a continental
+  war revival.~~ The 80% figure is retired as unreachable in play (21 of 26 ports — every coast in
+  Europe but five; played peaks 13–14). Measured at the row-17 build (§21).
 - **A3:** boot Ireland expedition (12k, unescorted) lands 55–65% of seeds; boot Channel
   crossing without a window: refused (not a roll).
 - **A4 (restated v1.0.3):** the §5.3.4 worked example holds on the shipped scenario AT
@@ -2086,3 +2092,5 @@ Portugal and the Papal States, Soult marches on Lisbon, Massena on Rome, the res
 ## §20 SF-NAV-1 — the strangulation, played (Score Finish Step 6, October 4, 2026)
 
 The DEF-5 evidence SR-5b left owed — SHUT OUT had never held on a played board — played on the benchmark's new arm `NAV1-H/A/M` (`tools/playtest_scripts/sf_nav1_strangulation.json`; probe `tools/sf_nav1_strangulation_probe.py`; memo `docs/audits/SF_NAV1_STRANGULATION_2026_10_04.md`). **SHUT OUT holds for the first time:** historical turn 11 (14 of 26 ports), marengo turns 13–15 (13 of 26), with Britain's whole bench taken in Portugal and Lannes holding the Normandy beach against Moore's crossing. **It never holds through a sitting:** Spain's war with Britain ends on turn 16 on every seed by the exhausted-pair exit and the closure falls to 10–11. **Anchor A2 (≥ 80% closure) is unreachable** — tier 2 (60%) is never reached, peak 14 of 26 — and **goes to the user** (`SCORE_FINISH_SPEC.md` §6 row 17, owner row `DESIGN_REFINEMENT.md` SF-NAV-1-D1; recommended: the Tilsit clause on a separate peace). **Why Britain sues:** on turn 8 on every seed, at war exhaustion 70–79, from the war's own +8 a turn; the System adds at most +1 (tier 1). Found in passing: SF6-X1 — a confirmed expedition now ends the corps' standing order (`naval_executor.SAILING_ENDS_THE_STANDING_ORDER`). The descent arm was re-staged (SF-V6): it lands 5,000 at Munster from the Normandy yard on loop 5 and takes the province.
+
+**The A2 anchor, ruled (Step 7, October 4, 2026; gate record `SCORE_FINISH_SPEC.md` §6.6, FOR USER CONFIRMATION):** option (a) — **the Tilsit clause on a separate peace** (`continental_system`, "joins the Continental System", no alliance; priced 0.2 harshness / −10 acceptance, +10 alarm), the System's missing exit (a member at war with France leaves it, as a named beat), and A2 re-anchored (§7). The research first played the conquest road the Step 6 arm never tried — Lisbon, Rome, Naples, Vienna and Hanover — on the three seeds (memo `docs/audits/SF_NAV1_D1_THE_A2_ANCHOR_2026_10_04.md`): peaks 10–13 of 26, SHUT OUT held at most 3 turns and never after Spain's exit; Vienna was not taken on any seed and Hanover fell to Prussia on two. The build is §21's.

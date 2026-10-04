@@ -3896,6 +3896,15 @@ def run(args):
         label = dig(_start_ledger, "calendar_label", "date_label",
                     default="")
         digest.turn_header(current_turn, label)
+        # SF-NAV-1-D1's research (Step 7, October 4, 2026): `policy_at` — the
+        # script's own dials change from a given LOOP on, e.g. a road that
+        # refuses Austria's peace until Vienna falls and signs it after. The
+        # answerer holds this same dict, so the change takes from the next
+        # answer. A script without the key is byte-identical.
+        for _key, _value in ((script.get("policy_at") or {})
+                             .get(str(turn_index)) or {}).items():
+            policy[_key] = _value
+            digest.note(f"POLICY {_key} -> {_value}")
         if meter is not None:
             # IQ-8: the turn-start read the driver already makes — this turn
             # is PLAYED, and its allotment is what the ledger says it is.
@@ -4305,7 +4314,33 @@ def _court_of(dialogue) -> str:
         value = dialogue.get(key)
         if isinstance(value, str) and value:
             return value
+    if THE_DECLINE_LIST_READS_THE_STORED_SHAPE:
+        # SF7-X1 (Step 7, October 4, 2026): the STORED dialogue — the shape a
+        # stale answer's refusal re-carries (`diplomatic_executor`'s W6-0
+        # binding returns the stored dialogue, not its popup rendering) —
+        # keeps its court in `context.source_nation`, and an incoming
+        # proposal's in `target_nation`. Neither was read, so on a mailbox
+        # burst the re-carried envoy named no court and was SIGNED: Step 6's
+        # own NAV1-H arm accepted Portugal's armistice on turn 20 under
+        # `--decline-from Portugal`. `context.source_nation` is stamped only
+        # by the AI's envoy producers; `target_nation` is read only on an
+        # incoming proposal, so the player's own confirms (whose
+        # `target_nation` is the court France writes TO) stay untouched.
+        context = dialogue.get("context")
+        if isinstance(context, dict):
+            value = context.get("source_nation")
+            if isinstance(value, str) and value:
+                return value
+        if str(dialogue.get("type") or "") == "incoming_proposal":
+            value = dialogue.get("target_nation")
+            if isinstance(value, str) and value:
+                return value
     return ""
+
+
+# SF7-X1: the lever for the stored-shape read above (down = the court reader
+# as Step 6 shipped it).
+THE_DECLINE_LIST_READS_THE_STORED_SHAPE = True
 
 
 def settlement_mode(policy) -> str:

@@ -8762,3 +8762,10 @@ The playtest driver writes one `applied_bill` row per ended turn (`turn`, `charg
 
 ### 92.4 SF-V6 — the descent arm stages its landing
 `tools/playtest_scripts/naval_descent.json` spends no gold before its loop-4 commission, marches Oudinot to the Normandy yard the loop he is raised and sails on loop 5; naval C3's reader (`score_run.r_naval_C3`) counts the capture question (`capture_choice[capture]: Munster`) as the province falling. The SEA arm (`sr_exit_chunk5_sea.json`) marches Oudinot to the Normandy yard the loop after his commission (SF6-X2): the Bordelais road crossed Britain's Peninsula corps once the board drifted.
+
+## 93. THE SCORE FINISH — STEP 7, "What the wire says, the screen says" (October 4, 2026 — in progress)
+
+### 93.1 §6 row 17's research and two driver dials
+- **`policy_at` (the script's own dials, by loop).** A script may carry `"policy_at": {"<loop>": {<policy key>: <value>}}`; from that loop on the driver's policy takes the new value (the answerer holds the same dict) and the digest notes `POLICY <key> -> <value>`. Used by the Danube conquest draft to refuse Austria's peace until loop 9. A script without the key is byte-identical.
+- **SF7-X1 — the decline list reads the stored shape** (`playtest_driver.THE_DECLINE_LIST_READS_THE_STORED_SHAPE`). `_court_of` reads `context.source_nation` (stamped only by the AI's envoy producers) and, on an `incoming_proposal`, `target_nation` — the STORED dialogue a stale answer's refusal re-carries. The player's own confirms (whose `target_nation` is the court France writes TO) are never read as an envoy's court.
+- **The conquest road** — `tools/playtest_scripts/sf_nav1_conquest_danube.json` (Vienna first) and `sf_nav1_conquest_road.json` (the Step 6 arm plus Hanover) — is research, not benchmark: read with `tools/sf_nav1_strangulation_probe.py`, archived under `docs/audits/playtest_digests/sfnav1d1-*`, recorded in `docs/audits/SF_NAV1_D1_THE_A2_ANCHOR_2026_10_04.md`. The ruling it informed is `SCORE_FINISH_SPEC.md` §6.6 (the Tilsit clause; built in Step 7's row-17 slice).

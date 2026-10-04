@@ -1,0 +1,44 @@
+[
+ {
+  "id": "SF7-X1 lever down: THE_DECLINE_LIST_READS_THE_STORED_SHAPE",
+  "file": "tools/playtest_driver.py",
+  "old": "THE_DECLINE_LIST_READS_THE_STORED_SHAPE = True",
+  "new": "THE_DECLINE_LIST_READS_THE_STORED_SHAPE = False",
+  "tests": "tests/test_sf_nav1_d1_the_conquest_road.py::TestTheDeclineListReadsTheStoredShape"
+ },
+ {
+  "id": "SF7-X1 the context court not read",
+  "file": "tools/playtest_driver.py",
+  "old": "            value = context.get(\"source_nation\")\n            if isinstance(value, str) and value:\n                return value",
+  "new": "            value = context.get(\"source_nation\")\n            if False:\n                return value",
+  "tests": "tests/test_sf_nav1_d1_the_conquest_road.py::TestTheDeclineListReadsTheStoredShape::test_the_context_alone_names_the_court"
+ },
+ {
+  "id": "SF7-X1 target_nation read on every dialogue (the player's confirm would be an envoy)",
+  "file": "tools/playtest_driver.py",
+  "old": "        if str(dialogue.get(\"type\") or \"\") == \"incoming_proposal\":\n            value = dialogue.get(\"target_nation\")",
+  "new": "        if True:\n            value = dialogue.get(\"target_nation\")",
+  "tests": "tests/test_sf_nav1_d1_the_conquest_road.py::TestTheDeclineListReadsTheStoredShape::test_the_players_own_confirm_is_never_read_as_an_envoy"
+ },
+ {
+  "id": "policy_at never applied",
+  "file": "tools/playtest_driver.py",
+  "old": "            policy[_key] = _value\n            digest.note(f\"POLICY {_key} -> {_value}\")",
+  "new": "            digest.note(f\"POLICY {_key} -> {_value}\")",
+  "tests": "tests/test_sf_nav1_d1_the_conquest_road.py::TestPolicyAt::test_the_dial_changes_from_its_loop"
+ },
+ {
+  "id": "policy_at not noted in the digest",
+  "file": "tools/playtest_driver.py",
+  "old": "            policy[_key] = _value\n            digest.note(f\"POLICY {_key} -> {_value}\")",
+  "new": "            policy[_key] = _value",
+  "tests": "tests/test_sf_nav1_d1_the_conquest_road.py::TestPolicyAt::test_the_dial_changes_from_its_loop"
+ },
+ {
+  "id": "policy_at read off the wrong loop key (the first loop)",
+  "file": "tools/playtest_driver.py",
+  "old": "                             .get(str(turn_index)) or {}).items():",
+  "new": "                             .get(\"2\") or {}).items():",
+  "tests": "tests/test_sf_nav1_d1_the_conquest_road.py::TestPolicyAt::test_the_dial_changes_from_its_loop"
+ }
+]

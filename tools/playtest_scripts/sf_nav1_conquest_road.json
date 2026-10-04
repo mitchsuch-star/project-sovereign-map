@@ -1,0 +1,166 @@
+{
+  "name": "sf-nav1-conquest-road",
+  "seed": "historical",
+  "llm": "mock",
+  "_note": "SF-NAV-1-D1's research (Score Finish Step 7, October 4, 2026): THE CONQUEST ROAD — draft 4. The Step 6 arm (sf_nav1_strangulation.json) unchanged, plus Hanover: war declared on loop 1, Bernadotte sent to take Hanover from Franconia on loop 2 (loop 1's four actions go to Soult's march and the Ulm battle — draft 3 refused his order for want of actions). Austria's peace is accepted as before, so Vienna is not taken — the draft measures how far the System gets with every capital the arm CAN hold. Read with tools/sf_nav1_strangulation_probe.py. Run with --declare-war proceed --objection insist --diplomacy accept --decline-from Britain,Portugal,PapalStates,Naples,Hanover. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": [
+      "declare war on Portugal",
+      "declare war on the Papal States",
+      "declare war on Hanover",
+      "Soult, take Lisbon",
+      "Ney, attack Mack",
+      "Davout, attack Mack"
+    ],
+    "2": [
+      "Bernadotte, take Hanover",
+      "Massena, take Rome",
+      "Murat, attack Mack",
+      "Ney, attack Mack"
+    ],
+    "3": [
+      "Ney, attack Mack",
+      "Davout, attack Mack",
+      "Massena, take Rome",
+      "Lannes, march to Normandy"
+    ],
+    "4": [
+      "Ney, attack Archduke Charles",
+      "Davout, attack Archduke Charles",
+      "Massena, take Rome",
+      "Murat, attack Mack"
+    ],
+    "5": [
+      "Ney, attack Archduke Charles",
+      "Murat, attack Archduke John",
+      "Massena, take Rome",
+      "Lannes, fortify"
+    ],
+    "6": [
+      "Davout, attack Archduke Charles",
+      "Ney, attack Archduke John",
+      "Massena, take Rome",
+      "Bernadotte, attack Archduke Charles"
+    ],
+    "7": [
+      "Massena, take Rome",
+      "Soult, attack Lisbon",
+      "Soult, attack Paget",
+      "Davout, attack Archduke John"
+    ],
+    "8": [
+      "declare war on Naples",
+      "Massena, take Naples",
+      "Soult, attack Lisbon",
+      "Soult, attack Paget"
+    ],
+    "9": [
+      "Soult, attack Lisbon",
+      "Soult, attack Wellesley",
+      "Soult, attack Paget",
+      "Massena, take Naples"
+    ],
+    "10": [
+      "Soult, attack Lisbon",
+      "Soult, attack Wellesley",
+      "Massena, take Naples",
+      "status"
+    ],
+    "11": [
+      "Soult, attack Lisbon",
+      "Soult, attack Shrapnel",
+      "Soult, attack Wellesley",
+      "Massena, take Naples"
+    ],
+    "12": [
+      "Soult, attack Lisbon",
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Massena, take Naples"
+    ],
+    "13": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Massena, take Rome"
+    ],
+    "14": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Soult, take Porto"
+    ],
+    "15": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Soult, attack Porto",
+      "status"
+    ],
+    "16": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Soult, take Alentejo"
+    ],
+    "17": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Soult, attack Alentejo"
+    ],
+    "18": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore",
+      "status"
+    ],
+    "19": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore"
+    ],
+    "20": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore",
+      "status"
+    ],
+    "22": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore"
+    ],
+    "24": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore",
+      "status"
+    ],
+    "26": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore"
+    ],
+    "28": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Lannes, attack Moore",
+      "status"
+    ],
+    "30": [
+      "status"
+    ]
+  },
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "accept"
+  }
+}

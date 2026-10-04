@@ -1,0 +1,41 @@
+{
+  "name": "sf-nav1-conquest-danube",
+  "seed": "historical",
+  "llm": "mock",
+  "_note": "SF-NAV-1-D1's research (Score Finish Step 7, October 4, 2026): THE CONQUEST ROAD, Danube first (the research's draft 2, kept). The Grande Armee goes down the Danube (Ulm, then Archduke Charles, then Vienna) and France refuses Austria's peace until loop 9 (`policy_at` lifts the refusal); Bernadotte leaves Charles's road on turn 1 for Hanover (declared that turn); Soult marches on Lisbon from turn 1; Lannes holds the Normandy beach; Massena keeps Milan, then takes Rome and Naples. The other committed draft, sf_nav1_conquest_road.json, is the Step 6 arm plus Hanover. Read with tools/sf_nav1_strangulation_probe.py. Run with --declare-war proceed --objection insist --diplomacy accept --decline-from Britain,Portugal,PapalStates,Naples,Austria,Hanover. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": ["declare war on Portugal", "declare war on Hanover", "Soult, take Lisbon", "Bernadotte, take Hanover", "Ney, attack Mack"],
+    "2": ["Davout, attack Mack", "Ney, attack Mack", "Lannes, march to Normandy"],
+    "3": ["Davout, attack Archduke Charles", "Murat, attack Archduke Charles", "Ney, attack Archduke Charles", "Napoleon, attack Archduke Charles"],
+    "4": ["Davout, attack Archduke Charles", "Murat, attack Archduke Charles", "Ney, attack Archduke Charles", "Napoleon, attack Archduke Charles"],
+    "5": ["Davout, take Vienna", "Murat, attack Archduke Charles", "Lannes, fortify"],
+    "6": ["Davout, take Vienna", "Ney, take Vienna", "Murat, attack Archduke John"],
+    "7": ["Davout, take Vienna", "Ney, take Vienna", "Murat, attack Archduke Charles", "Soult, attack Lisbon"],
+    "8": ["Davout, take Vienna", "Ney, take Vienna", "Soult, attack Lisbon", "Soult, attack Paget"],
+    "9": ["Soult, attack Lisbon", "Soult, attack Paget", "Davout, take Vienna", "Ney, take Vienna"],
+    "10": ["declare war on the Papal States", "Massena, take Rome", "Soult, attack Lisbon", "Soult, attack Wellesley"],
+    "11": ["Massena, take Rome", "Soult, attack Wellesley", "Soult, attack Paget", "Davout, take Vienna"],
+    "12": ["Massena, take Rome", "Soult, attack Wellesley", "Soult, attack Shrapnel", "Ney, take Vienna"],
+    "13": ["declare war on Naples", "Massena, take Naples", "Soult, attack Shrapnel", "Soult, attack Paget"],
+    "14": ["Massena, take Naples", "Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley"],
+    "15": ["Massena, take Naples", "Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley"],
+    "16": ["Massena, take Naples", "Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley"],
+    "17": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "18": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore", "status"],
+    "19": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "20": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore", "status"],
+    "21": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "22": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "23": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "24": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore", "status"],
+    "25": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "26": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "27": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore"],
+    "28": ["Soult, attack Shrapnel", "Soult, attack Paget", "Soult, attack Wellesley", "Lannes, attack Moore", "status"],
+    "30": ["status"]
+  },
+  "policy_at": {
+    "9": {"decline_from": "Britain,Portugal,PapalStates,Naples,Hanover"}
+  },
+  "policy": {"objection": "insist", "diplomacy": "accept"}
+}
