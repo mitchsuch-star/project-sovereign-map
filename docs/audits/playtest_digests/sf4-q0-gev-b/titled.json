@@ -1,0 +1,34 @@
+{
+ "turn": 41,
+ "titled": 9,
+ "hold_titled": 45,
+ "status": "completed",
+ "held": [
+  "Munich",
+  "Swabia"
+ ],
+ "provinces": 9,
+ "note": "SR-1e re-measure (September 26, 2026): read off the run's own save by tools/sr1e_titled_probe.py through congress.titled — the same count the summons reads.",
+ "series": [
+  {
+   "turn": 10,
+   "titled": 25
+  },
+  {
+   "turn": 20,
+   "titled": 14
+  },
+  {
+   "turn": 30,
+   "titled": 15
+  },
+  {
+   "turn": 40,
+   "titled": 11
+  },
+  {
+   "turn": 41,
+   "titled": 9
+  }
+ ]
+}

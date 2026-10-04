@@ -215,6 +215,9 @@ var region_full_data := {}
 # Nation-level establishment status (econ spec review §6). Read by the region
 # panel's Recruit row; empty on the legacy world, where there is no limit.
 var levy_status := {}
+# CRT-9 (CQ-21): the turn's two action pools (the top bar's own figures), so
+# the region panel dims an administrative chip when none is left.
+var action_pools := {}
 
 var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal := {}
@@ -2905,6 +2908,11 @@ func update_region(region_name: String, controller: String, marshal_data = null)
 func update_levy(data: Dictionary) -> void:
 	"""Store the nation-level establishment status (econ spec review §6)."""
 	levy_status = data if data != null else {}
+
+
+func update_action_pools(data: Dictionary) -> void:
+	"""CRT-9: store the turn's action pools (`game_state.action_pools`)."""
+	action_pools = data if data != null else {}
 
 
 func update_all_regions(map_data: Dictionary):

@@ -34,6 +34,8 @@ except ImportError:
 from backend.models.region import REGIONS_DATA as _REGIONS_DATA
 from backend.ai.nation_names import resolve_typed_nation
 from backend.ai.clause_guards import HONORIFIC
+from backend.ai.attack_vocabulary import (
+    LeveredPattern, arrival_tail_alternation, levered_arrival_pattern)
 
 REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
     name: data["grid_position"]
@@ -465,6 +467,21 @@ def detect_strategic_command(
     # survived and every contact seam fought `enemies[0]`.
     arrival_target = (_extract_arrival_target(cleaned, marshal_name, world)
                       if attack_on_arrival else None)
+    # SF-V4 §6.3 item 4 (Oct 3, 2026): "march to Swabia then attack Zorglub"
+    # — a proper name the map does not know arms NO attack on arrival (it
+    # would have fought `enemies[0]`, CR-7-6's fallback), and the echo names
+    # the dropped word. A description ("then attack the retreating column")
+    # keeps its armed arrival.
+    dropped_arrival_note = None
+    if attack_on_arrival and arrival_target is None and world is not None:
+        _obj = _ARRIVAL_OBJECT_RE.search(cleaned)
+        if _obj:
+            from backend.commands.proper_name import arrival_object_note
+            _dropped = arrival_object_note(_obj.group("obj") or "", world, marshal_name)
+            if _dropped:
+                attack_on_arrival = False
+                condition_notes = list(condition_notes or []) + [_dropped]
+                dropped_arrival_note = _dropped
 
     result = {
         "is_strategic": True,
@@ -477,6 +494,7 @@ def detect_strategic_command(
         "arrival_target": arrival_target,
         "condition_refusal": condition_refusal,
         "condition_notes": condition_notes,
+        "dropped_arrival_note": dropped_arrival_note,
     }
 
     # Phase 5.2-C: Add interpretation for generic targets (Grouchy clarification)
@@ -605,7 +623,15 @@ def _friendly_head(after: str, friendly_forms) -> Optional[str]:
     province "Ney'S Flank"."""
     if not after or not friendly_forms:
         return None
-    text = re.sub("^" + HONORIFIC, "", after.strip(), flags=re.IGNORECASE)
+    text = after.strip()
+    # CRT-11 / RS-6 (Oct 3, 2026): "in support of Ney" left "of ney" after
+    # the keyword and the order refused "Cannot find marshal 'Of Ney'". The
+    # pre-parse rewrite restates the anchored forms; this is the reader's own
+    # half, for a phrasing that reaches it unrewritten.
+    import backend.ai.second_name as _sn
+    if _sn.THE_SUPPORT_ROLE_IS_HEARD:
+        text = re.sub(r"^of\s+", "", text, flags=re.IGNORECASE)
+    text = re.sub("^" + HONORIFIC, "", text, flags=re.IGNORECASE)
     for form in friendly_forms:
         if re.match(r"(?i)" + re.escape(form) + r"(?:['’]s)?(?:\b|$)", text):
             return form
@@ -703,6 +729,12 @@ def _clean_target_text(text: str) -> Optional[str]:
     # cardinal region ("East Prussia") is not in this preposition set.
     text = re.sub(r'^(?:on|onto|to|at|toward|towards|into|for)\s+', '',
                   text, flags=re.IGNORECASE)
+    # CRT-11 / RS-8 (Oct 3, 2026): "Ney, march against Mack" stored a march
+    # to the phantom province "Against Mack" — "against" is "on" said with
+    # intent, and the man after it is the order's object.
+    import backend.ai.attack_vocabulary as _av
+    if _av.THE_DESTROY_CLAUSE_IS_HEARD:
+        text = re.sub(r'^against\s+', '', text, flags=re.IGNORECASE)
     # Take first word or two (target name)
     # "belgium and attack" → "belgium"
     text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)
@@ -927,10 +959,16 @@ def _parse_condition(command_lower: str, target: str, world=None,
 # reading its own last syllable as the conjunction. CR-7-3 (CQ-10): the bare
 # comma is the fifth boundary — `march to Swabia, attack Mack` had fused as
 # a plain MOVE_TO with the attack silently gone, one token over from the `;`.
-_ATTACK_ON_ARRIVAL_HINT_RE = re.compile(
-    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:attack|engage|assault)\b')
-_ARRIVAL_OBJECT_RE = re.compile(
-    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:attack|engage|assault)\s+'
+# CRT-11 / RS-8 (Oct 3, 2026): every battle and capture verb (the ONE
+# vocabulary in `attack_vocabulary`) — "and destroy Mack" was a plain march.
+_ATTACK_ON_ARRIVAL_HINT_RE = levered_arrival_pattern(
+    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:{verbs})\b')
+_ARRIVAL_OBJECT_RE = LeveredPattern(
+    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:'
+    + arrival_tail_alternation(True) + r')\s+'
+    r'(?:the\s+)?(?:' + HONORIFIC + r')?(?P<obj>[a-z][a-z\'’ -]*?)\s*[.!]?\s*$',
+    r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*(?:'
+    + arrival_tail_alternation(False) + r')\s+'
     r'(?:the\s+)?(?:' + HONORIFIC + r')?(?P<obj>[a-z][a-z\'’ -]*?)\s*[.!]?\s*$')
 
 

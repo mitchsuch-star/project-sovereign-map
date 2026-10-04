@@ -17,7 +17,10 @@ from backend.ai.llm_client import (
     CONDITION_CLAUSE_RE,
 )
 from backend.ai.attack_vocabulary import (IDIOM_FILLER_WORDS,
-                                          guard_attack_verb_forms)
+                                          SECOND_ORDER_BATTLE_VERBS,
+                                          LeveredPattern,
+                                          guard_attack_verb_forms,
+                                          levered_arrival_pattern)
 from backend.ai.clause_guards import (
     HONORIFIC,
     is_question,
@@ -33,6 +36,7 @@ from backend.ai.validation import (
     PARSER_ONLY_META,
 )
 from backend.ai.generic_targets import normalize_target
+from backend.ai.routed_order_words import ROUTED_ORDER_WORDS
 from backend.ai.recruit_arm import extract_requested_arm
 from backend.ai.nation_names import resolve_typed_nation
 from backend.ai.strategic_parser import (
@@ -62,6 +66,14 @@ _NON_ORDER_ACTIONS = NON_ORDER_ACTIONS
 ADMIN_VERBS_NEVER_MARCH = True      # the strategic gate reads NEVER_STRATEGIC_ACTIONS
 A_BARE_RETREAT_IS_A_RETREAT = True  # "Ney, fall back" is not a MOVE_TO toward the enemy
 ADMIRAL_IS_AN_ADDRESSEE = True      # "Villeneuve, order the diversion" accepts the admiral
+# SF-V8 (Oct 3, 2026): a routed order word ("land") is never fuzzy-read as a
+# marshal's name ("Lannes") in the word scan. False = the hand skip list alone.
+A_ROUTED_WORD_IS_NEVER_A_NAME = True
+# SF-V4: the attack verbs whose next word is the order's TARGET (object
+# position) — never read as an unknown executor by the word scan.
+from backend.ai.attack_vocabulary import BATTLE_VERB_RE as _BV, CAPTURE_VERB_RE as _CV
+_OBJECT_OF_ATTACK_RE = re.compile(
+    '(?:' + _BV.pattern + ')|(?:' + _CV.pattern + ')', re.IGNORECASE)
 _NAVAL_META_VERBS = frozenset({"build_fleet", "set_fleet_posture", "naval_diversion"})
 
 # CR-2: sequential compound orders — "attack Bern, then hold your positions".
@@ -79,8 +91,10 @@ _SEQUEL_SPLIT_RE = re.compile(r'[,;]?\s+(?:and\s+)?then\b\s+', re.IGNORECASE)
 # silently downgraded every named-object form to a plain MOVE_TO
 # (strategic_parser._detect_attack_on_arrival matches "then attack" with
 # ANY suffix, and _extract_target_text already strips the tail cleanly).
-_ATTACK_ON_ARRIVAL_TAIL_RE = re.compile(
-    r'^(?:attack|engage|assault)\b', re.IGNORECASE)
+# CRT-11 / RS-8 (Oct 3, 2026): every battle and capture verb, built from
+# `attack_vocabulary` ("march on Swabia and destroy Mack" lost its tail).
+_ATTACK_ON_ARRIVAL_TAIL_RE = levered_arrival_pattern(
+    r'^(?:{verbs})\b', re.IGNORECASE)
 # FA-7. "Ney, wait for Davout then attack Mack" fought Mack immediately: the
 # exemption above refuses to split ANY tail beginning with an attack verb, so
 # the whole sentence stayed one parse and `attack` outranked `wait`. But
@@ -150,8 +164,8 @@ def _head_can_carry_arrival(first: str) -> bool:
 # it — the CR-4 / NP-1 raw-string precedent: the fast parser, the split gate
 # and detect_strategic_command then agree by construction. A head that is
 # already a standing order ("move to reinforce Ney" = SUPPORT) is left alone.
-_ARRIVAL_TAIL_RE = re.compile(
-    r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|[;,]\s*)(?:attack|engage|assault)\b',
+_ARRIVAL_TAIL_RE = levered_arrival_pattern(
+    r'(?:[,;]?\s+(?:and\s+)?then\s+|\s+and\s+|[;,]\s*)(?:{verbs})\b',
     re.IGNORECASE)
 # SF-CMD-1 W2 (Oct 3, 2026): the plain movement verbs with a destination
 # preposition promote too — "ride to Swabia and attack Mack" was a tactical
@@ -244,7 +258,22 @@ _SECOND_ORDER_VERBS = (
     r'|withdraw|move|march|advance|scout|hold|defend|fortify|entrench'
     r'|drill|wait|garrison|recruit|build|repair|support|reinforce'
     r'|pursue|chase|blockade')
-_AND_VERB_SPLIT_RE = re.compile(
+# CRT-11 / RS-8: the battle verbs that always name a foe join the list —
+# "Ney, fortify and destroy Mack" FOUGHT with the fortify swallowed, because
+# no list here knew "destroy" (CR-7-1's swallow, one verb over).
+_SECOND_ORDER_VERBS_WIDE = (_SECOND_ORDER_VERBS + "|"
+                            + "|".join(sorted(SECOND_ORDER_BATTLE_VERBS)))
+
+
+def _second_order_verbs() -> str:
+    """The order-verb alternation the split readers use (CRT-11's lever)."""
+    import backend.ai.attack_vocabulary as _av
+    return (_SECOND_ORDER_VERBS_WIDE if _av.THE_DESTROY_CLAUSE_IS_HEARD
+            else _SECOND_ORDER_VERBS)
+
+
+_AND_VERB_SPLIT_RE = LeveredPattern(
+    r'\s+and\s+(?=(?:' + _SECOND_ORDER_VERBS_WIDE + r')\b)',
     r'\s+and\s+(?=(?:' + _SECOND_ORDER_VERBS + r')\b)',
     re.IGNORECASE)
 # SF-CMD-1 W5 / CRT-11: the second name is heard at a comma.
@@ -263,7 +292,8 @@ def _comma_name_verb_split_re(game_state):
         return None
     names = "|".join(re.escape(n) for n in sorted(roster, key=len, reverse=True))
     return re.compile(
-        r'\s*,\s*(?=(?:' + HONORIFIC + r')?(?:' + names + r')\s+(?:' + _SECOND_ORDER_VERBS + r')\b)',
+        r'\s*,\s*(?=(?:' + HONORIFIC + r')?(?:' + names + r')\s+(?:'
+        + _second_order_verbs() + r')\b)',
         re.IGNORECASE)
 # CR-7-3 (CQ-10): the BARE COMMA before an order verb is the fifth boundary.
 # `Ney, fortify, attack Mack` had no boundary at all, so the swallow CR-7-1
@@ -272,25 +302,31 @@ def _comma_name_verb_split_re(game_state):
 # ("Ney, attack Mack"), so this pattern is only ever a candidate: the
 # caller's `fast_parse(head)` gate (FA-50's own) refuses a bare name as a
 # head, which is what keeps every address form whole.
-_COMMA_VERB_SPLIT_RE = re.compile(
+_COMMA_VERB_SPLIT_RE = LeveredPattern(
+    r',\s*(?=(?:' + _SECOND_ORDER_VERBS_WIDE + r')\b)',
     r',\s*(?=(?:' + _SECOND_ORDER_VERBS + r')\b)', re.IGNORECASE)
 # A head must OPEN with an order verb once its address is stripped —
 # "the Guard, attack Mack" (a unit whose name is a verb) and "should Mack
 # advance, fortify" (an inversion the guards refuse) are not heads. The
 # comma arm is conservative by design: a head it does not recognise is
 # simply not split, which is the pre-CR-7-3 behaviour.
-_HEAD_VERB_ALTERNATION = (
-    _SECOND_ORDER_VERBS
-    + r'|unfortify|form|stand|stay|rest|dig|secure|cancel|halt|go|wait|take'
+_HEAD_VERB_TAIL = (
+    r'|unfortify|form|stand|stay|rest|dig|secure|cancel|halt|go|wait|take'
     + r'|fall|pull|retire|press|proceed|head|make|deploy|relocate|journey|travel'
     + r'|hunt|track|follow|give|link|come|rally|shore|combine|assist|aid|bolster'
     + r'|join|cover|screen|shield|protect|guard|lay|land|set|order|propose|declare'
     + r'|offer|sponsor|invest|release|cede|assess|gather|grant|revoke|endow|buy'
     + r'|purchase|hire')
-_HEAD_OPENS_WITH_A_VERB_RE = re.compile(
+_HEAD_VERB_ALTERNATION = _SECOND_ORDER_VERBS + _HEAD_VERB_TAIL
+_HEAD_VERB_ALTERNATION_WIDE = _SECOND_ORDER_VERBS_WIDE + _HEAD_VERB_TAIL
+_HEAD_OPENS_SRC = (
     r"^\s*(?:(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*"
     r"(?:\s+and\s+(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*)?\s*,\s*)?"
-    r"(?:" + _HEAD_VERB_ALTERNATION + r")\b", re.IGNORECASE)
+    r"(?:{alternation})\b")
+_HEAD_OPENS_WITH_A_VERB_RE = LeveredPattern(
+    _HEAD_OPENS_SRC.replace("{alternation}", _HEAD_VERB_ALTERNATION_WIDE),
+    _HEAD_OPENS_SRC.replace("{alternation}", _HEAD_VERB_ALTERNATION),
+    re.IGNORECASE)
 # The hold IDIOMS. These are one order, not two, and `llm_client`'s own hold
 # branch enumerates them verbatim — "defend and hold", "fortify and hold",
 # "secure and hold". `defend and hold belgium` and `Ney, fortify and hold
@@ -349,7 +385,7 @@ def _split_sequential_orders(command_text: str, game_state=None):
                     honorific=HONORIFIC,
                     names="|".join(re.escape(n) for n in sorted(names, key=len,
                                                                 reverse=True)),
-                    verbs=_SECOND_ORDER_VERBS)
+                    verbs=_second_order_verbs())
                 match = re.search(pattern, command_text, re.IGNORECASE)
     if not match:
         return None
@@ -593,6 +629,147 @@ def rewrite_plain_attack_forms(command_text: str, game_state):
         if changed and text.startswith(name + ","):
             break
     return text, changed
+
+
+# ── RS-11 (Oct 3, 2026): "take <province>" is an OBJECTIVE ──────────────────
+# "Bernadotte, take Bohemia", "take Tyrol", "Iron Marshal, take Swabia" and
+# "go and take Bohemia" shrugged keyless ("take" is deliberately NOT a parse-
+# seam verb — `attack_vocabulary`'s pinned exclusion: "take care of X", "what
+# would it take"). The narrow rule reads "take" only when its object is a
+# PROVINCE or a foe on the board, and resolves the objective to a marshal and
+# a road the march law allows:
+#   * a foe at war  -> "attack <him>" (out of range, the attack road's own
+#     pursuit upgrade carries him);
+#   * a hostile province (held by a court at war with us, or a foe we can see
+#     stands on it) within the marshal's reach -> "capture <it>", the capture
+#     verbs' own attack road; beyond his reach -> "march to <it> and attack",
+#     a standing march with the attack on arrival, its road read by the march
+#     law at issuance (CRT-4) and refused free when there is none;
+#   * any other province -> "march to <it>".
+# No marshal named: the man in reach takes it (the bare-attack pick, S5-D1),
+# else the man with the shortest lawful road (`strategic.nearest_lawful_
+# marcher`), named in the reply. "take care of", "take the field" and "what
+# would it take" never match: their object is no province and no foe.
+TAKE_IS_AN_OBJECTIVE = True
+_TAKE_TAIL = (r"take\s+(?:the\s+(?:province|city|town|fortress|capital|citadel|region)\s+of\s+)?"
+              r"(?P<obj>[A-Za-z][\w'’ -]*?)(?:\s+(?:prisoner|captive|alive))?"
+              r"(?P<rest>\s*(?:[,;].*|\s+(?:and|then)\s+.*)?)\s*[.!]*$")
+_TAKE_RE = re.compile(
+    r"^(?P<head>\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*"
+    r"(?:\s+[A-Za-z][\w'’-]*)?)\s*[,:]\s*)?)"
+    r"(?:(?:please|now|go\s+and|go|then)\s+)?" + _TAKE_TAIL,
+    re.IGNORECASE)
+
+
+def _take_object(world, obj: str, player: Optional[str]):
+    """``("province", name)`` / ``("foe", name)`` / ``(None, None)``."""
+    obj = (obj or "").strip()
+    if not obj:
+        return None, None
+    for name in (getattr(world, "regions", None) or {}):
+        if name.lower() == obj.lower():
+            return "province", name
+    # a court is not a province: the capture road's own answer names its
+    # provinces ("Bavaria is a nation, not a province …")
+    if resolve_typed_nation(obj, world):
+        return "nation", obj
+    from backend.ai.llm_client import name_match_patterns
+    for marshal in (getattr(world, "marshals", None) or {}).values():
+        if getattr(marshal, "nation", None) == player:
+            continue
+        forms = {marshal.name.lower()} | {f.lower() for f in name_match_patterns(marshal.name)}
+        if obj.lower() in forms:
+            try:
+                at_war = world.is_at_war(player, marshal.nation)
+            except Exception:
+                at_war = False
+            return ("foe", marshal.name) if at_war else (None, None)
+    return None, None
+
+
+def _province_is_hostile(world, province: str, player: Optional[str]) -> bool:
+    region = (getattr(world, "regions", None) or {}).get(province)
+    controller = getattr(region, "controller", None)
+    try:
+        if controller and controller != player and world.is_at_war(player, controller):
+            return True
+        return any(e.location == province and int(e.strength) > 0
+                   for e in world.get_visible_enemies(player))
+    except Exception:
+        return False
+
+
+def rewrite_take_objective(command_text: str, game_state, world):
+    """RS-11 — ``(text, note)``: "take <province|foe>" restated as the order
+    the objective resolves to (see the rule above), and the note naming the
+    man the game chose when the line named none. ``(text, None)`` when the
+    line is not a take objective."""
+    if (not TAKE_IS_AN_OBJECTIVE or not command_text
+            or not re.search(r"\btake\b", command_text, re.IGNORECASE)):
+        return command_text, None
+    if world is None and isinstance(game_state, dict):
+        world = game_state.get("world")
+    if world is None or not isinstance(getattr(world, "marshals", None), dict):
+        return command_text, None
+    player = getattr(world, "player_nation", None)
+    ours = {m.name.lower(): m for m in world.marshals.values()
+            if getattr(m, "nation", None) == player}
+    m = _TAKE_RE.match(command_text)
+    no_comma_addr = None
+    if not m and ours:
+        names = "|".join(re.escape(n) for n in sorted(
+            (mm.name for mm in ours.values()), key=len, reverse=True))
+        m = re.match(r"^(?P<head>\s*(?P<addr>" + names + r")\s+)" + _TAKE_TAIL,
+                     command_text, re.IGNORECASE)
+        if m:
+            no_comma_addr = m.group("addr")
+    if not m:
+        return command_text, None
+    kind, obj = _take_object(world, m.group("obj"), player)
+    if kind is None:
+        return command_text, None
+    rest = m.group("rest") or ""
+    addr = (m.group("addr") or "").strip()
+    head = m.group("head") or ""
+    if no_comma_addr:
+        head = f"{no_comma_addr}, "
+    marshal = None
+    if addr:
+        key = re.sub("^" + HONORIFIC, "", addr, flags=re.IGNORECASE).strip().lower()
+        marshal = ours.get(key)
+        if marshal is None:
+            resolved = rewrite_epithets(f"{addr}, hold", game_state, world)
+            marshal = ours.get(resolved.split(",", 1)[0].strip().lower())
+        if marshal is None:
+            # a name nobody has: the verb alone is restated, and the
+            # unknown-name refusal answers it (CX-R1 / CR-2)
+            return f"{head}capture {obj}{rest}", None
+        head = f"{marshal.name}, "
+    if kind == "foe":
+        return f"{head}attack {obj}{rest}", None
+    if kind == "nation":
+        return f"{head}capture {obj}{rest}", None
+    hostile = _province_is_hostile(world, obj, player)
+    if marshal is not None:
+        if hostile and world.get_distance(marshal.location, obj) <= marshal.movement_range:
+            return f"{head}capture {obj}{rest}", None
+        tail = " and attack" if hostile else ""
+        return f"{head}march to {obj}{tail}{rest}", None
+    # no marshal named: the man in reach (S5-D1's pick), else the shortest
+    # lawful road
+    if hostile and any(
+            int(mm.strength) > 0 and not getattr(mm, "captured_by", "")
+            and world.get_distance(mm.location, obj) <= mm.movement_range
+            for mm in ours.values()):
+        return f"capture {obj}{rest}", None
+    from backend.commands.strategic import nearest_lawful_marcher
+    chosen, road, _refusal = nearest_lawful_marcher(world, obj)
+    if chosen is None:
+        return command_text, None
+    tail = " and attack" if hostile else ""
+    note = (f"{chosen.name} has the shortest open road to {obj}, Sire "
+            f"({len(road)} march{'es' if len(road) != 1 else ''}).")
+    return f"{chosen.name}, march to {obj}{tail}{rest}", note
 
 
 # SF-CMD-1 W7 — "Emperor to Rhineland": the telegraphic march.
@@ -1826,6 +2003,18 @@ class CommandParser:
                 ]
                 if len(word) < 2 or word_lower in skip_words:
                     continue
+                # SF-V8 (Oct 3, 2026), CRT-2's naval twin: a word the parser
+                # ROUTES an order on is never read as a marshal's name. "land
+                # Oudinot in Munster" bound LANNES — fuzz.partial_ratio("land",
+                # "lannes") is 75, over the 70 a four-letter query needs — and
+                # the expedition quoted Lannes' 18,000 for a man the player
+                # never named, four turns running. The hand list above went
+                # stale exactly here; the generated set (CX-R1) is the one
+                # source, and no roster name is in it.
+                if (A_ROUTED_WORD_IS_NEVER_A_NAME
+                        and word_lower in ROUTED_ORDER_WORDS
+                        and word_lower not in {v.lower() for v in valid_marshals}):
+                    continue
 
                 marshal_result = self.fuzzy_matcher.match_with_context(
                     word,
@@ -1872,6 +2061,17 @@ class CommandParser:
                         # accident: it fuzzy-matched the province "Oslo" (75).
                         if (word_index > 0 and words[word_index - 1][0]
                                 .strip(",.!?;:").lower() == "of"):
+                            continue
+                        # SF-V4 (Oct 3, 2026): a word in the OBJECT position
+                        # of an attack verb is the order's target, never its
+                        # executor — bare "attack Zorglub" asked "There is no
+                        # Marshal 'Zorglub' in the order of battle", and its
+                        # answer "1" sent Soult against Mack. The executor's
+                        # proper-name ask answers the target question.
+                        import backend.commands.proper_name as _pn
+                        if (_pn.A_PROPER_NAME_ASKS and word_index > 0
+                                and _OBJECT_OF_ATTACK_RE.fullmatch(
+                                    words[word_index - 1][0].strip(",.!?;:"))):
                             continue
                         # CR-1: only a CAPITALIZED unknown word reads as a
                         # name attempt worth a hard error — lowercase
@@ -2343,6 +2543,18 @@ class CommandParser:
         command_text, _arr = strip_arrival_idiom(command_text)
         command_text, _friend = rewrite_engagement_support(
             command_text, _player_marshal_names(game_state))
+        # CRT-11 (Oct 3, 2026): a second name is a ROLE — "march in support
+        # of Ney", "come to Ney's support", "follow Ney in and back him up"
+        # are the engine's SUPPORT order, restated before any reader.
+        from backend.ai.second_name import rewrite_support_role
+        command_text, _role = rewrite_support_role(
+            command_text, _player_marshal_names(game_state))
+        _friend = _friend or _role
+        # RS-11 (Oct 3, 2026): "take <province>" — the objective resolved to
+        # a marshal and a road the march law allows (see the rule's header).
+        _before_take = command_text
+        command_text, _take_note = rewrite_take_objective(command_text, game_state, world)
+        _friend = _friend or (command_text != _before_take)
         command_text, _halt_tail = strip_halt_tail(command_text)
         # (`_plain` is NOT restored: the pledge/hit forms rewrite the record
         # too, as NP-1's normalisation does — the executor's addressee gate
@@ -2358,6 +2570,9 @@ class CommandParser:
                 note = HALT_TAIL_NOTE.format(tail=_halt_tail)
                 result["warning"] = (f"{result['warning']} {note}"
                                      if result.get("warning") else note)
+            if _take_note and result.get("success"):
+                result["warning"] = (f"{result['warning']} {_take_note}"
+                                     if result.get("warning") else _take_note)
         if (typo_note or promoted) and isinstance(result, dict):
             result["raw_input"] = typed_text
             command = result.get("command")
@@ -2852,6 +3067,9 @@ class CommandParser:
                         # conditions were read (the echo's second half).
                         result["arrival_target"] = strategic.get("arrival_target")
                         result["condition_notes"] = list(strategic.get("condition_notes") or [])
+                        # SF-V4 §6.3 item 4: the dropped arrival name, named.
+                        if strategic.get("dropped_arrival_note"):
+                            result["dropped_arrival_note"] = strategic["dropped_arrival_note"]
                         # Override target with canonical name from strategic parser
                         strategic_target = strategic["target"]
                         # Apply fuzzy matching to strategic target (strategic parser

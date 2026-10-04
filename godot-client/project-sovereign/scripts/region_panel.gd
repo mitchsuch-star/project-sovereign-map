@@ -429,23 +429,42 @@ func _render() -> void:
 			terms = {}
 		var build_rows = []
 		var build_chips = ""
+		# CRT-9 (CQ-21): every administrative chip below spends one of the
+		# turn's administrative actions; with none left each is dimmed and
+		# says so (the recruit and substitute chips already did — their
+		# quotes run the executor's own gates).
+		var admin_why := _admin_why()
 		if max_slots > used_slots:
 			for def in _BUILD_CHIP_DEFS:
 				if not _region_has_building(data, str(def[0])):
 					var b_key := str(def[0])
 					var t = terms.get(b_key, {})
 					if t is Dictionary and t.has("cost"):
-						build_rows.append("    " + Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]) + " " + str(int(t.get("cost", 0))) + "g", Utils.COLOR_GOLD, _CHIP_BG)
-							+ " [color=#" + Utils.COLOR_GREY + "]" + _build_terms_text(b_key, t) + "[/color]")
-					else:
+						var b_label := str(def[1]) + " " + str(int(t.get("cost", 0))) + "g"
+						if admin_why == "":
+							build_rows.append("    " + Utils.bb_button_chip("do:" + str(def[2]) % _region, b_label, Utils.COLOR_GOLD, _CHIP_BG)
+								+ " [color=#" + Utils.COLOR_GREY + "]" + _build_terms_text(b_key, t) + "[/color]")
+						else:
+							build_rows.append("    " + Utils.bb_chip_disabled(b_label)
+								+ " [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
+					elif admin_why == "":
 						build_chips += Utils.bb_button_chip("do:" + str(def[2]) % _region, str(def[1]), Utils.COLOR_GOLD, _CHIP_BG) + " "
+					else:
+						build_chips += Utils.bb_chip_disabled(str(def[1])) + " "
 		if str(data.get("watchtower", "none")) == "none":
 			var wt = terms.get("watchtower", {})
 			if wt is Dictionary and wt.has("cost"):
-				build_rows.append("    " + Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower " + str(int(wt.get("cost", 0))) + "g", Utils.COLOR_GOLD, _CHIP_BG)
-					+ " [color=#" + Utils.COLOR_GREY + "]eyes on every adjacent province[/color]")
-			else:
+				var wt_label := "Watchtower " + str(int(wt.get("cost", 0))) + "g"
+				if admin_why == "":
+					build_rows.append("    " + Utils.bb_button_chip("do:build watchtower in " + _region, wt_label, Utils.COLOR_GOLD, _CHIP_BG)
+						+ " [color=#" + Utils.COLOR_GREY + "]eyes on every adjacent province[/color]")
+				else:
+					build_rows.append("    " + Utils.bb_chip_disabled(wt_label)
+						+ " [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
+			elif admin_why == "":
 				build_chips += Utils.bb_button_chip("do:build watchtower in " + _region, "Watchtower", Utils.COLOR_GOLD, _CHIP_BG) + " "
+			else:
+				build_chips += Utils.bb_chip_disabled("Watchtower") + " "
 		# SR-5b / NV-D9: the naval yard. The backend sends `naval_yard` only
 		# where this province is a yard SITE (an anchorage, an admiralty,
 		# not a yard already) and states the executor's own verdict in
@@ -455,6 +474,8 @@ func _render() -> void:
 		if yard is Dictionary and yard.has("cost"):
 			var yard_label := "Naval Yard " + Utils.format_number(int(yard.get("cost", 0))) + "g"
 			var yard_why := str(yard.get("refusal", ""))
+			if yard_why == "":
+				yard_why = admin_why
 			if yard_why == "":
 				build_rows.append("    " + Utils.bb_button_chip("do:build naval yard in " + _region, yard_label, Utils.COLOR_GOLD, _CHIP_BG)
 					+ " [color=#" + Utils.COLOR_GREY + "]keels laid and corps embarked here · "
@@ -475,7 +496,8 @@ func _render() -> void:
 			for br in build_rows:
 				action_rows.append(br)
 		if build_chips != "":
-			action_rows.append("  Build: " + build_chips)
+			action_rows.append("  Build: " + build_chips
+				+ ("" if admin_why == "" else "[color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]"))
 
 		# Repair — one chip per KIND of ruin, because they are different
 		# orders with different effects and (before the in-game pass) war
@@ -491,9 +513,12 @@ func _render() -> void:
 		var rep_cost := ""
 		if rep is Dictionary and rep.has("cost"):
 			rep_cost = " " + str(int(rep.get("cost", 0))) + "g"
-		if needs_repair:
+		if needs_repair and admin_why == "":
 			action_rows.append("  " + Utils.bb_button_chip("do:repair buildings in " + _region, "Repair works" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
 				+ "  [color=#" + Utils.COLOR_GREY + "]restore damaged works — and their upkeep[/color]")
+		elif needs_repair:
+			action_rows.append("  " + Utils.bb_chip_disabled("Repair works" + rep_cost)
+				+ "  [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
 		# Re-read: the display block's `war_dmg` is scoped to the fog
 		# branch it was declared in (the same reason `buildings` is
 		# re-declared above). This arm is inside the own-soil gate, so the
@@ -504,8 +529,12 @@ func _render() -> void:
 			if rep is Dictionary and rep.has("war_damage_pct"):
 				wd_terms = "−" + str(int(rep.get("war_damage_pct", 0))) + "% of " \
 					+ str(own_war_dmg) + "% — restores income"
-			action_rows.append("  " + Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
-				+ "  [color=#" + Utils.COLOR_GREY + "]" + wd_terms + "[/color]")
+			if admin_why == "":
+				action_rows.append("  " + Utils.bb_button_chip("do:repair " + _region, "Repair war damage" + rep_cost, Utils.COLOR_WARNING, _CHIP_BG)
+					+ "  [color=#" + Utils.COLOR_GREY + "]" + wd_terms + "[/color]")
+			else:
+				action_rows.append("  " + Utils.bb_chip_disabled("Repair war damage" + rep_cost)
+					+ "  [color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]")
 
 		# DEF-5 naval §9: the dockyard chip — only on player-controlled build
 		# sites, price quoted from the backend's live constant (honest-chip
@@ -525,6 +554,8 @@ func _render() -> void:
 				# — the second keel of a turn (the yards at capacity) and a
 				# short treasury were enabled chips the executor refused.
 				var ship_why = str(overlay.get("ship_build_refusal", ""))
+				if ship_why == "":
+					ship_why = admin_why
 				if ship_why == "":
 					action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
 						+ "  [color=#" + Utils.COLOR_GREY + "]" + yard_note + "[/color]")
@@ -549,6 +580,12 @@ func _render() -> void:
 					continue
 				var who = str(corps.get("marshal", ""))
 				var odds = int(corps.get("odds", 0))
+				# CRT-9: the state probe's verdict on this corps' landing.
+				var land_why := str(corps.get("refusal", ""))
+				if land_why != "":
+					action_rows.append("  " + Utils.bb_chip_disabled("Land " + who + " here")
+						+ "  [color=#" + Utils.COLOR_DIMMED + "]" + land_why + "[/color]")
+					continue
 				action_rows.append("  " + Utils.bb_button_chip(
 					"do:land " + who + " in " + _region,
 					"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG)
@@ -719,10 +756,24 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 				# gates), else dimmed at the end of the row with the reason:
 				# Ney and Davout beside Archduke Charles had enabled Fortify
 				# chips that answered "cannot fortify while engaged".
+				# CRT-9 (Oct 3, 2026): the orders his STATE or the turn's
+				# actions refuse — `tactical_state.order_refusals`, the
+				# backend's one probe (`state_probe.order_refusals`), the
+				# executor's gates in the executor's order. A refused chip is
+				# dimmed with the reason, said once for every chip it stops
+				# (CQ-21: at zero actions every chip was offered and refused).
+				var refusals = tactical.get("order_refusals", {})
+				if not (refusals is Dictionary):
+					refusals = {}
+				var dimmed := []
 				var fortified = bool(tactical.get("fortified", false))
-				var fortify_why = str(tactical.get("fortify_refusal", ""))
+				var fortify_why = str(refusals.get("fortify", tactical.get("fortify_refusal", "")))
 				if fortified:
-					row += "  " + Utils.bb_button_chip("order:unfortify:" + m_name, "Unfortify", Utils.COLOR_COMMAND, _CHIP_BG)
+					var unfortify_why = str(refusals.get("unfortify", ""))
+					if unfortify_why == "":
+						row += "  " + Utils.bb_button_chip("order:unfortify:" + m_name, "Unfortify", Utils.COLOR_COMMAND, _CHIP_BG)
+					else:
+						dimmed.append(["Unfortify", unfortify_why])
 				elif fortify_why == "":
 					row += "  " + Utils.bb_button_chip("order:fortify:" + m_name, "Fortify", Utils.COLOR_COMMAND, _CHIP_BG)
 				# CN-4: the Drill chip is offered only where the drill would
@@ -732,14 +783,19 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 				# 1805 boot every French corps stood one province from Mack
 				# and every Drill chip answered "cannot drill with enemy
 				# forces nearby".
-				var drill_why = str(tactical.get("drill_refusal", ""))
+				var drill_why = str(refusals.get("drill", tactical.get("drill_refusal", "")))
 				var drilling = bool(tactical.get("drilling", false))
 				if not drilling and drill_why == "":
 					row += "  " + Utils.bb_button_chip("order:drill:" + m_name, "Drill", Utils.COLOR_COMMAND, _CHIP_BG)
-				row += "  " + Utils.bb_button_chip("order:scout:" + m_name, "Scout", Utils.COLOR_COMMAND, _CHIP_BG)
+				var scout_why = str(refusals.get("scout", ""))
+				if scout_why == "":
+					row += "  " + Utils.bb_button_chip("order:scout:" + m_name, "Scout", Utils.COLOR_COMMAND, _CHIP_BG)
+				else:
+					dimmed.append(["Scout", scout_why])
 				# Attack chips — only enemies the fog actually shows here
 				# (enemy marshals ride region_marshals at FULL visibility
 				# only), capped so a stacked province stays readable.
+				var attack_why = str(refusals.get("attack", ""))
 				for i in range(mini(enemy_names.size(), 2)):
 					var enemy = str(enemy_names[i])
 					if enemy != "":
@@ -748,12 +804,46 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 						# history read what the player saw (the parser
 						# resolves the printed form — pinned by driving it).
 						var enemy_shown = Utils.humanize_entity_name(enemy)
-						row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR, _CHIP_BG)
+						if attack_why == "":
+							row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR, _CHIP_BG)
+						else:
+							dimmed.append(["Attack " + enemy_shown, attack_why])
 				if not fortified and fortify_why != "":
-					row += "  " + Utils.bb_chip_disabled("Fortify") + " [color=#" + Utils.COLOR_DIMMED + "]" + fortify_why + "[/color]"
+					dimmed.append(["Fortify", fortify_why])
 				if not drilling and drill_why != "":
-					row += "  " + Utils.bb_chip_disabled("Drill") + " [color=#" + Utils.COLOR_DIMMED + "]" + drill_why + "[/color]"
+					dimmed.append(["Drill", drill_why])
+				row += _dimmed_chips(dimmed)
 	return row + "\n"
+
+
+func _dimmed_chips(dimmed: Array) -> String:
+	"""CRT-9: the refused chips, grouped by their reason — each reason said
+	once after the chips it stops ("the one reason", CQ-21's done-when)."""
+	var out := ""
+	var reasons := []
+	for entry in dimmed:
+		if not (str(entry[1]) in reasons):
+			reasons.append(str(entry[1]))
+	for why in reasons:
+		for entry in dimmed:
+			if str(entry[1]) == why:
+				out += "  " + Utils.bb_chip_disabled(str(entry[0]))
+		out += " [color=#" + Utils.COLOR_DIMMED + "]" + why + "[/color]"
+	return out
+
+
+func _admin_why() -> String:
+	"""CRT-9 (CQ-21): the reason an administrative chip (a build, a repair,
+	a keel) is refused for the turn's actions — read off the payload's
+	`action_pools` (the top bar's own figures), "" while one remains."""
+	if _map_node == null or not ("action_pools" in _map_node):
+		return ""
+	var pools = _map_node.action_pools
+	if not (pools is Dictionary) or not pools.has("admin"):
+		return ""
+	if int(pools.get("admin", 1)) <= 0:
+		return "no administrative action left this turn"
+	return ""
 
 
 func _region_has_building(data: Dictionary, building_type: String) -> bool:

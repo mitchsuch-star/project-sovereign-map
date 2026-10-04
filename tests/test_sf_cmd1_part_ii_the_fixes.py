@@ -455,6 +455,28 @@ class TestW7TheAdverbAndTheReasonClause:
         reply = post(client, "Ney, fall back to Lorraine")
         assert "Lorraine" in reply["message"]
 
+    N2_TAILS = ("Ney, fall back now", "Ney, fall back in good order",
+                "Ney, fall back and regroup", "Ney, fall back at once",
+                "Ney, withdraw immediately", "Ney, retire at once")
+
+    @pytest.mark.parametrize("line", N2_TAILS)
+    def test_cx5_l5_n2_a_manner_tail_is_no_destination(self, shipped, line):
+        """CX5-L5-N2 (the CR-6 triage, Sept 23), closed by this rule and
+        re-measured at the Chunk 3b exit (Oct 3, 2026): "now", "at once",
+        "in good order", "and regroup", "immediately" had each been read
+        as a DESTINATION ("Region 'Now' not found.")."""
+        client, world = shipped
+        message = post(client, line)["message"]
+        assert "not found" not in message, message
+        assert "could not make out a destination" not in message, message
+        assert "retreat" in message.lower() or "objects" in message, message
+
+    def test_cx5_l5_n2_the_lever_down_reads_the_tail_as_a_place(self, shipped, monkeypatch):
+        import backend.commands.parser as P
+        client, world = shipped
+        monkeypatch.setattr(P, "A_REASON_TAIL_IS_NOT_A_DESTINATION", False)
+        assert "Region 'Now' not found" in post(client, "Ney, fall back now")["message"]
+
     def test_emperor_to_rhineland_is_a_move(self, shipped):
         client, world = shipped
         reply = post(client, "Emperor to Rhineland")

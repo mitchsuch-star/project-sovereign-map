@@ -181,12 +181,24 @@ class TestTheParseAndTheRecord:
         ("Ney, march to Swabia then attack", None),
         ("Ney, march to Swabia then attack the Austrians", None),
         ("Ney, march to Swabia then attack Davout", None),      # one of ours
-        ("Ney, march to Swabia then attack Zorglub", None),
     ])
     def test_the_object_is_parsed_or_left_empty(self, shipped, text, expected):
         got = M.parser.parse(text, M.get_llm_game_state(), world=M.world)
         assert got.get("attack_on_arrival") is True
         assert got.get("arrival_target") == expected
+
+    def test_an_unknown_proper_name_arms_no_attack(self, shipped):
+        """RE-SEATED CONSCIOUSLY by SF-V4 (Oct 3, 2026; SCORE_FINISH_SPEC.md
+        §6.3 item 4, which names this line): "Zorglub" rode the parametrize
+        above with `attack_on_arrival is True` — an attack ARMED against no
+        one, which every contact seam then spent on `enemies[0]`. The march
+        stands, no attack is armed, and the reply names the dropped word."""
+        got = M.parser.parse("Ney, march to Swabia then attack Zorglub",
+                             M.get_llm_game_state(), world=M.world)
+        assert got.get("strategic_type") == "MOVE_TO"
+        assert got.get("attack_on_arrival") is False
+        assert got.get("arrival_target") is None
+        assert "No foe called Zorglub" in (got.get("dropped_arrival_note") or "")
 
     def test_it_round_trips(self):
         order = StrategicOrder(command_type="MOVE_TO", target="Swabia", target_type="region",

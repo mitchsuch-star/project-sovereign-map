@@ -212,6 +212,11 @@ def _build_marshal_card(marshal: Marshal, world) -> Dict[str, Any]:
         # (`tactical_executor.drill_refusal`), "" when the drill would begin.
         "drill_refusal": _drill_refusal_short(world, marshal),
         "fortify_refusal": _fortify_refusal_short(world, marshal),
+        # CRT-9 (Oct 3, 2026): every order his STATE or the turn's actions
+        # refuse (`state_probe.order_refusals`, the same map the region
+        # panel's chips and the completer read) — the card's Fortify /
+        # Unfortify / Drill chips dim with it.
+        "order_refusals": _order_refusals_of(world, marshal),
 
         # ═══════ CAVALRY/ARTILLERY SPECIFICS ═══════
         **_build_unit_specifics(marshal),
@@ -547,6 +552,15 @@ def _build_estates(marshal: Marshal, world) -> Dict[str, Any]:
         "steward_tier": steward_tier,
         "steward_note": steward_note,
     }
+
+
+def _order_refusals_of(world, marshal) -> Dict:
+    """CRT-9: the card's copy of `state_probe.order_refusals`."""
+    try:
+        from backend.commands.state_probe import order_refusals
+        return order_refusals(world, marshal)
+    except Exception:
+        return {}
 
 
 def _build_current_status(marshal: Marshal) -> Dict[str, Any]:

@@ -76,8 +76,14 @@ class TestANearMissOfARosterNameAsks:
         message = str(data.get("message") or "")
         for hidden in ("Carniola", "Podolia", "Charles", "Kutuzov", "Buxhowden"):
             assert hidden not in message, (hidden, message)
-        assert "whom shall ney engage" in message.lower() or \
-            "whom shall he engage" in message.lower(), message
+        # SF-V4 (Oct 3, 2026) — RE-SEATED CONSCIOUSLY: the near miss now
+        # speaks the proper-name ask ("No foe called Archduke Charls is in
+        # sight, Sire. The nearest in sight is Mack at Swabia — shall Ney
+        # engage him?"), CQ-30 widened inside it (SCORE_FINISH_SPEC §6.3).
+        # The fog rule this pin exists for is unchanged.
+        assert ("shall ney engage" in message.lower()
+                or "whom shall ney engage" in message.lower()
+                or "whom shall he engage" in message.lower()), message
 
     @pytest.mark.parametrize("utterance", ["Ney, attack Archduke Charls",
                                            "Ney, attack Kutusof"])
@@ -85,7 +91,8 @@ class TestANearMissOfARosterNameAsks:
         client, world = shipped
         data = post(client, utterance)
         message = str(data.get("message") or "")
-        assert message.startswith("No foe of that name is in sight"), message
+        # SF-V4 re-seat: the ask names the word the player typed.
+        assert message.startswith("No foe called "), message
         assert data.get("clarification_kind") == "attack_target", data.get("clarification_kind")
 
     def test_a_description_still_discloses_and_proceeds(self, shipped):
@@ -109,6 +116,10 @@ class TestANearMissOfARosterNameAsks:
     def test_the_lever_down_reproduces_the_battle_against_mack(self, shipped, monkeypatch):
         client, world = shipped
         monkeypatch.setattr(CE, "A_NEAR_MISS_ASKS", False)
+        # SF-V4 re-seat: the proper-name ask answers the near miss first at
+        # the dispatch seam, so BOTH levers come down to reproduce the battle.
+        import backend.commands.proper_name as PN
+        monkeypatch.setattr(PN, "A_PROPER_NAME_ASKS", False)
         data = post(client, "Ney, attack Archduke Charls")
         assert "marches on Mack" in str(data.get("message") or "") or \
             data.get("battle_report") or data.get("muster_preview"), data.get("message")

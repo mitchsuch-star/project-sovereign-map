@@ -103,7 +103,9 @@ class TestTheLedgersTellTheTruth:
         assert rows["WO-D13"]["state"] == "closed"
         assert rows["EWC-D3"]["state"] == "disposed"
         assert rows["VP-D8"]["state"] == "disposed"
-        assert rows["IQ6-D2"]["state"] == "OPEN" and rows["IQ6-D2"]["step"] == "3"
+        # Ruled October 3, 2026 (§6 row 12): the row stays OPEN as the build's
+        # owner, re-homed from Step 3's gate to Step 5's SR-8c.
+        assert rows["IQ6-D2"]["state"] == "OPEN" and rows["IQ6-D2"]["step"] == "5"
 
     def test_the_heading_form_design_rows_are_counted(self, rows):
         # Step 0 read NPC-D1 / NPC-D4 OPEN; Step 2 BUILT both (Oct 2, 2026),

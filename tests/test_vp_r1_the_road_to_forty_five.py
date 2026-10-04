@@ -766,7 +766,9 @@ def test_a_played_arm_reaches_forty_five_by_turn_forty():
         "sr1e-aar-road", "sr1e-gev-b", "sr1e-gev-a",
         "sr2e-q0-aar-road", "sr2e-q0-gev-b", "sr2e-q0-gev-a",
         "rf1-q0-aar-road", "rf1-q0-gev-a", "rf1-q0-gev-b",
-        "rf1-q0-aar-road-staff", "rf1-q0-gev-a-staff", "rf1-q0-gev-b-staff")]
+        "rf1-q0-aar-road-staff", "rf1-q0-gev-a-staff", "rf1-q0-gev-b-staff",
+        # Step 4's exit (Oct 3, 2026): T5's re-drive after the doctrines
+        "sf4-q0-aar-road", "sf4-q0-gev-a", "sf4-q0-gev-b")]
     assert all(t["turn"] >= 40 for t in tails)
     assert any(t["titled"] >= t["hold_titled"] for t in tails), tails
 

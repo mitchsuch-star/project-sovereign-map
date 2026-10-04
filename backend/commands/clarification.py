@@ -290,6 +290,50 @@ def build_attack_target_clarification(world, marshal, enemies,
     )
 
 
+def build_proper_name_clarification(world, marshal, foes, raw_input: str,
+                                    question: str) -> Optional[Dict]:
+    """SF-V4 (CRT-10, Oct 3, 2026): the ask for an attack on a proper name
+    the map does not know — "No foe called Zorglub is in sight, Sire. The
+    nearest in sight is Mack at Swabia — shall Ney engage him?".
+
+    ``foes`` arrive NEAREST FIRST and only foes in sight (PARTIAL or better);
+    the first is the one the question names, so "yes", "attack him" and
+    "engage him" resolve to HIM (the caller sets ``interpreted_target``).
+    With no marshal named (the bare "attack Zorglub") every option reissues
+    the bare "attack <foe>", which re-enters the bare-attack pick (S5-D1) —
+    the TARGET question, never the marshal question. Returns None when no
+    answer could afford the attack, so the caller keeps its refusal.
+    """
+    visible = [e for e in (foes or []) if getattr(e, "strength", 0) > 0]
+    if not visible:
+        return None
+    if not _answer_is_affordable(world, "attack"):
+        return None
+    options: List[Dict] = []
+    for index, enemy in enumerate(visible[:6]):
+        name_display = humanize_entity_name(enemy.name)
+        location_display = humanize_entity_name(enemy.location)
+        command = (f"{marshal.name}, attack {enemy.name}" if marshal is not None
+                   else f"attack {enemy.name}")
+        aliases = [enemy.name, enemy.location, name_display, location_display,
+                   f"attack {enemy.name}", f"attack {name_display}",
+                   f"attack {location_display}", f"engage {name_display}"]
+        if index == 0:
+            aliases += ["him", "attack him", "engage him", "yes, attack him",
+                        "yes attack him", "yes, engage him", "go on", "do so"]
+        options.append({
+            "label": f"{name_display} at {location_display}",
+            "value": "attack_target_choice",
+            "target": enemy.name,
+            "command": command,
+            "aliases": aliases,
+        })
+    return _clarification_response(
+        world, question=question, options=options,
+        clarification_kind="attack_target", strategic_type=None,
+        raw_input=raw_input)
+
+
 def build_move_destination_clarification(world, marshal,
                                          raw_input: str) -> Optional[Dict]:
     """"Where shall he march, Sire?" — the answer surface for a move order

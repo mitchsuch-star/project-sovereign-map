@@ -125,6 +125,8 @@ class MapStub extends Node:
 	var region_garrisons: Dictionary = {}
 	var levy_status: Dictionary = {}
 	var naval_overlay: Dictionary = {}
+	# CRT-9 (CQ-21): the turn's action pools the administrative chips read.
+	var action_pools: Dictionary = {}
 
 	func load_game_state(gs: Dictionary) -> void:
 		var map_data = gs.get("map_data", {})
@@ -151,6 +153,8 @@ class MapStub extends Node:
 		levy_status = levy if levy is Dictionary else {}
 		var naval = gs.get("naval_overlay", {})
 		naval_overlay = naval if naval is Dictionary else {}
+		var pools = gs.get("action_pools", {})
+		action_pools = pools if pools is Dictionary else {}
 
 
 # ── lifecycle ───────────────────────────────────────────────────────────────

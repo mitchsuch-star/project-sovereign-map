@@ -1954,6 +1954,34 @@ class CommandExecutor:
                 "new_state": world,
             }
 
+        # ════════════════════════════════════════════════════════════
+        # SF-V4 / CRT-10 (Oct 3, 2026): A PROPER NAME ASKS. An attack whose
+        # object is a proper name the map does not know — "Ney, attack
+        # Zorglub" / "Alsace" / "Lombardy" — fought the nearest enemy behind
+        # a disclosure. It is ASKED here, free, naming only foes in sight,
+        # BEFORE the objection gate, the bare-attack pick and every state the
+        # attack itself touches (the square, the counter-punch, a drill);
+        # a description ("the retreating column") keeps its disclosed
+        # substitution further down (`guessed_target_refusal`). Player's
+        # typed road only: AI, strategic execution and muster re-issues carry
+        # no raw text (SCORE_FINISH_SPEC.md §6.3).
+        if ((action == "attack"
+                or command.get("type") in ("general_attack", "auto_assign_attack"))
+                and not is_ai_command
+                and not is_strategic_execution
+                and not command.get("_autonomous_execution")
+                and not command.get("_auto_assigned")
+                # a standing march's attack TAIL is the strategic parser's
+                # (`arrival_object_note`): the march stands, no attack armed
+                and not parsed_command.get("is_strategic")):
+            from backend.commands.proper_name import attack_proper_name_ask
+            _named_raw = str(command.get("_raw_input")
+                             or parsed_command.get("raw_input") or "")
+            _asked = attack_proper_name_ask(
+                world, world.get_marshal(command.get("marshal") or ""), _named_raw)
+            if _asked is not None:
+                return _asked
+
         if (command.get("type") in ("general_attack", "auto_assign_attack")
                 and not is_ai_command
                 and not is_strategic_execution
@@ -2888,6 +2916,14 @@ class CommandExecutor:
                 parsed_command.get("is_strategic") and
                 parsed_command.get("strategic_type")):
             strategic_result = self._strategic._execute_strategic_command(parsed_command, command, game_state)
+            # SF-V4 §6.3 item 4: the reply names the dropped arrival word —
+            # also when the first step answered with a contact question,
+            # which replaces the order's echo.
+            _dropped_note = parsed_command.get("dropped_arrival_note")
+            if (_dropped_note and isinstance(strategic_result, dict)
+                    and _dropped_note not in str(strategic_result.get("message") or "")):
+                strategic_result["message"] = (
+                    f"{strategic_result.get('message') or ''} Berthier: \"{_dropped_note}.\"").strip()
             if strategic_result is not None:
                 # Strategic command handled — set result and flow to action economy
                 result = strategic_result

@@ -1,0 +1,299 @@
+{
+ "tree": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map",
+ "sha": "e631f4bd4a798ec43d75b9fc9ca221c155966d7c",
+ "started": "2026-10-03T19:48",
+ "jobs": 3,
+ "arms": {
+  "CMD-M": {
+   "arm": "CMD-M",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 25.9,
+   "cmd": [
+    "--name",
+    "CMD-M",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "marengo"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 28,
+     "hold_titled": 45,
+     "provinces": 22
+    },
+    {
+     "save": "CMD-M_t10.json",
+     "turn": 10,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t40.json",
+     "turn": 40,
+     "titled": 30,
+     "hold_titled": 45,
+     "provinces": 24
+    }
+   ]
+  },
+  "CMD-H": {
+   "arm": "CMD-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 26.7,
+   "cmd": [
+    "--name",
+    "CMD-H",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 30,
+     "hold_titled": 45,
+     "provinces": 24
+    },
+    {
+     "save": "CMD-H_t10.json",
+     "turn": 10,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t20.json",
+     "turn": 20,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t30.json",
+     "turn": 30,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t40.json",
+     "turn": 40,
+     "titled": 30,
+     "hold_titled": 45,
+     "provinces": 24
+    }
+   ]
+  },
+  "CMD-A": {
+   "arm": "CMD-A",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 26.7,
+   "cmd": [
+    "--name",
+    "CMD-A",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "austerlitz"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-A_t10.json",
+     "turn": 10,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-A_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-A_t40.json",
+     "turn": 40,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 27
+    }
+   ]
+  },
+  "FC": {
+   "arm": "FC",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 4.2,
+   "cmd": [
+    "--name",
+    "FC",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_first_contact.json",
+    "--turns",
+    "2",
+    "--diplomacy",
+    "decline"
+   ]
+  },
+  "DL": {
+   "arm": "DL",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 5.2,
+   "cmd": [
+    "--name",
+    "DL",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_docked_lines.json",
+    "--turns",
+    "3"
+   ]
+  },
+  "DESC": {
+   "arm": "DESC",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 8.7,
+   "cmd": [
+    "--name",
+    "DESC",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/naval_descent.json",
+    "--turns",
+    "14"
+   ]
+  },
+  "HOLD": {
+   "arm": "HOLD",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 5.6,
+   "cmd": [
+    "--name",
+    "HOLD",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_hold_2026_09_29.json",
+    "--turns",
+    "2"
+   ]
+  },
+  "OP": {
+   "arm": "OP",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 18.5,
+   "cmd": [
+    "--name",
+    "OP",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_03_chunk3b\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_aar_typed.json",
+    "--turns",
+    "18",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept"
+   ]
+  }
+ },
+ "skipped": {
+  "CLI": "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (\u00a74.6)"
+ },
+ "finished": "2026-10-03T19:48"
+}

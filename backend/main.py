@@ -6605,6 +6605,9 @@ def get_marshal_overview():
         "glory_window": int(GLORY_WINDOW),
         # Marshal recruitment: the commissionable candidate pool
         "recruitment": build_recruitment_payload(world),
+        # CRT-9 (Oct 3, 2026): the two pools, so the screen can state them.
+        "action_pools": __import__("backend.commands.state_probe",
+                                   fromlist=["action_pools"]).action_pools(world),
     }
     # SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE above the ladder — name,
     # says, strength and flaw with their numbers, the cure's status. None on

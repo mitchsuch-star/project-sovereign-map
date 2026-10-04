@@ -2660,6 +2660,16 @@ class StrategicExecutor:
             else:
                 bad_odds_msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path at "
                                 f"{blocked_region}. Odds unfavorable. Your orders?'")
+                # CRT-11 / RS-8 rider (P4): the marshal's read stays solo (his
+                # corps against the foe), and Berthier names the muster — the
+                # same PC-8 note the inferred modal has carried since Aug 3.
+                # An explicit "march on Swabia and destroy Mack" was decided
+                # on "Odds unfavorable" while the battle it would start drew
+                # 85,000 men against 52,000.
+                from backend.commands import strategic as _strategic_mod
+                if _strategic_mod.THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
+                    bad_odds_msg += self._executor._combat._bad_odds_muster_note(
+                        marshal, enemy, world)
             # FA-N60: the stored ask carries its own line (the synchronous
             # popup and the /load restore read THIS dict).
             marshal.pending_interrupt["message"] = bad_odds_msg

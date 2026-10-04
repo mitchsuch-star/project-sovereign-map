@@ -170,6 +170,85 @@ def guard_attack_verbs() -> frozenset:
             | {"take", "go"})
 
 
+# ── CRT-11 / RS-8 (Oct 3, 2026): the arrival tail hears every battle verb ────
+# "Ney, march on Swabia and destroy Mack" stored a plain march and the
+# destroy clause vanished without a word (keyless and keyed, 0.95): the five
+# readers that decide whether a march's TAIL is an attack on arrival —
+# `parser`'s split gate and its move→march promotion, `strategic_parser`'s
+# hint and object readers, `condition_grammar`'s tail cut — each held a hand
+# list of three verbs (attack / engage / assault). "and attack Mack" joined;
+# "and destroy Mack" did not, and "Ney, fortify and destroy Mack" FOUGHT with
+# the fortify swallowed (CR-7-1's class, one verb over). The lists are built
+# here, from the vocabulary the parse seam already routes to `attack`.
+# Flip lever: False restores the three-verb lists byte for byte.
+THE_DESTROY_CLAUSE_IS_HEARD = True
+
+ARRIVAL_TAIL_VERBS = BATTLE_VERBS | CAPTURE_VERBS
+_NARROW_ARRIVAL_TAIL_VERBS = ("attack", "engage", "assault")
+
+# The battle verbs the order-verb SPLIT list (`parser._SECOND_ORDER_VERBS`)
+# gains: verbs that always take a FOE as their object, so a clause they open
+# is a second order behind any head that cannot carry an arrival. Held out on
+# purpose, each still an arrival-tail verb: "fight" ("hold Rhineland and fight
+# to the last" is one order), "strike" ("strike camp and march"), "defeat"
+# ("hold and defeat any attack"), "ambush", and the capture verbs ("attack
+# Mack and capture Swabia" restates one objective).
+SECOND_ORDER_BATTLE_VERBS = frozenset({
+    "destroy", "crush", "smash", "annihilate", "obliterate", "rout",
+})
+
+
+def _alternation(words) -> str:
+    return "|".join(sorted(words, key=lambda w: (-len(w), w)))
+
+
+def arrival_tail_alternation(wide: bool) -> str:
+    """The bare verb alternation (no `\\b`, no group) an arrival-tail regex
+    is built from — every battle and capture verb, or the three-verb list
+    the readers held before CRT-11."""
+    return _alternation(ARRIVAL_TAIL_VERBS if wide else _NARROW_ARRIVAL_TAIL_VERBS)
+
+
+class LeveredPattern:
+    """Two compiled forms of one regex and the lever that chooses between
+    them at CALL time, so a lever-down pin can flip it with monkeypatch while
+    every call site keeps its `.match` / `.search` idiom. The lever is
+    `THE_DESTROY_CLAUSE_IS_HEARD` (read from this module on every call)."""
+
+    __slots__ = ("_wide", "_narrow")
+
+    def __init__(self, wide_src: str, narrow_src: str, flags: int = 0):
+        self._wide = re.compile(wide_src, flags)
+        self._narrow = re.compile(narrow_src, flags)
+
+    def _pick(self):
+        return self._wide if THE_DESTROY_CLAUSE_IS_HEARD else self._narrow
+
+    @property
+    def pattern(self) -> str:
+        return self._pick().pattern
+
+    def match(self, *args, **kwargs):
+        return self._pick().match(*args, **kwargs)
+
+    def search(self, *args, **kwargs):
+        return self._pick().search(*args, **kwargs)
+
+    def finditer(self, *args, **kwargs):
+        return self._pick().finditer(*args, **kwargs)
+
+    def sub(self, *args, **kwargs):
+        return self._pick().sub(*args, **kwargs)
+
+
+def levered_arrival_pattern(template: str, flags: int = 0) -> LeveredPattern:
+    """`template` holds one `{verbs}` slot; it is compiled with the wide and
+    the narrow verb alternation."""
+    return LeveredPattern(template.format(verbs=arrival_tail_alternation(True)),
+                          template.format(verbs=arrival_tail_alternation(False)),
+                          flags)
+
+
 def guard_attack_verb_forms() -> frozenset:
     """`guard_attack_verbs()` plus the inflections a typed order carries —
     "destroys", "destroyed", "destroying", "crushes" — for the parser's

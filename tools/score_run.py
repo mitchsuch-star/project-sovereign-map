@@ -2189,7 +2189,17 @@ def r_command_C4(arms, ctx):
     for line in _dl_lines(ctx, "SF-V4"):
         c = blocks.get(line.strip().lower())
         if c:
-            fought = any("⚔" in s for s in c["sub"]) or re.search(
+            # Chunk 3b (Oct 3, 2026): a battle AFTER the player's answer to
+            # the question is the order he gave, not a substitution — the
+            # driver answers the clarification by its dial ("first": yes), so
+            # only a fight BEFORE that answer fails the ruling (§6.3).
+            subs = c["sub"]
+            answered_at = next(
+                (i for i, s in enumerate(subs)
+                 if s.lstrip("- ").startswith("POPUP clarification")),
+                len(subs),
+            )
+            fought = any("⚔" in s for s in subs[:answered_at]) or re.search(
                 r"marches on|MUSTER", c["head"]
             )
             asked = (

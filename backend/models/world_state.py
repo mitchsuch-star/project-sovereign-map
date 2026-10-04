@@ -248,6 +248,21 @@ def _passable_nations(world) -> list:
         return []
 
 
+def _order_refusals(world, marshal) -> Dict:
+    """CRT-9: `state_probe.order_refusals` (a display-only read)."""
+    try:
+        from backend.commands.state_probe import order_refusals
+        return order_refusals(world, marshal)
+    except Exception:
+        return {}
+
+
+def _action_pools(world) -> Dict:
+    """CRT-9: `state_probe.action_pools` (a display-only read)."""
+    from backend.commands.state_probe import action_pools
+    return action_pools(world)
+
+
 def _scout_range_of(marshal) -> int:
     """CX-R2: `movement_executor.scout_range` — the reach `_execute_scout`
     refuses beyond."""
@@ -10179,6 +10194,10 @@ class WorldState:
                         "bombardments_this_turn": int(getattr(m, 'bombardments_this_turn', 0)),
                         # Square formation (Session 67)
                         "square_formation": bool(getattr(m, 'square_formation', False)),
+                        # CRT-9 (Oct 3, 2026): the orders his STATE or the
+                        # turn's actions refuse, verb -> short reason, read
+                        # by the region panel's chips and the completer.
+                        "order_refusals": _order_refusals(self, m),
                     }
 
                     # Session 66: Relationships for tooltip display
@@ -10346,6 +10365,9 @@ class WorldState:
             # offers `march to` only over this soil. Public: diplomacy
             # carries no fog.
             "passable_nations": _passable_nations(self),
+            # CRT-9 (Oct 3, 2026): the two pools, so a region chip that
+            # spends an administrative action dims when none is left.
+            "action_pools": _action_pools(self),
             "game_over": self.game_over,
             "victory": self.victory,
             # GE-1: every ending stamped, compact (the end screen's register,

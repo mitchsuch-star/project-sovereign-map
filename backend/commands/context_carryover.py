@@ -256,6 +256,40 @@ def _is_enemy_marshal(world, name: Optional[str]) -> bool:
 A_SUPPORTED_PRONOUN_IS_OURS = True
 # SF-CMD-1 (ii): "hold it" names the province the same line named.
 A_SAME_LINE_IT_IS_THE_PROVINCE = True
+# CRT-11 (Oct 3, 2026): "Lannes, follow Ney in and support him" — the man
+# after the support verb is the marshal of ours the SAME CLAUSE named before
+# it, not the last man addressed (who may be Lannes himself).
+A_SAME_CLAUSE_FRIEND_IS_HIM = True
+
+
+def _same_clause_friend(world, text: str, pronoun_start: int) -> Optional[str]:
+    """The marshal of ours named earlier in the pronoun's own clause, or
+    None. The clause opens at the last comma, semicolon or `then` before
+    the pronoun — the address comma included, so the addressee is never his
+    own antecedent; the name standing right before the support verb is that
+    verb's SUBJECT ("Davout support him") and is passed over too."""
+    before = text[:pronoun_start]
+    verb = re.search(r"([A-Za-z']+)[\s,;:.!?]*$", before)
+    if not verb:
+        return None
+    clause_start = max(before.rfind(","), before.rfind(";"))
+    then = None
+    for then in re.finditer(r"\bthen\b", before, re.IGNORECASE):
+        pass
+    if then is not None:
+        clause_start = max(clause_start, then.end() - 1)
+    clause = before[clause_start + 1:verb.start()]
+    found = []
+    for name in _field_marshal_names(world):
+        for hit in re.finditer(r"\b" + re.escape(name) + r"\b", clause, re.IGNORECASE):
+            found.append((hit.start(), hit.end(), name))
+    if not found:
+        return None
+    found.sort()
+    # the subject of the support verb: nothing but blanks between him and it
+    if not clause[found[-1][1]:].strip():
+        found.pop()
+    return found[-1][2] if found else None
 
 
 def _last_addressed_marshal(world) -> Optional[str]:
@@ -506,7 +540,9 @@ def resolve_context_references(command_text: str, world) -> Dict:
         # him Mack.
         if (A_SUPPORTED_PRONOUN_IS_OURS and _prev in _FIRST_PERSON_SUPPORT_ANCHORS
                 and person_match.group(0).lower() in ("him", "her")):
-            friend = _last_addressed_marshal(world)
+            friend = ((_same_clause_friend(world, working, person_match.start())
+                       if A_SAME_CLAUSE_FRIEND_IS_HIM else None)
+                      or _last_addressed_marshal(world))
             if friend:
                 working = (working[:person_match.start()] + friend
                            + working[person_match.end():])

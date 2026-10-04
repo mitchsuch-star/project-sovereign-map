@@ -884,3 +884,41 @@ class TestTheFiringSurfaces:
             preview = ex._build_muster_preview(ney, hohenlohe, world, {"world": world})
         note = preview.get("supply_note", "")
         assert "Living off the land: this poor country feeds our army 80%" in note, note
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# T5 (DOCTRINES_SPEC.md §6) — the road to 45, re-measured at Step 4's exit
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestT5TheRoadToFortyFiveAfterTheDoctrines:
+    """SR-7d-X2's T5, measured October 3, 2026: the three Q0 roads re-driven on
+    the shipped tree with the doctrines up and with `DOCTRINES_ACTIVE` down
+    (the counterfactual on the SAME tree — the RF-1 reading of Sept 27
+    predates Steps 1–4). Pass = the best road's titled count falls by no more
+    than two provinces. The archives are the record; this pin reads them."""
+
+    DIGESTS = Path(__file__).resolve().parents[1] / "docs" / "audits" / "playtest_digests"
+    ROADS = ("aar-road", "gev-a", "gev-b")
+
+    def _best(self, suffix):
+        best = 0
+        for road in self.ROADS:
+            data = json.loads((self.DIGESTS / f"sf4-q0-{road}{suffix}" / "titled.json")
+                              .read_text(encoding="utf-8"))
+            series = data.get("series") or [{"titled": data["titled"]}]
+            best = max(best, max(int(s["titled"]) for s in series))
+        return best
+
+    def test_the_best_road_falls_by_no_more_than_two(self):
+        with_doctrines, without = self._best(""), self._best("-nodoc")
+        assert (with_doctrines, without) == (36, 37), (with_doctrines, without)
+        assert without - with_doctrines <= 2
+
+    def test_the_counterfactual_ran_with_the_lever_down(self):
+        for road in self.ROADS:
+            meta = json.loads((self.DIGESTS / f"sf4-q0-{road}-nodoc" / "meta.json")
+                              .read_text(encoding="utf-8"))
+            assert "backend.game_logic.doctrines:DOCTRINES_ACTIVE=0" in meta["levers"], meta["levers"]
+            shipped = json.loads((self.DIGESTS / f"sf4-q0-{road}" / "meta.json")
+                                 .read_text(encoding="utf-8"))
+            assert shipped["levers"] == []

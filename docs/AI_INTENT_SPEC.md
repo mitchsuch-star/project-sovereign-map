@@ -1372,6 +1372,13 @@ claimed. And the standing XR-1 rule rides every `.gd`-touching row: boot the eng
   and the only honest way to state one. The same sweep is what proves §3.8 works at all: **if every
   seed produces the same war count on the same turns, the variance slice failed**, and that is a
   cheap, falsifiable pin rather than a matter of opinion.
+  *Amendment, October 3, 2026 (IQ7-D4 — `SCORE_FINISH_SPEC.md` §6 row 10, ruled under the user's
+  delegation):* a FRANCE-PARTY war on an UNATTENDED board is not a variance target. The pin reads the
+  courts' own decisions — the AI-initiated wars, and which courts reach `fight` and when (measured
+  identical on all ten seeds with the IQ-7 levers up and down) — while a satellite's break against an
+  absent France lapses on IQ-7's fixed petition cadence and a player who answers the petitions changes
+  it. Jittering that cadence to satisfy the sweep would be design driven by the harness, so the clause
+  excludes France-party calendars on unattended boards.
 - **v1.3 amendment — the sweep is three arms, because the run is already nondeterministic.** The
   variance pin immediately above cannot be evaluated as written: a 40-turn AI-only run varies
   run-to-run *today*, with no campaign seed at all, because `enemy_ai.py:428` rolls a mood on every

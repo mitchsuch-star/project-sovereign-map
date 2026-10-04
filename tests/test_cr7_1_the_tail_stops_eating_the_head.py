@@ -214,7 +214,6 @@ class TestMustKeep:
         "Ney, march to Swabia then attack Mack",
         "Ney, advance to Swabia then attack Mack",
         "Ney, march to Vienna then attack",
-        "Ney, march to Vienna then attack Wellington",
     ])
     def test_a_march_head_fuses_its_arrival(self, shipped, text):
         result = parse(text)
@@ -224,6 +223,19 @@ class TestMustKeep:
         assert result.get("attack_on_arrival") is True
         assert result.get("dropped_sequel") is None
         assert "One order at a time" not in (result.get("warning") or "")
+
+    def test_an_unknown_name_fuses_and_arms_nothing(self, shipped):
+        """RE-SEATED CONSCIOUSLY by SF-V4 (Oct 3, 2026; SCORE_FINISH_SPEC.md
+        §6.3 item 4): this line rode the parametrize above. The FUSE is
+        unchanged — one parse, no dropped sequel — but Wellington is no foe on
+        the 1805 board (Britain's general is Wellesley), so the march stands,
+        arms NO attack on arrival, and the reply names the dropped word."""
+        result = parse("Ney, march to Vienna then attack Wellington")
+        assert result["success"], result
+        assert result.get("strategic_type") == "MOVE_TO"
+        assert result.get("dropped_sequel") is None
+        assert result.get("attack_on_arrival") is False
+        assert "No foe called Wellington" in (result.get("dropped_arrival_note") or "")
 
     def test_the_engines_one_condition_stays_one_parse(self, shipped):
         """`until` is the ONE condition the engine implements and

@@ -89,6 +89,24 @@ def fresh_staged():
     return TestClient(M.app)
 
 
+# CRT-9 (Oct 3, 2026): a refused chip is dimmed and its reason said ONCE
+# after every chip it stops (`region_panel._dimmed_chips`). One run = one or
+# more dimmed chips, then the reason.
+_DIMMED_RUN = re.compile(
+    r"((?:\s*\[bgcolor=#20242c\]  (?:\[img[^\]]*\][^\[]*\[/img\] )?"
+    r"\[color=#6f7480\][^\[]+\[/color\]  \[/bgcolor\])+) "
+    r"\[color=#[0-9a-f]+\]([^\[]+)\[/color\]")
+
+
+def dimmed_chips(line):
+    """[(label, reason)] for every dimmed chip on a rendered line."""
+    out = []
+    for run, reason in _DIMMED_RUN.findall(line):
+        for label in re.findall(r"\[color=#6f7480\]([^\[]+)\[/color\]", run):
+            out.append((label, reason))
+    return out
+
+
 def snapshot(world):
     return {
         "gold": int(world.nation_gold.get("France", 0)),
@@ -207,6 +225,103 @@ def census(tmp_path_factory):
             "yards": yards, "errors": first["errors"] + second["errors"]}
 
 
+@pytest.fixture(scope="module")
+def zero(tmp_path_factory):
+    """CRT-9 (CQ-21): the staged board with the turn's actions spent —
+    no military action and no administrative one left."""
+    work = tmp_path_factory.mktemp("cn4z")
+    with pytest.MonkeyPatch.context() as mp:
+        C.board_env(mp)
+        stage(M.world)
+        M.world.actions_remaining = 0
+        M.world.admin_actions_remaining = 0
+        gs = C.game_state_now()
+        recruitment = build_recruitment_payload(M.world)
+        overview = C.overview_now()
+        out = C.render(gs, sorted(gs["map_data"]), recruitment, work,
+                       overview=overview)
+    return {"gs": gs, "rendered": out["regions"], "cards": out["cards"],
+            "overview": overview, "errors": out["errors"]}
+
+
+def fresh_zero():
+    client = fresh_staged()
+    M.world.actions_remaining = 0
+    M.world.admin_actions_remaining = 0
+    return client
+
+
+class TestZeroActionsDimEveryChip:
+    """CRT-9 / CQ-21 (Oct 3, 2026): at zero military and zero
+    administrative actions every chip that spends one was offered and
+    refused — "Not enough actions! Need 1, have 0" — on the region panel and
+    the Generals screen alike. Driven: the real panel and the real cards,
+    rendered on the staged board with the turn's actions spent. No order
+    chip stays lit; each dimmed chip carries the reason the executor gives;
+    and every dimmed chip's command, sent, is refused for that reason at no
+    cost."""
+
+    _POOL_REASONS = ("no military action left this turn",
+                     "no administrative action left this turn")
+
+    def test_the_render_is_clean(self, zero):
+        assert zero["errors"] == 0
+        assert zero["gs"].get("action_pools") == {"military": 0, "admin": 0}
+
+    def test_no_order_chip_stays_lit_on_the_panel(self, zero):
+        lit = [(region, url) for region, bb in zero["rendered"].items()
+               for url, _label, _tail in C.chips(bb)
+               if url.startswith(("order:", "do:"))]
+        assert lit == [], lit[:8]
+
+    def test_the_panel_dims_with_the_pools_reason(self, zero):
+        reasons = {}
+        for region, bb in zero["rendered"].items():
+            for line in bb.split("\n"):
+                for label, why in dimmed_chips(line):
+                    reasons.setdefault(why, []).append((region, label))
+        pooled = sum(len(reasons.get(r, [])) for r in self._POOL_REASONS)
+        assert pooled >= 20, sorted(reasons)[:10]
+        # the order chips of every corps we field, and the works of our soil
+        labels = {label for r in self._POOL_REASONS for _g, label in reasons.get(r, [])}
+        assert {"Fortify", "Drill", "Scout"} & labels, labels
+        assert any(label.startswith(("Depot", "Fort", "Market", "Watchtower",
+                                     "Training", "Stables", "Repair"))
+                   for label in labels), labels
+
+    def test_the_cards_light_no_order_chip(self, zero):
+        cards_bb = zero["cards"]
+        assert cards_bb, "the harness rendered no Generals cards"
+        lit = [url for url, _l, _t in C.chips(cards_bb) if url.startswith("order:")]
+        assert lit == [], lit
+        assert "no military action left this turn" in cards_bb
+
+    def test_every_dimmed_chip_is_refused_for_its_reason(self, zero):
+        """Each dimmed Fortify / Drill / Scout of a corps, sent as typed,
+        is refused at no cost — the reason beside it was the executor's."""
+        sent = 0
+        with pytest.MonkeyPatch.context() as mp:
+            C.board_env(mp)
+            for region, bb in sorted(zero["rendered"].items()):
+                for line in bb.split("\n"):
+                    head = re.match(r"\s*\[color=#[0-9a-f]+\]([^\[]+)\[/color\]", line)
+                    for label, why in dimmed_chips(line):
+                        verb = label.lower()
+                        if verb not in ("fortify", "drill", "scout") or head is None:
+                            continue
+                        who = head.group(1)
+                        client = fresh_zero()
+                        before = snapshot(M.world)
+                        response = C.post(client, {"command": f"{who}, {verb}"})
+                        assert not response.get("success"), (who, verb, response.get("message"))
+                        assert snapshot(M.world) == before, (who, verb)
+                        if why == "no military action left this turn":
+                            assert "Not enough actions" in str(response.get("message")), (
+                                who, verb, response.get("message"))
+                        sent += 1
+        assert sent >= 6, sent
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Every chip the region panel renders, driven
 # ═══════════════════════════════════════════════════════════════════════════
@@ -263,9 +378,9 @@ class TestEveryPanelChipIsHonoured:
         dimmed = []
         for region, bb in census["rendered"].items():
             for line in bb.split("\n"):
-                for label, shown in re.findall(
-                        r"\[color=#6f7480\](Drill|Fortify)\[/color\]  \[/bgcolor\] "
-                        r"\[color=#[0-9a-f]+\]([^\[]+)\[/color\]", line):
+                for label, shown in dimmed_chips(line):
+                    if label not in ("Drill", "Fortify"):
+                        continue
                     who = re.match(r"\s*\[color=#[0-9a-f]+\]([^\[]+)\[/color\]",
                                    line).group(1)
                     dimmed.append((region, who, label, shown))

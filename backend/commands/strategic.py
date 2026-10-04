@@ -626,6 +626,11 @@ def pursue_known_location(world, marshal, enemy):
 # `_stall_verdict` is PF-8's stall idiom, one copy for MOVE_TO/HOLD/SUPPORT.
 # Each lever False reproduces the prior behaviour byte-for-byte.
 ROAD_LAW_AT_ISSUANCE = True      # issuance plots lawful-first, refuses at 0 AP
+# CRT-11 / RS-8 rider (P4, Oct 3, 2026): an EXPLICIT order's bad-odds
+# interrupt names the muster too — the PC-8 note the inferred modal has
+# carried since Aug 3. The marshal's own read stays solo. False = the
+# bare "Odds unfavorable" line, as shipped.
+THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER = True
 ROAD_LAW_ON_REPLOT = True        # the three re-plots + the compromise obey it
 ROAD_LAW_ONE_SEAM = True         # `_get_personality_aware_path` delegates
 HOLD_KEEPS_ITS_ROAD = True       # HOLD keeps `order.path`; its stall speaks
@@ -878,6 +883,32 @@ def march_road(world, marshal, dest: str, strategic_type: str = "MOVE_TO"):
                 "variable_action_cost": 0,
             }, "closed_frontier"
     return road, None, None
+
+
+def nearest_lawful_marcher(world, dest: str, *, strategic_type: str = "MOVE_TO"):
+    """RS-11 (Oct 3, 2026): the marshal of ours with the shortest road the
+    march law allows to ``dest`` — ``(marshal, road, None)`` — or, when no
+    corps can march there, ``(None, None, refusal)`` with the first refusal
+    `march_road` gave (the closest man's). Reads `march_road` (CRT-4's ONE
+    issuance reader) for every field marshal standing, free and elsewhere;
+    ties keep the roster's order. PURE."""
+    best = None
+    first_refusal = None
+    for marshal in world.get_player_marshals():
+        if getattr(marshal, "captured_by", "") or int(getattr(marshal, "strength", 0) or 0) <= 0:
+            continue
+        if marshal.location == dest:
+            continue
+        road, refusal, _kind = march_road(world, marshal, dest, strategic_type)
+        if road is None:
+            if first_refusal is None and refusal is not None:
+                first_refusal = refusal
+            continue
+        if best is None or len(road) < len(best[1]):
+            best = (marshal, road)
+    if best is None:
+        return None, None, first_refusal
+    return best[0], best[1], None
 
 
 # CRT-9 (RS-4 / CQ-28): the fortified and drill-locked arms of the state
@@ -4894,6 +4925,9 @@ class StrategicOrderProcessor:
                 else:
                     msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} holds {blocked_region} "
                            f"— destination blocked. Odds unfavorable.'")
+                if not inferred and THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
+                    msg += self.executor._combat._bad_odds_muster_note(
+                        marshal, enemy, world)
                 return {
                     "marshal": marshal.name,
                     "command": order.command_type,
@@ -4945,6 +4979,9 @@ class StrategicOrderProcessor:
                 else:
                     msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path. "
                            f"Odds unfavorable.'")
+            if THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
+                msg += self.executor._combat._bad_odds_muster_note(
+                    marshal, enemy, world)
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name
             order.last_contact_turn = world.current_turn

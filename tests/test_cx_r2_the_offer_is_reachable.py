@@ -35,14 +35,16 @@ one march off), and the turn-10 and turn-20 playtest fixtures. Skips
 without the engine; a skip is not a pass — which is why the engine-free
 classes below pin every payload field against the executor directly.
 
-WHAT IS NOT CLOSED HERE, BY DECISION
-====================================
+A MARSHAL'S STATE — CLOSED BY CRT-9 (Oct 3, 2026)
+================================================
 A marshal's STATE refuses whole families of orders at once — fortified
-(no move, no attack), locked in drill, recovering from a retreat, broken, a
-prisoner, zero action points. That is the chips' CQ-21 class; the
-completer's side is filed as CQ-24 with its own done-when and owner, and the
-fixture pins below exempt exactly those marshals, BY NAME OF THE STATE,
-with a pin that the exemption covers them and nobody else.
+(no move, no attack), locked in drill, recovering from a retreat, broken,
+zero action points. CX-R2 filed the completer's side as CQ-24 and exempted
+those marshals here by the name of the state; CRT-9 "the state speaks
+first" ships ONE probe (`state_probe.order_refusals`, the payload's
+`tactical_state.order_refusals`) that the completer reads, so a line the
+state refuses is no longer offered, and the exemption is DELETED: every
+board refuses nothing (CQ-24's done-when).
 """
 
 import contextlib
@@ -378,33 +380,30 @@ class TestNoOfferIsRefused:
         assert executed / len(rows) >= 0.75, (executed, len(rows))
 
     @pytest.mark.parametrize("board", ["staged", "t10", "t20"])
-    def test_a_board_refuses_only_a_marshal_whose_state_refuses_the_order(
-            self, driven, board, env):
-        """CQ-24's class — a marshal whose STATE refuses whole families of
-        orders (fortified: no move; recovering from a retreat: no attack, no
-        scout, no standing order) — exempted by the state, never by the
-        line. Everything else offered on these boards is taken."""
+    def test_no_board_refuses_any_offer(self, driven, board, env):
+        """CQ-24's done-when (CRT-9, Oct 3, 2026): the state exemption this
+        pin carried is DELETED — a marshal whose STATE refuses an order
+        (Davout dug in on the staged board, Bernadotte recovering from a
+        retreat on t20) is no longer offered it, so every board refuses
+        nothing."""
         rows = driven["verdicts"][board]
-        assert len(rows) >= 120, len(rows)
-        blocked = self._state_gated(board)
-        bad = [(line, msg) for line, msg in _refused(driven, board)
-               if _who(line) not in blocked]
-        assert bad == [], bad[:6]
+        assert len(rows) >= 100, len(rows)
+        assert _refused(driven, board) == [], _refused(driven, board)[:6]
 
-    @pytest.mark.parametrize("board,who", [("staged", "Davout"), ("t20", "Bernadotte")])
-    def test_the_state_exemption_is_earned_and_narrow(self, driven, env, board, who):
-        """Each board where it applies carries exactly one state-gated corps —
-        Davout dug in on the staged board, Bernadotte recovering from a
-        retreat on t20 — whose offers ARE refused (the exemption is not
-        vacuous), and it covers nobody else."""
-        assert self._state_gated(board) == {who}
-        assert any(_who(line) == who for line, _m in _refused(driven, board)), who
-
-    def test_the_boot_and_t10_have_no_state_gated_corps(self, driven, env):
-        """So their zero refusals are not an exemption at work."""
-        assert self._state_gated("boot") == set()
-        assert self._state_gated("t10") == set()
-        assert _refused(driven, "t10") == []
+    @pytest.mark.parametrize("board,who,closed", [
+        ("staged", "Davout", ("march to", "move to", "attack")),
+        ("t20", "Bernadotte", ("march to", "attack", "scout")),
+    ])
+    def test_the_state_gated_corps_is_offered_only_what_he_may_do(
+            self, driven, env, board, who, closed):
+        """Each board where a state applies still carries its corps (so the
+        zero above is not vacuous): he is offered what his state allows —
+        and none of what it refuses."""
+        lines = [r["line"] for r in driven["verdicts"][board] if _who(r["line"]) == who]
+        assert lines, (board, who)
+        for verb in closed:
+            assert not any(line.startswith(f"{who}, {verb}") for line in lines), (
+                board, who, verb, [ln for ln in lines if verb in ln][:3])
 
     def test_every_continuation_offered_is_taken(self, driven):
         for board in ("boot", "staged"):
@@ -423,20 +422,6 @@ class TestNoOfferIsRefused:
         verdicts = {r["line"]: r["verdict"] for r in driven["verdicts"]["staged"]}
         assert lines and all(verdicts[line] == "executed" for line in lines), lines
 
-    @staticmethod
-    def _state_gated(board):
-        load_board(board)
-        world = M.world
-        out = set()
-        for m in world.marshals.values():
-            if m.nation != world.player_nation:
-                continue
-            if (getattr(m, "retreating", False) or getattr(m, "broken", False)
-                    or getattr(m, "fortified", False)
-                    or getattr(m, "drilling_locked", False)
-                    or m.strength <= 0):
-                out.add(humanize_entity_name(m.name))
-        return out
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -472,6 +457,13 @@ def _nearest(names_at, dist, n=5):
     return [shown for _d, shown in ranked][:n]
 
 
+def _state_closed(world, key, verb):
+    """CRT-9: the state probe's verdict — a verb the marshal's state refuses
+    is not offered at all (the completer reads the same map)."""
+    from backend.commands.state_probe import order_state_refusal
+    return bool(order_state_refusal(world, world.get_marshal(key), verb))
+
+
 class TestTheOfferIsNearest:
     """An independent Python computation of every pool, against what the
     real completer offered — a drift pin between the two implementations."""
@@ -493,6 +485,9 @@ class TestTheOfferIsNearest:
             got = offered["offers"][board].get(f"{shown}, march to ")
             if got is None or not self._on_map(gs, key):
                 continue
+            if _state_closed(world, key, "march"):
+                assert not got, (board, shown, got[:3])
+                continue
             dist = _bfs(world, row["location"], passable, closed)
             dist.pop(row["location"], None)
             want = _nearest([(p, p) for p in dist], dist)
@@ -512,9 +507,10 @@ class TestTheOfferIsNearest:
                 continue
             shown = humanize_entity_name(key)
             dist = _bfs(world, row["location"])
-            want = _nearest([(p, p) for p in entry["tactical_state"]["move_open"]], dist)
+            want = ([] if _state_closed(world, key, "move") else
+                    _nearest([(p, p) for p in entry["tactical_state"]["move_open"]], dist))
             got = offered["offers"][board].get(f"{shown}, move to ")
-            assert got == [f"{shown}, move to {p}" for p in want], (board, shown)
+            assert (got or []) == [f"{shown}, move to {p}" for p in want], (board, shown)
             checked += 1
         assert checked >= 5
 
@@ -531,9 +527,10 @@ class TestTheOfferIsNearest:
             reach = entry["tactical_state"]["scout_range"]
             dist = _bfs(world, row["location"])
             dist.pop(row["location"], None)
-            want = _nearest([(p, p) for p, d in dist.items() if d <= reach], dist)
+            want = ([] if _state_closed(world, key, "scout") else
+                    _nearest([(p, p) for p, d in dist.items() if d <= reach], dist))
             got = offered["offers"][board].get(f"{shown}, scout ")
-            assert got == [f"{shown}, scout {p}" for p in want], (board, shown)
+            assert (got or []) == [f"{shown}, scout {p}" for p in want], (board, shown)
 
     @pytest.mark.parametrize("board", BOARDS)
     def test_the_attack_offers_are_enemies_at_war_nearest_first(self, offered, board, env):
@@ -549,7 +546,7 @@ class TestTheOfferIsNearest:
             dist = _bfs(world, row["location"], passable, closed)
             at_war = [(humanize_entity_name(k), e["location"])
                       for k, e in gs["enemies"].items() if e["at_war_with_player"]]
-            want = _nearest(at_war, dist)
+            want = [] if _state_closed(world, key, "attack") else _nearest(at_war, dist)
             got = offered["offers"][board].get(f"{shown}, attack ", [])
             assert got == [f"{shown}, attack {e}" for e in want], (board, shown)
 

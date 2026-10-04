@@ -2461,7 +2461,11 @@ class TestWhatThePlayerActuallySees:
                 if not any(mark in message for mark in
                            ("not found", "Available:", "Did you mean",
                             "no Marshal", "does not answer to us",
-                            "named no foe")):
+                            "named no foe",
+                            # SF-V4 (Oct 3, 2026; SCORE_FINISH_SPEC §6.3
+                            # item 6 names this list): a proper name the
+                            # map does not know now ASKS.
+                            "No foe called")):
                     continue
                 checked += 1
                 for key in camel:

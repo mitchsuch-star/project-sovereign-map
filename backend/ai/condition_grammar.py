@@ -47,6 +47,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from backend.ai.attack_vocabulary import levered_arrival_pattern
 from backend.ai.clause_guards import HONORIFIC, condition_marker_spans
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
@@ -86,8 +87,9 @@ UNTIL_TURN_RE = re.compile(r"\b" + UNTIL + r"\s+turn\s+(?P<t>\d+)\b")
 # cows come home" holds Lorraine, and the echo names the unread clause).
 UNTIL_TAIL_RE = re.compile(r"\s+" + UNTIL + r"\s+.*$")
 # The attack-on-arrival tail (CR-7-1's boundary set + CR-7-3's bare comma).
-ARRIVAL_TAIL_RE = re.compile(
-    r"\s*(?:,\s*|;\s*|\s+(?:and\s+then|and|then)\s+)(?:attack|engage|assault)\b.*$")
+# CRT-11 / RS-8: the one battle/capture vocabulary (`attack_vocabulary`).
+ARRIVAL_TAIL_RE = levered_arrival_pattern(
+    r"\s*(?:,\s*|;\s*|\s+(?:and\s+then|and|then)\s+)(?:{verbs})\b.*$")
 
 _READ_CLAUSES: Tuple[Tuple[str, "re.Pattern"], ...] = (
     ("until_marshal_arrives", ARRIVES_RE),

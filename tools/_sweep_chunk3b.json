@@ -1,0 +1,394 @@
+[
+  {
+    "id": "lever down: THE_SUPPORT_ROLE_IS_HEARD",
+    "file": "backend/ai/second_name.py",
+    "old": "THE_SUPPORT_ROLE_IS_HEARD = True",
+    "new": "THE_SUPPORT_ROLE_IS_HEARD = False",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_line_is_a_support_order_for_ney"
+  },
+  {
+    "id": "the follow pattern dropped",
+    "file": "backend/ai/second_name.py",
+    "old": "        # \"follow Ney (in) (and back him up)\"\n        re.compile(head + r\"follow\\s+\" + named",
+    "new": "        # \"follow Ney (in) (and back him up)\"\n        re.compile(head + r\"follow_NEVER\\s+\" + named",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_line_is_a_support_order_for_ney"
+  },
+  {
+    "id": "the possessive pattern dropped",
+    "file": "backend/ai/second_name.py",
+    "old": "r\"to\\s+(?:\" + HONORIFIC + r\")?(?P<friend>\" + friends + r\")['’]s\\s+\"",
+    "new": "r\"to_NEVER\\s+(?:\" + HONORIFIC + r\")?(?P<friend>\" + friends + r\")['’]s\\s+\"",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_line_is_a_support_order_for_ney"
+  },
+  {
+    "id": "the move lead not consumed",
+    "file": "backend/ai/second_name.py",
+    "old": "        re.compile(head + r\"(?:\" + _MOVE_LEAD + r\")?\"\n                   r\"(?:in|to\\s+the)\\s+\"",
+    "new": "        re.compile(head + \n                   r\"(?:in|to\\s+the)\\s+\"",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_line_is_a_support_order_for_ney"
+  },
+  {
+    "id": "the typed text not restored as the record",
+    "file": "backend/commands/parser.py",
+    "old": "        _friend = _friend or _role\n",
+    "new": "        _friend = _friend\n",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_record_keeps_the_typed_words"
+  },
+  {
+    "id": "the reader keeps a leading 'of'",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "        text = re.sub(r\"^of\\s+\", \"\", text, flags=re.IGNORECASE)",
+    "new": "        pass",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_strategic_reader_skips_a_leading_of"
+  },
+  {
+    "id": "lever down: A_SAME_CLAUSE_FRIEND_IS_HIM",
+    "file": "backend/commands/context_carryover.py",
+    "old": "A_SAME_CLAUSE_FRIEND_IS_HIM = True",
+    "new": "A_SAME_CLAUSE_FRIEND_IS_HIM = False",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_him_in_the_same_clause_is_the_man_named_there"
+  },
+  {
+    "id": "the subject of the support verb is his own antecedent",
+    "file": "backend/commands/context_carryover.py",
+    "old": "    if not clause[found[-1][1]:].strip():\n        found.pop()",
+    "new": "    if False:\n        found.pop()",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_him_in_the_same_clause_is_the_man_named_there"
+  },
+  {
+    "id": "lever down: THE_DESTROY_CLAUSE_IS_HEARD",
+    "file": "backend/ai/attack_vocabulary.py",
+    "old": "THE_DESTROY_CLAUSE_IS_HEARD = True",
+    "new": "THE_DESTROY_CLAUSE_IS_HEARD = False",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheDestroyClauseIsHeard::test_the_arrival_names_mack"
+  },
+  {
+    "id": "the split list learns no battle verb",
+    "file": "backend/commands/parser.py",
+    "old": "_SECOND_ORDER_VERBS_WIDE = (_SECOND_ORDER_VERBS + \"|\"\n                            + \"|\".join(sorted(SECOND_ORDER_BATTLE_VERBS)))",
+    "new": "_SECOND_ORDER_VERBS_WIDE = (_SECOND_ORDER_VERBS)",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheDestroyClauseIsHeard::test_a_head_that_cannot_carry_an_arrival_keeps_its_order"
+  },
+  {
+    "id": "the arrival object reader stays narrow",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "    + arrival_tail_alternation(True) + r')\\s+'",
+    "new": "    + arrival_tail_alternation(False) + r')\\s+'",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheDestroyClauseIsHeard::test_the_arrival_names_mack"
+  },
+  {
+    "id": "'against' kept in the target",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "        text = re.sub(r'^against\\s+', '', text, flags=re.IGNORECASE)",
+    "new": "        pass",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheDestroyClauseIsHeard::test_march_against_is_the_foe_not_a_province"
+  },
+  {
+    "id": "lever down: THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER",
+    "file": "backend/commands/strategic.py",
+    "old": "THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER = True",
+    "new": "THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER = False",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheExplicitInterruptNamesTheMuster::test_the_first_step_interrupt_names_who_would_answer"
+  },
+  {
+    "id": "the first-step interrupt drops the note",
+    "file": "backend/commands/strategic_executor.py",
+    "old": "                    bad_odds_msg += self._executor._combat._bad_odds_muster_note(",
+    "new": "                    bad_odds_msg += '' and self._executor._combat._bad_odds_muster_note(",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheExplicitInterruptNamesTheMuster::test_the_first_step_interrupt_names_who_would_answer"
+  },
+  {
+    "id": "lever down: TAKE_IS_AN_OBJECTIVE",
+    "file": "backend/commands/parser.py",
+    "old": "TAKE_IS_AN_OBJECTIVE = True",
+    "new": "TAKE_IS_AN_OBJECTIVE = False",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_the_census_lines_no_longer_shrug"
+  },
+  {
+    "id": "in reach is always a march",
+    "file": "backend/commands/parser.py",
+    "old": "        if hostile and world.get_distance(marshal.location, obj) <= marshal.movement_range:",
+    "new": "        if False:",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_in_reach_it_is_the_capture_road"
+  },
+  {
+    "id": "the far march arms no attack",
+    "file": "backend/commands/parser.py",
+    "old": "        tail = \" and attack\" if hostile else \"\"\n        return f\"{head}march to {obj}{tail}{rest}\", None",
+    "new": "        tail = \"\"\n        return f\"{head}march to {obj}{tail}{rest}\", None",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_beyond_reach_it_is_a_march_that_strikes_on_arrival"
+  },
+  {
+    "id": "no shortest-road chooser",
+    "file": "backend/commands/parser.py",
+    "old": "    chosen, road, _refusal = nearest_lawful_marcher(world, obj)\n    if chosen is None:",
+    "new": "    chosen, road, _refusal = None, None, None\n    if chosen is None:",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_no_marshal_named_it_is_the_shortest_lawful_road"
+  },
+  {
+    "id": "the chooser's note is lost",
+    "file": "backend/commands/parser.py",
+    "old": "            if _take_note and result.get(\"success\"):",
+    "new": "            if False and _take_note and result.get(\"success\"):",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_no_marshal_named_it_is_the_shortest_lawful_road"
+  },
+  {
+    "id": "a court is no take object",
+    "file": "backend/commands/parser.py",
+    "old": "    if resolve_typed_nation(obj, world):\n        return \"nation\", obj",
+    "new": "    if False:\n        return \"nation\", obj",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_a_court_gets_the_capture_roads_answer"
+  },
+  {
+    "id": "a foe is no take object",
+    "file": "backend/commands/parser.py",
+    "old": "            return (\"foe\", marshal.name) if at_war else (None, None)",
+    "new": "            return (None, None)",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTakeIsAnObjective::test_a_foe_is_attacked"
+  },
+  {
+    "id": "lever down: A_ROUTED_WORD_IS_NEVER_A_NAME",
+    "file": "backend/commands/parser.py",
+    "old": "A_ROUTED_WORD_IS_NEVER_A_NAME = True",
+    "new": "A_ROUTED_WORD_IS_NEVER_A_NAME = False",
+    "tests": "tests/test_rs11_take_and_sf_v8_the_named_corps.py::TestTheLandingNamesItsMan::test_an_unknown_corps_is_refused_by_name_for_nothing"
+  },
+  {
+    "id": "lever down: A_PROPER_NAME_ASKS",
+    "file": "backend/commands/proper_name.py",
+    "old": "A_PROPER_NAME_ASKS = True",
+    "new": "A_PROPER_NAME_ASKS = False",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_nothing_is_spent_or_lost_and_nothing_hidden_named"
+  },
+  {
+    "id": "the dispatch seam never asks",
+    "file": "backend/commands/executor.py",
+    "old": "            if _asked is not None:\n                return _asked",
+    "new": "            if False:\n                return _asked",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_nothing_is_spent_or_lost_and_nothing_hidden_named"
+  },
+  {
+    "id": "a rank resolves a dead man",
+    "file": "backend/commands/proper_name.py",
+    "old": "                           if len(words) == 1 or w.lower() not in _TITLE_WORDS]",
+    "new": "                           ]",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_a_visible_death_gets_the_tombstone_line"
+  },
+  {
+    "id": "no near-miss arm",
+    "file": "backend/commands/proper_name.py",
+    "old": "    near = _near_miss(world, name, viewer) if not lead else None",
+    "new": "    near = None",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_a_near_miss_asks_did_you_mean"
+  },
+  {
+    "id": "a transposition is no near miss",
+    "file": "backend/commands/proper_name.py",
+    "old": "                if word != token and (osa_distance_at_most(word, token, 1)",
+    "new": "                if word != token and (False",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_a_near_miss_asks_did_you_mean"
+  },
+  {
+    "id": "no bench arm",
+    "file": "backend/commands/proper_name.py",
+    "old": "    benched = _bench(world, name, viewer)",
+    "new": "    benched = None",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_the_bench_answer_is_identical_before_and_after_a_commission"
+  },
+  {
+    "id": "the foes are not sorted",
+    "file": "backend/commands/proper_name.py",
+    "old": "    return sorted(visible, key=_dist)",
+    "new": "    return visible",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_the_foes_are_offered_nearest_first tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_the_sort_is_needed_on_the_shipped_board"
+  },
+  {
+    "id": "no interpreted target",
+    "file": "backend/commands/proper_name.py",
+    "old": "    response[\"interpreted_target\"] = interpreted.name if interpreted else None",
+    "new": "    response[\"interpreted_target\"] = None",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestAProperNameAsks::test_yes_engages_the_foe_the_question_named"
+  },
+  {
+    "id": "no tombstone line",
+    "file": "backend/commands/proper_name.py",
+    "old": "        if where and _prisoners.cell_in_view(world, where, viewer):",
+    "new": "        if False:",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_a_visible_death_gets_the_tombstone_line"
+  },
+  {
+    "id": "the tombstone is read through the fog",
+    "file": "backend/commands/proper_name.py",
+    "old": "        if where and _prisoners.cell_in_view(world, where, viewer):",
+    "new": "        if where:",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_an_unseen_death_is_the_plain_ask"
+  },
+  {
+    "id": "the arrival still armed",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "            if _dropped:\n                attack_on_arrival = False",
+    "new": "            if _dropped:\n                attack_on_arrival = True",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_the_arrival_tail_marches_and_names_the_word"
+  },
+  {
+    "id": "the dropped word not named on the interrupt",
+    "file": "backend/commands/executor.py",
+    "old": "            if (_dropped_note and isinstance(strategic_result, dict)",
+    "new": "            if (False and _dropped_note and isinstance(strategic_result, dict)",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_the_word_is_named_on_the_first_steps_interrupt"
+  },
+  {
+    "id": "the object position read as an executor",
+    "file": "backend/commands/parser.py",
+    "old": "                        if (_pn.A_PROPER_NAME_ASKS and word_index > 0",
+    "new": "                        if (False and word_index > 0",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheSpecialCases::test_the_bare_road_asks_the_target_never_the_marshal"
+  },
+  {
+    "id": "a participle is a name",
+    "file": "backend/commands/proper_name.py",
+    "old": "                low in _DESCRIPTIVE_WORDS or low.endswith((\"ing\", \"est\"))):",
+    "new": "                low in _DESCRIPTIVE_WORDS):",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestADescriptionStillProceeds::test_it_is_no_proper_name"
+  },
+  {
+    "id": "an article does not make a description",
+    "file": "backend/commands/proper_name.py",
+    "old": "    if words[0].lower() in _BLOCKING_PREFIXES:\n        return None",
+    "new": "    if False:\n        return None",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestADescriptionStillProceeds::test_it_is_no_proper_name"
+  },
+  {
+    "id": "a province typo is a proper name",
+    "file": "backend/commands/proper_name.py",
+    "old": "            if len(word) >= 4 and any(_plausible_name_typo(word.lower(), r.lower())",
+    "new": "            if False and any(_plausible_name_typo(word.lower(), r.lower())",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestADescriptionStillProceeds::test_a_province_typo_is_no_proper_name"
+  },
+  {
+    "id": "lever down: THE_SCREEN_READS_THE_STATE",
+    "file": "backend/commands/state_probe.py",
+    "old": "THE_SCREEN_READS_THE_STATE = True",
+    "new": "THE_SCREEN_READS_THE_STATE = False",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestThePayloadCarriesIt::test_every_player_marshal_ships_the_map"
+  },
+  {
+    "id": "the pool is never read",
+    "file": "backend/commands/state_probe.py",
+    "old": "    need = _cost(world, marshal, action, strategic_type)\n    have = int(getattr(world, \"actions_remaining\", 0) or 0)\n    if have >= need:",
+    "new": "    need = _cost(world, marshal, action, strategic_type)\n    have = int(getattr(world, \"actions_remaining\", 0) or 0)\n    if True:",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor"
+  },
+  {
+    "id": "no counter-punch waiver",
+    "file": "backend/commands/state_probe.py",
+    "old": "        return \"\"  # the counter-punch waiver: the free strike stands at 0",
+    "new": "        pass",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor::test_the_counter_punch_strike_stands_at_zero"
+  },
+  {
+    "id": "the battery's fortified gate unread",
+    "file": "backend/commands/state_probe.py",
+    "old": "    if getattr(marshal, \"fortified\", False) and action in (\"attack\", \"move\"):",
+    "new": "    if False:",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor"
+  },
+  {
+    "id": "HOLD and SUPPORT not exempt",
+    "file": "backend/commands/state_probe.py",
+    "old": "    if THE_STATE_SPEAKS_FIRST and strategic_type not in (\"HOLD\", \"SUPPORT\"):",
+    "new": "    if THE_STATE_SPEAKS_FIRST:",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor"
+  },
+  {
+    "id": "the recovering gate unread",
+    "file": "backend/commands/state_probe.py",
+    "old": "    if getattr(marshal, \"retreating\", False) and action in (\"attack\", \"fortify\", \"drill\", \"scout\"):",
+    "new": "    if False:",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor"
+  },
+  {
+    "id": "the broken gate unread",
+    "file": "backend/commands/state_probe.py",
+    "old": "    if getattr(marshal, \"broken\", False) and action != \"recruit\":",
+    "new": "    if False:",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor"
+  },
+  {
+    "id": "the autonomous gate unread",
+    "file": "backend/commands/state_probe.py",
+    "old": "    if getattr(marshal, \"autonomous\", False):",
+    "new": "    if False:",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestTheProbeAgreesWithTheExecutor"
+  },
+  {
+    "id": "the payload drops the map",
+    "file": "backend/models/world_state.py",
+    "old": "                        \"order_refusals\": _order_refusals(self, m),",
+    "new": "                        \"order_refusals\": {},",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestThePayloadCarriesIt::test_every_player_marshal_ships_the_map"
+  },
+  {
+    "id": "the cards drop the map",
+    "file": "backend/game_logic/marshal_overview.py",
+    "old": "        \"order_refusals\": _order_refusals_of(world, marshal),",
+    "new": "        \"order_refusals\": {},",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestThePayloadCarriesIt::test_the_generals_cards_carry_it"
+  },
+  {
+    "id": "the landing row carries no refusal",
+    "file": "backend/game_logic/naval.py",
+    "old": "            if _why:\n                row[\"refusal\"] = _why",
+    "new": "            if False:\n                row[\"refusal\"] = _why",
+    "tests": "tests/test_crt9_the_state_speaks_first.py::TestThePayloadCarriesIt::test_the_landing_chip_carries_its_refusal"
+  },
+  {
+    "id": "the completer reads no state",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\tif not _state_open(verb, entry):\n\t\treturn false\n\tif verb == \"retreat\":",
+    "new": "\tif verb == \"retreat\":",
+    "tests": "tests/test_cx_r2_the_offer_is_reachable.py::TestNoOfferIsRefused::test_no_board_refuses_any_offer"
+  },
+  {
+    "id": "the panel's admin chips never dim",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\tif int(pools.get(\"admin\", 1)) <= 0:\n\t\treturn \"no administrative action left this turn\"",
+    "new": "\tif false:\n\t\treturn \"no administrative action left this turn\"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py::TestZeroActionsDimEveryChip::test_no_order_chip_stays_lit_on_the_panel"
+  },
+  {
+    "id": "the panel's scout chip never dims",
+    "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+    "old": "\t\t\t\tvar scout_why = str(refusals.get(\"scout\", \"\"))",
+    "new": "\t\t\t\tvar scout_why = \"\"",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py::TestZeroActionsDimEveryChip::test_no_order_chip_stays_lit_on_the_panel"
+  },
+  {
+    "id": "the cards read no state",
+    "file": "godot-client/project-sovereign/scripts/marshal_management.gd",
+    "old": "\t\t\tvar fortify_why = str(refusals.get(\"fortify\", m.get(\"fortify_refusal\", \"\")))",
+    "new": "\t\t\tvar fortify_why = str(m.get(\"fortify_refusal\", \"\"))",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py::TestZeroActionsDimEveryChip::test_the_cards_light_no_order_chip"
+  },
+  {
+    "id": "the C4 probe reads no answer",
+    "file": "tools/score_run.py",
+    "old": "                 if s.lstrip(\"- \").startswith(\"POPUP clarification\")),",
+    "new": "                 if False),",
+    "tests": "tests/test_crt10_the_suggestion_is_honest.py::TestTheInstrumentReadsTheAnswer"
+  },
+  {
+    "id": "the judge forgets the engaged refusal",
+    "file": "tools/_score_probes.py",
+    "old": "    r\"cannot begin a strategic march\",",
+    "new": "    r\"cannot begin a strategic marchZZ\",",
+    "tests": "tests/test_crt11_the_second_name_is_heard.py::TestTheSupportRoleIsHeard::test_the_judge_reads_the_engaged_refusal_as_the_boards"
+  },
+  {
+    "id": "N2: the manner tail is a place again",
+    "file": "backend/commands/parser.py",
+    "old": "A_REASON_TAIL_IS_NOT_A_DESTINATION = True",
+    "new": "A_REASON_TAIL_IS_NOT_A_DESTINATION = False",
+    "tests": "tests/test_sf_cmd1_part_ii_the_fixes.py::TestW7TheAdverbAndTheReasonClause::test_cx5_l5_n2_a_manner_tail_is_no_destination"
+  }
+]

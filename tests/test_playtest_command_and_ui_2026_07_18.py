@@ -312,7 +312,12 @@ class TestGuardRunsBeforeTheLethalBranches:
         # Must NOT have become a strategic order behind the player's back.
         assert result.get("strategic_type") != "PURSUE"
         assert getattr(ney, "strategic_order", None) is None
-        assert "will not charge at a guess" in str(result.get("message", ""))
+        # SF-V4 (Oct 3, 2026) — RE-SEATED CONSCIOUSLY: "Venetia" is a proper
+        # name the map does not know; the dispatch seam asks before the
+        # attack path (and its range check) is reached at all.
+        _msg = str(result.get("message", ""))
+        assert ("will not charge at a guess" in _msg
+                or _msg.startswith("No foe called Venetia")), _msg
 
     def test_unresolvable_name_is_disclosed_not_silently_substituted(self):
         """Found by the July 18, 2026 LIVE probe, then CORRECTED by the
@@ -336,16 +341,25 @@ class TestGuardRunsBeforeTheLethalBranches:
         """
         world = self._world()
         executor = CommandExecutor()
+        # FLIPPED CONSCIOUSLY by SF-V4 (Oct 3, 2026; the ruling of September
+        # 28, SCORE_FINISH_SPEC.md §6.3 item 6 names this pin): "Venetia" is a
+        # PROPER NAME the map does not know, not a description — so the
+        # marshal ASKS, free, naming only foes in sight, instead of fighting
+        # the nearest behind a disclosure. The descriptions below still
+        # disclose and proceed (the review's founding case is untouched).
+        before = {m.name: (m.location, int(m.strength)) for m in world.marshals.values()}
+        ap = int(world.actions_remaining)
         result = executor.execute({"command": {
             "marshal": "Ney", "action": "attack", "target": None,
             "type": "specific",
             "_raw_input": "Ney, attack Venetia",
         }}, {"world": world})
-        assert result.get("state") != "awaiting_clarification", (
-            "an engine-picked target must not be refused — that bounces "
-            "ordinary delegations")
-        assert "named no foe our maps know" in str(result.get("message", "")), (
-            "the substitution must be disclosed, never silent")
+        assert result.get("state") == "awaiting_clarification", result.get("message")
+        assert str(result.get("message", "")).startswith("No foe called Venetia")
+        assert "named no foe our maps know" not in str(result.get("message", ""))
+        assert {m.name: (m.location, int(m.strength))
+                for m in world.marshals.values()} == before
+        assert int(world.actions_remaining) == ap
 
     @pytest.mark.parametrize("raw", [
         "Ney, attack the weakest enemy",

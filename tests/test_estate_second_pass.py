@@ -823,7 +823,13 @@ class TestGuessedTargetGuard:
         # and no interrupt is staged.
         assert result["state"] == "awaiting_clarification"
         assert result["clarification_kind"] == "attack_target"
-        assert "will not charge at a guess" in result["message"]
+        # SF-V4 (Oct 3, 2026) — RE-SEATED CONSCIOUSLY: "Venetia" is a proper
+        # name the map does not know, so the dispatch seam's proper-name ask
+        # answers before the ESP-EV-4 guard is reached ("No foe called
+        # Venetia is in sight, Sire. The nearest in sight is …"); the ask, the
+        # free cost and the answerable options are the same contract.
+        assert ("will not charge at a guess" in result["message"]
+                or result["message"].startswith("No foe called Venetia"))
         assert john.strength == strength_before  # nobody fought
         assert result.get("pending_interrupt") is None
         # Every option must reissue a fully-formed named attack, so answering

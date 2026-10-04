@@ -6855,6 +6855,217 @@
       },
       "source": "SR-7d DC-3a (docs/DOCTRINES_SPEC.md section 4a).",
       "notes": "The flaw alone, with its cure status — 'strike Austria before Vienna adopts the corps' is a plan the player can read off the desk."
+    },
+    {
+      "id": "crt11-bring-up-in-support-of",
+      "utterance": "Marshal Soult, bring your corps up in support of Ney.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "CRT-11 \"The second name is heard\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "RS-6's played line: 'Cannot find marshal Of Ney to support.' The second name is the order's object."
+    },
+    {
+      "id": "crt11-march-in-support-of",
+      "utterance": "Soult, march in support of Ney",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "CRT-11 \"The second name is heard\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "Was a 1-action march to the province 'In Support Of Ney'."
+    },
+    {
+      "id": "crt11-march-to-the-aid-of",
+      "utterance": "Soult, march to the aid of Ney",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "CRT-11 \"The second name is heard\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)"
+    },
+    {
+      "id": "crt11-come-to-neys-support",
+      "utterance": "Soult, come to Ney's support",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "CRT-11 \"The second name is heard\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "Was 'You wish me to support Bernadotte, Sire?' — the possessive names Ney."
+    },
+    {
+      "id": "crt11-follow-ney-in-and-back-him-up",
+      "utterance": "Lannes, follow Ney in and back him up.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Lannes",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "CRT-11 \"The second name is heard\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "The HOLD arm's blind line; 'him' is Ney, the man the same clause named."
+    },
+    {
+      "id": "crt11-back-ney-up",
+      "utterance": "Lannes, back Ney up",
+      "world": "1805",
+      "expected": {
+        "marshal": "Lannes",
+        "strategic_type": "SUPPORT",
+        "target": "Ney"
+      },
+      "source": "CRT-11 \"The second name is heard\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)"
+    },
+    {
+      "id": "rs8-march-and-destroy",
+      "utterance": "Ney, march on Swabia and destroy Mack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Swabia",
+        "attack_on_arrival": true,
+        "dropped_sequel": null
+      },
+      "source": "RS-8 the destroy clause (CRT-11's rider, Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "The destroy clause was lost without a word (a plain march, no arrival)."
+    },
+    {
+      "id": "rs8-march-and-crush",
+      "utterance": "Ney, march on Swabia and crush Mack",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "MOVE_TO",
+        "target": "Swabia",
+        "attack_on_arrival": true
+      },
+      "source": "RS-8 the destroy clause (CRT-11's rider, Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)"
+    },
+    {
+      "id": "rs8-march-against",
+      "utterance": "Ney, march against Mack",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "PURSUE",
+        "target": "Mack"
+      },
+      "source": "RS-8 the destroy clause (CRT-11's rider, Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "Was a march to the province 'Against Mack'."
+    },
+    {
+      "id": "rs8-fortify-and-destroy",
+      "utterance": "Ney, fortify and destroy Mack",
+      "world": "1805",
+      "expected": {
+        "action": "fortify",
+        "dropped_sequel": "destroy Mack"
+      },
+      "source": "RS-8 the destroy clause (CRT-11's rider, Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "CR-7-1's swallow, one verb over: the attack had FOUGHT with the fortify gone."
+    },
+    {
+      "id": "rs11-take-in-reach",
+      "utterance": "Ney, take Swabia",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Swabia"
+      },
+      "source": "RS-11 \"take <province>\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "In reach, 'take' is the capture verbs' attack road."
+    },
+    {
+      "id": "rs11-take-epithet",
+      "utterance": "Iron Marshal, take Swabia",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "action": "attack",
+        "target": "Swabia"
+      },
+      "source": "RS-11 \"take <province>\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "The fresh blind census's line; the epithet is Davout."
+    },
+    {
+      "id": "rs11-take-the-province-of",
+      "utterance": "Ney, take the province of Swabia",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Swabia"
+      },
+      "source": "RS-11 \"take <province>\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)"
+    },
+    {
+      "id": "rs11-take-beyond-reach",
+      "utterance": "Ney, take Vienna",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "MOVE_TO",
+        "target": "Vienna",
+        "attack_on_arrival": true
+      },
+      "source": "RS-11 \"take <province>\" (Chunk 3b, October 3, 2026; SYSTEMS_REFERENCE.md §89)",
+      "notes": "Beyond his reach, a standing march with the attack on arrival — the march law reads the road."
+    },
+    {
+      "id": "sfv4-attack-unknown-proper-name",
+      "utterance": "Ney, attack Zorglub",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": null
+      },
+      "source": "SF-V4 \"A proper name asks\" (CRT-10, SCORE_FINISH_SPEC.md §6.3; October 3, 2026)",
+      "notes": "The parse drops the unknown name; the executor's dispatch seam asks (free), naming only foes in sight."
+    },
+    {
+      "id": "sfv4-bare-attack-unknown-proper-name",
+      "utterance": "attack Zorglub",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack"
+      },
+      "source": "SF-V4 \"A proper name asks\" (CRT-10, SCORE_FINISH_SPEC.md §6.3; October 3, 2026)",
+      "notes": "A word in the OBJECT position is never the executor: no 'There is no Marshal Zorglub' — the target question follows."
+    },
+    {
+      "id": "sfv4-arrival-unknown-proper-name",
+      "utterance": "Ney, march to Swabia then attack Zorglub",
+      "world": "1805",
+      "expected": {
+        "strategic_type": "MOVE_TO",
+        "target": "Swabia",
+        "attack_on_arrival": false
+      },
+      "source": "SF-V4 \"A proper name asks\" (CRT-10, SCORE_FINISH_SPEC.md §6.3; October 3, 2026)",
+      "notes": "§6.3 item 4: the march stands, no attack is armed, and the reply names the dropped word."
+    },
+    {
+      "id": "sfv8-land-unknown-corps",
+      "utterance": "land Oudinot in Munster",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "Oudinot"
+      },
+      "source": "SF-V8 the landing names its man (CRT-2's naval twin, October 3, 2026)",
+      "notes": "'land' fuzzy-matched 'Lannes' (75) in the word scan; a routed order word is never a name now."
     }
   ]
 }

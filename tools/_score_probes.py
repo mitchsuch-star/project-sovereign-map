@@ -1144,7 +1144,11 @@ BOARD_GATE_RX = re.compile(
     # corps stands, an enemy named as a friend, an unknown target.
     r"does not answer to us|commands for \w+, Sire|is not a vassal|Unknown target|No candidate named|"
     r"has no shore|is left where the corps stands|is an enemy! Use|cannot bombard|is already a dockyard|"
-    r"no corps of ours can|The order rested on|commands no guns",
+    r"no corps of ours can|The order rested on|commands no guns|"
+    # Chunk 3b (Oct 3, 2026): "Lannes, follow Ney in and back him up" now
+    # reads as the SUPPORT it means, and the board answers with the march
+    # law's own state refusal — the engaged arm of `march_state_refusal`.
+    r"cannot begin a strategic march",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).

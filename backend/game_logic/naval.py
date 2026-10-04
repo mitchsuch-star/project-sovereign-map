@@ -4004,6 +4004,17 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
                 "odds": int(quote["odds"]),
                 "from": marshal.location,
             }
+            # CRT-9 (Oct 3, 2026): the state probe's verdict on THIS corps'
+            # landing (the turn's actions — an expedition is two — and his
+            # state), so the chip dims with the reason instead of sailing
+            # into "Not enough actions! Need 2, have 0". Display-only.
+            try:
+                from backend.commands.state_probe import order_state_refusal
+                _why = order_state_refusal(world, marshal, "land")
+            except Exception:
+                _why = ""
+            if _why:
+                row["refusal"] = _why
             # SR-5b (AAR-D7): what would make it a better throw — the same
             # odds function re-asked (`expedition_odds_levers`). Asked only
             # of an opposed passage; "" rides when nothing moves it.

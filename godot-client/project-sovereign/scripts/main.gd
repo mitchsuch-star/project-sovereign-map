@@ -1013,6 +1013,10 @@ func _update_map_from_game_state(game_state: Dictionary) -> void:
 	# it to say what the establishment allows without a per-region scan.
 	if map_area.has_method("update_levy"):
 		map_area.update_levy(game_state.get("levy", {}))
+	# CRT-9 (CQ-21): the turn's action pools, so the region panel's
+	# administrative chips dim when none is left.
+	if map_area.has_method("update_action_pools"):
+		map_area.update_action_pools(game_state.get("action_pools", {}))
 
 
 func _try_finalize_initial_map_bootstrap() -> void:
@@ -8166,6 +8170,13 @@ func _in_visible_danger(entry: Dictionary, plain: Dictionary) -> bool:
 func _verb_open(verb: String, entry: Dictionary, plain: Dictionary) -> bool:
 	"""A no-target verb's own gate: its `<verb>_refusal` is empty (the
 	executor would take it). A missing field is a closed gate."""
+	# CRT-9 (CQ-24): the marshal's STATE first — the one probe
+	# (`tactical_state.order_refusals`) the chips read too. A fortified
+	# man is offered no `move to`, a drill-locked man no order at all, a
+	# routed man no `attack` / `march to` / `scout`, and nobody an order
+	# the turn's actions cannot pay for.
+	if not _state_open(verb, entry):
+		return false
 	if verb == "retreat":
 		return _in_visible_danger(entry, plain)
 	if not _VERB_GATE_FIELD.has(verb):
@@ -8174,6 +8185,28 @@ func _verb_open(verb: String, entry: Dictionary, plain: Dictionary) -> bool:
 	if not (state is Dictionary):
 		return false
 	return str(state.get(_VERB_GATE_FIELD[verb], "-")) == ""
+
+
+# CRT-9: the completer's verbs, keyed to the probe's (`state_probe.VERBS`).
+const _STATE_PROBE_VERB := {
+	"attack": "attack", "march to": "march", "move to": "move",
+	"scout": "scout", "fortify": "fortify", "unfortify": "unfortify",
+	"drill": "drill", "defend": "defend", "hold": "hold",
+	"retreat": "retreat", "support": "support", "garrison": "garrison",
+}
+
+
+func _state_open(verb: String, entry: Dictionary) -> bool:
+	"""CRT-9 (CQ-24): false when the marshal's state or the turn's actions
+	refuse `verb` (`tactical_state.order_refusals`); a missing map is open
+	(an older payload — the verb's own gate still decides)."""
+	var state = entry.get("tactical_state", {})
+	if not (state is Dictionary):
+		return true
+	var refusals = state.get("order_refusals", {})
+	if not (refusals is Dictionary):
+		return true
+	return str(refusals.get(str(_STATE_PROBE_VERB.get(verb, verb)), "")) == ""
 
 
 func _starts_with_ci(text: String, prefix: String) -> bool:
@@ -8288,6 +8321,12 @@ func _add_continuations(marshal: String, rest: String, out: Array,
 		var cont := str(entry[1])
 		var slot := str(entry[2])
 		if not (_starts_with_ci(rest, verb + " ") or rest.to_lower() == verb):
+			continue
+		# CRT-9 (CQ-24): a two-step order whose head his state refuses is
+		# refused whole (`march to` reads the probe's `march`).
+		var head_entry := _marshal_entry(key)
+		if not head_entry.is_empty() and not _state_open(
+				"march to" if verb == "move to" else verb, head_entry):
 			continue
 		var after := rest.substr(verb.length()).strip_edges()
 		var head_target := _continuation_head(after)
