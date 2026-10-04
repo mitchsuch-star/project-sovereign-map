@@ -1,0 +1,38 @@
+== nav1-nav1_m
+  t 1  10/13 tier 0            corps -  Spain war  WE 0
+  t 2  10/13 tier 0            corps -  Spain war  WE 13
+  t 3  11/13 tier 1            corps -  Spain war  WE 26
+  t 4  11/13 tier 1            corps -  Spain war  WE 35
+  t 5  11/13 tier 1            corps -  Spain war  WE 44
+  t 6  11/13 tier 1            corps ['Paget']  Spain war  WE 53
+  t 7  11/13 tier 1            corps ['Paget']  Spain war  WE 65
+  t 8  11/13 tier 1            corps -  Spain war  WE 74
+  t 9  11/13 tier 1            corps ['Wellesley']  Spain war  WE 85
+  t10  11/13 tier 1            corps ['Wellesley']  Spain war  WE 94
+  t11  12/13 tier 1            corps -  Spain war  WE 104
+  t12  14/13 tier 1  SHUT OUT  corps -  Spain war  WE 113
+  t13  14/13 tier 1  SHUT OUT  corps -  Spain war  WE 122
+  t14  14/13 tier 1  SHUT OUT  corps -  Spain war  WE 131
+  t15  14/13 tier 1  SHUT OUT  corps -  Spain war  WE 140
+  t16  11/13 tier 1            corps -  Spain peace  WE 149
+  t17  11/13 tier 1            corps ['Wellesley']  Spain peace  WE 158
+  t18  11/13 tier 1            corps ['Wellesley']  Spain peace  WE 167
+  t19  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 176
+  t20  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 185
+  t21  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 194
+  t22  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t23  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t24  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t25  13/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t26  12/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t27  12/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t28  12/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t29  12/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  t30  12/13 tier 1            corps ['Wellesley']  Spain peace  WE 200
+  peak 14 (tier 1) · held on [12, 13, 14, 15] (longest 4) · Spain's exit t16 · last British corps t30
+  Britain armistice on t7 at WE 65, tier 1 (11 ports)
+  Britain settlement offer on t15 at WE 140, tier 1 (14 ports)
+  Britain armistice on t17 at WE 158, tier 1 (11 ports)
+  Britain settlement offer on t20 at WE 185, tier 1 (13 ports)
+  Britain settlement offer on t25 at WE 200, tier 1 (13 ports)
+  Britain settlement offer on t30 at WE 200, tier 1 (12 ports)

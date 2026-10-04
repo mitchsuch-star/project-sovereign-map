@@ -1,0 +1,184 @@
+[
+ {
+  "id": "EXIT lever down: A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM = True",
+  "new": "A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM = False",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheExit::test_a_member_at_war_with_the_lord_leaves"
+ },
+ {
+  "id": "SF7-X5 lever down: THE_PLAIN_ALLIANCE_KEEPS_NO_SYSTEM",
+  "file": "backend/game_logic/settlement_actions.py",
+  "old": "THE_PLAIN_ALLIANCE_KEEPS_NO_SYSTEM = True",
+  "new": "THE_PLAIN_ALLIANCE_KEEPS_NO_SYSTEM = False",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheAddVerb::test_the_plain_alliance_writes_no_system"
+ },
+ {
+  "id": "the predicate asks no lord",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if imposer != continental_system_lord(world):",
+  "new": "    if False:",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestWhoMayBeAsked::test_only_the_systems_lord_may_impose_it"
+ },
+ {
+  "id": "the predicate asks Britain to blockade herself",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    if nation == naval.trade_dominance_nation(world):",
+  "new": "    if False:",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestWhoMayBeAsked::test_the_trade_dominance_court_is_never_asked"
+ },
+ {
+  "id": "the predicate asks our own satellite",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "        return \"cs_own_client\"",
+  "new": "        return None",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestWhoMayBeAsked::test_our_own_satellites_join_on_their_own"
+ },
+ {
+  "id": "the membership write is silent",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    _continental_system_beat(world, nation, \"joined\",\n                             f\" {reason}\" if reason else \"\")",
+  "new": "    pass",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheOneMembershipWrite::test_it_joins_once_announces_and_logs"
+ },
+ {
+  "id": "the beat prints the raw tag",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            nation=with_definite_article(",
+  "new": "            _unused=with_definite_article(",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheOneMembershipWrite::test_the_beat_names_the_court_not_its_tag"
+ },
+ {
+  "id": "the clause costs nothing in the bilateral acceptance",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    \"continental_system_join\": -10,",
+  "new": "    \"continental_system_join\": 0,",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestThePrice::test_the_clause_costs_ten_points_over_a_plain_peace"
+ },
+ {
+  "id": "the clauses dialect prices nothing",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "            # British trade.\n            harshness += 0.2",
+  "new": "            # British trade.\n            harshness += 0.0",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestThePrice::test_the_demand_value_and_both_harshness_dialects"
+ },
+ {
+  "id": "the demands dialect prices nothing",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "            harshness += 0.2  # the Tilsit clause",
+  "new": "            harshness += 0.0  # the Tilsit clause",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestThePrice::test_the_demand_value_and_both_harshness_dialects"
+ },
+ {
+  "id": "the separate peace does not carry it",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    # one — Prussia and Russia at Tilsit, 1807, while Britain fought on.\n    \"continental_system_join\",\n})",
+  "new": "    # one — Prussia and Russia at Tilsit, 1807, while Britain fought on.\n})",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheSeparatePeaceCarriesIt::test_the_carried_set_and_the_dropped_labels_agree"
+ },
+ {
+  "id": "the seed drops the clause",
+  "file": "backend/game_logic/settlement_actions.py",
+  "old": "            demands.append({\"type\": \"continental_system_join\", \"value\": 1})",
+  "new": "            pass",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheSeparatePeaceCarriesIt::test_it_is_seeded_as_a_valued_demand"
+ },
+ {
+  "id": "the joint arm skips the predicate",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "            if not continental_system_join_refusal(world, cs_from, cs_to):",
+  "new": "            if True:",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheJointRoad::test_the_predicate_re_runs_at_ratification"
+ },
+ {
+  "id": "the joint arm charges no alarm",
+  "file": "backend/game_logic/settlement_ratify.py",
+  "old": "                    add_threat(world, int(_CS), \"continental_system\",\n                               target=cs_to)",
+  "new": "                    pass",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheJointRoad::test_the_package_applies_the_clause_and_charges_the_alarm"
+ },
+ {
+  "id": "the bilateral arm skips the predicate",
+  "file": "backend/models/world_state.py",
+  "old": "            if continental_system_join_refusal(self, cs_from, cs_to):\n                continue",
+  "new": "            if False:\n                continue",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheBilateralRatifies::test_a_court_the_predicate_refuses_is_not_enrolled"
+ },
+ {
+  "id": "the summary calls it a white peace",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "            or any_system_joined):",
+  "new": "            or False):",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheBilateralRatifies::test_the_summary_names_it_and_it_is_not_a_white_peace"
+ },
+ {
+  "id": "the log calls it a white peace",
+  "file": "backend/models/world_state.py",
+  "old": "                        or _gold_out or _client_erected or _system_joined):",
+  "new": "                        or _gold_out or _client_erected):",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheBilateralRatifies::test_the_log_does_not_call_it_a_white_peace"
+ },
+ {
+  "id": "the counter strikes the clause",
+  "file": "backend/game_logic/ai_diplomacy.py",
+  "old": "        if d.get(\"type\") == \"continental_system_join\":",
+  "new": "        if False:",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheCounterOfferKeepsTheClause::test_a_counter_keeps_the_clause_and_strikes_the_gold"
+ },
+ {
+  "id": "the table offers no Tilsit row",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "    if cs_code not in (\"cs_no_ports\", \"cs_imposer_not_the_lord\", \"cs_own_client\",",
+  "new": "    if False and cs_code not in (\"cs_no_ports\", \"cs_imposer_not_the_lord\", \"cs_own_client\",",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheGuidedRow::test_austria_is_offered_the_clause_with_its_price"
+ },
+ {
+  "id": "the clickable row states no price",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "            terms_display=continental_system_join_terms(world, court),",
+  "new": "            terms_display=\"\",",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheGuidedRow::test_austria_is_offered_the_clause_with_its_price"
+ },
+ {
+  "id": "the court row line falls back to the key",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "        display = (\"Join the Continental System\" if frm == court",
+  "new": "        display = (\"continental system join\" if frm == court",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheDisplaysReadTheCanonicalDefault::test_the_tilsit_line_on_the_court_row"
+ },
+ {
+  "id": "a keyless alliance reads as without the System",
+  "file": "backend/game_logic/settlement_staging.py",
+  "old": "            if term.get(\"includes_continental_system\", True) else \"\"",
+  "new": "            if term.get(\"includes_continental_system\") else \"\"",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheDisplaysReadTheCanonicalDefault::test_a_keyless_forced_alliance_reads_as_with_the_system"
+ },
+ {
+  "id": "the bilateral label ignores an explicit no",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "                 and demand.get(\"includes_continental_system\") is False",
+  "new": "                 and False",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheDisplaysReadTheCanonicalDefault::test_the_bilateral_label_honours_an_explicit_no"
+ },
+ {
+  "id": "SF7-X6 the toggle names the imposer",
+  "file": "backend/game_logic/settlement_scoring.py",
+  "old": "            f\"Adds {_dn(joiner)} to the Continental System; \"",
+  "new": "            f\"Adds {_dn(target)} to the Continental System; \"",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheToggleRowNamesTheJoiner"
+ },
+ {
+  "id": "the preview row charges no alarm",
+  "file": "backend/game_logic/settlement_presentation.py",
+  "old": "            row[\"projected_threat_delta\"] = int(\n                FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)",
+  "new": "            row[\"projected_threat_delta\"] = 0",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheAppliedClausesPreview"
+ },
+ {
+  "id": "THE ADMIRALTY names no members",
+  "file": "backend/game_logic/naval.py",
+  "old": "            \"members_line\": _members_line(world, target),",
+  "new": "            \"members_line\": \"\",",
+  "tests": "tests/test_sf_nav1_d1_the_tilsit_clause.py::TestTheAdmiraltyNamesTheMembers::test_the_members_line"
+ }
+]

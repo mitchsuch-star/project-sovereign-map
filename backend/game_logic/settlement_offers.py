@@ -2787,9 +2787,10 @@ def build_incoming_settlement_offer_popup(
             )
             continue
         if ttype == "forced_alliance":
+            # SF7-X5: no flag = the canonical True, as ratification reads it.
             cs_suffix = (
                 ", incl. Continental System"
-                if bool(term.get("includes_continental_system"))
+                if bool(term.get("includes_continental_system", True))
                 else ""
             )
             terms_summary.append(

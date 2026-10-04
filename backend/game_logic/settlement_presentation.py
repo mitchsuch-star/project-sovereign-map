@@ -530,6 +530,9 @@ def _term_display(term: Mapping[str, Any]) -> str:
             return f"{base}: {t_to} erects {detail} out of {t_from}"
         if detail:
             return f"{base}: {detail}"
+    # The Tilsit clause: the court joins the System — named, with no "to".
+    if ttype == "continental_system_join" and t_from:
+        return f"{base}: {t_from} closes its ports to British trade"
     if region and t_from and t_to:
         return f"{base}: {region} from {t_from} to {t_to}"
     if t_from and t_to:
@@ -1057,6 +1060,23 @@ def build_applied_clauses_preview(
             differential = differentials_by_index.get(term_index)
             if differential is not None:
                 row["continental_toggle_differential"] = differential
+        elif ttype == "continental_system_join":
+            # The Tilsit clause (§6.6): what will mutate — the court joins
+            # the System through THE membership write and the System's
+            # alarm (one source) is charged to the Emperor; no alliance.
+            from backend.game_logic.settlement_scoring import (
+                FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE,
+            )
+            row["from"] = str(term.get("from") or "")
+            row["to"] = str(term.get("to") or "")
+            row["projected_threat_delta"] = int(
+                FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)
+            if world is not None and row["from"]:
+                from backend.game_logic.diplomacy import (
+                    continental_system_join_terms,
+                )
+                row["terms_display"] = continental_system_join_terms(
+                    world, row["from"])
         elif ttype == "vassalage" or ttype == "subjugation":
             row["vassal"] = str(term.get("vassal_nation") or term.get("from") or "")
             row["overlord"] = str(term.get("overlord") or term.get("to") or "")

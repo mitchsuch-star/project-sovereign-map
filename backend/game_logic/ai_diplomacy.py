@@ -2944,6 +2944,12 @@ def generate_counter_offer(
             # below the carry-over. A court that will not stomach
             # dismemberment must REFUSE, not quietly re-draft it away.
             continue
+        if d.get("type") == "continental_system_join":
+            # The Tilsit clause (Score Finish Step 7 slice 4): the same rule.
+            # It is the clause the peace was asked FOR; a court that will not
+            # keep the System refuses, and the player sees the refusal
+            # instead of a gold treaty they did not ask for.
+            continue
         test_terms = copy.deepcopy(terms)
         test_terms["demands"].pop(i)
         test_result = calculate_acceptance(test_terms, world)

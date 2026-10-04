@@ -130,6 +130,14 @@ CANONICAL_CLAUSE_TYPES = {
         "required": {"type", "from", "to", "tag"},
         "optional": {"provinces", "client_display_name", "authored_by"},
     },
+    # The Tilsit clause (Score Finish Step 7 slice 4; SCORE_FINISH_SPEC §6.6):
+    # "joins the Continental System" — no alliance (Prussia and Russia at
+    # Tilsit, 1807; Austria at Schönbrunn, 1809). Canonical from/to follow
+    # forced_alliance: from = the court that joins (it pays), to = the court
+    # that imposes it (the System's lord). Named `continental_system_join`,
+    # the name three reaction sets had already reserved for it
+    # (`settlement_reactions`, `settlement_offers`, `settlement_presentation`).
+    "continental_system_join": {"required": {"type", "from", "to"}, "optional": {"authored_by"}},
 }
 
 # G2-Slice-1 live MVP clause types.
@@ -143,6 +151,7 @@ SETTLEMENT_DEPENDENCY_CLAUSE_TYPES = frozenset({
     "vassalage", "subjugation", "liberation",
     "vassal_transfer",  # VS-5 (July 16, 2026)
     "create_client",    # NA-6c (July 19, 2026)
+    "continental_system_join",  # the Tilsit clause (Score Finish Step 7)
 })
 
 # SC-33 / G2-Slice-9 - Recurring gold payments become editor-live. The clause
@@ -195,6 +204,12 @@ CLAUSE_CONFLICT_MATRIX = [
     ("vassalage", "forced_alliance", ("from", "to")),
     ("vassalage", "subjugation", ("from", "to")),
     ("subjugation", "forced_alliance", ("from", "to")),
+    # The Tilsit clause: a forced alliance carries the System by its own
+    # toggle, and a vassal or a subject joins it as a client — one or the
+    # other, never both on one court.
+    ("continental_system_join", "forced_alliance", ("from", "to")),
+    ("continental_system_join", "vassalage", ("from", "to")),
+    ("continental_system_join", "subjugation", ("from", "to")),
 ]
 
 # Recognized side strings on `war_instance` records.
@@ -573,6 +588,7 @@ _BURDEN_TERM_TYPES = (
     "subjugation",
     "vassal_transfer",  # VS-5: burdens `from` (the lord losing the vassal)
     "create_client",    # NA-6c: burdens `from` (the court whose soil is carved)
+    "continental_system_join",  # the Tilsit clause: burdens `from` (the court that joins)
 )
 
 
@@ -646,7 +662,8 @@ def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]]) -> bool:
         if ttype in _TERRITORY_TERM_TYPES and _term_regions(t):
             return True
         if ttype in ("forced_alliance", "liberation", "vassalage",
-                     "subjugation", "vassal_transfer", "create_client"):
+                     "subjugation", "vassal_transfer", "create_client",
+                     "continental_system_join"):
             return True
         # Any concrete numeric demand counts as non-trivial.
         if t.get("amount") or t.get("value"):
@@ -1204,6 +1221,11 @@ def _select_relevant_objective(
                          if isinstance(provinces, (list, tuple)) and provinces
                          else 1)
                 enemy_costs[from_n] += (0.3 * count) + 0.15
+            elif ttype == "continental_system_join":
+                # The Tilsit clause: half a forced alliance (the court keeps
+                # its soil and its sovereignty, and gives up its British
+                # trade) — the harshness accumulator's own 0.2.
+                enemy_costs[from_n] += 0.2
     harshest_target: Optional[str]
     if any(v > 0 for v in enemy_costs.values()):
         harshest_target = max(enemy_costs.items(), key=lambda kv: (kv[1], kv[0]))[0]
@@ -2085,10 +2107,17 @@ def compute_forced_alliance_continental_toggle_differential(
             with_cs["balance_modifier"] - without_cs["balance_modifier"]
         )
         target = str(term.get("to") or "")
+        # SF7-X6 (Score Finish Step 7 slice 4): the court that joins the
+        # System is the one forced into the alliance (`from`); `to` is the
+        # Emperor whose System it is. The row read "Adds France to the
+        # Continental System".
+        joiner = str(term.get("from") or "")
+        from backend.display_names import display_nation as _dn
         display = (
-            f"Adds {target} to the Continental System; extra threat cost applies."
-            if target
-            else "Adds target to the Continental System; extra threat cost applies."
+            f"Adds {_dn(joiner)} to the Continental System; "
+            "extra threat cost applies."
+            if joiner
+            else "Adds the court to the Continental System; extra threat cost applies."
         )
         rows.append({
             "clause_index": int(index),

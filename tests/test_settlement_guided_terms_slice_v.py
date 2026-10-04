@@ -468,5 +468,8 @@ def test_guided_terms_voice_families_hold_sc32_d5_copy_boundary():
         assert not any(word in lowered for word in banned), key
     # 11 guided reasons + caution + 2 reactions + 3 recommendation variants;
     # VS-5 (July 16, 2026) added the vassal_transfer guided reason (+1 = 18);
-    # NA-6c (July 19, 2026) added the create_client guided reason (+1 = 19).
-    assert walked == 19
+    # NA-6c (July 19, 2026) added the create_client guided reason (+1 = 19);
+    # SF-NAV-1-D1 "the Tilsit clause" (Score Finish Step 7 slice 4, Oct 4,
+    # 2026) added the continental_system_join guided reason (+1 = 20) —
+    # walked, and inside the D5 boundary.
+    assert walked == 20

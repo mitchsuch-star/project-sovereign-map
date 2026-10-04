@@ -6085,7 +6085,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_alliance_cascade": "{nation} enters the war via alliance with {ally}.",
     "diplomatic_offensive_cascade": "{nation} has joined {aggressor}'s war against {target}, honoring their alliance.",
     "diplomatic_vassal_courting": "Talleyrand reports {enemy} agents in {vassal_capital}.",
-    "diplomatic_continental_system": "{nation} has {action} the Continental System.",
+    "diplomatic_continental_system": "{nation} has {action} the Continental System{tail}.",
     # Audit 2026-07-09 fix 3.1: name the actual lord — this event also fires
     # for AI-lord vassalizations (treaty ratification / settlement clauses),
     # where "French protection" misattributed the act.
@@ -6722,6 +6722,20 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         template_vars["carved_name"] = with_definite_article(
             display_nation(template_vars.get("carved_name", "")),
             capitalize=True)
+    if event_type == "diplomatic_continental_system":
+        # The Tilsit clause's slice: the beat names how a court joined or
+        # why it left (one queued before the slice carries no tail), and the
+        # court by its NAME at the head of the sentence — the PC-9 idiom
+        # above. The raw tag had reached the dispatch for an auto-joined
+        # satellite ("KingdomOfItaly has joined the Continental System").
+        # `nation` in the event payload stays the raw tag for the fog filter.
+        from backend.display_names import display_nation, with_definite_article
+        template_vars = dict(
+            template_vars,
+            tail=str(template_vars.get("tail") or ""),
+            nation=with_definite_article(
+                display_nation(str(template_vars.get("nation") or "")),
+                capitalize=True))
     if event_type == "blockade_begins" and "trade_words" not in template_vars:
         # SR-5r RF-2: a beat queued before the Orders in Council could deepen
         # the cut carries no words — it was halved then (never a raw brace).

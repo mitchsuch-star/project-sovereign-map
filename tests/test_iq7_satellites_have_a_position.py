@@ -2092,7 +2092,7 @@ class TestT21CampaignLog:
     def test_the_type_is_registered(self):
         assert "client_petition_answered" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["client_petition_answered"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 172  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 173  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
 
     def test_every_count_pin_moved_with_the_rationale(self):
         """The census over the flips: every file that pins the count reads
@@ -2112,7 +2112,10 @@ class TestT21CampaignLog:
         the line. ⚑ VD-C (Step 5, Oct 3, 2026) moved it 171 -> 172
         (`vassal_contingent`, the client's men) — flipped consciously: the
         census now reads 172 and VD-C, with the five earlier flips still on
-        the line."""
+        the line. ⚑ TILSIT (SF-NAV-1-D1, Step 7, Oct 4, 2026) moved it 172 ->
+        173 (`continental_system_membership`, the Continental System's
+        joins and exits) — flipped consciously: the census now reads 173 and
+        TILSIT, with the six earlier flips still on the line."""
         pinned = {}
         for path in sorted((REPO / "tests").glob("test_*.py")):
             for line in path.read_text(encoding="utf-8").splitlines():
@@ -2120,12 +2123,13 @@ class TestT21CampaignLog:
                 if m:
                     pinned[path.name] = (int(m.group(1)), m.group(2))
         assert len(pinned) >= 14, sorted(pinned)
-        stale = {name: value for name, (value, _) in pinned.items() if value != 172}
+        stale = {name: value for name, (value, _) in pinned.items() if value != 173}
         assert stale == {}, stale
         unexplained = [name for name, (_, tail) in pinned.items()
                        if "IQ-7" not in tail or "GE-1" not in tail
                        or "GE-3" not in tail or "VP-M1" not in tail
-                       or "RF-1" not in tail or "VD-C" not in tail]
+                       or "RF-1" not in tail or "VD-C" not in tail
+                       or "TILSIT" not in tail]
         assert unexplained == [], unexplained
 
     def test_the_one_liners(self):

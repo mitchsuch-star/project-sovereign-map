@@ -77,6 +77,7 @@ from backend.game_logic.settlement_validation import (
     _side_leader,
     _term_lists_equal,
     compute_gold_payer_budgets,
+    evaluate_continental_system_join_eligibility,
     evaluate_create_client_eligibility,
     evaluate_liberation_eligibility,
     evaluate_vassal_transfer_eligibility,
@@ -857,6 +858,7 @@ _DEMAND_ADDABLE_CLAUSE_TYPES = frozenset({
     "vassalage", "subjugation", "forced_alliance", "liberation",
     "vassal_transfer",  # VS-5 (July 16, 2026) — demand-only
     "create_client",    # NA-6c (July 19, 2026) — demand-only
+    "continental_system_join",  # the Tilsit clause (Score Finish Step 7) — demand-only
 })
 
 
@@ -895,6 +897,12 @@ def _carve_templates_for_court(world: Any, *, war_instance: Mapping[str, Any],
     return out
 
 
+# SF7-X5: the plain "Force X into alliance" link writes
+# `includes_continental_system: False` (lever down: no flag, which
+# ratification reads as True — the court joined the System anyway).
+THE_PLAIN_ALLIANCE_KEEPS_NO_SYSTEM = True
+
+
 def _demand_clause_label(clause: Mapping[str, Any]) -> str:
     """A short player-facing line for one clause, used in restage messages
     ("Struck the cession of Silesia."). Full voice beats land in GT-Slice-V."""
@@ -923,6 +931,9 @@ def _demand_clause_label(clause: Mapping[str, Any]) -> str:
         # NA-6c — name the client, not the template id.
         client = str(clause.get("client_display_name") or clause.get("tag") or "")
         return f"the erection of {client}" if client else "the new client state"
+    if ttype == "continental_system_join":
+        # The Tilsit clause.
+        return f"{clause.get('from')}'s entry into the Continental System"
     return ttype.replace("_", " ") or "the clause"
 
 
@@ -1357,7 +1368,16 @@ def _handle_settlement_demand_action(
         clause = {
             "type": "forced_alliance", "from": court, "to": proposer_leader,
         }
-        if action_params.get("includes_continental_system"):
+        if THE_PLAIN_ALLIANCE_KEEPS_NO_SYSTEM:
+            # SF7-X5 (Score Finish Step 7 slice 4): the table offers two links
+            # — "Force X into alliance" and "[+ Continental System]" — and
+            # the plain one wrote NO flag, which every ratification reader
+            # takes as the canonical True: the court joined the System, the
+            # alarm was charged for it, and the staged line said "Forced
+            # alliance". The choice is written either way now.
+            clause["includes_continental_system"] = bool(
+                action_params.get("includes_continental_system"))
+        elif action_params.get("includes_continental_system"):
             clause["includes_continental_system"] = True
     elif clause_type == "vassal_transfer":
         # VS-5: re-home the court's vassal under the proposer leader.
@@ -1437,6 +1457,27 @@ def _handle_settlement_demand_action(
             # authority.
             "provinces": list(template_provinces(get_template(world, template_id))),
             "client_display_name": str(identity.get("display_name") or template_id),
+        }
+    elif clause_type == "continental_system_join":
+        # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6):
+        # the court keeps the System — no alliance. MUST sit above the
+        # trailing `else`, which builds a liberation clause for any type
+        # that has no arm of its own.
+        eligibility = evaluate_continental_system_join_eligibility(
+            world,
+            war_instance=war_instance,
+            joiner=court,
+            imposer=proposer_leader,
+        )
+        if not eligibility.get("eligible"):
+            return _fail(
+                str(eligibility.get("refusal_code") or "dependency_invalid"),
+                str(eligibility.get("disabled_reason_display") or ""),
+            )
+        clause = {
+            "type": "continental_system_join",
+            "from": court,
+            "to": proposer_leader,
         }
     else:  # liberation
         vassals = getattr(world, "vassals", {}) or {}
@@ -3092,6 +3133,14 @@ def _pair_substitute_seed_terms(
                     "client_display_name": str(
                         term.get("client_display_name") or cc_tag),
                 })
+        elif (ttype == "continental_system_join" and frm == target
+              and to == proposer_leader):
+            # The Tilsit clause travels with the separate peace (§6.6 item
+            # 5) — the peace that enrols a beaten court in the System is
+            # the bilateral one (Prussia and Russia at Tilsit, 1807). It
+            # carries `value: 1`: the bilateral walk multiplies the rate by
+            # it, and a value-less demand would price at nothing.
+            demands.append({"type": "continental_system_join", "value": 1})
     if demanded_regions:
         demands.append({
             "type": "territory_cede",

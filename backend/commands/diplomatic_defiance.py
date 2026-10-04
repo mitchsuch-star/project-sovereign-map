@@ -182,6 +182,12 @@ def calculate_proposal_harshness(proposal: Dict) -> float:
             # erection, mirroring the ratio the other two dialects use.
             provinces = demand.get("provinces") or []
             harshness += 0.2 * max(1, len(provinces)) + 0.15
+        elif dtype == "continental_system_join":
+            # The Tilsit clause — this dialect's cession is 0.2 a province,
+            # so the System (two thirds of a cession in the other two
+            # dialects) prices at 0.15. Registered in every dialect: the
+            # IGR-D lesson (an unscored demand reads as "too generous").
+            harshness += 0.15
 
     # A package that dismembers its target into a client state can never be
     # "too generous", whatever is offered alongside it. Without this floor

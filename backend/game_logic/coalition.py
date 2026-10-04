@@ -78,6 +78,7 @@ LEAGUE_SPENT_DIVISOR = 2
 LEAGUE_SPEND_EXEMPT_SOURCES = (
     "treaty_annex", "treaty_vassalization", "conquest_vassalization",
     "forced_alliance",
+    "continental_system",  # the Tilsit clause: kept whole, like the forced alliance
 )
 # IQ-3 rider: Talleyrand's declare-war objection read only `threat > 50`,
 # so after a spend (alarm 41-48) he fell silent exactly when a declaration

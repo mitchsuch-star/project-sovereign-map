@@ -1,0 +1,36 @@
+== nav1t-a_v3
+  t 1  10/13 tier 0            corps -  Spain war  WE 0
+  t 2  10/13 tier 0            corps -  Spain war  WE 18
+  t 3  11/13 tier 1            corps -  Spain war  WE 26
+  t 4  11/13 tier 1            corps -  Spain war  WE 35
+  t 5  10/13 tier 0            corps -  Spain war  WE 43
+  t 6  10/13 tier 0            corps ['Paget']  Spain war  WE 51
+  t 7  10/13 tier 0            corps ['Paget']  Spain war  WE 59
+  t 8  12/13 tier 1            corps ['Paget']  Spain war  WE 67
+  t 9  12/13 tier 1            corps ['Moore', 'Paget']  Spain war  WE 76
+  t10  12/13 tier 1            corps ['Moore', 'Paget']  Spain war  WE 85
+  t11  13/13 tier 1            corps ['Moore', 'Paget']  Spain war  WE 94
+  t12  13/13 tier 1            corps ['Moore', 'Paget', 'Wellesley']  Spain war  WE 103
+  t13  15/13 tier 1            corps ['Moore', 'Paget', 'Wellesley']  Spain war  WE 115
+  t14  16/13 tier 2            corps ['Moore', 'Paget', 'Wellesley']  Spain war  WE 126
+  t15  13/13 tier 1            corps ['Moore', 'Wellesley']  Spain peace  WE 137
+  t16  13/13 tier 1            corps ['Moore', 'Wellesley']  Spain peace  WE 146
+  t17  13/13 tier 1            corps ['Moore', 'Wellesley']  Spain peace  WE 155
+  t18  11/13 tier 1            corps ['Moore', 'Wellesley']  Spain peace  WE 164
+  t19  11/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 173
+  t20  11/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 182
+  t21  11/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 191
+  t22  11/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t23  11/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t24  11/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t25  13/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t26  13/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t27  13/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t28  13/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t29  13/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  t30  13/13 tier 1            corps ['Moore', 'Shrapnel', 'Wellesley']  Spain peace  WE 200
+  peak 16 (tier 2) · held on [] (longest 0) · Spain's exit t15 · last British corps t30
+  Britain settlement offer on t11 at WE 94, tier 1 (13 ports)
+  Britain armistice on t17 at WE 155, tier 1 (13 ports)
+  Britain settlement offer on t21 at WE 191, tier 1 (11 ports)
+  Britain settlement offer on t26 at WE 200, tier 1 (13 ports)

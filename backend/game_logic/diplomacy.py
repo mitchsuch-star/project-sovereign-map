@@ -256,6 +256,7 @@ WAR_AGE_PENALTY_TYPES = frozenset({
 _MATERIAL_WITHOUT_SCALAR = frozenset({
     "territory", "territory_cede", "create_client", "prisoner_return",
     "forced_alliance", "liberation",
+    "continental_system_join",  # the Tilsit clause: a material demand
 })
 
 
@@ -341,6 +342,12 @@ DEMAND_VALUES = {
     # `prisoner_return` pattern), because a carve carries its subject in
     # `provinces` rather than in a scalar `value`.
     "create_client": -8,
+    # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6 item 4):
+    # half the forced alliance's -20. The demand carries `value: 1` (the
+    # generic walk multiplies the rate by it — a value-less demand prices at
+    # nothing). In-band tunable; measured at the build: a court at an even
+    # war score refuses it, a beaten one signs.
+    "continental_system_join": -10,
 }
 # IGR-D, blessed and in-band tunable. The carve's REAL cost has always been
 # `harshness_penalty`, which already charges it a steep premium (a measured
@@ -2930,6 +2937,19 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
             # that court's treaty recognition (the Congress's latch).
             from backend.game_logic.congress import note_war_entry
             note_war_entry(world, nation_a, nation_b)
+            # The Tilsit clause's exit (SCORE_FINISH_SPEC §6.6 item 7): a
+            # member that goes to war with the System's lord leaves the
+            # System — every road to war passes this setter, so every road
+            # inherits it. A member at war with France had kept counting.
+            if A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM:
+                _lord = continental_system_lord(world)
+                if _lord in (nation_a, nation_b):
+                    _member = nation_b if nation_a == _lord else nation_a
+                    if _member in (getattr(world, "continental_system_members", []) or []):
+                        from backend.display_names import display_nation
+                        leave_continental_system(
+                            world, _member,
+                            f"now at war with {display_nation(_lord)}")
 
     # WPS-C §9.5: Clear forced alliance origin when state leaves ALLIANCE,
     # enters WAR, or becomes VASSAL.
@@ -4957,11 +4977,19 @@ def build_peace_ratification_summary(
         clause.get("type") == "create_client"
         for clause in treaty.get("clauses", [])
     )
+    # The Tilsit clause (Score Finish Step 7 slice 4): a court that joins the
+    # Continental System has signed a material term — closing its ports to
+    # British trade — and a peace that carries only that is no white peace.
+    any_system_joined = any(
+        clause.get("type") == CONTINENTAL_SYSTEM_JOIN_CLAUSE
+        for clause in treaty.get("clauses", [])
+    )
     if war_score >= 30:
         war_outcome = "french_victory"
     elif war_score <= -30:
         war_outcome = "enemy_victory"
-    elif any_territory_changed or any_gold_exchanged or any_client_erected:
+    elif (any_territory_changed or any_gold_exchanged or any_client_erected
+            or any_system_joined):
         war_outcome = "stalemate"
     else:
         war_outcome = "white_peace"
@@ -11509,6 +11537,121 @@ def validate_ap_clause(world, target: str) -> bool:
 # CONTINENTAL SYSTEM (Phase 8 Session 5 §5d)
 # ═══════════════════════════════════════════════════════
 
+# ── The Tilsit clause (Score Finish Step 7 slice 4; SCORE_FINISH_SPEC §6.6) ──
+# A peace may enrol a beaten court in the Continental System — "joins the
+# Continental System", no alliance (Prussia and Russia at Tilsit, 1807;
+# Austria at Schönbrunn, 1809). ONE membership write
+# (`join_continental_system`) serves the clause on both roads and both
+# forced-alliance arms; ONE predicate (`continental_system_join_refusal`)
+# says who may be asked; ONE exit (`leave_continental_system`) runs at
+# `set_diplomatic_state`'s WAR transition. The store stays a bare list: the
+# System's lord is the player — the court `apply_continental_system` has
+# always read — so no imposer is recorded and no field is added.
+CONTINENTAL_SYSTEM_JOIN_CLAUSE = "continental_system_join"
+# The exit: a member that goes to war with the System's lord leaves it, as a
+# named beat. Lever down: a member at war with France keeps counting.
+A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM = True
+
+
+def continental_system_lord(world) -> str:
+    """The court whose instrument the System is (the player)."""
+    return str(getattr(world, "player_nation", "France") or "France")
+
+
+def continental_system_join_refusal(world, nation: str, imposer: str) -> Optional[str]:
+    """The refusal code when `imposer` may NOT ask `nation` to keep the
+    Continental System, else None. Read by the authoring row, both previews
+    and both ratification arms (honest availability, with its reason)."""
+    if not nation or not imposer or nation == imposer:
+        return "dependency_direction_invalid"
+    if imposer != continental_system_lord(world):
+        return "cs_imposer_not_the_lord"
+    from backend.game_logic import naval
+    rec = (naval.get_fleets(world) or {}).get(nation)
+    if (not isinstance(rec, dict) or rec.get("island")
+            or int(rec.get("ports", 0) or 0) <= 0):
+        return "cs_no_ports"
+    if nation == naval.trade_dominance_nation(world):
+        return "cs_trade_dominance_court"
+    if nation in (getattr(world, "continental_system_members", []) or []):
+        return "cs_already_member"
+    from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
+    vrec = (getattr(world, "vassals", {}) or {}).get(nation)
+    if (isinstance(vrec, dict) and vrec.get("lord") == imposer
+            and vrec.get("autonomy", AUTONOMY_SATELLITE)
+            in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)):
+        return "cs_own_client"
+    return None
+
+
+def continental_system_join_terms(world, nation: str) -> str:
+    """The Tilsit clause's terms, stated where the clause is offered: the
+    ports it closes against the trade-dominance court and the alarm it
+    costs — "closes 14 → 15 of 26 ports · +10 alarm". Empty on a world with
+    no trade-dominance court."""
+    from backend.game_logic import naval
+    from backend.game_logic.settlement_scoring import (
+        FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)
+    target = naval.trade_dominance_nation(world)
+    total = naval.continental_ports_total(world)
+    if not target or total <= 0:
+        return ""
+    now = naval.closed_ports_against(world, target)
+    after = naval.closed_ports_against(world, target, extra_members=(nation,))
+    return (f"closes {now} → {after} of {total} ports · "
+            f"+{int(FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE)} alarm")
+
+
+def _continental_system_beat(world, nation: str, action: str, tail: str = "") -> None:
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_continental_system",
+                         {"nation": nation, "action": action, "tail": tail},
+                         "always")
+    world.log_event({
+        "type": "continental_system_membership",
+        "nation": nation,
+        "action": action,
+        "lord": continental_system_lord(world),
+        "tail": tail,
+        "turn": int(getattr(world, "current_turn", 0) or 0),
+    })
+
+
+def join_continental_system(world, nation: str, imposer: str, reason: str = "") -> bool:
+    """THE membership write. Adds `nation` to the System (the store keeps its
+    list or set shape), announces it, and returns True when it joined. The
+    alarm is the caller's (`FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_
+    SURCHARGE`, one source), so the forced-alliance arms keep their single
+    combined charge byte for byte."""
+    members = getattr(world, "continental_system_members", []) or []
+    if nation in members:
+        world.continental_system_members = members
+        return False
+    if isinstance(members, set):
+        members.add(nation)
+    else:
+        members.append(nation)
+    world.continental_system_members = members
+    _continental_system_beat(world, nation, "joined",
+                             f" {reason}" if reason else "")
+    return True
+
+
+def leave_continental_system(world, nation: str, reason: str = "") -> bool:
+    """A member leaves the System (the exit). Returns True when it left."""
+    members = getattr(world, "continental_system_members", []) or []
+    if nation not in members:
+        return False
+    if isinstance(members, set):
+        members.discard(nation)
+    else:
+        members.remove(nation)
+    world.continental_system_members = members
+    _continental_system_beat(world, nation, "left",
+                             f" — {reason}" if reason else "")
+    return True
+
+
 def apply_continental_system(world) -> None:
     """
     Apply Continental System trade penalties during income phase.
@@ -11530,11 +11673,12 @@ def apply_continental_system(world) -> None:
             autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
             if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
                 if vassal_name not in members:
-                    members.append(vassal_name)
-                    # 6A-8: Queue dispatch event for newly auto-joined vassals
-                    from backend.game_logic.dispatch import queue_dispatch_event
-                    queue_dispatch_event(world, "diplomatic_continental_system",
-                                         {"nation": vassal_name, "action": "joined"}, "always")
+                    # 6A-8: the auto-joined vassal is announced. The Tilsit
+                    # clause's slice routes it through THE membership write
+                    # (the same list, the same beat text, plus its log line).
+                    world.continental_system_members = members
+                    join_continental_system(world, vassal_name, lord)
+                    members = world.continental_system_members
 
     # Remove AUTONOMOUS vassals from CS (they are independent)
     from backend.game_logic.vassal import AUTONOMY_AUTONOMOUS

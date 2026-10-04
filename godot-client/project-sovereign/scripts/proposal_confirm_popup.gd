@@ -1077,6 +1077,11 @@ func _build_suggestion_lines(sugg: Dictionary, court_index: int, sugg_index: int
 	var bbcode = "          [url=sugg:%d:%d][color=#80b0e0]%s[/color][/url]" % [
 		court_index, sugg_index, _safe_str(sugg.get("label")),
 	]
+	# The Tilsit clause (Score Finish Step 7 slice 4): a row that states its
+	# price where it can be clicked ("closes 10 → 11 of 26 ports · +10 alarm").
+	var terms_display = _safe_str(sugg.get("terms_display"))
+	if terms_display != "" and terms_display != "null":
+		bbcode += " [color=#%s](%s)[/color]" % [Utils.COLOR_GREY, terms_display]
 	var options: Array = []
 	if sugg.get("region_options") is Array:
 		options = sugg.get("region_options")

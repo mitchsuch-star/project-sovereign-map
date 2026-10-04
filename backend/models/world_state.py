@@ -12726,6 +12726,39 @@ class WorldState:
                 # off the one surface that reports the treaty.
                 applied_treaty_clauses.append(cc_applied)
 
+        # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6
+        # item 5): a peace that enrols the beaten court in the Continental
+        # System — no alliance. The predicate re-runs HERE (a full turn
+        # passes in transit; the bilateral road has no restage validator),
+        # through THE membership write, with the System's alarm on the
+        # imposer (`FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE`,
+        # one source). A clause the predicate now refuses is left unapplied
+        # and kept off the summary, the carve's rule.
+        for clause in treaty_clauses:
+            if clause.get("type") != "continental_system_join":
+                continue
+            from backend.game_logic.diplomacy import (
+                continental_system_join_refusal, join_continental_system,
+            )
+            cs_from = str(clause.get("from") or "")
+            cs_to = str(clause.get("to") or "")
+            if continental_system_join_refusal(self, cs_from, cs_to):
+                continue
+            from backend.display_names import display_nation as _dn
+            if join_continental_system(
+                    self, cs_from, cs_to,
+                    reason=f"by its peace with {_dn(cs_to)}"):
+                from backend.game_logic.settlement_scoring import (
+                    FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE as _CS,
+                )
+                from backend.game_logic.coalition import add_threat as _at
+                _at(self, int(_CS), "continental_system", target=cs_to)
+                applied_treaty_clauses.append({
+                    "type": "continental_system_join",
+                    "from": cs_from,
+                    "to": cs_to,
+                })
+
         # WB-A: War bargain clause → create commitment record
         for clause in war_bargain_clauses:
             from backend.game_logic.diplomacy import create_war_bargain_commitment
@@ -12850,12 +12883,15 @@ class WorldState:
                     fa_clause.get("includes_continental_system", True)
                 )
                 if includes_cs:
-                    cs_members = getattr(self, 'continental_system_members', [])
-                    if isinstance(cs_members, set):
-                        cs_members.add(fa_target)
-                    elif fa_target not in cs_members:
-                        cs_members.append(fa_target)
-                    self.continental_system_members = cs_members
+                    # THE membership write (the Tilsit clause's slice): the
+                    # same list, now announced; the alarm stays this arm's
+                    # single combined charge below.
+                    from backend.game_logic.diplomacy import (
+                        join_continental_system as _join_cs,
+                    )
+                    from backend.display_names import display_nation as _dn
+                    _join_cs(self, fa_target, fa_imposer,
+                             reason=f"by its alliance forced by {_dn(fa_imposer)}")
                 self.alliance_origins[fa_key] = "forced"
                 # G2-Slice-1b-Repair-1: apply the same +10 Continental
                 # System surcharge to bilateral-treaty ratification that
@@ -12979,6 +13015,11 @@ class WorldState:
                     c.get("type") == "create_client"
                     for c in applied_treaty_clauses
                 )
+                # The Tilsit clause: joining the System is a material term.
+                _system_joined = any(
+                    c.get("type") == "continental_system_join"
+                    for c in applied_treaty_clauses
+                )
                 _gold_in = sum(
                     abs(int(c.get("amount", 0))) for c in applied_treaty_clauses
                     if c.get("type") == "gold_lump" and c.get("to") == self.player_nation
@@ -12992,7 +13033,7 @@ class WorldState:
                 elif _ws <= -30:
                     _war_outcome = "enemy_victory"
                 elif (_terr_gained_flat or _terr_lost_flat or _gold_in
-                        or _gold_out or _client_erected):
+                        or _gold_out or _client_erected or _system_joined):
                     _war_outcome = "stalemate"
                 else:
                     _war_outcome = "white_peace"

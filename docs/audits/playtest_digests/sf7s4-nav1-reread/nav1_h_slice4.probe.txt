@@ -1,0 +1,37 @@
+== nav1-nav1_h
+  t 1  10/13 tier 0            corps -  Spain war  WE 5
+  t 2  10/13 tier 0            corps -  Spain war  WE 18
+  t 3  11/13 tier 1            corps -  Spain war  WE 26
+  t 4  10/13 tier 0            corps -  Spain war  WE 34
+  t 5  10/13 tier 0            corps -  Spain war  WE 42
+  t 6  10/13 tier 0            corps ['Paget']  Spain war  WE 50
+  t 7  10/13 tier 0            corps ['Paget']  Spain war  WE 61
+  t 8  10/13 tier 0            corps ['Paget']  Spain war  WE 70
+  t 9  10/13 tier 0            corps -  Spain war  WE 80
+  t10  10/13 tier 0            corps -  Spain war  WE 88
+  t11  11/13 tier 1            corps ['Shrapnel']  Spain war  WE 96
+  t12  11/13 tier 1            corps ['Shrapnel']  Spain war  WE 105
+  t13  11/13 tier 1            corps ['Shrapnel']  Spain war  WE 114
+  t14  11/13 tier 1            corps ['Shrapnel']  Spain war  WE 123
+  t15  11/13 tier 1            corps ['Shrapnel']  Spain war  WE 133
+  t16   8/13 tier 0            corps ['Shrapnel']  Spain peace  WE 141
+  t17   8/13 tier 0            corps -  Spain peace  WE 149
+  t18   8/13 tier 0            corps -  Spain peace  WE 157
+  t19  10/13 tier 0            corps -  Spain peace  WE 165
+  t20  10/13 tier 0            corps -  Spain peace  WE 173
+  t21  10/13 tier 0            corps -  Spain peace  WE 181
+  t22  10/13 tier 0            corps -  Spain peace  WE 189
+  t23  10/13 tier 0            corps -  Spain peace  WE 197
+  t24  10/13 tier 0            corps -  Spain peace  WE 200
+  t25  10/13 tier 0            corps -  Spain peace  WE 200
+  t26  10/13 tier 0            corps -  Spain peace  WE 200
+  t27  10/13 tier 0            corps -  Spain peace  WE 200
+  t28  10/13 tier 0            corps -  Spain peace  WE 200
+  t29  10/13 tier 0            corps -  Spain peace  WE 200
+  t30  10/13 tier 0            corps -  Spain peace  WE 200
+  peak 11 (tier 1) · held on [] (longest 0) · Spain's exit t16 · last British corps t16
+  Britain armistice on t8 at WE 70, tier 0 (10 ports)
+  Britain armistice on t15 at WE 133, tier 1 (11 ports)
+  Britain armistice on t21 at WE 181, tier 0 (10 ports)
+  Britain settlement offer on t28 at WE 200, tier 0 (10 ports)
+  Britain armistice on t29 at WE 200, tier 0 (10 ports)

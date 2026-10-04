@@ -1290,6 +1290,35 @@ def _decree_line(world, lord: str, target: str) -> str:
             f"client{'s' if len(names) != 1 else ''}: {joined}")
 
 
+def _members_line(world, target: str) -> str:
+    """The courts that keep the Continental System as MEMBERS (the Tilsit
+    clause's slice, SCORE_FINISH_SPEC §6.6 item 6) — "Members of the System:
+    Austria (2 ports) and Prussia (1 port)" — each with the ports it brings;
+    "" when there are none. A member with no continental port is left out
+    (it closes nothing)."""
+    members = sorted(str(m) for m in
+                     (getattr(world, "continental_system_members", []) or []))
+    if not members:
+        return ""
+    from backend.display_names import display_nation
+    fleets = get_fleets(world)
+    rows = []
+    for member in members:
+        if member == target:
+            continue
+        rec = fleets.get(member)
+        if not isinstance(rec, dict) or rec.get("island"):
+            continue
+        ports = int(rec.get("ports", 0) or 0)
+        if ports <= 0:
+            continue
+        rows.append(f"{display_nation(member)} ({ports} port{'s' if ports != 1 else ''})")
+    if not rows:
+        return ""
+    joined = rows[0] if len(rows) == 1 else ", ".join(rows[:-1]) + " and " + rows[-1]
+    return f"Members of the System: {joined}"
+
+
 def closure_against(world, target: str) -> float:
     """§5.1 closure = Σ ports of (nations at war with `target` + their
     PUPPET/SATELLITE vassals + CS members) ÷ Σ all continental ports.
@@ -1298,9 +1327,18 @@ def closure_against(world, target: str) -> float:
     total = continental_ports_total(world)
     if total <= 0:
         return 0.0
+    return closed_ports_against(world, target) / float(total)
+
+
+def closed_ports_against(world, target: str, extra_members=()) -> int:
+    """The closure's numerator: the ports closed against `target` today —
+    or, with `extra_members`, as if those courts kept the System too (the
+    Tilsit clause's row reads "closes 14 → 15 of 26 ports" off it). A pure
+    read; `closure_against` is this divided by the Continent's ports."""
     from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
     vassals = getattr(world, "vassals", {}) or {}
     members = set(getattr(world, "continental_system_members", []) or [])
+    members |= set(extra_members or ())
     closed = 0
     for nation, rec in get_fleets(world).items():
         if nation == META_KEY or nation == target or not isinstance(rec, dict):
@@ -1348,7 +1386,7 @@ def closure_against(world, target: str) -> float:
                     counted = True
         if counted:
             closed += ports
-    return closed / float(total)
+    return closed
 
 
 def cs_closure_tier(closure: float) -> int:
@@ -3510,6 +3548,9 @@ def build_admiralty_report(world) -> Dict:
             # (the Berlin Decree), named — `decree_clients`, the same test
             # `closure_against` applies.
             "decree_line": _decree_line(world, player, target),
+            # The Tilsit clause's slice: the courts that keep the System as
+            # members, named with their ports.
+            "members_line": _members_line(world, target),
         }
         # SR5B-D1 (ruled September 28, 2026): what the System's endgame use
         # takes — the Congress of Paris's SHUT OUT reading — and which of her

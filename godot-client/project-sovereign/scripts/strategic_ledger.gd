@@ -851,6 +851,11 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			# Say so, and say what closes the next one.
 			cs_line += " — [color=#" + Utils.COLOR_GREY + "]not yet biting[/color]"
 		bbcode += cs_line + "\n"
+		# The Tilsit clause (Score Finish Step 7 slice 4): the courts that
+		# keep the System as members, named with their ports.
+		var members_line = str(cs.get("members_line", ""))
+		if members_line != "":
+			bbcode += "  " + members_line + ".\n"
 		# SR-5r RF-4b (T8): the clients counted by the decree alone, named.
 		var decree_line = str(cs.get("decree_line", ""))
 		if decree_line != "":

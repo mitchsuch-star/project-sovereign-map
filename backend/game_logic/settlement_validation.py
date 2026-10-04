@@ -775,6 +775,31 @@ def evaluate_vassal_transfer_eligibility(
         True, extra={"power_pct": int(cap.get("pct", 0) or 0)})
 
 
+def evaluate_continental_system_join_eligibility(
+    world: Any,
+    *,
+    war_instance: Mapping[str, Any],
+    joiner: str,
+    imposer: str,
+) -> Dict[str, Any]:
+    """The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6 item 3):
+    whether ``imposer`` may ask ``joiner`` to keep the Continental System at
+    this table. ONE predicate (`diplomacy.continental_system_join_refusal`)
+    plus the war-side rule every cross-side clause keeps: the two courts
+    stand on opposite sides of the war being settled. "A court the Emperor
+    has beaten" is what the court's own acceptance reads — not a gate here."""
+    from backend.game_logic.diplomacy import continental_system_join_refusal
+    code = continental_system_join_refusal(world, joiner, imposer)
+    if code:
+        return _dependency_eligibility_payload(False, refusal_code=code)
+    joiner_side = _resolve_war_sides(war_instance, joiner)
+    imposer_side = _resolve_war_sides(war_instance, imposer)
+    if joiner_side is None or imposer_side is None or joiner_side == imposer_side:
+        return _dependency_eligibility_payload(
+            False, refusal_code="dependency_target_not_in_war")
+    return _dependency_eligibility_payload(True)
+
+
 def evaluate_create_client_eligibility(
     world: Any,
     *,
@@ -1080,7 +1105,10 @@ _CROSS_SIDE_TRANSFER_CLAUSE_TYPES = frozenset(
      # like a cession. Unlike the other dependency clauses its from/to are
      # both ordinary courts (the carved and the carver), so the generic
      # check applies unmodified — the new tag is never a bound party.
-     "create_client"}
+     "create_client",
+     # The Tilsit clause: the court that joins and the court that imposes
+     # the System stand on opposite sides, like a forced alliance.
+     "continental_system_join"}
 )
 
 
@@ -1451,6 +1479,25 @@ def validate_settlement_terms(
                     vassal_nation=str(clause.get("vassal") or ""),
                     from_lord=str(clause.get("from") or ""),
                     to_lord=str(clause.get("to") or ""),
+                )
+                if not eligibility.get("eligible"):
+                    return {
+                        "valid": False,
+                        "error": str(eligibility.get("refusal_code") or "dependency_invalid"),
+                        "error_index": idx,
+                        "disabled_reason_display": eligibility.get("disabled_reason_display")
+                        or _error_display(
+                            str(eligibility.get("refusal_code") or "dependency_invalid")
+                        ),
+                    }
+            elif ctype == "continental_system_join":
+                # The Tilsit clause: from = the court that joins, to = the
+                # court that imposes the System.
+                eligibility = evaluate_continental_system_join_eligibility(
+                    world,
+                    war_instance=war_instance,
+                    joiner=str(clause.get("from") or ""),
+                    imposer=str(clause.get("to") or ""),
                 )
                 if not eligibility.get("eligible"):
                     return {

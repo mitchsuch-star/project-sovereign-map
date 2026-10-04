@@ -2498,6 +2498,11 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "{vassal} already knows how to kneel, Sire — let it simply change "
         "the throne it kneels to. {court} loses a servant; we gain one."
     ),
+    "settlement_guided_reason_continental_system_talleyrand": (
+        "Let {court} keep its crown and its provinces, Sire, and close its "
+        "harbours to London. Every port shut is a pound the British "
+        "cannot spend."
+    ),
     "settlement_guided_reason_create_client_talleyrand": (
         "Do not annex it, Sire - erect it. {client} on {court}'s frontier "
         "is a friend that costs us nothing to garrison, and a grievance "
@@ -4524,6 +4529,12 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # sovereignty to vassalage (0.5) — and scales honestly for a
             # multi-province template.
             harshness += (0.3 * _create_client_province_count(clause)) + 0.15
+        elif ctype == "continental_system_join":
+            # The Tilsit clause (Score Finish Step 7; §6.6 item 4): half a
+            # forced alliance's 0.4, below a one-province cession's 0.3 —
+            # the court keeps its soil and its sovereignty and gives up its
+            # British trade.
+            harshness += 0.2
         elif ctype == "gold_lump":
             # FA-N45 (slice 10): the four types below were priced in the
             # DEMANDS dialect and fell through unmatched in the CLAUSES one —
@@ -4583,6 +4594,8 @@ def _accumulate_raw_treaty_harshness(treaty: Dict) -> float:
             # in only ONE dialect is the G4F-1 bug class: the other dialect
             # falls through unmatched and prices the demand at zero.
             harshness += (0.3 * _create_client_province_count(demand)) + 0.15
+        elif dtype == "continental_system_join":
+            harshness += 0.2  # the Tilsit clause — mirrors the clause branch above
     return harshness
 
 
@@ -4706,6 +4719,8 @@ _TERM_DISPLAY_LABELS = {
     "protection_promised": "{from_nation} guarantees {to_nation}'s sovereignty",
     "continental_system_lifted": "{from_nation} closes ports to Britain",
     "forced_alliance": "{from_nation} enters ALLIANCE with {to_nation} and joins the Continental System",
+    # SF7-X5: a forced alliance whose flag says the System stays out.
+    "forced_alliance_without_system": "{from_nation} enters ALLIANCE with {to_nation}",
     "liberation": "{from_nation} is liberated from vassalage",
     # VS-5: vassal re-homing — `detail` carries the transferred court's name
     "vassal_transfer": "{from_nation} yields its vassal {detail} to {to_nation}",
@@ -4714,6 +4729,8 @@ _TERM_DISPLAY_LABELS = {
     # Normandy". `detail` is overridden to the client's DISPLAY name plus
     # its province list in `_build_display_label`.
     "create_client": "{to_nation} erects {detail} out of {from_nation}",
+    # The Tilsit clause (Score Finish Step 7): no alliance, ports closed.
+    "continental_system_join": "{from_nation} joins the Continental System and closes its ports to British trade",
     # W6-7 Marshal Fates: ransom clause summary. Marshal-name-free — the
     # shared label formatter only carries nation/detail/value kwargs.
     "prisoner_return": "{from_nation} releases a captured marshal to {to_nation}",
@@ -4866,7 +4883,11 @@ def annotate_peace_terms(terms: Dict, proposer_nation: str, target_nation: str) 
             "term_direction": "demand",
             "sweetener_value": -value if value else 0,
             "display_label": _build_display_label(
-                dtype, target_nation, proposer_nation, regions, value, vassal_nation),
+                ("forced_alliance_without_system"
+                 if dtype == "forced_alliance"
+                 and demand.get("includes_continental_system") is False
+                 else dtype),
+                target_nation, proposer_nation, regions, value, vassal_nation),
         })
 
     for clause in terms.get("clauses", []):

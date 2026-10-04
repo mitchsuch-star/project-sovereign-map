@@ -17,7 +17,9 @@ This file covers the three required behavior tests:
 1. The named spec test — per-clause differential is non-empty for a
    forced_alliance draft, threat numbers differ by exactly the
    `FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE` per clause,
-   the humanized `display` names the target nation + Continental System,
+   the humanized `display` names the court that JOINS (the forced court,
+   `from` — SF7-X6, Score Finish Step 7 slice 4: it had named the Emperor
+   whose System it is) + Continental System,
    and the differential reaches both the POST preview payload AND the
    staged `settlement_confirm` dialogue.
 2. Negative no-clause test — drafts without any forced_alliance clause
@@ -162,8 +164,11 @@ def test_forced_alliance_continental_toggle_preview_shows_cost_difference():
     # Balance delta is 0 by spec (alliance pair formed regardless of CS).
     assert row["balance_delta_difference"] == 0
 
-    # Humanized copy names the target nation and Continental System.
-    assert "France" in row["display"]
+    # Humanized copy names the court that joins and the Continental System.
+    # CONSCIOUSLY FLIPPED (SF7-X6): this read "France" — the row said "Adds
+    # France to the Continental System" for an alliance forced on Austria.
+    assert "Austria" in row["display"]
+    assert "France" not in row["display"]
     assert "Continental System" in row["display"]
     # Phrasing must communicate the extra cost; matches the contract
     # the user pinned for Q1 (E).

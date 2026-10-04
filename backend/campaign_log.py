@@ -440,6 +440,7 @@ CAMPAIGN_LOG_TYPES = {
     "blockade_begins",          # a nation comes under blockade (NV-1)
     "blockade_broken",          # the blockade lifts (NV-1)
     "cs_tier_shift",            # Continental System closure tier change (NV-1)
+    "continental_system_membership",  # a court joins or leaves the System (the Tilsit clause, SF Step 7)
     "strait_open",              # a crossing verdict flips open (NV-3)
     "strait_shut",              # a crossing verdict flips shut (NV-3)
     "boulogne_camp",            # the descent camp is staged (NV-3)
@@ -569,6 +570,7 @@ CATEGORY_MAP = {
     "blockade_begins": "economy",
     "blockade_broken": "economy",
     "cs_tier_shift": "economy",
+    "continental_system_membership": "diplomacy",
     "strait_open": "combat",
     "strait_shut": "combat",
     "boulogne_camp": "combat",
@@ -705,7 +707,8 @@ LOG_TIER_NOTABLE = frozenset({
     "blockade_broken", "bombardment", "boulogne_camp",
     "call_to_arms_honored_costly", "call_to_arms_refused_defensive",
     "call_to_arms_refused_offensive", "coalition_brewing_started",
-    "coalition_member_left", "coercive_demand", "crisis_brewing",
+    "coalition_member_left", "coercive_demand", "continental_system_membership",
+    "crisis_brewing",
     "crisis_passed", "defensive_cascade", "design_bought_off",
     "design_promoted", "desertion", "diplomatic_alliance_cascade",
     "estate_confiscated", "estate_lost", "expedition_intercepted",
@@ -830,6 +833,11 @@ def _is_player_event(event: dict, player_nation: str) -> bool:
     if event.get("from_nation") == player_nation:
         return True
     if event.get("to_nation") == player_nation:
+        return True
+    # The Tilsit clause's slice: the Continental System is the player's own
+    # instrument, so a court joining or leaving it is always the player's business.
+    if (event.get("type") == "continental_system_membership"
+            and event.get("lord") == player_nation):
         return True
     return False
 
@@ -2823,6 +2831,13 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
     if event_type == "blockade_broken":
         nation = display_nation(event.get("nation", "Unknown"))
         return f"The blockade of {nation} is broken — her ports breathe again"
+
+    if event_type == "continental_system_membership":
+        nation = display_nation(event.get("nation", "Unknown"))
+        tail = str(event.get("tail") or "")
+        if event.get("action") == "left":
+            return f"{nation} leaves the Continental System{tail}"
+        return f"{nation} joins the Continental System{tail}"
 
     if event_type == "cs_tier_shift":
         target = display_nation(event.get("target", "Unknown"))

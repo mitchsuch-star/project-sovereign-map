@@ -434,6 +434,8 @@ CLAUSE_TYPE_DISPLAY = {
     # misleading about what happens.
     "vassal_transfer": "Vassal transferred",
     "create_client": "Client state erected",
+    # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6).
+    "continental_system_join": "Joins the Continental System",
     # GE-3: a beaten great power's peace offer during the sitting carries
     # the recognition clause (`ai_diplomacy`, the Congress sue arm) — the
     # popup reads "Clause: Recognition of the Congress of Paris", never the
@@ -1109,6 +1111,28 @@ SETTLEMENT_DISABLED_REASON_DISPLAY = {
         "This would take their last province and erase them from the map. "
         "Only a decisive victory can do that."
     ),
+    # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6): who
+    # may be asked to keep the Continental System, each refusal naming
+    # what stands in the way (honest availability).
+    "cs_no_ports": (
+        "That court has no port on the Continent to close - the System has "
+        "nothing to ask of it."
+    ),
+    "cs_already_member": (
+        "That court already keeps the Continental System."
+    ),
+    "cs_trade_dominance_court": (
+        "The System closes the Continent's ports against this court's "
+        "trade - it cannot be asked to keep it."
+    ),
+    "cs_own_client": (
+        "Your own satellites keep the System already - it is not a term to "
+        "ask of them."
+    ),
+    "cs_imposer_not_the_lord": (
+        "The Continental System is the Emperor's own instrument - only he "
+        "may ask a court to keep it."
+    ),
     "carve_region_double_promised": (
         "A province cannot both be ceded and be made part of a new client "
         "state - strike one of the two."
@@ -1679,6 +1703,11 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
             provinces = [str(p) for p in (demand.get("provinces") or []) if p]
             soil = f" out of {', '.join(provinces)}" if provinces else ""
             lines.append(f"{target_label} yields {client}{soil}")
+        elif demand_type == "continental_system_join":
+            # The Tilsit clause: the court keeps its soil and its crown and
+            # closes its ports to British trade — no alliance.
+            lines.append(f"{target_label} joins the Continental System "
+                         f"(its ports close to British trade; no alliance)")
         else:
             detail = _format_clause_detail(demand)
             detail_suffix = f" ({detail})" if detail else ""

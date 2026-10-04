@@ -565,6 +565,30 @@ def _apply_settlement_terms(
             cc_clause = apply_create_client_clause(world, term)
             if cc_clause is not None:
                 applied.append(cc_clause)
+        elif ttype == "continental_system_join":
+            # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6):
+            # the court keeps the System — no alliance — through THE
+            # membership write, with the System's alarm on the imposer. A
+            # package-level handler like create_client: the pair's own state
+            # transition is the peace's, not this clause's. The predicate
+            # re-runs at ratification (the board may have moved).
+            from backend.game_logic.diplomacy import (
+                continental_system_join_refusal, join_continental_system,
+            )
+            cs_from = str(term.get("from") or "")
+            cs_to = str(term.get("to") or "")
+            if not continental_system_join_refusal(world, cs_from, cs_to):
+                from backend.display_names import display_nation as _dn
+                if join_continental_system(
+                        world, cs_from, cs_to,
+                        reason=f"by its peace with {_dn(cs_to)}"):
+                    from backend.game_logic.settlement_scoring import (
+                        FORCED_ALLIANCE_CONTINENTAL_SYSTEM_THREAT_SURCHARGE as _CS,
+                    )
+                    from backend.game_logic.coalition import add_threat
+                    add_threat(world, int(_CS), "continental_system",
+                               target=cs_to)
+                    applied.append(dict(term))
         elif ttype == "liberation":
             lib_vassal = str(term.get("vassal_nation") or term.get("from") or "")
             lib_from = str(term.get("lord_nation") or term.get("to") or "")
@@ -825,12 +849,15 @@ def _resolve_pair_state_transitions(
             )
             includes_cs = bool(term.get("includes_continental_system", True)) if term else True
             if includes_cs:
-                cs_members = getattr(world, "continental_system_members", []) or []
-                if isinstance(cs_members, set):
-                    cs_members.add(covered_enemy)
-                elif covered_enemy not in cs_members:
-                    cs_members.append(covered_enemy)
-                world.continental_system_members = cs_members
+                # THE membership write (the Tilsit clause's slice): the
+                # same list, now announced; the alarm stays this arm's
+                # single combined charge below.
+                from backend.game_logic.diplomacy import (
+                    join_continental_system as _join_cs,
+                )
+                from backend.display_names import display_nation as _dn
+                _join_cs(world, covered_enemy, proposer_member,
+                         reason=f"by its alliance forced by {_dn(proposer_member)}")
             # G2-Slice-1b-Repair-1: Continental System surcharge.
             # Base +15 threat for the alliance imposition; +10 extra
             # when CS=True so the imperial cost of forcing inclusion is

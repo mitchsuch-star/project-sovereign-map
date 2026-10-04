@@ -91,6 +91,7 @@ from backend.game_logic.settlement_validation import (
     accepting_leader_for_coverage,
     consent_terms_equal,
     evaluate_liberation_eligibility,
+    evaluate_continental_system_join_eligibility,
     evaluate_create_client_eligibility,
     evaluate_vassal_transfer_eligibility,
     evaluate_open_settlement_eligibility,
@@ -311,6 +312,10 @@ PAIR_SUBSTITUTE_CARRIED_TYPES = frozenset({
     "gold_per_turn",
     "territory_cede",
     "create_client",
+    # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6 item 5):
+    # the peace that enrols a beaten court in the System is the separate
+    # one — Prussia and Russia at Tilsit, 1807, while Britain fought on.
+    "continental_system_join",
 })
 
 # Player-facing names for the settlement-tier clauses, for the honest warning.
@@ -324,7 +329,8 @@ _PAIR_SUBSTITUTE_DROPPED_LABELS = {
     "vassalage": "vassalage",
     "liberation": "liberation",
     "forced_alliance": "a forced alliance",
-    "continental_system": "the Continental System",
+    # (the "the Continental System" row retired at the Tilsit clause's
+    # slice: `continental_system_join` now travels)
     "release_vassal": "releasing a vassal",
     "vassal_transfer": "transferring a vassal",
 }
@@ -332,7 +338,12 @@ _PAIR_SUBSTITUTE_DROPPED_LABELS = {
 # Labels for types that USUALLY travel but can fail their direction test.
 _CARRIED_TYPE_FALLBACK_LABELS = {
     "create_client": "erecting a client state for another power",
+    "continental_system_join": "a Continental System that is not yours",
 }
+
+# Carried types whose `to` must be the proposer leader for the seed to carry
+# them (the bilateral dialect re-stamps the proposer as the beneficiary).
+_CARRIED_ONLY_FOR_THE_PROPOSER = frozenset({"create_client", "continental_system_join"})
 
 
 def pair_substitute_dropped_clause_labels(
@@ -359,7 +370,7 @@ def pair_substitute_dropped_clause_labels(
             continue
         ttype = str(term.get("type") or "")
         if ttype in PAIR_SUBSTITUTE_CARRIED_TYPES:
-            if not (ttype == "create_client" and proposer_leader
+            if not (ttype in _CARRIED_ONLY_FOR_THE_PROPOSER and proposer_leader
                     and str(term.get("to") or "") != proposer_leader):
                 continue
         # Only clauses aimed AT this court are at stake in these talks.
@@ -604,9 +615,16 @@ def _guided_line_display(term: Mapping[str, Any], court: str) -> Tuple[str, str]
     elif ttype == "subjugation":
         display = "Subjugation"
     elif ttype == "forced_alliance":
+        # SF7-X5: a clause with no flag ratifies WITH the System (the
+        # canonical default every reader of the treaty applies).
         display = "Forced alliance" + (
-            " (Continental System)" if term.get("includes_continental_system") else ""
+            " (Continental System)"
+            if term.get("includes_continental_system", True) else ""
         )
+    elif ttype == "continental_system_join":
+        # The Tilsit clause (§6.6): the court keeps its crown and its soil.
+        display = ("Join the Continental System" if frm == court
+                   else f"{frm} joins the Continental System")
     elif ttype == "create_client":
         # NA-6c: the `else` below renders the literal string "create client"
         # on the player's own table of terms.
@@ -916,6 +934,45 @@ def _court_demand_suggestions(
             draft_key=draft_key,
             params={},
             supports_continental_system=True,
+        ))
+    # The Tilsit clause (Score Finish Step 7; SCORE_FINISH_SPEC §6.6 item 6):
+    # "joins the Continental System", with its terms stated (the ports it
+    # closes and the alarm it costs). Honest availability where the court
+    # COULD be asked and is not (already a member, the trade-dominance
+    # court); nothing where the System has nothing to ask of it (no port on
+    # the Continent, not the Emperor's table, not this war's two sides).
+    cs_eligibility = evaluate_continental_system_join_eligibility(
+        world, war_instance=war_instance, joiner=court, imposer=proposer_leader)
+    cs_code = str(cs_eligibility.get("refusal_code") or "")
+    if cs_code not in ("cs_no_ports", "cs_imposer_not_the_lord", "cs_own_client",
+                       "dependency_target_not_in_war",
+                       "dependency_direction_invalid"):
+        from backend.game_logic.diplomacy import continental_system_join_terms
+        cs_available = bool(cs_eligibility.get("eligible"))
+        demand_group.append(_guided_suggestion(
+            label=f"{court} joins the Continental System",
+            group="demand",
+            clause_type="continental_system_join",
+            reason_display=(
+                resolve_settlement_voice_line(
+                    "settlement_guided_reason_continental_system_talleyrand",
+                    court=court,
+                )
+                if cs_available else ""
+            ),
+            court=court,
+            war_id=war_id,
+            draft_key=draft_key,
+            params={},
+            available=cs_available,
+            disabled_reason_display=(
+                "" if cs_available
+                else str(cs_eligibility.get("disabled_reason_display") or "")
+            ),
+            gate_terms=continental_system_join_terms(world, court),
+            # The price beside a clickable row too: the client draws
+            # `gate_terms` only on an unavailable row.
+            terms_display=continental_system_join_terms(world, court),
         ))
     vassals = getattr(world, "vassals", {}) or {}
     court_vassals = sorted(

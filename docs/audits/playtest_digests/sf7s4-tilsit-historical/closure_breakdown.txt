@@ -1,0 +1,60 @@
+t 1 closed=10 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)vassal:France  PapalStates(1)
+t 2 closed=10 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)vassal:France  PapalStates(1)
+t 3 closed=11 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)vassal:France  PapalStates(1)capital:France
+t 4 closed=11 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)vassal:France  PapalStates(1)capital:France
+t 5 closed=11 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)capital:France  PapalStates(1)capital:France
+t 6 closed=10 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t 7 closed=10 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t 8 closed=12 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)capital:France  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t 9 closed=12 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)capital:France  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t10 closed=12 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)capital:France  Sweden(2)  Naples(1)  Austria(1)  Prussia(1)  Hanover(1)  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t11 closed=13 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)capital:France  Sweden(2)  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t12 closed=13 members=[] FR-Aus=WAR FR-Rus=WAR
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/vassal:France  Russia(2)  Portugal(2)capital:France  Sweden(2)  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t13 closed=15 members=['Russia', 'Holland', 'Switzerland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t14 closed=16 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t15 closed=16 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)war  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t16 closed=15 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t17 closed=15 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t18 closed=15 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t19 closed=15 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t20 closed=15 members=['Russia', 'Holland', 'Switzerland', 'Austria'] FR-Aus=PEACE FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)member  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t21 closed=14 members=['Russia', 'Holland', 'Switzerland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t22 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t23 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t24 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t25 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war/capital:Prussia  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France/capital:Austria  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t26 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war/capital:Prussia  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France/capital:Austria  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t27 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war/capital:Prussia  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France/capital:Austria  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t28 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war/capital:Prussia  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France/capital:Austria  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t29 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war/capital:Prussia  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France/capital:Austria  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France
+t30 closed=14 members=['Russia', 'Holland'] FR-Aus=WAR FR-Rus=PEACE
+      France(4)war/capital:Prussia  Spain(3)  Denmark(2)  Ottoman(3)  Holland(2)war/member/vassal:France/capital:Austria  Russia(2)member  Portugal(2)capital:France  Sweden(2)war  Naples(1)capital:France  Austria(1)  Prussia(1)  Hanover(1)capital:Prussia  KingdomOfItaly(1)capital:Austria  PapalStates(1)capital:France

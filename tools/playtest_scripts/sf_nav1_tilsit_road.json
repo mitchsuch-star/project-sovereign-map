@@ -1,0 +1,289 @@
+{
+  "name": "sf-nav1-tilsit-road",
+  "seed": "historical",
+  "llm": "mock",
+  "_note": "SF-NAV-1-D1 'The Tilsit road' (Score Finish Step 7 slice 4, October 4, 2026; SCORE_FINISH_SPEC §6.6). The Step 6 strangulation arm (sf_nav1_strangulation.json — Lisbon, Rome and Naples taken, the Normandy beach held, every British corps that lands hunted) with the Tilsit clause on the separate peaces: Austria's and Russia's own offers are DECLINED and France proposes the separate peace itself through the settlement table's own clicks — the typed opener, the guided 'joins the Continental System' demand row (settlement_demand_add continental_system_join), an offered sum to a court not yet beaten enough to sign it bare (2,000 rising to 4,000 gold on each retry — the table's own offer row), Submit for Review, and 'Make peace with <court> only' (seek_bilateral_peace; the joint table covers the whole coalition war and cannot be sealed while Britain fights on). A refused peace is asked again after the same-type cooldown (5 turns). Changes from the Step 6 arm that its own memo recorded as the arm's lessons: the Emperor marches to Paris on turn 1 (he answered Ney's muster at Swabia and, with Austria's truce declined, was captured); Soult's road to Lisbon is not diverted; the corps the separate peaces free join the hunt for every British corps ashore (a refused order costs nothing). Read with tools/sf_nav1_strangulation_probe.py. Run with --declare-war proceed --objection insist --diplomacy accept --decline-from Britain,Portugal,PapalStates,Naples,Austria,Russia. `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": [
+      "Napoleon, march to Paris",
+      "declare war on Portugal",
+      "declare war on the Papal States",
+      "Massena, take Rome",
+      "Soult, take Lisbon",
+      "Ney, attack Mack"
+    ],
+    "2": [
+      "Davout, attack Mack",
+      "Murat, attack Mack",
+      "Ney, attack Mack",
+      "Massena, take Rome"
+    ],
+    "3": [
+      "Ney, attack Mack",
+      "Davout, attack Mack",
+      "Massena, take Rome",
+      "Lannes, march to Normandy"
+    ],
+    "4": [
+      "Ney, attack Archduke Charles",
+      "Davout, attack Archduke Charles",
+      "Massena, take Rome",
+      "Murat, attack Mack"
+    ],
+    "5": [
+      "Ney, attack Archduke Charles",
+      "Murat, attack Archduke John",
+      "Massena, take Rome",
+      "Lannes, fortify"
+    ],
+    "6": [
+      "Davout, attack Archduke Charles",
+      "Ney, attack Archduke John",
+      "Massena, take Rome",
+      "Bernadotte, attack Archduke Charles"
+    ],
+    "7": [
+      "Massena, take Rome",
+      "Davout, attack Archduke John",
+      "Ney, attack Archduke John",
+      "propose common peace with Austria",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 2000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"
+    ],
+    "8": [
+      "declare war on Naples",
+      "Massena, take Naples",
+      "Soult, attack Lisbon",
+      "Soult, attack Lisbon"
+    ],
+    "9": [
+      "Soult, attack Lisbon",
+      "Soult, attack Lisbon",
+      "Massena, take Naples",
+      "Ney, attack Archduke Charles"
+    ],
+    "10": [
+      "Soult, attack Lisbon",
+      "Soult, attack Wellesley",
+      "Massena, take Naples",
+      "status"
+    ],
+    "11": [
+      "Soult, attack Wellesley",
+      "Soult, attack Lisbon",
+      "Massena, take Naples",
+      "Soult, attack Shrapnel"
+    ],
+    "12": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Massena, take Naples",
+      "propose common peace with Russia",
+      "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 2000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"
+    ],
+    "13": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Massena, take Rome",
+      "propose common peace with Austria",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 3000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"
+    ],
+    "14": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Soult, take Porto"
+    ],
+    "15": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Soult, attack Porto",
+      "status"
+    ],
+    "16": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Soult, take Alentejo"
+    ],
+    "17": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Soult, attack Alentejo"
+    ],
+    "18": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore",
+      "status",
+      "propose common peace with Russia",
+      "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 3000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"
+    ],
+    "19": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore",
+      "propose common peace with Austria",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 4000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"
+    ],
+    "20": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore",
+      "status"
+    ],
+    "21": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel"
+    ],
+    "22": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore"
+    ],
+    "23": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel"
+    ],
+    "24": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore",
+      "status",
+      "propose common peace with Russia",
+      "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Russia\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 4000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace",
+      "propose common peace with Austria",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"continental_system_join\"}",
+      "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 4000}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"
+    ],
+    "25": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel"
+    ],
+    "26": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore"
+    ],
+    "27": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel"
+    ],
+    "28": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel",
+      "Lannes, attack Moore",
+      "status"
+    ],
+    "29": [
+      "Soult, attack Shrapnel",
+      "Soult, attack Paget",
+      "Soult, attack Wellesley",
+      "Ney, attack Moore",
+      "Davout, attack Wellesley",
+      "Murat, attack Paget",
+      "Bernadotte, attack Shrapnel"
+    ],
+    "30": [
+      "status"
+    ]
+  },
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "accept"
+  }
+}
