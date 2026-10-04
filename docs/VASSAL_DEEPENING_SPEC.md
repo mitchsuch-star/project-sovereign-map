@@ -744,6 +744,20 @@ SF-LB-2b series byte for byte; the raise lever is the sole mover (diverging at [
 ends turn 40 with 6 provinces against 3. M1–M7 byte-identical. Sweep `tools/_sweep_step5.json`: every row
 killed, 0 INERT.
 
+**The quick check (October 4, 2026, after `fe720296` landed).** Two read-only reviewers attacked the
+slice; six contingent findings were reproduced and fixed, each behind its own lever (`BUG_FIXES.md`
+§Score Finish Step 5 quick check SF5-RV1 … RV6; rules `SYSTEMS_REFERENCE.md` §90.12; pins
+`tests/test_sf5_quick_check_2026_10_04.py`). R4 gained its other half: **the satellite pays its men, so the
+lord cannot fill its ranks** — a named levy or substitutes into a serving contingent is refused free, the
+levy's own selectors pass it over (the combat auto-pick keeps it), and the AI's admin pick skips it; before,
+3,000 of France's men for 872g went uncounted by every bill and were handed to Holland's pool at the
+stand-down. **A renewed shared war withdraws the satellite's home order** (R10: the corps awaits its lord's
+word again). **The raise beat names an AI lord's host only where the player sees it.** **The lord's
+override that cancels the road home is charged** (R7's bleed, once per override; a refused override costs
+nothing). **A contingent whose satellite is conquered disbands** — no court to recall it, no home to march
+to, no pool credited (an addition to R8, which had not named the case). **Orders aimed at a general who
+stands down end with him.** `BASELINE_SERIES` and M1–M7 byte-identical.
+
 ---
 
 *Prepared July 14, 2026; VS-4/VS-5/VS-6 + build sequence added July 15, 2026 (user design direction).

@@ -4414,12 +4414,20 @@ def process_turn(world) -> List[Dict]:
 
     # 3) trigger evaluation — snapshot first (EC-J), then rate-limit apply
     candidates: List[Tuple[object, object, int, int]] = []
+    from backend.game_logic.contingent import is_clients_general
     for marshal in world.marshals.values():
         if getattr(marshal, "jealous_of", None):
             continue
         if not _is_standing(marshal):
             continue
         if marshal.personality not in ("aggressive", "cautious", "literal"):
+            continue
+        if is_clients_general(marshal):
+            # SF5-RV8 (the Step 5 quick check): R12 at the TRIGGER, not only
+            # in `find_jealousy_target` — the literal branch below falls back
+            # to the ladder's top when the target finder answers None, which
+            # it always does for a client's general (measured: Deroy, assimilated
+            # from Bavaria, "appears envious of Davout's laurels").
             continue
         authority = get_authority_proxy(world, marshal.nation)
         if is_capital_threatened(world, marshal.nation):
@@ -4501,6 +4509,11 @@ def process_turn(world) -> List[Dict]:
         if getattr(marshal, "is_sovereign", False):
             continue
         if getattr(marshal, "jealous_of", None):
+            continue
+        # SF5-RV8: a client's general is never overlooked by the Emperor's
+        # court — his own court sees to him (R12).
+        from backend.game_logic.contingent import is_clients_general
+        if is_clients_general(marshal):
             continue
         if marshal.personality == "literal":
             if marshal.consecutive_hold_turns == LITERAL_RESTLESS_AT:

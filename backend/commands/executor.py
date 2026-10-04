@@ -2141,6 +2141,12 @@ class CommandExecutor:
                             str(getattr(marshal, "hold_region", "") or ""),
                             getattr(marshal, "pending_interrupt", None)))
                         marshal.strategic_order = None
+                        # SF5-RV4 (the Step 5 quick check): the lord's own
+                        # order set aside a contingent's road home — the
+                        # kept-from-home bleed reads the stamp.
+                        from backend.game_logic import contingent as _contingent
+                        if _contingent.is_contingent_home_order(old_order):
+                            _contingent.note_lord_override(world, marshal)
                         # Clear holding_position if HOLD was active
                         if old_order and old_order.command_type == "HOLD":
                             marshal.holding_position = False

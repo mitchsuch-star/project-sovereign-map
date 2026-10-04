@@ -1154,6 +1154,10 @@ def _forced_march_entry(chain: list[dict], world) -> dict:
 #     standing order), byte for byte.
 A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT = True
 A_HARD_STOP_OUTRANKS_AN_INTERRUPT = True
+# SF5-RV9 (the Step 5 quick check): the SF5-X1 re-prompt drains no popup,
+# carries the interrupt's option costs and keeps a relayed tail waiting.
+# False = the first cut (built outside the response contract), byte for byte.
+A_QUESTION_REPROMPT_CONSUMES_NOTHING = True
 
 # The interrupt popup's own button labels (`interrupt_popup.gd`
 # OPTION_LABELS — drift-pinned), so a restated question names the answers
@@ -3226,15 +3230,32 @@ def execute_command(request: CommandRequest):
                     if line_asks_a_question(
                             command_text,
                             [{"action": o, "label": o} for o in options]):
+                        # SF5-RV9 (the Step 5 quick check): a restated question
+                        # consumes nothing. It rides the NON-draining refusal
+                        # builder (the interrupt route renders only its own
+                        # table, so a popup drained onto it was lost), the
+                        # interrupt goes in as an EXTRA so the builder stamps
+                        # its FA-49 option costs, and a relayed tail waiting
+                        # behind the interrupt waits on (CR-7-3 rule 5).
+                        if A_QUESTION_REPROMPT_CONSUMES_NOTHING and _carried_relay:
+                            world._pending_relay = _carried_relay
+                            world._relay_let_go = None
+                        _info = {
+                            "cost": 0,
+                            "remaining": int(world.actions_remaining),
+                            "turn_advanced": False,
+                            "new_turn": None,
+                        }
+                        if A_QUESTION_REPROMPT_CONSUMES_NOTHING:
+                            return _refusal_response(
+                                world,
+                                message=_interrupt_question_reprompt(m, pending),
+                                action_info=_info,
+                                pending_interrupt=dict(pending))
                         _reprompt = build_base_response(
                             world, success=False,
                             message=_interrupt_question_reprompt(m, pending),
-                            action_info={
-                                "cost": 0,
-                                "remaining": int(world.actions_remaining),
-                                "turn_advanced": False,
-                                "new_turn": None,
-                            })
+                            action_info=_info)
                         _reprompt["pending_interrupt"] = dict(pending)
                         return _reprompt
 
@@ -5223,6 +5244,28 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             return _refusal_response(
                 world, message="The war is over.",
                 game_over=True, victory=world.victory)
+        # SF5-RV7 (the Step 5 quick check — SF5-X2's BUTTON half): a standing
+        # HARD STOP outranks the interrupt on this road too. The popup's
+        # answer ran under it, the hard stop's own diplomacy gate refused the
+        # attack, and the refusal ended the order and cleared the interrupt
+        # with nothing done (measured: declare war on Prussia staged, then
+        # Attack Anyway — 0 battles, interrupt and order gone). Nothing is
+        # relayed; the interrupt waits for its own answer after the dialogue.
+        if (A_HARD_STOP_OUTRANKS_AN_INTERRUPT
+                and world.dialogue_manager.is_hard_stop()
+                and world.pending_diplomatic_dialogue is not None):
+            from backend.commands.dialogue_routing import (
+                format_numbered_options, hard_stop_subject)
+            _dlg = world.pending_diplomatic_dialogue
+            _numbered = format_numbered_options(_dlg)
+            _msg = (f"{hard_stop_subject(_dlg)} awaits your answer, Sire — "
+                    f"nothing was relayed to {request.marshal_name}; his "
+                    f"question waits until it is answered.")
+            if _numbered:
+                _msg += f" Answer with one of: {_numbered}."
+            return _refusal_response(
+                world, message=_msg, awaiting_response=True,
+                diplomatic_dialogue=_dlg)
         from backend.commands.strategic import StrategicOrderProcessor
         strategic_exec = StrategicOrderProcessor(executor)
         result = strategic_exec.handle_response(

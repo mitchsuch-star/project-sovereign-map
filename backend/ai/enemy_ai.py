@@ -6823,8 +6823,14 @@ class EnemyAI:
         weakest = None
         lowest_ratio = threshold
 
+        from backend.game_logic.contingent import levy_passes_over
         for marshal in world.get_marshals_by_nation(nation):
             if marshal.nation != nation or marshal.strength <= 0:
+                continue
+            if levy_passes_over(world, marshal):
+                # SF5-RV1 (the Step 5 quick check, GR5): an AI lord never
+                # fills a serving contingent's ranks either — its satellite
+                # raises and pays its men (`contingent.lord_fill_refusal`).
                 continue
             if ADMIN_RECRUIT_SPARES_THE_SQUARE and getattr(marshal, 'square_formation', False):
                 # R1-3: the admin phase runs AFTER the corps squared against

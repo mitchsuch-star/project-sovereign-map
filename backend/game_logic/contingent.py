@@ -39,6 +39,30 @@ THE_CLIENT_SENDS_ITS_CONTINGENT = True
 THE_CLIENT_PAYS_ITS_MEN = True
 A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL = True
 
+# ═══════ the Step 5 quick check (October 4, 2026; BUG_FIXES §Score Finish Step 5 SF5-RV1 … RV6) ═══════
+# THE_LORD_DOES_NOT_FILL_THE_CLIENTS_RANKS  False = the lord may levy or buy
+#     substitutes into a serving contingent (RV1: 3,000 of France's men for
+#     872g that her upkeep, force limit, levy and Grande Armée never counted —
+#     the contingent is outside her establishment by name — handed to
+#     Holland's pool at the stand-down, and a bled contingent topped back up
+#     came home "crowned").
+# THE_RENEWED_WAR_RECALLS_THE_COLOURS  False = a homeward contingent whose
+#     shared war resumes keeps its march home (RV2: the AI's road-home rung
+#     pinned it to its capital for the whole renewed war).
+# THE_RAISE_BEAT_KEEPS_THE_FOG  False = the raise beat names an unseen AI
+#     lord's nearest host and where it stands (RV3).
+# THE_OVERRIDE_KEEPS_THEM_FROM_HOME  False = a lord's tactical order that
+#     cancels the road home dodges the kept-from-home bleed (RV4: the satellite
+#     re-issued the march at the next pass, so the tick never saw the lord's
+#     hand).
+# THE_FALLEN_CROWN_DISBANDS_ITS_MEN  False = a contingent whose satellite is
+#     conquered is "recalled" home into a court with no province (RV5).
+THE_LORD_DOES_NOT_FILL_THE_CLIENTS_RANKS = True
+THE_RENEWED_WAR_RECALLS_THE_COLOURS = True
+THE_RAISE_BEAT_KEEPS_THE_FOG = True
+THE_OVERRIDE_KEEPS_THEM_FROM_HOME = True
+THE_FALLEN_CROWN_DISBANDS_ITS_MEN = True
+
 # ═══════ the numbers (gate record §9.1, ruled October 3, 2026; in-band tunable) ═══════
 CONTINGENT_MEN_PER_INCOME = 15      # men per gold of the satellite's province income
 CONTINGENT_ROUND = 500              # sized in half-battalions of the ledger
@@ -168,6 +192,46 @@ def contingent_of(world, marshal) -> Optional[str]:
     return None
 
 
+def lord_fill_refusal(world, marshal) -> str:
+    """SF5-RV1: the refusal for the lord's levy or substitutes into a serving
+    contingent — "" when the marshal commands no serving contingent (or the
+    lever is down). ONE sentence for the named order (both executors, both
+    boards) and the levy selector's passed-over reason."""
+    if not THE_LORD_DOES_NOT_FILL_THE_CLIENTS_RANKS:
+        return ""
+    vassal = contingent_of(world, marshal)
+    if not vassal:
+        return ""
+    return (f"{getattr(marshal, 'name', '')}'s men belong to "
+            f"{_shown(world, vassal)}, Sire — it raises and pays them. Recruit "
+            f"into one of our own corps.")
+
+
+def levy_passes_over(world, marshal) -> Optional[str]:
+    """SF5-RV1: the levy selector's reason for passing over a serving
+    contingent ("Dumonceau (Holland's contingent — Holland pays its men)"),
+    or None."""
+    if not THE_LORD_DOES_NOT_FILL_THE_CLIENTS_RANKS:
+        return None
+    vassal = contingent_of(world, marshal)
+    if not vassal:
+        return None
+    from backend.display_names import display_nation
+    return (f"{getattr(marshal, 'name', '')} ({display_nation(vassal)}'s "
+            f"contingent — {_shown(world, vassal)} pays its men)")
+
+
+def note_lord_override(world, marshal) -> None:
+    """SF5-RV4: the lord's own order cancelled a homeward contingent's road
+    home (the executor's strategic override). Stamped on the record so the
+    next loyalty tick charges the kept-from-home bleed even though the
+    satellite re-issues the march at its next pass."""
+    vassal = contingent_of(world, marshal)
+    record = contingent_record(world, vassal) if vassal else None
+    if record and record.get("state") == "homeward":
+        record["kept_turn"] = int(world.current_turn)
+
+
 def _fields_assimilated_corps(world, lord: str, vassal: str) -> bool:
     """The lord already fields the satellite's own corps (an assimilated
     marshal standing): its men are already in his line."""
@@ -214,7 +278,14 @@ def contingent_kept_from_home(world, vassal: str) -> bool:
         return False
     order = getattr(marshal, "strategic_order", None)
     if order is None or is_contingent_home_order(order):
-        return False
+        # SF5-RV4: the lord's tactical order that cancelled the road this
+        # turn (stamped turn N, read by the tick at N + 1, which runs before
+        # the satellite re-issues the march) is his hand too. Only while the
+        # road stays cancelled: a REFUSED override restores the home order
+        # (SR5B-1) and costs nothing.
+        return bool(THE_OVERRIDE_KEEPS_THEM_FROM_HOME and order is None
+                    and int(record.get("kept_turn", -99) or -99)
+                    >= int(world.current_turn) - 1)
     target = getattr(order, "target", "")
     return target not in _held(world, vassal)
 
@@ -416,10 +487,16 @@ def raise_contingent(world, vassal: str) -> Optional[dict]:
     }
     from backend.display_names import humanize_entity_name
     host_clause = ""
-    if host is not None:
-        host_name = humanize_entity_name(host.name)
-        host_clause = (f" They stand with {host_name}." if host.location == spawn
-                       else f" The nearest host is {host_name} at {host.location}.")
+    # SF5-RV3: the host's NAME and PROVINCE are fog-honest — the player's own
+    # lord always; an AI lord's host only where the player sees it (PARTIAL+,
+    # the captive rule). The event's `host` key follows the line.
+    named_host = (host if host is not None and (
+        not THE_RAISE_BEAT_KEEPS_THE_FOG or _host_in_view(world, lord, host))
+        else None)
+    if named_host is not None:
+        host_name = humanize_entity_name(named_host.name)
+        host_clause = (f" They stand with {host_name}." if named_host.location == spawn
+                       else f" The nearest host is {host_name} at {named_host.location}.")
     line = (f"{_shown(world, vassal, capitalize=True)} sends "
             f"{_men(size)} men under {name} to the colours at {spawn} — they "
             f"await the orders of {_shown(world, lord)}.{host_clause} "
@@ -427,7 +504,24 @@ def raise_contingent(world, vassal: str) -> Optional[dict]:
             f"will be its grief.")
     return _beat(world, beat="raised", vassal=vassal, lord=lord,
                  marshal_name=name, line=line, strength=int(size),
-                 location=spawn, host=host.name if host is not None else "")
+                 location=spawn,
+                 host=named_host.name if named_host is not None else "")
+
+
+def _host_in_view(world, lord: str, host) -> bool:
+    """SF5-RV3: may the player know where this host stands? His own lord's
+    marshals always; another court's only at PARTIAL or better."""
+    player = getattr(world, "player_nation", "France")
+    if lord == player:
+        return True
+    location = getattr(host, "location", "") or ""
+    if not location:
+        return False
+    try:
+        from backend.models.intel import PARTIAL
+        return bool(world.get_region_intel(location).visibility_at_least(PARTIAL))
+    except Exception:
+        return False
 
 
 def stand_down(world, vassal: str, *, reason: str) -> Optional[dict]:
@@ -529,6 +623,30 @@ def lose_contingent(world, vassal: str) -> Optional[dict]:
                  loyalty_delta=int(applied))
 
 
+def disband(world, vassal: str) -> Optional[dict]:
+    """SF5-RV5: the satellite has fallen (it holds no province) — its
+    contingent has no court left to serve and no home to march to, so it
+    disbands where it stands. The men go to no pool (their country is
+    occupied), the marshal leaves without a tombstone (he did not fall), and
+    no homecoming is judged."""
+    store = _store(world)
+    record = store.pop(vassal, None)
+    if not record:
+        return None
+    lord = str(record.get("lord") or "")
+    name = str(record.get("marshal") or "")
+    marshal = world.marshals.get(name)
+    men = int(getattr(marshal, "strength", 0) or 0) if marshal else 0
+    if (marshal is not None and getattr(marshal, "nation", "") == lord
+            and not getattr(marshal, "captured_by", "")):
+        world.stand_down_marshal(marshal)
+    line = (f"{_shown(world, vassal, capitalize=True)} has fallen — {name}'s "
+            f"contingent has no court left to serve, and its {_men(men)} men "
+            f"disband.")
+    return _beat(world, beat="disbanded", vassal=vassal, lord=lord,
+                 marshal_name=name, line=line, strength=int(men))
+
+
 def walk_out(world, vassal: str, *, reason: str) -> Optional[dict]:
     """A break: the contingent walks out of its lord's lines with its men.
     Closes the record only — the break's own hand-back (every exit's
@@ -597,7 +715,12 @@ def process_vassal_contingents(world) -> List[dict]:
         if row is not None and row.get("lord") == record.get("lord"):
             continue
         marshal = world.marshals.get(record.get("marshal") or "")
-        if marshal is not None and marshal.nation == record.get("lord") \
+        if (THE_FALLEN_CROWN_DISBANDS_ITS_MEN and row is None
+                and not _held(world, vassal)):
+            # SF5-RV5: the satellite was conquered — no court to recall it,
+            # no home to march to.
+            event = disband(world, vassal)
+        elif marshal is not None and marshal.nation == record.get("lord") \
                 and not getattr(marshal, "captured_by", ""):
             event = stand_down(world, vassal, reason="recalled")
         elif marshal is not None and marshal.nation == vassal:
@@ -628,6 +751,23 @@ def process_vassal_contingents(world) -> List[dict]:
                 if record.get("state") == "homeward":
                     record["state"] = "serving"
                     record["homeward_turn"] = None
+                    # SF5-RV2: the war is renewed — the satellite's own order
+                    # home is withdrawn and the corps awaits its lord's word
+                    # again (as at the raise, R10). An order the LORD gave is
+                    # his, and stands.
+                    if (THE_RENEWED_WAR_RECALLS_THE_COLOURS
+                            and is_contingent_home_order(
+                                getattr(marshal, "strategic_order", None))):
+                        from backend.commands.strategic import (
+                            clear_order_bound_interrupt)
+                        marshal.strategic_order = None
+                        clear_order_bound_interrupt(marshal)
+                        events.append(_beat(
+                            world, beat="back_to_the_colours", vassal=vassal,
+                            lord=lord, marshal_name=marshal.name,
+                            line=(f"The war is renewed — {marshal.name}'s "
+                                  f"contingent halts its march home and awaits "
+                                  f"the orders of {_shown(world, lord)}.")))
                 continue
             if marshal.location in _held(world, vassal):
                 event = stand_down(world, vassal, reason="home")

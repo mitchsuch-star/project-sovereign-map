@@ -222,6 +222,12 @@ THE_TIER_CROSSING_IS_ANNOUNCED = True
 # hint is spent; absent = owed) — never a vassal-row key (VS-R Q6) — re-armed
 # by any tick that does not fall. False = every falling tick, byte for byte.
 THE_HINT_RIDES_THE_TURN = True
+# SF5-RV11 (the Step 5 quick check): False = the spent marks outlive the row
+# (a re-vassalized court's first fall rides silent), byte for byte.
+THE_HINT_MEMORY_FOLLOWS_THE_ROW = True
+# SF5-RV12 (the Step 5 quick check): False = the defection-cascade event
+# carries no fog key and prints raw tags, byte for byte.
+THE_CASCADE_LINE_KEEPS_THE_FOG = True
 
 # VD-C (Step 5): a satellite's own men under its lord's flag — its contingent
 # or an assimilated corps of its colours — standing in their own capital are
@@ -440,8 +446,29 @@ def courtier_is_the_lords_ally(world, nation: str, state: dict) -> bool:
     lord = str((state or {}).get("lord") or "")
     if not lord or nation == lord:
         return False
-    return world.get_diplomatic_state(nation, lord) in (
-        "ALLIANCE", "DEFENSIVE_ALLIANCE")
+    if world.get_diplomatic_state(nation, lord) in (
+            "ALLIANCE", "DEFENSIVE_ALLIANCE"):
+        return True
+    # SF5-RV10 (the Step 5 quick check): a satellite courts as its LORD would.
+    # Once IQ7-X1 walked every lord, France's own satellites began courting
+    # the clients of France's allies (measured: Holland courted Portugal,
+    # Spain's satellite, for −5 — both in France's bloc) — the guard read
+    # only the courtier's own treaties.
+    # (The same-house case — a satellite courting a fellow client of its own
+    # lord, or itself — is the courting cap's guard, `courtier_is_of_the_same
+    # _house`, under its own lever; this arm covers only the lord's ALLIES.)
+    if A_SATELLITE_COURTS_AS_ITS_LORD:
+        courtier_lord = str((world.vassals.get(nation) or {}).get("lord") or "")
+        if (courtier_lord and courtier_lord not in (nation, lord)
+                and world.get_diplomatic_state(courtier_lord, lord) in (
+                    "ALLIANCE", "DEFENSIVE_ALLIANCE")):
+            return True
+    return False
+
+
+# SF5-RV10: False = a satellite's courting reads only its own treaties (the
+# IQ7-X1 first cut), byte for byte.
+A_SATELLITE_COURTS_AS_ITS_LORD = True
 
 
 def courtier_is_of_the_same_house(world, nation: str, vassal_name: str,
@@ -934,6 +961,17 @@ def process_vassal_loyalty(world) -> List[dict]:
     # reader the forecast quotes.
     from backend.game_logic.reforms import satellite_loyalty_terms
     laws_by_lord: dict = {}
+    # SF5-RV11 (the Step 5 quick check): the IQ7-X3 memory follows the ROW.
+    # A court that is no satellite has no downturn to remember — released,
+    # rebelled, broken or conquered, its spent mark is dropped here, so a
+    # court re-vassalized later has its first fall announced (measured: the
+    # mark survived a release and re-vassalization, and the 70 -> 68 fall
+    # rode silent). A transfer re-arms it at `transfer_vassal`.
+    if THE_HINT_MEMORY_FOLLOWS_THE_ROW:
+        _spent_marks = getattr(world, "vassal_hint_spent", None)
+        if _spent_marks:
+            world.vassal_hint_spent = [
+                v for v in _spent_marks if v in (world.vassals or {})]
 
     for vassal_name, state in list(world.vassals.items()):
         lord = state["lord"]
@@ -1835,7 +1873,7 @@ def check_defection_cascade(world) -> List[dict]:
                 # Vassal defects — immediate rebellion (set to 0, triggers rebellion check)
                 state["loyalty"] = LOYALTY_MIN
 
-                events.append({
+                _cascade = {
                     "type": "vassal_defection_cascade",
                     "vassal": vassal_name,
                     "lord": lord,
@@ -1843,7 +1881,25 @@ def check_defection_cascade(world) -> List[dict]:
                     "loyalty_before": int(loyalty),
                     "loyalty_after": int(state["loyalty"]),
                     "message": f"{vassal_name} is wavering! The war against {enemy_nation} shakes their loyalty.",
-                })
+                }
+                if THE_CASCADE_LINE_KEEPS_THE_FOG:
+                    # SF5-RV12 (the Step 5 quick check): once IQ7-X1 walked
+                    # every lord, a rival lord's satellite wavering reached
+                    # the player's terminal — the event carried no fog key,
+                    # so the end-turn filter kept it as a neutral alert.
+                    # Stamped with the LORD (the player's own web always
+                    # shows) and the satellite's capital (another lord's only
+                    # where the player sees it), and the prose speaks names,
+                    # not tags.
+                    from backend.display_names import display_nation
+                    _cascade["nation"] = lord
+                    _cascade["location"] = str(
+                        world.get_nation_capital(vassal_name) or "")
+                    _cascade["message"] = (
+                        f"{display_nation(vassal_name)} is wavering! The war "
+                        f"against {display_nation(enemy_nation)} shakes their "
+                        f"loyalty.")
+                events.append(_cascade)
 
     world.cascade_triggered = cascade_triggered
     # Dispatch: defection cascade summary if any events fired (Session 8D) —
@@ -4298,6 +4354,11 @@ def transfer_vassal(world, vassal_name: str, to_lord: str,
     # before the re-key below (which would otherwise hand them to the new).
     from backend.game_logic.contingent import on_transfer as _contingent_transfer
     _contingent_transfer(world, vassal_name)
+    # SF5-RV11: a new lord, a new account — the recovery hint is owed again.
+    if THE_HINT_MEMORY_FOLLOWS_THE_ROW:
+        _spent_marks = getattr(world, "vassal_hint_spent", None)
+        if _spent_marks and vassal_name in _spent_marks:
+            _spent_marks.remove(vassal_name)
 
     # Re-key the assimilated contingent to the new lord (VS-4's gates and
     # the rebellion transfer-back both key off original_nation, which stays).

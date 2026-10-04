@@ -3403,6 +3403,18 @@ class WorldState:
         dismiss_reward_notices(self, marshal)
         from backend.notifications import dismiss_marshal_ask
         dismiss_marshal_ask(self, marshal.name)
+        # SF5-RV6 (the Step 5 quick check): an order aimed at him ends with
+        # him — the elimination idiom. A SUPPORT on a contingent that went
+        # home broke with "Dumonceau has fallen" (the strategic processor's
+        # missing-target line) while the homecoming beat said he came home.
+        from backend.game_logic import contingent as _contingent
+        if _contingent.THE_RENEWED_WAR_RECALLS_THE_COLOURS:
+            for _other in self.marshals.values():
+                _order = getattr(_other, "strategic_order", None)
+                if (_order and getattr(_order, "target_type", "") == "marshal"
+                        and getattr(_order, "target", "") == marshal.name):
+                    _other.strategic_order = None
+                    clear_order_bound_interrupt(_other)  # NPC-2
         return True
 
     def get_events_for_turn(self, turn: int) -> List[Dict]:
@@ -6066,7 +6078,7 @@ class WorldState:
     # Add this to backend/models/world_state.py
     # ============================================================================
 
-    def ready_marshals_near(self, region_name: str
+    def ready_marshals_near(self, region_name: str, for_levy: bool = False
                             ) -> Tuple[List[Tuple[Marshal, int]], List[str]]:
         """CN (the Command-Road Queue, slice 3): the player's LIVING,
         combat-ready marshals within their own range of `region_name`,
@@ -6080,9 +6092,17 @@ class WorldState:
         filtered_out: List[str] = []
         if region_name not in self.regions:
             return ready_marshals, filtered_out
+        # SF5-RV1 (the Step 5 quick check): `for_levy` — the levy's own
+        # selector passes over a serving contingent (its satellite raises and
+        # pays its men; `contingent.lord_fill_refusal`). The combat auto-pick
+        # keeps the default: a contingent fights under its lord's orders.
+        from backend.game_logic.contingent import levy_passes_over
         for m in self.get_player_marshals():
             distance = self.get_distance(m.location, region_name)
-            if m.strength <= 0:
+            _client = levy_passes_over(self, m) if for_levy else None
+            if _client:
+                filtered_out.append(_client)
+            elif m.strength <= 0:
                 # WO-15 (slice 12): a prisoner is a strength-0 marshal who
                 # stays on the roster BY DESIGN (W6-7) — the recruit refusal
                 # called him dead while the prisoner refusal one screen over
@@ -6105,7 +6125,8 @@ class WorldState:
         return ready_marshals, filtered_out
 
     def find_nearest_marshal_to_region(self, region_name: str,
-                                       arm: Optional[str] = None
+                                       arm: Optional[str] = None,
+                                       for_levy: bool = False
                                        ) -> Optional[Tuple[Marshal, int]]:
         """
         Find the player's STRONGEST combat-ready marshal nearest to a region.
@@ -6135,7 +6156,8 @@ class WorldState:
             return None
 
         # Filter for LIVING, COMBAT-READY marshals within range
-        ready_marshals, filtered_out = self.ready_marshals_near(region_name)
+        ready_marshals, filtered_out = self.ready_marshals_near(
+            region_name, for_levy=for_levy)
         if arm is not None:
             passed_over = [m for m, _d in ready_marshals
                            if recruit_arm_of(m) != arm]
@@ -10493,7 +10515,7 @@ class WorldState:
                 return {}
             arms = {arm: recruit_quote(self, region.name, arm=arm)
                     for arm in RECRUIT_ARMS}
-            ready, _blocked = self.ready_marshals_near(region.name)
+            ready, _blocked = self.ready_marshals_near(region.name, for_levy=True)
             price_here = 0
             if ready:
                 nearest = arms.get(recruit_arm_of(ready[0][0])) or {}

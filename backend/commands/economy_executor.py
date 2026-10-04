@@ -531,9 +531,12 @@ def substitute_quote(world, region_name: str,
     region = world.get_region(region_name)
     if region is None:
         return {}
+    from backend.game_logic.contingent import levy_passes_over
     ours = [m for m in world.get_marshals_in_region(region_name)
             if m.nation == nation and m.strength > 0
-            and not getattr(m, "captured_by", "")]
+            and not getattr(m, "captured_by", "")
+            # SF5-RV1: the market never names a serving contingent.
+            and not levy_passes_over(world, m)]
     if not ours:
         return {}
     infantry = [m for m in ours if recruit_arm_of(m) == "infantry"]
@@ -825,7 +828,7 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
             quote["unrest_label"] = (f"{region.get_stability_label()} — "
                                      f"stability {int(region.stability)}/100")
         return quote
-    ready, blocked = world.ready_marshals_near(region_name)
+    ready, blocked = world.ready_marshals_near(region_name, for_levy=True)
     if arm is not None and THE_ARM_CHOOSES_THE_MAN:
         of_arm = [(m, d) for m, d in ready if recruit_arm_of(m) == arm]
         if not of_arm:
@@ -1352,7 +1355,7 @@ class EconomyExecutor:
         remedy derived from the board), else the old sentence,
         byte-for-byte."""
         if arm is not None:
-            ready, _blocked = world.ready_marshals_near(location)
+            ready, _blocked = world.ready_marshals_near(location, for_levy=True)
             return _msg_no_arm_in_range(world, world.player_nation, arm,
                                         location, ready)
         return _msg_no_recipient(location if say_where else None,
@@ -1442,6 +1445,12 @@ class EconomyExecutor:
             marshal, error = self._executor._fuzzy_match_marshal(marshal_specified, world)
             if error:
                 return error
+            # SF5-RV1 (the Step 5 quick check): a serving contingent's men are
+            # its satellite's — the lord does not fill its ranks. Refused free.
+            from backend.game_logic.contingent import lord_fill_refusal
+            _client_refusal = lord_fill_refusal(world, marshal)
+            if _client_refusal:
+                return {"success": False, "message": _client_refusal}
 
             recipient = marshal.name
             recruitment_location = marshal.location
@@ -1454,7 +1463,7 @@ class EconomyExecutor:
             if _kind:
                 return {"success": False, "message": _refusal}
             result = world.find_nearest_marshal_to_region(
-                location_specified, arm=choose_arm)
+                location_specified, arm=choose_arm, for_levy=True)
 
             if not result:
                 return {
@@ -1476,7 +1485,8 @@ class EconomyExecutor:
             if _kind:
                 return {"success": False, "message": _refusal}
             result = world.find_nearest_marshal_to_region(capital,
-                                                          arm=choose_arm)
+                                                          arm=choose_arm,
+                                                          for_levy=True)
 
             if not result:
                 return {
@@ -1953,11 +1963,14 @@ class EconomyExecutor:
             ground = world.get_region(marshal_name)
             if ground is not None:
                 acting = command.get("_acting_nation") or world.player_nation
+                from backend.game_logic.contingent import levy_passes_over
                 standing = [m for m in world.marshals.values()
                             if m.nation == acting and m.strength > 0
                             and m.location == ground.name
                             and not getattr(m, "cavalry", False)
-                            and not getattr(m, "artillery", False)]
+                            and not getattr(m, "artillery", False)
+                            # SF5-RV1: never into a serving contingent.
+                            and not levy_passes_over(world, m)]
                 if not standing:
                     return {"success": False, "message": (
                         f"No infantry marshal of ours stands at {ground.name} "
@@ -1975,6 +1988,11 @@ class EconomyExecutor:
         if marshal.nation != acting_nation:
             return {"success": False, "message": (
                 f"{marshal.name} does not serve us, Sire.")}
+        # SF5-RV1: a serving contingent's men are its satellite's.
+        from backend.game_logic.contingent import lord_fill_refusal
+        _client_refusal = lord_fill_refusal(world, marshal)
+        if _client_refusal:
+            return {"success": False, "message": _client_refusal}
 
         # Infantry only — the E2 scarcity blessing is about horses and guns.
         if getattr(marshal, "cavalry", False) or getattr(marshal, "artillery", False):
@@ -3303,7 +3321,7 @@ def get_levy_status(world, nation: str = None) -> dict:
     # levy — which is the only levy this status renders.
     recipient = None
     if capital and nation == world.player_nation:
-        recipient = world.find_nearest_marshal_to_region(capital)
+        recipient = world.find_nearest_marshal_to_region(capital, for_levy=True)
     is_open = bool(limit and headroom >= INFANTRY_RECRUIT_AMOUNT
                    and pool >= INFANTRY_RECRUIT_AMOUNT
                    and recipient)
