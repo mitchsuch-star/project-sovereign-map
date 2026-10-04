@@ -1,0 +1,410 @@
+{
+ "tree": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map",
+ "sha": "f3ce1b57a0d2ac1c7f35749c632bd0b5b2f0d4db",
+ "started": "2026-10-04T00:46",
+ "jobs": 3,
+ "arms": {
+  "CMD-M": {
+   "arm": "CMD-M",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 30.4,
+   "cmd": [
+    "--name",
+    "CMD-M",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "marengo"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-M_t10.json",
+     "turn": 10,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-M_t40.json",
+     "turn": 40,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 29
+    }
+   ]
+  },
+  "CMD-H": {
+   "arm": "CMD-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 30.6,
+   "cmd": [
+    "--name",
+    "CMD-H",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t10.json",
+     "turn": 10,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t20.json",
+     "turn": 20,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t30.json",
+     "turn": 30,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t40.json",
+     "turn": 40,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    }
+   ]
+  },
+  "CMD-A": {
+   "arm": "CMD-A",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 31.0,
+   "cmd": [
+    "--name",
+    "CMD-A",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "austerlitz"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-A_t10.json",
+     "turn": 10,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-A_t20.json",
+     "turn": 20,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-A_t30.json",
+     "turn": 30,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-A_t40.json",
+     "turn": 40,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    }
+   ]
+  },
+  "CMDR-H": {
+   "arm": "CMDR-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 24.8,
+   "cmd": [
+    "--name",
+    "CMDR-H",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "30",
+    "--diplomacy",
+    "accept",
+    "--client-petition",
+    "refuse",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 31,
+     "titled": 28,
+     "hold_titled": 45,
+     "provinces": 28
+    }
+   ]
+  },
+  "AGD": {
+   "arm": "AGD",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 8.9,
+   "cmd": [
+    "--name",
+    "AGD",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sf_agd1_tilsit_road.json",
+    "--from-save",
+    "tests/fixtures/playtest_saves/fixture_agd_tilsit.json",
+    "--turns",
+    "3",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "1,2,3"
+   ]
+  },
+  "CMD-ULM": {
+   "arm": "CMD-ULM",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 36.4,
+   "cmd": [
+    "--name",
+    "CMD-ULM",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "ulm"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-ULM_t10.json",
+     "turn": 10,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-ULM_t20.json",
+     "turn": 20,
+     "titled": 37,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-ULM_t30.json",
+     "turn": 30,
+     "titled": 37,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-ULM_t40.json",
+     "turn": 40,
+     "titled": 36,
+     "hold_titled": 45,
+     "provinces": 27
+    }
+   ]
+  },
+  "VOLTE": {
+   "arm": "VOLTE",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 42.6,
+   "cmd": [
+    "--name",
+    "VOLTE",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/volte_court_austria.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 32,
+     "hold_titled": 45,
+     "provinces": 26
+    }
+   ]
+  },
+  "DL": {
+   "arm": "DL",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 10.3,
+   "cmd": [
+    "--name",
+    "DL",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_docked_lines.json",
+    "--turns",
+    "3"
+   ]
+  },
+  "HOLD": {
+   "arm": "HOLD",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 10.4,
+   "cmd": [
+    "--name",
+    "HOLD",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_hold_2026_09_29.json",
+    "--turns",
+    "2"
+   ]
+  },
+  "OP": {
+   "arm": "OP",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 19.0,
+   "cmd": [
+    "--name",
+    "OP",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_04_step5_final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_aar_typed.json",
+    "--turns",
+    "18",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept"
+   ]
+  }
+ },
+ "skipped": {
+  "CLI": "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (\u00a74.6)"
+ },
+ "finished": "2026-10-04T00:48"
+}

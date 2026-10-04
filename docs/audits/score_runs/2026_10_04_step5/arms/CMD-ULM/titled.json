@@ -1,0 +1,39 @@
+{
+ "rows": [
+  {
+   "save": "autosave.json",
+   "turn": 41,
+   "titled": 36,
+   "hold_titled": 45,
+   "provinces": 27
+  },
+  {
+   "save": "CMD-ULM_t10.json",
+   "turn": 10,
+   "titled": 34,
+   "hold_titled": 45,
+   "provinces": 29
+  },
+  {
+   "save": "CMD-ULM_t20.json",
+   "turn": 20,
+   "titled": 37,
+   "hold_titled": 45,
+   "provinces": 28
+  },
+  {
+   "save": "CMD-ULM_t30.json",
+   "turn": 30,
+   "titled": 37,
+   "hold_titled": 45,
+   "provinces": 27
+  },
+  {
+   "save": "CMD-ULM_t40.json",
+   "turn": 40,
+   "titled": 36,
+   "hold_titled": 45,
+   "provinces": 27
+  }
+ ]
+}

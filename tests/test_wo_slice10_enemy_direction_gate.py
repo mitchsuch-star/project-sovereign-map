@@ -1108,7 +1108,12 @@ class TestTheAmbientBoard:
         # (`tools/_sf_lb2_wo_attribution.py`, measured both arms).
         # SF-LB-2b (October 3, 2026): unchanged at 32 on both arms
         # (`tools/_sf_lb2b_wo_attribution.py`, measured).
-        assert seams == {"_fuzzy_match_enemy": 32}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines)
+        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026):
+        # 32 -> 22. The boot satellites' contingents re-time the UNGATED
+        # board from index 6 (the BASELINE_SERIES attribution block): the
+        # Kingdom of Italy falls at turn 6 and the AI's collapsing orders
+        # name Gascony again. With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
+        assert seams == {"_fuzzy_match_enemy": 22}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 -> 22 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines), VD-C (the contingents)
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1181,9 +1186,16 @@ class TestTheAmbientBoard:
         # BASELINE_SERIES attribution block, `tools/_sr7d_series_arms.py`).
         # With the eight SR-7d levers down in the child this split returns to the
         # Step-3 figure again (`tools/_sr7d_wo_attribution.py`, measured).
-        assert dict(pairs) == {("Champagne", "Ney"): 20,
-                               ("Leon", "Napoleon"): 3,
-                               ("Maine", "Ney"): 9}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 -> 2+6+12+3 -> 20+3+9 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a, Step 3, SR-7d
+        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026): the
+        # ungated board re-times under the contingents — `Maine -> Ney` is
+        # gone, `Champagne -> Ney` 20 -> 2, `Gascony -> Ney` returns (16) and
+        # `Guyenne -> Ney` (1) joins; `Leon -> Napoleon` holds at 3. Every
+        # pair is still a PROVINCE collapsing onto a marshal — the defect's
+        # shape, unchanged. With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
+        assert dict(pairs) == {("Champagne", "Ney"): 2,
+                               ("Gascony", "Ney"): 16,
+                               ("Guyenne", "Ney"): 1,
+                               ("Leon", "Napoleon"): 3}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 -> 2+6+12+3 -> 20+3+9 -> 2+16+1+3 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a, Step 3, SR-7d, VD-C
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1341,7 +1353,10 @@ class TestTheAmbientBoard:
         # arm is the BASELINE_SERIES, which moved at [21]). With the SF-LB-2b
         # lever down in the child the SF-LB-2 record above returns byte for
         # byte (`tools/_sf_lb2b_wo_attribution.py`, measured).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 44, 42, 40, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
+        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026): the
+        # contingents re-time this arm from index 6, as they do the gated one
+        # (the BASELINE_SERIES attribution block). With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 27, 24, 29, 34, 31, 28, 25, 22, 19, 16, 13, 10, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -2052,7 +2067,11 @@ class TestTheAiIsNotFrozenInstead:
         # (`tools/_sf_lb2_wo_attribution.py`, measured).
         # SF-LB-2b (October 3, 2026): unchanged, 32 / 0 on both arms
         # (`tools/_sf_lb2b_wo_attribution.py`, measured).
-        assert cooldowns["ungated"] == 32, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines)
+        # VD-C "The Contingent" (Score Finish Step 5, October 4, 2026):
+        # 32 / 0 -> 22 / 0 — the contingents re-time both boards from index 6
+        # (the gated board IS the standing series board, re-recorded once).
+        # With every VD-C lever down in the child the SF-LB-2b figure returns (`tools/_vdc_wo_attribution.py`, measured).
+        assert cooldowns["ungated"] == 22, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 -> 22 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines; VD-C: the contingents)
         assert cooldowns["gated"] == 0, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package)
 
 

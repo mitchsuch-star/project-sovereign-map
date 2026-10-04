@@ -759,19 +759,19 @@ class TestSection14Notifications:
             ALLIANCE_CASCADE_WAR,
             WAR_DECLARED,
             VASSAL_REBELLION,
-            VASSAL_LOYALTY_CRITICAL,
             VASSAL_COURTING_DETECTED,
             DP_INSUFFICIENT,
             DEFECTION_CASCADE,
         )
-        # All 19 should be truthy (non-empty string constants)
+        # All 18 should be truthy (non-empty string constants) — IQ7-X2
+        # deleted the never-emitted VASSAL_LOYALTY_CRITICAL (Step 5).
         assert all([
             COALITION_THREAT_TENSION, COALITION_MURMURS, COALITION_BREWING,
             COALITION_DECLARED, COALITION_MEMBER_PEACED, COALITION_DISSOLVED,
             COALITION_COOLDOWN_ENDED, DIPLOMATIC_PROPOSAL, TREATY_SIGNED,
             TREATY_BROKEN, SABOTAGE_DISCOVERED, VASSAL_REBELLION_IMMINENT,
             ALLIANCE_CASCADE_WAR, WAR_DECLARED, VASSAL_REBELLION,
-            VASSAL_LOYALTY_CRITICAL, VASSAL_COURTING_DETECTED,
+            VASSAL_COURTING_DETECTED,
             DP_INSUFFICIENT, DEFECTION_CASCADE,
         ])
 

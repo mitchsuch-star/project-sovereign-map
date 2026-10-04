@@ -24,12 +24,11 @@ hidden (the September 16 landing measurements; navigate by symbol):
   `_grant_region_eligibility` refuses the capital of ANY nation, so the
   literal case cannot occur on the real predicate. Worse: every authored
   risorgimento region is KoI-held, a capital (Milan, Naples, Rome) or French
-  homeland (Savoy), and Holland's only design is Flanders (French homeland,
+  homeland (Savoy), and Holland's only design was Flanders (French homeland,
   IQ7-D3) — so on the shipped 1805 board no satellite's authored design
-  province is ever grantable and `in_design` is unreachable without staging
-  the raw deck. The deck-preference pin therefore extends Holland's own
-  authored `the_seventeen_provinces` entry by one staged province (the
-  raw-deck read the contract prescribes).
+  province was ever grantable. ⚑ IQ7-D3 CLOSED (Step 5 SR-8c, October 3,
+  2026): Holland's deck authors `ostfriesland` [East Frisia] (Fontainebleau,
+  1807), and the deck-preference pin reads the shipped deck unstaged.
 * T12 — Prussia's only acquire target is Hanover, a capital, so "a province
   inside Prussia's own active acquire design" is likewise staged: Brunswick
   (Hanover's soil, conquered land for Prussia, adjoining Amsterdam and
@@ -591,27 +590,35 @@ class TestT4TheProvinceSubject:
 
 class TestT5TheDecksPrice:
     def test_a_design_province_outranks_a_richer_one_and_carries_the_note(self, http):
+        """IQ7-D3 (CLOSED by Step 5's SR-8c, October 3, 2026): Holland's deck
+        now AUTHORS a province its lord can give — `ostfriesland` [East
+        Frisia], the Treaty of Fontainebleau's 1807 gift to the Kingdom of
+        Holland — so this pin reads the shipped deck, never a staged one.
+        It used to extend `the_seventeen_provinces` by a staged Osnabruck,
+        because the only authored design province (Flanders) is French
+        homeland and VS-3 never grants homeland."""
         w, client = http
         _stage_holland_neighbours(w)
         grantable = [e["region"] for e in V.list_grantable_regions(w, "Holland", actor=PLAYER)]
         assert grantable == ["Brunswick", "East Frisia", "Osnabruck"]   # richest first
-        # the authored deck (Flanders — French homeland, IQ7-D3) extended by
-        # a staged province; the raw deck is what the ladder reads
-        entry = w.agendas["Holland"][0]
-        assert entry["id"] == "the_seventeen_provinces"
-        entry["regions"] = list(entry["regions"]) + ["Osnabruck"]
+        assert [e["id"] for e in w.agendas["Holland"]] == [
+            "the_seventeen_provinces", "merchants_peace", "ostfriesland"]
         terms = V.petition_terms(w, "Holland")
-        assert terms["region"] == "Osnabruck" and terms["in_design"] is True
+        assert terms["region"] == "East Frisia" and terms["in_design"] is True
         assert terms["income"] == 50
-        assert terms["design_note"] == ("Osnabruck belongs to Holland's own design — "
-                                        "The Seventeen Provinces, the dream of United Netherlands.")
+        assert terms["design_note"] == ("East Frisia belongs to Holland's own design — "
+                                        "Ostfriesland.")
         dlg = _deliver(w, "Holland")
         assert dlg["popup_payload"]["clauses"][0] == terms["design_note"]
         assert terms["design_note"] in dlg["talleyrand_text"]
 
     def test_without_a_deck_stake_the_richest_province_is_named(self):
+        """Brunswick and Osnabruck held, East Frisia left to Hanover: no
+        grantable province is in Holland's design, so the richest leads."""
         w = _europe()
         _stage_holland_neighbours(w)
+        w.regions["East Frisia"].controller = "Hanover"
+        w.invalidate_active_nations_cache()
         terms = V.petition_terms(w, "Holland")
         assert terms["region"] == "Brunswick" and terms["in_design"] is False
         assert terms["design_note"] == ""
@@ -1023,7 +1030,11 @@ class TestT10TheBond:
         res = V.grant_petition(w, "Holland", PLAYER, terms)
         assert res["success"] and res["relation_step"] == 0
         assert _rel(w, "Holland", PLAYER) == 40
-        assert w.regions["Brunswick"].controller == "Holland"
+        # FLIPPED consciously by IQ7-D3 (Score Finish Step 5's SR-8c): Holland's
+        # deck now authors East Frisia, so the petition names its own design
+        # province over the richer Brunswick (TestT5TheDecksPrice).
+        assert terms["region"] == "East Frisia"
+        assert w.regions["East Frisia"].controller == "Holland"
 
     def test_the_bond_step_arithmetic(self):
         assert V._bond_step(0) == 20
@@ -2081,7 +2092,7 @@ class TestT21CampaignLog:
     def test_the_type_is_registered(self):
         assert "client_petition_answered" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["client_petition_answered"] == "diplomacy"
-        assert len(CL.CAMPAIGN_LOG_TYPES) == 171  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record
+        assert len(CL.CAMPAIGN_LOG_TYPES) == 172  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — the web's first non-rebellion decision had no persistent surface  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface
 
     def test_every_count_pin_moved_with_the_rationale(self):
         """The census over the flips: every file that pins the count reads
@@ -2098,6 +2109,9 @@ class TestT21CampaignLog:
         ⚑ SR-5r RF-1 (Sept 27, 2026) moved it 168 -> 171 (`law_enacted`,
         `law_repealed`, `law_lapsed` — the laws) — flipped consciously: the
         census now reads 171 and RF-1, with the four earlier flips still on
+        the line. ⚑ VD-C (Step 5, Oct 3, 2026) moved it 171 -> 172
+        (`vassal_contingent`, the client's men) — flipped consciously: the
+        census now reads 172 and VD-C, with the five earlier flips still on
         the line."""
         pinned = {}
         for path in sorted((REPO / "tests").glob("test_*.py")):
@@ -2106,12 +2120,12 @@ class TestT21CampaignLog:
                 if m:
                     pinned[path.name] = (int(m.group(1)), m.group(2))
         assert len(pinned) >= 14, sorted(pinned)
-        stale = {name: value for name, (value, _) in pinned.items() if value != 171}
+        stale = {name: value for name, (value, _) in pinned.items() if value != 172}
         assert stale == {}, stale
         unexplained = [name for name, (_, tail) in pinned.items()
                        if "IQ-7" not in tail or "GE-1" not in tail
                        or "GE-3" not in tail or "VP-M1" not in tail
-                       or "RF-1" not in tail]
+                       or "RF-1" not in tail or "VD-C" not in tail]
         assert unexplained == [], unexplained
 
     def test_the_one_liners(self):

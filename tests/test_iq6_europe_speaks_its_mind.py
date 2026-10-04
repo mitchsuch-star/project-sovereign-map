@@ -339,12 +339,37 @@ def _drive(script, turns, name, levers=(), hooks=True):
 # measure the volte-face machinery, so they play the pre-SF-LB-2 board —
 # the slice's own board is measured by its landing record
 # (SCORE_FINISH_SPEC.md §6.4 addendum, the seven-seed probe).
+# Score Finish Step 5 (October 4, 2026): the same ruling, one step on — the
+# boot satellites' contingents (VD-C) re-time the Austrian war, and IQ6-D2 as
+# ruled (a client's partition is the hegemon's act) closes the door when a
+# member of France's bloc holds Austrian homeland in a partition. These arms
+# measure the window / courier / forecast machinery, so they play the
+# pre-Step-5 board; Step 5's own board is its exit's record
+# (SCORE_FINISH_SPEC.md §3 Step 5 — diplomacy C3, attributed to both).
+from backend.game_logic import contingent as _CG  # noqa: E402
+
 _PRE_SR1D_LEAGUE = ((AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False),
                     (_IN, "A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE", False),
-                    (_WC, "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE", False))
+                    (_WC, "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE", False),
+                    (_CG, "THE_CLIENT_SENDS_ITS_CONTINGENT", False),
+                    (ED, "A_CLIENTS_PARTITION_IS_THE_HEGEMONS", False))
 _PRE_SR1D_LEAGUE_CLI = ["--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0",
                         "--lever", "backend.game_logic.intent:A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE=0",
-                        "--lever", "backend.game_logic.war_council:THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE=0"]
+                        "--lever", "backend.game_logic.war_council:THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE=0",
+                        "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0",
+                        "--lever", "backend.game_logic.emergent_designs:A_CLIENTS_PARTITION_IS_THE_HEGEMONS=0"]
+
+
+@pytest.fixture(autouse=True)
+def _the_pre_step5_bloc_reading(monkeypatch):
+    """Step 5 (October 4, 2026): the predicates these tests read IN PROCESS on
+    the drives' worlds read the volte-face door as the pre-Step-5 board did —
+    the hegemon's own memories alone (IQ6-D2's lever down). The drives' board
+    carries Austria's emergent revanche against Bavaria (a member of France's
+    bloc), which IQ6-D2 as ruled reads as `sworn_revanche`; these tests
+    measure the window, the courier and the forecast, not that ruling (its
+    pins: `tests/test_sr8c_the_deck_review.py`)."""
+    monkeypatch.setattr(ED, "A_CLIENTS_PARTITION_IS_THE_HEGEMONS", False)
 
 
 @pytest.fixture(scope="module")

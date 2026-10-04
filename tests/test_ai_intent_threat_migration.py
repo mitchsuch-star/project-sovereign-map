@@ -1264,7 +1264,44 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # with 3 provinces on both arms — no worse. Per-seed: this is the historical
 # seed's measurement; the seven-seed record is `docs/audits/probes/sf_lb2/`.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 54, 52, 50, 48, 46, 33, 30, 27, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE MORE — VD-C "The Contingent" + its riders + SR-8c
+# (October 3, 2026; VASSAL_DEEPENING_SPEC.md §9.1, SCORE_FINISH_SPEC.md §3
+# Step 5 — VD-C MINTS CORPS, so the slice moves the series BY DESIGN: on the
+# ambient board the boot satellites share France's war — Holland with
+# Britain, the Kingdom of Italy with Austria — and two contingents take the
+# field on turn 2, 14,000 men on France's flag that the courts weigh).
+# `tools/_vdc_series_arms.py`, seven levers set IN THE CHILD plus the one DATA
+# change (Holland's `ostfriesland` deck entry, stripped from the booted world
+# when down), each measured ALONE and LEFT OUT, the reach COUNTED (record =
+# `tools/_vdc_series_arms_final.json`, eighteen arms):
+#   0.   every lever DOWN, the entry stripped . the SF-LB-2b series above,
+#                                               BYTE-FOR-BYTE
+#   ALL. the shipped tree .................... the series below, diverging at
+#                                               [6]: Holland raises twice and
+#                                               the Kingdom of Italy once, all
+#                                               three lost in the field (a
+#                                               passive France commands no
+#                                               contingent); France ends turn 40
+#                                               with 6 provinces (was 3),
+#                                               Austria 27 (was 30)
+# The sole mover is C (`contingent.THE_CLIENT_SENDS_ITS_CONTINGENT`): only_C
+# == ALL and all_but_C == the prior series. Every other arm is inert alone
+# and its leave-out equals ALL, each with its reach counted: P (the client
+# pays its men — France's bill is not what Austria's council reads), G (the
+# garrison exclusion — 38 lit garrison terms at Amsterdam with G down move
+# Holland's loyalty, never Europe's alarm), W (IQ7-X1 — 0 courtings of an AI
+# lord's satellite and 0 cascades on this board), H (IQ7-X3 — display only),
+# B (IQ6-D2 — 0 volte-face reads foreclosed by a client's partition), R (R12,
+# the client's general off the glory ladder and the reward purse — reached
+# 300 times on Dumonceau / Teulie / Daendels, and France's own marshal economy
+# is not what the courts' alarm reads) and D (the deck entry — Holland's deck
+# sleeps while it is a satellite).
+# Passive-France guard, stated honestly: the UNATTENDED France ends turn 40
+# with 6 provinces on the shipped arm against 3 on arm 0 — better, not worse;
+# the commanded arms are the exit's (SCORE_FINISH_SPEC §3 Step 5).
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 37, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

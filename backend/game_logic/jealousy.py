@@ -665,6 +665,11 @@ def get_nation_ladder(world, nation: str) -> List[Tuple[object, int]]:
         # ladder[0]) with zero further code.
         if getattr(marshal, "is_sovereign", False):
             continue
+        # VD-C R12: a corps of a client's colours (a contingent or an
+        # assimilated corps) is its court's — no rung, no crown.
+        from backend.game_logic.contingent import is_clients_general
+        if is_clients_general(marshal):
+            continue
         entries.append((marshal, get_glory_score(marshal, world.current_turn)))
     entries.sort(key=lambda pair: -pair[1])
     return entries
@@ -710,6 +715,11 @@ def find_jealousy_target(marshal, world):
     # NP-0: a sovereign envies no one — his marshals' laurels are his own.
     if getattr(marshal, "is_sovereign", False):
         return None
+    # VD-C R12: a client's general envies no one on his lord's ladder, and
+    # no one there envies him (the candidate filter below).
+    from backend.game_logic.contingent import is_clients_general
+    if is_clients_general(marshal):
+        return None
     my_glory = get_glory_score(marshal, world.current_turn)
     candidates = []
     for other in world.marshals.values():
@@ -721,7 +731,8 @@ def find_jealousy_target(marshal, world):
                 # NP-0: no one envies the sovereign — he holds no rung to
                 # covet (spec §6.1; the ladder already excludes him, this
                 # is the belt for injected/legacy glory events).
-                or getattr(other, "is_sovereign", False)):
+                or getattr(other, "is_sovereign", False)
+                or is_clients_general(other)):
             continue
         other_glory = get_glory_score(other, world.current_turn)
         if other_glory <= my_glory:

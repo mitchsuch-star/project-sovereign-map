@@ -255,6 +255,12 @@ CAMPAIGN_LOG_TYPES = {
     "vassal_refuses_call",  # VS-4: disaffected vassal declines the call-to-arms
     "vassal_transferred",   # VS-5: peace-table lord re-homing
     "vassal_defected",      # VS-6: bribed coalition-flip (transfer or free+war)
+    # VD-C "The Contingent" (Step 5, October 3, 2026): a satellite's
+    # contingent raised, marching home, home (crowned / decimated / plain),
+    # lost in the field, or walking out on a break — ONE type, its `beat`
+    # names which. 171 -> 172 flipped CONSCIOUSLY: the men a loyal client
+    # gives its lord had no persistent surface.
+    "vassal_contingent",
     # IQ-7 "The Client's Petition" (September 16, 2026): a loyal client's
     # petition answered — granted, refused, or left to lapse. 164 -> 165
     # flipped CONSCIOUSLY: the one non-rebellion decision the satellite web
@@ -550,6 +556,7 @@ CATEGORY_MAP = {
     "vassal_refuses_call": "diplomacy",  # VS-4
     "vassal_transferred": "diplomacy",   # VS-5
     "vassal_defected": "diplomacy",      # VS-6
+    "vassal_contingent": "diplomacy",    # VD-C
     "client_petition_answered": "diplomacy",  # IQ-7
     "coalition_member_left": "diplomacy",
     # SR-5r RF-1: the laws — the chest's own sink.
@@ -710,7 +717,8 @@ LOG_TIER_NOTABLE = frozenset({
     "proposal_arrived", "region_captured", "retreat",
     "rivalry_confrontation", "settlement_summary", "strait_open",
     "strait_shut", "third_party_peace", "ultimatum_accepted",
-    "ultimatum_rejected", "vassal_refuses_call", "vassal_transferred",
+    "ultimatum_rejected", "vassal_contingent", "vassal_refuses_call",
+    "vassal_transferred",
 })
 
 LOG_TIER_ROUTINE = frozenset({
@@ -1248,7 +1256,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
         # IQ-7 petition answered: show if player involved or PARTIAL+
         if event_type in ("vassal_auto_join_war", "vassal_refuses_call",
                           "vassal_transferred", "vassal_defected",
-                          "client_petition_answered"):
+                          "client_petition_answered", "vassal_contingent"):
             from backend.game_logic.diplomatic_ledger import _get_nation_visibility
             vassal = event.get("vassal") or event.get("nation", "")
             overlord = (event.get("overlord") or event.get("lord")
@@ -2997,6 +3005,12 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         loyalty = event.get("loyalty", "?")
         return (f"{vassal} refuses {lord}'s call to arms "
                 f"(loyalty {loyalty}).")
+
+    if event_type == "vassal_contingent":
+        # VD-C: the beat's own sentence, composed through display_nation at
+        # the producer (`contingent._beat`) — the message IS the one-liner.
+        return str(event.get("message") or
+                   f"{display_nation(event.get('vassal', 'Unknown'))}'s contingent.")
 
     if event_type == "vassal_transferred":
         # VS-5: peace-table lord re-homing

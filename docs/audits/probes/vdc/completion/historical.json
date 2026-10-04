@@ -1,0 +1,771 @@
+{
+ "ticks": [
+  {
+   "turn": 2,
+   "loyalty": {
+    "Holland": 100,
+    "KingdomOfItaly": 100,
+    "Switzerland": 99
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": false,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 3,
+   "loyalty": {
+    "Holland": 97,
+    "KingdomOfItaly": 96,
+    "Switzerland": 94
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 4,
+   "loyalty": {
+    "Holland": 99,
+    "KingdomOfItaly": 97,
+    "Switzerland": 94
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 5,
+   "loyalty": {
+    "Holland": 99,
+    "KingdomOfItaly": 97,
+    "Switzerland": 92
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 6,
+   "loyalty": {
+    "Holland": 97,
+    "KingdomOfItaly": 92,
+    "Switzerland": 88
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 7,
+   "loyalty": {
+    "Holland": 97,
+    "KingdomOfItaly": 100,
+    "Switzerland": 86
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 8,
+   "loyalty": {
+    "Holland": 91,
+    "KingdomOfItaly": 90,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 9,
+   "loyalty": {
+    "Holland": 91,
+    "KingdomOfItaly": 88,
+    "Switzerland": 88
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 10,
+   "loyalty": {
+    "Holland": 89,
+    "KingdomOfItaly": 89,
+    "Switzerland": 85
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 11,
+   "loyalty": {
+    "Holland": 89,
+    "KingdomOfItaly": 92,
+    "Switzerland": 84
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 12,
+   "loyalty": {
+    "Holland": 87,
+    "KingdomOfItaly": 93,
+    "Switzerland": 83
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 13,
+   "loyalty": {
+    "Holland": 96,
+    "KingdomOfItaly": 94,
+    "Switzerland": 82
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 14,
+   "loyalty": {
+    "Holland": 95,
+    "KingdomOfItaly": 95,
+    "Switzerland": 81
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 15,
+   "loyalty": {
+    "Holland": 94,
+    "KingdomOfItaly": 94,
+    "Switzerland": 80
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 16,
+   "loyalty": {
+    "Holland": 93,
+    "KingdomOfItaly": 100,
+    "Switzerland": 79
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 17,
+   "loyalty": {
+    "Holland": 92,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 18,
+   "loyalty": {
+    "Holland": 91,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 19,
+   "loyalty": {
+    "Holland": 90,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 20,
+   "loyalty": {
+    "Holland": 89,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 21,
+   "loyalty": {
+    "Holland": 88,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 22,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 23,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 24,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 25,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 26,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 27,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 28,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 29,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 30,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 31,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 32,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 33,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 34,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 35,
+   "loyalty": {
+    "Holland": 98,
+    "KingdomOfItaly": 100,
+    "Switzerland": 89
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 36,
+   "loyalty": {
+    "Holland": 100,
+    "KingdomOfItaly": 100,
+    "Switzerland": 95
+   },
+   "regiments": {
+    "Holland": false,
+    "KingdomOfItaly": true,
+    "Switzerland": false
+   }
+  },
+  {
+   "turn": 37,
+   "loyalty": {
+    "Holland": 100,
+    "KingdomOfItaly": 100,
+    "Switzerland": 100
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": true
+   }
+  },
+  {
+   "turn": 38,
+   "loyalty": {
+    "Holland": 100,
+    "KingdomOfItaly": 100,
+    "Switzerland": 100
+   },
+   "regiments": {
+    "Holland": true,
+    "KingdomOfItaly": true,
+    "Switzerland": true
+   }
+  },
+  {
+   "turn": 39,
+   "loyalty": {
+    "Holland": 100,
+    "Switzerland": 100
+   },
+   "regiments": {
+    "Holland": true,
+    "Switzerland": true
+   }
+  },
+  {
+   "turn": 40,
+   "loyalty": {
+    "Holland": 100,
+    "Switzerland": 100
+   },
+   "regiments": {
+    "Holland": true,
+    "Switzerland": true
+   }
+  },
+  {
+   "turn": 41,
+   "loyalty": {
+    "Holland": 100,
+    "Switzerland": 100
+   },
+   "regiments": {
+    "Holland": true,
+    "Switzerland": true
+   }
+  }
+ ],
+ "loyalty_events": 20,
+ "hinted": 10,
+ "hint_lines": [
+  {
+   "turn": 3,
+   "vassal": "Holland",
+   "delta": -3,
+   "new": 97,
+   "crossing": false
+  },
+  {
+   "turn": 3,
+   "vassal": "KingdomOfItaly",
+   "delta": -4,
+   "new": 96,
+   "crossing": false
+  },
+  {
+   "turn": 3,
+   "vassal": "Switzerland",
+   "delta": -5,
+   "new": 94,
+   "crossing": false
+  },
+  {
+   "turn": 5,
+   "vassal": "Switzerland",
+   "delta": -2,
+   "new": 92,
+   "crossing": false
+  },
+  {
+   "turn": 6,
+   "vassal": "Holland",
+   "delta": -2,
+   "new": 97,
+   "crossing": false
+  },
+  {
+   "turn": 6,
+   "vassal": "KingdomOfItaly",
+   "delta": -5,
+   "new": 92,
+   "crossing": false
+  },
+  {
+   "turn": 8,
+   "vassal": "Holland",
+   "delta": -6,
+   "new": 91,
+   "crossing": false
+  },
+  {
+   "turn": 8,
+   "vassal": "KingdomOfItaly",
+   "delta": -10,
+   "new": 90,
+   "crossing": false
+  },
+  {
+   "turn": 10,
+   "vassal": "Holland",
+   "delta": -2,
+   "new": 89,
+   "crossing": false
+  },
+  {
+   "turn": 12,
+   "vassal": "Holland",
+   "delta": -2,
+   "new": 87,
+   "crossing": false
+  }
+ ],
+ "regiments_true": {
+  "Holland": [
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   37,
+   38,
+   39,
+   40,
+   41
+  ],
+  "KingdomOfItaly": [
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32,
+   33,
+   34,
+   35,
+   36,
+   37,
+   38
+  ],
+  "Switzerland": [
+   37,
+   38,
+   39,
+   40,
+   41
+  ]
+ },
+ "contingent_beats": [
+  {
+   "turn": 2,
+   "beat": "raised",
+   "vassal": "Holland",
+   "lord": "France",
+   "marshal": "Dumonceau",
+   "outcome": null,
+   "reason": null,
+   "strength": 6500,
+   "survivors": null,
+   "raised": null,
+   "location": "Amsterdam",
+   "host": "Lannes",
+   "target": null,
+   "message": "Holland sends 6,500 men under Dumonceau to the colours at Amsterdam \u2014 they await the orders of France. The nearest host is Lannes at Rhineland. Holland pays them; their dead will be its grief."
+  },
+  {
+   "turn": 2,
+   "beat": "raised",
+   "vassal": "KingdomOfItaly",
+   "lord": "France",
+   "marshal": "Teulie",
+   "outcome": null,
+   "reason": null,
+   "strength": 7500,
+   "survivors": null,
+   "raised": null,
+   "location": "Milan",
+   "host": "Massena",
+   "target": null,
+   "message": "The Kingdom of Italy sends 7,500 men under Teulie to the colours at Milan \u2014 they await the orders of France. They stand with Massena. The Kingdom of Italy pays them; their dead will be its grief."
+  },
+  {
+   "turn": 8,
+   "beat": "lost",
+   "vassal": "KingdomOfItaly",
+   "lord": "France",
+   "marshal": "Teulie",
+   "outcome": "decimated",
+   "reason": null,
+   "strength": null,
+   "survivors": null,
+   "raised": null,
+   "location": null,
+   "host": null,
+   "target": null,
+   "message": "Teulie's contingent is taken in the field \u2014 none of its 7,500 men will come home. The Kingdom of Italy counts its widows (-5 loyalty)."
+  },
+  {
+   "turn": 12,
+   "beat": "marching_home",
+   "vassal": "Holland",
+   "lord": "France",
+   "marshal": "Dumonceau",
+   "outcome": null,
+   "reason": null,
+   "strength": null,
+   "survivors": null,
+   "raised": null,
+   "location": null,
+   "host": null,
+   "target": "Amsterdam",
+   "message": "The war Holland shared with France is over \u2014 Dumonceau's contingent takes the road home to Amsterdam."
+  },
+  {
+   "turn": 13,
+   "beat": "home",
+   "vassal": "Holland",
+   "lord": "France",
+   "marshal": "Dumonceau",
+   "outcome": "home",
+   "reason": "home",
+   "strength": null,
+   "survivors": 6435,
+   "raised": 6500,
+   "location": null,
+   "host": null,
+   "target": null,
+   "message": "Dumonceau's contingent comes home \u2014 6,435 of 6,500 men."
+  },
+  {
+   "turn": 36,
+   "beat": "raised",
+   "vassal": "Holland",
+   "lord": "France",
+   "marshal": "Dumonceau",
+   "outcome": null,
+   "reason": null,
+   "strength": 6500,
+   "survivors": null,
+   "raised": null,
+   "location": "Amsterdam",
+   "host": "Bernadotte",
+   "target": null,
+   "message": "Holland sends 6,500 men under Dumonceau to the colours at Amsterdam \u2014 they await the orders of France. The nearest host is Bernadotte at Swabia. Holland pays them; their dead will be its grief."
+  },
+  {
+   "turn": 36,
+   "beat": "raised",
+   "vassal": "Switzerland",
+   "lord": "France",
+   "marshal": "Amey",
+   "outcome": null,
+   "reason": null,
+   "strength": 4000,
+   "survivors": null,
+   "raised": null,
+   "location": "Bern",
+   "host": "Bernadotte",
+   "target": null,
+   "message": "Switzerland sends 4,000 men under Amey to the colours at Bern \u2014 they await the orders of France. The nearest host is Bernadotte at Swabia. Switzerland pays them; their dead will be its grief."
+  }
+ ]
+}

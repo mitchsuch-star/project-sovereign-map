@@ -720,7 +720,17 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert sflb2["arms"]["ALL"]["series"] == sflb2b["prior"]
         assert sflb2b["arms"]["0"]["series"] == sflb2b["prior"]
-        assert BASELINE_SERIES == sflb2b["arms"]["ALL"]["series"]
+        # RE-SEATED by VD-C "The Contingent" (October 3, 2026): one more link
+        # — SF-LB-2b's ALL arm is the prior record VD-C's arm 0 (every lever
+        # down and the deck entry stripped in the child) reproduces byte for
+        # byte, and VD-C's ALL arm (the shipped tree: the boot satellites send
+        # their contingents) is the standing series
+        # (`tools/_vdc_series_arms_final.json`, eighteen arms).
+        vdc = json.loads((ROOT / "tools" / "_vdc_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert sflb2b["arms"]["ALL"]["series"] == vdc["prior"]
+        assert vdc["arms"]["0"]["series"] == vdc["prior"]
+        assert BASELINE_SERIES == vdc["arms"]["ALL"]["series"]
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

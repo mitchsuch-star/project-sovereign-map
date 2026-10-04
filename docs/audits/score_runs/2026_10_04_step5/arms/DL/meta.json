@@ -1,0 +1,108 @@
+{
+  "name": "DL",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "grant_autonomy",
+    "petition": "first_enabled",
+    "audience": "open",
+    "declare_war": "cancel",
+    "interrupt": "first",
+    "last_stand": "first",
+    "contact": "first",
+    "paradox": "honor",
+    "rebellion": "accept",
+    "sabotage": "confront",
+    "reward": "ignore",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 3,
+  "started": "2026-10-04 00:47",
+  "from_save": "",
+  "scenario": "",
+  "script": "tools/playtest_scripts/score_docked_lines.json",
+  "cheats": false,
+  "levers": [],
+  "strict": false,
+  "rng": {
+    "deterministic": true,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "pythonhashseed": "0"
+  },
+  "driver_revision": "97a08b1cbe43",
+  "reload_every": 0,
+  "requested": {
+    "seed": "historical",
+    "scenario": "",
+    "from_save": "",
+    "llm": "mock"
+  },
+  "resolved": {
+    "source": "world",
+    "campaign_seed": "historical",
+    "scenario_name": "The Third Coalition, 1805",
+    "sovereign_map": "europe",
+    "regions": 126,
+    "player_nation": "France",
+    "boot_turn": 1,
+    "dice_label": "historical",
+    "env": {
+      "SOVEREIGN_SCENARIO": "",
+      "SOVEREIGN_SMOKE_START": "",
+      "SOVEREIGN_MAP": "europe",
+      "SOVEREIGN_SEED": "historical",
+      "LLM_MODE": "mock",
+      "DEBUG_MODE": "false"
+    }
+  },
+  "platform": {
+    "python": "3.13.12",
+    "implementation": "CPython",
+    "os": "Windows-11-10.0.22000-SP0",
+    "machine": "AMD64",
+    "pythonhashseed": "0"
+  },
+  "engine_revision": {
+    "git_commit": "f3ce1b57a0d2ac1c7f35749c632bd0b5b2f0d4db",
+    "dirty": true,
+    "dirty_scope": [
+      "backend",
+      "tools/playtest_driver.py",
+      "godot-client/project-sovereign/assets/maps"
+    ],
+    "content_hash": "170d75572bda4fcb28288a7f52845ccbdf88c17421af02c1ae1e39b37e542e8b",
+    "content_files": 147,
+    "content_scope": "backend/**/*.py + the map registry + the 1805 and tutorial scenario JSON, line endings normalised to LF"
+  },
+  "status": "completed",
+  "counters": {
+    "commands": 29,
+    "popups": 24,
+    "battles": 9,
+    "turns": 3,
+    "ap_available": 12,
+    "ap_spent": 10,
+    "cmd_refused": 4
+  },
+  "unknown_blockers": [],
+  "dispatch_type_counts": {
+    "blockade_begins": 3,
+    "diplomatic_ai_proposal": 7,
+    "diplomatic_dp_regen": 3,
+    "diplomatic_vassal_contingent": 2,
+    "diplomatic_we_threshold": 2,
+    "intent_hardens": 1,
+    "law_enacted_abroad": 2,
+    "paymaster_subsidy": 1,
+    "sovereign_takes_field": 1
+  }
+}

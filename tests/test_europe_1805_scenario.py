@@ -392,7 +392,12 @@ def test_turn_advances_cleanly_with_mack_on_hostile_swabia():
         world.advance_turn()
     assert world.current_turn == 4
     assert not world.game_over
-    assert len(world.marshals) == 22  # nobody eliminated by scenario data alone (NP-A: 22)
+    # nobody eliminated by scenario data alone (NP-A: 22) — FLIPPED consciously
+    # by VD-C (Score Finish Step 5, October 2026): the two boot satellites that
+    # share France's war raise their contingents on turn 2 (Holland's
+    # Dumonceau, the Kingdom of Italy's Teulie), 22 + 2.
+    assert len(world.marshals) == 24
+    assert {"Dumonceau", "Teulie"} <= set(world.marshals)
     mack = world.marshals["Mack"]
     assert mack.location == "Swabia"
     assert 0 < mack.strength < 52_000  # invasion strain applied, army intact

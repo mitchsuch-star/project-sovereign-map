@@ -38,7 +38,6 @@ MARSHAL_DEFIED_ORDER = "marshal_defied_order"  # V2b: HIGH priority
 # two-directional rail census mis-classifies it (REV-V3).
 SAVE_FAILED = "save_failed"                        # CRITICAL: not saving
 VASSAL_REBELLION = "vassal_rebellion"              # CRITICAL: vassal rebelled
-VASSAL_LOYALTY_CRITICAL = "vassal_loyalty_critical"  # HIGH: loyalty < 10
 # Coalition System notifications (Phase 8 Session 7)
 COALITION_THREAT_TENSION = "coalition_threat_tension"      # HIGH: threat reached 30+
 COALITION_MURMURS = "coalition_murmurs"                    # HIGH: threat reached 40+
@@ -176,10 +175,9 @@ RAIL_EXEMPT_TYPES = {
     # RIVALRY_CONFRONTATION LEFT this set — the Antechamber is their producer
     # (an AUDIENCE-tier petition is announced on the rail, and the row's
     # button opens the card), so both joined the rail's two maps.
-    VASSAL_LOYALTY_CRITICAL: (
-        "Superseded before it shipped by VASSAL_REBELLION_IMMINENT, which is "
-        "produced, mapped, and says the same thing with a threshold behind "
-        "it. Nothing has ever emitted this one."),
+    # IQ7-X2 (Step 5, October 3, 2026): VASSAL_LOYALTY_CRITICAL — superseded
+    # before it shipped by VASSAL_REBELLION_IMMINENT, never emitted — is
+    # DELETED with the tests that imported it; the set is empty.
 }
 
 

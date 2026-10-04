@@ -657,8 +657,16 @@ SCRIPTS = REPO_ROOT / "tools" / "playtest_scripts"
 # through the driver's `--lever` flag (recorded in meta.json), because they
 # measure the volte-face machinery, not the league's cadence. The board as
 # shipped is measured by SR-1d's own record (the `prd1b-cmd-*` archives).
+# Score Finish Step 5 (October 4, 2026): the same ruling, one step on — the
+# boot satellites' contingents (VD-C) re-time the Austrian war, and IQ6-D2 as
+# ruled closes the door when a member of France's bloc holds Austrian
+# homeland in a partition; T7 measures the volte-face machinery, so it plays
+# the pre-Step-5 board too (Step 5's own board: its exit's record — diplomacy
+# C3, attributed to both).
 _PRE_SR1D_LEAGUE_CLI = [
     "--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0",
+    "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0",
+    "--lever", "backend.game_logic.emergent_designs:A_CLIENTS_PARTITION_IS_THE_HEGEMONS=0",
 ]
 
 

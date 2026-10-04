@@ -69,8 +69,19 @@ class TestTheVolteFaceFiresOnItsArm:
         own "beaten" clause has nothing to stand on. The arm keeps its
         purpose (the beat fires on a court beaten and then courted) with
         France's doctrine lever down; a re-script of the arm for the doctrine
-        board is homed as SR-7d-X1 (`BUG_FIXES.md`)."""
-        rows = _drive(tmp_path, "--lever", "backend.game_logic.doctrines:FRANCE_DOCTRINE=0")
+        board is homed as SR-7d-X1 (`BUG_FIXES.md`).
+
+        RE-SEATED again by VD-C "The Contingent" (Score Finish Step 5's exit,
+        October 4, 2026): the boot satellites' contingents fight beside France
+        from turn 2 and the arm's war takes another course — Bavaria takes
+        Bohemia and Austria's revanche hardens against France's bloc, and the
+        courted peace the arm was scripted around never forms inside the
+        window. Measured on this drive: the shipped tree 0 beats; the raise
+        lever down 3; IQ6-D2's lever down alone 0; both down 3 — the raise is
+        the mover here. The arm keeps its purpose with the raise lever down
+        too; SR-7d-X1's re-script now carries both constraints."""
+        rows = _drive(tmp_path, "--lever", "backend.game_logic.doctrines:FRANCE_DOCTRINE=0",
+                      "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

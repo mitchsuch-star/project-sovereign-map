@@ -1335,6 +1335,21 @@ class WorldState:
         # removed as they are commissioned. Empty = no recruitment.
         self.marshal_pool: Dict[str, list] = {}
 
+        # VD-C "The Contingent" (VASSAL_DEEPENING_SPEC.md §9.1): the authored
+        # contingent commanders per satellite — scenario key `contingents`
+        # (the bench's candidate shape, never commissioned) — and the ONE
+        # store of serving contingents, keyed by the satellite: {marshal,
+        # lord, raised_turn, raised_strength, last_strength, won_at_raise,
+        # state ("serving" | "homeward"), homeward_turn, host}. The record
+        # lives OFF the vassal row so a break that deletes the row cannot
+        # delete the evidence its exit hook reads (Golden Rule 4).
+        self.contingent_commanders: Dict[str, list] = {}
+        self.vassal_contingents: Dict[str, Dict] = {}
+        # IQ7-X3 (VD-C's rider): the satellites whose loyalty-recovery hint
+        # is SPENT for the current downturn (re-armed by a tick that does
+        # not fall). Off the vassal row by VS-R's Q6 guardrail.
+        self.vassal_hint_spent: List[str] = []
+
         # Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md): the authored
         # deck per nation — scenario key `agendas`. Deck order = priority;
         # the ACTIVE agenda is derived per turn (never stored). Empty = no
@@ -3366,6 +3381,30 @@ class WorldState:
                 self, marshal, str(cause), str(victor or ""), location=_where)
         return True
 
+    def stand_down_marshal(self, marshal) -> bool:
+        """VD-C: the ONE removal that is not a fall — a satellite's
+        contingent comes home and stands down (VASSAL_DEEPENING_SPEC.md
+        §9.1 R6). No tombstone in `fallen_marshals` (every reader of the
+        tombstones would call him destroyed), no `marshal_destroyed` row,
+        no game-end tally; the caller writes the homecoming beat. The
+        hygiene `destroy_marshal` owes a removed marshal is owed here too:
+        his reward rows and his standing question leave with him.
+
+        The third sanctioned raw pop of `world_state.py` (the PC15-1
+        census, flipped 2 -> 3 consciously). Returns True when removed."""
+        if isinstance(marshal, str):
+            marshal = self.marshals.get(marshal)
+        if marshal is None or marshal.name not in self.marshals:
+            return False
+        if getattr(marshal, "captured_by", "") or getattr(marshal, "is_sovereign", False):
+            return False
+        self.marshals.pop(marshal.name, None)
+        from backend.game_logic.dotation import dismiss_reward_notices
+        dismiss_reward_notices(self, marshal)
+        from backend.notifications import dismiss_marshal_ask
+        dismiss_marshal_ask(self, marshal.name)
+        return True
+
     def get_events_for_turn(self, turn: int) -> List[Dict]:
         """Get all events from a specific turn."""
         return [e for e in self.event_log if e.get("turn") == turn]
@@ -4750,6 +4789,10 @@ class WorldState:
                 vname for vname, vstate in self.vassals.items()
                 if (vstate or {}).get("lord") == nation]
             for _freed in _freed_satellites:
+                # VD-C: the freed satellite's contingent walks out with its
+                # men — the record closes here, read before the row goes.
+                from backend.game_logic.contingent import on_break as _contingent_break
+                _contingent_break(self, _freed, nation)
                 for _marshal in list(self.marshals.values()):
                     if (getattr(_marshal, "original_nation", None) == _freed
                             and getattr(_marshal, "nation", "") == nation):
@@ -6719,7 +6762,15 @@ class WorldState:
         base_upkeep = 0
         total_strength = 0
         breakdown = []
+        # VD-C (VASSAL_DEEPENING_SPEC.md §9.1 R4): a serving contingent is
+        # outside its lord's establishment — the satellite pays its own men,
+        # so it is neither billed nor counted toward the force limit, the
+        # levy or the Grande Armée (all of which read this total).
+        from backend.game_logic.contingent import client_paid_names
+        client_paid = client_paid_names(self, nation)
         for marshal in self.marshals.values():
+            if marshal.name in client_paid:
+                continue
             if marshal.nation == nation and marshal.strength > 0:
                 # Upkeep bills on the corps' ACTUAL fielded strength — you
                 # pay for the soldiers you have. Attrition lowers the bill;
@@ -8094,6 +8145,10 @@ class WorldState:
             "manpower_pools": {k: v.copy() for k, v in self.manpower_pools.items()},
             "marshal_pool": {k: [dict(c) for c in v]
                              for k, v in self.marshal_pool.items()},
+            # VD-C: the authored commanders (scenario key) + serving records.
+            "contingent_commanders": copy.deepcopy(self.contingent_commanders),
+            "vassal_contingents": copy.deepcopy(self.vassal_contingents),
+            "vassal_hint_spent": [str(v) for v in self.vassal_hint_spent],
             "agendas": copy.deepcopy(self.agendas),
             # SR-5r RF-0: the laws (deck + in-force state, one store).
             "reforms": copy.deepcopy(self.reforms),
@@ -8629,6 +8684,27 @@ class WorldState:
             k: [dict(c) for c in (v or [])]
             for k, v in (data.get("marshal_pool", {}) or {}).items()
         }
+        # VD-C: the authored commanders (scenario `contingents`) and the
+        # serving records — a pre-VD-C save reads {} for both (no contingent
+        # has ever served; the authored table is the scenario's to give).
+        # The save writes `contingent_commanders`; a scenario authors the
+        # same table as `contingents` (the bench idiom's scenario key).
+        _authored = data.get("contingent_commanders")
+        if _authored is None:
+            _authored = data.get("contingents")
+        world.contingent_commanders = {
+            str(k): [dict(c) for c in (v or [])]
+            for k, v in (_authored or {}).items()
+        }
+        world.vassal_contingents = {
+            str(k): dict(v)
+            for k, v in (data.get("vassal_contingents", {}) or {}).items()
+            if isinstance(v, dict)
+        }
+        # IQ7-X3: a pre-X3 save reads [] (every hint owed — one hint at the
+        # next downturn, the most a load can cost).
+        world.vassal_hint_spent = [
+            str(v) for v in (data.get("vassal_hint_spent") or [])]
 
         # ═══════ NATION AGENDAS (NA-0, docs/NATION_AGENDAS_SPEC.md) ═══════
         # Authored decks (scenario data) + the seen map (state). Absent on

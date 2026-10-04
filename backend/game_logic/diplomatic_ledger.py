@@ -803,7 +803,9 @@ def _build_vassals(world) -> Dict[str, Any]:
         else:
             contribution = "wavering"
 
-        # Warning band mirrors get_vassal_warnings thresholds.
+        # Warning band: <40 warning / <20 urgent / <10 critical (the
+        # retired get_vassal_warnings' thresholds — IQ7-X2 deleted that
+        # caller-less helper; this card is the band's one owner).
         if loyalty < 10:
             warning = "critical"
         elif loyalty < 20:

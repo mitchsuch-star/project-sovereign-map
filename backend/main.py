@@ -1144,6 +1144,53 @@ def _forced_march_entry(chain: list[dict], world) -> dict:
 #
 # Extracted to a pure function so the mapping is one testable source.
 # ════════════════════════════════════════════════════════════════════════
+# Score Finish Step 5 (October 3, 2026 — found in passing, BUG_FIXES §Score
+# Finish Step 5 SF5-X1 / SF5-X2): the typed interrupt route's two guards.
+# A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT   False = a question-shaped line that
+#     names an option word answers the interrupt (it FOUGHT on "should we
+#     attack?"), byte for byte.
+# A_HARD_STOP_OUTRANKS_AN_INTERRUPT        False = the route runs ahead of a
+#     standing hard stop (a refused answer destroyed the interrupt and the
+#     standing order), byte for byte.
+A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT = True
+A_HARD_STOP_OUTRANKS_AN_INTERRUPT = True
+
+# The interrupt popup's own button labels (`interrupt_popup.gd`
+# OPTION_LABELS — drift-pinned), so a restated question names the answers
+# the player can see.
+_INTERRUPT_OPTION_LABELS = {
+    "attack": "Attack!",
+    "attack_anyway": "Commit the Attack",
+    "go_around": "Go Around",
+    "hold_position": "Hold Position",
+    "cancel_order": "Cancel Order",
+    "investigate": "March to the Guns",
+    "continue_order": "Continue as Ordered",
+    "attack_again": "Attack Again",
+    "follow": "Follow Ally",
+    "hold_current": "Hold Current Position",
+    "cancel_support": "Cancel Support",
+    "fight_to_the_last": "Fight to the Last",
+    "attempt_breakout": "Attempt a Breakout",
+}
+
+
+def _interrupt_question_reprompt(marshal, pending: dict) -> str:
+    """SF5-X1: the interrupt's question, restated for a player who asked a
+    question instead of answering it — nothing ordered, the answers named."""
+    from backend.display_names import humanize_entity_name
+    name = humanize_entity_name(getattr(marshal, "name", "") or "")
+    labels = [_INTERRUPT_OPTION_LABELS.get(o, str(o).replace("_", " ").capitalize())
+              for o in (pending.get("options") or [])]
+    if len(labels) > 1:
+        answers = ", ".join(labels[:-1]) + " or " + labels[-1]
+    else:
+        answers = labels[0] if labels else "an order"
+    asked = str(pending.get("message") or "").strip()
+    asked = f" {asked}" if asked else ""
+    return (f"A question is not an answer, Sire — nothing was ordered.{asked} "
+            f"{name} awaits your word: {answers}.")
+
 _INTERRUPT_KEYWORDS = (
     # (option that must be offered, keywords, resolved choice preference)
     ("fight_to_the_last", ("fight", "last stand", "to the last", "die"),
@@ -3075,8 +3122,21 @@ def execute_command(request: CommandRequest):
         # If a marshal has a pending interrupt (cannon fire, blocked path),
         # try to map the player's text input to a response choice.
         # This prevents the command from being parsed as a new order.
+        #
+        # SF5-X2 (Score Finish Step 5, October 3, 2026 — found in passing): a
+        # standing HARD STOP outranks this route. It ran first, so a typed
+        # answer reached the interrupt while the war's purpose waited: an
+        # "attack anyway" was refused downstream by the hard stop's own
+        # diplomacy gate, and the refusal DESTROYED the interrupt and the
+        # standing order with nothing done (measured: Ney's pursuit of Mack,
+        # interrupt and order both gone, the question still on the desk).
+        # Now the line falls through to the hard-stop gate, which names the
+        # question; the interrupt waits for its own answer after it.
         # ════════════════════════════════════════════════════════════
-        for m in world.get_player_marshals():
+        _interrupt_route_open = not (
+            A_HARD_STOP_OUTRANKS_AN_INTERRUPT
+            and world.dialogue_manager.is_hard_stop())
+        for m in (world.get_player_marshals() if _interrupt_route_open else []):
             pending = getattr(m, 'pending_interrupt', None)
             if pending:
                 cmd_lower = command_text.strip().lower()
@@ -3146,6 +3206,37 @@ def execute_command(request: CommandRequest):
                 interrupt_type = pending.get("interrupt_type", "")
 
                 choice = _interrupt_choice_from_text(cmd_lower, options)
+
+                # SF5-X1 (Score Finish Step 5, October 3, 2026 — found in
+                # passing; CRT-3's "a question never orders", one road over):
+                # a QUESTION never answers an interrupt. The keyword map read
+                # "should we attack?" as `attack_anyway` and FOUGHT the battle
+                # the player had only asked about (measured on the shipped
+                # boot: Ney's bad-odds interrupt on Mack, four phrasings, four
+                # battles). A question that names one of the interrupt's own
+                # answers is ABOUT it: nothing is ordered, the interrupt's
+                # question is restated with its answers and re-carried, so
+                # the popup stands again. A question naming none of them was
+                # never this route's (the desk answers it). An exact option
+                # id still answers (`dialogue_routing`'s rule).
+                if choice and A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:
+                    from backend.commands.dialogue_routing import (
+                        line_asks_a_question,
+                    )
+                    if line_asks_a_question(
+                            command_text,
+                            [{"action": o, "label": o} for o in options]):
+                        _reprompt = build_base_response(
+                            world, success=False,
+                            message=_interrupt_question_reprompt(m, pending),
+                            action_info={
+                                "cost": 0,
+                                "remaining": int(world.actions_remaining),
+                                "turn_advanced": False,
+                                "new_turn": None,
+                            })
+                        _reprompt["pending_interrupt"] = dict(pending)
+                        return _reprompt
 
                 if choice:
                     print(f"[INTERRUPT ROUTE] Routing '{request.command}' -> "

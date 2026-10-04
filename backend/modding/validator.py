@@ -1459,6 +1459,17 @@ def validate_scenario(
                         candidate.get("name"), str):
                     named.setdefault(candidate["name"],
                                      f"marshal_pool.{nation}[{index}]")
+    # VD-C: a contingent commander is a marshal name the seam matches too.
+    raw_contingents = data.get("contingents")
+    if isinstance(raw_contingents, dict):
+        for nation, candidates in raw_contingents.items():
+            if not isinstance(candidates, list):
+                continue
+            for index, candidate in enumerate(candidates):
+                if isinstance(candidate, dict) and isinstance(
+                        candidate.get("name"), str):
+                    named.setdefault(candidate["name"],
+                                     f"contingents.{nation}[{index}]")
     if named:
         # The map this scenario will actually boot into, resolved the same
         # three ways `WorldState.from_scenario` resolves it. Hardcoding the
@@ -1510,6 +1521,81 @@ def validate_scenario(
                     f"province(s) {near} — a player or the AI naming that "
                     f"province may silently reach this marshal instead "
                     f"(WO-13). Rename one of them")
+
+    # Validate contingents (VD-C "The Contingent", VASSAL_DEEPENING_SPEC.md
+    # §9.1): {nation: [commander, ...]} — the bench's candidate shape with no
+    # `cost` (a satellite's commander is sent, never commissioned) and no
+    # location/strength (both derived when the contingent is raised). The
+    # MC-4 personality guard extends here: a retired/unknown personality —
+    # or a sovereign — HARD-FAILS, exactly as a roster marshal would. A name
+    # must be new against the roster, every bench and every other list.
+    if "contingents" in data:
+        if not isinstance(data["contingents"], dict):
+            result.add_error(
+                "contingents",
+                f"Must be an object, got {type(data['contingents']).__name__}")
+        else:
+            taken = set((data.get("marshals") or {}).keys())
+            for marshal_data in (data.get("marshals") or {}).values():
+                if isinstance(marshal_data, dict) and isinstance(marshal_data.get("name"), str):
+                    taken.add(marshal_data["name"])
+            for candidates in (data.get("marshal_pool") or {}).values():
+                for candidate in candidates or []:
+                    if isinstance(candidate, dict) and candidate.get("name"):
+                        taken.add(candidate["name"])
+            seen_here: set = set()
+            for nation, candidates in data["contingents"].items():
+                if not isinstance(candidates, list):
+                    result.add_error(
+                        f"contingents.{nation}",
+                        f"Must be a list, got {type(candidates).__name__}")
+                    continue
+                for index, candidate in enumerate(candidates):
+                    path = f"contingents.{nation}[{index}]"
+                    if not isinstance(candidate, dict):
+                        result.add_error(path, "Commander must be an object")
+                        continue
+                    cand_name = candidate.get("name")
+                    if not cand_name or not isinstance(cand_name, str):
+                        result.add_error(path, "Commander requires a 'name'")
+                    elif cand_name in taken or cand_name in seen_here:
+                        result.add_error(
+                            f"{path}.name",
+                            f"'{cand_name}' is already a marshal, a bench "
+                            f"candidate or another commander — a contingent "
+                            f"commander must be new")
+                    else:
+                        seen_here.add(cand_name)
+                    personality = candidate.get("personality")
+                    if personality is not None and personality not in VALID_PERSONALITIES:
+                        result.add_error(
+                            f"{path}.personality",
+                            f"Invalid personality '{personality}'. "
+                            f"Valid: {sorted(VALID_PERSONALITIES)}")
+                    if personality == "sovereign":
+                        result.add_error(
+                            f"{path}.personality",
+                            "A sovereign never leads a client's contingent.")
+                    if "cost" in candidate:
+                        result.add_error(
+                            f"{path}.cost",
+                            "A contingent commander is sent, never "
+                            "commissioned — no 'cost'")
+                    skills = candidate.get("skills")
+                    if skills is not None:
+                        if not isinstance(skills, dict):
+                            result.add_error(f"{path}.skills",
+                                             "skills must be an object")
+                        else:
+                            for skill_name, value in skills.items():
+                                if skill_name not in VALID_SKILLS:
+                                    result.add_error(
+                                        f"{path}.skills.{skill_name}",
+                                        f"Unknown skill. Valid: {sorted(VALID_SKILLS)}")
+                                elif not isinstance(value, int) or not 1 <= value <= 10:
+                                    result.add_error(
+                                        f"{path}.skills.{skill_name}",
+                                        f"Must be an integer 1-10, got {value!r}")
 
     # Validate marshal_pool (Marshal Recruitment, Jealousy v3.2 final phase)
     # {nation: [candidate, ...]} — candidates are marshal entries WITHOUT

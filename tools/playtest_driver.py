@@ -1759,6 +1759,54 @@ class Digest:
         self._md(f"  - RATIFIED {text}")
         self.record("ratified", summary=summary)
 
+    def settlement_terms(self, dialogue):
+        """SF-AGD-1: the terms a settlement table STATES — every clause line
+        the player reads (its type, the client a carve erects and the
+        provinces it takes, the gold) — so an arm can read that a carve
+        stated its terms before it was signed. Display only."""
+        if not THE_DIGEST_STATES_THE_TERMS or not isinstance(dialogue, dict):
+            return
+        terms = dialogue.get("settlement_terms") or dialogue.get("terms") or []
+        if isinstance(terms, dict):
+            terms = (terms.get("demands") or []) + (terms.get("sweeteners") or [])
+        rows = []
+        for term in terms if isinstance(terms, list) else []:
+            if not isinstance(term, dict):
+                continue
+            rows.append({k: term.get(k) for k in (
+                "type", "from", "to", "tag", "client_display_name", "provinces",
+                "region", "amount", "turns") if term.get(k) is not None})
+        if not rows:
+            return
+        carves = [r for r in rows if r.get("type") == "create_client"]
+        line = ", ".join(
+            (f"{r.get('client_display_name') or r.get('tag')} from "
+             f"{r.get('from')} ({'/'.join(r.get('provinces') or [])})")
+            if r.get("type") == "create_client" else str(r.get("type"))
+            for r in rows)
+        self._md(f"  - TERMS ({dialogue.get('type') or '?'} "
+                 f"{dialogue.get('dialogue_mode') or ''}): {line[:280]}")
+        self.record("settlement_terms", dialogue_type=dialogue.get("type"),
+                    dialogue_mode=dialogue.get("dialogue_mode"), terms=rows,
+                    carves=carves)
+
+    def loyalty_tick(self, response):
+        """Step 5's exit (vassals C2's instrument correction): every
+        `vassal_loyalty` event on the end-turn response, as a `loyalty` row —
+        the satellite, its lord, the loyalty the tick started from, where it
+        ended and the applied delta. Records only (no digest.md line). An
+        event is emitted only when the tick moved loyalty by 2 or more (VS-1),
+        so a quiet satellite has no row — and the reader falls back to its
+        band."""
+        if not THE_DIGEST_READS_THE_LOYALTY_TICK or not isinstance(response, dict):
+            return
+        for event in response.get("events") or []:
+            if not isinstance(event, dict) or event.get("type") != "vassal_loyalty":
+                continue
+            self.record("loyalty", vassal=event.get("vassal"), lord=event.get("lord"),
+                        old=event.get("old_loyalty"), new=event.get("new_loyalty"),
+                        delta=event.get("delta"))
+
     def school_step(self, step):
         """FA-89: the School's step, from the backend's display-only
         `tutorial_step` key — a SECOND, approximate source by construction
@@ -2464,6 +2512,34 @@ class Answerer:
         # just sent ({"kind": "begin"|"recall", "ally": ...}) — read by the
         # mission-confirm answer, cleared by the advisor after the drain.
         self.mission_intent = None
+        # SF-AGD-1 (Step 5, October 3, 2026): the SCRIPT'S OWN CLICKS on a
+        # dialogue. A script line beginning with "@" answers the dialogue
+        # standing on the desk with that action (and JSON action_params) —
+        # the client's own road (`proposal_confirm_popup` emits
+        # `settlement_demand_add`, `submit_settlement_for_review`, … to the
+        # same endpoint). While the NEXT script line is an "@" click, the
+        # dialogue a line opened is HELD (never policy-answered), so the
+        # script can author on it; `held_dialogue` is the one it holds.
+        self.hold_dialogue = False
+        self.held_dialogue = None
+
+    def script_click(self, text):
+        """SF-AGD-1: `@<action> <json params>` — the script's own click on
+        the held dialogue (none held: the dialogue that is current). Posted
+        exactly as the client posts it."""
+        body_text = text.strip()[1:].strip()
+        action, _, raw = body_text.partition(" ")
+        params = json.loads(raw) if raw.strip() else {}
+        dialogue = getattr(self, "held_dialogue", None)
+        # None held: no id is sent, and the backend answers the dialogue
+        # that is current — as a bare client answer does.
+        body = {"choice": action}
+        if isinstance(dialogue, dict) and dialogue.get("dialogue_id") is not None:
+            body["dialogue_id"] = dialogue.get("dialogue_id")
+        if params:
+            body["action_params"] = {"action": action, **params}
+        self.held_dialogue = None
+        return self.t.post("/respond_to_diplomatic_dialogue", body)
 
     def begin_post(self):
         """Start a fresh answer chain (called by drain()).
@@ -2815,6 +2891,18 @@ class Answerer:
         dialogue = (response.get("diplomatic_dialogue")
                     or response.get("incoming_proposal")
                     or response.get("incoming_settlement_offer"))
+        if (getattr(self, "hold_dialogue", False) and dialogue
+                and isinstance(dialogue, dict)
+                and dialogue.get("dialogue_id") is not None):
+            # SF-AGD-1: held for the script's own clicks — said, never answered.
+            self.held_dialogue = dialogue
+            self.d.popup("diplomatic_dialogue",
+                         _summ(dialogue, "type", "nation", "from_nation",
+                               "proposal_type") + f" #{dialogue.get('dialogue_id')}",
+                         "(held for the script's own clicks)")
+            if hasattr(self.d, "settlement_terms"):
+                self.d.settlement_terms(dialogue)
+            dialogue = None
         if dialogue and isinstance(dialogue, dict):
             did = dialogue.get("dialogue_id")
             summary = _summ(dialogue, "type", "nation", "from_nation",
@@ -2843,6 +2931,11 @@ class Answerer:
                              f"(left standing — #{did} refused as stale "
                              f"{self._stale_refusals[did]}× this chain)")
                 dialogue = None
+        if (dialogue and isinstance(dialogue, dict)
+                and dialogue.get("type") == "settlement_confirm"
+                and hasattr(self.d, "settlement_terms")):
+            # SF-AGD-1: what the table states, before it is answered.
+            self.d.settlement_terms(dialogue)
         if dialogue and isinstance(dialogue, dict):
             choice = self._dialogue_choice(dialogue)
             # The cycle guard's signature carries the dialogue identity, so
@@ -3568,6 +3661,19 @@ def drain(transport, digest, answerer, response, strict):
 # morale line (False = the Step-3 digest byte for byte).
 THE_DIGEST_PRINTS_THE_DOCTRINE = True
 
+# SF-AGD-1 (Step 5, October 3, 2026): the digest records what a settlement
+# table STATES (`settlement_terms` rows) — False = the pre-Step-5 digest byte
+# for byte. The script's own "@" clicks are grammar, not a digest change.
+THE_DIGEST_STATES_THE_TERMS = True
+
+# Step 5's exit (October 4, 2026 — an instrument correction for vassals C2):
+# the digest records each satellite's end-turn loyalty tick (`loyalty` rows:
+# old, new, delta, read off the end-turn response's `vassal_loyalty` events),
+# so a petition's quote is read against the loyalty the tick STARTED from —
+# not against a ledger that also carries the turn's battles. Records only;
+# digest.md is unchanged. False = the pre-correction digest byte for byte.
+THE_DIGEST_READS_THE_LOYALTY_TICK = True
+
 
 def _apply_levers(specs) -> None:
     """SR-1d: `--lever MODULE:NAME=0|1` — set a backend flip lever for this run
@@ -3778,9 +3884,24 @@ def run(args):
         for reply in answerer.answer_mailbox_items(mailbox, answered):
             drain(transport, digest, answerer, reply, args.strict)
 
+        # SF-AGD-1: the turn's lines without the implicit end turn, read
+        # ahead so the dialogue a line opens is HELD while the next line is
+        # the script's own click on it.
+        _lines = [t for t in turn_scripts.get(str(turn_index), [])
+                  if t.strip().lower() != "end turn"]
+        _line_no = 0
         for text in turn_scripts.get(str(turn_index), []):
             if text.strip().lower() == "end turn":
                 continue  # implicit below
+            _line_no += 1
+            answerer.hold_dialogue = (_line_no < len(_lines)
+                                      and _lines[_line_no].lstrip().startswith("@"))
+            if text.lstrip().startswith("@"):
+                response = answerer.script_click(text)
+                digest.command(text, response)
+                drain(transport, digest, answerer, response, args.strict)
+                answerer.hold_dialogue = False
+                continue
             response = transport.post("/command", {"command": text})
             digest.command(text, response)
             expeditions.observe(text, response)          # FA-85
@@ -3797,6 +3918,7 @@ def run(args):
             drain(transport, digest, answerer, response, args.strict)
             for reply in answerer.reward_from_rail(response):   # FA-90 (ii)
                 drain(transport, digest, answerer, reply, args.strict)
+        answerer.hold_dialogue = False   # SF-AGD-1: never past the script's lines
 
         # IQ-4 S4: the Cabinet advisor — AFTER the script's own orders (a
         # script's typed diplomacy must never be refused for want of points or
@@ -3861,6 +3983,7 @@ def run(args):
         response = transport.post("/command", {"command": "end turn"})
         digest.command("end turn", response)
         digest.observe_end_turn_spend(response)
+        digest.loyalty_tick(response)
         digest.turn_spend(None)
         digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
                            response.get("enemy_phase"))
@@ -3898,6 +4021,7 @@ def run(args):
             # what it could — retry ONCE, then stop rather than spin.
             response = transport.post("/command", {"command": "end turn"})
             digest.command("end turn (retry)", response)
+            digest.loyalty_tick(response)
             digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),
                                response.get("enemy_phase"))
             digest.order_progress(response.get("strategic_reports"))

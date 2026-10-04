@@ -21,7 +21,7 @@ from backend.game_logic.vassal import (
     process_vassal_loyalty, check_vassal_rebellion,
     check_defection_cascade, process_vassal_tribute,
     invest_in_vassal, change_vassal_autonomy,
-    assimilate_vassal_marshals, get_vassal_warnings,
+    assimilate_vassal_marshals,
     release_vassal, decrement_vassal_cooldowns,
     attempt_vassal_courting,
 )
@@ -719,26 +719,6 @@ class TestCooldownsAndWarnings:
         decrement_vassal_cooldowns(world)
         assert world.vassal_investment_cooldowns.get("Saxony") == 1
         assert "Austria" not in world.vassal_investment_cooldowns  # Expired
-
-    def test_warnings_generated(self):
-        """Correct warning levels for different loyalty values."""
-        world = make_world_with_vassal(loyalty=5)
-        # Add another vassal at warning level
-        world.vassals["Austria"] = {
-            "lord": "France", "loyalty": 35, "autonomy": AUTONOMY_SATELLITE,
-            "path": "treaty", "created_turn": 1,
-            "tribute_rate": 0.75, "carved_from": None, "regions": None,
-        }
-        warnings = get_vassal_warnings(world)
-        assert len(warnings) == 2
-
-        # Saxony = critical (loyalty 5)
-        saxony_warning = next(w for w in warnings if w["vassal"] == "Saxony")
-        assert saxony_warning["level"] == "critical"
-
-        # Austria = warning (loyalty 35)
-        austria_warning = next(w for w in warnings if w["vassal"] == "Austria")
-        assert austria_warning["level"] == "warning"
 
     def test_tribute_processing(self):
         """Vassal tribute transfers gold to lord."""

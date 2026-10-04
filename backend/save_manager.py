@@ -233,6 +233,11 @@ def load_game(filepath: Path) -> Dict:
         # with the scenario's authored decks, nothing in force.
         _backfill_reforms(world)
         _backfill_doctrines(world)
+        # VD-C (Step 5): a pre-VD-C save carries no authored contingent
+        # commanders; an in-flight 1805 campaign is armed with the
+        # scenario's table (a raised contingent would otherwise take the
+        # generic "<Adjective> Contingent" name).
+        _backfill_contingent_commanders(world)
 
         # GE-1 verification round: a fallen campaign's save that does not
         # name its own Final file — written by 975f1f13, which stamped
@@ -496,6 +501,35 @@ def _backfill_doctrines(world: WorldState) -> None:
         if store:
             world.doctrines = store
             refresh_doctrine_terms(world)
+            return
+
+
+def _backfill_contingent_commanders(world: WorldState) -> None:
+    """VD-C (VASSAL_DEEPENING_SPEC.md §9.1): arm a pre-VD-C save with the
+    contingent commanders its scenario NOW authors (the `_backfill_reforms`
+    idiom): ONLY the 1805 campaign, and a save already carrying a table is
+    never overwritten."""
+    if getattr(world, "contingent_commanders", None):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                block = json.load(fh).get("contingents")
+        except (OSError, ValueError):
+            continue
+        if isinstance(block, dict) and block:
+            world.contingent_commanders = {
+                str(k): [dict(c) for c in (v or [])]
+                for k, v in block.items()
+                if not str(k).startswith("_") and isinstance(v, list)
+            }
             return
 
 

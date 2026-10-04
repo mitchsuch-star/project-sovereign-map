@@ -627,7 +627,7 @@ capped 40, two grants cancel the drift; refusing or ignoring spends its standing
 lord, riders R1–R4, the R7 rail fix. `tests/test_iq7_satellites_have_a_position.py`,
 `tools/_sweep_iq7.json`.
 
-### VD-C — "The Contingent" (gate-ready; the first vassal slice after row IQ closes)
+### VD-C — "The Contingent" — ✅ LANDED October 3, 2026 (Score Finish Step 5 SR-8a; gate record §9.1, landing record §9.2)
 
 **What.** A loyal satellite is FOR men: in a shared war it raises an income-and-loyalty-scaled
 contingent that marches under a French host, bleeds loyalty by its dead, comes home crowned or
@@ -666,8 +666,83 @@ satellites (R1's conditional clause fires). Behaviour test: `tests/test_vassal_c
   rides the FA-S17-D8 crossing ticks and the first falling tick after a rise. Measure first:
   IQ-7's grants already cut the falling ticks on the commanded board.
 
-**STATUS tracking line:** `docs/STATUS.md` ▶ NEXT UP carries "VD-C The Contingent — the first
-vassal slice after row IQ closes, taken at the IQ exit review."
+**STATUS tracking line:** ~~`docs/STATUS.md` ▶ NEXT UP carries "VD-C The Contingent — the first
+vassal slice after row IQ closes, taken at the IQ exit review."~~ ✅ **LANDED October 3, 2026** as
+Score Finish Step 5's SR-8a (`docs/SCORE_FINISH_SPEC.md` §3 Step 5), with IQ7-X1 / X2 / X3 — the gate
+record is §9.1, the landing record §9.2.
+
+### 9.1 VD-C — the gate record (ruled October 3, 2026, under the user's delegation)
+
+The user directed Step 5 to build VD-C and to *"rule [the open design calls] with research and write a
+gate record into the owning spec"*. Each ruling states the call, what was ruled and why. Every number is
+in-band tunable; a structural change escalates.
+
+| # | The call | Ruled | Why — the research and the measurement |
+|---|---|---|---|
+| **R1** | Who sends | A **LOYAL** satellite (VS-4's tier, loyalty ≥ 60) in a war it **shares** with its lord — both at war with the same court — raises **one** contingent at a time; never while it rests (R6/R9), never while its lord already fields an assimilated corps of its colours. Every lord (GR5). | The Rheinbund Act (1806) bound each member to send its contingent in its protector's wars; the 1805 satellites sent theirs to the war they shared — the Batavian division marched with Marmont, the Italian division with Masséna. VS-4's loyal tier is already the game's "willing ally" line, so the call needs no new threshold. Measured at boot: Holland (at war with Britain) and the Kingdom of Italy (at war with Austria) share France's war and raise on turn 2; Switzerland shares none and sends nothing until its own war comes. |
+| **R2** | How many | **15 men per gold** of the satellite's province income (`Region.income_value`) **× loyalty / 100**, rounded down to 500, inside **[3,000, 12,000]** and the satellite's infantry pool; below 3,000 it sends nothing. | Contingents were levied in proportion to a court's means (the Rheinbund quotas: Württemberg 12,000, Baden 8,000, the small houses a few hundred to a few thousand); province income is the game's measure of means. Boot sizes **Holland 6,500 / Kingdom of Italy 7,500 / Switzerland 4,500** — the Batavian division of 1805 and Teulié's Italians were each of that order, and the four Swiss regiments of the 1803 capitulation fielded well below their paper strength. The cap is Württemberg's quota, the largest a client of this board's size raised; loyalty scales the figure, so a cooling client sends fewer men. |
+| **R3** | Who leads | The scenario authors the commanders — key `contingents`, the bench's candidate shape with no `cost`: the first who is not serving, fallen or on any bench; past the list, **"<Adjective> Contingent"** (II, III … when taken). | Real generals who led their court's men beside the French: Dumonceau, Daendels, Chassé (Holland); Teulié, Pino, Lechi (Italy) — authored without accents (`Chasse`, `Teulie`) so a typed order finds them; Amey (Switzerland); Wrede (Bavaria); Thielmann (Saxony); Poniatowski (Poland); La Romana (Spain); Grawert (Prussia) — ten courts, the boot satellites and the courts most likely to become one. |
+| **R4** | Who pays | **The client.** A serving contingent stands outside its lord's establishment — no upkeep, and not counted toward the force limit, the levy or the Grande Armée (`calculate_turn_upkeep` skips it); its men come out of the satellite's own infantry pool and go back to it. | The Rheinbund Act obliged each member to raise, pay and feed its contingent. Measured: France's upkeep (2,630) and fielded total (189,000) are unchanged by the two boot contingents. |
+| **R5** | The dead | **One point of the satellite's loyalty per 500 of its contingent's dead** since the last tick, **capped at 10 a tick**. | "The satellite pays in blood": the destruction of the 1812 contingents (the Bavarians lost some 30,000 in Russia) is what turned the Rheinbund's loyalty into the defections of 1813. The cap keeps one catastrophe from breaking a satellite in one turn. |
+| **R6** | The homecoming | When no shared war stands it takes a **free 0-AP road home** (the WIN-D3 idiom); on its own soil it **stands down** — survivors back to its pool (any beyond its raised strength to the lord's), the marshal removed **without a tombstone** (`WorldState.stand_down_marshal`). **Crowned (+8)** for at least one victory since it was raised AND at least half its men home; **decimated (−5)** for fewer than half; otherwise plainly home. Then **six turns' rest.** After **eight turns** on the road it stands down where it is ("by its own roads"). | A contingent that came home victorious was its court's pride, one that came home in fragments its grief — the two outcomes the satellite feels. The rest stops a re-call the turn after a homecoming; the eight-turn fallback closes a road the map cannot walk. |
+| **R7** | Kept from home | **−2 loyalty a turn** while the lord holds a homeward contingent with an order of his own. | The lord may keep it — at the client's cost. It is never a hard refusal: the lord's orders stay the lord's. |
+| **R8** | The four exits | Peace = R6. **Release** recalls it (it stands down at once; a rebellion release walks it out). **Transfer** recalls it — the men were lent to the old lord, never the new. A **break** (rebellion, graceful independence, an armistice exit, the lord eliminated) **walks it out** of the lord's lines with its men, under its own flag. An exit nobody named is reconciled the next turn. | La Romana's Spaniards in Denmark (August 1808) and Yorck's Prussians at Tauroggen (December 1812): a contingent leaves with its court. |
+| **R9** | Lost in the field | Destroyed or captured: the record closes **decimated (−5)** and the satellite rests. | — |
+| **R10** | The march to the host | **Not issued.** The contingent musters at the satellite's capital (or its richest province) and **awaits the lord's orders**; the raise names the nearest host. | Measured on the first draft: a free march on a player's corps raised the questions a march raises (a cannon-fire ask the turn its host moved on) for a corps the player never ordered, and it answered a hard-stop question in the R39 pin — which is how SF5-X1 / SF5-X2 were found (`BUG_FIXES.md` §Score Finish Step 5). The player commands his allies' men; an AI lord's rungs command its own. |
+| **R10b** | The capital garrison | A satellite's own men under its lord's flag, standing in their own capital, are **not the lord's garrison** (VP-D1's +2). | Measured: the boot raise mustered Dumonceau at Amsterdam and the +2 garrison term lit for a corps Holland itself sent. |
+| **R11** | IQ7-D3 — a design province the lord can give | **Holland's deck gains `ostfriesland`** (acquire **East Frisia**), appended after `merchants_peace`: not a capital, never French homeland, held by Hanover at boot and contiguous to Friesland — VS-3's own gates, so France can conquer it and grant it, and the petition names it (`in_design`). | The Treaty of Fontainebleau (11 November 1807) gave East Frisia, taken from Prussia at Tilsit, to Louis Bonaparte's Kingdom of Holland — the one province of Holland's own design its lord historically gave. Every `risorgimento` province is a capital or already the Kingdom of Italy's, so Holland's is the deck that can carry the case. |
+| **R12** | The client's general and the lord's marshals | A corps of a client's colours — a contingent, or a VS-4 assimilated corps, both marked by `original_nation` — is **its court's, not the Emperor's**: it fights, obeys, musters and reinforces as any corps does, but it holds **no rung on its lord's glory ladder** (it envies no one, no one envies it, it wears no crown) and **expects nothing from its lord's purse** (no reward expectation, so no shortfall, erosion, Unmet line or reward petition). | Measured on the first completion run: Dumonceau, a Batavian general, sought the Emperor's audience over a Jealousy grievance — the Marshalate's rivalries were among Napoleon's own marshals, and a client's generals were rewarded by their own courts (Louis Bonaparte's Holland gave Dumonceau its own marshal's baton). Every petition from a client's general would also have been a modal the player owed for a man he does not pay. The VS-4 assimilated corps carry the same marker and the same ruling (dormant at boot: no satellite fields a marshal). |
+
+**The riders, as ruled.** **IQ7-X1:** courting and the defection cascade walk every lord's satellites; the
+grip read is the satellite's own lord's; the player's tray hears only of his own satellites, and the
+cascade's "the empire trembles" line fires only for his own web. **IQ7-X3** (measured first, on the shipped
+tree's commanded arm: 15 / 12 / 17 hinted lines of 18 / 14 / 22 loyalty events across three seeds, in runs
+of consecutive falls): the hint rides the crossing ticks and the first fall after a tick that did not fall;
+its memory is one WorldState list, never a vassal-row key (VS-R Q6). **IQ7-X2:** `get_vassal_warnings` and
+`VASSAL_LOYALTY_CRITICAL` deleted, with the tests that imported them.
+
+### 9.2 VD-C — the landing record (✅ LANDED October 3, 2026)
+
+**Built.** `backend/game_logic/contingent.py` — the size, the commander, the raise, the four verbs (raise /
+stand down / lose / walk out), the exit hooks and the per-turn pass `process_vassal_contingents` (after the
+loyalty tick, before the rebellion check, in `process_diplomacy_turn`). Three serialized fields:
+`world.vassal_contingents` (the ONE record store, keyed by the satellite — off the vassal row so a break
+that deletes the row cannot delete the evidence its hook reads), `world.contingent_commanders` (the
+scenario's `contingents` table; a pre-VD-C 1805 save is armed with it on load) and IQ7-X3's
+`world.vassal_hint_spent`. `WorldState.stand_down_marshal` is the one removal that is not a fall (the
+PC15-1 census of sanctioned raw pops flipped 2 → 3 consciously). The four exits hook `release_vassal`,
+`transfer_vassal`, `complete_vassal_break` and `_eliminate_nation`'s freed-satellite loop; the AI's P1.2
+rung walks an AI lord's contingent home. One campaign-log type `vassal_contingent` (171 → 172, fourteen
+count pins flipped consciously) and one dispatch type (`always` for the player's own satellites,
+`partial_on_nation` for a rival's). The validator's `contingents` schema extends the MC-4 personality guard,
+refuses a sovereign and a `cost`, and requires every name to be new against the roster, the benches and the
+other lists (the WO-13 collision map reads them). Levers: `THE_CLIENT_SENDS_ITS_CONTINGENT`,
+`THE_CLIENT_PAYS_ITS_MEN`, `A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL` (`contingent.py` — R12 through the ONE predicate `is_clients_general`, read by `jealousy.get_nation_ladder`, `jealousy.find_jealousy_target` and `dotation.get_expectation` / `expectation_rise_blocked`); `A_CLIENTS_OWN_MEN_ARE_NOT_THE_LORDS_GARRISON`,
+`THREATS_WALK_EVERY_LORD`, `THE_HINT_RIDES_THE_TURN` (`vassal.py`). Rules `SYSTEMS_REFERENCE.md` §90. Pins
+`tests/test_vassal_contingent.py`.
+
+**Completion — the commanded 3-seed run** (`tools/playtest_scripts/vdc_contingent_commanded.json`,
+seeds historical / austerlitz / marengo, 40 turns, `--diplomacy accept`, through
+`tools/_iq7_x3_hint_probe.py`; records `docs/audits/probes/vdc/completion/`). On every seed Holland and the
+Kingdom of Italy raise their contingents on turn 2 in the shared war, and **they march home when it
+ends**: historical — Dumonceau takes the road home on turn 12 and comes home on 13 (6,435 of 6,500), Teulie
+is taken in the field on 8 (−5); austerlitz — Teulie comes home decimated on 12 (3,358 of 7,500, −5),
+Dumonceau home on 13; marengo — Teulie marches home on 10 and comes home **crowned** on 13 (4,260 of
+7,500; +4, at the cap of 100), Dumonceau home on 13. **R1's regiments clause comes true for the boot
+satellites:** `lord_fields_the_vassals_regiments` reads true for Holland and the Kingdom of Italy from
+turn 3 on all three seeds, and for Switzerland from turns 36–38 on historical and austerlitz, when its own
+war comes.
+
+**IQ7-X3, attributed on the final tree** (the commanded arm `commanded_full40.json`, same three seeds;
+records `docs/audits/probes/vdc/x3_after_lever_{up,down}/`): with the lever down every falling tick is
+hinted — 14 / 17 / 16 of 17 / 24 / 20 loyalty events; with it up, 11 / 8 / 6. The board is identical on
+both arms (the same events, the same regiments, the same beats): the hint is display only.
+
+**Gates.** `BASELINE_SERIES` re-recorded ONCE, eighteen-arm attributed (`tools/_vdc_series_arms.py` →
+`tools/_vdc_series_arms_final.json`): arm 0 (every lever down, the deck entry stripped) reproduces the
+SF-LB-2b series byte for byte; the raise lever is the sole mover (diverging at [6]); the unattended France
+ends turn 40 with 6 provinces against 3. M1–M7 byte-identical. Sweep `tools/_sweep_step5.json`: every row
+killed, 0 INERT.
 
 ---
 

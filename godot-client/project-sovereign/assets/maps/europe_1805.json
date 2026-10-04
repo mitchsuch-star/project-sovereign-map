@@ -698,6 +698,149 @@
             }
         ]
     },
+    "_contingents_comment": "VD-C 'The Contingent' (docs/VASSAL_DEEPENING_SPEC.md section 9.1): the commanders a satellite sends at the head of its contingent when it shares its lord's war - the first who is not serving, not fallen and not on any bench; past the list, '<Adjective> Contingent'. The bench's candidate shape, never commissioned (no cost). Authored for the boot satellites and the courts most likely to become one, each a general who led his court's contingent beside the French: Dumonceau's Batavian division with Marmont in 1805, Teulie's Italians the same year, Amey's Swiss at the Berezina, Wrede's Bavarians, Thielmann's Saxons, Poniatowski's Poles, La Romana's Spaniards in Denmark (who walked out in 1808), Grawert's Prussian auxiliary corps of 1812.",
+    "contingents": {
+        "Holland": [
+            {
+                "name": "Dumonceau",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Jean-Baptiste Dumonceau - a Brussels-born general of the Batavian army; his Dutch division marched with Marmont's corps to the Danube in 1805."
+            },
+            {
+                "name": "Daendels",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 6, "defense": 4, "logistics": 5, "administration": 6, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Herman Willem Daendels - patriot of 1795 and the Batavian army's restless organiser; he led the Dutch into Germany in 1806."
+            },
+            {
+                "name": "Chasse",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 7, "defense": 5, "logistics": 4, "administration": 4, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "David Hendrik Chasse - 'General Bayonet' to the French for his charges in Spain; a Dutch brigadier who never waited to be ordered forward."
+            }
+        ],
+        "KingdomOfItaly": [
+            {
+                "name": "Teulie",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 6, "defense": 5, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Pietro Teulie - Milanese patriot and minister of war; he led the Italian division north with the Grande Armee in 1805 and fell before Kolberg in 1807."
+            },
+            {
+                "name": "Pino",
+                "personality": "aggressive",
+                "skills": { "tactical": 6, "shock": 6, "defense": 5, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "biography": "Domenico Pino - the Italian army's fighting general; his division stormed in Spain and held at Maloyaroslavets in 1812."
+            },
+            {
+                "name": "Lechi",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Giuseppe Lechi - a Brescian cavalryman who commanded the Italian division that held Barcelona in 1808."
+            }
+        ],
+        "Switzerland": [
+            {
+                "name": "Amey",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Francois Pierre Amey - a Swiss officer in French service; he brought the Swiss regiments across the Berezina in 1812."
+            }
+        ],
+        "Bavaria": [
+            {
+                "name": "Wrede",
+                "personality": "aggressive",
+                "skills": { "tactical": 6, "shock": 6, "defense": 5, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "biography": "Carl Philipp von Wrede - the Bavarian army's field commander from Ulm to Wagram; he led the Bavarians into Russia in 1812 and against Napoleon at Hanau in 1813."
+            }
+        ],
+        "Saxony": [
+            {
+                "name": "Thielmann",
+                "personality": "aggressive",
+                "skills": { "tactical": 6, "shock": 6, "defense": 5, "logistics": 4, "administration": 4, "command": 5 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "biography": "Johann von Thielmann - a Saxon cavalry general; his cuirassiers charged the Great Redoubt at Borodino, and he went over to the allies in 1813."
+            }
+        ],
+        "DuchyOfWarsaw": [
+            {
+                "name": "Poniatowski",
+                "personality": "aggressive",
+                "skills": { "tactical": 6, "shock": 7, "defense": 5, "logistics": 5, "administration": 5, "command": 6 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "biography": "Jozef Poniatowski - nephew of the last king of Poland and the Duchy's minister of war; he led the Polish corps to Moscow and died at Leipzig a Marshal of France."
+            },
+            {
+                "name": "Dabrowski",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 6, "defense": 5, "logistics": 5, "administration": 6, "command": 6 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Jan Henryk Dabrowski - founder of the Polish Legions in Italy; he raised the Poles of Posen in 1806."
+            }
+        ],
+        "Spain": [
+            {
+                "name": "La Romana",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 5, "logistics": 6, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Pedro Caro, Marquis of La Romana - he led the Spanish division lent to Napoleon to Denmark in 1807, and spirited it home aboard British ships in 1808."
+            }
+        ],
+        "Denmark": [
+            {
+                "name": "Ewald",
+                "personality": "cautious",
+                "skills": { "tactical": 6, "shock": 5, "defense": 5, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "biography": "Johann von Ewald - a Danish general of light troops who hunted Schill's raiders to Stralsund in 1809."
+            }
+        ],
+        "Portugal": [
+            {
+                "name": "Gomes Freire",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 5, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Gomes Freire de Andrade - commander of the Portuguese Legion in French service, which marched to Russia in 1812."
+            }
+        ],
+        "Prussia": [
+            {
+                "name": "Grawert",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 5, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "biography": "Julius von Grawert - first commander of the Prussian auxiliary corps that marched with the Grande Armee in 1812."
+            }
+        ]
+    },
     "_statecraft_comment": "AI-3r section 2.6 (docs/AI_WAR_DECISION_SPEC.md, gate ruling R1): authored rear-security posture. wary_of multiplies the neighbour's menace in the war council's reserve calculus - a fear the relations number alone would understate. v1 authors wary_of ONLY (profile keys stay in nation_config). Values clamp-validated to [0.5, 2.0]; absent pair = 1.0. Authored 1805 fears: the German dualism both ways (Silesia taken 1742 - Berlin and Vienna each garrison against the other), Prussia's dread of the Russian colossus marching through Poland, the standing Russo-Turkish menace on the straits (the 1806 war), and Sweden's fear for Finland (lost 1809).",
     "statecraft": {
         "Prussia": { "wary_of": { "Austria": 1.25, "Russia": 1.4 } },
@@ -856,6 +999,13 @@
                 "title": "The Merchants' Peace",
                 "regions": ["Amsterdam", "Brabant", "Flanders"],
                 "blurb": "The counting houses want the sea lanes open and the armies elsewhere. A Netherlands at peace is a Netherlands that trades."
+            },
+            {
+                "id": "ostfriesland",
+                "type": "acquire_regions",
+                "title": "Ostfriesland",
+                "regions": ["East Frisia"],
+                "blurb": "The Ems coast the Treaty of Fontainebleau gave Louis Bonaparte's kingdom in 1807 - the one province of Holland's own dream its lord can give, once the land is his. Dormant while Amsterdam answers to Paris."
             }
         ]
     },

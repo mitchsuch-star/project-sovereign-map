@@ -969,8 +969,25 @@ def drama_c5_expectation_before_erosion(arms, ctx):
 
 
 # ═════════════════════════ VASSALS ═════════════════════════
+def _tag_key(name) -> str:
+    return re.sub(r"[^a-z]", "", str(name or "").lower().replace("the ", "", 1))
+
+
 def vassals_c2_petition_quote(arms, ctx):
-    """A petition's quoted loyalty equals the ledger's reading the same turn (the −2 drift and the bond allowed)."""
+    """A petition's quoted loyalty equals the ledger's reading the same turn (the −2 drift and the bond allowed).
+
+    Step 5's exit (instrument correction): where the digest carries the
+    satellite's end-turn `loyalty` row (`playtest_driver.loyalty_tick`), the
+    quote is read against the loyalty the tick STARTED from — exact — not
+    against the ledger, which also carries the turn's battles ("the lord's
+    defeats", −2 a loss, the same for every satellite). Measured on CMD-A
+    t7: Switzerland granted to 93, the tick started at 93 and closed at 86
+    after four French defeats; the band read a false miss. The row read is
+    the FIRST one for the satellite AFTER the grant in the record order — a
+    petition answered in the end turn's drain comes after that turn's tick,
+    and its ledger already reads the quote. No row after the grant (a quiet
+    tick, a drain grant, or an archive from before the correction): the
+    band, unchanged."""
     rows = []
     bad = []
     for n in CMD_ARMS:
@@ -979,7 +996,7 @@ def vassals_c2_petition_quote(arms, ctx):
             continue
         for g in _groups(a):
             led = next((r for r in g if r.get("kind") == "ledger"), None)
-            for r in g:
+            for i, r in enumerate(g):
                 if r.get("kind") != "popup" or r.get("key") != "proposal_result":
                     continue
                 m = re.search(
@@ -998,7 +1015,14 @@ def vassals_c2_petition_quote(arms, ctx):
                     continue
                 actual = int(vass[key])
                 rows.append((n, g[0].get("turn"), who, quoted, actual))
-                if not (quoted - 3 <= actual <= quoted + 2):
+                tick = next((t for t in g[i + 1:] if t.get("kind") == "loyalty"
+                             and _tag_key(t.get("vassal")) == _tag_key(who)), None)
+                if tick is not None and tick.get("old") is not None:
+                    if int(tick["old"]) != quoted:
+                        bad.append(
+                            f"{n} t{g[0].get('turn')} {who}: quoted {quoted}, the tick started at {tick['old']}"
+                        )
+                elif not (quoted - 3 <= actual <= quoted + 2):
                     bad.append(
                         f"{n} t{g[0].get('turn')} {who}: quoted {quoted}, ledger {actual}"
                     )
@@ -1490,6 +1514,15 @@ def agendas_f2_formables_on_saves(arms, ctx):
     )
 
 
+def _gate_term_key(text) -> str:
+    """Step 5 instrument correction (SF-AGD-1): a province-held gate term
+    carries its holder while UNMET — "Posen held at the settlement table
+    (currently Prussia-held)" — and drops it when met, so a reader keyed on
+    the raw text could never see that term flip. The key is the text
+    without its "(currently …)" tail."""
+    return re.sub(r"\s*\(currently [^)]*\)\s*$", "", str(text or ""))
+
+
 def agendas_c3_gate_flips(arms, ctx):
     flips = []
     seen = 0
@@ -1508,9 +1541,8 @@ def agendas_c3_gate_flips(arms, ctx):
             cur = {}
             for row in rows:
                 for term in row.get("gate_terms") or []:
-                    cur[(row.get("tag") or row.get("id"), term.get("text"))] = bool(
-                        term.get("met")
-                    )
+                    cur[(row.get("tag") or row.get("id"),
+                         _gate_term_key(term.get("text")))] = bool(term.get("met"))
                     seen += 1
             if prev is not None:
                 for k, v in cur.items():
@@ -1526,6 +1558,32 @@ def agendas_c3_gate_flips(arms, ctx):
         if flips
         else f"{seen} gate-term readings, none flipped to met between the saves",
     )
+
+
+def _duchy_gate_terms(ctx, world) -> dict:
+    payload = _formables(ctx, world)
+    rows = payload.get("rows") or payload.get("templates") or payload.get("formables") or []
+    for row in rows:
+        if (row.get("tag") or row.get("id")) == "DuchyOfWarsaw":
+            return {_gate_term_key(t.get("text")): bool(t.get("met"))
+                    for t in (row.get("gate_terms") or [])}
+    return {}
+
+
+def agd_gate_flip(arm, ctx) -> str:
+    """SF-AGD-1's evidence line: the Duchy of Warsaw's formables gate terms on
+    the AGD fixture (Posen still Prussian) against the arm's FIRST save (after
+    the turn Posen was taken) — the terms that flipped to met in play."""
+    fixture = ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_agd_tilsit.json"
+    saves = sorted((arm.path / "saves").glob("AGD_t*.json")) if (arm.path / "saves").exists() else []
+    if not fixture.exists() or not saves:
+        return "gate flip unmeasured (no fixture or no save)"
+    before = _duchy_gate_terms(ctx, _load_world(ctx, fixture))
+    after = _duchy_gate_terms(ctx, _load_world(ctx, saves[0]))
+    flipped = [t for t, met in after.items() if met and before.get(t) is False]
+    if not flipped:
+        return f"no Duchy gate term flipped between the fixture and {saves[0].name}"
+    return f"gate flipped to met in play ({saves[0].name}): " + "; ".join(t[:70] for t in flipped)
 
 
 def agendas_c4_tilsit(arms, ctx):

@@ -420,8 +420,13 @@ class TestTheRailNamesEveryRowItShows:
         assert declared - producible == set(RAIL_EXEMPT_TYPES)
 
     def test_every_exempt_type_carries_its_reason(self):
+        """Flipped consciously by IQ7-X2 (Step 5, October 3, 2026): its last
+        member, VASSAL_LOYALTY_CRITICAL (superseded before it shipped,
+        never emitted), was DELETED with the tests that imported it, so the
+        set may now be empty — the `assert RAIL_EXEMPT_TYPES` that pinned it
+        non-empty is retired. A type that joins it still owes its reason."""
         from backend.notifications import RAIL_EXEMPT_TYPES
-        assert RAIL_EXEMPT_TYPES
+        assert isinstance(RAIL_EXEMPT_TYPES, dict)
         for ntype, reason in RAIL_EXEMPT_TYPES.items():
             assert len(reason) > 40, ntype
 

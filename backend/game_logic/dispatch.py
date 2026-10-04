@@ -6066,6 +6066,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_vassal_broke_free_peace": "Sire — {nation_display} breaks free of {lord_display} and stands alone — an independent power, and no war declared.",
     "diplomatic_vassal_refuses_call": "{vassal} refuses {lord}'s call to arms against {enemy} — loyalty {loyalty}.",
     "diplomatic_vassal_transferred": "{vassal} passes from {from_lord}'s suzerainty to {to_lord}'s.",
+    # VD-C "The Contingent": the beat's own sentence, composed at the producer.
+    "diplomatic_vassal_contingent": "{line}",
     "diplomatic_vassal_defected": "THE DEFECTION: {briber_display}'s gold turns {vassal_display} against {lord_display}.",
     "diplomatic_ai_proposal": "An envoy from {nation_display} has arrived with a proposal.",
     # IQ-4 (R7): the three mission templates name the court through the
@@ -6414,6 +6416,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_vassal_broke_free_peace": "HIGH",
     "diplomatic_vassal_refuses_call": "HIGH",
     "diplomatic_vassal_transferred": "HIGH",
+    "diplomatic_vassal_contingent": "MEDIUM",   # VD-C: the client's men (raised / home / walked out)
     "diplomatic_vassal_defected": "HIGH",
     "diplomatic_ai_proposal": "HIGH",
     "diplomatic_mission_progress": "LOW",

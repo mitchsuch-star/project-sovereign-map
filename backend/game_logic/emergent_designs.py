@@ -132,6 +132,17 @@ VOLTE_FACE_SPEAKS_ITS_MIND = True
 # the door never opened. The pair is asked first now (PR-1's lesson,
 # one predicate over). False = the participant/instance read only.
 THE_SEPARATE_PEACE_ENDS_THE_WAR = True
+# IQ6-D2 (SCORE_FINISH_SPEC.md §6 row 12, RULED October 3, 2026 under the
+# user's delegation; built at Step 5's SR-8c): A CLIENT'S PARTITION IS THE
+# HEGEMON'S ACT. The NOT-HUMILIATED clause reads a punitive memory — and an
+# emergent revanche — authored by ANY member of the hegemon's bloc, the same
+# bloc the BEATEN clause already reads for "the defeat still shows". Tilsit
+# carved Prussia's Polish provinces for the Duchy of Warsaw and its western
+# lands for Westphalia — French clients both — and Prussia's revanche was
+# France's (1813). Measured before the build: a partition charged to the
+# hegemon's client (Bavaria) left the door open. False = the hegemon's own
+# memories alone, byte for byte.
+A_CLIENTS_PARTITION_IS_THE_HEGEMONS = True
 
 # The machine names of the eligibility clauses, in evaluation order.
 VOLTE_CLAUSE_IDENTITY = "identity"          # the hegemon itself / the player
@@ -500,8 +511,9 @@ def volte_face_failing_clauses(world, power: str, hegemon: str, *,
     - major tier, active, not a vassal, not the player, at peace with
       the hegemon;
     - NOT HUMILIATED: no punitive_settlement memory authored by the
-      hegemon (durable — a partition forecloses this path forever) and
-      no emergent revanche charged to the hegemon;
+      hegemon or any member of its bloc (IQ6-D2 — a client's partition is
+      the hegemon's act; durable — a partition forecloses this path
+      forever) and no emergent revanche charged to any of them;
     - BEATEN: its war with the hegemon ended within `volte_face_window()`
       turns, and the defeat still shows — homeland soil in the hegemon's
       bloc's hands (IQ-6 V3; lever down: war exhaustion at or above
@@ -535,15 +547,20 @@ def volte_face_failing_clauses(world, power: str, hegemon: str, *,
         if _fails(VOLTE_CLAUSE_AT_WAR):
             return failing
 
-    # NOT humiliated — generosity is the whole doctrine.
+    # NOT humiliated — generosity is the whole doctrine. IQ6-D2: a partition
+    # by any member of the hegemon's bloc is the hegemon's act.
     from backend.game_logic.settlement_reactions import get_settlement_memories
-    if get_settlement_memories(world, actor=hegemon, subject=power,
-                               memory_type=PUNITIVE_MEMORY_TYPE):
+    authors = [hegemon]
+    if A_CLIENTS_PARTITION_IS_THE_HEGEMONS:
+        authors += [m for m in world.get_bloc_members(hegemon) if m != hegemon]
+    if any(get_settlement_memories(world, actor=author, subject=power,
+                                   memory_type=PUNITIVE_MEMORY_TYPE)
+           for author in authors):
         if _fails(VOLTE_CLAUSE_PUNITIVE):
             return failing
     for entry in (getattr(world, "agendas", {}) or {}).get(power) or []:
         if (isinstance(entry, dict) and entry.get("emergent")
-                and entry.get("author") == hegemon):
+                and entry.get("author") in authors):
             if _fails(VOLTE_CLAUSE_REVANCHE):
                 return failing
             break

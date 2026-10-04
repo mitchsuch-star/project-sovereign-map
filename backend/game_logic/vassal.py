@@ -120,6 +120,11 @@ CONTRIBUTION_DISAFFECTED_BELOW = 35
 #   THE_WAVERING_LINE_IS_HONEST        False = R1 off (the old regiments line).
 THE_CLIENT_PETITIONS = True
 AN_UNANSWERED_PETITION_IS_REFUSED = True
+# IQ7-X1 (VD-C's rider, Step 5): `attempt_vassal_courting` and
+# `check_defection_cascade` walk EVERY lord's satellites (GR5) — an AI lord's
+# client is courted and cascades exactly as the player's. False = the
+# player's satellites only, byte for byte.
+THREATS_WALK_EVERY_LORD = True
 COURTING_SPARES_THE_LORDS_ALLIES = True
 THE_WAVERING_LINE_IS_HONEST = True
 
@@ -207,6 +212,21 @@ CLIENT_PETITION_TYPE = "client_petition"
 # satellite that recovers and falls again is announced again, which is
 # correct: it is news the second time. False = no crossing beat.
 THE_TIER_CROSSING_IS_ANNOUNCED = True
+
+# IQ7-X3 (VD-C's rider, Step 5, October 3, 2026): the recovery hint rides the
+# CROSSING ticks and the first falling tick after one that did not fall —
+# never every falling tick. Measured first on the shipped tree's commanded
+# arm: 15 / 12 / 17 hinted lines of 18 / 14 / 22 loyalty events across three
+# seeds, in runs of consecutive falls (Switzerland t3..t9 on historical).
+# The memory is one WorldState list, `vassal_hint_spent` (the satellites whose
+# hint is spent; absent = owed) — never a vassal-row key (VS-R Q6) — re-armed
+# by any tick that does not fall. False = every falling tick, byte for byte.
+THE_HINT_RIDES_THE_TURN = True
+
+# VD-C (Step 5): a satellite's own men under its lord's flag — its contingent
+# or an assimilated corps of its colours — standing in their own capital are
+# not the LORD's garrison (VP-D1's +2). False = they count, byte for byte.
+A_CLIENTS_OWN_MEN_ARE_NOT_THE_LORDS_GARRISON = True
 
 # What each crossing COSTS, in the words of the mechanic that charges it.
 _TIER_CROSSING_LINES = {
@@ -790,6 +810,16 @@ def lord_garrison_present(world, lord: str, capital_name: str) -> bool:
         if (getattr(marshal, 'nation', '') == lord
                 and getattr(marshal, 'strength', 0) > 0
                 and not getattr(marshal, 'captured_by', '')):
+            # VD-C: the satellite's OWN men under the lord's flag (its
+            # contingent, or an assimilated corps of its colours) standing
+            # in their own capital are not the lord's garrison — measured,
+            # the boot raise mustered Dumonceau at Amsterdam and the +2
+            # garrison term lit for a corps Holland itself sent.
+            if (A_CLIENTS_OWN_MEN_ARE_NOT_THE_LORDS_GARRISON
+                    and getattr(marshal, 'original_nation', None)
+                    and getattr(marshal, 'original_nation', None)
+                    == getattr(region, 'controller', None)):
+                continue
             return True
     if (getattr(region, 'controller', '') == lord
             and getattr(region, 'garrison_strength', 0) > 0):
@@ -996,6 +1026,20 @@ def process_vassal_loyalty(world) -> List[dict]:
         _contribute("the lord's victories", min(wins, 3))       # +1 per win, max +3
         _contribute("the lord's defeats", -min(losses, 3) * 2)  # -2 per loss, max -6
 
+        # 5b. (VD-C, VASSAL_DEEPENING_SPEC.md §9.1 R5/R6) The satellite's
+        # contingent: one point per 500 of its dead since the last tick
+        # (capped), and two a turn while its lord holds it from the road
+        # home. Both 0 with no contingent serving — `_contribute` skips a 0,
+        # so a satellite with no contingent ticks byte-identically.
+        from backend.game_logic import contingent as _contingent
+        _dead = _contingent.contingent_dead_tick(world, vassal_name)
+        _contribute("the contingent's dead", -min(
+            _contingent.CONTINGENT_DEAD_LOYALTY_CAP,
+            _dead // _contingent.CONTINGENT_DEAD_PER_LOYALTY))
+        if _contingent.contingent_kept_from_home(world, vassal_name):
+            _contribute("its men kept from home",
+                        -_contingent.CONTINGENT_KEPT_LOYALTY)
+
         # 6. Relation modifier
         diplo_key = world._make_diplo_key(vassal_name, lord)
         relation = world.nation_relations.get(diplo_key, 0)
@@ -1058,7 +1102,24 @@ def process_vassal_loyalty(world) -> List[dict]:
             # added the land grant (both July 16, 2026).
             recovery_hint = ""
             if delta < 0 and new_loyalty >= 40:
-                recovery_hint = recovery_hint_for_grip(lord_grip)
+                if THE_HINT_RIDES_THE_TURN:
+                    # IQ7-X3: once per downturn, not once per tick — the
+                    # first emitted fall after a tick that did not fall
+                    # (`world.vassal_hint_spent`, re-armed below), and every
+                    # FA-S17-D8 crossing tick (the 60 line; the 35 line
+                    # lands under the hint's own >= 40 gate).
+                    _crossing_now = (int(old_loyalty) >= CONTRIBUTION_LOYAL_MIN
+                                     > int(new_loyalty))
+                    _spent = getattr(world, "vassal_hint_spent", None)
+                    if _spent is None:
+                        _spent = []
+                        world.vassal_hint_spent = _spent
+                    if vassal_name not in _spent or _crossing_now:
+                        recovery_hint = recovery_hint_for_grip(lord_grip)
+                        if vassal_name not in _spent:
+                            _spent.append(vassal_name)
+                else:
+                    recovery_hint = recovery_hint_for_grip(lord_grip)
 
             # FA-S17-D8 (Phase 4): the CROSSING, once per band. Derived from
             # the VS-4 single source, so shown is exactly what is applied.
@@ -1090,6 +1151,16 @@ def process_vassal_loyalty(world) -> List[dict]:
                     + (f" {crossing}" if crossing else "")
                 ),
             })
+
+        # IQ7-X3: a tick that did not fall re-arms the hint for the next
+        # downturn (a rise or a standstill — the ceiling's 0 included, so
+        # the first fall from 100 is announced). The memory lives OFF the
+        # row (`world.vassal_hint_spent`): VS-R's Q6 guardrail — the loyalty
+        # pass stamps no key on a vassal row — is pinned twice.
+        if THE_HINT_RIDES_THE_TURN and applied_delta >= 0:
+            _spent_now = getattr(world, "vassal_hint_spent", None) or []
+            if vassal_name in _spent_now:
+                _spent_now.remove(vassal_name)
 
         # Dispatch events for vassal unrest (Session 8D)
         if lord == getattr(world, 'player_nation', 'France'):
@@ -1436,6 +1507,11 @@ def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
     """
     if not EVERY_BREAK_COMPLETES_ITSELF:
         return
+    # VD-C: a serving contingent walks out of its lord's lines with its men
+    # (the record is read off its own store — the row is already gone on
+    # the rebellion exit); the loop below hands the marshal to his flag.
+    from backend.game_logic.contingent import on_break as _contingent_break
+    _contingent_break(world, vassal_name, lord)
     # The freed nation's own corps come home.
     for marshal in list(world.marshals.values()):
         if (getattr(marshal, 'original_nation', None) == vassal_name
@@ -1715,11 +1791,14 @@ def check_defection_cascade(world) -> List[dict]:
     Returns list of event dicts.
     """
     events = []
-    lord = getattr(world, 'player_nation', 'France')
+    player = getattr(world, 'player_nation', 'France')
     cascade_triggered = getattr(world, 'cascade_triggered', set())
 
     for vassal_name, state in list(world.vassals.items()):
-        if state["lord"] != lord:
+        # IQ7-X1 (GR5, VD-C's rider): every lord's satellite answers to its
+        # lord's war, not the player's alone. Lever down = the player's.
+        lord = state["lord"]
+        if not THREATS_WALK_EVERY_LORD and lord != player:
             continue
 
         loyalty = state["loyalty"]
@@ -1767,8 +1846,10 @@ def check_defection_cascade(world) -> List[dict]:
                 })
 
     world.cascade_triggered = cascade_triggered
-    # Dispatch: defection cascade summary if any events fired (Session 8D)
-    if events:
+    # Dispatch: defection cascade summary if any events fired (Session 8D) —
+    # the player's own web only (its template names no court: "the empire
+    # trembles" read of a rival lord's satellite would be the player's).
+    if any(e.get("lord") == player for e in events):
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "diplomatic_defection_cascade", {}, "always")
     return events
@@ -4213,6 +4294,11 @@ def transfer_vassal(world, vassal_name: str, to_lord: str,
                 "message": (f"{client_cap} already serves "
                             f"{_court_name(world, to_lord, article=True)}.")}
 
+    # VD-C: the men were lent to the OLD lord — recalled, they stand down
+    # before the re-key below (which would otherwise hand them to the new).
+    from backend.game_logic.contingent import on_transfer as _contingent_transfer
+    _contingent_transfer(world, vassal_name)
+
     # Re-key the assimilated contingent to the new lord (VS-4's gates and
     # the rebellion transfer-back both key off original_nation, which stays).
     rekeyed = []
@@ -4334,46 +4420,6 @@ def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
             assimilated.append(marshal.name)
 
     return assimilated
-
-
-# ═══════════════════════════════════════════════════════
-# VASSAL WARNINGS
-# ═══════════════════════════════════════════════════════
-
-def get_vassal_warnings(world) -> List[dict]:
-    """
-    Get vassal loyalty warnings.
-
-    <40: warning
-    <20: urgent
-    <10: critical notification
-    """
-    warnings = []
-    for vassal_name, state in world.vassals.items():
-        loyalty = state["loyalty"]
-        if loyalty < 10:
-            warnings.append({
-                "vassal": vassal_name,
-                "loyalty": int(loyalty),
-                "level": "critical",
-                "message": f"{vassal_name} CRITICAL: Loyalty at {int(loyalty)}! Rebellion imminent!",
-            })
-        elif loyalty < 20:
-            warnings.append({
-                "vassal": vassal_name,
-                "loyalty": int(loyalty),
-                "level": "urgent",
-                "message": f"{vassal_name}: Loyalty dangerously low ({int(loyalty)}). Invest or face rebellion.",
-            })
-        elif loyalty < 40:
-            warnings.append({
-                "vassal": vassal_name,
-                "loyalty": int(loyalty),
-                "level": "warning",
-                "message": f"{vassal_name}: Loyalty declining ({int(loyalty)}). Consider intervention.",
-            })
-
-    return warnings
 
 
 # ═══════════════════════════════════════════════════════
@@ -4503,6 +4549,12 @@ def release_vassal(
 
     state = world.vassals[vassal_name]
     lord = state["lord"]
+
+    # VD-C: a voluntary release recalls the contingent (it stands down at
+    # once); a rebellion release walks it out with its men. Read BEFORE the
+    # hand-back loop and the row deletion below.
+    from backend.game_logic.contingent import on_release as _contingent_release
+    _contingent_release(world, vassal_name, rebellion=rebellion)
 
     # IGR-A4: snapshot BEFORE the mutations below destroy the evidence.
     # `original_nation` is the only marker of an assimilated contingent and is
@@ -4698,9 +4750,16 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
     # 50 -> 50 + bonus) and each success bites HARDER (loyalty_reduction x1.0 ->
     # x1.5). Both are 0 / x1.0 at healthy grip, so boot behaviour is byte-
     # identical. Bounded by the existing 3-turn cooldown + one-vassal-per-turn cap.
-    player_grip = get_imperial_grip(world, player)
-    unlock_bonus = courting_unlock_bonus(player_grip)
-    eff_scale = courting_effectiveness_scale(player_grip)
+    # IQ7-X1 (GR5): the grip read is the satellite's OWN lord's, memoized
+    # per lord (the player's alone with the lever down).
+    grip_by_lord: dict = {}
+
+    def _lord_terms(lord_name: str):
+        if lord_name not in grip_by_lord:
+            grip = get_imperial_grip(world, lord_name)
+            grip_by_lord[lord_name] = (courting_unlock_bonus(grip),
+                                       courting_effectiveness_scale(grip))
+        return grip_by_lord[lord_name]
 
     # NA-2 §5.4 courting bias: a court whose acquire/deny design lies in a
     # player-vassal's territory courts THAT vassal first (Austria courts
@@ -4714,8 +4773,15 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
     )
 
     for vassal_name, state in courting_candidates:
-        if state["lord"] != player:
+        lord = state["lord"]
+        if THREATS_WALK_EVERY_LORD:
+            # IQ7-X1 (GR5): every lord's satellite may be courted — never by
+            # its own lord (the same-house guard below covers his satellites).
+            if lord == nation:
+                continue
+        elif lord != player:
             continue
+        unlock_bonus, eff_scale = _lord_terms(lord)
         if state["loyalty"] >= 50 + unlock_bonus:
             continue
 
@@ -4800,31 +4866,36 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         if COURTING_TARGET_CAP_ACTIVE:
             state["courted_turn"] = int(world.current_turn)
 
-        # Notification: courting detected (Session 8C)
-        from backend.notifications import (
-            create_notification, NotificationPriority, VASSAL_COURTING_DETECTED,
-        )
-        world.notifications.add(create_notification(
-            VASSAL_COURTING_DETECTED,
-            NotificationPriority.NORMAL,
-            f"{display_nation(nation)} Courts {display_nation(vassal_name)}",
-            f"Enemy agents from {display_nation(nation)} detected courting "
-            f"{display_nation(vassal_name)}.",
-            int(world.current_turn),
-        ))
+        # Notification: courting detected (Session 8C) — of the player's own
+        # satellites (IQ7-X1: a rival lord's client is not his tray's news).
+        if lord == player:
+            from backend.notifications import (
+                create_notification, NotificationPriority, VASSAL_COURTING_DETECTED,
+            )
+            world.notifications.add(create_notification(
+                VASSAL_COURTING_DETECTED,
+                NotificationPriority.NORMAL,
+                f"{display_nation(nation)} Courts {display_nation(vassal_name)}",
+                f"Enemy agents from {display_nation(nation)} detected courting "
+                f"{display_nation(vassal_name)}.",
+                int(world.current_turn),
+            ))
 
         events.append({
             "type": "vassal_courting",
             "nation": nation,
             "vassal": vassal_name,
+            "lord": lord,
             "loyalty_reduction": int(loyalty_reduction),
             "new_loyalty": int(state["loyalty"]),
             "message": f"{nation} is courting {vassal_name}! Loyalty dropped by {loyalty_reduction}.",
         })
 
-        # Dispatch event — 60% detection at queue time (Session 8D)
+        # Dispatch event — 60% detection at queue time (Session 8D). The
+        # roll is drawn for the player's own satellites only, so a rival
+        # lord's courting consumes no module-RNG draw (IQ7-X1).
         import random as _rng
-        if _rng.random() < 0.60:
+        if lord == player and _rng.random() < 0.60:
             from backend.game_logic.dispatch import queue_dispatch_event
             vassal_capital = world.get_nation_capital(vassal_name) or vassal_name
             queue_dispatch_event(world, "diplomatic_vassal_courting",

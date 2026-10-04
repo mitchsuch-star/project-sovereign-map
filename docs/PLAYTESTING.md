@@ -103,6 +103,25 @@ turn's list runs.
 > world turn drift ahead of the index. Anchor a script to loop order,
 > never to the calendar; the digest prints both.
 
+**The script's own clicks (SF-AGD-1, Score Finish Step 5, October 3, 2026).**
+A line beginning with `@` answers the dialogue on the desk with that action and
+its JSON `action_params`, posted to `POST /respond_to_diplomatic_dialogue`
+exactly as the client posts it:
+
+```json
+"2": ["propose common peace with Prussia",
+      "@settlement_demand_add {\"nation\": \"Prussia\", \"group\": \"demand\", \"clause_type\": \"create_client\", \"tag\": \"DuchyOfWarsaw\"}",
+      "@submit_settlement_for_review",
+      "@seek_bilateral_peace"]
+```
+
+While the NEXT line is a click, the dialogue a line opened is HELD: the digest
+says "(held for the script's own clicks)" and the answer policy never touches
+it. A settlement table's terms are recorded (`settlement_terms` jsonl rows, a
+`TERMS` line in the digest) before it is answered. The worked example is
+`tools/playtest_scripts/sf_agd1_tilsit_road.json` (the `AGD` arm of
+`tools/score_run.py`).
+
 ### Known-bad digests (read this before trusting an old run)
 
 Two harness defects were found by the Aug-16 win campaign and fixed then;
@@ -726,6 +745,7 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
 | `fixture_ge2_soil_or_sword.json` | turn 1, seed `historical`, **STAGED** (a direct controller write, not played): every French province but Brittany handed to Austria; France at war with the coalition from the boot, so the soil clock ticks from the first end turn and the Empire falls on the fifth | GE-2 (Sept 25, 2026), `tools/gen_ge2_ending_fixtures.py` |
 | `fixture_ge2_chains.json` | turn 1, seed `historical`, **STAGED** through the real `capture_marshal` seam: the Emperor a prisoner of Austria; the chains clock ticks from the first end turn, the captor offers its terms on the clock's turns 1, 4 and 7, and under `--diplomacy decline` the regency falls on the tenth | GE-2 (Sept 25, 2026), same tool |
 | `fixture_ge3_pressburg.json` | turn 28, seed `historical`, **STAGED**: after Pressburg and Tilsit — Austria and Russia at peace with France AND every satellite (both latched as beaten courts), Austria's cessions titled by treaty, Hanover/Naples/Portugal held fifteen quiet turns, Bavaria/Saxony/Hesse clients, Prussia allied at relation 30, Britain's ports closed; 55 titled, the Congress summonable | GE-3 (Sept 25, 2026), `tools/gen_ge3_congress_fixtures.py` |
+| `fixture_agd_tilsit.json` | turn 1, seed `historical`, **STAGED**: SF-M's TILSIT board with ONE difference — Posen is still Prussian and Davout stands beside it in Silesia; Prussia's field army destroyed, Berlin and Silesia French, France at war with Prussia and Britain only (every other war ended through the engine's own pair resolution, with the settlement's truce floor), the war six turns old. The `AGD` arm takes Posen on loop 1 and carves the Duchy of Warsaw through the table's own `@` clicks to the Proclamation | SF-AGD-1 (Oct 3, 2026), `tools/gen_agd_fixture.py` |
 | `fixture_ge3_premature.json` | turn 1, seed `historical`, **STAGED**: exactly 50 titled on the boot war (treaty titles written directly), three great powers at war, no preparation | GE-3 (Sept 25, 2026), same tool |
 
 Not a measurement — a starting state. It is dated by the commit that

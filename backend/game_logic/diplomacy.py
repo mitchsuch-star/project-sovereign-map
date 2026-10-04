@@ -10246,7 +10246,17 @@ def process_diplomacy_turn(world) -> List[Dict]:
         # (a client petitions on the standing it has now) and BEFORE the
         # rebellion check, where the prototype measured it. Lever-down = [].
         events.extend(process_vassal_petitions(world))
+        # VD-C "The Contingent" (VASSAL_DEEPENING_SPEC.md §9.1): AFTER the
+        # loyalty tick (which already charged the contingent's dead) and
+        # BEFORE the rebellion check (a break walks it out at its hook).
+        from backend.game_logic.contingent import process_vassal_contingents
+        events.extend(process_vassal_contingents(world))
         events.extend(check_vassal_rebellion(world))
+    elif getattr(world, "vassal_contingents", None):
+        # VD-C: the last satellite gone by an exit nobody hooked — the
+        # reconciliation still closes its contingent's record.
+        from backend.game_logic.contingent import process_vassal_contingents
+        events.extend(process_vassal_contingents(world))
 
     # ── 7b. Per-turn staying-power accrual (Slice B3, spec §9.2 line 612) ──
     # Walks every active war_instance once and adds +5 raw points per

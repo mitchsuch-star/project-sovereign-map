@@ -63,6 +63,9 @@ sys.path.insert(0, str(ROOT))
 CHECKLIST_DEFAULT = ROOT / "docs" / "SCORE_CHECKLIST_V1.json"
 SCRIPTS = "tools/playtest_scripts"
 T24_SAVE = "docs/audits/playtest_digests/rs0928-hand-played/retest_t24_summonable.json"
+# SF-AGD-1 (Step 5, October 3, 2026): the TILSIT board with Posen still
+# Prussian — `tools/gen_agd_fixture.py` regenerates it.
+AGD_FIXTURE = "tests/fixtures/playtest_saves/fixture_agd_tilsit.json"
 GE3_FIXTURE = "tests/fixtures/playtest_saves/fixture_ge3_pressburg.json"
 HOLD_SCRIPT = "score_hold_2026_09_29.json"  # re-written fresh each run (§4.2)
 
@@ -356,6 +359,25 @@ ARMS: dict[str, dict] = {
     "TYPED": {
         "argv": ["--script", f"{SCRIPTS}/typed_road.json", "--turns", "12"],
         "feeds": ["command"],
+    },
+    # SF-AGD-1 "The agendas arm" (Step 5 SR-8b): a PLAYED road from the TILSIT
+    # board — Posen taken in play (the Duchy's gate flips), the Duchy carved
+    # through the settlement table's own clicks and the separate peace, the
+    # Proclamation on ratification. SF-M's TILSIT probe is its instrument.
+    "AGD": {
+        "argv": [
+            "--script",
+            f"{SCRIPTS}/sf_agd1_tilsit_road.json",
+            "--from-save",
+            AGD_FIXTURE,
+            "--turns",
+            "3",
+            "--diplomacy",
+            "accept",
+            "--save-at",
+            "1,2,3",
+        ],
+        "feeds": ["agendas"],
     },
 }
 # The petition acceptance probe (drama F1) wraps the flagship arm in-process.
@@ -2614,7 +2636,34 @@ def r_agendas_C2(arms, ctx):
 
 
 def r_agendas_C5(arms, ctx):
-    return _unmeasured("SF-AGD-1's arm does not exist yet (Step 5)")
+    """SF-AGD-1: on the AGD arm, a carve STATES its terms (a settlement table
+    the player read carries a create_client clause naming its client and the
+    provinces it takes) and the Proclamation card FIRES. The formables gate
+    flipping in play (the fixture before Posen, the arm's first save after)
+    is read off the saves as evidence."""
+    if _need(arms, "AGD"):
+        return _unmeasured("AGD did not run")
+    arm = arms["AGD"]
+    stated = [c for r in arm.kind("settlement_terms") for c in (r.get("carves") or [])
+              if (c.get("client_display_name") or c.get("tag")) and c.get("provinces")]
+    cards = [p for p in arm.kind("popup") if str(p.get("key")) == "nation_proclamation"]
+    flip = ""
+    try:
+        from tools import _score_probes as P
+        flip = P.agd_gate_flip(arm, ctx)
+    except Exception as exc:  # pragma: no cover - evidence only
+        flip = f"gate flip unread ({type(exc).__name__})"
+    first = stated[0] if stated else {}
+    return _res(
+        True,
+        bool(stated) and bool(cards),
+        f"carve terms stated {len(stated)}x"
+        + (f" ({first.get('client_display_name') or first.get('tag')} from "
+           f"{first.get('from')}: {'/'.join(first.get('provinces') or [])})" if first else "")
+        + f"; Proclamation cards {len(cards)}"
+        + (f" ({cards[0].get('summary')})" if cards else "")
+        + (f"; {flip}" if flip else ""),
+    )
 
 
 # ── probe dispatch ─────────────────────────────────────────────────────────

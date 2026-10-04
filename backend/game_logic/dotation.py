@@ -295,6 +295,11 @@ def get_expectation(marshal) -> int:
     """
     if getattr(marshal, "is_sovereign", False):
         return 0
+    # VD-C R12: a corps of a client's colours expects nothing from its
+    # lord's purse — its own court rewards it. The same cascade.
+    from backend.game_logic.contingent import is_clients_general
+    if is_clients_general(marshal):
+        return 0
     if EXPECTATION_RISES_ON_DEEDS:
         return expectation_for_wins(getattr(marshal, "expectation_steps", 0))
     return expectation_for_wins(getattr(marshal, "battles_won", 0))
@@ -334,6 +339,9 @@ def expectation_rise_blocked(marshal, world, ignore_cooldown: bool = False) -> s
     """
     if getattr(marshal, "is_sovereign", False):
         return "the Empire is his estate"
+    from backend.game_logic.contingent import is_clients_general
+    if is_clients_general(marshal):
+        return "his own court rewards him"
     turn = int(getattr(world, "current_turn", 0) or 0)
     if turn < EXPECTATION_FIRST_TURN:
         return f"no claim is felt before turn {EXPECTATION_FIRST_TURN}"

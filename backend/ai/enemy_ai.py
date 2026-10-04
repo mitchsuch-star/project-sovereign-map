@@ -2093,10 +2093,15 @@ class EnemyAI:
         # SR-2e AAR-10 (GR5): a corps that answered a battle's guns this
         # turn has moved this turn — the road home resumes next turn.
         from backend.commands.strategic import A_MARCH_KEEPS_ITS_TAIL as _KEEP_TAIL
-        if (withdrawal.is_road_home_order(
-                getattr(marshal, "strategic_order", None))
+        # VD-C (GR5): a satellite's contingent on the road home walks it the
+        # same way — its own road (toward the satellite), not the treaty's.
+        from backend.game_logic import contingent as _contingent
+        _order_now = getattr(marshal, "strategic_order", None)
+        _contingent_home = _contingent.is_contingent_home_order(_order_now)
+        if ((withdrawal.is_road_home_order(_order_now) or _contingent_home)
                 and not (_KEEP_TAIL and getattr(marshal, "reinforced_this_turn", False))):
-            step = withdrawal.next_step_home(world, marshal)
+            step = (_contingent.contingent_next_step(world, marshal)
+                    if _contingent_home else withdrawal.next_step_home(world, marshal))
             if step:
                 if _fortified_corps_never_marches() and getattr(marshal, 'fortified', False):
                     # R1-8: a fortified corps is refused the march now; the

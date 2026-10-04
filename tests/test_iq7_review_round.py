@@ -4456,7 +4456,6 @@ EVENT_ROW_SITES = {
                                "(dispatch + campaign log compose their own sentence)",
     "attempt_vassal_bribe": "event row; debug_print sink — the defection's notice, dispatch "
                             "and log lines are composed inside the function through display_nation",
-    "get_vassal_warnings": "no caller: the Vassals card builds its own warning band",
     "process_vassal_loyalty": "turn-tick event ROW appended to the end-turn list, never a "
                               "verb's returned result (rendered through the client's "
                               "humanize_nation_keys_in_text chokepoint) — routed, not R4-5's",

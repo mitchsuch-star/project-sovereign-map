@@ -61,5 +61,544 @@
     "old": "            \"design_ask_first_stood\": {\n                str(k): int(v) for k, v in self.design_ask_first_stood.items()\n            },",
     "new": "",
     "tests": "tests/test_sf_lb2_the_defenceless_prize.py::TestThePatientAsk::test_the_anchor_survives_a_save"
+  },
+  {
+    "id": "VD-C lever down: no contingent is raised",
+    "file": "backend/game_logic/contingent.py",
+    "old": "THE_CLIENT_SENDS_ITS_CONTINGENT = True",
+    "new": "THE_CLIENT_SENDS_ITS_CONTINGENT = False",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_the_boot_raise"
+  },
+  {
+    "id": "VD-C lever down: the lord pays the client's men",
+    "file": "backend/game_logic/contingent.py",
+    "old": "THE_CLIENT_PAYS_ITS_MEN = True",
+    "new": "THE_CLIENT_PAYS_ITS_MEN = False",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientPaysItsMen::test_the_lords_bill_and_establishment_are_unchanged"
+  },
+  {
+    "id": "VD-C the size ignores loyalty",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    raw = raw * max(0, min(100, int(loyalty))) // 100\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheSize::test_loyalty_scales_it"
+  },
+  {
+    "id": "VD-C the size is uncapped",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    size = min(CONTINGENT_MAX, size)\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheSize::test_the_cap"
+  },
+  {
+    "id": "VD-C the pool does not bound the size",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    size = min(size, (pool // CONTINGENT_ROUND) * CONTINGENT_ROUND)\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheSize::test_the_pool_bounds_it"
+  },
+  {
+    "id": "VD-C the 3,000 floor dropped",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    return int(size) if size >= CONTINGENT_MIN else 0",
+    "new": "    return int(size) if size > 0 else 0",
+    "tests": "tests/test_vassal_contingent.py::TestTheSize::test_the_pool_bounds_it"
+  },
+  {
+    "id": "VD-C the contingent is not the satellite's men",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    marshal.original_nation = vassal\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_the_boot_raise"
+  },
+  {
+    "id": "VD-C the satellite's pool is not debited",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    pools[\"infantry\"] = int(pools.get(\"infantry\", 0) or 0) - int(size)",
+    "new": "    pools[\"infantry\"] = int(pools.get(\"infantry\", 0) or 0)",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_the_boot_raise"
+  },
+  {
+    "id": "VD-C the host is not named",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    host = _find_host(world, lord, spawn, exclude=name)\n",
+    "new": "    host = None\n",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_the_raise_beat_names_the_men_the_payer_and_the_host"
+  },
+  {
+    "id": "VD-C a fallen commander is picked again",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        if name and not _name_taken(world, name):",
+    "new": "        if name:",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_the_commander_is_the_first_free_one"
+  },
+  {
+    "id": "VD-C a rival lord's contingent is not fog-ruled",
+    "file": "backend/game_logic/contingent.py",
+    "old": "\"always\" if player in (lord, vassal) else \"partial_on_nation\")",
+    "new": "\"always\")",
+    "tests": "tests/test_vassal_contingent.py::TestTheRecord::test_a_rival_lords_contingent_is_fog_ruled"
+  },
+  {
+    "id": "VD-C the survivors are not returned to the pool",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        pools[\"infantry\"] = int(pools.get(\"infantry\", 0) or 0) + back",
+    "new": "        pools[\"infantry\"] = int(pools.get(\"infantry\", 0) or 0)",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_arriving_home_it_stands_down_without_a_tombstone"
+  },
+  {
+    "id": "VD-C the homecoming writes a tombstone",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        world.stand_down_marshal(marshal)",
+    "new": "        world.destroy_marshal(marshal, cause=\"battle\")",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_arriving_home_it_stands_down_without_a_tombstone"
+  },
+  {
+    "id": "VD-C one victory does not crown",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    if won >= 1:\n        return \"crowned\"",
+    "new": "    if won >= 2:\n        return \"crowned\"",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_crowned_with_victory"
+  },
+  {
+    "id": "VD-C the decimated share loosened",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    if survivors < raised * CONTINGENT_CROWN_SHARE:",
+    "new": "    if survivors < raised * 0.1:",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_decimated"
+  },
+  {
+    "id": "VD-C the homecoming does not rest the satellite",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        row[\"contingent_rest_until\"] = int(world.current_turn) + CONTINGENT_REST_TURNS\n    name = str(record.get(\"marshal\") or \"\")\n    line = _home_line",
+    "new": "    name = str(record.get(\"marshal\") or \"\")\n    line = _home_line",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_after_its_homecoming_the_satellite_rests"
+  },
+  {
+    "id": "VD-C a lost contingent costs no loyalty",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        row[\"loyalty\"] = max(0, before - CONTINGENT_DECIMATED_LOYALTY)",
+    "new": "        row[\"loyalty\"] = max(0, before)",
+    "tests": "tests/test_vassal_contingent.py::TestTheDead::test_a_contingent_destroyed_is_lost"
+  },
+  {
+    "id": "VD-C the dead tick records nothing",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    return max(0, last - current)",
+    "new": "    return 0",
+    "tests": "tests/test_vassal_contingent.py::TestTheDead::test_its_dead_bleed_the_satellite"
+  },
+  {
+    "id": "VD-C the lord can keep it from home freely",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    return target not in _held(world, vassal)",
+    "new": "    return False",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_kept_from_home_the_satellite_bleeds"
+  },
+  {
+    "id": "VD-C the AI has no road-home step",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    return path[1]",
+    "new": "    return None",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_the_ai_walks_its_contingent_home"
+  },
+  {
+    "id": "VD-C the reconciliation never runs",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    # 1. Records an unnamed exit left behind.\n    for vassal in sorted(store):",
+    "new": "    # 1. Records an unnamed exit left behind.\n    for vassal in []:",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_an_exit_nobody_hooked_is_reconciled"
+  },
+  {
+    "id": "VD-C a serving contingent at home stands down",
+    "file": "backend/game_logic/contingent.py",
+    "old": "                    record[\"homeward_turn\"] = None\n                continue",
+    "new": "                    record[\"homeward_turn\"] = None\n                pass",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_one_contingent_at_a_time"
+  },
+  {
+    "id": "VD-C a new shared war does not return it to service",
+    "file": "backend/game_logic/contingent.py",
+    "old": "                    record[\"state\"] = \"serving\"\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_a_new_shared_war_returns_it_to_service"
+  },
+  {
+    "id": "VD-C the peace gives no road home",
+    "file": "backend/game_logic/contingent.py",
+    "old": "                _issue_march(world, marshal, target, CONTINGENT_HOME_COMMAND)",
+    "new": "                pass",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_the_peace_sends_it_home"
+  },
+  {
+    "id": "VD-C the road never runs out",
+    "file": "backend/game_logic/contingent.py",
+    "old": ">= CONTINGENT_HOMEWARD_TURNS:",
+    "new": ">= CONTINGENT_HOMEWARD_TURNS + 99:",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_after_eight_turns_it_finds_its_own_way"
+  },
+  {
+    "id": "VD-C a lost road is not given again",
+    "file": "backend/game_logic/contingent.py",
+    "old": "                _issue_march(world, marshal, _home_target(world, vassal),\n                             CONTINGENT_HOME_COMMAND)",
+    "new": "                pass",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_a_lost_road_is_given_again"
+  },
+  {
+    "id": "VD-C a resting satellite does not wait",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        if int(row.get(\"contingent_rest_until\", 0) or 0) > turn:",
+    "new": "        if False:",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_a_resting_satellite_waits"
+  },
+  {
+    "id": "VD-C a wavering satellite sends",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        if vassal_military_contribution(world, vassal) != \"loyal\":",
+    "new": "        if False:",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_a_wavering_satellite_sends_nothing"
+  },
+  {
+    "id": "VD-C no shared war is required",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        if not shared_enemies(world, lord, vassal):\n            continue\n        if _fields_assimilated_corps",
+    "new": "        if False:\n            continue\n        if _fields_assimilated_corps",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_no_shared_war_no_contingent"
+  },
+  {
+    "id": "VD-C the lord's assimilated corps does not count",
+    "file": "backend/game_logic/contingent.py",
+    "old": "        if _fields_assimilated_corps(world, lord, vassal):",
+    "new": "        if False:",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_a_lord_already_fielding_its_men"
+  },
+  {
+    "id": "VD-C a rebellion release recalls instead of walking out",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    if rebellion:\n        return walk_out(world, vassal, reason=\"rebellion\")",
+    "new": "    if False:\n        return walk_out(world, vassal, reason=\"rebellion\")",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_rebellion_release_walks_it_out"
+  },
+  {
+    "id": "VD-C a transfer keeps the contingent",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    return stand_down(world, vassal, reason=\"recalled\")\n\n\ndef on_break",
+    "new": "    return None\n\n\ndef on_break",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_transfer_recalls_it"
+  },
+  {
+    "id": "VD-C a break never walks it out",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    if not record or (lord and record.get(\"lord\") != lord):",
+    "new": "    if not record or True:",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_rebellion_walks_it_out"
+  },
+  {
+    "id": "VD-C the dead bleed is uncapped",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            _contingent.CONTINGENT_DEAD_LOYALTY_CAP,\n",
+    "new": "            99,\n",
+    "tests": "tests/test_vassal_contingent.py::TestTheDead::test_one_tick_costs_at_most_ten"
+  },
+  {
+    "id": "VD-C the dead do not bleed",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        _dead = _contingent.contingent_dead_tick(world, vassal_name)",
+    "new": "        _dead = 0",
+    "tests": "tests/test_vassal_contingent.py::TestTheDead::test_its_dead_bleed_the_satellite"
+  },
+  {
+    "id": "VD-C kept from home costs nothing",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        if _contingent.contingent_kept_from_home(world, vassal_name):",
+    "new": "        if False:",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_kept_from_home_the_satellite_bleeds"
+  },
+  {
+    "id": "VD-C the contingent counts as the lord's garrison (lever)",
+    "file": "backend/game_logic/vassal.py",
+    "old": "A_CLIENTS_OWN_MEN_ARE_NOT_THE_LORDS_GARRISON = True",
+    "new": "A_CLIENTS_OWN_MEN_ARE_NOT_THE_LORDS_GARRISON = False",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsOwnMenAreNotTheLordsGarrison::test_a_contingent_at_home_is_not_the_lords_garrison"
+  },
+  {
+    "id": "VD-C the garrison exclusion keys the wrong soil",
+    "file": "backend/game_logic/vassal.py",
+    "old": "                    == getattr(region, 'controller', None)):",
+    "new": "                    != getattr(region, 'controller', None)):",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsOwnMenAreNotTheLordsGarrison::test_a_contingent_at_home_is_not_the_lords_garrison"
+  },
+  {
+    "id": "VD-C the break hook unwired",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    _contingent_break(world, vassal_name, lord)\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_rebellion_walks_it_out"
+  },
+  {
+    "id": "VD-C the transfer hook unwired",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    _contingent_transfer(world, vassal_name)\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_transfer_recalls_it"
+  },
+  {
+    "id": "VD-C the release hook unwired",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    _contingent_release(world, vassal_name, rebellion=rebellion)\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_release_recalls_it"
+  },
+  {
+    "id": "IQ7-X1 lever down: the player's satellites only",
+    "file": "backend/game_logic/vassal.py",
+    "old": "THREATS_WALK_EVERY_LORD = True",
+    "new": "THREATS_WALK_EVERY_LORD = False",
+    "tests": "tests/test_vassal_contingent.py::TestAILordThreats::test_courting_reaches_an_ai_lords_satellite tests/test_vassal_contingent.py::TestAILordThreats::test_the_cascade_reaches_an_ai_lords_satellite"
+  },
+  {
+    "id": "IQ7-X1 a lord courts its own satellite",
+    "file": "backend/game_logic/vassal.py",
+    "old": "            if lord == nation:\n                continue\n        elif lord != player:",
+    "new": "            if False:\n                continue\n        elif lord != player:",
+    "tests": "tests/test_vassal_contingent.py::TestAILordThreats::test_a_lord_never_courts_its_own_satellite"
+  },
+  {
+    "id": "IQ7-X1 the grip read is the player's",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        unlock_bonus, eff_scale = _lord_terms(lord)",
+    "new": "        unlock_bonus, eff_scale = _lord_terms(player)",
+    "tests": "tests/test_vassal_contingent.py::TestAILordThreats::test_the_grip_read_is_the_satellites_own_lords"
+  },
+  {
+    "id": "IQ7-X1 a rival lord's courting reaches the player's tray",
+    "file": "backend/game_logic/vassal.py",
+    "old": "        if lord == player:\n            from backend.notifications import (",
+    "new": "        if True:\n            from backend.notifications import (",
+    "tests": "tests/test_vassal_contingent.py::TestAILordThreats::test_courting_reaches_an_ai_lords_satellite"
+  },
+  {
+    "id": "IQ7-X1 a rival lord's cascade trembles the player's empire",
+    "file": "backend/game_logic/vassal.py",
+    "old": "    if any(e.get(\"lord\") == player for e in events):",
+    "new": "    if events:",
+    "tests": "tests/test_vassal_contingent.py::TestAILordThreats::test_the_cascade_reaches_an_ai_lords_satellite"
+  },
+  {
+    "id": "IQ7-X3 lever down: every falling tick",
+    "file": "backend/game_logic/vassal.py",
+    "old": "THE_HINT_RIDES_THE_TURN = True",
+    "new": "THE_HINT_RIDES_THE_TURN = False",
+    "tests": "tests/test_vassal_contingent.py::TestTheHintRidesTheTurn::test_a_steady_fall_is_hinted_once"
+  },
+  {
+    "id": "IQ7-X3 a rise never re-arms the hint",
+    "file": "backend/game_logic/vassal.py",
+    "old": "                _spent_now.remove(vassal_name)",
+    "new": "                pass",
+    "tests": "tests/test_vassal_contingent.py::TestTheHintRidesTheTurn::test_a_rise_re_arms_it"
+  },
+  {
+    "id": "IQ7-X3 a crossing is not hinted",
+    "file": "backend/game_logic/vassal.py",
+    "old": "                    if vassal_name not in _spent or _crossing_now:",
+    "new": "                    if vassal_name not in _spent:",
+    "tests": "tests/test_vassal_contingent.py::TestTheHintRidesTheTurn::test_a_crossing_always_carries_it"
+  },
+  {
+    "id": "VD-C the client's men are billed",
+    "file": "backend/models/world_state.py",
+    "old": "            if marshal.name in client_paid:\n                continue\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientPaysItsMen::test_the_lords_bill_and_establishment_are_unchanged"
+  },
+  {
+    "id": "VD-C a fallen lord's contingent is swept",
+    "file": "backend/models/world_state.py",
+    "old": "                _contingent_break(self, _freed, nation)\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_a_fallen_lord_frees_its_contingent"
+  },
+  {
+    "id": "VD-C the store is not serialized",
+    "file": "backend/models/world_state.py",
+    "old": "            \"vassal_contingents\": copy.deepcopy(self.vassal_contingents),\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheRecord::test_the_store_survives_a_save"
+  },
+  {
+    "id": "VD-C the scenario's commanders never load",
+    "file": "backend/models/world_state.py",
+    "old": "        if _authored is None:\n            _authored = data.get(\"contingents\")\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheCall::test_the_boot_raise"
+  },
+  {
+    "id": "VD-C a prisoner may be stood down",
+    "file": "backend/models/world_state.py",
+    "old": "        if getattr(marshal, \"captured_by\", \"\") or getattr(marshal, \"is_sovereign\", False):\n            return False\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheFourExits::test_stand_down_never_removes_a_prisoner_or_the_sovereign"
+  },
+  {
+    "id": "VD-C the pass unwired from the diplomacy turn",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "        events.extend(process_vassal_contingents(world))\n        events.extend(check_vassal_rebellion(world))",
+    "new": "        events.extend(check_vassal_rebellion(world))",
+    "tests": "tests/test_vassal_contingent.py::TestTheRecord::test_the_diplomacy_turn_runs_the_pass"
+  },
+  {
+    "id": "VD-C the AI's P1.2 rung ignores the contingent",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "        if ((withdrawal.is_road_home_order(_order_now) or _contingent_home)",
+    "new": "        if ((withdrawal.is_road_home_order(_order_now) or False)",
+    "tests": "tests/test_vassal_contingent.py::TestTheRoadHome::test_the_ai_walks_its_contingent_home"
+  },
+  {
+    "id": "VD-C the log type unregistered",
+    "file": "backend/campaign_log.py",
+    "old": "    \"vassal_contingent\",\n    # IQ-7",
+    "new": "    # IQ-7",
+    "tests": "tests/test_vassal_contingent.py::TestTheRecord::test_the_log_type_is_registered_and_reads_its_line"
+  },
+  {
+    "id": "VD-C the pre-VD-C save gets no commanders",
+    "file": "backend/save_manager.py",
+    "old": "                block = json.load(fh).get(\"contingents\")",
+    "new": "                block = None",
+    "tests": "tests/test_vassal_contingent.py::TestTheRecord::test_a_pre_vdc_1805_save_is_armed_with_the_authored_commanders"
+  },
+  {
+    "id": "VD-C the validator lets a sovereign lead",
+    "file": "backend/modding/validator.py",
+    "old": "                            \"A sovereign never leads a client's contingent.\")",
+    "new": "                            \"\")",
+    "tests": "tests/test_vassal_contingent.py::TestTheValidator::test_a_sovereign_never_leads_a_contingent"
+  },
+  {
+    "id": "VD-C the validator lets a name collide",
+    "file": "backend/modding/validator.py",
+    "old": "                    elif cand_name in taken or cand_name in seen_here:",
+    "new": "                    elif False:",
+    "tests": "tests/test_vassal_contingent.py::TestTheValidator::test_a_name_must_be_new"
+  },
+  {
+    "id": "IQ6-D2 lever down: the hegemon's own memories alone",
+    "file": "backend/game_logic/emergent_designs.py",
+    "old": "A_CLIENTS_PARTITION_IS_THE_HEGEMONS = True",
+    "new": "A_CLIENTS_PARTITION_IS_THE_HEGEMONS = False",
+    "tests": "tests/test_sr8c_the_deck_review.py::TestAClientsPartitionIsTheHegemons::test_a_partition_charged_to_bavaria_forecloses_the_door"
+  },
+  {
+    "id": "IQ6-D2 the revanche reads the hegemon alone",
+    "file": "backend/game_logic/emergent_designs.py",
+    "old": "                and entry.get(\"author\") in authors):",
+    "new": "                and entry.get(\"author\") == hegemon):",
+    "tests": "tests/test_sr8c_the_deck_review.py::TestAClientsPartitionIsTheHegemons::test_a_revanche_charged_to_the_client_forecloses"
+  },
+  {
+    "id": "IQ7-D3 the deck entry removed",
+    "file": "godot-client/project-sovereign/assets/maps/europe_1805.json",
+    "old": "\"id\": \"ostfriesland\",",
+    "new": "\"id\": \"ostfriesland_gone\",",
+    "tests": "tests/test_sr8c_the_deck_review.py::TestASatelliteDesignItsLordCanGive::test_hollands_deck_authors_east_frisia"
+  },
+  {
+    "id": "SF-AGD-1 a held dialogue is answered",
+    "file": "tools/playtest_driver.py",
+    "old": "        if (getattr(self, \"hold_dialogue\", False) and dialogue\n                and isinstance(dialogue, dict)",
+    "new": "        if (False and dialogue\n                and isinstance(dialogue, dict)",
+    "tests": "tests/test_sf_agd1_the_agendas_arm.py::TestTheClickGrammar::test_a_held_dialogue_is_never_answered_and_is_said"
+  },
+  {
+    "id": "SF-AGD-1 a click carries no params",
+    "file": "tools/playtest_driver.py",
+    "old": "            body[\"action_params\"] = {\"action\": action, **params}",
+    "new": "            pass",
+    "tests": "tests/test_sf_agd1_the_agendas_arm.py::TestTheClickGrammar::test_a_click_posts_the_action_and_its_params_on_the_held_dialogue"
+  },
+  {
+    "id": "SF-AGD-1 the gate key keeps the holder tail",
+    "file": "tools/_score_probes.py",
+    "old": "    return re.sub(r\"\\s*\\(currently [^)]*\\)\\s*$\", \"\", str(text or \"\"))",
+    "new": "    return str(text or \"\")",
+    "tests": "tests/test_sf_agd1_the_agendas_arm.py::TestTheGateTermKey::test_the_holder_tail_is_not_part_of_the_term"
+  },
+  {
+    "id": "SF5-X1 lever down: a question answers the interrupt",
+    "file": "backend/main.py",
+    "old": "A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT = True",
+    "new": "A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT = False",
+    "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAQuestionNeverAnswersAnInterrupt"
+  },
+  {
+    "id": "SF5-X1 the interrupt not re-carried",
+    "file": "backend/main.py",
+    "old": "                        _reprompt[\"pending_interrupt\"] = dict(pending)\n",
+    "new": "",
+    "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAQuestionNeverAnswersAnInterrupt"
+  },
+  {
+    "id": "SF5-X1 every question is the interrupt's",
+    "file": "backend/main.py",
+    "old": "                if choice and A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:",
+    "new": "                if A_QUESTION_NEVER_ANSWERS_AN_INTERRUPT:",
+    "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAQuestionNeverAnswersAnInterrupt::test_a_question_about_something_else_is_the_desks"
+  },
+  {
+    "id": "SF5-X2 lever down: the route runs ahead of the hard stop",
+    "file": "backend/main.py",
+    "old": "A_HARD_STOP_OUTRANKS_AN_INTERRUPT = True",
+    "new": "A_HARD_STOP_OUTRANKS_AN_INTERRUPT = False",
+    "tests": "tests/test_sf5_the_question_and_the_interrupt.py::TestAHardStopOutranksAnInterrupt"
+  },
+  {
+    "id": "VD-C R12 lever down: the client's general is one of the marshals",
+    "file": "backend/game_logic/contingent.py",
+    "old": "A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL = True",
+    "new": "A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL = False",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_no_rung_on_the_lords_ladder tests/test_vassal_contingent.py::TestTheClientsGeneral::test_he_expects_nothing_from_his_lords_purse"
+  },
+  {
+    "id": "VD-C R12 the ladder takes the client's general",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "        if is_clients_general(marshal):\n            continue\n        entries.append(",
+    "new": "        entries.append(",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_no_rung_on_the_lords_ladder"
+  },
+  {
+    "id": "VD-C R12 the client's general envies",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "    if is_clients_general(marshal):\n        return None\n    my_glory",
+    "new": "    my_glory",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_he_envies_no_one_and_no_one_envies_him"
+  },
+  {
+    "id": "VD-C R12 the client's general is envied",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "                or getattr(other, \"is_sovereign\", False)\n                or is_clients_general(other)):",
+    "new": "                or getattr(other, \"is_sovereign\", False)):",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_he_envies_no_one_and_no_one_envies_him"
+  },
+  {
+    "id": "VD-C R12 the client's general expects",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if is_clients_general(marshal):\n        return 0\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_he_expects_nothing_from_his_lords_purse"
+  },
+  {
+    "id": "VD-C R12 the rise gate forgets the client's general",
+    "file": "backend/game_logic/dotation.py",
+    "old": "    if is_clients_general(marshal):\n        return \"his own court rewards him\"\n",
+    "new": "",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_he_expects_nothing_from_his_lords_purse"
+  },
+  {
+    "id": "VD-C R12 a marshal of his own colours reads as a client's general",
+    "file": "backend/game_logic/contingent.py",
+    "old": "    return bool(A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL and origin\n                and origin != getattr(marshal, \"nation\", None))",
+    "new": "    return bool(A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL and origin)",
+    "tests": "tests/test_vassal_contingent.py::TestTheClientsGeneral::test_a_marshal_of_his_own_colours_is_not_a_clients_general"
   }
 ]

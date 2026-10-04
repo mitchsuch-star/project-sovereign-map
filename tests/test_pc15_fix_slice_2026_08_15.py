@@ -168,8 +168,12 @@ class TestPC15n1DestroyMarshalSeam:
     def test_no_bare_pop_survives_outside_the_seam(self):
         """Census guard (the IGR-E whole-backend idiom): every removal of a
         marshal from world.marshals funnels through destroy_marshal. The
-        only sanctioned raw pops are destroy_marshal itself and
-        _eliminate_nation's prisoner arm — both in world_state.py."""
+        only sanctioned raw pops are destroy_marshal itself,
+        _eliminate_nation's prisoner arm and (VD-C, Step 5, October 3, 2026
+        — 2 -> 3 flipped consciously) `stand_down_marshal`, the ONE removal
+        that is not a fall: a satellite's contingent coming home writes no
+        tombstone, because every tombstone reader would call him destroyed.
+        All three in world_state.py."""
         backend_dir = REPO / "backend"
         offenders = []
         for path in backend_dir.rglob("*.py"):
@@ -178,9 +182,9 @@ class TestPC15n1DestroyMarshalSeam:
             dels = len(re.findall(
                 r"del\s+(?:world|self)\.marshals\[", text))
             if path.name == "world_state.py":
-                assert pops == 2, (
+                assert pops == 3, (
                     f"world_state.py sanctioned-pop count moved ({pops}) — "
-                    "re-audit destroy_marshal/_eliminate_nation")
+                    "re-audit destroy_marshal/_eliminate_nation/stand_down_marshal")
                 pops = 0
             if pops or dels:
                 offenders.append((str(path), pops, dels))
