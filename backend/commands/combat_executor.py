@@ -602,6 +602,12 @@ THE_COORDINATION_IS_READ_ON_THE_FIELD = True
 # preview prints its band from. Lever down: it reads whatever transient
 # coordination stamps the last battle left (the pre-slice drift).
 THE_GATE_READS_THE_PREVIEWS_CONTEXT = True
+# SF7-X2 (Score Finish Step 7 slice 3b): an arriving gun is weighed by his
+# own arrival roll in the muster's expected figure (`_expected_arrival_weight`)
+# and his row states his odds. The resolver's Gate-4 block appends every gun
+# that answered to the participants and the committed term sums him whole;
+# the expectation had priced him at nothing. Lever down: 0.0, as before.
+AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL = True
 
 
 def _attack_is_unordered(command) -> bool:
@@ -2063,11 +2069,13 @@ class CombatExecutor:
                     row["withholds"] = self._half_weight_clause(marshal, m)
             # VP-R1 (a): the row says what the arithmetic below already
             # priced him at. Off the field only — a co-located corps makes
-            # no march and no roll; a gun never relocates (its weight is 0
-            # in the sum and a coordination bonus instead).
+            # no march and no roll. A gun never relocates, but he rolls the
+            # same die and is priced at it (SF7-X2), so his row states it
+            # too; with that lever down he is priced at 0 and says nothing.
             if (MUSTER_ROWS_NAME_THEIR_ODDS and will_join
                     and m.location != battle_region
-                    and not getattr(m, "artillery", False)):
+                    and (not getattr(m, "artillery", False)
+                         or AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):
                 row.update(self._arrival_odds_row(marshal, m, battle_region,
                                                   world, code))
             rows.append(row)
@@ -2704,17 +2712,23 @@ class CombatExecutor:
         Three cases, each read off what the resolver actually does:
 
         * already on the field -> 1.0. He makes no march and no roll.
-        * artillery -> 0.0. An arriving gun is appended to
-          `artillery_reinforced_adjacent` and NEVER relocates, so it never
-          enters `_get_casualty_participants` and contributes exactly zero
-          to the resolver's committed term (it earns a coordination bonus
-          instead). No artillery marshal is authored on the 1805 board, but
-          six sit in `marshal_pool`, so this is reachable in a real campaign.
-        * otherwise -> the probability of his arrival roll.
+        * otherwise -> the probability of his arrival roll — a gun too
+          (SF7-X2). An arriving gun is appended to
+          `artillery_reinforced_adjacent` and never relocates, so he never
+          enters `_get_casualty_participants`; but the resolver's Gate-4
+          block then appends him to the participants, and the committed
+          term sums him WHOLE. The old branch here priced him at 0.0 on the
+          claim that he contributed nothing — measured false (Lannes as a
+          gun corps, every promised corps arriving: expected 54,544 against
+          84,266 massed). He rolls the same die as any reinforcer. No
+          artillery marshal is authored on the 1805 board, but six sit in
+          `marshal_pool`, so this is reachable in a real campaign. Lever
+          `AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL` down: 0.0, as before.
         """
         if getattr(reinforcer, "location", None) == battle_region:
             return 1.0
-        if getattr(reinforcer, "artillery", False):
+        if (getattr(reinforcer, "artillery", False)
+                and not AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL):
             return 0.0
         deterministic = self._arrival_deterministic(reinforcer, lead, world)
         threshold = self._arrival_threshold(reinforcer, lead, battle_region,

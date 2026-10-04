@@ -133,6 +133,9 @@ class TestTheFieldPricesTheTargetToo:
         dav = world.marshals["Davout"]
         dav.location, dav.strength = "Paris", 5000
         world.marshals["Uxbridge"].location = "Hanover"
+        # SF7-X2 (Score Finish Step 7 slice 3b, Oct 4, 2026): a gun corps beside the battle answers and the battle sums him whole, so the muster now prices him; this test's subject is not the gun, so Drouot is sent out of reach.
+        # (`_legacy` parks the roster at Bordeaux, which borders Paris.)
+        world.marshals["Drouot"].location = "Marseille"
         _rebuild(world)
         return world, wel
 

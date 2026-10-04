@@ -308,6 +308,9 @@ class TestTheCounterPunchIsPriced:
         for name, strength in zip(names, field):
             world.marshals[name].location = "Paris"
             world.marshals[name].strength = strength
+        # SF7-X2 (Score Finish Step 7 slice 3b, Oct 4, 2026): a gun corps beside the battle answers and the battle sums him whole, so the muster now prices him; this test's subject is not the gun, so Drouot is sent out of reach.
+        # (`_legacy` parks the roster at Bordeaux, which borders Paris.)
+        world.marshals["Drouot"].location = "Marseille"
         world._build_marshal_index()
         world.calculate_visibility()
         assert wel.has_counter_punch()

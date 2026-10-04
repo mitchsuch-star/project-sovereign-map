@@ -1,0 +1,44 @@
+[
+ {
+  "id": "SF7-X2 lever down: AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL",
+  "file": "backend/commands/combat_executor.py",
+  "old": "AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL = True",
+  "new": "AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL = False",
+  "tests": "tests/test_sf7_3b_the_gun_and_the_purse.py::TestTheGunIsWeighedByHisRoll"
+ },
+ {
+  "id": "SF7-X2 a gun is priced at nothing again",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if (getattr(reinforcer, \"artillery\", False)\n                and not AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL):\n            return 0.0",
+  "new": "        if (getattr(reinforcer, \"artillery\", False)\n                and True):\n            return 0.0",
+  "tests": "tests/test_sf7_3b_the_gun_and_the_purse.py::TestTheGunIsWeighedByHisRoll::test_his_weight_is_his_arrival_roll"
+ },
+ {
+  "id": "SF7-X2 the gun's row states no odds",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                    and (not getattr(m, \"artillery\", False)\n                         or AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):",
+  "new": "                    and (not getattr(m, \"artillery\", False)\n                         or False)):",
+  "tests": "tests/test_sf7_3b_the_gun_and_the_purse.py::TestTheGunIsWeighedByHisRoll::test_the_muster_prices_and_names_the_gun"
+ },
+ {
+  "id": "SF7-X2 the AI prices the gun next door at nothing again (GR5)",
+  "file": "backend/commands/combat_executor.py",
+  "old": "        if (getattr(reinforcer, \"artillery\", False)\n                and not AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL):\n            return 0.0",
+  "new": "        if (getattr(reinforcer, \"artillery\", False)\n                and True):\n            return 0.0",
+  "tests": "tests/test_sf7_3b_the_gun_and_the_purse.py::TestTheAISeesTheGunToo"
+ },
+ {
+  "id": "SF7-X3 lever down: THE_BUILD_LINE_NEEDS_NO_CORPS",
+  "file": "backend/ai/counsel.py",
+  "old": "THE_BUILD_LINE_NEEDS_NO_CORPS = True",
+  "new": "THE_BUILD_LINE_NEEDS_NO_CORPS = False",
+  "tests": "tests/test_sf7_3b_the_gun_and_the_purse.py::TestTheBuildLineNeedsNoCorps"
+ },
+ {
+  "id": "SF7-X3 the finder never consulted",
+  "file": "backend/ai/counsel.py",
+  "old": "        region_name = _first_own_region_that_can_build(world, nation)",
+  "new": "        region_name = None",
+  "tests": "tests/test_sf7_3b_the_gun_and_the_purse.py::TestTheBuildLineNeedsNoCorps::test_a_build_is_named_with_the_army_abroad"
+ }
+]

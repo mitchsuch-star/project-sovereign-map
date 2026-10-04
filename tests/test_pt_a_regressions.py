@@ -347,18 +347,30 @@ class TestThePreviewPricesTheRoll:
             lead, joiners, world, expected_at="Belgium") == pytest.approx(
                 ex._committed_reinforcement_strength(lead, joiners, world))
 
-    def test_artillery_is_priced_at_zero_because_it_never_relocates(
-            self, muster_board):
-        """An arriving gun is appended to `artillery_reinforced_adjacent`
-        and never enters `_get_casualty_participants`, so it contributes
-        exactly nothing to the resolver's committed term. The preview used
-        to promise its full weight."""
+    def test_an_arriving_gun_is_weighed_by_his_roll(
+            self, muster_board, monkeypatch):
+        """CONSCIOUSLY FLIPPED (Score Finish Step 7 slice 3b, SF7-X2, Oct 4,
+        2026). This pin asserted that an arriving gun "contributes exactly
+        nothing to the resolver's committed term" — measured false: the
+        resolver's Gate-4 block appends every gun that answered to the
+        participants, and the committed term sums him whole. He rolls the
+        same die as any reinforcer, so the preview weighs him by it. The
+        old reading survives behind the lever."""
+        import backend.commands.combat_executor as CE
         world = muster_board
-        world.marshals["Murat"].artillery = True
+        murat, davout = world.marshals["Murat"], world.marshals["Davout"]
+        murat.artillery = True
         ex = _combat()
+        weight = ex._expected_arrival_weight(davout, murat, world, "Belgium")
+        assert 0.0 < weight < 1.0
         assert ex._committed_reinforcement_strength(
-            world.marshals["Davout"], [world.marshals["Murat"]], world,
-            expected_at="Belgium") == 0.0
+            davout, [murat], world, expected_at="Belgium") == pytest.approx(
+                ex._committed_share(
+                    davout, murat,
+                    ex._pair_contribution_scale(davout, murat) * weight))
+        monkeypatch.setattr(CE, "AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL", False)
+        assert ex._committed_reinforcement_strength(
+            davout, [murat], world, expected_at="Belgium") == 0.0
 
     def test_the_resolver_is_untouched(self, muster_board):
         """The resolver sums marshals who have ALREADY arrived. Weighting

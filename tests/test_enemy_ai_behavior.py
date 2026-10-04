@@ -400,6 +400,8 @@ class TestAdversarialBoardStates:
         ney = self.world.get_marshal("Ney")
         ney.location = "Belgium"  # Same region — P0 engagement
         ney.strength = 25000
+        # SF7-X2 (Score Finish Step 7 slice 3b, Oct 4, 2026): a gun corps beside the battle answers and the battle sums him whole, so the muster now prices him; this test's subject is not the gun, so Drouot is sent out of reach.
+        self.world.get_marshal("Drouot").location = "Marseille"
 
         action, priority = self.ai._evaluate_marshal(uxbridge, "Britain", self.world)
         assert action is not None

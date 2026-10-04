@@ -70,6 +70,15 @@ THE_COUNSEL_READS_THE_CROSSING = True          # AAR-19
 # DESK-2's counsel half: the levy line quoted the ledger's 654g for 10,000
 # where the order raised 3,000 for 647 — it reads `recruit_quote` now.
 THE_LEVY_LINE_IS_THE_QUOTE = True
+# SF7-X3 (Score Finish Step 7 slice 3b): AAR-18's counsel half. The desk has
+# broken ground without a corps since AAR-18
+# (`question_desk.THE_DESK_BREAKS_GROUND_WITHOUT_A_CORPS`), but the counsel's
+# build line still looked only at a province with a corps on it — so with the
+# whole army abroad "what can I do" named nothing to buy against a chest of
+# 51,120 gold (CMD-H turn 30 on the field-read board). The executor's gate
+# needs no corps: with none at home the line reads the desk's own finder
+# (capital first, then by income). Lever down: a corps province or nothing.
+THE_BUILD_LINE_NEEDS_NO_CORPS = True
 # DESK-9's copy: what the counsel says when the day's military actions are
 # spent. A typed order, like every other line the counsel prints.
 END_TURN_LINE = "end turn — no military actions remain today"
@@ -434,6 +443,10 @@ def _build_terms(world, nation: str, limit: int = 2) -> List[str]:
     except Exception:
         return []
     region_name = _first_own_region_with_a_corps(world, nation)
+    if not region_name and THE_BUILD_LINE_NEEDS_NO_CORPS:
+        # SF7-X3: ground is broken without a corps — the desk's finder.
+        from backend.ai.question_desk import _first_own_region_that_can_build
+        region_name = _first_own_region_that_can_build(world, nation)
     if not region_name:
         return []
     region = world.get_region(region_name)
