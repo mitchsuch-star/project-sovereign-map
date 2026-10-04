@@ -91,11 +91,20 @@ class TestAClientsPartitionIsTheHegemons:
         assert volte_face_receptive(world, "Russia", "France") is True
 
     def test_a_revanche_charged_to_the_client_forecloses(self, world):
+        """RE-SEATED by SF-DC-1 (Score Finish Step 7, October 4, 2026;
+        SCORE_FINISH_SPEC.md §6 row 20, FOR USER CONFIRMATION): the
+        battlefield arm reads the hegemon's vassal chain, so the client this
+        pin charges is a true client — the Kingdom of Italy, France's vassal —
+        and Bavaria, a sovereign ally fighting its own war, no longer
+        forecloses (pinned in `tests/test_sf_dc1_nothing_unnamed.py::
+        TestAnAllysWarIsItsOwn`, with the lever-down arm that is this pin's
+        Bavaria reading as built)."""
         _beat_and_court(world)
+        assert world._top_overlord("KingdomOfItaly") == "France"
         world.agendas["Russia"].insert(0, {
             "id": "revanche_russia", "type": "acquire_regions",
             "title": "Revanche", "regions": ["Lithuania"],
-            "emergent": True, "author": "Bavaria"})
+            "emergent": True, "author": "KingdomOfItaly"})
         assert volte_face_failing_clauses(world, "Russia", "France") == [
             ED.VOLTE_CLAUSE_REVANCHE]
 

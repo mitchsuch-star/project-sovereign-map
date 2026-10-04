@@ -2424,6 +2424,13 @@ class Digest:
 
     def finish(self, status):
         self.meta["status"] = status
+        # SF-DC-1: the doctrine census's verdict, when the run carried one.
+        census = getattr(self, "census", None)
+        if census is not None:
+            self.meta["doctrine_census"] = census.summary()
+            for line in census.digest_lines():
+                self._md(line)
+            census.uninstall()
         self._md(f"\n---\nfinished: **{status}** · commands "
                  f"{self.counters['commands']} · popups {self.counters['popups']}"
                  f" · battles {self.counters['battles']}")
@@ -3835,6 +3842,19 @@ def run(args):
     forecast = getattr(digest, "forecast", None)
     if forecast is not None and isinstance(getattr(transport, "observers", None), list):
         transport.observers.append(forecast.observe)
+    # SF-DC-1: the doctrine census (opt-in). Installed BEFORE the boot so the
+    # boot POST is observed too; in-process only — over --http it cannot read
+    # the world and says so.
+    census = None
+    if getattr(args, "doctrine_census", False):
+        from tools._doctrine_census import DoctrineCensus, unmeasured
+        if args.http:
+            digest.meta["doctrine_census"] = unmeasured(
+                "--http: the census reads the in-process world")
+        else:
+            census = DoctrineCensus(digest, transport.backend_main).install()
+            transport.observers.append(census.observe)
+            digest.census = census
 
     # Boot ------------------------------------------------------------------
     if not args.http:
@@ -4815,6 +4835,14 @@ def main():
     ap.add_argument("--lever", action="append", default=[], metavar="MODULE:NAME=0|1",
                     help="set a backend flip lever for this run, e.g. "
                          "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0")
+    # SF-DC-1 "Nothing unnamed" (Score Finish Step 7, October 4, 2026): the
+    # doctrines' T9 drift pin + T10 unnamed-effect census as one in-process
+    # observer (`tools/_doctrine_census.py`). Off by default: it wraps four
+    # engine methods for the run, and every other digest stays byte-identical.
+    ap.add_argument("--doctrine-census", action="store_true",
+                    help="run the SF-DC-1 doctrine census (T9 drift + T10 unnamed "
+                         "effects) on an in-process run; the summary lands in "
+                         "meta.json and at the digest's foot")
     ap.add_argument("--fresh", action="store_true",
                     help="delete the run directory first")
     ap.add_argument("--archive", action="store_true",

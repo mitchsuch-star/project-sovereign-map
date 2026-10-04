@@ -576,6 +576,8 @@ skips the routine NATION ask cooldown (`ai_diplomacy.THE_VOLTE_COURIER_IGNORES_R
 and the open door is **spoken** — Talleyrand's per-court counsel and the war room name it when every
 clause but COURTED holds, with the turns left and the relation needed (`VOLTE_FACE_SPEAKS_ITS_MIND`).
 
+*(Score Finish Step 7 slice 6, October 4, 2026 — `SCORE_FINISH_SPEC.md` §6 row 20, RULED under the user's delegation, FOR USER CONFIRMATION.)* **The humiliation is France's act.** A partition signed into a peace by any member of France's bloc forecloses the reversal (IQ6-D2's treaty arm, Tilsit's reading); a revanche forecloses it only when charged to France or a French vassal — a sovereign ally's conquest in its own war is the ally's quarrel (`emergent_designs.AN_ALLYS_WAR_IS_ITS_OWN`). Measured: under the bloc-wide reading Bavaria's conquests closed Austria's door on every road played; Pressburg gave Tyrol to Bavaria and Austria allied with France in 1812.
+
 *What is never hidden:* a nation's want, its target, its current rung (D4), its stated war reason
 (§5 pin 4), or the fact that a war is coming (§4.6 fore-warning). Fog lives in **agreements and
 timing** — never in dispositions.

@@ -6202,6 +6202,13 @@ func _show_strategic_reports(response):
 		var battle_msg = report.get("battle_message", "")
 		if battle_msg:
 			add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + battle_msg + "[/color]")
+		# SF-DC-1 "Nothing unnamed" (Score Finish Step 7, October 4, 2026): the
+		# row has carried Berthier's report since WO-33, and nothing drew it —
+		# so a battle a standing order fought printed its outcome and dropped
+		# everything else, the doctrine lines among it (the T10 census). It
+		# renders as the autonomous attacks' report does (PT-F1).
+		if report.get("battle_report") is Dictionary and not report.battle_report.is_empty():
+			_display_berthier_report(report.battle_report)
 		var outcome = report.get("outcome", "")
 		if outcome:
 			var outcome_color = Utils.COLOR_SUCCESS if outcome == "victory" else Utils.COLOR_ERROR if outcome == "defeat" else Utils.COLOR_BATTLE

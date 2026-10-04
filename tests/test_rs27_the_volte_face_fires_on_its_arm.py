@@ -88,10 +88,23 @@ class TestTheVolteFaceFiresOnItsArm:
         down alone, 0 — the field read is the mover (the arm's war takes
         another course when converging corps fight together on the field).
         The arm keeps its purpose with the field read down too; SR-7d-X1's
-        re-script (Step 7's SF-DC-1) now carries all three constraints."""
-        rows = _drive(tmp_path, "--lever", "backend.game_logic.doctrines:FRANCE_DOCTRINE=0",
-                      "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0",
-                      "--lever", "backend.commands.combat_executor:THE_COORDINATION_IS_READ_ON_THE_FIELD=0")
+        re-script (Step 7's SF-DC-1) now carries all three constraints.
+
+        RE-SEATED by SF-DC-1 (Score Finish Step 7, October 4, 2026) to run
+        with NO lever — SR-7d-X1's done-when. The re-script was tried eleven
+        ways (the arm's own war with France holding Bohemia, holding nothing,
+        attacking, standing fast, an early separate peace, terms asked of
+        London) and on every road Bavaria — at war with Austria from the boot
+        — took a second Austrian province before the league was spent, so
+        IQ6-D2's bloc reading charged the revanche to France's ally and closed
+        the door for the campaign. §6 row 20 (RULED under the delegation, FOR
+        USER CONFIRMATION) keeps IQ6-D2's TREATY arm over the bloc and reads
+        the BATTLEFIELD arm over the hegemon's vassal chain
+        (`emergent_designs.AN_ALLYS_WAR_IS_ITS_OWN`). The arm is unchanged:
+        Austria's peace on turn 11 leaves Tyrol and Croatia Bavarian, she is
+        courted to 42 by turn 26 and takes France's hand on turn 27 — on the
+        historical seed."""
+        rows = _drive(tmp_path)
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20
@@ -115,5 +128,10 @@ class TestTheVolteFaceFiresOnItsArm:
             "--lever", "backend.game_logic.doctrines:DOCTRINES_ACTIVE=0",
             "--lever", "backend.game_logic.doctrines:THE_CURES_HEAL=0",
             "--lever", "backend.game_logic.reforms:THE_AI_SAVES_FOR_THE_STAFF=0",
+            # SF-DC-1 (§6 row 20): the door the ally's own war leaves open
+            # opens on this board too (measured: the beat on turn 27); the
+            # attribution this pin keeps is Step 3's, so it rides down with
+            # the rest.
+            "--lever", "backend.game_logic.emergent_designs:AN_ALLYS_WAR_IS_ITS_OWN=0",
         )
         assert not _volte_turns(rows)

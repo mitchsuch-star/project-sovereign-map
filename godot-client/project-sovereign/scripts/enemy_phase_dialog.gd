@@ -246,7 +246,9 @@ func _format_action(action: Dictionary) -> String:
 			action_str += "recruits troops"
 			# SR-7d DC-3b (DOCTRINES_SPEC §4): the doctrine's own term only, from
 			# a structured field (the CA8-6 idiom) — "the Hereditary Lands, ×0.85".
-			var dnote = ai_action.get("doctrine_note", "")
+			# SF-DC-1: off the ACTION entry — the executor's result carries
+			# the note; `ai_action` is the AI's decision, which never did.
+			var dnote = action.get("doctrine_note", "")
 			if dnote is String and dnote != "":
 				action_str += " (" + dnote + ")"
 		"scout":
@@ -682,6 +684,25 @@ func _format_berthier_report(report: Dictionary) -> String:
 	if tr_note is String and tr_note != "":
 		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
 			+ Utils.humanize_nation_keys_in_text(tr_note) + "[/color]\n")
+
+	# SF-DC-1 "Nothing unnamed" (Score Finish Step 7, October 4, 2026): the
+	# doctrine lines and the morale line — "The Hofkriegsrat's orders reached
+	# Archduke John too late.", "the Prussian line broke: Brittle deepened the
+	# rout" — are composed by the SHARED `_execute_attack` for every battle, so
+	# they ride the enemy phase too, where the player defends; main.gd read
+	# both and this whitelist read neither (the T10 census found the gap on
+	# its first run — UX23-R8's lesson again). Mirrors main.gd's order: after
+	# the trust note, before Berthier's observation.
+	var doctrine_lines = report.get("doctrine_lines", [])
+	if doctrine_lines is Array:
+		for dl in doctrine_lines:
+			if dl is String and dl != "":
+				result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
+					+ Utils.humanize_nation_keys_in_text(dl) + "[/color]\n")
+	var morale_line = report.get("morale_line", "")
+	if morale_line is String and morale_line != "":
+		result += ("[color=#" + Utils.COLOR_OBSERVATION + "]    "
+			+ Utils.humanize_nation_keys_in_text(morale_line) + "[/color]\n")
 
 	# UX23-R8: the same whitelist gap, two more keys. `expectation_note`
 	# (ES-7 §0.6.8 item 4c) and `campaign_cost_note` (HC-2) are produced by the

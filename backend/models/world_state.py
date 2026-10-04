@@ -49,6 +49,18 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # 0 as a dead corps and DESTROYED him ("eliminated by supply attrition at
 # None"), the bought action persisting. Pre-existing; the question that
 # leads to it was unreachable in ordinary play before slice 9. Flip lever.
+# SF-DC-1 "Nothing unnamed" (Score Finish Step 7, October 4, 2026): a supply
+# bite names the doctrine that caused it on the attrition line itself —
+# "Supply shortage at Posen: Davout loses 1,240 troops — 620 of them to living
+# off the land (this poor country feeds a French army 80%)". The T10 census
+# found the bite named only by the dispatch's supply_strain headline, which
+# needs two turns of attrition and is one headline among many; the line every
+# bite prints never said why. Display only: the loss is the engine's, the
+# share is the engine's own arithmetic re-read with the clause off.
+# False = the pre-SF-DC-1 message byte for byte.
+THE_SUPPLY_BITE_IS_NAMED = True
+
+
 ADMINISTRATIVE_EXEMPT_FROM_ATTRITION = True
 
 # IQ-2 "The Collapse Is Legible" (September 14, 2026): a France holding NO
@@ -7553,7 +7565,8 @@ class WorldState:
     def get_effective_supply_cap(self, nation: str, region,
                                  _shore_cache: Optional[dict] = None,
                                  forecast: bool = True,
-                                 extra_war_damage: float = 0.0) -> int:
+                                 extra_war_damage: float = 0.0,
+                                 with_doctrine: bool = True) -> int:
         """HC-4a single source: the supply capacity an army of `nation`
         standing on `region` is actually held to — the 1.5× home-turf
         multiplier (PC15-D2: an ALLY/VASSAL host's soil counts as fed
@@ -7569,12 +7582,14 @@ class WorldState:
         return int(region.supply_capacity
                    * self._supply_multiplier(nation, region, _shore_cache,
                                              forecast=forecast,
-                                             extra_war_damage=extra_war_damage))
+                                             extra_war_damage=extra_war_damage,
+                                             with_doctrine=with_doctrine))
 
     def _supply_multiplier(self, nation: str, region,
                            _shore_cache: Optional[dict] = None,
                            forecast: bool = True,
-                           extra_war_damage: float = 0.0) -> float:
+                           extra_war_damage: float = 0.0,
+                           with_doctrine: bool = True) -> float:
         """WO slice 8: the fed/naval multiplier DECISION, split from the
         capacity so the depot chip can price its counterfactual gain by
         the same decision the live cap uses (`cap = int(base × M)`,
@@ -7637,7 +7652,10 @@ class WorldState:
         # slice-8 invariant holds and the depot chip's counterfactual stays
         # exact. Stripped is read FORWARD (`forecast`): the next attrition
         # pass runs after the recovery tick. The bill passes forecast=False.
-        if self.doctrines:
+        # SF-DC-1: `with_doctrine=False` is the attrition line's counterfactual
+        # (what the corps would have lost without the clause) — the clause is
+        # this multiplier's LAST step, so the reading is exact.
+        if self.doctrines and with_doctrine:
             from backend.game_logic.doctrines import supply_factor
             factor, _name = supply_factor(self, nation, region, forecast=forecast,
                                           extra_damage=extra_war_damage)
@@ -7674,6 +7692,34 @@ class WorldState:
             attrition = min(0.03, excess_ratio * 0.015) + stacking_penalty
         # Total attrition cap: 6% (3% base + stacking)
         return min(0.06, attrition)
+
+    def _doctrine_supply_share(self, m, region, total, num_marshals, free_corps,
+                               losses, _shore_cache=None) -> Optional[dict]:
+        """SF-DC-1: how much of a corps' supply loss its court's supply clause
+        caused — the engine's own arithmetic re-read with the clause off
+        (`with_doctrine=False`). None when the clause does not bite here or did
+        not change the loss. `clause` is the attrition line's suffix."""
+        from backend.game_logic.doctrines import supply_ground
+        ground = supply_ground(self, m.nation, region, forecast=False)
+        if not ground or not ground["applies"]:
+            return None
+        cap_free = self.get_effective_supply_cap(
+            m.nation, region, _shore_cache=_shore_cache, forecast=False,
+            with_doctrine=False)
+        free = int(m.strength * self.supply_attrition_rate(
+            total, cap_free, num_marshals, free_corps=free_corps))
+        share = int(losses) - free
+        if share <= 0:
+            return None
+        from backend.display_names import nation_adjective
+        name = str(ground["name"] or "")
+        lead = name[:1].lower() + name[1:]
+        kind = "poor country" if ground["poor"] else "stripped country"
+        pct = int(round(float(ground["factor"]) * 100))
+        how_many = "all of them" if share >= int(losses) else f"{share:,} of them"
+        return {"name": name, "share": share,
+                "clause": (f" — {how_many} to {lead} (this {kind} feeds a "
+                           f"{nation_adjective(m.nation)} army {pct}%)")}
 
     def process_supply_attrition(self) -> list:
         """Apply supply attrition to over-capacity regions. Returns event list.
@@ -7732,6 +7778,15 @@ class WorldState:
                 if attrition <= 0.0:
                     continue
                 losses = int(m.strength * attrition)
+                # SF-DC-1: the doctrine's share of this bite, read BEFORE the
+                # strength falls (the same strength the engine billed). The
+                # clause lowers the cap, so under it (the concentration tax)
+                # the counterfactual rate is the same and the share is 0.
+                _doctrine_bite = None
+                if THE_SUPPLY_BITE_IS_NAMED and losses > 0 and self.doctrines:
+                    _doctrine_bite = self._doctrine_supply_share(
+                        m, region, total, num_marshals, free_corps, losses,
+                        _shore_cache)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
                     # WO-12 (slice 12): the under-capacity CONCENTRATION tax
@@ -7751,6 +7806,8 @@ class WorldState:
                             f"Supply shortage at {region.name}: "
                             f"{_hum_marshal(m.name)} loses "
                             f"{losses:,} troops")
+                        if _doctrine_bite:
+                            message += _doctrine_bite["clause"]
                     event = {
                         "type": "supply_attrition",
                         "marshal": m.name,
@@ -7763,6 +7820,10 @@ class WorldState:
                         # most-repeated of the leaking message fields.
                         "message": message,
                     }
+                    if _doctrine_bite:
+                        # SF-DC-1: the structured share (display only, GR6).
+                        event["doctrine"] = _doctrine_bite["name"]
+                        event["doctrine_losses"] = int(_doctrine_bite["share"])
                     events.append(event)
                     # W6-3 §5.2: the dispatch danger flag needs attrition
                     # HISTORY ("2+ consecutive turns") — tactical events are

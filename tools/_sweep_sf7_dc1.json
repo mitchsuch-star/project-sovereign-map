@@ -1,0 +1,170 @@
+[
+ {
+  "id": "SF-DC-1 supply lever down: THE_SUPPLY_BITE_IS_NAMED",
+  "file": "backend/models/world_state.py",
+  "old": "THE_SUPPLY_BITE_IS_NAMED = True",
+  "new": "THE_SUPPLY_BITE_IS_NAMED = False",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed"
+ },
+ {
+  "id": "SF-DC-1 the counterfactual ignores with_doctrine",
+  "file": "backend/models/world_state.py",
+  "old": "        if self.doctrines and with_doctrine:",
+  "new": "        if self.doctrines:",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed"
+ },
+ {
+  "id": "SF-DC-1 the share is the whole loss",
+  "file": "backend/models/world_state.py",
+  "old": "        share = int(losses) - free",
+  "new": "        share = int(losses)",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed::test_a_bite_the_clause_deepened_names_its_share"
+ },
+ {
+  "id": "SF-DC-1 'all of them' never said",
+  "file": "backend/models/world_state.py",
+  "old": "        how_many = \"all of them\" if share >= int(losses) else f\"{share:,} of them\"",
+  "new": "        how_many = f\"{share:,} of them\"",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed::test_a_bite_the_clause_alone_caused_says_all_of_them"
+ },
+ {
+  "id": "SF-DC-1 the line drops its clause",
+  "file": "backend/models/world_state.py",
+  "old": "                            message += _doctrine_bite[\"clause\"]",
+  "new": "                            pass",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed"
+ },
+ {
+  "id": "SF-DC-1 the structured share is lost",
+  "file": "backend/models/world_state.py",
+  "old": "                        event[\"doctrine_losses\"] = int(_doctrine_bite[\"share\"])",
+  "new": "                        event[\"doctrine_losses\"] = 0",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed tests/test_sf_dc1_nothing_unnamed.py::TestTheCensusOnTheEngine"
+ },
+ {
+  "id": "SF-DC-1 poor country is called stripped",
+  "file": "backend/models/world_state.py",
+  "old": "        kind = \"poor country\" if ground[\"poor\"] else \"stripped country\"",
+  "new": "        kind = \"stripped country\"",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheSupplyBiteIsNamed"
+ },
+ {
+  "id": "SF-DC-1 the dialog stops reading doctrine_lines",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tvar doctrine_lines = report.get(\"doctrine_lines\", [])",
+  "new": "\tvar doctrine_lines = []",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheClientDrawsTheDoctrineLines"
+ },
+ {
+  "id": "SF-DC-1 the dialog stops reading morale_line",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\tvar morale_line = report.get(\"morale_line\", \"\")",
+  "new": "\tvar morale_line = \"\"",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheClientDrawsTheDoctrineLines"
+ },
+ {
+  "id": "SF-DC-1 the levy's note read off ai_action again",
+  "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+  "old": "\t\t\tvar dnote = action.get(\"doctrine_note\", \"\")",
+  "new": "\t\t\tvar dnote = ai_action.get(\"doctrine_note\", \"\")",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheClientDrawsTheDoctrineLines"
+ },
+ {
+  "id": "SF-DC-1 a standing order's report is dropped again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\t_display_berthier_report(report.battle_report)\n",
+  "new": "\t\t\tpass\n",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheClientDrawsTheDoctrineLines"
+ },
+ {
+  "id": "SF-DC-1 census: every route reads every key",
+  "file": "tools/_doctrine_census.py",
+  "old": "    return any(_reads(gd_body(file, f), key) for f in report_formatters(route))",
+  "new": "    return True",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheCensusReadsTheClientNotItsComments"
+ },
+ {
+  "id": "SF-DC-1 census: comments count as code",
+  "file": "tools/_doctrine_census.py",
+  "old": "    return \"\\n\".join(ln for ln in body if not ln.lstrip().startswith(\"#\"))",
+  "new": "    return \"\\n\".join(body)",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheCensusReadsTheClientNotItsComments"
+ },
+ {
+  "id": "SF-DC-1 census: ai_action counts as the action entry",
+  "file": "tools/_doctrine_census.py",
+  "old": "    return re.search(r'(?<![\\w.])action\\.get\\(\"doctrine_note\"', body) is not None",
+  "new": "    return re.search(r'action\\.get\\(\"doctrine_note\"', body) is not None",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheCensusReadsTheClientNotItsComments"
+ },
+ {
+  "id": "SF-DC-1 census: a carried line is named whatever the client draws",
+  "file": "tools/_doctrine_census.py",
+  "old": "        named = [r for r in carried if route_reads(r, key)]",
+  "new": "        named = list(carried)",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheJudgement"
+ },
+ {
+  "id": "SF-DC-1 census: every shifted roll is an effect",
+  "file": "tools/_doctrine_census.py",
+  "old": "            if not decided:\n                return {\"verdict\": \"no_effect\"}",
+  "new": "            if False:\n                return {\"verdict\": \"no_effect\"}",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheJudgement"
+ },
+ {
+  "id": "SF-DC-1 census: the report's fog is ignored",
+  "file": "tools/_doctrine_census.py",
+  "old": "            visible = bool(seen)",
+  "new": "            visible = True",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheJudgement"
+ },
+ {
+  "id": "SF-DC-1 census: no phantom is ever read",
+  "file": "tools/_doctrine_census.py",
+  "old": "                if (dl.endswith(\" in.\") or dl.endswith(\" too late.\")) and dl not in lines:",
+  "new": "                if False:",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheJudgement"
+ },
+ {
+  "id": "SF-DC-1 census: T9 never sees drift",
+  "file": "tools/_doctrine_census.py",
+  "old": "            if stored != cache[nation]:",
+  "new": "            if False:",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheDriftPin"
+ },
+ {
+  "id": "SF-DC-1 census: a failure is swallowed",
+  "file": "tools/_doctrine_census.py",
+  "old": "        except Exception as exc:\n            self._note_error(f\"observe {path}\", exc)",
+  "new": "        except Exception:\n            pass",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheJudgement::test_a_failure_inside_the_census_is_recorded_not_swallowed"
+ },
+ {
+  "id": "SF-DC-1 census: the row's class collides with the jsonl kind",
+  "file": "tools/_doctrine_census.py",
+  "old": "                              **{(\"effect\" if k == \"kind\" else k): v for k, v in row.items()})",
+  "new": "                              **row)",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheJudgement::test_a_judged_row_reaches_the_jsonl_with_its_class_as_effect"
+ },
+ {
+  "id": "SF-DC-1 census: the supply reading is wrong",
+  "file": "tools/_doctrine_census.py",
+  "old": "                               \"on\": int(m.strength * r_on), \"off\": int(m.strength * r_off)}",
+  "new": "                               \"on\": 0, \"off\": int(m.strength * r_off)}",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheCensusOnTheEngine"
+ },
+ {
+  "id": "SF-DC-1 driver: the flag installs nothing",
+  "file": "tools/playtest_driver.py",
+  "old": "    if getattr(args, \"doctrine_census\", False):",
+  "new": "    if False:",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheDrivenCensus"
+ },
+ {
+  "id": "SF-DC-1 driver: the verdict never reaches meta",
+  "file": "tools/playtest_driver.py",
+  "old": "            self.meta[\"doctrine_census\"] = census.summary()",
+  "new": "            pass",
+  "tests": "tests/test_sf_dc1_nothing_unnamed.py::TestTheDrivenCensus::test_the_jena_roads_opening_names_every_doctrine_effect"
+ }
+]

@@ -143,6 +143,19 @@ THE_SEPARATE_PEACE_ENDS_THE_WAR = True
 # hegemon's client (Bavaria) left the door open. False = the hegemon's own
 # memories alone, byte for byte.
 A_CLIENTS_PARTITION_IS_THE_HEGEMONS = True
+# SF-DC-1 (Score Finish Step 7, October 4, 2026; SCORE_FINISH_SPEC.md §6 row
+# 20, RULED under the user's delegation, FOR USER CONFIRMATION): AN ALLY'S WAR
+# IS ITS OWN. IQ6-D2 read both arms of the NOT-HUMILIATED clause over the whole
+# bloc. The TREATY arm (a punitive memory — a partition signed into a peace,
+# Tilsit's Warsaw and Westphalia) keeps it. The BATTLEFIELD arm (an emergent
+# revanche, charged to whoever holds the lost homeland) now reads the hegemon
+# and its vassal chain only: a sovereign ally's conquest in its own war is the
+# ally's quarrel. Measured: on the 1805 board Bavaria — at war with Austria from
+# the boot, Austria having invaded it — takes a second Austrian province before
+# the league is spent on every road played (eleven), so the bloc reading closed
+# Austria's door for the campaign on every road; Pressburg gave Tyrol to Bavaria
+# and Austria allied with France in 1812. False = IQ6-D2 as built, byte for byte.
+AN_ALLYS_WAR_IS_ITS_OWN = True
 
 # The machine names of the eligibility clauses, in evaluation order.
 VOLTE_CLAUSE_IDENTITY = "identity"          # the hegemon itself / the player
@@ -513,7 +526,9 @@ def volte_face_failing_clauses(world, power: str, hegemon: str, *,
     - NOT HUMILIATED: no punitive_settlement memory authored by the
       hegemon or any member of its bloc (IQ6-D2 — a client's partition is
       the hegemon's act; durable — a partition forecloses this path
-      forever) and no emergent revanche charged to any of them;
+      forever) and no emergent revanche charged to the hegemon or its
+      vassal chain (SF-DC-1, §6 row 20 — an ally's conquest in its own war
+      is the ally's quarrel; lever down: any member of the bloc);
     - BEATEN: its war with the hegemon ended within `volte_face_window()`
       turns, and the defeat still shows — homeland soil in the hegemon's
       bloc's hands (IQ-6 V3; lever down: war exhaustion at or above
@@ -558,9 +573,14 @@ def volte_face_failing_clauses(world, power: str, hegemon: str, *,
            for author in authors):
         if _fails(VOLTE_CLAUSE_PUNITIVE):
             return failing
+    # SF-DC-1 (§6 row 20): the battlefield arm reads the hegemon's own vassal
+    # chain — an ally's conquest in its own war is its own quarrel.
+    revanche_authors = authors
+    if AN_ALLYS_WAR_IS_ITS_OWN:
+        revanche_authors = [a for a in authors if world._top_overlord(a) == hegemon]
     for entry in (getattr(world, "agendas", {}) or {}).get(power) or []:
         if (isinstance(entry, dict) and entry.get("emergent")
-                and entry.get("author") in authors):
+                and entry.get("author") in revanche_authors):
             if _fails(VOLTE_CLAUSE_REVANCHE):
                 return failing
             break
