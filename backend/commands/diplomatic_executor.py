@@ -390,8 +390,11 @@ class DiplomaticExecutor:
         if not recipient:
             return {
                 "success": False,
+                # CX-BEHAV-1 (Step 7 slice 5b): the example names the
+                # design Prussia holds on the 1805 boot (Hanover) — the
+                # Austria form is refused there ("aimed at Hanover").
                 "message": ("Name the court to sponsor, Sire — e.g. "
-                            "'sponsor Prussia against Austria, 200 gold' "
+                            "'sponsor Prussia against Hanover, 200 gold' "
                             "(0 gold licences their design instead)."),
             }
 

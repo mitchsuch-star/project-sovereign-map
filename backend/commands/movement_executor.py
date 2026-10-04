@@ -1182,7 +1182,12 @@ class MovementExecutor:
 
         if target:
             # Scout specific region - use fuzzy matching
-            target_region, error = self._executor._fuzzy_match_region(target, world)
+            # SF7-X9 / PC15-13 (Score Finish Step 7 slice 5b): an unknown
+            # place is answered with the roads out of his own province.
+            from backend.ai.llm_client import A_SCOUTED_PLACE_IS_KEPT
+            target_region, error = self._executor._fuzzy_match_region(
+                target, world,
+                near=marshal.location if A_SCOUTED_PLACE_IS_KEPT else None)
             if error:
                 return _marshal_not_a_province(world, marshal, target, error)
 

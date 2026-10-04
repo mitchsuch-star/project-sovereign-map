@@ -397,6 +397,24 @@ class TestWO45TheShortNameGuess:
         assert region is None
         assert "Did you mean" in err["message"]
 
+    @pytest.mark.parametrize("query", [
+        "Austerlitz", "Thuringia", "Wagram", "Marengo", "Lombardy", "Jena"])
+    def test_a_printed_guess_keeps_the_first_letter(self, europe, query):
+        """CX3-X3 (Score Finish Step 7 slice 5b): Austerlitz → Ulster,
+        Thuringia → Lithuania, Wagram → Karaman, Marengo → Aragon, Lombardy
+        → Normandy (the suggest band, 62-67) and Jena → Vienna (a demoted
+        auto-correct, 75) each guessed across Europe with a different first
+        letter. No guess is printed; with the marshal's province known the
+        answer is the roads out of it (PC15-13)."""
+        ex = _executor()
+        region, err = ex._fuzzy_match_region(query, europe)
+        assert region is None
+        assert "Did you mean" not in err["message"], err
+        assert err["message"] == f"Region '{query}' not found.", err
+        region, err = ex._fuzzy_match_region(query, europe, near="Rhineland")
+        assert err["message"].startswith(
+            f"Region '{query}' not found. From Rhineland the roads lead to:"), err
+
     def test_end_to_end_the_attack_refusal_carries_no_guess(self, europe):
         import copy
         world = copy.deepcopy(europe)

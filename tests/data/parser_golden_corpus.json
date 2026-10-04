@@ -3571,6 +3571,30 @@
       "notes": "The licence verb routes to the same action; the executor reads the licence verb in raw text and defaults the amount to 0 (pin 23 — a licence is a bond)."
     },
     {
+      "id": "sf7-s5b-sponsor-design-help-form",
+      "utterance": "sponsor prussia against hanover, 200 gold",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "sponsor_design",
+        "target": "Prussia"
+      },
+      "source": "tests/test_iq1_iq1_3_the_granary.py — the help's own sentence (SF-CMD-2 slice 5b, CX-BEHAV-1)",
+      "notes": "The help's THE COMPACTS block teaches this sentence since slice 5b re-keyed its examples to Hanover (Prussia's design at boot); the Austria row above keeps the older phrasing pinned."
+    },
+    {
+      "id": "sf7-s5b-sponsor-licence-help-form",
+      "utterance": "license prussia against hanover",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "sponsor_design",
+        "target": "Prussia"
+      },
+      "source": "tests/test_iq1_iq1_3_the_granary.py — the help's own sentence (SF-CMD-2 slice 5b, CX-BEHAV-1)",
+      "notes": "The licence form the help teaches; same action, the executor defaults the amount to 0."
+    },
+    {
       "id": "ai2b-buy-off-design",
       "utterance": "buy off prussia",
       "world": "1805",
@@ -7327,6 +7351,86 @@
       },
       "source": "SF-CMD-2's remainder (Score Finish Step 7 slice 5a, October 4, 2026)",
       "notes": "CQ-38: the second reward rides the relay, never silent."
+    },
+    {
+      "id": "sfcmd2r-scout-keeps-its-place",
+      "utterance": "Ney, scout Alsace",
+      "world": "1805",
+      "expected": {
+        "action": "scout",
+        "marshal": "Ney",
+        "target": "Alsace"
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF7-X9: the place a scout names is kept for the executor's matcher (was dropped: the bare scout ran)."
+    },
+    {
+      "id": "sfcmd2r-get-me-cavalry",
+      "utterance": "murat needs more horse, get me some cavalry in franche-comte",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": "Franche-Comte"
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF-V9 (the HOLD arm): the levy in plain words (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-get-it-built",
+      "utterance": "Davout, get a fort built at Rhineland",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "marshal": "Davout",
+        "target": "Rhineland"
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF-V9: the passive build (was the shrug)."
+    },
+    {
+      "id": "sfcmd2r-contraction-not-a-name",
+      "utterance": "We're short of guns - raise some artillery at Paris.",
+      "world": "1805",
+      "expected": {
+        "action": "recruit",
+        "target": "Paris"
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF-V9: a pronoun contraction is never an address (was \"There is no 'We're'\")."
+    },
+    {
+      "id": "sfcmd2r-in-case-precaution",
+      "utterance": "Davout, build a supply depot at Rhineland in case Mack comes",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "marshal": "Davout",
+        "target": "Rhineland"
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF-V9: a trailing 'in case' is a precaution (was 'a contingency, not an order')."
+    },
+    {
+      "id": "sfcmd2r-leading-in-case-refuses",
+      "utterance": "In case Mack comes, fall back",
+      "world": "1805",
+      "expected": {
+        "success": false
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF-V9's control: a LEADING 'in case' stays the contingency."
+    },
+    {
+      "id": "sfcmd2r-condition-foe-no-target",
+      "utterance": "Ney, fall back while Mack advances",
+      "world": "1805",
+      "expected": {
+        "action": "retreat",
+        "marshal": "Ney",
+        "target": null
+      },
+      "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
+      "notes": "SF7-X10: a condition clause's foe is never the order's target (was 'Mack cannot be reached')."
     }
   ]
 }

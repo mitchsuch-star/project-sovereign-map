@@ -64,6 +64,30 @@ OBJECTION_FREE_READS = frozenset({
 # restores the pre-slice rule, in which "Davout, hold Rhineland and wait"
 # attached a two-turn HOLD for nothing while the reply quoted 2 AP.
 STRATEGIC_ORDERS_ARE_PRICED_BY_THE_ORDER = True
+# CX3-X3 (Score Finish Step 7 slice 5b): a printed region guess keeps the
+# typed word's first letter — "Austerlitz" → Ulster, "Thuringia" →
+# Lithuania, "Wagram" → Karaman were guesses across Europe (scores 62-67, a
+# different first letter each); and the low-confidence list prints only a
+# guess that looks like the word misspelled. Lever down: the matcher's bands
+# as shipped ("Did you mean 'Ulster'?", "Nearby: Wales, Andalusia, …").
+A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER = True
+
+
+def _guess_keeps_the_first_letter(typed: str, guess: str) -> bool:
+    return bool(typed) and bool(guess) and typed[:1].lower() == guess[:1].lower()
+
+
+def _a_guess_worth_printing(typed: str, guess: str) -> bool:
+    """The low-confidence list's guess: the same first letter AND within
+    half the typed word's length in edits ("Bordeuex" → Bordelais, 4 of 8;
+    "Alsace" → Andalusia is not one)."""
+    if not _guess_keeps_the_first_letter(typed, guess):
+        return False
+    from backend.commands.parser import _edit_distance_at_most
+    return _edit_distance_at_most(typed.lower(), guess.lower(),
+                                  max(1, len(typed) // 2))
+
+
 # CX5-L5-N5 (Score Finish Step 7 slice 5a): the engine-picked target's
 # disclosure is told in the past tense on the branch that fought ("Name
 # another and he will turn" was printed after the battle). Flip lever.
@@ -699,6 +723,14 @@ class CommandExecutor:
                         "message": f"Region '{region_name}' not found.",
                         "implausible_correction": True,
                     })
+                if (A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER
+                        and not _guess_keeps_the_first_letter(
+                            region_name, result.get("match") or "")):
+                    # CX3-X3: "Jena" → Vienna (75, a different first letter)
+                    # is no guess to print — the roads out of his province,
+                    # or the refusal alone.
+                    return (None, {**self._no_guess_answer(region_name, world, near),
+                                   "implausible_correction": True})
                 return (None, {
                     "success": False,
                     "message": (f"Region '{region_name}' not found. "
@@ -714,7 +746,10 @@ class CommandExecutor:
             # Exact match or plausible-typo correction - use corrected name
             region = world.get_region(result["match"])
             return (region, None)
-        elif result["action"] == "suggest" and not _too_short:
+        elif (result["action"] == "suggest" and not _too_short
+              and (not A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER
+                   or _guess_keeps_the_first_letter(region_name, result.get("match") or "")
+                   or _plausible_name_typo(region_name, result.get("match") or ""))):
             # Medium confidence - ask for confirmation
             return (None, {
                 "success": False,
@@ -722,7 +757,7 @@ class CommandExecutor:
                 "suggestion": result["match"],
                 "score": int(result["score"] * 100)
             })
-        elif result["action"] == "suggest":
+        elif result["action"] == "suggest" and _too_short:
             # WO-45 (slice 12): `Ney, attack Nye` answered "Did you mean
             # 'Ukraine'?" — for a query of four characters or fewer the
             # matcher drops to SHORT_NAME_SUGGEST = 50 and switches to
@@ -738,29 +773,67 @@ class CommandExecutor:
             })
         else:
             # Low confidence - show suggestions
+            # CX3-X3 (Score Finish Step 7 slice 5b): the guesses printed here
+            # were string distance across Europe — "Alsace" → Wales,
+            # Andalusia, Balearics; "Austerlitz" (demoted from the suggest
+            # band above) → Ulster. A guess is printed only when it looks
+            # like the word misspelled: the same first letter and within half
+            # the word's length in edits ("Bordeuex" → Bordelais stays).
+            if A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER:
+                guesses = [s for s in (result.get("suggestions") or [])
+                           if _a_guess_worth_printing(region_name, s)][:2]
+                if guesses:
+                    asked = " or ".join(f"'{g}'" for g in guesses)
+                    return (None, {
+                        "success": False,
+                        "message": (f"Region '{region_name}' not found. "
+                                    f"Did you mean {asked}?"),
+                        "suggestion": guesses[0],
+                        "suggestions": guesses,
+                    })
+            if A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER:
+                return (None, self._no_guess_answer(region_name, world, near))
             # PC15-13: when string distance has nothing real ('Alsace' →
             # Wales/Balearics/Ulster) and the caller told us where the
             # marshal STANDS, name the roads out of his province instead —
             # geographic sense over spelling distance.
-            near_region = world.get_region(near) if near else None
-            if near_region is not None:
-                roads = [r for r in getattr(near_region, "adjacent_regions", [])
-                         if world.get_region(r) is not None][:4]
-                if roads:
-                    return (None, {
-                        "success": False,
-                        "message": (
-                            f"Region '{region_name}' not found. From "
-                            f"{near_region.name} the roads lead to: "
-                            f"{', '.join(roads)}."),
-                        "suggestions": roads,
-                    })
+            roads_answer = self._roads_answer(region_name, world, near)
+            if roads_answer is not None:
+                return (None, roads_answer)
             suggestions_text = ", ".join(result["suggestions"][:3]) if result["suggestions"] else "none"
             return (None, {
                 "success": False,
                 "message": f"Region '{region_name}' not found. Nearby: {suggestions_text}",
                 "suggestions": result["suggestions"]
             })
+
+    @staticmethod
+    def _roads_answer(region_name: str, world, near: Optional[str]) -> Optional[Dict]:
+        """PC15-13: the roads out of the marshal's own province, or None."""
+        near_region = world.get_region(near) if near else None
+        if near_region is None:
+            return None
+        roads = [r for r in getattr(near_region, "adjacent_regions", [])
+                 if world.get_region(r) is not None][:4]
+        if not roads:
+            return None
+        return {
+            "success": False,
+            "message": (f"Region '{region_name}' not found. From "
+                        f"{near_region.name} the roads lead to: "
+                        f"{', '.join(roads)}."),
+            "suggestions": roads,
+        }
+
+    @classmethod
+    def _no_guess_answer(cls, region_name: str, world, near: Optional[str]) -> Dict:
+        """CX3-X3: the answer when no guess is worth printing — the roads out
+        of his province, or the refusal alone ("Nearby:" was a spelling
+        list, never geography)."""
+        return (cls._roads_answer(region_name, world, near)
+                or {"success": False,
+                    "message": f"Region '{region_name}' not found.",
+                    "suggestions": []})
 
     def _make_diplomatic_error(self, world: WorldState, from_nation: str, target_marshal) -> Optional[Dict]:
         """Return diplomatic block error dict if target is in armistice/non-war, else None.

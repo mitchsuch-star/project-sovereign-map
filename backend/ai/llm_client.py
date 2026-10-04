@@ -670,6 +670,72 @@ def named_ground_phrase(command_lower: str,
     return _title_place(found) if found else None
 
 
+# SF-V9 (Score Finish Step 7 slice 5b): "get / send / find me some cavalry"
+# is a levy — the HOLD arm's blind line "murat needs more horse, get me some
+# cavalry in franche-comte" shrugged. The object must be troops; "get me a
+# report" is no levy. Flip lever: False restores the shrug.
+A_GET_ME_TROOPS_IS_A_LEVY = True
+_GET_ME_TROOPS_RE = re.compile(
+    r"\b(?:get|send|find|fetch)\s+(?:me|us)\s+(?:some\s+|more\s+|a\s+few\s+"
+    r"|fresh\s+|a\s+(?:few|couple\s+of)\s+)?(?:(?:\d[\d,]*|thousand|hundred)\s+)?"
+    r"(?:infantry|cavalry|horse|horsemen|artillery|guns|men|troops|soldiers"
+    r"|recruits|foot|battalions?|squadrons?|batteries)\b",
+    re.IGNORECASE)
+
+
+# SF-V9 (Score Finish Step 7 slice 5b): "get / have a <work> built" is the
+# build order — the HOLD arm's blind line "Get a fort built at Milan in case
+# the Archduke comes down out of Tyrol" read as a move. Flip lever: False.
+A_WORK_GOT_BUILT_IS_BUILT = True
+_GET_IT_BUILT_RE = re.compile(
+    r"\b(?:get|have|see)\s+(?:a|an|the|some|another)?\s*[\w\s-]{0,30}?\b"
+    r"(?:fort|fortress|fortification|depot|supply\s+depot|market|stables?"
+    r"|watchtower|tower|training\s+ground|yard|naval\s+yard|works)\s+"
+    r"(?:built|raised|put\s+up|erected|constructed)\b",
+    re.IGNORECASE)
+
+
+# SF7-X9 (Score Finish Step 7 slice 5b): the place a scout names, kept for
+# the executor's region matcher. Lever down: an unknown place is dropped and
+# the bare scout runs (as shipped).
+A_SCOUTED_PLACE_IS_KEPT = True
+_SCOUT_OBJECT_RE = re.compile(
+    r"\b(?:scout|reconnoit(?:re|er))\s+(?:out\s+)?" + _GROUND_PLACE_AND_TAIL,
+    re.IGNORECASE)
+# A scout's object is very often no place at all.
+_SCOUT_GENERIC_WORDS = frozenset({
+    "ahead", "around", "about", "forward", "forwards", "out", "area", "areas",
+    "enemy", "enemies", "foe", "foes", "them", "him", "her", "it", "us",
+    "there", "here", "north", "south", "east", "west", "position",
+    "positions", "region", "regions", "province", "provinces", "line",
+    "lines", "front", "road", "roads", "flank", "flanks", "rear", "terrain",
+    "ground", "land", "country", "countryside", "surroundings", "approaches",
+    "frontier", "frontiers", "border", "borders", "for", "everything", "all",
+    "nearby", "neighbourhood", "neighborhood", "way", "route", "routes",
+    "movements", "movement", "strength", "numbers", "force", "forces",
+    "army", "armies", "corps", "column", "columns", "camp", "lay",
+})
+
+
+def scouted_place_phrase(command_lower: str) -> Optional[str]:
+    """The place "scout <place>" names, title-cased, or None when the object
+    is generic ("scout the area", "scout ahead", "scout for the enemy")."""
+    if not command_lower:
+        return None
+    found = None
+    for verb in re.finditer(r"\b(?:scout|reconnoit(?:re|er))\b", command_lower):
+        match = _SCOUT_OBJECT_RE.match(command_lower, verb.start())
+        if not match:
+            continue
+        phrase = match.group("place").strip(" .!?,;:'\"")
+        words = phrase.split()
+        if not words or any(w in _NOT_A_PLACE or w in _SCOUT_GENERIC_WORDS
+                            for w in words):
+            continue
+        found = phrase
+    return _title_place(found) if found else None
+
+
 def _match_known_name(command_lower: str, names,
                       allow_last_name: bool = False) -> Optional[str]:
     """Find the best roster-name match in the command (word-boundary).
@@ -3411,7 +3477,12 @@ class LLMClient:
                    or re.search(r'\b(buy|hire|purchase)\b.{0,20}\breplacements?\b',
                                 command_lower))):
             action = "purchase_levy"
-        elif "recruit" in command_lower or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower)) or "conscript" in command_lower:
+        elif ("recruit" in command_lower
+              or (re.search(r'\braise\b', command_lower) and not _mentions_pension(command_lower))
+              or "conscript" in command_lower
+              # SF-V9 (Score Finish Step 7 slice 5b): "get me some cavalry in
+              # franche-comte" — the levy asked for in plain words.
+              or (A_GET_ME_TROOPS_IS_A_LEVY and _GET_ME_TROOPS_RE.search(command_lower))):
             action = "recruit"
             # What arm the player ASKED for (feeds the soft-correction message
             # in _execute_recruit). Single-sourced in backend/ai/recruit_arm.py
@@ -3431,8 +3502,11 @@ class LLMClient:
             action = "fortify"
         # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train").
         # ORDERING RULE: "build " (with space) before "train" keyword in drill block.
-        elif any(kw in command_lower for kw in ["build ", "construct ", "bould ", "biuld ", "buld ", "buid ",
-                                                "put up ", "erect ", "raise a fort", "raise a depot"]):
+        elif (any(kw in command_lower for kw in ["build ", "construct ", "bould ", "biuld ", "buld ", "buid ",
+                                                 "put up ", "erect ", "raise a fort", "raise a depot"])
+              # SF-V9 (Score Finish Step 7 slice 5b): the passive — "get a
+              # fort built at Milan", "have a supply depot built at Lorraine".
+              or (A_WORK_GOT_BUILT_IS_BUILT and _GET_IT_BUILT_RE.search(command_lower))):
             action = "build"
         # Restrain must be checked BEFORE drill (restrain contains "train")
         elif "restrain" in command_lower:
@@ -3835,6 +3909,16 @@ class LLMClient:
             _ground = named_ground_phrase(command_lower, action)
             if _ground:
                 target = _ground
+
+        # SF7-X9 (Score Finish Step 7 slice 5b): the place a scout NAMES is
+        # kept when no known name matched it — "Ney, scout Alsace" dropped
+        # the unknown province and ran the bare scout of every neighbour for
+        # an action. Generic objects ("scout the area", "scout ahead") keep
+        # the bare scout (`scouted_place_phrase`).
+        if A_SCOUTED_PLACE_IS_KEPT and target is None and action == "scout":
+            _place = scouted_place_phrase(command_lower)
+            if _place:
+                target = _place
 
         # Build interpretation string
         if marshal and action != "unknown":

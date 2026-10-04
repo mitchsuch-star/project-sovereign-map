@@ -3083,6 +3083,7 @@ def execute_command(request: CommandRequest):
         from backend.commands.clarification import (
             CLARIFICATION_DIALOGUE_TYPE,
             build_marshal_choice_clarification,
+            destination_refusal,
             build_unknown_name_clarification,
             interpret_clarification_answer,
             register_pending_clarification,
@@ -4386,6 +4387,22 @@ def execute_command(request: CommandRequest):
                     _stamp_relay()  # CR-7-3: the reissue rebound parsed + result
 
             if not focus_handled:
+                # CX3-X2: never ask "Which marshal?" about a place the map
+                # lacks — the order's own refusal, free, no question staged.
+                _no_such_place = (destination_refusal(world, parsed, executor)
+                                  if parsed.get("success") else None)
+                if _no_such_place:
+                    _refused = build_base_response(
+                        world, success=False, message=_no_such_place,
+                        action_info={
+                            "cost": 0,
+                            "remaining": int(world.actions_remaining),
+                            "turn_advanced": False,
+                            "new_turn": None,
+                        })
+                    _relay.attach(_refused, _relay_obj)
+                    _relay.append_note(_refused, _relay_obj, standalone=True)
+                    return _refused
                 if parsed.get("success"):
                     marshal_clarification = build_marshal_choice_clarification(
                         world, parsed, command_text)

@@ -110,6 +110,26 @@ def _execute(text):
             "/command", json={"command": text}).json()
 
 
+def _the_executors_verdict(reply) -> str:
+    """CX-BEHAV-1: "done" (the order ran), "asked" (the game asked before
+    acting), "board" (the BOARD refused a line it read right), or "unread"
+    — read by the ONE judge's own classes (`tools/_score_probes.py`), never a
+    hand list. A name the map lacks is always unread, even with a guess."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from tools import _score_probes as P
+    if reply.get("success"):
+        return "done"
+    message = str(reply.get("message") or reply.get("error") or "")
+    if "not found" in message.lower() or P.REFUSED_RX.search(message):
+        return "unread"
+    if P.ASKED_RX.search(message):
+        return "asked"
+    if P.BOARD_GATE_RX.search(message):
+        return "board"
+    return "unread"
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # The completer's table, read out of the .gd and driven
 # ═══════════════════════════════════════════════════════════════════════════
@@ -285,21 +305,38 @@ class TestTheGameCanReadWhatItPrints:
         quoted = sorted(set(re.findall(r'"([^"\n]{3,70})"', body)))
         # PB-2 (the release build, Sept 25, 2026): `Soult, move to Bavaria`
         # survived this census for six days — the executor answers "Bavaria
-        # is a nation, not a province", a name error this list did not name.
-        refusals = ("not found", "cannot parse", "Unknown target",
-                    "I cannot interpret", "no such", "eludes me",
-                    "is a nation, not a province")
+        # is a nation, not a province", a name error a hand-written refusal
+        # list did not name. CX-BEHAV-1 (Score Finish Step 7 slice 5b): the
+        # census is re-keyed to the ONE judge's own classes
+        # (`tools/_score_probes.py`) and INVERTED — a phrasing passes only
+        # when the order ran, the game asked, or the BOARD refused a line it
+        # read right; any other refusal, including one nobody has seen yet,
+        # fails the census.
         failures = []
         for phrase in quoted:
             if phrase in self.NOT_COMMANDS:
                 continue
-            message = (_execute(phrase).get("message")
-                       or _execute(phrase).get("error") or "")
-            for needle in refusals:
-                if needle.lower() in message.lower():
-                    failures.append((phrase, message[:120]))
-                    break
+            reply = _execute(phrase)
+            verdict = _the_executors_verdict(reply)
+            if verdict == "unread":
+                message = str(reply.get("message") or reply.get("error") or "")
+                failures.append((phrase, message[:120]))
         assert not failures, failures
+
+    def test_the_census_fails_on_a_refusal_it_does_not_know(self):
+        """CX-BEHAV-1's sensitivity arm: the classifier is an allowlist of
+        the judge's classes, so an unknown refusal reads as UNREAD."""
+        assert _the_executors_verdict({"success": True, "message": "x"}) == "done"
+        assert _the_executors_verdict(
+            {"success": False, "message": "Region 'Lyon' not found."}) == "unread"
+        assert _the_executors_verdict(
+            {"success": False, "message": "Region 'Ulm' not found. Did you mean 'Ulster'?"}) == "unread"
+        assert _the_executors_verdict(
+            {"success": False, "message": "A refusal phrased as no judge has seen."}) == "unread"
+        assert _the_executors_verdict(
+            {"success": False, "message": "Not enough actions! Need 1, have 0"}) == "board"
+        assert _the_executors_verdict(
+            {"success": False, "message": "Which marshal shall march to Swabia, Sire?"}) == "asked"
 
     def test_the_exemption_list_is_not_a_wildcard(self):
         """Every exempt string must actually BE in the body — an exemption for

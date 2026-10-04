@@ -393,13 +393,25 @@ class TestANamedProvinceIsNeverReplaced:
         assert "for Lorraine" in message and f"read Lorraine {READING_NOTE}" in message
 
     def test_a_named_marshal_keeps_his_own_road(self, shipped):
-        """The boundary, recorded not changed: a NAMED marshal levies where he
-        stands (PF-7's surfaced correction, CN-1 + CN-2's recorded ruling);
-        the province re-read only runs where the game chooses the man."""
+        """The boundary SR-3b recorded — a NAMED marshal levies where he stands
+        (PF-7, CN-1 + CN-2's ruling) — stands for his OWN province.
+
+        Consciously re-seated (Score Finish Step 7 slice 5b, SF7-X11, RULED
+        under the delegation FOR USER CONFIRMATION): a DIFFERENT province
+        named beside him is no longer silently replaced by his — "Ney, recruit
+        infantry in Swabbia" with Ney at Rhineland had raised the levy at
+        Rhineland. It is refused free, naming both roads."""
         client, world = shipped
         self._stage(world)
         ney_at = world.get_marshal("Ney").location
+        gold = world.nation_gold["France"]
         data = post(client, "Ney, recruit infantry in Swabbia")
+        assert data.get("success") is False, data.get("message")
+        message = str(data.get("message"))
+        assert message.startswith(f"Ney stands at {ney_at}, Sire"), message
+        assert "not at Swabia" in message, message
+        assert world.nation_gold["France"] == gold
+        data = post(client, f"Ney, recruit infantry in {ney_at}")
         assert data.get("success") is True, data.get("message")
         assert f"at {ney_at}" in str(data.get("message"))
 

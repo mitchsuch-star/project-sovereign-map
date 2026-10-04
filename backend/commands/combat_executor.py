@@ -11400,8 +11400,15 @@ class CombatExecutor:
             # WO-13: a refused MARSHAL query is answered in the marshal
             # register, not with a province guess — the same rule the named
             # route follows.
+            # CX3-X3 (Score Finish Step 7 slice 5b): the region seam no longer
+            # prints a cross-Europe guess ("Kutz" → Frankfurt), so the plain
+            # "Region 'Kutz' not found." must not outrank the marshal register
+            # WO-13 decided — a nation's own answer still does.
+            import backend.commands.executor as _executor_module
+            _no_guess = (_executor_module.A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER
+                         and not error.get("nation_named"))
             if ((_auto_enemy_error or {}).get("refused_marshal_correction")
-                    and "Did you mean" in error.get("message", "")):
+                    and ("Did you mean" in error.get("message", "") or _no_guess)):
                 return {"kind": "error", "error": _auto_enemy_error}
             return {"kind": "error", "error": error}
         target_name = target_region.name if hasattr(target_region, 'name') else target

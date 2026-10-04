@@ -81,6 +81,12 @@ THE_WHAT_IF_IS_FOG_HONEST = True
 # own refusals first (`friendly_fire_refusal`, the executor's armistice
 # block) and says when the order would first put a declaration to the player.
 THE_WHAT_IF_REFUSES_LIKE_THE_ORDER = True
+# RS-12 (Score Finish Step 7 slice 5b): the what-if also asks the marshal's
+# STATE first — the executor's gates before the range (`state_probe`), so a
+# fortified / drill-locked / wounded / recovering / broken corps, or a spent
+# turn, is answered with the refusal instead of a favorable muster. Lever
+# down: the muster is weighed regardless.
+THE_WHAT_IF_READS_THE_ORDERS_STATE = True
 # DESK-2 (P2): `how much is a battalion` quoted "654 gold for 10,000 infantry
 # at Rhineland" while the order raises 3,000 for 647 under Davout, and `how
 # much is a gun` quoted 654 where the order refuses (no commander of guns).
@@ -1579,6 +1585,21 @@ def _the_named_corps(world, player: str, marshal_name: str, foreign: bool,
         return f"{shown_m} serves at the desk, Sire — he leads no army to weigh."
     if int(getattr(marshal, "strength", 0) or 0) <= 0:
         return f"{shown_m} has no army left to weigh, Sire."
+    if THE_WHAT_IF_READS_THE_ORDERS_STATE:
+        # RS-12 (Score Finish Step 7 slice 5b): the executor meets the
+        # marshal's STATE before the range — the action pool, the occupation
+        # lock, the pre-objection battery (fortified, drill-locked, wounded,
+        # recovering, broken) — and the what-if weighed a favorable muster
+        # for an order the executor then refused ("fortified … unfortify
+        # first"). ONE probe, the screens' own (`state_probe`).
+        from backend.commands.state_probe import order_state_refusal
+        short = order_state_refusal(world, marshal, "attack")
+        if short:
+            if short.startswith(("no military action", "needs ")):
+                return (f"The order would be refused, Sire: {short} — "
+                        f"nothing spent.")
+            return (f"The order would be refused, Sire: {shown_m} is "
+                    f"{short}. Nothing spent.")
     reach = int(getattr(marshal, "movement_range", 1) or 1)
     if world.get_distance(marshal.location, target_location) > reach:
         others = [c for c in candidates if c.name != marshal.name]

@@ -1972,10 +1972,17 @@ class TestCA828StrategicDestinationSuggestion:
         assert "Venetia" in res["message"] and "Vienna" in res["message"], res["message"]
 
     def test_the_low_confidence_arm_arrives_too(self, europe_board):
-        """Not just "Did you mean…?" — the "Nearby: …" tier as well."""
+        """Not just the suggest band — the low-confidence tier as well.
+
+        Consciously re-seated (Score Finish Step 7 slice 5b, CX3-X3): that
+        tier printed "Nearby: Bordelais, Brandenburg, Ardennes" — a spelling
+        list, never geography — and now prints only a guess that looks like
+        the word misspelled, as a question. What this pin protects stands:
+        the march road reaches the tier and offers Bordelais."""
         res = _issue(europe_board, "Davout, march to Bordeuex")
         assert res["success"] is False
-        assert "Nearby:" in res["message"] and "Bordelais" in res["message"]
+        assert "Did you mean 'Bordelais'?" in res["message"], res["message"]
+        assert "Brandenburg" not in res["message"] and "Ardennes" not in res["message"]
 
     # ── the three tripwires ─────────────────────────────────────────────
 
@@ -2050,11 +2057,22 @@ class TestCA828StrategicDestinationSuggestion:
         """
         ex = CommandExecutor()
         strat = ex._strategic
+        import backend.commands.executor as _EX
         for phrase in ("the Bavarian frontier", "the enemy camp",
                        "his left flank", "the river crossing"):
             assert strat._suggest_region_for_phrase(phrase, europe_board) == (None, None), phrase
             # ... and the unguarded matcher really would have answered.
-            _region, err = ex._fuzzy_match_region(phrase, europe_board)
+            # Consciously re-seated (Score Finish Step 7 slice 5b, CX3-X3):
+            # the matcher no longer prints a cross-Europe guess for these
+            # either, so the single-token guard is shown to bind ON ITS OWN
+            # with the first-letter rule held down.
+            _saved = _EX.A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER
+            try:
+                _EX.A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER = False
+                assert strat._suggest_region_for_phrase(phrase, europe_board) == (None, None), phrase
+                _region, err = ex._fuzzy_match_region(phrase, europe_board)
+            finally:
+                _EX.A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER = _saved
             assert err is not None and (
                 "Did you mean" in err["message"] or "Nearby:" in err["message"])
 

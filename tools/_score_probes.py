@@ -1204,7 +1204,14 @@ BOARD_GATE_RX = re.compile(
     # Chunk 3b (Oct 3, 2026): "Lannes, follow Ney in and back him up" now
     # reads as the SUPPORT it means, and the board answers with the march
     # law's own state refusal — the engaged arm of `march_state_refusal`.
-    r"cannot begin a strategic march",
+    r"cannot begin a strategic march|"
+    # Step 7 slice 5b (CX-BEHAV-1, Oct 4, 2026): the help census, re-keyed to
+    # this judge, found three of the board's own refusals it did not know —
+    # a rente revoked from a man who holds none, a bombard with no gun corps
+    # in reach, the Congress short of its titled provinces. None appears in a
+    # committed census record (grepped `docs/audits/unrehearsed/` and the
+    # score-run archives first).
+    r"holds no rente|No artillery marshals available|cannot be summoned on|summon the Congress first",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).

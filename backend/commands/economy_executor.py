@@ -407,6 +407,10 @@ THE_ARM_CHOOSES_THE_MAN = True
 # Brittanny` answered "Specify a region". An exact name (every AI order)
 # never reaches the matcher. False restores "Unknown region" and the capital.
 A_NAMED_PROVINCE_IS_NEVER_REPLACED = True
+# SF7-X11 (Score Finish Step 7 slice 5b): a named marshal still levies where he
+# stands (PF-7), but a different province named beside him is refused free
+# rather than silently replaced. False restores the levy at his province.
+A_NAMED_LEVY_GROUND_IS_HONOURED = True
 
 _ARM_NOUN = {"infantry": "foot", "cavalry": "horse", "artillery": "guns"}
 
@@ -1451,6 +1455,31 @@ class EconomyExecutor:
             _client_refusal = lord_fill_refusal(world, marshal)
             if _client_refusal:
                 return {"success": False, "message": _client_refusal}
+
+            # SF7-X11 (Score Finish Step 7 slice 5b): PF-7's road stands — a
+            # named marshal levies where he stands — but a DIFFERENT province
+            # named beside him is never silently replaced: "Davout, recruit
+            # infantry in Rhineland" with Davout at Lorraine raised 3,000 at
+            # Lorraine for 741 gold. Refused free, naming both roads.
+            # Player orders only (the AI names the marshal's own province).
+            if (A_NAMED_LEVY_GROUND_IS_HONOURED and location_specified
+                    and marshal.nation == world.player_nation):
+                _named_region, _err = self._executor._fuzzy_match_region(
+                    location_specified, world)
+                _named = getattr(_named_region, "name", None) if _named_region else None
+                if _named and _named != marshal.location:
+                    return {
+                        "success": False,
+                        "message": (
+                            f"{marshal.name} stands at {marshal.location}, Sire — "
+                            f"a corps raises its levy where it stands, not at "
+                            f"{_named}."),
+                        "suggestion": (
+                            f"Order '{marshal.name}, recruit' to raise them at "
+                            f"{marshal.location}, or 'recruit in {_named}' to "
+                            f"raise them there."),
+                        "variable_action_cost": 0,
+                    }
 
             recipient = marshal.name
             recruitment_location = marshal.location

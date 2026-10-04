@@ -1,0 +1,170 @@
+[
+ {
+  "id": "RS-12 lever down: THE_WHAT_IF_READS_THE_ORDERS_STATE",
+  "file": "backend/ai/question_desk.py",
+  "old": "THE_WHAT_IF_READS_THE_ORDERS_STATE = True",
+  "new": "THE_WHAT_IF_READS_THE_ORDERS_STATE = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheWhatIfReadsTheState"
+ },
+ {
+  "id": "RS-12 a spent turn is phrased as the marshal's state",
+  "file": "backend/ai/question_desk.py",
+  "old": "            if short.startswith((\"no military action\", \"needs \")):",
+  "new": "            if False:",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheWhatIfReadsTheState::test_a_drill_lock_and_a_spent_turn_are_said"
+ },
+ {
+  "id": "RS-15 lever down: THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT",
+  "file": "backend/ai/counsel.py",
+  "old": "THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT = True",
+  "new": "THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheCounselFindsGround"
+ },
+ {
+  "id": "RS-15 the fallback reads the corps province again",
+  "file": "backend/ai/counsel.py",
+  "old": "        other = _first_own_region_that_can_build(world, nation)\n        if other and other != region_name:",
+  "new": "        other = region_name\n        if other and other != region_name:",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheCounselFindsGround::test_a_build_is_offered_elsewhere"
+ },
+ {
+  "id": "CX3-X2 lever down: A_QUESTION_NAMES_A_PLACE_THAT_EXISTS",
+  "file": "backend/commands/clarification.py",
+  "old": "A_QUESTION_NAMES_A_PLACE_THAT_EXISTS = True",
+  "new": "A_QUESTION_NAMES_A_PLACE_THAT_EXISTS = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestNoQuestionForAPlaceTheMapLacks tests/test_command_robustness_cr2_clarification.py::test_no_marshal_question_for_a_destination_the_map_lacks"
+ },
+ {
+  "id": "CX3-X2 a typo the map reads is refused",
+  "file": "backend/commands/clarification.py",
+  "old": "    if region is not None:\n        return None\n    return str((err or {}).get(\"message\")",
+  "new": "    if False:\n        return None\n    return str((err or {}).get(\"message\")",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestNoQuestionForAPlaceTheMapLacks::test_a_raw_typo_a_live_reading_hands_over_is_not_refused"
+ },
+ {
+  "id": "CX3-X3 lever down: A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER",
+  "file": "backend/commands/executor.py",
+  "old": "A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER = True",
+  "new": "A_PRINTED_GUESS_KEEPS_THE_FIRST_LETTER = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestAPrintedGuessKeepsTheFirstLetter tests/test_wo_slice12_copy_sweep.py::TestWO45TheShortNameGuess::test_a_printed_guess_keeps_the_first_letter"
+ },
+ {
+  "id": "CX3-X3 every low-confidence suggestion is a guess",
+  "file": "backend/commands/executor.py",
+  "old": "                           if _a_guess_worth_printing(region_name, s)][:2]",
+  "new": "                           if True][:2]",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestAPrintedGuessKeepsTheFirstLetter::test_the_march_road_reads_the_roads_pc15_13"
+ },
+ {
+  "id": "CX3-X3 any distance is a guess",
+  "file": "backend/commands/executor.py",
+  "old": "                                  max(1, len(typed) // 2))",
+  "new": "                                  len(typed) * 3)",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestAPrintedGuessKeepsTheFirstLetter::test_the_march_road_reads_the_roads_pc15_13"
+ },
+ {
+  "id": "CX3-X3 the demoted auto-correct prints its cross-Europe guess",
+  "file": "backend/commands/executor.py",
+  "old": "                        and not _guess_keeps_the_first_letter(\n                            region_name, result.get(\"match\") or \"\")):",
+  "new": "                        and False):",
+  "tests": "tests/test_wo_slice12_copy_sweep.py::TestWO45TheShortNameGuess::test_a_printed_guess_keeps_the_first_letter"
+ },
+ {
+  "id": "PC15-13 lever down: THE_MARCH_ROAD_READS_ITS_ROADS",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "THE_MARCH_ROAD_READS_ITS_ROADS = True",
+  "new": "THE_MARCH_ROAD_READS_ITS_ROADS = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestAPrintedGuessKeepsTheFirstLetter::test_the_march_road_reads_the_roads_pc15_13"
+ },
+ {
+  "id": "PC15-13 a single unknown name keeps the old shrug",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                              and len(_one_name.split()) == 1):",
+  "new": "                              and False):",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestAPrintedGuessKeepsTheFirstLetter::test_a_demoted_guess_on_the_march_road_names_the_roads"
+ },
+ {
+  "id": "SF7-X9 lever down: A_SCOUTED_PLACE_IS_KEPT",
+  "file": "backend/ai/llm_client.py",
+  "old": "A_SCOUTED_PLACE_IS_KEPT = True",
+  "new": "A_SCOUTED_PLACE_IS_KEPT = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheScoutKeepsItsPlace"
+ },
+ {
+  "id": "SF7-X9 'the area' is read as a place",
+  "file": "backend/ai/llm_client.py",
+  "old": "    \"ahead\", \"around\", \"about\", \"forward\", \"forwards\", \"out\", \"area\", \"areas\",",
+  "new": "    \"ahead\", \"around\", \"about\", \"forward\", \"forwards\", \"out\", \"areas\",",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheScoutKeepsItsPlace::test_a_generic_object_keeps_the_bare_scout"
+ },
+ {
+  "id": "SF7-X10 lever down: A_BLANKED_CLAUSE_NAMES_NO_TARGET",
+  "file": "backend/commands/parser.py",
+  "old": "A_BLANKED_CLAUSE_NAMES_NO_TARGET = True",
+  "new": "A_BLANKED_CLAUSE_NAMES_NO_TARGET = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestAConditionsFoeIsNoTarget"
+ },
+ {
+  "id": "SF7-X11 lever down: A_NAMED_LEVY_GROUND_IS_HONOURED",
+  "file": "backend/commands/economy_executor.py",
+  "old": "A_NAMED_LEVY_GROUND_IS_HONOURED = True",
+  "new": "A_NAMED_LEVY_GROUND_IS_HONOURED = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheLevyGroundIsHonoured"
+ },
+ {
+  "id": "SF7-X11 his own province is refused too",
+  "file": "backend/commands/economy_executor.py",
+  "old": "                if _named and _named != marshal.location:",
+  "new": "                if _named:",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheLevyGroundIsHonoured::test_his_own_province_still_levies"
+ },
+ {
+  "id": "SF-V9 lever down: A_CONTRACTION_IS_NEVER_A_NAME",
+  "file": "backend/ai/clause_guards.py",
+  "old": "A_CONTRACTION_IS_NEVER_A_NAME = True",
+  "new": "A_CONTRACTION_IS_NEVER_A_NAME = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheHoldArmsWorklist::test_a_contraction_is_never_a_name"
+ },
+ {
+  "id": "SF-V9 lever down: AN_IN_CASE_IS_A_PRECAUTION",
+  "file": "backend/ai/clause_guards.py",
+  "old": "AN_IN_CASE_IS_A_PRECAUTION = True",
+  "new": "AN_IN_CASE_IS_A_PRECAUTION = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheHoldArmsWorklist::test_a_trailing_in_case_is_a_precaution"
+ },
+ {
+  "id": "SF-V9 a leading 'in case' is a precaution too",
+  "file": "backend/ai/clause_guards.py",
+  "old": "                      and not _LEADING_ADDRESS_RE.fullmatch(text[:marker.start()] or \"\"))",
+  "new": "                      and True)",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheHoldArmsWorklist::test_a_leading_in_case_is_still_a_contingency"
+ },
+ {
+  "id": "SF-V9 lever down: A_GET_ME_TROOPS_IS_A_LEVY",
+  "file": "backend/ai/llm_client.py",
+  "old": "A_GET_ME_TROOPS_IS_A_LEVY = True",
+  "new": "A_GET_ME_TROOPS_IS_A_LEVY = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheHoldArmsWorklist::test_get_me_some_cavalry_is_the_levy"
+ },
+ {
+  "id": "SF-V9 lever down: A_WORK_GOT_BUILT_IS_BUILT",
+  "file": "backend/ai/llm_client.py",
+  "old": "A_WORK_GOT_BUILT_IS_BUILT = True",
+  "new": "A_WORK_GOT_BUILT_IS_BUILT = False",
+  "tests": "tests/test_sf_cmd2_the_remainder_5b.py::TestTheHoldArmsWorklist::test_the_passive_build_is_the_build"
+ },
+ {
+  "id": "CX-BEHAV-1 the judge forgets the board's refusals",
+  "file": "tools/_score_probes.py",
+  "old": "    r\"holds no rente|No artillery marshals available|cannot be summoned on|summon the Congress first\",",
+  "new": "    r\"zzzz-never-printed\",",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheGameCanReadWhatItPrints::test_every_quoted_phrasing_survives_the_EXECUTOR"
+ },
+ {
+  "id": "CX-BEHAV-1 the manual teaches the refused example again",
+  "file": "backend/commands/meta_executor.py",
+  "old": "               \"license Prussia against Hanover\" at no gold sells",
+  "new": "               \"license Prussia against Austria\" at no gold sells",
+  "tests": "tests/test_cx3_the_predictor.py::TestTheGameCanReadWhatItPrints::test_every_quoted_phrasing_survives_the_EXECUTOR"
+ }
+]

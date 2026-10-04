@@ -577,6 +577,10 @@ _ONCE_ADVERB_RE = re.compile(r"^\s*(?:more|again)\b", re.IGNORECASE)
 # passed only because nothing followed it. The exemption reads the PRECEDING
 # word (the `_PURSUE_AFTER_RE` idiom). False restores the refusal.
 AT_ONCE_IS_NEVER_A_CONDITION = True
+# SF-V9 (Score Finish Step 7 slice 5b): a trailing "in case …" is a
+# precaution, never a contingency (see the classifier). False restores the
+# refusal ("that is a contingency, not an order").
+AN_IN_CASE_IS_A_PRECAUTION = True
 _AT_ONCE_RE = re.compile(r"\bat\s+$", re.IGNORECASE)
 # A `should` that is not clause-initial is a plain modal in an order the player
 # is giving ("Ney, you should attack Mack"), never a conditional inversion
@@ -753,7 +757,14 @@ def strip_condition_clauses_with_handoff(
                         "clause": text[marker.start():clause_end].strip(),
                     }
 
-        if collapsed in _REFUSING_CONDITION_WORDS:
+        # SF-V9 (Score Finish Step 7 slice 5b): a TRAILING "in case …" is a
+        # precaution — "Get a fort built at Milan in case the Archduke comes
+        # down out of Tyrol" builds the fort NOW — so its clause is blanked
+        # like `while` and the order stands. A LEADING one ("In case Mack
+        # comes, fall back") is the contingency and keeps the refusal.
+        precaution = (collapsed == "in case" and AN_IN_CASE_IS_A_PRECAUTION
+                      and not _LEADING_ADDRESS_RE.fullmatch(text[:marker.start()] or ""))
+        if collapsed in _REFUSING_CONDITION_WORDS and not precaution:
             arrival = (_HANDOFF_ARRIVAL_RE.match(text[clause_start:clause_end])
                        if collapsed in _HANDOFF_MARKERS and friendly else None)
             canonical = (friendly.get(arrival.group("name").lower())
@@ -1279,6 +1290,26 @@ _NOT_A_NAME = _NEVER_AN_ADDRESS | frozenset((
     "the a an of to for"
 ).split())
 
+# SF-V9 (Score Finish Step 7 slice 5b): a pronoun CONTRACTION is never a
+# name — "We're short of guns - raise some artillery at Paris." was answered
+# "There is no 'We're' in the order of battle". A closed class: a subject
+# pronoun (or that / there / here / what / let) with its clitic, in both
+# apostrophes. Flip lever: False restores the address claim.
+A_CONTRACTION_IS_NEVER_A_NAME = True
+_PRONOUN_CONTRACTIONS = frozenset(
+    form.replace("'", apostrophe)
+    for form in (
+        "we're we've we'll we'd i'm i've i'll i'd you're you've you'll "
+        "you'd they're they've they'll they'd he's he'll he'd she's she'll "
+        "she'd it's it'll that's there's here's what's let's"
+    ).split()
+    for apostrophe in ("'", "’"))
+
+
+def _is_contraction(token: str) -> bool:
+    return A_CONTRACTION_IS_NEVER_A_NAME and token.lower() in _PRONOUN_CONTRACTIONS
+
+
 # The one PRODUCTIVE class, closed by morphology rather than by listing:
 # `quickly`, `urgently`, `promptly`, `instantly`, `swiftly`, `hastily`.
 _ADVERB_LY_RE = re.compile(r"^\w{3,}ly$", re.IGNORECASE)
@@ -1314,6 +1345,7 @@ def never_an_address(run: str) -> bool:
     if not tokens:
         return True
     return any(tok.lower() in _NEVER_AN_ADDRESS or _ADVERB_LY_RE.match(tok)
+               or _is_contraction(tok)
                for tok in tokens)
 
 
@@ -1343,7 +1375,7 @@ def looks_like_an_address(run: str,
         return False
     for tok in tokens:
         low = tok.lower()
-        if low in _NOT_A_NAME or _ADVERB_LY_RE.match(tok):
+        if low in _NOT_A_NAME or _ADVERB_LY_RE.match(tok) or _is_contraction(tok):
             return False
     if any(tok[0].isupper() for tok in tokens):
         return True

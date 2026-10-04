@@ -107,7 +107,7 @@ VALID_ACTIONS: Set[str] = {
     "recall_marshal",
     # AI-2b D5 counter-instruments (AI_INTENT_SPEC §6 D5) — nation-target
     # diplomacy verbs, 1 DP each charged in-executor:
-    "sponsor_design",    # "sponsor Prussia against Austria, 200 gold" (0 = licence)
+    "sponsor_design",    # "sponsor Prussia against Hanover, 200 gold" (0 = licence)
     "buy_off_design",    # "buy off Prussia" — compensation, price derived
     "guarantee_nation",  # "guarantee Saxony" — pledge to defend
     # DEF-5 naval — "The Wooden Wall" (NAVAL_SPEC §9): the four verbs.

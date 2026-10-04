@@ -1068,9 +1068,9 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
                gold buys its SLEEP for a term. The price is stated
                before you offer (D4 - diplomacy has no fog), and it
                is read off how badly they want the thing.
-  sponsor    - "sponsor Prussia against Austria, 200 gold" - arm
+  sponsor    - "sponsor Prussia against Hanover, 200 gold" - arm
                somebody else's grievance, per turn, for a term.
-               "license Prussia against Austria" at no gold sells
+               "license Prussia against Hanover" at no gold sells
                permission instead: the same bond, a cheaper coin.
                Talleyrand refuses to aim a design at ourselves.
   guarantee  - "guarantee Saxony" - pledge to defend a border.

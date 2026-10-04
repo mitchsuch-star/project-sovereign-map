@@ -39,6 +39,10 @@ SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE = True
 # as a referent on the support road, and the refusal lists him by his
 # title. Flip lever: False restores "Cannot find marshal 'Emperor'".
 THE_EMPEROR_IS_A_REFERENT = True
+# PC15-13 (Score Finish Step 7 slice 5b): the march road's unknown
+# destination is answered with the roads out of the marshal's province
+# (the tactical road's answer). Lever down: no `near` (string guesses).
+THE_MARCH_ROAD_READS_ITS_ROADS = True
 
 # AAR-31 (CRT-7, Score Mandate Chunk 3 SR-3a part (ii), Sept 26 2026): a
 # strategic objection names its order and its object — the builder read
@@ -184,7 +188,7 @@ class StrategicExecutor:
     # CA8-28 — the strategic verbs get the tactical path's fuzzy answers.
     # ════════════════════════════════════════════════════════════════════
 
-    def _suggest_region_for_phrase(self, phrase: str, world):
+    def _suggest_region_for_phrase(self, phrase: str, world, near=None):
         """A last fuzzy pass over an unresolved MOVE_TO/HOLD destination.
 
         Returns `(corrected_region_name, None)` for a confident typo fix,
@@ -215,7 +219,12 @@ class StrategicExecutor:
         if not token or len(token.split()) != 1:
             return (None, None)
 
-        region, err = self._executor._fuzzy_match_region(token, world)
+        # PC15-13 (Score Finish Step 7 slice 5b): the march road names the
+        # roads out of the marshal's province, as the tactical road does —
+        # 'Ney, march to Alsace' answered "Nearby: Wales, Andalusia,
+        # Balearics" while 'Ney, move to Alsace' named Rhineland's roads.
+        region, err = self._executor._fuzzy_match_region(
+            token, world, near=near if THE_MARCH_ROAD_READS_ITS_ROADS else None)
         if region is not None:
             name = getattr(region, "name", "")
             return (name, None) if _plausible_name_typo(token, name) else (None, None)
@@ -1037,7 +1046,8 @@ class StrategicExecutor:
                     # pass at all. It runs AFTER the phrase scan and AFTER the
                     # nation arm, so "march on Archduke John at Tyrol" and
                     # "march to Austria" keep their existing answers.
-                    typo_fix, typo_err = self._suggest_region_for_phrase(dest, world)
+                    typo_fix, typo_err = self._suggest_region_for_phrase(
+                        dest, world, near=getattr(marshal, "location", None))
                     if typo_fix is not None:
                         resolved = typo_fix
                     elif typo_err is not None:
@@ -1053,6 +1063,7 @@ class StrategicExecutor:
                         # control: never invent a hold somewhere else and
                         # charge 2 AP for it).
                         terrain = unmapped_terrain_noun(dest)
+                        _one_name = (dest or "").strip()
                         if terrain:
                             message = (
                                 f"The map knows no {terrain} by that name, Sire "
@@ -1060,6 +1071,15 @@ class StrategicExecutor:
                                 f"Name one (e.g. '{marshal.name}, hold "
                                 f"{marshal.location}')."
                             )
+                        elif (THE_MARCH_ROAD_READS_ITS_ROADS and _one_name
+                              and len(_one_name.split()) == 1):
+                            # PC15-13 / CX3-X3: a single name the map lacks
+                            # ("Jena", once auto-corrected to Vienna) is a
+                            # destination plainly given — the roads out of his
+                            # province, never "I could not make out" (the
+                            # CA8-28 swallow above still keeps every guess out).
+                            message = self._executor._no_guess_answer(
+                                _one_name, world, marshal.location)["message"]
                         else:
                             message = (
                                 f"I could not make out a destination in that order, "

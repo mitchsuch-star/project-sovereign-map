@@ -79,6 +79,11 @@ THE_LEVY_LINE_IS_THE_QUOTE = True
 # needs no corps: with none at home the line reads the desk's own finder
 # (capital first, then by income). Lever down: a corps province or nothing.
 THE_BUILD_LINE_NEEDS_NO_CORPS = True
+
+# RS-15 (Score Finish Step 7 slice 5b): the corps province is ground that can
+# take nothing — the line falls back to the desk's finder rather than going
+# silent. Lever down: the corps province or nothing, as before.
+THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT = True
 # DESK-9's copy: what the counsel says when the day's military actions are
 # spent. A typed order, like every other line the counsel prints.
 END_TURN_LINE = "end turn — no military actions remain today"
@@ -449,22 +454,38 @@ def _build_terms(world, nation: str, limit: int = 2) -> List[str]:
         region_name = _first_own_region_that_can_build(world, nation)
     if not region_name:
         return []
-    region = world.get_region(region_name)
-    if region is None:
-        return []
-    for key, spec in BUILDING_TYPES.items():
-        try:
-            ok = can_build(world, region, key, nation)
-        except Exception:
-            continue
-        allowed = ok[0] if isinstance(ok, (tuple, list)) else bool(ok)
-        if not allowed:
-            continue
-        word = key.replace("_", " ")
-        out.append(f"build {word} in {region_name} — "
-                   f"{int(spec.get('gold_cost') or 0):,}g")
-        if len(out) >= limit:
-            break
+
+    def _lines_for(name: str) -> List[str]:
+        region = world.get_region(name)
+        if region is None:
+            return []
+        lines: List[str] = []
+        for key, spec in BUILDING_TYPES.items():
+            try:
+                ok = can_build(world, region, key, nation)
+            except Exception:
+                continue
+            allowed = ok[0] if isinstance(ok, (tuple, list)) else bool(ok)
+            if not allowed:
+                continue
+            word = key.replace("_", " ")
+            lines.append(f"build {word} in {name} — "
+                         f"{int(spec.get('gold_cost') or 0):,}g")
+            if len(lines) >= limit:
+                break
+        return lines
+
+    out = _lines_for(region_name)
+    if not out and THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT:
+        # RS-15 (Score Finish Step 7 slice 5b): the corps stands on ground
+        # that can take nothing (a province under 51 stability, its slots
+        # full, a work rising) — the counsel offered no build at all while
+        # 48 were legal elsewhere. The desk's own finder names a province
+        # that can take one (the same `region.can_build` gate).
+        from backend.ai.question_desk import _first_own_region_that_can_build
+        other = _first_own_region_that_can_build(world, nation)
+        if other and other != region_name:
+            out = _lines_for(other)
     return out
 
 

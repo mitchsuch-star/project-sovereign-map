@@ -128,6 +128,41 @@ def _verb_phrase(action: Optional[str], strategic_type: Optional[str],
     return f"{verb} {target}" if target else verb
 
 
+# CX3-X2 (Score Finish Step 7 slice 5b): "march to Ulm" asked "Which marshal
+# shall march to Ulm, Sire?" with eight choices, every one of which failed
+# ("Region 'Ulm' not found.") — the game offered sentences it cannot read
+# (CX-3's founding rule). A marshal-choice question is asked only about a
+# place the map has; otherwise the order's own refusal answers, free, with
+# no question staged. Lever down: the question is asked regardless.
+A_QUESTION_NAMES_A_PLACE_THAT_EXISTS = True
+
+
+def destination_refusal(world, parsed: Dict, executor) -> Optional[str]:
+    """The region matcher's own refusal for an unaddressed march / move /
+    hold whose place the map lacks, or None (the place exists, resolves as
+    a plausible typo, names a marshal, or the order names no place). The
+    executor's `_fuzzy_match_region` is the one source — the answer is the
+    one the order would give once a marshal is named."""
+    if not A_QUESTION_NAMES_A_PLACE_THAT_EXISTS or world is None or executor is None:
+        return None
+    command = parsed.get("command") or {}
+    action = command.get("action")
+    target = command.get("target")
+    strategic_type = parsed.get("strategic_type") if parsed.get("is_strategic") else None
+    if not target or not (action in ("move", "hold")
+                          or strategic_type in ("MOVE_TO", "HOLD")):
+        return None
+    if world.get_region(target) is not None or world.get_marshal(target) is not None:
+        return None
+    try:
+        region, err = executor._fuzzy_match_region(target, world)
+    except Exception:
+        return None
+    if region is not None:
+        return None
+    return str((err or {}).get("message") or f"Region '{target}' not found.")
+
+
 def build_marshal_choice_clarification(world, parsed: Dict,
                                        raw_input: str) -> Optional[Dict]:
     """Build the "Which marshal, Sire?" question for a valid order that

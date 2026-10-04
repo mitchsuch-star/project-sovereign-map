@@ -697,3 +697,18 @@ class TestClarificationEndpoint:
         # The interrupt is untouched — its own resolution still pending
         assert ney.pending_interrupt is not None
         ney.pending_interrupt = None
+
+
+def test_no_marshal_question_for_a_destination_the_map_lacks(endpoint):
+    """CX3-X2 (Score Finish Step 7 slice 5b): "march to Ulm" asked "Which
+    marshal shall march to Ulm, Sire?" with eight choices, every one refused
+    ("Region 'Ulm' not found."). The order's own refusal answers, free, with
+    no question staged — while a place the map has still asks."""
+    client, main_module = endpoint
+    reply = client.post("/command", json={"command": "march to Ulm"}).json()
+    assert reply.get("message") == "Region 'Ulm' not found.", reply.get("message")
+    assert reply.get("state") != "awaiting_clarification"
+    assert int(main_module.world.actions_remaining) == 4
+    asked = client.post("/command", json={"command": "march to Tyrol"}).json()
+    assert "Which marshal shall march to Tyrol" in str(asked.get("message")), asked.get("message")
+    assert asked.get("state") == "awaiting_clarification"

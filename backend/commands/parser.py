@@ -24,6 +24,7 @@ from backend.ai.attack_vocabulary import (IDIOM_FILLER_WORDS,
 from backend.ai.clause_guards import (
     HONORIFIC,
     is_question,
+    strip_condition_clauses,
     strip_deferred_clauses,
     strip_negated_clauses,
     strip_reason_clauses,
@@ -259,6 +260,10 @@ def _split_collective_address(command_text: str, game_state=None):
 # the silent second name.
 # ═══════════════════════════════════════════════════════════════════════
 THE_SECOND_NAME_IS_HEARD = True
+# SF7-X10 (Score Finish Step 7 slice 5b): the parser's fuzzy target scan
+# blanks a condition clause as it blanks a reason clause — a condition's
+# foe is never the order's target. Flip lever: False = the reason clause only.
+A_BLANKED_CLAUSE_NAMES_NO_TARGET = True
 SECOND_NAME_SUPPORT_ACTIONS = frozenset({"attack", "charge", "pursue", "bombard"})
 _REWARD_SECOND_NAME_VERBS = r"(?:grant|give|award|pay|endow|pension)"
 
@@ -2493,6 +2498,14 @@ class CommandParser:
             # blank is same-length, and `split()` drops it.
             _scan_text, _ = strip_reason_clauses(
                 command_text, foes=foe_names_for_guards(names=known_enemies))
+            # SF7-X10 (Score Finish Step 7 slice 5b): the CONDITION clause
+            # too — `Ney, fall back while Mack advances` (and `before …`,
+            # and the trailing `in case …` precaution) retreated correctly
+            # and then bound Mack as the retreat's destination ("Mack
+            # cannot be reached, Sire — no such province"). A condition's
+            # foe is never the order's target; the blank is same-length.
+            if A_BLANKED_CLAUSE_NAMES_NO_TARGET:
+                _scan_text, _ = strip_condition_clauses(_scan_text)
             words = _scan_text.split()
             for _wi, word in enumerate(words):
                 # Aug 30, 2026 review: the word BEFORE matters (see the
