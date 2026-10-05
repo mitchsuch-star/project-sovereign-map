@@ -169,6 +169,9 @@ const TOOL_SCRIPTS = [
 	"res://../../tools/ge3_congress_harness.gd",
 	# PC15-10 B4b "The one tail" — the stash-and-raise, driven (tests/test_b4b_the_one_tail.py)
 	"res://../../tools/b4b_one_tail_harness.gd",
+	# CX3-R9 (Score Finish Step 7 slice 8): the completer's screenshot tool —
+	# not driven by a pytest, parsed here because the slice changed it
+	"res://../../tools/cx3_completer_screenshot.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

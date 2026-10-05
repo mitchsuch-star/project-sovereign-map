@@ -885,7 +885,9 @@ MILITARY COMMANDS:
                "Ney, retreat" - Aggressive marshals may object!
 
   recruit    - Raise troops (1 Admin AP + gold)
-               "recruit" / "recruit for Davout" / "recruit at Paris"
+               "recruit for Davout" - his corps, where he stands
+               "recruit at Paris" / "recruit" - at the depot, or the
+               nearest corps: a marshal must stand within reach of it
                Infantry 10k / Cavalry 5k / Artillery 3k, from the
                manpower pools. PRICING: base 200-400g, capital -25%,
                x3 AT WAR, dearer above the FORCE LIMIT, and the

@@ -3607,6 +3607,10 @@ class CombatExecutor:
                     for n in world.notifications.get_pending()
                 )
                 if not already_has:
+                    # Chunk 9 (Step 7 slice 8): the row's message and its
+                    # button come from the ONE reader the dispatch uses.
+                    from backend.game_logic.dispatch import counter_punch_notice
+                    _cp = counter_punch_notice(defender, world)
                     world.notifications.add(create_notification(
                         notification_type=COUNTER_PUNCH_EARNED,
                         priority=NotificationPriority.HIGH,
@@ -3619,9 +3623,9 @@ class CombatExecutor:
                         # 0 at his next end turn. `combat.py:701`'s own
                         # comment says "Survives one turn transition"; the
                         # copy said two.
-                        message=f"{defender.name} earned a free attack from their defensive victory. Use it THIS turn or the opportunity expires.",
+                        message=_cp["message"],
                         turn_created=int(world.current_turn),
-                        details={"marshal": defender.name},
+                        details=_cp["details"],
                     ))
 
         # Drill cancelled: defender's drill training destroyed

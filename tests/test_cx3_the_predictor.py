@@ -297,6 +297,20 @@ class TestTheGameCanReadWhatItPrints:
                 failures.append((phrase, result.get("success"), action))
         assert not failures, failures
 
+    def test_every_exemption_is_not_a_command(self, board):
+        """CX3-R5 (Score Finish Step 7 slice 8): the allowlist was an
+        ASSERTION, never a proof — "Drillmaster of Boulogne" sat in it while
+        the parser read it as `drill` (the verb fired on the substring inside
+        the ability's name). Every exemption must now fail to parse as an
+        action, so the list cannot hide a phrasing the game would act on."""
+        acting = []
+        for phrase in sorted(self.NOT_COMMANDS):
+            result = _parse(board, phrase)
+            action = (result.get("command") or {}).get("action")
+            if result.get("success") and action not in (None, "unknown"):
+                acting.append((phrase, action))
+        assert not acting, acting
+
     def test_every_quoted_phrasing_survives_the_EXECUTOR(self):
         """Parsing is not enough. `"Davout, hold Ulm"` parses perfectly and
         the executor answers "Region 'Ulm' not found" — the map has Swabia,
@@ -446,8 +460,17 @@ class TestTheCompletionSurface:
 
     def test_tab_is_the_accept_key_and_was_free(self):
         """`KEY_TAB` was handled only with `alt_pressed` before CX-3, so
-        nothing was taken from the player to make room for it."""
+        nothing of the FILE's was taken to make room for it.
+
+        CX3-R6 (Score Finish Step 7 slice 8) — RE-SEATED CONSCIOUSLY: the
+        old arm (`KEY_TAB and _accept_suggestion()`) consumed Tab only when
+        a suggestion existed, so the binding it displaced was the ENGINE's
+        (`ui_focus_next`) and the caret left the line. The arm now owns Tab
+        unconditionally; the focus is pinned DRIVEN in
+        `test_cx7_predictor_driven.py::TestTabBelongsToTheCommandLine`."""
         source = _gd_source()
-        assert "elif event.keycode == KEY_TAB and _accept_suggestion():" in source
+        assert ("\t\t\tif event.shift_pressed:\n\t\t\t\t_cycle_suggestion_back()\n"
+                "\t\t\telse:\n\t\t\t\t_accept_suggestion()\n"
+                "\t\t\tcommand_input.accept_event()\n") in source
         assert "KEY_TAB, KEY_QUOTELEFT:" in source, (
             "the Alt+Tab terminal toggle must survive")

@@ -4469,6 +4469,14 @@ def counter_punch_foe_in_reach(marshal, world):
     prisoner is not a foe — and fog-visible). None does not mean nothing can
     be struck: a garrison in reach is a strike too, so the caller's note stays
     general rather than claim there is no foe."""
+    target = counter_punch_target(marshal, world)
+    return (target[1], target[2]) if target else None
+
+
+def counter_punch_target(marshal, world):
+    """The same reading with the foe's roster KEY: ``(key, display,
+    province)`` or None — the ONE reach both the dispatch note and the
+    rail row's button read (the button's command carries the key)."""
     try:
         reach = int(getattr(marshal, "movement_range", 1) or 1)
         here = marshal.location
@@ -4482,9 +4490,95 @@ def counter_punch_foe_in_reach(marshal, world):
         if not foes:
             return None
         _, name, where = min(foes)
-        return humanize_entity_name(name), where
+        return name, humanize_entity_name(name), where
     except Exception:
         return None
+
+
+# Chunk 9 (Score Finish Step 7 slice 8, October 4, 2026): the counter-punch
+# rail row carries its own button — UX23-A's idiom, the row's
+# `action_command` sent down the ordinary typed pipeline — read off the
+# dispatch's own reach, and re-derived on EVERY read of the rail
+# (`main._pending_notifications` — the foe a defender just threw back
+# usually retreats after the battle that earned the strike, and a strike
+# spent, a corps fortified or marched mid-turn changes the row before a
+# stale button can price the attack). A row whose strike is spent or
+# expired is retired: the rail is things still true. False = the
+# pre-slice row (no button, no re-derivation).
+THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON = True
+
+
+def counter_punch_notice(marshal, world) -> dict:
+    """The rail row's message and details for ``marshal``'s open strike:
+    a button only where the strike can be thrown as it stands (a foe in
+    sight and reach; the man not fortified or locked in drill — the
+    executor refuses both, and the note says so instead)."""
+    who = humanize_entity_name(marshal.name)
+    details = {"marshal": marshal.name}
+    message = (f"{who} earned a free attack from his defensive victory. "
+               f"Use it THIS turn or the opportunity expires.")
+    if not THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON or not marshal.has_counter_punch():
+        # the ONE predicate the attack itself reads (a cautious commander's
+        # unspent strike) — no button for a strike the executor would price
+        return {"message": message, "details": details}
+    target = counter_punch_target(marshal, world)
+    if target is None:
+        message += " No foe stands within his reach in sight now — a garrison in reach may still be struck."
+        return {"message": message, "details": details}
+    key, shown, where = target
+    message = (f"{who} earned a free attack from his defensive victory — {shown} "
+               f"stands within reach at {where}. Use it THIS turn or the "
+               f"opportunity expires.")
+    if getattr(marshal, "drilling_locked", False):
+        message += f" {who} is locked in drill this turn and can take no order."
+        return {"message": message, "details": details}
+    if getattr(marshal, "fortified", False):
+        from backend.commands.tactical_executor import unfortify_is_free
+        price = "free" if unfortify_is_free(marshal) else "1 action"
+        message += f" {who} must unfortify first ({price})."
+        return {"message": message, "details": details}
+    details.update({
+        "action_command": f"{marshal.name}, attack {key}",
+        "action_label": f"Strike {shown} — free",
+        "action_detail": (f"{shown} stands within reach at {where}. The "
+                          f"strike costs no action and expires when this "
+                          f"turn ends."),
+    })
+    return {"message": message, "details": details}
+
+
+def restate_counter_punch_notices(world) -> None:
+    """On every read of the rail: re-quote every standing counter-punch row
+    against the board as it now stands, or retire it once the strike is
+    spent or expired. In place (the collector's `refresh`, the row keeps
+    its id). Never raises — the rail is display."""
+    if not THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON:
+        return
+    try:
+        from backend.notifications import COUNTER_PUNCH_EARNED
+        collector = getattr(world, "notifications", None)
+        if collector is None:
+            return
+        for note in list(collector.get_pending()):
+            if note.get("type") != COUNTER_PUNCH_EARNED:
+                continue
+            name = str((note.get("details") or {}).get("marshal") or "")
+            marshal = (getattr(world, "marshals", {}) or {}).get(name)
+            live = (marshal is not None
+                    and marshal.has_counter_punch()
+                    and int(getattr(marshal, "counter_punch_turns", 0) or 0) > 0
+                    and not getattr(marshal, "captured_by", None))
+            if not live:
+                collector.dismiss(note.get("id"))
+                continue
+            fresh = counter_punch_notice(marshal, world)
+            restated = dict(note)
+            restated["message"] = fresh["message"]
+            restated["details"] = fresh["details"]
+            restated["turn_created"] = int(getattr(world, "current_turn", 0) or 0)
+            collector.refresh(restated)
+    except Exception:
+        return
 
 
 def _derive_marshal_status(marshal, world) -> tuple:

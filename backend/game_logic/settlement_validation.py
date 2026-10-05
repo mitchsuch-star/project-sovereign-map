@@ -337,6 +337,15 @@ PAIR_SUBSTITUTE_DISABLED_RENDER_CODES = frozenset({
 })
 
 
+# WO-D14 (Score Finish Step 7 slice 8, October 4, 2026): a road greyed for
+# want of diplomatic points names its PRICE — "Insufficient diplomatic
+# points for this proposal. It costs 3 DP; you have 0." — the figure the
+# gate refused against, in the words of the quote counsel reads
+# (`diplomacy.diplomatic_price_quote`; a drift pin holds the two equal).
+# False = the bare refusal.
+THE_GREYED_ROAD_NAMES_ITS_PRICE = True
+
+
 PAIR_SUBSTITUTE_REFUSAL_CODES = frozenset({
     "already_at_peace",
     "already_in_armistice",
@@ -495,7 +504,15 @@ def evaluate_pair_peace_substitute_eligibility(
             skill = 5
         cost = get_dp_cost(f"propose_{proposal_type}", skill, transition_base=jump_cost)
         if float(getattr(world, "diplomatic_points", 0) or 0) < float(cost):
-            return _refused("insufficient_resources")
+            refusal = _refused("insufficient_resources")
+            if THE_GREYED_ROAD_NAMES_ITS_PRICE:
+                # The figure this gate refused against, in the words of the
+                # shared quote (`diplomacy.diplomatic_price_quote` — the
+                # same "N DP; you have M"; a drift pin holds the two equal).
+                refusal["disabled_reason_display"] = (
+                    f"{refusal['disabled_reason_display']} It costs {int(cost)} DP; "
+                    f"you have {int(getattr(world, 'diplomatic_points', 0) or 0)}.")
+            return refusal
 
     return {
         "eligible": True,

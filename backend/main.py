@@ -591,6 +591,24 @@ def _cancel_blocked_message(world) -> str:
             f"Settle it before recalling orders.")
 
 
+def _pending_notifications(world) -> list:
+    """The notice rail as it stands NOW — the ONE reader every response
+    and `GET /notifications` ships.
+
+    Chunk 9 (Score Finish Step 7 slice 8): the counter-punch row carries a
+    button (`dispatch.counter_punch_notice`), so it is re-derived on every
+    read — a strike spent, a foe gone from reach, a corps that fortified
+    or marched mid-turn changes the row before the player can press a
+    stale button that would price the attack. The turn tick's CA9-N17
+    reconciliation reads only the flag, once a turn."""
+    try:
+        from backend.game_logic.dispatch import restate_counter_punch_notices
+        restate_counter_punch_notices(world)
+    except Exception:  # pragma: no cover - the rail is display
+        pass
+    return world.notifications.get_pending()
+
+
 def build_base_response(world, success: bool = True, message: str = "",
                         events: list = None,
                         include_popup_passthroughs: bool = True,
@@ -726,7 +744,7 @@ def build_base_response(world, success: bool = True, message: str = "",
     # and kept a ghost row on screen. Retiring a notification has to be
     # something the client can be told about, so an empty rail ships `[]`.
     if include_notifications:
-        response["notifications"] = world.notifications.get_pending()
+        response["notifications"] = _pending_notifications(world)
     # FA-89 (slice 17): the School's step, display-only and APPROXIMATE (a
     # floor on the overlay's own state), so an unattended run's digest can
     # say which beat the lesson had reached. None off the tutorial scenario,
@@ -1976,7 +1994,7 @@ def _finalize_command_notifications(response: dict, world) -> None:
     _queue_informational_diplomacy_notices(response, world)
     # Always emit the key — see the note in `build_base_response`. An omitted
     # key reads to the client as "no change", not "nothing left".
-    response["notifications"] = world.notifications.get_pending()
+    response["notifications"] = _pending_notifications(world)
 
 
 def _apply_command_result_layers(response: dict, result: dict, world) -> None:
@@ -6887,7 +6905,7 @@ def get_notifications():
     """Get all pending notifications."""
     if not game_state.get("world"):
         return {"success": False, "notifications": []}
-    return {"notifications": world.notifications.get_pending()}
+    return {"notifications": _pending_notifications(world)}
 
 
 # ════════════════════════════════════════════════════════════

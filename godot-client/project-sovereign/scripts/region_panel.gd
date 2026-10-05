@@ -72,6 +72,11 @@ func _on_avoid_control_changed():
 		_fit_height()
 
 var _region: String = ""
+# WO-V-D1 (Score Finish Step 7 slice 8): the Build rows fold behind one
+# header that names their count — the section had grown from one chips row
+# to a header plus up to seven terms rows and fell below the terminal-
+# clamped fold. Folded by default; the choice holds for the session.
+var _build_open := false
 var _map_node = null
 
 
@@ -146,6 +151,9 @@ func _on_meta_clicked(meta):
 			negotiate_requested.emit(nation)
 	elif meta_str == "admiralty":
 		admiralty_requested.emit()
+	elif meta_str == "toggle:build":
+		_build_open = not _build_open
+		_render()
 
 
 func _render() -> void:
@@ -182,9 +190,12 @@ func _render() -> void:
 		if dmark_fog is Dictionary and str(dmark_fog.get("line", "")) != "":
 			bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(dmark_fog.get("line", "")) + "[/color]\n"
 	else:
-		if visibility == "partial":
+		# WO-V-D2 (Score Finish Step 7 slice 8): no hedge on our own soil — its
+		# figures are exact by ownership (`world.region_econ_visible`), and
+		# "Partial (reports only)" above them read as doubt about all four.
+		if visibility == "partial" and controller != _PLAYER_NATION:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]Intel: Partial (reports only)[/color]\n"
-		elif visibility == "stale":
+		elif visibility == "stale" and controller != _PLAYER_NATION:
 			bbcode += "[color=#" + Utils.COLOR_ORANGE + "]Intel: Stale (outdated)[/color]\n"
 		var effective_income = int(data.get("effective_income", 0))
 		var stability = int(data.get("stability", 100))
@@ -488,13 +499,17 @@ func _render() -> void:
 			# The tier upkeep is one figure for every work here — said
 			# once on the header, not repeated per row.
 			var upkeep := int(terms.get("upkeep", 0))
-			var build_head := "  Build"
+			# WO-V-D1: one clickable header; the rows only when it is open.
+			var works := str(build_rows.size()) + (" work" if build_rows.size() == 1 else " works")
+			var build_head := "  [url=toggle:build]" + ("▾ Build" if _build_open else "▸ Build — " + works) + "[/url]"
 			if upkeep > 0:
 				build_head += " [color=#" + Utils.COLOR_GREY + "](each finished work keeps " + str(upkeep) + "g a turn)[/color]"
-			build_head += ":"
+			if _build_open:
+				build_head += ":"
 			action_rows.append(build_head)
-			for br in build_rows:
-				action_rows.append(br)
+			if _build_open:
+				for br in build_rows:
+					action_rows.append(br)
 		if build_chips != "":
 			action_rows.append("  Build: " + build_chips
 				+ ("" if admin_why == "" else "[color=#" + Utils.COLOR_DIMMED + "]" + admin_why + "[/color]"))

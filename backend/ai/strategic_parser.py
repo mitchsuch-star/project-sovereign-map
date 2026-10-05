@@ -1073,6 +1073,32 @@ def clause_is_a_hold_order(clause: str) -> bool:
 ARRIVAL_CARRYING_TYPES = frozenset({"MOVE_TO", "PURSUE"})
 
 
+# CX3-R2 (Score Finish Step 7 slice 8, October 4, 2026): a MOVE_TO keyword
+# that TAKES an object ("march to", "advance on", "make for") and is the
+# end of the line names no destination at all — it is not the vague
+# "march on the enemy" the generic resolution exists for. The completer
+# writes exactly that line ("Ney, march to ", one Tab from the verb), and
+# it cost an action, staged a standing order for the nearest enemy
+# province and raised a bad-odds interrupt at Mack, while its sibling
+# `move to ` asked where for free.
+_OBJECT_PREPOSITIONS = ("to", "toward", "towards", "for", "on", "upon")
+
+
+def march_slot_is_empty(raw_text) -> bool:
+    """CX3-R2: True when the line ENDS on a MOVE_TO keyword that takes an
+    object — the player named no destination. Read from the ONE strategic
+    routing table, longest keyword first."""
+    if not raw_text:
+        return False
+    text = re.sub(r"[\s.!?…]+$", "", str(raw_text).lower())
+    for keyword in sorted(STRATEGIC_KEYWORDS["MOVE_TO"], key=len, reverse=True):
+        if keyword.rsplit(" ", 1)[-1] not in _OBJECT_PREPOSITIONS:
+            continue
+        if re.search(r"(?:^|[\s,])" + re.escape(keyword) + r"$", text):
+            return True
+    return False
+
+
 def clause_can_carry_an_arrival(clause: str) -> bool:
     """CR-7-1 — can this clause, on its own, carry an attack-on-arrival
     tail?  True only for a marching order WITH a destination: a MOVE_TO or

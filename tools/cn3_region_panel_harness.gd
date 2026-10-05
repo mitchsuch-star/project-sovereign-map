@@ -108,6 +108,12 @@ func _tick():
 			_map.load_game_state(_spec.get("game_state", {}))
 			_panel = load("res://scenes/region_panel.tscn").instantiate()
 			root.add_child(_panel)
+			# WO-V-D1 (Score Finish Step 7 slice 8): the census reads every chip,
+			# so it opens the Build fold; the folded panel is recorded beside it
+			# (`folded_region` in the spec) for the fold's own pin — in the
+			# panel's OWN default state, read here before anything is set.
+			_result["build_open_default"] = bool(_panel.get("_build_open"))
+			_panel.set("_build_open", true)
 			_bench = load("res://scenes/marshal_management.tscn").instantiate()
 			root.add_child(_bench)
 			# CN-4: the diplomacy wizard, for its REAL `_build_command` and
@@ -118,6 +124,16 @@ func _tick():
 			_phase = "render"
 		"render":
 			# One frame after add_child: every @onready is bound.
+			var folded_region := str(_spec.get("folded_region", ""))
+			if folded_region != "":
+				# The default the panel opened with, then one click on the
+				# header through the panel's own link handler.
+				_panel.set("_build_open", bool(_result["build_open_default"]))
+				_panel.show_region(folded_region, _map)
+				_result["folded"] = _panel.content_area.text
+				_panel.call("_on_meta_clicked", "toggle:build")
+				_result["after_one_click"] = _panel.content_area.text
+				_panel.set("_build_open", true)
 			for region in _spec.get("regions", []):
 				_panel.show_region(str(region), _map)
 				_result["regions"][str(region)] = _panel.content_area.text

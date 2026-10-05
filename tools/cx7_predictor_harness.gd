@@ -84,6 +84,9 @@ func _tick():
 		"boot": _boot()
 		"settle": _settle()
 		"run": _run()
+		"r4_hidden": _r4_hidden()
+		"r4_shown": _r4_shown()
+		"auto_end": _auto_end()
 		"done": _finish()
 
 
@@ -134,6 +137,34 @@ func _key(code: int) -> void:
 	ev.pressed = true
 	_input.grab_focus()
 	_input.get_viewport().push_input(ev)
+
+
+func _shift_tab() -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_TAB
+	ev.shift_pressed = true
+	ev.pressed = true
+	_input.grab_focus()
+	_input.get_viewport().push_input(ev)
+
+
+func _focus_name() -> String:
+	var owner = _input.get_viewport().gui_get_focus_owner()
+	return str(owner.name) if owner != null else ""
+
+
+func _grip_gap() -> Dictionary:
+	# The grip straddles the panel's top-right corner when it is placed
+	# (`_position_resize_grip`'s own arithmetic); `gap` is how far it
+	# drifted from that corner, `panel_h` proves the panel did resize.
+	var panel = _main.get("bottom_left_ui")
+	var grip = _main.get("resize_grip")
+	if panel == null or grip == null:
+		return {"gap": -1.0, "panel_h": -1.0}
+	var rect: Rect2 = panel.get_global_rect()
+	var corner := Vector2(rect.position.x + rect.size.x, rect.position.y)
+	var center: Vector2 = grip.position + grip.size * 0.5
+	return {"gap": (center - corner).length(), "panel_h": rect.size.y}
 
 
 func _type(text: String) -> void:
@@ -240,6 +271,75 @@ func _run():
 	_key(KEY_TAB)
 	_out["tab_filled"] = _input.text
 	_out["tab_sent"] = ("send_command" in _api.calls)
+
+	# ── CX3-R6: Tab belongs to the command line, offered or not ───────
+	# A line with nothing to complete: Tab used to fall through to the
+	# engine's `ui_focus_next` and throw the caret to Execute.
+	_type("Ney, attack Mack at once")
+	_out["r6_offers"] = _offers().size()
+	_key(KEY_TAB)
+	_out["r6_focus_after_tab"] = _focus_name()
+	_out["r6_line_after_tab"] = _input.text
+	# Shift+Tab walks the list backward where there is one.
+	_type("Ney, attack ")
+	_out["r6_list_size"] = _offers().size()
+	_shift_tab()
+	_out["r6_shift_tab_index"] = _main.get("_suggestion_index")
+	_out["r6_focus_after_shift_tab"] = _focus_name()
+	_out["r6_line_after_shift_tab"] = _input.text
+
+	# ── CX3-R4: the grip follows the panel when the row opens ─────────
+	_type("")
+	_phase = "r4_hidden"
+	_wait = 6
+
+
+func _r4_hidden():
+	_out["r4_hidden"] = _grip_gap()
+	_type("Ney, attack ")
+	_phase = "r4_shown"
+	_wait = 6
+
+
+func _r4_shown():
+	_out["r4_row_visible"] = _row.visible
+	_out["r4_shown"] = _grip_gap()
+	_phase = "auto_end"
+
+
+func _status_line(summary: Dictionary) -> String:
+	_main.call("_update_status", summary)
+	var button = _main.get("end_turn_button")
+	return str(button.text) if button != null else ""
+
+
+func _auto_end():
+	# ── The auto-end confirm's client half (Chunk 9, slice 8) ─────────
+	# The real `_update_status` the backend's action_summary feeds: the
+	# warning is said once a turn before the day's last action, and the
+	# End Turn button says when a spent day waits on it.
+	var display = _main.get("output_display")
+	var before: String = display.get_parsed_text() if display != null else ""
+	var day := {"actions_remaining": 2, "max_actions": 4,
+		"admin_actions_remaining": 1, "max_admin_actions": 2, "turn": 7, "max_turns": 0}
+	_out["auto_end_button_full_day"] = _status_line(day)
+	day["admin_actions_remaining"] = 0
+	_out["auto_end_button_last_actions"] = _status_line(day)
+	day["actions_remaining"] = 1
+	_status_line(day)
+	var after: String = display.get_parsed_text() if display != null else ""
+	_out["auto_end_warnings_turn_7"] = after.substr(before.length()).count("ends the turn at once")
+	day["actions_remaining"] = 0
+	_out["auto_end_button_spent"] = _status_line(day)
+	day["turn"] = 8
+	day["actions_remaining"] = 4
+	day["admin_actions_remaining"] = 2
+	_out["auto_end_button_new_day"] = _status_line(day)
+	day["actions_remaining"] = 2
+	day["admin_actions_remaining"] = 0
+	_status_line(day)
+	var last: String = display.get_parsed_text() if display != null else ""
+	_out["auto_end_warnings_turn_8"] = last.substr(after.length()).count("ends the turn at once")
 	_phase = "done"
 
 

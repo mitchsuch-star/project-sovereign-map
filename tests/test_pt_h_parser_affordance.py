@@ -317,8 +317,24 @@ class TestCounterPunchPromisesOneTurn:
         """`combat.py:701`'s own comment reads "Survives one turn
         transition"; the copy said two. The notification fires on an
         ENEMY-PHASE defensive win and the counter ticks inside the same
-        `advance_turn`."""
+        `advance_turn`.
+
+        Re-seated consciously (Score Finish Step 7 slice 8): the copy moved
+        into the ONE source the combat seam posts, `dispatch.
+        counter_punch_notice`, so the pin reads the message it builds — and
+        that the seam reads it."""
+        from backend.game_logic.dispatch import counter_punch_notice
+
+        class _Man:
+            name = "Davout"
+
+            def has_counter_punch(self):
+                return False
+
+        message = counter_punch_notice(_Man(), None)["message"]
+        assert "Use it THIS turn" in message
+        assert "Use within 2 turns" not in message
         src = (REPO / "backend" / "commands"
                / "combat_executor.py").read_text(encoding="utf-8")
         assert "Use within 2 turns" not in src
-        assert "Use it THIS turn" in src
+        assert "counter_punch_notice(defender, world)" in src

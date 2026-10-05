@@ -370,7 +370,10 @@ def build_proper_name_clarification(world, marshal, foes, raw_input: str,
 
 
 def build_move_destination_clarification(world, marshal,
-                                         raw_input: str) -> Optional[Dict]:
+                                         raw_input: str,
+                                         verb: str = "move to",
+                                         strategic_type: Optional[str] = None,
+                                         ) -> Optional[Dict]:
     """"Where shall he march, Sire?" — the answer surface for a move order
     with no nameable destination.
 
@@ -396,7 +399,11 @@ def build_move_destination_clarification(world, marshal,
                   if world.get_region(r) is not None]
     if not neighbours:
         return None
-    if not _answer_is_affordable(world, "move"):
+    # CX3-R2: the march asks in its own verb (each option reissues
+    # "<marshal>, march to <province>" — a standing order, priced at the
+    # marshal's own strategic rate); the tactical move keeps "move to".
+    if not _answer_is_affordable(world, "move", strategic_type=strategic_type,
+                                 candidates=[marshal] if strategic_type else None):
         return None
 
     options: List[Dict] = []
@@ -406,9 +413,9 @@ def build_move_destination_clarification(world, marshal,
             "label": display,
             "value": "move_destination_choice",
             "target": name,
-            "command": f"{marshal.name}, move to {name}",
+            "command": f"{marshal.name}, {verb} {name}",
             "aliases": [name, display,
-                        f"move to {name}", f"move to {display}"],
+                        f"{verb} {name}", f"{verb} {display}"],
         })
 
     return _clarification_response(

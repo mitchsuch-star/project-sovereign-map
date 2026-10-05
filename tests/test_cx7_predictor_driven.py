@@ -199,3 +199,58 @@ class TestTheCompleterNeverSends:
 
     def test_tab_sends_nothing(self, driven):
         assert driven["tab_sent"] is False
+
+
+class TestTabBelongsToTheCommandLine:
+    """CX3-R6 (Score Finish Step 7 slice 8). Tab was consumed only when a
+    suggestion existed; on a line with nothing to complete it fell through
+    to the engine's `ui_focus_next` and threw the caret to Execute, after
+    which typed characters went nowhere. Shift+Tab was read as a forward
+    accept. Driven on the real scene, not read off the source."""
+
+    def test_a_tab_with_nothing_offered_keeps_the_caret(self, driven):
+        assert driven["r6_offers"] == 0, driven["r6_offers"]
+        assert driven["r6_focus_after_tab"] == "CommandInput", driven["r6_focus_after_tab"]
+        assert driven["r6_line_after_tab"] == "Ney, attack Mack at once"
+
+    def test_shift_tab_walks_the_list_back_and_keeps_the_caret(self, driven):
+        size = driven["r6_list_size"]
+        assert size >= 2, size
+        assert driven["r6_shift_tab_index"] == size - 1, driven["r6_shift_tab_index"]
+        assert driven["r6_focus_after_shift_tab"] == "CommandInput"
+        assert driven["r6_line_after_shift_tab"] == "Ney, attack "
+
+
+class TestTheGripFollowsThePanel:
+    """CX3-R4 (Score Finish Step 7 slice 8). The completion row grows the
+    terminal (a PanelContainer clamps up to its children's minimum) and the
+    resize grip stayed where it was — 21px off the corner it should straddle
+    at Interface Scale 1.0, onto the header."""
+
+    def test_the_row_resizes_the_panel(self, driven):
+        # the arm's precondition: without a resize the grip pins prove nothing
+        assert driven["r4_row_visible"] is True
+        assert driven["r4_shown"]["panel_h"] > driven["r4_hidden"]["panel_h"], (
+            driven["r4_hidden"], driven["r4_shown"])
+
+    def test_the_grip_straddles_the_corner_both_ways(self, driven):
+        assert 0.0 <= driven["r4_hidden"]["gap"] < 2.0, driven["r4_hidden"]
+        assert 0.0 <= driven["r4_shown"]["gap"] < 2.0, driven["r4_shown"]
+
+
+class TestTheDaySaysWhenItEnds:
+    """The auto-end confirm's client half (Chunk 9, Score Finish Step 7
+    slice 8), driven through the real `_update_status` the backend's
+    action_summary feeds. The backend auto-ends the turn when both pools are
+    spent (`WorldState.use_action`'s `should_end_turn`); the client never
+    said so before the order that did it."""
+
+    def test_the_warning_is_said_once_a_turn_before_the_last_action(self, driven):
+        assert driven["auto_end_warnings_turn_7"] == 1, driven["auto_end_warnings_turn_7"]
+        assert driven["auto_end_warnings_turn_8"] == 1, driven["auto_end_warnings_turn_8"]
+
+    def test_the_button_says_a_spent_day_waits_on_it(self, driven):
+        assert driven["auto_end_button_full_day"] == "End Turn (E)"
+        assert driven["auto_end_button_last_actions"] == "End Turn (E)"
+        assert driven["auto_end_button_spent"] == "End Turn (E) \u25b8"
+        assert driven["auto_end_button_new_day"] == "End Turn (E)"

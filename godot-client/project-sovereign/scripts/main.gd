@@ -362,6 +362,13 @@ var admin_actions_remaining = 2
 var max_admin_actions = 2
 var current_turn = 1
 var max_turns = 40
+# Chunk 9 — the auto-end's client half (Score Finish Step 7 slice 8):
+# the turn a warning was printed for, so it is said once a turn.
+var _auto_end_warned_turn := -1
+const AUTO_END_WARNING := ("▸ The administration is spent: the order that "
+	+ "spends your last action ends the turn at once.")
+const DAY_SPENT_BUTTON_TEXT := "End Turn (E) ▸"
+const END_TURN_BUTTON_TEXT := "End Turn (E)"
 var gold = 1200
 var infantry_pool = 80000
 var cavalry_pool = 15000
@@ -740,6 +747,15 @@ func _ready():
 		pause_menu.ui_scale_changed.connect(_on_ui_scale_changed)
 	if not resized.is_connected(_on_root_resized):
 		resized.connect(_on_root_resized)
+	# CX3-R4 (Score Finish Step 7 slice 8): the terminal is a PanelContainer
+	# that clamps up to its combined minimum, and the completion row is one
+	# more contributor to it — so the panel grew on the keystroke that opened
+	# the list and shrank on the one that closed it, while the resize grip
+	# stayed where it was and the map labels kept dodging the old rect. ONE
+	# connection closes the class: any resize of the panel re-runs the
+	# layout pass (both halves are deferred, so this cannot loop).
+	if bottom_left_ui != null and not bottom_left_ui.resized.is_connected(_reposition_after_layout):
+		bottom_left_ui.resized.connect(_reposition_after_layout)
 
 	# Start disabled until connected
 	set_input_enabled(false)
@@ -1123,10 +1139,20 @@ func _on_command_input_gui_input(event):
 			# reds `test_tab_is_the_accept_key_and_was_free`, whose docstring is
 			# about nothing having been taken from the player.
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_TAB and _accept_suggestion():
+		elif event.keycode == KEY_TAB:
 			# CX-3: Tab takes the highlighted completion, and Tab again walks
 			# the list. It never SENDS — the player still presses Enter, the
 			# same rule the tutorial's suggest chip obeys.
+			# CX3-R6 (Score Finish Step 7 slice 8): Tab belongs to the command
+			# line whether or not anything is offered. It was consumed only when
+			# a suggestion existed; otherwise it fell through to the engine's
+			# `ui_focus_next` and silently threw the caret to Execute, after
+			# which typed characters went nowhere. Shift+Tab walks the list
+			# backward (it used to be swallowed as a forward accept).
+			if event.shift_pressed:
+				_cycle_suggestion_back()
+			else:
+				_accept_suggestion()
 			command_input.accept_event()
 		elif event.keycode == KEY_UP:
 			_history_previous()
@@ -4933,11 +4959,41 @@ func _update_status(action_summary: Dictionary):
 	else:
 		admin_value.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))  # Blue when available
 	admin_value.text = str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions))
+	_note_the_end_of_the_day()
 
 	# Update top bar turn counter (HC-0: dated when the campaign carries
 	# a calendar anchor; "" keeps the plain "Turn N").
 	if top_bar:
 		top_bar.update_turn(current_turn, str(action_summary.get("calendar_label", "")))
+
+
+func _note_the_end_of_the_day() -> void:
+	"""Chunk 9 — the auto-end confirm's client half (Score Finish Step 7
+	slice 8, FOR USER CONFIRMATION). The backend keeps the military road's
+	auto-advance (the enemy phase must never be skipped) and, since AAR-12,
+	leaves an exhausted day to the player when its LAST order was
+	administrative. Two things the client never said:
+	  * before the day's last action — once a turn, when the administration
+	    is spent and the actions are down to the last one or two — that the
+	    order spending them ends the turn at once;
+	  * a day spent but waiting — the End Turn button is the next thing to
+	    press, and it says so.
+	No modal before an order: the typed `end turn` keeps its envoy-lapse
+	confirm, and WO-22 defers the auto-advance for envoys and an unanswered
+	capture question."""
+	if end_turn_button == null:
+		return
+	var spent := int(actions_remaining) <= 0 and int(admin_actions_remaining) <= 0
+	end_turn_button.text = DAY_SPENT_BUTTON_TEXT if spent else END_TURN_BUTTON_TEXT
+	if spent:
+		end_turn_button.add_theme_color_override("font_color", Color.html("#" + Utils.COLOR_GOLD))
+	else:
+		end_turn_button.remove_theme_color_override("font_color")
+	var last_action := (int(admin_actions_remaining) <= 0
+		and int(actions_remaining) > 0 and int(actions_remaining) <= 2)
+	if last_action and _auto_end_warned_turn != int(current_turn):
+		_auto_end_warned_turn = int(current_turn)
+		add_output("[color=#" + Utils.COLOR_DIMMED + "]" + AUTO_END_WARNING + "[/color]")
 
 
 func _update_diplomatic_top_bar(response: Dictionary):
@@ -8375,8 +8431,13 @@ func _add_continuations(marshal: String, rest: String, out: Array,
 				return
 
 
-func _add_verb_or_target(marshal: String, rest: String, prefix: String,
+func _add_verb_or_target(marshal: String, rest: String, _prefix: String,
 		out: Array, seen: Dictionary) -> void:
+	# CX3-R12: `_prefix` is unused ON PURPOSE. The verdict measured that
+	# filtering by it, as the sibling `_add_addressee_or_bare` does, ships a
+	# P2: this branch NORMALISES the player's spacing ("Ney,attack " offers
+	# "Ney, attack Mack"), and the canonical line is never a completion of
+	# the line as typed — wired, 1,016 of 1,486 measured lines went silent.
 	# CX-R2: a marshal not on the map (a prisoner, or on administrative
 	# duty) takes no field order — offer him none.
 	var key := _marshal_key_for(marshal)
@@ -8462,6 +8523,15 @@ func _cycle_suggestion() -> bool:
 	if _suggestions.is_empty():
 		return false
 	_suggestion_index = (_suggestion_index + 1) % _suggestions.size()
+	_render_suggestions()
+	return true
+
+
+func _cycle_suggestion_back() -> bool:
+	"""CX3-R6: Shift+Tab — the highlight steps to the previous offer."""
+	if _suggestions.is_empty():
+		return false
+	_suggestion_index = (_suggestion_index - 1 + _suggestions.size()) % _suggestions.size()
 	_render_suggestions()
 	return true
 

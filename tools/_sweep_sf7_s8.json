@@ -1,0 +1,247 @@
+[
+ {
+  "id": "CX3-R2 lever down: A_BARE_MARCH_ASKS_WHERE",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "A_BARE_MARCH_ASKS_WHERE = True",
+  "new": "A_BARE_MARCH_ASKS_WHERE = False",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere"
+ },
+ {
+  "id": "CX3-R2 the slot reader never reads an empty slot",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "        if re.search(r\"(?:^|[\\s,])\" + re.escape(keyword) + r\"$\", text):\n            return True\n",
+  "new": "        if re.search(r\"(?:^|[\\s,])\" + re.escape(keyword) + r\"$\", text):\n            return False\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere"
+ },
+ {
+  "id": "CX3-R2 the slot reader takes any keyword (no object preposition)",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "        if keyword.rsplit(\" \", 1)[-1] not in _OBJECT_PREPOSITIONS:\n            continue\n",
+  "new": "        pass\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere::test_the_slot_reader"
+ },
+ {
+  "id": "CX3-R2 the slot reader keeps the trailing punctuation",
+  "file": "backend/ai/strategic_parser.py",
+  "old": "    text = re.sub(r\"[\\s.!?…]+$\", \"\", str(raw_text).lower())\n",
+  "new": "    text = str(raw_text).lower()\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere::test_the_slot_reader"
+ },
+ {
+  "id": "CX3-R2 the AI is asked too (player-only guard dropped)",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                and marshal.nation == getattr(world, \"player_nation\", None)\n                and not command.get(\"_strategic_execution\")\n",
+  "new": "                and not command.get(\"_strategic_execution\")\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere::test_the_ai_is_never_asked"
+ },
+ {
+  "id": "CX3-R2 a standing order's turn is asked (execution guard dropped)",
+  "file": "backend/commands/strategic_executor.py",
+  "old": "                and marshal.nation == getattr(world, \"player_nation\", None)\n                and not command.get(\"_strategic_execution\")\n",
+  "new": "                and marshal.nation == getattr(world, \"player_nation\", None)\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere::test_a_standing_order_turn_is_never_asked"
+ },
+ {
+  "id": "CX3-R2 the options reissue the tactical move",
+  "file": "backend/commands/clarification.py",
+  "old": "            \"command\": f\"{marshal.name}, {verb} {name}\",\n",
+  "new": "            \"command\": f\"{marshal.name}, move to {name}\",\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere"
+ },
+ {
+  "id": "CX3-R2 the question prices the generic floor, not the marshal",
+  "file": "backend/commands/clarification.py",
+  "old": "                                 candidates=[marshal] if strategic_type else None):\n",
+  "new": "                                 candidates=None):\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestABareMarchAsksWhere::test_the_question_prices_the_marshals_own_rate"
+ },
+ {
+  "id": "CX3-R5 lever down: THE_DRILL_IS_A_WORD",
+  "file": "backend/ai/llm_client.py",
+  "old": "THE_DRILL_IS_A_WORD = True",
+  "new": "THE_DRILL_IS_A_WORD = False",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheDrillIsAWord"
+ },
+ {
+  "id": "CX3-R5 the word reader forgets train",
+  "file": "backend/ai/llm_client.py",
+  "old": "    r\"\\b(?:drill(?:s|ed|ing)?|train(?:s|ed|ing)?|exercis(?:e|es|ed|ing))\\b\")\n",
+  "new": "    r\"\\b(?:drill(?:s|ed|ing)?|exercis(?:e|es|ed|ing))\\b\")\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheDrillIsAWord"
+ },
+ {
+  "id": "CX3-R11 the manual leads with the bare recruit again",
+  "file": "backend/commands/meta_executor.py",
+  "old": "               \"recruit for Davout\" - his corps, where he stands\n",
+  "new": "               \"recruit\" - his corps, where he stands\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheHoldAndTheManual::test_the_manuals_first_recruit_form_runs_on_the_boot_board"
+ },
+ {
+  "id": "CX3-R11 the manual forgets the reach condition",
+  "file": "backend/commands/meta_executor.py",
+  "old": "               nearest corps: a marshal must stand within reach of it\n",
+  "new": "               nearest corps\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheHoldAndTheManual::test_the_manuals_first_recruit_form_runs_on_the_boot_board"
+ },
+ {
+  "id": "WO-D14 lever down: THE_GREYED_ROAD_NAMES_ITS_PRICE",
+  "file": "backend/game_logic/settlement_validation.py",
+  "old": "THE_GREYED_ROAD_NAMES_ITS_PRICE = True",
+  "new": "THE_GREYED_ROAD_NAMES_ITS_PRICE = False",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheGreyedRoadNamesItsPrice"
+ },
+ {
+  "id": "WO-D14 the price states another figure than the gate refused against",
+  "file": "backend/game_logic/settlement_validation.py",
+  "old": "                    f\"{refusal['disabled_reason_display']} It costs {int(cost)} DP; \"\n",
+  "new": "                    f\"{refusal['disabled_reason_display']} It costs {int(cost) + 1} DP; \"\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheGreyedRoadNamesItsPrice::test_a_road_short_of_points_states_the_price"
+ },
+ {
+  "id": "CP lever down: THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON = True",
+  "new": "THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON = False",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton"
+ },
+ {
+  "id": "CP an aggressive man gets the button (has_counter_punch dropped)",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if not THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON or not marshal.has_counter_punch():\n",
+  "new": "    if not THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON:\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_an_aggressive_man_holds_no_strike_and_gets_no_button"
+ },
+ {
+  "id": "CP a drill-locked man gets the button",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if getattr(marshal, \"drilling_locked\", False):\n        message += f\" {who} is locked in drill this turn and can take no order.\"\n",
+  "new": "    if False:\n        message += f\" {who} is locked in drill this turn and can take no order.\"\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_a_drill_locked_man_gets_the_note_not_the_button"
+ },
+ {
+  "id": "CP a fortified man gets the button",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "    if getattr(marshal, \"fortified\", False):\n        from backend.commands.tactical_executor import unfortify_is_free\n",
+  "new": "    if False:\n        from backend.commands.tactical_executor import unfortify_is_free\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_a_fortified_man_gets_the_note_not_the_button"
+ },
+ {
+  "id": "CP the reach reads too wide",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if hops <= reach:\n                foes.append((hops, enemy.name, enemy.location))\n",
+  "new": "            if hops <= reach + 9:\n                foes.append((hops, enemy.name, enemy.location))\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_a_foe_in_sight_but_out_of_reach_gets_no_button"
+ },
+ {
+  "id": "CP a dead row is never retired",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "            if not live:\n                collector.dismiss(note.get(\"id\"))\n                continue\n",
+  "new": "            if not live:\n                continue\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton"
+ },
+ {
+  "id": "CP a spent clock keeps the row",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                    and int(getattr(marshal, \"counter_punch_turns\", 0) or 0) > 0\n",
+  "new": "",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_a_captured_or_spent_man_loses_the_row_on_the_next_read"
+ },
+ {
+  "id": "CP a prisoner keeps the row",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                    and not getattr(marshal, \"captured_by\", None))\n",
+  "new": "                    )\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_a_captured_or_spent_man_loses_the_row_on_the_next_read"
+ },
+ {
+  "id": "CP the rail reader never re-derives",
+  "file": "backend/main.py",
+  "old": "        from backend.game_logic.dispatch import restate_counter_punch_notices\n        restate_counter_punch_notices(world)\n    except Exception:  # pragma: no cover - the rail is display\n",
+  "new": "        pass\n    except Exception:  # pragma: no cover - the rail is display\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton"
+ },
+ {
+  "id": "CP the combat seam posts the plain row",
+  "file": "backend/commands/combat_executor.py",
+  "old": "                        details=_cp[\"details\"],\n",
+  "new": "                        details={\"marshal\": defender.name},\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheCounterPunchRowHasItsButton::test_the_combat_seam_posts_the_row_with_its_button"
+ },
+ {
+  "id": "WO-V-D1 the Build rows open by default",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "var _build_open := false\n",
+  "new": "var _build_open := true\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheBuildRowsFold"
+ },
+ {
+  "id": "WO-V-D1 the header link opens nothing",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "\telif meta_str == \"toggle:build\":\n\t\t_build_open = not _build_open\n",
+  "new": "\telif meta_str == \"toggle:build\":\n\t\tpass\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheBuildRowsFold::test_one_click_on_the_header_opens_the_rows"
+ },
+ {
+  "id": "WO-V-D1 the folded header forgets the count",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "(\"▾ Build\" if _build_open else \"▸ Build — \" + works)",
+  "new": "(\"▾ Build\" if _build_open else \"▸ Build\")",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheBuildRowsFold"
+ },
+ {
+  "id": "WO-V-D2 our own soil carries the hedge again",
+  "file": "godot-client/project-sovereign/scripts/region_panel.gd",
+  "old": "\t\tif visibility == \"partial\" and controller != _PLAYER_NATION:\n",
+  "new": "\t\tif visibility == \"partial\":\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheClientHalf::test_our_own_soil_carries_no_fog_hedge"
+ },
+ {
+  "id": "CX3-R6 Shift+Tab accepts forward again",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\t\t\tif event.shift_pressed:\n\t\t\t\t_cycle_suggestion_back()\n",
+  "new": "\t\t\tif event.shift_pressed:\n\t\t\t\t_accept_suggestion()\n",
+  "tests": "tests/test_cx7_predictor_driven.py::TestTabBelongsToTheCommandLine"
+ },
+ {
+  "id": "CX3-R4 the panel resize never reruns the layout",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tbottom_left_ui.resized.connect(_reposition_after_layout)\n",
+  "new": "\tpass\n",
+  "tests": "tests/test_cx7_predictor_driven.py::TestTheGripFollowsThePanel"
+ },
+ {
+  "id": "Auto-end the status pass never notes the day",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tadmin_value.text = str(int(admin_actions_remaining)) + \"/\" + str(int(max_admin_actions))\n\t_note_the_end_of_the_day()\n",
+  "new": "\tadmin_value.text = str(int(admin_actions_remaining)) + \"/\" + str(int(max_admin_actions))\n",
+  "tests": "tests/test_cx7_predictor_driven.py::TestTheDaySaysWhenItEnds"
+ },
+ {
+  "id": "Auto-end the warning repeats every status pass",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tif last_action and _auto_end_warned_turn != int(current_turn):\n",
+  "new": "\tif last_action:\n",
+  "tests": "tests/test_cx7_predictor_driven.py::TestTheDaySaysWhenItEnds::test_the_warning_is_said_once_a_turn_before_the_last_action"
+ },
+ {
+  "id": "Auto-end the spent day keeps the plain label",
+  "file": "godot-client/project-sovereign/scripts/main.gd",
+  "old": "\tend_turn_button.text = DAY_SPENT_BUTTON_TEXT if spent else END_TURN_BUTTON_TEXT\n",
+  "new": "\tend_turn_button.text = END_TURN_BUTTON_TEXT\n",
+  "tests": "tests/test_cx7_predictor_driven.py::TestTheDaySaysWhenItEnds::test_the_button_says_a_spent_day_waits_on_it"
+ },
+ {
+  "id": "EAS-2 the lead row is not sized",
+  "file": "godot-client/project-sovereign/scripts/campaign_log.gd",
+  "old": "const TIER_FONT_SIZES := {\"lead\": 14, \"notable\": 12, \"routine\": 11}",
+  "new": "const TIER_FONT_SIZES := {\"lead\": 12, \"notable\": 12, \"routine\": 11}",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheClientHalf::test_the_log_sizes_a_row_by_its_tier"
+ },
+ {
+  "id": "CX3-R9 the screenshot reads the stub again",
+  "file": "tools/cx3_completer_screenshot.gd",
+  "old": "\t\t_main._last_game_state = _board()\n",
+  "new": "\t\t_main._last_game_state = STATE\n",
+  "tests": "tests/test_sf7_s8_the_screen_says.py::TestTheClientHalf::test_the_screenshot_board_is_the_real_boot"
+ }
+]

@@ -47,6 +47,15 @@ var header_buttons: Dictionary = {}
 var turn_data: Dictionary = {}
 
 
+# EAS-2 (Score Finish Step 7 slice 8): a row's size follows the backend's
+# importance tier (`campaign_log.event_tier`: lead / notable / routine, the
+# 171 types partitioned) — the one dramatic line of a turn sat among the
+# routine ones in identical styling. A row without a tier (an older
+# payload, or the backend lever down) keeps the old size.
+const TIER_FONT_SIZES := {"lead": 14, "notable": 12, "routine": 11}
+const DEFAULT_ROW_FONT_SIZE := 12
+
+
 func _ready():
 	close_button.pressed.connect(close_log)
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -124,14 +133,20 @@ func _on_campaign_log_received(response):
 			label.bbcode_enabled = true
 			label.fit_content = true
 			label.scroll_active = false
-			label.add_theme_font_size_override("normal_font_size", 12)
+			var tier = str(evt.get("tier", ""))
+			var row_size := int(TIER_FONT_SIZES.get(tier, DEFAULT_ROW_FONT_SIZE))
+			label.add_theme_font_size_override("normal_font_size", row_size)
+			label.add_theme_font_size_override("bold_font_size", row_size)
 
 			var category = evt.get("category", "unknown")
 			var icon = _category_icon(str(category))
 			var color = CATEGORY_COLORS.get(category, "a0a0a8")
 			var display_text = evt.get("display", "Unknown event")
+			var body = Utils.humanize_nation_keys_in_text(str(display_text))
+			if tier == "lead":
+				body = "[b]" + body + "[/b]"
 
-			label.text = "  %s [color=#%s]%s[/color]" % [icon, color, Utils.humanize_nation_keys_in_text(str(display_text))]
+			label.text = "  %s [color=#%s]%s[/color]" % [icon, color, body]
 			event_container.add_child(label)
 
 		if is_first:

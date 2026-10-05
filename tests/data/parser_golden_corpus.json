@@ -2831,6 +2831,17 @@
       "source": "CR-1 authored (action coverage gate)"
     },
     {
+      "id": "cx3r5-an-ability-name-is-not-a-drill",
+      "utterance": "Drillmaster of Boulogne",
+      "world": "any",
+      "expected": {
+        "success": false,
+        "not_action": "drill"
+      },
+      "source": "CX3-R5 (BUG_FIXES.md) — Score Finish Step 7 slice 8",
+      "notes": "Soult's ability name, as the completer offers it. The drill branch matched the bare substring, so the name parsed as a drill order with no marshal and the game asked which marshal should carry it out. The drill verb is now a word (llm_client.THE_DRILL_IS_A_WORD); the drill forms (drill / train / exercise and their inflections) still drill."
+    },
+    {
       "id": "ney-go-aggressive",
       "utterance": "Ney, go aggressive",
       "world": "any",

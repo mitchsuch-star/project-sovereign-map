@@ -8,6 +8,12 @@ import random
 from typing import Dict, List, Optional
 from backend.ai.generic_targets import is_generic_target
 from backend.ai.strategic_parser import unmapped_terrain_noun
+from backend.ai.strategic_parser import march_slot_is_empty  # CX3-R2
+
+# CX3-R2 (Score Finish Step 7 slice 8, October 4, 2026): a march with an
+# EMPTY destination slot asks where, free, as `move to` does. False = the
+# pre-slice generic resolution (the nearest enemy province, priced).
+A_BARE_MARCH_ASKS_WHERE = True
 # NP-V: who SAYS an interrupt line (see marshal_voice.interrupt_speaker).
 from backend.game_logic.marshal_voice import interrupt_speaker
 from backend.ai.nation_names import (
@@ -763,6 +769,22 @@ class StrategicExecutor:
         # tactical side rejected the very value the prompt tells the model to
         # produce.
         is_generic = is_generic_target(target) or target_type == "generic"
+        # CX3-R2: "Ney, march to" named no destination — ask, free (the
+        # player's own order only; an AI rung always names its province).
+        if (A_BARE_MARCH_ASKS_WHERE and is_generic and strategic_type == "MOVE_TO"
+                and marshal.nation == getattr(world, "player_nation", None)
+                and not command.get("_strategic_execution")
+                and march_slot_is_empty(parsed_command.get("raw_input"))):
+            from backend.commands.clarification import (
+                build_move_destination_clarification)
+            ask = build_move_destination_clarification(
+                world, marshal, str(parsed_command.get("raw_input") or ""),
+                verb="march to", strategic_type="MOVE_TO")
+            if ask is not None:
+                return ask
+            return {"success": False, "free_action": True,
+                    "message": (f"Where shall {marshal.name} march, Sire? He stands at "
+                                f"{humanize_entity_name(marshal.location)}. Name a destination.")}
         if is_generic:
             resolution = self._resolve_generic_target(
                 marshal, strategic_type, target, world, parsed_command

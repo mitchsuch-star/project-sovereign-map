@@ -696,6 +696,16 @@ _GET_IT_BUILT_RE = re.compile(
     re.IGNORECASE)
 
 
+# CX3-R5 (Score Finish Step 7 slice 8, October 4, 2026): the drill verb is a
+# WORD. The branch matched the substring, so the ability name the game
+# prints, "Drillmaster of Boulogne", read as an order ("Which marshal shall
+# carry out this order, Sire?") — CX-5's own shape ("the retreat is
+# sometimes a noun") one verb over. False = the substring test.
+THE_DRILL_IS_A_WORD = True
+_DRILL_WORD_RE = re.compile(
+    r"\b(?:drill(?:s|ed|ing)?|train(?:s|ed|ing)?|exercis(?:e|es|ed|ing))\b")
+
+
 # SF7-X9 (Score Finish Step 7 slice 5b): the place a scout names, kept for
 # the executor's region matcher. Lever down: an unknown place is dropped and
 # the bare scout runs (as shipped).
@@ -3515,7 +3525,9 @@ class LLMClient:
         # Restrain must be checked BEFORE drill (restrain contains "train")
         elif "restrain" in command_lower:
             action = "restrain"
-        elif "drill" in command_lower or "train" in command_lower or "exercise" in command_lower:
+        elif ((THE_DRILL_IS_A_WORD and _DRILL_WORD_RE.search(command_lower))
+              or (not THE_DRILL_IS_A_WORD and ("drill" in command_lower or "train" in command_lower
+                                               or "exercise" in command_lower))):
             action = "drill"
         # Stance system (Phase 2.7) - Check for stance-related commands
         # Supports: "Ney aggressive", "go aggressive", "aggressive stance", "be aggressive", etc.
