@@ -1,8 +1,8 @@
-# NEXT SESSION PROMPT — Score Finish Step 9: the residue of the final reading
+# NEXT SESSION PROMPT — Score Finish Step 9: SF-RR1 part (ii), then RR2 … RR6
 
 > Overwritten each time a session hands off. Current hand-off: **October 5, 2026,
-> after Step 8, SF-R "the final reading", was read** (memo
-> `docs/audits/SCORE_FINAL_2026_10_05.md`).
+> after Step 8 (SF-R) was read and SF-RR1 part (i) landed the same session.**
+> The P1 SFR-D11 is FIXED and the census reads no P1.
 > Routing authority: `docs/SCORE_FINISH_SPEC.md` §3 Step 9; `docs/STATUS.md`
 > ▶ NEXT UP and the `CLAUDE.md` LIVE STATE line point there.
 >
@@ -10,26 +10,51 @@
 
 ---
 
-**Score Finish Step 9, "the residue of the final reading".** Work directly on master per `CLAUDE.md`'s workflow. Commit and push at every clean slice.
+**Score Finish Step 9, SF-RR1 part (ii) "the orders the reading met", then SF-RR2 … RR6.** Work directly on master per `CLAUDE.md`'s workflow. Commit and push at every clean slice.
 
 **Where things stand.**
-- **The final reading** (`docs/audits/SCORE_FINAL_2026_10_05.md`):
-  - directional 6.71 → 7.50 over 13 of 14;
-  - 8 of 14 pillars at target;
-  - **command capped at 6.00 by SFR-D11**, a P1 the reading verified at the wire: `Lannes, march home to Franche-Comte` marches to Lorraine;
-  - the done-when NOT met.
-- **The census:** defect **77 OPEN** (1 P1 · 30 P2 · 39 P3 · 7 P4); design 2 OPEN (SF-NAV-1-D1, SFR-DR1 — the user's). Run `tools/defect_census.py --by-pillar` to see them.
-- **The rows:** every one is in `docs/BUG_FIXES.md` §Score Finish Step 8, tagged `⟨SF step=9 · SF-RRn · pillar=…⟩`.
+- **The final reading** (`docs/audits/SCORE_FINAL_2026_10_05.md`, authoritative; it stands as measured):
+  - directional 6.71 → 7.50 over 13 of 14, with 8 of 14 pillars at target;
+  - command was capped at 6.00 by SFR-D11;
+  - the done-when is NOT met.
+- **SF-RR1 part (i) landed after the reading** (rules `SYSTEMS_REFERENCE.md` §96; pins `tests/test_sf_rr1_the_orders_the_reading_met.py`):
+  - SFR-D11: `march home/back to <province>` names the province;
+  - SFR-H1: the contracted premise `if Mack's still in Swabia` is read;
+  - the fresh HOLD arm reads command C3 **12 of 20** (bar 18).
+- **The census:** `.venv/Scripts/python.exe -X utf8 tools/defect_census.py --by-pillar`. Defect **75 OPEN, 0 P1**; design 2 OPEN (SF-NAV-1-D1, SFR-DR1 — the user's).
 
-**The slices** (`SCORE_FINISH_SPEC.md` §3 Step 9 — the table names each slice's rows, its done-when and its test file):
-1. **SF-RR1 "the orders the reading met"** — **SFR-D11 first** (the adverb "home"/"back" rides into the destination and the nearest-province reading replaces a province the player named; reproduce at `POST /command` with Lannes placed at Rhineland), then the HOLD's order misses SFR-H1 … H3, H5 … H7, H13 (H1's root is measured: `condition_grammar._PREMISE_RE` cannot read "Mack's still in") and the depth campaign's command rows.
-2. **SF-RR2 "the desk answers what was asked"** — the HOLD's question misses and the depth campaign's desk shrugs.
-3. **SF-RR3 "the page and the copy"**.
-4. **SF-RR4 "war, truce and the standing order"** — opens with **SFR-DR1's probe**: on the CMD-A save at turn 31, name per league court the rung each corps chose and the restraint that held it. The ruling after the probe is the user's.
-5. **SF-RR5 "the frames at both scales"** — ⛔ needs Godot windows: ASK the user first.
-6. **SF-RR6 "the instrument reads what the player sees"** — the three wrong readers and the drifted DL arm (SFR-I2 … I7), then re-read BOTH archives (`docs/audits/score_runs/2026_09_29_c20d5bba` and `…/2026_10_05_sfr`) with the corrected readers and publish the deltas.
+**SF-RR1 part (ii) — the 16 open command rows** (all in `docs/BUG_FIXES.md` §Score Finish Step 8, tagged `⟨SF step=9 · SF-RR1 · pillar=command⟩`). **Reproduce every row at `POST /command` before writing a line.** The D-rows say "unverified beyond the playtester's quoted digest lines", and an agent-played depth campaign over-grades.
+- **From the HOLD arm** (verified at the wire):
+  - SFR-H2 — `pass the Staff law` asks for a marshal named Staff. "pass" and "adopt" should be the law router's `enact`.
+  - SFR-H3 — a typo after `Tell X to` is not repaired, and `in case …` is not read as a reason clause.
+  - SFR-H5 — an affordability premise is refused as a contingency. The build's own price check IS the premise.
+  - SFR-H6 — `commission another marshal` reads "Another" as a candidate's name. It should open the bench.
+  - SFR-H7 — a levy refused on enemy ground names the ground, not the marshal standing there.
+  - SFR-H13 — a premise that is already true is refused as a contingency. Ney had beaten Mack, so the premise is a checkable fact.
+- **From the depth campaign:**
+  - SFR-D7 — an order naming a province the marshal is not in is carried out where he stands, without a word.
+  - SFR-D8 — a reward read as a charge. The quoted reply looks like the reward road's own deed gate (F4), so it may close as not-a-defect.
+  - SFR-D9 — `drill your guard` became a HOLD.
+  - SFR-D10 and SFR-D38 — compounds lose their second half, and one is reported done while it was not. Read CR-7-1's relay first (`SYSTEMS_REFERENCE.md` §4 Stage 2a–2f).
+  - SFR-D20 — a trailing `if he is still standing` premise.
+  - SFR-D24 — `stop chasing John and hold where you are` is refused for a destination.
+  - SFR-D25 — `Lannes and Murat, scout Tyrol` drops Murat. CQ-8/CQ-38 relay the second name by design, so check whether the relay line was simply unseen.
+  - SFR-D37 — common phrasings that fail keyless. Part (i) left `return home to …`, `go back to …` and `withdraw home to …` honestly refused.
+  - SFR-D41 — asked for cavalry, paid for infantry. Check PF-7's surfaced correction and CN-1's landing record (`docs/audits/RECRUIT_ARM_UX_2026_09_20.md`) before treating it as mechanics; the fix may be copy.
 
-**After each slice:** its session exit re-reads the AUTO items it touched with `score_run.py check` and reports item flips, never a score (§5). The reading itself stands as measured.
+**Then the remaining slices** (`SCORE_FINISH_SPEC.md` §3 Step 9 — the table names each slice's rows, its done-when and its test file):
+- **SF-RR2 "the desk answers what was asked"** — the HOLD's question misses and the depth campaign's desk shrugs.
+- **SF-RR3 "the page and the copy".**
+- **SF-RR4 "war, truce and the standing order"** — opens with **SFR-DR1's probe**: on the CMD-A save at turn 31, name for each league court the rung each corps chose and the restraint that held it. The ruling after the probe is the user's.
+- **SF-RR5 "the frames at both scales"** — ⛔ needs Godot windows: ASK the user first.
+- **SF-RR6 "the instrument reads what the player sees"** — the three wrong readers and the drifted DL arm (SFR-I2 … I7). Then re-read BOTH archives (`docs/audits/score_runs/2026_09_29_c20d5bba` and `…/2026_10_05_sfr`) with the corrected readers and publish the deltas.
+
+**After each slice:** its session exit re-reads the AUTO items it touched with `score_run.py check` and reports item flips, never a score (§5). For SF-RR1 the cheap read is the HOLD arm:
+```
+score_run.py run --only HOLD --out <dir>
+score_run.py check <dir>
+```
+Report command C3's count of 20.
 
 **Waiting on the user:**
 - §6 rows 18 and 22 (recommendations not applied — before any next reading);
@@ -49,7 +74,7 @@
 - **Any `.gd` change:** run the parse harness (Start-Process, exit code) and a boot smoke (`--headless … res://scenes/main.tscn --quit-after 400 --log-file <log>` with `SOVEREIGN_PORT` set to an unused port; grep `SCRIPT ERROR`).
 - **Every slice gets a mutation sweep.** Never run it while the suite runs; run `git diff` after it.
 - **`BASELINE_SERIES` and M1–M7** stay byte-identical unless the slice says otherwise.
-- **Every commit carries:** the landing record, STATUS ▶ NEXT UP, the CLAUDE.md LIVE STATE line, the BUG_FIXES / DESIGN_REFINEMENT dispositions, the SYSTEMS_REFERENCE section and the census line.
+- **Every commit carries:** the landing record, STATUS ▶ NEXT UP, the CLAUDE.md LIVE STATE line, the BUG_FIXES / DESIGN_REFINEMENT dispositions, the SYSTEMS_REFERENCE section (Step 9 is §96) and the census line.
 - **Overwrite this file with your own hand-off in your last commit.**
 
 **Traps learned on October 5:**
@@ -58,3 +83,6 @@
 - **An item's evidence string is truncated** (`misses[:4]`). Read the reader's full list before filing.
 - **The ledger's census reads tags and upper-case words:** never write the phrase OPEN REMAINDER in a closing note, and keep an OPEN row's last cell free of FIXED / CLOSED / BUILT.
 - **A digest line beats an agent's summary.** The depth campaign's claimed P1s were re-graded on the digests: one was the driver's own fixed answer, and one was a warning, not a loss.
+- **The strategic parser's purpose cut** (`_clean_target_text`: `\s+(?:in order to|so as to|so that|to)\s+\w+.*$`) reads any " to <word>" as a purpose clause. A destination after a connector must be read from the RAW line, as SFR-D11's `province_named_after_relative` does — not from the cleaned target.
+- **`tests/data/parser_golden_corpus.json` is CRLF.** Edit it through a load/save that keeps the line endings.
+- **The wire-test fixture that works:** delenv SOVEREIGN_SCENARIO/MAP/SMOKE_START, `LLM_MODE=mock`, `M._reset_world_state()`, then `monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))`. Copy `shipped` from `tests/test_sf_rr1_the_orders_the_reading_met.py`.

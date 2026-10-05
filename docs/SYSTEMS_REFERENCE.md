@@ -8977,3 +8977,15 @@ The reading reports what the instrument built before it read; the corrected mark
 ### 95.5 The panel's aggregation
 
 `tools/score_panel.py` is §4.5's last step: `eyes RUN` writes `eyes_panel.json`, the EYES marks two of the three scorers judged the same way (a "cannot judge" is no vote), provisional until the user marks them; `publish RUN` writes `panel.json`, each scorer's score as the rule's anchor (the low end in `scores.json`, read after `check --eyes`) plus its adjustment clamped to ±0.25, with the median, the spread and every flag. `score_run.py compare` reads `panel.json`. The final reading's panel was first assembled by a scratch script; the committed tool reproduces it byte for byte.
+
+## 96. THE SCORE FINISH — STEP 9, "the residue of the final reading" (October 5, 2026 —)
+
+The rows the final reading filed (§95; `SCORE_FINISH_SPEC.md` §3 Step 9). The reading stands as measured; each slice's exit re-reads the AUTO items it touched.
+
+### 96.1 SF-RR1 part (i) — a named province outranks "home" (SFR-D11)
+
+A relative word — home, back, the rear — followed by a connector (to, toward, towards, into) and a province the map names is an adverb of the march: the province is the destination (`strategic_parser.province_named_after_relative`, read whenever the extracted target begins with a relative word; lever `A_NAMED_PLACE_OUTRANKS_HOME`). Only a province on the map takes the order — "march home to rest the men" still marches one step toward the capital — and accents are folded ("Franche-Comté"). Before it, the purpose-clause cut read " to franche-comte" as "to <verb>", left "home", and the grounding note owned the substitution ("Our maps read Lorraine as the province nearest your order"); "march home toward Franche-Comte" stored the phantom target "Home Toward Franche-Comte".
+
+### 96.2 SF-RR1 part (i) — a contracted premise is read (SFR-H1)
+
+The issuance premise ("if Mack is still in Swabia, attack him" — checked at issuance, fog-honestly) reads the contracted form too: the foe is matched lazily and an attached "'s" is the verb ("if Mack's still in Swabia", either apostrophe). Lever `condition_grammar.A_CONTRACTED_PREMISE_IS_READ`.

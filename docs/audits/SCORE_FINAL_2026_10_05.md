@@ -312,3 +312,11 @@ Every fall is explained:
 - each slice's session exit re-reads the AUTO items it touched (§5);
 - SFR-B3 is ROADMAP 13's;
 - the ROADMAP spine resumes at position 11, Playtest Round 0.
+
+## Addendum — after the reading (October 5, 2026, the same session)
+
+SF-RR1 part (i) landed after the reading was taken and committed (`1ab11696`). It fixed **SFR-D11**, the P1 that capped command, and **SFR-H1**, the contracted premise (rules `SYSTEMS_REFERENCE.md` §96).
+- **The reading above stands as measured.** Command reads 6.00 at the reading, and the directional stays 7.50.
+- **The census after the slice:** defect 75 OPEN with **no P1**.
+- **The fresh HOLD arm re-run on the slice's tree:** command C3 12 of 20 (11 at the reading). The item still fails its bar of 18, and SF-RR1 part (ii) owns the remaining misses.
+- **No other arm was re-run.** This is a session exit's item flip, not a second reading (§5).

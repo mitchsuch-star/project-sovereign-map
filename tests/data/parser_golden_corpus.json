@@ -7454,6 +7454,34 @@
       },
       "source": "tests/test_step7_exit_fixes.py — SF7-X43 (Score Finish Step 7's exit, October 5, 2026)",
       "notes": "The period's idiom for a subsidy: backing a court's quarrel with another court is `sponsor <court> against <court>` (parser.A_BACKED_QUARREL_IS_A_SPONSORSHIP); the HOLD arm's one blind order the SF-V9 worklist left unread. The executor then prices it (200 gold a turn by default) and answers for the design it would arm."
+    },
+    {
+      "id": "sfr-d11-march-home-to-a-province",
+      "utterance": "Lannes, march home to Franche-Comte",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Lannes",
+        "target": "Franche-Comte",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "SF-RR1 part (i), SFR-D11 (the final reading's P1, October 5, 2026)",
+      "notes": "The purpose-clause cut read ' to franche-comte' as 'to <verb>' and left 'home' — one step toward Paris (Lorraine), disclosed as 'the province nearest your order'. A relative word followed by a connector and a province the map names is an adverb: the province is the destination."
+    },
+    {
+      "id": "sfr-d11-march-back-to-a-province",
+      "utterance": "Davout, march back to Franche-Comte",
+      "world": "1805",
+      "mock_only": true,
+      "expected": {
+        "action": "move",
+        "marshal": "Davout",
+        "target": "Franche-Comte",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "SF-RR1 part (i), SFR-D11",
+      "notes": "'back to <province>' — the same adverb rule as 'home to'."
     }
   ]
 }

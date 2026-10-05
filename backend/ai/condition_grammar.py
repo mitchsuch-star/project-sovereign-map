@@ -470,6 +470,19 @@ _PREMISE_RE = re.compile(
     r"(?P<foe>(?:the\s+)?[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+"
     r"(?:is|are|'s|stands|sits|remains)\s+(?:still\s+)?(?:in|at|standing\s+in|sitting\s+in|holding|near)\s+"
     r"(?P<place>[A-Za-z][\w'’ -]{2,40}?)\s*,\s*(?P<rest>.+)$", re.IGNORECASE)
+# SF-RR1 / SFR-H1 (Score Finish Step 9, October 5, 2026): "Ney, if Mack's
+# still in Swabia, attack him" was refused as a contingency on the fresh HOLD.
+# The foe's character class takes the apostrophe, so "Mack's" swallowed its
+# own verb and nothing was left to match "'s". The foe is read lazily and the
+# contracted verb may be attached ("Mack's", "Mack’s"). Flip lever: False.
+A_CONTRACTED_PREMISE_IS_READ = True
+_PREMISE_RE_CONTRACTED = re.compile(
+    r"^\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*)\s*[,:]\s*)?"
+    r"(?:if|provided|provided\s+that|so\s+long\s+as|as\s+long\s+as)\s+"
+    r"(?P<foe>(?:the\s+)?[A-Za-z][\w'’-]*?(?:\s+[A-Z][\w'’-]*?)?)"
+    r"(?:\s+(?:is|are|'s|stands|sits|remains)|['’]s)\s+(?:still\s+)?"
+    r"(?:in|at|standing\s+in|sitting\s+in|holding|near)\s+"
+    r"(?P<place>[A-Za-z][\w'’ -]{2,40}?)\s*,\s*(?P<rest>.+)$", re.IGNORECASE)
 _HALT_TAIL_RE = re.compile(
     r"\s*,?\s*(?:but|and)\s+(?:stop|halt|hold|wait|pause|pull\s+up|turn\s+back|fall\s+back|withdraw)"
     r"\s+(?:if|when|should|once|the\s+moment)\s+.+$", re.IGNORECASE)
@@ -492,7 +505,8 @@ def split_premise(text: str, enemy_names, region_names) -> Tuple[str, Optional[D
     own man. Names are matched against the rosters handed in (pure)."""
     if not A_PREMISE_IS_CHECKED_AT_ISSUANCE or not text:
         return text, None
-    m = _PREMISE_RE.match(text)
+    m = (_PREMISE_RE_CONTRACTED if A_CONTRACTED_PREMISE_IS_READ
+         else _PREMISE_RE).match(text)
     if not m:
         return text, None
     foe_text = re.sub(r"^the\s+", "", m.group("foe").strip(), flags=re.I).lower()

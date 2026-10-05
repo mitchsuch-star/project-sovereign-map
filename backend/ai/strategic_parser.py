@@ -60,6 +60,47 @@ RELATIVE_KEYWORDS = [
 
 DIRECTION_WORDS = set(DIRECTION_VECTORS.keys()) | set(RELATIVE_KEYWORDS)
 
+# SF-RR1 / SFR-D11 (Score Finish Step 9, October 5, 2026 — the final reading's
+# one P1, verified at the wire): "Lannes, march home to Franche-Comte" marched
+# to Lorraine. `_clean_target_text`'s purpose-clause cut read " to
+# franche-comte" as "to <verb>" and left the relative word "home" — one step
+# toward the capital — and the grounding note owned the substitution. A
+# relative word followed by a connector and a province the map names is an
+# adverb of the march: the named province is the destination (CRT-2's rule —
+# the name is never replaced). Only a province on the map takes the order:
+# "march home to rest the men" still goes home. Flip lever: False restores
+# the old reading.
+A_NAMED_PLACE_OUTRANKS_HOME = True
+_RELATIVE_THEN_PLACE_RE = re.compile(
+    r"\b(?:home|back|the\s+rear|rear)\s+(?:to|toward|towards|into)\s+(?P<rest>.+)$",
+    re.IGNORECASE)
+_RELATIVE_HEAD_RE = re.compile(r"^(?:home|back|the\s+rear|rear)\b", re.IGNORECASE)
+
+
+def _plain_name(text) -> str:
+    """Lower-cased, accents folded ("Franche-Comté" == "franche-comte")."""
+    import unicodedata
+    folded = unicodedata.normalize("NFKD", str(text or ""))
+    return "".join(ch for ch in folded if not unicodedata.combining(ch)).lower().strip()
+
+
+def province_named_after_relative(text: str, world) -> Optional[str]:
+    """The province a relative word's connector names ("home to Franche-Comte"
+    -> "Franche-Comte"), when the map has it; else None (SFR-D11)."""
+    if not A_NAMED_PLACE_OUTRANKS_HOME or world is None or not text:
+        return None
+    m = _RELATIVE_THEN_PLACE_RE.search(_strip_conditions(text))
+    if not m:
+        return None
+    rest = _clean_target_text(m.group("rest"))
+    if not rest:
+        return None
+    want = _plain_name(rest)
+    for name in (getattr(world, "regions", None) or {}):
+        if _plain_name(name) == want:
+            return name
+    return None
+
 # F2 / deixis fix: figurative, collective, and self-location phrasings that must
 # never be title-cased into a phantom region ("our lines" -> "Our Lines",
 # "here"/"there" -> "Here"/"There", "the ranks" -> "The Ranks"). These are routed
@@ -390,6 +431,14 @@ def detect_strategic_command(
 
     # Step 2: Extract target text from command
     target_text = _extract_target_text(cleaned, strategic_type, friendly_forms)
+    # SF-RR1 / SFR-D11: "home to <province>" names the province — read
+    # whenever the target begins with a relative word ("home" after the
+    # purpose cut, "home toward franche-comte" when no cut fired).
+    if (target_text and world is not None
+            and _RELATIVE_HEAD_RE.match(target_text.strip())):
+        _named = province_named_after_relative(cleaned, world)
+        if _named:
+            target_text = _named
     if not target_text:
         # No target found — could be "hold" (use current location) or generic
         if strategic_type == "HOLD" and marshal_name and world:

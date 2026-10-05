@@ -1,0 +1,51 @@
+[
+  {
+    "id": "lever down: A_NAMED_PLACE_OUTRANKS_HOME (SFR-D11)",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "A_NAMED_PLACE_OUTRANKS_HOME = True",
+    "new": "A_NAMED_PLACE_OUTRANKS_HOME = False",
+    "tests": "tests/test_sf_rr1_the_orders_the_reading_met.py::TestTheNamedProvinceOutranksHome"
+  },
+  {
+    "id": "SFR-D11: any words after 'home to' take the order",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "        if _plain_name(name) == want:\n            return name\n    return None",
+    "new": "        if _plain_name(name) == want:\n            return name\n    return rest",
+    "tests": "tests/test_sf_rr1_the_orders_the_reading_met.py::TestTheNamedProvinceOutranksHome"
+  },
+  {
+    "id": "SFR-D11: accents hide the province",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "    return \"\".join(ch for ch in folded if not unicodedata.combining(ch)).lower().strip()",
+    "new": "    return str(text or \"\").lower().strip()",
+    "tests": "tests/test_sf_rr1_the_orders_the_reading_met.py::TestTheNamedProvinceOutranksHome"
+  },
+  {
+    "id": "SFR-D11: the hook reads only the bare relative word",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "            and _RELATIVE_HEAD_RE.match(target_text.strip())):",
+    "new": "            and target_text.strip().lower() in RELATIVE_KEYWORDS):",
+    "tests": "tests/test_sf_rr1_the_orders_the_reading_met.py::TestTheNamedProvinceOutranksHome"
+  },
+  {
+    "id": "lever down: A_CONTRACTED_PREMISE_IS_READ (SFR-H1)",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "A_CONTRACTED_PREMISE_IS_READ = True",
+    "new": "A_CONTRACTED_PREMISE_IS_READ = False",
+    "tests": "tests/test_sf_rr1_the_orders_the_reading_met.py::TestAContractedPremiseIsRead"
+  },
+  {
+    "id": "SFR-H1: the attached 's is not a verb",
+    "file": "backend/ai/condition_grammar.py",
+    "old": "    r\"(?:\\s+(?:is|are|'s|stands|sits|remains)|['’]s)\\s+(?:still\\s+)?\"",
+    "new": "    r\"(?:\\s+(?:is|are|'s|stands|sits|remains))\\s+(?:still\\s+)?\"",
+    "tests": "tests/test_sf_rr1_the_orders_the_reading_met.py::TestAContractedPremiseIsRead"
+  },
+  {
+    "id": "SFR-D11: the lever down, read by the golden corpus",
+    "file": "backend/ai/strategic_parser.py",
+    "old": "A_NAMED_PLACE_OUTRANKS_HOME = True",
+    "new": "A_NAMED_PLACE_OUTRANKS_HOME = False",
+    "tests": "tests/test_command_robustness_cr1_eval_harness.py::test_corpus_entry[sfr-d11-march-home-to-a-province[1805]]"
+  }
+]
