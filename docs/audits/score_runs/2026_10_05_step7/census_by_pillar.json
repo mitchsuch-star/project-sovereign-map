@@ -1,0 +1,32 @@
+{
+ "pillars": {
+  "living_balance": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SF7-X39"
+   ]
+  },
+  "narration": {
+   "open": 2,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "SF7-X37",
+    "SF7-X38"
+   ]
+  },
+  "naval": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SF-NAV-1-D1"
+   ]
+  }
+ },
+ "untagged": [],
+ "counted_at": "2026-10-05T04:03",
+ "open_total": 4
+}

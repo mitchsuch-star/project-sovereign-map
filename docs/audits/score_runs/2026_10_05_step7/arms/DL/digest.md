@@ -1,0 +1,137 @@
+# Playtest digest — DL
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "decline", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 1 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `e83be52a3dea` (dirty) · content `d32f29a1b134` · driver `393aff09ac1c`
+  - new game → New campaign started. Autosave refreshed.
+
+## Turn 1 — Late September 1805
+- CMD `Ney, march on Swabia and destroy Mack` → ✓ Ney: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?' Berthier adds: Davout, Lannes, Murat and Napoleon would answer the guns — Ney 24,000, 85,373 with t…
+  - POPUP strategic_interrupt: Ney, contact_bad_odds, Ney: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?' Berthier adds: Davout, Lannes, Murat and Napoleon would answer the guns — Ney 24,000, 85,373 with the muster committed, against Mack (large force). → attack_anyway
+  - ↳ Ney attacks Mack and wins! Continuing his march. MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 1847, own corps) vs Mack (lost 24408) — Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position — though Soult and Bernadotte never arr… — The corps system brought Murat in. — Berthier: the corps marched apart and arrived together.
+- CMD `Bernadotte, take Bohemia` → ✓ Bernadotte challenges the order: 'Sire, the enemy is too strong. We need reinforcements.' (Trust him and he will adopt DEFENSIVE stance instead.)
+  - POPUP objection: Bernadotte, Bernadotte challenges the order: 'Sire, the enemy is too strong. We need reinforcements.' (Trust him and he will adopt DEFENSIVE stance instead.) → trust
+- CMD `Marshal Soult, bring your corps up in support of Ney.` → ✓ Soult moves to support Ney (at Swabia). Moves to Swabia. Soult holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapse…
+- CMD `Davout, fortify` → ✗ Fortifying from neutral stance requires 2 actions (1 for stance change + 1 for fortify), but only 1 remaining.
+- CMD `what if Davout attacks Mack?` → ✓ Were you to give the order, Sire:
+  - ↳ MUSTER — Davout (24,801; expect about 94,783 with the corps likely to arrive, up to 98,182 if all march) vs Mack (substantial force) at Munich — the balance of force loo…
+- CMD `where are the Russians?` → ✓ Sire — Russia: no word of Buxhowden; no word of Kutuzov.
+- CMD `why is Europe alarmed?` → ✓ Europe's alarm stands at 78 — Formed, Sire. This turn it is fed by Won a battle (+3), Won a decisive battle (+5). The next tick reads 76. A coalition stands against us a…
+- CMD `end turn` → ✓ Turn 1 ended. (Warning: 1 action unused) Turn 2 begins!
+- enemy phase: 3 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles engages in solid combat. Archduke Charles gains the advantage over Massena. Casualties: Archduke Charl… · Deroy delivers an effective strike. Deroy gains the advantage over Mack. Casualties: Deroy 983, Mack 8,861. Both armies…
+  - ⚔ Archduke Charles (lost 3964) vs Massena (lost 6353) — The margin was slim. Training and preparation would serve Massena well.
+  - ⚔ Deroy (lost 983) vs Mack (lost 8861) — Mack stood alone, Sire. Archduke John never came.
+  - verbs: attack×2, wait×1
+- ORDER Ney [active]: Ney is marching to Swabia (1 turn remaining).
+- ORDER Soult [active]: Soult is moving to support Ney (0 turns remaining).
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+  - POPUP diplomatic_dialogue: Prussia, open_borders #1 → reject
+  - POPUP proposal_result: You have rejected Prussia's proposal. Talleyrand will convey your decision. → display-only
+- ENVOYS WAITING 3 · Prussia open borders · Ottoman open borders · Portugal open borders
+- LEDGER treasury 1793 · net +1562 · threat 76 · provinces 28 · ceiling 35376 · army 169462 · vassals Holland 99 · Kingdom of Italy 100 · Switzerland 97
+  - NET income 2590 · trade 350 · admin 50 · tribute 895 · upkeep 2014 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Marshal Ney holds the field at Swabia — Mack's corps is broken and flees.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - TURN EVENTS 5
+- DIPLO +9 medium/low (diplomatic_we_threshold, law_enacted_abroad, diplomatic_dp_regen, sovereign_takes_field, diplomatic_vassal_contingent ×2, blockade_begins ×3)
+  - LOG ai_ai_proposal_refused: Britain rebuffs Prussia and Bavaria (open borders agreement)
+  - LOG ai_proposal_rejected: We rejected Prussia's open borders agreement proposal
+
+## Turn 2 — Early October 1805
+  - LETTER Ottoman: Open Borders Agreement → decline
+  - LETTER Portugal: Open Borders Agreement → decline
+- CMD `Soult, march in support of Ney` → ✓ Soult is already carrying out that order. No change.
+- CMD `Lannes, march to the aid of Ney` → ✓ Lannes moves to support Ney (at Swabia). Lannes holds your written order: when Ney leads a battle within reach, he will march to the guns. The order lapses of itself onc…
+- CMD `Murat, come to Ney's support` → ✓ "Murat: You ask me to bleed for Ney? That man would see me destroyed!"
+  - POPUP objection: Murat, "Murat: You ask me to bleed for Ney? That man would see me destroyed!" → trust
+- CMD `Talleyrand, improve our relations with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #4 → dismiss
+- CMD `Talleyrand, improve ties with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #5 → dismiss
+- CMD `Talleyrand, mend relations with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #6 → dismiss
+- CMD `Talleyrand, warm our relations with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #7 → dismiss
+- CMD `Talleyrand, better our relations with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #8 → dismiss
+- CMD `Talleyrand, make friends with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #9 → dismiss
+- CMD `Talleyrand, seek friendship with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #10 → dismiss
+- CMD `Talleyrand, improve our standing with Prussia` → ✓ Sire, I shall begin efforts to improve relations with Prussia. This will cost 1 DP per turn.
+  - POPUP diplomatic_dialogue: mission #11 → dismiss
+- CMD `end turn` → ✓ Turn 2 ended. (Warning: 2 actions unused) Turn 3 begins!
+- enemy phase: 3 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles's forces press forward aggressively. Brutal stalemate between Archduke Charles and Massena. Heavy casu… · Archduke Charles engages in solid combat. Archduke Charles gains the advantage over Teulie. Casualties: Archduke Charle…
+  - ⚔ Archduke Charles (lost 4330) vs Massena (lost 4342, own corps) — An inconclusive affair. Both sides bloodied but unbroken. — The Hofkriegsrat's orders reached Archduke John too late.
+  - ⚔ Archduke Charles (lost 2676) vs Teulie (lost 1357, own corps) — A grievous defeat for Teulie, Sire. The losses are severe.
+  - verbs: attack×2, wait×1
+- ORDER Lannes [active]: Lannes is moving to support Ney (0 turns remaining).
+- ORDER Soult [completed]: The order was "Marshal Soult, bring your corps up in support of Ney". Ney is secure. I await further instruction.
+- ORDER Ney [interrupted]: Ney hears cannon fire! Abandoning orders — rushing to Milan! Ney moves from Swabia to Munich (463 lost to march)
+- ENVOYS WAITING 2 · Denmark non aggression · Saxony open borders
+- LEDGER treasury 3192 · net +1826 · threat 74 · provinces 28 (+0) · ceiling 35111 · army 156042 · vassals Holland 97 · Kingdom of Italy 97 · Switzerland 93
+  - NET income 2590 · trade 350 · admin 50 · tribute 829 · upkeep 1616 · charges 68 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Davout, Soult, Lannes, Murat and Napoleon stand 91,483 men at Swabia, which feeds 60,000. 31,483 too many. 11,634 men lost in 2 turns. Bavaria's magazines feed us as our own — the army is simp…
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - TURN EVENTS 2
+- DIPLO +3 medium/low (law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 26 approaches from Prussia, Bavaria and Austria are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: Naples rebuffs Prussia (defensive alliance)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+  - LOG ai_proposal_rejected: We rejected the Ottoman Empire's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Portugal's open borders agreement proposal
+
+## Turn 3 — Late October 1805
+  - LETTER Denmark: Non-Aggression Pact → decline
+  - LETTER Saxony: Open Borders Agreement → decline
+- CMD `request terms from Austria` → ✗ Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 21 of 80; at most 8 turns, sooner if the war turns against it…
+- CMD `Ney, attack Zorglub` → ✓ No foe called Zorglub is in sight, Sire. The nearest in sight is Archduke Charles at Tyrol — shall Ney engage him?
+  - POPUP clarification: Berthier, attack_target, No foe called Zorglub is in sight, Sire. The nearest in sight is Archduke Charles at Tyrol — shall Ney engage him? → 1 (first option: Archduke Charles at Tyrol)
+  - ↳ MUSTER — Ney (19,922; expect about 48,694 with the corps likely to arrive, up to 50,057 if all march) vs Archduke Charles (substantial force) at Tyrol — the balance of force looks even — a hard fight that may go against us.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Ney (lost 3987, own corps) vs Archduke Charles (lost 3297, own corps) — The reinforcement arrived, Sire. The verdict of the field went against us regardless.
+- CMD `attack Alsace` → ✓ No foe called Alsace is in sight, Sire. The nearest in sight is Mack at Bohemia — shall we engage him?
+  - POPUP clarification: Berthier, attack_target, No foe called Alsace is in sight, Sire. The nearest in sight is Mack at Bohemia — shall we engage him? → 1 (first option: Mack at Bohemia)
+  - ↳ Bernadotte notes the risks but prepares the attack. MUSTER — Bernadotte (17,000) vs Mack (substantial force) at Bohemia — the balance of force looks even — a hard fight that may go against us.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Bernadotte (lost 647) vs Mack (lost 8006) — Mack bled two men for each of Bernadotte's. A clear exchange, not yet a decision.
+  - POPUP capture_choice[capture]: Bohemia, Bernadotte → secure
+- CMD `Bernadotte, scout Bohemia` → ✓ Bernadotte scouts Bohemia: Controlled by France. Terrain: Plains. No enemy forces detected.
+- CMD `Murat, scout Swabia` → ✓ Murat scouts Swabia: Controlled by Bavaria. Terrain: Plains. No enemy forces detected.
+- CMD `Lannes, scout Swabia` → ✗ Not enough actions! Need 1, have 0 — Lannes cannot scout Swabia today.
+- CMD `what can I do` → ✓ These orders would be carried out today, Sire:
+  - ↳ end turn — no military actions remain today / build supply depot in Paris — 300g
+- CMD `recruit 10000 infantry with Davout` → ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+- CMD `end turn` → ✓ Turn 3 ended. Turn 4 begins!
+- enemy phase: 6 actions, 3 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles strikes back after successfully defending! · Deroy delivers an effective strike. Archduke John holds the line. Casualties: Deroy 3,031, Archduke John 1,324. Both ar… · Deroy launches a decisive assault. Archduke John holds the line. Casualties: Deroy 2,465, Archduke John 1,239. Both arm…
+  - ⚔ Archduke Charles (lost 1674) vs Bernadotte (lost 4000) — A narrow defeat for Bernadotte, Sire. Better-prepared troops might have tipped the balance.
+  - ⚔ Deroy (lost 3031) vs Archduke John (lost 1324) — Archduke John's fortifications held firm, Sire. Deroy broke against our walls.
+  - ⚔ Deroy (lost 2465) vs Archduke John (lost 1239) — The prepared defenses proved their worth. Deroy could not dislodge Archduke John.
+  - verbs: attack×3, wait×2, recruit×1
+- ORDER Lannes [interrupted]: Lannes hears cannon fire! Abandoning orders — rushing to Tyrol! Lannes moves from Swabia to Franconia (152 lost to march)
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Ney seeks an audience → acknowledge
+  -     ↳ Ney's grievance runs its course.
+- ENVOYS WAITING 2 · Hesse non aggression · PapalStates open borders
+- LEDGER treasury 4767 · net +1979 · threat 77 · provinces 29 (+1) · ceiling 24244 · army 141181 · vassals Holland 94 · Kingdom of Italy 95 · Switzerland 88
+  - NET income 2590 · trade 350 · admin 50 · tribute 833 · upkeep 1154 · charges 281 · occupation 100 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Bernadotte, crowned last turn, has been beaten in the field.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - TURN EVENTS 9
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as an ultimatum.
+- DIPLO +2 medium/low (diplomatic_we_threshold, diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: 28 approaches rebuffed, chiefly from Bavaria and Prussia (open borders agreement)
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_ai_proposal_refused: 3 approaches from Prussia, Bavaria and Spain are rebuffed (open borders agreement)
+
+---
+finished: **completed** · commands 29 · popups 25 · battles 10

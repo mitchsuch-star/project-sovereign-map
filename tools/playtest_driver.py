@@ -192,6 +192,15 @@ THE_DIGEST_KEEPS_THE_FORECAST = True
 # reader that held a quote against it compared two forecasts a turn apart
 # (economy C3, "one tick low"). False = no applied_bill rows.
 THE_DIGEST_RECORDS_THE_APPLIED_BILL = True
+# SF7-X36 (the Step 7 exit, October 5, 2026): the morning's DISPATCH line
+# and record carry the headline's own text — or NO_HEADLINE when the
+# morning had none. Before, the call site passed the first "text" a
+# breadth-first dig reached, which on a headless morning is a turn event,
+# so the digest printed "DISPATCH: Supply cost you 3,331 men, at Swabia."
+# as a headline and narration F1 read 0 headless turns where the records
+# held 58 of 120. False = the pre-fix line byte for byte.
+THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF = True
+NO_HEADLINE = "(no headline)"
 
 # The variables that shape the board, recorded AFTER `import backend.main` (so
 # the record is what the engine read, `.env` included).
@@ -1225,6 +1234,25 @@ def matching_line(text, needles, limit=170):
                 excerpt = "…" + excerpt[-(limit - 1):]
             return excerpt
     return salient_line(text, limit)
+
+
+def _record_morning_headline(digest, morning) -> None:
+    """The morning's DISPATCH line and record (one call per turn).
+
+    SF7-X36: the headline's own text, or NO_HEADLINE when the morning had
+    none — never the first turn event a breadth-first dig happened to
+    reach ("DISPATCH: Supply cost you 3,331 men, at Swabia." read as a
+    headline on a headless morning). Lever down = the dig, as before."""
+    _headline = morning.get("headline")
+    text = dig(morning, "text", "content", "message", default="")
+    if THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF:
+        text = ((str(_headline.get("text") or "")
+                 if isinstance(_headline, dict) else "") or NO_HEADLINE)
+    digest.dispatch(text,
+                    events=morning.get("diplomatic_events"),
+                    turn_events=morning.get("turn_events"),
+                    headline_class=((_headline or {}).get("class")
+                                    if isinstance(_headline, dict) else ""))
 
 
 def dig(payload, *names, default=None):
@@ -4192,14 +4220,7 @@ def run(args):
         digest.congress_line((body or {}).get("congress_clock")
                              if isinstance(body, dict) else None)
         try:
-            _headline = morning.get("headline")
-            digest.dispatch(dig(morning, "text", "content", "message",
-                                default=""),
-                            events=morning.get("diplomatic_events"),
-                            turn_events=morning.get("turn_events"),
-                            headline_class=((_headline or {}).get("class")
-                                            if isinstance(_headline, dict)
-                                            else ""))
+            _record_morning_headline(digest, morning)
         except Exception:
             pass
         # FA-84, and it must be read PER TURN. `MAX_EVENT_LOG_SIZE` is 500

@@ -1,0 +1,142 @@
+[
+  {
+    "id": "lever down: THE_HEADLINE_IS_ITS_CLASS (SF7-X36, the reader)",
+    "file": "tools/score_run.py",
+    "old": "THE_HEADLINE_IS_ITS_CLASS = True",
+    "new": "THE_HEADLINE_IS_ITS_CLASS = False",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheHeadlineIsItsClass::test_a_classless_record_in_a_classed_run_is_headless"
+  },
+  {
+    "id": "SF7-X36: the reader ignores the class",
+    "file": "tools/score_run.py",
+    "old": "            if not d or (classed and not d[0].get(\"headline_class\")):",
+    "new": "            if not d:",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheHeadlineIsItsClass::test_the_baseline_archive_reads_its_own_headless_mornings"
+  },
+  {
+    "id": "lever down: THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF (SF7-X36, the driver)",
+    "file": "tools/playtest_driver.py",
+    "old": "THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF = True",
+    "new": "THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF = False",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheDigestRecordsTheHeadlineItself::test_a_headless_morning_says_so"
+  },
+  {
+    "id": "SF7-X36: the driver records the dig again",
+    "file": "tools/playtest_driver.py",
+    "old": "        text = ((str(_headline.get(\"text\") or \"\")\n                 if isinstance(_headline, dict) else \"\") or NO_HEADLINE)\n",
+    "new": "        text = text or NO_HEADLINE\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheDigestRecordsTheHeadlineItself::test_a_headless_morning_says_so"
+  },
+  {
+    "id": "lever down: THE_VERDICT_IS_THE_ENDINGS_OWN (SF7-X40)",
+    "file": "tools/score_run.py",
+    "old": "THE_VERDICT_IS_THE_ENDINGS_OWN = True",
+    "new": "THE_VERDICT_IS_THE_ENDINGS_OWN = False",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheVerdictIsTheEndingsOwn::test_the_battle_line_is_not_the_verdict"
+  },
+  {
+    "id": "SF7-X40: the filter reads any case",
+    "file": "tools/score_run.py",
+    "old": "        hits = [(t, line) for t, line in hits if \"THE VERDICT\" in line]\n",
+    "new": "        hits = [(t, line) for t, line in hits if \"the verdict\" in line.lower()]\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheVerdictIsTheEndingsOwn::test_the_battle_line_is_not_the_verdict"
+  },
+  {
+    "id": "lever down: THE_FREE_ORDER_SPENDS_NOTHING (SF7-X41)",
+    "file": "tools/score_run.py",
+    "old": "THE_FREE_ORDER_SPENDS_NOTHING = True",
+    "new": "THE_FREE_ORDER_SPENDS_NOTHING = False",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheFreeOrderSpendsNothing::test_a_carried_retreat_alone_expects_no_spend"
+  },
+  {
+    "id": "SF7-X41: every carried order is free",
+    "file": "tools/score_run.py",
+    "old": "FREE_ORDER_RX = re.compile(r\"\\b(retreat|fall\\s+back|pull\\s+back|withdraw)\\b\", re.I)",
+    "new": "FREE_ORDER_RX = re.compile(r\".\", re.I)",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheFreeOrderSpendsNothing::test_a_carried_attack_that_spent_nothing_still_fails"
+  },
+  {
+    "id": "lever down: THE_SPENT_DAY_NAMES_THE_ORDER (SF7-X42)",
+    "file": "backend/commands/executor.py",
+    "old": "THE_SPENT_DAY_NAMES_THE_ORDER = True",
+    "new": "THE_SPENT_DAY_NAMES_THE_ORDER = False",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheSpentDayNamesTheOrder::test_a_standing_order_names_the_man_and_the_place"
+  },
+  {
+    "id": "SF7-X42: the military gate drops the sentence",
+    "file": "backend/commands/executor.py",
+    "old": "                                    + (f\" — {_waits}\" if _waits else \".\")),\n",
+    "new": "                                    + \".\"),\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheSpentDayNamesTheOrder::test_a_days_order_names_the_man"
+  },
+  {
+    "id": "SF7-X42: the administrative gate drops the sentence",
+    "file": "backend/commands/executor.py",
+    "old": "                                    + (f\" {_waits}\" if _waits else \"\")),\n",
+    "new": "                                    + \"\"),\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheSpentDayNamesTheOrder::test_an_administrative_order_names_the_man"
+  },
+  {
+    "id": "SF7-X42: the target is the parse's own words",
+    "file": "backend/commands/executor.py",
+    "old": "    return humanize_entity_name(best or target)\n",
+    "new": "    return humanize_entity_name(target)\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheSpentDayNamesTheOrder::test_the_target_is_the_boards_own_name"
+  },
+  {
+    "id": "SF7-X42: a foreign marshal is named too",
+    "file": "backend/commands/executor.py",
+    "old": "            or getattr(marshal, \"nation\", None) != getattr(world, \"player_nation\", None)):\n        return \"\"\n",
+    "new": "            or False):\n        return \"\"\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheSpentDayNamesTheOrder::test_an_order_naming_no_man_of_ours_keeps_the_old_sentence"
+  },
+  {
+    "id": "SF7-X42: the substitutes chip quotes the old sentence",
+    "file": "backend/commands/economy_executor.py",
+    "old": "            + (f\" {waits}\" if waits else \"\")),\n",
+    "new": "            + \"\"),\n",
+    "tests": "tests/test_cn4_the_chip_honesty_census.py::TestTheSubstituteQuoteIsWhatTheExecutorDoes::test_every_province_every_board"
+  },
+  {
+    "id": "lever down: A_BACKED_QUARREL_IS_A_SPONSORSHIP (SF7-X43)",
+    "file": "backend/commands/parser.py",
+    "old": "A_BACKED_QUARREL_IS_A_SPONSORSHIP = True",
+    "new": "A_BACKED_QUARREL_IS_A_SPONSORSHIP = False",
+    "tests": "tests/test_step7_exit_fixes.py::TestABackedQuarrelIsASponsorship::test_the_idiom_is_the_sponsorship_verb"
+  },
+  {
+    "id": "SF7-X43: any name is a court",
+    "file": "backend/commands/parser.py",
+    "old": "            if recipient and aim and recipient != aim:\n",
+    "new": "            recipient = recipient or bq.group(\"recipient\")\n            aim = aim or bq.group(\"aim\")\n            if recipient and aim and recipient != aim:\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestABackedQuarrelIsASponsorship::test_a_name_no_court_carries_is_left_alone"
+  },
+  {
+    "id": "SF7-X43: the display name with its article is no court",
+    "file": "backend/commands/parser.py",
+    "old": "    wanted = re.sub(r\"^the\\s+\", \"\", phrase.strip().lower())\n",
+    "new": "    wanted = phrase.strip().lower()\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestABackedQuarrelIsASponsorship::test_its_family"
+  },
+  {
+    "id": "SF7-X44: the judge forgets the levy where it stands",
+    "file": "tools/_score_probes.py",
+    "old": "    r\"raises its levy where it stands|town regions don't support buildings|is not in danger|\"\n",
+    "new": "    r\"town regions don't support buildings|is not in danger|\"\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheJudgeReadsTheBoardsRefusals::test_the_four_refusals_are_board_gates"
+  },
+  {
+    "id": "SF7-X44: the judge reads the rural refusal too",
+    "file": "tools/_score_probes.py",
+    "old": "    r\"raises its levy where it stands|town regions don't support buildings|is not in danger|\"\n",
+    "new": "    r\"raises its levy where it stands|regions don't support buildings|is not in danger|\"\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheJudgeReadsTheBoardsRefusals::test_every_committed_census_record_re_reads_unchanged"
+  },
+  {
+    "id": "SF7-X44: the judge forgets the grievance",
+    "file": "tools/_score_probes.py",
+    "old": "    r\"We can only arm the grievance\",\n",
+    "new": "    r\"We cannot arm the grievance\",\n",
+    "tests": "tests/test_step7_exit_fixes.py::TestTheJudgeReadsTheBoardsRefusals::test_the_four_refusals_are_board_gates"
+  }
+]

@@ -754,6 +754,40 @@ def rewrite_epithets(command_text: str, game_state, world) -> str:
 
 # SF-CMD-1 (ii), the fresh census — the plain attack forms.
 PLAIN_ATTACK_FORMS_RESOLVE = True
+# SF7-X43 (Score Finish Step 7's exit, October 5, 2026): the period's idiom
+# for a subsidy — "Have Talleyrand back Prussia's quarrel with Austria - a
+# couple of hundred gold a turn" — answered "Sire, I await your instructions
+# regarding Prussia" (SF-V9's HOLD arm, the one blind order still unread).
+# Backing (bankrolling, funding, financing) a court's quarrel, cause, claim
+# or grievance WITH or AGAINST another court is `sponsor <court> against
+# <court>` — the verb's own executor then prices it and answers for the
+# design it would arm. Only when both are courts the world knows; the tail
+# (the sum) rides on. False = the shrug.
+A_BACKED_QUARREL_IS_A_SPONSORSHIP = True
+_BACKED_QUARREL_RE = re.compile(
+    r"^\s*(?:(?:have|get|let)\s+talleyrand\s+|talleyrand,\s*)?"
+    r"(?:back|bankroll|fund|finance)\s+(?P<recipient>[A-Za-z][\w' -]{2,30}?)'s\s+"
+    r"(?:quarrel|cause|claim|grievance|feud|war|designs?)\s+(?:with|against|on)\s+"
+    r"(?P<aim>[A-Za-z][\w' -]{2,30}?)(?P<tail>\s*(?:[-,;:].*)?)$",
+    re.IGNORECASE)
+
+
+def _known_court(world, phrase: str):
+    """The court key a phrase names (its key or its display name, any
+    case), or None."""
+    if world is None or not phrase:
+        return None
+    from backend.display_names import display_nation
+    wanted = re.sub(r"^the\s+", "", phrase.strip().lower())
+    try:
+        courts = list(world.get_active_nations())
+    except Exception:
+        return None
+    for court in courts:
+        shown = re.sub(r"^the\s+", "", str(display_nation(court)).lower())
+        if wanted in (str(court).lower(), shown):
+            return court
+    return None
 
 
 def rewrite_plain_attack_forms(command_text: str, game_state):
@@ -781,6 +815,13 @@ def rewrite_plain_attack_forms(command_text: str, game_state):
     from backend.ai.llm_client import name_match_patterns
     def _forms(n):
         return sorted({p for p in name_match_patterns(n)} | {n}, key=len, reverse=True)
+    if A_BACKED_QUARREL_IS_A_SPONSORSHIP:
+        bq = _BACKED_QUARREL_RE.match(text)
+        if bq:
+            recipient = _known_court(world, bq.group("recipient"))
+            aim = _known_court(world, bq.group("aim"))
+            if recipient and aim and recipient != aim:
+                return f"sponsor {recipient} against {aim}{bq.group('tail')}", True
     m = re.match(r"^\s*pledge\s+(?:france|us|ourselves|the empire)\s+to\s+(?:defend|protect|guarantee|stand by)\s+"
                  r"(?P<court>[A-Za-z][\w' -]{2,30}?)(?:'s\s+(?:borders|independence|frontiers?|soil))?\s*[.!]*$", text, re.I)
     if m:

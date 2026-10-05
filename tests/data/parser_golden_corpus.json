@@ -7442,6 +7442,18 @@
       },
       "source": "SF-CMD-2's remainder, part b (Score Finish Step 7 slice 5b, October 4, 2026)",
       "notes": "SF7-X10: a condition clause's foe is never the order's target (was 'Mack cannot be reached')."
+    },
+    {
+      "id": "sf7-exit-a-backed-quarrel-is-a-sponsorship",
+      "utterance": "Have Talleyrand back Prussia's quarrel with Hanover - a couple of hundred gold a turn.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "sponsor_design",
+        "target": "Prussia"
+      },
+      "source": "tests/test_step7_exit_fixes.py — SF7-X43 (Score Finish Step 7's exit, October 5, 2026)",
+      "notes": "The period's idiom for a subsidy: backing a court's quarrel with another court is `sponsor <court> against <court>` (parser.A_BACKED_QUARREL_IS_A_SPONSORSHIP); the HOLD arm's one blind order the SF-V9 worklist left unread. The executor then prices it (200 gold a turn by default) and answers for the design it would arm."
     }
   ]
 }

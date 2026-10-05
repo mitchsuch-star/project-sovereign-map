@@ -1326,11 +1326,22 @@ def r_ending_F1(arms, ctx):
     )
 
 
+# SF7-X40 (the Step 7 exit, October 5, 2026): the ending's own block names
+# THE VERDICT in capitals; `_blocks_with` matches without case, so a battle
+# report's "The verdict of the field went against us" (`battle_report`'s
+# observation bank) read as the ending — Step 7's start reading took a
+# turn-21 battle line on the Verdict arm for its Verdict and read F2 ✗
+# while the arm reached the turn-44 register. False = the pre-fix reader.
+THE_VERDICT_IS_THE_ENDINGS_OWN = True
+
+
 def r_ending_F2(arms, ctx):
     if _need(arms, "VERDICT"):
         return _unmeasured("VERDICT did not run")
     a = arms["VERDICT"]
     hits = _blocks_with(a, "THE VERDICT")
+    if THE_VERDICT_IS_THE_ENDINGS_OWN:
+        hits = [(t, line) for t, line in hits if "THE VERDICT" in line]
     if not hits:
         return _res(True, False, f"VERDICT status {a.status}; no Verdict block")
     turn = hits[0][0]
@@ -2380,6 +2391,19 @@ def r_command_C4(arms, ctx):
     )
 
 
+# SF7-X41 (the Step 7 exit, October 5, 2026): an order turn expects a spend
+# only from a carried order that COSTS one. The retreat is free by the
+# game's own rule (FA-R3: the general retreat walks every corps in danger
+# back for no action), so a turn whose only carried order is `ok retreat`
+# spends nothing and is right to — the reader read it as a question turn
+# that spent. Measured: typed_road's turn 9 (`ok retreat` carried, the
+# attacks refused out of range) read ✗ on Step 7's start and final trees;
+# the baseline's board refused that retreat (no corps in danger) and read
+# ✓. False = the pre-fix reader.
+THE_FREE_ORDER_SPENDS_NOTHING = True
+FREE_ORDER_RX = re.compile(r"\b(retreat|fall\s+back|pull\s+back|withdraw)\b", re.I)
+
+
 def r_command_C5(arms, ctx):
     if _need(arms, "TYPED"):
         return _unmeasured("TYPED did not run")
@@ -2433,6 +2457,8 @@ def r_command_C5(arms, ctx):
             for b in blocks
             if b["turn"] == c["turn"] and b["ok"] and b["text"] in order_lines
         ]
+        if THE_FREE_ORDER_SPENDS_NOTHING:
+            carried = [b for b in carried if not FREE_ORDER_RX.search(b["text"])]
         spent = unused < 4 if m else True
         if order_lines and carried and not spent:
             ok = False
@@ -2452,6 +2478,19 @@ def r_command_C6(arms, ctx):
 
 
 # ═════════════════════════ NARRATION ═════════════════════════
+# SF7-X36 (the Step 7 exit, October 5, 2026): a dispatch record with no
+# headline CLASS is a turn with no headline. When the morning carried no
+# headline the driver recorded the first "text" its breadth-first `dig`
+# found instead — a turn event ("Supply cost you 3,331 men, at
+# Swabia.") — and this reader counted that line as the headline: the
+# baseline read "0/40 turns without a headline" on all three CMD arms
+# while its own records hold 3 / 25 / 30 turns with no class (the spec's
+# own 58 of 120). A run whose dispatch records carry classes at all (SF-M
+# and after) is read by the class; a pre-SF-M archive keeps the old
+# reading. False -> the pre-fix reader, byte for byte.
+THE_HEADLINE_IS_ITS_CLASS = True
+
+
 def r_narration_F1(arms, ctx):
     need = [n for n in CMD_ARMS if n in arms]
     if not need:
@@ -2462,9 +2501,11 @@ def r_narration_F1(arms, ctx):
         groups = arms[n].by_turn()
         no_head = 0
         raw = 0
+        classed = THE_HEADLINE_IS_ITS_CLASS and any(
+            r.get("headline_class") for r in arms[n].kind("dispatch"))
         for g in groups:
             d = [r for r in g if r.get("kind") == "dispatch"]
-            if not d:
+            if not d or (classed and not d[0].get("headline_class")):
                 no_head += 1
             elif any(
                 tok not in RAW_KEY_ALLOW

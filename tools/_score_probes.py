@@ -1211,7 +1211,19 @@ BOARD_GATE_RX = re.compile(
     # in reach, the Congress short of its titled provinces. None appears in a
     # committed census record (grepped `docs/audits/unrehearsed/` and the
     # score-run archives first).
-    r"holds no rente|No artillery marshals available|cannot be summoned on|summon the Congress first",
+    r"holds no rente|No artillery marshals available|cannot be summoned on|summon the Congress first|"
+    # SF7-X44 (Step 7's exit, Oct 5, 2026): the HOLD arm re-read on the final
+    # tree (SF-V9's closing note left the reading to "the session exit") —
+    # four of the board's own refusals this judge could not read: the levy a
+    # named marshal raises where he stands (§6 row 19), the town that holds no
+    # building, a retreat for a marshal in no danger, and the design a
+    # sponsorship would arm aimed at another court (SF7-X43 routes the idiom
+    # to the verb). Grepped `docs/audits/unrehearsed/` first: the fresh record
+    # holds one "rural regions don't support buildings" (row 107, read
+    # `as_meant`), so the town refusal is matched by its own words and that
+    # record re-reads unchanged.
+    r"raises its levy where it stands|town regions don't support buildings|is not in danger|"
+    r"We can only arm the grievance",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).

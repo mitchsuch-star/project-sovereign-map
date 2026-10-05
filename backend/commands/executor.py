@@ -266,6 +266,83 @@ AN_ADMIN_SPEND_NEVER_ENDS_THE_DAY = True
 LAST_ORDER_OF_THE_DAY_NOTICE = ("That was the last order the day could take, "
                                 "Sire — the turn ends when you say so.")
 
+# SF7-X42 (Score Finish Step 7's exit, October 5, 2026): the action pre-gate
+# named neither the man nor the order — "Not enough actions! Need 2, have
+# 1." — W9's class one gate over (SF-V9: five of the HOLD arm's eleven
+# misses were this sentence, the arm's own spending). When the order names
+# one of our marshals the sentence says what waits: "Not enough actions!
+# Need 2, have 1 — Davout cannot march to Swabia today." The head is
+# unchanged, so every reader of the old words still finds them. Display
+# only; False = the old sentences byte for byte.
+THE_SPENT_DAY_NAMES_THE_ORDER = True
+_SPENT_DAY_VERBS = {
+    # a standing order, by its type
+    "MOVE_TO": "march to", "PURSUE": "pursue", "HOLD": "hold",
+    "SUPPORT": "support",
+    # a day's order, by its action
+    "move": "march to", "attack": "attack", "scout": "scout",
+    "fortify": "fortify", "unfortify": "break camp", "drill": "drill",
+    "hold": "hold", "wait": "hold", "defend": "stand on the defensive",
+    "charge": "charge", "bombardment": "bombard", "form_square": "form square",
+    "stance_change": "change stance", "garrison": "set a garrison",
+    "retreat": "retreat", "restrain": "restrain his horse",
+    "recruit": "raise his levy", "purchase_levy": "buy substitutes",
+}
+# The verbs that take the order's target as their object ("march to Swabia",
+# "attack Mack"); the rest stand alone ("Bernadotte cannot fortify today").
+_SPENT_DAY_TAKES_A_TARGET = {"march to", "pursue", "hold", "support",
+                             "attack", "scout", "charge", "bombard"}
+
+
+def _spent_day_target(world, target: str) -> str:
+    """The order's target as the board names it: a province or a commander
+    the world knows, by the longest name the parse's target begins with
+    ("Milan for the next three turns" is Milan); the parse's own words
+    otherwise."""
+    if not target:
+        return ""
+    from backend.display_names import humanize_entity_name
+    wanted = target.strip().lower()
+    names = list(getattr(world, "regions", {}) or {}) + list(getattr(world, "marshals", {}) or {})
+    best = ""
+    for name in names:
+        low = str(name).lower()
+        shown = humanize_entity_name(str(name)).lower()
+        for form in {low, shown}:
+            if (wanted == form or wanted.startswith(form + " ")) and len(form) > len(best):
+                best = str(name)
+    return humanize_entity_name(best or target)
+
+
+def spent_day_sentence(world, command, parsed_command) -> str:
+    """SF7-X42: "Davout cannot march to Swabia today." for an order that
+    names one of the player's marshals, '' otherwise (the refusal then reads
+    as it always did). The order's own words: the standing type when it is
+    one, else the action; the target as the parse resolved it."""
+    if not THE_SPENT_DAY_NAMES_THE_ORDER or world is None:
+        return ""
+    command = command if isinstance(command, dict) else {}
+    parsed_command = parsed_command if isinstance(parsed_command, dict) else {}
+    name = str(command.get("marshal") or "")
+    marshal = world.get_marshal(name) if name else None
+    if (marshal is None
+            or getattr(marshal, "nation", None) != getattr(world, "player_nation", None)):
+        return ""
+    stype = (str(parsed_command.get("strategic_type") or "")
+             if parsed_command.get("is_strategic") else "")
+    verb = (_SPENT_DAY_VERBS.get(stype)
+            or _SPENT_DAY_VERBS.get(str(command.get("action") or "")))
+    from backend.display_names import humanize_entity_name
+    who = humanize_entity_name(marshal.name)
+    if not verb:
+        return f"{who}'s order waits for tomorrow."
+    target = _spent_day_target(world, str(command.get("target") or ""))
+    if target and verb in _SPENT_DAY_TAKES_A_TARGET:
+        return f"{who} cannot {verb} {target} today."
+    if verb == "march to":
+        return f"{who} cannot march today."
+    return f"{who} cannot {verb} today."
+
 # SR-5a AAR-6 (Score Mandate Chunk 5, September 28, 2026): an ADMINISTRATIVE
 # order asks only the administrative pool. `recruit` is also an objection
 # action (a marshal may grumble at a levy), so a marshal-addressed levy —
@@ -1898,9 +1975,11 @@ class CommandExecutor:
             if is_admin_action:
                 # Admin actions use admin AP pool
                 if world.admin_actions_remaining < 1:
+                    _waits = spent_day_sentence(world, command, parsed_command)
                     return {
                         "success": False,
-                        "message": f"No administrative actions remaining this turn. (Military commands: {int(world.actions_remaining)} remaining)",
+                        "message": (f"No administrative actions remaining this turn. (Military commands: {int(world.actions_remaining)} remaining)"
+                                    + (f" {_waits}" if _waits else "")),
                         "actions_remaining": int(world.actions_remaining),
                         "action_summary": world.get_action_summary()
                     }
@@ -1922,9 +2001,11 @@ class CommandExecutor:
                                         if marshal_for_cost else 2)
 
                 if world.actions_remaining < required_actions:
+                    _waits = spent_day_sentence(world, command, parsed_command)
                     return {
                         "success": False,
-                        "message": f"Not enough actions! Need {required_actions}, have {world.actions_remaining}.",
+                        "message": (f"Not enough actions! Need {required_actions}, have {world.actions_remaining}"
+                                    + (f" — {_waits}" if _waits else ".")),
                         "actions_remaining": int(world.actions_remaining),
                         "action_summary": world.get_action_summary()
                     }

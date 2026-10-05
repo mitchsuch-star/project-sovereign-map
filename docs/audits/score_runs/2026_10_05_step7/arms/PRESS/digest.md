@@ -1,0 +1,234 @@
+# Playtest digest — PRESS
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 28 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `e83be52a3dea` (dirty) · content `d32f29a1b134` · driver `393aff09ac1c`
+  - loaded save `fixture_ge3_pressburg.json` → Loaded: GE-3 staged — after Pressburg and Tilsit (turn 28, 55 titled)
+
+## Turn 28 — Early November 1806
+- CMD `summon the congress` → ✓ The Emperor summons the powers of Europe to Paris. The Congress sits for 8 turns, to the end of turn 36. Britain SHUT OUT; Russia RECOGNIZES; Austria RECOGNIZES; Prussia…
+  - POPUP diplomatic_dialogue: Bavaria, client_petition #1 → grant the petition
+  - POPUP proposal_result: Tyrol is ceded to Bavaria. Loyalty +10 (60 → 70); bond 60 → 60 (+3 a turn). Cost: 1 DP. Our net falls by 30g a turn — 150g of income forfeited, 15g of occupation relieved, 113g returned as tribute at today's 75% rate, the force limit falls 2,500 (+8g surcharge). → display-only
+- CMD `offer Prussia 1200 gold for recognition` → ✗ Prussia already recognizes the order (62 of 50) — its signature is taken at this end turn; no gold is needed.
+  - POPUP diplomatic_dialogue: Hesse, client_petition #2 → grant the petition
+  - POPUP proposal_result: Brunswick is ceded to Hesse. Loyalty +10 (60 → 70); bond 0 → 20 (+1 a turn). Cost: 1 DP. Our net rises by 63g a turn — 0g of income forfeited, 75g of occupation relieved, 0g returned as tribute at today's 75% rate, the force limit falls 2,500 (+12g surcharge). → display-only
+- CMD `invest in saxony` → ✓ Invested in Saxony: +10 loyalty (85 → 95). Cost: 1 DP + 200g. Cooldown: 3 turns.
+  - POPUP diplomatic_dialogue: Holland, client_petition #3 → (left standing — disabled: Grant the petition)
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+  - POPUP diplomatic_dialogue: Holland, client_petition #3 → (left standing — disabled: Grant the petition)
+- CMD `end turn` → ✓ Turn 28 ended. (Warning: 4 actions unused) Turn 29 begins!
+- SPENT 200g on this turn's orders
+- enemy phase: 3 actions, 0 attacks — Britain, Russia, Prussia and 4 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: move×1, garrison×1, wait×1
+- LAPSED Holland client petition · KingdomOfItaly client petition · Saxony client petition · Switzerland client petition
+- ENVOYS WAITING 2 · Denmark open borders · Britain settlement offer
+- LEDGER treasury 10599 · net +2614 · threat 51 · provinces 40 · ceiling 48812 · army 188548 · vassals Bavaria 71 · Hesse 69 · Holland 89 · Kingdom of Italy 89 · Saxony 81 · Switzerland 87
+  - NET income 4060 · trade 387 · admin 50 · tribute 2052 · upkeep 2480 · charges 588 · occupation 535 · blockade 242 · admiralty 90
+- CONGRESS THE CONGRESS SITS — turn 1 of 8 · 55 of 45 titled · Britain SHUT OUT · Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: Sire — THE EMPEROR SUMMONS THE POWERS TO PARIS. The Congress sits 8 turns, to the end of turn 36; every great power must sign, be shut out, or be gone. No court refuses today.
+  - RAIL diplomatic_ai_proposal: An envoy from Bavaria has arrived with a petition.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a petition.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - RAIL diplomatic_ai_proposal: An envoy from the Kingdom of Italy has arrived with a petition.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a petition.
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - RAIL +3 more
+  - TURN EVENTS 9
+- DIPLO +11 medium/low (law_enacted_abroad, diplomatic_dp_regen, sovereign_takes_field, diplomatic_vassal_contingent, cs_tier_shift, blockade_begins ×6)
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 17 approaches from Austria, Prussia and Bavaria are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: Ottoman Empire and Sweden rebuff Austria (defensive alliance)
+  - LOG design_promoted: REVANCHE: Austria swears to retake Carniola and 2 more — France is not forgiven
+  - LOG coalition_member_left: Russia has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 100 to 61; Britain remains at war with us.
+  - LOG balance_of_europe_shifted: French System leads the current largest alignment at 50% of active European bloc power. Spain is the decisive non-France slice of the bloc; letting t…
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG nation_eliminated: Hanover has been eliminated from the war.
+  - LOG nation_eliminated: Naples has been eliminated from the war.
+  - LOG nation_eliminated: Portugal has been eliminated from the war.
+
+## Turn 29 — Late November 1806
+  - LETTER Denmark: Open Borders Agreement → accept
+  - MAILBOX #8 Britain incoming_settlement_offer: Britain — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #8 → accept_settlement_offer
+  - TERMS (settlement_confirm REVIEW): peace
+  - POPUP diplomatic_dialogue: settlement_confirm #9 → confirm_settlement
+  - POPUP proposal_result: Settlement Ratified, Settlement Ratified: France vs Britain (3 pairs resolved). → display-only
+- CMD `invest in saxony` → ✗ Investment in Saxony on cooldown (2 turns remaining).
+- CMD `end turn` → ✓ Turn 29 ended. (Warning: 4 actions unused) Turn 30 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- LEDGER treasury 13914 · net +3176 · threat 53 · provinces 40 (+0) · ceiling 89523 · army 188548 · vassals Bavaria 72 · Hesse 68 · Holland 86 · Kingdom of Italy 88 · Saxony 77 · Switzerland 84
+  - NET income 4060 · trade 436 · admin 50 · tribute 2145 · upkeep 2480 · charges 500 · occupation 535
+- CONGRESS THE CONGRESS SITS — turn 2 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: (no headline)
+  - RAIL settlement_summary: Settlement of France vs Britain: settlement ratified.
+  - RAIL strait_open: THE STRAIT: the Cagliari–Corsica crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Corsica–Piedmont crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the London–Normandy crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Naples–Tripoli crossing stands open to our armies.
+  - TURN EVENTS 4
+- COURTS: The court of Russia eases over Arbiter of Europe — an ultimatum is now the length of its tether.
+- COURTS: The court of Sweden eases over Scourge of the Usurper — an ultimatum is now the length of its tether.
+- COURTS: And Britain, Austria and Sardinia stir at their own designs.
+- DIPLO +8 medium/low (diplomatic_treaty_signed, law_enacted_abroad, diplomatic_dp_regen, diplomatic_vassal_contingent, cs_tier_shift, blockade_broken ×3)
+  - LOG ai_ai_proposal_refused: 5 approaches from Austria, Prussia and Bavaria are rebuffed (open borders agreement)
+
+## Turn 30 — Early December 1806
+- CMD `invest in saxony` → ✗ Investment in Saxony on cooldown (1 turns remaining).
+- CMD `end turn` → ✓ Turn 30 ended. (Warning: 4 actions unused) Turn 31 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- LEDGER treasury 17090 · net +3043 · threat 55 · provinces 40 (+0) · ceiling 89523 · army 188548 · vassals Bavaria 73 · Hesse 67 · Holland 83 · Kingdom of Italy 87 · Saxony 73 · Switzerland 81
+  - NET income 4060 · trade 436 · admin 50 · tribute 2145 · upkeep 2480 · charges 633 · occupation 535
+- CONGRESS THE CONGRESS SITS — turn 3 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: (no headline)
+  - RAIL agenda_violation: Prussia seethes: Denmark's columns cross Westphalia in defiance of its declared neutrality.
+  - TURN EVENTS 4
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Sweden rebuffs Austria and Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: 7 approaches to Spain and Ottoman Empire are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: 25 approaches rebuffed, chiefly from Denmark and Prussia (open borders agreement)
+
+## Turn 31 — Late December 1806
+- CMD `invest in saxony` → ✓ Invested in Saxony: +10 loyalty (73 → 83). Cost: 1 DP + 200g. Cooldown: 3 turns.
+- CMD `end turn` → ✓ Turn 31 ended. (Warning: 4 actions unused) Turn 32 begins!
+- SPENT 200g on this turn's orders
+- enemy phase: 2 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1, recruit×1
+- ENVOYS WAITING 1 · Denmark non aggression
+- LEDGER treasury 19941 · net +2923 · threat 57 · provinces 40 (+0) · ceiling 89523 · army 188548 · vassals Bavaria 74 · Hesse 66 · Holland 80 · Kingdom of Italy 86 · Saxony 79 · Switzerland 78
+  - NET income 4060 · trade 436 · admin 50 · tribute 2145 · upkeep 2480 · charges 753 · occupation 535
+- CONGRESS THE CONGRESS SITS — turn 4 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: (no headline)
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - TURN EVENTS 4
+- DIPLO +2 medium/low (law_enacted_abroad, diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: 3 approaches from Austria and Bavaria are rebuffed (open borders agreement)
+
+## Turn 32 — Early January 1807
+  - LETTER Denmark: Non-Aggression Pact → accept
+- CMD `invest in saxony` → ✗ Investment in Saxony on cooldown (2 turns remaining).
+- CMD `end turn` → ✓ Turn 32 ended. (Warning: 4 actions unused) Turn 33 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- LEDGER treasury 22889 · net +2824 · threat 59 · provinces 40 (+0) · ceiling 90119 · army 188548 · vassals Bavaria 75 · Hesse 65 · Holland 77 · Kingdom of Italy 85 · Saxony 75 · Switzerland 75
+  - NET income 4060 · trade 461 · admin 50 · tribute 2145 · upkeep 2480 · charges 877 · occupation 535
+- CONGRESS THE CONGRESS SITS — turn 5 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: (no headline)
+  - RAIL design_promoted: REVANCHE: Britain will not forgive Denmark the loss of East Anglia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 4
+- DIPLO +5 medium/low (diplomatic_treaty_signed, diplomatic_dp_regen, blockade_broken ×2, agenda_shift)
+
+## Turn 33 — Late January 1807
+- CMD `invest in saxony` → ✗ Investment in Saxony on cooldown (1 turns remaining).
+- CMD `end turn` → ✓ Turn 33 ended. (Warning: 4 actions unused) Turn 34 begins!
+- enemy phase: 5 actions, 3 attacks — Russia, Austria, Prussia and 4 other courts stirred as well, but their formations remain beyond our sight. — Moore marches from Midlands into East Anglia unopposed! (365 lost to march — forward supply lines reduce losses) Captur… · Moore faces a difficult fight. Moore gains the advantage over Frederick. Casualties: Moore 1,280, Frederick 2,467. Both… · Moore holds them at Wessex while allies attack from East Anglia! (+1 coordination)
+  - 🏴 Britain: Moore marches from Midlands into East Anglia unopposed! (365 lost to march — forward supply lines reduce losses) Captured: Denmark → Britain
+  - ⚔ Moore (lost 1280) vs Frederick (lost 2467) — Frederick was close. A period of drilling could have changed the outcome.
+  - ⚔ Moore (lost 1042) vs Frederick (lost 2228) — The margin was slim. Training and preparation would serve Frederick well.
+  - verbs: attack×3, move×1, wait×1
+- LEDGER treasury 27336 · net +4393 · threat 60 · provinces 40 (+0) · ceiling 393416 · army 188548 · vassals Bavaria 76 · Hesse 64 · Holland 74 · Kingdom of Italy 84 · Saxony 71 · Switzerland 72
+  - NET income 4785 · trade 461 · admin 50 · tribute 2201 · upkeep 2480 · charges 304 · occupation 320
+- CONGRESS THE CONGRESS SITS — turn 6 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: Sire — the courts of Europe are drawing together against us.
+  - TURN EVENTS 3
+- DIPLO +3 medium/low (enemy_marshal_commissioned, diplomatic_dp_regen, diplomatic_coalition_brewing)
+  - LOG coalition_brewing_started: Coalition brewing — Ottoman, Sweden, Sardinia alarmed (threat: 60)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Austria and Bavaria (open borders agreement)
+  - LOG diplomatic_ai_ai_treaty: AI-AI treaty: Britain and Russia (Armistice)
+  - LOG diplomatic_ai_ai_treaty: AI-AI treaty: Britain and Sweden (Armistice)
+  - LOG design_promoted: REVANCHE: Britain swears to retake East Anglia and 1 more — Denmark is not forgiven
+  - LOG sponsorship_granted: Britain sponsors Sardinia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Russia and Sweden rebuff Britain (armistice)
+  - LOG ai_ai_proposal_refused: 6 courts rebuff Britain (defensive alliance)
+  - LOG ai_ai_proposal_refused: 18 approaches rebuffed, chiefly from Prussia and Bavaria (open borders agreement)
+
+## Turn 34 — Early February 1807
+- CMD `invest in saxony` → ✓ Invested in Saxony: +10 loyalty (71 → 81). Cost: 1 DP + 200g. Cooldown: 3 turns.
+- CMD `end turn` → ✓ Turn 34 ended. (Warning: 4 actions unused) Turn 35 begins!
+- SPENT 200g on this turn's orders
+- enemy phase: 3 actions, 2 attacks — Russia, Austria, Prussia and 3 other courts stirred as well, but their formations remain beyond our sight. — Moore takes Wessex where he stands! Captured: Denmark → Britain · Moore engages in solid combat. Moore gains the advantage over Frederick. Casualties: Moore's army 460, Frederick 3,794.…
+  - 🏴 Britain: Moore takes Wessex where he stands! Captured: Denmark → Britain
+  - 🏴 Britain: [!] MARSHAL CAPTURED — Frederick is taken by Britain at Cornwall!
+  - ⚔ Moore (lost 411, own corps) vs Frederick (lost 3794) — Frederick's army has been badly mauled. Moore proved the stronger force today. And Frederick was taken on that field — …
+  - verbs: attack×2, wait×1
+- LEDGER treasury 31532 · net +4343 · threat 62 · provinces 40 (+0) · ceiling 393416 · army 188548 · vassals Bavaria 77 · Hesse 63 · Holland 71 · Kingdom of Italy 83 · Saxony 77 · Switzerland 69
+  - NET income 4785 · trade 461 · admin 50 · tribute 2201 · upkeep 2480 · charges 354 · occupation 320
+- CONGRESS THE CONGRESS SITS — turn 7 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: Sire — the courts of Europe are drawing together against us.
+  - RAIL expedition_landed: THE LANDING: Paget has put 4,926 men ashore at Stockholm.
+  - TURN EVENTS 3
+- DIPLO +3 medium/low (law_enacted_abroad, diplomatic_dp_regen, agenda_shift)
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 8 approaches from Britain and Austria are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: 6 courts rebuff Bavaria (open borders agreement)
+
+## Turn 35 — Late February 1807
+- CMD `invest in saxony` → ✗ Investment in Saxony on cooldown (2 turns remaining).
+- CMD `end turn` → ✓ Turn 35 ended. (Warning: 4 actions unused) Turn 36 begins!
+- enemy phase: 2 actions, 0 attacks — Russia, Austria, Prussia and 3 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: fortify×1, wait×1
+- ENVOYS WAITING 3 · Ottoman open borders · PapalStates open borders · Bavaria client petition
+- LEDGER treasury 35875 · net +4291 · threat 64 · provinces 40 (+0) · ceiling 393416 · army 188548 · vassals Bavaria 78 · Hesse 62 · Holland 68 · Kingdom of Italy 82 · Saxony 73 · Switzerland 66
+  - NET income 4785 · trade 461 · admin 50 · tribute 2201 · upkeep 2480 · charges 406 · occupation 320
+- CONGRESS THE CONGRESS SITS — turn 8 of 8 · 55 of 45 titled · Britain, Russia, Austria, Prussia RECOGNIZE
+- DISPATCH: (no headline)
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Bavaria has arrived with a petition.
+  - TURN EVENTS 3
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 7 approaches from Austria and Bavaria are rebuffed (open borders agreement)
+  - LOG ai_ai_proposal_refused: 6 courts rebuff Britain (defensive alliance)
+
+## Turn 36 — Early March 1807
+  - LETTER Ottoman: Open Borders Agreement → accept
+  - LETTER PapalStates: Open Borders Agreement → accept
+  - MAILBOX #12 Bavaria incoming_proposal: Bavaria — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Bavaria, client_petition #13 → grant the petition
+  - POPUP proposal_result: Carniola is ceded to Bavaria. Loyalty +10 (78 → 88); bond 60 → 60 (+3 a turn). Cost: 1 DP. Our net falls by 34g a turn — 150g of income forfeited, 15g of occupation relieved, 113g returned as tribute at today's 75% rate, the force limit falls 2,500 (+12g surcharge). → display-only
+- CMD `invest in saxony` → ✗ Investment in Saxony on cooldown (1 turns remaining).
+- CMD `end turn` → ✓ Turn 36 ended. (Warning: 4 actions unused) Turn 37 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 4 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+  - ENDING — THE IMPERIAL PEACE: Europe accepts the order of the French Empire. [THE ASCENDANT EMPIRE]
+  -     ↳ Early March 1807 (turn 36) · register `imperial_peace` · marked — the campaign continues
+  -     ↳ THE VERDICT — THE ASCENDANT EMPIRE: The Empire stands larger and surer than it began. / The great powers have signed the order at Paris. / History will call it a rising star — not yet fixed in the heavens.
+  -     ↳ The Verdict of History: an empire ascendant.
+  -     ↳ THE RECORD — battles 0 (0 won, 0 lost) · men lost 0, inflicted 0 · provinces taken 11, lost 0 · marshals fallen 0, taken 0 · coalitions faced 2 · peaces signed 1
+  -     ↳ THE CONGRESS (congress) — Britain SIGNED · Russia SIGNED · Austria SIGNED · Prussia SIGNED · 55 of 45 titled
+  -     ↳ THE SITTING — t29✓ t30✓ t31✓ t32✓ t33✓ t34✓ t35✓ t36✓
+  -     ↳ LE MONITEUR — Paris, Early March 1807: The powers of Europe have signed at Paris. The Imperial Peace is proclaimed.
+- ENVOYS WAITING 1 · Hesse client petition
+- LEDGER treasury 39680 · net +3272 · threat 66 · provinces 39 (-1) · ceiling 132625 · army 188548 · vassals Bavaria 89 · Hesse 61 · Holland 65 · Kingdom of Italy 81 · Saxony 69 · Switzerland 63
+  - NET income 4635 · trade 486 · admin 50 · tribute 2314 · upkeep 2492 · charges 1326 · occupation 305 · admiralty 90
+- DISPATCH: THE IMPERIAL PEACE — Europe signs at Paris. Britain, Russia, Austria and Prussia sign. The order the Emperor made is the order Europe recognizes.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a petition.
+  - RAIL diplomatic_alliance_cascade: Prussia and Spain enter the war against Ottoman Empire, Sweden and Sardinia via their alliance with France.
+  - RAIL diplomatic_war_declared: Ottoman has declared war on France, shattering the Open Borders Agreement, with 2 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: Sweden has declared war on France, with 2 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: Sardinia has declared war on France, with 2 allied courts poised to follow.
+  - RAIL diplomatic_coalition_formed: A coalition has formed against France! Members: Ottoman, Sardinia, Sweden.
+  - RAIL +1 more
+  - TURN EVENTS 1
+- COURTS: The court of Russia hardens over Arbiter of Europe — prepared now to go as far as war.
+- COURTS: The court of Sweden hardens over Scourge of the Usurper — prepared now to go as far as war.
+- COURTS: And Britain, Austria and Sardinia stir at their own designs.
+- DIPLO +8 medium/low (diplomatic_treaty_signed ×2, law_enacted_abroad, diplomatic_dp_regen, witness_strike_recorded, diplomatic_relation_shift ×3)
+  - LOG defensive_cascade: Defensive cascade: Prussia joins war via France
+  - LOG defensive_cascade: Defensive cascade: Spain joins war via France
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Bavaria joined France's war.
+  - LOG vassal_auto_join_war: Vassal Saxony joined France's war.
+  - LOG vassal_auto_join_war: Vassal Hesse joined France's war.
+  - LOG coalition_declared: The Fourth Swedish Coalition — Coalition formed against France! Members: Ottoman, Sardinia, Sweden
+  - LOG ai_ai_proposal_refused: Ottoman Empire and Sweden rebuff Austria (open borders agreement)
+  - ENDING reached — stopping (--stop-on-ending)
+
+---
+finished: **ending-reached** · commands 21 · popups 15 · battles 3

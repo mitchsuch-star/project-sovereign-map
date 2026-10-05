@@ -554,11 +554,16 @@ def substitute_quote(world, region_name: str,
         quote.update(kind=kind, reason=reason, short=short)
         return quote
 
-    # The routing layer refuses an order of state first.
+    # The routing layer refuses an order of state first — in its own words,
+    # the man it names included (SF7-X42: the chip quotes what the gate says).
     if int(getattr(world, "admin_actions_remaining", 0) or 0) < 1:
+        from backend.commands.executor import spent_day_sentence
+        waits = spent_day_sentence(
+            world, {"marshal": marshal.name, "action": "purchase_levy"}, {})
         return refuse("no_admin_ap", (
             f"No administrative actions remaining this turn. (Military "
-            f"commands: {int(world.actions_remaining)} remaining)"),
+            f"commands: {int(world.actions_remaining)} remaining)"
+            + (f" {waits}" if waits else "")),
             "no administrative action left this turn")
     if not THE_SUBSTITUTE_MARKET_IS_OPEN:
         return refuse("closed", _msg_subs_closed(),
