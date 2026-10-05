@@ -3668,7 +3668,13 @@ class CommandExecutor:
             # clauses, admin bonus). The old partial component sum was
             # neither the measured delta nor the ledger's Net.
             net_val = treasury - treasury_before_turn
+            # EA-1: the recurring transfers, named and out of `Other`.
+            from backend.game_logic.instruments import subsidies_for
+            subsidies_val = int(subsidies_for(world, nation, applied=True)["net"])
+            cs_val = int(((getattr(world, "_applied_income_transfers", None) or {})
+                          .get("continental_system") or {}).get(nation, 0))
             other_val = net_val - (income_val + requisitions_val + overseas_val
+                                   + subsidies_val - cs_val
                                    - occupation_val - contributions_val
                                    - state_charges_val - dotation_val
                                    - rente_val - laws_val - infrastructure_val
@@ -3684,6 +3690,8 @@ class CommandExecutor:
                 "contributions": int(contributions_val),
                 "requisitions": int(requisitions_val),
                 "overseas": int(overseas_val),
+                "subsidies": int(subsidies_val),
+                "continental_system": int(cs_val),
                 "state_charges": int(state_charges_val),
                 "dotation_skim": int(dotation_val),
                 "rente_cost": int(rente_val),
@@ -3709,6 +3717,10 @@ class CommandExecutor:
             contributions_str = f" | Contributions: -{contributions_val}g" if contributions_val > 0 else ""
             requisitions_str = f" | Requisitions: +{requisitions_val}g" if requisitions_val > 0 else ""
             overseas_str = f" | Overseas: +{overseas_val}g" if overseas_val > 0 else ""
+            subsidies_str = (f" | Subsidies: {'+' if subsidies_val > 0 else ''}{subsidies_val}g"
+                             if subsidies_val != 0 else "")
+            if cs_val > 0:
+                subsidies_str += f" | Continental System: -{cs_val}g"
             state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
             infrastructure_str = f" | Infrastructure: -{infrastructure_val}g" if infrastructure_val > 0 else ""
             admiralty_str = f" | Admiralty: -{admiralty_val}g" if admiralty_val > 0 else ""
@@ -3723,7 +3735,7 @@ class CommandExecutor:
             # ES-3 (S5): surface the over-limit surcharge inside the upkeep figure
             surcharge_val = int(upkeep_data.get("surcharge", 0))
             surcharge_str = f" (incl. {surcharge_val}g over-limit)" if surcharge_val > 0 else ""
-            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{subsidies_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str}{other_str} | Upkeep: -{upkeep_val}g{surcharge_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
             if bk_turns > 0:
                 result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
             # IQ-2: the same collapse line + event keys as _execute_end_turn

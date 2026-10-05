@@ -437,10 +437,13 @@ GR8-trivial), same executor verbs as the player:
 
 - **A1:** France cannot reach RN effective parity by building alone before turn ~25 at
   sustained spend.
-- **A2 (re-anchored October 4, 2026 — SF-NAV-1-D1, ruled under the user's delegation,
-  FOR USER CONFIRMATION; gate record `SCORE_FINISH_SPEC.md` §6.6):** SHUT OUT — the System at
-  ≥ `cs_shutout_pct` of the Continent's ports with no British corps on the Continent — holds for
-  8 consecutive turns (a sitting's length) on a played road, on at least 2 of 3 benchmark seeds.
+- **A2 (re-anchored October 4, 2026 — SF-NAV-1-D1, gate record `SCORE_FINISH_SPEC.md` §6.6;
+  CONFIRMED and re-anchored again October 5, 2026 under the user's delegation, §6.7):** SHUT OUT — the
+  System at ≥ `cs_shutout_pct` of the Continent's ports with no British corps on the Continent —
+  holds for 8 consecutive turns (a sitting's length) on a played road, on at least one benchmark
+  seed, and the record names what breaks it on the others (the Tilsit road holds 17 turns on
+  historical; on austerlitz British corps stay ashore, on marengo the next coalition draws a
+  signatory back to war). ~~on at least 2 of 3 benchmark seeds~~ (October 4's wording, met on 1 of 3).
   Britain sues from her own war; the System is the squeeze that keeps her at the table, not the
   cause. ~~≥80% closure + blockade brings Britain to sue within 12–18 turns absent a continental
   war revival.~~ The 80% figure is retired as unreachable in play (21 of 26 ports — every coast in

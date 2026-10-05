@@ -574,11 +574,16 @@ class TestContinentalSystem:
     """Test Continental System mechanics."""
 
     def test_trade_income_blocked(self):
-        """Continental System blocks trade with Britain."""
+        """Continental System blocks trade with Britain.
+
+        EA-3 / EA-4 (the economy audit, October 5, 2026) — re-seated
+        consciously: a PEACE earns no trade, and the System takes only the
+        trade a member actually earns from Britain, so the pair trades under
+        open borders here — and at PEACE nothing is lost."""
         world = make_world()
         world.continental_system_members = ["France"]
         key = world._make_diplo_key("France", "Britain")
-        world.diplomatic_states[key] = "PEACE"  # PEACE = 50 trade
+        world.diplomatic_states[key] = "OPEN_BORDERS"  # 100 trade
         world.nation_gold["France"] = 1000
         world.nation_gold["Britain"] = 1000
 
@@ -587,6 +592,13 @@ class TestContinentalSystem:
         # France and Britain both lose trade income
         assert world.nation_gold["France"] < 1000
         assert world.nation_gold["Britain"] < 1000
+
+        world.diplomatic_states[key] = "PEACE"  # a peace trades nothing...
+        world.nation_gold["France"] = 1000
+        world.nation_gold["Britain"] = 1000
+        apply_continental_system(world)
+        assert world.nation_gold["France"] == 1000  # ...so nothing is closed
+        assert world.nation_gold["Britain"] == 1000
 
     def test_total_cap_200(self):
         """Total Continental System cap is 200g across all members."""

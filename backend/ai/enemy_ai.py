@@ -134,6 +134,31 @@ P4_PRICES_THE_MUSTER = True
 # standing at the next phase is resolved by FA-1's rule as before. False =
 # the next action in the same phase answers it.
 THE_ENEMY_WAITS_ONE_TURN = True
+# ═══════ the AI's purse (the economy audit, October 5, 2026 —
+# `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §7) ═══════
+# EA-10 "No tower for a court without fog": a watchtower lifts the PLAYER's
+# fog (`calculate_visibility` reads the player's provinces only) and the AI
+# plays without fog, so every AI watchtower was 250 gold plus its tier upkeep
+# for nothing — 80 of them in forty turns of the commanded arm, the largest
+# single line of AI building. The AI builds and repairs none.
+THE_AI_BUILDS_NO_WATCHTOWERS = True
+# EA-11 "The court arms with its purse": the AI's recruit rungs stopped at
+# each corps' 1805 boot strength (`AI_RECRUITMENT_REBUILD_CAP` 1.0) — the one
+# limit the executor itself does not have and the player never meets — so a
+# court at war with a full chest, full pools and room under its force limit
+# raised nobody (Sweden at war with Britain and Russia from turn ~17, 14,000
+# gold and 61,000 men in its pool, raised none). When nothing else on the
+# admin chain is worth buying, a court at war (or preparing one) recruits
+# past its boot strength up to the severe band of its force limit, at peace
+# up to 1.25× its boot strength at a supply base — behind the laws rung's own
+# purse test (a reserve, five turns of the new bill, a Net that carries it).
+# Measured as the AI economy probe's arm v6 on three seeds: the great powers
+# field +60k–115k men by turn 40, the late wars are bloodier on 2 of 3 seeds,
+# and the commanded France holds every province it held.
+THE_COURT_ARMS_WITH_ITS_PURSE = True
+COURT_ARMS_RESERVE = 1000          # gold kept after the levy (the laws rung's floor)
+COURT_ARMS_UPKEEP_TURNS = 5        # turns of the new bill the chest must hold
+COURT_ARMS_PEACE_FACTOR = 1.25     # at peace: up to this × the boot establishment
 SQUARE_FORMS_AFTER_THE_STRIKES = True    # FA-27 / FA-N38: the square is the LAST word of a phase, and a broken one takes a cooldown
 BROKEN_AI_CORPS_IS_LIMITED = True        # FA-N6: a broken corps takes the limiter (both sides, GR5)
 # FA-9 (slice 17, Sept 11 2026): a corps in the RETREAT-RECOVERY window takes
@@ -6610,7 +6635,8 @@ class EnemyAI:
 
         # Priority 6.5: Build watchtower at border region (Phase 6 Fog - Session 35)
         # Below repair priorities — fix infrastructure before building new watchtowers
-        if "build" not in skip_actions and treasury >= 250:
+        if ("build" not in skip_actions and treasury >= 250
+                and not THE_AI_BUILDS_NO_WATCHTOWERS):
             watchtower_region = self._find_best_watchtower_region(nation, world)
             if watchtower_region:
                 return {
@@ -6657,7 +6683,104 @@ class EnemyAI:
                     "target": rebuild_target.location
                 }
 
+        # Priority 7.5 (EA-11): the court arms with its purse.
+        if THE_COURT_ARMS_WITH_ITS_PURSE and "recruit" not in skip_actions:
+            arming = self._court_arms_with_its_purse(nation, world)
+            if arming is not None:
+                return arming
+
         # Priority 8: Save AP for income bonus
+        return None
+
+    def _court_arms_with_its_purse(self, nation: str, world) -> Optional[Dict]:
+        """EA-11 (the economy audit, October 5, 2026): recruit past the boot
+        establishment when nothing else on the admin chain is worth buying.
+
+        At war (or preparing a war: intent price at `coerce` or above) the
+        ceiling is the severe band of the force limit (the substitute
+        market's own ceiling, `severe_band_threshold`); at peace it is the
+        lesser of the force limit and 1.25× the boot establishment, and only
+        at a supply base. A levy away from a base delivers the field cap
+        (`AI_CORPS_REGEN_CAP`, the shared executor's rule). The purse test is
+        the laws rung's: the chest keeps `COURT_ARMS_RESERVE` plus
+        `COURT_ARMS_UPKEEP_TURNS` turns of the bill after the levy, and the
+        ledger's forecast Net carries the added upkeep. Base first, then the
+        weakest corps. Through the shared executor (GR5) — the player has
+        always been free to raise past 1805."""
+        from backend.models.world_state import severe_band_threshold
+        from backend.commands.economy_executor import (
+            AI_CORPS_REGEN_CAP, region_has_friendly_supply)
+        from backend.game_logic.contingent import levy_passes_over
+        at_war = bool(world.get_nations_at_war_with(nation))
+        if not at_war:
+            try:
+                from backend.game_logic.intent import get_nation_intent, rung_index
+                at_war = (rung_index(get_nation_intent(nation, world).price)
+                          >= rung_index("coerce"))
+            except Exception:
+                at_war = False
+        force_limit = world.get_force_limit(nation)
+        if not force_limit:
+            return None
+        if at_war:
+            ceiling = severe_band_threshold(force_limit)
+        else:
+            boot = sum(int(getattr(m, "starting_strength", 0) or 0)
+                       for m in world.get_marshals_by_nation(nation)
+                       if m.nation == nation and m.strength > 0)
+            ceiling = min(force_limit, int(boot * COURT_ARMS_PEACE_FACTOR))
+        upkeep = world.calculate_turn_upkeep(nation)
+        standing = int(upkeep["total_strength"])
+        treasury = int(world.nation_gold.get(nation, 0))
+        pool = world.manpower_pools.get(nation, {}) or {}
+        candidates = []
+        for m in world.get_marshals_by_nation(nation):
+            if m.nation != nation or m.strength <= 0 or getattr(m, "captured_by", ""):
+                continue
+            if levy_passes_over(world, m) or getattr(m, "square_formation", False):
+                continue
+            region = world.get_region(m.location)
+            if (region is None or region.controller != nation
+                    or getattr(region, "stability", 100) <= 50):
+                continue
+            if getattr(m, "artillery", False):
+                arm, amount, base = ("artillery", ARTILLERY_RECRUIT_AMOUNT,
+                                     ARTILLERY_RECRUIT_GOLD_COST_BASE)
+            elif getattr(m, "cavalry", False):
+                arm, amount, base = ("cavalry", CAVALRY_RECRUIT_AMOUNT,
+                                     CAVALRY_RECRUIT_GOLD_COST_BASE)
+            else:
+                arm, amount, base = ("infantry", INFANTRY_RECRUIT_AMOUNT,
+                                     INFANTRY_RECRUIT_GOLD_COST_BASE)
+            at_base = region_has_friendly_supply(region)
+            if not at_war and not at_base:
+                continue
+            delivered = amount if at_base else min(amount, AI_CORPS_REGEN_CAP)
+            if int(pool.get(arm, 0)) < delivered:
+                continue
+            if standing + delivered > ceiling:
+                continue
+            price = self.executor._calculate_recruit_cost(
+                region, world, base_cost=base, nation=nation, marshal=m)
+            # The bill after the levy, priced by the bill's own arithmetic
+            # (the over-limit and Grande Armée bands included).
+            m.strength += delivered
+            try:
+                upkeep_after = int(world.calculate_turn_upkeep(nation)["total"])
+            finally:
+                m.strength -= delivered
+            if treasury < price + COURT_ARMS_RESERVE + COURT_ARMS_UPKEEP_TURNS * upkeep_after:
+                continue
+            added = upkeep_after - int(upkeep["total"])
+            candidates.append((0 if at_base else 1, m.strength, m.name, m, added))
+        if not candidates:
+            return None
+        candidates.sort(key=lambda c: (c[0], c[1], c[2]))
+        from backend.game_logic.ledger import _build_economy
+        net = int(_build_economy(world, nation).get("net", 0) or 0)
+        for _base, _strength, _name, m, added in candidates:
+            if net - added >= 0:
+                return {"action": "recruit", "marshal": m.name, "target": m.location}
         return None
 
     def _find_vassal_shore_up(self, nation: str, world, treasury: int,
@@ -7762,7 +7885,9 @@ class EnemyAI:
                             "building_type": building["type"]
                         }
             # Check damaged watchtower (Phase 6 Fog - Session 35)
-            if getattr(region, 'watchtower', 'none') == "damaged":
+            # EA-10: a tower is the player's eyes; the AI repairs none.
+            if (getattr(region, 'watchtower', 'none') == "damaged"
+                    and not THE_AI_BUILDS_NO_WATCHTOWERS):
                 income = getattr(region, 'income_value', 0)
                 if income > best_income:
                     best_income = income

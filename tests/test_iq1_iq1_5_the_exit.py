@@ -463,7 +463,8 @@ NAMED_SITES = {"process_income_phase", "process_trade_income",
 
 
 class TestCompletionItemThree:
-    """18 of 19 streams named; the nineteenth is IQ1-3a-prime's, measured."""
+    """19 of 19 streams named — the nineteenth, IQ1-3a-prime's standing
+    obligation, by the economy audit's EA-1 (October 5, 2026)."""
 
     def test_net_is_the_signed_sum_of_its_declared_components(self):
         """The structural half — also pinned in
@@ -483,23 +484,30 @@ class TestCompletionItemThree:
             "either declare it in NET_GOLD_COMPONENTS or file it as this "
             "row filed process_instruments.")
 
-    def test_the_standing_obligation_is_the_one_unnamed_stream(self):
+    def test_the_standing_obligation_is_named_on_the_subsidies_line(self):
         """IQ1-3a-prime, measured at face value: a 200 g/turn sponsorship costs
-        200 a turn and moves Net by exactly zero."""
+        200 a turn. REWRITTEN by the economy audit (October 5, 2026; EA-1), as
+        the pin itself asked ("if IQ1-3a-prime has landed, rewrite this pin
+        rather than deleting it"): the forecast Net now moves by exactly
+        -200, on the signed "Subsidies" line; with the lever down the shipped
+        invisibility stands (the defect, pinned)."""
         turns = 6
         totals = purse_census(turns=turns, with_obligation=True)
         assert "process_instruments" in totals
         assert totals["process_instruments"] == -200 * turns
 
-        # ...and it is invisible to the forecast, which is the defect.
         world = _boot()
         before = int(_quiet(L._build_economy, world, "France")["net"])
         _quiet(INST.grant_directed_sponsorship, world, payer="France",
                recipient="Prussia", aim="Austria", amount_per_turn=200)
-        after = int(_quiet(L._build_economy, world, "France")["net"])
-        assert after == before, (
-            "process_instruments has become visible to Net — if IQ1-3a-prime "
-            "has landed, rewrite this pin rather than deleting it")
+        econ = _quiet(L._build_economy, world, "France")
+        assert int(econ["net"]) == before - 200
+        assert int(econ["subsidies"]) == -200
+        INST.THE_SUBSIDIES_ARE_ON_THE_BOOKS = False
+        try:
+            assert int(_quiet(L._build_economy, world, "France")["net"]) == before
+        finally:
+            INST.THE_SUBSIDIES_ARE_ON_THE_BOOKS = True
 
     def test_trade_and_blockade_arrive_as_one_net_write_and_both_are_named(self):
         """Why the census counts three named sites and not five: the trade

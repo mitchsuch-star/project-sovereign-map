@@ -74,6 +74,133 @@ COMPENSATION_TERM_TURNS = 15
 _RENEGE_GRIEVANCE_TYPES = ("bargain_reneged", "guarantee_abandoned")
 
 
+# ═══════ EA-1 "The Subsidies line" (SFR-D39 + IQ1-3a′, the economy audit of
+# October 5, 2026 — `docs/audits/ECONOMY_AUDIT_2026_10_05.md`) ═══════
+# A recurring TRANSFER between courts — a directed sponsorship (or a
+# neutrality purchase), the paymaster's war subsidy, London's Congress
+# subsidy — moved gold every turn on both chests and appeared on NEITHER
+# ledger: the player's sponsor chip moved the projected Net by 0 while the
+# chest fell 200 a turn, and every AI purse test read a Britain whose Net
+# was positive while its chest fell (the sign inverted on 8 of 9 late turns
+# of the commanded arm). ONE signed Net component, `subsidies` ("Subsidies"),
+# on BOTH sides (payer −, recipient +), by the applied-transfer idiom
+# treaty gold, tribute and settlement gold already use: the engines record
+# what they actually moved (clamped by the payer's chest) into a transient
+# store reset at the top of every advance; the ledger's applied mode reads
+# it, its projection reads the live records. Never "Compacts" (R7: the
+# Diplomatic Ledger's Compacts line is a different surface).
+THE_SUBSIDIES_ARE_ON_THE_BOOKS = True
+
+
+def reset_subsidy_record(world) -> None:
+    """The top of every advance: the applied store starts empty. Transient
+    (never serialized) — a loaded save shows the projection until its next
+    advance, the `_income_phase_results` discipline."""
+    world._applied_subsidy_transfers = {}
+    world._applied_subsidy_streams = []
+
+
+def record_subsidy_transfer(world, payer: str, recipient: str, paid: int,
+                            kind: str, owed: Optional[int] = None) -> None:
+    """What a subsidy engine ACTUALLY moved this advance, signed on both
+    sides, with what was OWED beside it (N8: a short payment is said). A
+    no-op when no advance has opened the store (a direct call in a test or
+    a tool) — the projection then stands."""
+    store = getattr(world, "_applied_subsidy_transfers", None)
+    if store is None:
+        return
+    paid = max(0, int(paid))
+    owed = int(paid if owed is None else owed)
+    if paid <= 0 and owed <= 0:
+        return
+    store[payer] = int(store.get(payer, 0)) - paid
+    store[recipient] = int(store.get(recipient, 0)) + paid
+    streams = getattr(world, "_applied_subsidy_streams", None)
+    if streams is not None:
+        streams.append({"payer": payer, "recipient": recipient,
+                        "amount": paid, "owed": owed, "kind": kind})
+
+
+def _live_sponsorship_streams(world) -> List[Dict]:
+    """The sponsorships the next advance would PAY, at face, clamped by the
+    payer's chest as the engine clamps it: a record whose parties stand, are
+    not at war, has turns left and is not a licence. Pure read."""
+    out = []
+    for record in getattr(world, "directed_sponsorships", []) or []:
+        amount = int(record.get("amount_per_turn", 0) or 0)
+        if amount <= 0:
+            continue
+        payer = record.get("payer", "")
+        recipient = record.get("recipient", "")
+        if _party_gone(world, payer) or _party_gone(world, recipient):
+            continue
+        if world.is_at_war(payer, recipient):
+            continue
+        turn = int(world.current_turn)
+        remaining = int(record.get(
+            "turns_remaining",
+            max(0, int(record.get("expiry_turn", turn)) - turn)))
+        if remaining <= 0:
+            continue
+        chest = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+        paid = min(amount, max(0, chest))
+        out.append({"payer": payer, "recipient": recipient, "amount": paid,
+                    "owed": amount,
+                    "kind": record.get("kind", "sponsorship"),
+                    "turns_remaining": remaining})
+    return out
+
+
+def projected_subsidy_streams(world) -> List[Dict]:
+    """Every recurring transfer the NEXT advance would move: the live
+    sponsorships, the paymaster's war subsidy, London's Congress subsidy
+    (each from its own engine's planner, never a copy of its rule)."""
+    streams = list(_live_sponsorship_streams(world))
+    try:
+        from backend.game_logic.coalition import projected_paymaster_subsidy
+        plan = projected_paymaster_subsidy(world)
+        if plan:
+            streams.append(plan)
+    except Exception:
+        pass
+    try:
+        from backend.game_logic.congress import projected_london_subsidies
+        streams.extend(projected_london_subsidies(world))
+    except Exception:
+        pass
+    return streams
+
+
+def subsidies_for(world, nation: str, applied: bool) -> Dict:
+    """`{"net": signed int, "streams": [...]}` — the ledger's ONE read.
+    `applied=True` reads the advance's own record (the end-turn banners,
+    the dispatch); False (or no record yet) reads the projection."""
+    if not THE_SUBSIDIES_ARE_ON_THE_BOOKS:
+        return {"net": 0, "streams": []}
+    store = getattr(world, "_applied_subsidy_transfers", None)
+    if applied and store is not None:
+        streams = [dict(s) for s in (getattr(world, "_applied_subsidy_streams", None) or [])
+                   if nation in (s.get("payer"), s.get("recipient"))]
+        net = int(store.get(nation, 0))
+    else:
+        streams = [s for s in projected_subsidy_streams(world)
+                   if nation in (s.get("payer"), s.get("recipient"))]
+        net = sum((int(s["amount"]) if s["recipient"] == nation else -int(s["amount"]))
+                  for s in streams)
+    rows = []
+    for s in streams:
+        incoming = s.get("recipient") == nation
+        rows.append({
+            "direction": "incoming" if incoming else "outgoing",
+            "counterparty": s.get("payer") if incoming else s.get("recipient"),
+            "amount": int(s.get("amount", 0)),
+            "owed": int(s.get("owed", s.get("amount", 0)) or 0),
+            "kind": s.get("kind", "sponsorship"),
+            "turns_remaining": int(s.get("turns_remaining", 0) or 0),
+        })
+    return {"net": int(net), "streams": rows}
+
+
 def _pair_aggressor(world, a: str, b: str) -> Optional[str]:
     """Who DECLARED the live war between `a` and `b` — the attribution
     read every renege arm needs (review P1: the symmetric `is_at_war`
@@ -506,11 +633,18 @@ def process_instruments(world) -> List[Dict]:
             if paid > 0:
                 # IQ1-2 (3): NOT in `Spent` — a per-turn obligation under a
                 # signed instrument, and a TRANSFER (the recipient's rise is
-                # the same gold). It belongs on a signed Net line on BOTH
-                # sides via the applied-transfer idiom; owner IQ1-3a.
+                # the same gold). EA-1 (October 5, 2026): it is on the
+                # signed "Subsidies" Net line on BOTH sides now, by the
+                # applied-transfer idiom (`record_subsidy_transfer`).
                 world.nation_gold[payer] = payer_gold - paid
                 world.nation_gold[recipient] = int(
                     world.nation_gold.get(recipient, 0)) + paid
+            # Recorded even when the chest paid nothing: N8 — a term the
+            # payer could not meet in full is SAID on the Subsidies line
+            # ("paid 0 of 200"), never swallowed (the recurring settlement
+            # payments already warn; this engine was silent).
+            record_subsidy_transfer(world, payer, recipient, paid, kind,
+                                    owed=amount)
         record["turns_remaining"] = remaining - 1
         survivors.append(record)
     world.directed_sponsorships = survivors

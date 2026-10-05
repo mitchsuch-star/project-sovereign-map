@@ -197,7 +197,14 @@ class TestTheCascadeKeepsAFreshPeace:
         assert "Britain" not in (w.active_coalition or {}).get("members", [])
 
     def test_the_league_lever_down_marches_britain_back(self, monkeypatch):
+        """RS-1's lever down reproduces the cascade — with SFR-DR1's lever
+        down too (the economy audit, October 5, 2026, re-seated consciously):
+        since the league's members declare in their own right, Austria's
+        declaration no longer sweeps her allies in at all, so the shipped
+        march back needs both levers down; with SFR-DR1 up Britain keeps the
+        peace even with RS-1's lever down."""
         monkeypatch.setattr(D, "THE_CASCADE_KEEPS_A_FRESH_PEACE", False)
+        monkeypatch.setattr(coalition, "THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT", False)
         w = _boot()
         w.current_turn = 10
         _peace_with_the_coalition(w)
@@ -206,6 +213,16 @@ class TestTheCascadeKeepsAFreshPeace:
             result = coalition.form_coalition(["Austria", "Russia"], w)
         assert result.get("success"), result
         assert w.get_diplomatic_state("Britain", "France") == "WAR"
+
+        monkeypatch.setattr(coalition, "THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT", True)
+        w = _boot()
+        w.current_turn = 10
+        _peace_with_the_coalition(w)
+        w.current_turn = 11
+        with _quiet():
+            result = coalition.form_coalition(["Austria", "Russia"], w)
+        assert result.get("success"), result
+        assert w.get_diplomatic_state("Britain", "France") == "PEACE"
 
     def test_the_defensive_arm_is_untouched(self):
         """An attack on a court whose defensive ally just signed with the

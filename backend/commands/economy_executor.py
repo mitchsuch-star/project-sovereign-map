@@ -1086,6 +1086,24 @@ class EconomyExecutor:
         if treaty_gold:
             sign = "+" if treaty_gold >= 0 else ""
             lines.append(f"\n  Treaty gold: {sign}{treaty_gold}g/turn")
+        # EA-1 (the economy audit, October 5, 2026): the recurring transfers
+        # between courts, signed — the sponsor chip's 200 a turn left the
+        # chest and no line here said so.
+        subsidies = int(econ.get("subsidies", 0))
+        streams = econ.get("subsidy_streams") or []
+        if subsidies or streams:
+            sign = "+" if subsidies > 0 else ""
+            lines.append(f"\n  Subsidies: {sign}{subsidies}g/turn")
+            from backend.display_names import display_nation
+            for st in streams:
+                incoming = st.get("direction") == "incoming"
+                who = display_nation(str(st.get("counterparty", "")))
+                amount = int(st.get("amount", 0))
+                owed = int(st.get("owed", amount))
+                tail = (f" ({owed}g owed — the chest pays {amount}g)"
+                        if owed > amount else "")
+                lines.append(f"    {'from' if incoming else 'to'} {who}: "
+                             f"{'+' if incoming else '-'}{amount}g{tail}")
 
         # EB-1: the Charges of Empire — condition-priced draw on the chest
         # (absorbs EC-W2's War Effort; the WE term rides inside the rate).

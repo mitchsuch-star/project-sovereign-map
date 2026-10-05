@@ -1080,7 +1080,8 @@ def _court_dp_after(world, nation: str, authority_after: int) -> int:
 
 
 def ai_purse_refusal(world, nation: str, row: Dict,
-                     treasury: Optional[int] = None) -> str:
+                     treasury: Optional[int] = None,
+                     net_before_charges: bool = False) -> str:
     """"" when an AI court's purse test passes for `row` (§7), else why:
       * the chest ≥ the price (and any arrears) + AI_PURSE_RESERVE +
         AI_PURSE_UPKEEP_TURNS × the slate's upkeep INCLUDING the new law;
@@ -1088,7 +1089,18 @@ def ai_purse_refusal(world, nation: str, row: Dict,
         after the new upkeep;
       * an authority price never takes the court below AI_AUTHORITY_FLOOR,
         nor leaves it fewer than AI_DIPLOMACY_FLOOR diplomatic points a
-        turn."""
+        turn.
+
+    `net_before_charges` (the economy audit, October 5, 2026 — EA-18, the
+    player's counsel only): the Charges of Empire are a share of the chest
+    ABOVE its floor, so they fall as the chest falls and can never take it
+    below the floor on their own account. A law is therefore sustainable
+    when the Net BEFORE the Charges carries its upkeep — the chest settles
+    at a lower ceiling instead of draining. Read the plain forecast Net and a
+    rich court is refused for being rich (measured: a France holding 30,000
+    nets +47 and is told to levy 3,000 infantry, not to enact the Staff).
+    The AI rung keeps the plain read (the default) — changing it moves the
+    rivals' enactments, a balance call filed as EAD-9."""
     quote = restoration_price(world, nation, row)
     gold = _court_gold(world, nation) if treasury is None else int(treasury)
     need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
@@ -1098,7 +1110,13 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     if gold < bar:
         return f"the chest ({gold}) is under the bar ({bar})"
     from backend.game_logic.ledger import _build_economy
-    net = int(_build_economy(world, nation).get("net", 0) or 0)
+    econ = _build_economy(world, nation)
+    net = int(econ.get("net", 0) or 0)
+    if net_before_charges:
+        net += int(econ.get("state_charges", 0) or 0)
+        if net - upkeep < 0:
+            return (f"the Net before the Charges of Empire ({net}) cannot "
+                    f"carry {upkeep} a turn")
     if net - upkeep < 0:
         return f"the forecast Net ({net}) cannot carry {upkeep} a turn"
     if quote["currency"] == "authority":

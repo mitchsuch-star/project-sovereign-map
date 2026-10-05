@@ -2021,6 +2021,32 @@ def _latch_shut_out(world, table: Dict[str, Dict[str, Any]]) -> None:
         c["shut_out_broken"] = True
 
 
+def projected_london_subsidies(world) -> List[Dict[str, Any]]:
+    """EA-1: London's Congress subsidies the next end turn is expected to
+    pay — the courts it paid at the last one, while the Congress still sits
+    and the paymaster's chest still clears its floor. A FORECAST (the
+    answers the payment rides are taken at the end turn itself); the
+    end-turn banner reads what was actually paid. Pure read."""
+    c = record(world)
+    if c is None or c.get("status") != SITTING:
+        return []
+    from backend.game_logic import naval
+    payer = naval.trade_dominance_nation(world)
+    if not payer:
+        return []
+    floor = _paymaster_floor(world, payer)
+    chest = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    out = []
+    for court in c.get("paid_this_turn") or []:
+        if chest - LONDON_SUBSIDY < floor:
+            break
+        chest -= LONDON_SUBSIDY
+        out.append({"payer": payer, "recipient": court,
+                    "amount": LONDON_SUBSIDY, "owed": LONDON_SUBSIDY,
+                    "kind": "london", "turns_remaining": 0})
+    return out
+
+
 def _london_pays(world, table: Dict[str, Dict[str, Any]]) -> None:
     """A refusing paymaster funds every other refuser (§2.5) — the AI-2e
     outbid honoured (France's own standing sponsorship of the court at ≥ the
@@ -2060,6 +2086,10 @@ def _london_pays(world, table: Dict[str, Dict[str, Any]]) -> None:
             break
         gold[payer] = int(gold.get(payer, 0)) - LONDON_SUBSIDY
         gold[court] = int(gold.get(court, 0) or 0) + LONDON_SUBSIDY
+        # EA-1 (October 5, 2026): on the signed "Subsidies" Net line, both
+        # sides (the applied-transfer record the ledger's banner reads).
+        from backend.game_logic.instruments import record_subsidy_transfer
+        record_subsidy_transfer(world, payer, court, LONDON_SUBSIDY, "london")
         paid_to.append(court)
         if court not in (c.get("subsidized") or []):
             c.setdefault("subsidized", []).append(court)

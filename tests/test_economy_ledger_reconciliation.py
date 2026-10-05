@@ -80,6 +80,12 @@ EXPECTED_NET_SIGNS = {
     # SR-5r RF-1 (Sept 27, 2026) — added consciously: "Laws", the upkeep of
     # the acts of state in force (REFORMS_SPEC §2.2, the EC-U2 recipe).
     "laws": -1,
+    # The economy audit (October 5, 2026) — added consciously: "Subsidies"
+    # (EA-1, every recurring transfer between courts, signed on both sides)
+    # and "Continental System" (EA-4, the closure on the trade we earn
+    # across the line). Both render in strategic_ledger.gd.
+    "subsidies": +1,
+    "continental_system": -1,
 }
 
 

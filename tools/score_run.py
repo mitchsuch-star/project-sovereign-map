@@ -1771,6 +1771,26 @@ def r_economy_C1(arms, ctx):
     return _res(True, False, "the Staff was never enacted on the LAW arm")
 
 
+def r_economy_C1_v11(arms, ctx):
+    """Checklist v1.1 (§6 row 22, October 5, 2026): the Staff enacted inside
+    REFORMS_SPEC §11 T1's window (turns 10–15) — by loop 10, the LAW arm's
+    last. The v1 reader above keeps v1's "by loop 9"."""
+    if _need(arms, "LAW"):
+        return _unmeasured("LAW did not run")
+    for c in _cmd_blocks(arms["LAW"]):
+        if (
+            c["text"].strip().lower() == "enact the staff"
+            and c["ok"]
+            and not re.search(r"costs 9,000|treasury holds", c["head"])
+        ):
+            return _res(
+                True,
+                c["turn"] <= 10,
+                f"the Staff enacted at loop {c['turn']} (T1: turns 10–15): {c['head'][:100]}",
+            )
+    return _res(True, False, "the Staff was never enacted on the LAW arm")
+
+
 def r_economy_C5(arms, ctx):
     if _need(arms, "DL"):
         return _unmeasured("DL did not run")
@@ -3194,6 +3214,16 @@ PROBES = {
 }
 
 
+def _named_reader(name: str):
+    """A checklist item's own `reader` (v1.1): a probe in `_score_probes`
+    (wrapped like every probe) else an AUTO reader `r_*` in this module."""
+    from tools import _score_probes as P
+
+    if hasattr(P, name):
+        return _probe(name)
+    return globals().get(name)
+
+
 def reader_for(pillar: str, item_id: str, kind: str):
     key = f"{pillar}.{item_id}"
     if kind == "EYES":
@@ -3272,7 +3302,10 @@ def cmd_check(args) -> int:
                         + " (EYES)",
                     )
             else:
-                fn = reader_for(key, iid, kind)
+                # Checklist v1.1 (October 5, 2026): an amended item names its
+                # own reader — a probe in `_score_probes` or an `r_*` here.
+                fn = (_named_reader(item["reader"]) if item.get("reader")
+                      else reader_for(key, iid, kind))
                 if fn is None:
                     out = _unmeasured(f"no reader for {key}.{iid}")
                 else:

@@ -482,6 +482,12 @@ def _emit_crisis_passed(world, coveter: str, record: Dict, cause: str,
     }, "always")
 
 
+# SFR-D23 (the economy audit, October 5, 2026): the crisis beat's buy-off
+# line is priced against the morning's chest, not the mid-advance one.
+# False = the shipped read (the live chest at council time).
+THE_BEAT_READS_THE_MORNINGS_CHEST = True
+
+
 def _emit_crisis_brewing(world, coveter: str, record: Dict,
                          events: List[Dict]) -> None:
     """Beat 2 — The Brewing Crisis: the fore-warning, with the instruments
@@ -497,6 +503,17 @@ def _emit_crisis_brewing(world, coveter: str, record: Dict,
     # Honest availability: name each instrument WITH the player's real gate.
     player = getattr(world, "player_nation", "France")
     treasury = int((getattr(world, "nation_gold", {}) or {}).get(player, 0))
+    if THE_BEAT_READS_THE_MORNINGS_CHEST:
+        # SFR-D23 (the economy audit, October 5, 2026): the council sits
+        # INSIDE the advance, after the enemy phase's Butcher's Bill and
+        # BEFORE the income phase, so the live chest is one the player never
+        # holds — measured: "the treasury holds -167" beside the morning
+        # ledger's 1,398. The beat is read in the morning, so its
+        # affordability is priced against the chest the turn will leave
+        # (`ledger.chest_forecast`, the ONE projection seam the council's own
+        # opening already reads).
+        from backend.game_logic.ledger import chest_forecast
+        treasury = int(chest_forecast(world, player)["projected"])
     dp = int(getattr(world, "diplomatic_points", 0) or 0)
     price = compute_buyoff_price(world, coveter)
     instruments = []

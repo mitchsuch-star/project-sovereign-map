@@ -418,6 +418,37 @@ EUROPE_INFRASTRUCTURE_UPKEEP_BY_TIER = {
     "town": 20,
     "rural": 20,
 }
+# EA-9 "A market pays its own keep" (the economy audit, October 5, 2026). A
+# market yields +25% of its province's base and paid the tier upkeep like any
+# work; SR-5a's ruled trim (every French homeland province at three-quarters)
+# made a French city earn 110, so a 350g market netted +7 a turn (+15 at
+# Paris) — a 50-turn payback a 40-turn campaign never repays, on 11 of
+# France's 12 slots (measured, the economy audit's build-value probe). EB-3's
+# own intent was "every legal slot a rational want". A market — the one work
+# whose whole purpose is revenue — carries no maintenance: +27 a turn on a
+# French city, +56 at Paris, +37 on an untrimmed city (paybacks 6–13 turns).
+# The income formula every other system reads (plunder, tribute, the
+# confiscation windfall) is untouched. False = the shipped bill.
+A_MARKET_PAYS_ITS_OWN_KEEP = True
+
+
+# EA-8 "The army remembers its arrears" (the economy audit, October 5, 2026).
+# Measured: a chest that ended a turn just below zero bought HALVED upkeep the
+# next turn (the E6 mercy), the halved bill left it solvent, one solvent turn
+# reset the count to 0, and the next full bill sank it again — alternating
+# turns, a standing discount on the army, and never the three CONSECUTIVE
+# deficit turns desertion waited for (the greedy spender arm grew to 224,000
+# men that way, the largest army of any arm). The count every surface reads
+# (`nation_bankruptcy_turns`, the consecutive deficit) is unchanged; the army
+# now also keeps ARREARS — two marks for every turn ended in deficit, one wiped
+# by every turn ended solvent — and deserts on a deficit turn once the marks
+# reach ARREARS_DESERT_AT. Three deficits in a row desert at the third, as they
+# always did; a deficit every other turn deserts at the fourth instead of
+# never; a single deficit is forgotten after two solvent turns. The mercy is
+# the one it always was. False = the shipped desertion rule.
+ARREARS_ARE_REMEMBERED = True
+ARREARS_PER_DEFICIT = 2
+ARREARS_DESERT_AT = 5
 
 
 def severe_band_threshold(force_limit: int) -> int:
@@ -1473,6 +1504,9 @@ class WorldState:
         # Per-nation tracking: {nation: consecutive_bankrupt_turns}
         # ============================================================
         self.nation_bankruptcy_turns: Dict[str, int] = {}
+        # EA-8: the army's remembered arrears — +ARREARS_PER_DEFICIT for a
+        # turn ended in deficit, −1 for a turn ended solvent (floor 0).
+        self.nation_pay_arrears: Dict[str, int] = {}
 
         # Per-nation gold spending tracker for turn summary
         # Records all gold spent this turn (recruit, build, repair)
@@ -6606,7 +6640,9 @@ class WorldState:
             if europe:
                 structures = sum(
                     1 for b in region.buildings
-                    if not b.get("damaged", False))
+                    if not b.get("damaged", False)
+                    and not (A_MARKET_PAYS_ITS_OWN_KEEP
+                             and b.get("type") == "market"))
                 if region.watchtower == "active":
                     structures += 1
                 infrastructure_cost += structures * infrastructure_upkeep_rate(region)
@@ -6806,12 +6842,17 @@ class WorldState:
         # outside its lord's establishment — the satellite pays its own men,
         # so it is neither billed nor counted toward the force limit, the
         # levy or the Grande Armée (all of which read this total).
-        from backend.game_logic.contingent import client_paid_names
+        from backend.game_logic.contingent import (
+            client_paid_names, contingents_paid_by)
         client_paid = client_paid_names(self, nation)
+        # EA-6 (N3): the satellite pays for its own contingent — the corps
+        # flies the lord's colours, so the per-nation loop never reached it.
+        own_contingents = set(contingents_paid_by(self, nation))
         for marshal in self.marshals.values():
             if marshal.name in client_paid:
                 continue
-            if marshal.nation == nation and marshal.strength > 0:
+            if ((marshal.nation == nation or marshal.name in own_contingents)
+                    and marshal.strength > 0):
                 # Upkeep bills on the corps' ACTUAL fielded strength — you
                 # pay for the soldiers you have. Attrition lowers the bill;
                 # rebuilding a corps (recruit gold) raises it again. Same seam
@@ -8005,11 +8046,35 @@ class WorldState:
     def _update_bankruptcy(self, nation: str) -> None:
         """Update bankruptcy counter after ALL income sources processed.
         Called in _advance_turn_internal() after trade, continental system,
-        treaty clauses, and tribute — NOT inside process_income_phase."""
+        treaty clauses, and tribute — NOT inside process_income_phase.
+
+        EA-8: the army's arrears move beside the count — +2 a deficit turn,
+        −1 a solvent one (floor 0)."""
+        arrears = int(self.nation_pay_arrears.get(nation, 0))
         if self.nation_gold.get(nation, 0) < 0:
             self.nation_bankruptcy_turns[nation] = self.nation_bankruptcy_turns.get(nation, 0) + 1
+            arrears += ARREARS_PER_DEFICIT
         else:
             self.nation_bankruptcy_turns[nation] = 0
+            arrears = max(0, arrears - 1)
+        if arrears:
+            self.nation_pay_arrears[nation] = arrears
+        else:
+            self.nation_pay_arrears.pop(nation, None)
+
+    def deserts_now(self, nation: str) -> bool:
+        """EA-8: does `nation`'s army desert this turn? Only on a turn that
+        follows a deficit; with the arrears remembered, once they reach
+        ARREARS_DESERT_AT (three deficits in a row reach it at the third, as
+        the shipped rule did; alternating deficits at the fourth)."""
+        bt = int(self.nation_bankruptcy_turns.get(nation, 0))
+        if bt < 1:
+            return False
+        if bt >= 3 or not ARREARS_ARE_REMEMBERED:
+            # The shipped rule stands whole: three deficits in a row desert
+            # (a save from before EA-8 carries no arrears to read).
+            return bt >= 3
+        return int(self.nation_pay_arrears.get(nation, 0)) >= ARREARS_DESERT_AT
 
     def process_bankruptcy_desertion(self, nation: str = None) -> Dict:
         """Process bankruptcy effects based on PREVIOUS turn's counter.
@@ -8029,15 +8094,38 @@ class WorldState:
                 self.last_bankruptcy_notification_tier = 0
             return {"bankrupt": False, "messages": [], "desertions": []}
 
+
         messages = []
         desertions = []
 
-        if bt == 1:
+        # EA-8: the tier a warning speaks for is the ARREARS' tier — desertion
+        # this turn (3), one more deficit away (2), or the mercy alone (1) —
+        # with the shipped consecutive-count tiers when the lever is down.
+        deserting = self.deserts_now(nation)
+        tier = min(bt, 3)
+        if ARREARS_ARE_REMEMBERED:
+            arrears = int(self.nation_pay_arrears.get(nation, 0))
+            if deserting:
+                tier = 3
+            elif arrears + ARREARS_PER_DEFICIT >= ARREARS_DESERT_AT:
+                tier = max(tier, 2)
+
+        # EA-8: when the arrears (not a run of deficits) carry the tier, the
+        # warning says so — "bankrupt for 1 turns" was the old copy's reading
+        # of a deficit every other turn.
+        _by_arrears = ARREARS_ARE_REMEMBERED and tier > min(bt, 3)
+        if tier == 1:
             messages.append(f"{nation} treasury is in deficit! Upkeep costs halved as a mercy, but continued deficit will cause desertion.")
-        elif bt == 2:
-            messages.append(f"{nation} treasury remains in deficit! Troops grow restless. One more turn and soldiers will desert.")
-        elif bt >= 3:
-            messages.append(f"{nation} has been bankrupt for {bt} turns! Troops are deserting!")
+        elif tier == 2:
+            if _by_arrears:
+                messages.append(f"{nation} treasury is in deficit again! The army's pay is in arrears. One more unpaid turn and soldiers will desert.")
+            else:
+                messages.append(f"{nation} treasury remains in deficit! Troops grow restless. One more turn and soldiers will desert.")
+        elif tier >= 3:
+            if _by_arrears:
+                messages.append(f"{nation} treasury is in deficit again, and the army's pay too long in arrears! Troops are deserting!")
+            else:
+                messages.append(f"{nation} has been bankrupt for {bt} turns! Troops are deserting!")
 
         # Trigger 8: Bankruptcy tier escalation notification (player only)
         # Only fire on tier CHANGE — not every turn at the same tier.
@@ -8045,7 +8133,7 @@ class WorldState:
             from backend.notifications import (
                 create_notification, NotificationPriority, BANKRUPTCY_ESCALATION,
             )
-            current_tier = min(bt, 3)  # bt 1→tier 1, bt 2→tier 2, bt 3+→tier 3
+            current_tier = tier  # EA-8: the arrears' tier (bt 1/2/3+ when the lever is down)
             if current_tier > self.last_bankruptcy_notification_tier:
                 self.last_bankruptcy_notification_tier = current_tier
                 if current_tier == 1:
@@ -8062,7 +8150,9 @@ class WorldState:
                         notification_type=BANKRUPTCY_ESCALATION,
                         priority=NotificationPriority.CRITICAL,
                         title="Desertion imminent",
-                        message="The treasury remains in deficit. Troops grow restless — one more turn and soldiers will desert.",
+                        message=("The treasury is in deficit again and the army's pay is in arrears — one more unpaid turn and soldiers will desert."
+                                 if _by_arrears else
+                                 "The treasury remains in deficit. Troops grow restless — one more turn and soldiers will desert."),
                         turn_created=int(self.current_turn),
                         details={"tier": 2, "bankruptcy_turns": bt},
                     ))
@@ -8071,12 +8161,14 @@ class WorldState:
                         notification_type=BANKRUPTCY_ESCALATION,
                         priority=NotificationPriority.CRITICAL,
                         title="Troops deserting",
-                        message=f"Bankrupt for {bt} turns. Troops are deserting — 5% strength lost per marshal this turn.",
+                        message=(("The army's pay is too long in arrears. Troops are deserting — 5% strength lost per marshal this turn.")
+                                 if _by_arrears else
+                                 f"Bankrupt for {bt} turns. Troops are deserting — 5% strength lost per marshal this turn."),
                         turn_created=int(self.current_turn),
                         details={"tier": 3, "bankruptcy_turns": bt},
                     ))
 
-        if bt >= 3:
+        if deserting:
             for marshal in self.marshals.values():
                 if marshal.nation == nation and marshal.strength > 0:
                     loss = marshal.strength * 5 // 100  # 5% rounded down
@@ -8280,6 +8372,7 @@ class WorldState:
 
             # ═══════ BANKRUPTCY (Phase 6.2.B) ═══════
             "nation_bankruptcy_turns": {k: int(v) for k, v in self.nation_bankruptcy_turns.items()},
+            "nation_pay_arrears": {k: int(v) for k, v in self.nation_pay_arrears.items()},
 
             # ═══════ REGIONS ═══════
             "regions": {name: r.to_dict() for name, r in self.regions.items()},
@@ -8940,6 +9033,7 @@ class WorldState:
 
         # ═══════ BANKRUPTCY (Phase 6.2.B) ═══════
         world.nation_bankruptcy_turns = {k: int(v) for k, v in data.get("nation_bankruptcy_turns", {}).items()}
+        world.nation_pay_arrears = {k: int(v) for k, v in data.get("nation_pay_arrears", {}).items()}
 
         # ═══════ REGIONS ═══════
         if data.get("regions"):
@@ -10195,6 +10289,10 @@ class WorldState:
                 "cost": _cost("market"),
                 "income": int(region.get_effective_income("market")
                               - income_now),
+                # EA-9: a market carries no maintenance (the header's tier
+                # figure is every OTHER work's).
+                "upkeep": (0 if A_MARKET_PAYS_ITS_OWN_KEEP
+                           else int(infrastructure_upkeep_rate(region))),
             },
             "stables": {
                 "cost": _cost("stables"),
@@ -11370,6 +11468,13 @@ class WorldState:
         # Threat decay, brewing countdown, formation, dissolution
         # Must run AFTER vassal processing but BEFORE income phase
         # ════════════════════════════════════════════════════════════
+        # EA-1 (October 5, 2026): the subsidy engines record what they move
+        # — the paymaster's war subsidy inside the coalition turn below, the
+        # sponsorships after the income phase, London's Congress subsidy at
+        # the end-of-turn tick — into ONE transient store opened here, BEFORE
+        # the first of them, and read by the ledger's applied mode.
+        from backend.game_logic.instruments import reset_subsidy_record
+        reset_subsidy_record(self)
         from backend.game_logic.coalition import process_coalition_turn
         coalition_events = process_coalition_turn(self)
         tactical_events.extend(coalition_events)

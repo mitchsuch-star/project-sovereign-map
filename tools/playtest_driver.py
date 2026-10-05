@@ -1008,6 +1008,9 @@ NET_COMPONENTS = (
     ("admin_bonus", "admin"),
     ("overseas", "overseas"), ("vassal_tribute", "tribute"),
     ("treaty_gold", "treaty"), ("settlement_gold", "settlement"),
+    # EA-1 (the economy audit, October 5, 2026): the recurring transfers.
+    ("subsidies", "subsidies"),
+    ("continental_system", "continental"),  # EA-4
     ("upkeep", "upkeep"), ("state_charges", "charges"),
     ("contributions", "contributions"), ("requisitions", "requisitions"),
     ("occupation", "occupation"), ("blockade", "blockade"),

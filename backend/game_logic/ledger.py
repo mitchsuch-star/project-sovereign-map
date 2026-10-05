@@ -8,7 +8,7 @@ Fog-filtered: intel section uses RegionIntel visibility, never raw marshal data.
 """
 
 import math
-from typing import Dict, Any
+from typing import Any, Dict, List
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 
@@ -531,7 +531,9 @@ NET_GOLD_COMPONENTS = {
     "treaty_gold": +1,
     "vassal_tribute": +1,
     "settlement_gold": +1,
+    "subsidies": +1,  # EA-1: signed — payer −, recipient + (Oct 5, 2026)
     "requisitions": +1,
+    "continental_system": -1,  # EA-4 (Oct 5, 2026)
     "overseas": +1,
     "occupation": -1,
     "contributions": -1,
@@ -610,6 +612,315 @@ def _state_charges_rate_note() -> str:
 # Display only (GR6), derived from the income phase's own transient
 # applied-results cache, zero new serialized fields. Flip lever.
 THE_BILLS_SAY_WHY_THEY_MOVED = True
+# EA-5 (the economy audit, October 5, 2026 — N2): a court that is a vassal
+# pays its tribute on its own Net (False = the shipped ledger, lord side only).
+THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS = True
+
+# EA-13 "The Net says why it moved" (the economy audit, October 5, 2026 —
+# `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §6). SR-5a (c) taught two bills
+# to say why they moved; every other Net line still moved in silence —
+# measured on the final reading's CMD-H arm: 42 moves of 10% or more, the
+# tribute, the occupation and the trade among them, five unnamed in the
+# first five turns alone. The morning dispatch now keeps the morning's
+# accounts (`snapshot_morning_accounts`, a transient, never serialized — after
+# a load the note begins the morning after), and the ledger names every Net
+# line that moved 10% or more since yesterday's accounts, with its cause
+# where the accounts carry one. Display only (GR6); the player's own ledger
+# only (an AI court's Net is read for its decisions, never narrated).
+THE_NET_SAYS_WHY_IT_MOVED = True
+NET_LINE_MOVE_SHARE = 0.10   # a move of 10% of the line or more is named
+# The two bills SR-5a (c) already explains, each under its own line (against
+# the turn the income phase last CHARGED) — one explanation per line, so the
+# Net's note leaves them to their own.
+NET_LINES_WITH_THEIR_OWN_NOTE = ("upkeep", "state_charges")
+
+# The Net lines the note walks, in the ledger's own order, each with the
+# words the ledger prints for it. `upkeep` folds the base and the over-limit
+# surcharge (the digest's fold); every other key is a NET_GOLD_COMPONENTS
+# key — pinned both ways.
+NET_LINE_LABELS = (
+    ("income", "provincial income"),
+    ("trade_income", "trade"),
+    ("admin_bonus", "the admin bonus"),
+    ("overseas", "overseas trade"),
+    ("vassal_tribute", "tribute"),
+    ("treaty_gold", "treaty gold"),
+    ("settlement_gold", "settlement gold"),
+    ("subsidies", "subsidies"),
+    ("requisitions", "requisitions"),
+    ("continental_system", "the Continental System"),
+    ("upkeep", "upkeep"),
+    ("state_charges", "the Charges of Empire"),
+    ("contributions", "contributions"),
+    ("occupation", "occupation"),
+    ("blockade", "the blockade"),
+    ("admiralty", "the Admiralty"),
+    ("infrastructure", "infrastructure"),
+    ("dotation_skim", "dotations"),
+    ("rente_cost", "rentes"),
+    ("laws", "the laws"),
+)
+
+
+def net_lines(econ: dict) -> Dict[str, int]:
+    """{line key: gold} for every line the note walks — the economy
+    section's own figures, `upkeep` folded (base + surcharge)."""
+    out: Dict[str, int] = {}
+    for key, _label in NET_LINE_LABELS:
+        if key == "upkeep":
+            out[key] = (int(econ.get("upkeep_base", 0) or 0)
+                        + int(econ.get("upkeep_surcharge", 0) or 0))
+        else:
+            out[key] = int(econ.get(key, 0) or 0)
+    return out
+
+
+def _accounts_detail(world, nation: str, econ: dict) -> dict:
+    """What the morning's accounts remember BESIDE the lines, so the next
+    morning can name a move's cause. Pure reads over the nation's own
+    provinces and records — never an all-region scan (GR8)."""
+    from backend.game_logic.diplomacy import calculate_trade_breakdown
+    controlled = [str(row.get("region")) for row in econ.get("income_breakdown") or []]
+    homeland = set((getattr(world, "nation_starting_regions", {}) or {}).get(nation, []))
+    works = 0
+    for name in controlled:
+        region = world.regions.get(name)
+        if region is None:
+            continue
+        works += sum(1 for b in getattr(region, "buildings", []) or []
+                     if not b.get("damaged", False))
+        if getattr(region, "watchtower", "none") == "active":
+            works += 1
+    tribute: Dict[str, int] = {}
+    if getattr(world, "vassals", None):
+        from backend.game_logic.vassal import vassal_tribute_owed
+        for vassal, state in world.vassals.items():
+            if state.get("lord") == nation:
+                tribute[str(vassal)] = int(vassal_tribute_owed(world, vassal))
+    subsidies: Dict[str, int] = {}
+    for row in econ.get("subsidy_streams") or []:
+        party = str(row.get("counterparty") or "")
+        amount = int(row.get("amount", 0) or 0)
+        subsidies[party] = subsidies.get(party, 0) + (
+            amount if row.get("direction") == "incoming" else -amount)
+    laws: List[str] = []
+    try:
+        from backend.game_logic.reforms import laws_in_force
+        laws = sorted(str(row.get("name") or "") for row in laws_in_force(world, nation))
+    except Exception:
+        laws = []
+    fleet = None
+    if getattr(world, "fleets", None):
+        from backend.game_logic.naval import get_fleet
+        rec = get_fleet(world, nation) or {}
+        fleet = int(rec.get("ships", 0) or 0)
+    disrupted = sorted(set(controlled) & set(world.get_disrupted_regions()))
+    return {
+        "treasury": int(econ.get("treasury", 0) or 0),
+        "men": int(econ.get("army_strength_total", 0) or 0),
+        "provinces": len(controlled),
+        "occupied": (sum(1 for name in controlled if name not in homeland)
+                     if homeland else 0),
+        "trade": {str(p): int(a) for p, a, _st in
+                  calculate_trade_breakdown(world).get(nation, [])},
+        "rate_terms": {str(t.get("key")): [str(t.get("label") or ""),
+                                           int(t.get("amount", 0) or 0)]
+                       for t in econ.get("state_charges_terms") or []},
+        "tribute": tribute,
+        "subsidies": subsidies,
+        "laws": laws,
+        "works": int(works),
+        "disrupted": disrupted,
+        "fleet": fleet,
+        "cs_members": sorted(str(m) for m in
+                             (getattr(world, "continental_system_members", None) or [])),
+        "admin_left": int(getattr(world, "admin_actions_remaining", 0) or 0),
+    }
+
+
+def snapshot_morning_accounts(world) -> None:
+    """EA-13: keep the morning's accounts for the player — called where the
+    morning dispatch is built (every end turn, and the boot briefing of a new
+    or loaded campaign). The snapshot of the previous morning moves to
+    `prev`; the note reads it. Transient (never serialized)."""
+    if not THE_NET_SAYS_WHY_IT_MOVED:
+        return
+    player = getattr(world, "player_nation", None)
+    if not isinstance(player, str) or not player:
+        return
+    try:
+        econ = _build_economy(world, player)
+    except Exception:  # display only (GR6): a world the ledger cannot read
+        return         # keeps no accounts; the morning it rides is untouched
+    snap = {"turn": int(world.current_turn), "lines": net_lines(econ),
+            "net": int(econ.get("net", 0) or 0),
+            "detail": _accounts_detail(world, player, econ)}
+    memory = getattr(world, "_morning_accounts", None)
+    if not isinstance(memory, dict):
+        memory = {}
+    cur = memory.get("cur")
+    if cur and int(cur.get("turn", -1)) < snap["turn"]:
+        memory = {"prev": cur, "cur": snap}
+    else:
+        # The same morning taken again (a re-built briefing) replaces it.
+        memory = {"prev": memory.get("prev"), "cur": snap}
+    world._morning_accounts = memory
+
+
+def _named_moves(prev: Dict[str, int], now: Dict[str, int], verb_up: str,
+                 verb_down: str, began: str, ended: str, limit: int = 3) -> str:
+    """Name the members of a {name: gold} map that changed, biggest first."""
+    rows = []
+    for name in set(prev) | set(now):
+        a, b = int(prev.get(name, 0)), int(now.get(name, 0))
+        if a == b:
+            continue
+        if not a:
+            rows.append((abs(b), f"{began} {name}"))
+        elif not b:
+            rows.append((abs(a), f"{ended} {name}"))
+        elif b > a:
+            rows.append((b - a, f"{name} {verb_up} {b - a:,}"))
+        else:
+            rows.append((a - b, f"{name} {verb_down} {a - b:,}"))
+    rows.sort(key=lambda r: (-r[0], r[1]))
+    return ", ".join(text for _n, text in rows[:limit])
+
+
+def _move_cause(key: str, prev: dict, now: dict) -> str:
+    """The cause of one line's move, from the two mornings' details — "" when
+    the accounts carry none (the line is still named)."""
+    from backend.display_names import display_nation
+    if key == "upkeep":
+        d = int(now["men"]) - int(prev["men"])
+        if d:
+            return f"the army {abs(d):,} men {'larger' if d > 0 else 'smaller'}"
+        return ""
+    if key == "state_charges":
+        reasons = []
+        dt = int(now["treasury"]) - int(prev["treasury"])
+        if dt:
+            reasons.append("the chest is fuller" if dt > 0 else "the chest is leaner")
+        was = prev.get("rate_terms") or {}
+        cur = now.get("rate_terms") or {}
+        for term in sorted(set(was) | set(cur)):
+            a = int((was.get(term) or ["", 0])[1])
+            b = int((cur.get(term) or ["", 0])[1])
+            label = str((cur.get(term) or was.get(term) or ["", 0])[0]) or term
+            if b != a:
+                reasons.append(f"{label} {'+' if b > a else '−'}{abs(b - a)}")
+        return " and ".join(reasons)
+    if key == "income":
+        d = int(now["provinces"]) - int(prev["provinces"])
+        if d:
+            return (f"{abs(d)} province{'s' if abs(d) != 1 else ''} "
+                    f"{'gained' if d > 0 else 'lost'}")
+        return "stability and war damage in our provinces"
+    if key == "trade_income":
+        prev_t = {display_nation(k): v for k, v in (prev.get("trade") or {}).items()}
+        now_t = {display_nation(k): v for k, v in (now.get("trade") or {}).items()}
+        return _named_moves(prev_t, now_t, "+", "−", "trade with", "no more trade with")
+    if key == "vassal_tribute":
+        prev_t = {display_nation(k): v for k, v in (prev.get("tribute") or {}).items()}
+        now_t = {display_nation(k): v for k, v in (now.get("tribute") or {}).items()}
+        return _named_moves(prev_t, now_t, "pays more by", "pays less by",
+                            "tribute begins from", "no tribute from")
+    if key == "subsidies":
+        prev_s = {display_nation(k): v for k, v in (prev.get("subsidies") or {}).items()}
+        now_s = {display_nation(k): v for k, v in (now.get("subsidies") or {}).items()}
+        return _named_moves(prev_s, now_s, "+", "−", "a subsidy with", "no subsidy with")
+    if key == "occupation":
+        d = int(now["occupied"]) - int(prev["occupied"])
+        if d:
+            return (f"{abs(d)} {'more' if d > 0 else 'fewer'} province"
+                    f"{'s' if abs(d) != 1 else ''} held beyond the homeland")
+        return "the conquered provinces' stability moved"
+    if key in ("contributions", "requisitions"):
+        was, cur = set(prev.get("disrupted") or []), set(now.get("disrupted") or [])
+        if key == "contributions" and (cur - was or was - cur):
+            parts = []
+            if cur - was:
+                parts.append("enemy armies now on " + ", ".join(sorted(cur - was)))
+            if was - cur:
+                parts.append(", ".join(sorted(was - cur)) + " freed")
+            return "; ".join(parts)
+        return ("our armies on enemy soil" if key == "requisitions"
+                else "enemy armies on our soil")
+    if key == "infrastructure":
+        d = int(now["works"]) - int(prev["works"])
+        if d:
+            return f"{abs(d)} work{'s' if abs(d) != 1 else ''} {'built' if d > 0 else 'lost'}"
+        return ""
+    if key == "laws":
+        was, cur = set(prev.get("laws") or []), set(now.get("laws") or [])
+        parts = [f"{name} enacted" for name in sorted(cur - was)]
+        parts += [f"{name} no longer in force" for name in sorted(was - cur)]
+        return ", ".join(parts)
+    if key == "continental_system":
+        was, cur = set(prev.get("cs_members") or []), set(now.get("cs_members") or [])
+        parts = [f"{display_nation(m)} joined" for m in sorted(cur - was)]
+        parts += [f"{display_nation(m)} left" for m in sorted(was - cur)]
+        return ", ".join(parts) or "the trade it closes moved"
+    if key in ("admiralty", "blockade"):
+        a, b = prev.get("fleet"), now.get("fleet")
+        if a is not None and b is not None and a != b:
+            return f"our fleet {b} sail (was {a})"
+        return ""
+    if key == "admin_bonus":
+        left = int(now.get("admin_left", 0) or 0)
+        return f"{left} admin action{'s' if left != 1 else ''} unspent"
+    return ""
+
+
+def why_the_net_moved(world, nation: str, econ: dict) -> str:
+    """EA-13: the ledger's account of what moved since yesterday's accounts —
+    every Net line that moved 10% or more, its before and after, and its
+    cause where the accounts carry one. "" when there is no yesterday (the
+    first morning, or the morning after a load) or nothing moved."""
+    if not THE_NET_SAYS_WHY_IT_MOVED:
+        return ""
+    if nation != getattr(world, "player_nation", None):
+        return ""
+    memory = getattr(world, "_morning_accounts", None)
+    prev = memory.get("prev") if isinstance(memory, dict) else None
+    if not prev or int(prev.get("turn", -1)) >= int(world.current_turn):
+        return ""
+    was_lines = prev.get("lines") or {}
+    now_lines = net_lines(econ)
+    labels = dict(NET_LINE_LABELS)
+    moves = []
+    for key, _label in NET_LINE_LABELS:
+        if key in NET_LINES_WITH_THEIR_OWN_NOTE:
+            continue
+        a, b = int(was_lines.get(key, 0)), int(now_lines.get(key, 0))
+        if a == b:
+            continue
+        if a and abs(b - a) < NET_LINE_MOVE_SHARE * abs(a):
+            continue
+        moves.append((abs(b - a), key, a, b))
+    if not moves:
+        return ""
+    moves.sort(key=lambda m: -m[0])
+    detail_now = _accounts_detail(world, nation, econ)
+    detail_was = prev.get("detail") or {}
+    items = []
+    for _size, key, a, b in moves:
+        cause = _move_cause(key, detail_was, detail_now) if detail_was else ""
+        text = f"{labels[key]} {a:,} → {b:,}"
+        items.append(f"{text} ({cause})" if cause else text)
+    was_net, now_net = int(prev.get("net", 0)), int(econ.get("net", 0) or 0)
+    since = ("yesterday's accounts"
+             if int(prev.get("turn", -1)) == int(world.current_turn) - 1
+             else f"the accounts of turn {int(prev.get('turn', 0))}")
+    return (f"Since {since} the Net is {now_net:+,} (was {was_net:+,}): "
+            + "; ".join(items))
+
+
+def _CHARGE_WORD() -> str:
+    """EA-13: the Charges' own note names its line ("charge", not "draw"),
+    so it says which bill it explains wherever it is quoted out of its line
+    (the digest's bill notes, a desk answer). Rides the Net note's lever."""
+    return "charge" if THE_NET_SAYS_WHY_IT_MOVED else "draw"
 
 
 def _rate_of(terms) -> int:
@@ -674,13 +985,13 @@ def why_the_bills_moved(world, nation: str, upkeep_data: dict,
                     rising if rate_part > 0 else [])
                 reasons = reasons or ["the chest is fuller"]
                 out["charges_note"] = (f"{charge - was_charge:,}g more than last "
-                                       f"turn's draw — " + " and ".join(reasons))
+                                       f"turn's {_CHARGE_WORD()} — " + " and ".join(reasons))
             else:
                 reasons = (["the chest is leaner"] if chest_part < 0 else []) + (
                     ["the realm is calmer"] if rate_part < 0 else [])
                 reasons = reasons or ["the chest is leaner"]
                 out["charges_note"] = (f"{was_charge - charge:,}g less than last "
-                                       f"turn's draw — " + " and ".join(reasons))
+                                       f"turn's {_CHARGE_WORD()} — " + " and ".join(reasons))
     return out
 
 
@@ -834,7 +1145,8 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # army on it pays nobody), so the shown tribute matches the applied one.
     vassal_tribute = 0
     if _applied_mode and "vassal_tribute" in _transfers and world.vassals:
-        # The tribute engine recorded what it actually moved this turn.
+        # The tribute engine recorded what it actually moved this turn —
+        # EA-5: signed, so a VASSAL's own record is the tribute it paid (−).
         vassal_tribute = int(_transfers["vassal_tribute"].get(player, 0))
     elif world.vassals:
         # IQ-7: the projection reads the ONE source the tribute engine
@@ -845,6 +1157,14 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         for vassal_name, state in world.vassals.items():
             if state.get("lord") == player:
                 vassal_tribute += int(vassal_tribute_owed(world, vassal_name))
+        # EA-5 (the economy audit, October 5, 2026 — N2): a court that IS a
+        # vassal pays its tribute out of its own Net (Holland's projected Net
+        # was +426 with a tribute line of 0 while it paid 337 a turn), capped
+        # by its chest as the engine caps it.
+        if THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS and player in world.vassals:
+            owed = int(vassal_tribute_owed(world, player))
+            chest = int((getattr(world, "nation_gold", {}) or {}).get(player, 0) or 0)
+            vassal_tribute -= min(owed, max(0, chest + int(income)))
 
     # SC-33 recurring settlement streams (G4F smoke follow-up): the
     # ratified gold_per_turn obligations the income phase actually moves —
@@ -886,9 +1206,32 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # the rows above keep the contractual face for display.
         settlement_gold = int(_transfers["settlement_gold"].get(player, 0))
 
+    # EA-1 "The Subsidies line" (SFR-D39 + IQ1-3a′, the economy audit of
+    # October 5, 2026): every recurring transfer between courts — the
+    # sponsorships, the paymaster's war subsidy, London's Congress subsidy —
+    # signed on BOTH sides (payer −, recipient +). Applied mode reads what the
+    # engines moved this advance; the projection reads the live records.
+    from backend.game_logic.instruments import subsidies_for
+    _subsidies = subsidies_for(world, player, applied=_applied_mode)
+    subsidies = int(_subsidies["net"])
+    subsidy_streams = _subsidies["streams"]
+
+    # EA-4 (the economy audit, October 5, 2026 — N6): what the Continental
+    # System's closure takes from the trade we actually earn across the
+    # line — applied mode the engine's own debit, the projection its planner.
+    from backend.game_logic.diplomacy import (
+        THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED, continental_system_losses)
+    continental_system = 0
+    if THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED:
+        if _applied_mode and "continental_system" in _transfers:
+            continental_system = int(_transfers["continental_system"].get(player, 0))
+        else:
+            continental_system = int(continental_system_losses(world).get(player, 0))
+
     net = int(
         income + trade_income + admin_bonus + treaty_gold + vassal_tribute
-        + settlement_gold + requisitions + overseas
+        + settlement_gold + subsidies + requisitions + overseas
+        - continental_system
         - occupation - contributions - state_charges
         - dotation_skim - rente_cost - laws
         - infrastructure - blockade - admiralty - upkeep_base - upkeep_surcharge
@@ -956,7 +1299,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     _why = why_the_bills_moved(world, player, upkeep_data, state_charges,
                                state_charges_terms)
 
-    return {
+    economy = {
         "treasury": _treasury,
         "income": income,
         "trade_income": trade_income,
@@ -965,6 +1308,12 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "vassal_tribute": vassal_tribute,
         "settlement_gold": settlement_gold,
         "settlement_streams": settlement_streams,
+        # EA-1: the recurring transfers, signed; each stream names its
+        # counterparty, what was owed and what was (or will be) paid.
+        "subsidies": subsidies,
+        "subsidy_streams": subsidy_streams,
+        # EA-4: the System's closure on the trade we earn across the line.
+        "continental_system": continental_system,
         "blockade": blockade,
         "admiralty": admiralty,
         "occupation": occupation,
@@ -1022,6 +1371,12 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "construction_queue": construction_queue,
         "income_breakdown": income_breakdown,
     }
+    # EA-13: what moved since yesterday's accounts — the forward projection
+    # of the player's own ledger only (an applied read describes a turn that
+    # already ran; an AI court's Net is never narrated).
+    economy["net_moves_note"] = (
+        "" if _applied_mode else why_the_net_moved(world, player, economy))
+    return economy
 
 
 # ============================================================================

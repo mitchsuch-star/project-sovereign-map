@@ -1,0 +1,38 @@
+{
+ "agendas.C6": {
+  "pass": true,
+  "evidence": "the user's delegate, October 5, 2026 (SCORE_FINISH_SPEC.md §6.7) — the panel's two ✗ votes rested only on frames/IQ10_WIZARD_FORMABLES_ENTRY: 'Loading...', a CAPTURE ARTEFACT (the row is staged as method 'open', which fires a real request instead of rendering the captured payload — EA-E8); the Proclamation (flag, the forms line, three terms, 'By your hand.', one Acknowledge) and FORMABLES_STEP3 at both scales (seven rows with flags and gate terms) pass; the 2.0 Proclamation's fold is SFR-B11"
+ },
+ "combat_legibility.C6": {
+  "pass": true,
+  "evidence": "the user's delegate, October 5, 2026 — agrees with the panel 3/3: DIORAMA_DADJ/AADJ at both scales show each corps' own before → after and side totals that add up exactly; nits SFR-B10"
+ },
+ "first_contact.C2": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — agrees with the panel 3/3: HOLD turn 1 answers 'No lawful road runs from Rhineland to Rhineland for Davout' while the FC arm's counsel lists 'Davout, march to Lorraine' (SFR-H8)"
+ },
+ "narration.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — agrees with the panel 3/3: CMD-H sample t1/5/7/10/14/20/27/30/34/40 misses on 4 (t5 Milan's fall unled, t7 Prussia's declaration under Ney's defeat, t10 Britain's terms under the standing soil line, t27 France entering Austria's war under Lannes's arrears)"
+ },
+ "naval.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — ✗ strict: the ADMIRALTY tabs and the chip text pass, but the compact top bar's blank navigation is a real client defect (EA-E1, not the capture artefact SFR-I3 diagnosed) and the chip's blockade border is amber against NAVAL_SPEC §17's crimson (EA-E3)"
+ },
+ "vassals.C6": {
+  "pass": true,
+  "evidence": "the user's delegate, October 5, 2026 — agrees with the panel 3/3: the boot and t20 Vassals tabs at both scales show flags, loyalty bars with trend, tribute, standing, bond, the garrison note, priced chips and honest unavailable reasons; the must_show's Cabinet block is stale wording"
+ },
+ "ui_ux.C5": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — 8 of 10 proposed frames pass (REGION_PARIS, DISPATCH_FRONT_PAGE, LEDGER_T20_ECONOMY, GENERALS_FLAGSHIP_T12, SETTLEMENT_WHITE_REVIEW_RATIFY, DIORAMA_DADJ_X2, LEDGER_T20_ADMIRALTY_X2, CAMPAIGN_END_IMPERIAL_CONGRESS); TOP_BAR_BOOT_X2 (EA-E1, EA-E2) and WIZARD_STEP2_AUSTRIA_X2 (EA-E5) fail, both at Interface Scale 2.0 only"
+ },
+ "ui_ux.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — ✗ strict: the one Mode C session (slice 9, 46065b6a, five turns) found and fixed SF7-X24 (never tried live since), and its 'Alt+R is eaten by the NVIDIA overlay' exemption is an advertised key the system eats — FA-N56's class (EA-E9); one fifteen-minute session of the user's own (T G D R L N E M Home, their Alt forms while typing, Alt+1–8 in both ledgers, Esc twice, Tab, F1) settles it"
+ },
+ "marshal_drama.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — five petitions sampled on the FLAG arm (Murat L0, Soult L0, Ney L2, Davout L2, Massena's shadow command; verbatim in docs/audits/ECONOMY_AUDIT_2026_10_05.md §9): the voice belongs to the personality's bank, not the man — Ney's level-1 card is Murat's text with the names swapped, Bernadotte's two other cards are word for word identical, and the body is staff narration in the third person (the marshal's own words are only the speaker line)"
+ }
+}

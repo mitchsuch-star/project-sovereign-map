@@ -4645,6 +4645,12 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 
+    # EA-13 (the economy audit, October 5, 2026): the morning's accounts are
+    # kept beside the briefing (transient, never serialized), so tomorrow's
+    # ledger can say which Net lines moved and why.
+    from backend.game_logic.ledger import snapshot_morning_accounts
+    snapshot_morning_accounts(world)
+
     return dispatch
 
 

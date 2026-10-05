@@ -8989,3 +8989,61 @@ A relative word — home, back, the rear — followed by a connector (to, toward
 ### 96.2 SF-RR1 part (i) — a contracted premise is read (SFR-H1)
 
 The issuance premise ("if Mack is still in Swabia, attack him" — checked at issuance, fog-honestly) reads the contracted form too: the foe is matched lazily and an attached "'s" is the verb ("if Mack's still in Swabia", either apostrophe). Lever `condition_grammar.A_CONTRACTED_PREMISE_IS_READ`.
+
+## 97. THE ECONOMY AUDIT — the books, the purse, the counsel (October 5, 2026)
+
+The audit memo is `docs/audits/ECONOMY_AUDIT_2026_10_05.md`; the decisions it carried are `SCORE_FINISH_SPEC.md` §6.7. Every rule below sits behind its own module-level lever (`False` = the shipped behaviour); pins `tests/test_economy_audit_2026_10_05.py`; the series attribution `tools/_econ_audit_series_arms.py`.
+
+### 97.1 The Subsidies line (EA-1)
+
+Every recurring transfer between courts is ONE signed Net component, `subsidies` ("Subsidies"), on both sides — payer −, recipient +: a directed sponsorship (or neutrality purchase) paid by `instruments.process_instruments`, the paymaster's war subsidy (`coalition._process_british_subsidy`), and London's Congress subsidy (`congress._london_pays`). The engines record what they moved, clamped by the payer's chest, into a transient store opened at the top of every advance (`instruments.reset_subsidy_record`, before the coalition turn); `ledger._build_economy`'s applied mode reads it (`instruments.subsidies_for(..., applied=True)`), its projection reads the live records through each engine's own planner (`_live_sponsorship_streams`, `coalition.projected_paymaster_subsidy` — the ONE function the payment and the ledger read — and `congress.projected_london_subsidies`). A term the chest could not meet is recorded with what was owed ("paid 0 of 200"). Every AI purse test that reads the Net (the laws rung, the arming rung, `chest_forecast`) reads it. Lever `instruments.THE_SUBSIDIES_ARE_ON_THE_BOOKS`. Shown on the ledger line with its stream rows, both end-turn banners (" | Subsidies: ±Ng"), the treasury report and the desk's income sentence.
+
+### 97.2 Trade is a treaty (EA-3)
+
+`diplomacy.trade_for_state` is the face a state yields: a PEACE yields none, written or never broken (`A_PEACE_EARNS_NO_TRADE`; `TRADE_INCOME["PEACE"]` keeps the authored face). `calculate_trade_breakdown` is the one per-partner source (`calculate_trade_income` sums it); a vassal pair trades nothing, and a court outside `get_active_nations()` trades with nobody (`THE_DEAD_DO_NOT_TRADE`).
+
+### 97.3 The System taxes trade that exists (EA-4)
+
+`diplomacy.continental_system_losses` is the closure's one planner: for each member in order, the smaller of the trade the member earns from Britain and Britain earns from it, at most `CS_MEMBER_CAP` (75) a member and `CS_TOTAL_CAP` (200) in all, lost by both sides. `apply_continental_system` debits it (floored at the payer's positive balance) and records it in the applied transfers; the ledger shows it on a "Continental System" Net line (`NET_GOLD_COMPONENTS["continental_system"] = -1`). Lever `THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED`.
+
+### 97.4 A satellite's own books (EA-5, EA-6)
+
+A court that is a vassal pays its tribute on its own Net — the projection subtracts `vassal_tribute_owed`, capped by its chest plus its income as the engine caps it, and the tribute engine records the vassal's side of the applied bucket (`ledger.THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS`). A satellite's upkeep bill carries its contingent's corps (`contingent.contingents_paid_by`; `THE_SATELLITE_PAYS_ON_ITS_OWN_BILL`), which flies the lord's colours and so escaped both bills.
+
+### 97.5 The morning's chest (SFR-D23)
+
+The crisis beat's buy-off line ("compensate (1,200g — the treasury holds X)") reads `ledger.chest_forecast(world, player)["projected"]` — the chest the turn will leave — because the council sits inside the advance, before the income phase (`war_council.THE_BEAT_READS_THE_MORNINGS_CHEST`).
+
+### 97.6 The army remembers its arrears (EA-8)
+
+`_update_bankruptcy` keeps, beside the consecutive count every surface reads, `nation_pay_arrears` (serialized): +`ARREARS_PER_DEFICIT` (2) for a turn ended in deficit, −1 for a turn ended solvent, floor 0. `WorldState.deserts_now`: on a deficit turn, three deficits in a row desert (the shipped rule, whole — a save without arrears included), and so do arrears at `ARREARS_DESERT_AT` (5) — a deficit every other turn deserts at the fourth. The mercy (halved upkeep and occupation) is unchanged. The warning names the arrears when they, not a run, carry it. Lever `world_state.ARREARS_ARE_REMEMBERED`.
+
+### 97.7 A market pays its own keep (EA-9)
+
+A market carries no infrastructure maintenance (its yield is +25% of the province's base); every other work keeps its tier upkeep. The build terms carry `"upkeep": 0` and the region panel's chip says "no upkeep". Lever `world_state.A_MARKET_PAYS_ITS_OWN_KEEP`.
+
+### 97.8 The AI's purse (EA-10, EA-11, EA-12)
+
+- The AI builds and repairs no watchtower — a tower lifts the player's fog and the AI plays without fog (`enemy_ai.THE_AI_BUILDS_NO_WATCHTOWERS`).
+- **P7.5 "the court arms with its purse"** (`enemy_ai.EnemyAI._court_arms_with_its_purse`, lever `THE_COURT_ARMS_WITH_ITS_PURSE`): when nothing else on the admin chain is worth buying, a court at war or preparing one (intent price ≥ coerce) recruits past its 1805 boot strength up to `severe_band_threshold(force_limit)`; at peace up to `min(force_limit, COURT_ARMS_PEACE_FACTOR × boot)` and only at a supply base. A field levy delivers `AI_CORPS_REGEN_CAP`. Purse test: the chest keeps `COURT_ARMS_RESERVE` + `COURT_ARMS_UPKEEP_TURNS` × the bill after the levy, and the forecast Net carries the added upkeep. A base first, then the weakest corps; through the shared executor (GR5).
+- The paymaster's subsidy and the AI's sponsor branch pay only a court that fields a corps (`coalition.fields_an_army`; lever `A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS`). The player may sponsor whom he likes.
+
+### 97.9 The Net says why it moved (EA-13)
+
+`ledger.snapshot_morning_accounts` keeps the player's morning accounts (`world._morning_accounts`, transient: `{"prev", "cur"}`, each the turn, the Net lines and a detail record) — taken where the morning dispatch is built and when a campaign is opened. `ledger.why_the_net_moved` names, on the player's forward projection, every Net line in `NET_LINE_LABELS` that moved by `NET_LINE_MOVE_SHARE` (10%) or more since the previous morning, its before and after and its cause where the detail carries one (men, chest and rate terms, provinces, trade partners, tributaries, laws, works, the System's members, the fleet); the two bills SR-5a explains under their own lines (upkeep, the Charges) are left to their own notes, and the Charges' note names its line ("last turn's charge"). Returned as the economy section's `net_moves_note`, rendered under Net. Lever `ledger.THE_NET_SAYS_WHY_IT_MOVED`.
+
+### 97.10 The counsel names the law; the desk answers the purse (EA-14, EA-15)
+
+`counsel.economy_counsel` leads with `_law_terms`: the first gold law of the court's deck that `reforms.law_refusal` and `reforms.ai_purse_refusal` both pass — `enact the Staff — 9,000g, then 300g a turn (+1 order of the day, from the next refill)` — and, while the Staff is unbought and the chest holds `AI_SAVES_FOR_THE_STAFF_FROM` of its price, no smaller law (lever `THE_COUNSEL_NAMES_THE_LAW`). The counsel's purse test reads the Net BEFORE the Charges of Empire (`ai_purse_refusal(..., net_before_charges=True)`, lever `THE_COUNSEL_SEES_THROUGH_THE_CHARGES`, EA-18): the Charges are a share of the chest above its floor and fall as the chest falls, so a law the pre-Charges Net carries is sustainable; the AI rung keeps the plain read (EAD-9). The state desk answers "what should I spend gold on / buy / invest in" (kind `spend`: the chest, its Net, the counsel's priced lines) and "how are our finances / how is the treasury doing" (kind `net`).
+
+### 97.11 The top rung promises nothing higher (EA-17)
+
+At the jealousy ladder's top rung (the mutual spiral) the confrontation card's "Let it stand" says the quarrel "can grow no worse", and Promise no longer sells that it "cannot harden further" (`jealousy.THE_TOP_RUNG_PROMISES_NOTHING_HIGHER`).
+
+### 97.12 The league declares in its own right (SFR-DR1)
+
+`coalition.form_coalition` has each new member declare with `suppress_unresolved_offensive_cascade=True`, the player's own road (`THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT`): each member draws France's defensive allies on itself, not only France. A court whose declaration fails is not listed as a member (`A_FAILED_DECLARATION_IS_NOT_A_MEMBER`).
+
+### 97.13 The instrument (EA-16)
+
+Living balance C5's reader (`_score_probes.living_balance_c5_front_page`) accepts a newly free great power's news on the previous morning's page only when that morning recorded no league table at all — the dispatch's coalition section records none while the old league stands, but the page's beat reads the same forecast every morning (lever `THE_C5_READER_KNOWS_A_TABLELESS_MORNING`).

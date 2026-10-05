@@ -728,6 +728,16 @@ def naval_c5_ports_now_zero(arms, ctx):
 # qualifying court, and accepted any keep-out phrase without the flip.
 # False = that probe.
 THE_PROBE_READS_THE_WHOLE_PAGE = True
+# EA-16 (the economy audit, October 5, 2026): the dispatch records no league
+# table on a morning the old league still stands (`_coalition_section` skips
+# it while `_formed`), but the page's own beat reads the same forecast every
+# morning. So on the morning the old league dissolves the beat can name a
+# newly free court one page BEFORE the rows first appear (measured: CMD-M,
+# "Austria and Prussia would now join a league" on the t12 page, Prussia's
+# row first recorded on t13 — "missed" by a reader that only looked at t13).
+# The news counts on the previous page only when that morning recorded no
+# table at all. False = the page of the rows' first turn only.
+THE_C5_READER_KNOWS_A_TABLELESS_MORNING = True
 
 
 def _page_text(dispatch_rec: dict) -> str:
@@ -790,16 +800,22 @@ def living_balance_c5_front_page(arms, ctx):
             continue
         peace_turns[n] = peace_turn
         prev_majors = None
+        prev_page, prev_tableless = "", False
         for g in _groups(a):
             t = g[0].get("turn")
             disp = next((r for r in g if r.get("kind") == "dispatch"), {})
             majors = {r["nation"] for r in (disp.get("league_rows") or [])
                       if r.get("major") and r.get("status") in ("joins", "refuses")}
-            if t is None or t <= peace_turn:
-                prev_majors = majors if "league_rows" in disp else prev_majors
-                continue
             page = (_page_text(disp) if THE_PROBE_READS_THE_WHOLE_PAGE
                     else str(disp.get("headline", "")))
+            # EA-16: a morning with no table at all (no rows, no league line)
+            # is one the old league still stood on.
+            tableless = ("league_rows" in disp and not disp.get("league_rows")
+                         and not str(disp.get("league_line") or "").strip())
+            if t is None or t <= peace_turn:
+                prev_majors = majors if "league_rows" in disp else prev_majors
+                prev_page, prev_tableless = page, tableless
+                continue
             spons = [
                 r
                 for r in g
@@ -824,11 +840,15 @@ def living_balance_c5_front_page(arms, ctx):
                     from backend.display_names import display_nation
                     for nation in sorted(majors - prev_majors):
                         fresh_seen += 1
-                        if re.search(rf"{re.escape(display_nation(nation))}[^.]*would now join a league", page):
+                        said = rf"{re.escape(display_nation(nation))}[^.]*would now join a league"
+                        if re.search(said, page) or (
+                                THE_C5_READER_KNOWS_A_TABLELESS_MORNING
+                                and prev_tableless and re.search(said, prev_page)):
                             fresh_told += 1
                         else:
                             missed.append(f"{n} t{t} {nation} newly free")
                 prev_majors = majors
+            prev_page, prev_tableless = page, tableless
             if any(
                 re.search(
                     r"keep .* out|to keep|buy off|price to",
@@ -1786,4 +1806,117 @@ def agendas_c4_tilsit(arms, ctx):
             if card
             else "none"
         ),
+    )
+
+
+# ═════════════════════════ CHECKLIST v1.1 (October 5, 2026) ═════════════════════════
+# `docs/SCORE_CHECKLIST_V1_1.json` re-reads two items under the delegate's rulings
+# on SCORE_FINISH_SPEC.md §6 rows 18 and 22 (gate record §6.7). The v1 readers
+# above are untouched, so a v1 check of any archive reads what it always read;
+# `tools/score_reread.py` re-reads a committed reading beside its v1 record.
+
+_C5_FORTIFY_AT = re.compile(r"fortifies position at (?P<place>[^.\n]+?)\.", re.I)
+_C5_STATE_CHANGE = ("attack", "move", "retreat", "naval_expedition")
+
+
+def ai_c5_fortify_dither_v11(arms, ctx):
+    """§6 row 18 (RULED October 5, 2026): SR-7a's own definition of the dither —
+    an AI corps digs in, breaks camp and digs in AGAIN IN THE SAME PLACE within
+    3 turns, idle between (no attack, move, retreat or landing in the window).
+    A corps that broke camp to march or fight and dug in where it arrived is a
+    campaign, not a dither; the v1 reader counted it (the final reading's two
+    hits: Archduke Charles struck Carniola and Franconia between his works).
+    An unreadable place is never excused silently — it counts as the same."""
+    dithers, excused, acts = [], [], 0
+    for n in CMD_ARMS:
+        a = arms.get(n)
+        if not a:
+            continue
+        seq: dict = {}
+        for g in _groups(a):
+            t = g[0].get("turn")
+            for r in g:
+                if r.get("kind") != "enemy_phase":
+                    continue
+                for act in r.get("actions") or []:
+                    verb = str(act.get("action", ""))
+                    who = str(act.get("marshal", ""))
+                    place = None
+                    if verb == "fortify":
+                        m = _C5_FORTIFY_AT.search(str(act.get("message", "")))
+                        place = m.group("place").strip() if m else None
+                    if verb in ("fortify", "unfortify"):
+                        acts += 1
+                    seq.setdefault(who, []).append((t, verb, place))
+        for who, s in seq.items():
+            fu = [i for i, st in enumerate(s) if st[1] in ("fortify", "unfortify")]
+            for k in range(len(fu) - 2):
+                i1, i2, i3 = fu[k], fu[k + 1], fu[k + 2]
+                (t1, v1, p1), (_t2, v2, _p2), (t3, v3, p3) = s[i1], s[i2], s[i3]
+                if (v1, v2, v3) != ("fortify", "unfortify", "fortify") or t3 - t1 > 3:
+                    continue
+                between = [f"{v}@t{t}" for (t, v, _p) in s[i2 + 1:i3] if v in _C5_STATE_CHANGE]
+                same = (p1 is None or p3 is None) or p1 == p3
+                if same and not between:
+                    dithers.append(f"{n} {who} t{t1}–t{t3} at {p3 or p1 or '?'}")
+                else:
+                    why = ([f"{p1}→{p3}"] if not same else []) + (
+                        ["between: " + ", ".join(between[:4])] if between else [])
+                    excused.append(f"{n} {who} t{t1}–t{t3} ({'; '.join(why)})")
+    if acts == 0:
+        return _un("no AI fortify/unfortify on the CMD arms")
+    tail = f"; excused (moved or fought between): {excused[:3]}" if excused else ""
+    return _res(
+        True,
+        not dithers,
+        (f"{acts} fortify/unfortify acts; dug in again in place, idle between, "
+         f"within 3 turns: {dithers[:3]}" if dithers
+         else f"{acts} acts, no dither in place") + tail,
+    )
+
+
+def _longest_consecutive_run(turns) -> int:
+    """The longest run of consecutive integers in `turns` (0 when empty)."""
+    best = run = 0
+    prev = None
+    for t in sorted(set(int(x) for x in turns)):
+        run = run + 1 if prev is not None and t == prev + 1 else 1
+        best = max(best, run)
+        prev = t
+    return best
+
+
+def drama_f1_flagship_probe_v11(arms, ctx):
+    """§6 row 22 (RULED October 5, 2026): the flagship arm against the bar the
+    user CONFIRMED for the petition revisit (PETITION_POPUP_REVISIT_SPEC.md
+    §6 Q4 / §8) — at most 9 blocking petition modals in the 24 turns, no run
+    of modals on more than 2 consecutive turns, and 0 silent losses. The v1
+    item's "≤ 4" was the B5 re-run's own measurement (3) plus one, never the
+    bar the user confirmed; the crisis tier's threshold is not the lever
+    (raising it to level 3 hides the level-2 card, the one window in which a
+    Promise can still stop the spiral)."""
+    run_dir = pathlib.Path(ctx["run_dir"])
+    p = run_dir / "arms" / "FLAG_probe.json"
+    if not p.exists():
+        return _un("the FLAG probe did not write its record")
+    probe = json.loads(p.read_text(encoding="utf-8"))
+    silent = len(probe.get("silent") or [])
+    a = arms.get("FLAG")
+    if a is None:
+        return _un("the FLAG digest is missing")
+    modals = 0
+    turns = []
+    for g in _groups(a):
+        here = sum(1 for r in g
+                   if r.get("kind") == "popup" and r.get("key") == "marshal_petition")
+        if here:
+            modals += here
+            turns.append(int(g[0].get("turn") or 0))
+    longest = _longest_consecutive_run(turns)
+    return _res(
+        True,
+        modals <= 9 and longest <= 2 and silent == 0,
+        f"petition modals {modals} (≤ 9) on turns {turns}, the longest run of "
+        f"consecutive turns {longest} (≤ 2), silent losses {silent}, petition "
+        f"moments {len(probe.get('rows') or [])}",
     )

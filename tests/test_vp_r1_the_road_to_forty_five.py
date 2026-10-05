@@ -764,7 +764,16 @@ class TestTheSeriesAttribution:
             encoding="utf-8"))
         assert vdc["arms"]["ALL"]["series"] == coord["prior"]
         assert coord["arms"]["0"]["series"] == coord["prior"]
-        assert BASELINE_SERIES == coord["arms"]["ALL"]["series"]
+        # RE-SEATED by the economy audit (October 5, 2026): one more link —
+        # the field read's ALL arm is the prior record the audit's arm 0
+        # (all fourteen levers down in the child) reproduces byte for byte,
+        # and its ALL arm (the shipped tree) is the standing series
+        # (`tools/_econ_audit_series_arms_final.json`, sixteen arms).
+        econ = json.loads((ROOT / "tools" / "_econ_audit_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert coord["arms"]["ALL"]["series"] == econ["prior"]
+        assert econ["arms"]["0"]["series"] == econ["prior"]
+        assert BASELINE_SERIES == econ["arms"]["ALL"]["series"]
         assert arms["arms"]["1"]["vpr1"]["raiding_refusals"] > 0
         assert arms["arms"]["2"]["vpr1"]["glory_checks"] == 0
 

@@ -1027,6 +1027,7 @@ The rule for any session:
 ```
 
 - The arms are named in `score_run.ARMS`; the PROBE items live in `tools/_score_probes.py`; the checklist is `docs/SCORE_CHECKLIST_V1.json` (frozen v1 — a new version re-reads the baseline archive before comparing).
+- **Checklist v1.1 (October 5, 2026, `SCORE_FINISH_SPEC.md` §6.7):** `docs/SCORE_CHECKLIST_V1_1.json` re-anchors three items (AI aliveness C5, marshal drama F1, economy C1), each with its own `reader`. Read an archive under it BESIDE its v1 record, with the archive's own census: `PYTHONPATH=. .venv/Scripts/python.exe tools/score_reread.py --run <archive> --checklist docs/SCORE_CHECKLIST_V1_1.json --eyes <archive>/eyes_delegate.json --suffix v1_1` → `checklist_v1_1.json`, `scores_v1_1.json`. `score_run.py check --checklist` honours an item's `reader` too.
 - **HOLD is written fresh for every full reading** (`tools/playtest_scripts/score_hold_<date>.json`, 20 blind questions + 20 blind orders, named by `score_run.HOLD_SCRIPT`), by an agent that has not seen the corpus.
 - The run directory is gitignored; a full reading is archived by copying each arm's `digest.md`, `digest.jsonl`, `meta.json`, `titled.json`/`result.json` plus the five top-level JSONs, `AIV/`, the packet README and `panel.json` into `docs/audits/score_runs/<date>_<sha>/` — never the saves. The baseline is `docs/audits/score_runs/2026_09_29_c20d5bba/`.
 - No Godot on the reading machine → UI/UX reads NOT EXERCISED and the directional averages the other pillars (§4.6); pass `--godot` to run the client arm.

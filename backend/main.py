@@ -219,9 +219,13 @@ def _ensure_first_morning(target_world: WorldState) -> None:
     stored dispatch: a campaign just created, or a save written before its
     first end turn. A world that already carries one keeps it untouched."""
     from backend.game_logic import dispatch as _dispatch
-    if not _dispatch.THE_FIRST_MORNING_HAS_A_BRIEFING:
-        return
-    if getattr(target_world, "last_morning_dispatch", None):
+    if (not _dispatch.THE_FIRST_MORNING_HAS_A_BRIEFING
+            or getattr(target_world, "last_morning_dispatch", None)):
+        # EA-13 (the economy audit, October 5, 2026): a loaded campaign keeps
+        # its accounts from the moment it is opened (the boot briefing below
+        # keeps them itself), so the next morning's ledger can say what moved.
+        from backend.game_logic.ledger import snapshot_morning_accounts
+        snapshot_morning_accounts(target_world)
         return
     _dispatch.build_morning_dispatch(target_world, boot=True)
 

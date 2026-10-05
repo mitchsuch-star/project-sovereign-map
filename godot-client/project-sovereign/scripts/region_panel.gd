@@ -889,6 +889,9 @@ func _build_terms_text(building_key: String, t: Dictionary) -> String:
 				+ str(int(t.get("recruit_morale", 0))) + " morale · drill +" \
 				+ str(int(t.get("drill_gain_base", 0))) + "→+" + str(int(t.get("drill_gain", 0)))
 		"market":
+			# EA-9 (the economy audit, Oct 5 2026): a market keeps itself.
+			if int(t.get("upkeep", -1)) == 0:
+				return "+" + str(int(t.get("income", 0))) + "g/turn · no upkeep"
 			return "+" + str(int(t.get("income", 0))) + "g/turn"
 		"stables":
 			var cav := int(t.get("cavalry", 0))

@@ -1,0 +1,212 @@
+[
+  {
+    "id": "EA-1 lever down",
+    "file": "backend/game_logic/instruments.py",
+    "old": "THE_SUBSIDIES_ARE_ON_THE_BOOKS = True",
+    "new": "THE_SUBSIDIES_ARE_ON_THE_BOOKS = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSubsidiesAreOnTheBooks::test_a_sponsorship_moves_both_projected_nets"
+  },
+  {
+    "id": "EA-1 the projection's clamp dropped",
+    "file": "backend/game_logic/instruments.py",
+    "old": "        paid = min(amount, max(0, chest))",
+    "new": "        paid = amount",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSubsidiesAreOnTheBooks::test_the_projection_clamps_by_the_payers_chest"
+  },
+  {
+    "id": "EA-1 the engine's clamp dropped",
+    "file": "backend/game_logic/instruments.py",
+    "old": "            paid = min(amount, max(0, payer_gold))",
+    "new": "            paid = amount",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSubsidiesAreOnTheBooks::test_the_applied_record_is_what_the_engine_moved_and_what_was_owed"
+  },
+  {
+    "id": "EA-3 a peace trades again",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "A_PEACE_EARNS_NO_TRADE = True",
+    "new": "A_PEACE_EARNS_NO_TRADE = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTradeIsATreaty::test_a_peace_earns_no_trade"
+  },
+  {
+    "id": "EA-3 the dead trade again",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "THE_DEAD_DO_NOT_TRADE = True",
+    "new": "THE_DEAD_DO_NOT_TRADE = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTradeIsATreaty::test_a_court_that_no_longer_stands_trades_with_nobody"
+  },
+  {
+    "id": "EA-4 lever down",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED = True",
+    "new": "THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSystemTaxesTradeThatExists"
+  },
+  {
+    "id": "EA-4 the member cap moved",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "CS_MEMBER_CAP = 75",
+    "new": "CS_MEMBER_CAP = 76",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSystemTaxesTradeThatExists::test_a_member_trading_with_britain_loses_what_it_earns_capped"
+  },
+  {
+    "id": "EA-5 lever down",
+    "file": "backend/game_logic/ledger.py",
+    "old": "THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS = True",
+    "new": "THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSatellitesOwnBooks::test_a_vassal_pays_its_tribute_on_its_own_net"
+  },
+  {
+    "id": "EA-6 lever down",
+    "file": "backend/game_logic/contingent.py",
+    "old": "THE_SATELLITE_PAYS_ON_ITS_OWN_BILL = True",
+    "new": "THE_SATELLITE_PAYS_ON_ITS_OWN_BILL = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheSatellitesOwnBooks::test_a_contingent_is_on_its_satellites_bill_and_not_its_lords"
+  },
+  {
+    "id": "EA-8 lever down",
+    "file": "backend/models/world_state.py",
+    "old": "ARREARS_ARE_REMEMBERED = True",
+    "new": "ARREARS_ARE_REMEMBERED = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheArmyRemembersItsArrears::test_alternating_deficits_desert_at_the_fourth"
+  },
+  {
+    "id": "EA-8 the desertion line moved",
+    "file": "backend/models/world_state.py",
+    "old": "ARREARS_DESERT_AT = 5",
+    "new": "ARREARS_DESERT_AT = 6",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheArmyRemembersItsArrears::test_alternating_deficits_desert_at_the_fourth"
+  },
+  {
+    "id": "EA-9 lever down",
+    "file": "backend/models/world_state.py",
+    "old": "A_MARKET_PAYS_ITS_OWN_KEEP = True",
+    "new": "A_MARKET_PAYS_ITS_OWN_KEEP = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestAMarketKeepsItself"
+  },
+  {
+    "id": "EA-10 lever down",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "THE_AI_BUILDS_NO_WATCHTOWERS = True",
+    "new": "THE_AI_BUILDS_NO_WATCHTOWERS = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheAIsPurse::test_no_tower_for_a_court_without_fog"
+  },
+  {
+    "id": "EA-11 lever down",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "THE_COURT_ARMS_WITH_ITS_PURSE = True",
+    "new": "THE_COURT_ARMS_WITH_ITS_PURSE = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheAIsPurse::test_the_lever_gates_the_rung_in_the_chain[lever_up]"
+  },
+  {
+    "id": "EA-11 the peace base check dropped",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "            if not at_war and not at_base:\n                continue",
+    "new": "            if False and not at_war and not at_base:\n                continue",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheAIsPurse::test_a_court_at_peace_levies_only_at_a_base"
+  },
+  {
+    "id": "EA-12 lever down",
+    "file": "backend/game_logic/coalition.py",
+    "old": "A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS = True",
+    "new": "A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheAIsPurse::test_a_subsidy_pays_a_court_that_fights"
+  },
+  {
+    "id": "EA-12 every court fields an army",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    return any(m.nation == nation and m.strength > 0",
+    "new": "    return True or any(m.nation == nation and m.strength > 0",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheAIsPurse::test_a_subsidy_pays_a_court_that_fights"
+  },
+  {
+    "id": "DR1 lever down",
+    "file": "backend/game_logic/coalition.py",
+    "old": "THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT = True",
+    "new": "THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheLeagueDeclaresInItsOwnRight::test_each_new_member_declares_in_its_own_right"
+  },
+  {
+    "id": "DR1 rider down",
+    "file": "backend/game_logic/coalition.py",
+    "old": "A_FAILED_DECLARATION_IS_NOT_A_MEMBER = True",
+    "new": "A_FAILED_DECLARATION_IS_NOT_A_MEMBER = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheLeagueDeclaresInItsOwnRight::test_a_failed_declaration_is_not_a_member"
+  },
+  {
+    "id": "SFR-D23 lever down",
+    "file": "backend/game_logic/war_council.py",
+    "old": "THE_BEAT_READS_THE_MORNINGS_CHEST = True",
+    "new": "THE_BEAT_READS_THE_MORNINGS_CHEST = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheBeatReadsTheMorningsChest::test_the_brewing_beat_prices_against_the_forecast"
+  },
+  {
+    "id": "EA-13 lever down",
+    "file": "backend/game_logic/ledger.py",
+    "old": "THE_NET_SAYS_WHY_IT_MOVED = True",
+    "new": "THE_NET_SAYS_WHY_IT_MOVED = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheNetSaysWhyItMoved::test_a_moved_line_is_named_with_its_cause"
+  },
+  {
+    "id": "EA-13 the share moved",
+    "file": "backend/game_logic/ledger.py",
+    "old": "NET_LINE_MOVE_SHARE = 0.10",
+    "new": "NET_LINE_MOVE_SHARE = 0.90",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheNetSaysWhyItMoved::test_a_moved_line_is_named_with_its_cause"
+  },
+  {
+    "id": "EA-14 lever down",
+    "file": "backend/ai/counsel.py",
+    "old": "THE_COUNSEL_NAMES_THE_LAW = True",
+    "new": "THE_COUNSEL_NAMES_THE_LAW = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheCounselNamesTheLaw::test_a_rich_france_is_told_of_the_staff"
+  },
+  {
+    "id": "EA-18 lever down",
+    "file": "backend/ai/counsel.py",
+    "old": "THE_COUNSEL_SEES_THROUGH_THE_CHARGES = True",
+    "new": "THE_COUNSEL_SEES_THROUGH_THE_CHARGES = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheCounselNamesTheLaw::test_a_rich_france_is_told_of_the_staff"
+  },
+  {
+    "id": "EA-18 the charges not added back",
+    "file": "backend/game_logic/reforms.py",
+    "old": "        net += int(econ.get(\"state_charges\", 0) or 0)",
+    "new": "        net += 0",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheCounselNamesTheLaw::test_a_rich_court_is_not_refused_for_being_rich"
+  },
+  {
+    "id": "EA-15 the contraction dropped",
+    "file": "backend/ai/state_desk.py",
+    "old": "r\"\\bhow(?:'s| (?:are|is|stand|stands|look|looks|go|goes)) (?:our|my|the) (?:finances",
+    "new": "r\"\\bhow (?:are|is|stand|stands|look|looks|go|goes) (?:our|my|the) (?:finances",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheCounselNamesTheLaw::test_the_desk_answers_how_the_finances_stand"
+  },
+  {
+    "id": "EA-15 the fear dropped",
+    "file": "backend/ai/state_desk.py",
+    "old": "r\"|\\b(?:are|is) (?:we|france) (?:going |about to go |close to |near )?(?:broke|bankrupt|insolvent)\\b\"",
+    "new": "r\"|\\b(?:are|is) (?:we|france) (?:going |about to go |close to |near )?(?:brokeX|bankruptX|insolventX)\\b\"",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheCounselNamesTheLaw::test_the_desk_answers_how_the_finances_stand"
+  },
+  {
+    "id": "EA-17 lever down",
+    "file": "backend/game_logic/jealousy.py",
+    "old": "THE_TOP_RUNG_PROMISES_NOTHING_HIGHER = True",
+    "new": "THE_TOP_RUNG_PROMISES_NOTHING_HIGHER = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheTopRungPromisesNothingHigher"
+  },
+  {
+    "id": "EA-16 lever down",
+    "file": "tools/_score_probes.py",
+    "old": "THE_C5_READER_KNOWS_A_TABLELESS_MORNING = True",
+    "new": "THE_C5_READER_KNOWS_A_TABLELESS_MORNING = False",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheC5ReaderKnowsATablelessMorning::test_the_news_on_the_tableless_morning_counts"
+  },
+  {
+    "id": "EA-16 the tableless guard dropped",
+    "file": "tools/_score_probes.py",
+    "old": "and prev_tableless and re.search(said, prev_page)):",
+    "new": "and re.search(said, prev_page)):",
+    "tests": "tests/test_economy_audit_2026_10_05.py::TestTheC5ReaderKnowsATablelessMorning::test_a_morning_with_a_table_does_not_excuse"
+  }
+]

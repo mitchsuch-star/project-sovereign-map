@@ -189,6 +189,17 @@ COALITION_NAME_USES_THE_ADJECTIVE = True
 # Pressburg: a peace buys time, not immunity.
 COALITION_HONOURS_A_FRESH_PEACE = True
 
+# SFR-DR1 "The league marches on what it declared" (ruled October 5, 2026 by
+# the user's delegate — `docs/SCORE_FINISH_SPEC.md` §6.7; probe memo
+# `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §9). The league declared and
+# rarely struck because its first declarer's OFFENSIVE cascade swept the other
+# members into the war against France alone, leaving them at peace with
+# France's allies behind closed frontiers. Each member now declares in its own
+# right (the player's own road, GR5). The rider: a court whose declaration
+# fails is not listed as a member. False = the shipped cascade / membership.
+THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT = True
+A_FAILED_DECLARATION_IS_NOT_A_MEMBER = True
+
 # ⚠ FOR USER CONFIRMATION — a balance-relevant number with no prior blessing.
 # 5 is the CONSERVATIVE choice: it matches `armistice_cooldowns`'s own 5
 # (`world_state.py`, R5b) and is the smallest value that removes the
@@ -1777,12 +1788,52 @@ def get_british_subsidy_recipient(world) -> Optional[str]:
         if any(r.get("payer") == target and r.get("recipient") == member
                for r in getattr(world, "compensation_bargains", []) or []):
             continue
+        # EA-12 (the economy audit, October 5, 2026): the war subsidy pays a
+        # court that FIGHTS — never one with no army in the field.
+        if A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS and not fields_an_army(world, member):
+            continue
         rel = _get_relation(world, payer, member)
         if rel > -20 and rel < best_relation:
             best = member
             best_relation = rel
 
     return best
+
+
+# EA-12 "A subsidy pays a court that fights" (the economy audit, October 5,
+# 2026): on the commanded arm Britain's purse paid Sardinia 13,000 gold over
+# forty turns — a court with no army in the field — while its fighting allies
+# went short. The paymaster's war subsidy and the AI's sponsor branch pay only
+# a court that fields a corps. The player may still sponsor whom he likes.
+A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS = True
+
+
+def fields_an_army(world, nation: str) -> bool:
+    """EA-12: does `nation` field a corps of its own (free, with men)?"""
+    return any(m.nation == nation and m.strength > 0
+               and not getattr(m, "captured_by", "")
+               for m in world.marshals.values())
+
+
+def projected_paymaster_subsidy(world) -> Optional[Dict]:
+    """EA-1: the paymaster's war subsidy the next advance would pay —
+    `{"payer", "recipient", "amount", "kind": "paymaster"}` — or None. The
+    ONE planner: `_process_british_subsidy` pays exactly this, and the
+    ledger's projection quotes it. Pure read."""
+    from backend.game_logic.agendas import (
+        get_paymaster_nation, get_paymaster_subsidy_amount,
+    )
+    payer = get_paymaster_nation(world)
+    if payer is None:
+        return None
+    recipient = get_british_subsidy_recipient(world)
+    if not recipient:
+        return None
+    subsidy = int(get_paymaster_subsidy_amount(world, payer))
+    if int(world.nation_gold.get(payer, 0)) < subsidy:
+        return None
+    return {"payer": payer, "recipient": recipient, "amount": subsidy,
+            "owed": subsidy, "kind": "paymaster", "turns_remaining": 0}
 
 
 def _process_british_subsidy(world) -> List[Dict]:
@@ -1800,26 +1851,19 @@ def _process_british_subsidy(world) -> List[Dict]:
     payer rides the new `payer` field and the message copy.
     """
     events = []
-    from backend.game_logic.agendas import (
-        get_paymaster_nation, get_paymaster_subsidy_amount,
-    )
-    payer = get_paymaster_nation(world)
-    if payer is None:
+    plan = projected_paymaster_subsidy(world)
+    if plan is None:
         return events
-    recipient = get_british_subsidy_recipient(world)
-    if not recipient:
-        return events
-
-    subsidy = get_paymaster_subsidy_amount(world, payer)
+    payer, recipient, subsidy = plan["payer"], plan["recipient"], int(plan["amount"])
     payer_gold = world.nation_gold.get(payer, 0)
-    if payer_gold < subsidy:
-        return events
 
     # IQ1-2 (3): NOT in `Spent` — a per-turn obligation, not a purchase.
-    # It belongs on a signed Net line instead; owner IQ1-3a.
+    # EA-1 (October 5, 2026): on the signed "Subsidies" Net line, both sides.
     world.nation_gold[payer] = int(payer_gold - subsidy)
     recipient_gold = world.nation_gold.get(recipient, 0)
     world.nation_gold[recipient] = int(recipient_gold + subsidy)
+    from backend.game_logic.instruments import record_subsidy_transfer
+    record_subsidy_transfer(world, payer, recipient, subsidy, "paymaster")
 
     # +5 relation between payer and recipient
     world.modify_nation_relation(payer, recipient, 5)
@@ -2030,9 +2074,29 @@ def form_coalition(qualifying_nations: List[str], world,
     from backend.game_logic.diplomacy import declare_war
     war_events = []
     for nation in new_belligerents:
-        result = declare_war(world, nation, france)
+        # SFR-DR1 (October 5, 2026, the delegate's ruling): every member
+        # declares IN ITS OWN RIGHT, as the player's own declaration does
+        # (`diplomatic_executor`, `suppress_unresolved_offensive_cascade`).
+        # Before, the first declarer's offensive cascade swept its allies in
+        # against France ALONE — measured on CMD-A: Britain declared first,
+        # Austria joined only France's war, stayed at PEACE with Bavaria and
+        # Saxony, and their closed frontiers walled Vienna in (1 attack in 10
+        # turns of war). Declaring in its own right, each member draws
+        # France's defensive allies on itself — the target's own
+        # call-to-arms, not the transitive spread DG-4 forbids.
+        result = declare_war(
+            world, nation, france,
+            suppress_unresolved_offensive_cascade=THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT)
         if result.get("success"):
             war_events.append(result)
+    if A_FAILED_DECLARATION_IS_NOT_A_MEMBER and new_belligerents:
+        # SFR-DR1 rider: a court whose declaration FAILED is not at war with
+        # the target and is not a member (measured: Sweden's own declaration
+        # refused as `war_instance_side_conflict`, yet it was listed in the
+        # league it never joined).
+        at_war_now = set(get_nations_at_war_with_target(world, france))
+        all_members = [n for n in all_members
+                       if n in at_war_now or n not in new_belligerents]
 
     # AI-4a step 5: declare_war now credits the AGGRESSOR's own threat slot
     # (a coalition member declaring on the target accrues a transient +20 in

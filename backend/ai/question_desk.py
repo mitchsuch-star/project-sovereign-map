@@ -1082,6 +1082,8 @@ _NET_LABELS = {
     "occupation": "occupation", "contributions": "contributions of war",
     "state_charges": "the Charges of Empire", "dotation_skim": "the dotations",
     "rente_cost": "the rentes", "laws": "the laws",
+    "subsidies": "the subsidies",
+    "continental_system": "the Continental System",
     "infrastructure": "infrastructure",
     "blockade": "the blockade", "admiralty": "the Admiralty",
     "upkeep_base": "the army",

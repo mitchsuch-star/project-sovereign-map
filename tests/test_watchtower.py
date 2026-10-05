@@ -713,17 +713,25 @@ class TestAIWatchtowerBuilding:
         result = ai._find_best_watchtower_region("Britain", world)
         assert result is None
 
-    def test_ai_damaged_building_finds_watchtower(self):
-        """AI repair scan finds damaged watchtower."""
+    def test_ai_damaged_building_finds_watchtower(self, monkeypatch):
+        """AI repair scan finds damaged watchtower — with EA-10's lever down.
+
+        EA-10 (the economy audit, October 5, 2026) — CONSCIOUS FLIP: a
+        watchtower lifts the PLAYER's fog and the AI plays without fog, so the
+        AI builds and repairs none (`enemy_ai.THE_AI_BUILDS_NO_WATCHTOWERS`).
+        The shipped repair scan is pinned with the lever down; the new rule
+        beside it."""
         world = make_world()
-        from backend.ai.enemy_ai import EnemyAI
-        ai = EnemyAI(executor=get_executor())
+        from backend.ai import enemy_ai as EA
+        ai = EA.EnemyAI(executor=get_executor())
 
         # Put damaged watchtower in a Britain region (Hanover is Britain-controlled)
         hanover = world.get_region("Hanover")
         assert hanover.controller == "Britain"
         hanover.watchtower = "damaged"
 
+        assert ai._find_damaged_building_region("Britain", world) is None
+        monkeypatch.setattr(EA, "THE_AI_BUILDS_NO_WATCHTOWERS", False)
         result = ai._find_damaged_building_region("Britain", world)
         assert result is not None
         assert result["building_type"] == "watchtower"

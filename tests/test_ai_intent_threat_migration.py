@@ -1363,7 +1363,68 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # (21 on arm 0), the UNATTENDED France with 5 (4). Stated so a reader of the
 # passive-France lines above does not take 4 as today's figure.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE — the economy audit (October 5, 2026;
+# `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §8). Fourteen levers, each set IN
+# THE CHILD, every one counted, by `tools/_econ_audit_series_arms.py` (record =
+# `tools/_econ_audit_series_arms_final.json`; sixteen arms):
+#   0.   every lever DOWN ........................ the series above (the Step 7
+#                                                   slice 10 record), BYTE-FOR-BYTE
+#   D/F  the league declares in its own right / a failed declaration is no
+#        member (SFR-DR1) .......................... byte-identical: no league
+#                                                   FORMS on this board (0
+#                                                   declarations — the boot
+#                                                   coalition is already at war)
+#   B    the subsidies on the books (EA-1) ....... byte-identical alone: the
+#                                                   subsidies term is non-zero on
+#                                                   6 court-turns of the AI's Net
+#                                                   reads and no rung's bar sits
+#                                                   between the two readings
+#   G    the dead do not trade (EA-3) ............ byte-identical alone: the
+#                                                   paid trade differs on 37
+#                                                   turns, by sums no AI rung
+#                                                   reads across a threshold
+#   C    the System charges the trade earned ..... inert by construction: no
+#        (EA-4)                                     court is a member here
+#   V    the vassal pays on its own books (EA-5) . byte-identical: no vassal's
+#                                                   Net is read for a decision
+#                                                   without R
+#   K    the satellite pays its contingent (EA-6)  byte-identical: Holland's
+#                                                   contingent billed on 40 turns
+#                                                   (the Kingdom of Italy's on
+#                                                   4); the satellite's chest
+#                                                   moves no threat-bearing rung
+#   W    the beat reads the morning's chest ...... display only (1 brewing
+#        (SFR-D23)                                  beat on this board)
+#   A    the army remembers its arrears (EA-8) ... 0 desertions either way here
+#   T    a written peace earns no trade (EA-3) ... diverges at [38]
+#   O    the AI builds no watchtowers (EA-10) .... diverges at [27] (91 AI
+#                                                   towers built on arm 0)
+#   M    a market keeps itself (EA-9) ............ diverges at [28]
+#   S    a subsidy pays a court that fights ...... diverges at [28]
+#        (EA-12)
+#   R    the court arms with its purse (EA-11) ... diverges at [12]: Russia
+#                                                   levies 13 times, Britain 8;
+#                                                   France ends turn 40 with 13
+#                                                   provinces
+#   ALL. every lever UP (the shipped tree) ...... the series below: through
+#                                                   [17] the old series, then
+#                                                   France's alarm 11 at [18]
+#                                                   (was 1); Britain levies 33
+#                                                   times, Russia 26, Austria 5,
+#                                                   Sweden 3, Spain 2; 0 AI
+#                                                   towers; France ends turn 40
+#                                                   with 12 provinces (was 5),
+#                                                   Britain 20, Austria 19 (was 26)
+# R is the earliest mover; T, O, M and S move it alone late (each lands the
+# same end board, France 21 — a late bifurcation of this seed, not four
+# effects); in ALL, R's purse test reads the subsidies (B) and the trade (T,
+# G), so its first levy lands later and the series diverges at [18]. The
+# commanded arms are the audit's own measurement (memo §3): France keeps
+# 28/29/28 provinces at turn 40 on the three seeds while the enemy phase
+# attacks 39/29/39 times (was 31/10/16).
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 11, 8, 5, 2, 4, 1, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

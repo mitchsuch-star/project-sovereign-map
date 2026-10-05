@@ -89,6 +89,25 @@ THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT = True
 # (`coalition.league_cheapest_keep_out` — the verb's own gates, the
 # forecast's own price). False = no such line.
 THE_COUNSEL_NAMES_THE_KEEP_OUT = True
+# EA-14 "The counsel names the law" (the economy audit, October 5, 2026 —
+# `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §6). Measured on the commanded
+# arm's turn-20 save: France held 32,903 gold with no law in force, and
+# "what should I spend gold on" / "what can I do" offered a 230-gold levy and
+# a 300-gold depot — the Staff (one more order every day, 9,000) was named
+# nowhere a player asks what to buy. The purse's counsel now LEADS with the
+# first gold law of the court's deck that the verb would enact
+# (`reforms.law_refusal`) and the purse would carry (the rival courts' own
+# test, `reforms.ai_purse_refusal`: a reserve, five turns of the slate's
+# upkeep, a Net that bears it). While the Staff is unbought and the chest
+# holds half its price, no smaller law is offered in its stead (the rival
+# courts' own saving rule). False = no law line.
+THE_COUNSEL_NAMES_THE_LAW = True
+# EA-18 (the economy audit, October 5, 2026): the law line's purse test reads
+# the Net BEFORE the Charges of Empire (`reforms.ai_purse_refusal`'s
+# `net_before_charges`). The Charges fall with the chest, so a rich court's
+# negative Net is not a reason to leave the Staff unbought (measured: France
+# at 30,000 was told to levy 3,000 infantry). False = the plain forecast Net.
+THE_COUNSEL_SEES_THROUGH_THE_CHARGES = True
 # DESK-9's copy: what the counsel says when the day's military actions are
 # spent. A typed order, like every other line the counsel prints.
 END_TURN_LINE = "end turn — no military actions remain today"
@@ -360,11 +379,50 @@ def economy_counsel(world, nation: str, limit: int = 3) -> List[str]:
             and _admin_actions_left(world) <= 0):
         return []
     lines: List[str] = []
+    law = _law_terms(world, nation)
+    if law:
+        lines.append(law)
     levy = _levy_terms(world, nation)
     if levy:
         lines.append(levy)
     lines.extend(_build_terms(world, nation, limit=max(0, limit - len(lines))))
     return lines[:limit]
+
+
+def _law_terms(world, nation: str) -> Optional[str]:
+    """EA-14: `enact the Staff — 9,000g, then 300g a turn (+1 order of the
+    day, from the next refill)` — the first gold law of the court's deck the
+    verb would enact and the purse would carry, or None. The player's counsel
+    only (an AI court enacts through its own rung)."""
+    if not THE_COUNSEL_NAMES_THE_LAW or nation != getattr(world, "player_nation", None):
+        return None
+    try:
+        from backend.game_logic import reforms as R
+    except Exception:
+        return None
+    rows = [r for r in R.deck(world, nation) if isinstance(r, dict)]
+    staff = next((r for r in rows if R.is_staff(r) and not R.is_in_force(r)), None)
+    chest = int(getattr(world, "gold", 0) or 0)
+    saving = (staff is not None and R.AI_SAVES_FOR_THE_STAFF_FROM > 0
+              and chest >= int(staff.get("price", 0) or 0) * R.AI_SAVES_FOR_THE_STAFF_FROM)
+    for row in rows:
+        if R.is_in_force(row) or str(row.get("currency") or "gold") != "gold":
+            continue
+        if saving and row is not staff:
+            continue
+        if R.law_refusal(world, nation, str(row.get("id") or "")):
+            continue
+        if R.ai_purse_refusal(world, nation, row,
+                              net_before_charges=THE_COUNSEL_SEES_THROUGH_THE_CHARGES):
+            continue
+        quote = R.restoration_price(world, nation, row)
+        need = int(quote["price"]) + int(quote["arrears"])
+        upkeep = int(row.get("upkeep", 0) or 0)
+        effects = [e for e in (R.effect_line(c) for c in (row.get("effects") or [])) if e]
+        typed = "enact the Staff" if R.is_staff(row) else f"enact {R.display_name(row)}"
+        line = f"{typed} — {need:,}g, then {upkeep:,}g a turn"
+        return f"{line} ({'; '.join(effects)})" if effects else line
+    return None
 
 
 def _levy_terms(world, nation: str) -> Optional[str]:

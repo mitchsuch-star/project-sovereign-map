@@ -4311,6 +4311,17 @@ func _display_turn_change(event: Dictionary):
 	var overseas_str = ""
 	if overseas > 0:
 		overseas_str = " | Overseas: +" + str(int(overseas)) + "g"
+	# EA-1 (the economy audit, Oct 5 2026): the recurring transfers between
+	# courts — sponsorships, the paymaster's subsidy, London's Congress
+	# subsidy — signed (we pay −, we receive +), out of `Other` now.
+	var subsidies = int(event.get("subsidies", 0))
+	var subsidies_str = ""
+	if subsidies != 0:
+		subsidies_str = " | Subsidies: " + ("+" if subsidies > 0 else "") + str(int(subsidies)) + "g"
+	# EA-4: the Continental System's closure on the trade we earn.
+	var cs_loss = int(event.get("continental_system", 0))
+	if cs_loss > 0:
+		subsidies_str += " | Continental System: -" + str(int(cs_loss)) + "g"
 	# EB review [6]: the event carries admiralty/blockade/other and the
 	# backend Net includes them — without these three renders the banner's
 	# visible lines did not sum to the Net beside them (the SC-33 class).
@@ -4346,7 +4357,7 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + Utils.COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	# PT-C3 mirror (verify fleet, Aug 2026): Upkeep signs like its siblings
 	# so the banner's terms sum legibly to Net.
-	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + laws_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: -" + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + Utils.COLOR_SUCCESS + "]Income: " + str(int(income)) + "g" + requisitions_str + overseas_str + subsidies_str + occupation_str + contributions_str + state_charges_str + dotation_str + rente_str + laws_str + infrastructure_str + admiralty_str + blockade_str + materiel_str + other_str + " | Upkeep: -" + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 
 	# Bankruptcy warning

@@ -3409,6 +3409,11 @@ def _process_ai_sponsorships(world) -> List[Dict]:
                 continue
             if standing_sponsorship_amount(world, payer, recipient) > 0:
                 continue
+            # EA-12: patronage pays a court that fields an army.
+            from backend.game_logic.coalition import (
+                A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS, fields_an_army)
+            if A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS and not fields_an_army(world, recipient):
+                continue
             result = grant_directed_sponsorship(
                 world, payer=payer, recipient=recipient, aim=aim,
                 amount_per_turn=amount)

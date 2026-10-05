@@ -154,6 +154,11 @@ ESCALATION_RIVAL_FIRES = 2          # stored -1: the SECOND fire qualifies
 ESCALATION_IMMEDIATE_RELATIONSHIP = -2   # stored -2 or worse: on sight
 ESCALATION_PERMANENT_LEVEL = 2      # tier 2: permanent -1 both directions
 ESCALATION_MUTUAL_LEVEL = 3         # tier 3: mutual spiral
+# EA-17 (the economy audit's row-22 review, October 5, 2026): at the top rung
+# the card no longer says the quarrel "may harden further", nor sells a
+# Promise that it "cannot harden further" — nothing is higher. False = the
+# shipped copy.
+THE_TOP_RUNG_PROMISES_NOTHING_HIGHER = True
 
 # ESP-1 Fontainebleau (spec §0.3): >=3 player marshals eroding at once.
 FONTAINEBLEAU_MIN_ERODING = 3
@@ -3022,8 +3027,18 @@ def _standing_cost_detail(marshal, target) -> str:
                 weight = (f"he brings {weight_phrase(_scale)} the weight of "
                           f"{leads}, for his faith in you is spent "
                           f"(trust {int(_bd['trust'])})")
+    if THE_TOP_RUNG_PROMISES_NOTHING_HIGHER and _at_the_top_rung(marshal, target):
+        return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
+                f"{weight}; the quarrel can grow no worse.")
     return (f"Free, and it fixes nothing. For {turns} more turn{plural} "
             f"{weight}, and the quarrel may harden further.")
+
+
+def _at_the_top_rung(marshal, target) -> bool:
+    """EA-17: is the pair at the ladder's top rung (the mutual spiral)?
+    Read in both directions — the ladder writes the pair together."""
+    return max(get_escalation_level(marshal, target.name),
+               get_escalation_level(target, marshal.name)) >= ESCALATION_MUTUAL_LEVEL
 
 
 def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
@@ -3118,10 +3133,14 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
             # the old detail named only the timer, which is why paying read
             # as worse than ignoring the card.
             {"id": "promise", "label": promise_label,
-             "detail": (f"His patience is bought — the grievance shortens by "
-                        f"{CONFRONT_PROMISE_DURATION_CUT} turns, and for "
-                        f"{CONFRONT_PROMISE_HOLD_TURNS} turns the quarrel "
-                        f"cannot harden further."),
+             "detail": ((f"His patience is bought — the grievance shortens by "
+                         f"{CONFRONT_PROMISE_DURATION_CUT} turns.")
+                        if (THE_TOP_RUNG_PROMISES_NOTHING_HIGHER
+                            and _at_the_top_rung(marshal, target))
+                        else (f"His patience is bought — the grievance shortens by "
+                              f"{CONFRONT_PROMISE_DURATION_CUT} turns, and for "
+                              f"{CONFRONT_PROMISE_HOLD_TURNS} turns the quarrel "
+                              f"cannot harden further.")),
              "cost_note": f"{CONFRONT_PROMISE_AP} AP",
              "ap_cost": CONFRONT_PROMISE_AP,
              "enabled": ap >= CONFRONT_PROMISE_AP},

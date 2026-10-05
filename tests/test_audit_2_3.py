@@ -924,7 +924,31 @@ class TestTradeIncomeAfterStateChange:
         assert TRADE_INCOME.get("ARMISTICE", 0) == 0
 
     def test_peace_to_war_loses_trade_income(self):
-        """France-Austria go from PEACE to WAR. Both lose 50 gold trade income."""
+        """EA-3 (the economy audit, October 5, 2026) — CONSCIOUS FLIP: a PEACE
+        earns no trade, so going from PEACE to WAR loses none; a commercial
+        treaty going to WAR loses its trade (the rest of this test, below,
+        is the shipped tree's, run with the lever down)."""
+        from backend.game_logic import diplomacy as _DP
+        world = make_world()
+        world.diplomatic_states["Austria|France"] = "PEACE"
+        at_peace = process_trade_income(world)
+        world.diplomatic_states["Austria|France"] = "WAR"
+        at_war = process_trade_income(world)
+        assert at_peace.get("France", 0) == at_war.get("France", 0)
+        assert at_peace.get("Austria", 0) == at_war.get("Austria", 0)
+        world.diplomatic_states["Austria|France"] = "OPEN_BORDERS"
+        at_treaty = process_trade_income(world)
+        world.diplomatic_states["Austria|France"] = "WAR"
+        at_war_again = process_trade_income(world)
+        assert at_treaty.get("France", 0) > at_war_again.get("France", 0)
+        assert at_treaty.get("Austria", 0) > at_war_again.get("Austria", 0)
+        _DP.A_PEACE_EARNS_NO_TRADE = False
+        try:
+            self._the_shipped_peace_trade()
+        finally:
+            _DP.A_PEACE_EARNS_NO_TRADE = True
+
+    def _the_shipped_peace_trade(self):
         world = make_world()
 
         # Set France-Austria to PEACE
@@ -1002,16 +1026,20 @@ class TestTradeIncomeAfterStateChange:
         for key in world.diplomatic_states:
             world.diplomatic_states[key] = "WAR"
 
-        # France-Austria: PEACE (50), France-Saxony: OPEN_BORDERS (100)
-        world.diplomatic_states["Austria|France"] = "PEACE"
+        # EA-3 (the economy audit, October 5, 2026) — re-seated: a PEACE
+        # earns no trade, so the two pairs are commercial treaties.
+        # France-Austria: NON_AGGRESSION (150), France-Saxony: OPEN_BORDERS (100)
+        world.diplomatic_states["Austria|France"] = "NON_AGGRESSION"
         world.diplomatic_states["France|Saxony"] = "OPEN_BORDERS"
+        world.diplomatic_states["France|Holland"] = "PEACE"  # adds nothing
 
         income = process_trade_income(world)
-        # R6: France has 2 partners. OB(100*1.0) + PEACE(50*0.75) = 137
-        assert income.get("France", 0) == 137, \
-            f"France should get 100+37=137 (diminishing returns), got {income.get('France', 0)}"
-        assert income.get("Austria", 0) == 50   # Austria has only 1 partner → full rate
+        # R6: France has 2 paying partners. NA(150*1.0) + OB(100*0.75) = 225
+        assert income.get("France", 0) == 225, \
+            f"France should get 150+75=225 (diminishing returns), got {income.get('France', 0)}"
+        assert income.get("Austria", 0) == 150  # Austria has only 1 partner → full rate
         assert income.get("Saxony", 0) == 100   # Saxony has only 1 partner → full rate
+        assert income.get("Holland", 0) == 0    # a peace trades nothing
 
 
 # ======================================================

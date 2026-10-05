@@ -73,14 +73,29 @@ OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", 
 WIZARD_MIRRORS_THE_TRANSIT_GATE = True
 
 # ═══════ TRADE INCOME TABLE (§7e) ═══════
+# EA-3 "Trade is a treaty" (the economy audit, October 5, 2026 — N5): a PEACE
+# earns no trade, written or never broken. Measured: 175 of the boot's 190
+# pairs sit in an UNWRITTEN peace (no stored state) and traded nothing, while
+# a peace written by a war's end traded 50 — so trade depended on whether a
+# pair had ever fought, not on its state, and a war fought and ended with a
+# minor PAID (France +12–48 a turn, other courts +24–87, on the commanded
+# arms). Paying every unwritten pair instead would add ~250 a turn to every
+# court (the wrong way for an economy that is already loose). Trade comes
+# from a commercial treaty — open borders and better. Lever:
+# `A_PEACE_EARNS_NO_TRADE` (False = the shipped table).
+A_PEACE_EARNS_NO_TRADE = True
 TRADE_INCOME = {
-    "PEACE": 50,
+    "PEACE": 50,  # the authored face; `trade_for_state` applies EA-3's rule
     "OPEN_BORDERS": 100,
     "NON_AGGRESSION": 150,
     "DEFENSIVE_ALLIANCE": 150,
     "ALLIANCE": 200,
 }
 # WAR, ARMISTICE: 0. VASSAL: 0 (tribute replaces trade, Session 5)
+# EA-3 (N4): a court that no longer stands trades with nobody — the
+# eliminated Kingdom of Italy earned +87 a turn in its ghost treasury and
+# France and Austria +12 each from it (`calculate_trade_breakdown`).
+THE_DEAD_DO_NOT_TRADE = True
 
 # ═══════ TRANSITION COSTS & REQUIREMENTS ═══════
 TRANSITION_RULES = {
@@ -10588,44 +10603,75 @@ def sovereign_seat_bonus(world, nation: str) -> int:
     return 0
 
 
-def calculate_trade_income(world) -> Dict[str, int]:
-    """Calculate trade income from diplomatic states (read-only, no side effects).
+def trade_for_state(state: str) -> int:
+    """EA-3: the face trade a diplomatic state yields — `TRADE_INCOME`, but a
+    PEACE yields none (`A_PEACE_EARNS_NO_TRADE`). Read at call time so the
+    lever flips a running world."""
+    if state == "PEACE" and A_PEACE_EARNS_NO_TRADE:
+        return 0
+    return int(TRADE_INCOME.get(state, 0))
 
-    R6: Diminishing returns — partners sorted by state level (best first),
-    rates [1.0, 0.75, 0.50, 0.25]. 5th+ partners get 0.25.
 
-    Returns dict of {nation: trade_income}.
-    """
+def calculate_trade_breakdown(world) -> Dict[str, List[Tuple[str, int, str]]]:
+    """{nation: [(partner, amount, state), ...]} — the trade each court earns
+    from each partner AFTER diminishing returns (R6: partners sorted by state,
+    best first, rates [1.0, 0.75, 0.50, 0.25], the 5th and later 0.25). The ONE
+    per-partner source: `calculate_trade_income` sums it, the Continental
+    System charges against it (N6), the Diplomatic Ledger's court card quotes
+    it. A vassal pair trades nothing (tribute replaces trade), and EA-3 (N4) a
+    court that no longer stands trades with nobody. Read-only."""
     _DIMINISHING_RATES = [1.0, 0.75, 0.50, 0.25]
     _STATE_PRIORITY = {"ALLIANCE": 0, "DEFENSIVE_ALLIANCE": 1, "NON_AGGRESSION": 2,
                        "OPEN_BORDERS": 3, "PEACE": 4}
+    vassals = getattr(world, 'vassals', {}) or {}
+    active = None
+    if THE_DEAD_DO_NOT_TRADE and hasattr(world, "get_active_nations"):
+        try:
+            nations = world.get_active_nations()
+        except Exception:
+            nations = None
+        if isinstance(nations, (list, tuple, set, frozenset)) and nations:
+            active = set(nations)
 
     # Collect trade partners per nation: {nation: [(partner, trade_amount, state)]}
     partners_by_nation: Dict[str, list] = {}
     for pair_key, state in world.diplomatic_states.items():
-        trade = TRADE_INCOME.get(state, 0)
+        trade = trade_for_state(state)
         if trade > 0:
             parts = pair_key.split("|")
             if len(parts) == 2:
                 nation_a, nation_b = parts
                 # Skip vassals — tribute replaces trade
-                if nation_a in getattr(world, 'vassals', {}) or nation_b in getattr(world, 'vassals', {}):
+                if nation_a in vassals or nation_b in vassals:
+                    continue
+                if active is not None and (nation_a not in active
+                                           or nation_b not in active):
                     continue
                 partners_by_nation.setdefault(nation_a, []).append((nation_b, trade, state))
                 partners_by_nation.setdefault(nation_b, []).append((nation_a, trade, state))
 
     # Apply diminishing returns per nation
-    trade_by_nation = {}
+    breakdown: Dict[str, List[Tuple[str, int, str]]] = {}
     for nation, partners in partners_by_nation.items():
         # Sort by state priority (best first), tiebreak alphabetical
         partners.sort(key=lambda p: (_STATE_PRIORITY.get(p[2], 5), p[0]))
-        total = 0
+        rows = []
         for i, (partner, trade_amount, state) in enumerate(partners):
             rate = _DIMINISHING_RATES[min(i, len(_DIMINISHING_RATES) - 1)]
-            total += int(trade_amount * rate)
-        trade_by_nation[nation] = total
+            rows.append((partner, int(trade_amount * rate), state))
+        breakdown[nation] = rows
+    return breakdown
 
-    return trade_by_nation
+
+def calculate_trade_income(world) -> Dict[str, int]:
+    """Calculate trade income from diplomatic states (read-only, no side effects).
+
+    The sum of `calculate_trade_breakdown`'s per-partner rows.
+
+    Returns dict of {nation: trade_income}.
+    """
+    return {nation: sum(amount for _partner, amount, _state in rows)
+            for nation, rows in calculate_trade_breakdown(world).items()}
 
 
 def process_trade_income(world) -> Dict[str, int]:
@@ -11734,7 +11780,27 @@ def apply_continental_system(world) -> None:
             if autonomy == AUTONOMY_AUTONOMOUS and vassal_name in members:
                 members.remove(vassal_name)
 
-    # Cap trade income between Britain and members
+    world.continental_system_members = members
+
+    # EA-4 (the economy audit, October 5, 2026 — N6): the closure costs each
+    # court the trade it ACTUALLY earns across the line (the planner below),
+    # debited here and named on the ledger's "Continental System" Net line.
+    if THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED:
+        losses = continental_system_losses(world)
+        applied = getattr(world, "_applied_income_transfers", None)
+        bucket = applied.setdefault("continental_system", {}) if applied is not None else None
+        for nation, loss in losses.items():
+            if nation not in world.nation_gold:
+                continue
+            # Floor the DEDUCTION at the payer's positive balance (the Aug
+            # 2026 health-check rule: never conjure gold by erasing a debt).
+            taken = min(int(loss), max(0, int(world.nation_gold[nation])))
+            world.nation_gold[nation] -= taken
+            if bucket is not None:
+                bucket[nation] = int(bucket.get(nation, 0)) + taken
+        return
+
+    # Cap trade income between Britain and members (the shipped charge)
     total_blocked = 0
     max_total_cap = 200
     for member in members:
@@ -11763,7 +11829,50 @@ def apply_continental_system(world) -> None:
                 )
             total_blocked += blocked
 
-    world.continental_system_members = members
+
+# EA-4 "The System taxes trade that exists" (the economy audit, October 5,
+# 2026 — N6). The shipped charge read each member's STATE with Britain and
+# debited its face (50 at peace): a satellite — which trades with nobody,
+# tribute replacing trade — paid 50 or 25 a turn for trade it never earned,
+# Britain paid the 200 cap for it, and none of it reached any Net line. The
+# closure now takes the trade the member ACTUALLY earns from Britain
+# (`calculate_trade_breakdown`, after diminishing returns), at most 75 a
+# member and 200 in all, from both sides — so an eliminated member, a vassal
+# and a court not trading with Britain lose nothing. False = the shipped
+# charge.
+THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED = True
+CS_MEMBER_CAP = 75
+CS_TOTAL_CAP = 200
+
+
+def continental_system_losses(world) -> Dict[str, int]:
+    """{nation: gold} the Continental System's closure takes this turn — the
+    ONE planner `apply_continental_system` debits and the ledger quotes. For
+    each member (in the stored order), the trade it earns from Britain and
+    Britain earns from it, the smaller of the two, capped at 75 a member and
+    200 in all; both sides lose it. Pure read."""
+    members = list(getattr(world, 'continental_system_members', []) or [])
+    if not members:
+        return {}
+    breakdown = calculate_trade_breakdown(world)
+
+    def _earned(nation: str, partner: str) -> int:
+        return int(next((amount for p, amount, _st in breakdown.get(nation, [])
+                         if p == partner), 0))
+
+    losses: Dict[str, int] = {}
+    total = 0
+    for member in members:
+        if total >= CS_TOTAL_CAP:
+            break
+        blocked = min(CS_MEMBER_CAP, _earned(member, "Britain"),
+                      _earned("Britain", member), CS_TOTAL_CAP - total)
+        if blocked <= 0:
+            continue
+        losses[member] = int(losses.get(member, 0)) + int(blocked)
+        losses["Britain"] = int(losses.get("Britain", 0)) + int(blocked)
+        total += blocked
+    return losses
 
 
 # ═══════════════════════════════════════════════════════

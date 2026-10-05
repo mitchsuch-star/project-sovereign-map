@@ -42,7 +42,7 @@ STATE_DESK_ACTIVE = True
 STATE_KINDS = frozenset({
     # money
     "net", "levy_cost", "commission_cost", "bench", "force_limit", "upkeep",
-    "bills_moved", "component",
+    "bills_moved", "component", "spend",
     # odds and what-ifs
     "odds_natural", "what_if_defence", "hold_region", "what_if_march",
     "how_long",
@@ -433,6 +433,22 @@ def classify_state_question(text: str, marshals: Iterable[str] = (),
     if first_marshal and has(r"\bbravest of the brave\b|\biron resolve\b|\bactually do\b|\bdo in a fight\b|\bdo in battle\b|\bgift\b"):
         return q("ability", first_marshal, "marshal")
     # ── money ────────────────────────────────────────────────────────────
+    # EA-15 (the economy audit, October 5, 2026): "what should I spend gold
+    # on" / "what should we buy" / "how are our finances" shrugged.
+    if has(r"\b(?:what|where|how) (?:should|can|could|ought to|do|shall) (?:i|we) (?:spend|invest|put|use)\b"
+           r"|\bwhat (?:should|can|could|shall) (?:i|we) (?:buy|purchase|afford)\b"
+           r"|\bwhat(?:'s| is) (?:worth|best) (?:buying|the gold|the money|to buy)\b"
+           r"|\bwhat (?:to|do i|do we|should i|should we) do with (?:the |our |my |all (?:this|the|our|my) )?(?:gold|money|surplus|treasury|chest)\b"
+           r"|\bhow (?:should|can|could|do) (?:i|we) (?:spend|use|invest) (?:the |our |my |all (?:this|the|our|my) )?(?:gold|money|surplus|treasury|chest)\b"):
+        return q("spend")
+    # SFR-D1's class, the contraction and the fear (found closing the row):
+    # "how's the treasury?" and "are we going broke?" shrugged too.
+    if has(r"\bhow(?:'s| (?:are|is|stand|stands|look|looks|go|goes)) (?:our|my|the) (?:finances|treasury|purse|coffers|accounts|budget|economy)\b"
+           r"|\bhow(?:'s| is| are) (?:the |our |my )?(?:money|gold|treasury) (?:doing|holding up|looking)\b"
+           r"|\bhow (?:are|is) (?:we|france) (?:doing )?(?:financially|for money|for gold)\b"
+           r"|\b(?:are|is) (?:we|france) (?:going |about to go |close to |near )?(?:broke|bankrupt|insolvent)\b"
+           r"|\b(?:are|is) (?:we|france) running (?:out of|low on) (?:gold|money|funds)\b"):
+        return q("net")
     if has(r"\bforce limit\b|\blevy limit\b|\bover (?:the )?limit\b|\bhow many men can (?:we|i) (?:keep|field|support|afford|maintain)\b|\barmy too (?:big|large)\b"):
         return q("force_limit")
     if has(r"\b(?:why|what) (?:did|have|has) (?:we|the treasury|the chest|our gold) (?:lose|lost|fallen|fall|drop|dropped|gone down)\b"
@@ -841,6 +857,23 @@ def _answer_net(world) -> Optional[str]:
     return _answer_treasury(world, world.player_nation)
 
 
+def _answer_spend(world) -> str:
+    """EA-15: what the purse can buy today, priced — the counsel's own
+    economy lines (EA-14's law first), under the chest and its Net."""
+    econ = _economy(world)
+    chest = int(econ.get("treasury") or 0)
+    net = int(econ.get("net") or 0)
+    head = f"The treasury holds {_money(chest)} gold and nets {net:+,} a turn, Sire."
+    from backend.ai.counsel import _admin_actions_left, economy_counsel
+    lines = economy_counsel(world, world.player_nation, limit=3)
+    if lines:
+        return head + " Worth the gold today: " + "; ".join(lines) + "."
+    if _admin_actions_left(world) <= 0:
+        return (head + " Every purchase takes an administrative action, and none "
+                "remains today — the purse's orders wait for tomorrow.")
+    return head + " Nothing the purse can buy stands open today."
+
+
 def _answer_levy_cost(world, arm: str, place: str) -> Optional[str]:
     from backend.commands.economy_executor import recruit_quote
     player = world.player_nation
@@ -933,7 +966,8 @@ def _answer_bills_moved(world) -> str:
     notes = why_the_bills_moved(world, world.player_nation, upkeep,
                                 econ.get("state_charges"), econ.get("state_charges_terms")) or {}
     parts = [n for n in (notes.get("upkeep_note"), notes.get("charges_note"),
-                         econ.get("state_charges_rate_note"), econ.get("state_charges_delta_note")) if n]
+                         econ.get("state_charges_rate_note"), econ.get("state_charges_delta_note"),
+                         econ.get("net_moves_note")) if n]
     from backend.game_logic.ledger import NET_GOLD_COMPONENTS
     outs = []
     for key, sign in NET_GOLD_COMPONENTS.items():
@@ -944,7 +978,8 @@ def _answer_bills_moved(world) -> str:
               "state_charges": "the charges of empire", "dotation_skim": "the estates",
               "rente_cost": "the rentes", "laws": "the laws", "infrastructure": "infrastructure",
               "blockade": "the blockade", "admiralty": "the Admiralty", "occupation": "occupation",
-              "contributions": "contributions of war"}
+              "contributions": "contributions of war",
+              "continental_system": "the Continental System"}
     bill = ", ".join(f"{labels.get(k, k.replace('_', ' '))} {_money(v)}g" for v, k in outs[:4])
     head = (f"Net this turn reads {int(econ.get('net') or 0):+,} gold, Sire. The largest bills: "
             f"{bill}." if bill else f"Net this turn reads {int(econ.get('net') or 0):+,} gold, Sire.")
@@ -2724,6 +2759,8 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
             return text
         if kind == "net":
             return _answer_net(world)
+        if kind == "spend":
+            return _answer_spend(world)
         if kind == "levy_cost":
             return _answer_levy_cost(world, subject, str(question.get("place") or ""))
         if kind in ("commission_cost", "bench"):

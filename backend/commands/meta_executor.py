@@ -390,6 +390,14 @@ class MetaExecutor:
             from backend.game_logic.naval import blockade_trade_loss
             blockade_val = int(blockade_trade_loss(world).get(nation, 0))
         spent_val = saved_gold_spent.get(nation, 0)
+        # EA-1 (October 5, 2026): the recurring transfers — sponsorships, the
+        # paymaster's subsidy, London's Congress subsidy — as the engines
+        # moved them this advance. Named, and taken out of `Other`.
+        from backend.game_logic.instruments import subsidies_for
+        subsidies_val = int(subsidies_for(world, nation, applied=True)["net"])
+        # EA-4: the Continental System's debit on our trade, named.
+        cs_val = int(((getattr(world, "_applied_income_transfers", None) or {})
+                      .get("continental_system") or {}).get(nation, 0))
         # F6 fix: Net is the ACTUAL treasury change from turn processing (income
         # phase already applied all sources). "Other" surfaces the reconciling
         # remainder — vassal tribute, trade income, admin bonus, treaty clauses —
@@ -401,6 +409,7 @@ class MetaExecutor:
         materiel_val = int(getattr(world, "materiel_spent_this_turn", {})
                            .get(nation, 0))
         other_val = net_val - (income_val + requisitions_val + overseas_val
+                               + subsidies_val - cs_val
                                - occupation_val - contributions_val
                                - state_charges_val - dotation_val
                                - rente_val - laws_val - infrastructure_val
@@ -415,6 +424,10 @@ class MetaExecutor:
         contributions_str = f" | Contributions: -{contributions_val}g" if contributions_val > 0 else ""
         requisitions_str = f" | Requisitions: +{requisitions_val}g" if requisitions_val > 0 else ""
         overseas_str = f" | Overseas: +{overseas_val}g" if overseas_val > 0 else ""
+        subsidies_str = (f" | Subsidies: {'+' if subsidies_val > 0 else ''}{subsidies_val}g"
+                         if subsidies_val != 0 else "")
+        if cs_val > 0:
+            subsidies_str += f" | Continental System: -{cs_val}g"
         state_charges_str = f" | Charges of Empire: -{state_charges_val}g" if state_charges_val > 0 else ""
         dotation_str = f" | Dotations: -{dotation_val}g" if dotation_val > 0 else ""
         rente_str = f" | Rentes: -{rente_val}g" if rente_val > 0 else ""
@@ -443,7 +456,7 @@ class MetaExecutor:
         # mid-line between nine explicitly-negative siblings — so it read as
         # an addition. (`Income:` is unsigned too and stays that way: it is
         # the positive base the line opens on, not a term in a signed run.)
-        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str} | Upkeep: -{upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+        message += f"\n\nIncome: {income_val}g{requisitions_str}{overseas_str}{subsidies_str}{occupation_str}{contributions_str}{state_charges_str}{dotation_str}{rente_str}{laws_str}{infrastructure_str}{admiralty_str}{blockade_str}{materiel_str} | Upkeep: -{upkeep_val}g{surcharge_str}{other_str} | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -468,6 +481,8 @@ class MetaExecutor:
             "contributions": int(contributions_val),
             "requisitions": int(requisitions_val),
             "overseas": int(overseas_val),
+            "subsidies": int(subsidies_val),
+            "continental_system": int(cs_val),
             "state_charges": int(state_charges_val),
             "dotation_skim": int(dotation_val),
             "rente_cost": int(rente_val),

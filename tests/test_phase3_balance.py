@@ -305,25 +305,45 @@ class TestR6TradeDiminishingReturns:
         assert result["Austria"] == 200
 
     def test_four_alliances_diminishing(self):
-        """4 ALLIANCE partners: 200 + 150 + 100 + 50 = 500g (not 800g)."""
+        """4 ALLIANCE partners: 200 + 150 + 100 + 50 = 500g (not 800g).
+
+        EA-3 (the economy audit, October 5, 2026) — re-seated consciously:
+        Russia holds no province on this fixture world, so with
+        `THE_DEAD_DO_NOT_TRADE` up it trades with nobody. The R6 arithmetic
+        is pinned with the lever down; the new rule beside it."""
+        from backend.game_logic import diplomacy as DP
         world = self._make_trade_world()
         for nation in ["Austria", "Prussia", "Russia", "Britain"]:
             _set_diplo_state(world, "France", nation, "ALLIANCE")
         world.nation_gold = {"France": 1000, "Austria": 1000, "Prussia": 1000,
                              "Russia": 1000, "Britain": 1000}
-        result = process_trade_income(world)
+        DP.THE_DEAD_DO_NOT_TRADE = False
+        try:
+            result = process_trade_income(world)
+        finally:
+            DP.THE_DEAD_DO_NOT_TRADE = True
         # France has 4 partners: 200*1.0 + 200*0.75 + 200*0.50 + 200*0.25 = 500
         assert result["France"] == 500
+        # ...and with the rule up, the province-less Russia trades nothing:
+        # 200*1.0 + 200*0.75 + 200*0.50 = 450.
+        assert process_trade_income(world)["France"] == 450
 
     def test_mixed_states_sorted_best_first(self):
-        """Partners sorted by state priority: ALLIANCE before PEACE."""
+        """Partners sorted by state priority: ALLIANCE before OPEN_BORDERS.
+
+        EA-3 (the economy audit, October 5, 2026) — re-seated consciously:
+        a PEACE earns no trade, so the second partner is a commercial treaty
+        and the peace beside them adds nothing."""
         world = self._make_trade_world()
-        _set_diplo_state(world, "France", "Austria", "PEACE")       # 50g
-        _set_diplo_state(world, "France", "Prussia", "ALLIANCE")    # 200g
-        world.nation_gold = {"France": 1000, "Austria": 1000, "Prussia": 1000}
+        _set_diplo_state(world, "France", "Austria", "OPEN_BORDERS")  # 100g
+        _set_diplo_state(world, "France", "Prussia", "ALLIANCE")      # 200g
+        _set_diplo_state(world, "France", "Britain", "PEACE")         # 0g
+        world.nation_gold = {"France": 1000, "Austria": 1000, "Prussia": 1000,
+                             "Britain": 1000}
         result = process_trade_income(world)
-        # France: ALLIANCE(200*1.0) + PEACE(50*0.75) = 200 + 37 = 237
-        assert result["France"] == 237
+        # France: ALLIANCE(200*1.0) + OPEN_BORDERS(100*0.75) = 200 + 75 = 275
+        assert result["France"] == 275
+        assert result.get("Britain", 0) == 0
 
     def test_vassal_doesnt_count_toward_slots(self):
         """Vassal pairs are excluded from trade (tribute replaces trade)."""

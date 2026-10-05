@@ -278,8 +278,11 @@ class TestWhyTheBillsMoved:
                 "breakdown": {"state_charges_terms": terms}}
         now = _charge(8_000, terms)
         out = why_the_bills_moved(_FakeWorld(last, 8_000), "France", {}, now, terms)
+        # EA-13 (the economy audit, October 5, 2026) — conscious flip: the
+        # note names its line ("charge", not "draw"), so it says which bill
+        # it explains wherever it is quoted out of its line.
         assert out["charges_note"] == (
-            f"{now - last['state_charges']}g more than last turn's draw — "
+            f"{now - last['state_charges']}g more than last turn's charge — "
             f"the chest is fuller")
 
     def test_a_raised_rate_is_named_by_its_term_not_the_chest(self):
@@ -476,8 +479,11 @@ class TestTheRecords:
         w = _boot()
         region = w.regions["Paris"]
         before = w.calculate_turn_income("France")["infrastructure"]
+        # EA-9 (the economy audit, October 5, 2026) — re-seated: a market now
+        # keeps itself (it bills nothing standing or ruined), so the ruin rule
+        # is pinned on a work that still bills its keep — a supply depot.
         region.buildings = list(getattr(region, "buildings", []) or []) + [
-            {"type": "market", "damaged": True}]
+            {"type": "supply_depot", "damaged": True}]
         assert w.calculate_turn_income("France")["infrastructure"] == before
         region.buildings[-1]["damaged"] = False
         assert w.calculate_turn_income("France")["infrastructure"] > before

@@ -1992,6 +1992,10 @@ def process_vassal_tribute(world) -> dict:
         if applied is not None:
             bucket = applied.setdefault("vassal_tribute", {})
             bucket[lord] = bucket.get(lord, 0) + int(actual_tribute)
+            # EA-5 (the economy audit, October 5, 2026 — N2): the vassal's
+            # own ledger reads what it PAID (signed −), the lord's what it
+            # received — one transfer, both books.
+            bucket[vassal_name] = int(bucket.get(vassal_name, 0)) - int(actual_tribute)
 
     return tribute_events
 

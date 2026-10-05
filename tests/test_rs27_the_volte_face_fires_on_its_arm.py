@@ -133,5 +133,25 @@ class TestTheVolteFaceFiresOnItsArm:
             # attribution this pin keeps is Step 3's, so it rides down with
             # the rest.
             "--lever", "backend.game_logic.emergent_designs:AN_ALLYS_WAR_IS_ITS_OWN=0",
+            # The economy audit (October 5, 2026): the audit's fourteen board
+            # levers re-time this arm too (measured: with them UP on top of
+            # every lever above, the beat fires — the league declares in its
+            # own right and the war takes another course). The attribution
+            # this pin keeps is Step 3's, so they ride down with the rest
+            # (`tools/_econ_audit_series_arms.py` is the same fourteen).
+            "--lever", "backend.game_logic.coalition:THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT=0",
+            "--lever", "backend.game_logic.coalition:A_FAILED_DECLARATION_IS_NOT_A_MEMBER=0",
+            "--lever", "backend.game_logic.coalition:A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS=0",
+            "--lever", "backend.game_logic.instruments:THE_SUBSIDIES_ARE_ON_THE_BOOKS=0",
+            "--lever", "backend.game_logic.diplomacy:A_PEACE_EARNS_NO_TRADE=0",
+            "--lever", "backend.game_logic.diplomacy:THE_DEAD_DO_NOT_TRADE=0",
+            "--lever", "backend.game_logic.diplomacy:THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED=0",
+            "--lever", "backend.game_logic.ledger:THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS=0",
+            "--lever", "backend.game_logic.contingent:THE_SATELLITE_PAYS_ON_ITS_OWN_BILL=0",
+            "--lever", "backend.game_logic.war_council:THE_BEAT_READS_THE_MORNINGS_CHEST=0",
+            "--lever", "backend.models.world_state:ARREARS_ARE_REMEMBERED=0",
+            "--lever", "backend.models.world_state:A_MARKET_PAYS_ITS_OWN_KEEP=0",
+            "--lever", "backend.ai.enemy_ai:THE_AI_BUILDS_NO_WATCHTOWERS=0",
+            "--lever", "backend.ai.enemy_ai:THE_COURT_ARMS_WITH_ITS_PURSE=0",
         )
         assert not _volte_turns(rows)

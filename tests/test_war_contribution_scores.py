@@ -2665,10 +2665,17 @@ def test_resolve_british_subsidy_war_id_matching_coalition_target():
     assert detail == "matching_coalition_target"
 
 
-def test_process_british_subsidy_emits_support_event_with_attribution():
+def test_process_british_subsidy_emits_support_event_with_attribution(monkeypatch):
     """The advance-turn subsidy step emits a `war_support_delivered` event
-    AND accrues support to Britain in the resolved war."""
+    AND accrues support to Britain in the resolved war.
+
+    EA-12 (the economy audit, October 5, 2026) — re-seated consciously: the
+    war subsidy pays only a court that fields a corps, and Russia holds no
+    marshal on this fixture world — so the attribution is pinned with the
+    lever down, and with it up the armyless Russia is passed over."""
+    from backend.game_logic import coalition as CO
     from backend.game_logic.coalition import _process_british_subsidy
+    monkeypatch.setattr(CO, "A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS", False)
 
     world = _setup_war_with_episodes(
         attackers=("Britain", "Russia"),
@@ -2693,6 +2700,9 @@ def test_process_british_subsidy_emits_support_event_with_attribution():
     assert britain_ep is not None
     # 200 gold subsidy → 200 // 100 = 2 raw points.
     assert britain_ep["support"] == 2
+
+    monkeypatch.setattr(CO, "A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS", True)
+    assert CO.get_british_subsidy_recipient(world) is None
 
 
 # ===========================================================================

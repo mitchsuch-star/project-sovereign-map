@@ -549,6 +549,35 @@ func _render_economy():
 	if settlement_gold != 0:
 		var sg_sign = "+" if settlement_gold > 0 else ""
 		bbcode += "  Settlements: " + sg_sign + str(settlement_gold) + "g\n"
+	# EA-1 (the economy audit, Oct 5 2026): the recurring transfers between
+	# courts, signed, each stream naming its counterparty and what is owed —
+	# a sponsorship moved the chest 200 a turn and no line said so.
+	# EA-4 (the economy audit, Oct 5 2026): the Continental System's closure
+	# on the trade we actually earn across the line — its own Net line.
+	var cs_loss = int(econ.get("continental_system", 0))
+	if cs_loss > 0:
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Continental System: -" + str(cs_loss) + "g  (trade with Britain closed)[/color]\n"
+	var subsidies = int(econ.get("subsidies", 0))
+	var subsidy_streams = econ.get("subsidy_streams", [])
+	if subsidies != 0 or (subsidy_streams is Array and subsidy_streams.size() > 0):
+		var sub_sign = "+" if subsidies > 0 else ""
+		var sub_color = Utils.COLOR_SUCCESS if subsidies >= 0 else Utils.COLOR_WARNING
+		bbcode += "  [color=#" + sub_color + "]Subsidies: " + sub_sign + str(subsidies) + "g[/color]\n"
+		if subsidy_streams is Array:
+			for st in subsidy_streams:
+				if not (st is Dictionary):
+					continue
+				var incoming = str(st.get("direction", "")) == "incoming"
+				var who = Utils.display_nation_name(str(st.get("counterparty", "")))
+				var amount = int(st.get("amount", 0))
+				var owed = int(st.get("owed", amount))
+				var line = ("from " if incoming else "to ") + who + ": " + ("+" if incoming else "-") + str(amount) + "g"
+				if owed > amount:
+					line += " (" + str(owed) + "g owed — the chest paid " + str(amount) + "g)"
+				var left = int(st.get("turns_remaining", 0))
+				if left > 0:
+					line += ", " + str(left) + " turn" + ("s" if left != 1 else "") + " left"
+				bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + line + ")[/color]\n"
 	# ES-2 (Economy Revisit S6): recurring cost of holding non-homeland
 	# soil — a signed Net component of its own (Income stays gross), so it
 	# must render for the visible lines to sum to Net (SC-33 invariant).
@@ -690,6 +719,11 @@ func _render_economy():
 	var net_color = Utils.COLOR_SUCCESS if net >= 0 else Utils.COLOR_ERROR
 	var net_sign = "+" if net >= 0 else ""
 	bbcode += "  Net:      [color=#" + net_color + "]" + net_sign + str(net) + "g[/color]\n"
+	# EA-13 (the economy audit, Oct 5 2026): which lines moved since
+	# yesterday's accounts, and why — the backend's sentence, verbatim.
+	var moves_note = str(econ.get("net_moves_note", ""))
+	if moves_note != "":
+		bbcode += "    [color=#" + Utils.COLOR_DIMMED + "](" + moves_note + ")[/color]\n"
 
 	# IQ-1 SW-0 "The Chest Speaks". Both lines are informational and sit
 	# BELOW Net on purpose: `Spent` is money already gone this turn (the

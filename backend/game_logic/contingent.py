@@ -37,6 +37,9 @@ from typing import Dict, List, Optional
 #     purse like any of his marshals (R12, gate record §9.1).
 THE_CLIENT_SENDS_ITS_CONTINGENT = True
 THE_CLIENT_PAYS_ITS_MEN = True
+# EA-6 (N3): the satellite's own upkeep bill carries its contingent
+# (False = the shipped bill, in which nobody paid the contingent's men).
+THE_SATELLITE_PAYS_ON_ITS_OWN_BILL = True
 A_CLIENTS_GENERAL_IS_NOT_THE_EMPERORS_MARSHAL = True
 
 # ═══════ the Step 5 quick check (October 4, 2026; BUG_FIXES §Score Finish Step 5 SF5-RV1 … RV6) ═══════
@@ -161,6 +164,22 @@ def client_paid_names(world, lord: str) -> set:
         if record.get("lord") == lord and record.get("marshal"):
             names.add(str(record["marshal"]))
     return names
+
+
+def contingents_paid_by(world, vassal: str) -> List[str]:
+    """EA-6 (the economy audit, October 5, 2026 — N3): the corps a SATELLITE
+    pays for — its own contingent, which flies its lord's colours and so
+    escapes the satellite's per-nation upkeep loop. The other half of
+    `client_paid_names`: the lord does not pay these men, and before this
+    nobody did (measured: Dumonceau's 6,500 and Teulie's 5,447 billed to
+    neither France nor Holland/Italy, ~88 gold a turn, while the lord's
+    refusal line told the player Holland "raises and pays them")."""
+    if not (THE_CLIENT_PAYS_ITS_MEN and THE_SATELLITE_PAYS_ON_ITS_OWN_BILL):
+        return []
+    record = (getattr(world, "vassal_contingents", None) or {}).get(vassal)
+    if not record or not record.get("marshal"):
+        return []
+    return [str(record["marshal"])]
 
 
 def is_clients_general(marshal) -> bool:

@@ -211,6 +211,26 @@ def _baseline_green(mutations: list[dict]) -> bool:
     return True
 
 
+def _write_retrying(path: pathlib.Path, data: bytes) -> None:
+    """Write `data`, retrying a transient lock for ten seconds.
+
+    The economy audit (Oct 5, 2026): the APPLY hit the same transient lock
+    the restore already retries — ``OSError: [Errno 22]`` writing
+    ``coalition.py`` the moment after the previous row had restored it, and
+    the sweep died at row 19 of 30. Nothing is mutated until the write lands,
+    so a failed apply leaves the file as it was."""
+    import time
+    last_error: OSError | None = None
+    for _attempt in range(40):
+        try:
+            path.write_bytes(data)
+            return
+        except OSError as exc:
+            last_error = exc
+            time.sleep(0.25)
+    raise last_error
+
+
 def _restore(path: pathlib.Path, data: bytes) -> None:
     """Write the original bytes back, retrying a transient lock.
 
@@ -252,7 +272,7 @@ def run(mutations: list[dict]) -> int:
             print(f"[{i:2}] !! ANCHOR NOT UNIQUE ({original.count(m['old'])}) "
                   f"— {m.get('id')}")
             continue
-        path.write_bytes(_denormalized(
+        _write_retrying(path, _denormalized(
             original.replace(m["old"], m["new"]), newline))
         _invalidate_bytecode(path)
         with tempfile.TemporaryDirectory() as tmp:

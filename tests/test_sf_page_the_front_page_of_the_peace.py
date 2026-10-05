@@ -695,7 +695,27 @@ ARMS = {"CMD-H": "historical", "CMD-A": "austerlitz", "CMD-M": "marengo"}
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
                "backend.game_logic.dispatch:THE_PASSAGE_COUNTS_ITS_SLACK=0",
-               "backend.game_logic.withdrawal:THE_PASSAGE_COUNTS_ITS_SLACK=0"]
+               "backend.game_logic.withdrawal:THE_PASSAGE_COUNTS_ITS_SLACK=0",
+               # The economy audit (October 5, 2026): the audit's fourteen
+               # board levers re-time CMD-H (the league declares in its own
+               # right, the subsidies, trade, the arrears ...), so the Step 7
+               # page returns only with them down too
+               # (`tools/_econ_audit_series_arms.py` is the same fourteen).
+               "backend.game_logic.coalition:THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT=0",
+               "backend.game_logic.coalition:A_FAILED_DECLARATION_IS_NOT_A_MEMBER=0",
+               "backend.game_logic.coalition:A_SUBSIDY_PAYS_A_COURT_THAT_FIGHTS=0",
+               "backend.game_logic.instruments:THE_SUBSIDIES_ARE_ON_THE_BOOKS=0",
+               "backend.game_logic.diplomacy:A_PEACE_EARNS_NO_TRADE=0",
+               "backend.game_logic.diplomacy:THE_DEAD_DO_NOT_TRADE=0",
+               "backend.game_logic.diplomacy:THE_SYSTEM_CHARGES_ONLY_THE_TRADE_EARNED=0",
+               "backend.game_logic.ledger:THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS=0",
+               "backend.game_logic.contingent:THE_SATELLITE_PAYS_ON_ITS_OWN_BILL=0",
+               "backend.game_logic.war_council:THE_BEAT_READS_THE_MORNINGS_CHEST=0",
+               "backend.models.world_state:ARREARS_ARE_REMEMBERED=0",
+               "backend.models.world_state:A_MARKET_PAYS_ITS_OWN_KEEP=0",
+               "backend.ai.enemy_ai:THE_AI_BUILDS_NO_WATCHTOWERS=0",
+               "backend.ai.enemy_ai:THE_COURT_ARMS_WITH_ITS_PURSE=0",
+               ]
 
 
 @pytest.fixture(scope="module")
