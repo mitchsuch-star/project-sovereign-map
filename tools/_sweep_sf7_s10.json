@@ -1,0 +1,72 @@
+[
+  {
+    "id": "lever down: A_REFUSED_RAID_LEAVES_THE_GARRISON (SF7-X33)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    A_REFUSED_RAID_LEAVES_THE_GARRISON = True",
+    "new": "    A_REFUSED_RAID_LEAVES_THE_GARRISON = False",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestARefusedRaidLeavesTheGarrison::test_the_player_raid_is_refused_and_the_garrison_stands"
+  },
+  {
+    "id": "SF7-X33: the lever-down arm loses its refusal",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                    if _raid_refused:\n                        return _refuse_the_raid()\n",
+    "new": "                    pass\n",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestARefusedRaidLeavesTheGarrison::test_the_lever_restores_the_old_order"
+  },
+  {
+    "id": "lever down: THE_STAGNATION_COUNTS_A_CAPTURE (SF7-X34)",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "THE_STAGNATION_COUNTS_A_CAPTURE = True",
+    "new": "THE_STAGNATION_COUNTS_A_CAPTURE = False",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestACaptureIsAnAchievement::test_a_taken_province_counts"
+  },
+  {
+    "id": "SF7-X34: a conquest is not a capture",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "CAPTURE_EVENT_TYPES = (\"conquest\", \"occupation_started\", \"garrison_destroyed\")",
+    "new": "CAPTURE_EVENT_TYPES = (\"occupation_started\", \"garrison_destroyed\")",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestACaptureIsAnAchievement::test_the_milan_shape"
+  },
+  {
+    "id": "SF7-X34: the battle rule loses its victor",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                or e.get(\"victor\") == marshal_name):",
+    "new": "                or False):",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestACaptureIsAnAchievement::test_the_battle_rule_is_unchanged"
+  },
+  {
+    "id": "SF7-X34: the tracker builds its own reading again",
+    "file": "backend/ai/enemy_ai.py",
+    "old": "                achieved_something = attack_achieved_something(events, m_name)\n",
+    "new": "                achieved_something = any(\n                    e.get(\"region_conquered\") or e.get(\"enemy_destroyed\") or e.get(\"victor\") == m_name\n                    for e in events if e.get(\"type\") == \"battle\"\n                )\n",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestACaptureIsAnAchievement::test_the_stagnation_block_reads_the_one_predicate"
+  },
+  {
+    "id": "lever down: A_NEW_WAR_HAS_A_PURPOSE (SF7-X35)",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "A_NEW_WAR_HAS_A_PURPOSE = True",
+    "new": "A_NEW_WAR_HAS_A_PURPOSE = False",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestEveryWarHasItsPurpose::test_a_cascade_war_opens_with_its_purpose"
+  },
+  {
+    "id": "SF7-X35: a declaration is purposed by the chokepoint too",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "_PURPOSE_SKIP_REASONS = frozenset({\"war_declaration\",\n                                   \"common_peace_vassalage_ratification\"})",
+    "new": "_PURPOSE_SKIP_REASONS = frozenset({\"common_peace_vassalage_ratification\"})",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestEveryWarHasItsPurpose::test_a_declaration_and_the_treaty_hop_assign_their_own"
+  },
+  {
+    "id": "SF7-X35: a purpose already set is overwritten",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    key = world._make_diplo_key(nation_a, nation_b)\n    if (getattr(world, \"war_objectives\", None) or {}).get(key):\n        return False\n    for side, other in ((nation_a, nation_b), (nation_b, nation_a)):\n        if side not in (world.war_objectives.get(key) or {}):\n            _auto_assign_defense_objective(world, side, other, key)",
+    "new": "    key = world._make_diplo_key(nation_a, nation_b)\n    for side, other in ((nation_a, nation_b), (nation_b, nation_a)):\n        _auto_assign_defense_objective(world, side, other, key)",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestEveryWarHasItsPurpose::test_a_purpose_already_set_is_untouched"
+  },
+  {
+    "id": "SF7-X35: the rule leaks into the legacy world",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    if getattr(world, \"sovereign_map\", \"legacy\") != \"europe\":\n        return False\n    key = world._make_diplo_key(nation_a, nation_b)\n    if (getattr",
+    "new": "    key = world._make_diplo_key(nation_a, nation_b)\n    if (getattr",
+    "tests": "tests/test_sf7_s10_the_ais_own_accounting.py::TestEveryWarHasItsPurpose::test_the_legacy_world_boots_purposeless_by_design"
+  }
+]

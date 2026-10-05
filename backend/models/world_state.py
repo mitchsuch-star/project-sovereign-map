@@ -9838,19 +9838,19 @@ class WorldState:
         # Europe/scenario world through the canonical predicate.
         if getattr(self, "sovereign_map", "legacy") != "europe":
             return
-        from backend.game_logic.diplomacy import _auto_assign_defense_objective
+        # SF7-X35: the rule is ONE copy, shared with the live war-entry seam
+        # in `set_diplomatic_state` — so the live engine no longer creates the
+        # purposeless war this migration exists for (the docstring's premise
+        # was false until it did: cascades, ally entries and rebellions all
+        # opened wars with no objectives).
+        from backend.game_logic.diplomacy import give_the_war_its_purpose
         for key, state in list((self.diplomatic_states or {}).items()):
             if str(state) != "WAR":
-                continue
-            if (self.war_objectives or {}).get(key):
                 continue
             pair = [p for p in str(key).split("|") if p]
             if len(pair) != 2:
                 continue
-            a, b = pair
-            for side, other in ((a, b), (b, a)):
-                if side not in (self.war_objectives.get(key) or {}):
-                    _auto_assign_defense_objective(self, side, other, key)
+            give_the_war_its_purpose(self, pair[0], pair[1])
 
     @classmethod
     def from_scenario(cls, scenario_path: str,

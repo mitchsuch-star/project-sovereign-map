@@ -1349,6 +1349,20 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # swing on this seed (F alone holds 16); the commanded arms are the slice's
 # own measurement and the session exit's (SCORE_FINISH_SPEC.md §3 Step 7).
 # ═══════════════════════════════════════════════════════════════════════
+# NOT re-recorded — Score Finish Step 7 slice 10 (October 5, 2026; SF7-X33 +
+# SF7-X34 + SF7-X35), measured by `tools/_sf7_s10_series_arms.py` (record
+# `tools/_sf7_s10_series_arms_final.json`), five arms: the series below is
+# BYTE-IDENTICAL on every arm. P (a war opened by any road but a declaration
+# gets its purpose live) purposes 3 wars in the 40 turns and moves no
+# province alone. R (a refused raid leaves the garrison) is
+# inert BY CONSTRUCTION on this board — 0 raid refusals at the attack seam in
+# 40 turns (the AI's own rungs pre-check the raiding party). S (a capture is
+# an achievement to the stagnation tracker) changes 28 of 63 readings and the
+# P7.5 breaker's reach (Britain fires 16 times, not 17), yet moves no turn of
+# this series: the board shifts late — Britain ends turn 40 with 20 provinces
+# (21 on arm 0), the UNATTENDED France with 5 (4). Stated so a reader of the
+# passive-France lines above does not take 4 as today's figure.
+# ═══════════════════════════════════════════════════════════════════════
 BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 2, 0]
 
 

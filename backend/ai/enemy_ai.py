@@ -159,6 +159,15 @@ FIELD_PRICES_THE_TARGET_TOO = True       # R1-1: a retreated target is never pri
 ALLY_SUPPORT_PRICES_THE_FIELD = True     # R1-2: "attacking X to join" is priced and thresholded like P4, reads futility + the crossing
 ADMIN_RECRUIT_SPARES_THE_SQUARE = True   # R1-3: the admin recruit never breaks the square the phase just paid for
 STAGNATION_READS_THE_PHASE = True        # R1-4: form_square is meaningful; a corps that acted (or drills) this phase is not forced
+# SF7-X34 (Score Finish Step 7 slice 10, Oct 5 2026): the stagnation
+# tracker read only `battle` events for an attack's achievement, so an
+# attack that TOOK a province — a garrison's collapse (`garrison_destroyed`
+# + `conquest` / `occupation_started`) or an unopposed capture
+# (`conquest`) — left the marshal idle: the live session's log printed
+# "ArchdukeJohn attacked but achieved nothing" twice on the turn he took
+# Milan. ONE predicate, `attack_achieved_something`. False = battles only.
+THE_STAGNATION_COUNTS_A_CAPTURE = True
+CAPTURE_EVENT_TYPES = ("conquest", "occupation_started", "garrison_destroyed")
 # F5 "Bohemia is not empty" (row EP, Sept 25 2026 — LV-D2 / FA-D13 option (a)).
 # Both down = the pre-F5 walk-in rung byte-for-byte (the BASELINE_SERIES
 # attribution arms, tools/_f5_series_arms.py).
@@ -542,6 +551,25 @@ def drill_reach_threat(world, marshal) -> "Optional[Marshal]":
 def _corps_is_drilling(marshal) -> bool:
     return bool(getattr(marshal, "drilling", False)
                 or getattr(marshal, "drilling_locked", False))
+
+
+def attack_achieved_something(events, marshal_name: str) -> bool:
+    """SF7-X34: did this attack achieve anything the stagnation tracker
+    should count? A battle the marshal won, a province it conquered or a
+    corps it destroyed (the original rule) — and, with the lever up, a
+    province taken without a battle: a garrison's collapse or an
+    unopposed capture. A garrison that HELD is not an achievement (the
+    attacker did not win), and neither is a battle lost."""
+    for e in events or []:
+        if not isinstance(e, dict):
+            continue
+        if e.get("type") == "battle" and (
+                e.get("region_conquered") or e.get("enemy_destroyed")
+                or e.get("victor") == marshal_name):
+            return True
+        if THE_STAGNATION_COUNTS_A_CAPTURE and e.get("type") in CAPTURE_EVENT_TYPES:
+            return True
+    return False
 
 
 class EnemyAI:
@@ -1512,10 +1540,7 @@ class EnemyAI:
             if action == "attack":
                 # Only count attack as meaningful if the attacker won, conquered, or destroyed
                 events = r.get("events", [])
-                achieved_something = any(
-                    e.get("region_conquered") or e.get("enemy_destroyed") or e.get("victor") == m_name
-                    for e in events if e.get("type") == "battle"
-                )
+                achieved_something = attack_achieved_something(events, m_name)
                 if achieved_something:
                     meaningful_actions.add(m_name)
                 else:

@@ -2908,6 +2908,13 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         war_start_turns.pop(key, None)
         world.war_start_turns = war_start_turns
 
+    # SF7-X35: a war opened by any road but a declaration gets the purpose a
+    # declaration would have given it — the same rule the load migration
+    # applies, so a save and the live campaign agree.
+    if (A_NEW_WAR_HAS_A_PURPOSE and new_state == "WAR" and old_state != "WAR"
+            and str(reason or "") not in _PURPOSE_SKIP_REASONS):
+        give_the_war_its_purpose(world, nation_a, nation_b)
+
     # Armistice cleanup when leaving ARMISTICE
     if old_state == "ARMISTICE" and new_state != "ARMISTICE":
         armistice_turns = getattr(world, 'armistice_turns', {})
@@ -4169,6 +4176,42 @@ def get_tier_mismatch_warnings(war_score: int, terms: Dict) -> List[Dict]:
             })
 
     return warnings
+
+
+# SF7-X35 (Score Finish Step 7 slice 10, Oct 5 2026) flip lever: a war that
+# opens by any road but a declaration — a cascade, an ally's entry, a
+# rebellion, a defection, a truce that collapses — gets the purpose a
+# declaration would have given it (FA-D4's ruling, confirmed with the rest on
+# Sept 23). The engine opened these wars with NO objectives and the load
+# migration (FA-S17-17) supplied them at the next load, so a saved campaign
+# and the live one disagreed about the war's purpose — found when slice 10's
+# board reached Switzerland's rebellion inside the census's twelve turns and
+# the played round trip diverged on `war_objectives`. ONE rule for both
+# seams: `give_the_war_its_purpose`. False = the live path opens these wars
+# purposeless again (the load migration still fills them).
+A_NEW_WAR_HAS_A_PURPOSE = True
+# A declaration assigns its own objectives (the aggressor's named purpose and
+# the defender's `defense`), and the settlement's ARMISTICE→WAR→VASSAL hop is
+# the treaty's own bookkeeping, never a war.
+_PURPOSE_SKIP_REASONS = frozenset({"war_declaration",
+                                   "common_peace_vassalage_ratification"})
+
+
+def give_the_war_its_purpose(world, nation_a: str, nation_b: str) -> bool:
+    """FA-D4 / FA-S17-17's rule, ONE copy (SF7-X35): a pair AT WAR with no
+    objective on either side gets the defender's default `defense`, both
+    ways. A pair where anyone has set or concluded a purpose is untouched.
+    Europe worlds only — the legacy fixture boots purposeless by design (N1).
+    Returns True when it assigned."""
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return False
+    key = world._make_diplo_key(nation_a, nation_b)
+    if (getattr(world, "war_objectives", None) or {}).get(key):
+        return False
+    for side, other in ((nation_a, nation_b), (nation_b, nation_a)):
+        if side not in (world.war_objectives.get(key) or {}):
+            _auto_assign_defense_objective(world, side, other, key)
+    return True
 
 
 def _auto_assign_defense_objective(world, defender: str, aggressor: str, diplo_key: str) -> None:

@@ -4815,6 +4815,14 @@ class CombatExecutor:
     # conquest event carries `garrison_gave_way` (the men who did). False =
     # the silent clear.
     A_GARRISON_THAT_GIVES_WAY_IS_SAID = True
+    # SF7-X33 (Score Finish Step 7 slice 10, Oct 5 2026): the unopposed
+    # branch cleared a garrison under the collapse line (or a detachment
+    # under the surrender floor) BEFORE it asked VP-R1 (b)'s raiding-party
+    # question, so a corps under the floor emptied a garrison it could not
+    # take and was then refused — the province untaken, the garrison gone,
+    # the next corps walking in. The refusal now comes first and the
+    # garrison stands. False = the old order (clear, then refuse).
+    A_REFUSED_RAID_LEAVES_THE_GARRISON = True
 
     def garrison_exchange(self, attacker_strength: int, attacker_effective: int,
                           garrison_strength: int,
@@ -7005,6 +7013,31 @@ class CombatExecutor:
                             garrison_result["counter_punch_used"] = True
                         return garrison_result
 
+                    # VP-R1 (b): a raiding party takes no homeland by an
+                    # unopposed "attack" either — the same predicate the
+                    # MOVE walk-in reads, refused BEFORE the march so the
+                    # corps is not stood on ground it cannot hold by a
+                    # verb that promised conquest. The remedy is named.
+                    # SF7-X33: asked BEFORE the garrison is touched (below).
+                    from backend.commands.movement_executor import (
+                        raiding_party_holds_no_ground, raiding_party_refusal,
+                        RAIDING_PARTY_FLOOR)
+                    _raid_refused = raiding_party_holds_no_ground(
+                        marshal, target_region, world)
+
+                    def _refuse_the_raid():
+                        return {
+                            "success": False,
+                            "capture_refused_raiding_party": True,
+                            "message": (
+                                raiding_party_refusal(marshal, resolved_target)
+                                + f" March him in with 'move to {resolved_target}' "
+                                  f"to stand there, or bring {RAIDING_PARTY_FLOOR:,}."),
+                        }
+
+                    if _raid_refused and self.A_REFUSED_RAID_LEAVES_THE_GARRISON:
+                        return _refuse_the_raid()
+
                     # If garrison exists but below collapse threshold, it collapses — clear it.
                     # AAR-D8 (SR-7a): a detachment under the surrender floor
                     # lays down its arms — said, so the player learns the floor.
@@ -7028,23 +7061,10 @@ class CombatExecutor:
                         target_region.garrison_strength = 0
                         target_region.garrison_detachment = False
 
-                    # VP-R1 (b): a raiding party takes no homeland by an
-                    # unopposed "attack" either — the same predicate the
-                    # MOVE walk-in reads, refused BEFORE the march so the
-                    # corps is not stood on ground it cannot hold by a
-                    # verb that promised conquest. The remedy is named.
-                    from backend.commands.movement_executor import (
-                        raiding_party_holds_no_ground, raiding_party_refusal,
-                        RAIDING_PARTY_FLOOR)
-                    if raiding_party_holds_no_ground(marshal, target_region, world):
-                        return {
-                            "success": False,
-                            "capture_refused_raiding_party": True,
-                            "message": (
-                                raiding_party_refusal(marshal, resolved_target)
-                                + f" March him in with 'move to {resolved_target}' "
-                                  f"to stand there, or bring {RAIDING_PARTY_FLOOR:,}."),
-                        }
+                    # The lever-down arm (SF7-X33): the old order — the
+                    # garrison above is already gone when the raid is refused.
+                    if _raid_refused:
+                        return _refuse_the_raid()
 
                     # UNDEFENDED - Capture attempt (may start occupation if fortified)
                     old_controller = target_region.controller
