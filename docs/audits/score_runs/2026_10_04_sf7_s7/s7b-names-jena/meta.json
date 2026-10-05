@@ -1,0 +1,177 @@
+{
+  "name": "s7b-names-jena",
+  "seed": "historical",
+  "llm": "mock",
+  "transport": "in-process",
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "decline",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "grant_autonomy",
+    "petition": "first_enabled",
+    "audience": "open",
+    "declare_war": "proceed",
+    "interrupt": "first",
+    "last_stand": "first",
+    "contact": "first",
+    "paradox": "honor",
+    "rebellion": "accept",
+    "sabotage": "confront",
+    "reward": "ignore",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first"
+  },
+  "turns_requested": 40,
+  "started": "2026-10-04 19:00",
+  "from_save": "",
+  "scenario": "",
+  "script": "tools/playtest_scripts/dc_jena_road.json",
+  "cheats": false,
+  "levers": [],
+  "strict": false,
+  "rng": {
+    "deterministic": true,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "pythonhashseed": "0"
+  },
+  "driver_revision": "0ed3b63d33e5",
+  "reload_every": 0,
+  "requested": {
+    "seed": "historical",
+    "scenario": "",
+    "from_save": "",
+    "llm": "mock"
+  },
+  "resolved": {
+    "source": "world",
+    "campaign_seed": "historical",
+    "scenario_name": "The Third Coalition, 1805",
+    "sovereign_map": "europe",
+    "regions": 126,
+    "player_nation": "France",
+    "boot_turn": 1,
+    "dice_label": "historical",
+    "env": {
+      "SOVEREIGN_SCENARIO": "",
+      "SOVEREIGN_SMOKE_START": "",
+      "SOVEREIGN_MAP": "europe",
+      "SOVEREIGN_SEED": "historical",
+      "LLM_MODE": "mock",
+      "DEBUG_MODE": "false"
+    }
+  },
+  "platform": {
+    "python": "3.13.12",
+    "implementation": "CPython",
+    "os": "Windows-11-10.0.22000-SP0",
+    "machine": "AMD64",
+    "pythonhashseed": "0"
+  },
+  "engine_revision": {
+    "git_commit": "ca4192a11e3268adc11bd405c316b7b5ce3348b3",
+    "dirty": true,
+    "dirty_scope": [
+      "backend",
+      "tools/playtest_driver.py",
+      "godot-client/project-sovereign/assets/maps"
+    ],
+    "content_hash": "8f6d23a5d609e0b5c37b1e3ad66b0d78a645a5fb23b133fd5bc82944c9e0e91a",
+    "content_files": 147,
+    "content_scope": "backend/**/*.py + the map registry + the 1805 and tutorial scenario JSON, line endings normalised to LF"
+  },
+  "status": "game-over",
+  "name_census": {
+    "verdict": "FAIL",
+    "keys": [
+      "ArchdukeCharles",
+      "ArchdukeJohn"
+    ],
+    "responses": 556,
+    "strings": 597557,
+    "display_seen": 1791,
+    "leaks": 96,
+    "by_field": [
+      {
+        "endpoint": "GET /campaign_log",
+        "path": "turns[].events[].display",
+        "count": 69,
+        "sample": "Archduke Charles (Austria) assaulted the Milan garrison \u2014 5,000 lost, 5,000 still under arms (ArchdukeCharles loses 2,519)"
+      },
+      {
+        "endpoint": "GET /campaign_log",
+        "path": "turns[].events[].message",
+        "count": 21,
+        "sample": "Teulie makes his last stand at Milan \u2014 978 of ArchdukeCharles's men fall before the end."
+      },
+      {
+        "endpoint": "POST /command",
+        "path": "events[].message",
+        "count": 2,
+        "sample": "Berthier: Enemy forces spotted near Paris! ArchdukeCharles (26,441 troops) at Limousin."
+      },
+      {
+        "endpoint": "POST /command",
+        "path": "tactical_events[].message",
+        "count": 2,
+        "sample": "Berthier: Enemy forces spotted near Paris! ArchdukeCharles (26,441 troops) at Limousin."
+      },
+      {
+        "endpoint": "POST /strategic_response",
+        "path": "message",
+        "count": 1,
+        "sample": "Davout attacks ArchdukeJohn. MUSTER \u2014 Davout (16,272) vs Archduke John (small force) at Carniola \u2014 the balance of force looks even \u2014 a hard fight that may well decide nothing.\n  WILL NOT \u2014 Bernadotte: will not lift a finger for Marshal Davout\n  The band weighs more than the men: the ground favors th"
+      },
+      {
+        "endpoint": "GET /marshal_petition",
+        "path": "petition.options[].detail",
+        "count": 1,
+        "sample": "Send him against ArchdukeJohn into Bohemia. A grievance ends on the field, not at the table \u2014 if he makes good on it, it ends for good. Giving the order may bring on a battle at once."
+      }
+    ],
+    "errors": []
+  },
+  "counters": {
+    "commands": 97,
+    "popups": 93,
+    "battles": 46,
+    "turns": 33,
+    "ap_available": 132,
+    "ap_spent": 41,
+    "cmd_refused": 34
+  },
+  "unknown_blockers": [],
+  "dispatch_type_counts": {
+    "agenda_shift": 7,
+    "allegiance_in_play": 1,
+    "balance_of_europe_shifted": 4,
+    "blockade_begins": 3,
+    "blockade_broken": 2,
+    "design_promoted": 1,
+    "diplomatic_ai_proposal": 42,
+    "diplomatic_alliance_cascade": 1,
+    "diplomatic_auto_downgrade": 3,
+    "diplomatic_dp_regen": 33,
+    "diplomatic_vassal_contingent": 6,
+    "diplomatic_vassal_courting": 3,
+    "diplomatic_vassal_defected": 2,
+    "diplomatic_vassal_transferred": 2,
+    "diplomatic_vassal_unrest": 2,
+    "diplomatic_war_declared": 1,
+    "diplomatic_we_threshold": 5,
+    "doctrine_cured_abroad": 1,
+    "enemy_marshal_commissioned": 2,
+    "expedition_landed": 2,
+    "intent_eases": 2,
+    "intent_hardens": 4,
+    "law_enacted_abroad": 11,
+    "nation_eliminated": 2,
+    "paymaster_subsidy": 31,
+    "settlement_offer_arrival": 5,
+    "sovereign_takes_field": 1,
+    "third_party_peace": 3
+  }
+}

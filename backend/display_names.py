@@ -1407,6 +1407,9 @@ def humanize_entity_name(name: str) -> str:
 # SR-6b RS-29: the court's own rank in the honorific. False = "Marshal" for
 # everyone but a sovereign.
 THE_HONORIFIC_IS_THE_COURTS_OWN = True
+# SF5-X3 (Score Finish Step 7 slice 7, October 4, 2026): a client's general is
+# "General Teulie", never "Marshal Teulie". False = the pre-slice "Marshal".
+A_CLIENTS_GENERAL_IS_STYLED_GENERAL = True
 _RANK_WORDS = frozenset({"archduke", "prince", "duke", "count", "earl", "lord",
                          "general", "admiral", "king", "tsar", "kaiser"})
 
@@ -1417,6 +1420,8 @@ class _TombRank:
     def __init__(self, tomb: dict):
         self.nation = tomb.get("nation")
         self.is_sovereign = bool(tomb.get("is_sovereign") or tomb.get("sovereign"))
+        # SF5-X3: a client's general keeps his own court's rank in death
+        self.original_nation = tomb.get("original_nation")
 
 
 def marshal_honorific(world, name: str) -> str:
@@ -1464,7 +1469,30 @@ def marshal_honorific(world, name: str) -> str:
         player = getattr(world, "player_nation", None)
         if player and getattr(marshal, "nation", None) not in (None, player):
             return f"General {display}"
+        # SF5-X3 (Score Finish Step 7 slice 7, October 4, 2026): a client's
+        # general — a contingent's commander, an assimilated corps' general —
+        # fights under his lord's flag and is his OWN court's general, never a
+        # Marshal of the Empire (R12, VASSAL_DEEPENING_SPEC.md §9.1). "Sire —
+        # Marshal Teulie has been taken" named a Kingdom of Italy general.
+        if A_CLIENTS_GENERAL_IS_STYLED_GENERAL:
+            from backend.game_logic.contingent import is_clients_general
+            if is_clients_general(marshal):
+                return f"General {display}"
     return f"Marshal {display}"
+
+
+def marshal_title(world, name: str, *, start: bool = False) -> str:
+    """SF5-X3 / NPC-12 (Score Finish Step 7 slice 7, October 4, 2026): the ONE
+    style for a marshal named in prose — the court's own honorific AND the
+    display name together ("Marshal Ney", "General Teulie", "General Mack",
+    "the Archduke Charles", "the Emperor Napoleon"), never a roster key
+    ("ArchdukeCharles"). `start` capitalises the article when the title opens
+    a sentence ("The Archduke Charles WOUNDED at Bohemia"). Every template
+    that styles a marshal object reads it; an AST census
+    (`tests/test_sf7_s7_the_name_and_the_rank.py`) fails on a new
+    `Marshal {...}` literal outside its reasoned allowlist."""
+    shown = marshal_honorific(world, name)
+    return shown[:1].upper() + shown[1:] if start else shown
 
 
 def with_indefinite_article(phrase: str) -> str:

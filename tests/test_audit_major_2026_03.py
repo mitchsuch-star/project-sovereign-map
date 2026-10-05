@@ -650,7 +650,9 @@ class TestD3ProposalQueueDropLogging:
         assert result is False
 
     def test_dialogue_manager_respects_queue_cap(self):
-        """DialogueManager silently drops items beyond QUEUE_CAP."""
+        """S5-4 (Step 7 slice 7, Oct 4 2026) — FLIPPED CONSCIOUSLY: past
+        QUEUE_CAP the arrival OVERFLOWS into the mailbox (kept), where the
+        pre-slice manager dropped it silently."""
         from backend.models.dialogue_manager import DialogueManager
         dm = DialogueManager()
         # Fill active slot
@@ -663,8 +665,9 @@ class TestD3ProposalQueueDropLogging:
                       "target_nation": f"Nation{i}"})
         # Queue should be exactly at cap
         assert len(dm._queue) == dm.QUEUE_CAP
-        # One more push should be silently dropped
+        # One more push overflows into the mailbox — kept, not dropped
         dm.push({"type": "incoming_proposal", "blocking": True,
                   "turn_created": 1, "options": [],
                   "target_nation": "Overflow"})
-        assert len(dm._queue) == dm.QUEUE_CAP
+        assert len(dm._queue) == dm.QUEUE_CAP + 1
+        assert dm._queue[-1]["target_nation"] == "Overflow"

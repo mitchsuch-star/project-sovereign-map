@@ -12,6 +12,7 @@ import re
 from typing import Dict
 
 from backend.game_logic import reforms
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # RF-4a: the enactment confirm (REFORMS_SPEC §8a) — the Admiralty's
 # quote-then-confirm on the EXISTING command_clarification channel (no new
@@ -53,11 +54,10 @@ def _misaddressed(command: Dict, world, actor: str, verb: str) -> Dict:
     marshal = (getattr(world, "marshals", {}) or {}).get(name)
     if marshal is not None and getattr(marshal, "is_sovereign", False):
         return {}
-    from backend.display_names import humanize_entity_name
-    shown = humanize_entity_name(marshal.name if marshal is not None else str(name))
+    who = marshal_title(world, marshal.name if marshal is not None else str(name))
     words = str(command.get("target") or "the Staff").strip()
     return {"success": False, "variable_action_cost": 0, "message": (
-        f"The laws are the Emperor's to {verb}, Sire — Marshal {shown} "
+        f"The laws are the Emperor's to {verb}, Sire — {who} "
         f"commands a corps, not the state. Say '{verb} {words}'.")}
 
 

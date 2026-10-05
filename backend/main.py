@@ -41,6 +41,7 @@ from backend.models.intel import FULL  # noqa: E402, F811 — used by _filter_en
 from backend.commands.meta_executor import _filter_tactical_events_by_fog
 import backend.save_manager as save_manager
 from backend.save_manager import autosave, save_game, load_game, list_saves, delete_save
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # ════════════════════════════════════════════════════════════
 # DEBUG MODE: Set to True to enable debug endpoints
@@ -1413,7 +1414,7 @@ def _addressed_lost_marshal_refusal(command_text: str, world):
         if _marshal_mentioned(token, m.name):
             captor = getattr(m, "captured_by", "")
             if captor:
-                return (f"Marshal {m.name} is a prisoner of "
+                return (f"{marshal_title(world, m.name, start=True)} is a prisoner of "
                         f"{formed_display_name(world, captor)}, Sire — no "
                         f"order can reach him until his release.")
             return None
@@ -1427,11 +1428,11 @@ def _addressed_lost_marshal_refusal(command_text: str, world):
                     and (tomb or {}).get("cause") == "dismissed"):
                 # FA-47: the tombstone carries the cause; a marshal the
                 # player DISMISSED was being mourned as destroyed.
-                line = (f"Marshal {name} was relieved of command by your own "
+                line = (f"{marshal_title(world, name, start=True)} was relieved of command by your own "
                         f"order on turn {int((tomb or {}).get('turn') or 0)}; "
                         f"his name cannot lead the army again.")
             else:
-                line = (f"Marshal {name} is lost to us, Sire — his corps was "
+                line = (f"{marshal_title(world, name, start=True)} is lost to us, Sire — his corps was "
                         f"destroyed at {location}. His name cannot lead the "
                         f"army again.")
             # PT-J4 discipline: the recovery path is named only when the
@@ -2255,8 +2256,9 @@ def _live_dialogue_ids(world) -> set:
 
     FA-N5 / FA-N37, second round: `DialogueManager.clear_stale` silently
     drops a QUEUED blocking dialogue two turns after it was created and
-    touches no popup, and `push` stamps an id BEFORE the QUEUE_CAP check so
-    an over-cap dialogue is stamped and then discarded. Both leave a popup
+    touches no popup (and, before S5-4, `push` stamped an id and then
+    discarded an over-cap dialogue — it overflows into the mailbox now,
+    lever `THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX`). Either leaves a popup
     naming a dialogue that no longer exists — and a gate that only asks "is
     it current?" would hold such a popup FOREVER, which turns this fix into
     a worse bug than the one it closes: the vassal-rebellion warning channel
@@ -5978,7 +5980,7 @@ def get_campaign_log():
             # proclamation is left alone (see the helper's docstring).
             "display": _formations_history_names(
                 world, format_event_oneliner(
-                    event, player_nation=world.player_nation), event),
+                    event, player_nation=world.player_nation, world=world), event),
             "category": CATEGORY_MAP.get(event.get("type", ""), "unknown"),
             # EAS-2 (SR-6c): the importance tier, display only — the client
             # half (size by weight) is Step 7's.

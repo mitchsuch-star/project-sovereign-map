@@ -1296,7 +1296,9 @@ func _render_orders():
 		has_active = true
 		var mname = str(o.get("marshal", "?"))
 		var order_type = str(o.get("order_type", "?"))
-		var target = str(o.get("target", ""))
+		# NPC-12: the display form beside the machine key (a pre-slice
+		# payload carries no `target_display` and falls back to the key).
+		var target = str(o.get("target_display", o.get("target", "")))
 		var location = str(o.get("location", "?"))
 		var condition = str(o.get("condition", ""))
 		var path_left = int(o.get("path_remaining", 0))
@@ -1340,7 +1342,7 @@ func _render_orders():
 			# confirm) is not idle — the same word the FORCES tab uses.
 			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]" + mname + " at " + location
 			bbcode += "  │ " + str(o.get("order_type", "AWAITING YOUR WORD")).to_upper()
-			var quarry = str(o.get("target", ""))
+			var quarry = str(o.get("target_display", o.get("target", "")))
 			if quarry != "":
 				bbcode += " — " + quarry
 			bbcode += "[/color]\n"

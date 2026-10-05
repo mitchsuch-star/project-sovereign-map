@@ -1310,6 +1310,43 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                     "display_label": "WARNING: " + _estate_text,
                 })
 
+    # SF7-X7 (Score Finish Step 7 slice 7): a peace says what EACH side
+    # keeps before it is sent — the status quo is a cession (SR-1a), and
+    # the one the proposal never named was the enemy's. The forecast is
+    # `game_end.status_quo_forecast`, the ratifier's own rule; a truce
+    # titles nothing, so only a peace from war or truce carries it.
+    if ((terms.get("type") or proposal_type) == "peace"
+            and str(world.get_diplomatic_state(player_nation, target_nation) or "")
+            in ("WAR", "ARMISTICE")):
+        from backend.game_logic.game_end import status_quo_forecast_lines
+        from backend.game_logic.settlement_scoring import cession_shaped_regions as _csr
+        _moved = set()
+        for _clause in (list(terms.get("sweeteners", []) or [])
+                        + list(terms.get("demands", []) or [])
+                        + list(terms.get("clauses", []) or [])):
+            if isinstance(_clause, dict):
+                _moved.update(str(r) for r in _csr(_clause))
+        _sq = status_quo_forecast_lines(world, player_nation, target_nation,
+                                        player_nation, moved=_moved)
+        # Both display paths, the estate warning's precedent — but an
+        # annotated row only where the annotated section already renders
+        # (the client falls back to the plain summary when it is empty, and
+        # a lone status-quo row would hide a white peace's own summary).
+        _annotated = dialogue.get("annotated_terms")
+        _rows = _annotated if isinstance(_annotated, list) and _annotated else None
+        for _line in _sq["lines"]:
+            dialogue.setdefault("proposal_terms_summary", []).append(_line)
+            if _rows is not None:
+                _rows.append({"type": "status_quo", "term_direction": "mutual",
+                              "display_label": _line})
+        for _warn in _sq["warnings"]:
+            dialogue.setdefault("proposal_terms_summary", []).append("WARNING: " + _warn)
+            if _rows is not None:
+                _rows.append({"type": "status_quo_warning", "term_direction": "concession",
+                              "display_label": "WARNING: " + _warn})
+        dialogue["status_quo_forecast"] = {"lines": list(_sq["lines"]),
+                                           "warnings": list(_sq["warnings"])}
+
     peace_proposal_types = {"peace", "armistice", "armistice_losing", "armistice_winning"}
     if proposal_type in peace_proposal_types or terms.get("type") in peace_proposal_types:
         snapshot_type = terms.get("type", proposal_type)

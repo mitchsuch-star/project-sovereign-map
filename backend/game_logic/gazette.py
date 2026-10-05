@@ -774,7 +774,8 @@ def compose_issue(world, since_turn: int,
         seat = "Imperial Headquarters"
 
     def _section(rows: List[Dict], key: str) -> List[str]:
-        lines = [format_event_oneliner(e, player_nation=world.player_nation)
+        lines = [format_event_oneliner(e, player_nation=world.player_nation,
+                                       world=world)
                  for e in rows]
         if previous_issue:
             already = set(previous_issue.get(key) or [])

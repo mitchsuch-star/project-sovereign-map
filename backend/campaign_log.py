@@ -28,6 +28,7 @@ from backend.game_logic.commitments_routing import (
     COMMITMENTS_ROUTES,
     format_commitments_notice,
 )
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 
 def _display_action(action: str) -> str:
@@ -1828,7 +1829,7 @@ def _possessive_court(tag) -> str:
     return f"{name}'" if name.endswith("s") else f"{name}'s"
 
 
-def format_event_oneliner(event: dict, player_nation: str = "") -> str:
+def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> str:
     """
     Produce a human-readable one-liner for a campaign log event.
 
@@ -1838,6 +1839,11 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
 
     Args:
         event: A single event dict from the event log
+        world: SF5-X3 / NPC-12 (Step 7 slice 7) — when given, a marshal
+            named by a fate line ("CAPTURED", "WOUNDED", "KILLED", ...)
+            is styled by his court's own rank through
+            `display_names.marshal_title`; without it he is still
+            humanised ("Marshal Archduke Charles", never the key).
 
     Returns:
         Human-readable one-liner string
@@ -1979,9 +1985,9 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         if event.get("held"):
             return (f"{tag} assaulted the {region} garrison — {gar_lost:,} "
                     f"lost, {remaining:,} still under arms "
-                    f"({marshal} loses {atk_lost:,})")
+                    f"({humanize_entity_name(marshal)} loses {atk_lost:,})")
         return (f"{tag} stormed the {region} garrison — it is destroyed "
-                f"({marshal} loses {atk_lost:,})")
+                f"({humanize_entity_name(marshal)} loses {atk_lost:,})")
 
     if event_type == "retreat":
         marshal = event.get("marshal", "Unknown")
@@ -2327,7 +2333,7 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         # (stamped by WorldState.capture_marshal / release).
         if event.get("sovereign"):
             return f"THE EMPEROR {marshal} TAKEN by {captor} at {location}"
-        return f"Marshal {marshal} CAPTURED by {captor} at {location}"
+        return f"{marshal_title(world, marshal, start=True)} CAPTURED by {captor} at {location}"
 
     if event_type == "evacuation_granted":
         a = event.get("nation_a", "")
@@ -2358,7 +2364,7 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         marshal = event.get("marshal", "Unknown")
         location = event.get("location", "the field")
         left = int(event.get("turns_left") or 0)
-        return (f"Marshal {marshal}'s safe passage is LAPSING at {location} "
+        return (f"{marshal_title(world, marshal, start=True)}'s safe passage is LAPSING at {location} "
                 f"— {_plural(left, 'turn')} before internment")
 
     if event_type == "marshal_wounded":
@@ -2367,7 +2373,7 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         location = event.get("location", "the field")
         until = int(event.get("until_turn") or 0)
         tail = f" — out until turn {until}" if until else ""
-        return f"Marshal {marshal} WOUNDED at {location}{tail}; the corps stands"
+        return f"{marshal_title(world, marshal, start=True)} WOUNDED at {location}{tail}; the corps stands"
 
     if event_type == "marshal_destroyed":
         marshal = event.get("marshal", "Unknown")
@@ -2376,7 +2382,7 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         cause = event.get("cause") or ""
         if cause == "killed_in_action":
             # VP-M1: struck down at the head of his corps — the corps lives.
-            return (f"Marshal {marshal} KILLED at {location}"
+            return (f"{marshal_title(world, marshal, start=True)} KILLED at {location}"
                     + (f" — struck down by {victor}'s guns" if victor else "")
                     + "; the corps passes to another hand")
         # GE-1 "The Eagle Falls": the sovereign killed with his corps is a
@@ -2386,26 +2392,26 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
             return (f"THE EMPEROR {marshal} FALLS at {location}"
                     + (f" — his corps annihilated by {victor}" if victor else ""))
         if cause == "attrition":
-            return (f"Marshal {marshal}'s corps DESTROYED at {location} — "
+            return (f"{marshal_title(world, marshal, start=True)}'s corps DESTROYED at {location} — "
                     f"starved out by supply attrition")
         # WIN-D3: internment is not annihilation. The corps is off the board
         # by the same seam, but it was disarmed, not destroyed.
         if cause == "interned":
             if victor:
-                return (f"Marshal {marshal}'s corps INTERNED at {location} "
+                return (f"{marshal_title(world, marshal, start=True)}'s corps INTERNED at {location} "
                         f"by {victor} — its safe passage had expired")
-            return (f"Marshal {marshal}'s corps INTERNED at {location} — "
+            return (f"{marshal_title(world, marshal, start=True)}'s corps INTERNED at {location} — "
                     f"its safe passage had expired")
         if victor:
-            return (f"Marshal {marshal}'s corps DESTROYED at {location} "
+            return (f"{marshal_title(world, marshal, start=True)}'s corps DESTROYED at {location} "
                     f"by {victor}")
-        return f"Marshal {marshal}'s corps DESTROYED at {location}"
+        return f"{marshal_title(world, marshal, start=True)}'s corps DESTROYED at {location}"
 
     if event_type == "last_stand":
         marshal = event.get("marshal", "Unknown")
         location = event.get("location", "the field")
         inflicted = int(event.get("casualties_inflicted", 0) or 0)
-        return (f"{marshal}'s last stand at {location} — "
+        return (f"{humanize_entity_name(marshal)}'s last stand at {location} — "
                 f"{inflicted:,} enemy casualties before the end")
 
     if event_type == "marshal_released":
@@ -2427,7 +2433,7 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         if event.get("sovereign"):  # NP-V: see marshal_captured above
             return (f"THE EMPEROR {marshal} is restored to France by "
                     f"{captor} ({reason})")
-        return f"Marshal {marshal} released by {captor} ({reason})"
+        return f"{marshal_title(world, marshal, start=True)} released by {captor} ({reason})"
 
     if event_type == "strategic_order":
         marshal = event.get("marshal", "Unknown")
@@ -3277,7 +3283,8 @@ def format_event_oneliner(event: dict, player_nation: str = "") -> str:
         marshal = event.get("marshal", "Unknown")
         region = event.get("region", "unknown region")
         troops = event.get("troops", 0)
-        return f"{marshal} garrisoned {region} ({troops:,} troops)"
+        # NPC-12: "ArchdukeCharles garrisoned Franche-Comte" (measured).
+        return f"{humanize_entity_name(marshal)} garrisoned {region} ({troops:,} troops)"
 
     if event_type == "proposal_voided_by_coalition":
         target = event.get("target", "Unknown")

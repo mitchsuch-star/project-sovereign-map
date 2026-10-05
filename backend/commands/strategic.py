@@ -25,6 +25,7 @@ from backend.display_names import plural as _plural_lv9  # LV-9 (row EP F2)
 # NP-V: who SAYS an interrupt line — the marshal himself, or Berthier when
 # the marshal is the sovereign (the Emperor never addresses the player).
 from backend.game_logic.marshal_voice import interrupt_speaker
+from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 
 
 # SR-6b RS-29: False = the plural phrase.
@@ -2321,7 +2322,7 @@ class StrategicOrderProcessor:
                 marshal.hold_region = ""
                 return {
                     "success": True,
-                    "message": (f"{marshal.name} cannot attack {enemy_name} — "
+                    "message": (f"{marshal.name} cannot attack {_shown_name(enemy_name)} — "
                                 f"{refusal_reason(result)} "
                                 f"{_strategic_command_flavor(order.command_type).capitalize()} "
                                 f"ends; he awaits new orders."),
@@ -2344,7 +2345,7 @@ class StrategicOrderProcessor:
                     return _carry_combat_fields({
                         "success": True,
                         "no_action_cost": True,
-                        "message": (f"{marshal.name} cannot bring {enemy_name} to "
+                        "message": (f"{marshal.name} cannot bring {_shown_name(enemy_name)} to "
                                     f"battle — {combat_msg}").strip(),
                         "order_cleared": False,
                         "trust_change": 0,
@@ -2359,7 +2360,7 @@ class StrategicOrderProcessor:
                     order.last_combat_turn = world.current_turn
                     return _carry_combat_fields({
                         "success": True,
-                        "message": (f"{marshal.name} attacks {enemy_name}. {combat_msg} "
+                        "message": (f"{marshal.name} attacks {_shown_name(enemy_name)}. {combat_msg} "
                                     f"The assault was inconclusive — {cmd_flavor} continues."),
                         "order_cleared": False,
                         "trust_change": 0,
@@ -2379,7 +2380,7 @@ class StrategicOrderProcessor:
                 order.combat_attempts = 0
                 return _carry_combat_fields({
                     "success": True,
-                    "message": f"{marshal.name} attacks {enemy_name} and wins! "
+                    "message": f"{marshal.name} attacks {_shown_name(enemy_name)} and wins! "
                                f"Continuing {_strategic_command_flavor(order.command_type)}. {combat_msg}",
                     "order_cleared": False,
                     "trust_change": 0,
@@ -2395,7 +2396,7 @@ class StrategicOrderProcessor:
                     marshal.strategic_order = None
                     return _carry_combat_fields({
                         "success": True,
-                        "message": f"{marshal.name} attacks {enemy_name}. {combat_msg}",
+                        "message": f"{marshal.name} attacks {_shown_name(enemy_name)}. {combat_msg}",
                         "order_cleared": True,
                         "trust_change": 0,
                         "action_taken": "attack"
@@ -2410,7 +2411,7 @@ class StrategicOrderProcessor:
                 marshal.hold_region = ""
                 return _carry_combat_fields({
                     "success": True,
-                    "message": f"{marshal.name} attacks {enemy_name}. {combat_msg} "
+                    "message": f"{marshal.name} attacks {_shown_name(enemy_name)}. {combat_msg} "
                                f"Assault failed — orders cancelled, marshal awaits new instructions.",
                     "order_cleared": True,
                     "trust_change": 0,
@@ -2606,7 +2607,7 @@ class StrategicOrderProcessor:
                 trust_change = marshal.trust.modify(trust_change)
             return self._attach_redemption_if_needed({
                 "success": True,
-                "message": f"{marshal.name} holds position after the engagement with {enemy_name}.",
+                "message": f"{marshal.name} holds position after the engagement with {_shown_name(enemy_name)}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "hold_position"
@@ -3116,10 +3117,10 @@ class StrategicOrderProcessor:
                     broken = self._break_order(
                         marshal, world,
                         f"{marshal.name} arrives at {marshal.location} but cannot "
-                        f"attack {target.name} — {refusal_reason(result)}")
+                        f"attack {_shown_name(target.name)} — {refusal_reason(result)}")
                     broken.update({"action": "attack_refused", **refusal_keys(result)})
                     return broken
-                msg = f"{marshal.name} arrives at {marshal.location} and attacks {target.name}!"
+                msg = f"{marshal.name} arrives at {marshal.location} and attacks {_shown_name(target.name)}!"
                 self._complete_order(marshal, world, msg)
                 # Strip new_state to avoid circular reference in JSON serialization
                 cleaned_result = {k: v for k, v in result.items() if k != "new_state"} if result else None
@@ -3167,12 +3168,12 @@ class StrategicOrderProcessor:
                 text = (f"{marshal.name}'s pursuit halts at the water's edge — "
                         f"{reason}")
             else:
-                text = f"{marshal.name} cannot engage {target.name} — {reason}"
+                text = f"{marshal.name} cannot engage {_shown_name(target.name)} — {reason}"
             broken = self._break_order(marshal, world, text)
             broken.update({"action": "attack_refused", "target": target.name,
                            **refusal_keys(result)})
             return broken
-        combat_msg = result.get("message", f"Engaged {target.name}")
+        combat_msg = result.get("message", f"Engaged {_shown_name(target.name)}")
         return self._complete_order(marshal, world, combat_msg)
 
     def _execute_pursue(self, marshal, world, game_state) -> Dict:
@@ -3278,7 +3279,7 @@ class StrategicOrderProcessor:
             # Already fought this target recently — order is done
             if not self._should_auto_attack(marshal, target, world):
                 return self._complete_order(marshal, world,
-                    f"{marshal.name} engaged {target.name} — pursuit complete")
+                    f"{marshal.name} engaged {_shown_name(target.name)} — pursuit complete")
 
             # CR-5 Phase 3: gate an inferred assault on a fortified superior
             # force behind the one-modal confirm (§6.3c).
@@ -3389,7 +3390,7 @@ class StrategicOrderProcessor:
                 else:
                     # Cautious/literal: found the enemy, pursuit complete
                     return self._complete_order(marshal, world,
-                        f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
+                        f"{marshal.name} has located {_shown_name(target.name)} at {next_region} and awaits orders")
 
             result = self.executor.execute(
                 {"command": {
@@ -3424,7 +3425,7 @@ class StrategicOrderProcessor:
                         return self._pursuit_engagement(marshal, world, target, attack_result)
                     # Already fought recently — pursuit still complete
                     return self._complete_order(marshal, world,
-                        f"{marshal.name} has engaged {target.name} — pursuit complete")
+                        f"{marshal.name} has engaged {_shown_name(target.name)} — pursuit complete")
             else:
                 # Move failed — if target is in this region, pursuit complete
                 if next_region == target.location:
@@ -3448,7 +3449,7 @@ class StrategicOrderProcessor:
                             return self._pursuit_engagement(marshal, world, target, attack_result)
                     # Found target — pursuit complete
                     return self._complete_order(marshal, world,
-                        f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
+                        f"{marshal.name} has located {_shown_name(target.name)} at {next_region} and awaits orders")
                 last_fail = result  # PF-8: preserve the reason (e.g. diplomatic block)
                 break
 
@@ -3853,10 +3854,10 @@ class StrategicOrderProcessor:
 
                 sally_action = "glorious_charge_sally" if is_glorious_charge else "sally"
                 sally_msg = (f"{marshal.name} leads a GLORIOUS CHARGE against "
-                             f"{enemy.name}, then returns to {hold_position}!"
+                             f"{_shown_name(enemy.name)}, then returns to {hold_position}!"
                              if is_glorious_charge else
                              f"{marshal.name} sallies forth to attack "
-                             f"{enemy.name}, then returns to {hold_position}!")
+                             f"{_shown_name(enemy.name)}, then returns to {hold_position}!")
 
                 return {
                     "marshal": marshal.name,
@@ -4001,7 +4002,7 @@ class StrategicOrderProcessor:
             "battle_details": cleaned,
             # WO-33: uniform with the combat rows.
             "battle_report": cleaned.get("battle_report"),
-            "message": f"{marshal.name}'s guns bombard {target.name}'s position from {hold_position}. {battle_message}".strip(),
+            "message": f"{marshal.name}'s guns bombard {_shown_name(target.name)}'s position from {hold_position}. {battle_message}".strip(),
         }
 
         # Pass through bombardment_result and advisory for frontend
@@ -4558,14 +4559,14 @@ class StrategicOrderProcessor:
             label = ""
             if met:
                 if personality == "aggressive":
-                    label = f"{enemy_name} is finished! The hunt was glorious!"
+                    label = f"{_shown_name(enemy_name)} is finished! The hunt was glorious!"
                 elif personality == "cautious":
-                    label = f"{enemy_name} has been eliminated. Threat neutralized."
+                    label = f"{_shown_name(enemy_name)} has been eliminated. Threat neutralized."
                 elif personality == "literal":
-                    label = f"{marshal.name} reports: Target ({enemy_name}) destroyed. Order complete."
+                    label = f"{marshal.name} reports: Target ({_shown_name(enemy_name)}) destroyed. Order complete."
                 else:
-                    label = f"{enemy_name} destroyed. {marshal.name} awaits new orders."
-            arms.append(("until_marshal_destroyed", met, label, f"{enemy_name} is destroyed."))
+                    label = f"{_shown_name(enemy_name)} destroyed. {marshal.name} awaits new orders."
+            arms.append(("until_marshal_destroyed", met, label, f"{_shown_name(enemy_name)} is destroyed."))
         if condition.until_relieved:
             marshals_here = world.get_marshals_in_region(marshal.location)
             allies = [m for m in marshals_here
@@ -4772,7 +4773,7 @@ class StrategicOrderProcessor:
                 "command": order.command_type,
                 "order_status": "continues",
                 "action": "blocked",
-                "message": f"{marshal.name} holds position — {enemy.name} "
+                "message": f"{marshal.name} holds position — {_shown_name(enemy.name)} "
                            f"still blocks the path at {blocked_region}."
             }
 
@@ -4915,15 +4916,15 @@ class StrategicOrderProcessor:
                     # FA slice 3 review round (R1-F5): after `continue_order`
                     # this arm said "Odds unfavorable" at 6:1 — only the
                     # mid-path twin carried the inconclusive-assault copy.
-                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} still holds "
+                    msg = (f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} still holds "
                            f"{blocked_region}. Previous assault was inconclusive. "
                            f"Orders?'")
                 elif is_fog_discovery:
                     msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered at "
-                           f"{blocked_region}! Destination held by {enemy.name}. "
+                           f"{blocked_region}! Destination held by {_shown_name(enemy.name)}. "
                            f"Odds unfavorable — awaiting orders.'")
                 else:
-                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} holds {blocked_region} "
+                    msg = (f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} holds {blocked_region} "
                            f"— destination blocked. Odds unfavorable.'")
                 if not inferred and THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
                     msg += self.executor._combat._bad_odds_muster_note(
@@ -4968,16 +4969,16 @@ class StrategicOrderProcessor:
 
             # Bad odds or previous failed attempt — ask player
             if order.combat_attempts > 0:
-                msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} still blocks the path. "
+                msg = (f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} still blocks the path. "
                        f"Previous assault was inconclusive. Orders?'")
             else:
                 # Session 36: Discovery prefix for fogged regions
                 if is_fog_discovery:
                     msg = (f"{interrupt_speaker(marshal)}: 'Enemy forces discovered ahead! "
-                           f"{enemy.name} blocks the path at {blocked_region}. "
+                           f"{_shown_name(enemy.name)} blocks the path at {blocked_region}. "
                            f"Odds unfavorable.'")
                 else:
-                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path. "
+                    msg = (f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} blocks the path. "
                            f"Odds unfavorable.'")
             if THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
                 msg += self.executor._combat._bad_odds_muster_note(
@@ -5013,7 +5014,7 @@ class StrategicOrderProcessor:
                 if getattr(order, "combat_attempts", 0) > 0:
                     # FA slice 3 review round (R1-F5): the cautious twin of
                     # the inconclusive-assault copy.
-                    msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} still holds "
+                    msg = (f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} still holds "
                            f"{blocked_region}. Previous assault was inconclusive. "
                            f"How shall I proceed?'")
                 elif is_fog_discovery:
@@ -5089,14 +5090,14 @@ class StrategicOrderProcessor:
                     "command": "unknown",
                     "action": "attack_refused",
                     "order_status": "breaks",
-                    "message": f"{marshal.name} cannot attack {enemy.name} — {reason}",
+                    "message": f"{marshal.name} cannot attack {_shown_name(enemy.name)} — {reason}",
                     **refusal_keys(result),
                 }
             flavor = _strategic_command_flavor(order.command_type)
             if result.get("blocked_naval"):
                 text = f"{marshal.name}'s {flavor} halts at the water's edge — {reason}"
             else:
-                text = f"{marshal.name} cannot attack {enemy.name} — {reason}"
+                text = f"{marshal.name} cannot attack {_shown_name(enemy.name)} — {reason}"
             broken = self._break_order(marshal, world, text)
             broken.update({"action": "attack_refused", "target": enemy.name,
                            **refusal_keys(result)})
@@ -5110,7 +5111,7 @@ class StrategicOrderProcessor:
                 "command": "unknown",
                 "action": "combat",
                 "order_status": "breaks",
-                "message": f"{marshal.name} engaged {enemy.name}.",
+                "message": f"{marshal.name} engaged {_shown_name(enemy.name)}.",
                 **carry,
             }
 
@@ -5232,14 +5233,14 @@ class StrategicOrderProcessor:
                 "target": enemy.name,
                 "outcome": "victory",
                 "order_status": "continues",
-                "message": f"{marshal.name} defeats {enemy.name}! Continuing.",
+                "message": f"{marshal.name} defeats {_shown_name(enemy.name)}! Continuing.",
                 **carry,
             }
 
         elif outcome == "defeat":
             marshal.last_combat_result = "defeat"
             broken = self._break_order(marshal, world,
-                                       f"Defeated by {enemy.name}")
+                                       f"Defeated by {_shown_name(enemy.name)}")
             broken.update({"action": "combat", "target": enemy.name,
                            "outcome": "defeat", **carry})
             return broken
@@ -5249,7 +5250,7 @@ class StrategicOrderProcessor:
             # FA-34 (slice 3): "Continue move to?" was the raw enum; the
             # flavor helper the answer arms already use says "his march".
             stalemate_msg = (
-                f"{marshal.name} attacked {enemy.name} during "
+                f"{marshal.name} attacked {_shown_name(enemy.name)} during "
                 f"{_strategic_command_flavor(order.command_type)} but the "
                 f"battle was inconclusive. Continue "
                 f"{_strategic_command_flavor(order.command_type)}?")

@@ -102,6 +102,15 @@ A_SIGNED_CESSION_IS_RECONCILED = True
 # Congress still has to be won at the table — uti possidetis titles the
 # province for the COUNT, recognition is bought separately. Flip lever.
 STATUS_QUO_IS_A_CESSION = True
+# SF7-X7 (Score Finish Step 7 slice 7, October 4, 2026): a peace says what
+# EACH side keeps under the status quo — before it is signed (the proposal's
+# forecast, read off the same `status_quo_retentions` the ratifier titles
+# with) and after (the dispatch names the soil the enemy keeps, not only
+# ours). Measured on slice 4's austerlitz arm: Austria's peace left it
+# Champagne, Burgundy and Berry and no surface said so until every French
+# march south was refused at the closed frontier. False = the pre-slice
+# silence (the ratification summary already carried both directions).
+THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS = True
 SIGNED_PEACE_REASONS = frozenset({
     "treaty_ratification",          # the bilateral treaty (player, AI-AI)
     "common_peace_settlement",      # the settlement table + the third-party peace
@@ -822,13 +831,19 @@ def _bloc_of(world, leader: str) -> List[str]:
     return out
 
 
-def status_quo_retentions(world, holder_leader: str, ceder: str) -> Dict[str, List[str]]:
+def status_quo_retentions(world, holder_leader: str, ceder: str,
+                          *, forecast: bool = False) -> Dict[str, List[str]]:
     """The provinces `holder_leader`'s bloc holds of `ceder`'s that a peace
     between the two leaves in its hands: the ceder's homeland, or ground
     captured FROM the ceder (a conquest record naming it). Pure read; the
     map is `{holder: [regions]}`. A holder still at WAR with the ceder on
     its own account (a satellite whose pair the lord's peace has not yet
-    resolved) retains nothing — the peace is not its yet."""
+    resolved) retains nothing — the peace is not its yet.
+
+    SF7-X7: `forecast=True` reads the same rule BEFORE the peace, for the
+    proposal's own forecast — the pair is still at war then, and the whole
+    bloc follows its lord into the peace (SR-1b), so the at-war skip does
+    not apply."""
     out: Dict[str, List[str]] = {}
     if not holder_leader or not ceder or holder_leader == ceder:
         return out
@@ -836,7 +851,7 @@ def status_quo_retentions(world, holder_leader: str, ceder: str) -> Dict[str, Li
     store = getattr(world, "province_title", None)
     store = store if isinstance(store, dict) else {}
     for holder in _bloc_of(world, holder_leader):
-        if world.is_at_war(holder, ceder):
+        if not forecast and world.is_at_war(holder, ceder):
             continue
         kept: List[str] = []
         for region_name in world.get_nation_regions(holder) or []:
@@ -925,6 +940,20 @@ def _announce_status_quo(world, entries: List[Dict[str, Any]]) -> None:
         from backend.game_logic.formations import formed_display_name
         for entry in entries:
             if entry.get("house") != player:
+                # SF7-X7: the other direction — the soil OUR bloc cedes by
+                # the status quo, named the morning after (the proposal
+                # already warned before it was signed).
+                if (THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS
+                        and world._top_overlord(str(entry.get("ceder") or "")) == player):
+                    lost = sorted(r for rs in (entry.get("titled") or {}).values()
+                                  for r in rs)
+                    if lost:
+                        queue_dispatch_event(world, "status_quo_conceded", {
+                            "provinces": _join_names(lost),
+                            "holder": formed_display_name(
+                                world, str(entry.get("house") or "")),
+                            "count": len(lost),
+                        }, "always")
                 continue
             names = sorted(r for rs in (entry.get("titled") or {}).values() for r in rs)
             if not names:
@@ -983,6 +1012,77 @@ def status_quo_summary_lines(world, entries: Iterable[Dict[str, Any]],
             whose = adj if adj and adj != house else f"with {formed_display_name(world, house)}"
             lines.append(f"Status quo: {_join_names(names)} {verb} {whose} by the treaty.")
     return lines
+
+
+def status_quo_forecast(world, nation_a: str, nation_b: str,
+                        moved: Iterable[str] = ()) -> List[Dict[str, Any]]:
+    """SF7-X7: the retention entries a signed peace between the two leaders
+    would write NOW, in the stash's own shape — the same
+    `status_quo_retentions` rule the ratifier runs (shown == applied), with
+    the provinces the package itself moves (`moved`: its cessions and
+    carves) left out, as the incoming offer's letter leaves them out
+    (SR-2d). Pure read; [] with either lever down."""
+    if not (STATUS_QUO_IS_A_CESSION and THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS):
+        return []
+    if not nation_a or not nation_b or nation_a == nation_b:
+        return []
+    gone = set(str(r) for r in (moved or []))
+    entries: List[Dict[str, Any]] = []
+    try:
+        for holder_leader, ceder in ((nation_a, nation_b), (nation_b, nation_a)):
+            kept = status_quo_retentions(world, holder_leader, ceder, forecast=True)
+            kept = {h: [r for r in rs if r not in gone] for h, rs in kept.items()}
+            kept = {h: rs for h, rs in kept.items() if rs}
+            if not kept:
+                continue
+            entries.append({
+                "house": str(world._top_overlord(holder_leader) or holder_leader),
+                "ceder": ceder,
+                "titled": kept,
+            })
+    except Exception:
+        return []
+    return entries
+
+
+def status_quo_forecast_lines(world, nation_a: str, nation_b: str, speaker: str,
+                             moved: Iterable[str] = ()) -> Dict[str, List[str]]:
+    """SF7-X7: the proposal's forecast from `speaker`'s chair — the
+    ratification summary's own sentences (`status_quo_summary_lines`), and
+    a WARNING for every province of the speaker's HOMELAND the other side
+    keeps: at peace it is a closed frontier, and nothing else on the
+    proposal said so. `{"lines": [...], "warnings": [...]}` — a province
+    is named once: in the warning when it is the speaker's homeland, else in
+    the summary sentence."""
+    entries = status_quo_forecast(world, nation_a, nation_b, moved)
+    out: Dict[str, List[str]] = {"lines": [], "warnings": []}
+    if not entries:
+        return out
+    from backend.display_names import nation_adjective
+    from backend.game_logic.formations import formed_display_name
+    home = set((getattr(world, "nation_starting_regions", {}) or {}).get(speaker, []) or [])
+    plain: List[Dict[str, Any]] = []
+    for entry in entries:
+        house = str(entry.get("house") or "")
+        titled = entry.get("titled") or {}
+        if house == speaker:
+            plain.append(entry)
+            continue
+        ours = sorted(r for rs in titled.values() for r in rs if r in home)
+        rest = {h: [r for r in rs if r not in home] for h, rs in titled.items()}
+        rest = {h: rs for h, rs in rest.items() if rs}
+        if rest:
+            plain.append(dict(entry, titled=rest))
+        if not ours:
+            continue
+        adj = nation_adjective(speaker) if speaker else ""
+        soil = f"{adj} soil" if adj and adj != speaker else "our homeland"
+        verb = "stays" if len(ours) == 1 else "stay"
+        out["warnings"].append(
+            f"{_join_names(ours)} {verb} with {formed_display_name(world, house)} "
+            f"by this peace — {soil} behind a closed frontier once it is signed.")
+    out["lines"] = status_quo_summary_lines(world, plain, speaker)
+    return out
 
 
 def record_carve_titles(world, provinces: Iterable[str], ceder: str,

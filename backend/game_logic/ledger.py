@@ -1339,6 +1339,13 @@ def _derive_condition_text(order, world) -> str:
     return describe_condition(cond, remaining=remaining, progress=progress) or "active"
 
 
+def _display_target(target) -> str:
+    """NPC-12 (Step 7 slice 7): an order's target as a reader sees it — a
+    marshal key humanised ("Archduke Charles"), a province unchanged."""
+    from backend.display_names import humanize_entity_name
+    return humanize_entity_name(str(target or ""))
+
+
 def _build_orders(world, player: str) -> list:
     """Build orders section: per player marshal strategic order status."""
     active_orders = []
@@ -1368,6 +1375,10 @@ def _build_orders(world, player: str) -> list:
                 "order_type": _derive_order_display_name(order.command_type),
                 "order_type_raw": order.command_type,
                 "target": order.target,
+                # NPC-12: the ORDERS tab printed "PURSUE ArchdukeCharles" — the
+                # machine key stays `target` (an order is keyed by it); the
+                # display form rides beside it (FA-69's discipline).
+                "target_display": _display_target(order.target),
                 "path_remaining": 0 if halted else int(len(order.path)),
                 "turns_active": int(world.current_turn - order.started_turn),
                 "condition": condition_text,
@@ -1394,6 +1405,7 @@ def _build_orders(world, player: str) -> list:
                                   + " — awaiting your word",
                     "order_type_raw": "",
                     "target": quarry,
+                    "target_display": _display_target(quarry),
                     "path_remaining": 0,
                     "turns_active": 0,
                     "condition": "HALTED — awaiting your word",

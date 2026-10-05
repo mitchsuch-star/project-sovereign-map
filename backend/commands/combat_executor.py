@@ -30,6 +30,8 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # — a combat retune would have left the chip lying with the suite green.
 # One name now; objection_v2 has no imports back into commands (safe).
 from backend.commands.objection_v2 import REGION_FORTIFICATION_DEFENSE_BONUS
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -5188,14 +5190,14 @@ class CombatExecutor:
             "enemy": enemy_name,
             "casualties_inflicted": int(damage),
             "message": (
-                f"{marshal.name} makes his last stand at {marshal.location} "
-                f"— {damage:,} of {enemy_name}'s men fall before the end."
+                f"{_shown_name(marshal.name)} makes his last stand at {marshal.location} "
+                f"— {damage:,} of {_shown_name(enemy_name)}'s men fall before the end."
             ),
         })
         capture_msg = self._capture_marshal(
             marshal, getattr(enemy, "nation", ""), world,
             context="last_stand")
-        return (f"[!] LAST STAND — {marshal.name} turns at bay at "
+        return (f"[!] LAST STAND — {_shown_name(marshal.name)} turns at bay at "
                 f"{field}! {damage:,} enemy casualties; the "
                 f"pursuit is halted. {capture_msg}")
 
@@ -5419,11 +5421,11 @@ class CombatExecutor:
             if marshal.strategic_order:
                 cmd_type = marshal.strategic_order.command_type
                 if cmd_type == "HOLD":
-                    strategic_msg = f" {marshal.name}'s HOLD order at {old_loc} is broken!"
+                    strategic_msg = f" {_shown_name(marshal.name)}'s HOLD order at {old_loc} is broken!"
                     marshal.holding_position = False
                     marshal.hold_region = ""
                 else:
-                    strategic_msg = f" {marshal.name}'s {cmd_type} order is cancelled!"
+                    strategic_msg = f" {_shown_name(marshal.name)}'s {cmd_type} order is cancelled!"
                 # Notification: forced retreat voided strategic order (player only)
                 if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
                     from backend.notifications import (
@@ -5432,8 +5434,8 @@ class CombatExecutor:
                     world.notifications.add(create_notification(
                         notification_type=FORCED_RETREAT_ORDER_VOIDED,
                         priority=NotificationPriority.CRITICAL,
-                        title=f"{marshal.name} orders lost",
-                        message=f"{marshal.name} was forced to retreat to {retreat_to}. Their {cmd_type} order has been cancelled.",
+                        title=f"{_shown_name(marshal.name)} orders lost",
+                        message=f"{_shown_name(marshal.name)} was forced to retreat to {retreat_to}. Their {cmd_type} order has been cancelled.",
                         turn_created=int(world.current_turn),
                         details={"marshal": marshal.name, "order_type": cmd_type, "retreat_to": retreat_to},
                     ))
@@ -5469,7 +5471,7 @@ class CombatExecutor:
             # fires only when a retreat destination exists).
             _toll_prefix = f"[!] {_toll_note} " if _toll_note else ""
             _fate_prefix = f"[!] {_fate_note} " if _fate_note else ""
-            return f"{_fate_prefix}{_toll_prefix}[!] {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
+            return f"{_fate_prefix}{_toll_prefix}[!] {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -5512,9 +5514,9 @@ class CombatExecutor:
             if marshal.strategic_order:
                 cmd_type = marshal.strategic_order.command_type
                 if cmd_type == "HOLD":
-                    strategic_msg = f" {marshal.name}'s HOLD position at {old_loc} is lost!"
+                    strategic_msg = f" {_shown_name(marshal.name)}'s HOLD position at {old_loc} is lost!"
                 else:
-                    strategic_msg = f" {marshal.name}'s {cmd_type} order is void!"
+                    strategic_msg = f" {_shown_name(marshal.name)}'s {cmd_type} order is void!"
                 # Notification: broken army voided strategic order (player only)
                 if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
                     from backend.notifications import (
@@ -5523,8 +5525,8 @@ class CombatExecutor:
                     world.notifications.add(create_notification(
                         notification_type=FORCED_RETREAT_ORDER_VOIDED,
                         priority=NotificationPriority.CRITICAL,
-                        title=f"{marshal.name} orders lost",
-                        message=f"{marshal.name}'s army was shattered at {old_loc}. Their {cmd_type} order is void.",
+                        title=f"{_shown_name(marshal.name)} orders lost",
+                        message=f"{_shown_name(marshal.name)}'s army was shattered at {old_loc}. Their {cmd_type} order is void.",
                         turn_created=int(world.current_turn),
                         details={"marshal": marshal.name, "order_type": cmd_type, "location": old_loc},
                     ))
@@ -5547,7 +5549,7 @@ class CombatExecutor:
             # high-command marshal who rallies 2 stages/turn.
             broken_turns = -(-4 // marshal.get_rally_stages_per_turn())
             return (
-                f"[BROKEN] {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
+                f"[BROKEN] {_shown_name(marshal.name)}'s army is SURROUNDED and SHATTERED at {old_loc}! "
                 f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}.{strategic_msg} "
                 f"Army is BROKEN - can only recruit for {broken_turns} turns!"
             )
@@ -9460,7 +9462,7 @@ class CombatExecutor:
                     _exp_now = get_expectation(_rise_winner)
                     if _exp_now > _rise_prev:
                         result["battle_report"]["expectation_note"] = (
-                            f"Victory raises Marshal {_rise_winner.name}'s "
+                            f"Victory raises {marshal_title(world, _rise_winner.name)}'s "
                             f"expectation of reward — he now looks for "
                             f"{_exp_now}g/turn (holds "
                             f"{get_satisfaction(_rise_winner, world)}g).")

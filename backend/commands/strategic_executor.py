@@ -28,6 +28,8 @@ from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
 # so `move` and `march` can never again disagree about disclosing the
 # same substitution.
 from backend.commands.movement_executor import destination_grounding_note
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 
 # FA-N57 (slice 17, Sept 11 2026): the "is in square formation" Berthier
 # advisory read the LIVE `square_formation` 1,142 lines AFTER this very
@@ -843,7 +845,7 @@ class StrategicExecutor:
                         if _captor else "has no corps in the field")
                 return {
                     "success": False,
-                    "message": (f"Marshal {ally.name} {_why}, Sire — there is no "
+                    "message": (f"{marshal_title(world, ally.name, start=True)} {_why}, Sire — there is no "
                                 f"one to support until his release."),
                     "variable_action_cost": 0,
                 }
@@ -944,7 +946,7 @@ class StrategicExecutor:
                         return {
                             "success": False,
                             "message": _one or (
-                                f"Cannot pursue {enemy.name} — not at war "
+                                f"Cannot pursue {_shown_name(enemy.name)} — not at war "
                                 f"with {enemy.nation}."),
                             "variable_action_cost": 0,
                         }
@@ -2510,7 +2512,7 @@ class StrategicExecutor:
         marshal.hold_region = ""
         return {
             "success": False,
-            "message": (f"{marshal.name} cannot engage {enemy_name} — "
+            "message": (f"{marshal.name} cannot engage {_shown_name(enemy_name)} — "
                         f"{refusal_reason(refusal)} No order stands."),
             "order_cleared": True,
             "first_step_blocked": True,
@@ -2576,7 +2578,7 @@ class StrategicExecutor:
                 return {
                     "success": True,
                     "message": (f"{marshal.name} reaches the approach to {destination}, "
-                                f"but {enemy.name}'s forces hold it. Orders complete — "
+                                f"but {_shown_name(enemy.name)}'s forces hold it. Orders complete — "
                                 f"awaiting instructions to attack or hold."),
                     "order_cleared": True,
                     "first_step_blocked": True,
@@ -2670,7 +2672,7 @@ class StrategicExecutor:
                     # interrupt route has carried since F1b / CA8-25.
                     return _carry_combat_fields({
                         "success": True,
-                        "message": f"{interrupt_speaker(marshal)}: '{enemy.name} bars the way!' "
+                        "message": f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} bars the way!' "
                                    f"Engaging!\n\n{combat_msg}",
                         "strategic_order": True,
                         "strategic_type": order.command_type,
@@ -2699,7 +2701,7 @@ class StrategicExecutor:
                     self._executor._combat._bad_odds_muster_note(
                         marshal, enemy, world))
             else:
-                bad_odds_msg = (f"{interrupt_speaker(marshal)}: '{enemy.name} blocks the path at "
+                bad_odds_msg = (f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} blocks the path at "
                                 f"{blocked_region}. Odds unfavorable. Your orders?'")
                 # CRT-11 / RS-8 rider (P4): the marshal's read stays solo (his
                 # corps against the foe), and Berthier names the muster — the

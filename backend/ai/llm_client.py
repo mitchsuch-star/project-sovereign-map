@@ -51,6 +51,7 @@ from .clause_guards import (
     reason_clause_spans,
     strip_reason_clauses,
 )
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # Load environment variables
 load_dotenv()
@@ -2240,15 +2241,18 @@ class LLMClient:
                     f"retreat'; to strike at a foe who falls back, "
                     f"'{recognized_marshal}, attack {first_enemy}'.\"")
         if recognized_marshal:
+            # SF5-X3: the man by his title — a client's general is not a
+            # Marshal of the Empire, and the Emperor is not one either.
+            _who = marshal_title((game_state or {}).get("world"), recognized_marshal)
             templates = [
                 (f"Berthier adjusts his spectacles. \"Sire, I understand this concerns "
-                 f"Marshal {recognized_marshal}, but I cannot determine the order. "
+                 f"{_who}, but I cannot determine the order. "
                  f"Perhaps: '{recognized_marshal}, attack {first_enemy}' or "
                  f"'{recognized_marshal}, move to {_home_example(game_state)}'?\""),
-                (f"Berthier frowns at the dispatch. \"I see Marshal {recognized_marshal}'s "
+                (f"Berthier frowns at the dispatch. \"I see {_who}'s "
                  f"name, Sire, but the instruction is unclear. Valid orders include: "
                  f"{actions_sample}.\""),
-                (f"\"Sire, Marshal {recognized_marshal} awaits your command, but I cannot "
+                (f"\"Sire, {_who} awaits your command, but I cannot "
                  f"parse this order. Might you mean '{recognized_marshal}, scout' or "
                  f"'{recognized_marshal}, defend'?\" Berthier asks carefully."),
             ]

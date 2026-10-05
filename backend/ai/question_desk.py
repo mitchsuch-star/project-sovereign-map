@@ -50,6 +50,7 @@ import re
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from backend.ai.clause_guards import HONORIFIC
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # Flip lever: False makes classify_question() return None for everything, so
 # every question falls back to the pre-slice `help` route byte-for-byte.
@@ -2266,9 +2267,9 @@ def _answer_own_fallen(world, name: str, tomb: Dict) -> str:
     bench = (f" The bench on {pointer} shows who may be commissioned in his place."
              if pointer else "")
     if cause == "dismissed":
-        return (f"Marshal {shown} was dismissed from the service on turn {turn}, "
+        return (f"{marshal_title(world, name, start=True)} was dismissed from the service on turn {turn}, "
                 f"Sire — he holds no command.{bench}")
-    return (f"Marshal {shown} fell at {where} on turn {turn}, Sire — his corps "
+    return (f"{marshal_title(world, name, start=True)} fell at {where} on turn {turn}, Sire — his corps "
             f"was destroyed and no order can reach him.{bench}")
 
 

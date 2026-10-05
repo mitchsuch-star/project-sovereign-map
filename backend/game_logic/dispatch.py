@@ -404,14 +404,14 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
     # "First unmet turn: start the grace clock"), supplied by the producer;
     # `{turns}` remains the page's run counter for the classes below.
     "estate_eroding": [
-        "Sire — Marshal {marshal} has now gone unrewarded {age} turns. The "
+        "Sire — {marshal} has now gone unrewarded {age} turns. The "
         "staff have noticed which of us he no longer looks at.",
-        "Sire — {age} turns without settlement on Marshal {marshal}. A "
+        "Sire — {age} turns without settlement on {marshal}. A "
         "rente would close it today; the arrears will not close themselves.",
         # FA-D22 (slice 17, Phase 2): "grievance" is jealousy's word (a rival
         # to appease); an unpaid expectation is a CLAIM in arrears — the
         # rail's own vocabulary (rente / estate).
-        "Sire — Marshal {marshal}'s claim is {age} turns in arrears and has "
+        "Sire — {marshal}'s claim is {age} turns in arrears and has "
         "stopped being a household matter. It is now a question of the army.",
     ],
     "enemy_on_our_soil": [
@@ -498,7 +498,10 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "congress_summonable": "Sire — {line}",
     "congress_summonable_term": "{line}",
     "quiet_morning": "Sire — a quiet morning on the front. The marshals await your word.",
-    "marshal_captured": "Sire — Marshal {marshal} has been taken. {captor} holds him prisoner.",
+    # SF5-X3 (Step 7 slice 7): `{marshal}` is the TITLE (`_rank` — "Marshal
+    # Ney", "General Teulie"); "Sire — Marshal Teulie has been taken" named a
+    # Kingdom of Italy general a Marshal of the Empire.
+    "marshal_captured": "Sire — {marshal} has been taken. {captor} holds him prisoner.",
     # CA9-F12: the mirror. Composed backend-side like its CA8-D6 siblings
     # because the captive court and the field are both optional.
     "enemy_marshal_captured": "Sire — {line}",
@@ -536,7 +539,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # actually happened, because the player's next move differs in each.
     "vassal_lost": "Sire — {vassal} is no longer ours. {detail}",
     "region_lost_estate": ("Sire — {captor} has taken {region} — the estate "
-                           "that funded Marshal {marshal}'s honour. He will "
+                           "that funded {marshal}'s honour. He will "
                            "not forget it."),
     # CA8-2: states the establishment, the capacity and the overage, so the
     # remedy "move a corps" finally has a target size.
@@ -561,7 +564,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
                         "that {his_their} corps will be interned where "
                         "{it_they}."),
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
-    "estate_eroding": "Sire — Marshal {marshal}'s household goes unpaid. His patience erodes with his purse.",
+    "estate_eroding": "Sire — {marshal}'s household goes unpaid. His patience erodes with his purse.",
     # CA8-11: the headline names a price and a place, so it must also name
     # the condition — recruits join a marshal who can reach the depot, and
     # in the played campaign every French marshal was in Germany or Italy
@@ -1511,7 +1514,7 @@ def _build_headline(world, player_nation: str,
                     if _holder:
                         _add("region_lost_estate",
                              f"region_lost:{region}", region=region,
-                             marshal=humanize_entity_name(_holder),
+                             marshal=_rank(world, _holder, humanize_entity_name(_holder)),
                              captor=formed_display_name(world, captor))
                     else:
                         _add("region_lost", f"region_lost:{region}",
@@ -1648,7 +1651,7 @@ def _build_headline(world, player_nation: str,
                         else "marshal_captured")
                 _add(_cls,
                      f"{_cls}:{e.get('marshal', '?')}",
-                     marshal=cap_marshal,
+                     marshal=_rank(world, e.get("marshal", ""), cap_marshal),
                      # CA8 sweep 4: `captor` is a NATION TAG (combat_executor
                      # stamps `captor_nation`), so `humanize_entity_name` — a
                      # marshal-name humaniser — rendered "Kingdom Of Italy holds
@@ -2249,10 +2252,13 @@ def _build_headline(world, player_nation: str,
             if ARREARS_AGE_IS_THE_MARSHALS:
                 _age, _name = max(_eroding, key=lambda t: (t[0], t[1]))
                 _add("estate_eroding",
-                     identity=f"estate_eroding:{_name}", marshal=_name, age=_age)
+                     identity=f"estate_eroding:{_name}",
+                     marshal=_rank(world, _name, humanize_entity_name(_name)), age=_age)
             else:
                 _add("estate_eroding",
-                     identity=f"estate_eroding:{_eroding[0][1]}", marshal=_eroding[0][1])
+                     identity=f"estate_eroding:{_eroding[0][1]}",
+                     marshal=_rank(world, _eroding[0][1],
+                                   humanize_entity_name(_eroding[0][1])))
 
     # The corps is starving (econ spec review §5). `supply_attrition` was not
     # in HEADLINE_WEIGHTS at all, so an army bleeding 6% a turn — the drain
@@ -6314,6 +6320,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # SR-1a — a signed peace's status quo titles what we hold (uti possidetis)
     "status_quo_titled": ("{provinces} — retained by the peace with {ceder}, "
                           "titled by treaty."),
+    # SF7-X7 — the other direction: the soil the status quo leaves with them
+    "status_quo_conceded": ("{provinces} — left with {holder} by the peace, "
+                            "titled to them by treaty."),
     # SR quick win AAR-15 — a truce is a truce, with its clock and its thaw
     "armistice_ratified": ("A truce with {other}: the fighting stops for {turns} "
                            "turns — peace if relations heal to {thaw} or better, "
@@ -6464,6 +6473,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "nation_eliminated": "HIGH",
     "peace_ratified": "HIGH",
     "status_quo_titled": "MEDIUM",
+    "status_quo_conceded": "HIGH",
     "armistice_ratified": "HIGH",
     # WB-B — war bargain lifecycle
     "bargain_ratified": "MEDIUM",

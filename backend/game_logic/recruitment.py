@@ -27,6 +27,7 @@ ES-7 expectations (battles_won 0 → expectation 0 — his duchy comes later).
 """
 
 from typing import Dict, List, Optional, Tuple
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -234,7 +235,7 @@ def check_commission(world, nation: str, candidate: Dict,
     live treasury, byte-identically."""
     name = candidate.get("name", "?")
     if name in world.marshals:
-        return f"Marshal {name} already serves."
+        return f"{marshal_title(world, name, start=True)} already serves."
     if COMMISSION_ASKS_FOR_HOME_SOIL_FIRST and find_spawn_region(world, nation) is None:
         return _no_home_soil(name)
     cost = int(candidate.get("cost", 0))
@@ -324,7 +325,7 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
     if nation == world.player_nation:
         events.append({
             "type": "marshal_commissioned",
-            "message": (f"Marshal {name} accepts his commission — he raises "
+            "message": (f"{marshal_title(world, name, start=True)} accepts his commission — he raises "
                         f"a corps of {size:,} at {spawn}."),
             "nation": nation,
             "marshal": name,
@@ -335,7 +336,7 @@ def commission_marshal(world, nation: str, candidate: Dict) -> Dict:
         world.notifications.add(create_notification(
             notification_type=MARSHAL_COMMISSIONED,
             priority=NotificationPriority.NORMAL,
-            title=f"Marshal {name} commissioned",
+            title=f"{marshal_title(world, name, start=True)} commissioned",
             message=(f"{name} joins the marshalate at {spawn} with "
                      f"{size:,} men ({cost}g)."),
             turn_created=int(world.current_turn),

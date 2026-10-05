@@ -247,11 +247,14 @@ class TestDialogueManagerPush:
         assert dm.queue_size == 1
 
     def test_push_respects_queue_cap(self):
+        """S5-4 (Score Finish Step 7 slice 7, Oct 4 2026) — FLIPPED
+        CONSCIOUSLY: past QUEUE_CAP an arrival overflows into the mailbox
+        (kept), where the pre-slice manager dropped the last five."""
         dm = DialogueManager()
         dm.push(self._d("incoming_proposal"))  # fills current
         for i in range(25):
             dm.push(self._d(f"type_{i}"))
-        assert dm.queue_size == dm.QUEUE_CAP
+        assert dm.queue_size == 25 > dm.QUEUE_CAP
 
 
 class TestDialogueManagerReplace:

@@ -89,8 +89,13 @@ class TestTheLedgersTellTheTruth:
         for rid in ("CA9-P2", "CA9-P3", "CX5-L5-N3"):
             assert rows[rid]["state"] == "disposed", rid
 
-    def test_npc_12_keeps_its_open_remainder(self, rows):
-        assert rows["NPC-12"]["state"] == "partial"
+    def test_npc_12_is_read_with_its_pillar(self, rows):
+        # Step 0 read NPC-12 as a PARTIAL row (its OPEN REMAINDER). Step 7
+        # slice 7 CLOSED the remainder (Oct 4, 2026 — the name census reads
+        # 0 raw keys on both 40-turn arms), so the pin FLIPPED consciously:
+        # the row now reads closed, and the point of the pin — a partial
+        # row is read with its pillar — stands on the tag.
+        assert rows["NPC-12"]["state"] == "closed"
         assert rows["NPC-12"]["pillar"] == "combat_legibility"
 
     def test_the_design_rows_owned_elsewhere_are_re_homed(self, rows):

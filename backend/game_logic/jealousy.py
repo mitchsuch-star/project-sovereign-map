@@ -44,6 +44,8 @@ from backend.models.authority import (  # noqa: F401
     AUTHORITY_SUPPRESS_ABOVE,
 )
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 
 # ═══════════════════ BLESSED CONSTANTS (in-band tunable) ═══════════════════
 
@@ -2026,7 +2028,7 @@ def command_arm_availability(world, marshal):
             == enemy.name.lower()
             and not getattr(existing, "condition", None)):
         return (False, f"{marshal.name} is already marching on "
-                       f"{enemy.name}.", None)
+                       f"{_shown_name(enemy.name)}.", None)
 
     # The executor refuses a strategic march by an ENGAGED marshal unless
     # the quarry is one of the enemies standing on him.
@@ -2168,7 +2170,7 @@ def _command_option(world, marshal) -> Dict:
     return {
         "id": COMMAND_ARM_ID,
         "label": "Give him a command",
-        "detail": (f"Send him against {enemy.name} {where}. A grievance "
+        "detail": (f"Send him against {_shown_name(enemy.name)} {where}. A grievance "
                    f"ends on the field, not at the table — if he makes "
                    f"good on it, it ends for good. Giving the order may "
                    f"bring on a battle at once."),
@@ -2290,7 +2292,7 @@ def _announce_audience(world, petition: Dict) -> None:
     from backend import notifications as _n
     speaker = _petition_speaker(petition)
     shown = humanize_entity_name(speaker)
-    title = str(petition.get("title") or f"Marshal {shown} seeks an audience")
+    title = str(petition.get("title") or f"{marshal_title(world, speaker, start=True)} seeks an audience")
     message = (f"{shown} asks to be heard — at your leisure, Sire; nothing "
                f"waits on it. His card is on the Generals screen.")
     details = {"marshal": speaker, "kind": str(petition.get("kind") or ""),
@@ -3072,10 +3074,10 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
     # for a breach grown entrenched. The title follows the tier.
     _tier = petition_tier_for("jealousy_confrontation",
                               {"escalation_level": int(level)})
-    _title = (f"Marshal {marshal.name} demands to be heard"
+    _title = (f"{marshal_title(world, marshal.name, start=True)} demands to be heard"
               if THE_CRISIS_IS_NOT_AN_AUDIENCE
               and _tier == PETITION_TIER_CRISIS
-              else f"Marshal {marshal.name} seeks an audience")
+              else f"{marshal_title(world, marshal.name, start=True)} seeks an audience")
     return _push_petition(world, {
         "kind": "jealousy_confrontation",
         "title": _title,
@@ -3272,7 +3274,7 @@ def queue_fontainebleau_petition(world, eroding: List, reason: str = "") -> str:
                    f"while Europe is asked to recognize what their victories "
                    f"won. They ask")
         else:
-            who = (f"Marshal {roll} comes before you: he stands unrewarded "
+            who = (f"{marshal_title(world, names[0])} comes before you: he stands unrewarded "
                    f"while Europe is asked to recognize what his victories "
                    f"won. He asks")
         body = (f"Sire, the Congress is summoned and {who} for estates "
@@ -3442,7 +3444,7 @@ def queue_shadow_petition(world, marshal) -> str:
         + ". March him there and the laurels he wins are HIS.")
     return _push_petition(world, {
         "kind": "shadow_command",
-        "title": f"Marshal {marshal.name} asks for a command",
+        "title": f"{marshal_title(world, marshal.name, start=True)} asks for a command",
         "body": (f"{marshal.name} has stood {turns} turns at your side, "
                  f"Sire, while other men win their laurels in the field. "
                  f"Under the Emperor's eye every victory is the Emperor's."),
@@ -3591,7 +3593,7 @@ def queue_war_weary_petition(world, marshal, target_nation: str,
         if getattr(marshal, "dotation_regions", []) else "his rente"
     petition = {
         "kind": "war_weary",
-        "title": f"Marshal {marshal.name} counsels peace",
+        "title": f"{marshal_title(world, marshal.name, start=True)} counsels peace",
         "body": (f"Sire, {marshal.name} — {title} secured, his household "
                  f"provided for — begs you reconsider this war with "
                  f"{target_nation}."),
@@ -3775,7 +3777,7 @@ def _apply_command_choice(world, marshal, executor, game_state) -> Dict:
         "nation": marshal.nation,
         "choice": COMMAND_ARM_ID,
     })
-    message = (f"\"{enemy.name}, then.\" {marshal.name} takes the command "
+    message = (f"\"{_shown_name(enemy.name)}, then.\" {marshal.name} takes the command "
                f"and goes. {result.get('message', '')}").strip()
     out = {"success": True, "message": message}
     # Carry whatever the first step produced — the order can bring on a

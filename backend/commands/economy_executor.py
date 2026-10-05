@@ -15,6 +15,7 @@ from backend.models.world_state import (
     LEVY_SUBSTITUTE_MULT, LEVY_SCARCITY_FLOOR, LEVY_SCARCITY_MULT,
     LEVY_MORALE_BASE, LEVY_MORALE_PREMIUM, LEVY_MAX_BATCH, severe_band_threshold,
 )
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 
 # ── CO-4 (Combat Overhaul Phase 2): cap the per-corps regeneration ──────────
@@ -1110,7 +1111,7 @@ class EconomyExecutor:
             for rd in estates:
                 lines.append(
                     f"    {rd['region']}: -{rd['dotation_cost']}g "
-                    f"(estate of Marshal {rd['estate_of']})"
+                    f"(estate of {marshal_title(world, rd['estate_of'])})"
                 )
 
         # ES-7 second pass (§0.6.8): rentes — treasury pensions at premium
@@ -1130,7 +1131,7 @@ class EconomyExecutor:
                          f"{peace_dividend_note(world, nation)}")
             for m in pensioned:
                 lines.append(
-                    f"    Marshal {m.name}: {int(m.pension)}g/turn face "
+                    f"    {marshal_title(world, m.name, start=True)}: {int(m.pension)}g/turn face "
                     f"-> -{get_rente_cost(int(m.pension), world, nation)}g with fees"
                 )
 
@@ -1609,7 +1610,7 @@ class EconomyExecutor:
         # Soft correction: player asked for wrong type
         soft_correction = ""
         if requested_type and requested_type != recruit_type:
-            soft_correction = f"Berthier notes: 'Marshal {recruit_marshal.name} commands {recruit_type}, Sire.' "
+            soft_correction = f"Berthier notes: '{marshal_title(world, recruit_marshal.name, start=True)} commands {recruit_type}, Sire.' "
 
         # --- Location validation (Phase 6.2.D) ---
         region = world.get_region(recruitment_location)
@@ -2247,7 +2248,7 @@ class EconomyExecutor:
 
         return {
             "success": True,
-            "message": (f"Marshal {summary['marshal']} accepts his "
+            "message": (f"{marshal_title(world, summary['marshal'], start=True)} accepts his "
                         f"commission and raises a corps of "
                         f"{summary['corps']:,} at {summary['location']} — "
                         f"{summary['cost']}g.{seed_note}"),
@@ -2529,7 +2530,7 @@ class EconomyExecutor:
         if marshal.nation != acting_nation:
             return {
                 "success": False,
-                "message": f"Marshal {marshal.name} serves {marshal.nation} — "
+                "message": f"{marshal_title(world, marshal.name, start=True)} serves {marshal.nation} — "
                            f"we cannot endow another crown's marshal."
             }
 
@@ -2660,7 +2661,7 @@ class EconomyExecutor:
                                  "province's stability does.")
         return {
             "success": True,
-            "message": (f"{decree}, Marshal {marshal.name} is endowed "
+            "message": (f"{decree}, {marshal_title(world, marshal.name)} is endowed "
                         f"with {region_name} and styled {title}. Its revenues "
                         f"({estate_income}g/turn) now sustain his household, "
                         f"not the treasury.{fee_note}{recovery_note} {standing}"),
@@ -2735,14 +2736,14 @@ class EconomyExecutor:
         if marshal.nation != acting_nation:
             return {
                 "success": False,
-                "message": f"Marshal {marshal.name} serves {marshal.nation} — "
+                "message": f"{marshal_title(world, marshal.name, start=True)} serves {marshal.nation} — "
                            f"we cannot pension another crown's marshal."
             }
 
         if getattr(marshal, "captured_by", ""):
             return {
                 "success": False,
-                "message": f"Marshal {marshal.name} sits in a foreign capital — "
+                "message": f"{marshal_title(world, marshal.name, start=True)} sits in a foreign capital — "
                            f"his household must wait upon his release, Sire."
             }
 
@@ -2782,8 +2783,8 @@ class EconomyExecutor:
                     return {
                         "success": False,
                         "message": (
-                            f"A rente cannot mend this, Sire. Marshal "
-                            f"{marshal.name} is short {shortfall}g/turn only "
+                            f"A rente cannot mend this, Sire. "
+                            f"{marshal_title(world, marshal.name, start=True)} is short {shortfall}g/turn only "
                             f"because an enemy army stands on {where} and his "
                             f"estate pays nothing — the treasury would be "
                             f"writing down the paper he already holds. Drive "
@@ -2792,21 +2793,21 @@ class EconomyExecutor:
                 return {
                     "success": False,
                     "message": (
-                        f"There is nothing to grant, Sire. Marshal "
-                        f"{marshal.name}'s estates are entered against his "
+                        f"There is nothing to grant, Sire. "
+                        f"{marshal_title(world, marshal.name, start=True)}'s estates are entered against his "
                         f"expectation in full; what he lacks, gold cannot "
                         f"supply."),
                 }
             if held > 0:
                 return {
                     "success": False,
-                    "message": (f"Marshal {marshal.name}'s expectation is "
+                    "message": (f"{marshal_title(world, marshal.name, start=True)}'s expectation is "
                                 f"already met — his rente of {held}g/turn "
                                 f"stands unchanged."),
                 }
             return {
                 "success": False,
-                "message": (f"Marshal {marshal.name}'s expectation is already "
+                "message": (f"{marshal_title(world, marshal.name, start=True)}'s expectation is already "
                             f"met — no rente is needed, Sire."),
             }
 
@@ -2855,7 +2856,7 @@ class EconomyExecutor:
             gloss = f"{cost}g/turn. It buys no title, and it holds only while paid."
         return {
             "success": True,
-            "message": (f"{decree}, Marshal {marshal.name} is granted "
+            "message": (f"{decree}, {marshal_title(world, marshal.name)} is granted "
                         f"a rente of {face}g/turn upon the treasury{resize_note}. "
                         f"With fees and arrears it will cost the crown "
                         f"{gloss}"),
@@ -2907,7 +2908,7 @@ class EconomyExecutor:
         if marshal.nation != acting_nation:
             return {
                 "success": False,
-                "message": f"Marshal {marshal.name} serves {marshal.nation} — "
+                "message": f"{marshal_title(world, marshal.name, start=True)} serves {marshal.nation} — "
                            f"his rente is not ours to withdraw."
             }
 
@@ -2915,7 +2916,7 @@ class EconomyExecutor:
         if previous <= 0:
             return {
                 "success": False,
-                "message": f"Marshal {marshal.name} holds no rente, Sire."
+                "message": f"{marshal_title(world, marshal.name, start=True)} holds no rente, Sire."
             }
 
         # GE-3: what the treasury stops paying — the peace dividend included
@@ -2969,7 +2970,7 @@ class EconomyExecutor:
 
         return {
             "success": True,
-            "message": (f"Marshal {marshal.name}'s rente of {previous}g/turn "
+            "message": (f"{marshal_title(world, marshal.name, start=True)}'s rente of {previous}g/turn "
                         f"is withdrawn — the treasury keeps its {saved}g/turn. "
                         f"{consequence}"),
             "events": [{

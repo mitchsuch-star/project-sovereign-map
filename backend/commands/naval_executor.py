@@ -12,6 +12,7 @@ from typing import Dict, Optional
 
 from backend.game_logic import naval
 from backend.display_names import nation_adjective  # AAR-22
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 
 # FA slice 7 (FA-N9 / FA-N24 — FA-11's optional half): the marshal-free
@@ -28,6 +29,10 @@ ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL = True
 # a question and touches nothing — "Stand down" leaves the march as it was.
 # False = the standing order survives the crossing, byte for byte.
 SAILING_ENDS_THE_STANDING_ORDER = True
+# SF7-X16 (Score Finish Step 7 slice 7, October 4, 2026): the Emperor
+# addressing the Admiralty is not a marshal in the field. False = the
+# pre-slice refusal ("not from Marshal Napoleon in the field").
+THE_EMPEROR_COMMANDS_THE_ADMIRALTY = True
 
 
 def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
@@ -41,11 +46,18 @@ def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
     # Review round (R2-13): the posture verb refuses on ANY bound marshal;
     # so do these two now — one predicate, not two.
     marshal = (getattr(world, "marshals", {}) or {}).get(name)
-    from backend.display_names import humanize_entity_name
-    shown = humanize_entity_name(marshal.name if marshal is not None else str(name))
+    # SF7-X16 (Step 7 slice 7): the refusal says the Admiralty takes its
+    # orders from the Emperor — so the Emperor addressing it is not
+    # misaddressed (the laws' rule, `reforms_executor._misaddressed`).
+    # Under the court's own honorific the sentence had become "not from
+    # the Emperor Napoleon in the field".
+    if (THE_EMPEROR_COMMANDS_THE_ADMIRALTY and marshal is not None
+            and getattr(marshal, "is_sovereign", False)):
+        return None
+    who = marshal_title(world, marshal.name if marshal is not None else str(name))
     return {"success": False, "variable_action_cost": 0, "message": (
         f"The Admiralty takes its orders from the Emperor, Sire, not from "
-        f"Marshal {shown} in the field. Say '{example}'.")}
+        f"{who} in the field. Say '{example}'.")}
 
 
 def _green_crew_clause(outcome: Dict) -> str:

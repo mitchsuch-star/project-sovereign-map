@@ -1,0 +1,226 @@
+[
+ {
+  "id": "SF5-X3 lever down: A_CLIENTS_GENERAL_IS_STYLED_GENERAL",
+  "file": "backend/display_names.py",
+  "old": "A_CLIENTS_GENERAL_IS_STYLED_GENERAL = True",
+  "new": "A_CLIENTS_GENERAL_IS_STYLED_GENERAL = False",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheOneStyle"
+ },
+ {
+  "id": "SF5-X3 start never capitalises",
+  "file": "backend/display_names.py",
+  "old": "    return shown[:1].upper() + shown[1:] if start else shown",
+  "new": "    return shown",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheOneStyle::test_start_capitalises_the_article_and_nothing_else"
+ },
+ {
+  "id": "SF5-X3 the tombstone forgets his court (reader)",
+  "file": "backend/display_names.py",
+  "old": "        self.original_nation = tomb.get(\"original_nation\")",
+  "new": "        self.original_nation = None",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheOneStyle::test_his_rank_survives_his_fall"
+ },
+ {
+  "id": "SF5-X3 the tombstone forgets his court (writer)",
+  "file": "backend/models/world_state.py",
+  "old": "            self.fallen_marshals[marshal.name][\"original_nation\"] = marshal.original_nation",
+  "new": "            pass",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheOneStyle::test_his_rank_survives_his_fall"
+ },
+ {
+  "id": "SF5-X3 the capture headline loses the title",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                     marshal=_rank(world, e.get(\"marshal\", \"\"), cap_marshal),",
+  "new": "                     marshal=cap_marshal,",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_capture_dispatch_names_a_clients_general"
+ },
+ {
+  "id": "SF5-X3 the lost-estate headline loses the title",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                             marshal=_rank(world, _holder, humanize_entity_name(_holder)),",
+  "new": "                             marshal=humanize_entity_name(_holder),",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_lost_estate_headline_reads_the_title"
+ },
+ {
+  "id": "SF5-X3 the campaign log route drops the world",
+  "file": "backend/main.py",
+  "old": "                    event, player_nation=world.player_nation, world=world), event),",
+  "new": "                    event, player_nation=world.player_nation), event),",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_campaign_log_route_hands_the_formatter_its_world"
+ },
+ {
+  "id": "SF5-X3 the wounded line reverts to the literal",
+  "file": "backend/campaign_log.py",
+  "old": "        return f\"{marshal_title(world, marshal, start=True)} WOUNDED at {location}{tail}; the corps stands\"",
+  "new": "        return f\"Marshal {marshal} WOUNDED at {location}{tail}; the corps stands\"",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_campaign_log_styles_the_fallen_by_their_court"
+ },
+ {
+  "id": "SF5-X3 the estate mount forgets the title",
+  "file": "backend/commands/capture_executor.py",
+  "old": "            \"estate_holder_title\": marshal_title(world, holder.name),",
+  "new": "            \"estate_holder_title_unused\": marshal_title(world, holder.name),",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_estate_stage_mounts_with_the_holders_rank"
+ },
+ {
+  "id": "SF5-X3 the blocking message reads the display key",
+  "file": "backend/commands/executor.py",
+  "old": "                    f\"{_estate_holder_title(_pending)}\"",
+  "new": "                    f\"{_pending.get('estate_holder_display')}\"",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_estate_question_names_the_holders_rank"
+ },
+ {
+  "id": "SF5-X3 the crowned name abroad is the bare key",
+  "file": "backend/game_logic/diplomatic_templates.py",
+  "old": "    # Napoleon\", never \"Marshal Napoleon\" (NP-V's finding, abroad).\n    return line.format(marshal=marshal_title(world, slots[0]), location=slots[1])",
+  "new": "    # Napoleon\", never \"Marshal Napoleon\" (NP-V's finding, abroad).\n    return line.format(marshal=slots[0], location=slots[1])",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_crowned_name_abroad_is_the_emperor"
+ },
+ {
+  "id": "SF7-X16 lever down: THE_EMPEROR_COMMANDS_THE_ADMIRALTY",
+  "file": "backend/commands/naval_executor.py",
+  "old": "THE_EMPEROR_COMMANDS_THE_ADMIRALTY = True",
+  "new": "THE_EMPEROR_COMMANDS_THE_ADMIRALTY = False",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_admiralty_takes_the_emperors_orders"
+ },
+ {
+  "id": "SF5-X3 the enemy addressee refusal reverts to the literal",
+  "file": "backend/commands/parser.py",
+  "old": "            \"error\": (f\"{marshal_title(world, enemy_addressee, start=True)} commands for {side}, \"",
+  "new": "            \"error\": (f\"Marshal {enemy_addressee} commands for {side}, \"",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheSurfacesSpeakTheRank::test_the_enemy_addressee_refusal_names_his_rank tests/test_sf7_s7_the_name_and_the_rank.py::TestTheCensus"
+ },
+ {
+  "id": "NPC-12 a blocked-path line prints the key",
+  "file": "backend/commands/strategic.py",
+  "old": "                    \"message\": (f\"{marshal.name} cannot attack {_shown_name(enemy_name)} — \"",
+  "new": "                    \"message\": (f\"{marshal.name} cannot attack {enemy_name} — \"",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_producers_never_interpolate_a_bare_enemy_key"
+ },
+ {
+  "id": "NPC-12 Berthier's capital alert prints the key",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                            f\"{_shown_name(enemy.name)} ({enemy.strength:,} troops) at {adj_name}.\"",
+  "new": "                            f\"{enemy.name} ({enemy.strength:,} troops) at {adj_name}.\"",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_berthiers_capital_alert_names_him"
+ },
+ {
+  "id": "NPC-12 the garrison assault line prints the key",
+  "file": "backend/campaign_log.py",
+  "old": "                f\"({humanize_entity_name(marshal)} loses {atk_lost:,})\")\n\n    if event_type == \"retreat\":",
+  "new": "                f\"({marshal} loses {atk_lost:,})\")\n\n    if event_type == \"retreat\":",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_campaign_logs_lines_speak_the_name"
+ },
+ {
+  "id": "NPC-12 the garrison placed line prints the key",
+  "file": "backend/campaign_log.py",
+  "old": "        return f\"{humanize_entity_name(marshal)} garrisoned {region} ({troops:,} troops)\"",
+  "new": "        return f\"{marshal} garrisoned {region} ({troops:,} troops)\"",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_campaign_logs_lines_speak_the_name"
+ },
+ {
+  "id": "NPC-12 the ledger's display target is the key",
+  "file": "backend/game_logic/ledger.py",
+  "old": "                \"target_display\": _display_target(order.target),",
+  "new": "                \"target_display\": order.target,",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_ledger_orders_tab_names_the_quarry"
+ },
+ {
+  "id": "NPC-12 census: machine fields are read",
+  "file": "tools/_name_census.py",
+  "old": "            if node in self.keys or _is_machine(norm) or _is_unrendered(norm):",
+  "new": "            if node in self.keys or _is_unrendered(norm):",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_census_reads_what_the_reader_reads"
+ },
+ {
+  "id": "NPC-12 census: unrendered enemy-phase fields are read",
+  "file": "tools/_name_census.py",
+  "old": "            if node in self.keys or _is_machine(norm) or _is_unrendered(norm):",
+  "new": "            if node in self.keys or _is_machine(norm):",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_census_reads_what_the_reader_reads"
+ },
+ {
+  "id": "NPC-12 census: a run that never met the names passes",
+  "file": "tools/_name_census.py",
+  "old": "        elif not self.display_seen:",
+  "new": "        elif False:",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_a_census_that_never_met_the_names_says_so"
+ },
+ {
+  "id": "NPC-12 driver: GET responses go unobserved",
+  "file": "tools/playtest_driver.py",
+  "old": "        for observer in list(getattr(self, \"get_observers\", None) or ()):",
+  "new": "        for observer in ():",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestNPC12TheKeyNeverReachesTheReader::test_the_driven_census"
+ },
+ {
+  "id": "S5-4 lever down: THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX = True",
+  "new": "THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX = False",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheQueueOverflowsIntoTheMailbox"
+ },
+ {
+  "id": "S5-4 push drops at the cap",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "            if (THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX\n",
+  "new": "            if (False\n",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheQueueOverflowsIntoTheMailbox::test_an_arrival_past_the_cap_is_kept"
+ },
+ {
+  "id": "S5-4 preempt drops at the cap",
+  "file": "backend/models/dialogue_manager.py",
+  "old": "        if previous is not None and (THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX\n",
+  "new": "        if previous is not None and (False\n",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestTheQueueOverflowsIntoTheMailbox::test_a_dialogue_displaced_at_the_cap_is_kept"
+ },
+ {
+  "id": "SF7-X7 lever down: THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS",
+  "file": "backend/game_logic/game_end.py",
+  "old": "THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS = True",
+  "new": "THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS = False",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps"
+ },
+ {
+  "id": "SF7-X7 the forecast keeps the at-war skip",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        if not forecast and world.is_at_war(holder, ceder):",
+  "new": "        if world.is_at_war(holder, ceder):",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps::test_the_proposal_warns_before_it_is_sent"
+ },
+ {
+  "id": "SF7-X7 the package's own cessions are retained",
+  "file": "backend/game_logic/game_end.py",
+  "old": "            kept = {h: [r for r in rs if r not in gone] for h, rs in kept.items()}",
+  "new": "            kept = {h: list(rs) for h, rs in kept.items()}",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps::test_a_province_the_package_cedes_is_not_retained"
+ },
+ {
+  "id": "SF7-X7 the warning is dropped",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        out[\"warnings\"].append(",
+  "new": "        (lambda _x: None)(",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps::test_the_proposal_warns_before_it_is_sent"
+ },
+ {
+  "id": "SF7-X7 the homeland is named twice",
+  "file": "backend/game_logic/game_end.py",
+  "old": "        rest = {h: [r for r in rs if r not in home] for h, rs in titled.items()}",
+  "new": "        rest = {h: list(rs) for h, rs in titled.items()}",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps::test_the_proposal_warns_before_it_is_sent"
+ },
+ {
+  "id": "SF7-X7 the morning after is silent about their gains",
+  "file": "backend/game_logic/game_end.py",
+  "old": "                        and world._top_overlord(str(entry.get(\"ceder\") or \"\")) == player):",
+  "new": "                        and False):",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps::test_the_morning_after_names_what_they_kept"
+ },
+ {
+  "id": "SF7-X7 a truce carries the forecast",
+  "file": "backend/game_logic/diplomatic_dialogue.py",
+  "old": "    if ((terms.get(\"type\") or proposal_type) == \"peace\"",
+  "new": "    if (True",
+  "tests": "tests/test_sf7_s7_the_name_and_the_rank.py::TestThePeaceNamesWhatEachSideKeeps::test_a_truce_titles_nothing_and_says_nothing"
+ }
+]

@@ -28,6 +28,7 @@ from backend.models.authority import (
     get_authority_lever_multiplier,
     get_imperial_grip,
 )
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # ═══════ AUTONOMY LEVELS ═══════
 AUTONOMY_PUPPET = 0       # -4 drift/turn
@@ -2318,7 +2319,7 @@ def _grant_region_refusal(world, vassal_name: str, region_name: str,
                     or is_estate_respected(world, marshal.name, region_name)
                     or capture_choice_pending(world, region_name)):
                 return ("estate",
-                        f"{region_name} is Marshal {marshal.name}'s estate — "
+                        f"{region_name} is {marshal_title(world, marshal.name)}'s estate — "
                         f"his title cannot be given away.")
     # Contiguity (waived for landless vassals and homeland returns)
     vassal_regions = set(world.get_nation_regions(vassal_name))

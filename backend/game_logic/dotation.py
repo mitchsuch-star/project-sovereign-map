@@ -37,6 +37,7 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 from backend.game_logic.formations import formed_display_name
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # ═══════════════ E5 BLESSED CONSTANTS (§0.6.7, July 9, 2026) ═══════════════
 
@@ -507,8 +508,8 @@ def check_estate_eligibility(world, nation: str, region_name: str
         # FA-69: the enemy holder's machine key reached the endow
         # surface too — 1805's single-word French names hide it on the
         # sibling below, which reads the player's own marshal.
-        return False, (f"{region_name} already sustains Marshal "
-                       f"{claimant.name}'s household.")
+        return False, (f"{region_name} already sustains "
+                       f"{marshal_title(world, claimant.name)}'s household.")
     return True, ""
 
 
@@ -588,10 +589,10 @@ def log_estate_lost(world, marshal, region_name: str) -> None:
         world.notifications.add(create_notification(
             notification_type=ESTATE_LOST,
             priority=NotificationPriority.HIGH,
-            title=f"Marshal {marshal.name} stripped of his estate",
+            title=f"{marshal_title(world, marshal.name, start=True)} stripped of his estate",
             message=(
-                f"{region_name}, the estate that funded Marshal "
-                f"{marshal.name}'s honor, has passed from our hands. "
+                f"{region_name}, the estate that funded "
+                f"{marshal_title(world, marshal.name)}'s honor, has passed from our hands. "
                 f"He will not forget, Sire."
             ),
             turn_created=int(world.current_turn),
@@ -883,7 +884,7 @@ def estate_cession_warning(world, region_name: str) -> str:
     holder = get_nation_dotation_map(world, world.player_nation).get(region_name)
     if not holder:
         return ""
-    return (f"{region_name} sustains Marshal {holder}'s title — ceding it "
+    return (f"{region_name} sustains {marshal_title(world, holder)}'s title — ceding it "
             f"strips his estate, and his loyalty will bleed.")
 
 
@@ -999,7 +1000,7 @@ def apply_estate_confiscation(world, region, holder, capturer_nation: str,
         world.notifications.add(create_notification(
             notification_type=ESTATE_CONFISCATED,
             priority=NotificationPriority.HIGH,
-            title=f"Marshal {holder.name}'s estate confiscated",
+            title=f"{marshal_title(world, holder.name, start=True)}'s estate confiscated",
             message=(
                 # CA8 sweep 4: a raw nation tag in a player-facing
                 # notification — "KingdomOfItaly has seized ..." — while
@@ -1007,7 +1008,7 @@ def apply_estate_confiscation(world, region, holder, capturer_nation: str,
                 # R7 chokepoint.
                 f"{formed_display_name(world, capturer_nation)} has "
                 f"seized {region.name}, the estate "
-                f"that funded Marshal {holder.name}'s honor. He will not "
+                f"that funded {marshal_title(world, holder.name)}'s honor. He will not "
                 f"forget it, Sire."
             ),
             turn_created=int(world.current_turn),
@@ -1378,7 +1379,7 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
     world.notifications.refresh(create_notification(
         notification_type=DOTATION_EXPECTATION,
         priority=NotificationPriority.NORMAL,
-        title=f"Marshal {marshal.name} expects reward",
+        title=f"{marshal_title(world, marshal.name, start=True)} expects reward",
         message=(
             # Aug 23, 2026 (user: "there's no way to do it without
             # menuing"): the row used to end "open the Generals screen
@@ -1388,7 +1389,7 @@ def post_expectation_notice(world, marshal, expectation, satisfaction,
             # where they stand. `pension <name>` is a live golden-corpus
             # utterance (es7sp-pension-davout), and the rente's face is
             # auto-sized to the gap, so the short form is the whole action.
-            f"Marshal {marshal.name} looks for {expectation}g/turn and holds "
+            f"{marshal_title(world, marshal.name, start=True)} looks for {expectation}g/turn and holds "
             f"{satisfaction}g. {patience} — settle it now with "
             f"\"pension {marshal.name}\" (a rente, {rente_cost}g/turn"
             f"{dividend_clause}){estate_clause}."
@@ -1481,9 +1482,9 @@ def post_erosion_notice(world, marshal, expectation, satisfaction,
     world.notifications.refresh(create_notification(
         notification_type=DOTATION_EROSION,
         priority=NotificationPriority.HIGH,
-        title=f"Marshal {marshal.name} grows bitter",
+        title=f"{marshal_title(world, marshal.name, start=True)} grows bitter",
         message=(
-            f"Marshal {marshal.name}'s victories remain unrewarded "
+            f"{marshal_title(world, marshal.name, start=True)}'s victories remain unrewarded "
             f"(expects {expectation}g/turn of estates; holds "
             f"{satisfaction}g/turn). His loyalty is fraying — {remedy}"
         ),

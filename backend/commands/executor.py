@@ -40,13 +40,14 @@ from backend.commands.combat_executor import CombatExecutor, friendly_fire_refus
 from backend.commands.strategic_executor import StrategicExecutor
 from backend.commands.diplomatic_executor import DiplomaticExecutor
 from backend.commands.vassal_executor import VassalExecutor
-from backend.commands.capture_executor import CaptureExecutor
+from backend.commands.capture_executor import CaptureExecutor, _estate_holder_title
 from backend.commands.economy_executor import EconomyExecutor
 from backend.commands.tactical_executor import TacticalExecutor
 from backend.commands.movement_executor import MovementExecutor
 from backend.commands.naval_executor import NavalExecutor
 from backend.commands.reforms_executor import ReformsExecutor
 from backend.commands.meta_executor import MetaExecutor, _filter_tactical_events_by_fog, ADMIN_ACTIONS
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # CA9-N5: a pending objection blocked EVERYTHING, including asking what
 # is going on. These five are pure reads — they mutate no state, cost no
@@ -1640,8 +1641,12 @@ class CommandExecutor:
             if _pending.get("stage") == "estate":
                 # W6-8: the estate stage blocks with its own question.
                 _block_msg = (
-                    f"You must decide the fate of Marshal "
-                    f"{_pending.get('estate_holder_display') or _pending.get('estate_holder', '?')}"
+                    f"You must decide the fate of "
+                    # SF5-X3: the holder by his court's rank, through the
+                    # capture executor's ONE reader (the mount-stamped
+                    # title; a pre-fix payload falls back to the display
+                    # key, FA-69's discipline).
+                    f"{_estate_holder_title(_pending)}"
                     f"'s estate at "
                     f"{_pending.get('region', '?')} first! "
                     f"Choose 'confiscate' or 'respect'.")

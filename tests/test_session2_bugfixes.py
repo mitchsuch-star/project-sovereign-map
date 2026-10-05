@@ -321,7 +321,9 @@ class TestQueueVisibilityEvents:
         assert result is False
 
     def test_dialogue_manager_push_respects_queue_cap(self):
-        """DialogueManager silently drops items beyond QUEUE_CAP (replaces old overflow test)."""
+        """S5-4 (Step 7 slice 7, Oct 4 2026) — FLIPPED CONSCIOUSLY: an item
+        beyond QUEUE_CAP overflows into the mailbox, where the pre-slice
+        manager dropped it silently (replaces old overflow test)."""
         from backend.models.dialogue_manager import DialogueManager
         dm = DialogueManager()
         # Fill active slot
@@ -330,9 +332,11 @@ class TestQueueVisibilityEvents:
         for i in range(dm.QUEUE_CAP):
             dm.push(_make_soft_stop_proposal(nation=f"Nation{i}"))
         assert len(dm._queue) == dm.QUEUE_CAP
-        # One more push should be silently dropped (no crash)
+        # One more push overflows into the mailbox (no crash, no drop)
         dm.push(_make_soft_stop_proposal(nation="Overflow"))
-        assert len(dm._queue) == dm.QUEUE_CAP
+        assert len(dm._queue) == dm.QUEUE_CAP + 1
+        assert any(i.get("nation") == "Overflow" or "Overflow" in str(i)
+                   for i in dm.get_mailbox_items())
 
 
 # ═════════════════════════════════════════════════════════════════════

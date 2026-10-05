@@ -42,6 +42,8 @@ from backend.models.intel import (
 from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 
 # Slice-9 review round, R1-2 (September 5, 2026): the redemption answer
 # `administrative_role` zeroes the man's strength and location by design
@@ -3363,6 +3365,10 @@ class WorldState:
             "location": _where,
             "cause": str(cause),
         }
+        # SF5-X3: a client's general keeps his own court's rank in the record
+        # ("General Teulie fell"), read by `marshal_honorific`'s tomb arm.
+        if getattr(marshal, "original_nation", None):
+            self.fallen_marshals[marshal.name]["original_nation"] = marshal.original_nation
         _is_sovereign = bool(getattr(marshal, "is_sovereign", False))
         if _is_sovereign:
             # GE-1: the tombstone and the event say WHO fell — the
@@ -3385,7 +3391,7 @@ class WorldState:
                 "message": (
                     (f"THE EMPEROR {marshal.name} has fallen at "
                      f"{_where}") if _is_sovereign else
-                    (f"Marshal {marshal.name}'s corps has been destroyed "
+                    (f"{marshal_title(self, marshal.name, start=True)}'s corps has been destroyed "
                      f"at {_where}")),
             })
         if _sovereign_dies:
@@ -5579,7 +5585,7 @@ class WorldState:
             "message": (
                 (f"THE EMPEROR {marshal.name} has been TAKEN by "
                  f"{captor_nation} at {old_location}.") if is_sovereign else
-                (f"Marshal {marshal.name} has been CAPTURED by "
+                (f"{marshal_title(self, marshal.name, start=True)} has been CAPTURED by "
                  f"{captor_nation} at {old_location}.")
             ),
         })
@@ -5733,7 +5739,7 @@ class WorldState:
             # NP-V: the chronicle branches on this (campaign_log.py).
             "sovereign": bool(getattr(marshal, "is_sovereign", False)),
             "message": (
-                f"Marshal {marshal.name} is released by {captor} and "
+                f"{marshal_title(self, marshal.name, start=True)} is released by {captor} and "
                 f"returns to {home} ({reason.replace('_', ' ')})."
             ),
         }
@@ -7431,8 +7437,8 @@ class WorldState:
                         priority=NotificationPriority.HIGH,
                         title=f"The treasury defaults on {defaulter.name}'s rente",
                         message=(
-                            f"The treasury cannot cover Marshal "
-                            f"{defaulter.name}'s rente of {face}g/turn — it "
+                            f"The treasury cannot cover "
+                            f"{marshal_title(self, defaulter.name)}'s rente of {face}g/turn — it "
                             f"lapses unpaid. He holds worthless paper, Sire; "
                             f"his expectations stand unmet once more."
                         ),
@@ -14456,7 +14462,7 @@ class WorldState:
                     "marshal": marshal.name,
                     "nation": marshal.nation,
                     "recklessness": recklessness,
-                    "message": f"[Cavalry][!] {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
+                    "message": f"[Cavalry][!] {_shown_name(marshal.name)} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
                 })
                 continue
 
@@ -14483,9 +14489,9 @@ class WorldState:
                             "marshal": marshal.name,
                             "recklessness": recklessness,
                             "message": (
-                                f"[Cavalry][!] {marshal.name} is UNCONTROLLABLE "
+                                f"[Cavalry][!] {_shown_name(marshal.name)} is UNCONTROLLABLE "
                                 f"(Recklessness: {recklessness}) but cannot reach "
-                                f"{enemy.name} — hostile sail command the water "
+                                f"{_shown_name(enemy.name)} — hostile sail command the water "
                                 f"between {marshal.location} and {enemy.location}!"
                             ),
                         })
@@ -14493,7 +14499,7 @@ class WorldState:
                 # Can charge! Execute auto-charge
                 # V2-4: Auto-charge does NOT skip fortified defenders — reckless cavalry
                 # charges regardless. Fortification bonus is applied via resolve_battle.
-                debug_print(f"  [AUTO-CHARGE] {marshal.name} (recklessness {recklessness}) charges {enemy.name}!")
+                debug_print(f"  [AUTO-CHARGE] {_shown_name(marshal.name)} (recklessness {recklessness}) charges {_shown_name(enemy.name)}!")
                 debug_print(f"  [AUTO-CHARGE DEBUG] marshal.location={marshal.location}, enemy.location={enemy.location}")
 
                 # Read terrain from defender's region
@@ -14655,7 +14661,7 @@ class WorldState:
                         enemy.retreating = True
                         enemy.retreat_recovery = 0
                         enemy.retreated_this_turn = True
-                        forced_retreat_msg = f" {enemy.name}'s broken army flees to {retreat_to}!"
+                        forced_retreat_msg = f" {_shown_name(enemy.name)}'s broken army flees to {retreat_to}!"
                         # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
@@ -14678,7 +14684,7 @@ class WorldState:
                         if enemy.strategic_order:
                             enemy.strategic_order = None
                             clear_order_bound_interrupt(enemy)  # NPC-2
-                        forced_retreat_msg = f" {enemy.name}'s army is SHATTERED and flees to {spawn_loc}!"
+                        forced_retreat_msg = f" {_shown_name(enemy.name)}'s army is SHATTERED and flees to {spawn_loc}!"
                         self.log_event({"type": "marshal_broken", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
                                         "location": old_enemy_loc})
@@ -14697,7 +14703,7 @@ class WorldState:
                         marshal.retreat_recovery = 0
                         marshal.retreated_this_turn = True
                         marshal.clear_combat_transient_state()
-                        forced_retreat_msg += f" {marshal.name}'s broken army flees to {retreat_to}!"
+                        forced_retreat_msg += f" {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!"
                         # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
@@ -14721,7 +14727,7 @@ class WorldState:
                         if marshal.strategic_order:
                             marshal.strategic_order = None
                             clear_order_bound_interrupt(marshal)  # NPC-2
-                        forced_retreat_msg += f" {marshal.name}'s army is SHATTERED and flees to {spawn_loc}!"
+                        forced_retreat_msg += f" {_shown_name(marshal.name)}'s army is SHATTERED and flees to {spawn_loc}!"
                         self.log_event({"type": "marshal_broken", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
                                         "location": old_atk_loc})
@@ -14830,12 +14836,12 @@ class WorldState:
                 if attacker_won and marshal.strength > 0:
                     if marshal.location != auto_charge_battle_region and _halt_owner:
                         movement_msg = (
-                            f" {marshal.name} halts at the frontier of "
+                            f" {_shown_name(marshal.name)} halts at the frontier of "
                             f"{auto_charge_battle_region} — {_halt_owner}'s "
                             f"soil, and we are not at war with {_halt_owner}.")
                     elif marshal.location != auto_charge_battle_region:
                         marshal.move_to(auto_charge_battle_region)
-                        movement_msg = f" {marshal.name} advances into {auto_charge_battle_region}."
+                        movement_msg = f" {_shown_name(marshal.name)} advances into {auto_charge_battle_region}."
 
                         # [5C-5] Movement attrition on advance (simplified — no depot bonus)
                         adv_region = self.get_region(auto_charge_battle_region)
@@ -14875,7 +14881,7 @@ class WorldState:
                             f" THE EMPEROR {enemy.name.upper()} HAS FALLEN — "
                             f"cut down in the charge."
                             if getattr(enemy, "is_sovereign", False) else
-                            f" {enemy.name}'s army is destroyed!")
+                            f" {_shown_name(enemy.name)}'s army is destroyed!")
 
                 # Check if attacker destroyed
                 if marshal.strength <= 0:
@@ -15095,10 +15101,10 @@ class WorldState:
 
                 if charge_blocked:
                     terrain_name = auto_charge_terrain.replace("_", " ").title()
-                    charge_header = (f"[Cavalry][Combat] AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n"
+                    charge_header = (f"[Cavalry][Combat] AUTO-CHARGE! {_shown_name(marshal.name)} (Recklessness: {recklessness}) cannot be restrained!\n"
                                     f"[Blocked] {terrain_name} terrain blocks the cavalry charge — attacking without charge bonus!\n\n")
                 else:
-                    charge_header = f"[Cavalry][Combat] AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
+                    charge_header = f"[Cavalry][Combat] AUTO-CHARGE! {_shown_name(marshal.name)} (Recklessness: {recklessness}) cannot be restrained!\n\n"
 
                 if charge_blocked:
                     reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness unchanged ({recklessness})[/color]"
@@ -15138,8 +15144,8 @@ class WorldState:
                     self.notifications.add(create_notification(
                         notification_type=RECKLESS_CAVALRY_ACTION,
                         priority=NotificationPriority.CRITICAL,
-                        title=f"{marshal.name} acting alone!",
-                        message=f"{marshal.name} has gone reckless and charged {enemy.name} at {enemy.location} without orders!",
+                        title=f"{_shown_name(marshal.name)} acting alone!",
+                        message=f"{_shown_name(marshal.name)} has gone reckless and charged {_shown_name(enemy.name)} at {enemy.location} without orders!",
                         turn_created=int(self.current_turn),
                         details={"marshal": marshal.name, "target": enemy.name, "action": "charge"},
                     ))
@@ -15165,7 +15171,7 @@ class WorldState:
                             "type": "reckless_blocked",
                             "marshal": marshal.name,
                             "recklessness": recklessness,
-                            "message": f"[Cavalry][!] {marshal.name} wants to ride toward {enemy.name} but "
+                            "message": f"[Cavalry][!] {_shown_name(marshal.name)} wants to ride toward {_shown_name(enemy.name)} but "
                                        f"{next_region} is controlled by {next_region_obj.controller} — "
                                        f"diplomatic restrictions prevent entry!"
                         })
@@ -15181,7 +15187,7 @@ class WorldState:
                                 "type": "reckless_blocked",
                                 "marshal": marshal.name,
                                 "recklessness": recklessness,
-                                "message": f"[Cavalry][!] {marshal.name} wants to ride toward {enemy.name} but "
+                                "message": f"[Cavalry][!] {_shown_name(marshal.name)} wants to ride toward {_shown_name(enemy.name)} but "
                                            f"hostile sail command the {marshal.location}–{next_region} crossing!"
                             })
                             continue  # Skip to next marshal
@@ -15216,12 +15222,12 @@ class WorldState:
                         "target": enemy.name,
                         "recklessness": recklessness,
                         "remaining_distance": remaining_distance,
-                        "message": f"[Cavalry][!] {marshal.name} rides out seeking battle! (Recklessness: {recklessness})\n"
-                                  f"Auto-moved: {old_location} → {next_region} (toward {enemy.name})\n"
+                        "message": f"[Cavalry][!] {_shown_name(marshal.name)} rides out seeking battle! (Recklessness: {recklessness})\n"
+                                  f"Auto-moved: {old_location} → {next_region} (toward {_shown_name(enemy.name)})\n"
                                   f"[FREE ACTION - {_plural(int(remaining_distance), 'region')} to target]"
                     })
 
-                    debug_print(f"  [RECKLESS MOVE] {marshal.name} auto-moves {old_location} -> {next_region}")
+                    debug_print(f"  [RECKLESS MOVE] {_shown_name(marshal.name)} auto-moves {old_location} -> {next_region}")
                     # Notification: reckless cavalry auto-move (player only)
                     if getattr(marshal, 'nation', '') == self.player_nation:
                         from backend.notifications import (
@@ -15230,8 +15236,8 @@ class WorldState:
                         self.notifications.add(create_notification(
                             notification_type=RECKLESS_CAVALRY_ACTION,
                             priority=NotificationPriority.CRITICAL,
-                            title=f"{marshal.name} acting alone!",
-                            message=f"{marshal.name} has gone reckless and advanced toward {enemy.name} without orders!",
+                            title=f"{_shown_name(marshal.name)} acting alone!",
+                            message=f"{_shown_name(marshal.name)} has gone reckless and advanced toward {_shown_name(enemy.name)} without orders!",
                             turn_created=int(self.current_turn),
                             details={"marshal": marshal.name, "target": enemy.name, "action": "move"},
                         ))
@@ -15241,7 +15247,7 @@ class WorldState:
                         "type": "reckless_blocked",
                         "marshal": marshal.name,
                         "recklessness": recklessness,
-                        "message": f"[Cavalry][!] {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but cannot reach any enemy!\n"
+                        "message": f"[Cavalry][!] {_shown_name(marshal.name)} is UNCONTROLLABLE (Recklessness: {recklessness}) but cannot reach any enemy!\n"
                                   f"The cavalry strains at the bit but is blocked."
                     })
 

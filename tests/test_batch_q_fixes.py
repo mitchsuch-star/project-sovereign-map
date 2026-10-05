@@ -445,5 +445,9 @@ class TestDocReconciliation:
     def test_preempt_docstring_notes_no_longer_hard_stop_only(self):
         doc = DialogueManager.preempt.__doc__
         assert "S5-4" in doc
-        assert "Pre-EA Dialogue Robustness" in doc
+        # Score Finish Step 7 slice 7 (Oct 4, 2026) — RE-SEATED CONSCIOUSLY:
+        # S5-4 is fixed, so the docstring no longer names its deferral owner;
+        # it states the overflow instead.
+        assert "OVERFLOWS into the mailbox" in doc
+        assert "Pre-EA Dialogue Robustness" not in doc
         assert "hard-stop-only" in doc  # explicitly retracted

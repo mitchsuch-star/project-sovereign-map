@@ -50,6 +50,12 @@ PARADOX_DIALOGUE_TYPES = frozenset({"commitment_paradox", "alliance_paradox"})
 HYBRIDS_SURVIVE_A_NEW_FLOW = True
 
 
+# S5-4 (Score Finish Step 7 slice 7, October 4, 2026): at its cap the
+# dialogue queue overflows into the mailbox instead of dropping — push and
+# preempt together. False = the pre-slice silent drop at QUEUE_CAP.
+THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX = True
+
+
 class DialogueManager:
     """Manages the active dialogue slot and priority queue.
 
@@ -70,6 +76,15 @@ class DialogueManager:
         activate_mailbox_item(id) — swap a queued item into the active slot
     """
 
+    # S5-4 (Score Finish Step 7 slice 7, October 4, 2026): the depth past
+    # which the pre-slice queue DROPPED an arrival (push) or the displaced
+    # dialogue (preempt), silently. Past it the queue now OVERFLOWS INTO
+    # THE MAILBOX — the mailbox is the queue's own read
+    # (`get_mailbox_items`), so a letter kept past the cap is one the
+    # player can still open. The queue stays bounded by the lapse rules
+    # (`lapse_pending_offers` at every end turn, `clear_stale` for a
+    # blocking dialogue), not by a drop. Lever:
+    # `THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX` (module level).
     QUEUE_CAP = 20
     BLOCKING_TIMEOUT_TURNS = 2  # turn_created + 2 < current → force-clear
 
@@ -267,7 +282,8 @@ class DialogueManager:
         if self._current is None:
             self._current = dialogue
         else:
-            if len(self._queue) < self.QUEUE_CAP:
+            if (THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX
+                    or len(self._queue) < self.QUEUE_CAP):
                 self._queue.append(dialogue)
 
     def replace(self, dialogue: dict) -> None:
@@ -393,17 +409,16 @@ class DialogueManager:
         The displaced dialogue returns through normal queue promotion once the
         preempting dialogue is resolved.
 
-        S5-4 known limitation (owner: Pre-EA Dialogue Robustness row in
-        DESIGN_REFINEMENT.md §8.EVAL Dispositions): if the queue is already at
-        QUEUE_CAP the displaced dialogue is DROPPED rather than overflowed to
-        the mailbox. Requires a pathological 20-deep queue; push() has the
-        identical pre-existing drop. The overflow-to-mailbox fix is deferred;
-        only this contract refresh rides Batch Q.
+        S5-4 (Score Finish Step 7 slice 7, October 4, 2026): at QUEUE_CAP the
+        displaced dialogue OVERFLOWS into the mailbox — it is queued past the
+        cap, never dropped, exactly as `push` now treats an arrival. Before
+        it a 20-deep queue lost the displaced letter silently.
         """
         self._assign_mailbox_metadata(dialogue)
         self._assign_dialogue_id(dialogue)
         previous = self._current
-        if previous is not None and len(self._queue) < self.QUEUE_CAP:
+        if previous is not None and (THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX
+                                     or len(self._queue) < self.QUEUE_CAP):
             self._queue.append(previous)
         self._current = dialogue
 

@@ -1336,6 +1336,11 @@ class Transport:
         # passes through (the ActionPointMeter). An observer never changes a
         # response and never stops a run.
         self.observers = []
+        # SF7 slice 7 (the name census): GET responses, for an observer that
+        # must read the campaign log, the ledger and the petition card too.
+        # A separate list — the POST observers count action points and
+        # forecasts, which a read must never feed.
+        self.get_observers = []
 
     def _call(self, fn):
         import contextlib
@@ -1359,7 +1364,13 @@ class Transport:
     def get(self, path):
         response = self._call(lambda: self.client.get(path))
         response.raise_for_status()
-        return response.json()
+        body = response.json()
+        for observer in list(getattr(self, "get_observers", None) or ()):
+            try:
+                observer(path, None, body)
+            except Exception:
+                pass
+        return body
 
 
 def make_inprocess_transport(args, out_dir):
@@ -2431,6 +2442,12 @@ class Digest:
             for line in census.digest_lines():
                 self._md(line)
             census.uninstall()
+        # SF7 slice 7: the name census's verdict, when the run carried one.
+        names = getattr(self, "name_census", None)
+        if names is not None:
+            self.meta["name_census"] = names.summary()
+            for line in names.digest_lines():
+                self._md(line)
         self._md(f"\n---\nfinished: **{status}** · commands "
                  f"{self.counters['commands']} · popups {self.counters['popups']}"
                  f" · battles {self.counters['battles']}")
@@ -3855,6 +3872,17 @@ def run(args):
             census = DoctrineCensus(digest, transport.backend_main).install()
             transport.observers.append(census.observe)
             digest.census = census
+    # SF7 slice 7 (NPC-12 / SF5-X3): the name census (opt-in), POST and GET.
+    if getattr(args, "name_census", False):
+        from tools._name_census import NameCensus, unmeasured as _nc_unmeasured
+        if args.http:
+            digest.meta["name_census"] = _nc_unmeasured(
+                "--http: the census reads the in-process world's roster")
+        else:
+            names = NameCensus(digest, transport.backend_main)
+            transport.observers.append(names.observe)
+            transport.get_observers.append(names.observe_get)
+            digest.name_census = names
 
     # Boot ------------------------------------------------------------------
     if not args.http:
@@ -4839,6 +4867,10 @@ def main():
     # doctrines' T9 drift pin + T10 unnamed-effect census as one in-process
     # observer (`tools/_doctrine_census.py`). Off by default: it wraps four
     # engine methods for the run, and every other digest stays byte-identical.
+    ap.add_argument("--name-census", action="store_true",
+                    help="run the NPC-12 / SF5-X3 name census: every rendered "
+                         "string, POST and GET, read for a raw roster key "
+                         "(tools/_name_census.py)")
     ap.add_argument("--doctrine-census", action="store_true",
                     help="run the SF-DC-1 doctrine census (T9 drift + T10 unnamed "
                          "effects) on an in-process run; the summary lands in "

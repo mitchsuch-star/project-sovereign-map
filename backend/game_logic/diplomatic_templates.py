@@ -12,6 +12,7 @@ Architecture:
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from backend.nation_config import get_player_nation
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 
 def _diplomat_name_from_record(record: Any) -> str:
@@ -2623,22 +2624,22 @@ _SETTLEMENT_TABLE_VOICE_SUFFIX = {
 CROWNED_SETTLEMENT_CLAUSES: Dict[str, List[str]] = {
     "castlereagh": [
         "He adds that London has read the bulletins from {location} — "
-        "Marshal {marshal}'s laurels do not alter the arithmetic.",
+        "{marshal}'s laurels do not alter the arithmetic.",
     ],
     "hardenberg": [
-        "He does not pretend Prussia is ignorant of Marshal {marshal}, "
+        "He does not pretend Prussia is ignorant of {marshal}, "
         "or of the field that crowned him.",
     ],
     "metternich": [
-        "He offers Vienna's compliments on Marshal {marshal}'s laurels "
+        "He offers Vienna's compliments on {marshal}'s laurels "
         "at {location} — compliments, he notes, are not a signature.",
     ],
     "einsiedel": [
-        "He adds, with apology, that even Marshal {marshal}'s crown "
+        "He adds, with apology, that even {marshal}'s crown "
         "cannot yet move Saxony's hand.",
     ],
     "chancery": [
-        "The court marks that Marshal {marshal} stands crowned in "
+        "The court marks that {marshal} stands crowned in "
         "glory at {location}.",
     ],
 }
@@ -2646,7 +2647,7 @@ CROWNED_SETTLEMENT_CLAUSES: Dict[str, List[str]] = {
 # Spoken INSIDE the incoming envoy's quoted line (first person plural,
 # register-neutral — every court can carry it without a Bible violation).
 CROWNED_INCOMING_CLAUSES: List[str] = [
-    "We will not pretend Marshal {marshal}'s laurels at {location} "
+    "We will not pretend {marshal}'s laurels at {location} "
     "count for nothing in this.",
 ]
 
@@ -2671,7 +2672,9 @@ def crowned_name_clause(world, opposing_nation: str,
                 or CROWNED_SETTLEMENT_CLAUSES["chancery"])
     turn = int(getattr(world, "current_turn", 0))
     line = variants[turn % len(variants)]
-    return line.format(marshal=slots[0], location=slots[1])
+    # SF5-X3: `{marshal}` is the TITLE — a crowned Emperor is "the Emperor
+    # Napoleon", never "Marshal Napoleon" (NP-V's finding, abroad).
+    return line.format(marshal=marshal_title(world, slots[0]), location=slots[1])
 
 
 def crowned_incoming_clause(world, opposing_nation: str) -> str:
@@ -2681,7 +2684,7 @@ def crowned_incoming_clause(world, opposing_nation: str) -> str:
         return ""
     turn = int(getattr(world, "current_turn", 0))
     line = CROWNED_INCOMING_CLAUSES[turn % len(CROWNED_INCOMING_CLAUSES)]
-    return line.format(marshal=slots[0], location=slots[1])
+    return line.format(marshal=marshal_title(world, slots[0]), location=slots[1])
 
 
 # SRX-6 (SR-6b, Oct 2 2026): a WHITE PEACE claims nothing, so the

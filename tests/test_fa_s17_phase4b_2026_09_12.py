@@ -153,7 +153,10 @@ class TestThePeacefulCourtGetsOneAnswer:
         }
         with _quiet():
             res = ex.execute(parsed, {"world": world, "executor": ex})
-        assert "Cannot pursue ArchdukeCharles" in str(res.get("message", ""))
+        # NPC-12 (Score Finish Step 7 slice 7, Oct 4 2026) — RE-SEATED
+        # CONSCIOUSLY: the lever-down reply names him as the game prints
+        # him; the humaniser is the name census's, not this lever's.
+        assert "Cannot pursue Archduke Charles" in str(res.get("message", ""))
 
 
 # ═══════════════════════════════════════════════════════════════════════

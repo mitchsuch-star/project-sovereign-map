@@ -211,9 +211,18 @@ class TestTheEstateHolderIsNamed:
             assert dead not in src, dead
 
     def test_the_blocking_message_reads_it_too(self):
+        """SF5-X3 (Step 7 slice 7, Oct 4 2026) — RE-SEATED CONSCIOUSLY: the
+        blocking message reads the capture executor's ONE reader of the
+        holder's name, `_estate_holder_title`, which carries his court's
+        rank and falls back to `estate_holder_display` for a pre-fix
+        payload. The behaviour is pinned by
+        `tests/test_sf7_s7_the_name_and_the_rank.py`."""
         src = _code((REPO / "backend" / "commands" / "executor.py")
                     .read_text(encoding="utf-8"))
-        assert "estate_holder_display" in src
+        assert "_estate_holder_title(_pending)" in src
+        cap = _code((REPO / "backend" / "commands" / "capture_executor.py")
+                    .read_text(encoding="utf-8"))
+        assert "_estate_holder_display(pending)" in cap
 
     def test_the_client_reads_the_display_keys_with_a_fallback(self):
         gd = (REPO / "godot-client" / "project-sovereign" / "scripts"

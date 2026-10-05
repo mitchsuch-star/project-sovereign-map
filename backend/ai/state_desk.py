@@ -2131,7 +2131,7 @@ def _answer_enemy_moves(world, subject: str, subject_type: str) -> str:
     lines = []
     for r in hits[:4]:
         try:
-            lines.append(str(format_event_oneliner(r)))
+            lines.append(str(format_event_oneliner(r, world=world)))
         except Exception:
             lines.append(str(r.get("message") or r.get("type")))
     return f"Last turn, Sire: " + " ".join(lines)
@@ -2152,7 +2152,7 @@ def _answer_attacked_us(world) -> str:
     lines = []
     for r in attacks[:4]:
         try:
-            lines.append(str(format_event_oneliner(r)))
+            lines.append(str(format_event_oneliner(r, world=world)))
         except Exception:
             lines.append(f"{r.get('attacker')} attacked {r.get('defender')} at {r.get('location')}")
     return f"Yes, Sire — {_plural(len(attacks), 'attack')} last turn: " + " ".join(lines)
@@ -2178,7 +2178,7 @@ def _answer_court_news(world) -> str:
         lines = []
         for r in rows[:4]:
             try:
-                lines.append(str(format_event_oneliner(r)))
+                lines.append(str(format_event_oneliner(r, world=world)))
             except Exception:
                 pass
         if lines:

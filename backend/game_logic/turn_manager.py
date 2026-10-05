@@ -23,6 +23,7 @@ from typing import Dict, Optional
 from backend.models.world_state import WorldState, VICTORY_REGION_FRACTION
 from backend.commands.strategic import StrategicOrderProcessor
 from backend.utils.debug import debug_print
+from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
 
 
 def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
@@ -1517,7 +1518,7 @@ class TurnManager:
                         "enemy_strength": int(enemy.strength),
                         "message": (
                             f"Berthier: Enemy forces spotted near {region.name}! "
-                            f"{enemy.name} ({enemy.strength:,} troops) at {adj_name}."
+                            f"{_shown_name(enemy.name)} ({enemy.strength:,} troops) at {adj_name}."
                         )
                     })
 

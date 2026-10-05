@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from backend.display_names import humanize_entity_name
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.game_logic.formations import formed_display_name
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 
 def _estate_holder_display(pending) -> str:
@@ -36,6 +37,18 @@ def _estate_holder_display(pending) -> str:
         return str(shown)
     raw = pending.get("estate_holder")
     return humanize_entity_name(str(raw)) if raw else "?"
+
+
+def _estate_holder_title(pending) -> str:
+    """SF5-X3 (Step 7 slice 7): the holder with his COURT'S rank — the
+    estate holder is an enemy commander, so "General Mack", "the Archduke
+    Charles", never "Marshal ArchdukeCharles". Stamped at mount
+    (`estate_holder_title`) because the static restatement has no world;
+    a payload predating the key falls back to the humanised display name
+    under the old honorific, so a pre-fix save still renders."""
+    if isinstance(pending, dict) and pending.get("estate_holder_title"):
+        return str(pending["estate_holder_title"])
+    return marshal_title(None, _estate_holder_display(pending))
 
 
 class CaptureExecutor:
@@ -205,8 +218,8 @@ class CaptureExecutor:
         """The current question, restated (BUG-CA-10 discipline: always
         enumerate the answers the game will accept)."""
         if pending.get("stage") == "estate":
-            return (f"the fate of Marshal "
-                    f"{_estate_holder_display(pending)}'s "
+            return (f"the fate of "
+                    f"{_estate_holder_title(pending)}'s "
                     f"estate at {pending.get('region', '?')} awaits your word: "
                     f"'confiscate' or 'respect'.")
         # IGR-E: the restatement quotes the price too — a player who typed a
@@ -254,6 +267,8 @@ class CaptureExecutor:
             # ANSWER as well as the question, on both outcome sentences.
             "estate_holder": holder.name,
             "estate_holder_display": humanize_entity_name(holder.name),
+            # SF5-X3: the display TITLE, for the static restatement.
+            "estate_holder_title": marshal_title(world, holder.name),
             "estate_holder_nation": holder.nation,
             "estate_holder_nation_display": formed_display_name(
                 world, holder.nation),
@@ -266,8 +281,8 @@ class CaptureExecutor:
         response["pending_capture_choice"] = True
         response["capture_data"] = estate_pending
         response["message"] += (
-            f"\n\nSire — {region.name} sustains Marshal "
-            f"{humanize_entity_name(holder.name)}'s "
+            f"\n\nSire — {region.name} sustains "
+            f"{marshal_title(world, holder.name)}'s "
             f"household ({derive_estate_noun(region.name)}). "
             f"Confiscate the estate (+{estate_pending['windfall']:,} gold; "
             # Aug 30, 2026 review: the confiscate branch below was routed
@@ -307,7 +322,7 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             message = (f"The estate at {region.name} is confiscated! "
                        f"{outcome['windfall']:,} gold seized for the treasury. "
-                       f"Marshal {humanize_entity_name(holder.name)}'s "
+                       f"{marshal_title(world, holder.name, start=True)}'s "
                        f"title is extinguished — "
                        f"{formed_display_name(world, holder.nation)} "
                        f"will not forgive it.")
@@ -332,7 +347,7 @@ class CaptureExecutor:
             world.pending_capture_choice = None
             return {
                 "success": True,
-                "message": (f"Marshal {humanize_entity_name(holder.name)}'s "
+                "message": (f"{marshal_title(world, holder.name, start=True)}'s "
                             f"title stands — "
                             f"{derive_estate_noun(region.name)} "
                             f"keeps its revenues under our occupation. "

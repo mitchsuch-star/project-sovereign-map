@@ -73,6 +73,7 @@ A_ROUTED_WORD_IS_NEVER_A_NAME = True
 # SF-V4: the attack verbs whose next word is the order's TARGET (object
 # position) — never read as an unknown executor by the word scan.
 from backend.ai.attack_vocabulary import BATTLE_VERB_RE as _BV, CAPTURE_VERB_RE as _CV
+from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 _OBJECT_OF_ATTACK_RE = re.compile(
     '(?:' + _BV.pattern + ')|(?:' + _CV.pattern + ')', re.IGNORECASE)
 _NAVAL_META_VERBS = frozenset({"build_fleet", "set_fleet_posture", "naval_diversion"})
@@ -1860,7 +1861,7 @@ class CommandParser:
                     world, getattr(enemy_obj, "nation", ""))
         side = enemy_nation or "the enemy"
         return {
-            "error": (f"Marshal {enemy_addressee} commands for {side}, "
+            "error": (f"{marshal_title(world, enemy_addressee, start=True)} commands for {side}, "
                       f"Sire — he does not answer to us."),
             # Review round: an enemy-name lead can be an intel ask, not an
             # attempted order — name the intel road beside the sword.
