@@ -1661,7 +1661,68 @@ def cap_frames_s9():
                   "options": (interrupt or {}).get("options")})
 
 
+def cap_front_page():
+    """Score Finish Step 7b "The front page of the peace" (Oct 5, 2026): the
+    Step 7b pins' own quiet-peace board (`_quiet_france` — France at peace with
+    every court after the opening war, the great powers at −50 so they would
+    join, threat 45, eleven quiet turns) with London's sponsorship of Vienna
+    against us (the CMD-H turn-24 shape), so the league's own news leads; and
+    the 1805 boot briefing, whose TODAY header SF7-X47 rewrote."""
+    from backend.game_logic import dispatch as D
+    from backend.game_logic import instruments
+
+    page = test_module("test_sf_page_the_front_page_of_the_peace")
+    world = page._quiet_france()
+    # The helper writes the states to PEACE; a signed peace also concludes
+    # the boot wars' purposes (the dispatch's WAR PURPOSE skips a concluded
+    # one), so the staging concludes them too — else the frame lists
+    # "Defense vs Britain" on a board at peace.
+    for _objs in (getattr(world, "war_objectives", {}) or {}).values():
+        for _obj in _objs.values():
+            if isinstance(_obj, dict) and _obj.get("concluded_turn") is None:
+                _obj["concluded_turn"] = int(world.current_turn) - 11
+    c = adopt(world)
+    staging = ("1805 boot staged by the Step 7b pins' `_quiet_france()` (every war "
+               "written to PEACE, Austria/Britain/Russia written to −50, threat 45, "
+               "France's last battle 11 turns ago — state writes; the boot wars' "
+               "purposes concluded 11 turns ago, as a signed peace concludes them); "
+               "Britain's sponsorship of Austria against France granted through "
+               "`instruments.grant_directed_sponsorship` (500 gold a turn); the "
+               "morning built by `build_morning_dispatch(world)`")
+    with _quiet():
+        instruments.grant_directed_sponsorship(world, payer="Britain", recipient="Austria",
+                                               aim="France", amount_per_turn=500)
+        D.build_morning_dispatch(world)
+    disp = get(c, "/dispatch")
+    body = disp.get("dispatch") or {}
+    head = body.get("headline") or {}
+    coal = body.get("coalition_status") or {}
+    record("dispatch_front_page", disp, source="GET /dispatch", staging=staging,
+           facts={"headline_class": head.get("class"), "headline": head.get("text"),
+                  "sub_beats": head.get("sub_beats"), "league_line": coal.get("league_line"),
+                  "league_rows": [r.get("text") for r in (coal.get("league_rows") or [])]})
+    dl = get(c, "/diplomatic_ledger")
+    boe = (dl.get("ledger") or {}).get("balance_of_europe") or {}
+    record("diplo_ledger_front_page", dl, source="GET /diplomatic_ledger", staging=staging,
+           facts={"league_line": boe.get("league_line"),
+                  "league_rows": [r.get("text") for r in (boe.get("league_rows") or [])],
+                  "league_footer": boe.get("league_footer")})
+
+    world, c = fresh()
+    with _quiet():
+        D.build_morning_dispatch(world, boot=True)
+    boot = get(c, "/dispatch")
+    today = (boot.get("dispatch") or {}).get("today") or {}
+    record("dispatch_boot_today", boot, source="GET /dispatch (the boot briefing)",
+           staging="the 1805 boot; `build_morning_dispatch(world, boot=True)` — the "
+                   "briefing POST /new_game builds",
+           facts={"headline": (boot.get("dispatch") or {}).get("headline"),
+                  "orders_header": today.get("orders_header"),
+                  "orders": today.get("orders")})
+
+
 CAPTURES = {
+    "front_page": cap_front_page,
     "screen_says": cap_screen_says,
     "frames_s9": cap_frames_s9,
     "proclamation": cap_proclamation,

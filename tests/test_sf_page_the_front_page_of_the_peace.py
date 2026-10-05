@@ -1048,3 +1048,90 @@ class TestTheFirstMorningAndTheQuietClose:
     def test_lever_down_the_quiet_note_always(self, monkeypatch):
         monkeypatch.setattr(dispatch, "A_QUIET_MORNING_CLOSES_ON_THE_LADDER", False)
         assert self._close(monkeypatch, None).startswith(self.QUIET)
+
+
+# ═════════════════════ SF7-X48 — the alarm has one name ══════════════════════
+
+class TestTheAlarmHasOneName:
+    """SF7-X48 (found shooting Step 7b's frames): the Balance of Europe tab
+    printed "45 / 100 [MODERATE]" beside a dispatch reading "45/100
+    [Murmurs]" — two names for one alarm. The tab keeps its severity band
+    for the colour and the pulse, and prints the dispatch's own name."""
+
+    def _both(self, world):
+        from backend.game_logic.diplomatic_ledger import _build_balance_of_europe
+        with _quiet():
+            boe = _build_balance_of_europe(world)
+            section = dispatch._build_coalition_section(world, "France") or {}
+        return boe, section
+
+    def test_one_alarm_one_name_at_murmurs(self):
+        boe, section = self._both(_quiet_france(threat=45))
+        assert boe["threat_name"] == section["tier"] == "Murmurs", (boe["threat_name"], section)
+        assert boe["threat_tier"] == "MODERATE", "the band still colours the bar"
+
+    def test_one_alarm_one_name_when_it_brews(self):
+        boe, section = self._both(_quiet_france(threat=65))
+        assert boe["threat_name"] == section["tier"] == "Brewing"
+
+    def test_a_formed_league_is_formed_on_both(self):
+        w = _quiet_france(threat=70)
+        w.active_coalition = {"name": "Fourth Coalition", "leader": "Britain",
+                              "members": ["Britain", "Austria"], "target_nation": "France"}
+        boe, section = self._both(w)
+        assert boe["threat_name"] == section["tier"] == "Formed"
+
+    def test_the_congress_gate_names_it_brewing_on_both(self):
+        """A sitting Congress that two great powers refuse lowers the brewing
+        gate (`coalition.brewing_gate`): the same alarm brews earlier, and
+        both surfaces say so."""
+        w = _sitting_congress()
+        w.threat_by_target["France"] = 45
+        gate = CO.brewing_gate(w)
+        boe, section = self._both(w)
+        expected = "Brewing" if 45 >= gate else "Murmurs"
+        assert boe["threat_name"] == section["tier"] == expected, (gate, boe["threat_name"])
+        assert CO.threat_tier_name(w, 45) == CO.get_threat_tier(45, brewing_at=gate)
+
+    def test_lever_down_the_tab_names_the_band(self, monkeypatch):
+        from backend.game_logic import diplomatic_ledger as DL
+        monkeypatch.setattr(DL, "THE_ALARM_HAS_ONE_NAME", False)
+        boe, _section = self._both(_quiet_france(threat=45))
+        assert boe["threat_name"] == ""
+
+    def test_the_client_prints_the_name_and_reds_a_brewing_league(self):
+        scripts = REPO / "godot-client" / "project-sovereign" / "scripts"
+        ledger = (scripts / "diplomatic_ledger.gd").read_text(encoding="utf-8")
+        assert 'boe.get("threat_name", "")' in ledger
+        assert 'var tier_shown = threat_name if threat_name != "" else threat_tier' in ledger
+        assert '" / 100  [" + tier_shown + "]' in ledger
+        for rel in ("dispatch_view.gd", "main.gd"):
+            src = (scripts / rel).read_text(encoding="utf-8")
+            assert 'tier in ["Brewing", "Formed", "CRITICAL", "HIGH"]' in src, rel
+
+
+# ═════════════════════ the frames' own instrument ════════════════════════════
+
+class TestTheFramesRunnerKeepsTheRowsSteps:
+    """Found shooting Step 7b's frames: the IQ-10 runner REPLACED a row's own
+    `steps` with its tab switch, so THE NEXT LEAGUE's scroll never ran and the
+    scale-2.0 frame showed the tab's top in silence (the first row ever to
+    carry both)."""
+
+    def _runner(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_iq10_runner_7b", REPO / "tools" / "iq10_run_captures.py")
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        return runner
+
+    def test_a_tab_and_the_rows_steps_compose(self, tmp_path):
+        runner = self._runner()
+        row = next(r for r in runner.SHOTS if r["id"] == "diplo_balance_next_league")
+        caps = {row["payload"]: {"file": "x.json", "staging": "", "facts": {}}}
+        built, _index = runner.build_spec([row], caps, [1.0], "pin", tmp_path / "spec.json",
+                                          tmp_path / "result.json")
+        steps = built["shots"][0]["steps"]
+        assert steps[0] == {"call": "_switch_tab", "args": [2], "then_wait": 4}, steps
+        assert steps[1:] == row["steps"], steps

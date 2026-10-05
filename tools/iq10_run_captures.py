@@ -965,6 +965,54 @@ SHOTS += [
     },
 ]
 
+# ═══ Score Finish Step 7b "The front page of the peace" (October 5, 2026) ═══
+# The capture group is `front_page` (`cap_front_page`: the Step 7b pins' own
+# quiet-peace board with London paying Vienna against us, and the boot
+# briefing for SF7-X47's TODAY header).
+SHOTS += [
+    {
+        "id": "dispatch_front_page",
+        "surface": "Dispatch re-read (the front page of the peace)",
+        "payload": "dispatch_front_page",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "must_show": "the league's own news leads ('London now pays Vienna 500 gold a turn "
+                     "against us', with the price to keep her out); no raw tag",
+    },
+    {
+        "id": "dispatch_front_page_league",
+        "surface": "Dispatch re-read (the next league under COALITION THREAT)",
+        "payload": "dispatch_front_page",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"scroll_to": {"text": "COALITION THREAT"}, "then_wait": 4}],
+        "must_show": "the threat line, then the next league: 'At this pace the courts consult "
+                     "on turn …' and one row per court with its status and its price",
+    },
+    {
+        "id": "diplo_balance_next_league",
+        "surface": "Diplomatic Ledger — Balance of Europe (THE NEXT LEAGUE)",
+        "payload": "diplo_ledger_front_page",
+        "scene": "res://scenes/diplomatic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 2,
+        "steps": [{"scroll_to": {"text": "THE NEXT LEAGUE"}, "then_wait": 4}],
+        "must_show": "THE NEXT LEAGUE in place of the bare list: the summary line in amber, a "
+                     "row per court (who would join, what her war reopens, who pays her, the "
+                     "price to keep her out), the footer; nothing clipped at scale 2.0",
+    },
+    {
+        "id": "dispatch_boot_today",
+        "surface": "Dispatch re-read (the boot briefing's TODAY)",
+        "payload": "dispatch_boot_today",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"scroll_to": {"text": "TODAY"}, "then_wait": 4}],
+        "must_show": "no headline on the first morning; TODAY's header says the list is a "
+                     "choice ('choose among them; they share one treasury and one army'), "
+                     "four orders beneath it",
+    },
+]
+
 
 def load_manifest(payload_dir: pathlib.Path) -> dict:
     m = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))
@@ -1003,7 +1051,12 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
             if key in row:
                 shot[key] = row[key]
         if "tab" in row:
-            shot["steps"] = [{"call": "_switch_tab", "args": [row["tab"]], "then_wait": 4}]
+            # Step 7b's frames: the tab switch used to REPLACE a row's own
+            # steps, so a row carrying both (the first was THE NEXT LEAGUE's
+            # scroll) shot the tab's top in silence. The switch runs first,
+            # then the row's steps.
+            shot["steps"] = ([{"call": "_switch_tab", "args": [row["tab"]], "then_wait": 4}]
+                             + list(row.get("steps") or []))
         out_shots.append(shot)
         index.append({
             "id": row["id"],

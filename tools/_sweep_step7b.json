@@ -355,5 +355,47 @@
     "old": "    if (A_QUIET_MORNING_CLOSES_ON_THE_LADDER and _lead_class == \"quiet_morning\"\n            and not _memory.get(\"levy_said\")):",
     "new": "    if (A_QUIET_MORNING_CLOSES_ON_THE_LADDER and _lead_class == \"quiet_morning\"):",
     "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFirstMorningAndTheQuietClose::test_the_levy_note_stands_while_the_levy_yields"
+  },
+  {
+    "id": "lever down: THE_ALARM_HAS_ONE_NAME (SF7-X48)",
+    "file": "backend/game_logic/diplomatic_ledger.py",
+    "old": "THE_ALARM_HAS_ONE_NAME = True",
+    "new": "THE_ALARM_HAS_ONE_NAME = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheAlarmHasOneName::test_one_alarm_one_name_at_murmurs"
+  },
+  {
+    "id": "SF7-X48: the name forgets the formed league",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    formed = bool(is_coalition_active(world)\n                  and (world.active_coalition.get(\"target_nation\") or player) == player)\n    return get_threat_tier(int(level), coalition_formed=formed,",
+    "new": "    formed = bool(False and is_coalition_active(world)\n                  and (world.active_coalition.get(\"target_nation\") or player) == player)\n    return get_threat_tier(int(level), coalition_formed=formed,",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheAlarmHasOneName::test_a_formed_league_is_formed_on_both"
+  },
+  {
+    "id": "SF7-X48: the name forgets the Congress's gate",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    return get_threat_tier(int(level), coalition_formed=formed,\n                           brewing_at=brewing_gate(world))",
+    "new": "    return get_threat_tier(int(level), coalition_formed=formed,\n                           brewing_at=THREAT_BREWING_MIN)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheAlarmHasOneName::test_the_congress_gate_names_it_brewing_on_both"
+  },
+  {
+    "id": "SF7-X48: the tab prints the band",
+    "file": "godot-client/project-sovereign/scripts/diplomatic_ledger.gd",
+    "old": "\tvar tier_shown = threat_name if threat_name != \"\" else threat_tier",
+    "new": "\tvar tier_shown = threat_tier",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheAlarmHasOneName::test_the_client_prints_the_name_and_reds_a_brewing_league"
+  },
+  {
+    "id": "SF7-X48: the dispatch view never reds a brewing league",
+    "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+    "old": "tier in [\"Brewing\", \"Formed\", \"CRITICAL\", \"HIGH\"]",
+    "new": "tier == \"CRITICAL\" or tier == \"HIGH\"",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheAlarmHasOneName::test_the_client_prints_the_name_and_reds_a_brewing_league"
+  },
+  {
+    "id": "SF7-X48: the terminal never reds a brewing league",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "tier in [\"Brewing\", \"Formed\", \"CRITICAL\", \"HIGH\"]",
+    "new": "tier == \"CRITICAL\" or tier == \"HIGH\"",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheAlarmHasOneName::test_the_client_prints_the_name_and_reds_a_brewing_league"
   }
 ]

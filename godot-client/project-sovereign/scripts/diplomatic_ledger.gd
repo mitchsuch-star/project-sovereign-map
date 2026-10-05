@@ -866,7 +866,11 @@ func _render_balance_of_europe():
 		_:
 			tier_color = Utils.COLOR_INFO
 
-	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100  [" + threat_tier + "][/color]\n"
+	# SF7-X48: the bracket prints the alarm's one name (the dispatch's own);
+	# the band above still colours it.
+	var threat_name = str(boe.get("threat_name", ""))
+	var tier_shown = threat_name if threat_name != "" else threat_tier
+	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100  [" + tier_shown + "][/color]\n"
 
 	# Visual threat bar — 20 chars wide
 	var filled = int(threat_level / 5)  # 0-20

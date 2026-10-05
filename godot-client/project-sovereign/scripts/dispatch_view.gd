@@ -428,7 +428,9 @@ func _on_dispatch_received(response):
 		var tier = str(coalition_status.get("tier", ""))
 		if threat_level > 0:
 			bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]COALITION THREAT[/color]\n"
-			var tier_color = Utils.COLOR_ERROR if tier == "CRITICAL" or tier == "HIGH" else Utils.COLOR_BATTLE
+			# SF7-X48: the section's tier is the coalition's name (Brewing / Formed
+			# are the dangerous ones); the band names stay for an old payload.
+			var tier_color = Utils.COLOR_ERROR if tier in ["Brewing", "Formed", "CRITICAL", "HIGH"] else Utils.COLOR_BATTLE
 			bbcode += "[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "][/color]\n"
 			var brewing = coalition_status.get("brewing", null)
 			if brewing != null and brewing is Dictionary:

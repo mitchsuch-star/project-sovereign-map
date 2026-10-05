@@ -2802,6 +2802,20 @@ def get_threat_tier(threat_level: int, coalition_formed: bool = False,
         return "Calm"
 
 
+def threat_tier_name(world, level: int) -> str:
+    """SF7-X48: the alarm's ONE name — what the dispatch's coalition section,
+    the desk and the advisory call a level: `get_threat_tier` with the
+    player's OWN formed league (CA8-18's scope — an eclipse coalition aimed
+    at another power does not relabel ours) and the brewing gate the Congress
+    may lower. The Balance of Europe tab printed its severity band instead
+    ("45 / 100 [MODERATE]" beside a dispatch reading "45/100 [Murmurs]")."""
+    player = getattr(world, "player_nation", "France")
+    formed = bool(is_coalition_active(world)
+                  and (world.active_coalition.get("target_nation") or player) == player)
+    return get_threat_tier(int(level), coalition_formed=formed,
+                           brewing_at=brewing_gate(world))
+
+
 # ════════════════════════════════════════════════════════════════
 # MASTER PER-TURN FUNCTION
 # ════════════════════════════════════════════════════════════════

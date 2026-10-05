@@ -1104,6 +1104,12 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         threat_tier = "MODERATE"
     else:
         threat_tier = "LOW"
+    # SF7-X48: the band above still colours the bar and pulses at 80; the
+    # bracket prints the alarm's one name, the dispatch's own.
+    threat_name = ""
+    if THE_ALARM_HAS_ONE_NAME:
+        from backend.game_logic.coalition import threat_tier_name
+        threat_name = threat_tier_name(world, threat_level)
 
     total_power = 0
     hegemon_power = 0
@@ -1315,7 +1321,7 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
                              f"{threat_level} — {at_war}.")
         else:
             collapse_line = (f"{held}, yet Europe's alarm stands at "
-                             f"{threat_level} ({threat_tier.title()}) — "
+                             f"{threat_level} ({threat_name or threat_tier.title()}) — "
                              f"{at_war}.")
         threat_projection["collapse_line"] = collapse_line
         if headline_case == "COOLDOWN" and courts:
@@ -1364,6 +1370,7 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         "coalition_cooldown": int(cooldown),
         "threat_level": int(threat_level),
         "threat_tier": threat_tier,
+        "threat_name": threat_name,
         "threat_sources_this_turn": threat_sources,
         "qualifying_nations": get_qualifying_nations(world),
         "threat_projection": threat_projection,
@@ -1423,6 +1430,12 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
 # mission keys (`type_display`, `net_per_turn`, `remaining_note`,
 # `remaining_kind`) and the idle `last_mission` line — master 7bbf82b8.
 TALLEYRAND_TAB_READS_THE_CABINET = True
+
+# SF7-X48 (found shooting Step 7b's frames): the Balance of Europe tab named
+# the alarm by its severity band ("[MODERATE]") where the dispatch, the desk
+# and the advisory name it "Murmurs". False drops `threat_name` and the
+# client prints the band, as before.
+THE_ALARM_HAS_ONE_NAME = True
 
 
 def _build_talleyrand(world) -> Dict[str, Any]:

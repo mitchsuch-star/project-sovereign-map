@@ -15,7 +15,7 @@
 
 **Where things stand.** Steps 0–7b are landed and pushed. The census reads **defect 0 OPEN, design 1 OPEN (SF-NAV-1-D1, the user's)** (`tools/defect_census.py --open`). Waiting on the user, all FOR USER CONFIRMATION:
 - §6 rows 17–22 (`docs/SCORE_FINISH_SPEC.md` §6). Row 22: economy C1 and marshal drama F1, the field read's measured cost.
-- **Step 7b's frames:** the dispatch view and the Balance of Europe tab at both Interface Scales. They launch Godot windows, so they wait on the user's word.
+- **Step 7b's frames are shot** (`docs/audits/IQ10_{DISPATCH_FRONT_PAGE, DISPATCH_FRONT_PAGE_LEAGUE, DIPLO_BALANCE_NEXT_LEAGUE, DISPATCH_BOOT_TODAY}[_X2]_2026_10_05.png`); the visual sign-off is the user's.
 - The standing sign-offs: the end screen's four registers, F3's six surfaces, F5's header, the Congress surfaces, VP-R1's muster rows.
 
 **Step 8** (`docs/SCORE_FINISH_SPEC.md` §3 Step 8):
