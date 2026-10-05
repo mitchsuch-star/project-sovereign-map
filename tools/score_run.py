@@ -67,7 +67,9 @@ T24_SAVE = "docs/audits/playtest_digests/rs0928-hand-played/retest_t24_summonabl
 # Prussian — `tools/gen_agd_fixture.py` regenerates it.
 AGD_FIXTURE = "tests/fixtures/playtest_saves/fixture_agd_tilsit.json"
 GE3_FIXTURE = "tests/fixtures/playtest_saves/fixture_ge3_pressburg.json"
-HOLD_SCRIPT = "score_hold_2026_09_29.json"  # re-written fresh each run (§4.2)
+HOLD_SCRIPT = "score_hold_2026_10_05.json"  # re-written fresh each run (§4.2); SF-R
+# The scenario whose camelCase keys UI/UX C3 looks for in a frame's text.
+SCENARIO_JSON = "godot-client/project-sovereign/assets/maps/europe_1805.json"
 
 
 # ── §4.2 the fixed benchmark ────────────────────────────────────────────────
@@ -113,6 +115,27 @@ ARMS: dict[str, dict] = {
             "accept",
         ],
         "feeds": ["command", "first_contact", "marshal_drama", "ui_ux"],
+    },
+    # SF-R (Step 8): OP on the LIVE parser — command C6 ("OP on the live parser
+    # has <= 1 misread"). The same script and dials as OP, the driver's
+    # `--llm anthropic` after the runner's own `--llm mock` (argparse keeps the
+    # last). Runs only on request (`run --live`, or `--only OP-LIVE`) and only
+    # with a key: a session exit never spends API calls.
+    "OP-LIVE": {
+        "argv": [
+            "--script",
+            f"{SCRIPTS}/sr_exit_aar_typed.json",
+            "--turns",
+            "18",
+            "--objection",
+            "insist",
+            "--diplomacy",
+            "accept",
+            "--llm",
+            "anthropic",
+        ],
+        "feeds": ["command"],
+        "live": True,
     },
     "DL": {
         "argv": ["--script", f"{SCRIPTS}/score_docked_lines.json", "--turns", "3"],
@@ -597,8 +620,27 @@ def _env(run_dir: pathlib.Path) -> dict:
     return env
 
 
+def _live_key(tree: pathlib.Path) -> str:
+    """SF-R: the Anthropic key the OP-LIVE arm needs — the environment's, else
+    the instrument's own `.env` (gitignored, so a detached worktree has none;
+    the key is handed to the live arm's child alone). Never printed."""
+    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    for root in (tree, ROOT):
+        if key:
+            break
+        env_file = root / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.strip().startswith("ANTHROPIC_API_KEY="):
+                    key = line.split("=", 1)[1].strip().strip('"').strip("'")
+    if key.lower().startswith(("your", "placeholder", "changeme", "sk-ant-xxx")):
+        return ""
+    return key
+
+
 def _run_driver(
-    tree: pathlib.Path, arms_dir: pathlib.Path, name: str, argv: list[str]
+    tree: pathlib.Path, arms_dir: pathlib.Path, name: str, argv: list[str],
+    extra_env: dict | None = None,
 ) -> dict:
     py = _python()
     log = arms_dir / f"{name}.log"
@@ -614,11 +656,13 @@ def _run_driver(
         "mock",
     ] + argv
     t0 = time.time()
+    env = _env(arms_dir)
+    env.update(extra_env or {})
     with log.open("w", encoding="utf-8") as fh:
         proc = subprocess.run(
             cmd,
             cwd=str(tree),
-            env=_env(arms_dir),
+            env=env,
             stdout=fh,
             stderr=subprocess.STDOUT,
             text=True,
@@ -718,6 +762,13 @@ def _run_suite(tree: pathlib.Path, arms_dir: pathlib.Path) -> dict:
     out_dir = arms_dir / "SUITE"
     out_dir.mkdir(parents=True, exist_ok=True)
     results = {}
+    # SF-R (Step 8): the suite runs as the pre-commit hook runs it — WITHOUT
+    # PYTHONIOENCODING. The BASELINE_SERIES pin decodes its own child's output
+    # in the console code page; the arm's utf-8 made the child write bytes that
+    # code page cannot read (3 errors at setup on the final reading, the same
+    # tests green in the hook the same hour).
+    suite_env = _env(arms_dir)
+    suite_env.pop("PYTHONIOENCODING", None)
     for f in SUITE_FILES:
         if not (tree / f).exists():
             results[f] = {"missing": True}
@@ -725,9 +776,10 @@ def _run_suite(tree: pathlib.Path, arms_dir: pathlib.Path) -> dict:
         proc = subprocess.run(
             [py, "-m", "pytest", f, "-q", "-p", "no:cacheprovider", "--tb=line"],
             cwd=str(tree),
-            env=_env(arms_dir),
+            env=suite_env,
             capture_output=True,
             text=True,
+            errors="replace",
         )
         tail = (
             proc.stdout.strip().splitlines()[-1]
@@ -802,6 +854,23 @@ def _run_parser_eval(tree: pathlib.Path, arms_dir: pathlib.Path) -> dict:
     }
 
 
+def _select_live_arms(selected: list, args, only: set, tree: pathlib.Path):
+    """SF-R: a live arm runs only on request (`run --live`, or `--only <arm>`)
+    and only with a key — a session exit never spends API calls. Returns the
+    selection and the key (handed to the live arm's child alone)."""
+    live_key = ""
+    live_arms = [a for a in selected if ARMS[a].get("live")]
+    if live_arms:
+        live_key = _live_key(tree)
+    for a in live_arms:
+        if not (getattr(args, "live", False) or a in only):
+            selected.remove(a)
+        elif not live_key:
+            print(f"{a}: no ANTHROPIC_API_KEY (environment or .env) — skipped")
+            selected.remove(a)
+    return selected, live_key
+
+
 def cmd_run(args) -> int:
     tree = pathlib.Path(args.tree).resolve() if args.tree else ROOT
     run_dir = pathlib.Path(args.out).resolve()
@@ -815,6 +884,7 @@ def cmd_run(args) -> int:
             f"HOLD: {SCRIPTS}/{HOLD_SCRIPT} is not on the tree — skipped (write it blind first, §4.2)"
         )
         selected.remove("HOLD")
+    selected, live_key = _select_live_arms(selected, args, only, tree)
     # the long arms first, so the pool's tail is short
     selected.sort(key=lambda a: (not ARMS[a].get("long"), a))
     record = {
@@ -835,7 +905,10 @@ def cmd_run(args) -> int:
                 futures[pool.submit(_run_flag, tree, arms_dir)] = name
             else:
                 futures[
-                    pool.submit(_run_driver, tree, arms_dir, name, ARMS[name]["argv"])
+                    pool.submit(
+                        _run_driver, tree, arms_dir, name, ARMS[name]["argv"],
+                        {"ANTHROPIC_API_KEY": live_key} if ARMS[name].get("live") else None,
+                    )
                 ] = name
         for fut in concurrent.futures.as_completed(futures):
             res = fut.result()
@@ -894,18 +967,72 @@ def cmd_run(args) -> int:
             "status": "completed" if proc.returncode == 0 else "failed",
             "seconds": round(time.time() - t0, 1),
         }
-    if args.godot:
-        record["skipped"]["CLI"] = (
-            "the client arm is run by tools/iq10_run_captures.py with --godot; not wired here yet"
-        )
-    else:
-        record["skipped"]["CLI"] = (
-            "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (§4.6)"
-        )
+    if (not only or "CLI" in only) and "CLI" not in skip:
+        if args.godot:
+            record["arms"]["CLI"] = _run_cli(tree, run_dir, args.godot)
+            print(f"  CLI done ({record['arms']['CLI'].get('status')})")
+        else:
+            record["skipped"]["CLI"] = (
+                "no Godot binary given (--godot): UI/UX reads NOT EXERCISED (§4.6)"
+            )
     record["finished"] = _dt.datetime.now().isoformat(timespec="minutes")
     (run_dir / "run.json").write_text(json.dumps(record, indent=1), encoding="utf-8")
     print(f"run recorded at {run_dir / 'run.json'}")
     return 0
+
+
+def _run_cli(tree: pathlib.Path, run_dir: pathlib.Path, godot: str) -> dict:
+    """SF-R (Step 8): the client arm (§4.6) — the IQ-10 payloads off staged
+    boards, every shot at Interface Scales 1.0 and 2.0 into the run's own
+    `frames/` (the panel packet copies it), the Godot parse harness and a
+    headless boot smoke of the real `main.tscn` (an unused port, never the
+    player's 8005). Writes `arms/CLI/index.json` (the runner's) and
+    `arms/CLI/cli.json` (the exits)."""
+    t0 = time.time()
+    py = _python()
+    out = run_dir / "arms" / "CLI"
+    out.mkdir(parents=True, exist_ok=True)
+    payloads = out / "payloads"
+    env = _env(run_dir / "arms")
+    rec: dict = {"arm": "CLI"}
+    with (out / "capture.log").open("w", encoding="utf-8") as fh:
+        rec["capture_exit"] = subprocess.run(
+            [py, str(tree / "tools" / "iq10_capture_payloads.py"), "--out", str(payloads)],
+            cwd=str(tree), env=env, stdout=fh, stderr=subprocess.STDOUT, text=True,
+        ).returncode
+    with (out / "shots.log").open("w", encoding="utf-8") as fh:
+        rec["shots_exit"] = subprocess.run(
+            [py, str(tree / "tools" / "iq10_run_captures.py"),
+             "--payload-dir", str(payloads), "--out-dir", str(out),
+             "--png-dir", str(run_dir / "frames"),
+             "--date", _dt.date.today().strftime("%Y_%m_%d"),
+             "--godot", godot, "--scales", "1.0,2.0"],
+            cwd=str(tree), env=env, stdout=fh, stderr=subprocess.STDOUT, text=True,
+        ).returncode
+    project = tree / "godot-client" / "project-sovereign"
+    genv = dict(os.environ)
+    genv.pop("PYTHONIOENCODING", None)
+    rec["parse_exit"] = subprocess.run(
+        [godot, "--headless", "--quit", "--path", str(project),
+         "--script", "../../tools/godot_parse_check.gd"],
+        cwd=str(tree), env=genv, capture_output=True, text=True,
+        encoding="utf-8", errors="replace", timeout=1800,
+    ).returncode
+    boot_log = out / "boot_smoke.log"
+    genv["SOVEREIGN_PORT"] = "8019"
+    rec["boot_exit"] = subprocess.run(
+        [godot, "--headless", "--path", str(project), "res://scenes/main.tscn",
+         "--quit-after", "400", "--log-file", str(boot_log)],
+        cwd=str(tree), env=genv, capture_output=True, text=True,
+        encoding="utf-8", errors="replace", timeout=1800,
+    ).returncode
+    text = boot_log.read_text(encoding="utf-8", errors="replace") if boot_log.exists() else ""
+    rec["boot_script_errors"] = text.count("SCRIPT ERROR")
+    rec["boot_log_bytes"] = len(text)
+    rec["seconds"] = round(time.time() - t0, 1)
+    rec["status"] = "completed" if (out / "index.json").exists() else "failed"
+    (out / "cli.json").write_text(json.dumps(rec, indent=1), encoding="utf-8")
+    return rec
 
 
 # ── the arm reader ──────────────────────────────────────────────────────────
@@ -2280,11 +2407,110 @@ def r_ui_ux_C4(arms, ctx):
     )
 
 
-def _cli_unmeasured(arms, ctx):
-    return _unmeasured("the client arm (IQ-10 frames) needs the Godot binary; not run")
+def _cli_reading(ctx):
+    """The client arm's record: the runner's index and the exits (§4.6)."""
+    d = pathlib.Path(ctx["run_dir"]) / "arms" / "CLI"
+    if not (d / "index.json").exists():
+        return None, {}
+    index = json.loads((d / "index.json").read_text(encoding="utf-8"))
+    cli = (json.loads((d / "cli.json").read_text(encoding="utf-8"))
+           if (d / "cli.json").exists() else {})
+    return index, cli
 
 
-r_ui_ux_F1 = r_ui_ux_F2 = r_ui_ux_C1 = r_ui_ux_C2 = r_ui_ux_C3 = _cli_unmeasured
+def _cli_frames(index):
+    for row in index.get("rows") or []:
+        for res in row.get("results") or []:
+            for fr in res.get("frames") or []:
+                yield row.get("id"), res.get("scale"), fr
+
+
+NO_CLIENT_ARM = "the client arm (IQ-10 frames) did not run (score_run run --godot)"
+
+
+def r_ui_ux_F1(arms, ctx):
+    index, _cli = _cli_reading(ctx)
+    if index is None:
+        return _unmeasured(NO_CLIENT_ARM)
+    rows = index.get("rows") or []
+    bad = [r.get("id") for r in rows
+           if not r.get("results") or any(not x.get("ok") for x in r["results"])]
+    blank = [f"{i}@{sc}" for i, sc, fr in _cli_frames(index) if fr.get("blank")]
+    errors = index.get("script_errors") or []
+    frames = sum(1 for _ in _cli_frames(index))
+    ok = index.get("exit_code") == 0 and not errors and not bad and not blank and frames > 0
+    return _res(True, ok, f"{len(rows)} shots, {frames} frames; engine exit {index.get('exit_code')}, "
+                          f"SCRIPT ERROR {len(errors)}; not ok {bad[:5]}; blank {blank[:5]}")
+
+
+def r_ui_ux_F2(arms, ctx):
+    index, cli = _cli_reading(ctx)
+    if index is None or not cli:
+        return _unmeasured(NO_CLIENT_ARM)
+    ok = (cli.get("parse_exit") == 0 and cli.get("boot_exit") == 0
+          and int(cli.get("boot_script_errors") or 0) == 0
+          and int(cli.get("boot_log_bytes") or 0) > 0)
+    return _res(True, ok, f"parse harness exit {cli.get('parse_exit')}; boot smoke exit "
+                          f"{cli.get('boot_exit')}, SCRIPT ERROR {cli.get('boot_script_errors')} "
+                          f"({cli.get('boot_log_bytes')} bytes of log)")
+
+
+def _cli_flagged(ctx, field):
+    index, _cli = _cli_reading(ctx)
+    if index is None:
+        return _unmeasured(NO_CLIENT_ARM)
+    hits = [f"{i}@{sc}: {str(fr.get(field))[:80]}" for i, sc, fr in _cli_frames(index)
+            if fr.get(field)]
+    frames = sum(1 for _ in _cli_frames(index))
+    return _res(True, not hits and frames > 0, f"{frames} frames; with {field}: {len(hits)} {hits[:4]}")
+
+
+def r_ui_ux_C1(arms, ctx):
+    return _cli_flagged(ctx, "buttons_offscreen")
+
+
+def r_ui_ux_C2(arms, ctx):
+    return _cli_flagged(ctx, "clipped_text")
+
+
+def _raw_key_rx():
+    """UI/UX C3: the scenario's own camelCase keys (`KingdomOfItaly`,
+    `ArchdukeCharles` …) read off the scenario file — one source, no list to
+    drift — plus the two literals a frame must never show."""
+    keys = set()
+
+    def walk(x):
+        if isinstance(x, dict):
+            for k, v in x.items():
+                if isinstance(k, str) and re.fullmatch(r"(?:[A-Z][a-z]+){2,}", k):
+                    keys.add(k)
+                walk(v)
+        elif isinstance(x, list):
+            for v in x:
+                walk(v)
+        elif isinstance(x, str) and re.fullmatch(r"(?:[A-Z][a-z]+){2,}", x):
+            keys.add(x)
+
+    walk(json.loads((ROOT / SCENARIO_JSON).read_text(encoding="utf-8")))
+    alts = [re.escape(k) for k in sorted(keys)] + [r"<null>", r"\(s\)"]
+    return re.compile(r"(?:\b(?:" + "|".join(alts[:-2]) + r")\b)|" + "|".join(alts[-2:]))
+
+
+def r_ui_ux_C3(arms, ctx):
+    index, _cli = _cli_reading(ctx)
+    if index is None:
+        return _unmeasured(NO_CLIENT_ARM)
+    rx = _raw_key_rx()
+    hits = []
+    for i, sc, fr in _cli_frames(index):
+        for t in fr.get("texts") or []:
+            m = rx.search(str(t.get("text", "")) if isinstance(t, dict) else str(t))
+            if m:
+                hits.append(f"{i}@{sc}: {m.group(0)!r}")
+                break
+    frames = sum(1 for _ in _cli_frames(index))
+    return _res(True, not hits and frames > 0, f"{frames} frames; with a raw key, <null> or (s): "
+                                               f"{len(hits)} {hits[:5]}")
 
 
 # ═════════════════════════ COMMAND & PARSING ═════════════════════════
@@ -2473,8 +2699,75 @@ def r_command_C5(arms, ctx):
     return _res(True, ok, " | ".join(ev[:4]))
 
 
+# SF-R (Step 8): a line the model read is set against the SAME line on the
+# offline reference (OP, whose readings C1/C2 validate) while the two boards
+# still agree; a line after the first divergence is reported, not judged.
+LIVE_HEAD_CHARS = 160
+
+
 def r_command_C6(arms, ctx):
-    return _unmeasured("the live-parser arm needs an ANTHROPIC_API_KEY; not run")
+    live, ref = arms.get("OP-LIVE"), arms.get("OP")
+    if live is None or not live.ok:
+        return _unmeasured("the live-parser arm (OP-LIVE) did not run — run --live with an "
+                           "ANTHROPIC_API_KEY")
+    if ref is None or not ref.ok:
+        return _unmeasured("the offline reference arm (OP) did not run")
+    lc, mc = live.kind("command"), ref.kind("command")
+    parser = (live.meta or {}).get("parser") or {}
+    notices = [c.get("parser_notice") for c in lc if c.get("parser_notice")]
+    read = [i for i, c in enumerate(lc) if (c.get("parse_mode") or "mock") != "mock"]
+    if not read:
+        if notices or parser.get("key_status") not in (None, "connected", "configured"):
+            return _unmeasured(f"the live parser was not reached: "
+                               f"{(notices or [parser.get('key_status')])[0]}")
+        return _res(True, True, f"{len(lc)} lines; none needed the model (each read offline "
+                                f"at >= 0.7) — key {parser.get('key_status')}")
+
+    def head(c):
+        return re.sub(r"\s+", " ", str(c.get("message", "")))[:LIVE_HEAD_CHARS]
+
+    def same(a, b):
+        return (a.get("text") == b.get("text") and head(a) == head(b)
+                and bool(a.get("success")) == bool(b.get("success")))
+
+    # The boards have parted at the first line the two runs typed differently,
+    # or the first OFFLINE-read line whose outcome differs (the same offline
+    # reading on the same board gives the same outcome). A model-read line
+    # that differs is the reading under test, not evidence the boards parted.
+    model = set(read)
+    parted = next((i for i in range(min(len(lc), len(mc)))
+                   if lc[i].get("text") != mc[i].get("text")
+                   or (i not in model and not same(lc[i], mc[i]))), None)
+    misreads, rescued, lost, unjudged = [], [], [], []
+    for i in read:
+        c = lc[i]
+        if i >= len(mc) or mc[i].get("text") != c.get("text") or (
+                parted is not None and i > parted):
+            unjudged.append(str(c.get("text", ""))[:50])
+            continue
+        m = mc[i]
+        if same(c, m):
+            continue
+        offline_meant = (m.get("success") is not False
+                         and not SHRUG_RX.search(str(m.get("message", ""))))
+        # A rescue is a line the offline parser lost and the model READ: a
+        # live reply that is itself a refusal is lost on both, not a rescue
+        # (measured on c20d5bba: the model's "I confess I am at a loss").
+        live_meant = (c.get("success") is not False
+                      and not SHRUG_RX.search(str(c.get("message", ""))))
+        line = f"{str(c.get('text', ''))[:50]!r}: live {head(c)[:70]!r} / offline {head(m)[:70]!r}"
+        if offline_meant:
+            misreads.append(line)
+        elif live_meant:
+            rescued.append(line)
+        else:
+            lost.append(line)
+    return _res(True, len(misreads) <= 1,
+                f"{len(read)} of {len(lc)} lines read by the model "
+                f"({parser.get('provider') or 'provider unrecorded'}, key "
+                f"{parser.get('key_status') or 'unrecorded'}); misreads {len(misreads)}: "
+                f"{misreads[:3]}; rescued {len(rescued)}: {rescued[:2]}; lost on both "
+                f"{len(lost)}: {lost[:2]}; after the boards parted (unjudged) {len(unjudged)}")
 
 
 # ═════════════════════════ NARRATION ═════════════════════════
@@ -3105,6 +3398,10 @@ def cmd_packet(args) -> int:
     frames = run_dir / "frames"
     if frames.exists():
         shutil.copytree(frames, pk / "frames")
+        cli_index = run_dir / "arms" / "CLI" / "index.json"
+        if cli_index.exists():
+            # SF-R: what each frame must show, for the EYES items.
+            shutil.copy(cli_index, pk / "frames" / "index.json")
     (pk / "README.md").write_text(PACKET_README, encoding="utf-8")
     print(f"packet at {pk} ({len(list((pk / 'digests').iterdir()))} digests)")
     return 0
@@ -3210,6 +3507,8 @@ def main(argv=None) -> int:
     r.add_argument("--aiv-dir", default="")
     r.add_argument("--acceptance-n", type=int, default=10)
     r.add_argument("--godot", default="")
+    r.add_argument("--live", action="store_true",
+                   help="run the live-parser arm (OP-LIVE; needs ANTHROPIC_API_KEY)")
     c = sub.add_parser("check")
     c.add_argument("--run", required=True)
     c.add_argument("--checklist", default=str(CHECKLIST_DEFAULT))

@@ -1020,7 +1020,11 @@ def load_manifest(payload_dir: pathlib.Path) -> dict:
 
 
 def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str,
-               spec_path: pathlib.Path, result_path: pathlib.Path) -> tuple[dict, list[dict]]:
+               spec_path: pathlib.Path, result_path: pathlib.Path,
+               png_dir: pathlib.Path | None = None) -> tuple[dict, list[dict]]:
+    # SF-R (Step 8): a scoring run keeps its frames in its own run directory
+    # (`--png-dir`); every other caller writes them to docs/audits as before.
+    png_dir = AUDITS if png_dir is None else pathlib.Path(png_dir)
     out_shots, index = [], []
     for row in shots:
         cap = captures.get(row["payload"])
@@ -1032,7 +1036,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
         out = {}
         for s in scales:
             tail = "" if abs(s - 1.0) < 1e-9 else "_X%g" % s
-            out["%.1f" % s] = str(AUDITS / f"IQ10_{row['id'].upper()}{tail}_{date}.png")
+            out["%.1f" % s] = str(png_dir / f"IQ10_{row['id'].upper()}{tail}_{date}.png")
         shot = {
             "id": row["id"],
             "scene": row["scene"],
@@ -1111,6 +1115,7 @@ def main() -> int:
     ap.add_argument("--godot", default=os.environ.get("IQ10_GODOT", GODOT_DEFAULT))
     ap.add_argument("--payload-dir", default=os.environ.get("IQ10_PAYLOADS", ""))
     ap.add_argument("--out-dir", default="")
+    ap.add_argument("--png-dir", default="")
     args = ap.parse_args()
 
     payload_dir = pathlib.Path(args.payload_dir) if args.payload_dir else None
@@ -1120,6 +1125,8 @@ def main() -> int:
     work = pathlib.Path(args.out_dir) if args.out_dir else payload_dir.parent / "run"
     work.mkdir(parents=True, exist_ok=True)
     AUDITS.mkdir(parents=True, exist_ok=True)
+    png_dir = pathlib.Path(args.png_dir) if args.png_dir else AUDITS
+    png_dir.mkdir(parents=True, exist_ok=True)
 
     captures = load_manifest(payload_dir)
     scales = [float(s) for s in args.scales.split(",") if s.strip()]
@@ -1129,7 +1136,8 @@ def main() -> int:
 
     spec_path, result_path = work / "spec.json", work / "result.json"
     log_path = work / "engine.log"
-    spec, index = build_spec(shots, captures, scales, args.date, spec_path, result_path)
+    spec, index = build_spec(shots, captures, scales, args.date, spec_path, result_path,
+                             png_dir)
     code = run_godot(args.godot, spec_path, log_path)
     errors = script_errors(log_path)
     result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}

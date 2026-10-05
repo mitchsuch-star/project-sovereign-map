@@ -1,0 +1,24 @@
+{
+  "name": "depth-k02",
+  "turns": {
+    "1": [
+      "who are we at war with?",
+      "where is Murat?",
+      "Murat, move to Lyonnais",
+      "Napoleon, march to Paris",
+      "Massena, drill",
+      "how loyal are my marshals?",
+      "build a market in Paris",
+      "Lanes, march to Paris"
+    ],
+    "2": [
+      "where is Murat?",
+      "is Murat safe from internment?",
+      "Soult, attak Wellesley",
+      "Davout, unfortify and stand ready",
+      "grant Ney an estate",
+      "what happened last turn?"
+    ],
+    "3": []
+  }
+}

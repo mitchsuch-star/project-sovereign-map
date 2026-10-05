@@ -1,0 +1,142 @@
+{
+ "ending": {
+  "anchor": 7.5,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "frames/IQ10_CAMPAIGN_END_VERDICT_2026_10_05.png: 'AN EMPIRE CONTESTED … The reign goes on; the Empire can still fall.' — a clear, honest register, but no benchmark road gets past 34 titled by turn 40, exactly as the anchor says"
+ },
+ "diplomacy": {
+  "anchor": 8.5,
+  "adjust": -0.25,
+  "eyes": {},
+  "cite": "digests/CMD-H.md Turn 31 block: 'incoming_settlement_offer #18 → accept_settlement_offer ↳ refused: Only the war leader can settle this side.' — the same unanswerable Austrian offer re-mounts on turns 32, 36 and 37",
+  "flag": "Austria's offer to settle 'Austria vs Bavaria' lands in France's mailbox and every accept/revise is refused on CMD-H, CMD-A, CMD-M and CMD-ULM; the AUTO SF-V1 count (0) misses it because the refusal comes before ratification"
+ },
+ "first_contact": {
+  "anchor": 8.0,
+  "adjust": 0,
+  "eyes": {
+   "C2": {
+    "pass": false,
+    "cite": "digests/HOLD.md Turn 1: 'How many turns would it take Davout to march from Rhineland to Lorraine?' → 'No lawful road runs from Rhineland to Rhineland for Davout, Sire.' — the destination is misread and the answer denies a road the boot briefing's own 'Davout, march to Lorraine' uses"
+   }
+  },
+  "cite": "digests/FC.md Turn 1: 'is Paris safe' → 'Paris is ours, Sire, held by a garrison of 25,000. No enemy corps stands within two marches of it…' — crisp, honest first-turn answers",
+  "flag": "HOLD Turn 2: 'Please pass the Staff law' → 'There is no Marshal 'Staff' in the order of battle, Sire. Whom did you intend?' — a law read as a marshal's name"
+ },
+ "economy": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "frames/IQ10_LEDGER_T20_ECONOMY_2026_10_05.png: every Charges of Empire term named and the ceiling explained ('the chest is above it; the charges are drawing it down')",
+  "flag": "CMD arms: 'recruit 10000 infantry with Soult' is refused 'We do not control Swabia, Your Majesty. Recruitment is impossible there.' turn after turn with no remedy named, while CMD-H's chest reaches 64,526 by turn 40"
+ },
+ "naval": {
+  "anchor": 7.5,
+  "adjust": 0.25,
+  "eyes": {
+   "C6": {
+    "pass": false,
+    "cite": "frames/IQ10_TOP_BAR_ADMIRALTY_X2_2026_10_05.png: at 2.0 the six nav buttons beside the '⚓ 45!' chip are blank boxes (no icon, no letter), and at 1.0 the chip is gold-bordered, not crimson; the Admiralty ledger tabs (BOOT, T20) themselves are clean"
+   }
+  },
+  "cite": "digests/SEA.md Turn 7: 'The transports slip past unseen 65 times in 100 … What moves the odds: 10 more sail (4,000g) → 68.' — then the interception and Trafalgar beats name what happened and why",
+  "flag": "All three X2 top-bar frames (BOOT, ADMIRALTY, MISSION_COURT) show six blank nav buttons — check the compact bar in a live client at Interface Scale 2.0"
+ },
+ "living_balance": {
+  "anchor": 8.5,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/CMD-A.md Turn 31 block: 'DISPATCH: Sire — Britain and France are at war. Britain tears up the Peace Treaty to do it.' — the forecast league arrives on schedule against a quiet France"
+ },
+ "combat_legibility": {
+  "anchor": 6.5,
+  "adjust": 0.25,
+  "eyes": {
+   "C6": {
+    "pass": true,
+    "cite": "frames/IQ10_DIORAMA_DADJ_X2_2026_10_05.png: each contingent's own losses (Ney 20,000 → 15,471, Davout 30,000 → 27,962), FRANCE LOSSES 6,567 over the reinforced side, Berthier's verdict; the same holds at 1.0 and for the AADJ pair"
+   }
+  },
+  "cite": "frames/IQ10_ENEMY_PHASE_T20_2026_10_05.png: both sides' casualties and remaining, the result, and Berthier's report naming every modifier ('Defensive stance +15%, Terrain (Mountains) +25%')",
+  "flag": "IQ10_ENEMY_PHASE_IQ5 heads its action '- unknown' (a staged board?); terminal enemy-phase lines still print 'ArchdukeCharles'/'ArchdukeJohn'; the diorama's bottom-right filigree overlaps the Close button and its stage text does not grow at 2.0"
+ },
+ "marshal_drama": {
+  "anchor": null,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "digests/OP.md: 'POPUP marshal_petition: jealousy_confrontation, Marshal Davout demands to be heard → acknowledge' — the digests carry petition titles only; one body is in the frames (PETITION_COMMAND_CLOSED), not five"
+   }
+  },
+  "cite": "scores.json reads NOT EXERCISED for this pillar (F1: petition modals 5 > 4) — there is no anchor to adjust",
+  "flag": "frames/IQ10_PETITION_COMMAND_CLOSED_2026_10_05.png: 'Let it stand … For 0 more turns he brings NONE of his 22,000 men to any battle Ney leads' — a zero-turn price; Rebuke's terms fall below the fold"
+ },
+ "vassals": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": true,
+    "cite": "frames/IQ10_DIPLO_BOOT_VASSALS_X2_2026_10_05.png: flag, loyalty bar, tribute, standing, bond, garrison note and a priced chip per lever for each client; nothing clipped"
+   }
+  },
+  "cite": "digests/CMD-H.md Turn 6: 'Switzerland's tribute is remitted for 8 collections (1800g forgone). Loyalty +10 (82 → 92); bond 0 → 20 (+1 a turn). Cost: 1 DP.' — priced and exact",
+  "flag": "CMDR-H: 'You accept the risk. If KingdomOfItaly's loyalty reaches zero, rebellion will follow.' and 'refuses France's call to arms against KingdomOfItaly' — raw tags in player text; the petition-granted frame leaves Switzerland's own row below the fold"
+ },
+ "ui_ux": {
+  "anchor": 7.5,
+  "adjust": -0.25,
+  "eyes": {
+   "C5": {
+    "pass": null,
+    "cite": "the user's own sign-off — not a panel mark"
+   },
+   "C6": {
+    "pass": null,
+    "cite": "needs a live 5-turn Mode C client session; none is in the packet"
+   }
+  },
+  "cite": "frames/IQ10_TOP_BAR_BOOT_X2_2026_10_05.png: at Interface Scale 2.0 the six nav buttons are blank boxes — no icon, no letter",
+  "flag": "At 2.0: WIZARD_FORMABLES_ENTRY never leaves 'Loading...'; PROCLAMATION_WARSAW_X2 cuts '+500 gold…' mid-line with 'By your hand.' below the fold; SETTLEMENT_THREE_COURTS_X2 shows four separate scroll thumbs and cuts the second Press/Ease/Drop row"
+ },
+ "command": {
+  "anchor": 8.0,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/OP.md Turn 1: 'Marshal Ney, you have the honour of the first blow. Fall upon Mack at Ulm…' → 'MUSTER — Ney (24,000…) vs Mack (large force) at Swabia' — prose orders read as meant",
+  "flag": "HOLD: 'Commission another marshal' → 'No candidate named 'Another' awaits a commission.' — a determiner read as a name"
+ },
+ "narration": {
+  "anchor": 7.5,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": false,
+    "cite": "digests/CMD-H.md Turn 27 block: 'DISPATCH: Sire — Lannes's claim is 21 turns in arrears…' on the morning the rail reads 'France enters the war against Austria via its alliance with Bavaria'"
+   }
+  },
+  "cite": "digests/LAW.md Turn 2 block: 'the Emperor's star dims. The Presence that gave his corps +10% on the field gives +6% this morning; the courts have begun to notice that he can be beaten.'",
+  "flag": "More leads that miss: CMD-A Turn 5 block leads 'Ney, crowned three turns ago, has been driven back.' while the rail announces the Kingdom of Italy eliminated; CMD-H Turn 10 block repeats 'the enemy has stood on our ground 5 turns' on the turn Britain offers terms"
+ },
+ "ai_aliveness": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/CMD-H.md Turn 5 block: 'THE BREWING CRISIS: Prussia will move on Hanover. You may compensate (1,200g …); guarantee Hanover (1 DP …)' — Europe moves on its own and names the levers",
+  "flag": "CMD-A turns 34–40, with the new league at war with France: 'enemy phase: 1 actions, 0 attacks' nearly every turn"
+ },
+ "agendas": {
+  "anchor": 8.0,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": false,
+    "cite": "frames/IQ10_WIZARD_FORMABLES_ENTRY_2026_10_05.png: the wizard shows only 'Loading...' — no nation list and no Formable Nations entry (same at X2); the PROCLAMATION and FORMABLES_STEP3 frames are otherwise sound"
+   }
+  },
+  "cite": "digests/AGD.md Turn 2 block: 'POPUP nation_proclamation: DuchyOfWarsaw' beside 'RATIFIED Prussia · PEACE · french_victory' — the carve lands end to end",
+  "flag": "Open the Cabinet after a carve in a live client — the formables entry frame never loaded; AGD Turn 1 log reads 'Naples and Russia sign a Open Borders Agreement'"
+ }
+}

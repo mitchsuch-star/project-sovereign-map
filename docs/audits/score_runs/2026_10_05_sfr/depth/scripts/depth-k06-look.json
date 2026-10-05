@@ -1,0 +1,17 @@
+{
+  "name": "depth-k06-look",
+  "turns": {
+    "1": [
+      "where is Soult?",
+      "is Soult fortified?",
+      "where is Massena?",
+      "how is Massena's morale?",
+      "who holds Provence?",
+      "where is Murat?",
+      "what orders are standing?",
+      "how many diplomatic points do I have?",
+      "what is the sponsorship of Sardinia costing us?",
+      "how many actions do I have left?"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+ "arm": "CLI",
+ "capture_exit": 0,
+ "shots_exit": 0,
+ "parse_exit": 0,
+ "boot_exit": 0,
+ "boot_script_errors": 0,
+ "boot_log_bytes": 523,
+ "seconds": 260.4,
+ "status": "completed"
+}

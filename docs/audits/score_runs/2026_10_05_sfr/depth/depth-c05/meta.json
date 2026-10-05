@@ -1,0 +1,117 @@
+{
+  "name": "depth-c05",
+  "seed": "historical",
+  "llm": "anthropic",
+  "transport": "in-process",
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "accept",
+    "capture": "secure",
+    "estate": "respect",
+    "glorious_charge": "restrain",
+    "diplomatic_objection": "proceed",
+    "redemption": "grant_autonomy",
+    "petition": "first_enabled",
+    "audience": "open",
+    "declare_war": "cancel",
+    "interrupt": "continue",
+    "last_stand": "first",
+    "contact": "first",
+    "paradox": "honor",
+    "rebellion": "accept",
+    "sabotage": "confront",
+    "reward": "ignore",
+    "war_purpose": "1",
+    "ultimatum": "defy",
+    "clarification": "first",
+    "settlement": "decline"
+  },
+  "turns_requested": 3,
+  "started": "2026-10-05 09:58",
+  "from_save": "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/47745f3c-ed62-45f8-978f-aa250ab158ca/scratchpad/depth/depth-c04/saves/depth-c04_t3.json",
+  "scenario": "",
+  "script": "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/47745f3c-ed62-45f8-978f-aa250ab158ca/scratchpad/depth/depth-c05.json",
+  "cheats": false,
+  "levers": [],
+  "strict": false,
+  "rng": {
+    "deterministic": false,
+    "scheme": "module RNG reseeded at boot (world_turn=0) and at each turn boundary: random.seed(int(hashlib.sha256(f'{seed}:{world_turn}'.encode()).hexdigest(), 16) & 0xFFFFFFFF)",
+    "llm_note": "NONDETERMINISTIC \u2014 live parser (--llm anthropic): parses vary run to run even with the module RNG pinned",
+    "pythonhashseed": "0"
+  },
+  "driver_revision": "37f9f712f284",
+  "reload_every": 0,
+  "requested": {
+    "seed": "",
+    "scenario": "",
+    "from_save": "C:/Users/User/AppData/Local/Temp/claude/C--Users-User-PycharmProjects-project-sovereign-map/47745f3c-ed62-45f8-978f-aa250ab158ca/scratchpad/depth/depth-c04/saves/depth-c04_t3.json",
+    "llm": "anthropic"
+  },
+  "resolved": {
+    "source": "world",
+    "campaign_seed": "historical",
+    "scenario_name": "The Third Coalition, 1805",
+    "sovereign_map": "europe",
+    "regions": 126,
+    "player_nation": "France",
+    "boot_turn": 9,
+    "dice_label": "historical",
+    "env": {
+      "SOVEREIGN_SCENARIO": "",
+      "SOVEREIGN_SMOKE_START": "",
+      "SOVEREIGN_MAP": "europe",
+      "SOVEREIGN_SEED": "historical",
+      "LLM_MODE": "anthropic",
+      "DEBUG_MODE": "false"
+    }
+  },
+  "platform": {
+    "python": "3.13.12",
+    "implementation": "CPython",
+    "os": "Windows-11-10.0.22000-SP0",
+    "machine": "AMD64",
+    "pythonhashseed": "0"
+  },
+  "engine_revision": {
+    "git_commit": "0f5e8d8431855361652beb7e871f99bc761ae50b",
+    "dirty": true,
+    "dirty_scope": [
+      "backend",
+      "tools/playtest_driver.py",
+      "godot-client/project-sovereign/assets/maps"
+    ],
+    "content_hash": "423b7f09867a49fbecf50f10e6951317f31f172755d7779c10c6b9d9c1e5c99a",
+    "content_files": 147,
+    "content_scope": "backend/**/*.py + the map registry + the 1805 and tutorial scenario JSON, line endings normalised to LF"
+  },
+  "parser": {
+    "provider": "anthropic",
+    "key_source": "inhouse",
+    "live": true,
+    "key_status": "configured",
+    "live_parses": 0
+  },
+  "status": "completed",
+  "counters": {
+    "commands": 20,
+    "popups": 2,
+    "battles": 1,
+    "turns": 3,
+    "ap_available": 15,
+    "ap_spent": 10,
+    "cmd_refused": 3
+  },
+  "unknown_blockers": [],
+  "dispatch_type_counts": {
+    "coercive_demand": 1,
+    "diplomatic_dp_regen": 3,
+    "diplomatic_mission_progress": 3,
+    "diplomatic_war_declared": 1,
+    "expedition_landed": 1,
+    "intent_hardens": 2,
+    "law_enacted_abroad": 2,
+    "paymaster_subsidy": 3,
+    "settlement_offer_arrival": 1
+  }
+}

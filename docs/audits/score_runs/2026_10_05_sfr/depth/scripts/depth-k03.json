@@ -1,0 +1,22 @@
+{
+  "name": "depth-k03",
+  "turns": {
+    "1": [
+      "who holds Provence?",
+      "how many turns are left on the truce with Britain?",
+      "Talleyrand, improve relations with Britain",
+      "what does Naples want?",
+      "Talleyrand, bid for Sardinia",
+      "grant Murat a rente",
+      "Ney, take Provence back"
+    ],
+    "2": [
+      "who holds Provence?",
+      "propose an alliance to Austria",
+      "what do I need for the Congress of Paris?",
+      "how is the treasury?",
+      "Soult, recruit cavalry at Lyonnais"
+    ],
+    "3": []
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "depth-c08",
+  "turns": {
+    "1": [
+      "who holds Milan?",
+      "why must Massena go home?",
+      "Napoleon, march home to Franche-Comte",
+      "Lannes, march home to Franche-Comte",
+      "Massena, march home to Franche-Comte",
+      "Murat, march home",
+      "Augereau, recruit infantry",
+      "what does the truce with Austria mean?"
+    ],
+    "2": [
+      "where is Napoleon?",
+      "where is Massena?",
+      "where is Murat?",
+      "how long does the truce with Austria last?",
+      "Ney, march to Provence and retake it",
+      "Davout, hold Franche-Comte",
+      "Talleyrand, how goes the Austrian mission?"
+    ],
+    "3": []
+  }
+}

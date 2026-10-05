@@ -1,0 +1,23 @@
+{
+  "name": "depth-c00-recon2",
+  "seed": "historical",
+  "turns": {
+    "1": [
+      "where is Ney?",
+      "where is Davout?",
+      "where is Lannes?",
+      "where is Murat?",
+      "where is Bernadotte?",
+      "where is Napoleon?",
+      "where is Archduke Charles?",
+      "what borders Swabia?",
+      "who holds Bavaria?",
+      "how much gold do we have?",
+      "what is our income?",
+      "how many action points do I have?",
+      "what laws can we enact?",
+      "is Paris safe?",
+      "who is winning the war?"
+    ]
+  }
+}

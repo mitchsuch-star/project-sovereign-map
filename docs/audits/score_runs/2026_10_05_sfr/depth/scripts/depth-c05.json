@@ -1,0 +1,28 @@
+{
+  "name": "depth-c05",
+  "policy": {"interrupt": "continue"},
+  "turns": {
+    "1": [
+      "what borders Nivernais?",
+      "what borders Burgundy?",
+      "Davout, move to Munich",
+      "Lannes, move to Munich",
+      "Napoleon, move to Munich and stay with Davout",
+      "Soult, fortify Milan",
+      "Ney, move to Swabia",
+      "Soult, recruit infantry at Milan",
+      "how is Napoleon's morale?"
+    ],
+    "2": [
+      "where is Archduke Charles?",
+      "is Munich safe?",
+      "Davout, fortify",
+      "Lannes, fortify",
+      "Napoleon, drill your guard",
+      "Ney, defend Swabia",
+      "Massena, drill his corps back into shape",
+      "what would Britain accept for peace?"
+    ],
+    "3": []
+  }
+}

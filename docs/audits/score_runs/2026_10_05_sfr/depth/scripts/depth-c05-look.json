@@ -1,0 +1,25 @@
+{
+  "name": "depth-c05-look",
+  "turns": {
+    "1": [
+      "where is Napoleon?",
+      "where is Davout?",
+      "where is Lannes?",
+      "where is Murat?",
+      "where is Massena?",
+      "where is Soult?",
+      "where is Ney?",
+      "where is Archduke Charles?",
+      "where is Mack?",
+      "where is Archduke John?",
+      "where is Paget?",
+      "who is winning the war?",
+      "what borders Paris?",
+      "what borders Orleanais?",
+      "what borders Lorraine?",
+      "is Paris safe?",
+      "how many actions do I have left?",
+      "what orders are standing?"
+    ]
+  }
+}

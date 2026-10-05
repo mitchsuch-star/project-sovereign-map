@@ -1,0 +1,18 @@
+{
+  "name": "depth-c00-recon",
+  "seed": "historical",
+  "turns": {
+    "1": [
+      "help",
+      "status",
+      "who are we at war with?",
+      "where are my marshals?",
+      "where is the enemy?",
+      "where is Mack?",
+      "how is the treasury?",
+      "what does Austria want?",
+      "Talleyrand, assess our situation",
+      "what can I do"
+    ]
+  }
+}

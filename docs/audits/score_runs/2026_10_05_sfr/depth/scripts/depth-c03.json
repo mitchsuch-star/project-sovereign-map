@@ -1,0 +1,29 @@
+{
+  "name": "depth-c03",
+  "turns": {
+    "1": [
+      "where is Napoleon?",
+      "where is Massena?",
+      "where is Murat?",
+      "where is Teulie?",
+      "where is Archduke John?",
+      "is Milan safe?",
+      "what borders Franconia?",
+      "Napoleon, fall back to Swabia",
+      "Murat and Teulie, get to Milan and defend it",
+      "Davout, break camp and march on Franconia to attack Archduke Charles",
+      "recruit infantry in Rhineland",
+      "Talleyrand, offer Austria an armistice"
+    ],
+    "2": [
+      "what happened last turn?",
+      "where is Archduke Charles?",
+      "is Milan safe?",
+      "Soult, march to Milan and hold it",
+      "Massena, drill your men and rest them at Munich",
+      "Ney, support Davout",
+      "what does the Grand Quartier General do?"
+    ],
+    "3": []
+  }
+}

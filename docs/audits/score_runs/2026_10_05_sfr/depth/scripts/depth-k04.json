@@ -1,0 +1,22 @@
+{
+  "name": "depth-k04",
+  "turns": {
+    "1": [
+      "grant Soult a rente",
+      "sponsor Sardinia",
+      "Talleyrand, ask Spain to give back Provence",
+      "who could become our vassal?",
+      "how loyal is Soult?",
+      "who holds Lyonnais?",
+      "what happened last turn?"
+    ],
+    "2": [
+      "who are we at war with?",
+      "Ney, march to Lyonnais",
+      "Davout, march to Milan",
+      "propose vassalage to Hesse",
+      "what do I need for the Congress of Paris?"
+    ],
+    "3": []
+  }
+}

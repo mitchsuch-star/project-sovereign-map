@@ -8944,3 +8944,36 @@ SF-NAR-1 "Every morning has a front page" + SF-LB-3 "Europe arms in plain sight"
 - **The alarm has one name** (SF7-X48, `diplomatic_ledger.THE_ALARM_HAS_ONE_NAME`): `coalition.threat_tier_name(world, level)` — `get_threat_tier` with the player's own formed league and `brewing_gate` — is what the dispatch, the desk, the advisory and now the Balance of Europe tab print (`threat_name`, beside the tab's severity band, which still colours the bar and pulses at 80); the dispatch view and the terminal colour Brewing and Formed red.
 - **The frames' runner keeps a row's steps** (SF7-X49): a row naming a tab gets the tab switch first and its own steps after (`tools/iq10_run_captures.py` `build_spec`).
 - Levers down: each restores its pre-7b page or sentence byte for byte — CMD-H with every page lever down reproduces the Step 7 final reading's headlines and classes turn for turn (pinned, driven).
+
+## 95. THE SCORE FINISH — STEP 8, SF-R "the final reading" (October 5, 2026)
+
+The second full reading on the instrument of §§ Score Finish Step 0 (memo `docs/audits/SCORE_FINAL_2026_10_05.md`, authoritative; landing record `SCORE_FINISH_SPEC.md` §3 Step 8). The reading changes no game rule. What it added to the instrument:
+
+### 95.1 The live arm and command C6
+
+- **`OP-LIVE`** (`tools/score_run.py` `ARMS`): the opening arm on the live parser. It runs only on request — `score_run.py run --live`, or `--only OP-LIVE` — and only with a key: the environment's `ANTHROPIC_API_KEY`, else the instrument's gitignored `.env` (`_live_key`; never printed or recorded; a placeholder reads as none). A session exit never spends API calls. The arm passes `--llm anthropic` after the runner's default `--llm mock` (argparse keeps the last) and hands the key to its own driver process only.
+- **The driver records the parser** (`playtest_driver.THE_DIGEST_RECORDS_THE_LIVE_PARSER`): on a live run `meta.json` carries `parser` — the provider, the key's source and status from `GET /config/llm`, and the count of lines the model read — and a command record carries the response's `parser_notice` when the live road failed and fell back.
+- **Command C6** (`score_run.r_command_C6`) reads the same lines on `OP-LIVE` and `OP`: the lines the model read (a `parse_mode` other than mock) are compared head to head (the first 160 characters of the outcome) up to the first divergence the offline parser itself caused, or a text misalignment; classes `misreads` (live acted against what the offline line meant), `rescued` (live meant it where offline did not), `lost on both`, `unjudged` (after the boards part). It passes with ≤ 1 misread; with no line read by the model it passes only when the key was connected and no notice fired, else it reads unmeasured.
+
+### 95.2 The client arm's readers
+
+- **UI/UX F1, F2, C1 … C4** read the IQ-10 runner's machine record (`arms/CLI/result.json`): every shot's `script_errors`, `blank`, `buttons_offscreen`, `clipped_text` and `texts` (a raw key, `<null>` or `(s)` in any rendered string), the parse harness and the boot smoke, and the worst end turn's blocking modals from the commanded arms. `iq10_run_captures.py --png-dir` lands the frames beside the run, and `score_run.py packet` copies the frame index into the packet.
+- **C5 and C6 stay EYES**: the user's sign-off over named frames, and a five-turn Mode C session. Neither was marked for this reading.
+
+### 95.3 The suite arm runs as the hook runs it
+
+`score_run._run_suite` removes `PYTHONIOENCODING` from its pytest children and decodes their output with `errors="replace"` (SFR-I1): the `BASELINE_SERIES` pin decodes its own child's output in the console code page, and a UTF-8 environment broke it at setup. Every session exit since the baseline had skipped the arm.
+
+### 95.4 What the reading found about the instrument (filed, not fixed — SF-RR6)
+
+- **Unrendered text** (SFR-I2, SFR-I7): the digest's `enemy phase:` lines quote each action's `message` and the phase's `summary[]`, which the client never renders (`tools/_name_census.py` UNRENDERED_PATHS). Combat legibility C5 counts raw keys there — all of them, on both readings — and the depth campaign filed two rows from them.
+- **A copy change the reader missed** (SFR-I4): marshal drama C5 keys on "Marshal X's claim" and "turns without settlement on Marshal X"; the dispatch now names the man without the rank. The digest also does not record the dispatch's Unmet Marshals block.
+- **A war France is not in** (SFR-I5): AI aliveness C6's `_turns_at_war` opens France's war on any `diplomatic_war_declared` row.
+- **A drifted arm** (SFR-I6): the DL arm's fortify is refused for actions and its levy stands on foreign ground, so combat legibility C4 and economy C5 read a board the script did not mean.
+- **The capture's icons** (SFR-I3): the IQ-10 harness loads the SVG nav icons as non-null textures that draw nothing, so the compact top bar's frames show blank squares.
+
+The reading reports what the instrument built before it read; the corrected marks are in the memo's §3.3 and are not claimed.
+
+### 95.5 The panel's aggregation
+
+`tools/score_panel.py` is §4.5's last step: `eyes RUN` writes `eyes_panel.json`, the EYES marks two of the three scorers judged the same way (a "cannot judge" is no vote), provisional until the user marks them; `publish RUN` writes `panel.json`, each scorer's score as the rule's anchor (the low end in `scores.json`, read after `check --eyes`) plus its adjustment clamped to ±0.25, with the median, the spread and every flag. `score_run.py compare` reads `panel.json`. The final reading's panel was first assembled by a scratch script; the committed tool reproduces it byte for byte.

@@ -213,7 +213,8 @@ That is the new ruler, not a regression. Targets are stated as ceiling counts (�
 | **6** | The chest and the sea: SF-NAV-1 (+ SF-ECON-1 only if needed) | ≈0.7 (+1.0) | naval, economy |
 | **7** | What the wire says, the screen says: Chunk 9 + the user's eyes; **SF-CMD-2 "the census's remainder"** and **SF-DC-1 "Nothing unnamed"** (homed by Step 4's exit, October 3, 2026) | ≈2.0 + 1.5 + 1.0 | UI/UX (+ first contact, drama, command, living balance) |
 | **7b** | **The front page of the peace** (added Sept 28, 2026, the last build step before the re-score): every morning has a front page (SF-NAR-1) + Europe arms in plain sight (SF-LB-3 — renamed October 4, 2026 from "SF-LB-2", which the landed "The Defenceless Prize" carries) | ≈2.5 | narration, economy, living balance, the ending |
-| **8** | SF-R, the final reading | ≈1.0 | all |
+| **8** | SF-R, the final reading — ✅ **READ October 5, 2026** (memo `docs/audits/SCORE_FINAL_2026_10_05.md`: directional 6.71 → 7.50 over 13 of 14; 8 of 14 pillars at target; the done-when NOT met) | ≈1.0 | all |
+| **9** | **The residue of the final reading** (added October 5, 2026 by SF-R): SF-RR1 … RR6 — the 76 rows the reading filed that are this spec's, the P1 first | ≈4.0 | command, first contact, narration, diplomacy, AI aliveness, the instrument |
 | | **Total** | **≈28.5 (+1.0 if SF-ECON-1 is needed)** — SF-DC-1's ≈1.0 added at Step 4's exit; SF-CMD-2's ≈1.5 moved, not added | |
 
 **Why the total is larger than the ≈12 sessions the mandate carried for Chunks 6–9 and 3b:**
@@ -581,6 +582,32 @@ Order: RS-3 → SR-7a → SR-7b → SR-G7 (built as ruled) → SR-7c → RS-27 �
   - every pillar's item flips since the baseline;
   - the median and the spread;
   - the census.
+
+✅ **READ October 5, 2026** (the user's hand-off: *"then Step 8 (SF-R)"*; the user ran the client arm on their own machine with Godot parked off-screen, lent the key for the live arms, and chose to review the EYES marks later — *"Run it"*, *"Use the key"*, *"Panel marks; I review later"*). **Memo of record: `docs/audits/SCORE_FINAL_2026_10_05.md` (authoritative). Archive: `docs/audits/score_runs/2026_10_05_sfr/`. Rows: `BUG_FIXES.md` §Score Finish Step 8 (SFR-H1 … H14, D1 … D44, B1 … B15, I1 … I7) + `DESIGN_REFINEMENT.md` SFR-DR1. Rules: `SYSTEMS_REFERENCE.md` §95.**
+- **The reading** (the frozen instrument, checklist v1, tree `0f5e8d84`): **directional 6.71 → 7.50 over 13 of 14** (UI/UX exercised for the first time; marshal drama no longer — 5 items measured, F1 red); like for like over the 12 pillars both readings exercise, **6.69 → 7.50**; ceilings **40 → 58** of 84. **At target: 8 of 14** — the ending, diplomacy, first contact, economy, naval, living balance, vassals, UI/UX. Short: combat legibility (3 of 4), marshal drama (not exercised; F1 red), command (**capped at 6.00 by SFR-D11**, a P1 the reading verified at the wire — its items read 8.00), narration (4 of 5), AI aliveness (3 of 5, down from 6), agendas (5 of 6).
+- **The panel**, three blind scorers: medians moved past the spread on nine pillars up and two down (command by the cap, AI aliveness); economy held. The EYES marks are the panel's, two of three agreeing, **provisional — the user's own marks override them**.
+- **Every fall explained** (the memo's §3.2): economy C1 and marshal drama F1/C1 are §6 row 22's measured cost; AI aliveness C5 is §6 row 18; AI aliveness C1 is SFR-B14 (an AI court lets laws lapse rather than repeal); AI aliveness C6 is SFR-DR1 (the league declares and rarely strikes — the user's, after a probe) with SFR-I5's reader defect; marshal drama C5 is the instrument (SFR-I4).
+- **The instrument as built, its three wrong readers named:** SFR-I4 (drama C5 keys on "Marshal X's claim"), SFR-I5 (AI C6 counts any court's declaration as France's war), SFR-I7 (combat C5 counts raw keys in the enemy-phase text the client never renders — corrected, combat legibility reaches its target); SFR-I6 the DL arm's drifted staging. The corrected marks are in the memo's §3.3 and are not claimed.
+- **HOLD, fresh and blind, both trees:** `c20d5bba` 6 of 20 orders as meant and 14 question shrugs; the final tree 11 of 20 and 2. Neither executed a line the player did not mean.
+- **The findings rate:** the depth campaign (26 turns, 16 keyed + 10 keyless, played by an agent through the driver) filed 43 rows, **16.5 per 10 turns** (turns 1–10: 27.0; 11–20: 11.0; 21+: 8.3); the driver arms 34 over 808 turns. Beside the score, never subtracted.
+- **The census:** defect **77 OPEN** (1 P1 · 30 P2 · 39 P3 · 7 P4), design 2 OPEN (both the user's). Every row carries a tag and an owner: Step 9 (76), ROADMAP 13 (SFR-B3, the Imperial Peace's morning).
+- **The instrument's last additions** (pins `tests/test_score_finish_step8.py`, 41; sweep `tools/_sweep_sfr.json`, 20 → 20 killed): `tools/score_panel.py` (the panel's EYES majority and its published median and spread — §4.5's last step, now in the instrument), the `OP-LIVE` arm (`--live`, the key from the environment, never logged), command C6 (live against offline, line by line, boards parted at the first offline-read divergence), the UI/UX readers over the client arm's machine record, the driver's `parser_notice` record, the SUITE arm run as the hook runs it (SFR-I1).
+- **The done-when (§7): NOT met** — items 1, 3 and 6 fail (77 open rows; six pillars short; §6 rows 18 and 22 unanswered); items 2, 4 and 5 hold.
+
+### Step 9 — the residue of the final reading (≈4.0; added October 5, 2026 by SF-R)
+
+The rows the final reading filed, homed here under GR9. **The reading stands as measured; no slice re-scores it.** Each slice's session exit re-reads the AUTO items it touched with `score_run.py check` and reports item flips (§5). Order: the P1 first, then by the pillars short of target.
+
+| Slice | Rows | Done when | Test |
+|---|---|---|---|
+| **SF-RR1 "the orders the reading met"** (≈1.0) | **SFR-D11 (P1) first**; SFR-H1 … H3, H5 … H7, H13; D7 … D10, D20, D24, D25, D37, D38, D41 | Every row's pin flips with its lever; the HOLD arm re-read on the slice's tree reads command C3 ≥ 15 of 20 with no misread; D11's march names the province the player typed. | `tests/test_sf_rr1_the_orders_the_reading_met.py` |
+| **SF-RR2 "the desk answers what was asked"** (≈0.7) | SFR-H4, H8 … H12, H14; D1, D2, D16, D19, D26, D40, D42 | The HOLD's question shrugs ≤ 1 of 20 and no wrong answer on its re-read; each desk row pinned through `POST /command`. | `tests/test_sf_rr2_the_desk_answers.py` |
+| **SF-RR3 "the page and the copy"** (≈0.8) | SFR-D14, D15, D17, D21, D27, D30, D32, D33, D36, D43, D44; B4, B6, B7, B8, B9, B12, B13, B15 | Every row's pin flips with its lever; narration C6's sampled dispatches lead with their turn's biggest event on the CMD arms (the panel's re-read). | `tests/test_sf_rr3_the_page_and_the_copy.py` |
+| **SF-RR4 "war, truce and the standing order"** (≈1.0) | **SFR-DR1's probe first** (the user rules after it); D3 … D6, D18, D22, D23, D28, D29, D31, D34, D35, D39; B1, B2, B5, B14 | Every row's pin flips with its lever; AI aliveness C1 reads 0 lapses on the CMD arms; DR1 ruled and built, or re-worded by the user. | `tests/test_sf_rr4_war_truce_and_the_standing_order.py` |
+| **SF-RR5 "the frames at both scales"** (≈0.3) | SFR-B10, B11; the agendas C6 re-shoot | The diorama and the 2.0 decision modals re-shot clean; the user's eye on the re-shot frames. | `tests/test_sf_rr5_the_frames.py` + the IQ-10 frames |
+| **SF-RR6 "the instrument reads what the player sees"** (≈0.4) | SFR-I2 … I7 | The digest marks or drops the unrendered enemy-phase text; drama C5, AI C6 and combat C5 read what the player sees; the DL arm stages its preconditions and flags SCRIPT PRECONDITION; both archives (the baseline's and the final's) re-read with the corrected readers and the deltas published. | `tests/test_sf_rr6_the_instrument.py` |
+
+**Outside this step:** SFR-B3 (the Imperial Peace and a new coalition on the same morning) is ROADMAP 13's (VP-2 "The Ending"), with its completion and pin on the row. SFR-DR1's ruling is the user's.
 
 ---
 
@@ -1053,6 +1080,8 @@ The user's Step 5 direction: *"A court that first stands at its design-ask rung 
 4. **The panel is published:** its median and spread. A move smaller than the spread is not claimed.
 5. **A played road reaches the Congress**, and the sitting either holds to THE IMPERIAL PEACE or dissolves only for a cause the player can see (SF-END-1, and the CONG arm).
 6. **The §6 rulings are answered:** built, struck, or re-homed.
+
+**At SF-R (October 5, 2026): NOT met** — items 1, 3 and 6 fail (77 open rows, all owned by Step 9 and ROADMAP 13; 8 of 14 pillars at target; §6 rows 18 and 22 unanswered); items 2, 4 and 5 hold. Per pillar, the residue and its owner: `docs/audits/SCORE_FINAL_2026_10_05.md` §7.
 
 ---
 

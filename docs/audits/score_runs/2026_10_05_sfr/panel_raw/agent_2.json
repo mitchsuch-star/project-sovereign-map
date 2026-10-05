@@ -1,0 +1,144 @@
+{
+ "ending": {
+  "anchor": 7.5,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "frames/IQ10_CAMPAIGN_END_IMPERIAL_CONGRESS_2026_10_05.png: the Imperial Peace lands as a real climax (Britain, Russia, Austria, Prussia SIGNED; all eight sitting days held), and the Verdict and the Congress dissolution (CONG: 'a titled province fell (Moravia, Carniola taken)') name their causes; the reach misses (C4/C5) are already in the anchor",
+  "flag": "digests/PRESS.md:214 — the same morning the Imperial Peace is proclaimed ('Europe accepts the order of the French Empire'), Ottoman, Sweden and Sardinia declare war and 'A coalition has formed against France!'; a human should judge whether that undercuts the climax. On the staged boards THE RECORD reads 'No battle was fought' / 'battles 0'."
+ },
+ "diplomacy": {
+  "anchor": 8.5,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/DL.md:95 — 'request terms from Austria' is answered honestly: 'Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 21 of 80; at most 8 turns…)'; refusals across PROP/VOLTE explain themselves, so feel matches the anchor",
+  "flag": "Log noise every turn ('26 approaches from Prussia, Bavaria and Austria are rebuffed (open borders agreement)', CMD-H t2), and 'The allegiance of Sardinia is in play' recurs every ~4 turns on CMD-A/CMD-M/CMD-H with no visible outcome."
+ },
+ "first_contact": {
+  "anchor": 8.0,
+  "adjust": -0.25,
+  "eyes": {
+   "C2": {
+    "pass": false,
+    "cite": "digests/HOLD.md:17 — 'How many turns would it take Davout to march from Rhineland to Lorraine?' → 'No lawful road runs from Rhineland to Rhineland for Davout, Sire.' (wrong destination, and it denies a road that exists: on the same boot FC's 'what can I do' offers 'Davout, march to Lorraine' as an order carried out today)"
+   }
+  },
+  "cite": "digests/HOLD.md:14 — 'Berthier, which of my marshals can get at Mack soonest?' → 'Mack stands at Swabia, Sire — large force; his works and stance are not in view.' — about a third of HOLD's natural questions are answered sideways or shrugged, though FC's scripted first ten minutes read very well",
+  "flag": "HOLD:10 the '44% of ours — does that count the Russians?' question gets only Russia's whereabouts; HOLD:29 'What happens if I order Davout to fortify in the Rhineland?' → 'Davout already stands at Rhineland, Sire.'"
+ },
+ "economy": {
+  "anchor": 7.0,
+  "adjust": -0.25,
+  "eyes": {},
+  "cite": "digests/CONG.md:272 — 'the levy has stood open 21 turns. 150 gold puts 10,000 foot in the line at Paris…' beside a 31,711-gold chest (CONG:268); all three CMD seeds end turn 40 on 64,526 / 55,460 / 73,048 gold — the purse stops binding late",
+  "flag": "The ledger itself is very legible (cession quotes like 'Our net falls by 15g a turn — 100g of income forfeited…'); the question is whether any purchase still forces a choice after turn ~20."
+ },
+ "naval": {
+  "anchor": 7.5,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": true,
+    "cite": "frames/IQ10_LEDGER_T20_ADMIRALTY_X2_2026_10_05.png: fleet, posture, yards, the priced orders (blockade, the Grand Diversion's odds and window, keels at 400g) and the expedition's next steps all legible at 2.0 on a played board, no raw tag; the boot Admiralty tab and the top-bar chip ('⚓ 45 sail · BLOCKADED' / '⚓ 45!') read correctly at both scales"
+   }
+  },
+  "cite": "digests/SEA.md:198 — the expedition quote names its odds (65 in 100), the cost of failure and the lever ('10 more sail (4,000g) → 68') — strong, offset by 'TRAFALGAR' naming two fleet actions on consecutive turns (SEA:186, SEA:218)",
+  "flag": "The top-bar Admiralty chip is gold-bordered (207,159,50) at both scales where the frame index calls for crimson under the blockade; at 2.0 that same frame's six nav buttons are blank (scored under UI/UX). DESC t6 led the dispatch with a client general's capture while 22 French sail were lost (DESC:136/138)."
+ },
+ "living_balance": {
+  "anchor": 8.5,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/CMD-A.md:569 — 'Europe has watched us 21 quiet turns. At this pace the courts consult on turn 29 and declare on turn 32…', and Britain declares at the end of turn 31 (CMD-A:655): the forecast keeps its word, and AI-vs-AI wars run meanwhile",
+  "flag": "Long quiet stretches (~15 turns of countdown headlines with 0 enemy attacks) on every CMD seed before the next league."
+ },
+ "combat_legibility": {
+  "anchor": 6.5,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": true,
+    "cite": "frames/IQ10_DIORAMA_DADJ_X2_2026_10_05.png: order of battle with each corps' own before→after (Ney 20,000→15,471; Davout 30,000→27,962 'marched to the guns'; Moore 60,000→56,288), side totals that sum (6,567 / 3,712), the faith note and Berthier's verdict; same in AADJ, nothing clipped at either scale"
+   }
+  },
+  "cite": "digests/DL.md:9 — the contact interrupt calls Ney's attack 'Odds unfavorable … 85,373 with the muster committed' while the muster printed with the attack says 'expect about 108,125 … the balance of force looks favorable': vivid reports, but two odds statements for one attack — net no adjustment",
+  "flag": "In both diorama frames at both scales Davout's tricolour standard is drawn over Ney's portrait locket, the Close button overlaps the corner filigree, and the 'Faith spent…' line is tiny crimson italic; IQ10_ENEMY_PHASE_IQ5 shows '- unknown' as the action label (staged one-action wrapper); raw keys ('ArchdukeJohn assaults the Milan garrison!') still appear in enemy-phase lines."
+ },
+ "marshal_drama": {
+  "anchor": null,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "frames/IQ10_PETITION_COMMAND_CLOSED_2026_10_05.png is the only marshal-petition body in the packet (Murat: 'Sire — I have earned better than to watch Ney take the field while I hold a road.'); the digests carry only titles ('Marshal Murat seeks an audience → acknowledge'), so five petitions cannot be sampled"
+   }
+  },
+  "cite": "scores.json: marshal_drama is NOT EXERCISED — there is no anchor to adjust",
+  "flag": "IQ10_PETITION_COMMAND_CLOSED: the 'Let it stand [Free]' line reads 'For 0 more turns he brings NONE of his 22,000 men to any battle Ney leads' (a zero-turn penalty stated as a threat); at 2.0 the four choices sit below a scroll fold. OP shows 6 petition modals against 2 audiences (C1)."
+ },
+ "vassals": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": true,
+    "cite": "frames/IQ10_DIPLO_BOOT_VASSALS_X2_2026_10_05.png: display names (Kingdom of Italy, no raw tag), loyalty bar and trend, tribute, standing, bond, the garrison remedy and priced chips (Loosen/Tighten Rein, Release — 1 DP) all legible at 2.0; the t20 and petition-granted frames show Invest at 200g·1 DP and 'relief running, 8 collections'"
+   }
+  },
+  "cite": "digests/CMDR-H.md:143 — 'Switzerland's petition for relief is refused: loyalty −10 (82 → 72); bond 0 → -20 (-1 a turn). Nothing is charged.' — consequences are exact; the slide below 40 without a named remedy is already scored (C4)",
+  "flag": "diplo_boot_vassals' must_show asks for a Cabinet block reading Talleyrand idle that the Vassals tab does not carry (stale must_show?); a remitted client reads 'Tribute: +0g/turn (75% of their income)'."
+ },
+ "ui_ux": {
+  "anchor": 7.5,
+  "adjust": -0.25,
+  "eyes": {
+   "C5": {
+    "pass": null,
+    "cite": "the user's own sign-off — not the panel's to give"
+   },
+   "C6": {
+    "pass": null,
+    "cite": "needs a live 5-turn Mode C session with hotkeys; none is in the packet"
+   }
+  },
+  "cite": "frames/IQ10_TOP_BAR_BOOT_X2_2026_10_05.png — at Interface Scale 2.0 the six nav buttons render as blank boxes, no icon and no letter (same in TOP_BAR_ADMIRALTY_X2 and TOP_BAR_MISSION_COURT_X2)",
+  "flag": "Check the compact top bar live at 2.0; the settings gear is pure black (0,0,0) on navy at 1.0 and nearly invisible; the Proclamation and the marshal petition push their terms/choices below a scroll fold at 2.0."
+ },
+ "command": {
+  "anchor": 8.0,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/OP.md:19 — 'Marshal Ney, you have the honour of the first blow. Fall upon Mack at Ulm before the Russians can reach him…' lands as the attack with its muster; free prose reads well, and HOLD's misses are already scored (C3)",
+  "flag": "HOLD:70 'Please pass the Staff law' → 'There is no Marshal 'Staff' in the order of battle, Sire. Whom did you intend?' with a clarification offering Soult; TYPED 'why did that fail' after a refused order gets a shrug."
+ },
+ "narration": {
+  "anchor": 7.5,
+  "adjust": -0.25,
+  "eyes": {
+   "C6": {
+    "pass": false,
+    "cite": "digests/CMD-H.md:566 — turn 27 leads 'Lannes's claim is 21 turns in arrears…' while that same turn France is drawn into Austria's war on Bavaria (CMD-H:568 'France enters the war against Austria via its alliance with Bavaria'); in a 10-turn sample of CMD-H (t1,5,7,10,14,20,27,30,34,40) about 4 lead with something smaller than the turn's biggest event (CMD-A t5 likewise leads 'Ney… driven back' the turn the Kingdom of Italy is eliminated)"
+   }
+  },
+  "cite": "digests/PROP-H.md:291 — the morning after a peace that ceded six French provinces and 4,428 gold, the headline is 'the Emperor's star rises. The Presence stands at +8% this morning…'",
+  "flag": "Standing headlines repeat turn after turn ('the enemy has stood on our ground 4/5/6 turns', 'Lannes's claim is N turns in arrears', 'Ney, crowned N turns ago, has been beaten'); a second 'TRAFALGAR' a turn after the first (SEA:218)."
+ },
+ "ai_aliveness": {
+  "anchor": 7.0,
+  "adjust": 0,
+  "eyes": {},
+  "cite": "digests/CMD-H.md:134 — 'THE BREWING CRISIS: Prussia will move on Hanover. You may compensate (1,200g…); guarantee Hanover (1 DP…)', and two turns later Prussia declares (CMD-H:187): AI-vs-AI life is visible and priced; the ceiling misses (laws lapses, dithering, attack rate) are already in the anchor",
+  "flag": "'The allegiance of Sardinia is in play — every court with gold or standing now bids for the flip' recurs about every 4 turns with no visible outcome; Archduke Charles' fortify/unfortify dithering (C5)."
+ },
+ "agendas": {
+  "anchor": 8.0,
+  "adjust": 0,
+  "eyes": {
+   "C6": {
+    "pass": null,
+    "cite": "frames/IQ10_WIZARD_FORMABLES_ENTRY_2026_10_05.png is stuck on 'Loading...' at both scales — no nation list and no Formable Nations entry (the list needs a live backend); the Proclamation (Warsaw) and step-3 formables frames themselves read clean"
+   }
+  },
+  "cite": "digests/CMD-H.md:357 — 'Russia has declared war on Sweden. The stated cause: The Gulf and the Straits.' — designs visibly drive wars, revanche and the COURTS beats; feel matches the anchor",
+  "flag": "Re-shoot IQ10_WIZARD_FORMABLES_ENTRY (the fresh-boot IQ10_WIZARD_STEP1 frame does show 'Formable Nations — states that could yet exist' enabled); the ladder phrase 'prepared now to go as far as service to the strong' is opaque; the Proclamation at 2.0 drops its terms and 'By your hand.' below a scroll fold."
+ }
+}

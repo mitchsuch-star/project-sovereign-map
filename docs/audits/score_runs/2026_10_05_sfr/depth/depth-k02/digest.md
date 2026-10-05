@@ -1,0 +1,127 @@
+# Playtest digest — depth-k02
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "insist", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "settlement": "decline"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 19 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `0f5e8d843185` (dirty) · content `423b7f09867a` · driver `37f9f712f284`
+  - loaded save `depth-k01_t3.json` → Loaded: depth-k01_t3
+
+## Turn 19 — Late June 1806
+- CMD `who are we at war with?` → ✓ Under truce: Britain and Russia. Each war is on the war banner on the left (click the war); every court's design in the Diplomatic Ledger (press D).
+- CMD `where is Murat?` → ✓ Marshal Murat stands at Piedmont with 6,896 men (morale 21).
+- CMD `Murat, move to Lyonnais` → ✓ Murat moves from Piedmont to Lyonnais (68 lost to march)
+- CMD `Napoleon, march to Paris` → ✓ Napoleon begins march to Paris. Route: Nivernais → Burgundy → Limousin → Paris. Moves to Nivernais. (1 AP — the Emperor commands in his own name.)
+- CMD `Massena, drill` → ✓ Massena begins intensive drill exercises at Lyonnais. Troops will be locked in training next turn, bonus ready turn 21.
+- CMD `how loyal are my marshals?` → ✓ Berthier sets down his pen. "I cannot answer that from the dispatches, Sire."
+- CMD `build a market in Paris` → ✓ Construction started: Market in Paris (2 turns, 350 gold)
+- CMD `Lanes, march to Paris` → ✓ Lannes begins march to Paris. Route: Orleanais → Burgundy → Limousin → Paris. Moves to Orleanais. Lannes: "At the double, Sire — the men will smell powder soon enough."
+- CMD `end turn` → ✓ Turn 19 ended. Turn 20 begins!
+- SPENT 350g on this turn's orders
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- ORDER Davout [continues]: Davout fortifies Franche-Comte.
+- ORDER Lannes [active]: Lannes is marching to Paris (3 turns remaining).
+- ORDER Napoleon [active]: Napoleon is marching to Paris (3 turns remaining).
+- ORDER Ney [completed]: Ney arrives at Provence. Ney: "It is done. Point me at something that shoots back, Sire."
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Bernadotte seeks an audience → acknowledge
+  -     ↳ Bernadotte's grievance runs its course.
+  - POPUP diplomatic_dialogue: Holland, client_petition #34 → grant the petition
+  - POPUP proposal_result: Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +10 (83 → 93); bond 0 → 20 (+1 a turn). Cost: 1 DP. → display-only
+- ENVOYS WAITING 1 · Holland client petition
+- LEDGER treasury 7062 · net +1323 · threat 46 · provinces 28 · ceiling 37957 · army 133655 · vassals Holland 93 · Switzerland 86
+  - NET income 2607 · trade 598 · admin 50 · upkeep 1036 · charges 216 · occupation 30 · laws 650
+- MISSION Improving Relations — Russia · net +11 a turn · ≈25 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — the war with Britain is over. Murat holds under your own orders and was not moved — the treaty offers a road, it does not overrule the Emperor. Their passage lapses with the corridor.
+  - RAIL armistice_ratified: A truce with Britain: the fighting stops for 5 turns — peace if relations heal to -60 or better, else the war resumes.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - RAIL strait_open: THE STRAIT: the Cagliari–Corsica crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Corsica–Piedmont crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the London–Normandy crossing stands open to our armies.
+  - TURN EVENTS 9
+- COURTS: The court of Britain eases over The Low Countries — service to the strong is now the length of its tether.
+- COURTS: The court of Austria eases over Redeem Italy — alliance is now the length of its tether.
+- DIPLO +8 medium/low (diplomatic_treaty_signed, diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_vassal_contingent, paymaster_subsidy, blockade_broken ×2, diplomatic_relation_shift)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG ai_ai_proposal_refused: 14 approaches from Britain and Austria are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Sardinia (design ask)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Austria against France (400g/turn)
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Britain against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Austria lapses
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG third_party_peace: THE CONGRESS: Britain and Spain make peace without France
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (400g/turn)
+  - LOG ai_ai_proposal_refused: Sardinia rebuffs Austria (defensive alliance)
+  - LOG sponsorship_expired: The compact between Britain and Sardinia lapses
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (400g/turn)
+  - LOG ai_ai_proposal_refused: 7 courts rebuff Austria (defensive alliance)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Sardinia (design ask)
+  - LOG third_party_peace: THE CONGRESS: Hanover and Prussia make peace without France
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG design_promoted: REVANCHE: Bavaria swears to retake Franconia and 1 more — Austria is not forgiven
+  - LOG nation_eliminated: Bavaria has been eliminated from the war.
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Britain sponsors Russia against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+  - LOG design_promoted: REVANCHE: Hanover swears to retake Brunswick and 2 more — Prussia is not forgiven
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+  - LOG sponsorship_granted: Russia sponsors Britain against France (200g/turn)
+
+## Turn 20 — Early July 1806
+- CMD `where is Murat?` → ✓ Marshal Murat stands at Lyonnais with 6,624 men (morale 21).
+- CMD `is Murat safe from internment?` → ✓ Berthier sets down his pen. "I cannot answer that from the dispatches, Sire."
+- CMD `Soult, attak Wellesley` → ✗ Cannot attack Wellesley — armistice with Britain (4 turns remaining).
+- CMD `Davout, unfortify and stand ready` → ✓ Davout efficiently breaks camp. (Free Unfortify: no action cost) Army is now mobile.
+- CMD `grant Ney an estate` → ✗ We hold no eligible province, Sire. An estate must stand on conquered soil — non-capital, outside the homeland, and not already endowed.
+- CMD `what happened last turn?` → ✓ This morning's dispatch leads with: Sire — the war with Britain is over. Murat holds under your own orders and was not moved — the treaty offers a road, it does not over…
+- CMD `end turn` → ✓ Turn 20 ended. (Warning: 5 actions unused) Turn 21 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 6 other courts stirred, but their formations remain beyond our sight.
+- ORDER Davout [continues]: Davout fortifies Franche-Comte.
+- ORDER Lannes [continues]: Lannes marches to Burgundy. 2 regions to Paris.
+- ORDER Napoleon [continues]: Napoleon marches to Burgundy. 2 regions to Paris.
+- LEDGER treasury 8594 · net +1512 · threat 45 · provinces 28 (+0) · ceiling 126687 · army 132411 · vassals Holland 92 · Switzerland 86
+  - NET income 2700 · trade 598 · admin 50 · upkeep 1032 · charges 84 · occupation 30 · infrastructure 40 · laws 650
+- MISSION Improving Relations — Russia · net +11 a turn · ≈24 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — Sardinia and Prussia have signed the Defensive Alliance.
+  - TURN EVENTS 7
+- DIPLO +10 medium/low (law_enacted_abroad ×2, doctrine_cured_abroad ×2, diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_auto_downgrade, paymaster_subsidy, diplomatic_ai_ai_treaty, diplomatic_relation_shift)
+  - LOG auto_downgrade: Relations auto-downgraded: Austria–Russia (ALLIANCE → DEFENSIVE ALLIANCE)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG diplomatic_ai_ai_treaty: Sardinia and Prussia sign a Defensive Alliance
+  - LOG ai_ai_proposal_refused: Sardinia rebuffs Austria (defensive alliance)
+
+## Turn 21 — Late July 1806
+  - saved `depth-k02_t3` → Game saved: depth-k02_t3
+- CMD `end turn` → ✓ Turn 21 ended. (Warning: 5 actions unused) Turn 22 begins!
+- enemy phase: 2 actions, 0 attacks — Russia, Prussia, Spain and 4 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: drill×1, wait×1
+- ORDER Davout [continues]: Davout fortifies Franche-Comte.
+- ORDER Lannes [continues]: Lannes marches to Limousin. 1 region to Paris.
+- ORDER Napoleon [continues]: Napoleon marches to Limousin. 1 region to Paris.
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Soult seeks an audience → acknowledge
+  -     ↳ Soult's grievance runs its course.
+- LEDGER treasury 10141 · net +1527 · threat 24 · provinces 28 (+0) · ceiling 129421 · army 130920 · vassals Holland 91 · Switzerland 86
+  - NET income 2707 · trade 610 · admin 50 · upkeep 1016 · charges 104 · occupation 30 · infrastructure 40 · laws 650
+- MISSION Improving Relations — Russia · net +9 a turn · ≈18 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — peace with Russia is signed. The truce has ripened into peace.
+  - RAIL diplomatic_armistice_expired_peace: The armistice between France and Russia has concluded. Peace declared.
+  - RAIL allegiance_in_play: The allegiance of Sardinia is in play — every court with gold or standing now bids for the flip.
+  - TURN EVENTS 6
+- DIPLO +7 medium/low (law_enacted_abroad, doctrine_cured_abroad, diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_coalition_dissolved, agenda_shift, diplomatic_relation_shift)
+  - LOG coalition_member_left: Russia has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 45 to 22.
+
+---
+finished: **completed** · commands 17 · popups 4 · battles 0

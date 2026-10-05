@@ -1,0 +1,40 @@
+{
+ "method": "SCORE_FINISH_SPEC.md §4.4 — new rows per 10 turns played, by severity, hand vs driver, by depth band; reported beside the scores, never subtracted.",
+ "hand": {
+  "campaign": "SF-R depth campaign — 26 turns of France/1805 hand-played over HTTP in chunks (turns 1–16 with the live parser, 17–26 keyless); report verbatim in docs/audits/SFR_DEPTH_CAMPAIGN_2026_10_05.md",
+  "turns_played": 26,
+  "keyed_turns": 16,
+  "keyless_turns": 10,
+  "rows_filed": 43,
+  "by_severity": {
+   "P2": 25,
+   "P3": 16,
+   "P1": 1,
+   "P4": 1
+  },
+  "by_depth_band": {
+   "1-10": 27,
+   "11-20": 11,
+   "21+": 5
+  },
+  "per_10_turns": 16.5,
+  "per_10_turns_by_band": {
+   "1-10": 27.0,
+   "11-20": 11.0,
+   "21+": 8.3
+  },
+  "note": "SFR-D12 and D13 counted once, as the instrument row SFR-I2 they were folded into."
+ },
+ "driver": {
+  "rows_filed": 34,
+  "by_severity": {
+   "P2": 5,
+   "P3": 23,
+   "P4": 6
+  },
+  "sources": "the fresh blind HOLD (SFR-H1 … H14); the blind panel's verified flags on the reading's arms and frames (SFR-B1 … B13); the reading's own items (SFR-B14, B15, SFR-I4 … I7); the capture (SFR-I3)",
+  "note": "the 41 arms of the final reading on 0f5e8d84 played 808 turns between them (the c20d5bba re-read's three arms not counted); the arms are a benchmark, not a defect hunt, so their rate is not comparable to the hand rate",
+  "turns_played": 808,
+  "per_10_turns": 0.42
+ }
+}

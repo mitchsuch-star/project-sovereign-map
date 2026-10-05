@@ -1,0 +1,25 @@
+{
+  "name": "depth-c01",
+  "seed": "historical",
+  "turns": {
+    "1": [
+      "Massena, dig in at Milan and hold the line",
+      "Davout, attack Mack at Swabia",
+      "Soult, attack Mack as well",
+      "Ney, attack Mack if he is still standing",
+      "what does Prussia want?",
+      "Talleyrand, improve relations with Prussia",
+      "enact the Anticipated Class"
+    ],
+    "2": [
+      "what happened at Swabia?",
+      "where is Mack now?",
+      "Murat, pursue Mack",
+      "Lannes, march to Swabia",
+      "Napoleon, march to Swabia and take command there",
+      "Bernadotte, scout Munich",
+      "how is the treasury?"
+    ],
+    "3": []
+  }
+}

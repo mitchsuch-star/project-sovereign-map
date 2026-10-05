@@ -1,0 +1,26 @@
+{
+  "name": "depth-c07",
+  "turns": {
+    "1": [
+      "where is Augereau?",
+      "where is Paget?",
+      "Augereau, recruit infantry",
+      "Augereau, attack Paget",
+      "Davout, unfortify",
+      "Davout, move to Swabia",
+      "Soult, unfortify",
+      "Soult, march to Lyonnais and throw Wellesley out",
+      "grant Davout a pension",
+      "what are our relations with Austria?"
+    ],
+    "2": [
+      "Napoleon, drill",
+      "Massena, drill",
+      "Murat, drill",
+      "Lannes, move to Swabia",
+      "Talleyrand, improve relations with Austria",
+      "where is Paget?"
+    ],
+    "3": []
+  }
+}

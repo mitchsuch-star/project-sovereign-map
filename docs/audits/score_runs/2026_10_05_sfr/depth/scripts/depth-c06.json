@@ -1,0 +1,24 @@
+{
+  "name": "depth-c06",
+  "policy": {"interrupt": "continue"},
+  "turns": {
+    "1": [
+      "who can I commission as a new marshal?",
+      "commission Augereau",
+      "Napoleon, drill",
+      "Ney, march to Gascony and drive Paget out",
+      "Lannes, unfortify and march on Bohemia",
+      "who deserves a reward?",
+      "how is Murat's morale?"
+    ],
+    "2": [
+      "what orders are standing?",
+      "where is Wellesley?",
+      "Massena, drill",
+      "Murat, drill",
+      "what does the Train des Equipages do?",
+      "Talleyrand, propose a white peace to Britain"
+    ],
+    "3": []
+  }
+}

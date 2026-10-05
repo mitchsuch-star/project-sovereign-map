@@ -6,6 +6,12 @@
 
 ---
 
+## Score Finish Step 8 — the final reading's design items (SFR-DR) — filed October 5, 2026 (**1 row, OPEN with the user** — memo `docs/audits/SCORE_FINAL_2026_10_05.md`; defects `BUG_FIXES.md` §Score Finish Step 8)
+
+| Row | Item | Recommendation | Owner |
+|---|---|---|---|
+| **SFR-DR1** | **The league declares and rarely strikes.** On the final reading's CMD-A arm the next league (Britain, Russia, Austria, Hanover, Sardinia, Sweden) declares at turn 31 and then attacks on 1 of its 10 turns: enemy phases of 1–3 actions and 0 attacks, "their formations remain beyond our sight", while France's Net runs −985 to −1,177 a turn at war. AI aliveness C6 (visible attacks on ≥ 50% of the turns at war) reads 5/19 there, so the item fails with or without SFR-I5's reader correction (CMD-H 8/10 and CMD-M 11/17 pass under it). At the baseline the only war was the opening one and the item read 5/9, 8/10, 7/10. The league's armies are not measured on the arm (fog); which gate holds them — AI-3r's rear-security reserve, the doctrines' slow concentration, or the targets out of reach — is not yet known. | **Recommendation, not applied:** read it first — one probe on the CMD-A save at turn 31 naming, per league court, the rung each corps chose and the restraint that held it (`war_council._restraint_block_reason`, the AI's own reasons), then rule between (a) the league marches on what it declared (the restraint reads the league's combined strength, not each court's alone), (b) the league is a threat that holds France's corps at home and the item is re-worded (a war is alive when France must answer it, not when it is struck), or (c) a beat that says the league has not marched and why. Rejected: tuning any AI aggression constant before the probe (the user's rule — do not tune). | **the user**, after the probe; the probe is SF-RR4's first task (`SCORE_FINISH_SPEC.md` §3 Step 9). Done-when: the ruling built and AI aliveness C6 re-read on the CMD arms, or the item re-worded by the user and the baseline re-read under it; test `tests/test_sf_rr4_the_league_strikes.py`; STATUS line: Step 9's. ⟨SF step=9 · SF-RR4 · pillar=ai_aliveness⟩ |
+
 ## Score Mandate rulings — September 26, 2026 (evening) (**ALL RULED by the user; build contracts = `docs/SCORE_MANDATE_PLAN.md`**)
 
 | Row | Ruling | Lands | Owner |

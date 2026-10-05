@@ -1,0 +1,129 @@
+pillar               reading     meas ceil✓ ceil✗  floors  P1
+The ending           7.50           8     4     2     2/2  -
+Diplomacy            8.50           8     6     0     2/2  -
+First contact        8.00           8     5     1     2/2  -
+Economy              7.00           8     3     3     2/2  -
+Naval                7.50–8.00      7     4     1     2/2  -
+Living balance       8.50           8     6     0     2/2  -
+Combat legibility    7.00–7.50      7     3     2     2/2  -
+Marshal drama        NOT EXERCISED    5     2     1     1/2  -
+Vassals              7.50–8.00      7     4     1     2/2  -
+UI/UX                7.50–8.50      6     4     0     2/2  -
+Command & parsing    6.00           8     5     1     2/2  SFR-D11
+Narration            7.50–8.00      7     4     1     2/2  -
+AI aliveness         7.00           8     3     3     2/2  -
+Agendas & formables  8.00           8     5     1     2/2  -
+
+directional 7.5 over 13/14
+  ending             F1 ✓ THE IMPERIAL PEACE at turn 36 (status ending-reached)
+  ending             F2 ✓ Verdict at turn 44: - ENDING — THE VERDICT OF HISTORY: The reign, unfinished, is judged as it stands. [THE ECL
+  ending             C1 ✓ dissolved for a named cause at turn 28: - CONGRESS THE CONGRESS OF PARIS — dissolved on turn 28 — a titled pro
+  ending             C2 ✓ summons: The Emperor summons the powers of Europe to Paris. The Congress sits for 8 turns, to the end of turn 
+  ending             C3 ✓ the table forecasts a net of +1 a turn ('rising 1 a turn: our bloc's weight in Europe +3, the designs we deny 
+  ending             C4 ✗ titled at turn 40: {'CMD-H': 34, 'CMD-A': 33, 'CMD-M': 33}
+  ending             C5 ✗ best road CMD-H = 34; all {'CMD-H': 34, 'CMD-A': 33, 'CMD-M': 33, 'CMD-ULM': 25, 'REACH-AAR': 34, 'REACH-GEVB'
+  ending             C6 ✓ 4 refusers, each price closing the gap, quoting its turns, or declared unpayable
+  diplomacy          F1 ✓ {"PROP-H": "  - RATIFIED Russia · PEACE · stalemate", "PROP-A": "  - POPUP proposal_result: You have accepted 
+  diplomacy          F2 ✓ mission types ticked: ['Improving Relations', 'Reassuring Ally']
+  diplomacy          C1 ✓ 7 peaces, none re-broken within 5 turns
+  diplomacy          C2 ✓ 4 ratification labels, each naming covered courts only (the 'Still at war' line disagrees with none)
+  diplomacy          C3 ✓ - RAIL volte_face: THE VOLTE-FACE: Austria, beaten and then courted, takes France's hand. Her court turns its 
+  diplomacy          C4 ✓ 8 phrasings all start a mission or refuse with a price
+  diplomacy          C5 ✓ Britain leads a league that is not yet spent, Sire — it names no terms while it can still fight (exhaustion 21
+  diplomacy          C6 ✓ 0 treaty-refused-after-accept lines
+  first_contact      F1 ✓ 28 lines; shrugs []; refusals []
+  first_contact      F2 ✓ School steps reached: [16, 17, 18, 19]
+  first_contact      C1 ✓ 20 questions; shrugs 2: ["who's in the Third Coalition besides Britain?", 'whats the flaw in our doctrine']
+  first_contact      C2 ✗ panel 3 of 3 (provisional — the user's mark overrides): digests/HOLD.md Turn 1: 'How many turns would it take 
+  first_contact      C3 ✓ 'where are the Russians?' → answered: Sire — Russia: no word of Buxhowden; no word of Kutuzov. | 'why is Europ
+  first_contact      C4 ✓ These orders would be carried out today, Sire: / - ↳ end turn — no military actions remain today / build suppl
+  first_contact      C5 ✓ each on its own boot: 'Ney, attack Mack' ✓ | 'Davout, march to Lorraine' ✓ | 'recruit infantry in Rhineland' ✓
+  first_contact      C6 ✓ loop 1: 11 lines, reading refusals []
+  economy            F1 ✓ 808 records; nonzero residuals []
+  economy            F2 ✓ turn-1 Net: Britain 2851 vs France 1032 (ledger._build_economy on the boot world)
+  economy            C1 ✗ the Staff enacted at loop 10: The Grand Quartier Général (Berthier's Imperial Headquarters, expanded 1805–07):
+  economy            C2 ✗ 42 moves of 10% or more; unnamed by the ledger's notes that turn or the next: ['t3 charges 51→156', 't4 charge
+  economy            C3 ✓ 4 battle-free turns, quoted == billed on 4: (turn, quoted charges, applied, quoted laws, applied): [(10, 1316,
+  economy            C4 ✓ levy quoted 741, charged 741 | law: cheapest gold law The Artillery Reserve at 3000 exceeds the chest 59 — not
+  economy            C5 ✗ Berthier frowns. 'We do not control Swabia, Your Majesty. Recruitment is impossible there.'
+  economy            C6 ✓ 9/9 samples name an affordable purchase (100%): CMD-H t20 ✓; CMD-H t30 ✓; CMD-H t40 ✓; CMD-A t20 ✓; CMD-A t30 
+  naval              F1 ✓ naval gate: test_naval_channel_gate.py → 35 passed, 1 warning in 1.18s; test_naval_substrate.py → 50 passed, 1
+  naval              F2 ✓ status completed; blockers []; preconditions none
+  naval              C1 ✓ quotes (odds, readiness) [(40, 65), (39, 64)] — odds = readiness − 25: True; throws resolved 5
+  naval              C2 ✓ the dispatch on/after a fleet action: [('SEA', 6, 'Sire — The fleet is shattered in action with Britain — Fran
+  naval              C3 ✓ quotes 1; odds named True; lever named True; Munster falls True
+  naval              C4 ✓ Britain sues at turn {'SHUT-H': 7, 'SHUT-A': 7, 'SHUT-M': 7}
+  naval              C5 · no '(now 0)' ports lever quoted on the arms (needs a truce with Britain)
+  naval              C6 ✗ panel 2 of 3 (provisional — the user's mark overrides): frames/IQ10_TOP_BAR_ADMIRALTY_X2_2026_10_05.png: at 2.
+  living_balance     F1 ✓ France at turn 40: {'CMD-H': 28, 'CMD-A': 30, 'CMD-M': 29}
+  living_balance     F2 ✓ M1–M7 + BASELINE_SERIES: test_combat_sweep_metrics.py → 11 passed, 1 warning in 1.76s; test_ai_intent_threat_m
+  living_balance     C1 ✓ AI-vs-AI wars per seed: {'00_historical_k10000': 1, '01_ulm_k17919': 1, '02_austerlitz_k25838': 1, '03_jena_k3
+  living_balance     C2 ✓ standalone third-party settlements per seed: {'00_historical_k10000': 1, '01_ulm_k17919': 1, '02_austerlitz_k2
+  living_balance     C3 ✓ exhaustion pair peaces (third_party_peace beats) per seed: {'00_historical_k10000': 6, '01_ulm_k17919': 6, '02
+  living_balance     C4 ✓ declarations beyond the fresh-peace floor: [('CMD-H', 'peaces', {'Austria': 34}), ('CMD-M', 'Austria', 10, 34)
+  living_balance     C5 ✓ after the peace: 1 sponsorships against France, 1 on the page; 4 great powers newly free to join, 4 on the pag
+  living_balance     C6 ✓ an AI court takes another's last province (eliminations, the proxy the run records) per seed: {"armC_00_histor
+  combat_legibility  F1 ✓ 58 battle lines; missing a side's losses: []
+  combat_legibility  F2 ✓ OP turn 4: Ney scouts Vienna: Controlled by Austria. Terrain: Plains. No field army stands there. Garrison: 25
+  combat_legibility  C1 ✓ 14 attacks fought; without a muster first: []
+  combat_legibility  C2 ✓ favorable out-bleeds 12/12 = 1.00; even 2/3; unfavorable 0/5
+  combat_legibility  C3 · no capital taken after a field battle on the arms
+  combat_legibility  C4 ✗ weighs a muster for a fortified man: Were you to give the order, Sire: / - ↳ MUSTER — Davout (24,801; expect a
+  combat_legibility  C5 ✗ raw keys in combat/muster/enemy-phase lines: 46 {"ArchdukeCharles": 27, "ArchdukeJohn": 18, "KingdomOfItaly": 
+  combat_legibility  C6 ✓ panel 3 of 3 (provisional — the user's mark overrides): frames/IQ10_DIORAMA_DADJ_X2_2026_10_05.png: each conti
+  marshal_drama      F1 ✗ petition modals 5 (≤ 4), silent losses 0, petition moments 19
+  marshal_drama      F2 ✓ grievances fired 14, heard/resolved lines 7; e.g. -     ↳ Bernadotte's grievance runs its course.
+  marshal_drama      C1 ✗ petition modals 6, audiences 2
+  marshal_drama      C2 ✓ 2 Trust alternatives, each a man already in view
+  marshal_drama      C3 ✓ 59 voiced battles, no repeat within three wins
+  marshal_drama      C4 · no crown moved on the arms
+  marshal_drama      C5 · no marshal's expectation eroded on the arms
+  marshal_drama      C6 · EYES: no mark given (--eyes)
+  vassals            F1 ✓ satellites at turn 40: {'CMD-H': 3, 'CMD-A': 2, 'CMD-M': 2}
+  vassals            F2 ✓ satellites 3 → first loss at turn 18; rebellion lines [(17, '- RAIL diplomatic_vassal_rebellion_imminent: Sire
+  vassals            C1 ✓ priced petitions per seed: {'CMD-H': 6, 'CMD-A': 4, 'CMD-M': 6}
+  vassals            C2 ✓ 16 petitions, quote = applied within the turn's drift
+  vassals            C3 ✓ 12 saves, no client left at war after a French peace
+  vassals            C4 ✗ CMDR-H t14: Switzerland at 32 → remedy MISSING | CMDR-H t18: Kingdom of Italy at 39 → remedy MISSING | CMDR-H 
+  vassals            C5 · no client capital fell to an enemy on the CMD arms
+  vassals            C6 ✓ panel 3 of 3 (provisional — the user's mark overrides): frames/IQ10_DIPLO_BOOT_VASSALS_X2_2026_10_05.png: flag
+  ui_ux              F1 ✓ 131 shots, 262 frames; engine exit 0, SCRIPT ERROR 0; not ok []; blank []
+  ui_ux              F2 ✓ parse harness exit 0; boot smoke exit 0, SCRIPT ERROR 0 (523 bytes of log)
+  ui_ux              C1 ✓ 262 frames; with buttons_offscreen: 0 []
+  ui_ux              C2 ✓ 262 frames; with clipped_text: 0 []
+  ui_ux              C3 ✓ 262 frames; with a raw key, <null> or (s): 0 []
+  ui_ux              C4 ✓ most blocking popups one end turn raised: 3 (turn 9) ['marshal_petition:jealousy_confrontation, Marsha', 'dipl
+  ui_ux              C5 · EYES: no mark given (--eyes)
+  ui_ux              C6 · EYES: no mark given (--eyes)
+  command            F1 ✓ 900/900 passed
+  command            F2 ✓ 6/6 passed
+  command            C1 ✓ 145 lines, shrugs 0: []
+  command            C2 ✓ reading refusals 0: []
+  command            C3 ✗ 11/20 orders executed as meant; misses: ['"Ney, if Mack\'s still in Swabia, attack h" → Berthier sets down his
+  command            C4 ✓ all docked command lines execute or ask
+  command            C5 ✓ question turns spent 0; order turns spent when an order was carried out
+  command            C6 ✓ 1 of 145 lines read by the model (anthropic, key connected); misreads 0: []; rescued 0: []; lost on both 1: ['
+  narration          F1 ✓ {"CMD-H": "0/40 turns without a headline, 0 raw", "CMD-A": "0/40 turns without a headline, 0 raw", "CMD-M": "0
+  narration          F2 ✓ most routine intent lines in one dispatch: 2 (cap 2 + one tail)
+  narration          C1 ✓ worst class in any 10-turn window: {'CMD-H': ('realm_league', 4), 'CMD-A': ('league_fuse', 3), 'CMD-M': ('enem
+  narration          C2 ✓ rail rows repeated >3×: []; war entries naming no enemy: []
+  narration          C3 · no road came within 5 of the summons on the arms
+  narration          C4 ✓ 58 intel rows, each where the store last saw the man or where he stands in full view
+  narration          C5 ✓ CMD-H: 9 issues at [5, 6, 10, 15, 20, 25, 30, 35, 40], specials [6, 10], longest silence 5 turns | CMD-A: 11 i
+  narration          C6 ✗ panel 3 of 3 (provisional — the user's mark overrides): digests/CMD-H.md Turn 27 block: 'DISPATCH: Sire — Lann
+  ai_aliveness       F1 ✓ AI-intent assurance: test_ai_intent_assurance.py → 54 passed, 1 warning in 18.34s
+  ai_aliveness       F2 ✓ 37 arms; all completed, no blockers, no tracebacks
+  ai_aliveness       C1 ✗ laws enacted abroad (enacted, lapsed) per seed: {'CMD-H': (16, 0), 'CMD-A': (17, 0), 'CMD-M': (15, 2)}
+  ai_aliveness       C2 ✓ design promotions per 40-turn arm: {'CMD-H': 8, 'CMD-A': 7, 'CMD-M': 8, 'CMD-ULM': 10, 'VOLTE': 6, 'REACH-AAR'
+  ai_aliveness       C3 ✓ {"CMD-H": "- RAIL expedition_landed: THE LANDING: Wellesley has put 5,000 men ashore at Andalusia.", "CMD-A": 
+  ai_aliveness       C4 ✓ 14 garrison assaults, none three turns running
+  ai_aliveness       C5 ✗ 23 fortify/unfortify acts; fortify→unfortify→fortify within 3 turns: ['CMD-H ArchdukeCharles t8–t11', 'CMD-H A
+  ai_aliveness       C6 ✗ turns with a visible AI attack over the turns at war: {'CMD-H': '15/24', 'CMD-A': '5/19', 'CMD-M': '11/39'}
+  agendas            F1 ✓ agenda + formables tests: test_nation_agendas.py → 184 passed, 1 warning in 1.80s; test_nation_agendas_formabl
+  agendas            F2 ✓ 68 rows, each with its gate terms
+  agendas            C1 ✓ agenda_shift rows per arm: {'CMD-H': 8, 'CMD-A': 8, 'CMD-M': 12, 'CMD-ULM': 17, 'VOLTE': 9, 'REACH-AAR': 6, 'R
+  agendas            C2 ✓ Austria's opening design per seed: {'armA_historical_run1': 'redeem_italy', 'armA_historical_run2': 'redeem_it
+  agendas            C3 ✓ gate terms flipping to met between saves: ['CMD-A t40: Ireland — at war with Britain', 'CMD-M t40: Ireland — a
+  agendas            C4 ✓ the scorer answers (bare: COUNTER_OFFER at 30; +6,000g: ACCEPT at 90); DuchyOfWarsaw minted from Posen: True; 
+  agendas            C5 ✓ carve terms stated 3x (Duchy of Warsaw from Prussia: Posen); Proclamation cards 1 (DuchyOfWarsaw); gate flippe
+  agendas            C6 ✗ panel 2 of 3 (provisional — the user's mark overrides): frames/IQ10_WIZARD_FORMABLES_ENTRY_2026_10_05.png: the

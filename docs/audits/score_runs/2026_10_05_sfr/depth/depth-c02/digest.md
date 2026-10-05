@@ -1,0 +1,113 @@
+# Playtest digest — depth-c02
+
+seed `historical` · llm `anthropic` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "settlement": "decline"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 3 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `0f5e8d843185` (dirty) · content `423b7f09867a` · driver `37f9f712f284`
+  - loaded save `depth-c01_t3.json` → Loaded: depth-c01_t3
+
+## Turn 3 — Late October 1805
+- CMD `what borders Munich?` → ✓ Munich borders Franche-Comte, Franconia, Milan, Swabia and Tyrol, Sire.
+- CMD `where is Napoleon?` → ✓ the Emperor Napoleon stands at Swabia with 8,585 men (morale 80).
+- CMD `where is Mack?` → ✓ Mack of Austria is at Munich — 30,942 men, confirmed.
+- CMD `Napoleon, attack Mack at Munich and finish him off` → ✓ MUSTER — Napoleon (8,585; expect about 91,083 with the corps likely to arrive, up to 94,502 if all march) vs Mack (30,942 men) at Munich — the balance of force looks fav…
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Napoleon (lost 345, own corps) vs Mack (lost 17976) — Lannes, Murat, Massena and Teulie's timely arrival bolstered Napoleon's position. Well-coordinated, Sire. — Berthier: the corps marched apart and arrived together.
+- CMD `Massena, fortify Milan` → ✓ Massena firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Trust him and he will attack Mack at Tyrol inst…
+  - POPUP objection: Massena, Massena firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Trust him and he will attack Mack at Tyrol instead.) → trust
+  - ↳ MUSTER — Massena (26,583; expect about 33,239 with the corps likely to arrive) vs Mack (large force) at Tyrol — the balance of force looks even — a hard fight that may well decide nothing.
+  - POPUP battle_diorama: (no summary fields) → display-only
+  - ⚔ Massena (lost 9127, own corps) vs Archduke Charles (lost 1659, own corps) — Napoleon's timely arrival aided Massena. Bernadotte, however, was conspicuously absent.
+- CMD `how many actions do I have left?` → ✓ Talleyrand holds 6 diplomatic points of 6; what he leaves unspent carries one turn, to at most 7. Today 2 of 4 orders remain, and 2 of 2 administrative actions.
+- CMD `Davout, march to Swabia` → ✗ Davout is fortified at Rhineland and cannot march from his works — 'Davout, unfortify' first. Nothing spent.
+- CMD `how much does it cost to recruit infantry?` → ✓ 582 gold for 3,000 infantry, Sire — 'recruit infantry in Rhineland' raises them under Davout — a field levy, capped by what the province feeds. At Paris the bare order i…
+- CMD `recruit 5000 infantry in Paris` → ✗ Berthier checks the order of battle. 'No marshal of infantry can reach Paris, Sire — none of ours stands within reach.' Soult commands our foot at Lorraine — march him w…
+- CMD `reward Murat for his charge at Swabia` → ✗ Murat needs one victory first: a single battle won as the attacker arms the charge (recklessness 0 of 1).
+- CMD `end turn` → ✓ Turn 3 ended. (Warning: 2 actions unused) Turn 4 begins!
+- enemy phase: 4 actions, 2 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeCharles strikes back after successfully defending! · ArchdukeCharles holds them at Franconia while allies attack from Tyrol! (+1 coordination)
+  - ⚔ Archduke Charles (lost 1961) vs Bernadotte (lost 4925) — The engagement proceeded as one might expect, Sire.
+  - ⚔ Archduke Charles (lost 1062) vs Bernadotte (lost 4927) — Bernadotte's army has been badly mauled. Archduke Charles proved the stronger force today.
+  - verbs: attack×2, wait×2
+- ORDER Lannes [active]: Lannes answered the guns this turn and stands at Munich; his march resumes next turn.
+- ORDER Murat [active]: Murat answered the guns this turn and stands at Munich; the pursuit resumes next turn.
+- ENVOYS WAITING 2 · Hesse non aggression · PapalStates open borders
+- LEDGER treasury 3316 · net +2225 · threat 80 · provinces 28 · ceiling 30176 · army 136816 · vassals Holland 92 · Kingdom of Italy 90 · Switzerland 86
+  - NET income 2590 · trade 525 · admin 50 · tribute 833 · upkeep 1096 · charges 108 · blockade 329 · admiralty 90 · laws 150
+- MISSION Improving Relations — Prussia · net +7 a turn · ≈13 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — Massena's corps has been broken at Munich. He must reform before he fights again.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - TURN EVENTS 8
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as an ultimatum.
+- DIPLO +6 medium/low (diplomatic_treaty_signed ×2, diplomatic_we_threshold ×2, diplomatic_dp_regen, diplomatic_mission_progress)
+  - LOG ai_ai_proposal_refused: 12 courts rebuff Bavaria (open borders agreement)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 16 approaches rebuffed, chiefly from Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+  - LOG ai_ai_proposal_refused: 3 approaches from Prussia, Bavaria and Spain are rebuffed (open borders agreement)
+
+## Turn 4 — Early November 1805
+  - LETTER Hesse: Non-Aggression Pact → accept
+  - LETTER PapalStates: Open Borders Agreement → accept
+- CMD `where is Mack?` → ✓ Mack of Austria is at Tyrol — 12,828 men, confirmed.
+- CMD `where is Archduke Charles?` → ✓ Archduke Charles of Austria is at Franconia — 33,954 men, confirmed.
+- CMD `if Mack retreats again, Murat pursue him` → ✗ Berthier sets down his pen. "Sire, that is a contingency, not an order — I have no way to hold a dispatch until 'if Mack retreats again' comes to pass. Nothing has been …
+- CMD `Soult, march on Munich` → ✓ Soult begins march to Munich. Route: Swabia → Munich. Moves to Swabia. "Soult, march on Munich." Understood to the letter. (1 AP — Soult executes precise orders with few…
+- CMD `Lannes, hold Swabia` → ✓ Lannes will hold Swabia. Marching to Swabia. Lannes: "I will hold. They had best not come close enough to tempt me." (2 AP — a standing strategic order to hold this grou…
+- CMD `Talleyrand, how is the Prussian mission going?` → ✓ I must warn you — my information is incomplete. Proceed with caution. We are sharing open borders with Prussia, Sire. Relations stand at 13. Their military strength is o…
+  - POPUP diplomatic_dialogue: advisory #10 → expand_to_proposal
+  - POPUP diplomatic_dialogue: proposal_options #11 → start_mission
+- CMD `what does Britain want?` → ✓ Britain pursues The Low Countries, Sire. The Scheldt obsession - the invasion coast may not stay in French hands. London will not rest while the bloc holds it. The provi…
+- CMD `end turn` → ✓ Turn 4 ended. (Warning: 1 action unused) Turn 5 begins!
+- enemy phase: 2 actions, 0 attacks — Britain, Russia, Austria and 6 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: garrison×1, wait×1
+- ORDER Lannes [active]: Lannes is holding position at Swabia.
+- ORDER Murat [breaks]: Order cancelled: Defeated by Archduke John
+- ORDER Soult [active]: Soult is marching to Munich (1 turn remaining).
+  - ⚔ [Combat] Murat leads the charge! (Aggressive: +15% attack)
+- ENVOYS WAITING 1 · Prussia non aggression
+- LEDGER treasury 5561 · net +2124 · threat 78 · provinces 28 (+0) · ceiling 29365 · army 130934 · vassals Holland 90 · Kingdom of Italy 87 · Switzerland 82
+  - NET income 2590 · trade 587 · admin 50 · tribute 838 · upkeep 1016 · charges 317 · blockade 368 · admiralty 90 · laws 150
+- MISSION Improving Relations — Prussia · net +7 a turn · ≈12 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — London now pays Sardinia 200 gold a turn against us. She would march in the next league — the price to keep her out: Talleyrand brings her to −10 in 7 turns (7 DP); buying off her design costs…
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - TURN EVENTS 8
+- DIPLO +6 medium/low (diplomatic_treaty_signed ×2, law_enacted_abroad, diplomatic_dp_regen, diplomatic_mission_progress, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 4 approaches from Prussia and Bavaria are rebuffed (open borders agreement)
+
+## Turn 5 — Late November 1805
+  - MAILBOX #8 Prussia incoming_proposal: Prussia — Non-Aggression Pact → activated
+  - POPUP diplomatic_dialogue: Prussia, non_aggression #12 → accept
+  - POPUP proposal_result: You have accepted Prussia's proposal. Treaty signed: Open Borders → Non-Aggression with Prussia. → display-only
+  - saved `depth-c02_t3` → Game saved: depth-c02_t3
+- CMD `end turn` → ✓ Turn 5 ended. (Warning: 4 actions unused) Turn 6 begins!
+- enemy phase: 5 actions, 3 attacks — Britain, Russia, Prussia and 6 other courts stirred as well, but their formations remain beyond our sight. — ArchdukeJohn strikes back after successfully defending! · ArchdukeJohn assaults the Milan garrison! Garrison collapses (5,573 -> 0). ArchdukeJohn loses 1,720 troops in the assau… · ArchdukeJohn marches from Milan into Piedmont unopposed! (189 lost to march) Captured: KingdomOfItaly → Austria
+  - 🏴 Austria: [Materiel] Guns, horses and stores lost with the fallen: Austria -86g, Kingdom of Italy -139g. Captured: KingdomOfItaly → Austria
+  - 🏴 Austria: ArchdukeJohn marches from Milan into Piedmont unopposed! (189 lost to march) Captured: KingdomOfItaly → Austria
+  - verbs: attack×3, unfortify×1, move×1
+- ORDER Soult [completed]: The order was "Soult, march on Munich". Soult arrives at Munich. I await further instruction.
+- ORDER Lannes [interrupted]: Lannes hears cannon fire! Abandoning orders — rushing to Tyrol! Lannes moves from Swabia to Franconia (124 lost to march)
+  - ⚡ AUTONOMOUS: [Combat] Murat leads the charge! (Aggressive: +15% attack)
+  - ⚔ Murat (lost 2802, own corps) vs Archduke John (lost 1945) — Napoleon and Teulie reached Murat in time, Sire — but even together, the field could not be held.
+- ENVOYS WAITING 2 · Austria armistice losing · Switzerland client petition
+- LEDGER treasury 7292 · net +1729 · threat 66 · provinces 28 (+0) · ceiling 25226 · army 122030 · vassals Holland 88 · Switzerland 78
+  - NET income 2590 · trade 611 · admin 50 · tribute 562 · upkeep 952 · charges 510 · blockade 382 · admiralty 90 · laws 150
+- MISSION Improving Relations — Prussia · net +7 a turn · ≈11 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — Napoleon's corps has been broken at Tyrol. He must reform before he fights again.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.
+  - RAIL nation_eliminated: Sire — the Kingdom of Italy has been eliminated from the war.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - RAIL design_promoted: REVANCHE: Austria will not forgive Bavaria the loss of Bohemia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 9
+- DIPLO +7 medium/low (diplomatic_treaty_signed, diplomatic_we_threshold, diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_vassal_contingent, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: Denmark rebuffs Austria (open borders agreement)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Sardinia (design ask)
+  - LOG ai_ai_proposal_refused: Naples and Denmark rebuff Prussia (open borders agreement)
+  - LOG ai_ai_proposal_refused: Spain rebuffs Bavaria (open borders agreement)
+  - LOG ai_ai_proposal_refused: 2 approaches from Prussia and Spain are rebuffed (open borders agreement)
+
+---
+finished: **completed** · commands 20 · popups 9 · battles 6

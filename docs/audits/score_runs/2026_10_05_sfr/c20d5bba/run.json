@@ -1,0 +1,77 @@
+{
+ "tree": "C:\\Users\\User\\sfr_c20",
+ "sha": "c20d5bba3ca1fa69d9c2e88b3372812244156a23",
+ "started": "2026-10-05T09:53",
+ "jobs": 2,
+ "arms": {
+  "HOLD": {
+   "arm": "HOLD",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 9.0,
+   "cmd": [
+    "--name",
+    "HOLD",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_05_sfr_c20\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_hold_2026_10_05.json",
+    "--turns",
+    "2"
+   ]
+  },
+  "OP": {
+   "arm": "OP",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 21.6,
+   "cmd": [
+    "--name",
+    "OP",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_05_sfr_c20\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_aar_typed.json",
+    "--turns",
+    "18",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept"
+   ]
+  },
+  "OP-LIVE": {
+   "arm": "OP-LIVE",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 24.0,
+   "cmd": [
+    "--name",
+    "OP-LIVE",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\score_2026_10_05_sfr_c20\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_aar_typed.json",
+    "--turns",
+    "18",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept",
+    "--llm",
+    "anthropic"
+   ]
+  }
+ },
+ "skipped": {},
+ "finished": "2026-10-05T09:53"
+}

@@ -1,0 +1,23 @@
+{
+  "name": "depth-k05",
+  "turns": {
+    "1": [
+      "how much gold do we have?",
+      "what are we paying Sardinia?",
+      "grant Massena a rente",
+      "Masena, move to Limousin",
+      "Soult, march to Burgundy and then fortify",
+      "Talleyrand, improve relations with Austria",
+      "how do I keep Austria out of the next league?",
+      "Napoleon, review the troops"
+    ],
+    "2": [
+      "what happened last turn?",
+      "how much gold do we have?",
+      "Murat, move to Provence",
+      "is Sardinia still in play?",
+      "status"
+    ],
+    "3": []
+  }
+}

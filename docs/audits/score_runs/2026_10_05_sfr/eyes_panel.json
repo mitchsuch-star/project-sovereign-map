@@ -1,0 +1,26 @@
+{
+ "first_contact.C2": {
+  "pass": false,
+  "evidence": "panel 3 of 3 (provisional — the user's mark overrides): digests/HOLD.md Turn 1: 'How many turns would it take Davout to march from Rhineland to Lorraine?' → 'No lawful road runs from Rhineland to Rhineland for Davout"
+ },
+ "naval.C6": {
+  "pass": false,
+  "evidence": "panel 2 of 3 (provisional — the user's mark overrides): frames/IQ10_TOP_BAR_ADMIRALTY_X2_2026_10_05.png: at 2.0 the six nav buttons beside the '⚓ 45!' chip are blank boxes (no icon, no letter), and at 1.0 the chip is"
+ },
+ "combat_legibility.C6": {
+  "pass": true,
+  "evidence": "panel 3 of 3 (provisional — the user's mark overrides): frames/IQ10_DIORAMA_DADJ_X2_2026_10_05.png: each contingent's own losses (Ney 20,000 → 15,471, Davout 30,000 → 27,962), FRANCE LOSSES 6,567 over the reinforced "
+ },
+ "vassals.C6": {
+  "pass": true,
+  "evidence": "panel 3 of 3 (provisional — the user's mark overrides): frames/IQ10_DIPLO_BOOT_VASSALS_X2_2026_10_05.png: flag, loyalty bar, tribute, standing, bond, garrison note and a priced chip per lever for each client; nothing"
+ },
+ "narration.C6": {
+  "pass": false,
+  "evidence": "panel 3 of 3 (provisional — the user's mark overrides): digests/CMD-H.md Turn 27 block: 'DISPATCH: Sire — Lannes's claim is 21 turns in arrears…' on the morning the rail reads 'France enters the war against Austria v"
+ },
+ "agendas.C6": {
+  "pass": false,
+  "evidence": "panel 2 of 3 (provisional — the user's mark overrides): frames/IQ10_WIZARD_FORMABLES_ENTRY_2026_10_05.png: the wizard shows only 'Loading...' — no nation list and no Formable Nations entry (same at X2); the PROCLAMAT"
+ }
+}

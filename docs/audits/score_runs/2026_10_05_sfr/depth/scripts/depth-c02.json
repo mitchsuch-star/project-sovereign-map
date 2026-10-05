@@ -1,0 +1,27 @@
+{
+  "name": "depth-c02",
+  "turns": {
+    "1": [
+      "what borders Munich?",
+      "where is Napoleon?",
+      "where is Mack?",
+      "Napoleon, attack Mack at Munich and finish him off",
+      "Massena, fortify Milan",
+      "how many actions do I have left?",
+      "Davout, march to Swabia",
+      "how much does it cost to recruit infantry?",
+      "recruit 5000 infantry in Paris",
+      "reward Murat for his charge at Swabia"
+    ],
+    "2": [
+      "where is Mack?",
+      "where is Archduke Charles?",
+      "if Mack retreats again, Murat pursue him",
+      "Soult, march on Munich",
+      "Lannes, hold Swabia",
+      "Talleyrand, how is the Prussian mission going?",
+      "what does Britain want?"
+    ],
+    "3": []
+  }
+}

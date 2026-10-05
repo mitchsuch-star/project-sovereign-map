@@ -1,0 +1,142 @@
+[
+  {
+    "id": "lever down: THE_DIGEST_RECORDS_THE_LIVE_PARSER (SF-R)",
+    "file": "tools/playtest_driver.py",
+    "old": "THE_DIGEST_RECORDS_THE_LIVE_PARSER = True",
+    "new": "THE_DIGEST_RECORDS_THE_LIVE_PARSER = False",
+    "tests": "tests/test_score_finish_step8.py::TestTheRunnerAndTheDriver::test_the_driver_records_a_failed_live_parse"
+  },
+  {
+    "id": "SF-R: a session exit runs the live arm",
+    "file": "tools/score_run.py",
+    "old": "        if not (getattr(args, \"live\", False) or a in only):",
+    "new": "        if False:",
+    "tests": "tests/test_score_finish_step8.py::TestTheLiveArm::test_a_session_exit_never_spends_api_calls"
+  },
+  {
+    "id": "SF-R: the live arm runs without a key",
+    "file": "tools/score_run.py",
+    "old": "        elif not live_key:",
+    "new": "        elif False:",
+    "tests": "tests/test_score_finish_step8.py::TestTheLiveArm::test_without_a_key_it_is_skipped"
+  },
+  {
+    "id": "SF-R: a placeholder is a key",
+    "file": "tools/score_run.py",
+    "old": "    if key.lower().startswith((\"your\", \"placeholder\", \"changeme\", \"sk-ant-xxx\")):",
+    "new": "    if False:",
+    "tests": "tests/test_score_finish_step8.py::TestTheLiveArm::test_a_placeholder_is_no_key"
+  },
+  {
+    "id": "SF-R: OP-LIVE runs on the offline parser",
+    "file": "tools/score_run.py",
+    "old": "            \"accept\",\n            \"--llm\",\n            \"anthropic\",\n        ],",
+    "new": "            \"accept\",\n        ],",
+    "tests": "tests/test_score_finish_step8.py::TestTheLiveArm::test_op_live_is_op_on_the_live_parser"
+  },
+  {
+    "id": "SF-R C6: two misreads pass",
+    "file": "tools/score_run.py",
+    "old": "    return _res(True, len(misreads) <= 1,",
+    "new": "    return _res(True, len(misreads) <= 2,",
+    "tests": "tests/test_score_finish_step8.py::TestCommandC6::test_two_misreads_fail"
+  },
+  {
+    "id": "SF-R C6: the first misread parts the boards",
+    "file": "tools/score_run.py",
+    "old": "                   or (i not in model and not same(lc[i], mc[i]))), None)",
+    "new": "                   or not same(lc[i], mc[i])), None)",
+    "tests": "tests/test_score_finish_step8.py::TestCommandC6::test_two_misreads_fail"
+  },
+  {
+    "id": "SF-R C6: a rescue counts as a misread",
+    "file": "tools/score_run.py",
+    "old": "        offline_meant = (m.get(\"success\") is not False",
+    "new": "        offline_meant = (True",
+    "tests": "tests/test_score_finish_step8.py::TestCommandC6::test_a_line_the_offline_parser_shrugged_is_rescued_not_misread"
+  },
+  {
+    "id": "SF-R C6: a reply lost on both counts as a rescue",
+    "file": "tools/score_run.py",
+    "old": "        live_meant = (c.get(\"success\") is not False",
+    "new": "        live_meant = (True",
+    "tests": "tests/test_score_finish_step8.py::TestCommandC6::test_a_line_lost_on_both_is_no_rescue"
+  },
+  {
+    "id": "SF-R C6: a parser never reached scores",
+    "file": "tools/score_run.py",
+    "old": "        if notices or parser.get(\"key_status\") not in (None, \"connected\", \"configured\"):",
+    "new": "        if False:",
+    "tests": "tests/test_score_finish_step8.py::TestCommandC6::test_a_parse_that_never_reached_the_model_is_unmeasured"
+  },
+  {
+    "id": "SF-R UI F1: a blank frame passes",
+    "file": "tools/score_run.py",
+    "old": "    ok = index.get(\"exit_code\") == 0 and not errors and not bad and not blank and frames > 0",
+    "new": "    ok = index.get(\"exit_code\") == 0 and not errors and not bad and frames > 0",
+    "tests": "tests/test_score_finish_step8.py::TestTheClientArmReaders::test_f1_a_blank_frame_or_a_script_error_fails"
+  },
+  {
+    "id": "SF-R UI F2: a boot SCRIPT ERROR passes",
+    "file": "tools/score_run.py",
+    "old": "          and int(cli.get(\"boot_script_errors\") or 0) == 0",
+    "new": "          and True",
+    "tests": "tests/test_score_finish_step8.py::TestTheClientArmReaders::test_f2_the_parse_harness_and_the_boot_smoke"
+  },
+  {
+    "id": "SF-R UI C3: the plural hedge passes",
+    "file": "tools/score_run.py",
+    "old": "    alts = [re.escape(k) for k in sorted(keys)] + [r\"<null>\", r\"\\(s\\)\"]",
+    "new": "    alts = [re.escape(k) for k in sorted(keys)] + [r\"<null>\", r\"<never>\"]",
+    "tests": "tests/test_score_finish_step8.py::TestTheClientArmReaders::test_c3_a_raw_key_null_or_hedge_fails"
+  },
+  {
+    "id": "SF-R: the runner ignores --png-dir",
+    "file": "tools/iq10_run_captures.py",
+    "old": "    png_dir = AUDITS if png_dir is None else pathlib.Path(png_dir)",
+    "new": "    png_dir = AUDITS",
+    "tests": "tests/test_score_finish_step8.py::TestTheRunnerAndTheDriver::test_the_runner_writes_frames_where_it_is_told"
+  },
+  {
+    "id": "SF-R: the packet drops the frames' index",
+    "file": "tools/score_run.py",
+    "old": "            shutil.copy(cli_index, pk / \"frames\" / \"index.json\")",
+    "new": "            pass",
+    "tests": "tests/test_score_finish_step8.py::TestTheRunnerAndTheDriver::test_the_packet_carries_the_frames_and_their_index"
+  },
+  {
+    "id": "SF-R: HOLD reads the old script",
+    "file": "tools/score_run.py",
+    "old": "HOLD_SCRIPT = \"score_hold_2026_10_05.json\"",
+    "new": "HOLD_SCRIPT = \"score_hold_2026_09_29.json\"",
+    "tests": "tests/test_score_finish_step8.py::TestTheFreshHold::test_hold_points_at_the_fresh_blind_script"
+  },
+  {
+    "id": "SF-R panel: one vote makes the mark",
+    "file": "tools/score_panel.py",
+    "old": "        if len(yes) >= 2 or len(no) >= 2:",
+    "new": "        if len(yes) >= 1 or len(no) >= 1:",
+    "tests": "tests/test_score_finish_step8.py::TestThePanel"
+  },
+  {
+    "id": "SF-R panel: a cannot-judge counts as a pass",
+    "file": "tools/score_panel.py",
+    "old": "        yes = [x for x in vs if x[1] is True]",
+    "new": "        yes = [x for x in vs if x[1] is not False]",
+    "tests": "tests/test_score_finish_step8.py::TestThePanel"
+  },
+  {
+    "id": "SF-R panel: the feel is not clamped",
+    "file": "tools/score_panel.py",
+    "old": "ADJUST_LIMIT = 0.25",
+    "new": "ADJUST_LIMIT = 9.0",
+    "tests": "tests/test_score_finish_step8.py::TestThePanel"
+  },
+  {
+    "id": "SF-R panel: the mean, not the median",
+    "file": "tools/score_panel.py",
+    "old": "            \"median\": round(statistics.median(vals), 2) if vals else None,",
+    "new": "            \"median\": round(statistics.mean(vals), 2) if vals else None,",
+    "tests": "tests/test_score_finish_step8.py::TestThePanel"
+  }
+]

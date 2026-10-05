@@ -206,6 +206,10 @@ THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF = True
 # or a newly free great power reached the page at all (it read the headline
 # line only). False = the record as it was.
 THE_DIGEST_READS_THE_WHOLE_PAGE = True
+# SF-R (Step 8): a live run records the parser it reached — each command's
+# `parser_notice`, and meta.json's `parser` (the key status and the count of
+# lines the model read). False = the record as before.
+THE_DIGEST_RECORDS_THE_LIVE_PARSER = True
 NO_HEADLINE = "(no headline)"
 
 # The variables that shape the board, recorded AFTER `import backend.main` (so
@@ -1665,10 +1669,16 @@ class Digest:
             # FA-9 review round (L1-3): the walk-in that annexed nothing.
             self._md("  - ↳ walked in and annexed nothing — the corps is still "
                      "rallying from the rout (FA-9)")
+        # SF-R (Step 8): a live parse that failed is said once per session
+        # (`parser_notice`) — the OP-LIVE arm's reader must tell "no line
+        # needed the model" from "the model was never reached".
+        _notice = (response.get("parser_notice")
+                   if THE_DIGEST_RECORDS_THE_LIVE_PARSER else None)
         self.record("command", text=text, success=response.get("success"),
                     parse_mode=mode, parse_confidence=confidence,
                     message=first_line(response.get("message"), 400),
-                    **({"result": _assault_result} if _assault_result else {}))
+                    **({"result": _assault_result} if _assault_result else {}),
+                    **({"parser_notice": _notice} if _notice else {}))
 
     def battle(self, report):
         self.counters["battles"] += 1
@@ -4305,6 +4315,19 @@ def run(args):
                               current_turn, args.strict)
 
     expeditions.report(digest)                 # FA-85
+    if THE_DIGEST_RECORDS_THE_LIVE_PARSER and args.llm != "mock":
+        # SF-R (Step 8): which parser a live run actually reached — the key's
+        # own status line (GET /config/llm) and the count of lines the model
+        # read, so the OP-LIVE reader never scores a run that never got through.
+        try:
+            _cfg = transport.get("/config/llm") or {}
+        except Exception as exc:                # an instrument records its own
+            _cfg = {"error": repr(exc)[:200]}
+        digest.meta["parser"] = {
+            **{k: _cfg.get(k) for k in ("provider", "key_source", "live",
+                                        "key_status", "error") if k in _cfg},
+            "live_parses": int(digest.counters.get("live_parses", 0)),
+        }
     digest.finish(status)
     print(f"[driver] {status}: {digest.md_path}")
 

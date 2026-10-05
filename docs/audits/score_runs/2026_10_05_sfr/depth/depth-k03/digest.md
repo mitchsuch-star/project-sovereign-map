@@ -1,0 +1,123 @@
+# Playtest digest — depth-k03
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "insist", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "settlement": "decline"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 21 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `0f5e8d843185` (dirty) · content `423b7f09867a` · driver `37f9f712f284`
+  - loaded save `depth-k02_t3.json` → Loaded: depth-k02_t3
+
+## Turn 21 — Late July 1806
+- CMD `who holds Provence?` → ✓ Provence is held by Spain.
+- CMD `how many turns are left on the truce with Britain?` → ✓ The armistice with Britain has 3 turns to run, Sire; when it lapses, as relations stand (-84, against -60 needed) the war would resume.
+- CMD `Talleyrand, improve relations with Britain` → ✓ Sire, I shall begin efforts to improve relations with Britain. This will cost 1 DP per turn. Note: this will replace my current mission to improve relations with Russia.
+  - POPUP diplomatic_dialogue: mission #35 → start_mission
+- CMD `what does Naples want?` → ✓ Naples pursues no design we can name, Sire — she plays for survival and advantage as they come.
+- CMD `Talleyrand, bid for Sardinia` → ✓ Sire, I await your instructions regarding Sardinia.
+  - POPUP diplomatic_dialogue: not_diplomatic #36 → dismiss
+- CMD `grant Murat a rente` → ✗ Marshal Murat's expectation is already met — no rente is needed, Sire.
+- CMD `Ney, take Provence back` → ✗ "Sire, Marshal Ney awaits your command, but I cannot parse this order. Might you mean 'Ney, scout' or 'Ney, defend'?" Berthier asks carefully.
+- CMD `end turn` → ✓ Turn 21 ended. (Warning: 5 actions unused) Turn 22 begins!
+- enemy phase: 2 actions, 0 attacks — Russia, Prussia, Spain and 4 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: drill×1, wait×1
+- ORDER Davout [continues]: Davout fortifies Franche-Comte.
+- ORDER Lannes [continues]: Lannes marches to Limousin. 1 region to Paris.
+- ORDER Napoleon [continues]: Napoleon marches to Limousin. 1 region to Paris.
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Soult seeks an audience → acknowledge
+  -     ↳ Soult's grievance runs its course.
+- LEDGER treasury 10141 · net +1527 · threat 24 · provinces 28 · ceiling 129421 · army 130920 · vassals Holland 91 · Switzerland 86
+  - NET income 2707 · trade 610 · admin 50 · upkeep 1016 · charges 104 · occupation 30 · infrastructure 40 · laws 650
+- MISSION Improving Relations — Britain · net +11 a turn · ≈27 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — peace with Russia is signed. The truce has ripened into peace.
+  - RAIL diplomatic_armistice_expired_peace: The armistice between France and Russia has concluded. Peace declared.
+  - RAIL allegiance_in_play: The allegiance of Sardinia is in play — every court with gold or standing now bids for the flip.
+  - TURN EVENTS 6
+- DIPLO +7 medium/low (law_enacted_abroad, doctrine_cured_abroad, diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_coalition_dissolved, agenda_shift, diplomatic_relation_shift)
+  - LOG coalition_member_left: Russia has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 45 to 22.
+  - LOG auto_downgrade: Relations auto-downgraded: Austria–Russia (ALLIANCE → DEFENSIVE ALLIANCE)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG diplomatic_ai_ai_treaty: Sardinia and Prussia sign a Defensive Alliance
+  - LOG ai_ai_proposal_refused: Sardinia rebuffs Austria (defensive alliance)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG ai_ai_proposal_refused: 14 approaches from Britain and Austria are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Sardinia (design ask)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Austria against France (400g/turn)
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Britain against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Austria lapses
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG third_party_peace: THE CONGRESS: Britain and Spain make peace without France
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (400g/turn)
+  - LOG ai_ai_proposal_refused: Sardinia rebuffs Austria (defensive alliance)
+  - LOG sponsorship_expired: The compact between Britain and Sardinia lapses
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Austria against France (400g/turn)
+  - LOG ai_ai_proposal_refused: 7 courts rebuff Austria (defensive alliance)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Sardinia (design ask)
+  - LOG third_party_peace: THE CONGRESS: Hanover and Prussia make peace without France
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG design_promoted: REVANCHE: Bavaria swears to retake Franconia and 1 more — Austria is not forgiven
+  - LOG nation_eliminated: Bavaria has been eliminated from the war.
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_granted: Britain sponsors Russia against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+  - LOG design_promoted: REVANCHE: Hanover swears to retake Brunswick and 2 more — Prussia is not forgiven
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+
+## Turn 22 — Early August 1806
+- CMD `who holds Provence?` → ✓ Provence is held by Spain.
+- CMD `propose an alliance to Austria` → ✓ Sire, regarding the Full Alliance proposal to Austria, I have prepared terms that reflect the current diplomatic climate.
+  - POPUP diplomatic_dialogue: proposal_confirm #37 → confirm
+  - POPUP proposal_result: Talleyrand departs for the Austria court with your Full Alliance proposal. Expect a response by next turn. (6 DP spent) → display-only
+- CMD `what do I need for the Congress of Paris?` → ✓ The Congress of Paris — ✓ 1 administrative action (you have 2); ✗ 45 titled provinces (32 of 45); ✓ Paris held; ✓ the Emperor free; ✓ no satellite on the brink of rebell…
+- CMD `how is the treasury?` → ✓ Berthier sets down his pen. "I cannot answer that from the dispatches, Sire."
+- CMD `Soult, recruit cavalry at Lyonnais` → ✓ Berthier notes: 'Marshal Soult commands infantry, Sire.' Soult recruits 3,000 infantry at Lyonnais (field levy — no depot; capped at 3,000) - Cost: 302 gold (unstable re…
+- CMD `end turn` → ✓ Turn 22 ended. (Warning: 5 actions unused) Turn 23 begins!
+- SPENT 302g on this turn's orders
+- enemy phase: 1 actions, 0 attacks — Russia, Austria, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- ORDER Davout [continues]: Davout fortifies Franche-Comte.
+- ORDER Lannes [completed]: Lannes arrives at Paris. Lannes: "It is done. Point me at something that shoots back, Sire."
+- ORDER Napoleon [completed]: Napoleon arrives at Paris.
+  - POPUP proposal_result: Austria has rejected our Full Alliance. → display-only
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- LEDGER treasury 11363 · net +1755 · threat 26 · provinces 28 (+0) · ceiling 148406 · army 131090 · vassals Holland 90 · Switzerland 86
+  - NET income 2729 · trade 610 · admin 50 · tribute 225 · upkeep 1020 · charges 119 · occupation 30 · infrastructure 40 · laws 650
+- MISSION Improving Relations — Britain · net +11 a turn · ≈26 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — Austria would now join a league against us — relations −28. Britain and Russia pay her 800 gold a turn against us. The price to keep her out: Talleyrand brings her to −10 in 2 turns (2 DP); bu…
+  - RAIL diplomatic_proposal_returned: Talleyrand returns from Austria with a response.
+  - RAIL crisis_brewing: THE BREWING CRISIS: Russia will move on Sweden. You may compensate (1,200g — you can afford it); guarantee Sweden (1 DP — 6 in hand); or let the war …
+  - TURN EVENTS 7
+- COURTS: The court of Russia hardens over The Gulf and the Straits — prepared now to go as far as an ultimatum.
+- DIPLO +2 medium/low (diplomatic_proposal_sent, diplomatic_dp_regen)
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+
+## Turn 23 — Late August 1806
+  - saved `depth-k03_t3` → Game saved: depth-k03_t3
+- CMD `end turn` → ✓ Turn 23 ended. (Warning: 5 actions unused) Turn 24 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Prussia and 5 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- ORDER Davout [continues]: Davout fortifies Franche-Comte.
+- LEDGER treasury 13172 · net +1787 · threat 29 · provinces 28 (+0) · ceiling 162083 · army 128346 · vassals Holland 89 · Switzerland 86
+  - NET income 2736 · trade 622 · admin 50 · tribute 225 · upkeep 992 · charges 134 · occupation 30 · infrastructure 40 · laws 650
+- MISSION Improving Relations — Britain · net +9 a turn · ≈21 turns to +100 at the present rate · beat running
+- DISPATCH: Sire — peace with Britain is signed. The truce has ripened into peace.
+  - RAIL diplomatic_armistice_expired_peace: The armistice between Britain and France has concluded. Peace declared.
+  - TURN EVENTS 4
+- COURTS: The court of Britain hardens over The Low Countries — prepared now to go as far as an ultimatum.
+- COURTS: The court of Austria hardens over Redeem Italy — prepared now to go as far as service to the strong.
+- DIPLO +6 medium/low (law_enacted_abroad ×2, diplomatic_dp_regen, diplomatic_mission_progress, coercive_demand, diplomatic_relation_shift)
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+
+---
+finished: **completed** · commands 15 · popups 7 · battles 0

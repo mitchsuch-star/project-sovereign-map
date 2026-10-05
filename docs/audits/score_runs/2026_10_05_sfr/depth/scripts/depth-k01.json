@@ -1,0 +1,23 @@
+{
+  "name": "depth-k01",
+  "turns": {
+    "1": [
+      "who are we still at war with?",
+      "Massena, march home to Franche-Comte",
+      "Murat, march home to Franche-Comte",
+      "Soult, take Lyonnais back from Paget",
+      "enact the Train des Equipages",
+      "is the war with Austria over?",
+      "what does Britain want?"
+    ],
+    "2": [
+      "where is Massena?",
+      "Napoleon, return to Paris",
+      "Ney, keep going to Provence",
+      "what are our relations with Russia?",
+      "Talleyrand, improve relations with Russia",
+      "Augereau, recruit infantry"
+    ],
+    "3": []
+  }
+}
