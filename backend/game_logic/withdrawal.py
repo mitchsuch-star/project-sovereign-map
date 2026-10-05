@@ -129,6 +129,13 @@ A_STANDING_QUESTION_IS_NOT_LOITERING = True
 # interned on turn 7 with `order=None` on every line in between.
 THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED = True
 
+# SF7-X46 (Score Finish Step 7b, found reading the front page): the lapse
+# warning's figure is the SLACK — turns to spare once the march home is
+# counted — and "0 turns of safe passage left" told a corps that could still
+# reach home that its passage had ended. It says "no turn to spare" now.
+# False = the old sentence byte for byte.
+THE_PASSAGE_COUNTS_ITS_SLACK = True
+
 # Turns of dawdling the treaty affords beyond the march itself.  Sized to
 # §6's promise of three explicit warnings before internment (see module
 # docstring correction 2).  In-band tunable.
@@ -1331,8 +1338,12 @@ def _warn(world, marshal, nation: str, distance: int, surplus: int) -> Dict:
         # that is what the sentence says.
         "message": (
             f"{marshal.name} is no nearer home — {_plural(int(distance), 'march')} still "
-            f"to go from {marshal.location}, and {_plural(int(surplus), 'turn')} of safe "
-            f"passage left before his corps is interned."),
+            f"to go from {marshal.location}, and "
+            + ((("no turn" if int(surplus) <= 0 else _plural(int(surplus), 'turn'))
+                + " to spare on the safe passage")
+               if THE_PASSAGE_COUNTS_ITS_SLACK else
+               f"{_plural(int(surplus), 'turn')} of safe passage left")
+            + " before his corps is interned."),
     }
     world.log_event(dict(event))
     return event

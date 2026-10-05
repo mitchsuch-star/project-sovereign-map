@@ -925,16 +925,41 @@ func _render_balance_of_europe():
 				bbcode += "  • " + str(s) + "\n"
 	bbcode += "\n"
 
-	# Qualifying nations
-	var qualifying = boe.get("qualifying_nations", [])
-	bbcode += "[color=#" + Utils.COLOR_HEADER + "]Nations That Would Join Coalition:[/color]\n"
-	if qualifying.size() == 0:
-		bbcode += "  [color=#" + Utils.COLOR_GREY + "]None currently[/color]\n"
+	# SF-LB-3 (Score Finish Step 7b): the next league — who would march,
+	# when the courts consult and declare, what each court's war would
+	# reopen, who pays her, and the price to keep her out. Every figure is
+	# the backend's own forecast (shown = applied); the bare list below is
+	# the pre-7b fallback (the lever down sends no rows).
+	var league_rows = boe.get("league_rows", [])
+	var league_line = str(boe.get("league_line", ""))
+	if (league_rows is Array and league_rows.size() > 0) or league_line != "":
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]THE NEXT LEAGUE[/color]\n"
+		if league_line != "":
+			bbcode += "[color=#" + COLOR_AMBER + "]" + league_line + "[/color]\n"
+		if league_rows is Array:
+			for lrow in league_rows:
+				if not (lrow is Dictionary):
+					continue
+				var lstatus = str(lrow.get("status", ""))
+				var lcolor = Utils.COLOR_GREY
+				if lstatus == "joins" or lstatus == "refuses" or bool(lrow.get("out_of_time", false)):
+					lcolor = COLOR_RED
+				elif lstatus == "bound":
+					lcolor = COLOR_AMBER
+				bbcode += "  • [color=#" + lcolor + "]" + str(lrow.get("text", "")) + "[/color]\n"
+		var league_footer = str(boe.get("league_footer", ""))
+		if league_footer != "":
+			bbcode += "  [color=#" + Utils.COLOR_DIMMED + "]" + league_footer + "[/color]\n"
 	else:
-		var qual_strs = []
-		for q in qualifying:
-			qual_strs.append(Utils.display_nation_name(str(q)))
-		bbcode += "  " + ", ".join(PackedStringArray(qual_strs)) + "\n"
+		var qualifying = boe.get("qualifying_nations", [])
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]Nations That Would Join Coalition:[/color]\n"
+		if qualifying.size() == 0:
+			bbcode += "  [color=#" + Utils.COLOR_GREY + "]None currently[/color]\n"
+		else:
+			var qual_strs = []
+			for q in qualifying:
+				qual_strs.append(Utils.display_nation_name(str(q)))
+			bbcode += "  " + ", ".join(PackedStringArray(qual_strs)) + "\n"
 	bbcode += "\n"
 
 	# Coalition status

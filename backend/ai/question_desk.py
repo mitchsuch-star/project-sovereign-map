@@ -701,6 +701,27 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         _LEAD + r"where(?:" + _APOS + r"s|\s+is|\s+are)\s+(?:the\s+)?"
         r"(?P<name>.+?)(?:" + _APOS + r"s?\s+(?:army|armies|corps|forces|men|troops))?"
         + _TAIL, re.IGNORECASE)),
+    # SF-LB-3 (Score Finish Step 7b): the next league — "who will march
+    # against us", "who would join a coalition against us", "which courts
+    # would join a league", "who is in the next coalition". Read before the
+    # alarm (the two answers name each other).
+    ("league", re.compile(
+        _LEAD + r"(?:who\s+(?:will|would|might|could)\s+(?:march|join|stand|rise)"
+        r"(?:\s+(?:up\s+)?against\s+(?:us|me|france)"
+        r"|\s+(?:a|the|the\s+next)\s+(?:league|coalition)(?:\s+against\s+(?:us|me|france))?)"
+        r"|which\s+courts?\s+(?:will|would|might)\s+(?:march|join)"
+        r"(?:\s+against\s+(?:us|me|france)|\s+(?:a|the|the\s+next)\s+(?:league|coalition))?"
+        r"|who(?:" + _APOS + r"s|\s+is|\s+are)\s+in\s+the\s+next\s+(?:league|coalition)"
+        r"|what\s+(?:is|will\s+be)\s+the\s+next\s+(?:league|coalition))" + _TAIL,
+        re.IGNORECASE)),
+    # "what keeps Austria out", "how do I keep Austria out of the league",
+    # "what would keep Russia out of a coalition".
+    ("keep_out", re.compile(
+        _LEAD + r"(?:what\s+(?:keeps|would\s+keep|will\s+keep|can\s+keep|could\s+keep)"
+        r"|how\s+(?:do|can|could|might|would|should)\s+(?:i|we)\s+keep)\s+"
+        r"(?:the\s+)?(?P<name>.+?)\s+out"
+        r"(?:\s+of\s+(?:a|the|any|the\s+next)\s+(?:league|coalition))?" + _TAIL,
+        re.IGNORECASE)),
     # RS-14: the alarm — "why is Europe alarmed", "how alarmed is Europe",
     # "what is the threat level", "is a coalition brewing".
     ("alarm", re.compile(
@@ -838,16 +859,20 @@ def classify_points_question(text: str) -> Optional[Dict]:
 
 # The kinds whose captured `name` is a COURT, resolved against the nations the
 # parser already knows rather than against the marshal/region rosters.
-_NATION_KINDS = frozenset({"at_war", "wants", "demanded"})
+_NATION_KINDS = frozenset({"at_war", "wants", "demanded", "keep_out"})
 # The kinds that need no subject at all.
 _SUBJECTLESS_KINDS = frozenset({"treasury", "winning", "options", "own_army",
                                 "wars", "allies", "war_effort", "news",
-                                "alarm"})
+                                "alarm", "league"})
 # SRX-5 / RS-14 (SR-6a + the Step 2 reserve): the desk reads the table's
 # history, a court's corps in view, and the alarm. False = the shrug.
 THE_DESK_READS_THE_TABLE = True
 THE_DESK_PLACES_A_COURT = True
 THE_DESK_READS_THE_ALARM = True
+# SF-LB-3 (Score Finish Step 7b): the desk reads the next league — who would
+# march and the price to keep each court out — off `coalition.league_forecast`
+# (the alarm's answer names it too). False = the two kinds shrug.
+THE_DESK_READS_THE_LEAGUE = True
 # CRT-7 / AAR-17: the kinds the war-question lever owns, so the lever down
 # returns every one of them to the shrug byte-for-byte.
 _WAR_QUESTION_KINDS = frozenset({"wars", "allies", "safe", "truce_clock",
@@ -880,6 +905,8 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
             continue
         groups = match.groupdict()
         if kind == "alarm" and not THE_DESK_READS_THE_ALARM:
+            continue
+        if kind in ("league", "keep_out") and not _league_is_read():
             continue
         if kind in ("what_if_named", "what_if_odds"):
             weighed = _classify_the_weighed(groups, marshals, enemies, regions)
@@ -1348,6 +1375,64 @@ def _answer_where_nation(world, player: str, court_tag: str) -> str:
     return "Sire — " + ". ".join(parts) + "."
 
 
+def _league_is_read() -> bool:
+    from backend.game_logic import coalition as C
+    return bool(THE_DESK_READS_THE_LEAGUE and C.THE_LEAGUE_IS_SEEN)
+
+
+def _answer_league(world, player: str) -> str:
+    """SF-LB-3: who would march against us, when the courts consult, the
+    great powers' rows and the cheapest order that keeps one out — the
+    league's ONE reader (`coalition.league_forecast`)."""
+    from backend.game_logic import coalition as C
+    line = C.league_summary_line(world)
+    if getattr(world, "active_coalition", None):
+        head = "Sire — a league stands against us already; the war is its answer."
+    else:
+        head = f"Sire — {line}" if line else "Sire — no court would join a league against us today."
+    rows = [r for r in C.league_rows(world)
+            if r["status"] in (C.LEAGUE_JOINS, C.LEAGUE_REFUSES, C.LEAGUE_BOUND)]
+    majors = [r for r in rows if r.get("major")]
+    for r in majors[:4]:
+        head += f" {r['text']}"
+    lesser = len(rows) - len(majors)
+    if lesser:
+        from backend.display_names import plural
+        head += f" And {plural(lesser, 'lesser court')} besides."
+    cheapest = C.league_cheapest_keep_out(world)
+    if cheapest:
+        head += f" {cheapest['order_text']}"
+    pointer = surface_pointer("balance") or surface_pointer("courts")
+    if pointer and rows:
+        head += f" The whole table is on {pointer}."
+    return head
+
+
+def _answer_keep_out(world, player: str, nation: str) -> str:
+    """SF-LB-3: "what keeps Austria out?" — her row in the league's table,
+    and the orders that pay its price, each one the verb's own."""
+    from backend.game_logic import coalition as C
+    from backend.game_logic.formations import formed_display_name
+    name = formed_display_name(world, nation)
+    if nation in (getattr(world, "vassals", {}) or {}):
+        return (f"Sire — {name} is a client; a client does not join a league "
+                f"against its lord while it stands loyal.")
+    forecast = C.league_forecast(world)
+    row = next((r for r in forecast.get("courts") or [] if r["nation"] == nation), None)
+    if row is None:
+        return f"Sire — {name} is no court that could join a league against us."
+    text = f"Sire — {C.league_row_text(world, row, forecast)}"
+    if row.get("status") == C.LEAGUE_JOINS and not row.get("out_of_time"):
+        orders = []
+        if row.get("road") is not None:
+            orders.append(f"'improve relations with {nation}'")
+        if row.get("buyoff") is not None and not row.get("buyoff_refusal"):
+            orders.append(f"'buy off {nation}'")
+        if orders:
+            text += " The order" + ("s: " if len(orders) > 1 else ": ") + " or ".join(orders) + "."
+    return text
+
+
 def _answer_alarm(world, player: str) -> str:
     """RS-14: Europe's alarm — the gauge every surface shows, its tier,
     this turn's sources, the next tick's forecast, and the screen it lives
@@ -1380,6 +1465,11 @@ def _answer_alarm(world, player: str) -> str:
         pass
     if formed:
         head += " A coalition stands against us already."
+    elif _league_is_read():
+        # SF-LB-3: the alarm's own consequence — the league it is building.
+        _line = C.league_summary_line(world)
+        if _line:
+            head += f" {_line}"
     pointer = surface_pointer("balance") or surface_pointer("courts")
     if pointer:
         head += f" The whole account is on {pointer}."
@@ -2510,6 +2600,10 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
             return _answer_where_nation(world, player, subject)
         if kind == "alarm":
             return _answer_alarm(world, player)
+        if kind == "league":
+            return _answer_league(world, player)
+        if kind == "keep_out":
+            return _answer_keep_out(world, player, subject)
         if kind == "reach":
             return _answer_reach(world, player, subject,
                                  str(question.get("place") or ""))

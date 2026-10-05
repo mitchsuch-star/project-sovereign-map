@@ -582,10 +582,23 @@ class TestTheLevyYieldsOnceStated:
     """RS-D2."""
 
     def test_three_statements_then_the_ledger(self, world):
+        """Score Finish Step 7b — a conscious flip of the floor, not of the
+        rule. RS-D2's rule holds: three statements, then the levy leaves
+        the page, and it LEADS at most LEVY_LEAD_MAX of them. What this pin
+        used to assert beside it — that a page the levy carried alone says
+        "a quiet morning" — is the floor Step 7b's front page replaces
+        (RS-D2's own record: "narration F1's floor until Step 7b's front
+        page"). The board here is never alone any more: the next league and
+        the price to keep a court out of it lead the quiet mornings."""
         _peace_with_the_levy_open(world)
-        classes = [_headline(world).get("class") for _ in range(6)]
-        assert classes[:3] == ["levy_open"] * 3, classes
-        assert classes[3:] == ["quiet_morning"] * 3, classes
+        heads = [_headline(world) for _ in range(6)]
+        on_page = [h.get("class") == "levy_open"
+                   or any("ordinance" in b or "levy" in b.lower()
+                          for b in h.get("sub_beats") or [])
+                   for h in heads]
+        assert on_page == [True] * 3 + [False] * 3, [h.get("class") for h in heads]
+        assert [h.get("class") for h in heads].count("levy_open") == dispatch.LEVY_LEAD_MAX
+        assert all(h.get("class") in dispatch.FRONT_PAGE_CLASSES for h in heads[3:]), heads
 
     def test_it_leads_at_most_once_beside_other_news(self, world):
         _peace_with_the_levy_open(world)
@@ -604,7 +617,8 @@ class TestTheLevyYieldsOnceStated:
         levy = _peace_with_the_levy_open(world)
         for _ in range(4):
             _headline(world)
-        assert _headline(world)["class"] == "quiet_morning"
+        # Step 7b: the yielded levy's morning leads with the front page.
+        assert _headline(world)["class"] in dispatch.FRONT_PAGE_CLASSES
         # The headroom moves by more than a fifth: the offer is news again.
         ney = world.marshals["Ney"]
         ney.strength += int(levy["headroom"] * 0.5)
@@ -614,7 +628,8 @@ class TestTheLevyYieldsOnceStated:
         _peace_with_the_levy_open(world)
         for _ in range(4):
             _headline(world)
-        assert _headline(world)["class"] == "quiet_morning"
+        # Step 7b: the yielded levy's morning leads with the front page.
+        assert _headline(world)["class"] in dispatch.FRONT_PAGE_CLASSES
         from backend.game_logic import diplomacy as D
         D.set_diplomatic_state(world, "France", "Austria", "WAR", "test")
         assert _headline(world)["class"] == "levy_open"
@@ -623,7 +638,8 @@ class TestTheLevyYieldsOnceStated:
         _peace_with_the_levy_open(world)
         for _ in range(4):
             _headline(world)
-        assert _headline(world)["class"] == "quiet_morning"
+        # Step 7b: the yielded levy's morning leads with the front page.
+        assert _headline(world)["class"] in dispatch.FRONT_PAGE_CLASSES
         memory = dict(world.headline_lead_memory)
         # Shut the gate for a morning (no levy candidate), then open it.
         import backend.game_logic.dispatch as D
@@ -639,10 +655,28 @@ class TestTheLevyYieldsOnceStated:
         assert _headline(world)["class"] == "levy_open"
 
     def test_lever_down_nags_forever(self, world, monkeypatch):
+        # Step 7b: RS-D2's own lever is read on the page as it stood before
+        # the front page (with the front page up, the family allowance
+        # would end the nag on its own — the next pin).
         monkeypatch.setattr(dispatch, "THE_LEVY_YIELDS_ONCE_STATED", False)
+        monkeypatch.setattr(dispatch, "EVERY_MORNING_HAS_A_FRONT_PAGE", False)
         _peace_with_the_levy_open(world)
         classes = [_headline(world).get("class") for _ in range(6)]
         assert classes == ["levy_open"] * 6, classes
+
+    def test_with_rs_d2_down_the_family_allowance_still_ends_the_nag(self, world, monkeypatch):
+        """Step 7b: RS-D2 is the family rule's special case — with its own
+        lever down the levy leads STANDING_LEAD_MAX mornings, then the
+        front page leads and the levy keeps its sub-beat."""
+        monkeypatch.setattr(dispatch, "THE_LEVY_YIELDS_ONCE_STATED", False)
+        _peace_with_the_levy_open(world)
+        heads = [_headline(world) for _ in range(6)]
+        classes = [h.get("class") for h in heads]
+        assert classes[:dispatch.STANDING_LEAD_MAX] == ["levy_open"] * dispatch.STANDING_LEAD_MAX, classes
+        assert "levy_open" not in classes[dispatch.STANDING_LEAD_MAX:], classes
+        assert all(any("levy" in b.lower() or "ordinance" in b or "depots" in b
+                       for b in h.get("sub_beats") or [])
+                   for h in heads[dispatch.STANDING_LEAD_MAX:]), heads
 
     def test_the_memory_rides_the_existing_field(self, world):
         _peace_with_the_levy_open(world)

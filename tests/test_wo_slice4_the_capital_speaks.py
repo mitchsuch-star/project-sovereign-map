@@ -327,13 +327,21 @@ class TestAnAllyLiberatingIsNotAWound:
         soil." — the game's most ceremonial wound, as a rescue's reward."""
         world.current_turn = 20
         _capture(world, "Paris", by="Spain", frm="Austria")
-        assert _build_headline(world, "France") is None
+        # Score Finish Step 7b (a conscious re-pin): nothing here is a
+        # wound, so no EVENT class fires — the morning leads with the
+        # front page or its floor instead of carrying no headline at all.
+        _head = _build_headline(world, "France")
+        assert _head is None or not dispatch_mod._is_event_news(_head), _head
 
     def test_an_ally_retaking_an_ordinary_homeland_province_fires_nothing(
             self, world):
         world.current_turn = 20
         _capture(world, "Limousin", by="Spain", frm="Austria")
-        assert _build_headline(world, "France") is None
+        # Score Finish Step 7b (a conscious re-pin): nothing here is a
+        # wound, so no EVENT class fires — the morning leads with the
+        # front page or its floor instead of carrying no headline at all.
+        _head = _build_headline(world, "France")
+        assert _head is None or not dispatch_mod._is_event_news(_head), _head
 
     def test_an_ally_taking_our_own_province_is_not_a_wound(self, world):
         """The captor half, added by the review round and REQUIRED by the
@@ -343,7 +351,11 @@ class TestAnAllyLiberatingIsNotAWound:
         world.current_turn = 20
         _ally(world, "France", "Spain")
         _capture(world, "Limousin", by="Spain", frm="France")
-        assert _build_headline(world, "France") is None
+        # Score Finish Step 7b (a conscious re-pin): nothing here is a
+        # wound, so no EVENT class fires — the morning leads with the
+        # front page or its floor instead of carrying no headline at all.
+        _head = _build_headline(world, "France")
+        assert _head is None or not dispatch_mod._is_event_news(_head), _head
 
     def test_soil_changing_hands_between_two_enemies_is_not_a_fresh_wound(
             self, world):
@@ -351,7 +363,11 @@ class TestAnAllyLiberatingIsNotAWound:
         it changed — which is what "the player's side LOST it" means."""
         world.current_turn = 20
         _capture(world, "Berry", by="Russia", frm="Austria")
-        assert _build_headline(world, "France") is None
+        # Score Finish Step 7b (a conscious re-pin): nothing here is a
+        # wound, so no EVENT class fires — the morning leads with the
+        # front page or its floor instead of carrying no headline at all.
+        _head = _build_headline(world, "France")
+        assert _head is None or not dispatch_mod._is_event_news(_head), _head
 
 
 class TestTheWoundStillFiresWhenItIsReal:
@@ -596,8 +612,7 @@ class TestTheTailHasAFloor:
         head = _build_headline(world, "France")
         assert all("has fallen" in b for b in head["sub_beats"]), head
 
-    def test_a_standing_soil_alarm_does_not_evict_a_fallen_province(
-            self, world):
+    def _soil_alarm_beside_three_falls(self, world):
         world.current_turn = 20
         for r in ("Limousin", "Berry", "Normandy"):
             _capture(world, r)
@@ -606,7 +621,23 @@ class TestTheTailHasAFloor:
                     if reg.controller == "France")
         mack.location, mack.strength = held, 30000
         world.calculate_visibility()
-        head = _build_headline(world, "France")
+        return _build_headline(world, "France")
+
+    def test_a_standing_soil_alarm_does_not_evict_a_fallen_province(
+            self, world):
+        """Re-pinned consciously at Step 7b (SF-NAR-1, SYSTEMS_REFERENCE
+        §94.2: a standing crisis keeps its line every turn it stands — beneath
+        a page of wounds too). Both fallen provinces keep their sub-beat
+        slots; the soil alarm rides BENEATH them, never instead of one."""
+        head = self._soil_alarm_beside_three_falls(world)
+        beats = head["sub_beats"]
+        assert len(beats) == SUB_BEAT_SLOTS + 1, head
+        assert all("has fallen" in b for b in beats[:SUB_BEAT_SLOTS]), head
+        assert "has fallen" not in beats[SUB_BEAT_SLOTS], head
+
+    def test_lever_down_the_slice_four_shape(self, world, monkeypatch):
+        monkeypatch.setattr(dispatch_mod, "EVERY_MORNING_HAS_A_FRONT_PAGE", False)
+        head = self._soil_alarm_beside_three_falls(world)
         assert all("has fallen" in b for b in head["sub_beats"]), head
 
     def test_the_marshal_capture_is_still_inside_the_floor(self, world):
@@ -666,13 +697,16 @@ class TestTheTailIsOnlyEverAReordering:
                 break
         return out
 
-    def test_no_illegal_divergence_over_two_thousand_candidate_lists(self):
+    def _differential(self):
+        """Returns (diverged, lists that carried a standing line beneath)."""
         import random
-        from backend.game_logic.dispatch import _select_headline
+        from backend.game_logic.dispatch import (STANDING_HEADLINE_CLASSES,
+                                                 _select_headline)
         classes = ["home_captured", "marshal_captured", "own_broken",
                    "estate_eroding", "region_lost", "victory_won"]
         rnd = random.Random(4)
         diverged = 0
+        beneath = 0
         for _ in range(2000):
             cands = []
             for _i in range(rnd.randint(1, 7)):
@@ -687,8 +721,18 @@ class TestTheTailIsOnlyEverAReordering:
             ordered = sorted(cands, key=lambda c: c["weight"], reverse=True)
             old = self._old_loop([dict(c) for c in ordered],
                                  dict(ordered[0]))
-            new = _select_headline(_Memoless(),
-                                   [dict(c) for c in cands])["sub_beats"]
+            page = _select_headline(_Memoless(),
+                                    [dict(c) for c in cands])["sub_beats"]
+            # Step 7b (SF-NAR-1): a standing crisis keeps its line beneath a
+            # full tail — only ever AFTER the slice-4 slots, only a standing
+            # class, at most SUB_BEAT_SLOTS of them.
+            new, extra = page[:SUB_BEAT_SLOTS], page[SUB_BEAT_SLOTS:]
+            if extra:
+                beneath += 1
+                assert len(new) == SUB_BEAT_SLOTS, (cands, page)
+                assert len(extra) <= SUB_BEAT_SLOTS, (cands, page)
+                for line in extra:
+                    assert line.split(":")[0] in STANDING_HEADLINE_CLASSES, (cands, page)
             if old == new:
                 continue
             diverged += 1
@@ -696,6 +740,19 @@ class TestTheTailIsOnlyEverAReordering:
             assert old[0] == new[0], (cands, old, new)
             assert len(old) == 2, (cands, old, new)
         assert diverged > 0, "the differential exercised nothing"
+        return diverged, beneath
+
+    def test_no_illegal_divergence_over_two_thousand_candidate_lists(self):
+        """Re-pinned consciously at Step 7b (SF-NAR-1, SYSTEMS_REFERENCE
+        §94.2): the slice-4 slots are compared as before; a standing line may
+        now ride BENEATH a full tail, and only there."""
+        _diverged, beneath = self._differential()
+        assert beneath > 0, "the standing line beneath was never exercised"
+
+    def test_lever_down_the_page_is_the_slice_four_tail(self, monkeypatch):
+        monkeypatch.setattr(dispatch_mod, "EVERY_MORNING_HAS_A_FRONT_PAGE", False)
+        _diverged, beneath = self._differential()
+        assert beneath == 0
 
 
 class _Memoless:

@@ -1,0 +1,359 @@
+[
+  {
+    "id": "lever down: THE_FORECAST_READS_THE_TICKS_CLOCK (SF7-X45)",
+    "file": "backend/game_logic/coalition.py",
+    "old": "THE_FORECAST_READS_THE_TICKS_CLOCK = True",
+    "new": "THE_FORECAST_READS_THE_TICKS_CLOCK = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheForecastReadsTheTicksClock::test_the_lapse_turn_is_forecast_as_advance_turn_plays_it"
+  },
+  {
+    "id": "SF7-X45: the quiet count reads today",
+    "file": "backend/game_logic/coalition.py",
+    "old": "    turn = int(getattr(world, \"current_turn\", 0) or 0) + int(ahead)",
+    "new": "    turn = int(getattr(world, \"current_turn\", 0) or 0)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheForecastReadsTheTicksClock::test_the_lapse_turn_is_forecast_as_advance_turn_plays_it"
+  },
+  {
+    "id": "SF7-X45: a defied marker read on today's clock",
+    "file": "backend/game_logic/coalition.py",
+    "old": "        live = sum(1 for exp in defied.values() if int(exp) > _tick_turn)",
+    "new": "        live = sum(1 for exp in defied.values() if int(exp) > turn)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheForecastReadsTheTicksClock::test_a_marker_on_its_last_turn_is_not_counted"
+  },
+  {
+    "id": "lever down: THE_LEAGUE_IS_SEEN (SF-LB-3)",
+    "file": "backend/game_logic/coalition.py",
+    "old": "THE_LEAGUE_IS_SEEN = True",
+    "new": "THE_LEAGUE_IS_SEEN = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLeagueForecast::test_each_quoted_price_flips_the_gate"
+  },
+  {
+    "id": "SF-LB-3: the fuse lights a turn late",
+    "file": "backend/game_logic/coalition.py",
+    "old": "                           if quiet + k >= ARMED_PEACE_FUSE_TURNS else 0)",
+    "new": "                           if quiet + k > ARMED_PEACE_FUSE_TURNS else 0)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLeagueForecast::test_the_consult_and_declare_turns_are_the_ticks"
+  },
+  {
+    "id": "SF-LB-3: the cooldown ignored",
+    "file": "backend/game_logic/coalition.py",
+    "old": "        may_brew = (k >= cooldown or after >= THREAT_OVERRIDE_COOLDOWN_MIN)",
+    "new": "        may_brew = True",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_the_cooldown_holds_the_consult"
+  },
+  {
+    "id": "SF-LB-3: a refuser read off the relation alone",
+    "file": "backend/game_logic/coalition.py",
+    "old": "                if need <= 0 or qualifies_for_coalition(",
+    "new": "                if need <= 0 or False and qualifies_for_coalition(",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_a_refuser_with_cold_relations_is_still_a_refuser"
+  },
+  {
+    "id": "SF-LB-3: a road closing on the declaration counted late",
+    "file": "backend/game_logic/coalition.py",
+    "old": "                                                 or int(road[0]) > int(declare)))",
+    "new": "                                                 or int(road[0]) >= int(declare)))",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_a_road_that_closes_on_the_declaration_is_in_time"
+  },
+  {
+    "id": "SF-LB-3: the buy-off's +5 forgotten",
+    "file": "backend/game_logic/coalition.py",
+    "old": "                lifted = relation + int(BUYOFF_RELATION_BONUS) >= LEAGUE_KEEP_OUT_RELATION",
+    "new": "                lifted = relation >= LEAGUE_KEEP_OUT_RELATION",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLeagueForecast::test_each_quoted_price_flips_the_gate tests/test_sf_page_the_front_page_of_the_peace.py::TestTheCounselNamesTheKeepOut"
+  },
+  {
+    "id": "SF-LB-3: every house's titles ride the row",
+    "file": "backend/game_logic/game_end.py",
+    "old": "                  and (house is None or _house(world, rec) == house))",
+    "new": "                  and True)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_only_our_titles_ride_her_row"
+  },
+  {
+    "id": "SF-LB-3: the road ignores its start",
+    "file": "backend/game_logic/diplomacy.py",
+    "old": "    relation = (int(world.nation_relations.get(key, 0) or 0) if start is None\n                else int(start))",
+    "new": "    relation = int(world.nation_relations.get(key, 0) or 0)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_the_road_starts_where_it_is_told"
+  },
+  {
+    "id": "SF-LB-3: the buy-off gate forgets the purse",
+    "file": "backend/game_logic/instruments.py",
+    "old": "    if price is not None and treasury < int(price):",
+    "new": "    if False:",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLeagueForecast::test_the_buy_off_refusal_is_the_verbs"
+  },
+  {
+    "id": "lever down: THE_COURTSHIP_IS_STEPPED (SF-LB-3 / RS-D1)",
+    "file": "backend/game_logic/congress.py",
+    "old": "THE_COURTSHIP_IS_STEPPED = True",
+    "new": "THE_COURTSHIP_IS_STEPPED = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheCourtshipClauseIsStepped::test_a_named_court_reads_the_stepped_road"
+  },
+  {
+    "id": "lever down: EVERY_MORNING_HAS_A_FRONT_PAGE (SF-NAR-1)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "EVERY_MORNING_HAS_A_FRONT_PAGE = True",
+    "new": "EVERY_MORNING_HAS_A_FRONT_PAGE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestEveryMorningHasAFrontPage::test_a_quiet_peace_leads_with_the_league"
+  },
+  {
+    "id": "lever down: A_TRUCES_END_IS_NEWS (SF7-X37)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "A_TRUCES_END_IS_NEWS = True",
+    "new": "A_TRUCES_END_IS_NEWS = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTruceEndingIsNews::test_a_collapsed_truce_leads"
+  },
+  {
+    "id": "lever down: dispatch THE_PASSAGE_COUNTS_ITS_SLACK (SF7-X46)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_PASSAGE_COUNTS_ITS_SLACK = True",
+    "new": "THE_PASSAGE_COUNTS_ITS_SLACK = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestThePassageCountsItsSlack::test_no_turn_to_spare"
+  },
+  {
+    "id": "lever down: withdrawal THE_PASSAGE_COUNTS_ITS_SLACK (SF7-X46)",
+    "file": "backend/game_logic/withdrawal.py",
+    "old": "THE_PASSAGE_COUNTS_ITS_SLACK = True",
+    "new": "THE_PASSAGE_COUNTS_ITS_SLACK = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_the_withdrawal_warning_counts_its_slack"
+  },
+  {
+    "id": "SF-NAR-1: the family's allowance never spends",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            if leads >= cap or candidate.get(\"identity\") == spent_identity:",
+    "new": "            if leads > cap or candidate.get(\"identity\") == spent_identity:",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFamilyAllowance::test_the_family_leads_its_allowance_then_the_front_page"
+  },
+  {
+    "id": "SF-NAR-1: new stakes never reset the allowance",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    leads = 0 if fresh else int(family.get(\"leads\") or 0)",
+    "new": "    leads = int(family.get(\"leads\") or 0)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFamilyAllowance::test_a_new_crisis_is_new_stakes"
+  },
+  {
+    "id": "SF-NAR-1: the levy's own cap forgotten inside the family",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                   if cls == \"levy_open\" and THE_LEVY_YIELDS_ONCE_STATED",
+    "new": "                   if False",
+    "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py::TestTheLevyYieldsOnceStated::test_three_statements_then_the_ledger"
+  },
+  {
+    "id": "SF-NAR-1: the rotation guard lets a fifth lead through",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        capped = (window.count(cls) >= FRONT_PAGE_ROTATION_MAX",
+    "new": "        capped = (window.count(cls) > FRONT_PAGE_ROTATION_MAX",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRotationGuard::test_no_front_page_class_leads_a_fifth_time_in_ten"
+  },
+  {
+    "id": "SF-NAR-1: event news capped too",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                  and not _is_event_news(candidate))",
+    "new": "                  and True)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRotationGuard::test_event_news_is_exempt"
+  },
+  {
+    "id": "SF-NAR-1: everything capped, the first leads",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        window.count(ic[1][\"class\"]) if _tier(ic[1]) == 3 else 0,",
+    "new": "        0,",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRotationGuard::test_everything_capped_the_least_led_leads"
+  },
+  {
+    "id": "SF-NAR-1: the standing line dropped beneath three wounds",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if EVERY_MORNING_HAS_A_FRONT_PAGE and not _alone:",
+    "new": "    if False:",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFamilyAllowance::test_a_standing_crisis_rides_beneath_three_wounds"
+  },
+  {
+    "id": "SF-NAR-1: the families ranked by class, not the row",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        weight = min(int(HEADLINE_WEIGHTS[cls]) + 1, 30 + int(rank) // 10)",
+    "new": "        weight = int(HEADLINE_WEIGHTS[cls])",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestEveryMorningHasAFrontPage::test_the_biggest_row_leads_without_its_rail_tag"
+  },
+  {
+    "id": "SF-NAR-1: a raw court tag left on the page",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    body = _CAMEL_TAG_RE.sub(_named, body)",
+    "new": "    body = body",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestEveryMorningHasAFrontPage::test_a_raw_court_tag_is_named_on_the_page"
+  },
+  {
+    "id": "SF-NAR-1: the rail's tag kept on the headline",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    body = _RAIL_TAG_RE.sub(\"\", str(text or \"\").strip(), count=1).strip()",
+    "new": "    body = str(text or \"\").strip()",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestEveryMorningHasAFrontPage::test_the_biggest_row_leads_without_its_rail_tag"
+  },
+  {
+    "id": "SF-NAR-1: the front page beside event news",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if not any(_is_event_news(c) for c in candidates):",
+    "new": "    if True:",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestEveryMorningHasAFrontPage::test_event_news_keeps_the_front_page_off"
+  },
+  {
+    "id": "SF-LB-3: a grant told again the next morning",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                or e.get(\"aim\") != player_nation or int(e.get(\"turn\", -1)) != turn):",
+    "new": "                or e.get(\"aim\") != player_nation or int(e.get(\"turn\", -1)) < turn - 1):",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheEdges::test_a_grant_is_told_once"
+  },
+  {
+    "id": "SF-LB-3: every joiner fresh every morning",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        fresh = [n for n in majors_joining if n not in (told.get(\"joiners\") or [])]",
+    "new": "        fresh = list(majors_joining)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLeaguesNews::test_a_great_power_newly_free_to_join"
+  },
+  {
+    "id": "SF-LB-3: the fuse told as a streak",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            and (told is None or int(told.get(\"fuse\", -1)) != left)):",
+    "new": "            and True):",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLeaguesNews::test_the_fuse_at_eight_four_and_two_never_a_streak"
+  },
+  {
+    "id": "lever down: THE_DESK_READS_THE_LEAGUE (SF-LB-3)",
+    "file": "backend/ai/question_desk.py",
+    "old": "THE_DESK_READS_THE_LEAGUE = True",
+    "new": "THE_DESK_READS_THE_LEAGUE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheDeskReadsTheLeague::test_who_will_march_against_us"
+  },
+  {
+    "id": "SF-LB-3: the keep-out question resolves no court",
+    "file": "backend/ai/question_desk.py",
+    "old": "_NATION_KINDS = frozenset({\"at_war\", \"wants\", \"demanded\", \"keep_out\"})",
+    "new": "_NATION_KINDS = frozenset({\"at_war\", \"wants\", \"demanded\"})",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheDeskReadsTheLeague::test_what_keeps_austria_out"
+  },
+  {
+    "id": "lever down: THE_COUNSEL_NAMES_THE_KEEP_OUT (SF-LB-3)",
+    "file": "backend/ai/counsel.py",
+    "old": "THE_COUNSEL_NAMES_THE_KEEP_OUT = True",
+    "new": "THE_COUNSEL_NAMES_THE_KEEP_OUT = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheCounselNamesTheKeepOut::test_at_peace_what_can_i_do_names_the_cheapest"
+  },
+  {
+    "id": "SF-LB-3: the counsel talks keep-out at war",
+    "file": "backend/ai/counsel.py",
+    "old": "        if any(n in majors for n in world.get_nations_at_war_with(nation)):",
+    "new": "        if False:",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheCounselNamesTheKeepOut::test_at_war_with_a_great_power_it_is_silent"
+  },
+  {
+    "id": "lever down: THE_COURTS_TREATIES_READ_AS_PROSE (the log rider)",
+    "file": "backend/campaign_log.py",
+    "old": "THE_COURTS_TREATIES_READ_AS_PROSE = True",
+    "new": "THE_COURTS_TREATIES_READ_AS_PROSE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLedgerAndTheLog::test_the_courts_treaty_is_prose"
+  },
+  {
+    "id": "SF7-X38: the treaty row prints the raw key",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    \"diplomatic_treaty_signed\": \"Sire — {nation_a_display} and {nation_b_display} have signed the {treaty_type}.\",",
+    "new": "    \"diplomatic_treaty_signed\": \"{nation_a} and {nation_b} have signed the {treaty_type}.\",",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRawKeysAreNamed"
+  },
+  {
+    "id": "SF7-X38: the relation shift prints the raw key",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                      if DISPATCH_TEMPLATES_NAME_THE_NATION else nation)",
+    "new": "                      if False else nation)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheRawKeysAreNamed::test_the_relation_shift_names_the_court"
+  },
+  {
+    "id": "SF-LB-3: the Balance of Europe tab without the table",
+    "file": "backend/game_logic/diplomatic_ledger.py",
+    "old": "    if _league.THE_LEAGUE_IS_SEEN and not world.active_coalition:",
+    "new": "    if False:",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheLedgerAndTheLog::test_the_balance_of_europe_tab_carries_the_table"
+  },
+  {
+    "id": "lever down: THE_DIGEST_READS_THE_WHOLE_PAGE (SF7-X39, the driver)",
+    "file": "tools/playtest_driver.py",
+    "old": "THE_DIGEST_READS_THE_WHOLE_PAGE = True",
+    "new": "THE_DIGEST_READS_THE_WHOLE_PAGE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheInstrumentReadsTheWholePage::test_the_driver_records_the_whole_page"
+  },
+  {
+    "id": "lever down: THE_PROBE_READS_THE_WHOLE_PAGE (SF7-X39, the probe)",
+    "file": "tools/_score_probes.py",
+    "old": "THE_PROBE_READS_THE_WHOLE_PAGE = True",
+    "new": "THE_PROBE_READS_THE_WHOLE_PAGE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheInstrumentReadsTheWholePage::test_the_probe_reads_a_sub_beat"
+  },
+  {
+    "id": "lever down: THE_TODAY_LIST_IS_A_CHOICE (SF7-X47)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_TODAY_LIST_IS_A_CHOICE = True",
+    "new": "THE_TODAY_LIST_IS_A_CHOICE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTodayListIsAChoice::test_the_header_names_the_choice"
+  },
+  {
+    "id": "SF7-X47: the header drops the choice",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "TODAY_ORDERS_HEADER = (\"Orders the board will take at once — choose among them; \"",
+    "new": "TODAY_ORDERS_HEADER = (\"Orders the board will take at once; \"",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTodayListIsAChoice::test_the_header_names_the_choice"
+  },
+  {
+    "id": "SF7-X47: the payload carries no header",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "            \"orders_header\": (TODAY_ORDERS_HEADER if THE_TODAY_LIST_IS_A_CHOICE",
+    "new": "            \"orders_header_unread\": (TODAY_ORDERS_HEADER if THE_TODAY_LIST_IS_A_CHOICE",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTodayListIsAChoice::test_the_header_names_the_choice tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTodayListIsAChoice::test_lever_down_the_old_header"
+  },
+  {
+    "id": "SF7-X47: the terminal prints its own header",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "\t\t\tvar today_header = str(today.get(\"orders_header\", \"Orders the board will take at once:\"))\n\t\t\tadd_output(",
+    "new": "\t\t\tvar today_header = \"Orders the board will take at once:\"\n\t\t\tadd_output(",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTodayListIsAChoice::test_both_screens_render_the_backends_header"
+  },
+  {
+    "id": "SF7-X47: the R screen prints its own header",
+    "file": "godot-client/project-sovereign/scripts/dispatch_view.gd",
+    "old": "\t\t\tvar today_header = str(today.get(\"orders_header\", \"Orders the board will take at once:\"))",
+    "new": "\t\t\tvar today_header = \"Orders the board will take at once:\"",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheTodayListIsAChoice::test_both_screens_render_the_backends_header"
+  },
+  {
+    "id": "lever down: THE_FIRST_MORNING_KEEPS_ITS_OWN_FRONT_PAGE (Step 7b)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_FIRST_MORNING_KEEPS_ITS_OWN_FRONT_PAGE = True",
+    "new": "THE_FIRST_MORNING_KEEPS_ITS_OWN_FRONT_PAGE = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFirstMorningAndTheQuietClose::test_the_first_morning_keeps_its_own_front_page tests/test_crt7_the_desk_reads_the_order.py::TestTheNews::test_the_boot_has_no_last_turn"
+  },
+  {
+    "id": "Step 7b: the first morning takes the quiet floor",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if not EVERY_MORNING_HAS_A_FRONT_PAGE or _first_morning:\n            return None",
+    "new": "        if not EVERY_MORNING_HAS_A_FRONT_PAGE:\n            return None",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFirstMorningAndTheQuietClose::test_the_first_morning_keeps_its_own_front_page tests/test_crt7_the_desk_reads_the_order.py::TestTheNews::test_the_boot_has_no_last_turn"
+  },
+  {
+    "id": "Step 7b: the boot is not threaded to the headline",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "                                                else None),\n                               boot=boot)",
+    "new": "                                                else None),\n                               boot=False)",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFirstMorningAndTheQuietClose::test_the_first_morning_keeps_its_own_front_page"
+  },
+  {
+    "id": "lever down: A_QUIET_MORNING_CLOSES_ON_THE_LADDER (Step 7b)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "A_QUIET_MORNING_CLOSES_ON_THE_LADDER = True",
+    "new": "A_QUIET_MORNING_CLOSES_ON_THE_LADDER = False",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFirstMorningAndTheQuietClose::test_a_quiet_morning_closes_on_the_ladder tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN29HaltedIsNotReady::test_the_same_army_unhalted_is_ready"
+  },
+  {
+    "id": "Step 7b: the quiet close ignores the levy's yield",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "    if (A_QUIET_MORNING_CLOSES_ON_THE_LADDER and _lead_class == \"quiet_morning\"\n            and not _memory.get(\"levy_said\")):",
+    "new": "    if (A_QUIET_MORNING_CLOSES_ON_THE_LADDER and _lead_class == \"quiet_morning\"):",
+    "tests": "tests/test_sf_page_the_front_page_of_the_peace.py::TestTheFirstMorningAndTheQuietClose::test_the_levy_note_stands_while_the_levy_yields"
+  }
+]

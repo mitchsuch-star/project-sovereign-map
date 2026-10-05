@@ -382,7 +382,9 @@ class TestTheDeskPlacesACourt:
                   "what is the threat level?"):
             msg = post(client, q).get("message", "")
             assert msg.startswith(f"Europe's alarm stands at {level} — "), (q, msg)
-            assert "the Diplomatic Ledger (press D)" in msg
+            # Score Finish Step 7b (a conscious re-pin): the pointer names
+            # the tab the alarm lives on, not the whole ledger.
+            assert "the Diplomatic Ledger's Balance of Europe tab (press D, then 3)" in msg
 
     def test_lever_down_shrugs(self, shipped, monkeypatch):
         from backend.ai import question_desk as QD

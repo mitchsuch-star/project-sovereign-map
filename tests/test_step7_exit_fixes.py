@@ -141,9 +141,12 @@ class TestTheDigestRecordsTheHeadlineItself:
         seen = {}
 
         class _Digest:
-            def dispatch(self, text, events=None, turn_events=None, headline_class=""):
+            # Step 7b (SF7-X39): the driver hands the whole page as `page=`.
+            def dispatch(self, text, events=None, turn_events=None, headline_class="",
+                         page=None):
                 seen["text"] = text
                 seen["class"] = headline_class
+                seen["page"] = page
 
         PD._record_morning_headline(_Digest(), morning)
         return seen

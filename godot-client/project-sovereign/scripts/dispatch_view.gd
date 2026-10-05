@@ -439,6 +439,16 @@ func _on_dispatch_received(response):
 				var coal_name = str(active_coal.get("name", "Coalition"))
 				var coal_leader = str(active_coal.get("leader", "?"))
 				bbcode += "[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]\n"
+			# SF-LB-3 (Score Finish Step 7b): the next league and the price
+			# to keep each court out of it — the backend's own forecast.
+			var league_line = str(coalition_status.get("league_line", ""))
+			if league_line != "":
+				bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + league_line + "[/color]\n"
+			var league_rows = coalition_status.get("league_rows", [])
+			if league_rows is Array:
+				for lrow in league_rows:
+					if lrow is Dictionary and str(lrow.get("text", "")) != "":
+						bbcode += "[color=#" + Utils.COLOR_INFO + "]    • " + str(lrow.get("text", "")) + "[/color]\n"
 			bbcode += "\n"
 
 	# ═══ WAR PURPOSE ═══
@@ -518,7 +528,9 @@ func _on_dispatch_received(response):
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]TODAY[/color]\n"
 		var today_orders = today.get("orders", [])
 		if today_orders is Array and today_orders.size() > 0:
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]  Orders the board will take at once:[/color]\n"
+			# SF7-X47: the header is the backend's sentence (a choice, not a plan).
+			var today_header = str(today.get("orders_header", "Orders the board will take at once:"))
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_header + "[/color]\n"
 			for order in today_orders:
 				bbcode += "[color=#" + Utils.COLOR_COMMAND + "]    • " + str(order) + "[/color]\n"
 		var today_doors = str(today.get("doors", ""))

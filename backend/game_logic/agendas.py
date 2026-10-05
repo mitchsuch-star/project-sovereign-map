@@ -1014,7 +1014,8 @@ def get_paymaster_subsidy_amount(world, payer: str) -> int:
     return int(min(AGENDA_SUBSIDY_CAP, amount))
 
 
-def get_agenda_grudge_nations(world, author: Optional[str] = None) -> List[str]:
+def get_agenda_grudge_nations(world, author: Optional[str] = None,
+                              turn: Optional[int] = None) -> List[str]:
     """NA-3 §5.8 — the post-peace grudge: nations at peace with the player
     whose active acquire/deny design remains denied by the player's bloc
     and whose war with the player ENDED within AGENDA_GRUDGE_TURNS.
@@ -1045,7 +1046,9 @@ def get_agenda_grudge_nations(world, author: Optional[str] = None) -> List[str]:
     the R156 payoff.
     """
     player = author or getattr(world, "player_nation", "France")
-    current_turn = int(getattr(world, "current_turn", 0))
+    # SF7-X45: `turn` is the clock to read the window on — the alarm
+    # forecast asks as the NEXT tick will (None = today, the tick's own).
+    current_turn = int(getattr(world, "current_turn", 0)) if turn is None else int(turn)
     instances = getattr(world, "war_instances", None) or {}
 
     recently_ended_with_player = set()

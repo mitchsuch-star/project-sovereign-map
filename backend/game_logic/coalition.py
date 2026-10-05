@@ -119,6 +119,10 @@ ARMED_PEACE_WATCH = 45
 ARMED_PEACE_FUSE_TURNS = 20
 ARMED_PEACE_RISE = 3
 ARMED_PEACE_SHARE_FLOOR = 0.33
+# SF7-X45 (Score Finish Step 7b, found building the league's forecast): the
+# alarm forecast reads the clock the tick runs on — one turn ahead. False =
+# the pre-fix forecast byte for byte. Display only: no AI reads it.
+THE_FORECAST_READS_THE_TICKS_CLOCK = True
 
 # Brewing countdown (§3c)
 BREWING_COUNTDOWN = 3
@@ -1105,7 +1109,7 @@ def _calculate_ultimatum_rejection_threat(world) -> int:
     ))
 
 
-def _calculate_agenda_grudge_threat(world) -> int:
+def _calculate_agenda_grudge_threat(world, turn: Optional[int] = None) -> int:
     """NA-3 §5.8 — the post-peace grudge. Nations at peace with the player
     whose active acquire/deny design stays denied by the player's bloc,
     and whose war with the player ended within AGENDA_GRUDGE_TURNS, feed
@@ -1118,18 +1122,19 @@ def _calculate_agenda_grudge_threat(world) -> int:
     from backend.game_logic.agendas import (
         AGENDA_GRUDGE_CAP, get_agenda_grudge_nations,
     )
-    grudged = get_agenda_grudge_nations(world)
+    grudged = get_agenda_grudge_nations(world, turn=turn)
     return int(min(AGENDA_GRUDGE_CAP, len(grudged)))
 
 
-def _calculate_defensive_refusal_memory_threat(world) -> int:
+def _calculate_defensive_refusal_memory_threat(world, turn: Optional[int] = None) -> int:
     """Standing DG-4 threat from active defensive-refusal episodes.
 
     The current coalition scalar is France-targeted, so only refusals by the
     player nation feed it here. D2 can generalize this to per-target threat.
+    SF7-X45: `turn` is the clock the expiry is read on (None = today).
     """
     france = world.player_nation
-    current_turn = int(getattr(world, "current_turn", 0))
+    current_turn = int(getattr(world, "current_turn", 0)) if turn is None else int(turn)
     amount = 0
     for event in getattr(world, "event_log", []) or []:
         if event.get("type") != "call_to_arms_refused_defensive":
@@ -1161,9 +1166,21 @@ def forecast_alarm_tick(world) -> Dict[str, Any]:
     line reads it (`congress.alarm_road`); before it, the line quoted the
     gross decay alone and promised a fall on a board that rose.
 
-    Returns {now, gains: [(label, amount)], decay, next, net, capped}."""
+    Returns {now, gains: [(label, amount)], decay, next, net, capped}.
+
+    SF7-X45 (Score Finish Step 7b): the tick runs AFTER `advance_turn`
+    moves the turn on (world_state's increment precedes the coalition
+    tick), so every producer that reads the clock — the Armed Peace's
+    quiet count, the two expiring markers, the DG-4 memory, the agenda and
+    Congress grudges — is read one turn ahead. Measured before the fix: at
+    19 quiet turns the forecast promised 45 and `advance_turn` gave 49
+    (the fuse lit a turn before the forecast said it would), and a marker
+    on its last turn was counted live by the forecast and dead by the
+    tick. The RS-16 pin ticked without advancing the turn, so it could not
+    see either."""
     france = world.player_nation
     now = int(world.threat_by_target.get(france, 0) or 0)
+    _ahead = 1 if THE_FORECAST_READS_THE_TICKS_CLOCK else 0
     gains: List[tuple] = []
     nobody_left = NOBODY_LEFT_TO_ALARM_IS_SILENT and no_court_left_to_alarm(world, france)
     total_regions = len(world.regions)
@@ -1191,18 +1208,21 @@ def forecast_alarm_tick(world) -> Dict[str, Any]:
                 1 if share > ESTABLISHMENT_THREAT_SHARE else 0)
             if amount:
                 gains.append(("the size of our army", amount))
-    refusal = _calculate_defensive_refusal_memory_threat(world)
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    _tick_turn = turn + _ahead
+    refusal = (_calculate_defensive_refusal_memory_threat(world, turn=_tick_turn)
+               if _ahead else _calculate_defensive_refusal_memory_threat(world))
     if refusal > 0:
         gains.append(("our refused calls to arms", int(refusal)))
-    turn = int(getattr(world, "current_turn", 0) or 0)
     schemer = getattr(world, "schemer_rejection_pressure", None)
     if isinstance(schemer, dict) and schemer:
-        live = sum(1 for exp in schemer.values() if int(exp) > turn)
+        live = sum(1 for exp in schemer.values() if int(exp) > _tick_turn)
         amount = int(min(SCHEMER_PEACE_REJECTION_PRESSURE_CAP,
                          live * SCHEMER_PEACE_REJECTION_PRESSURE_AMOUNT))
         if amount > 0:
             gains.append(("the peace overtures we spurned", amount))
-    agenda = _calculate_agenda_grudge_threat(world)
+    agenda = (_calculate_agenda_grudge_threat(world, turn=_tick_turn)
+              if _ahead else _calculate_agenda_grudge_threat(world))
     if agenda > 0:
         gains.append(("the designs we deny", int(agenda)))
     from backend.game_logic.agendas import AGENDA_GRUDGE_CAP as _GRUDGE_CAP
@@ -1215,13 +1235,16 @@ def forecast_alarm_tick(world) -> Dict[str, Any]:
             gains.append((str(contribution.get("label") or "a formation's grudge"), amount))
             spent += amount
     from backend.game_logic.congress import grudge_contributions
-    for contribution in grudge_contributions(world, budget=_GRUDGE_CAP - spent):
+    for contribution in (grudge_contributions(world, budget=_GRUDGE_CAP - spent,
+                                              turn=_tick_turn)
+                         if _ahead else
+                         grudge_contributions(world, budget=_GRUDGE_CAP - spent)):
         amount = int(contribution.get("amount", 0))
         if amount > 0:
             gains.append(("the refusers' grudge", amount))
     defied = getattr(world, "ultimatum_rejection_pressure", None)
     if isinstance(defied, dict) and defied:
-        live = sum(1 for exp in defied.values() if int(exp) > turn)
+        live = sum(1 for exp in defied.values() if int(exp) > _tick_turn)
         amount = int(min(ULTIMATUM_REJECTION_PRESSURE_CAP,
                          live * ULTIMATUM_REJECTION_PRESSURE_AMOUNT))
         if amount > 0:
@@ -1237,7 +1260,7 @@ def forecast_alarm_tick(world) -> Dict[str, Any]:
     # SR-G7 / PB-D1: the Armed Peace's clamp and rise are the tick's own
     # (one reading, one arithmetic) — the forecast cannot promise a fall the
     # watch withholds, nor miss the rise the fuse adds.
-    _armed = armed_peace_reading(world)
+    _armed = armed_peace_reading(world, ahead=_ahead)
     applied = armed_peace_decay(_armed, france, int(raised), decay)
     after = int(max(0, raised - applied)) if applied > 0 else raised
     held = int(decay - applied) if (decay > applied and _armed.get("holds")
@@ -1289,12 +1312,13 @@ def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
 # SR-G7 / PB-D1 — THE ARMED PEACE (one reading, five readers)
 # ════════════════════════════════════════════════════════════════
 
-def hegemon_quiet_turns(world, hegemon: str) -> int:
+def hegemon_quiet_turns(world, hegemon: str, ahead: int = 0) -> int:
     """Turns since the hegemon's last battle — the latest `last_battle_turn`
     among its standing marshals (both sides of a battle stamp it, so a
     defence restarts the count too). A roster that never fought counts from
-    the boot."""
-    turn = int(getattr(world, "current_turn", 0) or 0)
+    the boot. `ahead` reads the count as it will stand that many turns on,
+    with no battle in between (SF7-X45: the tick reads it one turn on)."""
+    turn = int(getattr(world, "current_turn", 0) or 0) + int(ahead)
     latest = 0
     for m in world.marshals.values():
         if m.nation != hegemon or getattr(m, "strength", 0) <= 0:
@@ -1303,7 +1327,7 @@ def hegemon_quiet_turns(world, hegemon: str) -> int:
     return max(0, turn - latest)
 
 
-def armed_peace_reading(world) -> Dict[str, Any]:
+def armed_peace_reading(world, ahead: int = 0) -> Dict[str, Any]:
     """The ONE reading of the Armed Peace (SR-G7 / PB-D1, gate §6.2):
 
         holds       the four-part predicate
@@ -1319,7 +1343,10 @@ def armed_peace_reading(world) -> Dict[str, Any]:
         courts      the courts that would consult (qualify for a league)
 
     Pure: writes nothing. The tick, the RS-16 forecast, the ledger rows,
-    the war room and the dispatch beat all read this and nothing else."""
+    the war room and the dispatch beat all read this and nothing else.
+    `ahead` (SF7-X45): the reading as the board will stand that many turns
+    on with no battle — the forecast reads the next tick's (1); every
+    other reader reads today's (0)."""
     out: Dict[str, Any] = {
         "holds": False, "reason": "lever", "hegemon": None, "share": 0.0,
         "quiet_turns": 0, "fuse_turns_left": int(ARMED_PEACE_FUSE_TURNS),
@@ -1355,7 +1382,7 @@ def armed_peace_reading(world) -> Dict[str, Any]:
     out["reason"] = ""
     gate = int(brewing_gate(world, hegemon))
     out["gate"] = gate
-    quiet = hegemon_quiet_turns(world, hegemon)
+    quiet = hegemon_quiet_turns(world, hegemon, ahead=ahead)
     out["quiet_turns"] = int(quiet)
     out["fuse_turns_left"] = int(max(0, ARMED_PEACE_FUSE_TURNS - quiet))
     out["rise"] = int(ARMED_PEACE_RISE) if quiet >= ARMED_PEACE_FUSE_TURNS else 0
@@ -1451,29 +1478,43 @@ def peace_with_target_is_fresh(nation: str, world, target: str) -> bool:
     never return True. Measured before removal: 0 archived instances at
     turn 40 on the ambient board, and the branch False on every probe.
     """
+    return fresh_peace_turns_left(nation, world, target) > 0
+
+
+def fresh_peace_turns_left(nation: str, world, target: str) -> int:
+    """The turns left on PR-1's fresh-peace floor between `nation` and
+    `target` — 0 when no peace between them is fresh. The ONE rule: the
+    coalition gate (`peace_with_target_is_fresh`) is this > 0, and SF-LB-3's
+    league rows quote it ("bound by her peace with us N more turns"). The
+    pair is asked first and the war second, as the gate always did."""
     if not COALITION_HONOURS_A_FRESH_PEACE:
-        return False
+        return 0
     turn = int(getattr(world, "current_turn", 0) or 0)
 
-    def _fresh(value) -> bool:
-        return value is not None and 0 <= turn - int(value) < FRESH_PEACE_FLOOR_TURNS
+    def _left(value) -> int:
+        if value is None:
+            return 0
+        elapsed = turn - int(value)
+        return (FRESH_PEACE_FLOOR_TURNS - elapsed
+                if 0 <= elapsed < FRESH_PEACE_FLOOR_TURNS else 0)
 
+    best = 0
     pair_key = world._make_diplo_key(str(nation), str(target))
     for inst in (getattr(world, "war_instances", {}) or {}).values():
         pair_meta = ((inst.get("diplo_key_meta") or {}).get(pair_key) or {})
-        if pair_meta.get("pair_status") == "resolved" and _fresh(
-                pair_meta.get("resolved_turn")):
-            return True
+        if pair_meta.get("pair_status") == "resolved":
+            best = max(best, _left(pair_meta.get("resolved_turn")))
         meta = inst.get("participant_meta") or {}
         mine, theirs = meta.get(str(nation)), meta.get(str(target))
         if not mine or not theirs:
             continue
         if mine.get("side") and mine.get("side") == theirs.get("side"):
             continue
-        if _fresh(mine.get("exited_turn")) or (
-                mine.get("exited_turn") is None and _fresh(inst.get("ended_turn"))):
-            return True
-    return False
+        if mine.get("exited_turn") is not None:
+            best = max(best, _left(mine.get("exited_turn")))
+        else:
+            best = max(best, _left(inst.get("ended_turn")))
+    return int(best)
 
 
 def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
@@ -3447,3 +3488,493 @@ def _check_threat_notifications(world) -> None:
         # Calm — dismiss all threat notifications
         world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
         world.notifications.dismiss_by_type(COALITION_MURMURS)
+
+
+# ════════════════════════════════════════════════════════════════
+# SF-LB-3 "Europe arms in plain sight" (Score Finish Step 7b)
+# ════════════════════════════════════════════════════════════════
+# The quiet middle of a winning campaign is not empty, it is untold: the
+# Armed Peace (SR-G7) was admitted only because it is visible and can be
+# played against, and the number that decides the next league — a court's
+# relation against -10 — could already be bought (a design buy-off,
+# Talleyrand's missions) with nothing telling the player. ONE pure reader,
+# `league_forecast`, says per court whether it would join a league, what
+# its war would reopen, who pays it, and the price to keep it out; the
+# dispatch's rows and headlines, the Balance of Europe tab, the desk and the
+# counsel all read it. Display only (GR6): no AI consumes it and no AI
+# courting rung is built or promised (GR9). False = no reader: every surface
+# reads as it did.
+THE_LEAGUE_IS_SEEN = True
+# `qualifies_for_coalition`'s own bar: a court BELOW it joins a league.
+LEAGUE_KEEP_OUT_RELATION = -10
+# How far the consultation is projected; past it "no league gathers at this
+# pace".
+LEAGUE_PROJECTION_LIMIT = 40
+# The fuse is told at these turns left, never as a streak.
+LEAGUE_FUSE_BEATS = (8, 4, 2)
+
+LEAGUE_JOINS = "joins"          # qualifies now; a relation price keeps it out
+LEAGUE_REFUSES = "refuses"      # a Congress refuser: joins whatever its relations
+LEAGUE_BOUND = "bound"          # held out by a fresh peace with the target
+LEAGUE_SPARED = "spared"        # answers the sitting Congress, or a truce with us
+LEAGUE_OUT = "out"              # relations at or above the bar
+LEAGUE_AT_WAR = "at_war"        # already at war with the target
+_LEAGUE_ORDER = {LEAGUE_JOINS: 0, LEAGUE_REFUSES: 1, LEAGUE_BOUND: 2,
+                 LEAGUE_SPARED: 3, LEAGUE_OUT: 4, LEAGUE_AT_WAR: 5}
+
+
+def league_clock(world, target: Optional[str] = None,
+                 first_joiner: Optional[int] = 0,
+                 _forecast: Optional[Dict[str, Any]] = None) -> Dict[str, Optional[int]]:
+    """Ticks until the courts CONSULT against `target` (the alarm reaching
+    the brewing gate with the cooldown spent and a court to consult) and
+    until a league is DECLARED (the countdown's end, or at once at the
+    instant bar) — {"consult": k, "declare": k} or None each when none
+    gathers within LEAGUE_PROJECTION_LIMIT. 0 while a league brews or
+    stands.
+
+    Steps the coalition tick's own pieces with the board held still (no
+    battle, no court changing its mind): the gains and decay of the RS-16
+    forecast (SF7-X45: read on the tick's clock), the Armed Peace's clamp
+    and rise with the fuse lit when the tick's quiet count reaches it, and
+    step 7's cooldown — decremented before the threshold check, so the k-th
+    tick may brew once k reaches it. A court's membership is re-read on
+    every tick of the countdown, so the declaration is the deadline a
+    keep-out price must beat. `first_joiner` is the first tick at which any
+    court qualifies (0 = now; None = no court would). The player's slot
+    only: any other target reads None."""
+    out: Dict[str, Optional[int]] = {"consult": None, "declare": None}
+    player = getattr(world, "player_nation", None)
+    tgt = target or player
+    coalition = getattr(world, "active_coalition", None)
+    if coalition and (coalition.get("target_nation") or player) == tgt:
+        return {"consult": 0, "declare": 0}
+    brewing = getattr(world, "coalition_brewing", None)
+    if brewing and (brewing.get("target_nation") or player) == tgt:
+        return {"consult": 0,
+                "declare": int(max(1, int(brewing.get("turns_remaining", 1) or 1)))}
+    if tgt != player or first_joiner is None:
+        return out
+    if NOBODY_LEFT_TO_ALARM_IS_SILENT and no_court_left_to_alarm(world, tgt):
+        return out
+    fc = _forecast if _forecast is not None else forecast_alarm_tick(world)
+    gate = int(brewing_gate(world, tgt))
+    cooldown = int(getattr(world, "coalition_cooldown", 0) or 0)
+    level = int(fc.get("now", 0))
+    gains = sum(int(amount) for label, amount in (fc.get("gains") or [])
+                if not str(label).startswith("the armed peace"))
+    decay = int(fc.get("decay", 0))
+    reading = dict(armed_peace_reading(world))
+    quiet = int(reading.get("quiet_turns", 0))
+    holds = bool(reading.get("holds") and reading.get("hegemon") == tgt)
+    if not holds and gains - decay <= 0 and level < gate:
+        return out
+    for k in range(1, LEAGUE_PROJECTION_LIMIT + 1):
+        r_k = dict(reading)
+        if holds:
+            r_k["rise"] = (int(ARMED_PEACE_RISE)
+                           if quiet + k >= ARMED_PEACE_FUSE_TURNS else 0)
+        raised = int(min(100, max(0, level + gains)))
+        applied = armed_peace_decay(r_k, tgt, raised, decay)
+        after = int(max(0, raised - applied)) if applied > 0 else raised
+        after = int(min(100, after + armed_peace_rise(r_k, tgt, after)))
+        may_brew = (k >= cooldown or after >= THREAT_OVERRIDE_COOLDOWN_MIN)
+        if may_brew and k >= int(first_joiner):
+            if after >= THREAT_INSTANT_MIN:
+                return {"consult": k, "declare": k}
+            if after >= gate:
+                return {"consult": k, "declare": k + int(BREWING_COUNTDOWN)}
+        level = after
+    return out
+
+
+def _league_signature(world, tgt: str) -> tuple:
+    """What can move inside one turn — the cache's key: the target's
+    relations and states, the alarm and its clocks, the instruments, the
+    Congress, the purse and the points, and the player's own army (a
+    battle restarts the fuse; a conquest moves the alarm's gains)."""
+    player = getattr(world, "player_nation", None)
+    rel = tuple(sorted((k, int(v or 0)) for k, v in
+                       (getattr(world, "nation_relations", {}) or {}).items()
+                       if tgt in str(k).split("|")))
+    states = tuple(sorted((k, str(v)) for k, v in
+                          (getattr(world, "diplomatic_states", {}) or {}).items()
+                          if tgt in str(k).split("|")))
+    congress_state = getattr(world, "congress", None)
+    mission = getattr(world, "active_diplomatic_mission", None)
+    army = tuple(sorted((m.name, str(getattr(m, "location", "")),
+                         int(getattr(m, "strength", 0) or 0),
+                         int(getattr(m, "last_battle_turn", -1) or -1))
+                        for m in getattr(world, "marshals", {}).values()
+                        if getattr(m, "nation", None) == tgt))
+    return (int(getattr(world, "current_turn", 0) or 0), tgt,
+            int((getattr(world, "threat_by_target", {}) or {}).get(tgt, 0) or 0),
+            int(getattr(world, "coalition_cooldown", 0) or 0), rel, states,
+            len(getattr(world, "directed_sponsorships", []) or []),
+            len(getattr(world, "compensation_bargains", []) or []),
+            tuple(sorted((getattr(world, "vassals", {}) or {}).keys())),
+            str(congress_state.get("status", "")) if isinstance(congress_state, dict) else "",
+            bool(getattr(world, "active_coalition", None)),
+            bool(getattr(world, "coalition_brewing", None)),
+            int((getattr(world, "nation_gold", {}) or {}).get(player, 0) or 0),
+            int(getattr(world, "diplomatic_points", 0) or 0),
+            str((mission or {}).get("target", "")) if isinstance(mission, dict) else "",
+            len(world.get_nation_regions(tgt)) if hasattr(world, "get_nation_regions") else 0,
+            army)
+
+
+def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
+    """SF-LB-3: the ONE pure reader of the next league against `target` (the
+    player when None). Per court (`courts`, joiners first, great powers
+    first, the most hostile first):
+
+        nation, display, major, relation, state, status (LEAGUE_*), reason
+        need        the relation that lifts a joiner to the bar (confirmed:
+                    `qualifies_for_coalition(relation_shift=need)` is False)
+        road        (turns, dp) — Talleyrand's Improve Relations mission to
+                    the bar (`diplomacy.courtship_road`, the helper RS-D1's
+                    quote reads too); None when no road reaches it
+        out_of_time the road is longer than the league's declaration
+        buyoff / buyoff_refusal / buyoff_alone / road_with_buyoff — the
+                    design's price (`compute_buyoff_price`), the verb's own
+                    gate ('' = it would be carried out), whether its +5
+                    alone lifts the court, the road from relation + 5
+        sponsors    [{payer, amount}] live sponsorships of it against us
+        titles      our treaty titles its war would reopen
+                    (`game_end.treaty_titles_between`, the break rule's own);
+                    `titles_contested` while the Congress sits (RS-2)
+        bound_turns PR-1's fresh-peace floor left
+
+    plus `consult_turns` / `consult_turn` / `declare_turns` /
+    `declare_turn` (`league_clock`), `armed_peace`, `brewing`, `formed`,
+    `joiners`. Writes nothing; cached for the turn on what an order can
+    move (GR8)."""
+    player = getattr(world, "player_nation", None)
+    tgt = target or player
+    out: Dict[str, Any] = {"target": tgt, "courts": [], "joiners": [],
+                           "consult_turns": None, "consult_turn": None,
+                           "declare_turns": None, "declare_turn": None,
+                           "armed_peace": {}, "brewing": None, "formed": False}
+    if not THE_LEAGUE_IS_SEEN or world is None or not tgt:
+        return out
+    key = _league_signature(world, tgt)
+    cache = getattr(world, "_league_forecast_cache", None)
+    if isinstance(cache, dict) and cache.get("key") == key:
+        return cache["value"]
+    from backend.game_logic import congress as _congress
+    from backend.game_logic.diplomacy import courtship_road
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.game_end import treaty_titles_between
+    from backend.game_logic.instruments import (
+        BUYOFF_RELATION_BONUS, buy_off_refusal, compute_buyoff_price,
+        live_sponsorships_for)
+    is_player = tgt == player
+    sitting = bool(is_player and _congress.sitting(world))
+    majors = set(_congress.great_powers(world))
+    vassals = getattr(world, "vassals", {}) or {}
+    rows: List[Dict[str, Any]] = []
+    for nation in world.get_active_nations():
+        if nation == tgt or nation in vassals:
+            continue
+        relation = int(_get_relation(world, tgt, nation))
+        state = str(_get_diplo_state(world, tgt, nation))
+        row: Dict[str, Any] = {
+            "nation": nation, "display": formed_display_name(world, nation),
+            "major": nation in majors, "relation": relation, "state": state,
+            "status": "", "reason": "", "need": 0, "road": None,
+            "out_of_time": False, "buyoff": None, "buyoff_refusal": "",
+            "buyoff_alone": False, "road_with_buyoff": None, "sponsors": [],
+            "titles": [], "titles_contested": False, "bound_turns": 0}
+        row["sponsors"] = [
+            {"payer": str(r.get("payer") or ""),
+             "amount": int(r.get("amount_per_turn", 0) or 0)}
+            for r in live_sponsorships_for(world, nation)
+            if r.get("kind") == "sponsorship" and r.get("aim") == tgt]
+        row["titles"] = treaty_titles_between(world, nation, tgt, house=tgt)
+        row["titles_contested"] = bool(row["titles"] and sitting)
+        priced = False
+        if state == "WAR":
+            row["status"] = LEAGUE_AT_WAR
+        else:
+            spared = (_congress.spared_from_coalition(world, nation, tgt)
+                      if is_player else "")
+            if spared:
+                row["status"], row["reason"] = LEAGUE_SPARED, spared
+            elif qualifies_for_coalition(nation, world, target=tgt):
+                need = LEAGUE_KEEP_OUT_RELATION - relation
+                if need <= 0 or qualifies_for_coalition(
+                        nation, world, target=tgt, relation_shift=need):
+                    row["status"] = LEAGUE_REFUSES
+                    row["reason"] = "she refuses the Congress"
+                else:
+                    row["status"], row["need"] = LEAGUE_JOINS, int(need)
+                    priced = True
+            else:
+                left = fresh_peace_turns_left(nation, world, tgt)
+                if left > 0 and relation < LEAGUE_KEEP_OUT_RELATION:
+                    row["status"], row["bound_turns"] = LEAGUE_BOUND, int(left)
+                    row["need"] = int(LEAGUE_KEEP_OUT_RELATION - relation)
+                    priced = True
+                else:
+                    row["status"] = LEAGUE_OUT
+        if priced and is_player:
+            row["road"] = courtship_road(world, nation, LEAGUE_KEEP_OUT_RELATION)
+            price = compute_buyoff_price(world, nation)
+            if price is not None:
+                row["buyoff"] = int(price)
+                row["buyoff_refusal"] = buy_off_refusal(world, tgt, nation)
+                lifted = relation + int(BUYOFF_RELATION_BONUS) >= LEAGUE_KEEP_OUT_RELATION
+                row["buyoff_alone"] = bool(lifted)
+                if not lifted:
+                    row["road_with_buyoff"] = courtship_road(
+                        world, nation, LEAGUE_KEEP_OUT_RELATION,
+                        start=relation + int(BUYOFF_RELATION_BONUS))
+        rows.append(row)
+    rows.sort(key=lambda r: (_LEAGUE_ORDER.get(r["status"], 9),
+                             0 if r["major"] else 1, r["relation"], r["nation"]))
+    out["courts"] = rows
+    out["joiners"] = [r["nation"] for r in rows
+                      if r["status"] in (LEAGUE_JOINS, LEAGUE_REFUSES)]
+    first_joiner: Optional[int] = 0 if out["joiners"] else None
+    bound = [int(r["bound_turns"]) for r in rows if r["status"] == LEAGUE_BOUND]
+    if first_joiner is None and bound:
+        first_joiner = min(bound)
+    fc = forecast_alarm_tick(world) if is_player else None
+    clock = league_clock(world, tgt, first_joiner=first_joiner, _forecast=fc)
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for name in ("consult", "declare"):
+        value = clock.get(name)
+        out[f"{name}_turns"] = value
+        out[f"{name}_turn"] = turn + int(value) if value is not None else None
+    out["armed_peace"] = dict(armed_peace_reading(world)) if is_player else {}
+    brewing = getattr(world, "coalition_brewing", None)
+    if brewing and (brewing.get("target_nation") or player) == tgt:
+        out["brewing"] = {"turns_remaining": int(brewing.get("turns_remaining", 0) or 0)}
+    coalition = getattr(world, "active_coalition", None)
+    out["formed"] = bool(coalition and (coalition.get("target_nation") or player) == tgt)
+    declare = out["declare_turns"]
+    for row in rows:
+        if row["status"] not in (LEAGUE_JOINS, LEAGUE_BOUND) or not is_player:
+            continue
+        if declare is None:
+            continue
+        road = row["road"]
+        quick = (row["buyoff"] is not None and row["buyoff_alone"]
+                 and not row["buyoff_refusal"])
+        row["out_of_time"] = bool(not quick and (road is None
+                                                 or int(road[0]) > int(declare)))
+    world._league_forecast_cache = {"key": key, "value": out}
+    return out
+
+
+def _minus(value: int) -> str:
+    """A relation as the tables print it: −36, +12, 0."""
+    value = int(value)
+    if value < 0:
+        return f"−{abs(value)}"
+    return f"+{value}" if value > 0 else "0"
+
+
+def league_price_clause(world, row: Dict[str, Any]) -> str:
+    """The price to keep one court out, in the forecast's own figures:
+    Talleyrand's road to the bar, then the buy-off beside it (alone, or the
+    shorter road it leaves, or the gate that refuses it today). '' when
+    there is no price to name."""
+    from backend.display_names import plural
+    parts: List[str] = []
+    road = row.get("road")
+    bar = _minus(LEAGUE_KEEP_OUT_RELATION)
+    if road is not None:
+        parts.append(f"Talleyrand brings her to {bar} in "
+                     f"{plural(int(road[0]), 'turn')} ({int(road[1])} DP)")
+    price = row.get("buyoff")
+    if price is not None:
+        if row.get("buyoff_alone"):
+            clause = f"buying off her design ({int(price):,} gold) is enough alone"
+        else:
+            clause = f"buying off her design costs {int(price):,} gold"
+            with_buy = row.get("road_with_buyoff")
+            if (with_buy is not None and road is not None
+                    and int(with_buy[0]) < int(road[0])):
+                clause += (f" and shortens the road to "
+                           f"{plural(int(with_buy[0]), 'turn')}")
+        if row.get("buyoff_refusal"):
+            clause += f" (not today: {row['buyoff_refusal']})"
+        parts.append(clause)
+    return "; ".join(parts)
+
+
+def league_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str:
+    """One court's line in the league's table — the dispatch's coalition
+    section, the Balance of Europe tab and the desk all print it. Formed
+    names only (R7); the forecast's own figures (shown = applied)."""
+    from backend.display_names import plural
+    name = str(row.get("display") or row.get("nation") or "")
+    status = row.get("status")
+    rel = _minus(int(row.get("relation", 0)))
+    if status == LEAGUE_AT_WAR:
+        return f"{name} — at war with us."
+    if status == LEAGUE_SPARED:
+        return (f"{name} — relations {rel}, but {row.get('reason') or 'spared'}: "
+                f"she is not marched into a league while the Congress sits.")
+    if status == LEAGUE_OUT:
+        margin = int(row.get("relation", 0)) - LEAGUE_KEEP_OUT_RELATION + 1
+        return (f"{name} — relations {rel}: she stays out of a league "
+                f"(a fall of {margin} would bring her in).")
+    if status == LEAGUE_BOUND:
+        head = (f"{name} — relations {rel}, but her peace with us binds her "
+                f"{plural(int(row.get('bound_turns', 0)), 'more turn')}; then she may join.")
+    else:
+        head = f"{name} — relations {rel}: she would join."
+    detail = league_row_detail(world, row, forecast)
+    return f"{head} {detail}".strip()
+
+
+def league_row_detail(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str:
+    """The sentences after a court's head line — what her war would reopen,
+    who pays her, and the price to keep her out (or why there is none) —
+    the row's text and the `league_joins` headline both read them."""
+    from backend.display_names import plural
+    from backend.game_logic.collapse import _join
+    status = row.get("status")
+    text = ""
+    titles = list(row.get("titles") or [])
+    if titles:
+        if row.get("titles_contested"):
+            text += (f" Her war would contest the titles she ceded — "
+                     f"{_join(titles)} — while the Congress sits.")
+        else:
+            text += f" Her war would reopen the titles she ceded: {_join(titles)}."
+    sponsors = list(row.get("sponsors") or [])
+    if sponsors:
+        from backend.game_logic.formations import formed_display_name
+        payers = _join([formed_display_name(world, s["payer"]) for s in sponsors])
+        gold = sum(int(s.get("amount", 0) or 0) for s in sponsors)
+        verb_s = "s" if len(sponsors) == 1 else ""
+        text += (f" {payers} pay{verb_s} her {gold:,} gold a turn against us."
+                 if gold else
+                 f" {payers} license{verb_s} her design against us.")
+    if status == LEAGUE_REFUSES:
+        return (text + " She refuses the Congress, so no courtship keeps her "
+                       "out while it sits — her price is her recognition, on "
+                       "the Congress tab (D, then 7).").strip()
+    declare = forecast.get("declare_turns")
+    if row.get("out_of_time") and declare is not None:
+        road = row.get("road")
+        need = (f"Courtship needs {plural(int(road[0]), 'turn')}"
+                if road is not None else
+                f"No courtship reaches {_minus(LEAGUE_KEEP_OUT_RELATION)}")
+        when = ("a league stands declared" if int(declare) == 0
+                else f"a league would be declared in {plural(int(declare), 'turn')}")
+        return f"{text} {need}; {when}. She will march.".strip()
+    price = league_price_clause(world, row)
+    if price:
+        text += f" The price to keep her out: {price}."
+    return text.strip()
+
+
+def league_rows(world, target: Optional[str] = None) -> List[Dict[str, Any]]:
+    """The league's table as the surfaces print it — every court that would
+    join, is bound or spared, and every great power that stays out (a lesser
+    court comfortably out is not listed; a court at war is in the war, not
+    the league). Ints only (GR2)."""
+    forecast = league_forecast(world, target)
+    out: List[Dict[str, Any]] = []
+    for row in forecast.get("courts") or []:
+        status = row.get("status")
+        if status == LEAGUE_AT_WAR:
+            continue
+        if status == LEAGUE_OUT and not row.get("major"):
+            continue
+        out.append({"nation": row["nation"], "display": row["display"],
+                    "status": status, "major": bool(row.get("major")),
+                    "relation": int(row.get("relation", 0)),
+                    "out_of_time": bool(row.get("out_of_time")),
+                    "text": league_row_text(world, row, forecast)})
+    return out
+
+
+def league_summary_line(world, target: Optional[str] = None,
+                        watch: bool = True) -> str:
+    """The league in one line (the dispatch's coalition section, the desk):
+    who would march, and when the courts consult and declare at this pace.
+    '' when no court would join one and none is bound to."""
+    from backend.display_names import plural
+    from backend.game_logic.collapse import _join
+    forecast = league_forecast(world, target)
+    courts = forecast.get("courts") or []
+    joiners = [r for r in courts if r["status"] in (LEAGUE_JOINS, LEAGUE_REFUSES)]
+    bound = [r for r in courts if r["status"] == LEAGUE_BOUND]
+    if forecast.get("formed"):
+        return ""
+    if not joiners and not bound:
+        return "No court would join a league against us today." if courts else ""
+    majors = [r["display"] for r in joiners if r["major"]]
+    lesser = len(joiners) - len(majors)
+    who_parts = list(majors)
+    if lesser:
+        who_parts.append(plural(lesser, "lesser court"))
+    who = _join(who_parts) if who_parts else "no court yet"
+    reading = forecast.get("armed_peace") or {}
+    lead = ""
+    if (watch and reading.get("holds") and reading.get("hegemon") == forecast.get("target")
+            and int(reading.get("quiet_turns", 0)) >= 2):
+        lead = f"Europe has watched us {plural(int(reading.get('quiet_turns', 0)), 'quiet turn')}. "
+    consult, declare = forecast.get("consult_turn"), forecast.get("declare_turn")
+    tail = ""
+    if bound:
+        tail = (f" Bound for now by a fresh peace: "
+                f"{_join([r['display'] for r in bound])}.")
+    if forecast.get("brewing"):
+        when = (f"The courts consult now and declare on turn {int(declare)}"
+                if declare is not None else "The courts consult now")
+        return f"{lead}{when}: {who} would march.{tail}"
+    if consult is not None:
+        return (f"{lead}At this pace the courts consult on turn {int(consult)} "
+                f"and declare on turn {int(declare)}: {who} would march.{tail}")
+    if joiners:
+        return (f"{lead}{who[0].upper()}{who[1:]} would join a league, but at "
+                f"this pace none gathers within "
+                f"{plural(LEAGUE_PROJECTION_LIMIT, 'turn')}.{tail}")
+    return f"{lead}No court would join a league against us today.{tail}"
+
+
+def league_cheapest_keep_out(world, target: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """The cheapest order that keeps one court that would join a league out
+    of it today — the counsel's and the realm line's ONE pick: a buy-off
+    enough alone that the verb would carry out (least gold) first, else
+    Talleyrand's shortest road that beats the declaration (fewest turns,
+    then DP); a great power before a lesser court at equal cost. None when
+    no court can be kept out in time. {nation, display, command, text}."""
+    forecast = league_forecast(world, target)
+    best = None
+    for row in forecast.get("courts") or []:
+        if row.get("status") != LEAGUE_JOINS:
+            continue
+        options = []
+        if (row.get("buyoff") is not None and row.get("buyoff_alone")
+                and not row.get("buyoff_refusal")):
+            options.append(((0, int(row["buyoff"]), 0 if row["major"] else 1),
+                            f"buy off {row['nation']}",
+                            f"buying off her design ({int(row['buyoff']):,} gold) is "
+                            f"enough alone"))
+        road = row.get("road")
+        if road is not None and not row.get("out_of_time"):
+            from backend.display_names import plural
+            options.append(((1, int(road[0]) * 1000 + int(road[1]), 0 if row["major"] else 1),
+                            f"improve relations with {row['nation']}",
+                            f"Talleyrand brings her to {_minus(LEAGUE_KEEP_OUT_RELATION)} in "
+                            f"{plural(int(road[0]), 'turn')} ({int(road[1])} DP)"))
+        for key, command, clause in options:
+            if best is None or key < best[0]:
+                best = (key, row, command, clause)
+    if best is None:
+        return None
+    _key, row, command, clause = best
+    price = league_price_clause(world, row) or clause
+    return {"nation": row["nation"], "display": row["display"], "command": command,
+            "clause": clause,
+            "text": (f"The cheapest court to keep out of it is {row['display']}: "
+                     f"{price}."),
+            "order_text": (f"The cheapest court to keep out of a league is "
+                           f"{row['display']}: {clause} — '{command}'.")}

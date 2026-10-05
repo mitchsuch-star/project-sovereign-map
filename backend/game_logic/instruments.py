@@ -248,6 +248,30 @@ def compute_buyoff_price(world, nation: str) -> Optional[int]:
     return int(BUYOFF_BASE_PRICE + BUYOFF_PRICE_PER_WEIGHT * view.weight)
 
 
+def buy_off_refusal(world, payer: str, court: str) -> str:
+    """SF-LB-3: why `buy off <court>` would be refused today — '' when the
+    verb (`DiplomaticExecutor._execute_buy_off_design`) would carry it out.
+    The verb's own gates, in its own order (the instruments' preflight's
+    diplomatic points, the war, a design to buy, a survival design, the
+    treasury at the derived price), so the league rows never quote a price
+    the verb refuses. Drift-pinned against the verb. Pure read."""
+    if int(getattr(world, "diplomatic_points", 0) or 0) < INSTRUMENT_DP_COST:
+        return f"it costs {INSTRUMENT_DP_COST} DP and we hold none"
+    if world.is_at_war(payer, court):
+        return "we are at war — designs are bought off at the peace table"
+    from backend.game_logic.intent import get_nation_intent
+    view = get_nation_intent(court, world)
+    if view.want_id is None:
+        return "it wants nothing gold can put to sleep"
+    if view.survival:
+        return "it fights for its existence"
+    price = compute_buyoff_price(world, court)
+    treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    if price is not None and treasury < int(price):
+        return f"the treasury holds {treasury:,} gold"
+    return ""
+
+
 def create_compensation_bargain(world, *, payer: str, recipient: str,
                                 design_id: str, granted: Dict) -> Dict:
     """Record a struck bargain: `recipient`'s design is suspended by

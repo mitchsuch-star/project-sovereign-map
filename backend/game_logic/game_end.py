@@ -1309,6 +1309,31 @@ def lapse_contested_titles(world) -> List[str]:
     return reopened
 
 
+def _signed_between(world, rec: Any, pair: set) -> bool:
+    """The break rule's own match: a TREATY record whose two signatories —
+    the ceder (`from`) and the record's `house` — are exactly `pair`. ONE
+    predicate for `break_signed_titles` and the league rows that quote
+    what a war would reopen (`treaty_titles_between`)."""
+    if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
+        return False
+    return {str(rec.get("from") or ""), _house(world, rec)} == pair
+
+
+def treaty_titles_between(world, nation_a: str, nation_b: str,
+                          house: Optional[str] = None) -> List[str]:
+    """SF-LB-3: the treaty titles a renewed war between the two courts
+    would break (`break_signed_titles`' own predicate), sorted — only those
+    belonging to `house` when it is given (the league rows ask for OUR
+    titles a joiner's war would reopen). Pure read."""
+    store = getattr(world, "province_title", None)
+    if not isinstance(store, dict):
+        return []
+    pair = {str(nation_a or ""), str(nation_b or "")}
+    return sorted(region for region, rec in store.items()
+                  if _signed_between(world, rec, pair)
+                  and (house is None or _house(world, rec) == house))
+
+
 def break_signed_titles(world, nation_a: str, nation_b: str,
                         reason: str = "") -> None:
     """A renewed WAR between the two courts that SIGNED a cession breaks the
@@ -1342,9 +1367,7 @@ def break_signed_titles(world, nation_a: str, nation_b: str,
     shelter = congress_shelters_titles(world, nation_a, nation_b, reason)
     contested: Dict[str, List[str]] = {}
     for region_name, rec in store.items():
-        if not isinstance(rec, dict) or rec.get("kind") != TITLE_TREATY:
-            continue
-        if {str(rec.get("from") or ""), _house(world, rec)} != pair:
+        if not _signed_between(world, rec, pair):
             continue
         if shelter and _house(world, rec) == player and rec.get("from") != player:
             # Counted while the Congress sits; the break waits on the war.

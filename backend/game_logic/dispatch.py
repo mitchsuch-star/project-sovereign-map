@@ -7,7 +7,8 @@ All values int()-wrapped per CLAUDE.md rule: "All numbers to Godot: int()".
 Fog-filtered: enemy intel uses RegionIntel visibility, never raw marshal data.
 """
 
-from typing import Dict, List, Optional, Any
+import re
+from typing import Dict, List, Optional, Any, Tuple
 
 from backend.display_names import (
     humanize_entity_name, marshal_honorific, with_definite_article,
@@ -281,6 +282,31 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     "europe_crisis": 50,        # beat 2 — the foregrounded brewing crisis
     "europe_congress": 48,      # beat 6 — a third-party peace concluded
     "europe_crisis_passed": 46,  # beat 7 — the stand-down, cause named
+    # ── Score Finish Step 7b, SF-LB-3 "Europe arms in plain sight" ───────
+    # The league's own news: above the standing nags (55 / 54), below every
+    # wound (CA8-D6) — the fuse at 8, 4 and 2 quiet turns, a great power
+    # newly free to join, a sponsorship against us, a peace binding one.
+    "league_fuse": 66,
+    "league_joins": 64,
+    "league_paid": 62,
+    "league_bound": 58,
+    # ── SF-NAR-1 "Every morning has a front page" ────────────────────────
+    # The quiet morning's lead, below every event class (the europe_* beats
+    # at 46+ are news; these are what the courts sent when nothing else
+    # happened). The family is the row's kind, so the rotation guard
+    # varies the KIND of news.
+    "courts_treaties": 39,
+    "courts_purse": 38,
+    "courts_designs": 37,
+    "courts_laws": 36,
+    "courts_army": 35,
+    "courts_sea": 35,
+    "courts_vassals": 34,
+    "courts_envoys": 33,
+    # The realm's own state when the courts sent nothing: the next league
+    # and the price to keep a court out, the titled count when it moved.
+    "realm_league": 32,
+    "realm_titles": 31,
 }
 
 # One prose template per headline class, in Berthier's register.
@@ -350,6 +376,7 @@ THE_RANK_IS_THE_COURTS_OWN = True              # RS-29 / NP-X7: `marshal_honorif
 # ── Score Finish Step 7, the frames (Oct 4, 2026) ─────────────────────────
 THE_FAMINE_COUNTS_ITS_OWN_TURNS = True        # SF7-X20: the famine headline's escalation states the roster's run
 THE_LIST_JOINS_ONCE = True                    # SF7-X25: "Berry, Burgundy, Corsica and 4 more" — one "and"
+THE_PASSAGE_COUNTS_ITS_SLACK = True          # SF7-X46: "no turn to spare", never "runs out in 0 turns"
 # RS-D2's numbers (display only, in-band tunable): the levy may LEAD once
 # and be stated (lead or sub-beat) three times before it yields to the
 # ledger's own line; a material change in headroom (a fifth either way)
@@ -501,6 +528,22 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "congress_summonable": "Sire — {line}",
     "congress_summonable_term": "{line}",
     "quiet_morning": "Sire — a quiet morning on the front. The marshals await your word.",
+    # Score Finish Step 7b: the league's news and the front page compose
+    # their whole line (the forecast's figures, the rail's own sentence).
+    "league_fuse": "Sire — {line}",
+    "league_joins": "Sire — {line}",
+    "league_paid": "Sire — {line}",
+    "league_bound": "Sire — {line}",
+    "courts_treaties": "Sire — {line}",
+    "courts_purse": "Sire — {line}",
+    "courts_designs": "Sire — {line}",
+    "courts_laws": "Sire — {line}",
+    "courts_army": "Sire — {line}",
+    "courts_sea": "Sire — {line}",
+    "courts_vassals": "Sire — {line}",
+    "courts_envoys": "Sire — {line}",
+    "realm_league": "Sire — {line}",
+    "realm_titles": "Sire — {line}",
     # SF5-X3 (Step 7 slice 7): `{marshal}` is the TITLE (`_rank` — "Marshal
     # Ney", "General Teulie"); "Sire — Marshal Teulie has been taken" named a
     # Kingdom of Italy general a Marshal of the Empire.
@@ -563,7 +606,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # every time the treaty picked somebody up.
     "road_home_mid_treaty": "Sire — under the peace with {other}. {line}",
     "passage_lapsing": ("Sire — {who} {is_are} no nearer home, and the safe "
-                        "passage runs out in {turns_left_phrase}. After "
+                        "passage {passage_clause}. After "
                         "that {his_their} corps will be interned where "
                         "{it_they}."),
     "ally_broken": "Sire — our ally's marshal {marshal} was broken at {region}. {nation} reels.",
@@ -707,6 +750,24 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "aura_dimmed": "The Presence is read at every table in Europe, Sire. A victory with him at its head restores more than a province; a defeat under him costs more than one.",
     "congress_summonable": "The gate is open, Sire — the summons is yours to give from the Cabinet, and every turn it waits the count may fall.",
     "quiet_morning": "Nothing presses, Sire. The Ledger holds the standing matters — the levy among them.",
+    # Score Finish Step 7b. The league's four answer their own news; the
+    # front page's classes hand the closing line back to the ladder in
+    # `build_morning_dispatch` (a quiet morning's close should say what the
+    # opening did not) — these stand for the census and a direct caller.
+    "league_fuse": "Quiet is a clock, Sire. Every turn we keep the peace, Europe counts — and arms.",
+    "league_joins": "A court that would march can still be talked out of it, Sire. The Balance of Europe names the price.",
+    "league_paid": "Gold buys armies, Sire. A court bought off now is a regiment the league never fields.",
+    "league_bound": "A peace binds only while its ink is wet, Sire. Use the turns it gives.",
+    "courts_treaties": "The chanceries are busy, Sire. Every treaty they sign is a line drawn on our map.",
+    "courts_purse": "Follow the gold, Sire — it shows where the next army will stand.",
+    "courts_designs": "Every court wants something, Sire. The ones that want it from us are the ones to watch.",
+    "courts_laws": "Our rivals reform while we watch, Sire. A law enacted abroad is a battle we may lose later.",
+    "courts_army": "Armies are raised in peacetime, Sire. That is when they are cheapest to counter.",
+    "courts_sea": "The sea decides more than it shows, Sire.",
+    "courts_vassals": "Our clients watch how we treat them, Sire, and so does Europe.",
+    "courts_envoys": "An envoy waits on an answer, Sire. Silence is an answer too.",
+    "realm_league": "Europe arms in plain sight, Sire. The Balance of Europe names the price to keep each court out.",
+    "realm_titles": "The Congress counts titles, Sire, not conquests — and a title is a quiet clock kept.",
     "congress_summonable_term": "Each refuser's price is a road, Sire — pay it, or march it.",
     # NP-4: the Brétigny counsel — the fastest road home is the table.
     "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
@@ -1393,8 +1454,452 @@ def _quiet_morning_candidate(world) -> Dict[str, Any]:
     }
 
 
+# ════════════════════════════════════════════════════════════════════════
+# Score Finish Step 7b "The front page of the peace" (SF-NAR-1 + SF-LB-3)
+# ════════════════════════════════════════════════════════════════════════
+# Measured on Step 7's final reading, the three commanded arms: the quiet
+# middle of a winning campaign led with the same standing nag — Lannes's
+# arrears (`estate_eroding`) led 10 of a 10-turn window on CMD-H, 9 on the
+# other two — while Europe's courts enacted laws, signed treaties and paid
+# each other to march against us, told on the rail and never led.
+#
+# The page now has a FRONT PAGE: when no event news exists, the turn's
+# biggest diplomatic row leads (`courts_*`), else a line of the realm's
+# state (`realm_league` — the next league and the cheapest court to keep
+# out of it; `realm_titles` — the titled count when it moved). The
+# standing family shares ONE lead allowance (STANDING_LEAD_MAX across every
+# STANDING_HEADLINE_CLASSES entry) that resets only when its stakes change —
+# a new crisis, a new tier, a new war; a standing crisis keeps its
+# escalating sub-beat every turn it stands. No class leads more than
+# FRONT_PAGE_ROTATION_MAX of any FRONT_PAGE_ROTATION_WINDOW turns unless it
+# is that turn's event news. The league's own news — a sponsorship against
+# us, a great power newly free to join, a peace binding one, the fuse at 8,
+# 4 and 2 turns — is event news (`league_*`, 58–66: above the standing
+# nags, below every wound). Display only: the memory rides
+# `headline_lead_memory` (the extra-keys idiom, no new field) and no AI
+# reads it. False = the pre-7b page byte for byte.
+EVERY_MORNING_HAS_A_FRONT_PAGE = True
+FRONT_PAGE_ROTATION_WINDOW = 10
+FRONT_PAGE_ROTATION_MAX = 4
+# SF7-X37: France's own truce ending is event news — a truce collapsing
+# back into war leads as `war_touches_us`, one ripening into peace as
+# `peace_signed` (the turn's queue, where the expiry is told).
+A_TRUCES_END_IS_NEWS = True
+# Step 7b, caught by the related suites before the commit: the boot
+# briefing led "a quiet morning on the front" over a campaign that had not
+# begun — and the desk, which answers "what happened last turn?" off the
+# morning's headline, lost its "the campaign has just opened". The first
+# morning's front page is its own TODAY section (LV-1): no front page and
+# no quiet-morning floor on the boot briefing, which reads as before 7b.
+THE_FIRST_MORNING_KEEPS_ITS_OWN_FRONT_PAGE = True
+# ... and a quiet morning closed on "the levy among them" when no levy
+# stood (the note RS-D2 wrote for the levy's yield), silencing the ladder's
+# "Your armies stand ready" (FA-N29's pin). A quiet morning closes on
+# Berthier's ladder unless the levy's statement series is open — the one
+# page where that note is true.
+A_QUIET_MORNING_CLOSES_ON_THE_LADDER = True
+
+# The turn's diplomatic rows that may lead a page with no event news: the
+# dispatch type -> (class, rank). The class is the row's FAMILY, so the
+# rotation guard varies the kind of news, not the court; the rank picks the
+# biggest row inside a family.
+_COURTS_ROWS: Dict[str, Tuple[str, int]] = {
+    "nation_formed": ("courts_treaties", 95),
+    "nation_created": ("courts_treaties", 95),
+    "allegiance_in_play": ("courts_treaties", 90),
+    "diplomatic_ai_ai_treaty": ("courts_treaties", 85),
+    "diplomatic_auto_downgrade": ("courts_treaties", 80),
+    "diplomatic_treaty_signed": ("courts_treaties", 78),
+    "diplomatic_relation_shift": ("courts_treaties", 76),
+    "paymaster_subsidy": ("courts_purse", 74),
+    "design_promoted": ("courts_designs", 72),
+    "agenda_shift": ("courts_designs", 66),
+    "intent_hardens": ("courts_designs", 58),
+    "intent_eases": ("courts_designs", 56),
+    "law_enacted_abroad": ("courts_laws", 70),
+    "doctrine_cured_abroad": ("courts_laws", 70),
+    "law_lapsed_abroad": ("courts_laws", 68),
+    "doctrine_cure_lost_abroad": ("courts_laws", 68),
+    "enemy_marshal_commissioned": ("courts_army", 64),
+    "expedition_landed": ("courts_army", 64),
+    "diplomatic_we_threshold": ("courts_army", 60),
+    "cs_tier_shift": ("courts_sea", 56),
+    "blockade_begins": ("courts_sea", 54),
+    "blockade_broken": ("courts_sea", 54),
+    "diplomatic_vassal_contingent": ("courts_vassals", 52),
+    "diplomatic_vassal_unrest": ("courts_vassals", 52),
+    "diplomatic_ai_proposal": ("courts_envoys", 50),
+}
+FRONT_PAGE_CLASSES = frozenset({cls for cls, _rank in _COURTS_ROWS.values()}
+                               | {"realm_league", "realm_titles"})
+_LEAGUE_CLASSES = frozenset({"league_fuse", "league_joins", "league_paid",
+                             "league_bound"})
+# A rail sentence's leading tag ("THE LAWS: ", "Talleyrand reports: ") is the
+# rail's own register; the headline speaks in Berthier's.
+_RAIL_TAG_RE = re.compile(r"^(?:[A-Z][A-Z' -]{2,40}|Talleyrand (?:reports|warns|assesses)):\s+")
+# Leading words a headline lower-cases after "Sire — " (a proper noun keeps
+# its capital).
+_LOWER_AFTER_SIRE = ("A ", "An ", "The ", "Relations ", "War ", "Word ",
+                     "Intelligence ", "And ")
+_CAMEL_TAG_RE = re.compile(r"\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b")
+
+
+def _is_event_news(candidate: Dict[str, Any]) -> bool:
+    """A candidate built from the turn's own events — never a standing
+    state, a front-page filler or the quiet floor."""
+    cls = candidate.get("class", "")
+    return (cls not in STANDING_HEADLINE_CLASSES and cls not in FRONT_PAGE_CLASSES
+            and cls != "quiet_morning")
+
+
+def _front_page_prose(world, text: str) -> str:
+    """A rail row as a headline: the rail's tag dropped, Berthier's "Sire —"
+    in front, and any camelCase court tag a producer passed raw named (the
+    client's own prose-safe rule — multi-token tags never occur in prose)."""
+    from backend.display_names import NATION_DISPLAY, with_definite_article
+    body = _RAIL_TAG_RE.sub("", str(text or "").strip(), count=1).strip()
+
+    def _named(match):
+        tag = match.group(0)
+        if tag in NATION_DISPLAY or tag in set(world.get_active_nations()):
+            return with_definite_article(formed_display_name(world, tag))
+        if tag in (getattr(world, "marshals", None) or {}):
+            return humanize_entity_name(tag)
+        return tag
+
+    body = _CAMEL_TAG_RE.sub(_named, body)
+    if body.startswith(_LOWER_AFTER_SIRE):
+        body = body[0].lower() + body[1:]
+    if body and not body.endswith((".", "!", "?")):
+        body += "."
+    return f"Sire — {body}"
+
+
+def _seat(world, nation: str) -> str:
+    """A great power by its seat ("London"), any other court by name."""
+    from backend.game_logic import congress as _congress
+    return _congress.seat(world, nation) if nation else ""
+
+
+def _armistice_expiry_candidates(world, player_nation: str, _add) -> None:
+    """SF7-X37: France's own truce ending, read off the turn's queue (the
+    expiry queues its rail row there and writes no log row)."""
+    if not (EVERY_MORNING_HAS_A_FRONT_PAGE and A_TRUCES_END_IS_NEWS):
+        return
+    for event in list(getattr(world, "pending_dispatch_events", None) or []):
+        etype = event.get("type", "")
+        if etype not in ("diplomatic_armistice_expired_war",
+                         "diplomatic_armistice_expired_peace"):
+            continue
+        tv = event.get("template_vars") or {}
+        a, b = str(tv.get("nation_a") or ""), str(tv.get("nation_b") or "")
+        if player_nation not in (a, b):
+            continue
+        other = b if a == player_nation else a
+        name = formed_display_name(world, other)
+        if etype.endswith("_war"):
+            _add("war_touches_us", identity=f"war_touches_us:truce:{other}",
+                 line=(f"the truce with {name} has collapsed — the war resumes "
+                       f"where it stood."))
+        else:
+            _add("peace_signed", identity=f"peace_signed:{other}",
+                 other=name, line="The truce has ripened into peace.")
+
+
+def _league_candidates(world, player_nation: str, window, _add,
+                       record: bool) -> None:
+    """SF-LB-3's four event classes, all read off ONE forecast
+    (`coalition.league_forecast`) and the event window. Each is ONE line a
+    morning — a burst of grants or of newly free courts is one story, and a
+    page has one lead and two sub-beats (measured: four grants against us on
+    one CMD-H morning)."""
+    from backend.game_logic import coalition as _co
+    from backend.game_logic.collapse import _join
+    from backend.display_names import plural
+    if not (EVERY_MORNING_HAS_A_FRONT_PAGE and _co.THE_LEAGUE_IS_SEEN):
+        return
+    forecast = _co.league_forecast(world)
+    rows = {r["nation"]: r for r in forecast.get("courts") or []}
+    turn = int(world.current_turn)
+    # league_paid — the sponsorships against us minted this turn (the AI's
+    # patronage runs inside advance_turn, after the turn moves on: the
+    # current-news gate tells each grant once), by payer.
+    grants: Dict[str, List[Tuple[str, int]]] = {}
+    for e in window:
+        if (e.get("type") != "sponsorship_granted" or e.get("kind") != "sponsorship"
+                or e.get("aim") != player_nation or int(e.get("turn", -1)) != turn):
+            continue
+        payer, recipient = str(e.get("payer") or ""), str(e.get("recipient") or "")
+        if payer and recipient:
+            grants.setdefault(payer, []).append((recipient, int(e.get("amount", 0) or 0)))
+    if grants:
+        clauses = []
+        for payer in sorted(grants):
+            items = grants[payer]
+            amounts = {a for _r, a in items}
+            names = [_seat(world, r) for r, _a in items]
+            if amounts == {0}:
+                clauses.append(f"{_seat(world, payer)} licenses {_join(names)}'s "
+                               f"designs against us" if len(names) > 1 else
+                               f"{_seat(world, payer)} licenses {names[0]}'s design against us")
+            elif len(amounts) == 1:
+                each = " each" if len(names) > 1 else ""
+                clauses.append(f"{_seat(world, payer)} now pays {_join(names)} "
+                               f"{next(iter(amounts)):,} gold a turn{each} against us")
+            else:
+                clauses.append(f"{_seat(world, payer)} now pays "
+                               + _join([f"{n} {a:,}" for n, (_r, a) in zip(names, items)])
+                               + " gold a turn against us")
+        line = "; ".join(clauses) + "."
+        recipients = [r for items in grants.values() for r, _a in items]
+        if len(recipients) == 1:
+            row = rows.get(recipients[0]) or {}
+            status = row.get("status")
+            if status == _co.LEAGUE_AT_WAR:
+                line = line[:-1] + " — her war with us is paid for."
+            elif status in (_co.LEAGUE_JOINS, _co.LEAGUE_REFUSES):
+                price = _co.league_price_clause(world, row)
+                line += (" She would march in the next league"
+                         + (f" — the price to keep her out: {price}." if price else "."))
+            elif status == _co.LEAGUE_BOUND:
+                line += (f" Her peace with us binds her "
+                         f"{plural(int(row.get('bound_turns', 0)), 'more turn')}.")
+            else:
+                line += " The coalition has its paymaster; it lacks only its armies."
+        else:
+            marching = [rows[r]["display"] for r in recipients
+                        if (rows.get(r) or {}).get("status") in (_co.LEAGUE_JOINS,
+                                                                 _co.LEAGUE_REFUSES)]
+            if marching:
+                line += (f" {_join(marching)} would march in the next league — "
+                         f"the Balance of Europe names the price to keep each out.")
+        _add("league_paid", identity=f"league_paid:{turn}", line=line)
+    # league_joins / league_bound — the great powers, against the last
+    # morning's sets (the first recorded morning only remembers them).
+    memory = getattr(world, "headline_lead_memory", None)
+    memory = memory if isinstance(memory, dict) else {}
+    told = memory.get("league") if isinstance(memory.get("league"), dict) else None
+    majors_joining = sorted(n for n, r in rows.items() if r.get("major")
+                            and r.get("status") in (_co.LEAGUE_JOINS, _co.LEAGUE_REFUSES))
+    majors_bound = sorted(n for n, r in rows.items() if r.get("major")
+                          and r.get("status") == _co.LEAGUE_BOUND)
+    if told is not None:
+        fresh = [n for n in majors_joining if n not in (told.get("joiners") or [])]
+        if len(fresh) == 1:
+            row = rows[fresh[0]]
+            detail = _co.league_row_detail(world, row, forecast)
+            _add("league_joins", identity=f"league_joins:{fresh[0]}",
+                 line=(f"{row['display']} would now join a league against us — "
+                       f"relations {_co._minus(int(row.get('relation', 0)))}. {detail}").strip())
+        elif fresh:
+            names = [rows[n]["display"] for n in fresh]
+            rels = _join([_co._minus(int(rows[n].get("relation", 0))) for n in fresh])
+            _add("league_joins", identity="league_joins:" + ",".join(fresh),
+                 line=(f"{_join(names)} would now join a league against us "
+                       f"(relations {rels}). The Balance of Europe names the price "
+                       f"to keep each out."))
+        bound_new = [n for n in majors_bound if n not in (told.get("bound") or [])]
+        if bound_new:
+            parts = [f"{rows[n]['display']} for "
+                     f"{plural(int(rows[n].get('bound_turns', 0)), 'more turn')}"
+                     for n in bound_new]
+            _add("league_bound", identity="league_bound:" + ",".join(bound_new),
+                 line=(f"our peace binds {_join(parts)}; then "
+                       f"{'she' if len(bound_new) == 1 else 'each'} may join a league "
+                       f"(relations "
+                       f"{_join([_co._minus(int(rows[n].get('relation', 0))) for n in bound_new])})."))
+    # league_fuse — the Armed Peace's fuse at 8, 4 and 2 turns, never a streak.
+    reading = forecast.get("armed_peace") or {}
+    left = int(reading.get("fuse_turns_left", -1)) if reading.get("holds") else -1
+    if (reading.get("hegemon") == player_nation
+            and left in _co.LEAGUE_FUSE_BEATS
+            and (told is None or int(told.get("fuse", -1)) != left)):
+        summary = _co.league_summary_line(world, watch=False)
+        _add("league_fuse", identity=f"league_fuse:{left}",
+             line=(f"{plural(left, 'more quiet turn')} and the courts of Europe "
+                   f"re-arm. {summary}").strip())
+    if record:
+        new_told = {"joiners": majors_joining, "bound": majors_bound}
+        if left in _co.LEAGUE_FUSE_BEATS:
+            new_told["fuse"] = left
+        if isinstance(getattr(world, "headline_lead_memory", None), dict):
+            world.headline_lead_memory["league"] = new_told
+        else:
+            world.headline_lead_memory = {"league": new_told}
+
+
+def _courts_candidates(world, diplomatic_rows) -> List[Dict[str, Any]]:
+    """The turn's biggest diplomatic row in each family, as a front-page
+    candidate (the rows the rail already prints — the dispatch's own
+    section, fog applied there)."""
+    best: Dict[str, Tuple[int, Dict[str, Any]]] = {}
+    for row in diplomatic_rows or []:
+        rtype = str(row.get("type") or "")
+        if rtype not in _COURTS_ROWS or not str(row.get("text") or "").strip():
+            continue
+        cls, rank = _COURTS_ROWS[rtype]
+        if cls not in best or rank > best[cls][0]:
+            best[cls] = (rank, row)
+    out = []
+    for cls, (rank, row) in best.items():
+        line = _front_page_prose(world, row["text"])
+        # The ROW's rank orders the families (a law enacted abroad outranks
+        # a routine intent line whatever their classes), inside the front
+        # page's band: never above an event class (46+), never below the
+        # realm's own lines (31–32).
+        weight = min(int(HEADLINE_WEIGHTS[cls]) + 1, 30 + int(rank) // 10)
+        out.append({"class": cls, "weight": int(weight),
+                    "text": _HEADLINE_TEMPLATES[cls].format(line=line[len("Sire — "):]),
+                    "identity": f"{cls}:{row.get('type')}", "fields": {"rank": rank}})
+    return out
+
+
+def _realm_candidates(world, player_nation: str) -> List[Dict[str, Any]]:
+    """The realm's state when the courts sent nothing: the next league and
+    the cheapest court to keep out of it (`realm_league`), and the titled
+    count when it moved or a title is two turns off (`realm_titles`). Built
+    only from existing single sources."""
+    from backend.game_logic import coalition as _co
+    out: List[Dict[str, Any]] = []
+    if _co.THE_LEAGUE_IS_SEEN:
+        summary = _co.league_summary_line(world)
+        forecast = _co.league_forecast(world)
+        if summary and (forecast.get("joiners")
+                        or any(r["status"] == _co.LEAGUE_BOUND
+                               for r in forecast.get("courts") or [])):
+            cheapest = _co.league_cheapest_keep_out(world)
+            line = summary + (f" {cheapest['text']}" if cheapest else "")
+            out.append({"class": "realm_league",
+                        "weight": int(HEADLINE_WEIGHTS["realm_league"]),
+                        "text": _HEADLINE_TEMPLATES["realm_league"].format(line=line),
+                        "identity": "realm_league", "fields": {}})
+    try:
+        from backend.game_logic import congress as _congress
+        from backend.game_logic.game_end import title_roads
+        if _congress.armed(world) and not _congress.sitting(world):
+            view = _congress.titled(world)
+            count, needed = int(view["count"]), int(view["needed"])
+            memory = getattr(world, "headline_lead_memory", None) or {}
+            told = int((memory.get("realm") or {}).get("titled", count)) if isinstance(memory.get("realm"), dict) else count
+            roads = [r for r in title_roads(world, player_nation)
+                     if r.get("kind") == "quiet" and int(r.get("turns_left", 0)) > 0]
+            soon = min(roads, key=lambda r: (int(r["turns_left"]), r["region"])) if roads else None
+            if 0 < needed and count < needed and (count != told or (
+                    soon is not None and int(soon["turns_left"]) <= 2)):
+                moved = ("" if count == told else
+                         (" — up from " if count > told else " — down from ") + f"{told}")
+                line = (f"our titled provinces stand at {count}{moved}, of the "
+                        f"{needed} the Congress of Paris requires")
+                if soon is not None:
+                    line += f"; {soon['short']}"
+                out.append({"class": "realm_titles",
+                            "weight": int(HEADLINE_WEIGHTS["realm_titles"]),
+                            "text": _HEADLINE_TEMPLATES["realm_titles"].format(line=line + "."),
+                            "identity": "realm_titles", "fields": {"titled": count}})
+    except Exception:
+        pass
+    return out
+
+
+def _front_page_candidates(world, player_nation: str, candidates, window,
+                           diplomatic_rows, _add, record: bool) -> None:
+    """Every front-page candidate for this morning, appended in place."""
+    if not EVERY_MORNING_HAS_A_FRONT_PAGE:
+        return
+    if record:
+        _armistice_expiry_candidates(world, player_nation, _add)
+    _league_candidates(world, player_nation, window, _add, record)
+    if not any(_is_event_news(c) for c in candidates):
+        candidates.extend(_courts_candidates(world, diplomatic_rows))
+        candidates.extend(_realm_candidates(world, player_nation))
+    if record:
+        # The realm line names what CHANGED: the titled count is remembered
+        # every morning (the extra-keys idiom), led or not.
+        try:
+            from backend.game_logic import congress as _congress
+            if _congress.armed(world):
+                memory = getattr(world, "headline_lead_memory", None)
+                if not isinstance(memory, dict):
+                    memory = {}
+                    world.headline_lead_memory = memory
+                memory["realm"] = {"titled": int(_congress.titled(world)["count"])}
+        except Exception:
+            pass
+
+
+def _family_stakes(world, player_nation: str, candidate: Dict[str, Any],
+                   wars: str) -> str:
+    """What a standing crisis is about: its class and identity, its tier (a
+    producer may stamp `stakes` on its fields), and the wars France fights."""
+    fields = candidate.get("fields") or {}
+    tier = str(fields.get("stakes") or fields.get("occupied_key") or "")
+    return f"{candidate['class']}:{candidate.get('identity', '')}|{tier}|{wars}"
+
+
+def _front_page_order(world, player_nation: str, candidates, memory,
+                      spent_identity: str):
+    """The family allowance and the rotation guard, as one ordering: the
+    lead is the first candidate by (tier, the existing order) —
+
+        0  event news; a standing crisis within the family's allowance
+        1  a front-page row under the rotation cap
+        2  a standing crisis whose allowance is spent
+        3  anything that has led FRONT_PAGE_ROTATION_MAX of the last turns
+
+    — and the rest follow by weight, so a standing crisis keeps its sub-beat.
+    Returns (ordered, family_memory, window_memory)."""
+    try:
+        wars = ",".join(sorted(world.get_nations_at_war_with(player_nation)))
+    except Exception:
+        wars = ""
+    family = dict(memory.get("family") or {}) if isinstance(memory.get("family"), dict) else {}
+    stakes_now = sorted({_family_stakes(world, player_nation, c, wars)
+                         for c in candidates if c["class"] in STANDING_HEADLINE_CLASSES})
+    prior = set(family.get("stakes") or [])
+    fresh = bool(set(stakes_now) - prior)
+    leads = 0 if fresh else int(family.get("leads") or 0)
+    window = [str(c) for c in (memory.get("leads_window") or [])][-(FRONT_PAGE_ROTATION_WINDOW - 1):]
+
+    def _tier(candidate) -> int:
+        cls = candidate["class"]
+        capped = (window.count(cls) >= FRONT_PAGE_ROTATION_MAX
+                  and not _is_event_news(candidate))
+        if capped:
+            return 3
+        if cls in STANDING_HEADLINE_CLASSES:
+            # RS-D2 is the family rule's special case: the levy's own cap
+            # (LEVY_LEAD_MAX) stands inside the family's allowance.
+            cap = (min(STANDING_LEAD_MAX, LEVY_LEAD_MAX)
+                   if cls == "levy_open" and THE_LEVY_YIELDS_ONCE_STATED
+                   else STANDING_LEAD_MAX)
+            if leads >= cap or candidate.get("identity") == spent_identity:
+                return 2
+            return 0
+        if cls in FRONT_PAGE_CLASSES or cls == "quiet_morning":
+            return 1
+        return 0
+
+    indexed = list(enumerate(candidates))
+    # Everything capped: the class that led least in the window leads, so a
+    # board with two kinds of news alternates rather than repeats.
+    lead_index, lead = min(indexed, key=lambda ic: (
+        _tier(ic[1]),
+        window.count(ic[1]["class"]) if _tier(ic[1]) == 3 else 0,
+        ic[0]))
+    rest = [c for i, c in indexed if i != lead_index]
+    rest.sort(key=lambda c: c["weight"], reverse=True)
+    ordered = [lead] + rest
+    new_family = {"leads": leads + (1 if lead["class"] in STANDING_HEADLINE_CLASSES else 0),
+                  "stakes": stakes_now}
+    new_window = (window + [lead["class"]])[-(FRONT_PAGE_ROTATION_WINDOW - 1):]
+    return ordered, new_family, new_window
+
+
 def _build_headline(world, player_nation: str,
-                    record: bool = True) -> Optional[Dict[str, Any]]:
+                    record: bool = True,
+                    diplomatic_rows: Optional[List[Dict[str, Any]]] = None,
+                    boot: bool = False,
+                    ) -> Optional[Dict[str, Any]]:
     """W6-3 §5.1: score the turn's fog-visible events; return the headline.
 
     Returns {"class", "weight", "text", "sub_beats": [str, ...]} or None
@@ -2168,6 +2673,19 @@ def _build_headline(world, player_nation: str,
         # LV-9 (row EP F2): the count with its noun agreeing.
         from backend.display_names import plural as _plural_lv9
         _turns_left = int(_lapsing[0].get("turns_left") or 0)
+        # SF7-X46 (found reading Step 7b's pages): `turns_left` is the
+        # SLACK — turns to spare once the march home is counted
+        # (`withdrawal`'s surplus) — and "the safe passage runs out in 0
+        # turns" told a corps with no turn to spare that its passage had
+        # already ended.
+        if THE_PASSAGE_COUNTS_ITS_SLACK:
+            _march = "he must" if len(_names) == 1 else "they must"
+            _passage_clause = (f"leaves no turn to spare — {_march} march today"
+                               if _turns_left <= 0 else
+                               "leaves one turn to spare" if _turns_left == 1 else
+                               f"leaves {_turns_left} turns to spare")
+        else:
+            _passage_clause = f"runs out in {_plural_lv9(_turns_left, 'turn')}"
         _add("passage_lapsing",
              identity="passage_lapsing:" + "|".join(sorted(_names)),
              who=_who,
@@ -2177,7 +2695,8 @@ def _build_headline(world, player_nation: str,
              region=_lapsing[0].get("region")
              or _lapsing[0].get("location", "?"),
              turns_left=_turns_left,
-             turns_left_phrase=_plural_lv9(_turns_left, "turn"))
+             turns_left_phrase=_plural_lv9(_turns_left, "turn"),
+             passage_clause=_passage_clause)
 
     # Enemy army standing on own-controlled soil — state-based, fog-legal
     # (the player's own intel entries only, never omniscient reads — R5).
@@ -2500,10 +3019,19 @@ def _build_headline(world, player_nation: str,
                     f"{realm_collapse.forces_clause(world, _realm)}"
                     f"{_sov_clause}")
                 candidates[:] = [c for c in candidates if c is not _soil]
-        _add("empire_reduced", identity="empire_reduced", line=_collapse_text)
+        _add("empire_reduced", identity="empire_reduced", line=_collapse_text,
+             stakes=str(_realm.get("tier", "")))
         # FIRST, so the stable weight sort puts it ahead of a same-turn
         # `capital_lost` at the same weight.
         candidates.insert(0, candidates.pop())
+
+    # Score Finish Step 7b: the league's news, France's own truce ending
+    # (SF7-X37), and — when nothing else is news — the front page. The boot
+    # briefing keeps its own (TODAY) and reads as before 7b.
+    _first_morning = boot and THE_FIRST_MORNING_KEEPS_ITS_OWN_FRONT_PAGE
+    if not _first_morning:
+        _front_page_candidates(world, player_nation, candidates, window,
+                               diplomatic_rows, _add, record)
 
     if not candidates:
         if record and THE_LEVY_YIELDS_ONCE_STATED:
@@ -2512,7 +3040,11 @@ def _build_headline(world, player_nation: str,
             memory = getattr(world, "headline_lead_memory", None)
             if isinstance(memory, dict):
                 memory.pop("levy_said", None)
-        return None
+        if not EVERY_MORNING_HAS_A_FRONT_PAGE or _first_morning:
+            return None
+        # SF-NAR-1: every morning has a front page — a page with nothing
+        # on it at all says it is quiet (narration F1's floor).
+        candidates.append(_quiet_morning_candidate(world))
 
     return _select_headline(world, candidates, record=record)
 
@@ -2664,13 +3196,22 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
         # series (the streak is its lead count; the statements counted in
         # `levy_said` are the page appearances).
         _lead_max = min(STANDING_LEAD_MAX, LEVY_LEAD_MAX)
+    _yielded_identity = ""
     if top_candidate["class"] in STANDING_HEADLINE_CLASSES and streak >= _lead_max:
+        _yielded_identity = top_candidate["identity"]
         # Yield to any other candidate; the standing one falls to a sub-beat
         # through the loop below, so it is reported, never deleted.
         for _i, _c in enumerate(candidates):
             if _c["identity"] != top_candidate["identity"]:
                 candidates.insert(0, candidates.pop(_i))
                 break
+
+    # SF-NAR-1: the standing family's one allowance and the rotation guard.
+    _family_memory = _window_memory = None
+    if EVERY_MORNING_HAS_A_FRONT_PAGE:
+        candidates, _family_memory, _window_memory = _front_page_order(
+            world, get_player_nation(world), candidates, memory,
+            _yielded_identity)
 
     top = candidates[0]
     if record:
@@ -2691,6 +3232,15 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
             _new_memory["homeland_said"] = homeland_said
         if memory.get("aura_band") is not None:
             _new_memory["aura_band"] = memory["aura_band"]
+        if EVERY_MORNING_HAS_A_FRONT_PAGE:
+            # Step 7b: the family's allowance, the rotation window, and the
+            # league's and the realm's last-told readings (written above by
+            # `_build_headline`) ride the same field — no new one.
+            _new_memory["family"] = _family_memory
+            _new_memory["leads_window"] = _window_memory
+            for _key in ("league", "realm"):
+                if memory.get(_key) is not None:
+                    _new_memory[_key] = memory[_key]
         world.headline_lead_memory = _new_memory
     # ────────────────────────────────────────────────────────────────────
     # CA8-5: dedupe on (class, identity), not on rendered TEXT.
@@ -2753,6 +3303,22 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
         seen_keys.update(_headline_keys(pick))
         seen_classes.add(pick["class"])
         sub_beats.append(pick["text"])
+    if EVERY_MORNING_HAS_A_FRONT_PAGE and not _alone:
+        # SF-NAR-1: a standing crisis keeps its line every turn it stands.
+        # Measured on Step 7b's own arms: on a morning of three wounds the
+        # lead and both sub-beats were taken and Lannes's arrears — a claim
+        # standing thirty turns — left the page; a wound still leads, and
+        # the standing line rides beneath it (at most SUB_BEAT_SLOTS more).
+        _standing_lines = 0
+        for _c in candidates:
+            if _standing_lines >= SUB_BEAT_SLOTS:
+                break
+            if (_c["class"] not in STANDING_HEADLINE_CLASSES
+                    or any(k in seen_keys for k in _headline_keys(_c))):
+                continue
+            seen_keys.update(_headline_keys(_c))
+            sub_beats.append(_c["text"])
+            _standing_lines += 1
     if record and THE_LEVY_YIELDS_ONCE_STATED:
         # RS-D2: a statement is a levy line the player actually READ —
         # the lead or a sub-beat — never a candidate the page had no room for.
@@ -3912,9 +4478,29 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
                                           world=world),
     }
 
+    # Diplomatic events (Session 8D) — built BEFORE the headline (Step 7b):
+    # a quiet morning's front page leads with the biggest of these rows.
+    # Pure reads of the queue; it is cleared below, after both have read it.
+    # LV-1: the boot briefing reads none of the queue — the first real
+    # dispatch reads it AND clears it below, so an event queued at boot is
+    # told once, where it always was.
+    if boot:
+        diplomatic_events = []
+    else:
+        diplomatic_events = _build_diplomatic_events_section(world, player_nation)
+
+        # S2: Merge significant relation change events
+        relation_events = _build_relation_change_events(world, player_nation)
+        if relation_events:
+            diplomatic_events.extend(relation_events)
+
     # W6-3 §5.1: the dispatch opens with the turn's top story — one prose
     # headline + up to 2 sub-beats, scored from fog-visible events.
-    headline = _build_headline(world, player_nation, record=not boot)
+    headline = _build_headline(world, player_nation, record=not boot,
+                               diplomatic_rows=(diplomatic_events
+                                                if EVERY_MORNING_HAS_A_FRONT_PAGE
+                                                else None),
+                               boot=boot)
     if headline:
         dispatch["headline"] = headline
 
@@ -3943,6 +4529,17 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     _memory = getattr(world, "headline_lead_memory", None) or {}
     if (_lead_class in STANDING_HEADLINE_CLASSES
             and int(_memory.get("streak") or 0) > STANDING_LEAD_MAX):
+        _lead_class = ""
+    if EVERY_MORNING_HAS_A_FRONT_PAGE and _lead_class in FRONT_PAGE_CLASSES:
+        # Step 7b: a front-page morning's closing line is the ladder's —
+        # the idle corps, the treasury, the grievance — not a second
+        # comment on the courts' news.
+        _lead_class = ""
+    if (A_QUIET_MORNING_CLOSES_ON_THE_LADDER and _lead_class == "quiet_morning"
+            and not _memory.get("levy_said")):
+        # Step 7b: the quiet morning's own note names the levy, true only
+        # while the levy's statement series is open (RS-D2's yield); on any
+        # other quiet morning the ladder closes ("Your armies stand ready").
         _lead_class = ""
     dispatch["berthier_note"] = _pick_berthier_note(
         world, player_nation, dispatch["marshals"], dispatch["situation"],
@@ -4001,20 +4598,7 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
     if peace_settlements:
         dispatch["peace_settlements"] = peace_settlements
 
-    # Diplomatic events (Session 8D)
-    # LV-1: the boot briefing reads none of the queue — the first real
-    # dispatch reads it AND clears it below, so an event queued at boot is
-    # told once, where it always was.
-    if boot:
-        diplomatic_events = []
-    else:
-        diplomatic_events = _build_diplomatic_events_section(world, player_nation)
-
-        # S2: Merge significant relation change events
-        relation_events = _build_relation_change_events(world, player_nation)
-        if relation_events:
-            diplomatic_events.extend(relation_events)
-
+    # Diplomatic events (Session 8D) — built above, before the headline.
     dispatch["diplomatic_events"] = diplomatic_events
 
     # ══════════════════════════════════════════════════════════════════
@@ -4067,6 +4651,19 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
 # LV-1: how many board-derived orders the first morning names.
 FIRST_MORNING_ORDER_LIMIT = 4
 
+# SF7-X47: the first morning's orders are a CHOICE, not a plan. Each is
+# carried out on today's board (EP F1's contract — each one sent to a fresh
+# copy of the board), but they share one treasury and one army: typed top to
+# bottom on the 1805 boot, Ney's attack draws Davout into the field (his
+# march is then refused, "engaged with Mack") and its materiel bill leaves
+# the levy unpaid (532g against 846g, the levy falling to Soult) — and the
+# levy and the depot alone ask 1,041g of an 800g treasury. The header says
+# so; both screens render this sentence (the R screen and the terminal).
+THE_TODAY_LIST_IS_A_CHOICE = True
+TODAY_ORDERS_HEADER = ("Orders the board will take at once — choose among them; "
+                       "they share one treasury and one army:")
+TODAY_ORDERS_HEADER_LEGACY = "Orders the board will take at once:"
+
 
 def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     """LV-1 (row EP F1): the boot briefing's "what to do today" section.
@@ -4091,7 +4688,10 @@ def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     # SR-7d DC-3a (DOCTRINES_SPEC §4a discoverability): one line on the
     # first morning naming our doctrine and the screen that shows it.
     from backend.game_logic.doctrines import boot_line
-    return {"orders": orders, "doors": THREE_DOORS, "cabinet": CABINET_DOOR,
+    return {"orders": orders,
+            "orders_header": (TODAY_ORDERS_HEADER if THE_TODAY_LIST_IS_A_CHOICE
+                              else TODAY_ORDERS_HEADER_LEGACY),
+            "doors": THREE_DOORS, "cabinet": CABINET_DOOR,
             "doctrine": boot_line(world, player_nation) or ""}
 
 
@@ -6169,6 +6769,17 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
                 "No court is free to join — those we have just fought are "
                 "still bound by their peace with us.")
 
+    # SF-LB-3 (Score Finish Step 7b): the league's table and its one line —
+    # who would march, when the courts consult, the price to keep each out.
+    from backend.game_logic import coalition as _league_co
+    if _league_co.THE_LEAGUE_IS_SEEN and not _formed:
+        _rows = _league_co.league_rows(world)
+        if _rows:
+            section["league_rows"] = _rows
+        _line = _league_co.league_summary_line(world)
+        if _line:
+            section["league_line"] = _line
+
     return section
 
 
@@ -6185,13 +6796,13 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_proposal_sent": "Talleyrand has departed for the court of {nation_display}.",
     "diplomatic_proposal_returned": "Talleyrand returns from {nation} with a response.",
     "diplomatic_sabotage_discovered": "Talleyrand altered your proposal to {nation}. He {change_description}.",
-    "diplomatic_treaty_signed": "{nation_a} and {nation_b} have signed the {treaty_type}.",
+    "diplomatic_treaty_signed": "Sire — {nation_a_display} and {nation_b_display} have signed the {treaty_type}.",
     "diplomatic_treaty_broken": "{nation} has broken the {treaty_type}.",
     "diplomatic_war_declared": "{nation} has declared war on {target}.",
     # FA-65: and what to DO about it — rendered by the per-type arm in
     # `_format_dispatch_event_text`, because the hint is optional and a
     # `.format()` with an unsupplied key emits the raw template.
-    "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation}.",
+    "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation_display}.",
     # IQ-7 R7 fix in passing (Sept 16, 2026): the break family and the
     # defection line carried the raw tag onto the rail — "KingdomOfItaly has
     # rebelled against France. It is war." beside a dispatch line that said
@@ -6239,9 +6850,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_carved_vassal_created": "{carved_name} has been established under the protection of {protector}.",
     "diplomatic_carved_vassal_dissolved": "{carved_name} has ceased to exist.",
     "diplomatic_defection_cascade": "The empire trembles — multiple vassals are wavering!",
-    "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed the {treaty_type}.",
+    "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a_display} and {nation_b_display} have signed the {treaty_type}.",
     "diplomatic_treaty_payment_failed": "{from_nation} cannot meet treaty obligations to {to_nation} ({amount_paid}/{amount_due} gold paid).",
-    "diplomatic_auto_downgrade": "Relations between {nation_a} and {nation_b} have collapsed: {from_state} → {to_state}.",
+    "diplomatic_auto_downgrade": "Relations between {nation_a_display} and {nation_b_display} have collapsed: {from_state} → {to_state}.",
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
     "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
     "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
@@ -6257,7 +6868,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_coalition_brewing_other": "Word from the chanceries: a coalition is brewing against {target}.",
     # Marshal recruitment (Jealousy v3.2 build): word of an enemy commission
     # reaches the player only with intel on that court (partial_on_nation).
-    "enemy_marshal_commissioned": "Intelligence reports {nation} has raised {marshal} to high command.",
+    "enemy_marshal_commissioned": "Intelligence reports {nation_display} has raised {marshal} to high command.",
     "balance_of_europe_shifted": "The balance of Europe shifts around {label}.",
     # Nation Agendas NA-1: the once-per-shift court-intent beat (values
     # arrive fully humanized — display nation + agenda title; the colon
@@ -6275,12 +6886,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     ),
     # AI-2d §12.6 — the allegiance auction's Courier beat.
     "allegiance_in_play": (
-        "The allegiance of {nation} is in play — every court with gold "
+        "The allegiance of {nation_display} is in play — every court with gold "
         "or standing now bids for the flip."
     ),
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
-        "{payer}'s gold reaches {nation} — the subsidy stands at "
+        "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
         "{amount} this season."
     ),
     # AI-3 Stage D beats (AI_INTENT_SPEC §4.6a). Beat 2, The Brewing
@@ -6349,14 +6960,16 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # DEF-5 naval (NAVAL_SPEC §9 dispatch beats — state-change only,
     # never per-turn repetition; the two strait beats carry a prebuilt
     # {line} because two emitters share the type).
+    # SF7-X38 (Score Finish Step 7b): the courts by name — "Britain closes
+    # the Kingdom of Italy's ports", never "KingdomOfItaly's".
     "blockade_begins": (
-        "BLOCKADE: {blockader} closes {nation}'s ports. Trade is {trade_words} "
+        "BLOCKADE: {blockader_display} closes {nation_display}'s ports. Trade is {trade_words} "
         "and the fleet is pinned at anchor, where crews rot."
     ),
     # SR-5r RF-4b (REFORMS_SPEC §8 "The events"): a court's laws are court
     # knowledge across Europe — its enactments and lapses are beats; the
     # player's own lapse is named as a lapse.
-    "law_enacted_abroad": "THE LAWS: {nation} {verb} {law} — {effect}.",
+    "law_enacted_abroad": "THE LAWS: {nation_display} {verb} {law} — {effect}.",
     # SR-7d DC-3b (DOCTRINES_SPEC §4): the catch-up announced, the window
     # reopened. Diplomacy has no fog.
     "doctrine_cured_abroad": ("THE DOCTRINES: {nation} brings {law} into force beside its Staff — "
@@ -6366,7 +6979,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "doctrine_cure_lost_home": ("Sire — {law} no longer stands with its Staff, and "
                                 "{flaw} returns to our army."),
     "law_lapsed_abroad": (
-        "THE LAWS: {nation} cannot pay for {law} — the law lapses."
+        "THE LAWS: {nation_display} cannot pay for {law} — the law lapses."
     ),
     "law_lapsed_home": (
         "THE LAWS: {law} has lapsed — the treasury could not pay its "
@@ -6374,7 +6987,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "{window} turns."
     ),
     "blockade_broken": (
-        "The blockade of {nation} is broken — her ports breathe, her "
+        "The blockade of {nation_display} is broken — her ports breathe, her "
         "crews may drill again."
     ),
     "boulogne_camp": (
@@ -6421,10 +7034,10 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     # NP-5 §8: once per war, the first dispatch after the Emperor rides out.
     "sovereign_takes_field": "The Emperor has taken the field — Talleyrand holds the portfolio at the capital.",
-    "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
-    "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
-    "diplomatic_armistice_expired_peace": "The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
-    "diplomatic_armistice_expired_war": "The armistice between {nation_a} and {nation_b} has collapsed. War resumes!",
+    "diplomatic_we_threshold": "War exhaustion grows — {nation_display} nears breaking point (exhaustion: {we}).",
+    "diplomatic_relation_shift": "Relations with {nation_display} have {direction} significantly ({delta} this turn).",
+    "diplomatic_armistice_expired_peace": "The armistice between {nation_a_display} and {nation_b_display} has concluded. Peace declared.",
+    "diplomatic_armistice_expired_war": "The armistice between {nation_a_display} and {nation_b_display} has collapsed. War resumes!",
     "hard_reject_posture_triggered": "{victim_nation} has closed the chancery to {perpetrator_nation}.",
     "hard_reject_posture_cleared": "{victim_nation} has reopened deeper diplomacy with {perpetrator_nation}.",
     # Memory and Pressure v2.4.3 — Make Amends. Commitments routing owns the
@@ -6966,9 +7579,13 @@ def _build_relation_change_events(world, player_nation: str) -> list:
     for nation, delta in deltas.items():
         if abs(delta) >= 10:
             direction = "improved" if delta > 0 else "worsened"
+            # SF7-X38: the court by name (the template's own `_display`).
+            _named = (_with_nation_forms("{nation_display}", {"nation": nation})
+                      .get("nation_display", nation)
+                      if DISPATCH_TEMPLATES_NAME_THE_NATION else nation)
             events.append({
                 "type": "diplomatic_relation_shift",
-                "text": f"Relations with {nation} have {direction} significantly ({delta:+d} this turn).",
+                "text": f"Relations with {_named} have {direction} significantly ({delta:+d} this turn).",
                 "priority": "MEDIUM",
             })
     return events

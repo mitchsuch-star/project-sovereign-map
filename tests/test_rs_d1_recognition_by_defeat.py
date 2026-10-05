@@ -22,6 +22,7 @@ import copy
 import io
 import json
 import math
+import re
 from pathlib import Path
 
 import pytest
@@ -410,7 +411,17 @@ class TestTheLeversQuoteTheirTurns:
         w = _boot()
         price = congress.price(w, "Prussia")
         rel = next(l for l in price["levers"] if l["key"] == "relation")
-        assert "(court them — about " in rel["text"] and " a turn; the Congress sits 8)" in rel["text"]
+        # SF-LB-3 (Score Finish Step 7b) — a conscious flip: a quote that
+        # names its court reads the STEPPED road (`diplomacy.courtship_road`,
+        # the drift included), and Prussia's warm relation drifts toward
+        # zero, so the honest road is longer than the flat ceil(points / 8)
+        # this pin was written against — 9 turns, past one sitting. The
+        # clause's two shapes are both legal; the arithmetic is pinned in
+        # tests/test_sf_page_the_front_page_of_the_peace.py.
+        m = re.search(r"\(court them — about (\d+) turns? at \+8 a turn; "
+                      r"the Congress sits 8( — not within one sitting)?\)", rel["text"])
+        assert m, rel["text"]
+        assert bool(m.group(2)) == (int(m.group(1)) > 8)
         row = next(b for b in price["bundle"] if b["key"] == "relation")
         assert row["turns_clause"].startswith(" — about ") and row["turns_clause"] in row["text"]
         assert row["text"] in price["text"]

@@ -1,0 +1,15 @@
+{
+ "pillars": {
+  "naval": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SF-NAV-1-D1"
+   ]
+  }
+ },
+ "untagged": [],
+ "counted_at": "2026-10-05T05:59",
+ "open_total": 1
+}

@@ -84,6 +84,11 @@ THE_BUILD_LINE_NEEDS_NO_CORPS = True
 # take nothing — the line falls back to the desk's finder rather than going
 # silent. Lever down: the corps province or nothing, as before.
 THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT = True
+# SF-LB-3 (Score Finish Step 7b): at peace with every great power, the
+# counsel names the cheapest order that keeps a court out of the next league
+# (`coalition.league_cheapest_keep_out` — the verb's own gates, the
+# forecast's own price). False = no such line.
+THE_COUNSEL_NAMES_THE_KEEP_OUT = True
 # DESK-9's copy: what the counsel says when the day's military actions are
 # spent. A typed order, like every other line the counsel prints.
 END_TURN_LINE = "end turn — no military actions remain today"
@@ -507,6 +512,7 @@ def what_can_i_do(world, nation: Optional[str] = None,
     lines.extend(military_counsel(world, nation,
                                   limit=max(1, limit - 2 - len(lines))))
     lines.extend(economy_counsel(world, nation, limit=2))
+    lines.extend(league_counsel(world, nation))
     # DESK-9: with the military actions spent, the order that would be
     # carried out is `end turn` — named, as the first line when nothing
     # military survives (the purse's lines may still follow it).
@@ -515,6 +521,33 @@ def what_can_i_do(world, nation: Optional[str] = None,
             and _military_actions_left(world) <= 0):
         lines.insert(0, END_TURN_LINE)
     return lines[:limit]
+
+
+def league_counsel(world, nation: str) -> List[str]:
+    """SF-LB-3: `buy off Prussia — keeps Prussia out of the next league: …`
+    — only at peace with every great power, only for the player (the AI
+    courts nobody here, GR9), and only when an order would keep a court out
+    before the league is declared."""
+    if not (COUNSEL_IS_DERIVED_FROM_THE_BOARD and THE_COUNSEL_NAMES_THE_KEEP_OUT):
+        return []
+    if world is None or nation != getattr(world, "player_nation", None):
+        return []
+    try:
+        from backend.game_logic import coalition as C
+        from backend.game_logic import congress
+        if not C.THE_LEAGUE_IS_SEEN or getattr(world, "active_coalition", None):
+            return []
+        majors = set(congress.great_powers(world))
+        if any(n in majors for n in world.get_nations_at_war_with(nation)):
+            return []
+        cheapest = C.league_cheapest_keep_out(world)
+        if not cheapest:
+            return []
+        return [f"{cheapest['command']} — keeps {cheapest['display']} out of "
+                f"the next league: {cheapest['clause']}"]
+    except Exception:
+        # The counsel must never break the surface that calls it.
+        return []
 
 
 def congress_counsel(world, nation: str) -> List[str]:
@@ -562,6 +595,9 @@ _SURFACE_FOR_KIND = {
     "marshals": ("the Generals screen", "press G"),
     "diplomacy": ("the Cabinet", "press F1"),
     "courts": ("the Diplomatic Ledger", "press D"),
+    # SF-LB-3: the next league's table — who would march, the price to keep
+    # each court out.
+    "balance": ("the Diplomatic Ledger's Balance of Europe tab", "press D, then 3"),
     # GE-3: the Congress of Paris — the table of the great powers' answers,
     # their reasons and their prices (ENDGAME_PLAN §4).
     "congress": ("the Diplomatic Ledger's Congress tab", "press D, then 7"),

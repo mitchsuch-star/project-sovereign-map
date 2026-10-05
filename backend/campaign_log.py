@@ -30,6 +30,12 @@ from backend.game_logic.commitments_routing import (
 )
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
+# SF-LB-3's rider (Score Finish Step 7b): "AI-AI treaty: Sweden and Austria
+# (Defensive Alliance)" read as a debug line in the chronicle; it is a
+# sentence now ("Sweden and Austria sign a Defensive Alliance"). False = the
+# old line byte for byte.
+THE_COURTS_TREATIES_READ_AS_PROSE = True
+
 
 def _display_action(action: str) -> str:
     """Translate raw action name for objection context (gerund form)."""
@@ -2666,6 +2672,12 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
         nation_a = event.get("nation_a", "Unknown")
         nation_b = event.get("nation_b", "Unknown")
         treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+        if THE_COURTS_TREATIES_READ_AS_PROSE:
+            # SF-LB-3 rider (Score Finish Step 7b): two courts' treaty as a
+            # sentence of the chronicle, the courts by name.
+            return (f"{with_definite_article(display_nation(nation_a), capitalize=True)} "
+                    f"and {with_definite_article(display_nation(nation_b))} sign "
+                    f"a {treaty_type}")
         return f"AI-AI treaty: {nation_a} and {nation_b} ({treaty_type})"
 
     if event_type == "ai_ai_proposal_refused":

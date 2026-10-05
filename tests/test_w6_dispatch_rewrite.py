@@ -19,6 +19,7 @@ from backend.game_logic.dispatch import (
 from backend.models.intel import FULL, PARTIAL, UNKNOWN, RegionIntel
 
 from tests.conftest import MarshalFactory, WorldFactory
+import backend.game_logic.dispatch as _dispatch
 
 
 def _battle_event(world, attacker, atk_nation, defender, def_nation,
@@ -39,9 +40,13 @@ def _battle_event(world, attacker, atk_nation, defender, def_nation,
 
 class TestHeadlineSelection:
     def test_no_events_no_headline(self):
+        # Score Finish Step 7b (a conscious re-pin): no event scores, so no
+        # EVENT class leads — the morning leads with the front page or its
+        # floor (SF-NAR-1: every morning has a front page).
         world = WorldFactory.basic()
         world.event_log = []
-        assert _build_headline(world, "France") is None
+        head = _build_headline(world, "France")
+        assert head is not None and not _dispatch._is_event_news(head), head
 
     def test_home_region_captured_is_the_top_story(self):
         # WO slice 4 (Aug 22 2026), CONSCIOUS RETARGET: this fixture used
@@ -145,7 +150,11 @@ class TestHeadlineSelection:
                                  "strength": 30000}]
         intel.last_updated_turn = 3  # ancient
         world.intel["Belgium"] = intel
-        assert _build_headline(world, "France") is None
+        # Step 7b re-pin: the stale sighting fires no event class; the
+        # morning leads with the front page or its floor.
+        head = _build_headline(world, "France")
+        assert head is not None and not _dispatch._is_event_news(head), head
+        assert head["class"] != "enemy_on_our_soil"
 
     def test_berthier_note_answers_the_headline(self):
         world = WorldFactory.basic()
@@ -407,7 +416,10 @@ class TestDispatchBuildIntegration:
         assert "Morale failing" in ney_row["danger"]
 
     def test_quiet_turn_has_no_headline_key(self):
+        # Score Finish Step 7b (a conscious re-pin): a quiet turn now has a
+        # front page — never an event class, never no headline at all.
         world = WorldFactory.basic()
         world.event_log = []
         dispatch = build_morning_dispatch(world)
-        assert "headline" not in dispatch
+        assert dispatch["headline"]["class"] in (
+            _dispatch.FRONT_PAGE_CLASSES | {"quiet_morning"}), dispatch["headline"]

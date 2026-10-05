@@ -720,11 +720,62 @@ def naval_c5_ports_now_zero(arms, ctx):
 
 
 # ═════════════════════════ LIVING BALANCE ═════════════════════════
+# SF7-X39 (Score Finish Step 7b): the frozen item reads "every sponsorship
+# against France AND every great power that newly qualifies for a league
+# leads or sub-beats the next dispatch, and each quoted keep-out lever flips
+# `qualifies_for_coalition(relation_shift=)`". The first probe read the
+# headline line alone (the driver kept no sub-beats), never read a newly
+# qualifying court, and accepted any keep-out phrase without the flip.
+# False = that probe.
+THE_PROBE_READS_THE_WHOLE_PAGE = True
+
+
+def _page_text(dispatch_rec: dict) -> str:
+    """The morning's whole page off the driver's record (SF7-X39 fields)."""
+    parts = [str(dispatch_rec.get("headline_text") or dispatch_rec.get("headline") or "")]
+    parts += [str(b) for b in (dispatch_rec.get("sub_beats") or [])]
+    return " ".join(parts)
+
+
+def _c5_quoted_levers_flip(arms, ctx, peace_turns):
+    """Every keep-out lever the league rows quote on a CMD save after the
+    peace flips the coalition gate: the relation road's shift (`need`) and a
+    buy-off enough alone (+BUYOFF_RELATION_BONUS)."""
+    from backend.game_logic import coalition as CO
+    from backend.game_logic.instruments import BUYOFF_RELATION_BONUS
+    quoted, flips, bad = 0, 0, []
+    for n, peace in peace_turns.items():
+        for path in _saves_of(arms, n):
+            if _save_turn(path) <= peace:
+                continue
+            w = _load_world(ctx, path)
+            fc = CO.league_forecast(w)
+            for row in fc.get("courts") or []:
+                if row.get("status") != CO.LEAGUE_JOINS:
+                    continue
+                shifts = []
+                if row.get("road") is not None:
+                    shifts.append(("road", int(row["need"])))
+                if row.get("buyoff") is not None and row.get("buyoff_alone"):
+                    shifts.append(("buy-off", int(BUYOFF_RELATION_BONUS)))
+                for kind, shift in shifts:
+                    quoted += 1
+                    if CO.qualifies_for_coalition(row["nation"], w, relation_shift=shift):
+                        bad.append(f"{n} t{_save_turn(path)} {row['nation']} {kind} +{shift}")
+                    else:
+                        flips += 1
+    return quoted, flips, bad
+
+
 def living_balance_c5_front_page(arms, ctx):
-    """Step 7b: after the peace, a sponsorship against France leads or sub-beats the next dispatch, and a keep-out lever is quoted."""
+    """Step 7b: after the peace, every sponsorship against France and every great power newly free to join leads or sub-beats the next dispatch, and every quoted keep-out lever flips the gate."""
     seen = 0
     led = 0
     keep = 0
+    fresh_seen = 0
+    fresh_told = 0
+    missed = []
+    peace_turns = {}
     for n in CMD_ARMS:
         a = arms.get(n)
         if not a:
@@ -737,10 +788,18 @@ def living_balance_c5_front_page(arms, ctx):
                 peace_turn = t if peace_turn is None else min(peace_turn, t)
         if peace_turn is None:
             continue
+        peace_turns[n] = peace_turn
+        prev_majors = None
         for g in _groups(a):
             t = g[0].get("turn")
+            disp = next((r for r in g if r.get("kind") == "dispatch"), {})
+            majors = {r["nation"] for r in (disp.get("league_rows") or [])
+                      if r.get("major") and r.get("status") in ("joins", "refuses")}
             if t is None or t <= peace_turn:
+                prev_majors = majors if "league_rows" in disp else prev_majors
                 continue
+            page = (_page_text(disp) if THE_PROBE_READS_THE_WHOLE_PAGE
+                    else str(disp.get("headline", "")))
             spons = [
                 r
                 for r in g
@@ -750,15 +809,26 @@ def living_balance_c5_front_page(arms, ctx):
                     r"against France|aim.*France", str(r.get("text", "")), re.I
                 )
             ]
-            if not spons:
-                continue
-            seen += len(spons)
-            head = next(
-                (str(r.get("headline", "")) for r in g if r.get("kind") == "dispatch"),
-                "",
-            )
-            if re.search(r"sponsor|pays|subsid|purse|league", head, re.I):
-                led += 1
+            if spons:
+                seen += len(spons)
+                if THE_PROBE_READS_THE_WHOLE_PAGE:
+                    told = bool(re.search(r"pays .* against us|licenses .* against us", page))
+                else:
+                    told = bool(re.search(r"sponsor|pays|subsid|purse|league", page, re.I))
+                if told:
+                    led += len(spons)
+                else:
+                    missed.append(f"{n} t{t} sponsorship")
+            if THE_PROBE_READS_THE_WHOLE_PAGE and "league_rows" in disp:
+                if prev_majors is not None:
+                    from backend.display_names import display_nation
+                    for nation in sorted(majors - prev_majors):
+                        fresh_seen += 1
+                        if re.search(rf"{re.escape(display_nation(nation))}[^.]*would now join a league", page):
+                            fresh_told += 1
+                        else:
+                            missed.append(f"{n} t{t} {nation} newly free")
+                prev_majors = majors
             if any(
                 re.search(
                     r"keep .* out|to keep|buy off|price to",
@@ -768,12 +838,28 @@ def living_balance_c5_front_page(arms, ctx):
                 for r in g
             ):
                 keep += 1
-    if seen == 0:
-        return _un("no sponsorship against France after a peace on the CMD arms")
+    if not THE_PROBE_READS_THE_WHOLE_PAGE:
+        if seen == 0:
+            return _un("no sponsorship against France after a peace on the CMD arms")
+        return _res(
+            True,
+            led == seen and keep > 0,
+            f"{seen} sponsorships against France after the peace; {led} led or sub-beat the dispatch; keep-out levers quoted {keep}",
+        )
+    if not peace_turns:
+        return _un("no peace with a great power on the CMD arms")
+    if not any("league_rows" in r for n in peace_turns for r in arms[n].kind("dispatch")):
+        return _un("the dispatch records carry no league rows (a pre-SF7-X39 archive)")
+    quoted, flips, bad = _c5_quoted_levers_flip(arms, ctx, peace_turns)
+    ok = (led == seen and fresh_told == fresh_seen and quoted > 0 and not bad)
     return _res(
         True,
-        led == seen and keep > 0,
-        f"{seen} sponsorships against France after the peace; {led} led or sub-beat the dispatch; keep-out levers quoted {keep}",
+        ok,
+        f"after the peace: {seen} sponsorships against France, {led} on the page; "
+        f"{fresh_seen} great powers newly free to join, {fresh_told} on the page; "
+        f"{quoted} quoted keep-out levers on the saves, {flips} flip the gate"
+        + (f"; missed {missed[:4]}" if missed else "")
+        + (f"; not flipping {bad[:3]}" if bad else ""),
     )
 
 

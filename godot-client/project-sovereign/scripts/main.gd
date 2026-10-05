@@ -4779,6 +4779,12 @@ func _display_morning_dispatch(data: Dictionary):
 				var coal_name = str(active_coal.get("name", "Coalition"))
 				var coal_leader = str(active_coal.get("leader", "?"))
 				add_output("[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]")
+			# SF-LB-3 (Score Finish Step 7b): the next league in one line; the
+			# rows and their prices live on the Dispatch (R) and the Balance of
+			# Europe tab (D).
+			var league_line = str(coalition_status.get("league_line", ""))
+			if league_line != "":
+				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + league_line + " The Balance of Europe (D) names the price to keep each court out.[/color]")
 			add_output("")
 
 	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
@@ -4789,7 +4795,9 @@ func _display_morning_dispatch(data: Dictionary):
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]TODAY[/color]")
 		var today_orders = today.get("orders", [])
 		if today_orders is Array and today_orders.size() > 0:
-			add_output("[color=#" + Utils.COLOR_INFO + "]  Orders the board will take at once:[/color]")
+			# SF7-X47: the header is the backend's sentence (a choice, not a plan).
+			var today_header = str(today.get("orders_header", "Orders the board will take at once:"))
+			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_header + "[/color]")
 			for order in today_orders:
 				add_output("[color=#" + Utils.COLOR_COMMAND + "]    • " + str(order) + "[/color]")
 		var today_doors = str(today.get("doors", ""))

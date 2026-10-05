@@ -200,6 +200,12 @@ THE_DIGEST_RECORDS_THE_APPLIED_BILL = True
 # as a headline and narration F1 read 0 headless turns where the records
 # held 58 of 120. False = the pre-fix line byte for byte.
 THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF = True
+# SF7-X39 (Score Finish Step 7b): the dispatch record carries the whole page
+# — the headline's full text, its sub-beats, and the coalition section's
+# league rows and line — so living balance C5 can read whether a sponsorship
+# or a newly free great power reached the page at all (it read the headline
+# line only). False = the record as it was.
+THE_DIGEST_READS_THE_WHOLE_PAGE = True
 NO_HEADLINE = "(no headline)"
 
 # The variables that shape the board, recorded AFTER `import backend.main` (so
@@ -1248,11 +1254,25 @@ def _record_morning_headline(digest, morning) -> None:
     if THE_DIGEST_RECORDS_THE_HEADLINE_ITSELF:
         text = ((str(_headline.get("text") or "")
                  if isinstance(_headline, dict) else "") or NO_HEADLINE)
+    page = None
+    if THE_DIGEST_READS_THE_WHOLE_PAGE and isinstance(_headline, dict):
+        coalition = morning.get("coalition_status")
+        coalition = coalition if isinstance(coalition, dict) else {}
+        page = {
+            "headline_text": str(_headline.get("text") or ""),
+            "sub_beats": [str(b) for b in (_headline.get("sub_beats") or [])],
+            "league_rows": [
+                {"nation": str(r.get("nation") or ""), "status": str(r.get("status") or ""),
+                 "major": bool(r.get("major")), "text": str(r.get("text") or "")}
+                for r in (coalition.get("league_rows") or []) if isinstance(r, dict)],
+            "league_line": str(coalition.get("league_line") or ""),
+        }
     digest.dispatch(text,
                     events=morning.get("diplomatic_events"),
                     turn_events=morning.get("turn_events"),
                     headline_class=((_headline or {}).get("class")
-                                    if isinstance(_headline, dict) else ""))
+                                    if isinstance(_headline, dict) else ""),
+                    page=page)
 
 
 def dig(payload, *names, default=None):
@@ -2296,7 +2316,8 @@ class Digest:
                 residual = int(net) - total
             self.record("economy", net_residual=residual, **moved)
 
-    def dispatch(self, text, events=None, turn_events=None, headline_class=""):
+    def dispatch(self, text, events=None, turn_events=None, headline_class="",
+                 page=None):
         head = first_line(text, 200)
         if head:
             self._md(f"- DISPATCH: {head}")
@@ -2308,6 +2329,12 @@ class Digest:
             fields = {"headline": head}
             if headline_class:
                 fields["headline_class"] = str(headline_class)
+            if page:
+                # SF7-X39: the whole page rides the jsonl record; the
+                # digest's line stays one line (the instrument's prose
+                # readers scan digest.md, and a sub-beat is not a line of
+                # its own there).
+                fields.update(page)
             self.record("dispatch", **fields)
         # FA-37: the DIPLOMATIC EVENTS rail. Defections, transfers,
         # rebellions, eliminations, war declarations and every naval and

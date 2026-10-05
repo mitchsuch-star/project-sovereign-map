@@ -71,6 +71,11 @@ A_PEACE_THAT_KEEPS_THE_CAPITAL_RECOGNIZES = True
 # this sitting"), so the table never prints a price that cannot be paid in
 # time without saying so.
 THE_LEVERS_QUOTE_THEIR_TURNS = True
+# SF-LB-3 (Score Finish Step 7b): a quote that names its court reads the
+# stepped road (`diplomacy.courtship_road` — the drift toward zero helps a
+# cold court and slows a warm one), the ONE helper the league's keep-out
+# prices read. False = the flat rate for every quote, byte for byte.
+THE_COURTSHIP_IS_STEPPED = True
 # RS-10: before the summons, the gate line and the summons' own report say
 # that summoning lowers the league's gate to `congress_alarm_gate` while two
 # great powers refuse, and name the courts it would take to war; while it
@@ -1332,7 +1337,7 @@ def _treaty_lever(world, court: str, base: int) -> Optional[Dict[str, Any]]:
             return {"key": "treaty", "value": value, "state": "ALLIANCE",
                     "relation": courted,
                     "text": (f"court them to {int(need)} ({_signed(courted)} relations"
-                             f"{courtship_clause(world, courted)}), "
+                             f"{courtship_clause(world, courted, court=court)}), "
                              f"then an alliance with {_display(court)} (+{value})")}
     return None
 
@@ -1348,15 +1353,32 @@ def courting_rate(world) -> int:
     return per if per > 0 else 5
 
 
-def courtship_clause(world, points: int) -> str:
+def courtship_clause(world, points: int, court: Optional[str] = None,
+                     start: Optional[int] = None) -> str:
     """RS-D1: a courtship's cost in TURNS beside its points — " — about 17
     turns at +8 a turn — not within this sitting (7 turns remain)" — so the
     price never prints a road that cannot be walked in time without saying
-    so. '' with the lever down or nothing to court."""
+    so. '' with the lever down or nothing to court.
+
+    SF-LB-3 (Score Finish Step 7b, §6.1 item 4): with the `court` named, the
+    turns are the ONE stepped road every courtship price reads
+    (`diplomacy.courtship_road` — the mission's skill-scaled effect, the
+    clamp and the drift, in the tick's own order), from `start` (today's
+    relation by default) to `start + points`; the flat rate remains for a
+    quote with no court and for a road the forecast cannot walk (a war)."""
     if not THE_LEVERS_QUOTE_THEIR_TURNS or int(points) <= 0:
         return ""
     per = courting_rate(world)
     turns = int(math.ceil(int(points) / float(per)))
+    if court and THE_COURTSHIP_IS_STEPPED:
+        from backend.game_logic.diplomacy import courtship_road
+        if start is None:
+            start = int(world.nation_relations.get(
+                world._make_diplo_key(_player(world), court), 0) or 0)
+        road = courtship_road(world, court, int(start) + int(points),
+                              start=int(start))
+        if road is not None:
+            turns = int(road[0])
     from backend.display_names import plural
     if sitting(world):
         left = max(0, congress_turns(world) - day_of_sitting(world))
@@ -1512,7 +1534,8 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     if rel < 100:
         levers.append({"key": "relation", "value": 100 - rel,
                        "text": ("better relations (court them"
-                                + courtship_clause(world, min(gap, 100 - rel) if gap > 0 else 100 - rel)
+                                + courtship_clause(world, min(gap, 100 - rel) if gap > 0 else 100 - rel,
+                                                   court=court)
                                 + ")")})
     # 5. The ports (the trade-dominance court): SHUT OUT satisfies the table
     # without the formula (review #6 — the at-peace arm never offered it).
@@ -1540,10 +1563,12 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         need = threshold - now
         courted = int(ov.get("relation", 0))
         if rel + courted + need <= 100:
+            _clause = courtship_clause(world, need, court=court,
+                                       start=rel + courted)
             rel_lever = {"key": "relation", "value": need,
-                         "turns_clause": courtship_clause(world, need),
+                         "turns_clause": _clause,
                          "text": (f"{need} more relations (court them"
-                                  f"{courtship_clause(world, need)})")}
+                                  f"{_clause})")}
             chosen.append(rel_lever)
             _apply_lever_override(ov, rel_lever)
             now = recognition_score(world, court, ov)["score"]
@@ -2578,16 +2603,19 @@ def refuser_qualifies(world, nation: str, target: Optional[str]) -> bool:
     return answer(world, nation)["stance"] == REFUSES
 
 
-def grudge_contributions(world, budget: int) -> List[Dict[str, Any]]:
+def grudge_contributions(world, budget: int,
+                         turn: Optional[int] = None) -> List[Dict[str, Any]]:
     """§2.6: each court that would not sign keeps a 10-turn grudge — +1
     threat a turn each, inside the shared AGENDA_GRUDGE_CAP (the NA-6d
-    budget split: this family takes what the others leave)."""
+    budget split: this family takes what the others leave). SF7-X45:
+    `turn` is the clock the window is read on (None = today)."""
     c = getattr(world, "congress", None)
     if not isinstance(c, dict) or c.get("status") != DISSOLVED:
         return []
     if c.get("dissolved_turn") is None or budget <= 0:
         return []
-    if _turn(world) - int(c["dissolved_turn"]) >= GRUDGE_TURNS:
+    now = _turn(world) if turn is None else int(turn)
+    if now - int(c["dissolved_turn"]) >= GRUDGE_TURNS:
         return []
     alive = [r for r in (c.get("refusers") or []) if not court_gone(world, r)]
     amount = min(int(budget), GRUDGE_PER_REFUSER * len(alive))

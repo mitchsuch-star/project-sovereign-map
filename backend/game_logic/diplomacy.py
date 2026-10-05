@@ -10047,11 +10047,14 @@ def check_auto_downgrade(world) -> List[Dict]:
 
                         # R80: Dispatch event + notification for auto-downgrade
                         from backend.game_logic.dispatch import queue_dispatch_event
+                        # SF7-X38 family (Score Finish Step 7b): the states
+                        # by their names ("Non-Aggression"), never the keys.
+                        from backend.display_names import STATE_DISPLAY as _SD
                         queue_dispatch_event(world, "diplomatic_auto_downgrade", {
                             "nation_a": parts[0],
                             "nation_b": parts[1],
-                            "from_state": state,
-                            "to_state": new_state,
+                            "from_state": _SD.get(state, str(state).replace("_", " ").title()),
+                            "to_state": _SD.get(new_state, str(new_state).replace("_", " ").title()),
                         }, "always")
 
                         from backend.notifications import (
@@ -13076,7 +13079,8 @@ def forecast_mission_to_accept(world, target_nation: str, proposal_type: str,
 
 def forecast_relation_to(world, target_nation: str, floor: int,
                          mission_type: str = "IMPROVE_RELATIONS",
-                         limit: int = MISSION_FORECAST_LIMIT):
+                         limit: int = MISSION_FORECAST_LIMIT,
+                         start: Optional[int] = None):
     """IQ-6 V4: (turns, dp) for a quiet-world relation mission to carry the
     player's relation with ``target_nation`` to ``floor`` — or None.
 
@@ -13084,7 +13088,9 @@ def forecast_relation_to(world, target_nation: str, floor: int,
     own order: the skill-scaled effect (`mission_effect_magnitude`), the
     clamp, then the drift step (`relation_drift_step`; the courted pair is
     exempt while he courts). A FORECAST — no world write, no region scan.
-    Read by the volte-face counsel line (`emergent_designs`).
+    Read by the volte-face counsel line (`emergent_designs`). `start`
+    (SF-LB-3): the relation to step from instead of today's — the road a
+    buy-off's +5 leaves.
     """
     from backend.game_logic.diplomatic_dialogue import (
         MISSION_DP_COSTS, mission_effect_magnitude,
@@ -13093,7 +13099,8 @@ def forecast_relation_to(world, target_nation: str, floor: int,
     key = world._make_diplo_key(player, target_nation)
     if world.diplomatic_states.get(key, "PEACE") == "WAR":
         return None     # a war term
-    relation = int(world.nation_relations.get(key, 0) or 0)
+    relation = (int(world.nation_relations.get(key, 0) or 0) if start is None
+                else int(start))
     effect = int(mission_effect_magnitude(world, mission_type, "relation_change"))
     if effect <= 0:
         return None
@@ -13109,6 +13116,19 @@ def forecast_relation_to(world, target_nation: str, floor: int,
         relation += relation_drift_step(world, player, target_nation,
                                         relation=relation, _court=exempt)
     return None
+
+
+def courtship_road(world, court: str, floor: int,
+                   start: Optional[int] = None):
+    """SF-LB-3 + RS-D1 (§6.1 item 4): the ONE helper every courtship price
+    reads — (turns, dp) for Talleyrand's Improve Relations mission to carry
+    our relation with `court` to `floor`, stepped on the tick's own
+    arithmetic (the skill-scaled effect, the clamp, the drift), or None
+    when no road reaches it (a war; past the forecast's limit). The league
+    rows quote it for the keep-out bar; the Congress's courtship clause
+    quotes it for a known court."""
+    return forecast_relation_to(world, court, int(floor),
+                                mission_type="IMPROVE_RELATIONS", start=start)
 
 
 def _mission_counsel(world, target_nation: str, actions: List[Dict]):

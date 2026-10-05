@@ -1392,6 +1392,27 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         result["headline_note"] = headline_note
     elif headline_note:
         result["headline_note"] = headline_note
+    # SF-LB-3 (Score Finish Step 7b): the next league's table in place of
+    # the bare "Nations That Would Join Coalition" list — per court whether
+    # she would join, what her war would reopen, who pays her, and the price
+    # to keep her out (`coalition.league_forecast`, one reader for every
+    # surface). Absent with the lever down, and while a league stands (the
+    # coalition block above tells it).
+    from backend.game_logic import coalition as _league
+    if _league.THE_LEAGUE_IS_SEEN and not world.active_coalition:
+        _rows = _league.league_rows(world)
+        if _rows:
+            from backend.game_logic.instruments import (
+                COMPENSATION_TERM_TURNS, INSTRUMENT_DP_COST)
+            result["league_rows"] = _rows
+            result["league_footer"] = (
+                f"Talleyrand courts one court at a time; a buy-off is one "
+                f"order each ({INSTRUMENT_DP_COST} DP and the gold named) and "
+                f"puts the design to sleep {COMPENSATION_TERM_TURNS} turns. "
+                f"The forecast holds the board still.")
+        _line = _league.league_summary_line(world)
+        if _line:
+            result["league_line"] = _line
     return result
 
 # ============================================================================
