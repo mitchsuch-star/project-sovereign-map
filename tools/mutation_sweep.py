@@ -211,6 +211,30 @@ def _baseline_green(mutations: list[dict]) -> bool:
     return True
 
 
+def _restore(path: pathlib.Path, data: bytes) -> None:
+    """Write the original bytes back, retrying a transient lock.
+
+    Score Finish Step 7 slice 9 (Oct 5, 2026): on Windows a file a driven
+    Godot test has just read can stay locked for a moment (or a scanner holds
+    it), and the restore's ``write_bytes`` raised ``OSError: [Errno 22]`` —
+    the sweep died with ``main.tscn`` still MUTATED in the working tree, the
+    hazard every sweep's closing ``git diff`` exists to catch. Retry for ten
+    seconds; if the file still will not take its bytes back, say which file
+    is left mutated before raising."""
+    import time
+    last_error: OSError | None = None
+    for _attempt in range(40):
+        try:
+            path.write_bytes(data)
+            return
+        except OSError as exc:
+            last_error = exc
+            time.sleep(0.25)
+    print(f"!! RESTORE FAILED — {path} IS LEFT MUTATED in the working tree; "
+          f"restore it (git diff) before anything else runs.")
+    raise last_error
+
+
 def run(mutations: list[dict]) -> int:
     if not _baseline_green(mutations):
         return 2
@@ -241,7 +265,7 @@ def run(mutations: list[dict]) -> int:
             finally:
                 # BYTE-EXACT, from the bytes we read — not a re-encode of the
                 # normalized text. See `_normalized`.
-                path.write_bytes(original_bytes)
+                _restore(path, original_bytes)
                 # Symmetric with the apply: the NEXT mutation must not read
                 # bytecode compiled from this one.
                 _invalidate_bytecode(path)

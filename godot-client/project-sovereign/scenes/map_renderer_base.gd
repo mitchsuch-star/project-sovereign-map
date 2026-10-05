@@ -240,6 +240,18 @@ var is_panning: bool = false
 var pan_start_pos: Vector2 = Vector2.ZERO
 var zoom_tween: Tween = null
 var panning_enabled: bool = true
+# SF7-X21 (Score Finish Step 7, the frames, Oct 4 2026): the owner's "a
+# modal covers the map" test (main.gd hands it `_is_modal_dialog_open`).
+# The Mode C session drew province tooltips under the enemy-phase dialog
+# and over the campaign log: a hover set before a screen or modal opened was
+# never cleared (only a mouse motion clears it), and a modal's empty
+# backdrop let motion through to the map.
+var pointer_blocked_check: Callable = Callable()
+const THE_COVERED_MAP_HAS_NO_HOVER := true
+# SF7-X22: our own soil's figures are exact by ownership — the tooltip hedge
+# is for someone else's ground (WO-V-D2's rule, on the panel's twin).
+const _PLAYER_NATION := "France"
+const OUR_SOIL_CARRIES_NO_HEDGE := true
 
 const PAN_SPEED_KEYS: float = 300.0
 const ZOOM_SPEED: float = 0.1
@@ -2042,6 +2054,14 @@ func focus_on_region(region_name: String):
 
 
 func _process(delta: float):
+	# SF7-X21: a hover set before a screen or modal opened is cleared at once
+	# — only a mouse motion used to clear it, so a still cursor kept its
+	# tooltip on screen under the dialog, or beside the open ledger.
+	if THE_COVERED_MAP_HAS_NO_HOVER and not is_panning and _has_hover() \
+			and (not panning_enabled or _pointer_is_blocked()):
+		_clear_hover_state()
+		queue_redraw()
+
 	var focused = get_viewport().gui_get_focus_owner()
 	var text_focused = focused is LineEdit or focused is TextEdit
 
@@ -2173,6 +2193,20 @@ func _clear_hover_state():
 	_set_hovered_region("")
 
 
+func _pointer_is_blocked() -> bool:
+	"""SF7-X21: the owner's word that a modal covers the map
+	(`main._is_modal_dialog_open`) — false when no owner set one (the smoke
+	scenes, the capture harnesses)."""
+	return THE_COVERED_MAP_HAS_NO_HOVER and pointer_blocked_check.is_valid() \
+		and bool(pointer_blocked_check.call())
+
+
+func _has_hover() -> bool:
+	return hovered_region != "" or hovered_marshal.size() > 0 \
+		or hovered_fogged_force.size() > 0 or hovered_fleet.size() > 0 \
+		or hovered_sea_link.size() > 0
+
+
 func _should_handle_map_pointer_event(event) -> bool:
 	if not panning_enabled:
 		return false
@@ -2180,6 +2214,11 @@ func _should_handle_map_pointer_event(event) -> bool:
 		return false
 	if is_panning:
 		return true
+	# SF7-X21: a modal's dim backdrop lets motion through to the map (its
+	# empty areas take no mouse), so the hovered-control guard below read
+	# the map as hovered and drew province tooltips under the modal.
+	if _pointer_is_blocked():
+		return false
 	var rect = get_global_rect()
 	if not rect.has_point(event.position):
 		return false
@@ -2683,9 +2722,13 @@ func _draw_region_tooltip():
 		return
 
 	_push_tooltip_line(lines, "%s | %s" % [region_type.replace("_", " ").capitalize(), terrain.replace("_", " ").capitalize()], Color(0.7, 0.7, 0.7))
-	if visibility == "partial":
+	# SF7-X22: the hedge is for someone else's ground — Normandy, French and
+	# empty of corps, read "Intel: Partial (reports only)" above four exact
+	# figures (WO-V-D2 fixed the region panel; this is its tooltip twin).
+	var hedge_ground := not (OUR_SOIL_CARRIES_NO_HEDGE and str(controller) == _PLAYER_NATION)
+	if visibility == "partial" and hedge_ground:
 		_push_tooltip_line(lines, "Intel: Partial (reports only)", Color(0.6, 0.75, 0.6))
-	elif visibility == "stale":
+	elif visibility == "stale" and hedge_ground:
 		_push_tooltip_line(lines, "Intel: Stale (outdated)", Color(0.8, 0.6, 0.4))
 
 	# PC15-16: -1 is the fog sentinel on income/stability too (same CA9-F5

@@ -443,9 +443,16 @@ class TestTheClient:
         assert re.search(r"KEY_8:\s*\n\s*_switch_tab\(7\)", body)
 
     def test_the_digit_belongs_to_the_caret(self):
+        """Re-seated consciously Oct 5, 2026 (SF7-X24, Score Finish Step 7
+        slice 9): a bare digit still belongs to whoever has the caret, and
+        the guard now lets Alt+digit through — the command line holds the
+        caret after nearly every action, so the advertised book keys did
+        nothing (the live session). The guard still precedes the keys."""
         body = _func_body(_gd(GD), "_input")
-        guard = body.index("if _focused is LineEdit or _focused is TextEdit:")
-        assert guard < body.index("KEY_8:")
+        guard = body.index("var _typing: bool = _focused is LineEdit or _focused is TextEdit")
+        early = body.index("if _typing and not (ALT_TURNS_THE_BOOKS and event is InputEventKey "
+                           "and event.alt_pressed):")
+        assert guard < early < body.index("KEY_8:")
 
     def test_the_laws_book_is_rendered(self):
         body = _func_body(_gd(GD), "_render_current_tab")

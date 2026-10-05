@@ -57,6 +57,8 @@ const AUTHORITY_ARMS_READ_THE_BACKEND := true
 
 # State
 var current_tab: int = 0  # 0=nations, 1=treaties, 2=threat, 3=talleyrand, 4=bargains, 5=vassals, 6=congress
+# SF7-X24: Alt+1..7 turn the books while the command line holds the caret.
+const ALT_TURNS_THE_BOOKS := true
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 var _open_review_target: String = ""
@@ -129,7 +131,10 @@ func _input(event):
 	# typed "recruit 5000 infantry" and got "recruit  infantry" plus a tab
 	# switch. A digit belongs to whoever has the caret.
 	var _focused = get_viewport().gui_get_focus_owner()
-	if _focused is LineEdit or _focused is TextEdit:
+	# SF7-X24: Alt+digit is the focus-safe form (the strategic ledger's
+	# twin); a bare digit still belongs to whoever has the caret.
+	var _typing: bool = _focused is LineEdit or _focused is TextEdit
+	if _typing and not (ALT_TURNS_THE_BOOKS and event is InputEventKey and event.alt_pressed):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var switched = true

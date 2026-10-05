@@ -78,6 +78,13 @@ _REFUSAL_REASONS = ("literal_personality", "eyes_on_a_crown",
 # The absence family — every status the shelf (not the line) renders.
 ABSENT_STATUSES = ("failed_arrive", "refused", "out_of_reach")
 
+# SF7-X29 (Score Finish Step 7, the frames, Oct 5 2026): a corps the cap
+# could not seat still bled, and its dead rode the side's odometer while the
+# tail said only "+1 corps in reserve" — the figures on the baize did not add
+# up to the total over them. The tail now carries what the unseated corps
+# lost (`reserve_casualties`). False = the count alone.
+THE_RESERVE_NAMES_ITS_DEAD = True
+
 
 def marshal_arm(marshal) -> str:
     """Dominant arm for display — the same derivation the map summary uses
@@ -275,7 +282,7 @@ def _cap_side(contingents: List[dict]) -> dict:
     shown_absent = absent[:max(1, MAX_CONTINGENTS_PER_SIDE - len(shown_fought))] \
         if absent else []
     hidden_absent = len(absent) - len(shown_absent)
-    return {
+    side = {
         "contingents": shown_fought + shown_absent,
         "reserve_count": int(reserve + hidden_absent),
         "casualties_total": int(sum(c["casualties"] for c in contingents)),
@@ -283,6 +290,13 @@ def _cap_side(contingents: List[dict]) -> dict:
             c["committed"] for c in contingents
             if c["status"] not in ABSENT_STATUSES)),
     }
+    if THE_RESERVE_NAMES_ITS_DEAD:
+        # SF7-X29: the unseated corps' own dead — what the odometer counts
+        # and the baize does not show. A hidden no-show bled nothing.
+        side["reserve_casualties"] = int(sum(
+            int(c.get("casualties", 0) or 0)
+            for c in fought[MAX_CONTINGENTS_PER_SIDE:]))
+    return side
 
 
 def derive_register(player_side: Optional[str], outcome: str) -> str:

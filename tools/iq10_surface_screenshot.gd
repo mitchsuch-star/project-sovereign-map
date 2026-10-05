@@ -617,6 +617,13 @@ func _collect_texts() -> Array:
 
 
 func _buttons_offscreen(view: Vector2) -> Array:
+	# A button scrolled out of its ScrollContainer's view is REACHABLE (the
+	# player scrolls to it), exactly as `_clipped_text` treats a tall label
+	# inside one. Score Finish Step 7 frames (Oct 4, 2026): the first full
+	# reading flagged 159 buttons, every one a row of a scrolled list — the
+	# wizard's nation list and the campaign log's turn list — and none a
+	# button the player could not reach. Only the scroll container's own
+	# rect must lie on the screen.
 	var out: Array = []
 	var screen := Rect2(Vector2.ZERO, view)
 	for n in _all_nodes(root):
@@ -625,11 +632,23 @@ func _buttons_offscreen(view: Vector2) -> Array:
 		var r: Rect2 = (n as Control).get_global_rect()
 		if r.size.x <= 0.0 or r.size.y <= 0.0:
 			continue
+		var scroller := _scroll_ancestor(n)
+		if scroller != null:
+			r = scroller.get_global_rect()
 		if not screen.encloses(r):
 			out.append({"path": str(root.get_path_to(n)),
 					"text": (str(n.text) if ("text" in n) else ""),
 					"rect": [r.position.x, r.position.y, r.size.x, r.size.y]})
 	return out
+
+
+func _scroll_ancestor(n: Node) -> Control:
+	var p: Node = n.get_parent()
+	while p != null:
+		if p is ScrollContainer:
+			return p as Control
+		p = p.get_parent()
+	return null
 
 
 func _clipped_text() -> Array:

@@ -376,13 +376,19 @@ class TestTheWizardWraps:
         assert "reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART" in body
         assert "scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED" in _func_body(src, "_ready")
 
-    def test_step_one_pins_the_prompt_and_steps_two_and_three_expand(self):
+    def test_step_one_pins_the_prompt_and_step_two_expands(self):
+        """Flipped consciously Oct 5, 2026 (SF7-X28, Score Finish Step 7's
+        frames): step 3 — the Formable Nations — no longer shares step 2's
+        expanding layout. Its prompt is a fixed two-line quote, and the
+        expansion showed as a blank band above the list on the live 5-turn
+        session. Step 3 now hugs its quote (`_lay_out_prompt(3)`, pinned
+        behaviourally in `tests/test_sf7_s9_the_frames.py`)."""
         src = _read(SCRIPTS / "diplomacy_wizard.gd")
         assert "_lay_out_prompt(1)" in _func_body(src, "open")
         assert "_lay_out_prompt(1)" in _func_body(src, "_go_back")
         assert "_lay_out_prompt(2)" in _func_body(src, "open_for_nation")
         assert "_lay_out_prompt(2)" in _func_body(src, "_on_nation_selected")
-        assert "_lay_out_prompt(2)" in _func_body(src, "_on_formables_pressed")
+        assert "_lay_out_prompt(3)" in _func_body(src, "_on_formables_pressed")
         lay = _func_body(src, "_lay_out_prompt")
         assert "Control.SIZE_FILL" in lay and "Control.SIZE_EXPAND_FILL" in lay
 

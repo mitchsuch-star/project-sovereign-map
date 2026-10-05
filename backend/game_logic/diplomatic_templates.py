@@ -2693,10 +2693,24 @@ def crowned_incoming_clause(world, opposing_nation: str) -> str:
 # typed route and the `settlement_confirm` payload alike. The white-peace
 # register of the same component. False = the one phrase for every package.
 THE_WHITE_PEACE_SPEAKS_ITS_OWN_BLOCKER = True
+# SF7-X25: the table's narration says "Sire" once (its hold-out line no
+# longer repeats the address it is embedded in). False = both.
+THE_TABLE_SAYS_SIRE_ONCE = True
 SPOKEN_BLOCKER_PHRASES_WHITE_PEACE = {
     "settlement_tier_legitimacy": (
         "it claims no victory, but a whole-war peace still needs every "
         "covered court's consent, and not every court consents"),
+}
+# SF7-X25 (Score Finish Step 7, the frames, Oct 4 2026): the same family one
+# component over — measured at the white peace's review with France +80:
+# "a white peace … cannot be sealed as it stands: the terms cut against
+# their national design" (a white peace has no terms). The three components
+# whose spoken phrase names "the terms". False = they speak as for a draft.
+THE_WHITE_PEACE_NAMES_NO_TERMS = True
+SPOKEN_BLOCKER_PHRASES_WHITE_PEACE_NO_TERMS = {
+    "agenda_settlement_mod": "it would seal their national design out of reach",
+    "war_objective_alignment": "it would end the war without the object it was fought for",
+    "term_harshness_penalty": "what it leaves in our hands weighs heavier than their defeat",
 }
 
 
@@ -2716,6 +2730,10 @@ def spoken_blocker_phrase(component: str, fallback: str = "",
         phrase = SPOKEN_BLOCKER_PHRASES_WHITE_PEACE.get(str(component or ""))
         if phrase:
             return phrase
+        if THE_WHITE_PEACE_NAMES_NO_TERMS:
+            phrase = SPOKEN_BLOCKER_PHRASES_WHITE_PEACE_NO_TERMS.get(str(component or ""))
+            if phrase:
+                return phrase
     phrase = SPOKEN_BLOCKER_PHRASES.get(str(component or ""))
     if phrase:
         return phrase
@@ -2825,6 +2843,11 @@ def resolve_multi_court_settlement_voice(
             holdout_court=(holdouts[0] if holdouts else "a covered court"),
             war_label=war_label or "this war",
         )
+    if THE_TABLE_SAYS_SIRE_ONCE and str(binding).startswith("Sire, "):
+        # SF7-X25: the hold-out line opens "Sire, …" and the table line it
+        # is embedded in already did — "Sire, this settlement … Sire,
+        # Austria will not sign" (the white peace's review, on screen).
+        binding = binding[len("Sire, "):]
     table_narration = resolve_settlement_voice_line(
         "settlement_multi_court_table_talleyrand",
         war_label=war_label or "this war",

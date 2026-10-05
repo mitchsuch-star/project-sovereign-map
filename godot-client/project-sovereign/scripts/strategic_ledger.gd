@@ -38,6 +38,8 @@ const _NAVAL_CHIP_BG = "233043"
 
 # State
 var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders, 6=admiralty, 7=laws
+# SF7-X24: Alt+1..8 turn the books while the command line holds the caret.
+const ALT_TURNS_THE_BOOKS := true
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 
@@ -98,7 +100,13 @@ func _input(event):
 	# typed "recruit 5000 infantry" and got "recruit  infantry" plus a tab
 	# switch. A digit belongs to whoever has the caret.
 	var _focused = get_viewport().gui_get_focus_owner()
-	if _focused is LineEdit or _focused is TextEdit:
+	# SF7-X24 (Score Finish Step 7, the frames, Oct 4 2026): the command line
+	# holds the caret after nearly every action, so the advertised "Keys
+	# 1–8" typed digits into it instead (measured in the Mode C session).
+	# Alt+digit is the focus-safe form — PC15-18's idiom for the screen keys —
+	# and a bare digit still belongs to whoever has the caret.
+	var _typing: bool = _focused is LineEdit or _focused is TextEdit
+	if _typing and not (ALT_TURNS_THE_BOOKS and event is InputEventKey and event.alt_pressed):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var switched = true
@@ -323,7 +331,7 @@ func _render_forces():
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1-7 turn the ledger's books; press T to close it.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.[/color]\n\n"
 	bbcode += _collapse_note_line()
 
 	# Authority — global player stat (V2b)
@@ -785,7 +793,7 @@ func _render_admiralty_tab():
 	var bbcode = "[color=#" + Utils.COLOR_HEADER + "]═══ THE ADMIRALTY ═══[/color]\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1-7 turn the ledger's books.[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_DIMMED + "]The fleet, the blockades, the crossings — and every order the sea will take. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n"
 	var adm = cached_data.get("admiralty", {})
 	if not (adm is Dictionary) or not adm.get("active", false):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]This campaign has no naval theatre.[/color]\n"

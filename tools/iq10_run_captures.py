@@ -862,6 +862,107 @@ SHOTS += [
                      "enabled. ⚠ The step-3 chip rows fetch GET /formables over a raw HTTPRequest the harness "
                      "cannot stub — they need a live backend on SOVEREIGN_PORT; owed to Step 7's client pass",
     },
+    # ═══ Score Finish Step 7 slices 7–8 (registered by the Step 7 frames, Oct 4) ═══
+    {
+        "id": "rail_counter_punch",
+        "surface": "Notice rail — the counter-punch row opened, with its button (slice 8)",
+        "payload": "notifications_counter_punch",
+        "scene": "res://scenes/notification_bar.tscn",
+        "mode": "call", "method": "update_notifications",
+        "place": {"position": [0, 0], "height": 120},
+        "steps": [
+            {"press": {"meta_key": "notification_data", "meta_field": "type",
+                       "equals": "counter_punch_earned"}},
+            {"wait": 12},
+        ],
+        "must_show": "the row's detail panel open: Davout's counter-punch message naming Mack within "
+                     "reach at Swabia, ONE full-width gold button 'Strike Mack — free' above "
+                     "Keep / Acknowledge; nothing clipped at scale 2.0",
+    },
+    {
+        "id": "region_paris_build_open",
+        "surface": "Region Action Panel — Paris, the Build rows unfolded (WO-V-D1)",
+        "payload": "game_state_regions",
+        "scene": "res://scenes/region_panel.tscn",
+        "mode": "map_stub", "method": "show_region",
+        "args": ["Paris", "$map"],
+        "steps": [
+            {"call": "_on_meta_clicked", "args": ["toggle:build"]},
+            {"wait": 8},
+        ],
+        "must_show": "the header reads '▾ Build' and the build rows show beneath it (the folded "
+                     "default, '▸ Build — N works', is region_paris's own frame)",
+    },
+    {
+        "id": "ledger_orders_display",
+        "surface": "Strategic Ledger — Orders tab, a pursuit of an Archduke (NPC-12, slice 7)",
+        "payload": "ledger_orders_display",
+        "scene": "res://scenes/strategic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_ledger",
+        "tab": 5,
+        "must_show": "Lannes's Pursue order names 'Archduke John' — never the roster key "
+                     "'ArchdukeJohn'",
+    },
+    {
+        "id": "campaign_log_tiers",
+        "surface": "Campaign log — the importance tiers on a played board (EAS-2 client half)",
+        "payload": "campaign_log_t20",
+        "scene": "res://scenes/campaign_log.tscn",
+        "mode": "api_stub", "method": "open_log", "api_method": "get_campaign_log",
+        "must_show": "lead rows larger and bold, notable rows mid-size, routine rows smallest; the "
+                     "glyphs kept; no raw key",
+    },
+    *[
+        {
+            "id": f"settlement_white_review_{tag}",
+            "surface": f"The white peace's review — {label} (SF-V2's eyes-on check)",
+            "payload": f"settlement_white_review_{tag}",
+            "scene": "res://scenes/proposal_confirm_popup.tscn",
+            "mode": "call", "method": "show_dialogue",
+            "must_show": must,
+        }
+        for tag, label, must in (
+            ("ratify", "Austria beaten and alone at the table",
+             "the header 'Will carry as drafted' beside a LIVE 'Ratify White Peace' — the "
+             "verdict and the button agree"),
+            ("holdout", "the whole-war table at the same score",
+             "the header 'Will NOT carry as drafted' and NO Ratify button — only the roads "
+             "that remain (return to terms, the separate peace, the truce)"),
+        )
+    ],
+    # ═══ Score Finish Step 7 slice 9 — the frames' own fixes (Oct 5) ═══
+    {
+        "id": "interrupt_last_stand",
+        "surface": "The last-stand question (SF7-X27)",
+        "payload": "interrupt_last_stand",
+        "scene": "res://scenes/interrupt_popup.tscn",
+        "mode": "call", "method": "show_interrupt",
+        "steps": [{"wait": 6}],
+        "must_show": "NEY REPORTS; the cornered line; Fight to the Last / Attempt a Breakout — "
+                     "on a box that fits them, no empty panel below the buttons",
+    },
+    {
+        "id": "wizard_formables_step3",
+        "surface": "The Cabinet wizard — step 3, the Formable Nations (SF7-X28)",
+        "payload": "formables_after_carve",
+        "scene": "res://scenes/diplomacy_wizard.tscn",
+        "mode": "call", "method": "show", "args": [],
+        "steps": [
+            {"set_path": "_current_step", "value": 3},
+            {"set_path": "title_label.text", "value": "DIPLOMACY — FORMABLE NATIONS"},
+            {"set_path": "assessment_panel.text",
+             "value": "[color=#a0a0a8]\"The map of Europe is not finished, Sire. These states "
+                      "could yet exist — each names what its existence would require.\"[/color]"},
+            {"set_path": "back_button.visible", "value": True},
+            {"call": "_lay_out_prompt", "args": [3]},
+            {"call": "_render_formables", "args": ["$payload"]},
+            {"call": "refit", "args": []},
+            {"wait": 4},
+        ],
+        "must_show": "the two-line quote directly over the list — no blank band between them; "
+                     "every row with its gate terms (the step-3 rows the live session drove; "
+                     "rendered here from the captured GET /formables, not over HTTP)",
+    },
 ]
 
 

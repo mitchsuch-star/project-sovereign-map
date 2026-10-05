@@ -49,6 +49,11 @@ const SHELF_FIGURE_PX := 44.0
 # PT-D2: the backend's absence family (battle_diorama.py ABSENT_STATUSES)
 # — statuses the shelf renders, never the line.
 const ABSENT_STATUSES := ["failed_arrive", "refused", "out_of_reach"]
+# SF7-X23: the line's steps shrink to fit the contingents on the baize.
+const THE_LINE_FITS_THE_BAIZE := true
+# SF7-X29: the reserve tail states its dead and right-aligns by its width
+# (the payload's `reserve_casualties`; the text reads it whenever present).
+const THE_RESERVE_NAMES_ITS_DEAD := true
 
 # ── Palette (colour rarity per the brief: wood, brass, baize; red = casualties)
 const WOOD_BG := Color(0.165, 0.118, 0.078, 1.0)        # walnut tray
@@ -645,11 +650,27 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 	var base_y := _stage.size.y - 58.0
 	var holder := _left_holder if is_left else _right_holder
 
-	for i in range(fought.size()):
+	# SF7-X23 (Score Finish Step 7, the frames, Oct 4 2026): the steps were
+	# fixed at 118px outward and 66px up, so the cap's FOURTH contingent sat
+	# at x ≈ −8 on the ~950px baize and its locket climbed into the
+	# odometer — measured live: Lannes drawn outside the tableau's frame at
+	# the Second Battle of Swabia. The steps now shrink to fit the count:
+	# the outermost locket (≈100px outboard and ≈158px above the feet, both
+	# scaled with the block) stays on the baize and under the odometers.
+	var step_x := 118.0
+	var step_y := 66.0
+	var n := fought.size()
+	if THE_LINE_FITS_THE_BAIZE and n > 1:
+		var last_scale := 1.0 - 0.12 * (n - 1)
+		step_x = minf(step_x, maxf(40.0,
+				(sw / 2.0 - 128.0 - 100.0 * last_scale - 16.0) / float(n - 1)))
+		step_y = minf(step_y, maxf(30.0,
+				(base_y - 60.0 - 158.0 * last_scale) / float(n - 1)))
+	for i in range(n):
 		var c: Dictionary = fought[i]
-		var depth_x := 128.0 + 118.0 * i
+		var depth_x := 128.0 + step_x * i
 		var x := sw / 2.0 - depth_x if is_left else sw / 2.0 + depth_x
-		var pos := Vector2(x, base_y - 66.0 * i)
+		var pos := Vector2(x, base_y - step_y * i)
 		var block_scale := 1.0 - 0.12 * i
 		blocks.append(_make_block(holder, c, pos, block_scale, is_left, i))
 
@@ -658,11 +679,22 @@ func _build_side(side: Dictionary, is_left: bool) -> Array:
 	if reserve > 0:
 		# NV-9: "corps" is a land word — a sea overflow is squadrons.
 		var reserve_word := "squadrons astern" if _is_naval() else "corps in reserve"
-		var tail := _mk_label(_stage, "+%d %s" % [reserve, reserve_word], 11,
+		var tail_text := "+%d %s" % [reserve, reserve_word]
+		# SF7-X29: what the unseated corps lost rides the tail, so the
+		# figures on the baize and the odometer over them add up.
+		var reserve_dead := int(side.get("reserve_casualties", 0))
+		if reserve_dead > 0:
+			tail_text += " — %s lost" % Utils.format_number(reserve_dead)
+		var tail := _mk_label(_stage, tail_text, 11,
 				Color(Utils.COLOR_DIMMED))
+		# The right-hand tail is right-aligned to the stage by its own width
+		# (the longer SF7-X29 line would run off a fixed `sw - 150`).
+		var right_x := sw - 150.0
+		if THE_RESERVE_NAMES_ITS_DEAD:
+			right_x = minf(right_x, sw - tail.get_minimum_size().x - 14.0)
 		tail.position = Vector2(
-			14.0 if is_left else sw - 150.0,
-			base_y - 66.0 * fought.size() - 8.0)
+			14.0 if is_left else right_x,
+			base_y - step_y * fought.size() - 8.0)
 		_transients.append(tail)
 	return blocks
 

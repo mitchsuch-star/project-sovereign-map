@@ -1,0 +1,212 @@
+[
+  {
+    "id": "lever down: THE_FAMINE_COUNTS_ITS_OWN_TURNS (SF7-X20)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_FAMINE_COUNTS_ITS_OWN_TURNS = True",
+    "new": "THE_FAMINE_COUNTS_ITS_OWN_TURNS = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheFamineCountsItsOwnTurns::test_the_escalated_headline_states_the_famines_run_not_the_pages"
+  },
+  {
+    "id": "SF7-X20: the famine run ignores a gap",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "        if turns[i] - turns[i - 1] != 1:\n            break\n        run += 1\n    return run",
+    "new": "        if False:\n            break\n        run += 1\n    return run",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheFamineCountsItsOwnTurns::test_the_run_is_the_trailing_consecutive_run"
+  },
+  {
+    "id": "lever down: THE_LIST_JOINS_ONCE (SF7-X25)",
+    "file": "backend/game_logic/dispatch.py",
+    "old": "THE_LIST_JOINS_ONCE = True",
+    "new": "THE_LIST_JOINS_ONCE = False",
+    "tests": "tests/test_sr6_the_dispatch_tells_the_truth.py::TestTheFallenHomelandStandsOnThePage::test_the_capital_leads_the_list_and_the_holders_are_named"
+  },
+  {
+    "id": "lever down: THE_CURE_LINE_READS_CLEAN (SF7-X25)",
+    "file": "backend/game_logic/doctrines.py",
+    "old": "THE_CURE_LINE_READS_CLEAN = True",
+    "new": "THE_CURE_LINE_READS_CLEAN = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheCopyReadsClean::test_the_cure_line_says_no_corps"
+  },
+  {
+    "id": "lever down: THE_TABLE_SAYS_SIRE_ONCE (SF7-X25)",
+    "file": "backend/game_logic/diplomatic_templates.py",
+    "old": "THE_TABLE_SAYS_SIRE_ONCE = True",
+    "new": "THE_TABLE_SAYS_SIRE_ONCE = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheCopyReadsClean::test_the_whole_war_table_says_sire_once"
+  },
+  {
+    "id": "lever down: THE_WHITE_PEACE_NAMES_NO_TERMS (SF7-X25)",
+    "file": "backend/game_logic/diplomatic_templates.py",
+    "old": "THE_WHITE_PEACE_NAMES_NO_TERMS = True",
+    "new": "THE_WHITE_PEACE_NAMES_NO_TERMS = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheCopyReadsClean::test_a_white_peace_names_no_terms"
+  },
+  {
+    "id": "lever down: THE_PETITION_NAMES_ITS_SIDE (SF7-X25)",
+    "file": "backend/game_logic/settlement_offers.py",
+    "old": "THE_PETITION_NAMES_ITS_SIDE = True",
+    "new": "THE_PETITION_NAMES_ITS_SIDE = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestThePetitionNamesItsTable::test_the_contribution_names_the_side_it_fought_on"
+  },
+  {
+    "id": "lever down: THE_PETITION_NAMES_THE_TABLE (SF7-X30)",
+    "file": "backend/game_logic/settlement_offers.py",
+    "old": "THE_PETITION_NAMES_THE_TABLE = True",
+    "new": "THE_PETITION_NAMES_THE_TABLE = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestThePetitionNamesItsTable::test_the_petition_reads_the_tables_coverage"
+  },
+  {
+    "id": "lever down: THE_COLOURS_KNOW_OUR_FRIENDS (SF7-X26, backend)",
+    "file": "backend/main.py",
+    "old": "THE_COLOURS_KNOW_OUR_FRIENDS = True",
+    "new": "THE_COLOURS_KNOW_OUR_FRIENDS = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheColoursKnowOurFriends::test_the_end_turn_payload_carries_the_stamps"
+  },
+  {
+    "id": "SF7-X26: a war reads as neutral",
+    "file": "backend/main.py",
+    "old": "    if state == \"WAR\":\n        return \"foe\"",
+    "new": "    if state == \"WAR\":\n        return \"neutral\"",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheColoursKnowOurFriends::test_each_court_has_its_standing"
+  },
+  {
+    "id": "SF7-X26: the stamp writes into the producer's event",
+    "file": "backend/main.py",
+    "old": "                    event = dict(event)\n                    for role in (\"attacker\", \"defender\"):",
+    "new": "                    for role in (\"attacker\", \"defender\"):",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheColoursKnowOurFriends::test_the_stamp_copies_and_never_writes_into_the_producers_event"
+  },
+  {
+    "id": "lever down: THE_RESERVE_NAMES_ITS_DEAD (SF7-X29, backend)",
+    "file": "backend/game_logic/battle_diorama.py",
+    "old": "THE_RESERVE_NAMES_ITS_DEAD = True",
+    "new": "THE_RESERVE_NAMES_ITS_DEAD = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheReserveNamesItsDead::test_the_unseated_corps_dead_ride_the_tail"
+  },
+  {
+    "id": "SF7-X29: the reserve counts the seated corps",
+    "file": "backend/game_logic/battle_diorama.py",
+    "old": "            for c in fought[MAX_CONTINGENTS_PER_SIDE:]))",
+    "new": "            for c in fought[:MAX_CONTINGENTS_PER_SIDE]))",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheReserveNamesItsDead::test_the_unseated_corps_dead_ride_the_tail"
+  },
+  {
+    "id": "lever down: A_GARRISON_THAT_GIVES_WAY_IS_SAID (SF7-X31)",
+    "file": "backend/commands/combat_executor.py",
+    "old": "    A_GARRISON_THAT_GIVES_WAY_IS_SAID = True",
+    "new": "    A_GARRISON_THAT_GIVES_WAY_IS_SAID = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestAGarrisonThatGivesWayIsSaid::test_the_player_is_told_the_garrison_gave_way"
+  },
+  {
+    "id": "SF7-X31: the conquest event drops the men",
+    "file": "backend/commands/combat_executor.py",
+    "old": "                        conquest_event[\"garrison_gave_way\"] = garrison_gave_way",
+    "new": "                        pass",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestAGarrisonThatGivesWayIsSaid::test_gr5_the_ai_capture_says_it_too"
+  },
+  {
+    "id": "lever down: THE_TRIM_KEEPS_THE_MESSAGES (SF7-X17, driven)",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "const THE_TRIM_KEEPS_THE_MESSAGES := true",
+    "new": "const THE_TRIM_KEEPS_THE_MESSAGES := false",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheFramesTerminalText::test_the_trim_keeps_three_quarters_of_the_scrollback"
+  },
+  {
+    "id": "lever down: THE_DAY_SAYS_WHAT_WAITS (SF7-X19, driven)",
+    "file": "godot-client/project-sovereign/scripts/main.gd",
+    "old": "const THE_DAY_SAYS_WHAT_WAITS := true",
+    "new": "const THE_DAY_SAYS_WHAT_WAITS := false",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheDaySaysWhenItEnds::test_a_waiting_envoy_keeps_the_day_open_and_the_line_says_so"
+  },
+  {
+    "id": "lever down: THE_COVERED_MAP_HAS_NO_HOVER (SF7-X21, driven)",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "const THE_COVERED_MAP_HAS_NO_HOVER := true",
+    "new": "const THE_COVERED_MAP_HAS_NO_HOVER := false",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheFramesTerminalText::test_a_covered_map_holds_no_hover"
+  },
+  {
+    "id": "SF7-X18: the theme loses its bold face (driven)",
+    "file": "godot-client/project-sovereign/ui/main_theme.tres",
+    "old": "RichTextLabel/fonts/bold_font = SubResource(\"FontVariation_bold\")\n",
+    "new": "",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheFramesTerminalText::test_bold_and_italic_have_faces_of_their_own"
+  },
+  {
+    "id": "SF7-X18: the terminal's bold falls back to 16 (driven)",
+    "file": "godot-client/project-sovereign/scenes/main.tscn",
+    "old": "theme_override_font_sizes/bold_font_size = 11\n",
+    "new": "",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheFramesTerminalText::test_the_terminals_emphasis_keeps_its_size"
+  },
+  {
+    "id": "SF7-X26: the dialog's colour rule inverts",
+    "file": "godot-client/project-sovereign/scripts/enemy_phase_dialog.gd",
+    "old": "\tif ours == won:",
+    "new": "\tif ours != won:",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheColoursKnowOurFriends::test_the_dialog_colours_by_the_stamp"
+  },
+  {
+    "id": "lever down: THE_QUESTION_FITS_ITS_BOX (SF7-X27, driven)",
+    "file": "godot-client/project-sovereign/scripts/interrupt_popup.gd",
+    "old": "const THE_QUESTION_FITS_ITS_BOX := true",
+    "new": "const THE_QUESTION_FITS_ITS_BOX := false",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheFramesTerminalText::test_the_last_stand_question_fits_its_box"
+  },
+  {
+    "id": "lever down: THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE (SF7-X28)",
+    "file": "godot-client/project-sovereign/scripts/diplomacy_wizard.gd",
+    "old": "const THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE := true",
+    "new": "const THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE := false",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheScreenSays::test_the_formables_prompt_hugs_its_quote"
+  },
+  {
+    "id": "lever down: OUR_SOIL_CARRIES_NO_HEDGE (SF7-X22)",
+    "file": "godot-client/project-sovereign/scenes/map_renderer_base.gd",
+    "old": "const OUR_SOIL_CARRIES_NO_HEDGE := true",
+    "new": "const OUR_SOIL_CARRIES_NO_HEDGE := false",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheScreenSays::test_our_own_soil_carries_no_hedge"
+  },
+  {
+    "id": "lever down: ALT_TURNS_THE_BOOKS (SF7-X24)",
+    "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
+    "old": "const ALT_TURNS_THE_BOOKS := true",
+    "new": "const ALT_TURNS_THE_BOOKS := false",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheScreenSays::test_the_books_turn_while_you_type"
+  },
+  {
+    "id": "lever down: THE_LINE_FITS_THE_BAIZE (SF7-X23)",
+    "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+    "old": "const THE_LINE_FITS_THE_BAIZE := true",
+    "new": "const THE_LINE_FITS_THE_BAIZE := false",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheLineFitsTheBaize::test_the_formula_is_the_one_in_the_scene"
+  },
+  {
+    "id": "lever down: THE_RESERVE_NAMES_ITS_DEAD (SF7-X29, client)",
+    "file": "godot-client/project-sovereign/scripts/battle_diorama.gd",
+    "old": "const THE_RESERVE_NAMES_ITS_DEAD := true",
+    "new": "const THE_RESERVE_NAMES_ITS_DEAD := false",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheReserveNamesItsDead::test_the_tableau_prints_it"
+  },
+  {
+    "id": "lever down: THE_DECISIVE_WORD_IS_THE_RESULTS (SF7-X32)",
+    "file": "backend/game_logic/battle_report.py",
+    "old": "THE_DECISIVE_WORD_IS_THE_RESULTS = True",
+    "new": "THE_DECISIVE_WORD_IS_THE_RESULTS = False",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheDecisiveWordIsTheResults::test_a_tactical_win_two_to_one_speaks_of_the_exchange"
+  },
+  {
+    "id": "SF7-X32: the tactical guard reads the wrong suffix",
+    "file": "backend/game_logic/battle_report.py",
+    "old": "and str(outcome).endswith(\"_tactical_victory\")):",
+    "new": "and str(outcome).endswith(\"_decisive_victory\")):",
+    "tests": "tests/test_sf7_s9_the_frames.py::TestTheDecisiveWordIsTheResults::test_a_tactical_win_two_to_one_speaks_of_the_exchange"
+  },
+  {
+    "id": "SF7-X27: the fit reads the frame the text is set (the first cut)",
+    "file": "godot-client/project-sovereign/scripts/interrupt_popup.gd",
+    "old": "\tawait get_tree().process_frame\n\tawait get_tree().process_frame\n\tvar panel: Control = $PanelContainer",
+    "new": "\tvar panel: Control = $PanelContainer",
+    "tests": "tests/test_cx7_predictor_driven.py::TestTheFramesTerminalText::test_the_last_stand_question_fits_its_box"
+  }
+]

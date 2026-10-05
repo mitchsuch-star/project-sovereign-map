@@ -45,6 +45,12 @@ var _selected_nation: String = ""
 var _dp_available: int = 0
 
 # Color palette
+# SF7-X28 (Score Finish Step 7, the frames, Oct 5 2026): the Formable
+# Nations step laid its two-line quote out like Talleyrand's assessment (an
+# expanding region), so a blank band sat between the quote and the list.
+# True = step 3 hugs its quote; false = the expanding layout.
+const THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE := true
+
 const COLOR_LIGHT_GREEN = "a0d0a0"
 const COLOR_LIGHT_RED = "d9a0a0"
 const COLOR_ORANGE = "d9a060"
@@ -150,6 +156,11 @@ func _lay_out_prompt(step: int) -> void:
 	if step == 1:
 		assessment_panel.size_flags_vertical = Control.SIZE_FILL
 		assessment_panel.custom_minimum_size.y = 40.0
+	elif step == 3 and THE_FORMABLES_PROMPT_HUGS_ITS_QUOTE:
+		# SF7-X28: step 3's prompt is a fixed two-line quote, not an
+		# assessment — expanding it opened a blank band above the list.
+		assessment_panel.size_flags_vertical = Control.SIZE_FILL
+		assessment_panel.custom_minimum_size.y = 56.0
 	else:
 		assessment_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		assessment_panel.custom_minimum_size.y = 56.0
@@ -521,7 +532,7 @@ func _on_formables_pressed():
 	back_button.visible = true
 	title_label.text = "DIPLOMACY — FORMABLE NATIONS"
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"The map of Europe is not finished, Sire. These states could yet exist — each names what its existence would require.\"[/color]"
-	_lay_out_prompt(2)
+	_lay_out_prompt(3)
 	_clear_content_list()
 	_add_loading_label()
 	_fetch_formables()

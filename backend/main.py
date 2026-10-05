@@ -464,6 +464,7 @@ PETITION_RIDES_THE_END_TURN = True       # FA-5: the standing petition rides the
 VERBATIM_PARSE_REFUSAL_KINDS = frozenset({"enemy_addressee", "fallen_recipient"})
 DISMISSAL_IS_NOT_A_DEATH = True          # FA-47: a marshal the player DISMISSED is not mourned as destroyed
 THE_FOG_IS_ONE_SENTENCE = True           # LV-13: a wholly fogged enemy phase is ONE sentence naming the courts, not one per court
+THE_COLOURS_KNOW_OUR_FRIENDS = True      # SF7-X26: each enemy-phase battle names its sides' standing toward the player, so an ally's victory is not printed as a defeat
 
 _QUESTION_STATES = frozenset({
     "awaiting_player_choice", "awaiting_clarification", "awaiting_redemption_choice",
@@ -1539,6 +1540,59 @@ def _collapse_enemy_phase_composition(cleaned_phase: dict) -> dict:
     return cleaned_phase
 
 
+def battle_standing(world, nation) -> str:
+    """SF7-X26: a nation's standing toward the player, for colouring a
+    battle line — "player", "friend" (allied or bound by vassalage, either
+    direction), "foe" (at war) or "neutral". Diplomacy has no fog, so this
+    leaks nothing; it never changes what is shown, only its colour."""
+    nation = str(nation or "")
+    if not nation:
+        return ""
+    player = str(getattr(world, "player_nation", "") or "France")
+    if nation == player:
+        return "player"
+    state = world.get_diplomatic_state(player, nation)
+    if state == "WAR":
+        return "foe"
+    if state in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"):
+        return "friend"
+    return "neutral"
+
+
+def _stamp_battle_standing(cleaned_phase: dict, world) -> dict:
+    """SF7-X26 (Score Finish Step 7, the frames): the dialog coloured a
+    battle by "did France win", so Bavaria beating Mack read as a defeat and
+    every retreat was red whoever retreated. Each event that names its sides'
+    nations gains `attacker_alignment` / `defender_alignment`.
+
+    COPIES, never stamps in place: the event dicts are the producer's own
+    objects (the cleaned action is a shallow copy), and a stamp written into
+    them would ride into whatever else holds them — the IGR-B trap, where a
+    view-layer field baked itself into every save."""
+    for nation_data in (cleaned_phase.get("nations") or {}).values():
+        stamped_actions = []
+        for action in nation_data.get("actions") or []:
+            events = action.get("events") if isinstance(action, dict) else None
+            if not isinstance(events, list):
+                stamped_actions.append(action)
+                continue
+            stamped_events = []
+            for event in events:
+                if isinstance(event, dict) and (event.get("attacker_nation")
+                                                or event.get("defender_nation")):
+                    event = dict(event)
+                    for role in ("attacker", "defender"):
+                        side = event.get(f"{role}_nation")
+                        if side:
+                            event[f"{role}_alignment"] = battle_standing(world, side)
+                stamped_events.append(event)
+            action = dict(action)
+            action["events"] = stamped_events
+            stamped_actions.append(action)
+        nation_data["actions"] = stamped_actions
+    return cleaned_phase
+
+
 def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
     """PT-D4 (Aug-1 played-world re-measure): a corps legally chains 3-4
     moves per enemy phase (symmetric AP), but 3-4 separate "moves to X"
@@ -1735,6 +1789,9 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     # inherits it. Must run BEFORE the F7 line below, which quotes it.
     for _nd in cleaned_phase.get("nations", {}).values():
         _nd["action_count"] = len(_nd.get("actions", []))
+
+    if THE_COLOURS_KNOW_OUR_FRIENDS:
+        cleaned_phase = _stamp_battle_standing(cleaned_phase, world)
 
     if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
         # ── CA9-F7 / CA8-15 §2a: the fog fallback was WHOLE-PHASE ────────

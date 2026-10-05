@@ -4806,6 +4806,15 @@ class CombatExecutor:
     # joining, the garrison's line of collapse, and (on the hold) what
     # the works regain by morning. False reproduces the bare message.
     AN_ASSAULT_NAMES_ITS_TERMS = True
+    # SF7-X31 (Score Finish Step 7, the frames, Oct 5 2026): a capital's
+    # garrison below the collapse line was cleared in silence by the next
+    # attack — the enemy phase read "Garrison: ... 5,000 still under arms"
+    # and then "Region captured: Milan" with no word of what became of the
+    # men (only a DETACHMENT under the surrender floor was said to lay down
+    # its arms). The capture now says the garrison gave way, and the
+    # conquest event carries `garrison_gave_way` (the men who did). False =
+    # the silent clear.
+    A_GARRISON_THAT_GIVES_WAY_IS_SAID = True
 
     def garrison_exchange(self, attacker_strength: int, attacker_effective: int,
                           garrison_strength: int,
@@ -7000,6 +7009,7 @@ class CombatExecutor:
                     # AAR-D8 (SR-7a): a detachment under the surrender floor
                     # lays down its arms — said, so the player learns the floor.
                     surrender_note = ""
+                    garrison_gave_way = 0
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
                         from backend.game_logic.garrison_report import (
                             detachment_surrenders as _detachment_surrenders)
@@ -7007,6 +7017,14 @@ class CombatExecutor:
                             surrender_note = (
                                 f" The detachment of {int(target_region.garrison_strength):,} "
                                 f"at {resolved_target} lays down its arms.")
+                        elif self.A_GARRISON_THAT_GIVES_WAY_IS_SAID:
+                            # SF7-X31: under the collapse line the garrison
+                            # does not fight — and the player is told so.
+                            surrender_note = (
+                                f" The last {int(target_region.garrison_strength):,} "
+                                f"of the garrison at {resolved_target} give way.")
+                        if self.A_GARRISON_THAT_GIVES_WAY_IS_SAID:
+                            garrison_gave_way = int(target_region.garrison_strength)
                         target_region.garrison_strength = 0
                         target_region.garrison_detachment = False
 
@@ -7097,6 +7115,9 @@ class CombatExecutor:
                                 "marshal": marshal.name,
                                 "region": resolved_target,
                                 "turns_required": capture_result["turns_required"],
+                                # SF7-X31: the garrison that gave way (0 = none).
+                                **({"garrison_gave_way": garrison_gave_way}
+                                   if garrison_gave_way else {}),
                             }],
                             "new_state": game_state
                         }
@@ -7120,6 +7141,10 @@ class CombatExecutor:
                         "captured_by": marshal.nation,
                         "captured_from": old_controller,
                     }
+                    if garrison_gave_way:
+                        # SF7-X31: the men who gave way, for the surfaces
+                        # that rebuild the line from the event.
+                        conquest_event["garrison_gave_way"] = garrison_gave_way
                     if capture_result.get("capture_choice"):
                         conquest_event["capture_choice"] = capture_result["capture_choice"]
                     result = {

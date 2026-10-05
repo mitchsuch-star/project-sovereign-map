@@ -114,7 +114,7 @@ func _on_dispatch_received(response):
 	# on 10 of 18 turns — so it says which one it is.
 	var delta_label = str(situation.get("treasury_delta_label", ""))
 	var delta_suffix = "" if delta_label == "" else " " + delta_label
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + delta_suffix + ")[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]\n"
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named, and
 	# the forecast — the same source as the terminal's dispatch.
 	var staff_arrived = situation.get("staff_arrived", null)
@@ -246,7 +246,7 @@ func _on_dispatch_received(response):
 			if m_trust_notable and m_trust < 55:
 				line += " Trust:" + str(m_trust)
 			if m_morale_warning:
-				line += " Morale:" + str(m_morale) + "%"
+				line += " Morale: " + str(m_morale) + "%"
 
 			# Color based on status
 			var line_color = Utils.COLOR_INFO

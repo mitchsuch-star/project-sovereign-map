@@ -335,6 +335,16 @@ def _live_covered_for_offer(
 # behaviours (the gold-only arrival register; a departed court's clauses
 # forwarded whole; the note produced and never delivered).
 REGISTER_READS_THE_PACKAGE = True
+# SF7-X25 (Score Finish Step 7, the frames): an ally's contribution petition
+# says it fought beside France — "this coalition" named the enemy. False =
+# the old sentence.
+THE_PETITION_NAMES_ITS_SIDE = True
+# SF7-X30 (Score Finish Step 7, the frames): the petition named the war by
+# its LEADER pair — "the settlement of France vs Britain" — inside a review
+# headed "France vs Austria + Britain + Russia". The settlement dialogue has
+# named its table by COVERAGE since G4F-7; the petition reads the same
+# coverage. False = the leader-pair label.
+THE_PETITION_NAMES_THE_TABLE = True
 DEPARTED_COURT_TAKES_ITS_CLAUSES = True
 DEPARTED_COURT_NOTE_IS_DELIVERED = True
 
@@ -586,6 +596,21 @@ def _war_label_for_id(world: Any, war_id: str) -> str:
     if isinstance(war, Mapping):
         return _war_label(str(war_id or ""), war)
     return str(war_id or "settlement")
+
+
+def _petition_table_label(world: Any, war: Mapping[str, Any], war_id: str,
+                          player: str, player_side: str,
+                          covered: List[str]) -> str:
+    """SF7-X30: the table an ally petitions at, named as the settlement
+    dialogue names it (G4F-7) — our side's leader against every covered
+    court — rather than the war's leader pair ("France vs Britain" inside a
+    review headed "France vs Austria + Britain + Russia")."""
+    if not (THE_PETITION_NAMES_THE_TABLE and covered):
+        return _war_label_for_id(world, war_id)
+    leader_key = ("attacker_leader" if player_side == "attackers"
+                  else "defender_leader")
+    our_leader = str(war.get(leader_key) or player)
+    return f"{our_leader} vs {' + '.join(covered)}"
 
 
 def _active_objective_claims_for_ally(
@@ -1072,7 +1097,8 @@ def _find_reward_or_restoration_petition_contexts(
         return []
     covered = [str(n) for n in (covered_enemy_participants or []) if n]
     terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
-    war_label = _war_label_for_id(world, str(war_id or ""))
+    war_label = _petition_table_label(world, war, str(war_id or ""),
+                                      player, player_side, covered)
     candidates: List[Dict[str, Any]] = []
     same_side = [
         str(nation)
@@ -1157,6 +1183,14 @@ def _find_reward_or_restoration_petition_contexts(
             basis_display = (
                 f"{target_enemy} occupies {claim_region} — "
                 f"{ally}'s own soil."
+            )
+        elif THE_PETITION_NAMES_ITS_SIDE:
+            # SF7-X25 (Score Finish Step 7, the frames): "Bavaria fought for
+            # this coalition" — on the 1805 board the Coalition is the
+            # enemy's name (the table it sits under is France vs the Third
+            # Coalition). The ally fought beside France.
+            basis_display = (
+                f"{ally} fought beside {player} in this war and presses its claim."
             )
         else:
             basis_display = (
@@ -1264,7 +1298,8 @@ def _find_bargain_honor_petition_contexts(
     }
     covered = [str(n) for n in (covered_enemy_participants or []) if n]
     terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
-    war_label = _war_label_for_id(world, str(war_id or ""))
+    war_label = _petition_table_label(world, war, str(war_id or ""),
+                                      player, player_side, covered)
     candidates: List[Dict[str, Any]] = []
     for bargain in _get_live_bargains_by_promiser(world, player):
         beneficiary = str(bargain.get("beneficiary") or "")

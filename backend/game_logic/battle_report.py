@@ -484,6 +484,17 @@ _OBSERVATIONS = {
         "Complete dominance on the field. {enemy} crumbled before {marshal}.",
         "An exemplary engagement by {marshal}. The outcome was never in doubt.",
     ],
+    # SF7-X32: the same two-to-one exchange on a TACTICAL result — the
+    # field held or taken, the enemy not broken. "Decisive" is the result
+    # line's word, so it is not spoken here.
+    "won_the_exchange": [
+        "The exchange went {marshal}'s way, Sire — {enemy} paid twice what "
+        "{marshal} did, though the day decided nothing yet.",
+        "{enemy} bled two men for each of {marshal}'s. A clear exchange, "
+        "not yet a decision.",
+        "A costly day for {enemy}: the losses ran two to one in {marshal}'s "
+        "favour, and {enemy} is still in the field.",
+    ],
     "stalemate": [
         "Neither {marshal} nor {enemy} could claim the field. The armies remain locked.",
         "An inconclusive affair. Both sides bloodied but unbroken.",
@@ -717,6 +728,17 @@ _OBSERVATION_COUNTS: Dict[tuple, int] = {}
 # the campaign's creation onward. False = today's process-global counter,
 # byte-for-byte.
 THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = True
+
+# SF7-X32 (Score Finish Step 7, the frames, Oct 5 2026) flip lever: "decisive"
+# is the game's word for a RESULT — the line above Berthier's prints
+# "Decisive defender victory" or "Defender tactical victory" — and his 2:1
+# casualty arm used it of the exchange alone. Measured on the turn-20 enemy
+# phase: "Result: Defender tactical victory (Deroy victorious)" and, two
+# lines below, "A decisive victory for Deroy!". A tactical victory won two to
+# one now speaks of the exchange (`won_the_exchange`); a decisive result keeps
+# its bank. Display only — the observation's own rotation (FA-D24) draws once
+# either way. False = the one bank for both.
+THE_DECISIVE_WORD_IS_THE_RESULTS = True
 
 
 def reset_observation_rotation() -> None:
@@ -1117,6 +1139,10 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Priority 9: We won decisively (2:1+ casualty ratio in our favor)
     if we_won and enemy_casualties > 0 and our_casualties > 0:
         if enemy_casualties >= our_casualties * 2:
+            if (THE_DECISIVE_WORD_IS_THE_RESULTS
+                    and str(outcome).endswith("_tactical_victory")):
+                # SF7-X32: a tactical result is not called decisive.
+                return _fill(_rng.choice(_OBSERVATIONS["won_the_exchange"]))
             return _fill(_rng.choice(_OBSERVATIONS["won_decisively"]))
 
     # Priority 9.5 (coordination): Devoted ally synergy — more interesting than generic stalemate

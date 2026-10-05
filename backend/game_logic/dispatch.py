@@ -347,6 +347,9 @@ THE_SUMMONABLE_GATE_IS_NEWS = True              # RS-17: a `congress_summonable`
 THE_DEFENDERS_ARE_JOINED_IN_SERIES = True      # NPC-23: "Lannes, Murat and Napoleon stand in his path"
 THE_FAMINE_COUNTS_ITS_DEAD = True              # NPC-24: "1,351 men dead", never a bare figure
 THE_RANK_IS_THE_COURTS_OWN = True              # RS-29 / NP-X7: `marshal_honorific` at the dispatch's rank sites
+# ── Score Finish Step 7, the frames (Oct 4, 2026) ─────────────────────────
+THE_FAMINE_COUNTS_ITS_OWN_TURNS = True        # SF7-X20: the famine headline's escalation states the roster's run
+THE_LIST_JOINS_ONCE = True                    # SF7-X25: "Berry, Burgundy, Corsica and 4 more" — one "and"
 # RS-D2's numbers (display only, in-band tunable): the levy may LEAD once
 # and be stated (lead or sub-beat) three times before it yields to the
 # ledger's own line; a material change in headroom (a fifth either way)
@@ -1093,7 +1096,12 @@ def _homeland_occupied_fields(world, player_nation: str, home_regions,
     names = [r for r, _h in occupied]
     shown = names[:3]
     more = len(names) - len(shown)
-    provinces = _join_places(shown) + (f" and {more} more" if more > 0 else "")
+    if THE_LIST_JOINS_ONCE and more > 0:
+        # SF7-X25: "Berry, Burgundy and Corsica and 4 more" read two "and"s
+        # in one list (the t20 board's dispatch frame).
+        provinces = ", ".join(shown) + f" and {more} more"
+    else:
+        provinces = _join_places(shown) + (f" and {more} more" if more > 0 else "")
     holders = []
     for _r, holder in occupied:
         shown_holder = formed_display_name(world, holder)
@@ -2629,6 +2637,12 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
         # escalation copy renders exactly as it was authored to.
         fmt["marshal"] = _cand.get("identity", "").split(":", 1)[-1]
         fmt["turns"] = _run
+        # SF7-X20: a famine's escalation states the famine's own run (the
+        # roster's count), never the page's — "3 turns of famine at Swabia"
+        # stood beside "supply has failed at Swabia four turns running".
+        if (THE_FAMINE_COUNTS_ITS_OWN_TURNS and _cand["class"] == "supply_strain"
+                and int(str(fmt.get("age") or 0) or 0) > 0):
+            fmt["turns"] = int(fmt["age"])
         # FA-N27: a variant may interpolate `{age}` (the marshal's arrears
         # clock). A candidate that carries no `age` — another producer, a
         # pre-fix save's memory — falls back to the run so the `except`
@@ -3783,9 +3797,38 @@ def _supply_strain_candidate(world, player_nation: str) -> Optional[Dict[str, An
             "losses_dead": (f"{int(slot['losses']):,} men dead" if THE_FAMINE_COUNTS_ITS_DEAD
                             else f"{int(slot['losses']):,} men"),
             "turns": str(len(slot["turns"])),
+            # SF7-X20: the famine's own run, the roster's count.
+            "age": str(_famine_run(world, player_nation, region_name)),
             "remedy": remedy,
         },
     }
+
+
+def _famine_run(world, player_nation: str, region_name: str) -> int:
+    """SF7-X20 (Score Finish Step 7, the frames, Oct 4 2026): the trailing
+    CONSECUTIVE run of turns the player's corps starved at `region_name`,
+    over the roster's own window (`_collect_supply_attrition_turns`,
+    current_turn - 5) and by the roster's own rule (`_derive_danger`'s
+    trailing run). CA9's N26 recorded the two numbers disagreeing — the
+    escalated headline stated the PAGE's run ("3 turns of famine at Swabia
+    now") beside the roster's "supply has failed at Swabia four turns
+    running" on the Mode C session's turn 5 — and left the agreement to the
+    headline's own row: this is it. Read once a morning (GR8: one pass of a
+    500-capped log)."""
+    window_start = int(world.current_turn) - 5
+    turns = sorted({int(e.get("turn", 0) or 0) for e in world.event_log
+                    if e.get("type") == "supply_attrition"
+                    and e.get("nation") == player_nation
+                    and str(e.get("region") or "") == str(region_name)
+                    and int(e.get("turn", 0) or 0) >= window_start})
+    if not turns:
+        return 0
+    run = 1
+    for i in range(len(turns) - 1, 0, -1):
+        if turns[i] - turns[i - 1] != 1:
+            break
+        run += 1
+    return run
 
 
 def _join_marshal_names(names) -> str:

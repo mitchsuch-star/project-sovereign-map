@@ -249,8 +249,93 @@ class TestTheDaySaysWhenItEnds:
         assert driven["auto_end_warnings_turn_7"] == 1, driven["auto_end_warnings_turn_7"]
         assert driven["auto_end_warnings_turn_8"] == 1, driven["auto_end_warnings_turn_8"]
 
+    def test_the_line_follows_the_orders_own_output(self, driven):
+        """SF7-X19 (Score Finish Step 7 slice 9, the frames): the line
+        printed BETWEEN the echoed order and its result (the live session's
+        turn 2) — it is said a frame later, after the command's output."""
+        assert driven["auto_end_warning_same_frame_turn_7"] == 0, driven
+        assert driven["auto_end_warnings_turn_7"] == 1
+
+    def test_a_waiting_envoy_keeps_the_day_open_and_the_line_says_so(self, driven):
+        """SF7-X19: WO-22 defers the end of the day while a current-turn
+        envoy waits (`executor._auto_end_deferral_reason`), so the line that
+        promised "ends the turn at once" was false then — it names the
+        envoys instead."""
+        assert driven["auto_end_waits_turn_9"] == 1, driven
+        assert driven["auto_end_promises_turn_9"] == 0, driven
+
     def test_the_button_says_a_spent_day_waits_on_it(self, driven):
         assert driven["auto_end_button_full_day"] == "End Turn (E)"
         assert driven["auto_end_button_last_actions"] == "End Turn (E)"
         assert driven["auto_end_button_spent"] == "End Turn (E) \u25b8"
         assert driven["auto_end_button_new_day"] == "End Turn (E)"
+
+
+class TestTheFramesTerminalText:
+    """Score Finish Step 7, slice 9 (the frames, Oct 4–5 2026), driven on the
+    real `main.tscn`. Rows `BUG_FIXES.md` §Score Finish Step 7 SF7-X17 /
+    SF7-X18 / SF7-X21."""
+
+    def test_append_text_does_not_fill_the_text_property(self, driven):
+        """The engine fact SF7-X17 rests on (Godot 4.4.1): fifty lines
+        appended, `.text` still empty. If an engine upgrade ever changes
+        this, the old trim would have worked and this row's premise is
+        about the wrong thing."""
+        assert driven["text_property_after_appends"] == 0, driven
+
+    def test_the_trim_keeps_three_quarters_of_the_scrollback(self, driven):
+        """SF7-X17: `_trim_old_messages` read `output_display.text`, which
+        `append_text` never fills, so the first trim of a session (turn 1
+        of the 1805 boot) replaced the whole scrollback with the marker —
+        seen twice in the live 5-turn session. From an empty terminal, 130
+        lines through the one writer: the trims keep TRIMTEST 50..129 (80
+        lines); the old trim kept only the 30 written after its clear.
+
+        ⛔ The first cut of this pin started from wherever the boot's own
+        messages left the count, so the old trim fell early and still left
+        ~69 lines — the sweep found it INERT. The fixed start is the fix."""
+        assert driven["trim_marker"] is True, driven
+        assert driven["trim_last_line_standing"] is True, driven
+        assert driven["trim_lines_standing"] == 80, driven["trim_lines_standing"]
+        assert driven["trim_line_50_standing"] is True, driven
+        assert driven["trim_line_49_standing"] is False, driven
+
+    def test_bold_and_italic_have_faces_of_their_own(self, driven):
+        """SF7-X18: the theme's `default_font` answered every font item the
+        theme left unset, so `[b]` and `[i]` rendered in the regular face —
+        127 bold and 76 italic sites in the client scripts said nothing."""
+        assert driven["terminal_bold_face_differs"] is True, driven
+        assert driven["terminal_italic_face_differs"] is True, driven
+
+    def test_the_terminals_emphasis_keeps_its_size(self, driven):
+        """SF7-X18: an unset bold/italic size falls back to the theme's 16px
+        against the terminal's 11px body — inline emphasis ("Click [b]End
+        Turn[/b]") would shout once it had a face."""
+        assert driven["terminal_normal_size"] == 11, driven
+        assert driven["terminal_bold_size"] == driven["terminal_normal_size"]
+        assert driven["terminal_italics_size"] == driven["terminal_normal_size"]
+
+    def test_the_last_stand_question_fits_its_box(self, driven):
+        """SF7-X27: the interrupt popup's 600x360 rect sat a two-line
+        question over ~130px of empty panel. Measured on the registered
+        popup: the box the clamp opens is taller than its content, and once
+        the layout settles the box IS its content's height, still centred.
+
+        ⛔ The first cut fitted in a `call_deferred` read the frame the text
+        was set — when the label, with no width yet, wraps per character
+        (3,328px) — so it never shrank; a source pin passed over it and the
+        re-shot frame showed the box unchanged. This pin measures."""
+        assert driven.get("interrupt_arm") != "no popup", driven
+        assert driven["interrupt_h_opened"] > driven["interrupt_min_h"], driven
+        assert driven["interrupt_h_settled"] == pytest.approx(driven["interrupt_min_h"]), driven
+        assert driven["interrupt_centred"] is True, driven
+
+    def test_a_covered_map_holds_no_hover(self, driven):
+        """SF7-X21: a hover set before a screen or a modal opened was cleared
+        only by a mouse motion, so a still cursor kept a province tooltip
+        under the enemy-phase dialog and beside the open ledger. The control
+        arm first: uncovered, the hover stands (so the pin is not vacuous)."""
+        assert driven.get("hover_arm") != "no map", driven
+        assert driven["hover_kept_when_uncovered"] == "Paris", driven
+        assert driven["hover_after_screen"] == "", driven
+        assert driven["hover_after_modal"] == "", driven

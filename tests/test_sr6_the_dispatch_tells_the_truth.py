@@ -363,7 +363,10 @@ class TestTheFallenHomelandStandsOnThePage:
             world.regions[region].controller = holder
         head = _headline(world)
         assert head["class"] == "homeland_occupied"
-        assert head["text"] == ("Sire — Paris, Artois and Normandy and 1 more lie in "
+        # Flipped consciously Oct 5, 2026 (SF7-X25, Score Finish Step 7's
+        # frames): "Paris, Artois and Normandy and 1 more" joined the list
+        # with "and" twice — the list joins once when a tail follows.
+        assert head["text"] == ("Sire — Paris, Artois, Normandy and 1 more lie in "
                                 "enemy hands — the capital among them. "
                                 "Austria and Britain hold them."), head["text"]
 

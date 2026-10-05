@@ -34,6 +34,9 @@ RUSSIA_DOCTRINE = True
 AUSTRIA_DOCTRINE = True
 PRUSSIA_DOCTRINE = True
 THE_CURES_HEAL = True
+# SF7-X25 (Score Finish Step 7, the frames): the LAWS tab's cure line read
+# "0 corps drawing 80% now ; needs …" — "no corps", and one "; ". Display only.
+THE_CURE_LINE_READS_CLEAN = True
 
 # ── The closed set of clause types (§3) and their clamp bands (§1) ─────────────
 CLAUSE_TYPES = ("arrival_bar", "attack", "defense", "recruit_price",
@@ -557,14 +560,19 @@ def law_cure_line(world, nation: str, row: Dict) -> str:
     if f is not None and f.get("type") == "supply":
         n = corps_drawing_now(world, nation)
         pct = int(round(float(f.get("value", 1.0) or 1.0) * 100))
-        parts.append(f"{n} corps drawing {pct}% now" if n != 1 else f"1 corps drawing {pct}% now")
+        if THE_CURE_LINE_READS_CLEAN and n == 0:
+            # SF7-X25: "0 corps drawing 80% now ; needs …" (the LAWS frame).
+            parts.append(f"no corps drawing {pct}% now")
+        else:
+            parts.append(f"{n} corps drawing {pct}% now" if n != 1 else f"1 corps drawing {pct}% now")
     staff = staff_law(world, nation)
     if staff is not None and not is_staff(row):
         from backend.game_logic.reforms import display_name
         name = display_name(staff)
         parts.append(f"needs {name} in force" if not is_in_force(staff)
                      else f"{name} stands — in force at once")
-    return " — ".join(parts[:1] + [" ; ".join(parts[1:])]) if len(parts) > 1 else parts[0]
+    joiner = "; " if THE_CURE_LINE_READS_CLEAN else " ; "
+    return " — ".join(parts[:1] + [joiner.join(parts[1:])]) if len(parts) > 1 else parts[0]
 
 
 def cure_beat_vars(world, nation: str) -> Dict[str, str]:

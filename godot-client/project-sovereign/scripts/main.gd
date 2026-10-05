@@ -367,6 +367,15 @@ var max_turns = 40
 var _auto_end_warned_turn := -1
 const AUTO_END_WARNING := ("▸ The administration is spent: the order that "
 	+ "spends your last action ends the turn at once.")
+# SF7-X19 (Score Finish Step 7, the frames, Oct 4 2026): the Mode C session
+# printed AUTO_END_WARNING, spent the last action — and the day did NOT end:
+# WO-22 defers the auto-advance while a current-turn envoy waits
+# (`executor._auto_end_deferral_reason`, `has_current_turn_offers`). When
+# letters wait, the line says the day waits on them instead.
+const AUTO_END_WAITS_WARNING := ("▸ The administration is spent: when your "
+	+ "last action is spent, the day waits on the envoys — answer them, or "
+	+ "end the turn and let them lapse.")
+const THE_DAY_SAYS_WHAT_WAITS := true
 const DAY_SPENT_BUTTON_TEXT := "End Turn (E) ▸"
 const END_TURN_BUTTON_TEXT := "End Turn (E)"
 var gold = 1200
@@ -396,6 +405,11 @@ const MAX_HISTORY = 50
 # Message history limit (prevents infinite growth)
 const MAX_MESSAGES = 100
 var message_count = 0
+# SF7-X17: every message the terminal holds, as `add_output` appended it —
+# what `_trim_old_messages` keeps (Godot 4's `append_text` never updates
+# `RichTextLabel.text`, which the trim used to read).
+var _output_messages: Array = []
+const THE_TRIM_KEEPS_THE_MESSAGES := true
 
 func _ready():
 	# Music & Sound Core: install the audio singleton once the tree settles
@@ -703,6 +717,10 @@ func _ready():
 	# SAME sentence the Alt+M route prints — the renderer has no terminal.
 	if map_area and map_area.has_signal("map_mode_changed"):
 		map_area.map_mode_changed.connect(_on_map_mode_changed)
+	# SF7-X21: a modal covers the map — no hover, no tooltip beneath it (the
+	# screens already turn `panning_enabled` off in `_on_screen_changed`).
+	if map_area and "pointer_blocked_check" in map_area:
+		map_area.pointer_blocked_check = _is_modal_dialog_open
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -4417,7 +4435,7 @@ func _display_morning_dispatch(data: Dictionary):
 	# PT-C4: a component sum, not an observed delta — say so.
 	var delta_label = str(situation.get("treasury_delta_label", ""))
 	var delta_suffix = "" if delta_label == "" else " " + delta_label
-	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + delta_suffix + ")[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]")
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named ("the
 	# dispatch names why"), and the forecast — the same source as the
 	# end-turn banner and the LAWS tab.
@@ -4993,7 +5011,27 @@ func _note_the_end_of_the_day() -> void:
 		and int(actions_remaining) > 0 and int(actions_remaining) <= 2)
 	if last_action and _auto_end_warned_turn != int(current_turn):
 		_auto_end_warned_turn = int(current_turn)
-		add_output("[color=#" + Utils.COLOR_DIMMED + "]" + AUTO_END_WARNING + "[/color]")
+		if THE_DAY_SAYS_WHAT_WAITS:
+			call_deferred("_say_the_end_of_the_day")
+		else:
+			add_output("[color=#" + Utils.COLOR_DIMMED + "]" + AUTO_END_WARNING + "[/color]")
+
+
+func _say_the_end_of_the_day() -> void:
+	"""SF7-X19: the once-a-turn line, said at the end of the frame.
+
+	Two things the inline print got wrong, both measured in the Step 7 Mode C
+	session. ORDER: `_sync_response_hud` refreshes the status BEFORE
+	`_display_result` draws the order's result, so the line landed between
+	the echoed order and its own result. HONESTY: `pending_lapsing_count`
+	is read AFTER the status refresh (`_update_diplomatic_top_bar`), so the
+	inline print could not know a letter had arrived on the same response —
+	and with a current-turn envoy waiting, the backend defers the end of the
+	day (WO-22) and the line's "ends the turn at once" was false. The
+	client's `_current_lapsing_count` counts exactly the CURRENT_TURN_OFFER
+	_TYPES the deferral test (`has_current_turn_offers`) counts."""
+	var text := AUTO_END_WAITS_WARNING if _current_lapsing_count > 0 else AUTO_END_WARNING
+	add_output("[color=#" + Utils.COLOR_DIMMED + "]" + text + "[/color]")
 
 
 func _update_diplomatic_top_bar(response: Dictionary):
@@ -5137,11 +5175,14 @@ func add_output(text: String):
 	"""Add text to output display with message limit."""
 	text = Utils.humanize_nation_keys_in_text(text)
 	message_count += 1
-	
+
 	# Trim old messages if over limit
 	if message_count > MAX_MESSAGES:
 		_trim_old_messages()
-	
+
+	# SF7-X17: the scrollback the trim keeps is the messages as appended
+	# here — the one place the terminal is written.
+	_output_messages.append(text)
 	output_display.append_text(text + "\n")
 	
 	# Ensure scroll to bottom
@@ -5162,8 +5203,27 @@ func _display_feedback(feedback: Dictionary):
 		add_output("[color=#" + Utils.COLOR_FEEDBACK + "][i]" + feedback.ambiguity + "[/i][/color]")
 
 func _trim_old_messages():
-	"""Remove oldest messages to prevent infinite growth.
-	Uses .text (preserves BBCode) instead of .get_parsed_text() (strips BBCode)."""
+	"""Remove the oldest quarter of the messages to bound the scrollback.
+
+	SF7-X17 (Score Finish Step 7, the frames, Oct 4 2026): this read
+	`output_display.text`, and in Godot 4 `append_text()` never updates
+	`.text` — every line reaches the terminal through `add_output`'s
+	`append_text`, so `.text` held nothing and "keep the last 75%" kept 75%
+	of an empty string. The first time the terminal passed MAX_MESSAGES —
+	turn 1 of the 1805 boot (the briefing, the help and one battle) — the
+	whole scrollback was replaced by the trim marker, the report being
+	printed with it; seen twice in the Mode C session's five turns. The
+	messages are now kept as `add_output` appends them (BBCode intact, so
+	the battle links still click)."""
+	if THE_TRIM_KEEPS_THE_MESSAGES:
+		var keep_from := int(_output_messages.size() * 0.25)
+		_output_messages = _output_messages.slice(keep_from)
+		output_display.clear()
+		output_display.append_text("[color=#" + Utils.COLOR_INFO + "][...earlier messages trimmed...][/color]\n\n")
+		for kept in _output_messages:
+			output_display.append_text(str(kept) + "\n")
+		message_count = _output_messages.size()
+		return
 	var current_text = output_display.text
 	var lines = current_text.split("\n")
 
@@ -5917,6 +5977,7 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	if clear_output:
 		output_display.clear()
 		message_count = 0
+		_output_messages.clear()
 
 
 func _apply_world_swap_response(response: Dictionary, success_text: String):

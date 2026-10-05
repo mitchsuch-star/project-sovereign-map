@@ -36,6 +36,14 @@ const OPTION_LABELS = {
 	"attempt_breakout": "Attempt a Breakout",
 }
 
+# SF7-X27 (Score Finish Step 7, the frames, Oct 5 2026): the panel is
+# authored as a fixed 600x360 rect, so a two-line question ("Teulie is
+# cornered at Milan... He asks leave to fight to the last") sat on top of
+# ~130px of empty panel below its buttons. After the clamp (which keeps the
+# authored rect as the CEILING), the panel shrinks to what its content
+# needs — never past the clamp, and re-centred. False = the fixed rect.
+const THE_QUESTION_FITS_ITS_BOX := true
+
 func _ready():
 	hide()
 
@@ -98,6 +106,31 @@ func show_interrupt(interrupt_data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+	if THE_QUESTION_FITS_ITS_BOX:
+		# Deferred: the label's text and the new buttons are measured once
+		# the containers have sorted this frame's changes.
+		call_deferred("_fit_to_content")
+
+
+func _fit_to_content() -> void:
+	"""SF7-X27: shrink the centred panel to its content's height (the clamp
+	above already fitted it to the viewport; this only ever SHRINKS).
+
+	It waits for the containers to sort first: the frame the text is set,
+	the message label has no width yet and wraps per character — measured,
+	a combined minimum of 3,328px that frame and 208px two frames later — so
+	a fit read at once never shrinks anything (the first cut did exactly
+	that, and the frame showed the box unchanged)."""
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var panel: Control = $PanelContainer
+	if panel == null or not visible:
+		return
+	var have: float = panel.offset_bottom - panel.offset_top
+	var need: float = panel.get_combined_minimum_size().y
+	if need > 0.0 and need < have:
+		panel.offset_top = -need / 2.0
+		panel.offset_bottom = need / 2.0
 
 func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""

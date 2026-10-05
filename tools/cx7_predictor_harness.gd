@@ -87,6 +87,18 @@ func _tick():
 		"r4_hidden": _r4_hidden()
 		"r4_shown": _r4_shown()
 		"auto_end": _auto_end()
+		"auto_end_t7_read": _auto_end_t7_read()
+		"auto_end_t8_read": _auto_end_t8_read()
+		"auto_end_t9_read": _auto_end_t9_read()
+		"frames_faces": _frames_faces()
+		"frames_trim": _frames_trim()
+		"frames_trim_read": _frames_trim_read()
+		"frames_hover": _frames_hover()
+		"frames_hover_control": _frames_hover_control()
+		"frames_hover_screen": _frames_hover_screen()
+		"frames_hover_modal": _frames_hover_modal()
+		"frames_interrupt": _frames_interrupt()
+		"frames_interrupt_read": _frames_interrupt_read()
 		"done": _finish()
 
 
@@ -319,27 +331,200 @@ func _auto_end():
 	# warning is said once a turn before the day's last action, and the
 	# End Turn button says when a spent day waits on it.
 	var display = _main.get("output_display")
-	var before: String = display.get_parsed_text() if display != null else ""
-	var day := {"actions_remaining": 2, "max_actions": 4,
+	_ae_text = display.get_parsed_text() if display != null else ""
+	_ae_day = {"actions_remaining": 2, "max_actions": 4,
 		"admin_actions_remaining": 1, "max_admin_actions": 2, "turn": 7, "max_turns": 0}
-	_out["auto_end_button_full_day"] = _status_line(day)
-	day["admin_actions_remaining"] = 0
-	_out["auto_end_button_last_actions"] = _status_line(day)
-	day["actions_remaining"] = 1
-	_status_line(day)
+	_out["auto_end_button_full_day"] = _status_line(_ae_day)
+	_ae_day["admin_actions_remaining"] = 0
+	_out["auto_end_button_last_actions"] = _status_line(_ae_day)
+	_ae_day["actions_remaining"] = 1
+	_status_line(_ae_day)
+	# SF7-X19 (Score Finish Step 7, slice 9): the line is said AFTER the
+	# command's own output (`call_deferred`), so it is read a frame later.
+	_out["auto_end_warning_same_frame_turn_7"] = (
+		display.get_parsed_text() if display != null else "").substr(
+			_ae_text.length()).count("ends the turn at once")
+	_phase = "auto_end_t7_read"
+	_wait = 2
+
+
+var _ae_text := ""
+var _ae_day := {}
+
+
+func _auto_end_t7_read():
+	var display = _main.get("output_display")
 	var after: String = display.get_parsed_text() if display != null else ""
-	_out["auto_end_warnings_turn_7"] = after.substr(before.length()).count("ends the turn at once")
-	day["actions_remaining"] = 0
-	_out["auto_end_button_spent"] = _status_line(day)
-	day["turn"] = 8
-	day["actions_remaining"] = 4
-	day["admin_actions_remaining"] = 2
-	_out["auto_end_button_new_day"] = _status_line(day)
-	day["actions_remaining"] = 2
-	day["admin_actions_remaining"] = 0
-	_status_line(day)
+	_out["auto_end_warnings_turn_7"] = after.substr(_ae_text.length()).count("ends the turn at once")
+	_ae_text = after
+	_ae_day["actions_remaining"] = 0
+	_out["auto_end_button_spent"] = _status_line(_ae_day)
+	_ae_day["turn"] = 8
+	_ae_day["actions_remaining"] = 4
+	_ae_day["admin_actions_remaining"] = 2
+	_out["auto_end_button_new_day"] = _status_line(_ae_day)
+	_ae_day["actions_remaining"] = 2
+	_ae_day["admin_actions_remaining"] = 0
+	_status_line(_ae_day)
+	_phase = "auto_end_t8_read"
+	_wait = 2
+
+
+func _auto_end_t8_read():
+	var display = _main.get("output_display")
 	var last: String = display.get_parsed_text() if display != null else ""
-	_out["auto_end_warnings_turn_8"] = last.substr(after.length()).count("ends the turn at once")
+	_out["auto_end_warnings_turn_8"] = last.substr(_ae_text.length()).count("ends the turn at once")
+	_ae_text = last
+	# SF7-X19: with an envoy waiting, the day does NOT end at the last
+	# action (WO-22's deferral) — and the line says so instead.
+	_main.set("_current_lapsing_count", 2)
+	_ae_day["turn"] = 9
+	_ae_day["actions_remaining"] = 4
+	_ae_day["admin_actions_remaining"] = 2
+	_status_line(_ae_day)
+	_ae_day["actions_remaining"] = 2
+	_ae_day["admin_actions_remaining"] = 0
+	_status_line(_ae_day)
+	_phase = "auto_end_t9_read"
+	_wait = 2
+
+
+func _auto_end_t9_read():
+	var display = _main.get("output_display")
+	var tail: String = (display.get_parsed_text() if display != null else "").substr(
+		_ae_text.length())
+	_out["auto_end_waits_turn_9"] = tail.count("the day waits on the envoys")
+	_out["auto_end_promises_turn_9"] = tail.count("ends the turn at once")
+	_main.set("_current_lapsing_count", 0)
+	_phase = "frames_faces"
+
+
+# ── Score Finish Step 7 slice 9 (the frames): the terminal's own text ─────
+func _frames_faces():
+	# SF7-X18: `[b]` / `[i]` had no face of their own (the theme's
+	# default_font answered every unset font item), and the terminal's
+	# bold fell back to the theme's 16px against its 11px body.
+	var od = _main.get("output_display")
+	if od == null:
+		_fatal = "no output_display"
+		_finish()
+		return
+	_out["terminal_bold_face_differs"] = (
+		od.get_theme_font("bold_font") != od.get_theme_font("normal_font"))
+	_out["terminal_italic_face_differs"] = (
+		od.get_theme_font("italics_font") != od.get_theme_font("normal_font"))
+	_out["terminal_normal_size"] = od.get_theme_font_size("normal_font_size")
+	_out["terminal_bold_size"] = od.get_theme_font_size("bold_font_size")
+	_out["terminal_italics_size"] = od.get_theme_font_size("italics_font_size")
+	_phase = "frames_trim"
+
+
+func _frames_trim():
+	# SF7-X17: the trim read `.text`, which `append_text` never fills, so
+	# the first trim of a session wiped the whole scrollback. The terminal
+	# starts EMPTY here (a fixed start, so the trim falls on line 100, not
+	# wherever the boot's own messages left the count — the first cut of
+	# this pin let the old trim pass when it fell early), then 130 numbered
+	# lines through the ONE writer. The new trim keeps TRIMTEST 50..129
+	# (80 lines); the old one keeps only the 30 written after its last
+	# clear.
+	var od = _main.get("output_display")
+	od.clear()
+	_main.set("message_count", 0)
+	var kept = _main.get("_output_messages")
+	if kept is Array:
+		kept.clear()
+	for i in range(130):
+		_main.call("add_output", "TRIMTEST %d" % i)
+		if i == 50:
+			# The engine fact the row rests on: `append_text` does not fill
+			# `.text` (Godot 4.4.1).
+			_out["text_property_after_appends"] = str(od.text).length()
+	_phase = "frames_trim_read"
+	_wait = 2
+
+
+func _frames_trim_read():
+	var od = _main.get("output_display")
+	var text: String = od.get_parsed_text() if od != null else ""
+	_out["trim_lines_standing"] = text.count("TRIMTEST ")
+	_out["trim_last_line_standing"] = text.find("TRIMTEST 129") >= 0
+	_out["trim_line_50_standing"] = text.find("TRIMTEST 50\n") >= 0
+	_out["trim_line_49_standing"] = text.find("TRIMTEST 49\n") >= 0
+	_out["trim_marker"] = text.find("earlier messages trimmed") >= 0
+	_phase = "frames_hover"
+
+
+var _map_node: Node = null
+
+
+func _frames_hover():
+	# SF7-X21: a hover set before a screen or modal opened was never
+	# cleared (only a mouse motion clears it). Three arms on the real map:
+	# the control (nothing covers it — the hover stands), a screen open
+	# (panning off), and a modal (the owner's check says so).
+	_map_node = _main.get("map_area")
+	if _map_node == null or not ("hovered_region" in _map_node):
+		_out["hover_arm"] = "no map"
+		_phase = "done"
+		return
+	_map_node.call("_set_hovered_region", "Paris")
+	_phase = "frames_hover_control"
+	_wait = 3
+
+
+func _frames_hover_control():
+	_out["hover_kept_when_uncovered"] = str(_map_node.get("hovered_region"))
+	_map_node.set("panning_enabled", false)
+	_map_node.call("_set_hovered_region", "Paris")
+	_phase = "frames_hover_screen"
+	_wait = 3
+
+
+func _frames_hover_screen():
+	_out["hover_after_screen"] = str(_map_node.get("hovered_region"))
+	_map_node.set("panning_enabled", true)
+	var saved_check = _map_node.get("pointer_blocked_check")
+	_map_node.set("pointer_blocked_check", func(): return true)
+	_map_node.set_meta("_saved_check", saved_check)
+	_map_node.call("_set_hovered_region", "Paris")
+	_phase = "frames_hover_modal"
+	_wait = 3
+
+
+func _frames_hover_modal():
+	_out["hover_after_modal"] = str(_map_node.get("hovered_region"))
+	_map_node.set("pointer_blocked_check", _map_node.get_meta("_saved_check"))
+	_phase = "frames_interrupt"
+
+
+func _frames_interrupt():
+	# SF7-X27: the last-stand question on the real registered popup. The box
+	# is measured the frame it opens (the clamp's authored rect) and after
+	# the layout has settled (the fit).
+	var popup = _main.get("interrupt_popup")
+	if popup == null:
+		_out["interrupt_arm"] = "no popup"
+		_phase = "done"
+		return
+	popup.call("show_interrupt", {
+		"interrupt_type": "last_stand", "marshal": "Ney",
+		"message": "Ney is cornered at Rhineland with 2,840 men, Sire — capture looms. "
+			+ "He asks leave to fight to the last, or he can attempt a breakout.",
+		"options": ["fight_to_the_last", "attempt_breakout"]})
+	var p: Control = popup.get_node("PanelContainer")
+	_out["interrupt_h_opened"] = p.offset_bottom - p.offset_top
+	_phase = "frames_interrupt_read"
+	_wait = 6
+
+
+func _frames_interrupt_read():
+	var popup = _main.get("interrupt_popup")
+	var p: Control = popup.get_node("PanelContainer")
+	_out["interrupt_h_settled"] = p.offset_bottom - p.offset_top
+	_out["interrupt_min_h"] = p.get_combined_minimum_size().y
+	_out["interrupt_centred"] = is_equal_approx(p.offset_top, -p.offset_bottom)
+	popup.hide()
 	_phase = "done"
 
 

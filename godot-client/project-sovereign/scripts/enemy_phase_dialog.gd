@@ -37,6 +37,16 @@ const _PLAYER_NATION := "France"
 # the destroyed defender for the latter) — never by matching names in the
 # prose. False = the side-blind colours, as IQ-5 first shipped them.
 const IQ5_COLOUR_BY_SIDE := true
+# SF7-X26 (Score Finish Step 7, the frames, Oct 5 2026): the result line was
+# green only when FRANCE won, and every "forced to retreat!" line was red
+# whoever retreated — so Bavaria, our ally, beating Mack printed in the
+# colour of a defeat (seen in the live 5-turn session, turn 1). The backend
+# stamps each side's standing toward the player on the battle event
+# (`attacker_alignment` / `defender_alignment`: player, friend, foe or
+# neutral — diplomacy has no fog) and the dialog colours by it. Absent
+# stamps (an old payload) keep the France-only colours. False = those
+# colours byte-for-byte.
+const THE_COLOURS_KNOW_OUR_FRIENDS := true
 
 # BD: tableau payloads for this phase's battles, indexed by the meta link.
 var _diorama_payloads: Array = []
@@ -330,8 +340,14 @@ func _format_action(action: Dictionary) -> String:
 			var ga_lost = int(event.get("garrison_losses", 0))
 			var ga_left = int(event.get("garrison_remaining", 0))
 			var ga_att = int(event.get("attacker_losses", 0))
-			result += "[color=#" + COLOR_ERROR + "]    Assault on the garrison of " + ga_region + "[/color]\n"
-			result += "[color=#" + COLOR_ERROR + "]      Garrison: " + _format_number(ga_lost)
+			# SF7-X26: whose garrison it was decides the colour — red was
+			# right for ours and wrong for a foe's.
+			var ga_colour := COLOR_ERROR
+			var ga_standing := _standing(event, "defender")
+			if ga_standing != "":
+				ga_colour = _standing_colour(ga_standing, false)
+			result += "[color=#" + ga_colour + "]    Assault on the garrison of " + ga_region + "[/color]\n"
+			result += "[color=#" + ga_colour + "]      Garrison: " + _format_number(ga_lost)
 			result += " lost, " + _format_number(ga_left) + " still under arms[/color]\n"
 			if ga_att > 0:
 				result += "[color=#" + Utils.COLOR_INFO + "]      The assault cost them "
@@ -357,6 +373,12 @@ func _format_action(action: Dictionary) -> String:
 			var conquest_was = ""
 			if conquest_from != "":
 				conquest_was = " (was " + Utils.display_nation_name(conquest_from) + ")"
+			# SF7-X31: a garrison under the collapse line gives way rather
+			# than fight — said, where the capture alone read as a mystery
+			# after the assault's "still under arms".
+			var gave_way := int(event.get("garrison_gave_way", 0))
+			if gave_way > 0:
+				result += "[color=#" + conquest_color + "]    The last " + _format_number(gave_way) + " of the garrison of " + str(region) + " give way.[/color]\n"
 			result += "[color=#" + conquest_color + "]    Region captured: " + region + conquest_was + choice_str + "[/color]\n"
 
 	# Berthier's After-Action Report (if battle occurred)
@@ -503,6 +525,11 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 	var outcome_color = Utils.COLOR_INFO
 	if victor:
 		outcome_color = Utils.COLOR_SUCCESS if _victor_is_player(event, str(victor)) else COLOR_ERROR
+		# SF7-X26: the victor's standing toward us, when the event says it.
+		var victor_role := "defender" if str(victor) == defender_name else "attacker"
+		var victor_standing := _standing(event, victor_role)
+		if victor_standing != "":
+			outcome_color = _standing_colour(victor_standing, true)
 
 	result += "[color=#" + outcome_color + "]    Result: " + outcome_text
 	if victor:
@@ -543,10 +570,19 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 		result += "[color=#" + battle_capture_color + "]    " + region + " CAPTURED!" + battle_was + battle_choice_str + "[/color]\n"
 
 	# Check for forced retreat
+	# SF7-X26: a foe driven off is good news; ours (or a friend's) is not.
 	if attacker.get("forced_retreat", false):
-		result += "[color=#" + COLOR_ERROR + "]    " + attacker_name + " forced to retreat![/color]\n"
+		var atk_retreat_colour := COLOR_ERROR
+		var atk_standing := _standing(event, "attacker")
+		if atk_standing != "":
+			atk_retreat_colour = _standing_colour(atk_standing, false)
+		result += "[color=#" + atk_retreat_colour + "]    " + attacker_name + " forced to retreat![/color]\n"
 	if defender.get("forced_retreat", false):
-		result += "[color=#" + COLOR_ERROR + "]    " + defender_name + " forced to retreat![/color]\n"
+		var def_retreat_colour := COLOR_ERROR
+		var def_standing := _standing(event, "defender")
+		if def_standing != "":
+			def_retreat_colour = _standing_colour(def_standing, false)
+		result += "[color=#" + def_retreat_colour + "]    " + defender_name + " forced to retreat![/color]\n"
 
 	# BD: the tableau link — every battle that carried a diorama payload is
 	# one click from its field (the routine-raid case; the dramatic case
@@ -875,6 +911,27 @@ func _victor_is_player(event: Dictionary, victor: String) -> bool:
 	else:
 		side_nation = str(event.get("attacker_nation", ""))
 	return side_nation == "France"
+
+func _standing(event: Dictionary, role: String) -> String:
+	"""SF7-X26: the side's standing toward the player as the backend stamped
+	it ("player", "friend", "foe", "neutral"), or "" when the event carries
+	no stamp (or the lever is down) — the caller then keeps the old colour."""
+	if not THE_COLOURS_KNOW_OUR_FRIENDS:
+		return ""
+	var standing = event.get(role + "_alignment", "")
+	return standing if standing is String else ""
+
+
+func _standing_colour(standing: String, won: bool) -> String:
+	"""Good news is green, bad news red, a war that is not ours the info
+	grey: a win by us or a friend (or a foe's retreat) is good news."""
+	var ours := standing == "player" or standing == "friend"
+	if standing == "neutral" or standing == "":
+		return Utils.COLOR_INFO
+	if ours == won:
+		return Utils.COLOR_SUCCESS
+	return COLOR_ERROR
+
 
 func _format_number(num) -> String:
 	"""Format number with comma separators (delegates to the Utils single source)."""

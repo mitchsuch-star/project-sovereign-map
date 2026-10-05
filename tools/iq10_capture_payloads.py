@@ -936,13 +936,28 @@ def cap_layout_f3():
     clear_dialogues(world)
     world.marshals["Murat"].location = "Brittany"     # no enemy within his reach
     world.marshals["Murat"].strategic_order = None
+    # B2 "The petition dies with its subject" (Sept 27, 2026): a card whose
+    # grievance does not stand is retired at the next seam as "cooled", so
+    # the grievance itself is staged — Murat's envy of Ney — not only the
+    # card (the Step 7 frames found this shot shooting a payload of null).
+    world.marshals["Murat"].jealous_of = "Ney"
     with _quiet():
         status = J.queue_confrontation_petition(
             world, world.marshals["Murat"], world.marshals["Ney"], level=0)
     response = cmd(c, "status")
     petition = response.get("marshal_petition")
+    source = "POST /command 'status' → marshal_petition (the PopupQueue's delivery)"
+    if not isinstance(petition, dict):
+        # B1 "The Antechamber" (Sept 26, 2026): a routine audience no longer
+        # rides the next response — it waits on the rail and the Generals
+        # card, and opens ON DEMAND through GET /marshal_petition into the
+        # same dialog. The capture follows the client's own road (the Step 7
+        # frames found this one shot failing on a payload of null).
+        petition = (get(c, "/marshal_petition") or {}).get("petition")
+        source = ("GET /marshal_petition → petition (B1's antechamber: the rail row's "
+                  "'Hear him' opens it on demand)")
     record("petition_command_closed", petition,
-           source="POST /command 'status' → marshal_petition (the PopupQueue's delivery)",
+           source=source,
            staging="fresh 1805 boot; dialogue slot emptied; Murat WRITTEN to Brittany (no enemy "
                    "in reach); `jealousy.queue_confrontation_petition(Murat, Ney, level 0)` — "
                    f"the command arm is closed (push status {status})",
@@ -1534,7 +1549,121 @@ def cap_doctrines():
                             ("controller", "visibility_status", "war_damage", "doctrine_supply")}})
 
 
+def cap_screen_says():
+    """Score Finish Step 7 slices 7–8 (Oct 4, 2026), registered by the Step 7
+    frames session: the counter-punch rail row with its button (slice 8,
+    UX23-A's idiom), the ORDERS tab's display name (slice 7, NPC-12's
+    `target_display`), and the campaign log's importance tiers on a played
+    board (EAS-2's client half). The Build fold rides the existing
+    `game_state_regions` capture — the shot opens it with the panel's own link."""
+    from backend.notifications import COUNTER_PUNCH_EARNED
+
+    # 1. the counter-punch row — the boot board's own geometry (Davout, a
+    #    cautious commander, at Rhineland; Mack one hop off at Swabia), the row
+    #    posted by the combat seam's own call, then read off the rail endpoint
+    #    (which re-derives it — the reader the client reads).
+    world, c = fresh()
+    davout = world.marshals["Davout"]
+    davout.counter_punch_available = True
+    davout.counter_punch_turns = 1
+    with _quiet():
+        M.executor._combat._process_combat_notifications(
+            {"counter_punch_earned": True}, world.marshals["Mack"], davout, world)
+    notes = get(c, "/notifications").get("notifications") or []
+    rows = [n for n in notes if n.get("type") == COUNTER_PUNCH_EARNED]
+    record("notifications_counter_punch", notes, source="GET /notifications",
+           staging="1805 boot; Davout's counter-punch written open (available, 1 turn — state "
+                   "writes) and the row posted through "
+                   "`CombatExecutor._process_combat_notifications` (the combat seam's own call)",
+           facts={"rows": len(rows),
+                  "action_label": ((rows[0].get("details") or {}).get("action_label")
+                                   if rows else None),
+                  "action_command": ((rows[0].get("details") or {}).get("action_command")
+                                     if rows else None)})
+
+    # 2. the ORDERS tab — a standing order whose target is a roster KEY that
+    #    differs from its display name (ArchdukeJohn → "Archduke John").
+    world, c = fresh()
+    reply = cmd(c, "Lannes, pursue Archduke John")
+    if reply.get("pending_objection"):
+        reply = post(c, "/respond_to_objection", {"choice": "insist"})
+    ledger = get(c, "/ledger")
+    orders = (ledger.get("ledger") or {}).get("orders") or []
+    live = [o for o in orders if o.get("has_order")]
+    record("ledger_orders_display", ledger, source="GET /ledger",
+           staging="1805 boot; `Lannes, pursue Archduke John` through POST /command",
+           facts={"orders": [(o.get("marshal"), o.get("order_type"), o.get("target"),
+                              o.get("target_display")) for o in live]})
+
+    # 3. the campaign log's tiers on a PLAYED board — the t20 fixture after
+    #    one real end turn (battles, captures, envoys: every tier present).
+    world, c, _loaded = _load_fixture("fixture_t20_ambient.json")
+    end_turn(c)
+    log = get(c, "/campaign_log")
+    tiers: dict = {}
+    for turn in (log.get("turns") or []):
+        for ev in (turn.get("events") or []):
+            tiers[ev.get("tier")] = tiers.get(ev.get("tier"), 0) + 1
+    record("campaign_log_t20", log, source="GET /campaign_log",
+           staging="tests/fixtures/playtest_saves/fixture_t20_ambient.json loaded, then ONE "
+                   "real `end turn` through POST /command",
+           facts={"tiers": tiers})
+
+    # 4. SF-V2's eyes-on check (Step 7 frames): the white peace's REVIEW at
+    #    both of its verdicts on the same score — Austria beaten and alone at
+    #    the table (Ratify live, "Will carry") and the whole-war table (no
+    #    Ratify, "Will NOT carry"). The staging is SR-6b's own pin's
+    #    (`test_every_staged_white_peace_agrees_with_its_button`); the payload
+    #    is the wire's (`status` carries the dialogue the client renders).
+    from backend.game_logic.settlement_staging import stage_settlement_confirm
+    for tag, covered in (("ratify", ["Austria"]), ("holdout", ["Austria", "Britain", "Russia"])):
+        world, c = fresh()
+        clear_dialogues(world)
+        key = world._make_diplo_key(PLAYER, "Austria")
+        world.war_scores[key] = 80 if key.split("|")[0] == PLAYER else -80
+        with _quiet():
+            staged = stage_settlement_confirm(
+                world, war_id="war_1", settlement_terms=[{"type": "peace"}],
+                covered_enemy_participants=covered)
+        dialogue = cmd(c, "status").get("diplomatic_dialogue")
+        oa = (dialogue or {}).get("overall_acceptance") or {}
+        record(f"settlement_white_review_{tag}", dialogue,
+               source="POST /command 'status' → diplomatic_dialogue (the staged review)",
+               staging=("1805 boot; France's war score against Austria WRITTEN to +80; "
+                        "`stage_settlement_confirm(war_1, [peace], covered="
+                        f"{covered})` — SR-6b's pin's staging"),
+               facts={"staged": bool((staged or {}).get("success")),
+                      "mode": (dialogue or {}).get("dialogue_mode"),
+                      "can_ratify": (dialogue or {}).get("can_ratify"),
+                      "verdict": oa.get("carry_verdict_display"),
+                      "options": [o.get("label") for o in ((dialogue or {}).get("options") or [])
+                                  if isinstance(o, dict)]})
+
+
+def cap_frames_s9():
+    """Score Finish Step 7 slice 9 (the frames, Oct 5, 2026): the producer's
+    own last-stand question (SF7-X27 — the popup that sat a two-line question
+    on a box twice its size), off a staged boot board."""
+    world, c = fresh()
+    clear_dialogues(world)
+    ney = world.marshals["Ney"]           # aggressive: the player is asked
+    mack = world.marshals["Mack"]
+    ney.strength = 2840                   # under MARSHAL_FATE_STRENGTH_FLOOR
+    with _quiet():
+        M.executor._combat._check_marshal_fate(ney, mack, world)
+    interrupt = getattr(ney, "pending_interrupt", None)
+    record("interrupt_last_stand", interrupt,
+           source="CombatExecutor._check_marshal_fate → marshal.pending_interrupt "
+                  "(the producer's own dict)",
+           staging="1805 boot; Ney (aggressive) WRITTEN to 2,840 men, under the fate "
+                   "floor, cornered by Mack — the player is asked",
+           facts={"type": (interrupt or {}).get("interrupt_type"),
+                  "options": (interrupt or {}).get("options")})
+
+
 CAPTURES = {
+    "screen_says": cap_screen_says,
+    "frames_s9": cap_frames_s9,
     "proclamation": cap_proclamation,
     "congress": cap_congress,
     "campaign_end": cap_campaign_end,
