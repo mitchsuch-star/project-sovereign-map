@@ -1,8 +1,8 @@
 # NEXT SESSION PROMPT — Score Finish Step 9: SF-RR1 part (ii), then RR2 … RR6
 
 > Overwritten each time a session hands off. Current hand-off: **October 5, 2026,
-> after the economy audit and the rulings on the final reading's open list
-> (`docs/audits/ECONOMY_AUDIT_2026_10_05.md`; `SCORE_FINISH_SPEC.md` §6.7).**
+> after the economy gate (`docs/audits/ECONOMY_GATE_2026_10_05.md`;
+> `SCORE_FINISH_SPEC.md` §6.8), which followed the economy audit (§6.7).**
 > SF-RR1 part (ii) is still next. The census reads no P1.
 > Routing authority: `docs/SCORE_FINISH_SPEC.md` §3 Step 9; `docs/STATUS.md`
 > ▶ NEXT UP and the `CLAUDE.md` LIVE STATE line point there.
@@ -26,7 +26,12 @@
   - the open list ruled under the user's delegation (§6.7): the EYES marks, §6 rows 17–22, and **SFR-DR1 ruled and BUILT** (each league member declares in its own right);
   - the books fixed, the AI spends its purse, checklist v1.1 (`docs/SCORE_CHECKLIST_V1_1.json`; a v1.1 re-read with `tools/score_reread.py`);
   - `BASELINE_SERIES` re-recorded once with fifteen-arm attribution (`tools/_econ_audit_series_arms.py`).
-- **The census:** `.venv/Scripts/python.exe -X utf8 tools/defect_census.py --by-pillar`. Defect **83 OPEN, 0 P1**; design 9 OPEN (EAD-1 … EAD-9 — the user's economy gate).
+- **The economy gate** (memo `docs/audits/ECONOMY_GATE_2026_10_05.md`; rules `SYSTEMS_REFERENCE.md` §98; pins `tests/test_economy_gate_2026_10_05.py`):
+  - EAD-1 campaign pay, EAD-2 the Charges named, EAD-4 a third of Europe's men, EAD-7 the lawful road + the league's aim, EAD-8 the league's silent courts BUILT; EAD-3/5/6/9 KEPT; EA-19 (a truce binds the league), EA-7's recovery road and EA-E8 FIXED;
+  - the reading's gaps closed: the client arm, the live-key arm, and a driven client session (`tools/mode_c_driven_session.py` — engine events only, safe beside the user's running game; now part of the client arm);
+  - the reading (`docs/audits/score_runs/2026_10_05_econ_gate/`): like for like 7.69 → 7.42 — campaign pay and the road cost items, every flip lever-attributed (`tools/_econ_gate_exit_attribution.json`); EG-D2 is the user's;
+  - `BASELINE_SERIES` re-recorded once, twelve arms attributed (`tools/_econ_gate_series_arms.py`).
+- **The census:** `.venv/Scripts/python.exe -X utf8 tools/defect_census.py --by-pillar`. Defect **83 OPEN, 0 P1**; design 3 OPEN (EG-D1 … EG-D3 — the user's).
 
 **SF-RR1 part (ii) — the 16 open command rows** (all in `docs/BUG_FIXES.md` §Score Finish Step 8, tagged `⟨SF step=9 · SF-RR1 · pillar=command⟩`). **Reproduce every row at `POST /command` before writing a line.** The D-rows say "unverified beyond the playtester's quoted digest lines", and an agent-played depth campaign over-grades.
 - **From the HOLD arm** (verified at the wire):
@@ -49,10 +54,12 @@
 
 **Then the remaining slices** (`SCORE_FINISH_SPEC.md` §3 Step 9 — the table names each slice's rows, its done-when and its test file):
 - **SF-RR2 "the desk answers what was asked"** — the HOLD's question misses and the depth campaign's desk shrugs.
-- **SF-RR3 "the page and the copy".**
-- **SF-RR4 "war, truce and the standing order"** — SFR-DR1 is done (ruled and built in the economy audit). The slice now also owns EA-19 (the league forecast reads a truce partner as free to join — the coalition gate must read the truce the declaration reads), EAD-7 (the march step's lawful road) and EAD-6's content (law decks for the secondaries).
+- **SF-RR3 "the page and the copy"** — now also owns EG-X3 (a lost satellite crowded off the page: the CMD-H turn-6 page never names the Kingdom of Italy's elimination; ride it beneath the lead like the league's news, EG-X2).
+- **SF-RR4 "war, truce and the standing order"** — SFR-DR1, EA-19 and EAD-7 are done (the economy audit and the economy gate). The slice owns EG-X5 (a capital whose works Austria's capture had just emptied falls to a field win with no word of them) and, if the user takes it, EG-D3's bench for the secondaries.
 - **SF-RR5 "the frames at both scales"** — ⛔ needs Godot windows: ASK the user first. Now also owns the economy audit's client rows EA-E1 (the compact top bar draws blank — supersedes SFR-I3), E2, E3, E5, E6, E7 and E9.
-- **SF-RR6 "the instrument reads what the player sees"** — the three wrong readers and the drifted DL arm (SFR-I2 … I7), plus EA-2 (economy F1 cannot see an off-books flow) and EA-E8 (an IQ-10 capture row talks to port 8005). Then re-read BOTH archives (`docs/audits/score_runs/2026_09_29_c20d5bba` and `…/2026_10_05_sfr`) with the corrected readers and publish the deltas.
+- **SF-RR6 "the instrument reads what the player sees"** — the three wrong readers and the drifted DL arm (SFR-I2 … I7), plus EA-2 (economy F1 cannot see an off-books flow) and EG-X4 (the CMD-M turn-20 intel row places Kutuzov at Vienna from a turn-17 snapshot while the store's last sighting says Bohemia — trace which store is stale). EA-E8 is done. Then re-read BOTH archives (`docs/audits/score_runs/2026_09_29_c20d5bba` and `…/2026_10_05_sfr`) with the corrected readers and publish the deltas.
+
+**Traps from the economy gate:** a board change surfaces LATENT display defects a census never reached (EG-X1) — trace each red driven pin before re-seating; digest groups hold the END TURN's response and a log row can surface late — judge it on its own morning (EG-I1); a benchmark arm's staging purchase can drift below its price when the economy changes (EG-I3) — read the digest for a refused commission; `score_run.py run --only X --out DIR` rewrites DIR/run.json — run into a scratch folder and merge.
 
 **After each slice:** its session exit re-reads the AUTO items it touched with `score_run.py check` and reports item flips, never a score (§5). For SF-RR1 the cheap read is the HOLD arm:
 ```
@@ -94,7 +101,7 @@ Report command C3's count of 20.
 **Traps learned in the economy audit:**
 - **The Charges of Empire are a share of the chest above its floor.** A purse test on the forecast Net refuses a rich court for being rich (EA-18); read the Net before the Charges where sustainability is the question.
 - **The dispatch records no league table while the old league stands** (`_coalition_section` skips it while `_formed`), but the page's beat reads the same forecast every morning — a reader keyed on the rows lags the news by a page (EA-16).
-- **A truce writes the armistice cooldown that refuses a declaration, but `qualifies_for_coalition` reads only WAR** (EA-19, SF-RR4's).
+- **A truce writes the armistice cooldown that refuses a declaration** — fixed in the economy gate: `diplomacy.declaration_cooldown_left` is the one reading the declaration, the cascade, the war council and the coalition gate share (EA-19).
 - **Britain boots AT its paymaster floor (2,000):** stage its chest before asking who pays.
 - **A lever read at a call site is invisible to a pin that calls the rung directly** — pin it through the chain, both arms (the sweep found exactly that).
 - **Patch scripts and line endings:** keep CRLF with `newline=bytes([13, 10]).decode()`; a heredoc ate a `\r\n` literal this session.

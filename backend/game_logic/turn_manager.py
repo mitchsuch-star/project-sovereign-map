@@ -1306,6 +1306,25 @@ class TurnManager:
             if (not marshals and _game_end.THE_CAMPAIGN_CAN_END
                     and nation not in set(self.world.get_active_nations())):
                 continue
+            if not marshals and _game_end.terminal_ending(self.world) is None:
+                # EA-7's recovery path (the economy gate): a court with no
+                # general may still commission one — the Marshalate's own
+                # rung, nothing else of the admin chain. A court that does
+                # is not "eliminated": its new marshal acts next turn.
+                commissioned = []
+                try:
+                    commissioned = ai.execute_commission_only(nation, self.world, game_state)
+                except Exception:
+                    import traceback
+                    debug_print(f"[ERROR] {nation} commission crashed: {traceback.format_exc()}")
+                if commissioned:
+                    results["nations"][nation] = {
+                        "actions": commissioned,
+                        "action_count": len(commissioned),
+                        "admin_actions": len(commissioned),
+                    }
+                    results["total_actions"] += len(commissioned)
+                    continue
             if not marshals:
                 debug_print(f"\n{nation} has no marshals remaining - skipping")
                 results["summary"].append(f"{nation}: No marshals (eliminated?)")

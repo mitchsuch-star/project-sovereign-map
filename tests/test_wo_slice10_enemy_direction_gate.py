@@ -1127,7 +1127,12 @@ class TestTheAmbientBoard:
         # harder late, and the AI's orders name `Leon` and `Champagne` more
         # often. With every audit lever down in the child the field read's
         # figure returns (`tools/_econ_audit_wo_attribution.py`, measured).
-        assert seams == {"_fuzzy_match_enemy": 14}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 -> 22 -> 7 -> 14 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines), VD-C (the contingents), §6 row 16 (the field read), the economy audit
+        # The economy gate (October 5, 2026): 14 -> 9. The march reading the
+        # lawful road (EAD-7) re-times the UNGATED board from index 10; the
+        # AI's orders stop naming `Champagne`. With every gate lever down in
+        # the child the economy audit's figure returns
+        # (`tools/_econ_gate_wo_attribution.py`, measured).
+        assert seams == {"_fuzzy_match_enemy": 9}, seams  # 17 -> 18 -> 17 -> 29 -> 25 -> 33 -> 21 -> 28+7 -> 40+7 -> 39+6 -> 63+0 -> 64 -> 57 -> 4 -> 11 -> 22+1 -> 32 -> 22 -> 7 -> 14 -> 9 across FA slices 2, 2r, 4, 4r, 17, 17p3 (the contact list in map order), IQ-7 (Bern -> Bernadotte), NUI-2 (the Flanders flag), EP F4 (the deed-keyed curve), EP F5 (the walk-in cap), VP-R1 (the coast lever), RF-3 (the AI enacts), the AI drill fix, SR-5a (the balance package), Step 3 (the balance block), SR-7d (the doctrines), VD-C (the contingents), §6 row 16 (the field read), the economy audit, the economy gate
 
     def test_all_seventeen_are_the_ai_naming_a_province(self, ungated):
         """Records WHICH provinces AND the split, so the shape cannot drift
@@ -1216,8 +1221,12 @@ class TestTheAmbientBoard:
         # onto a marshal, the defect's shape. With every audit lever down in
         # the child the field read's split returns
         # (`tools/_econ_audit_wo_attribution.py`, measured).
-        assert dict(pairs) == {("Champagne", "Ney"): 5,
-                               ("Leon", "Napoleon"): 9}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 -> 2+6+12+3 -> 20+3+9 -> 2+16+1+3 -> 4+3 -> 5+9 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a, Step 3, SR-7d, VD-C, §6 row 16, the economy audit
+        # The economy gate (October 5, 2026): `Champagne -> Ney` 5 -> 0,
+        # `Leon -> Napoleon` holds at 9 — still every pair a PROVINCE
+        # collapsing onto a marshal, the defect's shape. With every gate lever
+        # down in the child the economy audit's split returns
+        # (`tools/_econ_gate_wo_attribution.py`, measured).
+        assert dict(pairs) == {("Leon", "Napoleon"): 9}, pairs  # 6+11 -> 6+12 -> 6+11 -> 5+24 -> 3+10+8+4 -> 3+9+21 -> 3+13+5 -> 3+13+5+14 -> 3+14+9+14+4+3 -> 3+18+9+12+3 -> 7+24+31+1 -> 7+23+33+1 -> 3+32+22 -> 4 -> 8+3 -> 2+6+12+3 -> 20+3+9 -> 2+16+1+3 -> 4+3 -> 5+9 -> 9 across FA slices 2, 2r, 4, 4r, 17, 17p3, IQ-7, NUI-2, EP F4, EP F5, VP-R1, RF-3, the AI drill fix, SR-5a, Step 3, SR-7d, VD-C, §6 row 16, the economy audit, the economy gate
 
     def test_the_gated_board_collapses_never(self, gated):
         """The done-when line: the AI stops resolving `Gascony -> Ney`.
@@ -1391,7 +1400,14 @@ class TestTheAmbientBoard:
         # moves from index 18 — its attribution block). With every audit lever
         # down in the child the §6 row 16 record above returns byte for byte
         # (`tools/_econ_audit_wo_attribution.py`, measured).
-        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 40, 47, 47, 44, 41, 38, 35, 22, 22, 19, 16, 23, 28, 28, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
+        # Economy audit record, kept for the diff:
+        # [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 40, 47, 47, 44, 41, 38, 35, 22, 22, 19, 16, 23, 28, 28, 30, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0]
+        # The economy gate (October 5, 2026): the march reading the lawful
+        # road (EAD-7) re-times this arm from index 10 (the gated arm, the
+        # BASELINE_SERIES, moves from index 18 — its attribution block). With
+        # every gate lever down in the child the economy audit's record above
+        # returns byte for byte (`tools/_econ_gate_wo_attribution.py`, measured).
+        assert ungated["series"] == [70, 68, 66, 64, 62, 60, 48, 46, 43, 40, 37, 34, 31, 28, 30, 27, 14, 16, 13, 10, 12, 9, 6, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ungated["series"]
 
     def test_the_gated_arm_is_the_recorded_baseline(self, gated):
         """Attribution arm ABC, joined to the pin the rest of the suite
@@ -2114,7 +2130,11 @@ class TestTheAiIsNotFrozenInstead:
         # board (the re-recorded standing series board) writes one refusal in
         # forty turns. With every audit lever down in the child the field
         # read's figure returns (`tools/_econ_audit_wo_attribution.py`, measured).
-        assert cooldowns["ungated"] == 14, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 -> 22 -> 7 -> 14 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines; VD-C: the contingents; §6 row 16: the field read; the economy audit)
+        # The economy gate (October 5, 2026): 14 / 1 -> 10 / 1 — the lawful
+        # road re-times the ungated board from index 10; its collapses are
+        # again the whole ungated count. With every gate lever down in the
+        # child the economy audit's figure returns (`tools/_econ_gate_wo_attribution.py`, measured).
+        assert cooldowns["ungated"] == 10, cooldowns  # 31 -> 34 -> 25 -> 29 -> 37 -> 33 -> 33 -> 21 -> 28 -> 40 -> 39 -> 75 -> 76 -> 58 -> 4 -> 12 -> 22 -> 32 -> 22 -> 7 -> 14 -> 10 across slices (IQ-7: +7 Deroy/Bern; NUI-2: the Flanders flag; EP F4: the deed-keyed curve; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; Step 3: the balance block; SR-7d: the doctrines; VD-C: the contingents; §6 row 16: the field read; the economy audit; the economy gate)
         assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit)
 
 

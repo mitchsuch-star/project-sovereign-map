@@ -1,0 +1,20 @@
+{
+ "arm": "CLI",
+ "capture_exit": 0,
+ "shots_exit": 0,
+ "parse_exit": 0,
+ "boot_exit": 0,
+ "boot_script_errors": 0,
+ "boot_log_bytes": 523,
+ "modec": {
+  "godot_exit": 0,
+  "script_errors": 0,
+  "checks": 95,
+  "failed_checks": [],
+  "turns_played": 5,
+  "blocked": false,
+  "error": null
+ },
+ "seconds": 297.8,
+ "status": "completed"
+}

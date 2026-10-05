@@ -49,6 +49,7 @@ GR5: the AI never types a compound, so it never sees a relay; a stash can
 only be created by the player's own `/command`.
 """
 
+from backend.display_names import order_target_display
 import math
 import re
 from typing import Dict, Optional
@@ -209,7 +210,7 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
             if order.command_type == "PURSUE":
                 return done("moment",
                             f"{lead}Sent now it would take {who}'s next turn where he "
-                            f"stands, not where he runs {order.target} down. Give "
+                            f"stands, not where he runs {order_target_display(order.target)} down. Give "
                             f"it when he has him.")
             try:
                 from backend.commands.strategic import resolve_order_destination
@@ -226,7 +227,7 @@ def build_relay(world, parser, llm_game_state, *, tail: str,
         if (order is not None and order.command_type in STANDING_STRATEGIC_TYPES
                 and tail_ends_order):
             what = ("his standing hold" if order.command_type == "HOLD"
-                    else f"his support of {order.target}")
+                    else f"his support of {order_target_display(order.target)}")
             return done("contradiction",
                         f"{lead}Sent now it would undo the first: it would end "
                         f"{what}. Give it when you mean him to leave it.")

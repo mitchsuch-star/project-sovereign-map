@@ -739,7 +739,14 @@ def terms_line(world, nation: str, row: Dict) -> str:
         line += "; one more order each day from the next refill"
     if quote["currency"] == "authority":
         before = _court_authority(world, nation)
-        line += ". " + authority_line(before, before - int(quote["price"])).rstrip(".")
+        after = before - int(quote["price"])
+        line += ". " + authority_line(before, after).rstrip(".")
+        # EAD-2: the grip line the Charges of Empire read, named when the
+        # act crosses it (`ledger.charges_grip_clause`).
+        from backend.game_logic.ledger import charges_grip_clause
+        grip = charges_grip_clause(world, nation, before, after)
+        if grip:
+            line += "; " + grip
     return line
 
 

@@ -185,8 +185,23 @@ class TestTheRuledBalance:
             britain = _build_economy(w, "Britain")
             france = _build_economy(w, "France")
         assert britain["net"] == 2851, britain["net"]
-        assert france["net"] == 1032, france["net"]
+        # RE-SEATED consciously by the economy gate (October 5, 2026; EAD-1,
+        # SYSTEMS_REFERENCE §98.1): France's boot Net 1,032 → 828. Campaign
+        # pay bills Bernadotte's 17,000 at Franconia — an ally's soil, outside
+        # the 1805 homeland — at 12 gold per 1,000 men: 204. The lever-down
+        # arm below keeps SR-5a's own measurement.
+        assert france["net"] == 828, france["net"]
         assert britain["net"] > 2 * france["net"]
+
+    def test_the_ruled_balance_without_campaign_pay(self, monkeypatch):
+        from backend.models import world_state as WS
+        monkeypatch.setattr(WS, "CAMPAIGN_PAY_ON_FOREIGN_SOIL", False)
+        w = _boot()
+        with _quiet():
+            britain = _build_economy(w, "Britain")
+            france = _build_economy(w, "France")
+        assert britain["net"] == 2851, britain["net"]
+        assert france["net"] == 1032, france["net"]
 
     def test_every_french_homeland_province_yields_three_quarters(self):
         """Read against the REGISTRY, not restated: each French province's

@@ -441,6 +441,14 @@ func _on_dispatch_received(response):
 				var coal_name = str(active_coal.get("name", "Coalition"))
 				var coal_leader = str(active_coal.get("leader", "?"))
 				bbcode += "[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]\n"
+				# EAD-8 (the economy gate): the members that have not struck
+				# us, each with why — the backend's public-facts reading.
+				var unmarched = active_coal.get("unmarched", [])
+				if unmarched is Array and unmarched.size() > 0:
+					bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  Not every court of the league has struck us:[/color]\n"
+					for urow in unmarched:
+						if urow is Dictionary and str(urow.get("text", "")) != "":
+							bbcode += "[color=#" + Utils.COLOR_INFO + "]    • " + str(urow.get("text", "")) + "[/color]\n"
 			# SF-LB-3 (Score Finish Step 7b): the next league and the price
 			# to keep each court out of it — the backend's own forecast.
 			var league_line = str(coalition_status.get("league_line", ""))

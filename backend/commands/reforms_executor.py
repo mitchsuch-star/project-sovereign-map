@@ -135,9 +135,19 @@ class ReformsExecutor:
                 cure_note = f" {flaw} is cured while {status['staff']} stands."
             elif status.get("needs") and not status.get("cured") and not reforms.is_staff(row):
                 cure_note = f" Its cure waits on {status['needs']}."
+        # EAD-2: the grip line the Charges of Empire read, when the act
+        # crossed it (the same clause the quote named).
+        grip_note = ""
+        if outcome.get("authority"):
+            from backend.game_logic.ledger import charges_grip_clause
+            grip = charges_grip_clause(world, actor,
+                                       int(outcome.get("authority_before", 0)),
+                                       int(outcome.get("authority_after", 0)))
+            if grip:
+                grip_note = f" {grip[0].upper() + grip[1:]}."
         message = (f"{name[0].upper() + name[1:]} is in force — {paid}. "
                    f"It costs {upkeep:,} gold a turn from now on.{staff}{cure_note}"
-                   f"{_authority_note(outcome)}")
+                   f"{_authority_note(outcome)}{grip_note}")
         result = {
             "success": True,
             "message": message,

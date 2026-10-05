@@ -1424,7 +1424,53 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # 28/29/28 provinces at turn 40 on the three seeds while the enemy phase
 # attacks 39/29/39 times (was 31/10/16).
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 11, 8, 5, 2, 4, 1, 0, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-RECORDED ONCE — the economy gate (October 5, 2026; gate record
+# `docs/SCORE_FINISH_SPEC.md` §6.8, memo `docs/audits/ECONOMY_GATE_2026_10_05.md`).
+# Ten levers, each set IN THE CHILD, every one counted, by
+# `tools/_econ_gate_series_arms.py` (record =
+# `tools/_econ_gate_series_arms_final.json`; twelve arms):
+#   0.   every lever DOWN ........................ the series above (the economy
+#                                                   audit's record), BYTE-FOR-BYTE
+#   T    a truce binds the league (EA-19) ........ byte-identical: no court is in
+#                                                   a truce with the passive France
+#   S    a standing league is not reopened ....... display only
+#   N    a league needs two members .............. byte-identical: no league forms
+#                                                   here (the boot one stands)
+#   A    the league aims at its enemy (EAD-7) .... byte-identical: no member is at
+#                                                   war with a fellow member (the
+#                                                   filter reads 320 decisions)
+#   U    the league's silent courts (EAD-8) ...... display only
+#   P    campaign pay (EAD-1) .................... byte-identical alone: billed on
+#                                                   France 2 turns, Spain 12,
+#                                                   Russia 29, Britain 16, Austria 5,
+#                                                   Bavaria 2 — no rung's bar moves
+#   C    the Charges name their price (EAD-2) .... display only
+#   E    the army line at a third (EAD-4) ........ byte-identical: no court stands
+#                                                   between a third and 0.40 here
+#   M    a court without a general commissions ... inert by construction: no
+#        (EA-7's recovery path)                     marshal-less court has a bench
+#   R    the march reads the lawful road (EAD-7) . diverges at [18]: the straight
+#                                                   hop first, the lawful road when
+#                                                   no straight hop is open — 160
+#                                                   decisions had a road, 20 of them
+#                                                   longer than the straight line
+#                                                   (Russia 14, Prussia 3, Austria 3)
+#   ALL. every lever UP (the shipped tree) ...... the series below: R's through
+#                                                   [24], then France's alarm 2 at
+#                                                   [25]; the UNATTENDED France ends
+#                                                   turn 40 with 1 province (12 on
+#                                                   arm 0), Holland eliminated,
+#                                                   Austria 25, Britain 28, Russia 11
+# R is the sole mover: Europe's corps now reach a France that never answers.
+# The commanded arms are the gate's own measurement (memo §7): with the road
+# France holds 26 / 7 / 29 provinces at turn 40 on historical / austerlitz /
+# marengo, and 23 / 24 / 22 / 22 on ulm / jena / eylau / friedland (without
+# it 28 / 29 / 28 and 23 / 24 / 23 / 28) — on austerlitz the truce with
+# Russia collapses at turn 12 and Kutuzov walks from Piedmont to Paris while
+# the scripted army stands in Franconia.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 44, 41, 38, 35, 32, 29, 26, 23, 20, 17, 4, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 def _run_series_subprocess() -> dict:

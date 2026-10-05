@@ -307,4 +307,16 @@ class TestBootDelta:
                    - upkeep["total"] - income["admiralty"]
                    - income["occupation"] - income["contributions"]
                    - income["state_charges"])
+            if nation == "France":
+                # RE-SEATED consciously by the economy gate (October 5, 2026;
+                # EAD-1 campaign pay, SYSTEMS_REFERENCE §98.1): France's
+                # partial measure +45 -> -159 (Bernadotte's 17,000 at
+                # Franconia, an ally's soil, pay 204 — not a naval bill). The
+                # SR-5a restatement holds here as in the E1 file: bankruptcy
+                # is decided by the ledger's FULL Net, the satellites' tribute
+                # included — 828 at boot.
+                from backend.game_logic.ledger import _build_economy
+                assert net == -159, net
+                assert _build_economy(world, "France")["net"] > 0
+                continue
             assert net > 0, f"{nation} goes under at boot: {net}"

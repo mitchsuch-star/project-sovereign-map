@@ -671,7 +671,9 @@ func _render_economy():
 	# EC-U3: the surcharge splits into the ES-3 over-limit part and the Grande
 	# Armée premium (a supermassive standing army's diseconomies of scale).
 	var grande_armee = int(econ.get("grande_armee", 0))
-	var over_limit_surcharge = upkeep_surcharge - grande_armee
+	# EAD-1 (the economy gate): campaign pay is part of the surcharge too.
+	var campaign_pay = int(econ.get("campaign_pay", 0))
+	var over_limit_surcharge = upkeep_surcharge - grande_armee - campaign_pay
 	bbcode += "  Upkeep:   -" + str(upkeep_base) + "g\n"
 	# SR-5a question (c): the army is paid for the men under arms today, and
 	# the note says how the bill moved since the last turn it was charged.
@@ -687,6 +689,18 @@ func _render_economy():
 		bbcode += "[/color]\n"
 	if grande_armee > 0:
 		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Grande Armée surcharge: -" + str(grande_armee) + "g[/color]\n"
+	if campaign_pay > 0:
+		# EAD-1: the corps fed by contract on allied or neutral soil, named.
+		var fed_at = []
+		var ground = econ.get("campaign_ground", [])
+		if ground is Array:
+			for g in ground:
+				if g is Dictionary:
+					fed_at.append(str(g.get("marshal", "")) + " at " + str(g.get("region", "")) + " (" + str(g.get("holder", "")) + ")")
+		bbcode += "  [color=#" + Utils.COLOR_WARNING + "]Campaign pay: -" + str(campaign_pay) + "g"
+		if fed_at.size() > 0:
+			bbcode += "  (fed by contract on allied or neutral soil: " + ", ".join(PackedStringArray(fed_at)) + ")"
+		bbcode += "[/color]\n"
 
 	# "The Levy is Open" (econ spec review §6). The force limit used to render
 	# ONLY inside the over-limit branch above — visible exactly while the gate

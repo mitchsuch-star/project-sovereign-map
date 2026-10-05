@@ -1,0 +1,184 @@
+{
+ "levers": {
+  "all_gate_levers_down": [
+   "backend.game_logic.coalition:A_TRUCE_BINDS_THE_LEAGUE=0",
+   "backend.game_logic.coalition:A_STANDING_LEAGUE_IS_NOT_REOPENED=0",
+   "backend.game_logic.coalition:A_LEAGUE_NEEDS_TWO_MEMBERS=0",
+   "backend.ai.enemy_ai:THE_LEAGUE_AIMS_AT_ITS_ENEMY=0",
+   "backend.ai.enemy_ai:THE_MARCH_READS_THE_LAWFUL_ROAD=0",
+   "backend.game_logic.coalition:THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED=0",
+   "backend.models.world_state:CAMPAIGN_PAY_ON_FOREIGN_SOIL=0",
+   "backend.game_logic.ledger:THE_CHARGES_NAME_THEIR_PRICE=0",
+   "backend.game_logic.coalition:THE_ARMY_LINE_IS_A_THIRD=0",
+   "backend.ai.enemy_ai:A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION=0",
+   "backend.display_names:THE_ORDER_NAMES_ITS_TARGET=0",
+   "backend.game_logic.dispatch:THE_LEAGUES_NEWS_RIDES_BENEATH=0"
+  ],
+  "campaign_pay_down": [
+   "backend.models.world_state:CAMPAIGN_PAY_ON_FOREIGN_SOIL=0"
+  ],
+  "lawful_road_down": [
+   "backend.ai.enemy_ai:THE_MARCH_READS_THE_LAWFUL_ROAD=0"
+  ]
+ },
+ "exits": {
+  "all_gate_levers_down/DL": 0,
+  "all_gate_levers_down/DESC": 0,
+  "all_gate_levers_down/CMD-H": 0,
+  "all_gate_levers_down/CMD-M": 0,
+  "all_gate_levers_down/CMD-A": 0,
+  "campaign_pay_down/DL": 0,
+  "campaign_pay_down/DESC": 0,
+  "campaign_pay_down/CMD-H": 0,
+  "campaign_pay_down/CMD-M": 0,
+  "campaign_pay_down/CMD-A": 0,
+  "lawful_road_down/DL": 0,
+  "lawful_road_down/DESC": 0,
+  "lawful_road_down/CMD-H": 0,
+  "lawful_road_down/CMD-M": 0,
+  "lawful_road_down/CMD-A": 0
+ },
+ "items": {
+  "all_gate_levers_down": {
+   "first_contact.C4": {
+    "measured": true,
+    "pass": true,
+    "evidence": "These orders would be carried out today, Sire: / - ↳ end turn — no military actions remain today / build supply depot in Paris — 300g"
+   },
+   "naval.C3": {
+    "measured": true,
+    "pass": true,
+    "evidence": "quotes 1; odds named True; lever named True; Munster falls True"
+   },
+   "narration.C4": {
+    "measured": true,
+    "pass": true,
+    "evidence": "67 intel rows, each where the store last saw the man or where he stands in full view"
+   },
+   "combat_legibility.C3": {
+    "measured": false,
+    "pass": null,
+    "evidence": "no capital taken after a field battle on the arms"
+   },
+   "ai_aliveness.C6": {
+    "measured": true,
+    "pass": true,
+    "evidence": "turns with a visible AI attack over the turns at war: {'CMD-H': '14/18', 'CMD-A': '12/18', 'CMD-M': '19/30'}"
+   },
+   "economy.C1": {
+    "measured": false,
+    "pass": null,
+    "evidence": "LAW did not run"
+   },
+   "living_balance.F1": {
+    "measured": true,
+    "pass": true,
+    "evidence": "France at turn 40: {'CMD-H': 28, 'CMD-A': 29, 'CMD-M': 28}"
+   },
+   "narration.C1": {
+    "measured": true,
+    "pass": true,
+    "evidence": "worst class in any 10-turn window: {'CMD-H': ('enemy_on_our_soil', 3), 'CMD-A': ('courts_laws', 4), 'CMD-M': ('region_lost', 3)}"
+   },
+   "ai_aliveness.C1": {
+    "measured": true,
+    "pass": false,
+    "evidence": "laws enacted abroad (enacted, lapsed) per seed: {'CMD-H': (20, 0), 'CMD-A': (20, 0), 'CMD-M': (20, 0)}"
+   }
+  },
+  "campaign_pay_down": {
+   "first_contact.C4": {
+    "measured": true,
+    "pass": true,
+    "evidence": "These orders would be carried out today, Sire: / - ↳ end turn — no military actions remain today / build supply depot in Paris — 300g"
+   },
+   "naval.C3": {
+    "measured": true,
+    "pass": true,
+    "evidence": "quotes 1; odds named True; lever named True; Munster falls True"
+   },
+   "narration.C4": {
+    "measured": true,
+    "pass": true,
+    "evidence": "63 intel rows, each where the store last saw the man or where he stands in full view"
+   },
+   "combat_legibility.C3": {
+    "measured": true,
+    "pass": false,
+    "evidence": "1 capital captures after a battle; garrison neither fought nor named: ['CMD-H t6 Munich']"
+   },
+   "ai_aliveness.C6": {
+    "measured": true,
+    "pass": true,
+    "evidence": "turns with a visible AI attack over the turns at war: {'CMD-H': '10/15', 'CMD-A': '12/17', 'CMD-M': '21/37'}"
+   },
+   "economy.C1": {
+    "measured": false,
+    "pass": null,
+    "evidence": "LAW did not run"
+   },
+   "living_balance.F1": {
+    "measured": true,
+    "pass": true,
+    "evidence": "France at turn 40: {'CMD-H': 25, 'CMD-A': 26, 'CMD-M': 21}"
+   },
+   "narration.C1": {
+    "measured": true,
+    "pass": false,
+    "evidence": "worst class in any 10-turn window: {'CMD-H': ('estate_eroding', 4), 'CMD-A': ('estate_eroding', 4), 'CMD-M': ('home_captured', 5)}"
+   },
+   "ai_aliveness.C1": {
+    "measured": true,
+    "pass": true,
+    "evidence": "laws enacted abroad (enacted, lapsed) per seed: {'CMD-H': (17, 0), 'CMD-A': (18, 0), 'CMD-M': (18, 0)}"
+   }
+  },
+  "lawful_road_down": {
+   "first_contact.C4": {
+    "measured": true,
+    "pass": false,
+    "evidence": "These orders would be carried out today, Sire: / - ↳ end turn — no military actions remain today / For any matter of state, press F1 for the Cabinet."
+   },
+   "naval.C3": {
+    "measured": true,
+    "pass": false,
+    "evidence": "quotes 1; odds named False; lever named False; Munster falls False"
+   },
+   "narration.C4": {
+    "measured": true,
+    "pass": true,
+    "evidence": "67 intel rows, each where the store last saw the man or where he stands in full view"
+   },
+   "combat_legibility.C3": {
+    "measured": false,
+    "pass": null,
+    "evidence": "no capital taken after a field battle on the arms"
+   },
+   "ai_aliveness.C6": {
+    "measured": true,
+    "pass": true,
+    "evidence": "turns with a visible AI attack over the turns at war: {'CMD-H': '14/18', 'CMD-A': '12/18', 'CMD-M': '19/30'}"
+   },
+   "economy.C1": {
+    "measured": false,
+    "pass": null,
+    "evidence": "LAW did not run"
+   },
+   "living_balance.F1": {
+    "measured": true,
+    "pass": true,
+    "evidence": "France at turn 40: {'CMD-H': 28, 'CMD-A': 29, 'CMD-M': 28}"
+   },
+   "narration.C1": {
+    "measured": true,
+    "pass": true,
+    "evidence": "worst class in any 10-turn window: {'CMD-H': ('enemy_on_our_soil', 3), 'CMD-A': ('courts_laws', 4), 'CMD-M': ('region_lost', 3)}"
+   },
+   "ai_aliveness.C1": {
+    "measured": true,
+    "pass": false,
+    "evidence": "laws enacted abroad (enacted, lapsed) per seed: {'CMD-H': (20, 0), 'CMD-A': (20, 0), 'CMD-M': (20, 0)}"
+   }
+  }
+ }
+}

@@ -200,6 +200,18 @@ class TestTheTreatyClaimsNoFirstStep:
 
 class TestAStandingQuestionIsNotLoitering:
 
+    @pytest.fixture(autouse=True)
+    def _no_lawful_road(self, monkeypatch):
+        """The economy gate (October 5, 2026): with the march reading the
+        lawful road (EAD-7), Russia's corps now reach Vienna and attack the
+        stranded Davout — measured on 8 seeds, 5 attacked (26,000 down to as
+        low as 10,402) and, on unlucky dice, captured, which clears his
+        question. An enemy capture is not the clock this class pins (nor the
+        treaty's road), so the road is held down here; the gate's own pins
+        cover the road (`tests/test_economy_gate_2026_10_05.py`)."""
+        from backend.ai import enemy_ai as EA
+        monkeypatch.setattr(EA, "THE_MARCH_READS_THE_LAWFUL_ROAD", False)
+
     def test_an_unanswered_ask_never_costs_the_army(self, live, monkeypatch):
         """Interrupts LIVE and unanswered — the unattended shape.
 

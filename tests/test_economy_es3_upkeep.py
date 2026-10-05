@@ -335,8 +335,13 @@ class TestTurn1Anchor:
         grande = ((189000 - GRANDE_ARMEE_THRESHOLD) // 1000) * GRANDE_ARMEE_RATE
         assert grande == 882
         assert upkeep_data["grande_armee"] == 882
-        assert upkeep_data["surcharge"] == 236 + 882  # ES-3 236 + Grande Armée 882
-        assert upkeep_data["total"] == 1512 + 236 + 882
+        # The economy gate (October 5, 2026; EAD-1, SYSTEMS_REFERENCE §98.1)
+        # folds a third component into the surcharge, consciously re-seated:
+        # campaign pay, 204 for Bernadotte's 17,000 at Franconia (an ally's
+        # soil, outside the 1805 homeland). ES-3's own 236 is unchanged.
+        assert upkeep_data["campaign_pay"] == 204
+        assert upkeep_data["surcharge"] == 236 + 882 + 204  # ES-3 + Grande Armée + campaign pay
+        assert upkeep_data["total"] == 1512 + 236 + 882 + 204
 
     def test_austria_reaches_the_severe_band(self, world1805):
         """126k army vs 77.5k limit (150% = 116,250): band1 38,750 → 152g,
@@ -353,7 +358,9 @@ class TestTurn1Anchor:
         (ES-2+ES-3+ES-7+EC-U3) is the E1 test's instrument."""
         from backend.game_logic.diplomacy import calculate_trade_income
         up = world1805.calculate_turn_upkeep("France")
-        es3_only = up["total"] - up["grande_armee"]  # exclude the EC-U3 layer
+        # exclude the EC-U3 layer and the economy gate's campaign pay (EAD-1,
+        # its own `campaign_pay` sub-line — a separate layer, like EC-U3)
+        es3_only = up["total"] - up["grande_armee"] - up["campaign_pay"]
         gross = (
             world1805.calculate_turn_income("France")["income"]
             + calculate_trade_income(world1805).get("France", 0)

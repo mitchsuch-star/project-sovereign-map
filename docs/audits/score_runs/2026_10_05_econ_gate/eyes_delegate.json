@@ -1,0 +1,38 @@
+{
+ "agendas.C6": {
+  "pass": true,
+  "evidence": "the user's delegate, October 5, 2026 (the economy gate) — re-marked from THIS reading's frames: WIZARD_FORMABLES_ENTRY now renders its captured step-1 payload (the Congress of Paris gate and the Formable Nations row — EA-E8 fixed, no 'Loading…'); the Proclamation (flag, the forms line, the terms, one Acknowledge) and FORMABLES_STEP3 pass; the 2.0 Proclamation's terms fold under a scroll (SFR-B11, open)"
+ },
+ "combat_legibility.C6": {
+  "pass": true,
+  "evidence": "the user's delegate, October 5, 2026 — DIORAMA_DADJ_X2: each corps' own before → after (Davout 30,000 → 27,962, Ney 20,000 → 15,471, Moore 60,000 → 56,288) and side totals that add up exactly (6,567 = 2,038 + 4,529; 3,712)"
+ },
+ "first_contact.C2": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — unchanged on this tree: HOLD turn 1 answers 'No lawful road runs from Rhineland to Rhineland for Davout' while the FC arm's counsel lists 'Davout, march to Lorraine' (SFR-H8, SF-RR2's)"
+ },
+ "narration.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — CMD-H sample t1/5/7/10/14/20/27/30/34/40: 9 of 10 lead with the morning's biggest news; the miss is world turn 6 (group 5): the Kingdom of Italy, our satellite, is eliminated that morning (event `nation_eliminated`, lord France) and the page never names it — the lead is Teulie's capture (95), the two sub-beats Ney's reversal (91) and Massena broken (90), so `vassal_lost` (84) is crowded out (EG-X3, SF-RR3's). The digest's own row surfaced two groups late, the EG-I1 shape"
+ },
+ "naval.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — ✗ strict, unchanged: the ADMIRALTY tabs pass, but the compact top bar still draws blank navigation buttons at 2.0 (EA-E1, seen again on TOP_BAR_BOOT_X2) and the chip's blockade border is amber against NAVAL_SPEC §17's crimson (EA-E3) — both SF-RR5's"
+ },
+ "vassals.C6": {
+  "pass": true,
+  "evidence": "the user's delegate, October 5, 2026 — DIPLO_T20_VASSALS: flags, loyalty bars with trend, tribute (337 + 150 = the header's 487), standing, bond, the garrison note, priced chips and honest unavailable reasons"
+ },
+ "ui_ux.C5": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — 8 of 10 of the proposed frames pass on this reading (REGION_PARIS, DISPATCH_FRONT_PAGE — the league's news leads with its price —, LEDGER_T20_ECONOMY — the Charges line names what 1,000g spent saves —, GENERALS_FLAGSHIP_T12, SETTLEMENT_WHITE_REVIEW_RATIFY, DIORAMA_DADJ_X2, LEDGER_T20_ADMIRALTY_X2, CAMPAIGN_END_IMPERIAL_CONGRESS); TOP_BAR_BOOT_X2 (blank compact buttons and a black gear, EA-E1 + EA-E2) and WIZARD_STEP2_AUSTRIA_X2 (the assessment clipped, EA-E5) still fail, both at Interface Scale 2.0 only — SF-RR5's"
+ },
+ "ui_ux.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — ✗ strict, with the gap the last reading left now measured: the new driven client session (arms/CLI/modec/, the real main.tscn against a sandboxed backend, every advertised key pushed as an engine event in both focus states) passes 95 of 95 checks over 5 turns, every modal answered (enemy phases, dioramas, an envoy, a last stand, the letter-book) and nothing blocked; the one known failure is outside the engine — Alt+R is eaten by the NVIDIA overlay on this machine (EA-E9, open, SF-RR5's), which an engine event cannot see. One fifteen-minute session of the user's own still settles the strict reading"
+ },
+ "marshal_drama.C6": {
+  "pass": false,
+  "evidence": "the user's delegate, October 5, 2026 — unchanged code: the petition card's voice is the personality's bank, not the man (Ney's level-1 card is Murat's text with the names swapped; verbatim in docs/audits/ECONOMY_AUDIT_2026_10_05.md §9)"
+ }
+}

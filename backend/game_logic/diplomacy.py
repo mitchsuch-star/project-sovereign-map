@@ -8600,6 +8600,20 @@ def _resolve_defensive_call_path(
 THE_CASCADE_KEEPS_A_FRESH_PEACE = True
 
 
+def declaration_cooldown_left(world, nation_a: str, nation_b: str) -> int:
+    """EA-19 (the economy gate, October 5, 2026): the turns left on the pair
+    cooldown that refuses a declaration of war between `nation_a` and
+    `nation_b` (R99) — the floor every treaty truce writes (5), the floor
+    RS-1's settlement writes, and the exhausted-pair exit's (8). The ONE
+    reading the declaration, the offensive cascade, the war council and the
+    coalition's qualifying gate share, so the forecast never names a court
+    the declaration would refuse. 0 when nothing binds the pair."""
+    if world is None or not nation_a or not nation_b:
+        return 0
+    return int((getattr(world, "armistice_cooldowns", {}) or {}).get(
+        world._make_diplo_key(nation_a, nation_b), 0) or 0)
+
+
 def offensive_call_bar(world, callee: str, target: str) -> str:
     """Why `callee` cannot be called into an OFFENSIVE war against `target`
     by an ally's declaration — '' when nothing bars it. Three readings, in
@@ -8615,8 +8629,7 @@ def offensive_call_bar(world, callee: str, target: str) -> str:
     from backend.game_logic.coalition import peace_with_target_is_fresh
     if peace_with_target_is_fresh(callee, world, target):
         return f"fresh peace with {target}"
-    cooldown = int((getattr(world, "armistice_cooldowns", {}) or {}).get(
-        world._make_diplo_key(callee, target), 0) or 0)
+    cooldown = declaration_cooldown_left(world, callee, target)
     if cooldown > 0:
         return f"a truce's cooldown binds it to {target} ({cooldown} more turns)"
     from backend.game_logic.congress import spared_from_coalition
@@ -8804,8 +8817,9 @@ def declare_war(
         # WPS-A: future AI-AI/opportunistic wars default to conquest.
         war_objective = "conquest"
 
-    # R99: Block war declaration during armistice cooldown
-    armistice_cooldown = getattr(world, 'armistice_cooldowns', {}).get(diplo_key, 0)
+    # R99: Block war declaration during armistice cooldown (EA-19: the one
+    # reading the coalition's qualifying gate shares)
+    armistice_cooldown = declaration_cooldown_left(world, aggressor, target)
     if armistice_cooldown > 0:
         return {
             "success": False,

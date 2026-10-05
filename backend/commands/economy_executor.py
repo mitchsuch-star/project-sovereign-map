@@ -1182,12 +1182,27 @@ class EconomyExecutor:
             lines.append(f"    {ub['marshal']} ({ub['strength']:,} troops): -{ub['upkeep']}g")
         # ES-3 (S5): over-limit surcharge line — the army exceeds the
         # nation's force limit, so the excess pays super-linear upkeep
-        if upkeep_data.get("surcharge", 0) > 0:
+        # EAD-1 (the economy gate): the surcharge carries the Grande Armée
+        # premium and campaign pay too — each named on its own line, so the
+        # over-limit line is the over-limit band alone.
+        grande_val = int(upkeep_data.get("grande_armee", 0) or 0)
+        campaign_val = int(upkeep_data.get("campaign_pay", 0) or 0)
+        over_val = int(upkeep_data.get("surcharge", 0) or 0) - grande_val - campaign_val
+        if over_val > 0:
             lines.append(
                 f"    Over force limit "
                 f"({upkeep_data['total_strength']:,} / {upkeep_data['force_limit']:,}): "
-                f"-{upkeep_data['surcharge']}g surcharge"
+                f"-{over_val}g surcharge"
             )
+        if grande_val > 0:
+            lines.append(f"    Grande Armée premium: -{grande_val}g")
+        if campaign_val > 0:
+            from backend.display_names import humanize_entity_name
+            fed = ", ".join(
+                f"{humanize_entity_name(str(g.get('marshal', '')))} at {g.get('region')}"
+                for g in (upkeep_data.get("campaign_ground") or []))
+            lines.append(f"    Campaign pay (fed by contract on allied or neutral "
+                         f"soil: {fed}): -{campaign_val}g")
 
         # Admin bonus
         if admin_bonus > 0:

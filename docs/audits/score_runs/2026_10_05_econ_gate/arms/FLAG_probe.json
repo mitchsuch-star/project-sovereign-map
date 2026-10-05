@@ -1,0 +1,331 @@
+{
+ "exit": 0,
+ "rows": [
+  {
+   "turn": 1,
+   "kind": "jealousy_confrontation",
+   "speaker": "Murat",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 2,
+   "opened": true
+  },
+  {
+   "turn": 1,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "audience",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 3,
+   "kind": "jealousy_confrontation",
+   "speaker": "Soult",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 4,
+   "opened": true
+  },
+  {
+   "turn": 4,
+   "kind": "jealousy_confrontation",
+   "speaker": "Ney",
+   "tier": "audience",
+   "level": 1,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 5,
+   "opened": true
+  },
+  {
+   "turn": 4,
+   "kind": "jealousy_confrontation",
+   "speaker": "Davout",
+   "tier": "audience",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 5,
+   "kind": "jealousy_confrontation",
+   "speaker": "Davout",
+   "tier": "audience",
+   "level": 1,
+   "status": "queued",
+   "fate": "evicted",
+   "fate_turn": 5,
+   "opened": false
+  },
+  {
+   "turn": 5,
+   "kind": "rivalry_confrontation",
+   "speaker": "Ney",
+   "tier": "audience",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 5,
+   "kind": "jealousy_confrontation",
+   "speaker": "Ney",
+   "tier": "crisis",
+   "level": 2,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 6,
+   "opened": true
+  },
+  {
+   "turn": 5,
+   "kind": "shadow_command",
+   "speaker": "Massena",
+   "tier": "audience",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 6,
+   "kind": "jealousy_confrontation",
+   "speaker": "Davout",
+   "tier": "crisis",
+   "level": 2,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 7,
+   "opened": true
+  },
+  {
+   "turn": 6,
+   "kind": "shadow_command",
+   "speaker": "Massena",
+   "tier": "audience",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 7,
+   "kind": "shadow_command",
+   "speaker": "Massena",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:detach",
+   "fate_turn": 8,
+   "opened": true
+  },
+  {
+   "turn": 8,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "audience",
+   "level": 1,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 9,
+   "opened": true
+  },
+  {
+   "turn": 14,
+   "kind": "jealousy_confrontation",
+   "speaker": "Murat",
+   "tier": "crisis",
+   "level": 3,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 15,
+   "opened": true
+  },
+  {
+   "turn": 14,
+   "kind": "rivalry_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "crisis",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 14,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "crisis",
+   "level": 2,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 15,
+   "kind": "jealousy_confrontation",
+   "speaker": "Soult",
+   "tier": "audience",
+   "level": 1,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 16,
+   "opened": true
+  },
+  {
+   "turn": 17,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "crisis",
+   "level": 3,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 18,
+   "opened": true
+  },
+  {
+   "turn": 23,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 24,
+   "opened": true
+  }
+ ],
+ "silent": [],
+ "fire_lines": [
+  [
+   1,
+   "Murat",
+   "Ney",
+   "kept"
+  ],
+  [
+   1,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   2,
+   "Murat",
+   "Ney",
+   "kept"
+  ],
+  [
+   3,
+   "Soult",
+   "Ney",
+   "kept"
+  ],
+  [
+   4,
+   "Ney",
+   "Murat",
+   "kept"
+  ],
+  [
+   4,
+   "Davout",
+   "Murat",
+   "kept"
+  ],
+  [
+   5,
+   "Davout",
+   "Murat",
+   "kept"
+  ],
+  [
+   5,
+   "Ney",
+   "Murat",
+   "kept"
+  ],
+  [
+   6,
+   "Davout",
+   "Murat",
+   "kept"
+  ],
+  [
+   8,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   8,
+   "Soult",
+   "Ney",
+   "kept"
+  ],
+  [
+   14,
+   "Murat",
+   "Ney",
+   "kept"
+  ],
+  [
+   14,
+   "Ney",
+   "Murat",
+   "kept"
+  ],
+  [
+   14,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   15,
+   "Soult",
+   "Ney",
+   "kept"
+  ],
+  [
+   17,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   19,
+   "Bernadotte",
+   "Murat",
+   "kept"
+  ],
+  [
+   21,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   23,
+   "Bernadotte",
+   "Soult",
+   "kept"
+  ]
+ ]
+}

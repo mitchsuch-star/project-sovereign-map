@@ -1,0 +1,30 @@
+{
+ "tests/test_combat_sweep_metrics.py": {
+  "exit": 0,
+  "summary": "11 passed, 1 warning in 1.76s"
+ },
+ "tests/test_ai_intent_threat_migration.py": {
+  "exit": 0,
+  "summary": "18 passed, 1 warning in 3.19s"
+ },
+ "tests/test_ai_intent_assurance.py": {
+  "exit": 0,
+  "summary": "54 passed, 1 warning in 18.74s"
+ },
+ "tests/test_naval_channel_gate.py": {
+  "exit": 0,
+  "summary": "35 passed, 1 warning in 1.21s"
+ },
+ "tests/test_naval_substrate.py": {
+  "exit": 0,
+  "summary": "50 passed, 1 warning in 1.38s"
+ },
+ "tests/test_nation_agendas.py": {
+  "exit": 0,
+  "summary": "184 passed, 1 warning in 1.96s"
+ },
+ "tests/test_nation_agendas_formables.py": {
+  "exit": 0,
+  "summary": "225 passed, 1 warning in 2.45s"
+ }
+}

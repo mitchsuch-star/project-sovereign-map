@@ -1,0 +1,663 @@
+{
+ "backend": "http://127.0.0.1:8023",
+ "blocked": false,
+ "cannot_see": [
+  "a key the operating system eats before the engine (EA-E9's overlay)",
+  "whether the screens look right (the client arm's frames, the user's eye)"
+ ],
+ "checks": [
+  {
+   "check": "the client connects to the backend",
+   "detail": ", Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n",
+   "ok": true
+  },
+  {
+   "check": "turn 1: L opens event_log (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes event_log",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+L opens event_log while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes event_log from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "turn 1: a bare L while typing types the letter",
+   "detail": "text: 'l', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "turn 1: T opens ledger (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes ledger",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+T opens ledger while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes ledger from the command line",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "turn 1: a bare T while typing types the letter",
+   "detail": "text: 't', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "turn 1: G opens generals (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes generals",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+G opens generals while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes generals from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "turn 1: a bare G while typing types the letter",
+   "detail": "text: 'g', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "turn 1: D opens diplomatic_ledger (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes diplomatic_ledger",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+D opens diplomatic_ledger while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes diplomatic_ledger from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "turn 1: a bare D while typing types the letter",
+   "detail": "text: 'd', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "turn 1: R opens dispatch (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes dispatch",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+R opens dispatch while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes dispatch from the command line",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "turn 1: a bare R while typing types the letter",
+   "detail": "text: 'r', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "turn 1: N opens gazette (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes gazette",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+N opens gazette while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes gazette from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "turn 1: a bare N while typing types the letter",
+   "detail": "text: 'n', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "turn 1: keys 1–8 turn the ledger's books",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+1–8 turn the ledger's books while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: keys 1–7 turn the diplomatic_ledger's books",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+1–7 turn the diplomatic_ledger's books while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: F1 opens the diplomacy wizard (unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes the wizard (unfocused)",
+   "detail": "escapes: 1",
+   "ok": true
+  },
+  {
+   "check": "turn 1: F1 opens the diplomacy wizard (typing)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape closes the wizard (typing)",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Tab folds and restores the terminal",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+` folds the terminal while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "turn 1: M changes the map mode (unfocused)",
+   "detail": "blended → political",
+   "ok": true
+  },
+  {
+   "check": "turn 1: + and - zoom the map (unfocused)",
+   "detail": "0.050 → 0.055 → 0.050",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Home answers (unfocused)",
+   "detail": "the camera re-centres (no assertion on the position)",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+M changes the map mode (typing)",
+   "detail": "political → terrain",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt++ and Alt+- zoom the map (typing)",
+   "detail": "0.050 → 0.055 → 0.050",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Alt+Home answers (typing)",
+   "detail": "the camera re-centres (no assertion on the position)",
+   "ok": true
+  },
+  {
+   "check": "turn 1: Escape opens the pause menu and Escape closes it",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: L opens event_log (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes event_log",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+L opens event_log while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes event_log from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "after the turns: a bare L while typing types the letter",
+   "detail": "text: 'l', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "after the turns: T opens ledger (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes ledger",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+T opens ledger while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes ledger from the command line",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "after the turns: a bare T while typing types the letter",
+   "detail": "text: 't', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "after the turns: G opens generals (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes generals",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+G opens generals while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes generals from the command line",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "after the turns: a bare G while typing types the letter",
+   "detail": "text: 'g', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "after the turns: D opens diplomatic_ledger (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes diplomatic_ledger",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+D opens diplomatic_ledger while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes diplomatic_ledger from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "after the turns: a bare D while typing types the letter",
+   "detail": "text: 'd', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "after the turns: R opens dispatch (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes dispatch",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+R opens dispatch while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes dispatch from the command line",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "after the turns: a bare R while typing types the letter",
+   "detail": "text: 'r', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "after the turns: N opens gazette (command line unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes gazette",
+   "detail": "active: ",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+N opens gazette while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes gazette from the command line",
+   "detail": "escapes: 2",
+   "ok": true
+  },
+  {
+   "check": "after the turns: a bare N while typing types the letter",
+   "detail": "text: 'n', screen: ''",
+   "ok": true
+  },
+  {
+   "check": "after the turns: keys 1–8 turn the ledger's books",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+1–8 turn the ledger's books while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: keys 1–7 turn the diplomatic_ledger's books",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+1–7 turn the diplomatic_ledger's books while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: F1 opens the diplomacy wizard (unfocused)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes the wizard (unfocused)",
+   "detail": "escapes: 1",
+   "ok": true
+  },
+  {
+   "check": "after the turns: F1 opens the diplomacy wizard (typing)",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape closes the wizard (typing)",
+   "detail": "escapes: 3",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Tab folds and restores the terminal",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+` folds the terminal while typing",
+   "detail": "",
+   "ok": true
+  },
+  {
+   "check": "after the turns: M changes the map mode (unfocused)",
+   "detail": "terrain → blended",
+   "ok": true
+  },
+  {
+   "check": "after the turns: + and - zoom the map (unfocused)",
+   "detail": "0.050 → 0.055 → 0.050",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Home answers (unfocused)",
+   "detail": "the camera re-centres (no assertion on the position)",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+M changes the map mode (typing)",
+   "detail": "blended → political",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt++ and Alt+- zoom the map (typing)",
+   "detail": "0.050 → 0.055 → 0.050",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Alt+Home answers (typing)",
+   "detail": "the camera re-centres (no assertion on the position)",
+   "ok": true
+  },
+  {
+   "check": "after the turns: Escape opens the pause menu and Escape closes it",
+   "detail": "",
+   "ok": true
+  }
+ ],
+ "failed_checks": [],
+ "modals": [
+  {
+   "context": "turn 1 end",
+   "dialog": "enemy_phase",
+   "pressed": "Continue",
+   "turn": 2
+  },
+  {
+   "context": "turn 1 end",
+   "dialog": "battle_diorama",
+   "pressed": "Escape",
+   "turn": 2
+  },
+  {
+   "context": "turn 1 end",
+   "dialog": "battle_diorama",
+   "pressed": "Close",
+   "turn": 2
+  },
+  {
+   "context": "after 'what can I do'",
+   "dialog": "incoming_proposal",
+   "pressed": "Accept",
+   "turn": 2
+  },
+  {
+   "context": "after 'what can I do'",
+   "dialog": "mailbox_panel",
+   "pressed": "Close",
+   "turn": 2
+  },
+  {
+   "context": "turn 2 end",
+   "dialog": "enemy_phase",
+   "pressed": "Continue",
+   "turn": 3
+  },
+  {
+   "context": "turn 2 end",
+   "dialog": "battle_diorama",
+   "pressed": "Escape",
+   "turn": 3
+  },
+  {
+   "context": "turn 2 end",
+   "dialog": "battle_diorama",
+   "pressed": "Close",
+   "turn": 3
+  },
+  {
+   "context": "after 'Ney, scout Swabia'",
+   "dialog": "mailbox_panel",
+   "pressed": "Close",
+   "turn": 3
+  },
+  {
+   "context": "turn 3 end",
+   "dialog": "enemy_phase",
+   "pressed": "Continue",
+   "turn": 4
+  },
+  {
+   "context": "turn 3 end",
+   "dialog": "interrupt",
+   "pressed": "Fight to the Last",
+   "turn": 4
+  },
+  {
+   "context": "turn 3 end",
+   "dialog": "battle_diorama",
+   "pressed": "Escape",
+   "turn": 4
+  },
+  {
+   "context": "turn 3 end",
+   "dialog": "battle_diorama",
+   "pressed": "Close",
+   "turn": 4
+  },
+  {
+   "context": "turn 3 end",
+   "dialog": "mailbox_panel",
+   "pressed": "Close",
+   "turn": 4
+  },
+  {
+   "context": "turn 4 end",
+   "dialog": "enemy_phase",
+   "pressed": "Continue",
+   "turn": 5
+  },
+  {
+   "context": "turn 4 end",
+   "dialog": "battle_diorama",
+   "pressed": "Escape",
+   "turn": 5
+  },
+  {
+   "context": "turn 4 end",
+   "dialog": "battle_diorama",
+   "pressed": "Close",
+   "turn": 5
+  },
+  {
+   "context": "after 'who am I fighting'",
+   "dialog": "mailbox_panel",
+   "pressed": "Close",
+   "turn": 5
+  },
+  {
+   "context": "turn 5 end",
+   "dialog": "enemy_phase",
+   "pressed": "Continue",
+   "turn": 6
+  },
+  {
+   "context": "turn 5 end",
+   "dialog": "battle_diorama",
+   "pressed": "Escape",
+   "turn": 6
+  },
+  {
+   "context": "turn 5 end",
+   "dialog": "battle_diorama",
+   "pressed": "Close",
+   "turn": 6
+  }
+ ],
+ "seconds": 33,
+ "turns": [
+  {
+   "advanced": true,
+   "end_by": "typed",
+   "lapse_confirms": 0,
+   "order": "Davout, fortify",
+   "order_reply": "\n► Davout, fortify\n[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Davout fortifies position at Rhineland. Defense bonus: +7% (grows +3% per turn, max 12%) (Iron Marshal: +5% instant, +3%/turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile.\n   [2/4 actions remaining]\n\n",
+   "turn": 1,
+   "turn_after": 2
+  },
+  {
+   "advanced": true,
+   "end_by": "E",
+   "lapse_confirms": 1,
+   "order": "what can I do",
+   "order_reply": "",
+   "turn": 2,
+   "turn_after": 3
+  },
+  {
+   "advanced": true,
+   "end_by": "Alt+E",
+   "lapse_confirms": 1,
+   "order": "Ney, scout Swabia",
+   "order_reply": "\n► Ney, scout Swabia\n👁 Ney scouts Swabia: Controlled by Austria. Terrain: Plains. Enemy forces: Mack (Austria): ~46,952 troops\n   [3/4 actions remaining]\n\n",
+   "turn": 3,
+   "turn_after": 4
+  },
+  {
+   "advanced": true,
+   "end_by": "button",
+   "lapse_confirms": 1,
+   "order": "status",
+   "order_reply": "",
+   "turn": 4,
+   "turn_after": 5
+  },
+  {
+   "advanced": true,
+   "end_by": "typed",
+   "lapse_confirms": 1,
+   "order": "who am I fighting",
+   "order_reply": "\n► who am I fighting\nWe are at war with the Third Coalition (Britain, Austria and Russia), Sire — war score -24 (losing), in its 5th turn. Our purpose: the defense of the homeland — 28 of 28 provinces held. Their designs: Britain pursues The Low Countries; Austria pursues Revanche; Russia pursues Arbiter of Europe. Each war is on the war banner on the left (click the war); every court's design in the Diplomatic Ledger (press D).\n\n",
+   "turn": 5,
+   "turn_after": 6
+  }
+ ],
+ "turns_played": 5
+}

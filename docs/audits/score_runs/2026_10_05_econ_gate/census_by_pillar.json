@@ -1,0 +1,195 @@
+{
+ "pillars": {
+  "agendas": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SFR-B12"
+   ]
+  },
+  "ai_aliveness": {
+   "open": 6,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "SFR-D5",
+    "SFR-D35",
+    "SFR-B4",
+    "SFR-B14",
+    "EG-D1",
+    "EG-D3"
+   ]
+  },
+  "combat_legibility": {
+   "open": 5,
+   "p1": [],
+   "p2": 2,
+   "rows": [
+    "SFR-D4",
+    "SFR-D15",
+    "SFR-D17",
+    "SFR-D31",
+    "SFR-B10"
+   ]
+  },
+  "command": {
+   "open": 16,
+   "p1": [],
+   "p2": 9,
+   "rows": [
+    "SFR-H2",
+    "SFR-H3",
+    "SFR-H5",
+    "SFR-H6",
+    "SFR-H7",
+    "SFR-H13",
+    "SFR-D7",
+    "SFR-D8",
+    "SFR-D9",
+    "SFR-D10",
+    "SFR-D20",
+    "SFR-D24",
+    "SFR-D25",
+    "SFR-D37",
+    "SFR-D38",
+    "SFR-D41"
+   ]
+  },
+  "diplomacy": {
+   "open": 11,
+   "p1": [],
+   "p2": 5,
+   "rows": [
+    "EA-E4",
+    "SFR-D16",
+    "SFR-D26",
+    "SFR-D28",
+    "SFR-D34",
+    "SFR-D40",
+    "SFR-D42",
+    "SFR-B1",
+    "SFR-B2",
+    "SFR-B5",
+    "SFR-B13"
+   ]
+  },
+  "economy": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "EA-2"
+   ]
+  },
+  "ending": {
+   "open": 1,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "SFR-B3"
+   ]
+  },
+  "first_contact": {
+   "open": 9,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "SFR-H4",
+    "SFR-H8",
+    "SFR-H9",
+    "SFR-H10",
+    "SFR-H11",
+    "SFR-H12",
+    "SFR-H14",
+    "SFR-D2",
+    "SFR-D19"
+   ]
+  },
+  "living_balance": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "EG-D2"
+   ]
+  },
+  "marshal_drama": {
+   "open": 5,
+   "p1": [],
+   "p2": 3,
+   "rows": [
+    "SFR-D3",
+    "SFR-D6",
+    "SFR-D18",
+    "SFR-D22",
+    "SFR-B6"
+   ]
+  },
+  "narration": {
+   "open": 11,
+   "p1": [],
+   "p2": 4,
+   "rows": [
+    "SFR-D14",
+    "SFR-D21",
+    "SFR-D29",
+    "SFR-D30",
+    "SFR-D32",
+    "SFR-D33",
+    "SFR-D36",
+    "SFR-D43",
+    "SFR-D44",
+    "SFR-B8",
+    "SFR-B9"
+   ]
+  },
+  "naval": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "EA-E3"
+   ]
+  },
+  "none": {
+   "open": 5,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SFR-I2",
+    "SFR-I4",
+    "SFR-I5",
+    "SFR-I6",
+    "SFR-I7"
+   ]
+  },
+  "ui_ux": {
+   "open": 8,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "EA-E1",
+    "EA-E2",
+    "EA-E5",
+    "EA-E6",
+    "EA-E7",
+    "EA-E9",
+    "SFR-D27",
+    "SFR-B11"
+   ]
+  },
+  "vassals": {
+   "open": 2,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SFR-B7",
+    "SFR-B15"
+   ]
+  }
+ },
+ "untagged": [],
+ "counted_at": "2026-10-05T18:26",
+ "open_total": 83
+}

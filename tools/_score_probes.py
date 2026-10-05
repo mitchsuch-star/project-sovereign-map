@@ -738,6 +738,25 @@ THE_PROBE_READS_THE_WHOLE_PAGE = True
 # The news counts on the previous page only when that morning recorded no
 # table at all. False = the page of the rows' first turn only.
 THE_C5_READER_KNOWS_A_TABLELESS_MORNING = True
+# EG-I1 (the economy gate, October 5, 2026): a campaign-log row the driver
+# records LATE — `log_turn` 24 surfacing in turn 34's group on the gate's
+# CMD-M arm, its own morning's page having LED with it ("London now pays St
+# Petersburg 500 gold a turn against us") — was judged against the wrong
+# morning and reported "missed". Each group's log rows are the next
+# morning's (group t holds the end turn's response: world turn t+1's page and
+# its fresh rows), so a row is judged on the page of ITS OWN morning (group
+# `log_turn` − 1) and counted once. False = every row judged on the group it
+# surfaced in.
+THE_C5_READER_JUDGES_A_ROW_ON_ITS_OWN_MORNING = True
+# EG-I2 (the economy gate, October 5, 2026): EA-16's rule looked back ONE
+# table-less morning. On the gate's CMD-A arm the old league stood for two
+# (groups 8 and 9 record no table), and the page told the news on the first
+# of them ("Prussia would now join a league against us … she would march in
+# the next"); the reader looked at the second and reported Prussia "missed".
+# The news counts on any page of the run of table-less mornings before the
+# table — EA-16's rule widened, so it rides on EA-16's lever too. False = the
+# one morning EA-16 read.
+THE_C5_READER_KNOWS_A_RUN_OF_TABLELESS_MORNINGS = True
 
 
 def _page_text(dispatch_rec: dict) -> str:
@@ -801,6 +820,15 @@ def living_balance_c5_front_page(arms, ctx):
         peace_turns[n] = peace_turn
         prev_majors = None
         prev_page, prev_tableless = "", False
+        # EG-I1: every group's page, so a late row is judged on its own morning
+        pages_by_group = {}
+        for g in _groups(a):
+            _d = next((r for r in g if r.get("kind") == "dispatch"), {})
+            pages_by_group[g[0].get("turn")] = (
+                _page_text(_d) if THE_PROBE_READS_THE_WHOLE_PAGE
+                else str(_d.get("headline", "")))
+        judged = set()
+        tableless_run: list = []   # EG-I2: the pages of the run before a table
         for g in _groups(a):
             t = g[0].get("turn")
             disp = next((r for r in g if r.get("kind") == "dispatch"), {})
@@ -815,6 +843,7 @@ def living_balance_c5_front_page(arms, ctx):
             if t is None or t <= peace_turn:
                 prev_majors = majors if "league_rows" in disp else prev_majors
                 prev_page, prev_tableless = page, tableless
+                tableless_run = tableless_run + [page] if tableless else []
                 continue
             spons = [
                 r
@@ -825,7 +854,27 @@ def living_balance_c5_front_page(arms, ctx):
                     r"against France|aim.*France", str(r.get("text", "")), re.I
                 )
             ]
-            if spons:
+            if spons and THE_C5_READER_JUDGES_A_ROW_ON_ITS_OWN_MORNING:
+                for r in spons:
+                    key = (str(r.get("text", "")), r.get("log_turn"))
+                    if key in judged:
+                        continue
+                    judged.add(key)
+                    own = (int(r["log_turn"]) - 1 if isinstance(r.get("log_turn"), int)
+                           else t)
+                    if own is None or own <= peace_turn or own not in pages_by_group:
+                        continue
+                    own_page = pages_by_group[own]
+                    seen += 1
+                    if THE_PROBE_READS_THE_WHOLE_PAGE:
+                        told = bool(re.search(r"pays .* against us|licenses .* against us", own_page))
+                    else:
+                        told = bool(re.search(r"sponsor|pays|subsid|purse|league", own_page, re.I))
+                    if told:
+                        led += 1
+                    else:
+                        missed.append(f"{n} t{own} sponsorship")
+            elif spons:
                 seen += len(spons)
                 if THE_PROBE_READS_THE_WHOLE_PAGE:
                     told = bool(re.search(r"pays .* against us|licenses .* against us", page))
@@ -843,12 +892,16 @@ def living_balance_c5_front_page(arms, ctx):
                         said = rf"{re.escape(display_nation(nation))}[^.]*would now join a league"
                         if re.search(said, page) or (
                                 THE_C5_READER_KNOWS_A_TABLELESS_MORNING
-                                and prev_tableless and re.search(said, prev_page)):
+                                and prev_tableless and re.search(said, prev_page)) or (
+                                THE_C5_READER_KNOWS_A_TABLELESS_MORNING
+                                and THE_C5_READER_KNOWS_A_RUN_OF_TABLELESS_MORNINGS
+                                and any(re.search(said, pg) for pg in tableless_run)):
                             fresh_told += 1
                         else:
                             missed.append(f"{n} t{t} {nation} newly free")
                 prev_majors = majors
             prev_page, prev_tableless = page, tableless
+            tableless_run = tableless_run + [page] if tableless else []
             if any(
                 re.search(
                     r"keep .* out|to keep|buy off|price to",

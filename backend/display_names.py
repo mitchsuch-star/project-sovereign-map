@@ -1404,6 +1404,24 @@ def humanize_entity_name(name: str) -> str:
     return _CAMEL_BOUNDARY_RE.sub(" ", str(name)).replace("_", " ")
 
 
+# EG-X1 (the economy gate, October 5, 2026 — found by NPC-12's driven name
+# census once the board first sent a French marshal after Archduke Charles):
+# a standing order's TARGET is the resolved key ("ArchdukeCharles"), and six
+# surfaces printed it raw — the ledger's order line, the dispatch's status
+# note, the campaign log's order line, and the march report's pursuit lines.
+# ONE display form for an order's target; a province name passes unchanged.
+# False = the raw key, as before.
+THE_ORDER_NAMES_ITS_TARGET = True
+
+
+def order_target_display(target) -> str:
+    """The player-facing name of a strategic order's target (a marshal key or
+    a province): "Archduke Charles", never "ArchdukeCharles"."""
+    if not THE_ORDER_NAMES_ITS_TARGET:
+        return target
+    return humanize_entity_name(target) if target else target
+
+
 # SR-6b RS-29: the court's own rank in the honorific. False = "Marshal" for
 # everyone but a sovereign.
 THE_HONORIFIC_IS_THE_COURTS_OWN = True

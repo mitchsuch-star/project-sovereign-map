@@ -853,14 +853,28 @@ SHOTS += [
                      "name (nothing died to make it); the engraved forms line; one Acknowledge; no raw tag",
     },
     {
+        # EA-E8 (the economy gate, October 5, 2026): this row was staged as
+        # `open`, which sends `_fetch_nations` over a raw HTTPRequest to
+        # whatever answers on the port — the player's own game when it runs
+        # on 8005 — and shot the "Loading…" frame two EYES votes rested on.
+        # It renders the captured step-1 payload like every other wizard
+        # shot (`_render_nations` adds the Formable Nations entry itself).
         "id": "wizard_formables_entry",
         "surface": "The Cabinet wizard — step 1 with the Formable Nations entry (NA-6d §11.6-8)",
-        "payload": "formables_after_carve",
+        "payload": "wizard_nations",
         "scene": "res://scenes/diplomacy_wizard.tscn",
-        "mode": "call", "method": "open", "args": [],
+        "mode": "call", "method": "show", "args": [],
+        "steps": [
+            {"set_path": "_current_step", "value": 1},
+            {"set_path": "title_label.text", "value": "DIPLOMACY"},
+            {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
+            {"call": "_lay_out_prompt", "args": [1]},
+            {"call": "_render_nations", "args": ["$payload"]},
+            {"call": "refit", "args": []},
+            {"wait": 4},
+        ],
         "must_show": "the one-line step-1 prompt; the nation list; the 'Formable Nations' entry present and "
-                     "enabled. ⚠ The step-3 chip rows fetch GET /formables over a raw HTTPRequest the harness "
-                     "cannot stub — they need a live backend on SOVEREIGN_PORT; owed to Step 7's client pass",
+                     "enabled (the step-3 rows are wizard_formables_step3's, rendered from GET /formables)",
     },
     # ═══ Score Finish Step 7 slices 7–8 (registered by the Step 7 frames, Oct 4) ═══
     {

@@ -87,9 +87,15 @@ DRIVER = REPO / "tools" / "playtest_driver.py"
 # at war, so the projected rate is 88, not 80): 2,000 + 1,032 x 2,500 // 88
 # = 31,318, and the lever-down readings move with it (measured). Before that
 # fix, on the ruled board: {800: 34_250, 5_000: 31_250, 20_000: 16_250, ...}.
-MEASURED_DEFECT = {800: 31_318, 5_000: 28_335, 20_000: 13_335,
+# The economy gate (October 5, 2026; EAD-1 campaign pay, SYSTEMS_REFERENCE
+# §98.1) re-seated it consciously: France's boot Net 1,032 -> 828 (Bernadotte's
+# 17,000 at Franconia, an ally's soil, pay 204), so the fixed point is
+# 2,000 + 828 x 2,500 // 88 = 25,522 and the lever-down readings move with it
+# (measured, both levers; with campaign pay's lever down it reads 31,318
+# again). Before the gate: {800: 31_318, 5_000: 28_335, 20_000: 13_335, ...}.
+MEASURED_DEFECT = {800: 25_522, 5_000: 22_539, 20_000: 7_539,
                    40_000: 0, 60_000: 0, 88_556: 0}
-TRUE_FIXED_POINT = 31_318
+TRUE_FIXED_POINT = 25_522
 
 
 @pytest.fixture

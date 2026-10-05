@@ -1322,6 +1322,14 @@ def driver_revision() -> str:
     return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
 
 
+# EG-I3 (the economy gate, October 5, 2026): a landing line answered "There
+# is no Marshal 'Oudinot' in the order of battle" (an `unknown_name`
+# clarification) never ran either — measured on the gate's DESC arm, where the
+# staging commission fell 18 gold short and the arm was filed as naval
+# evidence. False = only an outright refusal counts as not run.
+THE_TRACKER_KNOWS_AN_UNKNOWN_NAME = True
+
+
 class ExpeditionTracker:
     """FA-85: a naval script whose every `land` / expedition line is REFUSED
     must not be filed as evidence of a mechanic that never ran — the archived
@@ -1337,8 +1345,14 @@ class ExpeditionTracker:
         if not any(low.startswith(n) or n in low for n in self.NEEDLES):
             return
         self.issued += 1
-        if (response or {}).get("success") is not False:
-            self.ran += 1
+        resp = response or {}
+        if resp.get("success") is False:
+            return
+        if (THE_TRACKER_KNOWS_AN_UNKNOWN_NAME
+                and resp.get("state") == "awaiting_clarification"
+                and resp.get("clarification_kind") == "unknown_name"):
+            return
+        self.ran += 1
 
     def precondition_failed(self) -> bool:
         return self.issued > 0 and self.ran == 0

@@ -421,7 +421,15 @@ def _law_terms(world, nation: str) -> Optional[str]:
         effects = [e for e in (R.effect_line(c) for c in (row.get("effects") or [])) if e]
         typed = "enact the Staff" if R.is_staff(row) else f"enact {R.display_name(row)}"
         line = f"{typed} — {need:,}g, then {upkeep:,}g a turn"
-        return f"{line} ({'; '.join(effects)})" if effects else line
+        line = f"{line} ({'; '.join(effects)})" if effects else line
+        # EAD-2: the gold leaves the chest the Charges of Empire draw on —
+        # say what the purchase takes off next turn's draw (the ONE source).
+        from backend.game_logic.ledger import THE_CHARGES_NAME_THEIR_PRICE
+        if THE_CHARGES_NAME_THEIR_PRICE and hasattr(world, "charges_relief"):
+            relief = int(world.charges_relief(nation, need))
+            if relief > 0:
+                line += f"; the Charges of Empire fall by {relief:,}g a turn"
+        return line
     return None
 
 

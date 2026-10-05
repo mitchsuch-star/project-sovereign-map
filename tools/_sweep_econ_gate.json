@@ -1,0 +1,331 @@
+[
+ {
+  "id": "EA-19 lever down",
+  "file": "backend/game_logic/coalition.py",
+  "old": "A_TRUCE_BINDS_THE_LEAGUE = True",
+  "new": "A_TRUCE_BINDS_THE_LEAGUE = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestATruceBindsTheLeague::test_a_truce_partner_does_not_qualify"
+ },
+ {
+  "id": "EA-19 the gate's cooldown read dropped",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if declaration_cooldown_left(world, nation, tgt) > 0:\n            return False",
+  "new": "        if False:\n            return False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestATruceBindsTheLeague::test_a_truce_partner_does_not_qualify"
+ },
+ {
+  "id": "EA-19 the forecast's truce status dropped",
+  "file": "backend/game_logic/coalition.py",
+  "old": "                if (held > 0 and state == \"ARMISTICE\"",
+  "new": "                if (False and held > 0 and state == \"ARMISTICE\"",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestATruceBindsTheLeague::test_the_forecast_files_her_as_held_by_the_truce"
+ },
+ {
+  "id": "EA-19 the cache forgets the cooldown",
+  "file": "backend/game_logic/coalition.py",
+  "old": "            army, cooldowns)",
+  "new": "            army)",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestATruceBindsTheLeague::test_the_forecast_cache_reads_the_cooldown"
+ },
+ {
+  "id": "EA-19 the one cooldown reads nothing",
+  "file": "backend/game_logic/diplomacy.py",
+  "old": "    return int((getattr(world, \"armistice_cooldowns\", {}) or {}).get(\n        world._make_diplo_key(nation_a, nation_b), 0) or 0)",
+  "new": "    return 0",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestATruceBindsTheLeague::test_one_cooldown_is_read_by_every_war_entry_gate"
+ },
+ {
+  "id": "EA-19 rider: the standing league reopened",
+  "file": "backend/game_logic/coalition.py",
+  "old": "A_STANDING_LEAGUE_IS_NOT_REOPENED = True",
+  "new": "A_STANDING_LEAGUE_IS_NOT_REOPENED = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestAStandingLeagueIsNotReopened::test_the_line_names_the_next_league"
+ },
+ {
+  "id": "EA-19 rider: a league of one",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if A_LEAGUE_NEEDS_TWO_MEMBERS and len(all_members) < 2:",
+  "new": "        if A_LEAGUE_NEEDS_TWO_MEMBERS and len(all_members) < 1:",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestALeagueNeedsTwoMembers::test_a_league_of_one_is_no_league"
+ },
+ {
+  "id": "EAD-7 the lawful road lever down",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "THE_MARCH_READS_THE_LAWFUL_ROAD = True",
+  "new": "THE_MARCH_READS_THE_LAWFUL_ROAD = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheMarchFindsItsRoad::test_a_corps_walks_around_a_closed_neutral"
+ },
+ {
+  "id": "EAD-7 the lawful distance ignores closed soil",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "            if here != target and not world._region_passable_for(",
+  "new": "            if False and not world._region_passable_for(",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheMarchFindsItsRoad::test_the_lawful_distance_skips_closed_soil"
+ },
+ {
+  "id": "EAD-7 the plan's second pass dropped",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        return [straight, lawful.get]",
+  "new": "        return [straight]",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheMarchFindsItsRoad::test_a_corps_walks_around_a_closed_neutral"
+ },
+ {
+  "id": "EAD-7 the lawful road first (the straight pass dropped)",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        return [straight, lawful.get]",
+  "new": "        return [lawful.get]",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheMarchFindsItsRoad::test_a_straight_hop_that_is_open_is_kept"
+ },
+ {
+  "id": "EAD-7 the fellows lever down",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "THE_LEAGUE_AIMS_AT_ITS_ENEMY = True",
+  "new": "THE_LEAGUE_AIMS_AT_ITS_ENEMY = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeagueAimsAtItsEnemy::test_the_march_never_aims_at_a_fellow_members_corps"
+ },
+ {
+  "id": "EAD-7 the P7 contact filter dropped",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "        # EAD-7: the league aims at its enemy, never at a fellow member.\n        fellows = league_fellows(world, nation)\n        if fellows:\n            enemies = [e for e in enemies if e.nation not in fellows]",
+  "new": "        # EAD-7: the league aims at its enemy, never at a fellow member.\n        fellows = league_fellows(world, nation)",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeagueAimsAtItsEnemy::test_the_march_never_aims_at_a_fellow_members_corps"
+ },
+ {
+  "id": "EAD-8 lever down",
+  "file": "backend/game_logic/coalition.py",
+  "old": "THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED = True",
+  "new": "THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesSilentCourts::test_the_boot_league_says_who_has_not_struck_and_why"
+ },
+ {
+  "id": "EAD-8 a strike is never seen",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        if _struck_our_side(world, member, side, since):",
+  "new": "        if False:",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesSilentCourts::test_a_court_that_struck_us_has_marched"
+ },
+ {
+  "id": "EAD-8 the beat fires every morning",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                and str(told.get(\"march\", \"\")) != march_sig):",
+  "new": "                ):",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesSilentCourts::test_the_beat_fires_when_the_reasons_change"
+ },
+ {
+  "id": "EAD-8 the coalition rows dropped",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                section[\"active_coalition\"][\"unmarched\"] = [",
+  "new": "                section[\"active_coalition\"][\"_unmarched\"] = [",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesSilentCourts::test_the_coalition_section_carries_the_rows"
+ },
+ {
+  "id": "EAD-8 the sea reason lost",
+  "file": "backend/game_logic/coalition.py",
+  "old": "                if verdict == \"landing\":",
+  "new": "                if verdict == \"never\":",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesSilentCourts::test_the_boot_league_says_who_has_not_struck_and_why"
+ },
+ {
+  "id": "EAD-1 lever down",
+  "file": "backend/models/world_state.py",
+  "old": "CAMPAIGN_PAY_ON_FOREIGN_SOIL = True",
+  "new": "CAMPAIGN_PAY_ON_FOREIGN_SOIL = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestCampaignPay::test_a_corps_on_allied_soil_at_war_pays"
+ },
+ {
+  "id": "EAD-1 a satellite's soil pays",
+  "file": "backend/models/world_state.py",
+  "old": "                            not in (\"WAR\", \"VASSAL\")):",
+  "new": "                            not in (\"WAR\",)):",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestCampaignPay::test_a_satellites_soil_feeds_the_corps"
+ },
+ {
+  "id": "EAD-1 the homeland pays",
+  "file": "backend/models/world_state.py",
+  "old": "                if campaign_on and marshal.location not in homeland:",
+  "new": "                if campaign_on:",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestCampaignPay::test_the_courts_own_1805_soil_never_pays"
+ },
+ {
+  "id": "EAD-1 the mercy forgets it",
+  "file": "backend/models/world_state.py",
+  "old": "            grande = grande // 2\n            campaign = campaign // 2",
+  "new": "            grande = grande // 2",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestCampaignPay::test_the_mercy_halves_it"
+ },
+ {
+  "id": "EAD-1 the report folds it into the over-limit line",
+  "file": "backend/commands/economy_executor.py",
+  "old": "        over_val = int(upkeep_data.get(\"surcharge\", 0) or 0) - grande_val - campaign_val",
+  "new": "        over_val = int(upkeep_data.get(\"surcharge\", 0) or 0) - grande_val",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestCampaignPay::test_the_ledger_and_the_report_name_it"
+ },
+ {
+  "id": "EAD-1 the desk folds it into the over-limit",
+  "file": "backend/ai/state_desk.py",
+  "old": "    surcharge = int(upkeep.get(\"surcharge\") or 0) - grande - campaign",
+  "new": "    surcharge = int(upkeep.get(\"surcharge\") or 0) - grande",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestCampaignPay::test_the_desk_names_it_apart_from_the_over_limit"
+ },
+ {
+  "id": "EAD-2 the relief reads one chest",
+  "file": "backend/models/world_state.py",
+  "old": "        return int(max(0, _charge(chest) - _charge(chest - int(spend))))",
+  "new": "        return int(max(0, _charge(chest) - _charge(chest)))",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheChargesNameTheirPrice::test_the_relief_is_the_formula_at_two_chests"
+ },
+ {
+  "id": "EAD-2 lever down",
+  "file": "backend/game_logic/ledger.py",
+  "old": "THE_CHARGES_NAME_THEIR_PRICE = True",
+  "new": "THE_CHARGES_NAME_THEIR_PRICE = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheChargesNameTheirPrice::test_the_ledger_names_the_relief"
+ },
+ {
+  "id": "EAD-2 the counsel's clause dropped",
+  "file": "backend/ai/counsel.py",
+  "old": "            if relief > 0:\n                line += f\"; the Charges of Empire fall by {relief:,}g a turn\"",
+  "new": "            if relief > 0:\n                pass",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheChargesNameTheirPrice::test_the_counsel_says_what_the_law_takes_off_the_draw"
+ },
+ {
+  "id": "EAD-2 the grip clause ignores the line",
+  "file": "backend/game_logic/ledger.py",
+  "old": "    if not (grip_before >= CHARGES_GRIP_THRESHOLD > grip_after):",
+  "new": "    if False:",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheChargesNameTheirPrice::test_no_clause_when_the_grip_holds"
+ },
+ {
+  "id": "EAD-4 the line stays at 0.40",
+  "file": "backend/game_logic/coalition.py",
+  "old": "THE_ARMY_LINE_IS_A_THIRD = True",
+  "new": "THE_ARMY_LINE_IS_A_THIRD = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestAThirdOfEuropesMen::test_an_army_above_a_third_alarms_europe"
+ },
+ {
+  "id": "EAD-4 the tick reads the old constant",
+  "file": "backend/game_logic/coalition.py",
+  "old": "        elif share > establishment_line():",
+  "new": "        elif share > ESTABLISHMENT_THREAT_SHARE:",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestAThirdOfEuropesMen::test_an_army_above_a_third_alarms_europe"
+ },
+ {
+  "id": "EA-7 recovery lever down",
+  "file": "backend/ai/enemy_ai.py",
+  "old": "A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION = True",
+  "new": "A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestACourtWithoutAGeneralMayCommission::test_she_commissions_through_the_shared_executor"
+ },
+ {
+  "id": "EA-7 recovery the turn never asks",
+  "file": "backend/game_logic/turn_manager.py",
+  "old": "                    commissioned = ai.execute_commission_only(nation, self.world, game_state)",
+  "new": "                    commissioned = []",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestACourtWithoutAGeneralMayCommission::test_the_enemy_turn_runs_the_rung_for_her"
+ },
+ {
+  "id": "EA-E8 the instrument talks to the player's port",
+  "file": "tools/score_run.py",
+  "old": "    env[\"SOVEREIGN_PORT\"] = INSTRUMENT_PORT",
+  "new": "    pass",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheInstrumentTalksToNoLivePort::test_every_child_reads_the_instruments_port"
+ },
+ {
+  "id": "EG-X1 lever down",
+  "file": "backend/display_names.py",
+  "old": "THE_ORDER_NAMES_ITS_TARGET = True",
+  "new": "THE_ORDER_NAMES_ITS_TARGET = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheOrderNamesItsTarget::test_the_ledger_order_line"
+ },
+ {
+  "id": "EG-X1 the display form returns the key",
+  "file": "backend/display_names.py",
+  "old": "return humanize_entity_name(target) if target else target",
+  "new": "return target",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheOrderNamesItsTarget::test_the_one_display_form"
+ },
+ {
+  "id": "EG-X1 the ledger line reads the key",
+  "file": "backend/game_logic/ledger.py",
+  "old": "target = order_target_display(order.target)  # EG-X1",
+  "new": "target = order.target  # EG-X1",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheOrderNamesItsTarget::test_the_ledger_order_line"
+ },
+ {
+  "id": "EG-X1 the dispatch note reads the key",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "target = order_target_display(order.target)  # EG-X1",
+  "new": "target = order.target  # EG-X1",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheOrderNamesItsTarget::test_the_dispatch_status_note"
+ },
+ {
+  "id": "EG-X1 the log line reads the key",
+  "file": "backend/campaign_log.py",
+  "old": "destination = order_target_display(event.get(\"destination\", \"\"))  # EG-X1",
+  "new": "destination = event.get(\"destination\", \"\")  # EG-X1",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheOrderNamesItsTarget::test_the_campaign_log_order_line"
+ },
+ {
+  "id": "EG-X1 the pursuit report reads the key",
+  "file": "backend/commands/strategic.py",
+  "old": "\"message\": f\"{marshal.name} pursues {order_target_display(order.target)}. \"",
+  "new": "\"message\": f\"{marshal.name} pursues {order.target}. \"",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheOrderNamesItsTarget::test_every_march_report_names_the_target"
+ },
+ {
+  "id": "EG-X2 lever down",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "THE_LEAGUES_NEWS_RIDES_BENEATH = True",
+  "new": "THE_LEAGUES_NEWS_RIDES_BENEATH = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesNewsRidesBeneath::test_the_paid_line_rides_beneath_a_crowded_morning"
+ },
+ {
+  "id": "EG-X2 the paid class forgotten",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "LEAGUE_NEWS_CLASSES = (\"league_paid\", \"league_joins\")",
+  "new": "LEAGUE_NEWS_CLASSES = (\"league_joins\",)",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesNewsRidesBeneath::test_the_paid_line_rides_beneath_a_crowded_morning"
+ },
+ {
+  "id": "EG-X2 a second line of a class",
+  "file": "backend/game_logic/dispatch.py",
+  "old": "                    or _c[\"class\"] in _league_said\n",
+  "new": "",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheLeaguesNewsRidesBeneath::test_one_line_of_each_league_class_at_most"
+ },
+ {
+  "id": "EG-I1 lever down",
+  "file": "tools/_score_probes.py",
+  "old": "THE_C5_READER_JUDGES_A_ROW_ON_ITS_OWN_MORNING = True",
+  "new": "THE_C5_READER_JUDGES_A_ROW_ON_ITS_OWN_MORNING = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheC5ReaderJudgesRowsOnTheirOwnMorning::test_a_row_surfacing_late_is_judged_on_its_own_morning"
+ },
+ {
+  "id": "EG-I1 judged on the surfacing page",
+  "file": "tools/_score_probes.py",
+  "old": "own_page = pages_by_group[own]",
+  "new": "own_page = page",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheC5ReaderJudgesRowsOnTheirOwnMorning::test_a_row_surfacing_late_is_judged_on_its_own_morning"
+ },
+ {
+  "id": "EG-I1 counted twice",
+  "file": "tools/_score_probes.py",
+  "old": "                    if key in judged:\n                        continue\n",
+  "new": "",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheC5ReaderJudgesRowsOnTheirOwnMorning::test_a_row_recorded_twice_counts_once"
+ },
+ {
+  "id": "EG-I2 lever down",
+  "file": "tools/_score_probes.py",
+  "old": "THE_C5_READER_KNOWS_A_RUN_OF_TABLELESS_MORNINGS = True",
+  "new": "THE_C5_READER_KNOWS_A_RUN_OF_TABLELESS_MORNINGS = False",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheC5ReaderKnowsARunOfTablelessMornings::test_the_news_on_an_earlier_tableless_morning_counts"
+ },
+ {
+  "id": "EG-I2 only the last morning of the run",
+  "file": "tools/_score_probes.py",
+  "old": "and any(re.search(said, pg) for pg in tableless_run)):",
+  "new": "and any(re.search(said, pg) for pg in tableless_run[-1:])):",
+  "tests": "tests/test_economy_gate_2026_10_05.py::TestTheC5ReaderKnowsARunOfTablelessMornings::test_the_news_on_an_earlier_tableless_morning_counts"
+ }
+]

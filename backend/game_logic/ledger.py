@@ -280,7 +280,8 @@ def _derive_strategic_order_summary(marshal, current_turn=None) -> str:
     if order is None:
         return "None"
     cmd = order.command_type
-    target = order.target
+    from backend.display_names import order_target_display
+    target = order_target_display(order.target)  # EG-X1
     if _is_halted(marshal):
         # FA-N36: no turns-left count for a man who is not moving.
         return f"{get_strategic_display(cmd)} {target} — HALTED, awaiting your word"
@@ -592,7 +593,7 @@ def state_charges_ceiling(net: int, rate: int) -> int:
     return int(CHARGES_HOARD_FLOOR + int(net) * int(WAR_EFFORT_DIVISOR) // int(rate))
 
 
-def _state_charges_rate_note() -> str:
+def _state_charges_rate_note(relief_per_1000: int = 0) -> str:
     from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
     note = (f"rate points — each draws 1g per {int(WAR_EFFORT_DIVISOR):,}g of the chest "
             f"above the {int(CHARGES_HOARD_FLOOR):,}g floor")
@@ -600,7 +601,60 @@ def _state_charges_rate_note() -> str:
         # SR-5a question (c): the victor's Net decays as its chest fills —
         # say so in the words the player reads, not only the unit.
         note += ", so a fuller chest pays more"
+    if THE_CHARGES_NAME_THEIR_PRICE and int(relief_per_1000) > 0:
+        # EAD-2: the decision the Charges already carry, said aloud — gold
+        # spent leaves the chest the Charges are drawn on.
+        note += (f"; every 1,000g spent from it cuts next turn's draw by "
+                 f"{int(relief_per_1000):,}g")
     return note
+
+
+# EAD-2 "The Charges name their price" (the economy gate, October 5, 2026 —
+# `docs/SCORE_FINISH_SPEC.md` §6.8; research `docs/audits/ECONOMY_GATE_2026_10_05.md`
+# §2). The Charges of Empire are a share of the chest above its floor, so
+# spending the chest is already the decision they carry — measured, a 10,000g
+# purchase at turn 12 costs the turn-41 chest only 2,400–4,100 because 59–76%
+# comes back as lower Charges — and no surface said so: the counsel quoted the
+# Staff as "9,000g, then 300g a turn" while at war its 9,000 would cut the
+# Charges by four times its upkeep, and a political law that took the
+# Emperor's grip under 70 switched on the grip term's +50 rate points in
+# silence. One source (`WorldState.charges_relief`) for the ledger's Charges
+# line, the counsel's law line and the desk's purse answer; the grip clause
+# on the political law's quote and its result. Display only (GR6).
+# False = the shipped silence.
+THE_CHARGES_NAME_THEIR_PRICE = True
+
+
+def charges_grip_clause(world, nation: str, authority_before: int,
+                        authority_after: int) -> str:
+    """EAD-2: what a political act's authority does to the Charges of Empire
+    — '' unless it takes the Emperor's grip from at or above the grip line
+    to under it, when the grip term's rate points join the draw. The
+    player's court only (an AI court's grip reads a flat court baseline,
+    `get_imperial_grip`). The figure is today's chest's, at the term's
+    rate."""
+    if not THE_CHARGES_NAME_THEIR_PRICE or world is None:
+        return ""
+    if nation != getattr(world, "player_nation", None):
+        return ""
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return ""
+    from backend.models.authority import get_imperial_grip
+    from backend.models.world_state import (
+        CHARGES_GRIP_RATE, CHARGES_GRIP_THRESHOLD, CHARGES_HOARD_FLOOR,
+        WAR_EFFORT_DIVISOR)
+    tracker = getattr(world, "authority_tracker", None)
+    current = int(getattr(tracker, "authority", authority_before)) if tracker else int(authority_before)
+    grip_now = int(get_imperial_grip(world, nation))
+    grip_before = grip_now - (current - int(authority_before))
+    grip_after = grip_now - (current - int(authority_after))
+    if not (grip_before >= CHARGES_GRIP_THRESHOLD > grip_after):
+        return ""
+    above = int(world.nation_gold.get(nation, 0)) - CHARGES_HOARD_FLOOR
+    gold = int(above * CHARGES_GRIP_RATE // WAR_EFFORT_DIVISOR) if above > 0 else 0
+    return (f"the Emperor's grip falls under {int(CHARGES_GRIP_THRESHOLD)} and the "
+            f"Charges of Empire rise by {int(CHARGES_GRIP_RATE)} rate points "
+            f"({gold:,}g a turn at today's chest) until it is restored")
 
 
 # SR-5a question (c) (RULED by the user September 28, 2026: "keep the rules,
@@ -1050,6 +1104,19 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # inside upkeep_surcharge, so Net reconciliation is untouched; lets the UI
     # split the surcharge line into the ES-3 over-limit part and the EC-U3 part).
     grande_armee = int(upkeep_data.get("grande_armee", 0))
+    # EAD-1: the campaign-pay portion OF the surcharge (informational, like
+    # the Grande Armée's) and the corps that pay it — formed names (R7).
+    campaign_pay = int(upkeep_data.get("campaign_pay", 0) or 0)
+    campaign_ground = []
+    for row in upkeep_data.get("campaign_ground") or []:
+        from backend.game_logic.formations import formed_display_name
+        from backend.display_names import humanize_entity_name
+        campaign_ground.append({
+            "marshal": humanize_entity_name(str(row.get("marshal", ""))),
+            "region": str(row.get("region", "")),
+            "holder": formed_display_name(world, str(row.get("holder", ""))),
+            "pay": int(row.get("pay", 0) or 0),
+        })
     # ES-2 (S6): recurring cost of holding non-homeland soil — its own
     # signed Net component (income stays GROSS), rendered as an
     # "Occupation" line so the visible lines still sum to Net (SC-33).
@@ -1068,6 +1135,12 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # signed Net component, rendered as a "Charges of Empire" line, with
     # the named condition terms riding beside it for the tooltip.
     state_charges = int(income_data.get("state_charges", 0))
+    # EAD-2: what every 1,000 spent from the chest would cut from that draw
+    # (the ONE source, at the same projected rate the line quotes).
+    charges_relief_per_1000 = (
+        int(world.charges_relief(player, 1000))
+        if THE_CHARGES_NAME_THEIR_PRICE and state_charges > 0
+        and hasattr(world, "charges_relief") else 0)
     state_charges_terms = list(
         (income_data.get("breakdown") or {}).get("state_charges_terms") or [])
     # ES-7 (S7): full income of endowed provinces redirected to marshals'
@@ -1324,7 +1397,8 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "state_charges_terms": state_charges_terms,
         # Slice 17 review round (L2-7): the terms are RATE POINTS under a gold
         # figure; say the unit, from the constants the charge is computed with.
-        "state_charges_rate_note": _state_charges_rate_note(),
+        "state_charges_rate_note": _state_charges_rate_note(charges_relief_per_1000),
+        "charges_relief_per_1000": charges_relief_per_1000,
         # SR-5a question (c): why the bills moved since the last charged turn
         # (display only; "" when nothing moved or the cache is empty).
         "state_charges_delta_note": _why["charges_note"],
@@ -1356,6 +1430,8 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "upkeep_base": upkeep_base,
         "upkeep_surcharge": upkeep_surcharge,
         "grande_armee": grande_armee,
+        "campaign_pay": campaign_pay,
+        "campaign_ground": campaign_ground,
         # 0 = no limit (legacy world) — int-safe sentinel for Godot (GR2)
         "force_limit": int(upkeep_data.get("force_limit") or 0),
         "over_force_limit": bool(upkeep_data.get("over_limit", False)),

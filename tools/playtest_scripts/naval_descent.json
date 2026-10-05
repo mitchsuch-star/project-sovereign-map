@@ -4,6 +4,7 @@
   "llm": "anthropic",
   "_note_fa85": "FA-85 (Sept 11, 2026): the expedition marshal stages at BORDELAIS, a controlled Atlantic yard OUTSIDE the Descent camp set (Flanders/Artois/Normandy/Brittany). Normandy was never a yard, so both land lines were refused and the archived naval digest carried zero expedition evidence; Brittany (REPRO_J5 pick) is a camp province and would perturb the staging this script measures. The driver flags a run SCRIPT PRECONDITION when every land line is refused.",
   "_note_phase3": "FA slice 17 Phase 3 (Sept 11, 2026): staging Soult at the yard was not enough — the transports lift 15,000 and NO boot French corps is under it (Soult 28,940 refused twice, 'cannot be lightened: a garrison detaches a fixed 3,000 and we already hold our 3'; Napoleon's 10,000 Guard may not sail). The script now follows the lift counsel's OWN road (FA-D16, THE_LIFT_COUNSEL_NAMES_THE_MARSHALATE): commission the cheapest bench marshal (Oudinot, 3,500g, a 5,000-man corps at Paris) on turn 3, march him to Bordelais, and put him into the transports for Munster. Measured on the mock parser: the expedition is drawn up at 72 in 100, lands, takes Munster, and the Royal Navy's counter-landing (Moore) retakes it — the whole Free Ireland arc end to end. The camp/diversion half of the Descent (Ney at Flanders, Davout at Normandy, blockade, the Grand Diversion) is kept exactly as before.",
+  "_note_eg_i3": "EG-I3 (the economy gate, October 5, 2026): the staging commission moved from turn 4 to turn 5 and the landing from turn 5 to turn 6. With campaign pay (EAD-1) Bernadotte's corps at Franconia costs 204 a turn from the boot, and the turn-4 chest fell 18 gold short of Oudinot's 3,500 ('the treasury holds 3,482g'): no Oudinot, the landing line answered 'There is no Marshal', and the driver filed the arm as naval evidence. The commission is staging, not the measurement (SF-V6's precedent); the camp, the blockade and the diversion keep their turns.",
   "turns": {
     "1": [
       "Ney, march to Flanders",
@@ -16,15 +17,15 @@
       "status"
     ],
     "4": [
-      "commission Oudinot",
-      "Oudinot, march to Normandy",
       "blockade Britain"
     ],
     "5": [
-      "land Oudinot in Munster with 5,000 men",
+      "commission Oudinot",
+      "Oudinot, march to Normandy",
       "order the diversion"
     ],
     "6": [
+      "land Oudinot in Munster with 5,000 men",
       "Ney, march to London",
       "build ships"
     ],

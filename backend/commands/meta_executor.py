@@ -441,12 +441,18 @@ class MetaExecutor:
         # separately so a France paying a big army-size premium sees why.
         surcharge_val = int(upkeep_data.get("surcharge", 0))
         grande_val = int(upkeep_data.get("grande_armee", 0))
-        over_limit_val = surcharge_val - grande_val
-        if grande_val > 0:
+        # EAD-1: campaign pay is part of the surcharge — named, like the
+        # Grande Armée premium.
+        campaign_val = int(upkeep_data.get("campaign_pay", 0) or 0)
+        over_limit_val = surcharge_val - grande_val - campaign_val
+        if grande_val > 0 or campaign_val > 0:
             parts = []
             if over_limit_val > 0:
                 parts.append(f"{over_limit_val}g over-limit")
-            parts.append(f"{grande_val}g Grande Armée")
+            if grande_val > 0:
+                parts.append(f"{grande_val}g Grande Armée")
+            if campaign_val > 0:
+                parts.append(f"{campaign_val}g campaign pay")
             surcharge_str = f" (incl. {', '.join(parts)})"
         elif surcharge_val > 0:
             surcharge_str = f" (incl. {surcharge_val}g over-limit)"

@@ -156,6 +156,27 @@ THE_AI_BUILDS_NO_WATCHTOWERS = True
 # field +60k–115k men by turn 40, the late wars are bloodier on 2 of 3 seeds,
 # and the commanded France holds every province it held.
 THE_COURT_ARMS_WITH_ITS_PURSE = True
+# EAD-7 "The march finds its road" (the economy gate, October 5, 2026 —
+# `docs/SCORE_FINISH_SPEC.md` §6.8; `docs/DESIGN_REFINEMENT.md` EAD-7). The
+# march step aimed at the nearest province of ANY court the AI was at war
+# with — a fellow member of its own league included (the pre-audit board:
+# 32 league corps-turns aimed at a fellow member, Paget at Livonia at
+# Stralsund) — and took one hop that shortened the STRAIGHT distance, so a
+# corps whose straight road crossed a closed neutral stood still forever
+# while a lawful 7–9-province road existed (Russia: Estonia → … → Vienna →
+# Bohemia). Two levers:
+#   * the league aims at its enemy — never at a fellow member's corps or
+#     provinces (P7 and the P7.5 stagnation breaker alike);
+#   * the march reads the LAWFUL road — each hop must shorten the distance
+#     along a road the court may walk (the same passability `find_path`
+#     reads, the naval crossing gate the first hop already reads), whenever
+#     such a road to the target exists; a target with no lawful road keeps
+#     the straight reading. One reverse BFS per decision (GR8: 126 nodes).
+THE_LEAGUE_AIMS_AT_ITS_ENEMY = True
+THE_MARCH_READS_THE_LAWFUL_ROAD = True
+# EA-7's recovery path (the economy gate): a court left with no marshal runs
+# the Marshalate's commission rung alone (`execute_commission_only`).
+A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION = True
 COURT_ARMS_RESERVE = 1000          # gold kept after the levy (the laws rung's floor)
 COURT_ARMS_UPKEEP_TURNS = 5        # turns of the new bill the chest must hold
 COURT_ARMS_PEACE_FACTOR = 1.25     # at peace: up to this × the boot establishment
@@ -595,6 +616,60 @@ def attack_achieved_something(events, marshal_name: str) -> bool:
         if THE_STAGNATION_COUNTS_A_CAPTURE and e.get("type") in CAPTURE_EVENT_TYPES:
             return True
     return False
+
+
+def league_fellows(world, nation: str) -> frozenset:
+    """EAD-7: the courts that share the standing league with `nation` — empty
+    when it is not a member (or the lever is down). A march never aims at
+    them, whatever their own wars with it."""
+    if not THE_LEAGUE_AIMS_AT_ITS_ENEMY:
+        return frozenset()
+    coalition = getattr(world, "active_coalition", None) or {}
+    members = set(coalition.get("members") or [])
+    if nation not in members:
+        return frozenset()
+    return frozenset(members - {nation})
+
+
+def lawful_distances_to(world, nation: str, target: str,
+                        origin: str) -> Dict[str, int]:
+    """EAD-7: the hops from every province to `target` along a road `nation`
+    may walk — a reverse BFS over the same passability the pathfinder's
+    `passable_for` reads (each province entered on the way must be one the
+    court may enter, judged from the mover's standing `origin`, the WO-17
+    corridor term), and a sea link counts only where the naval crossing gate
+    lets the court cross it. The target itself is never filtered, as the
+    pathfinder leaves it. {} when the lever is down or the target is unknown.
+    (Worded without a call shape: `test_wo_slice13_corridor_direction`'s
+    census reads every pathfinder call that names `passable_for`.)"""
+    if not THE_MARCH_READS_THE_LAWFUL_ROAD or not target or target not in world.regions:
+        return {}
+    from collections import deque
+    fleets = bool(getattr(world, "fleets", None))
+    crossing_allowed = None
+    if fleets:
+        from backend.game_logic.naval import crossing_allowed
+    dist: Dict[str, int] = {target: 0}
+    queue = deque([target])
+    while queue:
+        here = queue.popleft()
+        region = world.regions.get(here)
+        if region is None:
+            continue
+        for prev in region.adjacent_regions:
+            if prev in dist or prev not in world.regions:
+                continue
+            # the step is prev -> here: `here` must be enterable (unless it
+            # is the target), and a covered strait must be crossable
+            if here != target and not world._region_passable_for(
+                    here, nation, mover_location=origin):
+                continue
+            if crossing_allowed is not None and not crossing_allowed(
+                    world, nation, prev, here):
+                continue
+            dist[prev] = dist[here] + 1
+            queue.append(prev)
+    return dist
 
 
 class EnemyAI:
@@ -4540,6 +4615,10 @@ class EnemyAI:
 
             # Force move toward nearest enemy (ignore risk assessment)
             enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
+            # EAD-7: never toward a fellow member of its own league.
+            fellows = league_fellows(world, nation)
+            if fellows:
+                enemies = [e for e in enemies if e.nation not in fellows]
             target_region = None
             target_label = None
             if enemies:
@@ -4548,6 +4627,10 @@ class EnemyAI:
                 target_label = nearest.name
             else:
                 strategic_targets = self._get_strategic_enemy_regions(nation, world)
+                if fellows:
+                    strategic_targets = [
+                        r for r in strategic_targets
+                        if getattr(world.get_region(r), "controller", None) not in fellows]
                 if strategic_targets:
                     target_region = min(
                         strategic_targets,
@@ -4557,23 +4640,29 @@ class EnemyAI:
             if target_region:
                 marshal_region = world.get_region(marshal.location)
                 if marshal_region:
-                    current_dist = world.get_distance(marshal.location, target_region)
                     visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
 
                     best_dest = None
-                    best_dist = current_dist
-                    for adj_name in marshal_region.adjacent_regions:
-                        if adj_name in visited:
+                    # EAD-7: the straight reading first, then the lawful road
+                    # (`_march_plan` — one metric per pass).
+                    for road in self._march_plan(world, nation, marshal, target_region):
+                        best_dist = road(marshal.location)
+                        if best_dist is None:
                             continue
-                        enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
-                        if enemies_there:
-                            continue  # Still don't walk into enemy-occupied regions
-                        if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
-                            continue  # DLF-12
-                        dist = world.get_distance(adj_name, target_region)
-                        if dist < best_dist:
-                            best_dest = adj_name
-                            best_dist = dist
+                        for adj_name in marshal_region.adjacent_regions:
+                            if adj_name in visited:
+                                continue
+                            enemies_there = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
+                            if enemies_there:
+                                continue  # Still don't walk into enemy-occupied regions
+                            if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
+                                continue  # DLF-12
+                            dist = road(adj_name)
+                            if dist is not None and dist < best_dist:
+                                best_dest = adj_name
+                                best_dist = dist
+                        if best_dest:
+                            break
 
                     if best_dest:
                         print(
@@ -5111,6 +5200,28 @@ class EnemyAI:
             "action": "garrison"
         }
 
+    def _march_plan(self, world, nation: str, marshal, target_region: str):
+        """EAD-7: the metrics a march hop is tried against, in order — the
+        first pass that finds a hop wins. The straight distance first (the
+        shipped reading, so every march that already found its hop finds the
+        same one); then, when no straight hop is open and a lawful road leads
+        from where the marshal stands, the distance along that road
+        (`lawful_distances_to`) — the corps that stood still at a closed
+        neutral now walks around it. Lever down, or no lawful road: the
+        straight distance alone. Measured beside two stronger forms (the
+        straight hop forbidden to step back along the road; the lawful road
+        alone): the same France at turn 40 on every seed measured, so the
+        smallest change ships (`docs/audits/ECONOMY_GATE_2026_10_05.md` §7)."""
+        def straight(region):
+            return world.get_distance(region, target_region)
+
+        if not THE_MARCH_READS_THE_LAWFUL_ROAD:
+            return [straight]
+        lawful = lawful_distances_to(world, nation, target_region, marshal.location)
+        if not lawful or lawful.get(marshal.location) is None:
+            return [straight]
+        return [straight, lawful.get]
+
     def _consider_strategic_move(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Consider moving strategically."""
         self._ensure_marshal_indexes(world)
@@ -5138,9 +5249,17 @@ class EnemyAI:
                     return None  # Skip P7, let P4 handle attack
 
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
+        # EAD-7: the league aims at its enemy, never at a fellow member.
+        fellows = league_fellows(world, nation)
+        if fellows:
+            enemies = [e for e in enemies if e.nation not in fellows]
         strategic_targets = []
         if not enemies:
             strategic_targets = self._get_strategic_enemy_regions(nation, world)
+            if fellows:
+                strategic_targets = [
+                    r for r in strategic_targets
+                    if getattr(world.get_region(r), "controller", None) not in fellows]
 
         # AI-3c (§13.1 — "the army agrees with the ledger"): a court whose
         # war council holds a live crisis masses on its design's frontier
@@ -5225,37 +5344,43 @@ class EnemyAI:
 
             best_dest = None
             best_score = -999
-            current_distance = world.get_distance(marshal.location, target_region)
-
-            for adj_name in marshal_region.adjacent_regions:
-                # Skip visited locations — one hop per action, revisiting = backtracking
-                if adj_name in visited:
-                    ai_debug(f"    P7: Skipping {adj_name} - already visited this turn")
+            # EAD-7: the straight reading first, then the lawful road
+            # (`_march_plan` — one metric per pass).
+            for road in self._march_plan(world, nation, marshal, target_region):
+                current_distance = road(marshal.location)
+                if current_distance is None:
                     continue
-                # Cannot MOVE into enemy-occupied region - must ATTACK
-                marshals_there = world.get_marshals_in_region_indexed(adj_name)
-                enemies_there = [m for m in marshals_there if m.nation != nation and m.strength > 0
-                                and world.is_at_war(nation, m.nation)]
-                if enemies_there:
-                    ai_debug(f"    P7: Skipping {adj_name} - enemies present (must attack)")
-                    continue
-                if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
-                    continue  # DLF-12
+                for adj_name in marshal_region.adjacent_regions:
+                    # Skip visited locations — one hop per action, revisiting = backtracking
+                    if adj_name in visited:
+                        ai_debug(f"    P7: Skipping {adj_name} - already visited this turn")
+                        continue
+                    # Cannot MOVE into enemy-occupied region - must ATTACK
+                    marshals_there = world.get_marshals_in_region_indexed(adj_name)
+                    enemies_there = [m for m in marshals_there if m.nation != nation and m.strength > 0
+                                    and world.is_at_war(nation, m.nation)]
+                    if enemies_there:
+                        ai_debug(f"    P7: Skipping {adj_name} - enemies present (must attack)")
+                        continue
+                    if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
+                        continue  # DLF-12
 
-                dist = world.get_distance(adj_name, target_region)
-                if dist >= current_distance:
-                    continue  # Must reduce distance to enemy
+                    dist = road(adj_name)
+                    if dist is None or dist >= current_distance:
+                        continue  # Must reduce distance to enemy (EAD-7: on a road)
 
-                # Scoring: distance reduction (primary), ally adjacency + combined arms (tiebreakers)
-                score = (current_distance - dist) * 1000
-                score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
-                score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
-                # Coalition convergence bias (§5b)
-                score += self._get_convergence_bias_score(adj_name, nation, world)
+                    # Scoring: distance reduction (primary), ally adjacency + combined arms (tiebreakers)
+                    score = (current_distance - dist) * 1000
+                    score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
+                    score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
+                    # Coalition convergence bias (§5b)
+                    score += self._get_convergence_bias_score(adj_name, nation, world)
 
-                if score > best_score:
-                    best_score = score
-                    best_dest = adj_name
+                    if score > best_score:
+                        best_score = score
+                        best_dest = adj_name
+                if best_dest:
+                    break
 
             if best_dest:
                 return {
@@ -5350,34 +5475,39 @@ class EnemyAI:
                             key=lambda region_name: self._agenda_biased_distance(
                                 marshal.location, region_name, nation, world),
                         )
-                    current_dist = world.get_distance(marshal.location, target_region)
-
                     best_dest = None
                     best_score = -999
-
-                    for adj_name in marshal_region.adjacent_regions:
-                        if adj_name in visited:
+                    # EAD-7: the straight reading first, then the lawful road
+                    # (`_march_plan` — one metric per pass).
+                    for road in self._march_plan(world, nation, marshal, target_region):
+                        current_dist = road(marshal.location)
+                        if current_dist is None:
                             continue
-                        # Cannot MOVE into enemy-occupied region (war enemies only)
-                        enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
-                        if enemies_there:
-                            continue
-                        if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
-                            continue  # DLF-12
-                        dist = world.get_distance(adj_name, target_region)
-                        if dist >= current_dist:
-                            continue  # Must reduce distance
+                        for adj_name in marshal_region.adjacent_regions:
+                            if adj_name in visited:
+                                continue
+                            # Cannot MOVE into enemy-occupied region (war enemies only)
+                            enemies_there = world.get_live_visible_enemies_in_region(adj_name, nation)
+                            if enemies_there:
+                                continue
+                            if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
+                                continue  # DLF-12
+                            dist = road(adj_name)
+                            if dist is None or dist >= current_dist:
+                                continue  # Must reduce distance (EAD-7: on a road)
 
-                        # Scoring: distance reduction (primary), ally adjacency + combined arms (tiebreakers)
-                        score = (current_dist - dist) * 1000
-                        score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
-                        score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
-                        # Coalition convergence bias (§5b)
-                        score += self._get_convergence_bias_score(adj_name, nation, world)
+                            # Scoring: distance reduction (primary), ally adjacency + combined arms (tiebreakers)
+                            score = (current_dist - dist) * 1000
+                            score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
+                            score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
+                            # Coalition convergence bias (§5b)
+                            score += self._get_convergence_bias_score(adj_name, nation, world)
 
-                        if score > best_score:
-                            best_score = score
-                            best_dest = adj_name
+                            if score > best_score:
+                                best_score = score
+                                best_dest = adj_name
+                        if best_dest:
+                            break
 
                     if best_dest:
                         ai_debug(
@@ -6319,6 +6449,36 @@ class EnemyAI:
                     f"{unused_ap} AP saved, treasury: {world.nation_gold.get(nation, 0)}")
 
         return results
+
+    def execute_commission_only(self, nation: str, world, game_state: Dict) -> List[Dict]:
+        """EA-7's recovery path (the economy gate, October 5, 2026 —
+        `docs/BUG_FIXES.md` EA-7; `docs/SCORE_FINISH_SPEC.md` §6.8). A court
+        left with NO marshal is skipped by the enemy turn whole — no military
+        phase and no admin phase — so the Marshalate's own recovery road (the
+        P1.75 commission rung) never ran for it: a court whose last general
+        fell could never field another, the one-way door the Marshalate
+        exists to close for both sides (GR5). This runs that ONE rung — the
+        same `find_ai_commission`, the same verb, the same executor — and
+        nothing else of the admin chain: the marshal-less courts measured
+        idle (Portugal, Saxony, …) have no bench, so they stay as inert as
+        before. Returns the executor's results ([] when nothing is bought)."""
+        if not A_COURT_WITHOUT_A_GENERAL_MAY_COMMISSION:
+            return []
+        from backend.game_logic.recruitment import find_ai_commission
+        treasury = int(world.nation_gold.get(nation, 0) or 0)
+        action = find_ai_commission(world, nation, treasury)
+        if not action:
+            return []
+        command = {"command": {"marshal": None, "action": action["action"],
+                               "target": action.get("target"),
+                               "_acting_nation": nation, "type": "specific"}}
+        result = self.executor.execute(command, game_state)
+        result["ai_action"] = action
+        if not result.get("success"):
+            return []
+        result["nation"] = nation
+        result["action_number"] = 1
+        return [result]
 
     def _find_substitute_purchase(self, nation: str, world, treasury: int):
         """IQ-1 SW-1's AI rung — the P1.25 substitute buy.

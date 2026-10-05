@@ -18,7 +18,7 @@ identical inputs always produce the same line. Zero LLM cost, mock-safe.
 
 from typing import Dict, List, Optional
 
-from backend.display_names import humanize_entity_name
+from backend.display_names import humanize_entity_name, order_target_display
 
 # SF-MD-1 "Every man his own voice" (RS-24, Oct 2 2026): a named row no
 # longer ENDS the bank — the personality lines follow it, so a man with two
@@ -154,7 +154,7 @@ def emit_literal_fidelity_events(world) -> list:
         if (not message and order.command_type == "MOVE_TO"
                 and order.target in recent_captures):
             message = (
-                f"{marshal.name} marches on {order.target} as ordered — "
+                f"{marshal.name} marches on {order_target_display(order.target)} as ordered — "
                 f"though its colours have changed hands."
             )
 

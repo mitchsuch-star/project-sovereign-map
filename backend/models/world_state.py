@@ -384,6 +384,25 @@ FORCE_LIMIT_SEVERE_BAND = 1.5
 
 GRANDE_ARMEE_THRESHOLD = 140000        # men; above this, the premium rate applies
 GRANDE_ARMEE_RATE = 18                 # g per 1,000 men above the threshold
+# EAD-1 "Campaign pay" (the economy gate, October 5, 2026 — ruled under the
+# user's delegation, `docs/SCORE_FINISH_SPEC.md` §6.8; research memo
+# `docs/audits/ECONOMY_GATE_2026_10_05.md` §1). The opening war cost France
+# nothing: on every commanded seed its Net rose at war (+867 to +1,309 at the
+# lowest, turns 2–10) because the battles shed the Grande Armée surcharge,
+# and the chest held 12–17k by turn 10 — the Staff affordable at turns 7–8,
+# before REFORMS Q3's "mid-campaign, turns 10–15". At war, a corps quartered
+# OUTSIDE its court's 1805 homeland on soil held by an ally or a neutral is
+# fed by contract and pays campaign pay on top of its base upkeep — the 1805
+# march through allied Germany, whose contractors (the Négociants Réunis)
+# broke the Treasury before Austerlitz. On ENEMY soil a corps lives off the
+# land (no pay); in its court's own conquests the occupation cost already
+# bills the province; on a VASSAL's soil the satellite feeds it (Holland and
+# the Kingdom of Italy paid for the French corps quartered on them). GR5:
+# every court, the same rule. Folded into `surcharge` so the ledger's
+# total == base + surcharge holds; the bankruptcy mercy halves it.
+# False = the shipped bill.
+CAMPAIGN_PAY_ON_FOREIGN_SOIL = True
+CAMPAIGN_PAY_RATE = 12                 # g per 1,000 men a turn (×2.5 the base rate)
 #   Sweep-3 tuning (measured, France/1805): rate 18 puts France's turn-1
 #   absorption at 55.5% — just inside the EC-2 aspirational 55-70% band that
 #   the original blessed constants (rate 8) could not reach (36.9%) without
@@ -6555,6 +6574,27 @@ class WorldState:
             return 0
         return int(gold * rate // WAR_EFFORT_DIVISOR)
 
+    def charges_relief(self, nation: str, spend: int, projected: bool = True) -> int:
+        """EAD-2 "The Charges name their price" (the economy gate, October 5,
+        2026): by how much the Charges of Empire the NEXT advance levies would
+        fall if `spend` gold left the chest first — the Charges at the chest
+        minus the Charges at the chest less the spend, at the rate the ledger
+        quotes (`projected`). The ONE source for every surface that says it
+        (the ledger's Charges line, the counsel's law line, the desk) — so
+        what is quoted is what the formula applies. 0 off the Europe board."""
+        if getattr(self, "sovereign_map", "legacy") != "europe" or int(spend) <= 0:
+            return 0
+        rate = int(self.get_state_charges_rate(nation, projected=projected)["rate"])
+        if rate <= 0:
+            return 0
+        chest = int(self.nation_gold.get(nation, 0))
+
+        def _charge(gold: int) -> int:
+            above = gold - CHARGES_HOARD_FLOOR
+            return int(above * rate // WAR_EFFORT_DIVISOR) if above > 0 else 0
+
+        return int(max(0, _charge(chest) - _charge(chest - int(spend))))
+
     def calculate_turn_income(self, nation: str = None, projected: bool = False) -> Dict:
         """Calculate income for a nation. Defaults to player_nation.
 
@@ -6848,6 +6888,14 @@ class WorldState:
         # EA-6 (N3): the satellite pays for its own contingent — the corps
         # flies the lord's colours, so the per-nation loop never reached it.
         own_contingents = set(contingents_paid_by(self, nation))
+        # EAD-1 campaign pay: read once per bill (GR8) — at war at all, and
+        # the court's 1805 homeland.
+        campaign_on = bool(europe and CAMPAIGN_PAY_ON_FOREIGN_SOIL
+                           and self.get_nations_at_war_with(nation))
+        homeland = (set(self.nation_starting_regions.get(nation, []))
+                    if campaign_on else set())
+        campaign = 0
+        campaign_ground = []
         for marshal in self.marshals.values():
             if marshal.name in client_paid:
                 continue
@@ -6869,6 +6917,21 @@ class WorldState:
                     "billed_strength": int(billed),
                     "upkeep": cost
                 })
+                if campaign_on and marshal.location not in homeland:
+                    region = self.regions.get(marshal.location)
+                    holder = getattr(region, "controller", None)
+                    if (holder and holder != nation
+                            and self.get_diplomatic_state(nation, holder)
+                            not in ("WAR", "VASSAL")):
+                        pay = (billed // 1000) * CAMPAIGN_PAY_RATE
+                        if pay > 0:
+                            campaign += pay
+                            campaign_ground.append({
+                                "marshal": marshal.name,
+                                "region": marshal.location,
+                                "holder": holder,
+                                "pay": int(pay),
+                            })
 
         # ES-3 over-limit surcharge (marginal bands on total nation strength)
         force_limit = self.get_force_limit(nation)
@@ -6890,6 +6953,8 @@ class WorldState:
             grande = ((total_strength - GRANDE_ARMEE_THRESHOLD) // 1000) \
                 * GRANDE_ARMEE_RATE
             surcharge += grande
+        # EAD-1: campaign pay rides the surcharge (the ledger identity).
+        surcharge += campaign
 
         # Mercy mechanic: halve upkeep during bankruptcy (E6: covers the
         # surcharge too; halved separately so total == base + surcharge)
@@ -6898,6 +6963,7 @@ class WorldState:
             base_upkeep = base_upkeep // 2
             surcharge = surcharge // 2
             grande = grande // 2
+            campaign = campaign // 2
 
         return {
             "total": int(base_upkeep + surcharge),
@@ -6907,6 +6973,10 @@ class WorldState:
             # already inside `surcharge`/`total`, so the ledger reconciliation
             # is untouched — this only lets the UI split the line for legibility).
             "grande_armee": int(grande),
+            # EAD-1: the campaign-pay portion OF the surcharge (informational,
+            # like `grande_armee`) and the corps that pay it.
+            "campaign_pay": int(campaign),
+            "campaign_ground": campaign_ground,
             "force_limit": int(force_limit) if force_limit is not None else None,
             "total_strength": int(total_strength),
             "over_limit": bool(force_limit is not None

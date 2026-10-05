@@ -2449,7 +2449,8 @@ def format_event_oneliner(event: dict, player_nation: str = "", world=None) -> s
             "MOVE_TO": "move to", "HOLD": "hold",
             "SUPPORT": "support", "PURSUE": "pursue",
         }.get(order_type, order_type.lower().replace("_", " "))
-        destination = event.get("destination", "")
+        from backend.display_names import order_target_display
+        destination = order_target_display(event.get("destination", ""))  # EG-X1
         if destination:
             return f"{marshal} ordered to {display_order} {destination}"
         return f"{marshal} ordered to {display_order}"

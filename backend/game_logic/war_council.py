@@ -354,8 +354,8 @@ def can_declare_war(world, aggressor: str, target: str,
     state = world.get_diplomatic_state(aggressor, target)
     if state == "WAR":
         return {"ok": False, "reason": "already_at_war"}
-    diplo_key = world._make_diplo_key(aggressor, target)
-    if int((getattr(world, "armistice_cooldowns", {}) or {}).get(diplo_key, 0)) > 0:
+    from backend.game_logic.diplomacy import declaration_cooldown_left
+    if declaration_cooldown_left(world, aggressor, target) > 0:
         return {"ok": False, "reason": "armistice_cooldown"}
     if war_objective not in OFFENSIVE_OBJECTIVE_TYPES:
         return {"ok": False, "reason": "invalid_objective"}

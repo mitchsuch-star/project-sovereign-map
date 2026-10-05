@@ -657,7 +657,12 @@ class TestTheSeriesRecord:
                          .read_text(encoding="utf-8"))
         assert rec["arms"]["0"]["series"] == rec["prior"]
         from tests.test_ai_intent_threat_migration import BASELINE_SERIES
-        assert rec["arms"]["ALL"]["series"] == BASELINE_SERIES
+        # RE-SEATED by the economy gate (October 5, 2026): the audit's ALL
+        # arm is the gate's prior; the gate's ALL arm is the standing series.
+        gate = json.loads((ROOT / "tools" / "_econ_gate_series_arms_final.json")
+                          .read_text(encoding="utf-8"))
+        assert rec["arms"]["ALL"]["series"] == gate["prior"]
+        assert gate["arms"]["ALL"]["series"] == BASELINE_SERIES
         # every lever the audit landed has its own arm
         assert set(rec["levers"]) == set("DFSBTGCVKWAMOR")
 

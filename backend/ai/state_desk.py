@@ -864,6 +864,14 @@ def _answer_spend(world) -> str:
     chest = int(econ.get("treasury") or 0)
     net = int(econ.get("net") or 0)
     head = f"The treasury holds {_money(chest)} gold and nets {net:+,} a turn, Sire."
+    # EAD-2: the Charges of Empire are drawn on the chest itself — what an
+    # idle chest pays, and what spending from it saves (the ONE source).
+    from backend.game_logic.ledger import THE_CHARGES_NAME_THEIR_PRICE
+    charges = int(econ.get("state_charges") or 0)
+    relief = int(econ.get("charges_relief_per_1000") or 0)
+    if THE_CHARGES_NAME_THEIR_PRICE and charges > 0 and relief > 0:
+        head += (f" The Charges of Empire take {_money(charges)} of it a turn; "
+                 f"every 1,000 spent cuts that by {_money(relief)}.")
     from backend.ai.counsel import _admin_actions_left, economy_counsel
     lines = economy_counsel(world, world.player_nation, limit=3)
     if lines:
@@ -940,14 +948,20 @@ def _answer_upkeep(world) -> str:
     econ = _economy(world)
     total = int(upkeep.get("total") or 0)
     base = int(upkeep.get("base") or 0)
-    surcharge = int(upkeep.get("surcharge") or 0)
     grande = int(upkeep.get("grande_armee") or 0)
+    # EAD-1 (the economy gate): the surcharge carries the Grande Armée
+    # premium and campaign pay — the over-limit part is what is left.
+    campaign = int(upkeep.get("campaign_pay") or 0)
+    surcharge = int(upkeep.get("surcharge") or 0) - grande - campaign
     line = (f"The army costs {_money(total)} gold a turn to keep, Sire — {_money(base)} in "
             f"pay for {_money(upkeep.get('total_strength'))} men")
-    if surcharge:
+    if surcharge > 0:
         line += f", {_money(surcharge)} over-limit surcharge"
     if grande:
         line += f", {_money(grande)} for the Grande Armée's size"
+    if campaign:
+        line += (f", {_money(campaign)} campaign pay for corps fed by contract on "
+                 f"allied or neutral soil")
     line += "."
     note = str(econ.get("upkeep_note") or "")
     if note:

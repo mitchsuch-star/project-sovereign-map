@@ -424,4 +424,13 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert coord["arms"]["ALL"]["series"] == econ["prior"]
         assert econ["arms"]["0"]["series"] == econ["prior"]
-        assert BASELINE_SERIES == econ["arms"]["ALL"]["series"]
+        # RE-SEATED by the economy gate (October 5, 2026): one more link —
+        # the audit's ALL arm is the prior record the gate's arm 0 (all ten
+        # levers down in the child) reproduces byte for byte, and its ALL arm
+        # (the shipped tree) is the standing series
+        # (`tools/_econ_gate_series_arms_final.json`, twelve arms).
+        gate = json.loads((ROOT / "tools" / "_econ_gate_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert econ["arms"]["ALL"]["series"] == gate["prior"]
+        assert gate["arms"]["0"]["series"] == gate["prior"]
+        assert BASELINE_SERIES == gate["arms"]["ALL"]["series"]

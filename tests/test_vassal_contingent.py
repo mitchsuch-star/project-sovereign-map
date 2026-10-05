@@ -225,7 +225,11 @@ class TestTheClientPaysItsMen:
         before = world.calculate_turn_upkeep(PLAYER)
         _pass(world)
         after = world.calculate_turn_upkeep(PLAYER)
-        assert after["total"] == before["total"] == 2630
+        # RE-SEATED consciously by the economy gate (October 5, 2026; EAD-1,
+        # SYSTEMS_REFERENCE §98.1): the boot bill 2,630 → 2,834 — campaign pay
+        # bills Bernadotte's 17,000 at Franconia, an ally's soil (204). The pin's
+        # point stands: raising the contingent leaves the lord's bill unchanged.
+        assert after["total"] == before["total"] == 2834
         assert after["total_strength"] == before["total_strength"] == 189000
         assert "Dumonceau" not in {b["marshal"] for b in after["breakdown"]}
 

@@ -26,6 +26,7 @@ from backend.display_names import plural as _plural_lv9  # LV-9 (row EP F2)
 # the marshal is the sovereign (the Emperor never addresses the player).
 from backend.game_logic.marshal_voice import interrupt_speaker
 from backend.display_names import humanize_entity_name as _shown_name  # NPC-12: an enemy marshal's display name in prose
+from backend.display_names import order_target_display  # EG-X1: an order's target in prose
 
 
 # SR-6b RS-29: False = the plural phrase.
@@ -1698,7 +1699,7 @@ class StrategicOrderProcessor:
                             msg = (f"{marshal.name} is holding position at {marshal.location} "
                                    f"{_left}.")
                     else:
-                        msg = f"{marshal.name} is marching to hold {order.target} {_left}."
+                        msg = f"{marshal.name} is marching to hold {order_target_display(order.target)} {_left}."
                 elif order.command_type == "PURSUE":
                     # N27 (CA9): `order.target` is a raw marshal KEY, so
                     # this printed the camelCase key rather than the man.
@@ -1711,7 +1712,7 @@ class StrategicOrderProcessor:
                            f"{_hum(order.target)} "
                            f"{_left}.")
                 else:  # MOVE_TO
-                    msg = f"{marshal.name} is marching to {order.target} {_left}."
+                    msg = f"{marshal.name} is marching to {order_target_display(order.target)} {_left}."
 
                 if progress_note:
                     msg = f"{progress_note} {msg}"
@@ -3141,13 +3142,13 @@ class StrategicOrderProcessor:
             target_marshal = world.get_marshal(order.target)
             if target_marshal and target_marshal.location == marshal.location:
                 message = (f"{marshal.name} arrives at {marshal.location}. "
-                           f"{order.target} is here.")
+                           f"{order_target_display(order.target)} is here.")
             else:
                 current = target_marshal.location if target_marshal else "unknown"
                 message = (f"{marshal.name} arrives at {marshal.location}. "
-                           f"{order.target} has moved on - now at {current}.")
+                           f"{order_target_display(order.target)} has moved on - now at {current}.")
         else:
-            message = f"{marshal.name} arrives at {order.target}."
+            message = f"{marshal.name} arrives at {order_target_display(order.target)}."
 
         return self._complete_order(marshal, world, message)
 
@@ -3223,7 +3224,7 @@ class StrategicOrderProcessor:
                         "success": True,
                         "marshal": marshal.name,
                         "order_status": "cancelled",
-                        "message": f"{marshal.name} breaks off pursuit of {order.target} — the odds have turned against us.",
+                        "message": f"{marshal.name} breaks off pursuit of {order_target_display(order.target)} — the odds have turned against us.",
                         "ratio_cancelled": True,
                     }
 
@@ -3320,7 +3321,7 @@ class StrategicOrderProcessor:
             order.path = list(path)  # Persist for ledger display
         if not path:
             return self._break_order(marshal, world,
-                                     f"Cannot reach {order.target}")
+                                     f"Cannot reach {order_target_display(order.target)}")
 
         # Move up to movement_range
         regions_to_move = getattr(marshal, 'movement_range', 1)
@@ -3488,7 +3489,7 @@ class StrategicOrderProcessor:
                         world._last_tactical_events.append(target_not_found_event)
                     return self._break_order(marshal, world,
                         f"{marshal.name} arrives at {marshal.location} but finds no sign of "
-                        f"{order.target}. Last intelligence was {_plural_lv9(int(intel_age), 'turn')} old. "
+                        f"{order_target_display(order.target)}. Last intelligence was {_plural_lv9(int(intel_age), 'turn')} old. "
                         f"Awaiting orders, Sire.")
                 # Enemies adjacent — existing personality contact vectors handle
                 # The marshal stays in position; PURSUE continues with fresh intel next turn
@@ -3504,7 +3505,7 @@ class StrategicOrderProcessor:
                 "target": order.target,
                 "target_location": pursue_destination,
                 "distance": int(distance),
-                "message": f"{marshal.name} pursues {order.target}. "
+                "message": f"{marshal.name} pursues {order_target_display(order.target)}. "
                            f"{_plural_lv9(int(distance), 'region')} away."
             }
 
@@ -3515,7 +3516,7 @@ class StrategicOrderProcessor:
         # closed border simply ends the chase with a clear reason.
         if last_fail is not None and last_fail.get("blocked_diplomatic"):
             reason = last_fail.get("message") or (
-                f"the road to {order.target} is blocked by "
+                f"the road to {order_target_display(order.target)} is blocked by "
                 f"{last_fail.get('blocked_diplomatic')} territory")
             return self._break_order(
                 marshal, world,
@@ -3526,7 +3527,7 @@ class StrategicOrderProcessor:
         # honest reason (the quarry has the sea at its back).
         if last_fail is not None and last_fail.get("blocked_naval"):
             reason = last_fail.get("message") or (
-                f"hostile sail command the crossing toward {order.target}")
+                f"hostile sail command the crossing toward {order_target_display(order.target)}")
             return self._break_order(
                 marshal, world,
                 f"{marshal.name}'s pursuit halts at the water's edge — {reason}")
@@ -3535,7 +3536,7 @@ class StrategicOrderProcessor:
             "marshal": marshal.name,
             "command": "PURSUE",
             "order_status": "error",
-            "message": f"{marshal.name} could not advance toward {order.target}."
+            "message": f"{marshal.name} could not advance toward {order_target_display(order.target)}."
         }
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -4046,7 +4047,7 @@ class StrategicOrderProcessor:
         # Ally destroyed?
         if not ally or ally.strength <= 0:
             return self._break_order(marshal, world,
-                                     f"{order.target} has fallen")
+                                     f"{order_target_display(order.target)} has fallen")
 
         # With ally?
         if marshal.location == ally.location:

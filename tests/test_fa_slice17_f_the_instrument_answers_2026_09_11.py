@@ -445,7 +445,11 @@ class TestTheRunSaysWhatItCouldNotDo:
         script = json.loads((REPO_ROOT / "tools" / "playtest_scripts" / "naval_descent.json").read_text(encoding="utf-8"))
         loops = {int(k): v for k, v in script["turns"].items()}
         commission = min(k for k, v in loops.items() if "commission Oudinot" in v)
-        assert commission == 4
+        # RE-SEATED consciously by the economy gate (October 5, 2026; EG-I3):
+        # 4 -> 5. With campaign pay (EAD-1) the turn-4 chest fell 18 gold short
+        # of Oudinot's 3,500, so the arm never had its expedition marshal; the
+        # commission is staging and moves one loop, the landing with it.
+        assert commission == 5
         assert "Oudinot, march to Normandy" in loops[commission]
         assert any(x.startswith("land Oudinot in Munster") for x in loops[commission + 1])
         assert not any("Soult" in x and ("Bordelais" in x or "Munster" in x) for turn in script["turns"].values() for x in turn)

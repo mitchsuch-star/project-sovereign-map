@@ -290,6 +290,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     "league_joins": 64,
     "league_paid": 62,
     "league_bound": 58,
+    # EAD-8 (the economy gate, October 5, 2026): the standing league's silent
+    # courts and why — below the league's own news, above the nags.
+    "league_unmarched": 56,
     # ── SF-NAR-1 "Every morning has a front page" ────────────────────────
     # The quiet morning's lead, below every event class (the europe_* beats
     # at 46+ are news; these are what the courts sent when nothing else
@@ -534,6 +537,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "league_joins": "Sire — {line}",
     "league_paid": "Sire — {line}",
     "league_bound": "Sire — {line}",
+    "league_unmarched": "Sire — {line}",
     "courts_treaties": "Sire — {line}",
     "courts_purse": "Sire — {line}",
     "courts_designs": "Sire — {line}",
@@ -758,6 +762,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "league_joins": "A court that would march can still be talked out of it, Sire. The Balance of Europe names the price.",
     "league_paid": "Gold buys armies, Sire. A court bought off now is a regiment the league never fields.",
     "league_bound": "A peace binds only while its ink is wet, Sire. Use the turns it gives.",
+    "league_unmarched": "A league is only as strong as the roads its armies can walk, Sire. Strike the courts that can reach us; the others wait on the sea and on their neighbours.",
     "courts_treaties": "The chanceries are busy, Sire. Every treaty they sign is a line drawn on our map.",
     "courts_purse": "Follow the gold, Sire — it shows where the next army will stand.",
     "courts_designs": "Every court wants something, Sire. The ones that want it from us are the ones to watch.",
@@ -1485,6 +1490,18 @@ FRONT_PAGE_ROTATION_MAX = 4
 # back into war leads as `war_touches_us`, one ripening into peace as
 # `peace_signed` (the turn's queue, where the expiry is told).
 A_TRUCES_END_IS_NEWS = True
+# EG-X2 (the economy gate, October 5, 2026): the league's news rides beneath
+# the lead, as a standing crisis does (SF-NAR-1). Found on the gate's
+# commanded arms: once the AI's corps reached the war on the lawful road
+# (EAD-7), a war ending and a truce signed on the same morning took both
+# sub-beat slots, and "St Petersburg now pays Vienna 400 gold a turn against
+# us" — the news that changes who fights France next — left the page on a
+# morning it was fresh (living balance C5). A fresh `league_paid` or
+# `league_joins` candidate not already on the page is added beneath, at most
+# one line of each class. Display only; no AI reads the page. False = the
+# page as Step 7b built it.
+THE_LEAGUES_NEWS_RIDES_BENEATH = True
+LEAGUE_NEWS_CLASSES = ("league_paid", "league_joins")
 # Step 7b, caught by the related suites before the commit: the boot
 # briefing led "a quiet morning on the front" over a campaign that had not
 # begun — and the desk, which answers "what happened last turn?" off the
@@ -1533,7 +1550,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
 FRONT_PAGE_CLASSES = frozenset({cls for cls, _rank in _COURTS_ROWS.values()}
                                | {"realm_league", "realm_titles"})
 _LEAGUE_CLASSES = frozenset({"league_fuse", "league_joins", "league_paid",
-                             "league_bound"})
+                             "league_bound", "league_unmarched"})
 # A rail sentence's leading tag ("THE LAWS: ", "Talleyrand reports: ") is the
 # rail's own register; the headline speaks in Berthier's.
 _RAIL_TAG_RE = re.compile(r"^(?:[A-Z][A-Z' -]{2,40}|Talleyrand (?:reports|warns|assesses)):\s+")
@@ -1718,8 +1735,25 @@ def _league_candidates(world, player_nation: str, window, _add,
         _add("league_fuse", identity=f"league_fuse:{left}",
              line=(f"{plural(left, 'more quiet turn')} and the courts of Europe "
                    f"re-arm. {summary}").strip())
+    # league_unmarched (EAD-8) — while our league stands, the members that
+    # have not struck us and why (public facts only), told when the set of
+    # reasons CHANGES, never as a streak: the Dispatch's coalition rows carry
+    # them every morning.
+    march_sig = ""
+    if _co.THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED:
+        march = _co.league_march_reading(world)
+        march_sig = "|".join(f"{r['nation']}:{r['reason']}"
+                             for r in march.get("silent") or [])
+        if (march.get("formed") and march_sig and told is not None
+                and str(told.get("march", "")) != march_sig):
+            line = _co.league_march_line(world, march)
+            if line:
+                _add("league_unmarched", identity=f"league_unmarched:{march_sig}",
+                     line=line)
     if record:
         new_told = {"joiners": majors_joining, "bound": majors_bound}
+        if march_sig:
+            new_told["march"] = march_sig
         if left in _co.LEAGUE_FUSE_BEATS:
             new_told["fuse"] = left
         if isinstance(getattr(world, "headline_lead_memory", None), dict):
@@ -3319,6 +3353,17 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
             seen_keys.update(_headline_keys(_c))
             sub_beats.append(_c["text"])
             _standing_lines += 1
+    if EVERY_MORNING_HAS_A_FRONT_PAGE and THE_LEAGUES_NEWS_RIDES_BENEATH and not _alone:
+        # EG-X2: the league's news is never crowded out (see the lever).
+        _league_said = {c for c in seen_classes if c in LEAGUE_NEWS_CLASSES}
+        for _c in candidates:
+            if (_c["class"] not in LEAGUE_NEWS_CLASSES
+                    or _c["class"] in _league_said
+                    or any(k in seen_keys for k in _headline_keys(_c))):
+                continue
+            seen_keys.update(_headline_keys(_c))
+            sub_beats.append(_c["text"])
+            _league_said.add(_c["class"])
     if record and THE_LEVY_YIELDS_ONCE_STATED:
         # RS-D2: a statement is a levy line the player actually READ —
         # the lead or a sub-beat — never a candidate the page had no room for.
@@ -5314,7 +5359,8 @@ def _derive_marshal_status(marshal, world) -> tuple:
     if marshal.in_strategic_mode:
         order = marshal.strategic_order
         cmd = order.command_type
-        target = order.target
+        from backend.display_names import order_target_display
+        target = order_target_display(order.target)  # EG-X1
         # Creative audit July 19 2026: a marshal holding a pending interrupt is
         # NOT marching — his order is frozen until the player answers. Reporting
         # "Moving to Swabia" for a man standing still awaiting a decision made
@@ -6758,6 +6804,15 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
             "formed_turn": int(coalition.get("formed_turn", 0)),
             "members": members_info,
         }
+        # EAD-8: the members that have not struck us, each with why (public
+        # facts only — `coalition.league_march_reading`).
+        from backend.game_logic import coalition as _march_co
+        if _march_co.THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED:
+            _silent = _march_co.league_march_reading(world).get("silent") or []
+            if _silent:
+                section["active_coalition"]["unmarched"] = [
+                    {"nation": r["nation"], "reason": r["reason"], "text": r["text"]}
+                    for r in _silent]
 
     # Qualifying nations (if not brewing/active, show who would join)
     if not world.coalition_brewing and not is_coalition_active(world):

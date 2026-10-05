@@ -200,6 +200,22 @@ COALITION_HONOURS_A_FRESH_PEACE = True
 THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT = True
 A_FAILED_DECLARATION_IS_NOT_A_MEMBER = True
 
+# EA-19 "A truce binds the league" (the economy gate, October 5, 2026 —
+# `docs/SCORE_FINISH_SPEC.md` §6.8; `docs/BUG_FIXES.md` EA-19). The coalition
+# gate asked only whether a court was at WAR with the target, while the
+# declaration it would make refuses a pair the truce cooldown binds (R99) —
+# so the forecast, the morning's beat and THE NEXT LEAGUE named a court in a
+# truce with us as free to join (measured: CMD-M turn 12, "Austria and
+# Prussia would now join a league against us"). A court the declaration
+# would refuse no longer qualifies; the forecast gives it its own `truce`
+# status. Riders found tracing it: a standing league enrols nobody new, so a
+# newly free court's line no longer promises "She will march" into it; and a
+# league whose declarations failed down to one court is no league.
+# False = the shipped gate / copy / formation.
+A_TRUCE_BINDS_THE_LEAGUE = True
+A_STANDING_LEAGUE_IS_NOT_REOPENED = True
+A_LEAGUE_NEEDS_TWO_MEMBERS = True
+
 # ⚠ FOR USER CONFIRMATION — a balance-relevant number with no prior blessing.
 # 5 is the CONSERVATIVE choice: it matches `armistice_cooldowns`'s own 5
 # (`world_state.py`, R5b) and is the smallest value that removes the
@@ -878,6 +894,29 @@ def describe_hegemon_bloc(world, hegemon: Optional[str], share: float) -> Dict:
 ESTABLISHMENT_THREAT_SHARE = 0.40      # band 0.35-0.50
 ESTABLISHMENT_THREAT_SHARE_HIGH = 0.55  # band 0.50-0.65
 ESTABLISHMENT_MIN_EUROPE_STRENGTH = 100_000  # below this the ratio is noise
+# EAD-4 "A third of Europe's men" (the economy gate, October 5, 2026 — ruled
+# under the user's delegation, `docs/SCORE_FINISH_SPEC.md` §6.8). The army
+# line sits at one third of Europe's standing men — the Armed Peace's own
+# fraction (ARMED_PEACE_SHARE_FLOOR, which reads the bloc's POWER) — kept a
+# MEN measure of its own: the bloc share already drives the hegemony term and
+# the fuse, and reading it here would double the hegemony increment at boot
+# (measured). Re-blessed below the 0.35–0.50 band. Measured: on the boot board
+# France stands at 31.5% (no court accrues); the commanded arms add +3 / 0 /
+# +4 alarm in the Ulm opening only; `BASELINE_SERIES` byte-identical. The
+# symptom EAD-4 named (the alarm falling to 0 under a 213,000-man army) is
+# answered elsewhere: the Armed Peace holds the alarm at its watch line, and
+# Europe re-arms in peace (EA-11), so France's share falls to 18–29% there.
+# False = the 0.40 line.
+THE_ARMY_LINE_IS_A_THIRD = True
+ESTABLISHMENT_THREAT_SHARE_THIRD = 1.0 / 3.0
+
+
+def establishment_line() -> float:
+    """EAD-4: the share of Europe's standing men above which a court's ARMY
+    alarms Europe — one third with the lever up, else the blessed 0.40. The
+    tick and the RS-16 forecast both read it (shown = applied)."""
+    return (ESTABLISHMENT_THREAT_SHARE_THIRD if THE_ARMY_LINE_IS_A_THIRD
+            else ESTABLISHMENT_THREAT_SHARE)
 
 
 def _standing_strength_by_nation(world) -> Dict[str, int]:
@@ -925,7 +964,7 @@ def _establishment_threat(world, france: str) -> None:
         share = strength / europe
         if share > ESTABLISHMENT_THREAT_SHARE_HIGH:
             amount = 2
-        elif share > ESTABLISHMENT_THREAT_SHARE:
+        elif share > establishment_line():
             amount = 1
         else:
             continue
@@ -1216,7 +1255,7 @@ def forecast_alarm_tick(world) -> Dict[str, Any]:
                 getattr(world, "vassals", {}).keys()):
             share = totals.get(france, 0) / europe
             amount = 2 if share > ESTABLISHMENT_THREAT_SHARE_HIGH else (
-                1 if share > ESTABLISHMENT_THREAT_SHARE else 0)
+                1 if share > establishment_line() else 0)
             if amount:
                 gains.append(("the size of our army", amount))
     turn = int(getattr(world, "current_turn", 0) or 0)
@@ -1548,6 +1587,13 @@ def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
     already_at_war = _get_diplo_state(world, tgt, nation) == "WAR"
     if is_vassal or already_at_war:
         return False
+    # EA-19: a court whose declaration on the target R99 would refuse (the
+    # pair cooldown a truce, a settlement or the exhausted-pair exit writes)
+    # is not counted for a league it could not declare in.
+    if A_TRUCE_BINDS_THE_LEAGUE:
+        from backend.game_logic.diplomacy import declaration_cooldown_left
+        if declaration_cooldown_left(world, nation, tgt) > 0:
+            return False
     # GE-3 review #10/#19/#41: while the Congress sits, a great power that
     # answers it (recognizing, shut out) or holds a truce with the Emperor is
     # never marched into a NEW coalition ('' — dormant — when none sits).
@@ -2097,6 +2143,14 @@ def form_coalition(qualifying_nations: List[str], world,
         at_war_now = set(get_nations_at_war_with_target(world, france))
         all_members = [n for n in all_members
                        if n in at_war_now or n not in new_belligerents]
+        if A_LEAGUE_NEEDS_TWO_MEMBERS and len(all_members) < 2:
+            # EA-19's rider: the gate above was "at least 2 members" BEFORE
+            # the failed declarations were dropped; a league they leave with
+            # one court (or none) is no league. A declaration that carried
+            # stands as that court's own war — nothing is undone; no league
+            # is named, counted or announced.
+            return {"success": False,
+                    "message": "Insufficient nations for coalition — the declarations failed."}
 
     # AI-4a step 5: declare_war now credits the AGGRESSOR's own threat slot
     # (a coalition member declaring on the target accrues a transient +20 in
@@ -3594,11 +3648,13 @@ LEAGUE_FUSE_BEATS = (8, 4, 2)
 LEAGUE_JOINS = "joins"          # qualifies now; a relation price keeps it out
 LEAGUE_REFUSES = "refuses"      # a Congress refuser: joins whatever its relations
 LEAGUE_BOUND = "bound"          # held out by a fresh peace with the target
+LEAGUE_TRUCE = "truce"          # EA-19: a truce with the target binds her (R99)
 LEAGUE_SPARED = "spared"        # answers the sitting Congress, or a truce with us
 LEAGUE_OUT = "out"              # relations at or above the bar
 LEAGUE_AT_WAR = "at_war"        # already at war with the target
 _LEAGUE_ORDER = {LEAGUE_JOINS: 0, LEAGUE_REFUSES: 1, LEAGUE_BOUND: 2,
-                 LEAGUE_SPARED: 3, LEAGUE_OUT: 4, LEAGUE_AT_WAR: 5}
+                 LEAGUE_TRUCE: 3, LEAGUE_SPARED: 4, LEAGUE_OUT: 5,
+                 LEAGUE_AT_WAR: 6}
 
 
 def league_clock(world, target: Optional[str] = None,
@@ -3678,6 +3734,11 @@ def _league_signature(world, tgt: str) -> tuple:
     states = tuple(sorted((k, str(v)) for k, v in
                           (getattr(world, "diplomatic_states", {}) or {}).items()
                           if tgt in str(k).split("|")))
+    # EA-19: the pair cooldowns the declaration reads (R99) bind a court out
+    # of the league — the rows read them, so the cache must.
+    cooldowns = tuple(sorted((k, int(v or 0)) for k, v in
+                             (getattr(world, "armistice_cooldowns", {}) or {}).items()
+                             if tgt in str(k).split("|")))
     congress_state = getattr(world, "congress", None)
     mission = getattr(world, "active_diplomatic_mission", None)
     army = tuple(sorted((m.name, str(getattr(m, "location", "")),
@@ -3698,7 +3759,7 @@ def _league_signature(world, tgt: str) -> tuple:
             int(getattr(world, "diplomatic_points", 0) or 0),
             str((mission or {}).get("target", "")) if isinstance(mission, dict) else "",
             len(world.get_nation_regions(tgt)) if hasattr(world, "get_nation_regions") else 0,
-            army)
+            army, cooldowns)
 
 
 def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
@@ -3789,8 +3850,21 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
                     priced = True
             else:
                 left = fresh_peace_turns_left(nation, world, tgt)
-                if left > 0 and relation < LEAGUE_KEEP_OUT_RELATION:
-                    row["status"], row["bound_turns"] = LEAGUE_BOUND, int(left)
+                # EA-19: the pair cooldown the declaration reads (R99). A
+                # TRUCE is its own status — she cannot declare while it
+                # holds, and when it ends it ends in peace or war, not in a
+                # league — so the morning's beat does not file her with the
+                # courts a fresh peace binds (whose news is the peace's own,
+                # the morning it is signed). A cooldown under a PEACE binds
+                # her as the peace's floor does.
+                held = (_truce_cooldown_left(world, nation, tgt)
+                        if A_TRUCE_BINDS_THE_LEAGUE else 0)
+                if (held > 0 and state == "ARMISTICE"
+                        and relation < LEAGUE_KEEP_OUT_RELATION):
+                    row["status"], row["bound_turns"] = LEAGUE_TRUCE, int(held)
+                elif max(left, held) > 0 and relation < LEAGUE_KEEP_OUT_RELATION:
+                    row["status"] = LEAGUE_BOUND
+                    row["bound_turns"] = int(max(left, held))
                     row["need"] = int(LEAGUE_KEEP_OUT_RELATION - relation)
                     priced = True
                 else:
@@ -3845,6 +3919,13 @@ def league_forecast(world, target: Optional[str] = None) -> Dict[str, Any]:
     return out
 
 
+def _truce_cooldown_left(world, nation: str, target: str) -> int:
+    """EA-19: the declaration's own cooldown reading
+    (`diplomacy.declaration_cooldown_left`), for the forecast's rows."""
+    from backend.game_logic.diplomacy import declaration_cooldown_left
+    return int(declaration_cooldown_left(world, nation, target))
+
+
 def _minus(value: int) -> str:
     """A relation as the tables print it: −36, +12, 0."""
     value = int(value)
@@ -3895,6 +3976,10 @@ def league_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str
     if status == LEAGUE_SPARED:
         return (f"{name} — relations {rel}, but {row.get('reason') or 'spared'}: "
                 f"she is not marched into a league while the Congress sits.")
+    if status == LEAGUE_TRUCE:
+        return (f"{name} — relations {rel}, but our truce binds her "
+                f"{plural(int(row.get('bound_turns', 0)), 'more turn')}: she "
+                f"cannot declare on us while it holds.")
     if status == LEAGUE_OUT:
         margin = int(row.get("relation", 0)) - LEAGUE_KEEP_OUT_RELATION + 1
         return (f"{name} — relations {rel}: she stays out of a league "
@@ -3937,6 +4022,16 @@ def league_row_detail(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> s
                        "out while it sits — her price is her recognition, on "
                        "the Congress tab (D, then 7).").strip()
     declare = forecast.get("declare_turns")
+    if (A_STANDING_LEAGUE_IS_NOT_REOPENED and forecast.get("formed")
+            and status in (LEAGUE_JOINS, LEAGUE_BOUND)):
+        # EA-19's rider: a league that stands enrols nobody new
+        # (`join_coalition` is the War of the Congress's alone), so a court
+        # newly free to join is the NEXT league's, and her price keeps her
+        # out of that one — never "she will march" into this.
+        price = league_price_clause(world, row)
+        return (f"{text} A league stands declared without her; she would "
+                f"march in the next"
+                + (f" — the price to keep her out: {price}." if price else ".")).strip()
     if row.get("out_of_time") and declare is not None:
         road = row.get("road")
         need = (f"Courtship needs {plural(int(road[0]), 'turn')}"
@@ -3983,10 +4078,14 @@ def league_summary_line(world, target: Optional[str] = None,
     courts = forecast.get("courts") or []
     joiners = [r for r in courts if r["status"] in (LEAGUE_JOINS, LEAGUE_REFUSES)]
     bound = [r for r in courts if r["status"] == LEAGUE_BOUND]
+    truce = [r for r in courts if r["status"] == LEAGUE_TRUCE]
     if forecast.get("formed"):
         return ""
+    truce_tail = (f" Held by our truce: {_join([r['display'] for r in truce])}."
+                  if truce else "")
     if not joiners and not bound:
-        return "No court would join a league against us today." if courts else ""
+        return (("No court would join a league against us today." + truce_tail)
+                if courts else "")
     majors = [r["display"] for r in joiners if r["major"]]
     lesser = len(joiners) - len(majors)
     who_parts = list(majors)
@@ -4003,6 +4102,7 @@ def league_summary_line(world, target: Optional[str] = None,
     if bound:
         tail = (f" Bound for now by a fresh peace: "
                 f"{_join([r['display'] for r in bound])}.")
+    tail += truce_tail
     if forecast.get("brewing"):
         when = (f"The courts consult now and declare on turn {int(declare)}"
                 if declare is not None else "The courts consult now")
@@ -4056,3 +4156,243 @@ def league_cheapest_keep_out(world, target: Optional[str] = None) -> Optional[Di
                      f"{price}."),
             "order_text": (f"The cheapest court to keep out of a league is "
                            f"{row['display']}: {clause} — '{command}'.")}
+
+
+# ════════════════════════════════════════════════════════════════
+# EAD-8 "The league's silent courts" (the economy gate, October 5, 2026 —
+# `docs/SCORE_FINISH_SPEC.md` §6.8; `docs/DESIGN_REFINEMENT.md` EAD-8)
+# ════════════════════════════════════════════════════════════════
+# Even with the league declaring in its own right (SFR-DR1), Britain cannot
+# cross the Channel and Russia's armies stand far east, and the dispatch said
+# nothing of why a declared league did not strike. The reading names, for
+# every member that has not struck our side inside the window, the reason —
+# read off PUBLIC facts only (the investigation measured that France never
+# sees most league corps): who holds which province, the diplomatic states,
+# the naval crossing verdicts, and the enemy corps France itself sees
+# (FULL / PARTIAL sightings). Display only (GR6); False = the shipped silence.
+THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED = True
+LEAGUE_MARCH_WINDOW = 5          # turns: a court that fought our side inside it has marched
+_LEAGUE_STRIKE_TYPES = ("battle", "garrison_assault", "bombardment")
+
+
+def _our_side(world, target: str) -> set:
+    """The target and its clients — the side a league strikes."""
+    side = {target}
+    for vassal, row in (getattr(world, "vassals", {}) or {}).items():
+        lord = row.get("lord") if isinstance(row, dict) else None
+        if lord == target:
+            side.add(vassal)
+    return side
+
+
+def _struck_our_side(world, member: str, side: set, since_turn: int) -> bool:
+    """Has `member` fought `side` (or taken a province from it) since
+    `since_turn`? Read newest-first off the event log; the window is short,
+    so the log's rolling cap does not hide it."""
+    for e in reversed(getattr(world, "event_log", []) or []):
+        try:
+            t = int(e.get("turn", -1))
+        except (TypeError, ValueError):
+            continue
+        if t < since_turn:
+            break
+        kind = e.get("type")
+        if kind in _LEAGUE_STRIKE_TYPES:
+            a, d = e.get("attacker_nation"), e.get("defender_nation")
+            if (a == member and d in side) or (d == member and a in side):
+                return True
+        elif kind == "region_captured":
+            if e.get("captured_by") == member and e.get("captured_from") in side:
+                return True
+    return False
+
+
+def _road_bfs(world, member: str, sources: set, goals: set, *,
+              lawful: bool, naval: bool):
+    """Multi-source BFS from `sources` to any province in `goals`.
+    `lawful`: every province entered on the way (not a goal) must be one
+    `member` may enter (`_region_passable_for`). `naval`: a sea link counts
+    only where the crossing gate lets `member` cross it. Returns the path
+    (a list, sources first) or None."""
+    from collections import deque
+    crossing = None
+    if naval and getattr(world, "fleets", None):
+        from backend.game_logic.naval import crossing_allowed as crossing
+    prev: Dict[str, Optional[str]] = {s: None for s in sources}
+    queue = deque(sorted(sources))
+    while queue:
+        here = queue.popleft()
+        region = world.regions.get(here)
+        if region is None:
+            continue
+        for nxt in region.adjacent_regions:
+            if nxt in prev or nxt not in world.regions:
+                continue
+            if crossing is not None and not crossing(world, member, here, nxt):
+                continue
+            if nxt in goals:
+                path = [nxt, here]
+                while prev.get(path[-1]) is not None:
+                    path.append(prev[path[-1]])
+                return list(reversed(path))
+            if lawful and not world._region_passable_for(nxt, member):
+                continue
+            prev[nxt] = here
+            queue.append(nxt)
+    return None
+
+
+def _blocking_courts(world, member: str, path: List[str]) -> List[str]:
+    """The courts whose closed soil lies on `path` (between its first and
+    last province) — the neutrals a straight road would cross."""
+    out: List[str] = []
+    for name in path[1:-1]:
+        region = world.regions.get(name)
+        controller = getattr(region, "controller", None)
+        if (controller and controller != member and controller not in out
+                and not world._region_passable_for(name, member)):
+            out.append(controller)
+    return out
+
+
+def _barred_crossing(world, member: str, path: List[str]):
+    """(shore, verdict) of the first sea link on `path` the crossing gate
+    refuses `member`, or None."""
+    if not path or not getattr(world, "fleets", None):
+        return None
+    from backend.game_logic.naval import crossing_check, is_sea_link
+    for a, b in zip(path, path[1:]):
+        if is_sea_link(world, a, b):
+            verdict = crossing_check(world, member, a, b)
+            if not verdict.get("allowed", True):
+                return b, str(verdict.get("verdict") or "shut")
+    return None
+
+
+def _neutrality(world, blockers: List[str], fellows: set) -> str:
+    """The closed soil named: the neutrality of the courts outside the
+    league, and a fellow member's — league membership grants no passage."""
+    from backend.game_logic.collapse import _join
+    from backend.game_logic.formations import formed_display_name
+    neutral = [formed_display_name(world, b) for b in blockers if b not in fellows]
+    allied = [formed_display_name(world, b) for b in blockers if b in fellows]
+    parts = []
+    if neutral:
+        parts.append(f"the neutrality of {_join(neutral)} bars it")
+    if allied:
+        verb = "grants" if len(allied) == 1 else "grant"
+        parts.append(f"{_join(allied)}, though in the league, {verb} her no passage")
+    return ", and ".join(parts) if parts else "closed soil bars it"
+
+
+def league_march_reading(world, target: Optional[str] = None) -> Dict[str, Any]:
+    """EAD-8: the ONE reading of the standing league's silent courts.
+
+        formed    a league against `target` (the player) stands
+        silent    [{nation, display, reason, text, marches}] — every member
+                  that has not struck our side inside LEAGUE_MARCH_WINDOW,
+                  with why: `open` (a road it may walk, unused), `around`
+                  (the straight road crosses closed soil; the lawful one is
+                  longer), `landing` (only the sea, onto a defended shore —
+                  an expedition of EXPEDITION_MAX_TROOPS at most), `sea_shut`
+                  (only the sea, and the crossing is barred to her), `closed`
+                  (no lawful road at all)
+        marched   the members that struck us inside the window
+
+    Pure: writes nothing. Public facts only — provinces, states, the
+    crossing verdicts, and the corps France sees (FULL / PARTIAL)."""
+    out: Dict[str, Any] = {"formed": False, "silent": [], "marched": []}
+    player = getattr(world, "player_nation", None)
+    tgt = target or player
+    if not THE_LEAGUE_SAYS_WHO_HAS_NOT_MARCHED or world is None or not tgt:
+        return out
+    coalition = getattr(world, "active_coalition", None)
+    if not coalition or (coalition.get("target_nation") or player) != tgt:
+        return out
+    out["formed"] = True
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.intel_surfaces import enemy_sightings
+    from backend.models.intel import FULL, PARTIAL
+    side = _our_side(world, tgt)
+    goals = set(world.get_nation_regions(tgt))
+    if not goals:
+        return out
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    since = max(int(coalition.get("formed_turn", turn) or turn),
+                turn - LEAGUE_MARCH_WINDOW)
+    seen: Dict[str, set] = {}
+    if tgt == player:
+        for s in enemy_sightings(world, tgt):
+            if s.get("visibility") in (FULL, PARTIAL) and s.get("location"):
+                seen.setdefault(str(s.get("nation")), set()).add(str(s["location"]))
+    fellows = set(coalition.get("members") or [])
+    for member in sorted(coalition.get("members") or []):
+        if member in side or member not in (getattr(world, "nation_gold", {}) or {}):
+            continue
+        if _struck_our_side(world, member, side, since):
+            out["marched"].append(member)
+            continue
+        sources = set(world.get_nation_regions(member)) | seen.get(member, set())
+        if not sources:
+            continue
+        name = formed_display_name(world, member)
+        free = _road_bfs(world, member, sources, goals, lawful=False, naval=False)
+        road = _road_bfs(world, member, sources, goals, lawful=True, naval=True)
+        row: Dict[str, Any] = {"nation": member, "display": name,
+                               "reason": "", "text": "", "marches": None}
+        if road is not None:
+            marches = len(road) - 1
+            row["marches"] = int(marches)
+            blockers = _blocking_courts(world, member, free) if free else []
+            if free is not None and len(free) < len(road) and blockers:
+                row["reason"] = "around"
+                row["text"] = (f"{name}'s straight road to us is closed — "
+                               f"{_neutrality(world, blockers, fellows)}; the "
+                               f"lawful road is {_plural(marches, 'march')}.")
+            else:
+                row["reason"] = "open"
+                row["text"] = (f"{name} has an open road to us — "
+                               f"{_plural(marches, 'march')} — and has not "
+                               f"struck us.")
+        else:
+            by_sea = _road_bfs(world, member, sources, goals, lawful=True, naval=False)
+            gate = _barred_crossing(world, member, by_sea) if by_sea else None
+            if gate is not None:
+                shore, verdict = gate
+                if verdict == "landing":
+                    from backend.game_logic.naval import EXPEDITION_MAX_TROOPS
+                    row["reason"] = "landing"
+                    row["text"] = (f"{name} has no road to us but the sea, and "
+                                   f"{shore} is a defended shore: she can land "
+                                   f"only by expedition, "
+                                   f"{int(EXPEDITION_MAX_TROOPS):,} men at a time.")
+                else:
+                    row["reason"] = "sea_shut"
+                    row["text"] = (f"{name} has no road to us but the sea, and "
+                                   f"the crossing to {shore} is shut to her.")
+            else:
+                blockers = _blocking_courts(world, member, free) if free else []
+                row["reason"] = "closed"
+                row["text"] = (f"{name} has no lawful road to us"
+                               + (f" — {_neutrality(world, blockers, fellows)}"
+                                  if blockers else "") + ".")
+        out["silent"].append(row)
+    return out
+
+
+def league_march_line(world, reading: Optional[Dict[str, Any]] = None,
+                      limit: int = 2) -> str:
+    """EAD-8: the beat's one line — the silent courts' first reasons, the
+    rest pointed to the Dispatch's coalition rows."""
+    reading = reading if reading is not None else league_march_reading(world)
+    silent = list(reading.get("silent") or [])
+    if not silent:
+        return ""
+    shown = [r["text"] for r in silent[:limit]]
+    more = len(silent) - len(shown)
+    tail = ""
+    if more > 0:
+        verb = "stands" if more == 1 else "stand"
+        tail = (f" {_plural(more, 'other member')} also {verb} off — the "
+                f"Dispatch (R) names why.")
+    return "not every court of the league has struck us. " + " ".join(shown) + tail

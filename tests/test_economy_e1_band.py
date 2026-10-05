@@ -137,9 +137,19 @@ class TestTurnOneAnchor:
         of gross 3,927) — inside the 55-70% band the EC-2 gate blessed, as
         the ruling's own terms stated. The measured range moves with it:
         below 0.62 the trim was undone; above 0.70 the package left the
-        blessed band."""
+        blessed band.
+
+        The economy gate (October 5, 2026; EAD-1 "campaign pay",
+        SYSTEMS_REFERENCE §98.1) — RE-BLESSED under the user's delegation
+        (gate record SCORE_FINISH_SPEC §6.8): at war, a corps outside its
+        court's 1805 homeland on allied or neutral soil is fed by contract,
+        and Bernadotte's 17,000 at Franconia pay 204 a turn from the boot.
+        France's turn-1 absorption 67.0% → 72.2% (drains 2,834 of 3,927) —
+        2.2 points above the EC-2 band, the opening war's deliberate price.
+        The measured range moves with it: below 0.66 campaign pay was
+        undone; above 0.74 something else began to drain France."""
         drains, gross, absorption, net = _absorption(world, "France")
-        assert 0.62 <= absorption <= 0.70, (
+        assert 0.66 <= absorption <= 0.74, (
             f"France turn-1 stacked absorption {absorption:.1%} left the "
             f"measured range (drains={drains} gross={gross})")
         assert net > 0
@@ -159,7 +169,13 @@ class TestTurnOneAnchor:
         trimmed") France's homeland no longer pays for its whole 189,000-man
         army at boot (-40), and its satellites' tribute carries it — France
         pays for its war by conquest and its clients, which is the ruling.
-        Pinned exactly so the next change to either side is a decision."""
+        Pinned exactly so the next change to either side is a decision.
+
+        The economy gate (October 5, 2026; EAD-1, SYSTEMS_REFERENCE §98.1)
+        re-seated France's homeland measure -40 → -244, consciously: campaign
+        pay bills Bernadotte's 17,000 at Franconia (204). The ledger's FULL
+        Net stays positive (828) and the satellites' tribute still carries
+        the army."""
         from backend.game_logic.ledger import _build_economy
         for nation in world.get_active_nations():
             assert _build_economy(world, nation)["net"] > 0, (
@@ -171,7 +187,7 @@ class TestTurnOneAnchor:
                    - income["dotation_skim"] - upkeep["total"])
             if nation == "France":
                 econ = _build_economy(world, "France")
-                assert net == -40, net
+                assert net == -244, net
                 assert net + econ["vassal_tribute"] > 0, (
                     "the satellites' tribute no longer carries the army")
                 continue

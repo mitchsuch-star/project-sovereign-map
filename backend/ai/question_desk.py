@@ -1393,7 +1393,8 @@ def _answer_league(world, player: str) -> str:
     else:
         head = f"Sire — {line}" if line else "Sire — no court would join a league against us today."
     rows = [r for r in C.league_rows(world)
-            if r["status"] in (C.LEAGUE_JOINS, C.LEAGUE_REFUSES, C.LEAGUE_BOUND)]
+            if r["status"] in (C.LEAGUE_JOINS, C.LEAGUE_REFUSES, C.LEAGUE_BOUND,
+                               C.LEAGUE_TRUCE)]
     majors = [r for r in rows if r.get("major")]
     for r in majors[:4]:
         head += f" {r['text']}"

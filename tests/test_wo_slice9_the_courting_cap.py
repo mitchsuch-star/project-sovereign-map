@@ -1102,7 +1102,12 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # `tools/_rf3_board_events.py`). With both field-read levers down in
         # the child it reads 11 / 12 verbatim
         # (`tools/_coord_field_wo_attribution.py`, measured).
-        assert uncapped == 12, uncapped
+        # Re-measured by the economy gate (October 5, 2026; EAD-7 the lawful
+        # road, SYSTEMS_REFERENCE §98.4): uncapped 13, capped 18 — the cap
+        # buys FIVE turns; the contract holds. With every gate lever down in
+        # the child it reads 12 / 18 verbatim
+        # (`tools/_econ_gate_wo_attribution.py`, measured).
+        assert uncapped == 13, uncapped
         assert capped == 18, capped
         assert capped - uncapped >= 1, (
             "the cap must buy the lord turns to react, not save him")

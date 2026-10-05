@@ -172,6 +172,9 @@ const TOOL_SCRIPTS = [
 	# CX3-R9 (Score Finish Step 7 slice 8): the completer's screenshot tool —
 	# not driven by a pytest, parsed here because the slice changed it
 	"res://../../tools/cx3_completer_screenshot.gd",
+	# The economy gate (Oct 5, 2026): the driven client session — UI/UX C6's
+	# delegate evidence, run by the reading's client arm
+	"res://../../tools/mode_c_driven_session.gd",
 ]
 
 const REPORT_PATH = "res://../../tools/godot_parse_report.json"

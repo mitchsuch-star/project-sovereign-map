@@ -604,11 +604,19 @@ def _tree_sha(tree: pathlib.Path) -> str:
         return ""
 
 
+#: EA-E8 (the economy gate, October 5, 2026): every child the reading starts
+#: talks to THIS port if it talks to one at all — never the player's 8005
+#: (a capture row's raw HTTPRequest reached a live game there). Unused by any
+#: server of the project.
+INSTRUMENT_PORT = "8021"
+
+
 def _env(run_dir: pathlib.Path) -> dict:
     env = dict(os.environ)
     env["PYTHONHASHSEED"] = "0"
     env["LLM_MODE"] = "mock"
     env["INK_IRON_SAVE_DIR"] = str(run_dir / "_saves")
+    env["SOVEREIGN_PORT"] = INSTRUMENT_PORT
     for key in (
         "SOVEREIGN_SCENARIO",
         "SOVEREIGN_MAP",
@@ -1029,6 +1037,32 @@ def _run_cli(tree: pathlib.Path, run_dir: pathlib.Path, godot: str) -> dict:
     text = boot_log.read_text(encoding="utf-8", errors="replace") if boot_log.exists() else ""
     rec["boot_script_errors"] = text.count("SCRIPT ERROR")
     rec["boot_log_bytes"] = len(text)
+    # The economy gate (October 5, 2026): the driven client session — the real
+    # main.tscn against a sandboxed backend on an unused port, every advertised
+    # key pushed as an engine event, five turns through four roads, every modal
+    # answered (`tools/mode_c_driven_session.py`). UI/UX C6's evidence for the
+    # delegate's mark; the item stays EYES (the user's own session overrides).
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "mode_c_driven_session", str(tree / "tools" / "mode_c_driven_session.py"))
+        modc = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modc)
+        session = modc.run(godot, out / "modec", turns=5)
+        (out / "modec" / "result.json").write_text(
+            json.dumps(session, indent=1), encoding="utf-8")
+        s = session.get("session") or {}
+        rec["modec"] = {
+            "godot_exit": session.get("godot_exit"),
+            "script_errors": session.get("script_errors"),
+            "checks": len(s.get("checks") or []),
+            "failed_checks": s.get("failed_checks") or [],
+            "turns_played": s.get("turns_played"),
+            "blocked": s.get("blocked"),
+            "error": session.get("error") or s.get("error"),
+        }
+    except Exception as exc:  # the session never fails the client arm
+        rec["modec"] = {"error": f"{type(exc).__name__}: {exc}"}
     rec["seconds"] = round(time.time() - t0, 1)
     rec["status"] = "completed" if (out / "index.json").exists() else "failed"
     (out / "cli.json").write_text(json.dumps(rec, indent=1), encoding="utf-8")
