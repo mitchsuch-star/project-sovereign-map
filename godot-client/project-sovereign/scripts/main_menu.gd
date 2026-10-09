@@ -141,11 +141,35 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and _settings_view and _settings_view.visible:
 		_close_settings()
 		get_viewport().set_input_as_handled()
+		return
+	# UXR-1b: the Interface Scale keys work on the menu too.
+	if event is InputEventKey and event.pressed and not event.echo and event.ctrl_pressed:
+		if _ctrl_scale_key(event.keycode):
+			get_viewport().set_input_as_handled()
+
+
+func _ctrl_scale_key(keycode: int) -> bool:
+	match keycode:
+		KEY_EQUAL, KEY_KP_ADD:
+			_on_ui_scale_changed(UiSettings.get_ui_scale() + UiSettings.UI_SCALE_BUTTON_STEP, true)
+			return true
+		KEY_MINUS, KEY_KP_SUBTRACT:
+			_on_ui_scale_changed(UiSettings.get_ui_scale() - UiSettings.UI_SCALE_BUTTON_STEP, true)
+			return true
+		KEY_0, KEY_KP_0:
+			UiSettings.set_ui_scale_auto()
+			_on_ui_scale_changed(UiSettings.get_ui_scale(), false)
+			return true
+	return false
 
 
 # ── UXR-1: the boot scale and the first-run card ────────────────────────────
 
 func _apply_boot_scale() -> void:
+	# UXR-1b: the stored window mode and body face first (both no-ops at the
+	# defaults; the window never moves under a capture harness).
+	Utils.apply_window_settings(get_window())
+	Utils.apply_body_font()
 	_derived_scale = UiSettings.derive_default_ui_scale()
 	var scale := UiSettings.resolve_ui_scale_at_boot()
 	get_window().content_scale_factor = clampf(scale, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE)
@@ -468,6 +492,8 @@ func _build_settings_view() -> void:
 	_settings_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_settings_panel)
 	_settings_panel.ui_scale_changed.connect(_on_ui_scale_changed)
+	# UXR-1b: "Preview with a sample…" opens the sizing card over the menu.
+	_settings_panel.size_card_requested.connect(open_scale_card)
 
 	var back := _make_button("Back", false)
 	back.alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -477,6 +503,10 @@ func _build_settings_view() -> void:
 
 
 func _open_settings() -> void:
+	# UXR-1b: a player who goes to Settings while the first-run card is still
+	# up has answered it with their feet — the size on screen is kept, and
+	# the card does not sit over the Settings it points at.
+	_close_scale_card()
 	_settings_view.visible = true
 	_settings_panel.refresh()
 	Utils.clamp_centered_panel(_settings_view)

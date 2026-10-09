@@ -176,10 +176,47 @@ the first AFTER reading (both decided, §99.4). **Regression:** the full IQ-10 s
 off-screen case fixed (the menu column). Parse harness EXIT=0 (the card and the probe
 added to its lists), the class cache rebuilt for `ScaleCard`.
 
-**Still open in S1 (S1b, the Settings additions — the review's decision 4/5):** window
+~~**Still open in S1 (S1b, the Settings additions — the review's decision 4/5):** window
 mode + size picker, the terminal's default footprint as a viewport fraction, the scale
 hotkeys, Reset layout, the CONTROLS reference, the Plain-font option; and the Settings
-button that opens the sizing card on demand.
+button that opens the sizing card on demand.~~
+
+### Landing record — S1b, the Settings additions (October 9, 2026, the same session)
+
+> Rules `SYSTEMS_REFERENCE.md` §99.8–§99.10; pins `tests/test_uxr1b_settings_additions.py`
+> (26); rows `BUG_FIXES.md` §UXR-1b (UXR-X5, UXR-X6 routed).
+
+**Built (decisions 4 + 5):** Settings → **DISPLAY** (Window: Maximized · Fullscreen ·
+Borderless · Windowed; Size for Windowed, only the sizes that fit the screen; applied at
+once and at the menu's boot; a no-op under a capture harness) · **INTERFACE** (the reset is
+*Size for this screen (N%)* — the derivation, stored auto — not the old 100%; *Preview with
+a sample…* opens the sizing card on the menu AND in the campaign, on its own layer above the
+pause menu; *Body text: Garamond · Plain (Source Sans 3)*, swapped live on the project
+theme's body faces only; *Reset layout*: the scale to the derivation, the command window to
+its fraction, the window to Maximized — sound, the key and the School's latch kept) ·
+**CONTROLS** (the key reference in four lines) · **Ctrl+= / Ctrl+− / Ctrl+0** on both input
+roads and on the menu (the map's bare +/− ignore a Ctrl press) · **the command window's
+default footprint = 28% × 32% of the logical viewport** (1,000 × 329 logical on the user's
+panel at 1.40 where 400 × 270 had been), re-derived until the grip is dragged; the grip's
+double-click and Reset layout clear the stored size · going to Settings answers a standing
+first-run card.
+
+**The floor's residue, from the whole-client census:** the campaign log's tiers 14 / 12 / 11
+→ 18 / 16 / 14 (routine in `CaptionRich`); the end screen's bold 15 → 17 (its body); the six
+literal 15s (four dialog titles / messages, the pause menu's two confirm buttons) dropped to
+the theme — `FIFTEEN_TSCN` in the recorded sweep. **Routed:** UXR-X5 (the diorama's tableau
+labels, 8–12 design px under a tray scale that never exceeds 1.0) and UXR-X6 (the
+war-detail bar tags, `max(7, font_size − 3)`), both UXR-2's.
+
+**The reading.** The named set on the S1b tree: **55 readings, 1,355 rows, RED 0, P1 0**
+(the AFTER record and the 5120×1440 AFTER frames re-taken on this tree). The whole client
+(137 surfaces × 5 resolutions): BEFORE (the worktree at `05bbee2c`, scale 1.0) **RED 1,565 /
+P1 4,120**; after S1a RED 62 / P1 127; **after S1b RED 32 / P1 92** — on six surfaces, every
+one UXR-X5's (`diorama_aadj` / `diorama_dadj`: 14 RED + 20 P1 each) or UXR-X6's (the four
+`war_detail_*`: 1 RED + 13 P1 each); `readability_after_all_2026_10_09.json`, pinned as a
+ratchet with the routed-families invariant in `tests/test_uxr0_readability.py`. Regression at 1600×900 × {1.0, 2.0} over the changed surfaces: 28 frames, 0
+`SCRIPT ERROR`, 0 clipped, 0 off-screen; the new sections all present in the census. Parse
+harness EXIT=0.
 
 ## UXR-2 — The layout law (1 session)
 

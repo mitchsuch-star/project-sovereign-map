@@ -94,7 +94,29 @@ static func _write_num(section: String, key: String, value: float) -> void:
 	_save()
 
 
+static func harness_active() -> bool:
+	"""True under a capture / driven harness (which sets `_persist` false):
+	the one thing such a run must never do is move or resize the OS window
+	it was parked in (`Utils.apply_window_settings` checks this)."""
+	return not _persist
+
+
 # --- Terminal footprint ---
+# UXR-1b (October 9, 2026): the DEFAULT footprint is no longer the 400x270 a
+# 24-inch monitor wanted — with nothing stored, main.gd sizes the command
+# window as a FRACTION of its logical viewport (`_default_terminal_size`,
+# TERMINAL_WIDTH_FRACTION / TERMINAL_HEIGHT_FRACTION inside the published
+# min/max). The constants below are the floor of that default and the value
+# a caller with no viewport gets.
+const TERMINAL_WIDTH_FRACTION := 0.28
+const TERMINAL_HEIGHT_FRACTION := 0.32
+
+
+static func has_terminal_size() -> bool:
+	return _config().has_section_key("terminal", "width") \
+			and _config().has_section_key("terminal", "height")
+
+
 static func get_terminal_width() -> float:
 	return clampf(_read_num("terminal", "width", DEFAULT_TERMINAL_WIDTH),
 			MIN_TERMINAL_WIDTH, MAX_TERMINAL_WIDTH)
@@ -108,6 +130,83 @@ static func get_terminal_height() -> float:
 static func set_terminal_size(width: float, height: float) -> void:
 	_write_num("terminal", "width", clampf(width, MIN_TERMINAL_WIDTH, MAX_TERMINAL_WIDTH))
 	_write_num("terminal", "height", clampf(height, MIN_TERMINAL_HEIGHT, MAX_TERMINAL_HEIGHT))
+
+
+static func clear_terminal_size() -> void:
+	"""Back to the viewport-fraction default (Reset layout / the grip's double-click)."""
+	if _config().has_section_key("terminal", "width"):
+		_config().erase_section_key("terminal", "width")
+	if _config().has_section_key("terminal", "height"):
+		_config().erase_section_key("terminal", "height")
+	_save()
+
+
+static func default_terminal_size(viewport: Vector2) -> Vector2:
+	"""The footprint a fresh install gets on THIS viewport (logical px)."""
+	if viewport.x <= 0.0 or viewport.y <= 0.0:
+		return Vector2(DEFAULT_TERMINAL_WIDTH, DEFAULT_TERMINAL_HEIGHT)
+	return Vector2(
+		clampf(viewport.x * TERMINAL_WIDTH_FRACTION, DEFAULT_TERMINAL_WIDTH, MAX_TERMINAL_WIDTH),
+		clampf(viewport.y * TERMINAL_HEIGHT_FRACTION, DEFAULT_TERMINAL_HEIGHT, MAX_TERMINAL_HEIGHT))
+
+
+# --- Window mode and size (UXR-1b: Settings → DISPLAY) ---
+# "maximized" is the project's own boot (project.godot window/size/mode=2) and
+# the default; the other three are applied by Utils.apply_window_settings at
+# the menu's boot and on change. The size applies to "windowed" only.
+const WINDOW_MODES := ["maximized", "fullscreen", "borderless", "windowed"]
+const DEFAULT_WINDOW_MODE := "maximized"
+const WINDOW_SIZES := ["native", "3440x1440", "2560x1440", "1920x1080"]
+const DEFAULT_WINDOW_SIZE := "native"
+
+
+static func get_window_mode() -> String:
+	var mode := str(_config().get_value("display", "window_mode", DEFAULT_WINDOW_MODE))
+	return mode if mode in WINDOW_MODES else DEFAULT_WINDOW_MODE
+
+
+static func set_window_mode(mode: String) -> void:
+	_config().set_value("display", "window_mode", mode if mode in WINDOW_MODES else DEFAULT_WINDOW_MODE)
+	_save()
+
+
+static func get_window_size() -> String:
+	var size := str(_config().get_value("display", "window_size", DEFAULT_WINDOW_SIZE))
+	return size if size in WINDOW_SIZES else DEFAULT_WINDOW_SIZE
+
+
+static func set_window_size(size: String) -> void:
+	_config().set_value("display", "window_size", size if size in WINDOW_SIZES else DEFAULT_WINDOW_SIZE)
+	_save()
+
+
+# --- Body text face (UXR-1b: Settings → INTERFACE) ---
+# "garamond" is the July design (EB Garamond, x-height 0.44 em); "plain" swaps
+# the theme's body faces for Source Sans 3 (OFL, shipped) — 0.49 em at the same
+# size — through Utils.apply_body_font. Headings (Cinzel), the menu's own faces
+# and the map's labels are untouched.
+const BODY_FONTS := ["garamond", "plain"]
+const DEFAULT_BODY_FONT := "garamond"
+
+
+static func get_body_font() -> String:
+	var face := str(_config().get_value("display", "body_font", DEFAULT_BODY_FONT))
+	return face if face in BODY_FONTS else DEFAULT_BODY_FONT
+
+
+static func set_body_font(face: String) -> void:
+	_config().set_value("display", "body_font", face if face in BODY_FONTS else DEFAULT_BODY_FONT)
+	_save()
+
+
+static func reset_layout() -> void:
+	"""Settings → Reset layout: the scale back to the derivation, the command
+	window back to its viewport fraction, the window back to the project's
+	maximized boot. Sound, the key, the School's latch stay."""
+	set_ui_scale_auto()
+	clear_terminal_size()
+	set_window_mode(DEFAULT_WINDOW_MODE)
+	set_window_size(DEFAULT_WINDOW_SIZE)
 
 
 # --- Global interface / text scale ---

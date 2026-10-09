@@ -2362,6 +2362,10 @@ func _unhandled_input(event):
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
+		# UXR-1b: Ctrl+= / Ctrl+− / Ctrl+0 are the INTERFACE scale's keys
+		# (main.gd), never a map zoom — the map answers the bare keys only.
+		if event.ctrl_pressed:
+			return
 		var screen_center = global_position + size / 2.0
 		# FA-S13-1(a) (slice 17): `keycode`, not `physical_keycode` — the
 		# layout-mapped value a player expects from the LABELLED key, and the

@@ -175,6 +175,13 @@ const SETTLEMENT_DIALOGUE_ACTIONS := [
 # uniformly (the map stays crisp via the renderer's native-res compensation).
 # The old terminal-only font scale was retired: it never reached the pop-ups.
 const GRIP_SIZE := 20.0
+# UXR-1b: true while the command window's footprint is the viewport fraction
+# (nothing stored) — the grip's release stores a size and clears it.
+var _terminal_uses_default := true
+# UXR-1b: the in-game sizing card ("Preview with a sample…" from the pause
+# menu's Settings), on its own layer above the pause menu (120).
+var _scale_card: ScaleCard = null
+var _scale_card_layer: CanvasLayer = null
 const TERMINAL_ANCHOR_LEFT := 10.0    # matches BottomLeftUI offset_left in main.tscn
 const TERMINAL_ANCHOR_BOTTOM := -10.0  # matches BottomLeftUI offset_bottom in main.tscn
 const TOP_BAR_RESERVED_PX := 36.0      # matches BarContainer offset_bottom in top_bar.tscn
@@ -613,6 +620,13 @@ func _ready():
 
 	# Pause menu (layer 120, always on top)
 	pause_menu = dialog_manager.register("pause_menu", "res://scenes/pause_menu.tscn")
+	# UXR-1b: the sizing card and the pause panel's two new asks.
+	_build_scale_card()
+	if pause_menu:
+		if pause_menu.has_signal("size_card_requested"):
+			pause_menu.size_card_requested.connect(open_scale_card)
+		if pause_menu.has_signal("layout_reset"):
+			pause_menu.layout_reset.connect(_on_layout_reset)
 	if pause_menu:
 		pause_menu.save_requested.connect(_on_pause_save_requested)
 		pause_menu.load_requested.connect(_on_pause_load_requested)
@@ -755,6 +769,11 @@ func _ready():
 		restore_button.pressed.connect(_restore_terminal)
 
 	# ── UI-2: expandable + scaling command window (DEF-13 fold) ──
+	# UXR-1b: the stored body face and window mode (no-ops at their defaults;
+	# the window never moves under a capture harness) — the menu applied them
+	# at boot, and this covers a main.tscn booted on its own.
+	Utils.apply_body_font()
+	Utils.apply_window_settings(get_window())
 	# Apply the saved global interface scale FIRST so the logical viewport is
 	# settled before the terminal geometry is computed in logical coordinates.
 	_apply_ui_scale(UiSettings.get_ui_scale(), false)
@@ -1129,6 +1148,10 @@ func _on_command_input_gui_input(event):
 		if event.keycode == KEY_F1:
 			_open_diplomacy_wizard()
 			command_input.accept_event()
+		elif event.ctrl_pressed and _ctrl_scale_key(event.keycode):
+			# UXR-1b: the Interface Scale keys, reachable while typing (a
+			# LineEdit would otherwise eat Ctrl+= as text).
+			command_input.accept_event()
 		elif event.alt_pressed and _SCREEN_HOTKEYS.has(event.keycode):
 			# PC15-18: Alt+screen-key works even while typing — the modal
 			# gate still holds (same rule _is_hotkey_blocked enforces on
@@ -1417,6 +1440,11 @@ func _unhandled_input(event):
 			get_viewport().set_input_as_handled()
 			return
 
+		# ═══ UXR-1b: Ctrl+= / Ctrl+− / Ctrl+0 — the Interface Scale ═══
+		if event.ctrl_pressed and _ctrl_scale_key(event.keycode):
+			get_viewport().set_input_as_handled()
+			return
+
 		# ═══ F1: DIPLOMACY WIZARD — works even when input focused ═══
 		if event.keycode == KEY_F1:
 			if not _is_modal_dialog_open():
@@ -1520,9 +1548,18 @@ func _setup_scalable_terminal() -> void:
 
 	_create_resize_grip()
 
-	# Restore the persisted footprint; the persisted text scale is applied
-	# globally by _apply_ui_scale() (called just before us in _ready()).
-	_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
+	# Restore the persisted footprint — or, with nothing stored, the VIEWPORT
+	# FRACTION (UXR-1b, October 9, 2026): the 400x270 default was a 24-inch
+	# monitor's number, 7.8% of a 5120-wide screen. Re-derived on every
+	# resize until the player drags the grip (which stores a size).
+	# The persisted text scale is applied globally by _apply_ui_scale()
+	# (called just before us in _ready()).
+	_terminal_uses_default = not UiSettings.has_terminal_size()
+	if _terminal_uses_default:
+		var default_size := UiSettings.default_terminal_size(size)
+		_apply_terminal_size(default_size.x, default_size.y)
+	else:
+		_apply_terminal_size(UiSettings.get_terminal_width(), UiSettings.get_terminal_height())
 	_update_text_size_readout()
 
 func _on_scale_down_pressed() -> void:
@@ -1652,6 +1689,9 @@ func _on_grip_gui_input(event: InputEvent) -> void:
 		else:
 			if _grip_dragging:
 				_grip_dragging = false
+				# UXR-1b: a dragged size is the player's — the viewport
+				# fraction stops following the screen from here.
+				_terminal_uses_default = false
 				UiSettings.set_terminal_size(_terminal_width, _terminal_height)
 	elif event is InputEventMouseMotion and _grip_dragging:
 		_resize_terminal_from_mouse(get_global_mouse_position())
@@ -1664,13 +1704,23 @@ func _resize_terminal_from_mouse(mouse_pos: Vector2) -> void:
 	_apply_terminal_size(new_width, new_height)
 
 func _reset_terminal_size() -> void:
-	_apply_terminal_size(UiSettings.DEFAULT_TERMINAL_WIDTH, UiSettings.DEFAULT_TERMINAL_HEIGHT)
-	UiSettings.set_terminal_size(_terminal_width, _terminal_height)
+	# UXR-1b: the reset is the viewport-fraction default, and the stored size
+	# is CLEARED so the fraction follows the screen again.
+	UiSettings.clear_terminal_size()
+	_terminal_uses_default = true
+	var default_size := UiSettings.default_terminal_size(size)
+	_apply_terminal_size(default_size.x, default_size.y)
 
 func _on_root_resized() -> void:
 	# Window / global-scale reflow: re-fit the UNCHANGED desired size to the new
 	# viewport (display-only) and re-glue the grip. Must NOT go through
-	# _apply_terminal_size, which would re-clamp the intent.
+	# _apply_terminal_size, which would re-clamp the intent — unless the
+	# intent IS the viewport fraction (nothing stored), which follows the
+	# viewport by definition.
+	if _terminal_uses_default:
+		var default_size := UiSettings.default_terminal_size(size)
+		_terminal_width = clampf(default_size.x, UiSettings.MIN_TERMINAL_WIDTH, UiSettings.MAX_TERMINAL_WIDTH)
+		_terminal_height = clampf(default_size.y, UiSettings.MIN_TERMINAL_HEIGHT, UiSettings.MAX_TERMINAL_HEIGHT)
 	_relayout_terminal()
 
 func _apply_ui_scale(scale: float, persist: bool = true) -> void:
@@ -1694,6 +1744,55 @@ func _on_ui_scale_changed(scale: float, persist: bool = true) -> void:
 	# ends (or immediately for a click / keyboard change) so a drag doesn't spam
 	# the config file to disk each step.
 	_apply_ui_scale(scale, persist)
+
+
+# ── UXR-1b: the sizing card in the campaign, the scale keys, Reset layout ──
+
+func _build_scale_card() -> void:
+	_scale_card_layer = CanvasLayer.new()
+	_scale_card_layer.name = "ScaleCardLayer"
+	_scale_card_layer.layer = 125
+	add_child(_scale_card_layer)
+	_scale_card = ScaleCard.new()
+	_scale_card.visible = false
+	_scale_card_layer.add_child(_scale_card)
+	_scale_card.scale_previewed.connect(func(v): _apply_ui_scale(v, false))
+	_scale_card.accepted.connect(func(v): _apply_ui_scale(v, true))
+
+
+func open_scale_card() -> void:
+	"""Settings → INTERFACE → Preview with a sample… — the same card the
+	menu raises on the first boot, over the war room."""
+	if _scale_card == null:
+		return
+	if pause_menu and pause_menu.visible:
+		pause_menu.close_menu()
+	_scale_card.open(UiSettings.get_ui_scale(), UiSettings.derive_default_ui_scale())
+
+
+func _on_layout_reset() -> void:
+	"""Settings → Reset layout: the panel reset the stored values; apply
+	them here — the derived scale (with the map's compensation) and the
+	command window's viewport-fraction footprint."""
+	_apply_ui_scale(UiSettings.get_ui_scale(), false)
+	_reset_terminal_size()
+
+
+func _ctrl_scale_key(keycode: int) -> bool:
+	"""Ctrl+= / Ctrl+− step the Interface Scale (the header's own + / −);
+	Ctrl+0 returns to this screen's derived size. True when the key was ours."""
+	match keycode:
+		KEY_EQUAL, KEY_KP_ADD:
+			_step_ui_scale(1)
+			return true
+		KEY_MINUS, KEY_KP_SUBTRACT:
+			_step_ui_scale(-1)
+			return true
+		KEY_0, KEY_KP_0:
+			UiSettings.set_ui_scale_auto()
+			_apply_ui_scale(UiSettings.get_ui_scale(), false)
+			return true
+	return false
 
 func _toggle_terminal():
 	"""Toggle terminal panel visibility."""

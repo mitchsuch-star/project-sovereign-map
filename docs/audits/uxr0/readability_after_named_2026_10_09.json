@@ -1,6 +1,6 @@
 {
  "date": "2026_10_09",
- "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\9ecd323d-75e9-4720-8b1d-e8ab92fd713e\\scratchpad\\uxr0_after_named3\\index.json",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\9ecd323d-75e9-4720-8b1d-e8ab92fd713e\\scratchpad\\uxr0_after_named_s1b\\index.json",
  "surfaces": {
   "ledger_boot_forces": {
    "surface": "Strategic Ledger — Forces tab",
@@ -643,10 +643,10 @@
      "scale": 1.0,
      "ok": true,
      "counts": {
-      "rows": 69,
+      "rows": 83,
       "red": 0,
       "p1": 0,
-      "ok": 69,
+      "ok": 83,
       "map": 34,
       "map_small": 34
      },
@@ -660,10 +660,10 @@
      "scale": 1.15,
      "ok": true,
      "counts": {
-      "rows": 69,
+      "rows": 83,
       "red": 0,
       "p1": 0,
-      "ok": 69,
+      "ok": 83,
       "map": 34,
       "map_small": 34
      },
@@ -677,10 +677,10 @@
      "scale": 1.15,
      "ok": true,
      "counts": {
-      "rows": 69,
+      "rows": 83,
       "red": 0,
       "p1": 0,
-      "ok": 69,
+      "ok": 83,
       "map": 34,
       "map_small": 34
      },
@@ -694,10 +694,10 @@
      "scale": 1.4,
      "ok": true,
      "counts": {
-      "rows": 69,
+      "rows": 83,
       "red": 0,
       "p1": 0,
-      "ok": 69,
+      "ok": 83,
       "map": 34,
       "map_small": 34
      },
@@ -711,10 +711,10 @@
      "scale": 1.5,
      "ok": true,
      "counts": {
-      "rows": 69,
+      "rows": 83,
       "red": 0,
       "p1": 0,
-      "ok": 69,
+      "ok": 83,
       "map": 34,
       "map_small": 10
      },
@@ -913,10 +913,10 @@
      "scale": 1.0,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 47,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 47,
       "map": 0,
       "map_small": 0
      },
@@ -930,10 +930,10 @@
      "scale": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 47,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 47,
       "map": 0,
       "map_small": 0
      },
@@ -947,10 +947,10 @@
      "scale": 1.15,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 47,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 47,
       "map": 0,
       "map_small": 0
      },
@@ -964,10 +964,10 @@
      "scale": 1.4,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 47,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 47,
       "map": 0,
       "map_small": 0
      },
@@ -981,10 +981,10 @@
      "scale": 1.5,
      "ok": true,
      "counts": {
-      "rows": 42,
+      "rows": 47,
       "red": 0,
       "p1": 0,
-      "ok": 42,
+      "ok": 47,
       "map": 0,
       "map_small": 0
      },
@@ -993,6 +993,6 @@
    }
   }
  },
- "client_commit": "05bbee2c",
+ "client_commit": "5bdfcd06",
  "physical_scale": "auto"
 }

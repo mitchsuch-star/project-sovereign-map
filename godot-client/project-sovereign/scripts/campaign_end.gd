@@ -136,7 +136,9 @@ func _load_fonts() -> void:
 		cause_label.add_theme_font_override("font", _font_voice)
 		content_label.add_theme_font_override("normal_font", _font_voice)
 		content_label.add_theme_font_size_override("normal_font_size", 17)
-		content_label.add_theme_font_size_override("bold_font_size", 15)
+		# UXR-1b: bold matches the body (it was 15 against a 17 body — a
+		# smaller bold, and a RED row by the readability floor).
+		content_label.add_theme_font_size_override("bold_font_size", 17)
 	if _font_voice_italic != null:
 		content_label.add_theme_font_override("italics_font", _font_voice_italic)
 		content_label.add_theme_font_size_override("italics_font_size", 17)

@@ -599,6 +599,109 @@ static func bb_chip_disabled(label: String, icon_path := "") -> String:
 	return "[bgcolor=#20242c]  " + inner + "  [/bgcolor]"
 
 
+# === Display settings (UXR-1b, October 9, 2026) ===
+
+static func apply_window_settings(window: Window) -> void:
+	"""Apply the stored window mode and size (Settings → DISPLAY) to the OS
+	window. The project boots maximized (project.godot), so the default mode
+	changes nothing; the other three are set here, at the menu's boot and on
+	every change. NEVER under a capture / driven harness — it parked the
+	window where it must stay (`UiSettings.harness_active`)."""
+	if window == null or UiSettings.harness_active():
+		return
+	var mode := UiSettings.get_window_mode()
+	var screen := window.current_screen
+	var screen_size := DisplayServer.screen_get_size(screen)
+	var screen_pos := DisplayServer.screen_get_position(screen)
+	match mode:
+		"fullscreen":
+			window.borderless = false
+			window.mode = Window.MODE_FULLSCREEN
+		"borderless":
+			# The usual "borderless full-screen window": windowed, no frame,
+			# the screen's own size at its origin.
+			window.mode = Window.MODE_WINDOWED
+			window.borderless = true
+			window.size = screen_size
+			window.position = screen_pos
+		"windowed":
+			window.mode = Window.MODE_WINDOWED
+			window.borderless = false
+			var want := window_size_for(UiSettings.get_window_size(), screen_size)
+			window.size = want
+			window.position = screen_pos + (screen_size - want) / 2
+		_:
+			window.borderless = false
+			window.mode = Window.MODE_MAXIMIZED
+
+
+static func window_size_for(choice: String, screen_size: Vector2i) -> Vector2i:
+	"""A Settings size choice → pixels, never larger than the screen."""
+	var want := screen_size
+	var parts := choice.split("x")
+	if parts.size() == 2 and parts[0].is_valid_int() and parts[1].is_valid_int():
+		want = Vector2i(int(parts[0]), int(parts[1]))
+	return Vector2i(mini(want.x, screen_size.x), mini(want.y, screen_size.y))
+
+
+static func window_size_choices(screen_size: Vector2i) -> Array:
+	"""The size choices that fit this screen (native always)."""
+	var out := []
+	for choice in UiSettings.WINDOW_SIZES:
+		var parts = choice.split("x")
+		if parts.size() != 2:
+			out.append(choice)
+		elif int(parts[0]) <= screen_size.x and int(parts[1]) <= screen_size.y:
+			out.append(choice)
+	return out
+
+
+const _PLAIN_BODY_REGULAR := "res://assets/fonts/SourceSans3[wght].ttf"
+const _PLAIN_BODY_ITALIC := "res://assets/fonts/SourceSans3-Italic[wght].ttf"
+static var _garamond_faces: Dictionary = {}
+
+
+static func apply_body_font() -> void:
+	"""Settings → INTERFACE → Body text: swap the project theme's body faces
+	(the default font and the RichTextLabel's four) for Source Sans 3 — or
+	back to the July design. Headings keep Cinzel; the menu's own faces and
+	the map's labels are untouched. The theme resource is live: every control
+	re-renders on its `changed` signal."""
+	var theme: Theme = ThemeDB.get_project_theme()
+	if theme == null:
+		return
+	if _garamond_faces.is_empty():
+		_garamond_faces = {
+			"default": theme.default_font,
+			"bold": theme.get_font("bold_font", "RichTextLabel"),
+			"italics": theme.get_font("italics_font", "RichTextLabel"),
+			"bold_italics": theme.get_font("bold_italics_font", "RichTextLabel"),
+		}
+	if UiSettings.get_body_font() == "plain":
+		var regular: Font = load(_PLAIN_BODY_REGULAR)
+		var italic: Font = load(_PLAIN_BODY_ITALIC)
+		if regular == null:
+			return
+		var bold := FontVariation.new()
+		bold.base_font = regular
+		bold.variation_opentype = {"wght": 700}
+		var bold_italic := FontVariation.new()
+		bold_italic.base_font = italic if italic != null else regular
+		bold_italic.variation_opentype = {"wght": 700}
+		theme.default_font = regular
+		theme.set_font("normal_font", "RichTextLabel", regular)
+		theme.set_font("bold_font", "RichTextLabel", bold)
+		theme.set_font("italics_font", "RichTextLabel", italic if italic != null else regular)
+		theme.set_font("bold_italics_font", "RichTextLabel", bold_italic)
+	else:
+		theme.default_font = _garamond_faces["default"]
+		if theme.has_font("normal_font", "RichTextLabel"):
+			theme.clear_font("normal_font", "RichTextLabel")
+		theme.set_font("bold_font", "RichTextLabel", _garamond_faces["bold"])
+		theme.set_font("italics_font", "RichTextLabel", _garamond_faces["italics"])
+		theme.set_font("bold_italics_font", "RichTextLabel", _garamond_faces["bold_italics"])
+
+
 # === Layout Helpers ===
 
 static func clamp_centered_panel(panel: Control) -> void:

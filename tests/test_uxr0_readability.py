@@ -20,6 +20,17 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 RECORDS = REPO / "docs" / "audits" / "uxr0"
 BEFORE = RECORDS / "readability_before_named_2026_10_09.json"
 AFTER = RECORDS / "readability_after_named_2026_10_09.json"
+# The whole client (every IQ-10 surface × the five resolutions): UXR-0's "exists
+# for all 127 surfaces" (137 at the time of shooting). Counts + the worst two
+# rows per reading; the BEFORE from the pristine worktree at 05bbee2c.
+BEFORE_ALL = RECORDS / "readability_before_all_2026_10_09.json"
+AFTER_ALL = RECORDS / "readability_after_all_2026_10_09.json"
+# The whole-client ratchet after S1b (October 9, 2026): every remaining flag sits
+# on the two ROUTED families — the diorama's tableau labels (UXR-X5) and the
+# war-detail popup's computed bar tags (UXR-X6). Lower these when they fall.
+ALL_RED_RATCHET = 32
+ALL_P1_RATCHET = 92
+ROUTED_FAMILIES = ("diorama_", "war_detail_")
 
 sys.path.insert(0, str(REPO / "tools"))
 from uxr0_readability_report import PHYSICAL_RESOLUTIONS, classify, derive_ui_scale, totals  # noqa: E402
@@ -110,6 +121,46 @@ class TestTheDoneWhen:
             assert body.get("verdict") == "red" and body.get("em") == 13.0, (key, body)
             out = paths.get("OutputDisplay", {})
             assert out.get("verdict") == "p1" and out.get("em") == 11.0, (key, out)
+
+
+class TestTheWholeClient:
+    """UXR-0's done-when: the census exists for EVERY surface at the five
+    resolutions, before and after."""
+
+    @pytest.fixture(scope="class")
+    def before_all(self) -> dict:
+        return _load(BEFORE_ALL)
+
+    @pytest.fixture(scope="class")
+    def after_all(self) -> dict:
+        return _load(AFTER_ALL)
+
+    def test_every_surface_at_every_resolution_both_records(self, before_all, after_all):
+        for rec in (before_all, after_all):
+            assert len(rec["surfaces"]) >= 127, len(rec["surfaces"])
+            for sid, surf in rec["surfaces"].items():
+                keys = set(surf["readings"])
+                for (w, h) in PHYSICAL_RESOLUTIONS:
+                    assert any(k.startswith(f"{w}x{h}@") for k in keys), (sid, w, h)
+
+    def test_the_before_names_its_pristine_client(self, before_all):
+        assert before_all.get("client_commit") == "05bbee2c"
+        assert before_all.get("physical_scale") == "1.0"
+
+    def test_the_whole_client_moved(self, before_all, after_all):
+        tb, ta = totals(before_all), totals(after_all)
+        assert tb["p1"] >= 4000 and tb["red"] >= 1500, tb
+        assert ta["red"] <= ALL_RED_RATCHET, (ta, "the RED count may fall, never rise")
+        assert ta["p1"] <= ALL_P1_RATCHET, (ta, "the P1 count may fall, never rise")
+
+    def test_every_remaining_flag_is_a_routed_family(self, after_all):
+        """UXR-X5 / UXR-X6 own what is left; anything else is a regression."""
+        strays = []
+        for sid, surf in after_all["surfaces"].items():
+            flagged = sum(r["counts"]["red"] + r["counts"]["p1"] for r in surf["readings"].values())
+            if flagged and not sid.startswith(ROUTED_FAMILIES):
+                strays.append((sid, flagged))
+        assert strays == [], strays
 
 
 class TestTheFloorIsOneRule:

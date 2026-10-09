@@ -22,6 +22,10 @@ signal closed
 # Re-emitted from the embedded SettingsPanel (UI-2 semantics: live-apply every
 # step, persist at drag end / on click or keyboard change).
 signal ui_scale_changed(value, persist)
+# UXR-1b: the panel's two new asks, re-emitted for main.gd — open the sizing
+# card ("Preview with a sample…") and re-fit the terminal after Reset layout.
+signal size_card_requested
+signal layout_reset
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -59,6 +63,8 @@ func _ready():
 	_settings_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_settings_panel)
 	_settings_panel.ui_scale_changed.connect(func(v, p): ui_scale_changed.emit(v, p))
+	_settings_panel.size_card_requested.connect(func(): size_card_requested.emit())
+	_settings_panel.layout_reset.connect(func(): layout_reset.emit())
 	# PB-4 (the release build): the build stamp on the pause menu too, so a
 	# player reporting from mid-game can quote it without leaving the campaign.
 	_version_line = Label.new()

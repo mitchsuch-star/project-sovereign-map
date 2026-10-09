@@ -9172,3 +9172,39 @@ RED < 16 em px, P1 < 13; caption RED < 14, P1 < 12; the map tier counted beside,
 and writes the committed record `tests/test_uxr0_readability.py` reads. `UiSettings._persist`
 (set false by a harness through a Variant) keeps every setter's write in memory, so a scene's
 own boot write never reaches the player's file.
+
+**99.8 The Settings additions (UXR-1b, S1b, October 9, 2026).** `SettingsPanel` (shared by the
+menu and the pause menu) gained **DISPLAY** — *Window* (`Maximized` the project's own boot ·
+`Fullscreen` · `Borderless window` · `Windowed`) and, for Windowed, a *Size* (`This screen
+(WxH)` plus every entry of `UiSettings.WINDOW_SIZES` that fits the screen), applied at once
+by `Utils.apply_window_settings(window)` and at the menu's boot; the setter is a NO-OP under a
+capture harness (`UiSettings.harness_active()` — the harness parked its window where it must
+stay). **INTERFACE** — the slider; *Size for this screen (N%)* (the reset is the DERIVATION,
+stored auto, not the old 100%); *Preview with a sample…* (`size_card_requested` → the host's
+`ScaleCard`: the menu's, or main.gd's on CanvasLayer 125 above the pause menu's 120, which
+closes the pause menu first); *Body text* (`Garamond` the design · `Plain (Source Sans)` —
+`Utils.apply_body_font` swaps the project theme's `default_font` and the RichTextLabel's
+four faces, live, and restores the Garamond faces it READ at first call; headings, the
+menu's own faces and the map's labels untouched); *Reset layout* (`UiSettings.reset_layout`:
+the scale back to the derivation, the command window back to its viewport fraction, the
+window back to Maximized — sound, the parser key and the School's latch are kept;
+`layout_reset` → main.gd re-applies the scale and re-fits the terminal). **CONTROLS** — the key
+reference in four lines (screens, the day, the map, the interface). **Ctrl+= / Ctrl+− /
+Ctrl+0** step the Interface Scale and return to this screen's size, on the focused and the
+unfocused road and on the menu; the map's bare `+`/`−` zoom ignores a Ctrl press.
+
+**99.9 The command window's default footprint.** With nothing stored the window is a
+FRACTION of the logical viewport — `UiSettings.default_terminal_size(viewport)` = 28% × 32%
+inside the published [400–1000] × [270–900] — re-derived on every resize and scale change
+(`_terminal_uses_default`) until the grip is dragged, which stores a size; the grip's
+double-click and Reset layout CLEAR the stored size (`clear_terminal_size`) so the fraction
+follows the screen again. On the user's 5120×1440 at 1.40 that is 1000 × 329 logical px
+(1,400 × 460 physical) where 400 × 270 had been.
+
+**99.10 The floor's residue (the whole-client census).** The campaign log's tiers are 18 bold /
+16 / 14 with the routine row in `CaptionRich` (they were 14 / 12 / 11 — the routine tier a
+P1 on every monitor); the end screen's bold is 17 like its body (it was 15); the six literal
+15s (four dialog titles / messages, the pause menu's two confirm buttons) dropped to the
+theme's 16 (`FIFTEEN_TSCN` in the sweep). Still flagged and ROUTED, not fixed: the battle
+diorama's tableau labels (design sizes under a 0.35–1.0 tray scale — UXR-X5) and the
+war-detail popup's computed `max(7, font_size − 3)` bar tags (UXR-X6), both UXR-2's.

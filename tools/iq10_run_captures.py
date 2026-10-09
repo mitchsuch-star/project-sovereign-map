@@ -1119,8 +1119,10 @@ SHOTS += [
         "scene": "res://scenes/main_menu.tscn",
         "mode": "call", "method": "",
         "settle": 100,
-        "must_show": "the title block, the campaign column, the status line; the menu "
-                     "drawn at the Interface Scale the settings hold (UXR-X1)",
+        "must_show": "the title block, the campaign column, the status line, and — the "
+                     "harness's settings hold no acknowledgement — the first-run card "
+                     "'CAN YOU READ THIS COMFORTABLY?' over them at the derived scale (UXR-1); "
+                     "the menu drawn at the Interface Scale the settings hold (UXR-X1)",
     },
     {
         "id": "main_menu_settings",
@@ -1128,10 +1130,13 @@ SHOTS += [
         "payload": "test_boot",
         "scene": "res://scenes/main_menu.tscn",
         "mode": "call", "method": "",
+        # Opening Settings answers a first-run card still on screen (UXR-1b).
         "steps": [{"wait": 90}, {"call": "_open_settings", "then_wait": 12}],
         "settle": 20,
-        "must_show": "the SETTINGS view: INTERFACE with the scale slider, SOUND, SMARTER "
-                     "PARSING, SPOKEN ORDERS, CREDITS — every hint's size in the census",
+        "must_show": "the SETTINGS view with no card over it: DISPLAY (Window, and Size for "
+                     "Windowed), INTERFACE (the slider, 'Size for this screen (N%)', 'Preview "
+                     "with a sample…', Body text, Reset layout), SOUND, SMARTER PARSING, "
+                     "SPOKEN ORDERS, CONTROLS, CREDITS — every hint's size in the census",
     },
 ]
 

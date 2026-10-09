@@ -103,7 +103,6 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.91, 0.84, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
 text = "Confirm"
 
 [node name="CancelNewGameButton" type="Button" parent="PanelContainer/VBoxContainer/NewGameConfirmBox/NewGameConfirmButtons"]
@@ -111,7 +110,6 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.76, 0.8, 0.86, 1)
 theme_override_colors/font_hover_color = Color(0.94, 0.97, 1, 1)
-theme_override_font_sizes/font_size = 15
 text = "Cancel"
 
 [node name="SettingsButton" type="Button" parent="PanelContainer/VBoxContainer"]

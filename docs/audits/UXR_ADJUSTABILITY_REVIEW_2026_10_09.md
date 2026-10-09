@@ -177,7 +177,12 @@ driven table now pins. **Built beyond the memo:** UXR-X1 / X2 / X3 fixed; the th
 Button 15 raised to 16 (the last RED row at 1080p); the main menu's column re-fitted on a
 short logical viewport (the regression at scale 2.0). **Not built, as decided:** rows H–L
 filed as UXR-D1 … D5; K ("The Side Desk") with its own gate. **S1b (the Settings
-additions, decisions 4 + 5) is NEXT.** ⚠ The user's half of the done-when — the tutor card
+additions, decisions 4 + 5) landed the same day** — rows B, C, D, E, F, G of §4 built as
+written (window mode + size; the terminal's default as a viewport fraction; Ctrl+= / − / 0;
+Reset layout; the Plain body face; CONTROLS) plus the card reachable from Settings; the
+whole-client census then exposed the floor's residue (the log's 11-px routine tier, six
+literal 15s, the diorama's and the war-detail popup's computed sizes — the first two fixed,
+the last two routed as UXR-X5 / UXR-X6). ⚠ The user's half of the done-when — the tutor card
 read on their monitor without changing anything — is UXR-4's.
 
 ## Appendix §2a — the census (file:line)

@@ -85,6 +85,17 @@ FOURTEEN_TSCN = {
     ("war_detail_popup.tscn", "HeaderLabel"): "caption",
     ("war_detail_popup.tscn", "CloseButton"): "caption",
 }
+# UXR-1b (the whole-client census): the six literal 15s — dialog titles, a
+# message, the pause menu's two confirm buttons — were the last body-class
+# rows RED at 1080p. All drop to the theme (16).
+FIFTEEN_TSCN = {
+    ("clarification_popup.tscn", "MessageLabel"): "drop",
+    ("diplomacy_wizard.tscn", "TitleLabel"): "drop",
+    ("interrupt_popup.tscn", "MessageLabel"): "drop",
+    ("pause_menu.tscn", "ConfirmNewGameButton"): "drop",
+    ("pause_menu.tscn", "CancelNewGameButton"): "drop",
+    ("redemption_dialog.tscn", "MessageLabel"): "drop",
+}
 FOURTEEN_GD = {
     ("campaign_log.gd", "header_btn"): "caption",
     ("clarification_popup.gd", "btn"): "drop",
@@ -121,6 +132,11 @@ def sweep_tscn(path: pathlib.Path) -> int:
                 out.append(f'theme_type_variation = &"{var}"\n')
                 applied_for_node = True
             continue
+        if m and int(m.group(2)) == FLOOR + 1:
+            rule = FIFTEEN_TSCN.get((path.name, node_name))
+            if rule is not None:
+                changed += 1
+                continue                      # "drop": the theme's size
         if m and int(m.group(2)) == FLOOR:
             rule = FOURTEEN_TSCN.get((path.name, node_name))
             if rule is None:

@@ -52,8 +52,12 @@ var turn_data: Dictionary = {}
 # 171 types partitioned) — the one dramatic line of a turn sat among the
 # routine ones in identical styling. A row without a tier (an older
 # payload, or the backend lever down) keeps the old size.
-const TIER_FONT_SIZES := {"lead": 14, "notable": 12, "routine": 11}
-const DEFAULT_ROW_FONT_SIZE := 12
+# UXR-1b (October 9, 2026): lifted to the readability floor — the routine
+# tier at 11 px was a P1 on every monitor in the whole-client census. The
+# hierarchy stands: lead 18 bold, notable the theme's 16, routine 14 as the
+# Caption class (`CaptionRich`), so the census reads it as the caption it is.
+const TIER_FONT_SIZES := {"lead": 18, "notable": 16, "routine": 14}
+const DEFAULT_ROW_FONT_SIZE := 16
 
 
 func _ready():
@@ -135,8 +139,13 @@ func _on_campaign_log_received(response):
 			label.scroll_active = false
 			var tier = str(evt.get("tier", ""))
 			var row_size := int(TIER_FONT_SIZES.get(tier, DEFAULT_ROW_FONT_SIZE))
-			label.add_theme_font_size_override("normal_font_size", row_size)
-			label.add_theme_font_size_override("bold_font_size", row_size)
+			if tier == "routine":
+				# The Caption class carries the 14 (all four sizes) and tells
+				# the readability census what this row is.
+				label.theme_type_variation = &"CaptionRich"
+			else:
+				label.add_theme_font_size_override("normal_font_size", row_size)
+				label.add_theme_font_size_override("bold_font_size", row_size)
 
 			var category = evt.get("category", "unknown")
 			var icon = _category_icon(str(category))

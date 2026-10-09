@@ -30,13 +30,35 @@ class_name SettingsPanel
 # =============================================================================
 
 signal ui_scale_changed(value: float, persist: bool)
+# UXR-1b (October 9, 2026): the panel asks its host to open the sizing card
+# ("Preview with a sample…" — main_menu.gd / main.gd each hold a ScaleCard),
+# and tells it a Reset layout happened (the terminal's footprint re-fits).
+signal size_card_requested
+signal layout_reset
 
 # Golden Rule 7: same origin as api_client.gd — one source, env-overridable.
 var BACKEND_URL: String = Utils.backend_url()
 
+# UXR-1b: the DISPLAY section's choices, by UiSettings key.
+const _WINDOW_MODE_LABELS := {
+	"maximized": "Maximized (the default)",
+	"fullscreen": "Fullscreen",
+	"borderless": "Borderless window",
+	"windowed": "Windowed",
+}
+const _BODY_FONT_LABELS := {
+	"garamond": "Garamond (the default)",
+	"plain": "Plain (Source Sans)",
+}
+
 var _scale_dragging := false
 var _scale_slider: HSlider
 var _scale_value: Label
+var _fit_button: Button
+var _window_mode: OptionButton
+var _window_size: OptionButton
+var _window_size_row: HBoxContainer
+var _body_font: OptionButton
 var _volume_sliders: Dictionary = {}   # bus name -> HSlider
 var _battle_toggle: CheckButton
 var _key_edit: LineEdit
@@ -47,10 +69,12 @@ var _http_busy := false
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
+	_build_display_section()
 	_build_interface_section()
 	_build_sound_section()
 	_build_parser_section()
 	_build_voice_section()
+	_build_controls_section()
 	_build_credits_section()
 	_http = HTTPRequest.new()
 	_http.timeout = 6.0
@@ -65,6 +89,7 @@ func refresh() -> void:
 	if _scale_slider:
 		_scale_slider.set_value_no_signal(UiSettings.get_ui_scale())
 		_update_scale_value_label(UiSettings.get_ui_scale())
+	_refresh_display_controls()
 	for bus_name in _volume_sliders:
 		_volume_sliders[bus_name].set_value_no_signal(AudioManager.get_bus_volume(bus_name))
 	if _battle_toggle:
@@ -74,6 +99,88 @@ func refresh() -> void:
 		_key_edit.placeholder_text = _key_placeholder()
 	_show_stored_parser_state()
 	_fetch_parser_status()
+
+
+# ── DISPLAY (UXR-1b) ────────────────────────────────────────────────────────
+
+func _build_display_section() -> void:
+	_add_header("DISPLAY")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var lbl := Label.new()
+	lbl.text = "Window"
+	lbl.theme_type_variation = &"Caption"
+	lbl.custom_minimum_size.x = 72
+	row.add_child(lbl)
+	_window_mode = OptionButton.new()
+	_window_mode.name = "WindowModeOption"
+	for i in range(UiSettings.WINDOW_MODES.size()):
+		var mode: String = UiSettings.WINDOW_MODES[i]
+		_window_mode.add_item(str(_WINDOW_MODE_LABELS.get(mode, mode)), i)
+	_window_mode.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_window_mode.item_selected.connect(_on_window_mode_selected)
+	row.add_child(_window_mode)
+	add_child(row)
+
+	_window_size_row = HBoxContainer.new()
+	_window_size_row.add_theme_constant_override("separation", 10)
+	var size_lbl := Label.new()
+	size_lbl.text = "Size"
+	size_lbl.theme_type_variation = &"Caption"
+	size_lbl.custom_minimum_size.x = 72
+	_window_size_row.add_child(size_lbl)
+	_window_size = OptionButton.new()
+	_window_size.name = "WindowSizeOption"
+	_window_size.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_window_size.item_selected.connect(_on_window_size_selected)
+	_window_size_row.add_child(_window_size)
+	add_child(_window_size_row)
+	_add_hint("Maximized is the game's own boot. Fullscreen takes the whole screen; "
+		+ "a borderless window fills it without a frame; Windowed uses the size "
+		+ "chosen above, centred. On a very wide screen a 3440- or 2560-wide window "
+		+ "keeps the command window and the ledgers within a turn of the head.")
+	_refresh_display_controls()
+
+
+func _refresh_display_controls() -> void:
+	if _window_mode == null:
+		return
+	var mode := UiSettings.get_window_mode()
+	_window_mode.select(maxi(UiSettings.WINDOW_MODES.find(mode), 0))
+	# The size choices that fit THIS screen (the label names the native size).
+	var screen := DisplayServer.screen_get_size(DisplayServer.window_get_current_screen())
+	_window_size.clear()
+	var choices: Array = Utils.window_size_choices(screen)
+	var stored := UiSettings.get_window_size()
+	var selected := 0
+	for i in range(choices.size()):
+		var choice: String = str(choices[i])
+		var label := choice
+		if choice == "native":
+			label = "This screen (%dx%d)" % [screen.x, screen.y]
+		_window_size.add_item(label, i)
+		_window_size.set_item_metadata(i, choice)
+		if choice == stored:
+			selected = i
+	_window_size.select(selected)
+	_window_size_row.visible = mode == "windowed"
+	if _body_font != null:
+		_body_font.select(maxi(UiSettings.BODY_FONTS.find(UiSettings.get_body_font()), 0))
+	if _fit_button != null:
+		_fit_button.text = "Size for this screen (%d%%)" % int(round(UiSettings.derive_default_ui_scale() * 100.0))
+
+
+func _on_window_mode_selected(index: int) -> void:
+	var mode: String = UiSettings.WINDOW_MODES[clampi(index, 0, UiSettings.WINDOW_MODES.size() - 1)]
+	UiSettings.set_window_mode(mode)
+	_window_size_row.visible = mode == "windowed"
+	Utils.apply_window_settings(get_window())
+
+
+func _on_window_size_selected(index: int) -> void:
+	var choice := str(_window_size.get_item_metadata(index))
+	UiSettings.set_window_size(choice)
+	Utils.apply_window_settings(get_window())
 
 
 # ── INTERFACE ───────────────────────────────────────────────────────────────
@@ -104,15 +211,59 @@ func _build_interface_section() -> void:
 	add_child(row)
 	_update_scale_value_label(UiSettings.get_ui_scale())
 
-	var reset := Button.new()
-	reset.text = "Reset to 100%"
-	reset.custom_minimum_size = Vector2(0, 32)
-	reset.pressed.connect(_on_reset_scale)
-	add_child(reset)
+	# UXR-1b: the old reset went to the 24-inch default (one hundred percent);
+	# the screen's own derived size is the reset now, and the card previews
+	# it with a sample.
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 8)
+	_fit_button = Button.new()
+	_fit_button.name = "SizeForScreenButton"
+	_fit_button.text = "Size for this screen"
+	_fit_button.custom_minimum_size = Vector2(0, 32)
+	_fit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_fit_button.pressed.connect(_on_reset_scale)
+	buttons.add_child(_fit_button)
+	var preview := Button.new()
+	preview.name = "PreviewSampleButton"
+	preview.text = "Preview with a sample…"
+	preview.custom_minimum_size = Vector2(0, 32)
+	preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	preview.pressed.connect(func(): size_card_requested.emit())
+	buttons.add_child(preview)
+	add_child(buttons)
 
 	_add_hint("Interface Scale resizes the whole interface — command window, "
-		+ "ledgers, and pop-ups. In the campaign, the command-window header has "
-		+ "quick Text Size + / − buttons that adjust this same scale.")
+		+ "ledgers, and pop-ups. Ctrl+= and Ctrl+− step it anywhere; Ctrl+0 returns "
+		+ "to this screen's size; the command-window header has the same + / −.")
+
+	# UXR-1b: the body face. Garamond is the design; Plain (Source Sans 3)
+	# gives a quarter more x-height at the same size.
+	var font_row := HBoxContainer.new()
+	font_row.add_theme_constant_override("separation", 10)
+	var font_lbl := Label.new()
+	font_lbl.text = "Body text"
+	font_lbl.theme_type_variation = &"Caption"
+	font_lbl.custom_minimum_size.x = 72
+	font_row.add_child(font_lbl)
+	_body_font = OptionButton.new()
+	_body_font.name = "BodyFontOption"
+	for i in range(UiSettings.BODY_FONTS.size()):
+		var face: String = UiSettings.BODY_FONTS[i]
+		_body_font.add_item(str(_BODY_FONT_LABELS.get(face, face)), i)
+	_body_font.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body_font.item_selected.connect(_on_body_font_selected)
+	font_row.add_child(_body_font)
+	add_child(font_row)
+
+	var reset_layout := Button.new()
+	reset_layout.name = "ResetLayoutButton"
+	reset_layout.text = "Reset layout"
+	reset_layout.custom_minimum_size = Vector2(0, 32)
+	reset_layout.pressed.connect(_on_reset_layout)
+	add_child(reset_layout)
+	_add_hint("Reset layout returns the scale to this screen's size, the command "
+		+ "window to its default footprint and the window to Maximized. Sound, the "
+		+ "parser key and the School's progress are kept.")
 
 
 func _on_scale_changed(value: float) -> void:
@@ -126,16 +277,49 @@ func _on_scale_drag_ended(_changed: bool) -> void:
 
 
 func _on_reset_scale() -> void:
-	if is_equal_approx(_scale_slider.value, UiSettings.DEFAULT_UI_SCALE):
-		_update_scale_value_label(UiSettings.DEFAULT_UI_SCALE)
-		ui_scale_changed.emit(UiSettings.DEFAULT_UI_SCALE, true)
-	else:
-		_scale_slider.value = UiSettings.DEFAULT_UI_SCALE
+	# UXR-1b: the reset is the DERIVED size for this screen (1.0 on a 24-inch
+	# 1080p, 1.40 on a 32:9 1440p), stored as auto so a monitor change
+	# re-derives it; the host applies it like any slider change.
+	UiSettings.set_ui_scale_auto()
+	var derived := UiSettings.get_ui_scale()
+	_scale_slider.set_value_no_signal(derived)
+	_update_scale_value_label(derived)
+	ui_scale_changed.emit(derived, false)
+
+
+func _on_body_font_selected(index: int) -> void:
+	var face: String = UiSettings.BODY_FONTS[clampi(index, 0, UiSettings.BODY_FONTS.size() - 1)]
+	UiSettings.set_body_font(face)
+	Utils.apply_body_font()
+
+
+func _on_reset_layout() -> void:
+	UiSettings.reset_layout()
+	Utils.apply_window_settings(get_window())
+	refresh()
+	# Already persisted by reset_layout — the host applies the new value.
+	ui_scale_changed.emit(UiSettings.get_ui_scale(), false)
+	layout_reset.emit()
 
 
 func _update_scale_value_label(value: float) -> void:
 	if _scale_value:
 		_scale_value.text = "%d%%" % int(round(value * 100.0))
+
+
+# ── CONTROLS (UXR-1b: the key reference, taught once on tutor card XIX) ────
+
+func _build_controls_section() -> void:
+	_add_header("CONTROLS")
+	_add_hint("Screens — L Event Log · T Ledger · G Generals · D Diplomacy · R Dispatch "
+		+ "· N Moniteur (Alt+key while typing) · F1 the Cabinet · Esc close / pause. "
+		+ "The ledgers' books: 1–8.")
+	_add_hint("The day — E End Turn · Tab show or hide the command window (Alt+` while "
+		+ "typing) · Up / Down the command history · Tab completes a half-typed order.")
+	_add_hint("The map — wheel zoom at the cursor · + / − zoom · Home recentre · M map "
+		+ "mode · arrows pan · middle-drag pan (Alt+key while typing).")
+	_add_hint("The interface — Ctrl+= / Ctrl+− Interface Scale · Ctrl+0 this screen's "
+		+ "size · the command window's corner grip resizes it (double-click resets).")
 
 
 # ── SOUND ───────────────────────────────────────────────────────────────────

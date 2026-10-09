@@ -431,10 +431,14 @@ class TestTheClientHalf:
         assert "func _add_verb_or_target(marshal: String, rest: String, _prefix: String," in src
 
     def test_the_log_sizes_a_row_by_its_tier(self):
-        """EAS-2's client half."""
+        """EAS-2's client half. Re-seated by UXR-1b (October 9, 2026): the
+        three sizes were 14 / 12 / 11 and the routine tier read P1 on every
+        monitor in the whole-client census; the hierarchy stands at 18 / 16 /
+        14, with the routine row in the Caption class."""
         src = _gd("campaign_log.gd")
-        assert 'const TIER_FONT_SIZES := {"lead": 14, "notable": 12, "routine": 11}' in src
+        assert 'const TIER_FONT_SIZES := {"lead": 18, "notable": 16, "routine": 14}' in src
         assert 'TIER_FONT_SIZES.get(tier, DEFAULT_ROW_FONT_SIZE)' in src
+        assert 'label.theme_type_variation = &"CaptionRich"' in src
         assert 'if tier == "lead":' in src
 
     def test_our_own_soil_carries_no_fog_hedge(self):
