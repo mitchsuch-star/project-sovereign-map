@@ -44,6 +44,8 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 
 > **▶ LIVE STATE (September 29, 2026). Everything below this block is historical — the bullets that follow are per-phase records kept for detail, not a to-do list.**
 >
+> **▶ ▶ ▶ ROUTING AUTHORITY FROM OCTOBER 8, 2026 = `docs/PRE_DEPLOY_PLAN.md` §2 — THE PRE-DEPLOY PLAN (code health → the UX/UI review → three deep dives → the Score Finish residue → the deploy). PLAN ONLY, nothing built; the Score Finish residue (Step 9, SF-RR1 (ii) … RR6) is PAUSED behind it. Plans: `docs/CODE_HEALTH_PLAN.md` (CODE-1 … CODE-6), `docs/UX_UI_REVIEW_PLAN.md` (UXR-0 … UXR-4); instrument `tools/_code_health_census.py`. NEXT = S1, UXR-0 + UXR-1 (the readability instrument + the auto-derived Interface Scale).**
+>
 > **▶ ▶ ▶ ROUTING AUTHORITY FROM SEPTEMBER 28, 2026 = `docs/SCORE_FINISH_SPEC.md` — "THE SCORE FINISH": every open defect, every pillar, then an honest re-score (row SF, the rest of the Score Mandate).** User-directed: *"lay out plan to hit all defects, these pillars … then a rescore at the end with improved methods."* **Steps 0 and 1 are BUILT (September 29, 2026 — the blocks after the rulings); Steps 2–8 are not.**
 > - **The census.** `tools/defect_census.py` (new) counts every row in both ledgers; six read-only agents verified each open row at `c20d5bba`.
 >   - **99 live defect rows**, each given a slice in the spec (§1, §3).
@@ -2761,6 +2763,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Need | Read |
 |------|------|
 | Session state / what's next | `docs/STATUS.md` |
+| **THE PRE-DEPLOY PLAN (routing authority from Oct 8, 2026)** — code health, the UX/UI review, the three deep dives, the order to the deploy | **`docs/PRE_DEPLOY_PLAN.md`** §2 the order · `docs/CODE_HEALTH_PLAN.md` · `docs/UX_UI_REVIEW_PLAN.md` · `tools/_code_health_census.py` |
 | **THE PLAN TO THE FINISH (routing authority from Sept 28, 2026)** — every open defect, every pillar, and how a pillar is scored | **`docs/SCORE_FINISH_SPEC.md`**: §3 the build order, §4 the instrument, Appendix A the checklist. To count the ledgers: `.venv/Scripts/python.exe tools/defect_census.py --open` |
 | **The Improvement Queue (row IQ) — landing records, rulings, dissents** | **`docs/IMPROVEMENT_QUEUE_SPEC.md`** — row IQ's OWNING SPEC. STATUS stays the ROUTING authority (which row is next); this holds the per-slice landing records, the crux ruling, the filed dissent and re-open condition, and the re-stated completion items. Slice ids are `IQ1-n` (the first two shipped as `SW-0`/`SW-1`, which collides with `SEASONS_WEATHER_SPEC.md`; the alias is recorded). |
 | **PLAYTEST / live-verify / evaluate the game (START HERE for any of those)** | **`docs/PLAYTESTING.md`** — Mode A `tools/playtest_driver.py` (in-process, seeded, popup-answering, digest output) is the default; Mode B live-HTTP (`SOVEREIGN_PORT`), Mode C client visual pass; fixtures in `tests/fixtures/playtest_saves/` |
