@@ -217,7 +217,6 @@ func show_dialogue(data: Dictionary):
 		btn.tooltip_text = original_tooltip
 		btn.custom_minimum_size = Vector2(160, 45)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.add_theme_font_size_override("font_size", 14)
 		btn.disabled = not available
 		if not available:
 			btn.tooltip_text = disabled_reason if disabled_reason != "" else "Unavailable"
@@ -316,7 +315,7 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 		name_label.text = str(entry.get("label", "")) + ":"
 		name_label.custom_minimum_size = Vector2(110, 36)
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 13)
+		name_label.theme_type_variation = &"Caption"
 		name_label.add_theme_color_override("font_color", Color(COLOR_GOLD))
 		line.add_child(name_label)
 		for aff in entry.get("affordances", []):
@@ -324,7 +323,7 @@ func _add_settlement_tier2_buttons(data: Dictionary):
 			btn.text = str(aff.get("label", "???"))
 			btn.tooltip_text = str(aff.get("description", ""))
 			btn.custom_minimum_size = Vector2(150, 36)
-			btn.add_theme_font_size_override("font_size", 13)
+			btn.theme_type_variation = &"CaptionButton"
 			btn.add_theme_color_override("font_color", Color("#80b0e0"))
 			# F5 (row EP, LV-14(a)): a row chip may be honestly unavailable —
 			# the "Separate peace with <court>" chip carries the same

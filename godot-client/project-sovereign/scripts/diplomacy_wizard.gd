@@ -355,7 +355,7 @@ func _add_category_header(text: String, color: String):
 	var lbl = Label.new()
 	lbl.text = text
 	lbl.add_theme_color_override("font_color", Color("#" + color))
-	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.theme_type_variation = &"Caption"
 	content_list.add_child(lbl)
 
 
@@ -381,7 +381,7 @@ func _add_nation_button(nation_data: Dictionary):
 
 	btn.text = text
 	btn.custom_minimum_size = Vector2(0, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	# UI-6: period heraldry as the leading icon (untinted — colored art)
 	Utils.apply_flag_icon(btn, nation_name)
 	btn.pressed.connect(_on_nation_selected.bind(nation_name))
@@ -433,8 +433,7 @@ func _add_congress_row(congress) -> void:
 	lbl.scroll_active = false
 	# The nation list's own size (its buttons are 13) — the row sits above
 	# them and must not shout over them.
-	lbl.add_theme_font_size_override("normal_font_size", 13)
-	lbl.add_theme_font_size_override("bold_font_size", 13)
+	lbl.theme_type_variation = &"CaptionRich"
 	var bbcode := "[color=#" + Utils.COLOR_GOLD + "][b]The Congress of Paris[/b][/color]"
 	bbcode += " [color=#" + Utils.COLOR_GREY + "]— make Europe recognize the new order[/color]"
 	# The clock line where it says something the terms do not — the sitting's
@@ -470,7 +469,7 @@ func _add_congress_row(congress) -> void:
 	if cost is String and cost != "":
 		btn.text += " (" + cost + ")"
 	btn.custom_minimum_size = Vector2(0, 40)
-	btn.add_theme_font_size_override("font_size", 12)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.disabled = not available
@@ -483,7 +482,7 @@ func _add_congress_row(congress) -> void:
 		btn.tooltip_text = reason
 		var reason_label = Label.new()
 		reason_label.text = "    " + reason
-		reason_label.add_theme_font_size_override("font_size", 11)
+		reason_label.theme_type_variation = &"Caption"
 		reason_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
 		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_list.add_child(reason_label)
@@ -496,7 +495,7 @@ func _add_congress_row(congress) -> void:
 	else:
 		view.text = "    ↳ View the table — how each great power would answer today"
 	view.custom_minimum_size = Vector2(0, 32)
-	view.add_theme_font_size_override("font_size", 12)
+	view.theme_type_variation = &"CaptionButton"
 	view.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
 	view.pressed.connect(_on_congress_table_pressed)
 	content_list.add_child(view)
@@ -520,7 +519,7 @@ func _add_formables_button():
 	var btn = Button.new()
 	btn.text = "Formable Nations — states that could yet exist"
 	btn.custom_minimum_size = Vector2(0, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
 	btn.pressed.connect(_on_formables_pressed)
 	content_list.add_child(btn)
@@ -608,7 +607,7 @@ func _add_formable_row(row: Dictionary):
 			var btn = Button.new()
 			btn.text = "    ↳ Open negotiations — " + Utils.display_nation_name(court)
 			btn.custom_minimum_size = Vector2(0, 32)
-			btn.add_theme_font_size_override("font_size", 12)
+			btn.theme_type_variation = &"CaptionButton"
 			btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
 			# The row's `deep_link.war_id` is deliberately NOT threaded on.
 			# An AVAILABLE open_settlement always carries its own war_id
@@ -770,7 +769,7 @@ func _add_action_button(action: Dictionary):
 	var btn = Button.new()
 	btn.text = text
 	btn.custom_minimum_size = Vector2(0, 40)
-	btn.add_theme_font_size_override("font_size", 12)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.disabled = not available
 	# LV-15 (row EP F3): the chip WRAPS instead of running off the panel (the
 	# list's horizontal scroll is disabled in _ready), and a gate reason is
@@ -794,7 +793,7 @@ func _add_action_button(action: Dictionary):
 	if has_reason:
 		var reason_label = Label.new()
 		reason_label.text = "    " + disabled_reason
-		reason_label.add_theme_font_size_override("font_size", 11)
+		reason_label.theme_type_variation = &"Caption"
 		reason_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
 		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content_list.add_child(reason_label)
@@ -821,7 +820,7 @@ func _add_action_button(action: Dictionary):
 			var war_btn = Button.new()
 			war_btn.text = "    \u21B3 " + war_str
 			war_btn.custom_minimum_size = Vector2(0, 30)
-			war_btn.add_theme_font_size_override("font_size", 11)
+			war_btn.theme_type_variation = &"CaptionButton"
 			var picker_payload = action.duplicate(true)
 			picker_payload["war_id"] = war_str
 			war_btn.pressed.connect(_on_action_selected.bind(action_id, picker_payload))
@@ -854,7 +853,7 @@ func _add_action_button(action: Dictionary):
 			var region_btn = Button.new()
 			region_btn.text = "    \u21B3 %s \u2014 income %dg, loyalty +%d, they remit %d%%" % [region_name, income, loyalty_gain, tribute_pct]
 			region_btn.custom_minimum_size = Vector2(0, 30)
-			region_btn.add_theme_font_size_override("font_size", 11)
+			region_btn.theme_type_variation = &"CaptionButton"
 			var region_payload = action.duplicate(true)
 			region_payload["region"] = region_name
 			region_btn.pressed.connect(_on_action_selected.bind(action_id, region_payload))
@@ -1042,7 +1041,7 @@ func _add_loading_label():
 	var lbl = Label.new()
 	lbl.text = "Loading..."
 	lbl.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
-	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.theme_type_variation = &"Caption"
 	content_list.add_child(lbl)
 
 
@@ -1064,7 +1063,7 @@ func _add_open_envoys_button(pending_envoy_count: int):
 	var btn = Button.new()
 	btn.text = "Open Envoys (%d)" % pending_envoy_count
 	btn.custom_minimum_size = Vector2(0, 38)
-	btn.add_theme_font_size_override("font_size", 12)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(_on_open_envoys_pressed)
 	content_list.add_child(btn)
 

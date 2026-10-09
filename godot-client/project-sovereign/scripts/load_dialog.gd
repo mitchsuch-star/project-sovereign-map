@@ -45,7 +45,6 @@ func show_saves(saves: Array):
 
 			btn.text = "%s (Turn %s)" % [display_name, display_turn]
 			btn.custom_minimum_size = Vector2(0, 40)
-			btn.add_theme_font_size_override("font_size", 14)
 			btn.pressed.connect(_on_save_chosen.bind(filename_val))
 			saves_container.add_child(btn)
 

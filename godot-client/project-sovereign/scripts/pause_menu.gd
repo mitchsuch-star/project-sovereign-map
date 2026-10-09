@@ -63,7 +63,7 @@ func _ready():
 	# player reporting from mid-game can quote it without leaving the campaign.
 	_version_line = Label.new()
 	_version_line.name = "VersionLine"
-	_version_line.add_theme_font_size_override("font_size", 11)
+	_version_line.theme_type_variation = &"Caption"
 	_version_line.add_theme_color_override("font_color", Color(0.65, 0.63, 0.58, 0.8))
 	_version_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_version_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -104,6 +104,8 @@ func close_menu():
 
 func _reset_menu_state():
 	settings_box.visible = false
+	if $PanelContainer.has_meta("clamp_ceiling_override"):
+		$PanelContainer.remove_meta("clamp_ceiling_override")
 	_set_new_game_confirmation_visible(false)
 
 func _set_new_game_confirmation_visible(confirm_visible: bool):
@@ -140,6 +142,16 @@ func _on_cancel_new_game():
 
 func _on_settings():
 	settings_box.visible = not settings_box.visible
+	# UXR-X2 (October 9, 2026): the panel is authored 360x400 and the clamp
+	# keeps that authored rect as its CEILING, while the settings scroll
+	# inside it wants 440 — so the only shrinkable child, the scroll, was cut
+	# toward the 48-px floor and the whole Settings read as one slider. With
+	# the settings open the ceiling is raised (the IGR-G1 meta, scoped to this
+	# state and removed with it); the viewport budget still bounds it.
+	if settings_box.visible:
+		$PanelContainer.set_meta("clamp_ceiling_override", Vector2(360, 900))
+	elif $PanelContainer.has_meta("clamp_ceiling_override"):
+		$PanelContainer.remove_meta("clamp_ceiling_override")
 	# The settings content changes the panel's height class — re-fit.
 	Utils.clamp_centered_panel($PanelContainer)
 

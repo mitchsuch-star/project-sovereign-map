@@ -51,10 +51,15 @@ class TestTheHarnessIsCommitted:
 
     def test_the_window_is_parked_off_the_players_desktop(self):
         """The capture needs a REAL window (a headless viewport returns no
-        image), so it is positioned past the primary monitor and runs on the
-        Dummy audio driver. Never on top of what the player is doing."""
+        image), so it is positioned past the desktop and runs on the Dummy
+        audio driver. Never on top of what the player is doing.
+
+        Flipped consciously by UXR-0 (October 9, 2026): the desktop is ONE
+        5120-wide panel, so the old [2565, 20] sat on its right half for
+        every capture run since September; x = 5200 is past it, and a
+        window there still renders (probed at 5120x1440 and 3840x2160)."""
         runner = (TOOLS / "iq10_run_captures.py").read_text(encoding="utf-8")
-        assert "WINDOW_POSITION = [2565, 20]" in runner
+        assert "WINDOW_POSITION = [5200, 20]" in runner
         assert '"--audio-driver", "Dummy"' in runner
 
     def test_the_harness_never_writes_the_players_settings(self):

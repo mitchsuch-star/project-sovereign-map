@@ -78,7 +78,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"Caption"
 text = "Glorious Charge deals 2x damage but also TAKES 2x damage!
 Target: Wellington"
 horizontal_alignment = 1
@@ -99,7 +99,6 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.9, 0.7, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 0.8, 1)
-theme_override_font_sizes/font_size = 14
 text = "CHARGE! (2x damage)"
 
 [node name="RestrainButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
@@ -109,5 +108,4 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.9, 0.9, 0.9, 1)
-theme_override_font_sizes/font_size = 14
 text = "Restrain - Normal Attack"

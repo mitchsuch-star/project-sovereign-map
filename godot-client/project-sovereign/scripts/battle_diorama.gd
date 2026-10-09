@@ -412,7 +412,7 @@ func _build_verdict_and_plate() -> void:
 	plate_box.add_child(_plate_name)
 	_plate_sub = Label.new()
 	_plate_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_plate_sub.add_theme_font_size_override("font_size", 11)
+	_plate_sub.theme_type_variation = &"Caption"
 	_plate_sub.add_theme_color_override("font_color", Color(0.30, 0.23, 0.11, 1.0))
 	plate_box.add_child(_plate_sub)
 
@@ -951,7 +951,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 		var head := Label.new()
 		head.text = "%s — %s" % [Utils.display_marshal_name(str(c.get("name", ""))),
 				str(c.get("absence_reason", "did not march"))]
-		head.add_theme_font_size_override("font_size", 12)
+		head.theme_type_variation = &"Caption"
 		head.add_theme_color_override("font_color",
 				Color(0.62, 0.62, 0.66, 1.0))
 		text_box.add_child(head)
@@ -961,7 +961,7 @@ func _populate_shelf(shelf: Control, side: Dictionary, is_left: bool) -> void:
 			g.text = grudge
 			if _font_voice != null:
 				g.add_theme_font_override("font", _font_voice)
-			g.add_theme_font_size_override("font_size", 12)
+			g.theme_type_variation = &"Caption"
 			g.add_theme_color_override("font_color",
 					Color(0.66, 0.42, 0.40, 1.0))
 			text_box.add_child(g)

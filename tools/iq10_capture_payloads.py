@@ -1721,7 +1721,40 @@ def cap_front_page():
                   "orders": today.get("orders")})
 
 
+def cap_war_room():
+    """UXR-0 (October 9, 2026): the war room itself — the real `main.tscn`
+    booted behind a stub that answers the connection test with THIS `/test`
+    payload and the topology request with THIS `/map_topology`, then handed
+    the `/new_game` response through `_on_new_game_result` exactly as the
+    menu's Begin does. One composite payload per road: the 1805 campaign and
+    the School of War (whose card is the surface the user could not read).
+    The tutor card alone (`tutorial_overlay.tscn`, `on_world_swap`) takes the
+    tutorial `/new_game` response on its own."""
+    world, c = fresh()
+    test = get(c, "/test")
+    topology = get(c, "/map_topology")
+    new_game = post(c, "/new_game", {})
+    record("war_room_boot", {"test": test, "topology": topology, "new_game": new_game},
+           source="GET /test + GET /map_topology + POST /new_game {}",
+           staging="1805 boot: the connection test, the topology hand-off, then Begin",
+           facts={"turn": (new_game.get("game_state") or {}).get("turn"),
+                  "scenario_name": (new_game.get("game_state") or {}).get("scenario_name"),
+                  "regions": len((topology.get("regions") or {}))})
+    tutorial = post(c, "/new_game", {"scenario": "tutorial"})
+    record("war_room_tutorial", {"test": test, "topology": topology, "new_game": tutorial},
+           source="GET /test + GET /map_topology + POST /new_game {scenario: tutorial}",
+           staging="the School of War's first morning: Begin the lesson from the menu",
+           facts={"scenario_name": (tutorial.get("game_state") or {}).get("scenario_name"),
+                  "turn": (tutorial.get("game_state") or {}).get("turn")})
+    record("new_game_tutorial", tutorial, source="POST /new_game {scenario: tutorial}",
+           staging="the School of War's /new_game response — the tutor card's own arm",
+           facts={"scenario_name": (tutorial.get("game_state") or {}).get("scenario_name")})
+    # Leave the backend on the 1805 world for whatever group runs next.
+    fresh()
+
+
 CAPTURES = {
+    "war_room": cap_war_room,
     "front_page": cap_front_page,
     "screen_says": cap_screen_says,
     "frames_s9": cap_frames_s9,

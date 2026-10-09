@@ -118,7 +118,7 @@ func _on_campaign_log_received(response):
 		header_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		header_btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 		header_btn.add_theme_color_override("font_hover_color", Color(1, 0.95, 0.75, 1))
-		header_btn.add_theme_font_size_override("font_size", 14)
+		header_btn.theme_type_variation = &"CaptionButton"
 		header_btn.pressed.connect(_toggle_turn.bind(turn_num))
 		turn_list.add_child(header_btn)
 		header_buttons[turn_num] = header_btn

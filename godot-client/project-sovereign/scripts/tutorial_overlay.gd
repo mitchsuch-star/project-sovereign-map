@@ -54,6 +54,19 @@ signal open_ledger(tab: int)
 const CHIP_TEXT_HEX := "e8d4a8"
 const CHIP_BG_HEX := "233043"
 
+# UXR-1 (October 9, 2026): the card is sized to the SCREEN, not to a 24-inch
+# monitor. Its width is a fraction of the logical viewport between a floor
+# (the authored 396) and a ceiling, so the auto-derived Interface Scale
+# reaches it; its body is bounded by the viewport's height and SCROLLS past
+# that (UXR-X3: at Interface Scale 3.0 on a 1440-px panel the logical
+# viewport is 480 px tall and card XIX's 1,400 characters ran off it).
+const CARD_WIDTH_FRACTION := 0.22
+const CARD_MIN_WIDTH := 396.0
+const CARD_MAX_WIDTH := 560.0
+const CARD_MARGIN := 8.0
+const CARD_TOP := 44.0
+const BODY_MIN_HEIGHT := 96.0
+
 # ── the Danube Lesson step table ────────────────────────────────────────────
 # {id, turn_gate, title, body, suggest, suggest_action, advance}
 # `suggest` is the EXACT string the chip fills into the command line; a
@@ -370,6 +383,59 @@ func _ready() -> void:
 	$Card/VBox/ConfirmRow/ConfirmYes.pressed.connect(_on_skip_confirmed)
 	$Card/VBox/ConfirmRow/ConfirmNo.pressed.connect(func(): _confirm_row.visible = false)
 	_restore_button.pressed.connect(_on_restore)
+	# UXR-1: the card follows the viewport (a window resize, an Interface
+	# Scale change — both change the logical rect).
+	var vp := get_viewport()
+	if vp != null and not vp.size_changed.is_connected(_on_viewport_changed):
+		vp.size_changed.connect(_on_viewport_changed)
+	_fit_card_width()
+
+
+# ── sizing (UXR-1) ──────────────────────────────────────────────────────────
+
+func _logical_viewport() -> Vector2:
+	var vp := get_viewport()
+	if vp == null:
+		return Vector2(1600, 900)
+	return vp.get_visible_rect().size
+
+
+func _fit_card_width() -> void:
+	"""Width = 22% of the logical viewport inside [396, 560], anchored to the
+	top-right corner as authored."""
+	var view := _logical_viewport()
+	var width := clampf(view.x * CARD_WIDTH_FRACTION, CARD_MIN_WIDTH, CARD_MAX_WIDTH)
+	_card.offset_left = -(width + CARD_MARGIN)
+	_card.offset_right = -CARD_MARGIN
+
+
+func _fit_card_height() -> void:
+	"""Bound the body by the viewport: it fits its content while the whole
+	card stays on screen, and scrolls once it would run past the bottom.
+	Deferred by the caller — the body's content height needs the card's
+	width settled, which is one layout pass after a render or a resize."""
+	if _body == null or not is_instance_valid(_card):
+		return
+	var view := _logical_viewport()
+	var budget := view.y - CARD_TOP - CARD_MARGIN
+	# The chrome is everything but the body: measure it from the current
+	# layout so a confirm row or a longer header is counted when shown.
+	var chrome := maxf(_card.size.y - _body.size.y, 0.0)
+	var room := budget - chrome
+	var content := float(_body.get_content_height())
+	if content <= room:
+		_body.fit_content = true
+		_body.scroll_active = false
+		_body.custom_minimum_size.y = 0.0
+	else:
+		_body.fit_content = false
+		_body.scroll_active = true
+		_body.custom_minimum_size.y = maxf(room, BODY_MIN_HEIGHT)
+
+
+func _on_viewport_changed() -> void:
+	_fit_card_width()
+	_fit_card_height.call_deferred()
 
 
 # ── payload safety ──────────────────────────────────────────────────────────
@@ -709,6 +775,10 @@ func _render() -> void:
 		# but the last can be skipped on its own, at no cost.
 		lines.append(Utils.bb_button_chip("skipstep:", "Skip this lesson ▸", CHIP_TEXT_HEX, CHIP_BG_HEX))
 	_body.text = "\n".join(lines)
+	# UXR-1: a new body may be longer than the screen — re-bound it once the
+	# text has laid out at the card's width.
+	_fit_card_width()
+	_fit_card_height.call_deferred()
 
 
 # ── chip + button handlers ──────────────────────────────────────────────────

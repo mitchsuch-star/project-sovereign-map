@@ -30,16 +30,41 @@ extends SceneTree
 #                         region_visibility / region_marshals / region_garrisons
 #                         from `game_state.map_data` the way
 #                         `map_renderer_base.update_all_regions` does
-#        mode "main"      the real `main.tscn` (Family B) — REFUSED unless
-#                         SOVEREIGN_PORT points away from the player's 8005
+#        mode "main"      the real `main.tscn` — the war room itself (UXR-0,
+#                         October 9, 2026). The scene's APIClient node is
+#                         replaced BEFORE `_ready` by a stub that answers the
+#                         connection test with the payload's `test` (a real
+#                         GET /test) and the topology request with its
+#                         `topology` (a real GET /map_topology), so the live
+#                         boot path runs end to end — map, HUD, boot help —
+#                         with no backend; the shot's steps then hand the
+#                         payload's `new_game` to `_on_new_game_result`, which
+#                         is exactly the menu's Begin. Still REFUSED while
+#                         SOVEREIGN_PORT points at the player's 8005 (the
+#                         runner points it at an unused port for the run).
 #   3. adopts any `nation_display_overrides` the payload carries (the
 #      `api_client._adopt_formation_overrides` chokepoint, mirrored);
 #   4. runs the shot's `steps` (call / set / press / scroll_to / wait / shot);
 #   5. saves the PNG to an ABSOLUTE path and records, per frame: every visible
 #      text on screen (RichTextLabel parsed text, Label, Button + disabled +
-#      tooltip), every probed node's rect, every BaseButton that lies outside
-#      the logical viewport, and every RichTextLabel whose content is taller
-#      than its box with no ScrollContainer above it.
+#      tooltip) WITH ITS RENDERED SIZE IN PHYSICAL PIXELS — the em, the cap
+#      height ("H") and the x-height ("x") of the font the node resolves,
+#      times the node's canvas scale, times the window's content scale
+#      factor (which `get_screen_transform()` does NOT carry — measured) —
+#      and whether the node is Caption-class (`theme_type_variation`
+#      Caption / CaptionRich / CaptionButton) or body-class; every probed
+#      node's rect, every BaseButton that lies outside the logical viewport,
+#      and every RichTextLabel whose content is taller than its box with no
+#      ScrollContainer above it. The readability floor is NOT applied here —
+#      `tools/uxr0_readability_report.py` reads these numbers and holds the
+#      thresholds in one place.
+#
+#   Per shot the spec may carry `window` ([w, h] — the PHYSICAL frame; the
+#   window is parked off the desktop and may exceed the screen, proven at
+#   5120x1440 and 3840x2160) and `scales` (the content scale factors to shoot
+#   it at). The in-memory UiSettings is seeded with the shot's scale before
+#   the scene loads, so a scene that applies `UiSettings.get_ui_scale()` in
+#   its own `_ready` (main.gd does) agrees with the window.
 #
 # The result JSON (spec.result) is written on EVERY exit path; the exit code
 # is non-zero when any shot failed. GDScript runtime errors cannot be caught
@@ -114,6 +139,61 @@ class ApiStub extends Node:
 	func dismiss_all_notifications(_cb = null): calls.append("dismiss_all_notifications")
 
 
+class MainStub extends Node:
+	# The war room's APIClient stand-in (the ep_f1 harness's shape, widened to
+	# every method the client calls). `responses` answers `test_connection`
+	# and `get_map_topology` with REAL captured payloads so main.gd's own boot
+	# path runs; every other road is recorded and answered as a refusal, so
+	# nothing a click could reach ever leaves the process.
+	var responses: Dictionary = {}
+	var calls: Array = []
+
+	func _answer(method: String, cb):
+		calls.append(method)
+		if cb is Callable:
+			var r = responses.get(method, null)
+			if not (r is Dictionary):
+				r = {"success": false, "message": "iq10 main stub: no payload for " + method}
+			cb.call(r)
+
+	func test_connection(cb = null): _answer("test_connection", cb)
+	func get_map_topology(cb = null): _answer("get_map_topology", cb)
+	func get_ledger(cb = null): _answer("get_ledger", cb)
+	func get_diplomatic_ledger(cb = null): _answer("get_diplomatic_ledger", cb)
+	func get_marshal_overview(cb = null): _answer("get_marshal_overview", cb)
+	func get_dispatch(cb = null): _answer("get_dispatch", cb)
+	func get_gazette(cb = null): _answer("get_gazette", cb)
+	func get_campaign_log(cb = null): _answer("get_campaign_log", cb)
+	func get_campaign_end(cb = null): _answer("get_campaign_end", cb)
+	func get_marshal_trust(_m, cb = null): _answer("get_marshal_trust", cb)
+	func get_llm_config(cb = null): _answer("get_llm_config", cb)
+	func get_mailbox(_cb = null): calls.append("get_mailbox")
+	func get_pending_envoy(_cb = null): calls.append("get_pending_envoy")
+	func get_marshal_petition(_cb = null): calls.append("get_marshal_petition")
+	func get_pending_redemption(_cb = null): calls.append("get_pending_redemption")
+	func list_saves(_cb = null): calls.append("list_saves")
+	func load_game(_f, _cb = null): calls.append("load_game")
+	func save_game(_f, _cb = null): calls.append("save_game")
+	func new_game(_cb = null, _scenario = ""): calls.append("new_game")
+	func set_llm_key(_k, _cb = null): calls.append("set_llm_key")
+	func send_command(_c, _cb = null, _relayed = false): calls.append("send_command")
+	func send_structured_command(_c, _d = null, _cb = null): calls.append("send_structured_command")
+	func send_dialogue_response(_c, _cb = null, _id = -1): calls.append("send_dialogue_response")
+	func send_dialogue_response_with_params(_c, _p = null, _cb = null, _id = -1): calls.append("send_dialogue_response_with_params")
+	func send_capture_choice_response(_c, _cb = null, _id = -1): calls.append("send_capture_choice_response")
+	func send_strategic_response(_m, _t = null, _c = null, _cb = null): calls.append("send_strategic_response")
+	func send_objection_response(_c, _cb = null): calls.append("send_objection_response")
+	func send_marshal_petition_response(_c, _cb = null): calls.append("send_marshal_petition_response")
+	func send_glorious_charge_response(_c, _cb = null): calls.append("send_glorious_charge_response")
+	func send_diplomatic_objection_response(_c, _d = null, _cb = null): calls.append("send_diplomatic_objection_response")
+	func send_redemption_response(_c, _cb = null): calls.append("send_redemption_response")
+	func activate_mailbox_item(_i, _cb = null): calls.append("activate_mailbox_item")
+	func respond_to_mailbox_item(_i, _c = null, _cb = null): calls.append("respond_to_mailbox_item")
+	func cancel_strategic_order(_m, _cb = null): calls.append("cancel_strategic_order")
+	func dismiss_notification(_i, _cb = null): calls.append("dismiss_notification")
+	func dismiss_all_notifications(_cb = null): calls.append("dismiss_all_notifications")
+
+
 class MapStub extends Node:
 	# What `region_panel.gd` reads off the map node. Derived from
 	# `game_state.map_data` exactly as `map_renderer_base.update_all_regions`
@@ -161,8 +241,16 @@ class MapStub extends Node:
 
 func _init():
 	# BEFORE any scene script can read a setting: an in-memory config. The
-	# getters return published defaults; the player's file is never opened.
+	# getters return published defaults; the player's file is never opened —
+	# and never WRITTEN: `_persist = false` keeps a scene's own setter calls
+	# (the menu's auto-derived scale, UXR-1) in memory.
 	UiSettings._cfg = ConfigFile.new()
+	# Set dynamically, through a Variant: the harness also shoots OLDER
+	# checkouts (a pristine worktree for a BEFORE record) whose UiSettings
+	# has no `_persist`, and a typed member assignment would not compile
+	# against them (`Object.set` on a static the script lacks is a no-op).
+	var settings_class: Variant = UiSettings
+	settings_class.set("_persist", false)
 	process_frame.connect(_tick)
 
 
@@ -267,7 +355,13 @@ func _prepare():
 		_window_size = size
 		_wait = RESIZE_WAIT
 	root.content_scale_factor = _scale()
+	# The in-memory settings agree with the window: a scene that applies the
+	# stored scale in its own `_ready` (main.gd) would otherwise reset the
+	# factor to the published default and shoot the wrong frame. In memory
+	# only — the harness never saves (see the UiSettings._persist rail).
+	UiSettings._cfg.set_value("display", "ui_scale", _scale())
 	_current["window"] = [size.x, size.y]
+	_current["content_scale_factor"] = _scale()
 	_phase = "instantiate"
 	_wait += 2
 
@@ -297,6 +391,28 @@ func _instantiate():
 		Utils.set_formation_overrides(fo.get("names", {}), fo.get("flags", {}))
 	_node = packed.instantiate()
 	root.add_child(_node)
+	if mode == "main":
+		# The war room: main.gd CREATES its APIClient inside `_ready` (which
+		# ran during add_child above) and fetches 0.5 s later, so the swap
+		# goes AFTER the add (the ep_f1 idiom): the real client is freed
+		# before its first request, and the stub answers the boot's two
+		# requests with the payload's real captures; every other road is
+		# recorded.
+		var stub := MainStub.new()
+		stub.name = "APIClientStub"
+		if _payload is Dictionary:
+			if _payload.get("test") is Dictionary:
+				stub.responses["test_connection"] = _payload["test"]
+			if _payload.get("topology") is Dictionary:
+				stub.responses["get_map_topology"] = _payload["topology"]
+		var real = _node.get("api_client") if ("api_client" in _node) else null
+		if real is Node:
+			_node.remove_child(real)
+			real.queue_free()
+		_node.add_child(stub)
+		if "api_client" in _node:
+			_node.set("api_client", stub)
+		_stubs.append(stub)
 	var place = shot.get("place", null)
 	if place is Dictionary and _node is Control:
 		# A bare Control scene (the notification rail) has no rect of its own.
@@ -364,17 +480,48 @@ func _run_steps():
 		_wait = int(_shot().get("settle", _spec.get("settle", SETTLE_DEFAULT)))
 		return
 	var step = _steps[_step_i]
-	_step_i += 1
 	if not (step is Dictionary):
+		_step_i += 1
 		return
+	if step.has("wait_for"):
+		# Poll a property on the scene until it reads true (frames are NOT
+		# time: parked off-screen with no vsync the engine runs unthrottled,
+		# so main.gd's 0.5 s boot timer outlives any frame count — the war
+		# room shot its map black until this waited on the boot flag).
+		var target_node: Node = _node
+		if step.has("node"):
+			var held = _node.get(str(step["node"]).trim_prefix("@"))
+			target_node = held if held is Node else _node
+		var value = _read_path(target_node, str(step["wait_for"]))
+		var spent := int(step.get("_spent", 0))
+		if value:
+			_step_i += 1
+			if step.has("then_wait"):
+				_wait = int(step["then_wait"])
+			return
+		if spent >= int(step.get("timeout", 1800)):
+			_note_error("wait_for timed out: " + str(step["wait_for"]))
+			_step_i += 1
+			return
+		step["_spent"] = spent + 1
+		return
+	_step_i += 1
 	if step.has("wait"):
 		_wait = int(step["wait"])
 		return
 	var target: Node = _node
 	if step.has("node"):
-		target = _node.get_node_or_null(str(step["node"]))
+		var want := str(step["node"])
+		if want.begins_with("@"):
+			# A node the scene holds in a PROPERTY rather than under a path —
+			# main.gd's dialogs are registered at runtime (`pause_menu`,
+			# `strategic_ledger`, …), so "@pause_menu" reads `_node.pause_menu`.
+			var held = _node.get(want.substr(1))
+			target = held if held is Node else null
+		else:
+			target = _node.get_node_or_null(want)
 		if target == null:
-			_note_error("step node missing: " + str(step["node"]))
+			_note_error("step node missing: " + want)
 			return
 	if step.has("call"):
 		var m := str(step["call"])
@@ -386,6 +533,17 @@ func _run_steps():
 		_set_path(target, str(step["set_path"]), _resolve_value(step.get("value"), null, null))
 	elif step.has("press"):
 		_press(target, step["press"])
+	elif step.has("read"):
+		# Record properties off the target (dotted paths walk nested objects)
+		# into the shot's `reads` — the diagnostic a frame cannot show (the
+		# map camera's zoom, a derived scale, a card's rect). One entry per
+		# read step, in order, so a value read twice keeps both readings.
+		var values := {}
+		for p in step["read"]:
+			values[str(p)] = _read_path(target, str(p))
+		var reads: Array = _current.get("reads", [])
+		reads.append({"step": _step_i - 1, "node": str(step.get("node", "")), "values": values})
+		_current["reads"] = reads
 	elif step.has("scroll_to"):
 		_scroll_to(step["scroll_to"])
 	elif step.has("shot"):
@@ -444,6 +602,31 @@ func _dig(value, path: String):
 		else:
 			return null
 	return cur
+
+
+func _read_path(target: Object, path: String):
+	var obj = target
+	for seg in path.split("."):
+		if obj == null:
+			return null
+		if obj is Dictionary:
+			obj = obj.get(seg, null)
+		elif obj is Object:
+			if seg.ends_with("()") and obj.has_method(seg.trim_suffix("()")):
+				obj = obj.call(seg.trim_suffix("()"))
+			else:
+				obj = obj.get(seg)
+		else:
+			return null
+	if obj is Vector2 or obj is Vector2i:
+		return [obj.x, obj.y]
+	if obj is Rect2:
+		return [obj.position.x, obj.position.y, obj.size.x, obj.size.y]
+	if obj is Object and not (obj is Node):
+		return str(obj)
+	if obj is Node:
+		return str((obj as Node).name)
+	return obj
 
 
 func _set_path(target: Object, path: String, value) -> void:
@@ -588,7 +771,21 @@ func _all_nodes(from: Node) -> Array:
 
 
 func _shown(n: Node) -> bool:
-	return n is CanvasItem and (n as CanvasItem).is_visible_in_tree()
+	# Visible on SCREEN: `is_visible_in_tree` stops at a SubViewport (a
+	# Viewport is not a CanvasItem), so a node drawn into the map's viewport
+	# read as shown while the Control displaying that viewport was hidden
+	# (the war room before its map bootstrapped). Climb through every
+	# SubViewport to the Control that shows it.
+	if not (n is CanvasItem) or not (n as CanvasItem).is_visible_in_tree():
+		return false
+	var p: Node = n.get_parent()
+	while p != null:
+		if p is SubViewport:
+			var holder: Node = p.get_parent()
+			if holder is CanvasItem and not (holder as CanvasItem).is_visible_in_tree():
+				return false
+		p = p.get_parent()
+	return true
 
 
 func _collect_texts() -> Array:
@@ -597,14 +794,24 @@ func _collect_texts() -> Array:
 		if n == _backdrop or not _shown(n):
 			continue
 		var entry := {}
+		var font: Font = null
+		var font_size := 0
 		if n is RichTextLabel:
 			entry = {"class": "RichTextLabel", "text": n.get_parsed_text()}
+			font = n.get_theme_font("normal_font")
+			font_size = n.get_theme_font_size("normal_font_size")
 		elif n is Label:
 			entry = {"class": "Label", "text": n.text}
+			font = n.get_theme_font("font")
+			font_size = n.get_theme_font_size("font_size")
 		elif n is BaseButton and ("text" in n):
 			entry = {"class": n.get_class(), "text": str(n.text), "disabled": n.disabled}
+			font = n.get_theme_font("font")
+			font_size = n.get_theme_font_size("font_size")
 		elif n is LineEdit:
 			entry = {"class": "LineEdit", "text": n.text}
+			font = n.get_theme_font("font")
+			font_size = n.get_theme_font_size("font_size")
 		else:
 			continue
 		if n is Control and str((n as Control).tooltip_text) != "":
@@ -612,7 +819,74 @@ func _collect_texts() -> Array:
 		if str(entry.get("text", "")) == "" and not entry.has("tooltip"):
 			continue
 		entry["path"] = str(root.get_path_to(n))
+		_add_text_metrics(entry, n, font, font_size)
 		out.append(entry)
+	return out
+
+
+# ── the readability census (UXR-0) ──────────────────────────────────────────
+
+const _CAPTION_VARIATIONS := ["Caption", "CaptionRich", "CaptionButton"]
+var _glyph_cache: Dictionary = {}
+
+
+func _add_text_metrics(entry: Dictionary, n: Control, font: Font, font_size: int) -> void:
+	# The node's resolved font and size (override → type variation → theme
+	# type → default), its canvas scale, and the window's content scale
+	# factor — which the screen transform does not carry — give the glyphs'
+	# PHYSICAL size: the em, and the cap/x heights read off the font's own
+	# "H" and "x" glyph bitmaps through the TextServer.
+	var canvas_scale: float = n.get_global_transform_with_canvas().get_scale().y
+	var mult: float = canvas_scale * maxf(root.content_scale_factor, 0.01)
+	entry["font_size"] = font_size
+	entry["canvas_scale"] = canvas_scale
+	entry["em_px"] = float(font_size) * mult
+	var variation := str(n.theme_type_variation)
+	if _inside_subviewport(n):
+		# The map's world-space furniture (name stacks, garrison chips, sail
+		# counts) is sized by the camera, not the interface: its own tier,
+		# reported beside the floor, never under it (UXR-X4 owns it).
+		entry["tier"] = "map"
+	elif variation in _CAPTION_VARIATIONS:
+		entry["tier"] = "caption"
+	else:
+		entry["tier"] = "body"
+	entry["variation"] = variation
+	if font == null or font_size <= 0:
+		return
+	entry["font"] = font.get_font_name()
+	var ratios := _glyph_ratios(font, font_size)
+	entry["cap_px"] = float(ratios.get("cap", 0.0)) * mult
+	entry["x_px"] = float(ratios.get("x", 0.0)) * mult
+
+
+func _inside_subviewport(n: Node) -> bool:
+	var p: Node = n.get_parent()
+	while p != null:
+		if p is SubViewport:
+			return true
+		p = p.get_parent()
+	return false
+
+
+func _glyph_ratios(font: Font, font_size: int) -> Dictionary:
+	# Glyph bitmap heights in LOGICAL px at this size, cached per face+size.
+	var rids := font.get_rids()
+	if rids.is_empty():
+		return {}
+	var rid: RID = rids[0]
+	var key := "%d:%d" % [rid.get_id(), font_size]
+	if _glyph_cache.has(key):
+		return _glyph_cache[key]
+	var ts := TextServerManager.get_primary_interface()
+	var sz := Vector2i(font_size, 0)
+	var gi_h := ts.font_get_glyph_index(rid, font_size, "H".unicode_at(0), 0)
+	var gi_x := ts.font_get_glyph_index(rid, font_size, "x".unicode_at(0), 0)
+	var out := {
+		"cap": ts.font_get_glyph_size(rid, sz, gi_h).y,
+		"x": ts.font_get_glyph_size(rid, sz, gi_x).y,
+	}
+	_glyph_cache[key] = out
 	return out
 
 

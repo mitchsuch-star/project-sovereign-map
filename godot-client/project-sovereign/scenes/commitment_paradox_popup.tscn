@@ -74,11 +74,9 @@ theme_override_constants/separation = 16
 [node name="HonorButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(200, 45)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Honor Defender"
 
 [node name="BreakButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(200, 45)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Break Alliance"

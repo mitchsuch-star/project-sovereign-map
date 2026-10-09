@@ -74,7 +74,6 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
@@ -87,18 +86,18 @@ alignment = 1
 [node name="PrevButton" type="Button" parent="PanelContainer/VBoxContainer/PageRow"]
 custom_minimum_size = Vector2(120, 34)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "< Earlier issue"
 
 [node name="PageLabel" type="Label" parent="PanelContainer/VBoxContainer/PageRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"Caption"
 text = ""
 
 [node name="NextButton" type="Button" parent="PanelContainer/VBoxContainer/PageRow"]
 custom_minimum_size = Vector2(120, 34)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "Later issue >"

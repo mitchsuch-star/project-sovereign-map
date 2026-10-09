@@ -79,6 +79,8 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# dialog_manager (the IGR-E gap class: covered by neither main.tscn nor
 	# the script list unless named here).
 	"res://scripts/tutorial_overlay.gd",
+	# UXR-1 (October 9, 2026): the first-run sizing card.
+	"res://scripts/scale_card.gd",
 	# HC-G: Le Moniteur — the Gazette archive screen (XR-1: every touched
 	# script parses in the harness).
 	"res://scripts/gazette_view.gd",
@@ -147,6 +149,9 @@ const MAP_AREA_EXPECTED_SCRIPT = "res://scenes/map.gd"
 # naming the line.
 const TOOL_SCRIPTS = [
 	"res://../../tools/iq10_surface_screenshot.gd",
+	# UXR-1 (October 9, 2026): the derivation twins probe, driven by
+	# tests/test_uxr1_scale_fix.py.
+	"res://../../tools/uxr1_derive_probe.gd",
 	"res://../../tools/cn3_region_panel_harness.gd",
 	"res://../../tools/cx7_predictor_harness.gd",
 	"res://../../tools/cx_r2_completer_harness.gd",

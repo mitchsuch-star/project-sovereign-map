@@ -9099,3 +9099,76 @@ After the two sub-beat slots and the standing lines, `_select_headline` adds a f
 - **The driven client session** (`tools/mode_c_driven_session.py` + `.gd`): a backend on an unused port (8023 upward) with its own save directory and the mock parser; the real `main.tscn` and the real APIClient headless; every advertised key pushed into the viewport as an engine event (`Viewport.push_input`, never an OS keystroke), in both states the client lives in (the command line unfocused, and focused with the Alt form) — the six screen keys, Alt+1–8 / 1–7 in both ledgers, F1, Tab / Alt+`, M, +, -, Home, Escape — each screen checked open and closed; then five turns, an order typed each turn and the turn ended by typing, E, Alt+E and the End Turn button; every modal answered through its own first enabled button (never Replay, Load, Save, Quit, Main Menu), the battle diorama by Escape and then its Close. Writes `modec.json` (`checks`, `failed_checks`, `modals`, `turns`, `blocked`, `cannot_see`). Run by the reading's client arm (`score_run._run_cli` → `arms/CLI/modec/`). UI/UX C6 stays EYES: the session is the delegate's evidence; it cannot see a key the operating system eats (EA-E9) or whether a screen looks right.
 - **The descent arm's precondition (EG-I3):** the driver's `ExpeditionTracker` counts a landing line answered with an `unknown_name` clarification ("There is no Marshal 'Oudinot'") as a line that never ran, so an arm whose staging failed is a SCRIPT PRECONDITION and not naval evidence (`playtest_driver.THE_TRACKER_KNOWS_AN_UNKNOWN_NAME`); `naval_descent.json` commissions Oudinot on turn 5 (`_note_eg_i3`).
 - **The exit attribution:** `tools/_econ_gate_exit_attribution.py` re-runs the arms the reading's flips read (DL, DESC, the three commanded seeds) with every gate lever down, campaign pay alone down, and the road alone down, and checks each variant with the instrument's own readers (record `tools/_econ_gate_exit_attribution.json`).
+
+## 99. THE INTERFACE SCALE AND THE READABILITY FLOOR — UXR-0 / UXR-1 (October 9, 2026)
+
+> The Pre-Deploy Plan's S1 (`docs/PRE_DEPLOY_PLAN.md` §2; `docs/UX_UI_REVIEW_PLAN.md`
+> UXR-0 + UXR-1; the ruling `docs/audits/UXR_ADJUSTABILITY_REVIEW_2026_10_09.md` §7).
+> Pins `tests/test_uxr1_scale_fix.py` (the derivation, driven) and
+> `tests/test_uxr0_readability.py` (the committed census records).
+
+**99.1 The scale is derived, never a 24-inch default.** `UiSettings.derive_ui_scale_for(width,
+height, dpi)` (`scripts/ui_settings.gd`) and its Python twin `tools/uxr0_readability_report.derive_ui_scale`
+compute the Interface Scale a player at a screen would have: `d = dpi/96` (the Windows scaling
+they chose — Godot is DPI-aware and ignores it), `h = height/1080`, `s = max(d, (d + h)/2)`,
+`+0.25` when `width/height ≥ 3.0` (a 32:9 panel is sat further from; a 21:9 is a 27-inch's
+distance), clamped `[1.0, 3.0]`, snapped to 0.05. A table of eleven screens pins the two to the
+same digit, driven through the engine. `derive_default_ui_scale()` reads the window's screen
+(`DisplayServer.screen_get_size / screen_get_dpi`); no screen (headless) → 1.0. The cap
+`MAX_UI_SCALE` is 3.0 (was 2.0); the slider, the +/− buttons and `main.gd._apply_ui_scale` read it.
+
+**99.2 Chosen beats derived.** `get_ui_scale()` returns the stored value, or the derivation when
+none is stored. `resolve_ui_scale_at_boot()` — the main menu's first call — derives and stores
+the scale tagged `display/ui_scale_auto = true` while nothing is stored or the stored one is
+auto (so a monitor change re-derives); `set_ui_scale()` (the slider, the +/−, the card's
+*Looks right*) writes the value and clears the tag, and no later derivation overwrites it;
+`set_ui_scale_auto()` (reset) returns to the derivation. The menu applies the resolved scale in
+`_ready` BEFORE building anything (UXR-X1: it had applied nothing, so a chosen 150% drew the
+menu at 100% every launch).
+
+**99.3 The first-run card.** `scripts/scale_card.gd` (`ScaleCard`, code-built, the plan's one new
+surface) asks ONE question — *Can you read this comfortably?* — over a live sample (the body
+line at the theme's 16, the tutor caption and a counter row at Caption 14), a slider over the
+published range, *Size for this screen* (back to the derivation) and *Looks right* (persists
+through `set_ui_scale` + `set_scale_acknowledged(true)`; Esc does the same). The menu raises it
+after the entrance animation until it has been acknowledged once; a preview step stores nothing.
+
+**99.4 The theme floor.** Three type variations in `ui/main_theme.tres` — `Caption` (Label 14),
+`CaptionButton` (Button 14), `CaptionRich` (RichTextLabel 14, all four sizes) — and the theme's
+Button size 15 → 16. **No raw font-size override under 15 survives in a scene or script**: the
+recorded sweep `tools/uxr1_font_floor_sweep.py` (idempotent, pinned) turned every 9–13 into the
+Caption family or, on a BODY surface (the command window's output and line, the three content
+areas, the dispatch, the Moniteur, the tutor's body), dropped it to the theme's 16; every 14
+was DECIDED by its table — dialog action buttons and body descriptions drop to the theme,
+chrome and sub-lines take Caption. Exempt with a reason: the map's world-space furniture
+(`scenes/map_renderer_base.gd`, five sites — sized by the camera, UXR-X4) and the war-detail
+popup's two computed sizes (UXR-2's).
+
+**99.5 The tutor card follows the screen.** `tutorial_overlay.gd`: width = 22% of the logical
+viewport inside [396, 560]; the body is bounded by the viewport's height and scrolls past it
+(`_fit_card_height`, deferred one layout pass after each render and on `size_changed`) —
+UXR-X3, card XIX ran off a 480-px logical viewport at scale 3.0. Its text rides the theme
+(body 16, Caption 14).
+
+**99.6 The pause menu's Settings.** `pause_menu.gd` raises the clamp ceiling
+(`clamp_ceiling_override`, the IGR-G1 meta) to 360×900 while the settings are unfolded and
+removes it with them — UXR-X2: the authored 400 had been the ceiling against a 440-px scroll,
+which the relax pass cut toward 48 px.
+
+**99.7 The instrument.** `tools/iq10_surface_screenshot.gd` records, per visible text node, the
+resolved font and size, the canvas scale, and the em / cap-height ("H" glyph) / x-height ("x")
+in PHYSICAL px = logical × canvas scale × the window's `content_scale_factor` (which
+`get_screen_transform()` does not carry — measured); `tier` = caption (the Caption family) /
+map (inside the map's SubViewport) / body. Mode `main` boots the real `main.tscn` behind
+`MainStub` (the connection test and the topology answered with real captures; the APIClient
+swapped AFTER `_ready` creates it; the boot WAITED FOR on `_initial_map_bootstrapped` — frames
+are not time off-screen). `tools/iq10_run_captures.py --physical [--physical-scale auto|1.0]`
+shoots every selected surface at `PHYSICAL_RESOLUTIONS` (1920×1080, 2560×1440, 3440×1440,
+**5120×1440**, 3840×2160) with the window parked PAST the desktop (`[5200, 20]` — the old
+`[2565, 20]` sat on the user's single 5120-wide panel), `--project` shoots another checkout's
+client with this repo's harness (a pristine worktree = the honest BEFORE), and the index names
+the client's commit. `tools/uxr0_readability_report.py` holds the floor in ONE place — body
+RED < 16 em px, P1 < 13; caption RED < 14, P1 < 12; the map tier counted beside, never under —
+and writes the committed record `tests/test_uxr0_readability.py` reads. `UiSettings._persist`
+(set false by a harness through a Variant) keeps every setter's write in memory, so a scene's
+own boot write never reaches the player's file.

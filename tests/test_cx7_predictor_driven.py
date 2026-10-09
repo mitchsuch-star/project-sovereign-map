@@ -186,8 +186,14 @@ class TestTheRowMatchesTheLineItCompletes:
         assert driven["row_font_size"] == driven["input_font_size"], driven
 
     def test_it_is_the_command_line_size_and_not_the_theme_default(self, driven):
-        """16 is the theme's RichTextLabel default and is what it inherited."""
-        assert driven["row_font_size"] == 12, driven["row_font_size"]
+        """The row takes the COMMAND LINE's size, read off the line itself.
+        Re-seated by UXR-1 (October 9, 2026): the readability floor lifted
+        the command line from its 12-px override to the theme's 16, so the
+        row — which had been a constant 12 — now reads the line's size at
+        install time; the invariant is agreement with the line, and the
+        line is never under the floor."""
+        assert driven["row_font_size"] == driven["input_font_size"], driven
+        assert driven["input_font_size"] >= 14, driven["input_font_size"]
 
 
 class TestTheCompleterNeverSends:
@@ -309,9 +315,14 @@ class TestTheFramesTerminalText:
 
     def test_the_terminals_emphasis_keeps_its_size(self, driven):
         """SF7-X18: an unset bold/italic size falls back to the theme's 16px
-        against the terminal's 11px body — inline emphasis ("Click [b]End
-        Turn[/b]") would shout once it had a face."""
-        assert driven["terminal_normal_size"] == 11, driven
+        against the terminal's body — inline emphasis ("Click [b]End
+        Turn[/b]") would shout once it had a face.
+
+        Re-seated by UXR-1 (October 9, 2026): the body was 11 px (a P1 on
+        every monitor by the readability floor) and is the theme's 16 now;
+        the invariant is that bold and italics EQUAL the body, whatever it is,
+        and that the body is never under the floor."""
+        assert driven["terminal_normal_size"] >= 14, driven
         assert driven["terminal_bold_size"] == driven["terminal_normal_size"]
         assert driven["terminal_italics_size"] == driven["terminal_normal_size"]
 

@@ -64,6 +64,10 @@ var _leaving := false
 var _caption: Label
 var _status_label: Label
 var _buttons: Dictionary = {}          # id -> Button
+# UXR-1: the first-run sizing card ("Can you read this comfortably?") and the
+# scale this screen derives — see _apply_boot_scale / _maybe_open_scale_card.
+var _scale_card: ScaleCard = null
+var _derived_scale := 1.0
 var _confirm_box: VBoxContainer
 # POSITION 7: Begin and the School of War share the one confirm row — both
 # REPLACE the backend's running world. The pressed handler stamps which
@@ -92,11 +96,19 @@ func _ready() -> void:
 	AudioManager.stop_all_loops.call_deferred()
 	AudioManager.set_menu_mood.call_deferred()
 
+	# UXR-1 / UXR-X1: the stored Interface Scale is applied HERE, at the first
+	# scene — it used to be applied only when a campaign started (main.gd), so
+	# a player who chose 150% saw this menu at 100% on every launch. And when
+	# nothing is stored, the scale is DERIVED from the screen the game booted
+	# on (UiSettings.resolve_ui_scale_at_boot) instead of a 24-inch default.
+	_apply_boot_scale()
+
 	_load_fonts()
 	_build_title_block()
 	_build_menu_column()
 	_build_footer()
 	_build_settings_view()
+	_build_scale_card()
 	_build_fade_rect()
 	_apply_backend_state()
 
@@ -122,12 +134,51 @@ func _ready() -> void:
 func _start_presentation() -> void:
 	_advance_slide()
 	_entrance_animation()
+	_maybe_open_scale_card()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and _settings_view and _settings_view.visible:
 		_close_settings()
 		get_viewport().set_input_as_handled()
+
+
+# ── UXR-1: the boot scale and the first-run card ────────────────────────────
+
+func _apply_boot_scale() -> void:
+	_derived_scale = UiSettings.derive_default_ui_scale()
+	var scale := UiSettings.resolve_ui_scale_at_boot()
+	get_window().content_scale_factor = clampf(scale, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE)
+
+
+func _build_scale_card() -> void:
+	_scale_card = ScaleCard.new()
+	_scale_card.visible = false
+	add_child(_scale_card)
+	_scale_card.scale_previewed.connect(func(v): _on_ui_scale_changed(v, false))
+	_scale_card.accepted.connect(func(v): _on_ui_scale_changed(v, true))
+
+
+func _maybe_open_scale_card() -> void:
+	"""The one question on the first boot: raised until the player has
+	answered it once ('Looks right' / Esc), never again after that unless
+	asked for from Settings."""
+	if _scale_card == null or UiSettings.get_scale_acknowledged():
+		return
+	open_scale_card()
+
+
+func open_scale_card() -> void:
+	if _scale_card == null:
+		return
+	_settings_view.visible = false
+	_scale_card.open(UiSettings.get_ui_scale(), _derived_scale)
+	AudioManager.play("panel_open")
+
+
+func _close_scale_card() -> void:
+	if _scale_card != null and _scale_card.visible:
+		_scale_card._on_accept()
 
 
 # ── fonts ───────────────────────────────────────────────────────────────────
@@ -238,7 +289,7 @@ func _build_menu_column() -> void:
 	_confirm_box.add_theme_constant_override("separation", 8)
 	var warn := Label.new()
 	warn.text = "Begin anew? The autosave of your running campaign is replaced."
-	warn.add_theme_font_size_override("font_size", 14)
+	warn.theme_type_variation = &"Caption"
 	warn.add_theme_color_override("font_color", Utils.UI_WARNING)
 	warn.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	warn.add_theme_constant_override("shadow_offset_y", 1)
@@ -263,6 +314,29 @@ func _build_menu_column() -> void:
 	_add_menu_button("load", "Load a Campaign…", _on_load_pressed, false)
 	_add_menu_button("settings", "Settings", _open_settings, false)
 	_add_menu_button("quit", "Quit to Desktop", _on_quit_pressed, false)
+	# UXR-1 (the regression at Interface Scale 2.0 on a 1600x900 window): the
+	# column hangs from 40% of the height, and on a short logical viewport
+	# (800x450 there; 960x540 on a 1080p panel at a chosen 2.0) its last two
+	# buttons fell off the bottom. Re-fit whenever the viewport or the column
+	# (the confirm row) changes height.
+	resized.connect(_fit_menu_column)
+	_menu_column.resized.connect(func(): _fit_menu_column.call_deferred())
+	_fit_menu_column.call_deferred()
+
+
+func _fit_menu_column() -> void:
+	"""Hang the column from 40% of the height, or higher when it would not
+	fit — never below 8 px from the top."""
+	if _menu_column == null or size.y <= 0.0:
+		return
+	var h := size.y
+	var col_h := _menu_column.get_combined_minimum_size().y
+	var top := minf(h * 0.40, maxf(h - col_h - 24.0, 8.0))
+	var frac := clampf(top / h, 0.0, 0.40)
+	if is_equal_approx(_menu_column.anchor_top, frac):
+		return
+	_menu_column.anchor_top = frac
+	_menu_column.anchor_bottom = frac
 
 
 func _add_menu_button(id: String, text: String, cb: Callable, prominent: bool) -> void:
@@ -319,7 +393,7 @@ func _build_footer() -> void:
 	_status_label.anchor_right = 0.6
 	_status_label.anchor_top = 0.955
 	_status_label.anchor_bottom = 0.955
-	_status_label.add_theme_font_size_override("font_size", 13)
+	_status_label.theme_type_variation = &"Caption"
 	_status_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_status_label.add_theme_constant_override("shadow_offset_y", 1)
 	_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -333,7 +407,9 @@ func _build_footer() -> void:
 	_caption.anchor_bottom = 0.955
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_caption.add_theme_font_override("font", _font_fell_italic)
-	_caption.add_theme_font_size_override("font_size", 15)
+	# UXR-1: a caption (the painting's credit) — Caption 14, the floor's own
+	# class, not a body-class 15 the census read RED at 1080p.
+	_caption.theme_type_variation = &"Caption"
 	_caption.add_theme_color_override("font_color", Color(0.82, 0.78, 0.68, 0.85))
 	_caption.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
 	_caption.add_theme_constant_override("shadow_offset_y", 1)
@@ -347,7 +423,7 @@ func _build_footer() -> void:
 	version.anchor_top = 0.925
 	version.anchor_bottom = 0.925
 	version.text = "Ink & Iron — " + Utils.build_label()
-	version.add_theme_font_size_override("font_size", 12)
+	version.theme_type_variation = &"Caption"
 	version.add_theme_color_override("font_color", Color(0.65, 0.63, 0.58, 0.8))
 	version.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	version.add_theme_constant_override("shadow_offset_y", 1)
@@ -418,6 +494,14 @@ func _on_ui_scale_changed(value: float, persist: bool) -> void:
 	get_window().content_scale_factor = clampf(value, UiSettings.MIN_UI_SCALE, UiSettings.MAX_UI_SCALE)
 	if persist:
 		UiSettings.set_ui_scale(value)
+		# The Settings slider and the card share the one value.
+		if _settings_panel != null:
+			_settings_panel.refresh()
+	# The logical viewport just changed — every clamped panel re-fits.
+	if _settings_view != null and _settings_view.visible:
+		Utils.clamp_centered_panel(_settings_view)
+	if _scale_card != null and _scale_card.visible:
+		Utils.clamp_centered_panel(_scale_card)
 
 
 # ── campaign actions ────────────────────────────────────────────────────────

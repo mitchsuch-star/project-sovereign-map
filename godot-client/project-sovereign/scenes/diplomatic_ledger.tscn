@@ -75,37 +75,37 @@ theme_override_constants/separation = 4
 
 [node name="NationsTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "NATIONS"
 
 [node name="TreatiesTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "TREATIES"
 
 [node name="ThreatTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "THREAT & COALITION"
 
 [node name="TalleyrandTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "TALLEYRAND"
 
 [node name="BargainsTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "WAR BARGAINS"
 
 [node name="VassalsTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "VASSALS"
 
 [node name="CongressTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "CONGRESS"
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
@@ -119,7 +119,6 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 fit_content = true
 scroll_active = false

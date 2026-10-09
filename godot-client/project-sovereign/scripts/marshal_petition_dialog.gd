@@ -150,7 +150,6 @@ func _add_option(option: Dictionary):
 		label += "   [" + cost_note + "]"
 	btn.text = label
 	btn.custom_minimum_size = Vector2(0, 40)
-	btn.add_theme_font_size_override("font_size", 14)
 	btn.add_theme_color_override("font_color", Utils.UI_GOLD)
 	var is_enabled = bool(option.get("enabled", true))
 	btn.disabled = not is_enabled
@@ -174,7 +173,7 @@ func _add_option(option: Dictionary):
 	if detail != "":
 		var detail_label = Label.new()
 		detail_label.text = "    " + detail
-		detail_label.add_theme_font_size_override("font_size", 11)
+		detail_label.theme_type_variation = &"Caption"
 		detail_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1))
 		detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		options_container.add_child(detail_label)

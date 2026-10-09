@@ -109,7 +109,7 @@ func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
 	var title = str(digest.get("title", "THE COURTS WRITE"))
 	heading.text = "%s (%d)" % [title, int(digest.get("count", _digest_rows.size()))]
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	heading.add_theme_font_size_override("font_size", 13)
+	heading.theme_type_variation = &"Caption"
 	heading.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
 	box.add_child(heading)
 
@@ -118,7 +118,7 @@ func _build_digest_caption(digest: Dictionary) -> VBoxContainer:
 	note.text = (headline + " " + str(digest.get("deadline_note", ""))).strip_edges()
 	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.add_theme_font_size_override("font_size", 11)
+	note.theme_type_variation = &"Caption"
 	note.add_theme_color_override("font_color", Color(0.7, 0.72, 0.78, 1.0))
 	box.add_child(note)
 
@@ -172,7 +172,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	var state_badge = Label.new()
 	state_badge.text = "ACTIVE" if is_active else "WAITING"
 	state_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	state_badge.add_theme_font_size_override("font_size", 10)
+	state_badge.theme_type_variation = &"Caption"
 	state_badge.add_theme_color_override(
 		"font_color",
 		Color(0.5, 0.72, 0.86, 1.0) if is_active else Color(0.66, 0.66, 0.7, 1.0)
@@ -182,7 +182,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	var source_label = Label.new()
 	source_label.text = Utils.display_nation_name(source)
 	source_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	source_label.add_theme_font_size_override("font_size", 13)
+	source_label.theme_type_variation = &"Caption"
 	source_label.add_theme_color_override("font_color", Color(0.88, 0.76, 0.38, 1.0))
 	top_row.add_child(source_label)
 
@@ -194,14 +194,14 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	var type_label = Label.new()
 	type_label.text = ITEM_TYPE_DISPLAY.get(item_type, item_type.replace("_", " ").capitalize())
 	type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	type_label.add_theme_font_size_override("font_size", 11)
+	type_label.theme_type_variation = &"Caption"
 	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))
 	top_row.add_child(type_label)
 
 	var turn_label = Label.new()
 	turn_label.text = "Turn %d" % arrival_turn
 	turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	turn_label.add_theme_font_size_override("font_size", 10)
+	turn_label.theme_type_variation = &"Caption"
 	turn_label.add_theme_color_override("font_color", Color(0.56, 0.58, 0.64, 1.0))
 	top_row.add_child(turn_label)
 
@@ -210,7 +210,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	summary_label.text = summary_display
 	summary_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	summary_label.add_theme_font_size_override("font_size", 11)
+	summary_label.theme_type_variation = &"Caption"
 	summary_label.add_theme_color_override("font_color", Color(0.82, 0.82, 0.86, 1.0))
 	summary_label.tooltip_text = summary_display
 	vbox.add_child(summary_label)
@@ -227,7 +227,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 			voice_label.text = Utils.humanize_nation_keys_in_text(voice)
 			voice_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			voice_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			voice_label.add_theme_font_size_override("font_size", 12)
+			voice_label.theme_type_variation = &"Caption"
 			voice_label.add_theme_color_override("font_color", Color(0.86, 0.8, 0.6, 1.0))
 			vbox.add_child(voice_label)
 		var clauses = digest_row.get("clauses", [])
@@ -239,7 +239,7 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 			terms_label.text = "Terms: " + " · ".join(clause_strings)
 			terms_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			terms_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			terms_label.add_theme_font_size_override("font_size", 10)
+			terms_label.theme_type_variation = &"Caption"
 			terms_label.add_theme_color_override("font_color", Color(0.68, 0.72, 0.8, 1.0))
 			vbox.add_child(terms_label)
 		vbox.add_child(_build_action_row(mailbox_id))
@@ -272,7 +272,7 @@ func _build_action_row(mailbox_id: int) -> HBoxContainer:
 	var hint = Label.new()
 	hint.text = "or click the letter to reply in full"
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.add_theme_font_size_override("font_size", 10)
+	hint.theme_type_variation = &"Caption"
 	hint.add_theme_color_override("font_color", Color(0.56, 0.58, 0.64, 1.0))
 	row.add_child(hint)
 

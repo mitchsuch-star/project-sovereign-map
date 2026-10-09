@@ -234,7 +234,7 @@ func _add_labeled_tug_of_war_bar(opponent: String, score: int, bar_width: int, b
 	var lbl = Label.new()
 	lbl.text = Utils.display_nation_name(opponent)
 	lbl.custom_minimum_size = Vector2(60, 0)
-	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.theme_type_variation = &"Caption"
 	var score_color_val = Utils.UI_SCORE_POSITIVE if score > 0 else (Utils.UI_SCORE_NEGATIVE if score < 0 else Utils.UI_SCORE_NEUTRAL)
 	lbl.add_theme_color_override("font_color", score_color_val)
 	row.add_child(lbl)
@@ -567,7 +567,7 @@ func _add_negotiate_button(nation: String):
 	btn.text = "Negotiate Peace"
 	btn.tooltip_text = "Open bilateral peace options for this court only."
 	btn.custom_minimum_size = Vector2(160, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(func():
 		hide()
 		negotiate_clicked.emit(nation)
@@ -580,7 +580,7 @@ func _add_settlement_button(war_id: String, nation: String, label: String):
 	btn.text = label
 	btn.tooltip_text = "Open a war-wide settlement review."
 	btn.custom_minimum_size = Vector2(190, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(func():
 		hide()
 		settlement_clicked.emit(war_id, nation)
@@ -592,7 +592,7 @@ func _add_disabled_settlement_button(reason: String):
 	var btn = Button.new()
 	btn.text = "Open Settlement"
 	btn.custom_minimum_size = Vector2(190, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.disabled = true
 	btn.tooltip_text = reason
 	button_row.add_child(btn)
@@ -602,7 +602,7 @@ func _add_request_terms_button(war_id: String, nation: String, rt_state: Diction
 	var btn = Button.new()
 	btn.text = "Request Terms"
 	btn.custom_minimum_size = Vector2(150, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	if str(rt_state.get("state", "")) == "available":
 		btn.tooltip_text = "Ask the enemy war leader to name settlement terms."
 		btn.pressed.connect(func():
@@ -620,7 +620,7 @@ func _add_target_button(nation: String):
 	btn.text = "Target " + Utils.display_nation_name(nation)
 	btn.tooltip_text = "Open diplomatic options for this coalition member; this is not a settlement action."
 	btn.custom_minimum_size = Vector2(130, 36)
-	btn.add_theme_font_size_override("font_size", 12)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(func():
 		hide()
 		target_clicked.emit(nation)
@@ -633,7 +633,7 @@ func _add_coalition_settlement_explainer():
 	lbl.text = "Coalition spans multiple wars; settle each separately."
 	lbl.tooltip_text = "Open an individual war detail to prepare a settlement for that war."
 	lbl.custom_minimum_size = Vector2(250, 36)
-	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.theme_type_variation = &"Caption"
 	lbl.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	button_row.add_child(lbl)
@@ -643,7 +643,7 @@ func _add_diplomatic_options_button(nation: String):
 	var btn = Button.new()
 	btn.text = "Diplomatic Options"
 	btn.custom_minimum_size = Vector2(160, 36)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.pressed.connect(func():
 		hide()
 		negotiate_clicked.emit(nation)

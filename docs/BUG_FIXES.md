@@ -13934,3 +13934,14 @@ triage, `COMMAND_ROBUSTNESS_SPEC.md` §12 — "CR-6 proper" is retired).
 | shipped, and literals heal (AIDR-D1) | 27 | — | — |
 
 The seed-to-seed swing is wider than any lever's effect on three seeds, so this is NOT a balance claim; the economy balance pass (next) re-measures.
+
+## UXR-0 / UXR-1 — the adjustability review's rows (October 9, 2026; Pre-Deploy Plan S1)
+
+> Memo `docs/audits/UXR_ADJUSTABILITY_REVIEW_2026_10_09.md` §2b; rules `SYSTEMS_REFERENCE.md` §99; pins `tests/test_uxr1_scale_fix.py` + `tests/test_uxr0_readability.py`. Found by the read-only census and by the instrument's own first frames.
+
+| ID | Priority | Status | Summary |
+|---|---|---|---|
+| **UXR-X1** | P2 | FIXED | **The saved Interface Scale was never applied at launch.** `main_menu.gd` never read `UiSettings.get_ui_scale()` in `_ready`; the first apply was `main.gd:760` when a campaign started, so a player who chose 150% saw the menu at 100% every launch while the slider read 150%. Fixed: `_apply_boot_scale()` at the head of the menu's `_ready` (§99.2), which also derives the scale for the screen when none is stored. |
+| **UXR-X2** | P3 | FIXED | **The pause menu's Settings were squeezed to one slider.** The panel is authored 360×400 and `clamp_centered_panel` keeps the authored rect as its ceiling; the settings scroll's own minimum is 440 and it is the only shrinkable child, so the relax pass cut it toward the 48-px floor (`IQ10_WAR_ROOM_PAUSE_SETTINGS` before: INTERFACE and a sliver). Fixed: the clamp ceiling raised to 360×900 while the settings are unfolded, removed with them (§99.6). |
+| **UXR-X3** | P2 | FIXED | **The tutor card had no height bound.** `fit_content` with scrolling off and no bottom edge; card XIX is ≈ 1,400 characters, and at the new 3.0 cap on a 1440-px panel the logical viewport is 480 px tall — the card ran off the screen with no scrollbar. Fixed: `_fit_card_height` bounds the body by the viewport and scrolls past it (§99.5); width as a viewport fraction. |
+| **UXR-X4** | P3 | OPEN — owner UXR-2 "the layout law" (`docs/UX_UI_REVIEW_PLAN.md`), with the map renderer as its seam | **The map's own furniture does not follow Interface Scale.** The name stacks, garrison chips ("25k", "?") and sail counts are world-space Labels inside the map SubViewport, sized by the camera zoom alone: at the whole-map fit they read 6.75–9 px em on every monitor (the census's `map` tier, counted beside the floor). The five raw sizes in `scenes/map_renderer_base.gd` are the sweep's recorded exemption. Completion: the furniture's font size carries a term in `content_scale_factor` (or a Map-label-size setting), the five sites leave the exemption, and the `map_small` count in the physical census reads 0 at the derived scale. ⟨SF step=pre-deploy S9 · UXR-2 · pillar=ui_ux⟩ |

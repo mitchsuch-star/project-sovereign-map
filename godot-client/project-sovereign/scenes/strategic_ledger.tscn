@@ -69,42 +69,42 @@ theme_override_constants/separation = 4
 
 [node name="ForcesTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "FORCES"
 
 [node name="TerritoriesTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "TERRITORIES"
 
 [node name="EconomyTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "ECONOMY"
 
 [node name="IntelTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "INTELLIGENCE"
 
 [node name="ManpowerTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "MANPOWER"
 
 [node name="OrdersTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "ORDERS"
 
 [node name="AdmiraltyTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "ADMIRALTY"
 
 [node name="LawsTab" type="Button" parent="PanelContainer/VBoxContainer/SubTabRow"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "LAWS"
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
@@ -118,7 +118,6 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 fit_content = true
 scroll_active = false

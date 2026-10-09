@@ -217,7 +217,7 @@ func _add_coalition_header(coalition_name: String):
 	btn.text = " " + coalition_name.to_upper()
 	btn.flat = true
 	btn.custom_minimum_size = Vector2(0, 18)
-	btn.add_theme_font_size_override("font_size", 10)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", COLOR_GOLD)
 	btn.pressed.connect(func(): coalition_header_clicked.emit())
 	vbox.add_child(btn)
@@ -268,7 +268,7 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	name_label.text = indent + opponent_display
 	name_label.clip_text = true
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.add_theme_font_size_override("font_size", 10)
+	name_label.theme_type_variation = &"Caption"
 	name_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(name_label)
@@ -276,14 +276,14 @@ func _add_war_entry(war_data: Dictionary, is_coalition_member: bool):
 	# Score number lives here (not on the bar) so it never fights the centre gem.
 	var score_label = Label.new()
 	score_label.text = ("+" if score > 0 else "") + str(score)
-	score_label.add_theme_font_size_override("font_size", 10)
+	score_label.theme_type_variation = &"Caption"
 	score_label.add_theme_color_override("font_color", _get_score_color(score))
 	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(score_label)
 
 	var turn_label = Label.new()
 	turn_label.text = "T:" + str(duration)
-	turn_label.add_theme_font_size_override("font_size", 9)
+	turn_label.theme_type_variation = &"Caption"
 	turn_label.add_theme_color_override("font_color", COLOR_DIMMED)
 	turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(turn_label)
@@ -343,7 +343,7 @@ func _add_armistice_card(war_data: Dictionary):
 	btn.text = opponent_display + "  " + str(remaining) + "t"
 	btn.flat = true
 	btn.custom_minimum_size = Vector2(0, 16)
-	btn.add_theme_font_size_override("font_size", 9)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", COLOR_DIMMED)
 	# UI-6: opponent heraldry on the truce row too
 	Utils.apply_flag_icon(btn, opponent)
@@ -361,7 +361,7 @@ func _add_armistice_card(war_data: Dictionary):
 func _add_foreign_wars_header():
 	var lbl = Label.new()
 	lbl.text = " FOREIGN WARS"
-	lbl.add_theme_font_size_override("font_size", 10)
+	lbl.theme_type_variation = &"Caption"
 	lbl.add_theme_color_override("font_color", COLOR_DIMMED)
 	vbox.add_child(lbl)
 
@@ -376,7 +376,7 @@ func _add_foreign_war_row(fw: Dictionary):
 	btn.text = att + " vs " + def_side
 	btn.flat = true
 	btn.custom_minimum_size = Vector2(0, 16)
-	btn.add_theme_font_size_override("font_size", 9)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", COLOR_DIMMED)
 	var lines: Array = []
 	lines.append("%s vs %s — turn %d of their war." % [

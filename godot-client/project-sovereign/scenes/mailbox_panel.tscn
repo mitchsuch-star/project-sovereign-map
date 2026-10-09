@@ -57,7 +57,7 @@ horizontal_alignment = 1
 [node name="SubtitleLabel" type="Label" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.627, 0.627, 0.659, 1)
-theme_override_font_sizes/font_size = 11
+theme_type_variation = &"Caption"
 text = "Every envoy still awaiting your answer. Select a row to reopen or activate it."
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -77,7 +77,7 @@ theme_override_constants/separation = 8
 [node name="EmptyStateLabel" type="Label" parent="PanelContainer/VBoxContainer/ScrollContainer/ListContent"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.627, 0.627, 0.659, 1)
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"Caption"
 text = "No pending envoys."
 horizontal_alignment = 1
 
@@ -92,5 +92,5 @@ alignment = 1
 [node name="CloseButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"CaptionButton"
 text = "Close"

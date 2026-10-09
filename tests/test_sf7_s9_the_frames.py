@@ -103,19 +103,29 @@ class TestTheThemeHasItsFaces:
             cwd=str(REPO), capture_output=True, text=True).stdout.split()
         assert len(tracked) == 2, tracked
 
-    @pytest.mark.parametrize("scene,node,size", [
-        ("main.tscn", "OutputDisplay", 11),
-        ("dispatch_view.tscn", "ContentLabel", 12),
+    @pytest.mark.parametrize("scene,node", [
+        ("main.tscn", "OutputDisplay"),
+        ("dispatch_view.tscn", "ContentLabel"),
     ])
-    def test_inline_emphasis_keeps_the_body_size(self, scene, node, size):
+    def test_inline_emphasis_keeps_the_body_size(self, scene, node):
         """The terminal and the dispatch use `[b]` for INLINE emphasis
         ("Click [b]End Turn[/b]"); an unset bold size falls back to the
-        theme's 16px against their body. The ledgers' `[b]` headings keep
-        the 16 on purpose (they are headings)."""
+        theme's bold size against their body. The ledgers' `[b]` headings keep
+        the 16 on purpose (they are headings).
+
+        Re-seated by UXR-1 (October 9, 2026): the floor DROPPED both bodies'
+        11/12-px overrides, so they read the theme's 16 — and so does the
+        theme's bold. The invariant is that the four sizes AGREE: all four
+        set to one number, or none set (the theme's, where normal and bold
+        are both 16)."""
         block = _tscn_node_block(_read(SCENES / scene), node)
-        for item in ("normal_font_size", "bold_font_size", "italics_font_size",
-                     "bold_italics_font_size"):
-            assert f"theme_override_font_sizes/{item} = {size}" in block, (scene, item)
+        sizes = {item: re.search(rf"theme_override_font_sizes/{item} = (\d+)", block)
+                 for item in ("normal_font_size", "bold_font_size", "italics_font_size",
+                              "bold_italics_font_size")}
+        values = {k: (int(m.group(1)) if m else None) for k, m in sizes.items()}
+        assert len(set(values.values())) == 1, (scene, values)
+        if values["normal_font_size"] is not None:
+            assert values["normal_font_size"] >= 14, (scene, values)
 
 
 # ═════════════════════════ SF7-X20 — the famine counts its own turns ══════

@@ -60,13 +60,13 @@ text = "DIPLOMACY"
 [node name="DPLabel" type="Label" parent="PanelContainer/VBoxContainer/HeaderRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.7, 0.9, 1)
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"Caption"
 text = "DP: 0/3"
 
 [node name="CloseButton" type="Button" parent="PanelContainer/VBoxContainer/HeaderRow"]
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"CaptionButton"
 text = "X"
 
 [node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
@@ -111,11 +111,11 @@ alignment = 1
 visible = false
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "Back"
 
 [node name="CancelButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonRow"]
 custom_minimum_size = Vector2(100, 35)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"CaptionButton"
 text = "Cancel"

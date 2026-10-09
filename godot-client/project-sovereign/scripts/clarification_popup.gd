@@ -88,7 +88,6 @@ func _create_button(label: String, option: Dictionary) -> Button:
 	btn.add_theme_color_override("font_color", Color(0.933, 0.933, 0.933, 1))
 	btn.add_theme_color_override("font_pressed_color", Color(1, 1, 1, 1))
 	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 1))
-	btn.add_theme_font_size_override("font_size", 14)
 
 	btn.pressed.connect(_on_option_pressed.bind(option))
 	return btn

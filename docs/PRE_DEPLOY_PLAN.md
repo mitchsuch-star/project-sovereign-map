@@ -38,10 +38,16 @@ already walked. Two things make the next fifty fixes expensive:
 **And the client is unreadable on the user's own monitor.** The tutorial card is
 a 396-px fixed rect of 12–13-px type; the project sets no stretch mode and no
 DPI detection, so the interface draws at 1:1 physical pixels on an ultra-wide
-with Interface Scale defaulting to 1.0 and capped at 2.0. Only four surfaces
-have a resize grip. The IQ-10 capture harness shoots a 1600×900 window at
-scales 1.0 and 2.0 — it has never produced the frame the user sees, which is
-why 262 clean frames and a "UI/UX 7.5" coexisted with the report.
+with Interface Scale defaulting to 1.0 and capped at 2.0. ~~Only four surfaces
+have a resize grip.~~ *(Corrected October 9 by the adjustability census: ONE
+grip — the terminal's — and a hidden, unsaved edge-drag on the war HUD; the
+"four" was a grep matching* the Emperor's grip *in two files.)* The IQ-10
+capture harness shoots a 1600×900 window at scales 1.0 and 2.0 — it has never
+produced the frame the user sees, which is why 262 clean frames and a "UI/UX
+7.5" coexisted with the report. *(Measured October 9: the user's monitor is ONE
+5120×1440 panel at 100% Windows scaling, not the 3440×1440 this plan assumed;
+and the capture window had been parked ON it, at x = 2565, for every run since
+September.)*
 
 None of the code-health rows changes what the game does, so none moves the
 score; their gate is **byte-identity** (series, M1–M7, corpus, the score arms'
@@ -57,7 +63,8 @@ three resolutions. The head of every session from S2 on takes one lever batch
 
 | # | Row | What lands | Size | Why here |
 |---|-----|-----------|------|----------|
-| S1 | **UXR-0 + UXR-1** | The readability instrument (physical-pixel text census at 1920×1080 / 2560×1440 / 3440×1440 / 3840×2160) and the fix with the widest reach: Interface Scale auto-derived from the screen at first boot, the cap 2.0 → 3.0, a theme text floor, the first-run "can you read this?" card | 1.0 | The user's report; first contact is the tutorial and it cannot be read. Smallest change, largest reach. |
+| ~~S1~~ **S1a ✅ LANDED October 9, 2026** | **UXR-0 + UXR-1** | The readability instrument (physical-pixel text census at 1920×1080 / 2560×1440 / 3440×1440 / **5120×1440** / 3840×2160) and the fix with the widest reach: Interface Scale auto-derived from the screen at first boot, the cap 2.0 → 3.0, a theme text floor, the first-run "can you read this?" card. **Landing record `UX_UI_REVIEW_PLAN.md` §UXR-1 landing record: named set RED 255 → 0, P1 750 → 0; the user's eyes = UXR-4.** | 1.0 | The user's report; first contact is the tutorial and it cannot be read. Smallest change, largest reach. |
+| **S1b — NEXT** | **the Settings additions** (the adjustability review's decisions 4 + 5) | Window mode + size picker; the terminal's default footprint as a viewport fraction; Ctrl+= / − / 0; Reset layout; a CONTROLS reference; the *Body text: Garamond · Plain* option; the sizing card from Settings | 0.5 | Cheap, same seams; the review's "is anything missing" answer |
 | S2 | **CODE-4** + **CODE-1 batch 1** | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
 | S3–S4 | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
 | S5–S6 | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
@@ -282,7 +289,10 @@ the pick, with the evidence.*
 ## 5. The user's calls (each has a default; silence takes it)
 
 1. **Order.** Code health first, as asked; UXR-0/1 ahead of it because it is
-   one session and the user's own report. *Default: the table above.*
+   one session and the user's own report. *Default: the table above.* ✅ *Taken
+   October 9, 2026 ("go"), with the adjustability review's seven decisions at
+   their defaults (`docs/audits/UXR_ADJUSTABILITY_REVIEW_2026_10_09.md` §7): S1
+   grows to S1a (landed) + S1b (the Settings additions, next).*
 2. **The Score Finish residue** pauses until S14. *Default: pause.*
 3. **Interface Scale cap** 2.0 → 3.0 and an auto-derived default. *Default: yes.*
 4. **Lever retirement scope.** Everything landed before October 1, 2026; the

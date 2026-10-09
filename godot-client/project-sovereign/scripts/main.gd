@@ -5013,10 +5013,10 @@ func _note_the_end_of_the_day() -> void:
 	leaves an exhausted day to the player when its LAST order was
 	administrative. Two things the client never said:
 	  * before the day's last action — once a turn, when the administration
-	    is spent and the actions are down to the last one or two — that the
-	    order spending them ends the turn at once;
+		is spent and the actions are down to the last one or two — that the
+		order spending them ends the turn at once;
 	  * a day spent but waiting — the End Turn button is the next thing to
-	    press, and it says so.
+		press, and it says so.
 	No modal before an order: the typed `end turn` keeps its envoy-lapse
 	confirm, and WO-22 defers the auto-advance for envoys and an unanswered
 	capture question."""
@@ -8043,8 +8043,13 @@ func _install_suggestion_row() -> void:
 	# completes is 12 — measured off the live nodes, capitals 21px against
 	# 14px and 16px, half again as tall as the game's prose. A suggestion is
 	# an aside, and it now matches the line it is completing.
-	_suggestion_row.add_theme_font_size_override(
-		"normal_font_size", _COMPLETION_FONT_SIZE)
+	# UXR-1 (October 9, 2026): read off the line itself — the floor lifted the
+	# command line to the theme's 16 and a constant would have left the row
+	# behind it; the constant stays as the fallback with no line to read.
+	var line_size := _COMPLETION_FONT_SIZE
+	if command_input != null:
+		line_size = command_input.get_theme_font_size("font_size")
+	_suggestion_row.add_theme_font_size_override("normal_font_size", line_size)
 	_suggestion_row.visible = false
 	layout.add_child(_suggestion_row)
 	layout.move_child(_suggestion_row, input_row.get_index())

@@ -93,7 +93,6 @@ func show_interrupt(interrupt_data: Dictionary):
 		btn.add_theme_color_override("font_color", Color(0.933, 0.933, 0.933, 1))
 		btn.add_theme_color_override("font_pressed_color", Color(1, 1, 1, 1))
 		btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 1))
-		btn.add_theme_font_size_override("font_size", 14)
 
 		# Bind the option_id to the callback
 		btn.pressed.connect(_on_option_pressed.bind(option_id))

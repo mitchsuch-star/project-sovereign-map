@@ -286,6 +286,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/scale_card.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scripts/gazette_view.gd"
     },
     {
@@ -353,6 +359,12 @@
       "load_ok": true,
       "parse_ok": true,
       "path": "res://../../tools/iq10_surface_screenshot.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
+      "path": "res://../../tools/uxr1_derive_probe.gd"
     },
     {
       "errors": [],
@@ -445,5 +457,5 @@
       "path": "res://../../tools/mode_c_driven_session.gd"
     }
   ],
-  "timestamp": "2026-10-05T22:12:14Z"
+  "timestamp": "2026-10-09T17:15:13Z"
 }

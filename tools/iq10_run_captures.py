@@ -23,6 +23,20 @@ Options:
     --scales 1.0,2.0               Interface Scale values (default both)
     --date 2026_09_19              the PNG date stamp
     --godot <path>                 the engine binary
+
+UXR-0 "The readability instrument" (October 9, 2026) — PHYSICAL mode:
+    --physical                     shoot each selected surface once per entry of
+                                   PHYSICAL_RESOLUTIONS, the window sized to the
+                                   monitor (parked off the desktop; proven to
+                                   render at 5120x1440 and 3840x2160)
+    --physical-scale auto|<x>      Interface Scale per frame: `auto` derives it
+                                   as a player at that size would have it
+                                   (uxr0_readability_report.derive_ui_scale);
+                                   `1.0` is the shipped default — the BEFORE
+                                   picture of the user's own screen
+Every frame's record carries the text census (em / cap / x in physical px per
+visible node); `tools/uxr0_readability_report.py <run>/index.json` applies the
+floor and writes the committed machine record.
 """
 from __future__ import annotations
 
@@ -38,10 +52,20 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 PROJECT = REPO / "godot-client" / "project-sovereign"
 AUDITS = REPO / "docs" / "audits"
 GODOT_DEFAULT = r"C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe"
-# Parked to the right of a 2560-wide primary monitor: the window is real (the
-# renderer needs one) but never covers the desktop.
-WINDOW_POSITION = [2565, 20]
+# Parked PAST the desktop: the window is real (the renderer needs one) but never
+# covers what the player is doing. UXR-0 (October 9, 2026): the desktop is ONE
+# 5120-wide panel, so the old [2565, 20] sat on its right half for every run;
+# x = 5200 is off it, and a window there still renders (probed at 5120x1440).
+WINDOW_POSITION = [5200, 20]
 SCRIPT = "../../tools/iq10_surface_screenshot.gd"
+# The engine run never talks to a backend (every surface is stubbed), but
+# main.gd's `main.tscn` road is REFUSED by the harness while SOVEREIGN_PORT
+# points at the player's live 8005, and the menu / settings scenes poll their
+# origin over HTTPRequest — an unused port fails fast and touches nothing.
+HARNESS_PORT = "8999"
+
+sys.path.insert(0, str(REPO / "tools"))
+from uxr0_readability_report import PHYSICAL_RESOLUTIONS, derive_ui_scale  # noqa: E402
 
 # ── the surface table ───────────────────────────────────────────────────────
 # One row per SHOT: the scene, how it is entered, and what the frame must show.
@@ -1028,9 +1052,114 @@ SHOTS += [
 ]
 
 
+# ═══ UXR-0 (October 9, 2026): the surfaces the user could not read ═══════════
+# The war room is `main.tscn` itself behind the harness's MainStub (mode
+# "main"): the connection test and the topology answered with real captures,
+# then the /new_game response through `_on_new_game_result` — the menu's own
+# Begin. The boot is WAITED FOR on its own flag (main.gd's 0.5 s timer is
+# real time; the engine's frames are not, parked off-screen).
+_WAR_ROOM_STEPS = [
+    {"wait_for": "_initial_map_bootstrapped", "timeout": 1800, "then_wait": 10},
+    {"call": "_on_new_game_result", "args": ["$payload.new_game"], "then_wait": 30},
+]
+SHOTS += [
+    {
+        "id": "war_room_boot",
+        "surface": "The war room — map, command window, top bar (Begin the 1805 campaign)",
+        "payload": "war_room_boot",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS,
+        "settle": 40,
+        "must_show": "the 1805 map with its labels, the command window bottom-left with "
+                     "the turn-1 briefing, the top bar's counters and nav, the war HUD "
+                     "bottom-right; every text row's physical size in the census",
+    },
+    {
+        "id": "war_room_tutorial",
+        "surface": "The war room — the School of War's first morning, tutor card top-right",
+        "payload": "war_room_tutorial",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS,
+        "settle": 40,
+        "must_show": "the Danube Lesson's map, the command window, THE SCHOOL OF WAR card "
+                     "top-right reading 'I. The Situation' — the surface the user could "
+                     "not read; its body rows' physical size in the census",
+    },
+    {
+        "id": "war_room_pause_settings",
+        "surface": "The war room — the pause menu open on Settings (UXR-X2)",
+        "payload": "war_room_boot",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS + [
+            {"node": "@pause_menu", "call": "open_menu", "then_wait": 8},
+            {"node": "@pause_menu", "call": "_on_settings", "then_wait": 12},
+        ],
+        "settle": 30,
+        "must_show": "the pause panel with its Settings unfolded: the Interface Scale slider "
+                     "and the sound rows readable, NOT squeezed to a sliver by the clamp",
+    },
+    {
+        "id": "tutorial_card",
+        "surface": "The School of War card alone (tutorial_overlay.tscn)",
+        "payload": "new_game_tutorial",
+        "scene": "res://scenes/tutorial_overlay.tscn",
+        "mode": "call", "method": "on_world_swap",
+        "settle": 20,
+        "must_show": "THE SCHOOL OF WAR · 1 of 20 · 'I. The Situation' and its body, the "
+                     "quill chip and the Skip chip; the card's width and the body's size "
+                     "in the census",
+    },
+    {
+        "id": "main_menu",
+        "surface": "The main menu (first boot)",
+        "payload": "test_boot",
+        "scene": "res://scenes/main_menu.tscn",
+        "mode": "call", "method": "",
+        "settle": 100,
+        "must_show": "the title block, the campaign column, the status line; the menu "
+                     "drawn at the Interface Scale the settings hold (UXR-X1)",
+    },
+    {
+        "id": "main_menu_settings",
+        "surface": "The main menu — Settings open",
+        "payload": "test_boot",
+        "scene": "res://scenes/main_menu.tscn",
+        "mode": "call", "method": "",
+        "steps": [{"wait": 90}, {"call": "_open_settings", "then_wait": 12}],
+        "settle": 20,
+        "must_show": "the SETTINGS view: INTERFACE with the scale slider, SOUND, SMARTER "
+                     "PARSING, SPOKEN ORDERS, CREDITS — every hint's size in the census",
+    },
+]
+
+
 def load_manifest(payload_dir: pathlib.Path) -> dict:
     m = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))
     return {c["name"]: c for c in m["captures"]}
+
+
+def expand_physical(shots: list[dict], physical_scale: str) -> list[dict]:
+    """One spec shot per (surface, resolution): the window sized to the
+    monitor, the Interface Scale as a player at that size would have it (or
+    the shipped 1.0 for the BEFORE picture). The base id is kept on the row
+    so the report groups the five frames of one surface."""
+    out = []
+    for row in shots:
+        for (w, h) in PHYSICAL_RESOLUTIONS:
+            scale = derive_ui_scale(w, h) if physical_scale == "auto" else float(physical_scale)
+            r = dict(row)
+            r["base_id"] = row["id"]
+            r["id"] = f"{row['id']}__{w}x{h}"
+            r["window"] = [w, h]
+            r["scales"] = [scale]
+            r["resolution"] = [w, h]
+            r["physical_scale"] = scale
+            r.pop("window_by_scale", None)
+            out.append(r)
+    return out
 
 
 def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str,
@@ -1047,10 +1176,16 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
             continue
         # `out` is keyed by the harness's own scale key ("%.1f"): one PNG per
         # Interface Scale, so a clipped frame at 2.0 is its own file.
+        row_scales = row.get("scales", scales)
         out = {}
-        for s in scales:
-            tail = "" if abs(s - 1.0) < 1e-9 else "_X%g" % s
-            out["%.1f" % s] = str(png_dir / f"IQ10_{row['id'].upper()}{tail}_{date}.png")
+        for s in row_scales:
+            if "resolution" in row:
+                # Physical mode: the frame is named by its monitor and scale.
+                w, h = row["resolution"]
+                out["%.1f" % s] = str(png_dir / f"UXR0_{row['base_id'].upper()}_{w}x{h}_S{s:.2f}_{date}.png")
+            else:
+                tail = "" if abs(s - 1.0) < 1e-9 else "_X%g" % s
+                out["%.1f" % s] = str(png_dir / f"IQ10_{row['id'].upper()}{tail}_{date}.png")
         shot = {
             "id": row["id"],
             "scene": row["scene"],
@@ -1058,7 +1193,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
             "method": row["method"],
             "payload": cap["file"],
             "out": out,
-            "scales": scales,
+            "scales": list(row_scales),
         }
         # NUI (Sept 23, 2026): a row may carry its own `steps` (the Admiralty
         # chip is fed by a second call after the entry method) — the tuple
@@ -1076,7 +1211,7 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
             shot["steps"] = ([{"call": "_switch_tab", "args": [row["tab"]], "then_wait": 4}]
                              + list(row.get("steps") or []))
         out_shots.append(shot)
-        index.append({
+        entry = {
             "id": row["id"],
             "surface": row["surface"],
             "payload": row["payload"],
@@ -1084,7 +1219,12 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
             "facts": cap.get("facts", {}),
             "must_show": row["must_show"],
             "png_by_scale": dict(out),
-        })
+        }
+        if "resolution" in row:
+            entry["base_id"] = row["base_id"]
+            entry["resolution"] = row["resolution"]
+            entry["physical_scale"] = row["physical_scale"]
+        index.append(entry)
     spec = {
         "shots": out_shots,
         "scales": scales,
@@ -1096,14 +1236,24 @@ def build_spec(shots: list[dict], captures: dict, scales: list[float], date: str
     return spec, index
 
 
-def run_godot(godot: str, spec_path: pathlib.Path, log_path: pathlib.Path) -> int:
+def run_godot(godot: str, spec_path: pathlib.Path, log_path: pathlib.Path,
+              project: pathlib.Path | None = None) -> int:
     env = dict(os.environ)
     env["IQ10_SPEC"] = str(spec_path)
     env.pop("PYTHONIOENCODING", None)
+    # Never the player's 8005 (Golden Rule 7): the harness refuses main.tscn
+    # on it, and nothing in a capture should reach a live game.
+    if env.get("SOVEREIGN_PORT", "") in ("", "8005"):
+        env["SOVEREIGN_PORT"] = HARNESS_PORT
+    # UXR-0: `--project` shoots ANOTHER checkout's client (a pristine HEAD
+    # worktree is how the BEFORE picture is taken honestly after the tree
+    # has moved) with THIS repo's harness, by absolute path.
+    project = project or PROJECT
+    script = SCRIPT if project == PROJECT else str(REPO / "tools" / "iq10_surface_screenshot.gd")
     args = [godot, "--audio-driver", "Dummy", "--windowed", "--resolution", "1600x900",
             "--position", f"{WINDOW_POSITION[0]},{WINDOW_POSITION[1]}",
             "--log-file", str(log_path),
-            "--path", str(PROJECT), "--script", SCRIPT]
+            "--path", str(project), "--script", script]
     proc = subprocess.run(args, env=env, cwd=str(REPO), capture_output=True, text=True,
                           encoding="utf-8", errors="replace", timeout=3600)
     return proc.returncode
@@ -1130,6 +1280,13 @@ def main() -> int:
     ap.add_argument("--payload-dir", default=os.environ.get("IQ10_PAYLOADS", ""))
     ap.add_argument("--out-dir", default="")
     ap.add_argument("--png-dir", default="")
+    ap.add_argument("--physical", action="store_true",
+                    help="UXR-0: one frame per surface per PHYSICAL_RESOLUTIONS entry")
+    ap.add_argument("--physical-scale", default="auto",
+                    help="auto (derive_ui_scale) or a number such as 1.0 (the BEFORE picture)")
+    ap.add_argument("--project", default="",
+                    help="another checkout's godot-client/project-sovereign to shoot (a "
+                         "pristine worktree for a BEFORE record); the harness stays this repo's")
     args = ap.parse_args()
 
     payload_dir = pathlib.Path(args.payload_dir) if args.payload_dir else None
@@ -1139,20 +1296,33 @@ def main() -> int:
     work = pathlib.Path(args.out_dir) if args.out_dir else payload_dir.parent / "run"
     work.mkdir(parents=True, exist_ok=True)
     AUDITS.mkdir(parents=True, exist_ok=True)
-    png_dir = pathlib.Path(args.png_dir) if args.png_dir else AUDITS
+    if args.png_dir:
+        png_dir = pathlib.Path(args.png_dir)
+    elif args.physical:
+        # Physical frames are a RUN's evidence (five per surface); the ones
+        # a slice commits are copied to docs/audits by hand, named by surface.
+        png_dir = work / "frames"
+    else:
+        png_dir = AUDITS
     png_dir.mkdir(parents=True, exist_ok=True)
 
     captures = load_manifest(payload_dir)
     scales = [float(s) for s in args.scales.split(",") if s.strip()]
     wanted = [s.strip().lower() for s in args.only.split(",") if s.strip()]
     shots = [s for s in SHOTS if not wanted or any(w in s["id"].lower() for w in wanted)]
-    print(f"{len(shots)} shot(s) x {len(scales)} scale(s)")
+    if args.physical:
+        shots = expand_physical(shots, args.physical_scale)
+        print(f"{len(shots)} physical frame(s) over {len(PHYSICAL_RESOLUTIONS)} resolutions "
+              f"(scale {args.physical_scale})")
+    else:
+        print(f"{len(shots)} shot(s) x {len(scales)} scale(s)")
 
     spec_path, result_path = work / "spec.json", work / "result.json"
     log_path = work / "engine.log"
     spec, index = build_spec(shots, captures, scales, args.date, spec_path, result_path,
                              png_dir)
-    code = run_godot(args.godot, spec_path, log_path)
+    project = pathlib.Path(args.project) if args.project else None
+    code = run_godot(args.godot, spec_path, log_path, project)
     errors = script_errors(log_path)
     result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}
 
@@ -1166,9 +1336,21 @@ def main() -> int:
            if not r["results"] or any(not x.get("ok") for x in r["results"])]
     if bad:
         print(f"shots not ok: {len(bad)} -> {', '.join(bad[:8])}")
+    # Provenance: which client was shot (its git commit) and at what scale
+    # rule — a BEFORE record from a worktree names the commit it was taken
+    # from, so nobody has to trust a label.
+    try:
+        client_commit = subprocess.run(
+            ["git", "-C", str((project or PROJECT)), "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=30).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        client_commit = ""
     (work / "index.json").write_text(json.dumps({
         "date": args.date, "exit_code": code, "script_errors": errors,
         "spec": str(spec_path), "result": str(result_path), "log": str(log_path),
+        "client_project": str(project or PROJECT), "client_commit": client_commit,
+        "physical": bool(args.physical),
+        "physical_scale": args.physical_scale if args.physical else None,
         "rows": index,
     }, indent=1), encoding="utf-8")
     print(f"godot exit {code}; SCRIPT ERROR lines: {len(errors)}")

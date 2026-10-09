@@ -172,7 +172,7 @@ func _add_option(label_text: String, command: String, font_color: Color):
 	var btn = Button.new()
 	btn.text = label_text
 	btn.custom_minimum_size = Vector2(0, 42)
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", font_color)
 	btn.clip_text = true
 	btn.pressed.connect(_on_option_pressed.bind(command))

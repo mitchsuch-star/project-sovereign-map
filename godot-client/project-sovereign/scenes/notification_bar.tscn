@@ -40,7 +40,7 @@ theme_override_constants/separation = 6
 [node name="RailLabel" type="Label" parent="RailPanel/RailLayout"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
-theme_override_font_sizes/font_size = 11
+theme_type_variation = &"Caption"
 text = "Imperial Box"
 
 [node name="Spacer" type="Control" parent="RailPanel/RailLayout"]
@@ -56,5 +56,5 @@ theme_override_constants/separation = 4
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.66, 0.74, 1)
-theme_override_font_sizes/font_size = 10
+theme_type_variation = &"Caption"
 text = "+0"

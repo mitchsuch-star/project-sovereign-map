@@ -122,9 +122,13 @@ def test_migrated_literals_are_gone():
 
 
 def test_theme_declares_per_type_font_sizes():
+    # UXR-1 (October 9, 2026): the Button size rose 15 → 16 — the readability
+    # floor reads a body-class button under 16 px RED at 1080p/1.0, and the
+    # theme's own 15 was the last row left red once the sweep landed. Flipped
+    # consciously; CaptionButton (14) keeps the small chrome small.
     text = _read(THEME_PATH)
     for key in (
-        r"Button/font_sizes/font_size\s*=\s*15",
+        r"Button/font_sizes/font_size\s*=\s*16",
         r"Label/font_sizes/font_size\s*=\s*16",
         r"LineEdit/font_sizes/font_size\s*=\s*16",
         r"RichTextLabel/font_sizes/normal_font_size\s*=\s*16",

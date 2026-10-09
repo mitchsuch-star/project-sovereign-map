@@ -99,7 +99,7 @@ func _build_interface_section() -> void:
 	_scale_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_scale_value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_scale_value.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7))
-	_scale_value.add_theme_font_size_override("font_size", 14)
+	_scale_value.theme_type_variation = &"Caption"
 	row.add_child(_scale_value)
 	add_child(row)
 	_update_scale_value_label(UiSettings.get_ui_scale())
@@ -152,7 +152,7 @@ func _build_sound_section() -> void:
 		var lbl := Label.new()
 		lbl.text = bus_name
 		lbl.custom_minimum_size.x = 64
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.theme_type_variation = &"Caption"
 		row.add_child(lbl)
 		var slider := HSlider.new()
 		slider.min_value = 0.0
@@ -173,7 +173,7 @@ func _build_sound_section() -> void:
 func _build_parser_section() -> void:
 	_add_header("SMARTER PARSING (OPTIONAL)")
 	_parser_status = Label.new()
-	_parser_status.add_theme_font_size_override("font_size", 12)
+	_parser_status.theme_type_variation = &"Caption"
 	_parser_status.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	_parser_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_parser_status)
@@ -319,7 +319,7 @@ func _build_credits_section() -> void:
 		+ "& Benboncan (CC BY 4.0) · Menu paintings, marshal portraits & music: "
 		+ "public domain (Wikimedia Commons / IMSLP) · Full terms: " + terms_where + ".")
 	credit.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	credit.add_theme_font_size_override("font_size", 10)
+	credit.theme_type_variation = &"Caption"
 	credit.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)
 	add_child(credit)
 
@@ -329,7 +329,7 @@ func _build_credits_section() -> void:
 func _add_header(text: String) -> void:
 	var header := Label.new()
 	header.text = text
-	header.add_theme_font_size_override("font_size", 13)
+	header.theme_type_variation = &"Caption"
 	header.add_theme_color_override("font_color", Utils.UI_GOLD)
 	add_child(header)
 
@@ -338,6 +338,6 @@ func _add_hint(text: String) -> void:
 	var hint := Label.new()
 	hint.text = text
 	hint.add_theme_color_override("font_color", Color(0.627, 0.627, 0.659))
-	hint.add_theme_font_size_override("font_size", 11)
+	hint.theme_type_variation = &"Caption"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(hint)

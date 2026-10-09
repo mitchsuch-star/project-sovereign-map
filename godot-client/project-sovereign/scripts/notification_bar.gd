@@ -438,7 +438,7 @@ func _create_notification_icon(notif: Dictionary) -> Button:
 	pressed_style.bg_color = Color(color.r * 0.8, color.g * 0.8, color.b * 0.8, 0.96)
 	btn.add_theme_stylebox_override("pressed", pressed_style)
 
-	btn.add_theme_font_size_override("font_size", 10)
+	btn.theme_type_variation = &"CaptionButton"
 	btn.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	btn.set_meta("notification_data", notif)
 	btn.pressed.connect(_on_icon_pressed.bind(btn))
@@ -564,7 +564,7 @@ func _show_expanded_panel(notif: Dictionary):
 		var turn_label = Label.new()
 		turn_label.text = "T%d" % turn_created
 		turn_label.add_theme_color_override("font_color", Color(0.58, 0.58, 0.64, 1))
-		turn_label.add_theme_font_size_override("font_size", 12)
+		turn_label.theme_type_variation = &"Caption"
 		header.add_child(turn_label)
 
 	var body = RichTextLabel.new()

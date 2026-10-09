@@ -68,7 +68,6 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
-theme_override_font_sizes/font_size = 14
 text = "How shall your forces treat the conquered territory?"
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -88,7 +87,7 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 0.8, 0.3, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 0.9, 0.5, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"CaptionButton"
 text = "PLUNDER (Loot gold, destroy buildings)"
 
 [node name="SecureButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
@@ -98,5 +97,5 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.6, 0.85, 0.6, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(0.7, 0.95, 0.7, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"CaptionButton"
 text = "SECURE (Preserve order, stability 25)"

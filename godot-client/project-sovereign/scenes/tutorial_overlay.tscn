@@ -44,14 +44,14 @@ theme_override_constants/separation = 6
 [node name="TitleLabel" type="Label" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.7, 0.3, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"Caption"
 text = "THE SCHOOL OF WAR"
 
 [node name="StepBadge" type="Label" parent="Card/VBox/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.55, 0.55, 0.6, 1)
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"Caption"
 text = ""
 
 [node name="MinimizeButton" type="Button" parent="Card/VBox/HeaderRow"]
@@ -71,7 +71,6 @@ layout_mode = 2
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
-theme_override_font_sizes/normal_font_size = 13
 
 [node name="ConfirmRow" type="HBoxContainer" parent="Card/VBox"]
 layout_mode = 2
@@ -82,7 +81,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.88, 0.75, 0.38, 1)
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"Caption"
 text = "Dismiss the tutor for good?"
 
 [node name="ConfirmYes" type="Button" parent="Card/VBox/ConfirmRow"]
