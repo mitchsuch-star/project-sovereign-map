@@ -78,9 +78,96 @@ os.environ["LLM_MODE"] = "mock"
 # or patch `SAVE_DIR` themselves still win. Pin: tests/test_suite_save_floor.py.
 import tempfile  # noqa: E402
 
-os.environ["INK_IRON_SAVE_DIR"] = tempfile.mkdtemp(prefix="ink_iron_suite_saves_")
+# Pre-Deploy S2 step 0 (October 9, 2026): the suite runs under pytest-xdist.
+# Every worker is its own process and imports this file once, so `mkdtemp`
+# already gives each worker its own sandbox; the worker's name rides the
+# prefix so a stray directory can be read back to the worker that left it.
+os.environ["INK_IRON_SAVE_DIR"] = tempfile.mkdtemp(
+    prefix=f"ink_iron_suite_saves_{os.environ.get('PYTEST_XDIST_WORKER', 'main')}_")
 
 from tests._parser_replay import install_network_guard  # noqa: E402
+
+# ═══════════════════════════════════════════════════════════════════════
+# THE PARALLEL SUITE (Pre-Deploy S2 step 0, October 9, 2026)
+# ═══════════════════════════════════════════════════════════════════════
+# The pre-commit hook runs the suite under pytest-xdist (`-n 8 --dist
+# loadgroup`; `scripts/git-hooks/pre-commit`). Under `loadgroup` a test
+# with an `xdist_group` mark is scheduled with its group on ONE worker, so:
+#   * every test is grouped by its MODULE by default — a file's tests stay
+#     together in order, exactly as the serial run had them (module-scoped
+#     fixtures build once, sibling-order assumptions hold);
+#   * the modules that launch the Godot binary or bind a fixed loopback port
+#     (the IQ-10 capture harness on 8999, the driven `main.tscn` tests, the
+#     parse harness, the GE-3 client arm on 8997, the release smoke on 8099)
+#     share ONE group, `engine`, so two workers never share a window or a
+#     port.
+# A serial run (`pytest tests/`) ignores the marks and is unchanged.
+ENGINE_GROUP_MODULES = frozenset({
+    # the Godot binary, headless (tests/_chip_census.render, the driven
+    # harnesses under tools/, the IQ-10 capture runner on port 8999)
+    "test_b4b_the_one_tail",
+    "test_cn3_the_chip_tells_the_truth",
+    "test_cn4_the_chip_honesty_census",
+    "test_cx7_predictor_driven",
+    "test_economy_gate_2026_10_05",
+    "test_ep_f1_the_first_ten_minutes",
+    "test_ep_f3_the_client_layout_pass",
+    "test_ge2_the_client",
+    "test_godot_parse_harness",
+    "test_iq10_client_pass",
+    "test_map_owner_fill",
+    "test_nui2_the_fleet_rides_at_anchor",
+    "test_nui_the_admiralty_on_the_map",
+    "test_score_finish_step8",
+    "test_sf7_s8_the_screen_says",
+    "test_sf7_s9_the_frames",
+    "test_sf_page_the_front_page_of_the_peace",
+    "test_tutorial_unbreakable_2026_09_23",
+    "test_ui_visual_foundation",
+    "test_uxr0_readability",
+    "test_uxr1_scale_fix",
+    # a fixed loopback port of their own
+    "test_ge3_the_client",                 # SOVEREIGN_PORT 8997
+    "test_release_build_2026_09_25",       # the smoke on 8099
+})
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(config, items):
+    """tryfirst: xdist's worker plugin stamps the group onto the node id in
+    ITS pytest_collection_modifyitems, and pluggy runs the plugin's hook
+    before a conftest's — a mark added after it is never scheduled on
+    (measured: the first trial spread one module over five workers)."""
+    if not config.pluginmanager.hasplugin("xdist"):
+        return
+    for item in items:
+        if item.get_closest_marker("xdist_group"):
+            continue
+        module = item.nodeid.split("::", 1)[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        module = module[:-3] if module.endswith(".py") else module
+        group = "engine" if module in ENGINE_GROUP_MODULES else module
+        item.add_marker(pytest.mark.xdist_group(group))
+
+
+# A worker talks to the controller over its own stdin/stdout (execnet). A
+# child process a test spawns without `stdin=` INHERITS that pipe, and a
+# child that reads it eats the controller's next message: the worker then
+# waits forever for an instruction that is gone. Measured twice (the first
+# trial stalled at 99%, the second at 52%, both inside the driver tests
+# that spawn child interpreters). Under a worker, a Popen that names no
+# stdin gets DEVNULL; a serial run is untouched.
+if os.environ.get("PYTEST_XDIST_WORKER"):
+    import subprocess as _subprocess
+
+    _popen_init = _subprocess.Popen.__init__
+
+    def _popen_init_devnull_stdin(self, *args, **kwargs):
+        if "stdin" not in kwargs and len(args) < 4:
+            kwargs["stdin"] = _subprocess.DEVNULL
+        return _popen_init(self, *args, **kwargs)
+
+    _subprocess.Popen.__init__ = _popen_init_devnull_stdin  # type: ignore[method-assign]
+
 
 install_network_guard()
 

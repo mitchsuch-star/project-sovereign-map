@@ -198,6 +198,12 @@ class TestSkilledMarshalAdvantage:
 
     def test_high_skill_wins_more_often(self):
         """Marshal with higher skill should deal more damage than lower skill marshal."""
+        # Pre-Deploy S2 step 0 (October 9, 2026): thirty unseeded draws read the
+        # module RNG wherever the tests before it left it — green alone and in
+        # the serial order, red once in the parallel suite's order (ratio
+        # 0.99). Seeded, the comparison is the same arithmetic every run.
+        import random
+        random.seed(1805)
         combat = CombatResolver()
 
         # Run battles with high-skill attacker

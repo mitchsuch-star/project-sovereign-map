@@ -7,6 +7,7 @@ Tests for 3 actionable fixes:
 3. STALE visibility shows exact strength numbers (P21-04 to P21-06)
 """
 
+import pytest
 from backend.models.world_state import WorldState
 from backend.models.intel import (
     FULL, PARTIAL, STALE, UNKNOWN,
@@ -121,6 +122,19 @@ class TestCampaignLogFogFilter:
 
 class TestMarshalTrustEndpoint:
     """Fix 2: Nation guard on /marshal_trust."""
+
+    @pytest.fixture(autouse=True)
+    def _fresh_app_world(self, monkeypatch):
+        """Pre-Deploy S2 step 0 (October 9, 2026): these read whatever world
+        the tests before them left in `backend.main`. Under the suite's
+        `SOVEREIGN_SCENARIO=none` pin the app boots a bare world with no
+        marshals, so the pins passed only because an earlier module had
+        swapped a played world in — the serial order did, the parallel
+        suite's order did not. The endpoint reads the module global, so give
+        it the fixture world for the test's own duration."""
+        import backend.main as M
+        from backend.models.world_state import WorldState
+        monkeypatch.setattr(M, "world", WorldState())
 
     def test_player_marshal_returns_data(self):
         """Player marshal trust data is accessible."""

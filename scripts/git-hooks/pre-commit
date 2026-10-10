@@ -2,9 +2,18 @@
 # Pre-commit quality gate for project-sovereign-map (per CLAUDE.md).
 # Enforces the project's quality bar before every commit:
 #   1. ruff lint on backend/
-#   2. the FULL pytest suite (tests/)
+#   2. the FULL pytest suite (tests/), in PARALLEL
 # Any failure aborts the commit. Do NOT bypass with --no-verify; fix the
 # underlying failure instead (CLAUDE.md "work directly on master" workflow).
+#
+# Pre-Deploy S2 step 0 (October 9, 2026, the user's "it takes sooo long"):
+# the serial run had grown to ~26 minutes on 16 cores while this banner
+# still promised four. The gate stays whole — every test still runs before
+# anything reaches master — and runs under pytest-xdist: `-n 8` workers,
+# `--dist loadgroup` so each test module stays together on one worker and
+# the modules that launch the Godot binary or bind a fixed loopback port
+# share a single group (`tests/conftest.py`, ENGINE_GROUP_MODULES). The
+# measured time is in the banner below; re-measure it when it drifts.
 
 # PR-3 (playtest re-score, September 12 2026): these were the bare Windows
 # literals, so on any non-Windows checkout the hook aborted every commit with
@@ -34,8 +43,16 @@ else
   "$PYTHON" -m ruff check backend/ || { echo "[pre-commit] ruff failed -- commit aborted." 1>&2; exit 1; }
 fi
 
-echo "[pre-commit] full pytest suite (tests/) -- this takes ~4 minutes ..."
-"$PYTHON" -m pytest tests/ -q || { echo "[pre-commit] tests failed -- commit aborted." 1>&2; exit 1; }
+# The parallel run needs pytest-xdist (requirements.txt). Without it the
+# gate falls back to the serial run rather than skipping anything.
+if "$PYTHON" -c "import xdist" 2>/dev/null; then
+  echo "[pre-commit] full pytest suite (tests/), 8 workers -- measured 5:12 (serial was 26:13) on this machine ..."
+  "$PYTHON" -m pytest tests/ -q -n 8 --dist loadgroup \
+    || { echo "[pre-commit] tests failed -- commit aborted." 1>&2; exit 1; }
+else
+  echo "[pre-commit] pytest-xdist is not installed (pip install -r requirements.txt); running the suite serially (~30 minutes) ..."
+  "$PYTHON" -m pytest tests/ -q || { echo "[pre-commit] tests failed -- commit aborted." 1>&2; exit 1; }
+fi
 
 echo "[pre-commit] OK -- ruff clean, suite green."
 exit 0

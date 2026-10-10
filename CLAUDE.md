@@ -19,7 +19,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 This is a single-developer project with pre-commit-hook test gating and Codex audits run by commit SHA. Branch-per-slice / worktree-per-slice creates state-drift bugs (the branch falls behind master between slices, the merge back is noisy, and the audit prompt still ends up referencing master after merge anyway). The workflow is intentionally single-threaded: one local master worktree, one active implementation path, and audit/fix follow-ups recorded by master commit SHA. The default is:
 
 - **Commit directly to master.** No `claude/<slice-id>` feature branch, no worktree.
-- **The pre-commit hook runs `ruff check backend/` + the full pytest suite.** If a commit is blocked, fix the underlying lint/test failures — do not bypass with `--no-verify`. The hook source is tracked at `scripts/git-hooks/pre-commit`; since `.git/hooks/` is not version-controlled, install it after a fresh clone with `cp scripts/git-hooks/pre-commit .git/hooks/pre-commit` (PowerShell: `Copy-Item scripts/git-hooks/pre-commit .git/hooks/pre-commit`).
+- **The pre-commit hook runs `ruff check backend/` + the full pytest suite, IN PARALLEL** (`-n 8 --dist loadgroup` under pytest-xdist; measured 5:12 on this machine against 26:13 serial — the user's October 9, 2026 ruling "the gate stays, the wait goes"; `tests/conftest.py` keeps each test module on one worker and the Godot-launching / fixed-port modules on a single `engine` group, and gives a worker's child processes `stdin=DEVNULL` so none can eat the execnet channel). If a commit is blocked, fix the underlying lint/test failures — do not bypass with `--no-verify`. The hook source is tracked at `scripts/git-hooks/pre-commit`; since `.git/hooks/` is not version-controlled, install it after a fresh clone with `cp scripts/git-hooks/pre-commit .git/hooks/pre-commit` (PowerShell: `Copy-Item scripts/git-hooks/pre-commit .git/hooks/pre-commit`).
 - **Codex audits target master at the slice's commit SHA.** When emitting an audit prompt, write `Audit master at commit <SHA>...` rather than naming a feature branch. The audit prompt should also instruct Codex to verify any follow-up work continues on master.
 - **If the harness spawns a worktree on a `claude/...` branch anyway:** finish the slice in the worktree (avoid mid-session churn), push branch-tip-to-master via `git push origin <branch>:master`, and add a note to the session summary recommending the user disable auto-worktree creation in their launcher.
 - **Exception:** Use a feature branch only when the slice is genuinely throwaway/experimental and the user explicitly asks for one.
@@ -2741,7 +2741,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD) cost 2 AP (1 for literal and the sovere
 
 # Tests (MUST use Windows paths — see note above)
 cd "C:\Users\User\PycharmProjects\project-sovereign-map"
-".venv\Scripts\python.exe" -m pytest tests/ -v                          # Full suite
+".venv\Scripts\python.exe" -m pytest tests/ -q -n 8 --dist loadgroup   # Full suite, parallel (what the hook runs; ~5:12)
+".venv\Scripts\python.exe" -m pytest tests/ -v                          # Full suite, serial (~26 min)
 ".venv\Scripts\python.exe" -m pytest tests/ -v --tb=no -q              # Quick count
 ".venv\Scripts\python.exe" -m pytest tests/test_objection_v2.py -v     # V2 tests only
 
