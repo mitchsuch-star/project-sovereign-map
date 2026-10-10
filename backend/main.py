@@ -3612,7 +3612,9 @@ def execute_command(request: CommandRequest):
                                 if m.nation != world.player_nation]
                 _before_premise = command_text
                 command_text, _premise = split_premise(
-                    command_text, _enemy_names, list(world.regions.keys()))
+                    command_text, _enemy_names, list(world.regions.keys()),
+                    [m.name for m in world.marshals.values()
+                     if m.nation == world.player_nation])
                 if _premise:
                     _ptrace.note("premise", "split_premise", _before_premise,
                                  command_text, premise=_premise)

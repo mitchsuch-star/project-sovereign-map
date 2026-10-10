@@ -9429,3 +9429,134 @@ land exactly on the by-hand split (keyless misread 6 + executed 3; keyed 6 + 3).
 meant 0; keyed 152 → 170, shrugs 1 → 0, 0 / 0.** The metamorphic ledger **161 → 30** (dash
 aside 70 → 0, please 30 → 0, honorific 1 → 0, reason tail 18 → 8, second name 31 → 9,
 word order 8 → 10 on the larger corpus, typo 3; the flip families still 0).
+
+
+## 104. THE READING AND THE EXIT PREDICATE — DD-0 S4 (October 10, 2026)
+
+**The rule.** The typed line is read ONCE, as spans over an immutable string, and the
+string every downstream reader sees is COMPOSED from those spans — never produced by
+splicing one reader's output into the next reader's input (`backend/ai/reading.py`;
+pins `tests/test_dd0_s4_the_reading.py` (102); 37 golden-corpus rows `dd0-s4-*`, the
+corpus 641 → 678). Three producers used to re-read the raw text in series (the mock
+chain, the strategic layer, the fuzzy scan), so each guard had to blank its clause
+with spaces to keep every other reader's positions aligned, and a fix to one reader
+shipped a hole in another — slice 1, slice 7, CRT-1, PARSE-NEG and the IQ-7 grammar
+each had a P1 found inside the fix. The Reading peels from the OUTSIDE IN, so a tail
+can never become a province and a trailing name can never become the man the order
+is about. And ONE question is asked at the executor's door and again at its exit —
+*did I act on the marshal, the place and the arm that were named?* — so a
+substitution is disclosed or refused, never silent (`backend/commands/exit_predicate.py`).
+
+**The Reading** (`reading.read(typed, friends, foes, places, nations)` — pure; each
+stage one trace row `reading · <rule>`; applied FIRST in `CommandParser.parse`, before
+even S3b's rewrites):
+- `peel_rhetoric` — a leading sentence that gives no order and names none of ours is
+  set aside, and the first foe it names is the pronoun's hint ("It's Mack's turn.
+  Ney, at him." → `Ney, attack Mack`; five of the six keyless shrugs read by this and
+  the stages below — the sixth, `hit the Austrians`, is the live parser's by IQ-9's gate); never at an abbreviation's period ("Gen.") and
+  never when the sentence carries a hedge ("maybe", "perhaps" — the metamorphic hedge
+  family must keep flipping).
+- `peel_please_and_dash_aside` — S3b's please / urgency / dash-aside predicates read
+  as spans, so the vocative behind them is found at the end ("attack Davout, Ney,
+  please").
+- `peel_support_suffix` — "… with Lannes in support" on ANY head (a take, a typo, a
+  telegraph, a modal): the second man's order rides the relay (`…, then Lannes,
+  support <addressee>`); S3b's rewrite had required an order verb in the head, which
+  is why `Ney, take Swabia with Lannes in support` became a SUPPORT and the take
+  was lost (the ledger's second-name class, 9 rows).
+- `peel_trailing_vocative` — ", Ney" at the end of a line that does not open with an
+  address: the man after the comma is the ADDRESSEE (`wait, Ney` → `Ney, wait`;
+  `protect Davout's flank, Ney` → `Ney, protect Davout's flank`). Run twice: before
+  the precaution ("… in case Mack comes, Davout") and after the asides.
+- `peel_precaution` — a trailing "in case …" is a precaution, no condition and no
+  reason; peeled and noted on the `warning` seam (`PRECAUTION_NOTE`).
+- `peel_reason_tail` — "because / since the men are ready": a reason of OURS (the
+  enemy's movements stay clause_guards', CRT-1).
+- `peel_comma_aside` — the last comma clause when it names no man, place or order,
+  carries no number, negation or word of state, and is a clause of ours ("the men
+  are rested", "they're green", "the cavalry is fresh") or opens as an adverbial
+  ("via the shortest road", "now"). The head must be more than an address ("Ney, the
+  men are rested" is a statement). Run twice (a second aside behind the first).
+- `read_address` — the addressee through an honorific ("Prince Murat,", "the Marshal
+  Ney") and a modal ("Davout will cover …" → `Davout, cover …`; a modal before a
+  negation is left whole for the guards). A colon and a bare space after the name
+  are left to the telegraph and the inflected rewrites, which read the honorific
+  themselves.
+- `rewrite_at_him` — "<Name>, at him / them" → `attack <the hinted foe>` (or the one
+  foe in sight; else a bare attack, which asks).
+The span finder takes the LAST occurrence not already peeled, so a repeated aside is
+two spans, not one found twice. The sequel split accepts a TELEGRAPH head ("ney
+frankfurt, then Lannes, support Ney" — `_is_telegraph_head`), read by the parser's own
+telegraph rewrite.
+
+**The exit predicate** (`exit_predicate.py`, both halves pure; no lever — the
+ratchet holds levers lower-only):
+- `place_pre_check` — BEFORE the objection battery, after the bare attack's pick and
+  the standing decision: a STATIONARY arm (drill, fortify, defend, wait, form square,
+  unfortify — the executors never read a target; the garrison has CX-R2's own road) that names a province the
+  marshal is not in is refused by name, free: "Massena stands at Milan, not Munich,
+  Sire — a drill is held where the corps stands. Order 'Massena, move to Munich'
+  first, or 'Massena, drill' to drill at Milan. Nothing has been relayed." (SFR-D7's
+  class, structurally). A strategic HOLD at a province is a march-and-hold and
+  passes; the AI's own commands pass.
+- `disclose` — at `execute`'s exit, on the trace's two `command_summary` snapshots:
+  a marshal, target or requested arm that CHANGED inside the executor and is not
+  named in the reply is appended to it ("you named Mack and it was carried out
+  against Archduke John"; "the order went to Soult"; "you asked for cavalry and the
+  levy was of another arm"). The gates that substitute on purpose — the bare attack's
+  pick, the auto-assigned scout, the recruit arm's soft correction — already name
+  their choice, so this is the net under them, measured silent on the boot board.
+  Nothing mechanical changes; a refusal here spends nothing.
+
+**The vocabulary the rows asked for** (`dd0_rewrites.py`, each pure, each noted):
+`rewrite_pass_a_law` (`pass / adopt / decree <the X law>` → `enact X`, SFR-H2);
+`strip_affordability_premise` (`if we can still afford it,` — the price check IS the
+premise, SFR-H5); `rewrite_build_idiom` (`put a supply depot up in the Rhineland`,
+`I want a depot in Savoy`, `Stables in Burgundy, please`, `Fortress at Lorraine, build
+it` → `build <thing> in <place>`); `rewrite_bench_question` (`commission another
+marshal`, `promote someone to marshal` → the bench, SFR-H6); `rewrite_reward_idiom`'s
+`reward <Name> for …` (SFR-D8); `rewrite_drill_your_guard` (`drill your guard` → `drill
+your men`, SFR-D9); `strip_hold_the_line_tail` (`dig in at Milan and hold the line`,
+SFR-D10); `strip_stop_chasing` + `rewrite_hold_where_you_are` (`stop chasing John and
+hold where you are` → `hold`; alone → `cancel Ney`, SFR-D24); `rewrite_take_back` +
+`rewrite_return_to` (`take Lyonnais back from Paget`, `return to Paris`, `keep going to
+Provence`, SFR-D37; `push on to` / `march back to` stay the strategic layer's own);
+`rewrite_guard_subject` (the Guard as a SUBJECT is the Emperor's corps: `Let the Guard
+attack Mack`, `The Guard will support Soult.`, `the guard stays put`, `Have the Guard
+dig in.` → `Napoleon, …`, DD0-10); `rewrite_attack_idioms` widened with the printed
+foe (`_printed_foe`: the surname "John" hands the pursuit "Archduke John"), `fall on
+Mack's flank` → attack, `chase Mack down wherever he runs` / `follow Mack to the ends
+of the earth` → pursue. (A `hit / smash the <demonym>` rewrite was tried and withdrawn: `tests/test_iq9_keyless_parser_gate.py`
+pins `Ney, hit the Prussians hard` as a phrasing the keyless gate hands to the LIVE
+parser, and that gate is the authority — `hit the Austrians` stays the keyed arm's.) `second_name.py`:
+`cover / screen / protect <Name>'s advance | flank | rear`, `stand behind / beside /
+with <Name>`, `be ready to support <Name>` → SUPPORT. `llm_client.py`: the typo pass
+reads the verb after a collective address (`someone attcak Mack`, `everyone reterat`)
+and after `tell / order / have / get / ask <Name> to` (SFR-H3); the bench's name pull
+skips the placeholders. `condition_grammar.py`: two more premises checked at
+issuance — STANDING (`attack Mack if he is still standing`, leading or trailing:
+alive and in sight runs; gone, a prisoner or unseen is refused free by name, SFR-D20)
+and BATTLE (`If Ney beat Mack, give him a rente for it`: `battle_on_record` reads the
+event log; `him` is the FRIEND; off the record → "no such battle is on the record",
+SFR-H13). The executors: the levy refused on foreign ground names the man the player
+named (`We do not control Swabia, Your Majesty — Davout stands there on foreign
+ground.`; `_msg_not_controlled(location, marshal)`, SFR-H7). An `unfortify` of open
+ground stays the honest refusal it was (CX-R2's payload is the executor's gate), and
+CR-7-3's relay names the sequel that did not go out — SFR-D10's silence is closed by
+the note, not by a no-op.
+
+**The judge** learned the refusal shape this slice introduced (`stands at X, not
+Y`); the string is new, grepped against every committed record first — the seven census records `--reclassify` to identical classes
+and the score archive's check is byte-identical to the pre-slice check.
+
+**Measured.** The metamorphic ledger **30 → 0** on the grown corpus (2,246 → 2,408
+cases; every family 0; `LEDGER_CAP` 0). The same third blind file re-read keyless as a
+fresh record (`docs/audits/unrehearsed/2026_10_10_third_keyless_s4.json`): **as meant
+162 → 177 of 300 (59.0 %), asked 32 → 29, shrugs 6 → 1, honest refusals 38 → 31,
+misread 0, executed-when-refusal-meant 0** (the as-meant count moves by one or two
+run to run with the objection dice — an objection is read `asked`). The sixteen open command rows SFR-H2 … SFR-D41 all
+closed (two — D25, D38 — had been closed by the relay and are pinned). The one shrug
+left is `Ney, hit the Austrians` — the live parser's phrasing by IQ-9's gate. The ≥ 85 % done-when is read on a FRESH set by a fourth
+author, never this file. **The HOLD arm re-read on this tree: 18 of 20 orders as meant (12 at the last reading, October 5) — past the done-when's floor (≥ 17) and at the checklist item's own bar (≥ 18)**; `tools/hold_arm_reread.py` drives the committed blind HOLD script through the driver as `score_run run` does and reads the digest with the ONE reader. The two misses: `Tell Massena to fortfy at Milan in case …` (read right — Massena OBJECTS, which the reader does not count as done) and `Could Soult drill his corps today?` (a question — SFR-H4, SF-RR2's). SFR-H7's third line, `Buy substitutes to fill out Ney's ranks`, read 17 → 18 once the substitutes desk named the man (`We do not hold Swabia, Sire — Ney stands there, …`). `Have Davout head over to Lorraine and dig in there` is read as meant: the exit predicate refused by name — Davout had been mustered into Swabia by Lannes's attack on turn 1.
+The spine split (`_parse_with_mock_chain` / `_execute_one` along the trace's stages)
+and the fresh set are S4's next commits.

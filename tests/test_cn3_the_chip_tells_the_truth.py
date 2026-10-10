@@ -356,7 +356,8 @@ class TestTheGroundSpeaksFirst:
         _fund()
         res = _drive(board, "Massena, recruit infantry")
         assert not res["ok"] and not res["pool"]
-        assert res["message"] == EE._msg_not_controlled("Milan")
+        # DD-0 S4 (SFR-H7): the named road names the man standing there.
+        assert res["message"] == EE._msg_not_controlled("Milan", "Massena")
 
     def test_an_unknown_province_is_named_as_unknown(self, board):
         kind, sentence = EE.recruit_ground_refusal(M.world, "Atlantis", "France")

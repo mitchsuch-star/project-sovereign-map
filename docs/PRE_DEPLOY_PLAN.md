@@ -67,7 +67,7 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | ~~S1b~~ **✅ LANDED October 9, 2026** | **the Settings additions** (the adjustability review's decisions 4 + 5) | Window mode + size picker; the terminal's default footprint as a viewport fraction; Ctrl+= / − / 0; Reset layout; a CONTROLS reference; the *Body text: Garamond · Plain* option; the sizing card from Settings — and the floor's residue from the whole-client census (the log tiers, six 15s). **Landing record `UX_UI_REVIEW_PLAN.md` §S1b landing record; named set still RED 0 / P1 0.** | 0.5 | Cheap, same seams; the review's "is anything missing" answer |
 | S2 step 0 ✅ **LANDED October 9, 2026** | **the hook pays its way** | The pre-commit hook runs the full suite under pytest-xdist (`-n 8 --dist loadgroup`): serial 26:13 → **5:12** measured, the gate whole; two order-dependent pins fixed (an unseeded 30-draw dice test; an endpoint pin reading whatever world the previous module left in `backend.main`); the stall under xdist traced to child processes inheriting the worker's execnet stdin (now DEVNULL in a worker). Record: `CLAUDE.md` Workflow + Commands. | 0.3 | The user's October 9 ask ("it takes sooo long"); every S2 commit after it pays the new price. |
 | ~~S2~~ ✅ **LANDED October 9, 2026** | **CODE-4** (record `CODE_HEALTH_PLAN.md` §CODE-4) + **CODE-1 batch 1** (record §CODE-1; 20 of the batch's 46 levers retired — the 26 that landed in October keep their session; `tools/retire_lever.py` + the ratchet pin) | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
-| ~~S3~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; **S3b the same day: the findings fixed — the ledger 161 → 30, the blind set 162 / 170 of 300, 0 executed-other-than-meant**; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 NEXT** (the structural fix) | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
+| ~~S3~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; **S3b the same day: the findings fixed — the ledger 161 → 30, the blind set 162 / 170 of 300, 0 executed-other-than-meant**; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 IN PROGRESS: part 1 ✅ LANDED October 10, 2026** (the Reading + the exit predicate + the vocabulary — §3.0 "S4 landing record, part 1": the ledger 30 → 0, the third set re-read 162 → 177, the sixteen command rows struck); **the HOLD arm re-read 12 → 18 of 20; next = the spine split, then the FRESH fourth-author set** | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
 | S5–S6 | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
 | S7 | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
 | S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
@@ -270,6 +270,45 @@ the trace's own stage boundaries; the exit predicate *"did I act on the
 marshal, place and arm that were named?"* (DD0-1 / DD0-3 / SFR-D41's class —
 disclosed or refused, never silent); the DD0 rows; the ledger driven down;
 then a FRESH blind set for the done-when, and the HOLD arm re-read.
+
+#### DD-0 S4 landing record, part 1 — the exit predicate and the vocabulary (October 10, 2026)
+
+*The user's call at S4's head: let the exit predicate and the vocabulary land as
+a first commit before the spine split, so a stalled rewrite cannot hold the
+finished half hostage.* Rules `SYSTEMS_REFERENCE.md` §104; pins
+`tests/test_dd0_s4_the_reading.py` (102) + 37 golden-corpus rows `dd0-s4-*` (the
+corpus 641 → 678); rows `BUG_FIXES.md` DD0-9 / DD0-10 FIXED and the sixteen open
+command rows SFR-H2 … SFR-D41 all struck with evidence (D25 and D38 closed by the
+relay already, pinned here).
+
+1. **The Reading** (`backend/ai/reading.py`) — one tokenised reading, peeled from
+   the outside in (the rhetoric sentence, the please / dash aside, the support
+   suffix, the trailing vocative, the precaution, the reason tail, the comma
+   aside, the address through an honorific and a modal, `at him`); the typed line
+   is immutable and the string the readers see is COMPOSED from its spans — never
+   a splice. Applied first in `CommandParser.parse`, each stage on the trace as
+   `reading · <rule>`. **The metamorphic ledger 30 → 0** (2,408 cases, every
+   family 0, `LEDGER_CAP` 0); five of the six keyless shrugs read (`hit the Austrians`
+   stays the live parser's by IQ-9's gate).
+2. **The exit predicate** (`backend/commands/exit_predicate.py`) — `place_pre_check`
+   before the objection battery (a stationary arm at a province the marshal is
+   not in is refused by name, free — SFR-D7's class closed structurally) and
+   `disclose` at `execute`'s exit on the trace's two snapshots (a marshal, target
+   or arm that changed and is not named in the reply is appended to it — the net
+   under the gates that already disclose).
+3. **The vocabulary** — the sixteen rows' readings (§104 lists them), the judge's
+   two new refusal shapes (grepped first; the seven committed census records
+   re-read to identical classes).
+
+**Measured.** The same third blind file re-read keyless as a fresh record
+(`docs/audits/unrehearsed/2026_10_10_third_keyless_s4.json`): **as meant 162 → 177
+of 300 (59.0 %), asked 32 → 29, shrugs 6 → 1, misread 0, executed-when-refusal-meant 0**
+(the as-meant count moves by one or two run to run with the objection dice). The
+series byte-identical (`score_run check` stdout identical to the same check on
+`38daa024` in a detached worktree, before and after the judge edit; the archive
+restored). **The HOLD arm re-read on this tree: 18 of 20 orders as meant (12 at the last reading, October 5) — past the done-when's floor (≥ 17) and at the checklist item's own bar (≥ 18)**; `tools/hold_arm_reread.py` drives the committed blind HOLD script through the driver as `score_run run` does and reads the digest with the ONE reader. The two misses: `Tell Massena to fortfy at Milan in case …` (read right — Massena OBJECTS, which the reader does not count as done) and `Could Soult drill his corps today?` (a question — SFR-H4, SF-RR2's). SFR-H7's third line, `Buy substitutes to fill out Ney's ranks`, read 17 → 18 once the substitutes desk named the man (`We do not hold Swabia, Sire — Ney stands there, …`). `Have Davout head over to Lorraine and dig in there` is read as meant: the exit predicate refused by name — Davout had been mustered into Swabia by Lannes's attack on turn 1.
+Not yet: the FRESH fourth-author set (the ≥ 85 % done-when) and the spine split — S4's
+next commits.
 
 ### DD-1 — THE TABLE AND THE TREATY: the diplomacy deep dive (S5–S6)
 

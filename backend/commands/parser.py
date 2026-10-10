@@ -508,6 +508,22 @@ def sequel_note(tail: str) -> str:
             f'"{tail}" waits behind it.')
 
 
+def _is_telegraph_head(first: str, game_state) -> bool:
+    """DD-0 S4: `<our marshal>[,:]? (to )?<a province the map knows>` and
+    nothing else — the telegraph (S3b's separators, W7's "Ney to Swabia")."""
+    names = _player_marshal_names(game_state)
+    places = _game_state_dict_p(game_state, "map_data")
+    if not names or not places:
+        return False
+    alt = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    m = re.match(r"^\s*(?:(?:marshal|general|prince)\s+)?(?:" + alt + r")\s*[,:]?\s*(?:to\s+)?"
+                 r"(?P<place>[A-Za-z][\w'’ -]*?)\s*[.!]*$", first, flags=re.IGNORECASE)
+    if not m:
+        return False
+    typed = m.group("place").strip().lower()
+    return any(str(p).lower() == typed for p in places)
+
+
 def _player_marshal_names(game_state) -> list:
     world = (game_state or {}).get("world")
     player = getattr(world, "player_nation", None)
@@ -854,6 +870,11 @@ def rewrite_plain_attack_forms(command_text: str, game_state):
                 break
         if changed:
             break
+    # (DD-0 S4 tried "hit / smash the <demonym>" → "attack the <demonym>" here
+    # and withdrew it: `tests/test_iq9_keyless_parser_gate.py` pins "Ney, hit
+    # the Prussians hard" as a phrasing the keyless gate hands to the LIVE
+    # parser, and that gate is the authority. "hit the Austrians" stays the
+    # keyed arm's line.)
     for name in ours:
         for form in _forms(name):
             m = re.match(r"^\s*send\s+" + re.escape(form) + r"\s+after\s+(?P<foe>.+)$", text, re.I)
@@ -2785,7 +2806,12 @@ class CommandParser:
             # separate bare-address guard and a whole-sentence refusal guard
             # INERT beside this one — both were deleted rather than kept as
             # unpinnable belt (September 22, 2026).
-            if not _HEAD_OPENS_WITH_A_VERB_RE.match(first):
+            # DD-0 S4: a TELEGRAPH head ("ney frankfurt", "Marshal Ney: Brabant",
+            # "Ney to Swabia") opens with no verb and is a head all the same —
+            # without this, "ney frankfurt with Lannes in support" handed the
+            # whole line to the strategic layer, which read the SUPPORT.
+            if (not _HEAD_OPENS_WITH_A_VERB_RE.match(first)
+                    and not _is_telegraph_head(first, game_state)):
                 continue
             head_parse = self.llm.fast_parse(first, game_state)
             if (head_parse.action == "unknown" or head_parse.action in NON_ORDER_ACTIONS
@@ -2820,18 +2846,37 @@ class CommandParser:
         import backend.ai.llm_client as _lc
         typed_text = command_text
         typo_note = None
+        _friends = _player_marshal_names(game_state)
+        _foes = list(_game_state_dict_p(game_state, "enemies"))
+        _places = list(_game_state_dict_p(game_state, "map_data"))
+        _sovereign = _find_player_sovereign(world if world is not None
+                                            else (game_state or {}).get("world")
+                                            if isinstance(game_state, dict) else None)
+        # DD-0 S4 (October 10, 2026): THE READING — one tokenised reading of
+        # the typed line, peeled from the outside in (the support suffix, the
+        # precaution, the reason tail, the trailing vocative, the address, the
+        # comma aside, the rhetoric), so no tail can become a province and no
+        # trailing name the man the order is about. The typed text is never
+        # spliced: the line below is COMPOSED from the Reading's spans. Rules
+        # SYSTEMS_REFERENCE.md §104; the stages ride the trace as `reading`.
+        from backend.ai import reading as _reading
+        _read = _reading.read(command_text, _friends, _foes, _places,
+                              list(_lc._extract_known_nations(game_state).values()))
+        _reading_fired = bool(_read.rows)
+        for _rule, _before, _after in _read.rows:
+            _ptrace.note("reading", _rule, _before, _after)
+        if _reading_fired:
+            command_text = _read.text()
+        _precaution_note = ("in case" in _read.notes)
         # DD-0 S3b (October 10, 2026): the instrument's own rewrites — the
         # please, the urgency, the aside, the self-correction, the arrival
         # wait, the second man in support, the sent marshal, the field's
         # idioms, the reward and the invest — FIRST, before even the typo
         # repair (which keys on the verb's position after the address):
-        # rules SYSTEMS_REFERENCE.md §103.
+        # rules SYSTEMS_REFERENCE.md §103. S4 adds its vocabulary here too.
         from backend.ai import dd0_rewrites as _dd0
-        _dd0_rows = _dd0.apply_all(
-            command_text, _player_marshal_names(game_state),
-            list(_game_state_dict_p(game_state, "enemies")),
-            list(_game_state_dict_p(game_state, "map_data")))
-        _dd0_fired = bool(_dd0_rows)
+        _dd0_rows = _dd0.apply_all(command_text, _friends, _foes, _places, _sovereign)
+        _dd0_fired = bool(_dd0_rows) or _reading_fired
         for _rule, _before, _after in _dd0_rows:
             _ptrace.note("parser", _rule, _before, _after)
             command_text = _after
@@ -2934,6 +2979,10 @@ class CommandParser:
             if _guard_note and result.get("success"):
                 result["warning"] = (f"{result['warning']} {_guard_note}"
                                      if result.get("warning") else _guard_note)
+            if _precaution_note and result.get("success"):
+                from backend.ai.reading import PRECAUTION_NOTE
+                result["warning"] = (f"{result['warning']} {PRECAUTION_NOTE}"
+                                     if result.get("warning") else PRECAUTION_NOTE)
         if (typo_note or promoted) and isinstance(result, dict):
             result["raw_input"] = typed_text
             command = result.get("command")
@@ -3082,6 +3131,15 @@ class CommandParser:
                 # depends on it.
                 if self.llm.fast_parse(first_clause, game_state).action != "unknown":
                     effective_text = first_clause
+                    dropped_sequel = sequel_tail
+                elif _is_telegraph_head(first_clause, game_state):
+                    # DD-0 S4: the telegraph head ("ney frankfurt, then Lannes,
+                    # support Ney") is read by the parser's own rewrite, not
+                    # the fast layer — it is a head all the same.
+                    effective_text = rewrite_telegraphic_march(
+                        first_clause, game_state, world, _sovereign)
+                    _ptrace.note("parser", "rewrite_telegraphic_march", first_clause,
+                                 effective_text)
                     dropped_sequel = sequel_tail
 
             # SF-CMD-1 W3 (Oct 3, 2026): the COLLECTIVE address — "Ney,

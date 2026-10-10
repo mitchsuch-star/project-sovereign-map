@@ -433,7 +433,13 @@ def _msg_no_recipient(location: Optional[str], blocked: List[str],
             f"{_recruit_block_reason_from(blocked, remedy)}")
 
 
-def _msg_not_controlled(location: str) -> str:
+def _msg_not_controlled(location: str, marshal: Optional[str] = None) -> str:
+    # DD-0 S4 (SFR-H7): a levy refused on foreign ground names the MAN who
+    # stands there, not the ground alone — "raise more infantry for Davout's
+    # corps" was answered "We do not control Swabia" with Davout unnamed.
+    if marshal:
+        return (f"Berthier frowns. 'We do not control {location}, Your Majesty — "
+                f"{marshal} stands there on foreign ground. Recruitment is impossible there.'")
     return (f"Berthier frowns. 'We do not control {location}, Your Majesty. "
             f"Recruitment is impossible there.'")
 
@@ -489,9 +495,12 @@ def _msg_subs_wrong_arm(marshal) -> str:
             f"{marshal.name} commands {arm}; the class must be called.")
 
 
-def _msg_subs_not_fed(region) -> str:
+def _msg_subs_not_fed(region, marshal: Optional[str] = None) -> str:
     held_by = region.controller or "no one"
-    return (f"We do not hold {region.name}, Sire, and {held_by} does not "
+    # DD-0 S4 (SFR-H7's third line, the HOLD arm): the man who stands there
+    # is named when the player named him.
+    stands = f" — {marshal} stands there" if marshal else ""
+    return (f"We do not hold {region.name}, Sire{stands}, and {held_by} does not "
             f"feed our battalions. Substitutes are received on ground we "
             f"hold or a host's whose magazines are open to us.")
 
@@ -574,7 +583,7 @@ def substitute_quote(world, region_name: str,
                       f"{marshal.name} commands {arm} — the market sells "
                       f"muskets, not horses or guns")
     if not region_feeds_nation(world, nation, region):
-        return refuse("not_fed", _msg_subs_not_fed(region),
+        return refuse("not_fed", _msg_subs_not_fed(region, marshal.name),
                       "this ground does not feed our battalions")
     in_the_field = not region_has_friendly_supply(region)
     per_batch_men = (AI_CORPS_REGEN_CAP if in_the_field
@@ -1668,7 +1677,9 @@ class EconomyExecutor:
         if location_gate == RECRUIT_GATE_NOT_CONTROLLED:
             return {
                 "success": False,
-                "message": _msg_not_controlled(recruitment_location),
+                "message": _msg_not_controlled(
+                    recruitment_location,
+                    getattr(recruit_marshal, "name", None) if command.get("marshal") else None),
             }
 
         # Stability gate: block entire Unrest tier (stability <= 50).
@@ -2077,7 +2088,7 @@ class EconomyExecutor:
         # Every one of the six refusals this used to produce on the archived
         # arm was on soil PC15-D2 feeds at HOME_SUPPLY_MULTIPLIER.
         if not region_feeds_nation(world, acting_nation, region):
-            return {"success": False, "message": _msg_subs_not_fed(region)}
+            return {"success": False, "message": _msg_subs_not_fed(region, marshal.name)}
 
         # CO-4's rule, applied IDENTICALLY to a draft rather than
         # reinterpreted: a corps away from a capital or supply depot cannot

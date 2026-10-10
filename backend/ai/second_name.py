@@ -64,8 +64,24 @@ def _patterns(friends: str):
     head = (r"^(?P<head>\s*(?:(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*"
             r"(?:\s+[A-Za-z][\w'’-]*)?\s*[,:]\s*)?)"
             r"(?:(?:please|now)\s+)?")
-    named = r"(?:" + HONORIFIC + r")?(?P<friend>" + friends + r")\b"
+    # DD-0 S4: "the Marshal Ney's advance" — an article before the honorific.
+    named = r"(?:the\s+)?(?:" + HONORIFIC + r")?(?P<friend>" + friends + r")\b"
     return (
+        # S4 (the third set's "Davout will cover the Marshal Ney's advance",
+        # the ledger's "protect Davout's flank"): to cover / screen / protect
+        # a man's advance, flank or rear is to SUPPORT him.
+        re.compile(head + r"(?:cover|screen|protect|guard|shield|secure|watch)\s+(?:the\s+)?"
+                   r"(?:" + HONORIFIC + r")?(?P<friend>" + friends + r")['’]s\s+"
+                   r"(?:advance|flank|flanks|rear|retreat|march|move|movement|line|left|right|column|"
+                   r"wing|withdrawal|back|approach)\b",
+                   re.IGNORECASE),
+        # S4 (the third set's "stand behind Ney, Davout"): to stand behind /
+        # beside / with a man is to SUPPORT him.
+        re.compile(head + r"(?:stand|stay|be|remain|wait|hold|keep)\s+"
+                   r"(?:behind|beside|with|by|alongside|close\s+to|near|next\s+to|at\s+the\s+side\s+of)\s+"
+                   + named, re.IGNORECASE),
+        re.compile(head + r"(?:be|stand|hold\s+yourself)\s+ready\s+to\s+(?:support|back|help|aid|second)\s+"
+                   + named, re.IGNORECASE),
         # "(march) in support of Ney" / "to the aid of Ney" / "in aid of Ney"
         re.compile(head + r"(?:" + _MOVE_LEAD + r")?"
                    r"(?:in|to\s+the)\s+" + _SUPPORT_NOUN + r"\s+of\s+" + named,

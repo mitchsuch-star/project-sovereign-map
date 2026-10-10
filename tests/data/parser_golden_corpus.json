@@ -7784,6 +7784,416 @@
       },
       "source": "DD0-1 (tests/test_dd0_s3b_the_fixes.py)",
       "notes": "The parser reads the attack with no foe; the EXECUTOR refuses by name (asserted at the wire in the pins)."
+    },
+    {
+      "id": "dd0-s4-comma-aside-after-a-bare-verb",
+      "utterance": "cancel, the men are rested",
+      "world": "1805",
+      "expected": {
+        "action": "cancel"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "The Reading's comma aside: a clause of ours that names no man, place or order."
+    },
+    {
+      "id": "dd0-s4-comma-aside-after-an-order",
+      "utterance": "Ney, retire, the men are rested",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "retreat"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-trailing-vocative-bare-verb",
+      "utterance": "wait, Ney",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "wait"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "The man after the comma is the addressee."
+    },
+    {
+      "id": "dd0-s4-trailing-vocative-with-an-object",
+      "utterance": "protect Davout, Ney",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "target": "Davout",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-trailing-vocative-own-marshal",
+      "utterance": "attack Davout, Ney",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "The executor refuses by name (the pins); the parser reads Ney's attack."
+    },
+    {
+      "id": "dd0-s4-support-suffix-on-a-take",
+      "utterance": "Ney, take Swabia with Lannes in support",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Swabia",
+        "dropped_sequel": "Lannes, support Ney"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "The support suffix is peeled whatever the head's verb; RS-11 reads the take; the second man rides the relay."
+    },
+    {
+      "id": "dd0-s4-support-suffix-on-a-telegraph",
+      "utterance": "ney frankfurt with Lannes in support",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "move",
+        "target": "Frankfurt",
+        "dropped_sequel": "Lannes, support Ney"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-support-suffix-on-a-reason",
+      "utterance": "Ney, hold position because the men are ready with Lannes in support",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "target": "Rhineland",
+        "dropped_sequel": "Lannes, support Ney"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-typo-after-a-collective-address",
+      "utterance": "someone attcak Mack",
+      "world": "1805",
+      "expected": {
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-typo-after-everyone",
+      "utterance": "everyone reterat",
+      "world": "1805",
+      "expected": {
+        "action": "retreat",
+        "type": "general_retreat"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-rhetoric-then-at-him",
+      "utterance": "It's Mack's turn. Ney, at him.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "A leading sentence that gives no order is set aside; the foe it names is the pronoun's hint."
+    },
+    {
+      "id": "dd0-s4-surname-on-his-heels",
+      "utterance": "Prince Murat, keep on John's heels",
+      "world": "1805",
+      "expected": {
+        "marshal": "Murat",
+        "strategic_type": "PURSUE"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "The honorific 'Prince' and the surname 'John'."
+    },
+    {
+      "id": "dd0-s4-cover-his-advance-is-support",
+      "utterance": "Davout will cover the Marshal Ney's advance",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "target": "Ney",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-stand-behind-him",
+      "utterance": "stand behind Ney, Davout, in case Mack turns on him",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "target": "Ney",
+        "strategic_type": "SUPPORT",
+        "warning_contains": "precaution"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-bench-question",
+      "utterance": "Promote someone to marshal — Berthier, who do we have?",
+      "world": "1805",
+      "expected": {
+        "action": "recruit_marshal",
+        "target": null
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "The bench, never a candidate named Someone."
+    },
+    {
+      "id": "dd0-s4-h2-pass-the-law",
+      "utterance": "Please pass the Staff law",
+      "world": "1805",
+      "expected": {
+        "action": "enact_law"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-H2."
+    },
+    {
+      "id": "dd0-s4-h3-tell-x-to-typo-and-precaution",
+      "utterance": "Tell Massena to fortfy at Milan in case Archduke John comes down from the Tyrol",
+      "world": "1805",
+      "expected": {
+        "marshal": "Massena",
+        "action": "fortify"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-H3."
+    },
+    {
+      "id": "dd0-s4-h5-affordability-premise",
+      "utterance": "If we can still afford it, put a supply depot up in the Rhineland",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Rhineland"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-H5."
+    },
+    {
+      "id": "dd0-s4-h6-commission-another",
+      "utterance": "Commission another marshal",
+      "world": "1805",
+      "expected": {
+        "action": "recruit_marshal",
+        "target": null
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-H6."
+    },
+    {
+      "id": "dd0-s4-d8-reward-for-a-reason",
+      "utterance": "reward Murat for his charge at Swabia",
+      "world": "1805",
+      "expected": {
+        "action": "status",
+        "not_action": "charge"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D8: the W3 Reward desk."
+    },
+    {
+      "id": "dd0-s4-d9-drill-your-guard",
+      "utterance": "Napoleon, drill your guard",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "action": "drill",
+        "not_action": "hold"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D9."
+    },
+    {
+      "id": "dd0-s4-d10-dig-in-and-hold-the-line",
+      "utterance": "dig in at Milan and hold the line",
+      "world": "1805",
+      "expected": {
+        "action": "fortify",
+        "target": "Milan"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D10."
+    },
+    {
+      "id": "dd0-s4-d10-unfortify-and-march",
+      "utterance": "Lannes, unfortify and march on Bohemia",
+      "world": "1805",
+      "expected": {
+        "marshal": "Lannes",
+        "action": "unfortify",
+        "dropped_sequel": "march on Bohemia"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D10: the sequel rides the relay."
+    },
+    {
+      "id": "dd0-s4-d24-stop-chasing-and-hold",
+      "utterance": "Ney, stop chasing John and hold where you are",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "strategic_type": "HOLD",
+        "target": "Rhineland"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D24."
+    },
+    {
+      "id": "dd0-s4-d24-stop-chasing-alone",
+      "utterance": "Ney, stop chasing John",
+      "world": "1805",
+      "expected": {
+        "action": "cancel"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D24."
+    },
+    {
+      "id": "dd0-s4-d37-take-back-from",
+      "utterance": "Soult, take Lyonnais back from Paget",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "target": "Lyonnais"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D37."
+    },
+    {
+      "id": "dd0-s4-d37-return-to",
+      "utterance": "Napoleon, return to Paris",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "action": "move",
+        "target": "Paris"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D37."
+    },
+    {
+      "id": "dd0-s4-d37-keep-going-to",
+      "utterance": "Ney, keep going to Provence",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "move",
+        "target": "Provence"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D37."
+    },
+    {
+      "id": "dd0-s4-d37-take-back",
+      "utterance": "Ney, take Provence back",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "target": "Provence"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "SFR-D37."
+    },
+    {
+      "id": "dd0-s4-guard-subject-let",
+      "utterance": "Let the Guard attack Mack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)",
+      "notes": "DD0-10: the Guard as a subject is the Emperor's corps."
+    },
+    {
+      "id": "dd0-s4-guard-subject-will",
+      "utterance": "The Guard will support Soult.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "target": "Soult",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-guard-subject-stays-put",
+      "utterance": "the guard stays put",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "action": "wait"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-guard-subject-dig-in",
+      "utterance": "Have the Guard dig in.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Napoleon",
+        "action": "fortify"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-chase-him-down",
+      "utterance": "Davout, chase Mack down wherever he runs",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "strategic_type": "PURSUE",
+        "target": "Mack"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-fall-on-his-flank",
+      "utterance": "Ney, fall on Mack's flank; Murat, charge his centre",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Mack",
+        "dropped_sequel": "Murat, charge his centre"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-build-register-stables",
+      "utterance": "Stables in Burgundy, please",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Burgundy"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
+    },
+    {
+      "id": "dd0-s4-build-register-i-want",
+      "utterance": "I want a supply depot in Savoy",
+      "world": "1805",
+      "expected": {
+        "action": "build",
+        "target": "Savoy"
+      },
+      "source": "DD-0 S4 (tests/test_dd0_s4_the_reading.py)"
     }
   ]
 }

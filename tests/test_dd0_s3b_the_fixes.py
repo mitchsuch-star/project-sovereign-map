@@ -175,7 +175,7 @@ class TestDD0_8TheJudge:
 class TestDD0_9TheChattyRegister:
     @pytest.mark.parametrize("line,rule,action,target", [
         ("Marshal Ney moves to Lorraine", "rewrite_inflected_order", "move", "Lorraine"),
-        ("Marshal Soult will relocate his corps to Nivernais.", "rewrite_inflected_order", "move", "Nivernais"),
+        ("Marshal Soult will relocate his corps to Nivernais.", "read_address", "move", "Nivernais"),
         ("send Soult to Orleanais", "rewrite_send_marshal", "move", "Orleanais"),
         ("Pull Bernadotte back to Frankfurt", "rewrite_send_marshal", "move", "Frankfurt"),
         ("Marshal Ney: Brabant.", "rewrite_telegraphic_march", "move", "Brabant"),
@@ -190,7 +190,8 @@ class TestDD0_9TheChattyRegister:
     ])
     def test_the_rewrites_fire_and_read(self, client, line, rule, action, target):
         reply = _post(client, line)
-        assert rule in _rules(reply, "parser"), reply["parse_trace"]
+        # DD-0 S4: the modal address is the Reading's own stage now.
+        assert rule in _rules(reply, "parser") + _rules(reply, "reading"), reply["parse_trace"]
         parsed = _parsed(reply)
         assert parsed.get("action") == action, parsed
         if target:
@@ -225,12 +226,15 @@ class TestDD0_9TheChattyRegister:
 class TestDD0_10TheLedgersClasses:
     def test_the_dash_aside_is_not_the_province(self, client):
         reply = _post(client, "Ney, advance on Swabia — thank you")
-        rules = _rules(reply, "parser")
-        assert "strip_dash_aside" in rules or "strip_please_and_urgency" in rules
+        # DD-0 S4: the aside is peeled as a SPAN by the Reading (§104).
+        rules = _rules(reply, "parser") + _rules(reply, "reading")
+        assert ("strip_dash_aside" in rules or "strip_please_and_urgency" in rules
+                or "peel_please_and_dash_aside" in rules)
         assert "Thank You" not in reply["message"]
         assert _parsed(reply).get("target") == "Swabia"
         reply = _post(client, "Soult, dig in — the Austrians are close")
-        assert "strip_dash_aside" in _rules(reply, "parser")
+        assert ("strip_dash_aside" in _rules(reply, "parser")
+                or "peel_please_and_dash_aside" in _rules(reply, "reading"))
         assert _parsed(reply).get("action") == "fortify"
 
     def test_a_dash_before_a_place_is_kept(self, client):
@@ -239,12 +243,14 @@ class TestDD0_10TheLedgersClasses:
 
     def test_the_because_tail_is_cut(self, client):
         reply = _post(client, "Ney, hold position because the men are ready")
-        assert "strip_because_tail" in _rules(reply, "parser")
+        assert ("strip_because_tail" in _rules(reply, "parser")
+                or "peel_reason_tail" in _rules(reply, "reading"))
         assert "Because" not in reply["message"]
 
     def test_the_second_in_support_keeps_the_attack(self, client):
         reply = _post(client, "Soult, attack Mack with Lannes in support")
-        assert "rewrite_second_in_support" in _rules(reply, "parser")
+        assert ("rewrite_second_in_support" in _rules(reply, "parser")
+                or "peel_support_suffix" in _rules(reply, "reading"))
         assert "MUSTER" in reply["message"]
         assert reply.get("dropped_sequel") == "Lannes, support Soult"
 

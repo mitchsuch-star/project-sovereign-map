@@ -38,7 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LEDGER = REPO_ROOT / "tests" / "data" / "metamorphic_known_failures.json"
 
 # The ledger's count at the landing (October 10, 2026) — lower-only.
-LEDGER_CAP = 30   # 161 at S3's landing; 30 after S3b's fixes (October 10, 2026)
+LEDGER_CAP = 0   # 161 at S3's landing; 30 after S3b; 0 after S4's Reading (October 10, 2026)
 
 
 @pytest.fixture(scope="module")

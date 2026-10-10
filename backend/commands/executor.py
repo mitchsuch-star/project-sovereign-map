@@ -17,6 +17,7 @@ import re
 
 from typing import Dict, List, Optional, Tuple
 from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
+from backend.commands import exit_predicate as _exit_predicate  # DD-0 S4: "did I act on what was named?"
 from backend.ai.generic_targets import is_generic_target
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.ai.nation_names import (
@@ -1492,13 +1493,26 @@ class CommandExecutor:
         # a strategic first step's nested call is the order's own.
         _entered = (_ptrace.command_summary(parsed_command.get("command"))
                     if _depth == 0 and _ptrace.active() else None)
+        # DD-0 S4 — THE EXIT PREDICATE reads the same two snapshots as the
+        # trace, so it needs them whether or not a trace is open.
+        _entered_always = (_ptrace.command_summary(parsed_command.get("command"))
+                           if _depth == 0 else None)
         try:
             result = self._execute_one(parsed_command, game_state)
         finally:
             self._execute_depth = _depth
+            _exited = (_ptrace.command_summary(parsed_command.get("command"))
+                       if _entered_always is not None else None)
             if _entered is not None:
-                _ptrace.note("executor", "command_changed", _entered,
-                             _ptrace.command_summary(parsed_command.get("command")))
+                _ptrace.note("executor", "command_changed", _entered, _exited)
+            # "Did I act on the marshal, place and arm that were named?" — a
+            # substitution the reply does not name is appended to it.
+            if (_entered_always is not None and isinstance(result, dict)
+                    and not (parsed_command.get("command") or {}).get("_autonomous_execution")):
+                _disclosure = _exit_predicate.disclose(_entered_always, _exited, result)
+                if _disclosure:
+                    _ptrace.decide("executor", "substitution_disclosed", _disclosure[:120])
+                    result["message"] = (f"{result.get('message') or ''}\n\n{_disclosure}").strip()
             # SR5B-1: this frame's set-aside orders — restored when the
             # order that set them aside was refused, else let go.
             _aside = self._orders_set_aside[_aside_mark:]
@@ -2209,6 +2223,24 @@ class CommandExecutor:
             _ptrace.decide("executor", "standing_decision_refusal",
                            str(_decision_refusal.get("message") or "")[:120])
             return _decision_refusal
+
+        # ════════════════════════════════════════════════════════════
+        # DD-0 S4 — THE EXIT PREDICATE's first half (SFR-D7): a stationary
+        # arm that names a province the marshal does not stand in is refused
+        # by name BEFORE the objection battery and BEFORE it is carried out
+        # where he stands ("Massena, drill … at Munich" drilled at Milan;
+        # "Ney, defend Swabia" defended Rhineland — each without a word).
+        # Sited after the bare attack's pick and the standing decision, so
+        # the command's marshal is a roster name; a strategic order (HOLD at
+        # a province is a march-and-hold) and the AI's own commands pass.
+        # ════════════════════════════════════════════════════════════
+        if (not is_ai_command and not is_strategic_execution
+                and not parsed_command.get("is_strategic")):
+            _place_block = _exit_predicate.place_pre_check(command, action, world)
+            if _place_block is not None:
+                _ptrace.decide("executor", "place_mismatch_refused",
+                               _place_block["message"][:120])
+                return _place_block
 
         # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection

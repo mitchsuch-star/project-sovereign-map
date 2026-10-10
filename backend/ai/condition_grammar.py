@@ -498,7 +498,94 @@ def strip_arrival_idiom(text: str) -> Tuple[str, bool]:
     return text[:m.start()].rstrip(), True
 
 
-def split_premise(text: str, enemy_names, region_names) -> Tuple[str, Optional[Dict]]:
+# DD-0 S4 (October 10, 2026; SFR-D20 / SFR-H13): two more PREMISES about the
+# board as it stands — "attack Mack if he is still standing" (the foe is alive
+# and in sight) and "If Ney beat Mack, give him a rente" (a battle on the
+# record). Each is a fact the game holds and checks ONCE at issuance; a false
+# one is refused free by name. "him" in the rest is the premise's own subject:
+# the FOE for the standing shape, the FRIEND for the battle shape. (No lever —
+# the code-health ratchet holds levers lower-only.)
+_STILL_STANDING = (r"(?:is|are|'s|’s)\s+still\s+(?:standing|alive|there|about|around|in\s+the\s+field|"
+                   r"on\s+the\s+board|in\s+play|at\s+large|with\s+us|in\s+sight)")
+_PREMISE_STANDING_TRAIL_RE = re.compile(
+    r"^(?P<rest>.+?)\s*,?\s+(?:if|provided|so\s+long\s+as|as\s+long\s+as|while)\s+"
+    r"(?P<foe>he|they|it|(?:the\s+)?[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+" + _STILL_STANDING
+    + r"\s*[.!]*$", re.IGNORECASE)
+_PREMISE_STANDING_LEAD_RE = re.compile(
+    r"^\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*)\s*[,:]\s*)?"
+    r"(?:if|provided|so\s+long\s+as|as\s+long\s+as|while)\s+"
+    r"(?P<foe>(?:the\s+)?[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+" + _STILL_STANDING
+    + r"\s*,\s*(?P<rest>.+)$", re.IGNORECASE)
+_PREMISE_BATTLE_RE = re.compile(
+    r"^\s*(?:(?P<addr>(?:" + HONORIFIC + r")?[A-Za-z][\w'’-]*)\s*[,:]\s*)?"
+    r"(?:if|provided|so\s+long\s+as|as\s+long\s+as|since|now\s+that)\s+(?:" + HONORIFIC + r")?"
+    r"(?P<friend>[A-Za-z][\w'’-]*)\s+(?:has\s+|have\s+)?(?:beat|beaten|defeated|thrashed|routed|broke|broken|"
+    r"bested|whipped|drove\s+off|driven\s+off|won\s+against|prevailed\s+over)\s+(?:" + HONORIFIC + r")?"
+    r"(?P<foe>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s*,\s*(?P<rest>.+)$", re.IGNORECASE)
+
+
+def _resolve_name(typed: str, names) -> Optional[str]:
+    low = re.sub(r"^the\s+", "", (typed or "").strip(), flags=re.I).lower()
+    for n in names:
+        if low in {p.lower() for p in _patterns(n)} | {str(n).lower()}:
+            return n
+    return None
+
+
+def _split_standing_or_battle(text: str, enemy_names, friendly_names) -> Tuple[str, Optional[Dict]]:
+    m = _PREMISE_STANDING_LEAD_RE.match(text) or _PREMISE_STANDING_TRAIL_RE.match(text)
+    if True:
+        if m:
+            rest = m.group("rest").strip()
+            foe_text = m.group("foe").strip()
+            if foe_text.lower() in ("he", "they", "it"):
+                from backend.ai.reading import foe_named_in
+                foe = foe_named_in(rest, enemy_names)
+            else:
+                foe = _resolve_name(foe_text, enemy_names)
+            if foe:
+                rest = re.sub(r"\b(?:him|them|it)\b", foe, rest, count=1, flags=re.I)
+                addr = (m.groupdict().get("addr") or "").strip()
+                rebuilt = f"{addr}, {rest}" if addr else rest
+                return rebuilt, {"kind": "standing", "marshal": foe, "region": None,
+                                 "clause": m.group(0)[m.start("foe") - m.start(0):].strip()}
+    if friendly_names:
+        m = _PREMISE_BATTLE_RE.match(text)
+        if m:
+            friend = _resolve_name(m.group("friend"), friendly_names)
+            foe = _resolve_name(m.group("foe"), enemy_names)
+            if friend and foe:
+                rest = re.sub(r"\b(?:him|her)\b", friend, m.group("rest").strip(), count=1, flags=re.I)
+                rest = re.sub(r"\s+for\s+(?:it|that|this|the\s+victory|his\s+victory|his\s+trouble)\s*[.!]*$",
+                              "", rest, flags=re.I)
+                addr = (m.group("addr") or "").strip()
+                rebuilt = f"{addr}, {rest}" if addr else rest
+                return rebuilt, {"kind": "battle", "marshal": foe, "friend": friend, "region": None,
+                                 "clause": text[m.start("friend"):m.end("foe")].strip()}
+    return text, None
+
+
+def battle_on_record(world, friend: str, foe: str) -> Optional[bool]:
+    """True when the event log holds a battle the friend WON against the foe,
+    False when it holds none; None when the world keeps no log."""
+    log = getattr(world, "event_log", None)
+    if not isinstance(log, list):
+        return None
+    for ev in log:
+        if not isinstance(ev, dict) or ev.get("type") != "battle":
+            continue
+        att = (ev.get("attacker") or {}).get("name") if isinstance(ev.get("attacker"), dict) else None
+        dfn = (ev.get("defender") or {}).get("name") if isinstance(ev.get("defender"), dict) else None
+        outcome = str(ev.get("outcome") or "")
+        if att == friend and dfn == foe and ("attacker" in outcome and "victory" in outcome
+                                             or ev.get("marshal_destroyed") or ev.get("marshal_captured")):
+            return True
+        if dfn == friend and att == foe and "defender" in outcome and "victory" in outcome:
+            return True
+    return False
+
+
+def split_premise(text: str, enemy_names, region_names, friendly_names=()) -> Tuple[str, Optional[Dict]]:
     """"if Mack is still in Swabia, attack him" -> ("attack Mack", {"marshal":
     "Mack", "region": "Swabia"}); a sentence of any other shape is returned
     unchanged with None. A bare object pronoun in the rest is the premise's
@@ -508,7 +595,7 @@ def split_premise(text: str, enemy_names, region_names) -> Tuple[str, Optional[D
     m = (_PREMISE_RE_CONTRACTED if A_CONTRACTED_PREMISE_IS_READ
          else _PREMISE_RE).match(text)
     if not m:
-        return text, None
+        return _split_standing_or_battle(text, enemy_names, friendly_names)
     foe_text = re.sub(r"^the\s+", "", m.group("foe").strip(), flags=re.I).lower()
     place_text = m.group("place").strip().lower()
     foe = next((n for n in enemy_names
@@ -540,20 +627,35 @@ def premise_refusal(world, premise: Optional[Dict]) -> Optional[str]:
     place = str(premise.get("region") or "")
     shown = humanize_entity_name(name)
     enemy = world.get_marshal(name)
+    kind = premise.get("kind")
+    if kind == "battle":
+        friend = str(premise.get("friend") or "")
+        won = battle_on_record(world, friend, name)
+        if won:
+            return None
+        return (f"The order rested on {friend} having beaten {shown}, Sire, and "
+                f"{'no such battle is on the record' if won is False else 'the record holds no battles'}"
+                f" — nothing has been relayed.")
+    # DD-0 S4: the STANDING shape ("if he is still standing") shares every
+    # check but the place — one road, one guard.
+    standing = kind == "standing"
+    rested = f"{shown} still standing" if standing else f"{shown} standing at {place}"
     if enemy is None or int(getattr(enemy, "strength", 0) or 0) <= 0:
-        return (f"The order rested on {shown} standing at {place}, Sire, and he leads "
+        return (f"The order rested on {rested}, Sire, and he leads "
                 f"no army our maps know — nothing has been relayed.")
     if getattr(enemy, "captured_by", ""):
-        return (f"The order rested on {shown} standing at {place}, Sire, and he is a "
+        return (f"The order rested on {rested}, Sire, and he is a "
                 f"prisoner — nothing has been relayed.")
     try:
         seen = world.get_region_intel(enemy.location).visibility_at_least(PARTIAL)
     except Exception:
         seen = False
     if not seen:
-        return (f"The order rested on {shown} standing at {place}, Sire, and we have no "
-                f"word of him — scout before you condition an order on his position. "
-                f"Nothing has been relayed.")
+        return (f"The order rested on {rested}, Sire, and we have no "
+                f"word of him — scout before you condition an order on "
+                f"{'him' if standing else 'his position'}. Nothing has been relayed.")
+    if standing:
+        return None
     if enemy.location != place:
         return (f"The order rested on {shown} standing at {place}, Sire, and our last "
                 f"word places him at {enemy.location} — so it does not go out. Nothing "

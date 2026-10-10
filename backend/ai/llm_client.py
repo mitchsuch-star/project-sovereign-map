@@ -319,7 +319,14 @@ _TYPO_STOPLIST = frozenset({
 # connector. A slip anywhere else is a noun, not a verb (R1-3: "the line
 # held", "we depend on you" were being read as orders).
 _VERB_POSITION_RE = re.compile(
-    r"(?:^|,\s*then\s+|\bthen\s+|;\s*|\band\s+|\bplease\s+)"
+    # DD-0 S4 (the ledger's "someone attcak Mack" / "everyone reterat";
+    # SFR-H3's "Tell Massena to fortfy"): the verb after a collective
+    # address and after "tell / order / have / get / ask <Name> to". These
+    # alternatives stand FIRST: at the head of the line the bare `^` would
+    # otherwise win and read the collective word as the verb.
+    r"(?:^\s*(?:someone|somebody|anyone|everyone|everybody|all\s+of\s+you|all)\s+"
+    r"|^\s*(?:tell|order|have|get|ask|instruct)\s+(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*\s+to\s+"
+    r"|^|,\s*then\s+|\bthen\s+|;\s*|\band\s+|\bplease\s+)"
     r"(?:(?:" + HONORIFIC + r")?[A-Za-z][A-Za-z'’-]*\s*,\s*)?"
     r"(?P<verb>[A-Za-z][A-Za-z'’-]*)", re.IGNORECASE)
 
@@ -3549,6 +3556,8 @@ class LLMClient:
         elif (("commission" in command_lower and not _mentions_pension(command_lower))
               or re.search(r'\brecruit\b.{0,12}\bmarshal\b', command_lower)
               or re.search(r'\bappoint\b.*\bmarshal', command_lower)
+              # DD-0 S4 (the bench question): "promote Grouchy to marshal".
+              or re.search(r'\bpromote\b.*\bmarshal', command_lower)
               or "marshalate" in command_lower
               # the fresh census: "give Grouchy a command" / "call up Suchet
               # from the bench" / "bring Suchet off the bench".
@@ -3822,12 +3831,15 @@ class LLMClient:
 
         if action == "recruit_marshal":
             _rm = re.search(
-                r'\b(?:commission|appoint)\s+(?:marshal\s+)?([a-z][a-z\'-]+)',
+                r'\b(?:commission|appoint|promote)\s+(?:marshal\s+)?([a-z][a-z\'-]+)',
                 command_lower)
             if not _rm:
                 _rm = re.search(r'\bmarshal\s+([a-z][a-z\'-]+)', command_lower)
+            # DD-0 S4 (SFR-H6): a placeholder is the bench, never a candidate
+            # named "Another".
             if _rm and _rm.group(1) not in (
-                    "a", "an", "the", "new", "to", "him", "her", "them"):
+                    "a", "an", "the", "new", "to", "him", "her", "them",
+                    "another", "someone", "somebody", "anyone", "one", "some"):
                 target = _rm.group(1).capitalize()
 
         # CR-0: vassal-family actions target a NATION — resolve it from the

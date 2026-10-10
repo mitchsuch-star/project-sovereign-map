@@ -1390,7 +1390,14 @@ BOARD_GATE_RX = re.compile(
     # committed census records first (none appears) and the score archive's
     # HOLD arm re-read identical after.
     r"takes its orders from the Emperor|Cannot vassalize|We do not control|is not cavalry|"
-    r"will not attack our own",
+    r"will not attack our own|"
+    # DD-0 S4 (October 10, 2026): the board's own refusal the exit predicate
+    # introduced — a stationary arm named at a province the marshal is not in
+    # ("Massena stands at Milan, not Vienna"). The string is new this slice:
+    # grepped `docs/audits/` and `tools/playtest_scripts/` first (only the S4
+    # re-run record holds it), so every committed record and the score
+    # archive re-read identical.
+    r"stands at [A-Z][\w'’ -]*, not ",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).

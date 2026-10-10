@@ -196,33 +196,70 @@ def rewrite_reward_idiom(text: str, friendly_names: Iterable[str]) -> str:
         return text
     # "grant <Name> a rente / a pension" is the ES-7 endow family's own
     # verb and is NOT restated; the estate, the title and the dukedom open
-    # the Reward desk.
+    # the Reward desk. S4 (SFR-D8): "reward Murat for his charge at Swabia"
+    # is the Reward desk too — the "for …" is the reason, never a charge.
     m = re.match(
         r"^\s*(?:give\s+(?:marshal\s+)?(?P<n1>" + alt + r")\s+"
         r"(?:an?\s+)?(?:estate|title|duchy|dukedom|principality|county|reward)\b"
         r"|make\s+(?:marshal\s+)?(?P<n2>" + alt + r")\s+(?:a\s+|the\s+)?(?:duke|prince|count|marquis|baron|peer)\b"
-        r"|reward\s+(?:marshal\s+)?(?P<n3>" + alt + r")\s+with\s+(?:an?\s+)?(?:title|estate|duchy)\b)",
+        r"|reward\s+(?:marshal\s+)?(?P<n3>" + alt + r")\s+with\s+(?:an?\s+)?(?:title|estate|duchy)\b"
+        r"|reward\s+(?:marshal\s+)?(?P<n4>" + alt + r")\s+for\s+\S)",
         text, flags=re.IGNORECASE)
     if not m:
         return text
-    typed = m.group("n1") or m.group("n2") or m.group("n3")
+    typed = m.group("n1") or m.group("n2") or m.group("n3") or m.group("n4")
     name = next(n for n in friendly_names if str(n).lower() == typed.lower())
     return f"reward {name}"
 
 
+def _foe_alt(enemy_names: Iterable[str]) -> str:
+    """Every form a foe is named by (S4: the surname alone — "John's heels",
+    "Charles" — when it names one foe only; `reading.foe_forms`)."""
+    from backend.ai.reading import foe_forms
+    return _name_alt(foe_forms(enemy_names))
+
+
+def _printed_foe(typed: str, enemy_names: Iterable[str]) -> str:
+    """The form the game PRINTS for a foe typed by any of his forms — so a
+    surname ("John") hands the pursuit "Archduke John", which every target
+    resolver knows, never the bare word."""
+    from backend.ai.reading import foe_named_in
+    from backend.display_names import humanize_entity_name
+    key = foe_named_in(typed, enemy_names)
+    return humanize_entity_name(key) if key else typed
+
+
+def _sub_foe(pattern: str, template: str, text: str, enemy_names: Iterable[str]) -> str:
+    """`re.sub` whose `{foe}` is the printed form of the matched foe."""
+    def _rep(m):
+        return template.format(foe=_printed_foe(m.group("foe"), enemy_names))
+    return re.sub(pattern, _rep, text, count=1, flags=re.IGNORECASE)
+
+
 def rewrite_attack_idioms(text: str, friendly_names: Iterable[str], enemy_names: Iterable[str]) -> str:
     """The field's idioms for a battle, restated: "run down Mack('s guns)",
-    "drive Mack out", "give Mack a bloody nose" → attack Mack; "keep on
-    John's heels" → pursue John; "Davout — Mack — go." → Davout, attack Mack."""
-    foes = _name_alt(enemy_names)
+    "drive Mack out", "give Mack a bloody nose", "fall on Mack's flank" →
+    attack Mack; "keep on John's heels", "chase Mack down wherever he runs",
+    "follow Mack to the ends of the earth" → pursue; "Davout — Mack — go." →
+    Davout, attack Mack."""
+    foes = _foe_alt(enemy_names)
     if not text or not foes:
         return text
     # "ride down" is RIDE_DOWN_A_FOE_RE's own lever-gated road; "run down" here.
-    out = re.sub(r"\brun\s+down\s+(?P<foe>" + foes + r")(?:['’]s\s+\w+)?\b", r"attack \g<foe>", text, count=1, flags=re.IGNORECASE)
-    out = re.sub(r"\bdrive\s+(?P<foe>" + foes + r")\s+(?:out|off|back|away)\b", r"attack \g<foe>", out, count=1, flags=re.IGNORECASE)
-    out = re.sub(r"\b(?:give|gave)\s+(?P<foe>" + foes + r")\s+a\s+(?:bloody\s+nose|thrashing|beating|hiding|drubbing)\b",
-                 r"attack \g<foe>", out, count=1, flags=re.IGNORECASE)
-    out = re.sub(r"\b(?:keep|stay)\s+on\s+(?P<foe>" + foes + r")['’]s\s+(?:heels|tail|trail)\b", r"pursue \g<foe>", out, count=1, flags=re.IGNORECASE)
+    out = _sub_foe(r"\brun\s+down\s+(?P<foe>" + foes + r")(?:['’]s\s+\w+)?\b", "attack {foe}", text, enemy_names)
+    out = _sub_foe(r"\bdrive\s+(?P<foe>" + foes + r")\s+(?:out|off|back|away)\b", "attack {foe}", out, enemy_names)
+    out = _sub_foe(r"\b(?:give|gave)\s+(?P<foe>" + foes + r")\s+a\s+(?:bloody\s+nose|thrashing|beating|hiding|drubbing)\b",
+                   "attack {foe}", out, enemy_names)
+    out = _sub_foe(r"\bfall\s+(?:up)?on\s+(?P<foe>" + foes + r")(?:['’]s\s+(?:flank|flanks|rear|centre|center|left|right|line|column|wing))?\b",
+                   "attack {foe}", out, enemy_names)
+    out = _sub_foe(r"\b(?:keep|stay)\s+on\s+(?P<foe>" + foes + r")['’]s\s+(?:heels|tail|trail)\b", "pursue {foe}", out, enemy_names)
+    out = _sub_foe(r"\b(?:chase|hunt|run|track)\s+(?P<foe>" + foes + r")\s+down"
+                   r"(?:\s+wherever\s+(?:he|they|it)\s+(?:runs?|goes|flees|hides?|may\s+go|may\s+run))?\b",
+                   "pursue {foe}", out, enemy_names)
+    out = _sub_foe(r"\b(?:follow|chase|hunt|pursue)\s+(?P<foe>" + foes + r")\s+"
+                   r"(?:to\s+the\s+ends\s+of\s+the\s+earth|wherever\s+(?:he|they|it)\s+(?:runs?|goes|flees|hides?|may\s+go)|"
+                   r"to\s+the\s+gates\s+of\s+\w+|day\s+and\s+night|without\s+rest)\b",
+                   "pursue {foe}", out, enemy_names)
     friends = _name_alt(friendly_names)
     if friends:
         m = re.match(r"^\s*(?:marshal\s+)?(?P<name>" + friends + r")\s*[—–-]+\s*(?P<foe>" + foes + r")\s*[—–-]*\s*(?:go|attack|now)?\s*[.!]*$",
@@ -348,8 +385,210 @@ def split_question_and_order(text: str, friendly_names: Iterable[str]) -> Option
     return m.group("q").strip(), m.group("tail").strip()
 
 
+# ── DD-0 S4 (October 10, 2026): the vocabulary the ledger, the six keyless
+# shrugs and the sixteen open command rows asked for (rules
+# SYSTEMS_REFERENCE.md §104). Each pure, each inert when its shape is absent.
+
+_LAW_NOUN_RX = re.compile(r"\b(?:law|act|reform|bill|ordinance|decree)\b", re.IGNORECASE)
+
+
+def rewrite_pass_a_law(text: str) -> str:
+    """SFR-H2: "pass the Staff law" / "adopt the Staff" / "decree the
+    conscription act" → "enact <law>" — the law router knows `enact` /
+    `reenact` / `repeal` only, and "pass" fell to the proper-name ask.
+    Only a line that names a law (the noun, or "law" somewhere in it)."""
+    if not text or not _LAW_NOUN_RX.search(text):
+        return text
+    m = re.match(r"^\s*(?:please\s+)?(?:pass|adopt|decree|promulgate|introduce|bring\s+in|put\s+through)\s+"
+                 r"(?:the\s+|a\s+|an\s+)?(?P<name>.+?)\s*[.!]*$", text, flags=re.IGNORECASE)
+    if not m:
+        return text
+    name = re.sub(r"\s*\b(?:law|act|bill|ordinance|decree)\b\s*$", "", m.group("name"), flags=re.IGNORECASE).strip()
+    name = re.sub(r"^(?:a\s+)?(?:law|act|bill)\s+(?:raising|lowering|on|for|about|that|which)\s+", "", name,
+                  flags=re.IGNORECASE).strip()
+    return f"enact {name}" if name else text
+
+
+def rewrite_take_back(text: str) -> str:
+    """SFR-D37: "take Lyonnais back from Paget" / "retake Provence" → "take
+    <province>" (RS-11's objective reads the rest)."""
+    if not text:
+        return text
+    out = re.sub(r"\b(?:take|win|get)\s+(?P<obj>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+back"
+                 r"(?:\s+from\s+(?:the\s+)?[A-Za-z][\w'’ -]*?)?(?=\s*[.!,;]|\s+(?:and|then)\b|$)",
+                 lambda m: text[m.start():m.end()] if m.group("obj").lower() in ("it", "them", "him", "her", "that", "this")
+                 else f"take {m.group('obj')}", text, count=1, flags=re.IGNORECASE)
+    out = re.sub(r"\bretake\s+", "take ", out, count=1, flags=re.IGNORECASE)
+    return out
+
+
+def rewrite_return_to(text: str) -> str:
+    """SFR-D37: "return to Paris" / "go back to Lorraine" / "keep going to
+    Provence" / "press on to Munich" → "move to <place>". A "fall back to"
+    stays the retreat it is."""
+    if not text:
+        return text
+    # the word after `to` must be a place, never a verb ("continue to hold")
+    not_a_verb = r"(?!(?:" + _ORDER_VERB_RE.pattern.strip(r"\b") + r")\b)"
+    # ("march back to X" / "head back to X" are SFR-D11's own relative-place
+    # reader in the strategic layer and are left to it)
+    out = re.sub(r"\b(?:return|go\s+back|get\s+back|come\s+back)"
+                 r"\s+(?:to|toward|towards|for)\s+" + not_a_verb + r"(?=[A-Za-z])", "move to ", text, count=1,
+                 flags=re.IGNORECASE)
+    # ("push on to" / "press on to" / "march on to" are the strategic
+    # layer's own march verbs already and are left to it)
+    out = re.sub(r"\b(?:keep\s+going|carry\s+on|continue)"
+                 r"\s+(?:to|toward|towards|for)\s+" + not_a_verb + r"(?=[A-Za-z])", "move to ", out, count=1,
+                 flags=re.IGNORECASE)
+    return out
+
+
+# ("stay here" / "stay put" are the WAIT family's own words — slice 7 — and
+# "hold fast" / "hold firm" are CQ-37's; each is left to its own rule.)
+_HOLD_HERE_RX = re.compile(
+    r"\b(?:hold|stand|remain)\s+(?:where\s+(?:you|he|they)\s+(?:are|is|stand|stands)|your\s+ground|"
+    r"his\s+ground|this\s+ground|in\s+place|right\s+where\s+you\s+are)\b",
+    re.IGNORECASE)
+
+
+def rewrite_hold_where_you_are(text: str) -> str:
+    """SFR-D24: "hold where you are" / "stand fast" / "hold your ground" →
+    "hold" — the standing order on the ground he stands on."""
+    return _HOLD_HERE_RX.sub("hold", text, count=1) if text else text
+
+
+def strip_stop_chasing(text: str, enemy_names: Iterable[str]) -> str:
+    """SFR-D24: "stop chasing John and hold …" → "hold …" (a new order to
+    the man sets the pursuit aside, and SR5B names the order it ended);
+    "stop chasing John" alone is the cancel."""
+    foes = _foe_alt(enemy_names)
+    if not text or not foes:
+        return text
+    m = re.match(r"^(?P<addr>\s*(?:(?:marshal|general|prince)\s+)?[A-Za-z][\w'’-]*\s*[,:]\s*)?"
+                 r"(?:stop|cease|quit|break\s+off|leave\s+off|give\s+up|call\s+off)\s+"
+                 r"(?:chasing|pursuing|following|hunting|the\s+pursuit\s+of|the\s+chase\s+of|the\s+hunt\s+for)\s+"
+                 r"(?:" + foes + r")\b[,;]?\s*(?:(?:and|then)\s+(?P<rest>.+))?\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    if not m:
+        return text
+    addr = m.group("addr") or ""
+    rest = (m.group("rest") or "").strip()
+    if rest:
+        return f"{addr}{rest}"
+    # the cancel takes the man's name after the verb ("cancel Ney"), never
+    # as an address ("Ney, cancel" is unknown to the router)
+    name = re.sub(r"^\s*(?:(?:marshal|general|prince)\s+)?", "", addr, flags=re.IGNORECASE).strip(" ,:")
+    return f"cancel {name}" if name else "cancel"
+
+
+def strip_hold_the_line_tail(text: str) -> str:
+    """SFR-D10: "dig in at Milan and hold the line" → "dig in at Milan" —
+    the hold is what the works are for, not a second order."""
+    if not text:
+        return text
+    m = re.match(r"^(?P<head>.*\b(?:dig\s+in|fortify|entrench|throw\s+up\s+earthworks|earthworks|breastworks)\b.*?)"
+                 r"[\s,]+and\s+hold\s+(?:the\s+line|firm|fast|there|position|your\s+ground|it|on|the\s+ground)\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    return m.group("head") if m else text
+
+
+def rewrite_drill_your_guard(text: str) -> str:
+    """SFR-D9: "drill your guard" is a drill — the Guard is the men, never
+    the hold family's `guard` keyword."""
+    if not text:
+        return text
+    return re.sub(r"\b(?P<verb>drill|train|exercise|rest|parade|inspect|review)\s+(?:your|the|his|my|our)\s+"
+                  r"(?:imperial\s+|old\s+|young\s+)?guards?\b", r"\g<verb> your men", text, count=1, flags=re.IGNORECASE)
+
+
+def _uninflect(verb: str) -> str:
+    low = verb.lower()
+    if low.endswith("ies"):
+        return low[:-3] + "y"
+    if re.search(r"(?:ch|sh|ss|x|z)es$", low):
+        return low[:-2]
+    if low.endswith("s") and not low.endswith("ss"):
+        return low[:-1]
+    return low
+
+
+def rewrite_guard_subject(text: str, sovereign: Optional[str]) -> str:
+    """DD0-10: the Guard as a SUBJECT is the Emperor's corps — "Let the Guard
+    attack Mack" / "The Guard will support Soult." / "the guard stays put" /
+    "Have the Guard dig in." → "<Sovereign>, <order>". Dormant without a
+    sovereign on the roster."""
+    if not text or not sovereign:
+        return text
+    guard = r"the\s+(?:imperial\s+|old\s+|young\s+)?guard\b"
+    m = re.match(r"^\s*(?:let|have|tell|order|get)\s+" + guard + r"\s+(?:to\s+)?(?P<rest>.+?)\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    if m:
+        return f"{sovereign}, {m.group('rest')}"
+    m = re.match(r"^\s*" + guard + r"\s+(?:will|shall|is\s+to|should|must|can)\s+(?P<rest>.+?)\s*[.!]*$",
+                 text, flags=re.IGNORECASE)
+    if m and not re.match(r"^(?:not|never|no)\b", m.group("rest"), flags=re.IGNORECASE):
+        return f"{sovereign}, {m.group('rest')}"
+    m = re.match(r"^\s*" + guard + r"\s+(?P<verb>[a-z]+?(?:s|es))(?P<rest>\s+.*?)?\s*[.!]*$", text, flags=re.IGNORECASE)
+    if m and m.group("verb").lower() not in ("is", "was", "has", "does", "needs", "wants"):
+        return f"{sovereign}, {_uninflect(m.group('verb'))}{m.group('rest') or ''}"
+    return text
+
+
+def rewrite_bench_question(text: str) -> str:
+    """SFR-H6 / DD0-9: "Commission another marshal" / "Promote someone to
+    marshal" → "commission" — the bench, not a candidate named Another."""
+    if not text:
+        return text
+    if re.match(r"^\s*(?:promote|commission|appoint|raise|name|make|elevate)\s+"
+                r"(?:someone|somebody|anyone|another|a\s+new|a|one\s+of\s+(?:the|our)\s+generals|a\s+general|"
+                r"another\s+general|one)\b.*?\b(?:marshal|marshalate)\b", text, flags=re.IGNORECASE):
+        return "commission"
+    if re.match(r"^\s*commission\s+(?:another|someone|somebody|anyone|a\s+new\s+one|one)\s*[.!]*$",
+                text, flags=re.IGNORECASE):
+        return "commission"
+    return text
+
+
+def strip_affordability_premise(text: str) -> str:
+    """SFR-H5: "If we can still afford it, put a depot up in the Rhineland"
+    — the build's own price check IS the premise; the clause is cut."""
+    if not text:
+        return text
+    m = re.match(r"^\s*(?:if|provided|so\s+long\s+as|as\s+long\s+as|assuming)\s+(?:we|i|the\s+treasury|the\s+purse)\s+"
+                 r"(?:can\s+(?:still\s+)?(?:afford|pay\s+for|manage|stretch\s+to|cover)|"
+                 r"(?:still\s+)?(?:have|has)\s+the\s+(?:gold|money|funds|coin)(?:\s+for)?)\s*(?:it|that|this|them)?"
+                 r"\s*[,;]?\s*(?P<rest>.+)$", text, flags=re.IGNORECASE)
+    return m.group("rest").strip() if m else text
+
+
+_BUILDING_RX = (r"(?P<thing>supply\s+depot|depot|fort(?:ress|ification|ifications)?|walls|barracks|"
+                r"training\s+ground|drill\s+ground|parade\s+ground|stables?|watchtower|market|arsenal)")
+
+
+def rewrite_build_idiom(text: str) -> str:
+    """The third set's build register: "put a supply depot up in the
+    Rhineland" / "I want a supply depot in Savoy" / "Stables in Burgundy,
+    please" / "Fortress at Lorraine, build it" → "build <thing> in <place>"."""
+    if not text:
+        return text
+    place = r"(?:the\s+)?(?P<place>[A-Z][\w'’-]*(?:[\s-][A-Z][\w'’-]*)?)"
+    for pat in (
+        r"^\s*(?:please\s+)?(?:put|throw|set|get|have|erect|raise)\s+(?:up\s+)?(?:a|an|the|some|new)\s+" + _BUILDING_RX
+        + r"\s+(?:up\s+)?(?:built\s+|erected\s+|raised\s+)?(?:in|at)\s+" + place + r"\s*[.!]*$",
+        r"^\s*I\s+(?:want|need|would\s+like)\s+(?:a|an|some|new)\s+" + _BUILDING_RX + r"\s+(?:built\s+)?(?:in|at)\s+" + place + r"\s*[.!]*$",
+        r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place
+        + r"\s*,\s*(?:build\s+it|please|if\s+you\s+please|at\s+once)\s*[.!]*$",
+        # the bare noun phrase ("Stables in Burgundy" — the please already cut)
+        r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place + r"\s*[.!]*$",
+    ):
+        m = re.match(pat, text, flags=re.IGNORECASE)
+        if m:
+            return f"build {m.group('thing').lower()} in {m.group('place')}"
+    return text
+
+
 def apply_all(text: str, friendly_names: Iterable[str], enemy_names: Iterable[str],
-              place_names: Iterable[str]) -> List[Tuple[str, str, str]]:
+              place_names: Iterable[str], sovereign: Optional[str] = None) -> List[Tuple[str, str, str]]:
     """Every rewrite in order; returns [(rule, before, after)] for the ones
     that fired, the caller reads the final text off the last row."""
     known = list(friendly_names) + list(enemy_names) + list(place_names)
@@ -357,13 +596,24 @@ def apply_all(text: str, friendly_names: Iterable[str], enemy_names: Iterable[st
         ("strip_please_and_urgency", lambda t: strip_please_and_urgency(t)),
         ("strip_dash_aside", lambda t: strip_dash_aside(t, known)),
         ("strip_because_tail", lambda t: strip_because_tail(t, known)),
+        ("strip_affordability_premise", lambda t: strip_affordability_premise(t)),
         ("rewrite_self_correction", lambda t: rewrite_self_correction(t)),
         ("rewrite_arrival_wait", lambda t: rewrite_arrival_wait(t)),
         ("rewrite_second_in_support", lambda t: rewrite_second_in_support(t, friendly_names)),
         ("rewrite_send_marshal", lambda t: rewrite_send_marshal(t, friendly_names)),
+        ("rewrite_guard_subject", lambda t: rewrite_guard_subject(t, sovereign)),
+        ("rewrite_drill_your_guard", lambda t: rewrite_drill_your_guard(t)),
         ("rewrite_kill", lambda t: rewrite_kill(t, enemy_names)),
         ("rewrite_attack_idioms", lambda t: rewrite_attack_idioms(t, friendly_names, enemy_names)),
+        ("strip_stop_chasing", lambda t: strip_stop_chasing(t, enemy_names)),
+        ("rewrite_hold_where_you_are", lambda t: rewrite_hold_where_you_are(t)),
+        ("strip_hold_the_line_tail", lambda t: strip_hold_the_line_tail(t)),
+        ("rewrite_take_back", lambda t: rewrite_take_back(t)),
+        ("rewrite_return_to", lambda t: rewrite_return_to(t)),
         ("rewrite_reward_idiom", lambda t: rewrite_reward_idiom(t, friendly_names)),
+        ("rewrite_bench_question", lambda t: rewrite_bench_question(t)),
+        ("rewrite_pass_a_law", lambda t: rewrite_pass_a_law(t)),
+        ("rewrite_build_idiom", lambda t: rewrite_build_idiom(t)),
         ("rewrite_invest_gold", lambda t: rewrite_invest_gold(t)),
         ("rewrite_trailing_end_turn", lambda t: rewrite_trailing_end_turn(t)),
     )
