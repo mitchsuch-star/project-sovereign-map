@@ -43,13 +43,10 @@ from backend.game_logic.settlement_baseline import compute_per_court_acceptance
 # for every pair the plan moved OUT of war (or a truce) INTO peace, and for
 # the clients that followed their lord (SR-1b) — one write floors every
 # channel, the PC15-D4 idiom. False = the pre-RS-1 ratifier byte-for-byte.
-THE_SETTLEMENT_WRITES_THE_PAIR_COOLDOWN = True
 
 
 def _settlement_peace_floor() -> Optional[int]:
     """The truce floor a settlement peace carries (None with the lever down)."""
-    if not THE_SETTLEMENT_WRITES_THE_PAIR_COOLDOWN:
-        return None
     from backend.game_logic.coalition import FRESH_PEACE_FLOOR_TURNS
     return int(FRESH_PEACE_FLOOR_TURNS)
 

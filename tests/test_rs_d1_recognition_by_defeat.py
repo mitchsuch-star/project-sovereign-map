@@ -342,37 +342,6 @@ class TestThePriceRider:
         w.invalidate_active_nations_cache()
         assert not SS.capital_retained_by_proposer_bloc(w, war, settlement_terms=peace, **kw)
 
-    def test_the_lever_down_reads_nothing(self, vienna_road, monkeypatch):
-        monkeypatch.setattr(SS, "A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST", False)
-        w = vienna_road
-        assert not SS.capital_retained_by_proposer_bloc(
-            w, w.war_instances["war_1"], proposer_side="attackers",
-            accepting_leader="Austria", settlement_terms=[{"type": "peace"}])
-        assert not SS.calculate_leader_own_losses(
-            w, accepting_leader="Austria", settlement_terms=[{"type": "peace"}],
-            capital_retained_by_proposer=True)["capital_lost"]
-
-    def test_the_table_prices_the_retention_on_the_staged_shape(self, vienna_road, monkeypatch):
-        """Measured through the real staging: a white peace plus 100 gold
-        for an Austria whose capital France holds reads 20 lower with the
-        rider (−15 capital, −5 kept-all) — the whole difference is the
-        rider's, byte-for-byte."""
-        terms = [{"type": "peace"},
-                 {"type": "gold", "amount": 100, "direction": "to_enemy"}]
-
-        def score(lever):
-            monkeypatch.setattr(SS, "A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST", lever)
-            w = copy.deepcopy(vienna_road)
-            with _quiet():
-                assert stage_settlement_confirm(
-                    w, war_id="war_1", settlement_terms=terms,
-                    covered_enemy_participants=["Austria"])["success"]
-            rows = w.pending_diplomatic_dialogue["per_court_acceptance"]
-            return next(r for r in rows if r["nation"] == "Austria")["total"]
-
-        assert score(False) - score(True) == SS.LEADER_KEEPS_ALL_BONUS - SS.LEADER_LOSS_CAPITAL
-
-
 # ════════════════════════════════════════════════════════════════════════
 # 4. The levers quote their turns; the projection names the road
 # ════════════════════════════════════════════════════════════════════════

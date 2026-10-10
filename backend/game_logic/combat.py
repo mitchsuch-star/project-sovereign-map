@@ -137,7 +137,6 @@ DECISIVENESS_MORALE_CAP = 55         # ceiling on the extra morale loss
 # so a 900-man corps SHATTERED into 1,000 — a net gain of a hundred men for
 # being routed (REPRO_L forced the surround and measured 900 → 1000 at four
 # seeds). False reproduces the bare floor at all three sites.
-ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY = True
 
 
 def rout_survivors(old_strength: int, survival_rate: float) -> int:
@@ -148,8 +147,7 @@ def rout_survivors(old_strength: int, survival_rate: float) -> int:
     the three sites now agree on it — consistency, not new arithmetic."""
     old = int(old_strength)
     floored = max(1000, int(old * float(survival_rate)))
-    if ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY:
-        return min(old, floored)
+    return min(old, floored)
     return floored
 
 
@@ -158,7 +156,6 @@ def rout_survivors(old_strength: int, survival_rate: float) -> int:
 # drilling suffers — printed on the report, snapshotted on the battle
 # report — was never applied (measured: identical casualties drilling or
 # not). True = the modifier reads the drill, then the drill is cancelled.
-DRILL_PENALTY_READ_BEFORE_THE_CLEAR = True
 
 
 def _cancel_drill(defender) -> None:
@@ -174,7 +171,6 @@ def _cancel_drill(defender) -> None:
 # executor distributes the losses over. False = the primary's strength alone
 # (CO-1's half-landing: strength committed to the exchange, no bodies in the
 # pool).
-CASUALTIES_FALL_ON_THE_FIELD = True
 
 
 def decisiveness_morale_penalty(loser_casualties: float,
@@ -336,9 +332,9 @@ class CombatResolver:
                 morale casualty RATE read these; 0 (a solo battle) reads the
                 primary's strength, byte-identical to pre-FA-D29.
         """
-        atk_bodies = (int(attacker_bodies) if (CASUALTIES_FALL_ON_THE_FIELD and attacker_bodies)
+        atk_bodies = (int(attacker_bodies) if (attacker_bodies)
                       else int(attacker.strength))
-        def_bodies = (int(defender_bodies) if (CASUALTIES_FALL_ON_THE_FIELD and defender_bodies)
+        def_bodies = (int(defender_bodies) if (defender_bodies)
                       else int(defender.strength))
 
         # C2 fix: Log warning for same-nation combat (defensive programming).
@@ -651,8 +647,6 @@ class CombatResolver:
             drilling_penalty_message = f"{defender.name}'s drill was interrupted by the attack! (-25% defense)"
             # Cancel drill - they lose all progress. GR4: AFTER the defense
             # modifier has read it (below), unless the lever is down.
-            if not DRILL_PENALTY_READ_BEFORE_THE_CLEAR:
-                _cancel_drill(defender)
 
         # ════════════════════════════════════════════════════════════
         # STANCE & PERSONALITY MODIFIER (Phase 2.7/2.8): Apply defense modifiers
@@ -713,7 +707,7 @@ class CombatResolver:
 
         # GR4 (the AI drill fix): the modifier above has read the drill; now
         # the drill is lost.
-        if is_drilling and DRILL_PENALTY_READ_BEFORE_THE_CLEAR:
+        if is_drilling:
             _cancel_drill(defender)
 
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)

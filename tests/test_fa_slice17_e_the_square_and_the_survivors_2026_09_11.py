@@ -103,7 +103,6 @@ class TestFAN57TheSquareAdvisorySpeaks:
 
     def test_levers_default_on(self):
         assert SE.SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE is True
-        assert C.ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY is True
 
     def test_a_support_order_from_square_names_the_broken_square(self, client):
         c, w = client
@@ -383,10 +382,6 @@ class TestFAN32ARoutNeverLeavesMoreMenThanItHad:
         assert C.rout_survivors(40000, 0.10) == 4000
         assert C.rout_survivors(0, 0.10) == 0
 
-    def test_the_helper_lever_down_reproduces_the_net_gain(self, monkeypatch):
-        monkeypatch.setattr(C, "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY", False)
-        assert C.rout_survivors(900, 0.05) == 1000, "the defect: 900 men shatter into 1,000"
-
     def test_all_three_sites_read_the_helper(self):
         ws = (REPO / "backend/models/world_state.py").read_text(encoding="utf-8")
         ce = (REPO / "backend/commands/combat_executor.py").read_text(encoding="utf-8")
@@ -420,14 +415,3 @@ class TestFAN32ARoutNeverLeavesMoreMenThanItHad:
                 reached += 1
                 assert well.strength <= 900, (seed, well.strength)
         assert reached >= 6, f"the shatter arm was reached on only {reached}/12 seeds — the pin is vacuous"
-
-    def test_the_lever_down_reproduces_the_gain_on_the_same_seeds(self, monkeypatch):
-        monkeypatch.setattr(C, "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY", False)
-        grew = 0
-        for seed in range(1, 13):
-            w, ney, well = self._surround(monkeypatch)
-            random.seed(seed)
-            _quiet(w._process_reckless_cavalry_turn_start)
-            if well.broken and well.strength == 1000:
-                grew += 1
-        assert grew >= 6, f"the defect reproduced on only {grew}/12 seeds"

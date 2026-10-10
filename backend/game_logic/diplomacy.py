@@ -4777,8 +4777,7 @@ def build_war_context_snapshot(
     # rule (`war_status._tier_side`), sandbox-scoped so the legacy snapshot
     # is byte-identical. `war_score` is the player's perspective (above).
     from backend.game_logic import war_status as _war_status
-    if (_war_status.THE_TIER_NAMES_ITS_SIDE
-            and getattr(world, "sandbox_mode", False)):
+    if (getattr(world, "sandbox_mode", False)):
         snapshot["settlement_tier_side"] = _war_status._tier_side(war_score)
     snapshot["tier_mismatch_warnings"] = get_tier_mismatch_warnings(war_score, effective_terms)
 
@@ -12566,8 +12565,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         # FA-D17 (slice 17, Phase 2): the same predicate the send gate refuses
         # on — a bilateral peace that breaks an ally's war is a HARD_STOP at
         # the confirm; the row said so only after the draft was written.
-        from backend.game_logic.diplomatic_dialogue import THE_PARADOX_BLOCK_NAMES_THE_TRUCE
-        if THE_PARADOX_BLOCK_NAMES_THE_TRUCE and _peace_row.get("available"):
+        if _peace_row.get("available"):
             _hard = [c for c in get_peace_commitment_conflicts(world, player, target_nation, [])
                      if c.get("severity") == "HARD_STOP"]
             if _hard:

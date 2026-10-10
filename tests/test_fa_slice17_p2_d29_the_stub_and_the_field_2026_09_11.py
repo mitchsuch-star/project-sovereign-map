@@ -167,21 +167,6 @@ class TestCasualtiesFallOnTheField:
         assert ev["outcome"].startswith("attacker")           # a 100,000-man army beats a 48,500 field
         assert 1_000 < ev["attacker"]["casualties"] < 10_000  # the attacker's losses were already honest
 
-    def test_lever_down_reproduces_the_stub_pool(self, monkeypatch):
-        from backend.game_logic import combat as CB
-        monkeypatch.setattr(CB, "CASUALTIES_FALL_ON_THE_FIELD", False)
-        w = _boot()
-        ney, dav, moore = _stage(w)
-        ex = CommandExecutor()
-        random.seed(11)
-        res = _attack(ex, w)
-        ev = next(e for e in res["events"] if e.get("type") == "battle")
-        arrived = [r for r in res["reinforcement_results"]["defender"] if r.get("arrived")]
-        if not arrived:
-            pytest.skip("Davout's arrival roll failed on this seed")
-        assert ev["defender"]["casualties"] <= 500            # 60% of the 500-man primary at most
-        assert ev["outcome"].startswith("defender")           # the accounting rout
-
     def test_the_executor_passes_the_bodies_it_distributes_over(self, monkeypatch):
         w = _boot()
         ney, dav, moore = _stage(w)
@@ -205,24 +190,6 @@ class TestCasualtiesFallOnTheField:
         assert scale > 0
         assert seen["defender_bodies"] == int(500 + ex._combat.COMMITTED_ALPHA * 48_000 * scale)
         assert 500 < seen["defender_bodies"] < 48_500
-
-    def test_a_solo_battle_is_byte_identical_in_both_arms(self, monkeypatch):
-        from backend.game_logic import combat as CB
-        w = _boot()
-        ney, dav, moore = _stage(w, friend=0)   # no friend: solo
-        dav.location = "Gascony"
-        outs = []
-        for arm in (True, False):
-            monkeypatch.setattr(CB, "CASUALTIES_FALL_ON_THE_FIELD", arm)
-            w2 = _boot()
-            n2, d2, m2 = _stage(w2, friend=0)
-            d2.location = "Gascony"
-            w2.calculate_visibility()
-            random.seed(23)
-            res = _attack(CommandExecutor(), w2)
-            ev = next(e for e in res["events"] if e.get("type") == "battle")
-            outs.append((ev["attacker"]["casualties"], ev["defender"]["casualties"], ev["outcome"]))
-        assert outs[0] == outs[1]
 
     def test_the_resolver_pool_and_rate_read_the_bodies(self):
         from backend.game_logic.combat import CombatResolver
@@ -278,11 +245,9 @@ class TestCasualtiesFallOnTheField:
 # the census
 # ═══════════════════════════════════════════════════════════════════════
 class TestCensus:
-    def test_both_levers_exist_with_false_arms(self):
+    def test_the_muster_lever_is_on(self):
         from backend.ai import enemy_ai as EA
-        from backend.game_logic import combat as CB
         assert EA.P4_PRICES_THE_MUSTER is True
-        assert CB.CASUALTIES_FALL_ON_THE_FIELD is True
 
     def test_no_pool_reads_the_primary_strength_bare(self):
         src = (ROOT / "backend" / "game_logic" / "combat.py").read_text(encoding="utf-8")

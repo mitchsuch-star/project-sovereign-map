@@ -1,19 +1,5 @@
 [
   {
-    "id": "the drill is never cancelled after the read",
-    "file": "backend/game_logic/combat.py",
-    "old": "        if is_drilling and DRILL_PENALTY_READ_BEFORE_THE_CLEAR:\n            _cancel_drill(defender)",
-    "new": "        if False:\n            _cancel_drill(defender)",
-    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheDrillingPenaltyIsRead::test_the_drill_is_still_lost_after_the_read"
-  },
-  {
-    "id": "the drill is cancelled before the read again",
-    "file": "backend/game_logic/combat.py",
-    "old": "            if not DRILL_PENALTY_READ_BEFORE_THE_CLEAR:\n                _cancel_drill(defender)",
-    "new": "            if True:\n                _cancel_drill(defender)",
-    "tests": "tests/test_ai_drill_fix_2026_09_27.py::TestTheDrillingPenaltyIsRead::test_a_corps_caught_drilling_takes_the_printed_penalty"
-  },
-  {
     "id": "the reach forgets the strike",
     "file": "backend/ai/enemy_ai.py",
     "old": "        reach = (phases + 1) * max(1, int(getattr(other, \"movement_range\", 1) or 1))",

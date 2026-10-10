@@ -1,12 +1,5 @@
 [
  {
-  "id": "FA-S12-1/a the window lever is down",
-  "file": "backend/game_logic/withdrawal.py",
-  "old": "CORRIDOR_MINIMUM_WINDOW_ACTIVE = True",
-  "new": "CORRIDOR_MINIMUM_WINDOW_ACTIVE = False",
-  "tests": "tests/test_fa_slice14d_the_door_and_the_fallen_lord_2026_09_06.py::TestTheDoorIsLeftOpen::test_a_stranding_free_peace_writes_a_window"
- },
- {
   "id": "FA-S12-1/b the nobody-stranded rollback writes no window",
   "file": "backend/game_logic/withdrawal.py",
   "old": "            grants.pop(key, None)\n        _open_minimum_window(world, nation_a, nation_b)\n        return {}",

@@ -20,9 +20,6 @@ this half is REAL, and these pins hold the correction:
       map only (`THE_DEFEAT_IS_THE_SOIL`).
 - V4  it speaks its mind: the counsel and the war room name the open door
       (`VOLTE_FACE_SPEAKS_ITS_MIND`).
-
-Every lever set False reproduces the pre-IQ-6 game on its surface; the
-identity grid below compares against a VERBATIM copy of the old predicate.
 """
 
 import contextlib
@@ -240,11 +237,9 @@ class TestT1TheWindowFitsTheCourtship:
             assert forecast is not None and forecast[0] == ticks
             ticks_by_court[court] = ticks
             assert ticks + 1 < ED.volte_face_window() == 20, (court, ticks)
-        # Negative control: the pre-IQ-6 window shut the door on a PERFECT
-        # courtship (16 is not below 15).
-        monkeypatch.setattr(ED, "THE_WINDOW_FITS_THE_COURTSHIP", False)
-        assert ED.volte_face_window() == 15
-        assert all(t + 1 >= ED.volte_face_window()
+        # The pre-IQ-6 window of 15 shut the door on a PERFECT courtship
+        # (16 is not below 15).
+        assert all(t + 1 >= ED.VOLTE_FACE_WINDOW_BEFORE_IQ6 == 15
                    for t in ticks_by_court.values()), ticks_by_court
 
     def test_the_forecast_steps_the_drift_like_the_tick(self, world):
@@ -330,20 +325,6 @@ class TestT2TheOrdinaryGeometry:
         assert not any(r["reason"] == "volte_face" for r in rows)
         assert not _volte_events(world)
 
-    def test_lever_down_the_old_window_shuts_a_perfect_courtship(
-            self, world, monkeypatch):
-        """Negative control: at 15 the same courtship is never receptive —
-        the relation stands at 35 when the window closes — and the ladder
-        alliance the court then asks for is ordinary, not a reversal."""
-        monkeypatch.setattr(ED, "THE_WINDOW_FITS_THE_COURTSHIP", False)
-        _pressburg(world)
-        _start_improve(world, "Austria")
-        rows = _run(world, turns=22, stop_on_fire=False)
-        assert not any(r["receptive"] for r in rows)
-        assert not any(r["reason"] == "volte_face" for r in rows)
-        assert not _volte_events(world)
-
-
 # ═══════════════════ V1b — a separate peace ends the war ═══════════════════
 
 class TestV1bASeparatePeaceEndsTheWar:
@@ -356,10 +337,6 @@ class TestV1bASeparatePeaceEndsTheWar:
         window = ED.volte_face_window()
         assert ED._war_with_ended_recently(world, "Austria", PLAYER, window)
         assert ED._latest_war_end_turn(world, "Austria", PLAYER) == peace_turn
-        monkeypatch.setattr(ED, "THE_SEPARATE_PEACE_ENDS_THE_WAR", False)
-        assert not ED._war_with_ended_recently(world, "Austria", PLAYER, window)
-        assert ED.volte_face_failing_clauses(world, "Austria", PLAYER)[0] == (
-            ED.VOLTE_CLAUSE_NOT_BEATEN)
 
     def test_an_unresolved_pair_is_still_a_war(self, world):
         """Only a RESOLVED pair ends it — the boot war's live pairs never do."""
@@ -408,8 +385,6 @@ class TestT4TheDefeatIsTheSoil:
         assert ED.volte_face_receptive(world, "Russia", PLAYER) is False
         assert ED.volte_face_failing_clauses(world, "Russia", PLAYER) == [
             ED.VOLTE_CLAUSE_NO_MARK]
-        monkeypatch.setattr(ED, "THE_DEFEAT_IS_THE_SOIL", False)
-        assert ED.volte_face_receptive(world, "Russia", PLAYER) is True
 
     def test_the_soil_alone_shows_it(self, world):
         _stage_tilsit(world, soil=True, exhaustion=0)
@@ -454,9 +429,6 @@ class TestT5ItSpeaksItsMind:
         (text, mission), (base_text, base_mission) = self._counsel(world)
         assert text == f"{base_text} {line}"
         assert mission == base_mission, "display only — the mission is untouched"
-        monkeypatch.setattr(ED, "VOLTE_FACE_SPEAKS_ITS_MIND", False)
-        (text_down, mission_down), _ = self._counsel(world)
-        assert (text_down, mission_down) == (base_text, base_mission)
 
     def test_the_war_room_says_it_too(self, world, monkeypatch):
         _pressburg(world)
@@ -468,11 +440,6 @@ class TestT5ItSpeaksItsMind:
         assert [o["nation"] for o in openings] == ["Austria"]
         assert openings[0]["text"] == line
         assert all(isinstance(n, int) for n in _walk_numbers(openings))
-        monkeypatch.setattr(ED, "VOLTE_FACE_SPEAKS_ITS_MIND", False)
-        with _quiet():
-            room_down = ADV._assess_situation(world)
-        assert "volte_openings" not in room_down["context"]
-        assert "beaten, not broken" not in room_down["talleyrand_text"]
 
     def test_it_speaks_only_when_courting_is_all_that_is_missing(self, world):
         _pressburg(world)
@@ -502,137 +469,7 @@ class TestT5ItSpeaksItsMind:
             ED.VOLTE_CLAUSE_NO_MARK)
         assert ED.volte_face_counsel_line(world, "Russia", PLAYER) == ""
 
-    def test_an_honest_no_when_the_road_is_too_long(self, world, monkeypatch):
-        """At the old window the same courtship cannot land — and the line
-        says so instead of promising it."""
-        monkeypatch.setattr(ED, "THE_WINDOW_FITS_THE_COURTSHIP", False)
-        _pressburg(world)
-        line = ED.volte_face_counsel_line(world, "Austria", PLAYER)
-        assert "would not carry them" in line and "13 turns" in line
-
-
 # ═════════════ The levers down reproduce the pre-IQ-6 predicate ═════════════
-
-def _pre_iq6_war_with_ended_recently(world, power, other, window):
-    """VERBATIM copy of the pre-IQ-6 `_war_with_ended_recently` body."""
-    turn = int(getattr(world, "current_turn", 0))
-
-    def _scan(instances):
-        for instance in instances:
-            if not isinstance(instance, dict):
-                continue
-            meta = instance.get("participant_meta") or {}
-            side_by = instance.get("side_by_nation") or {}
-
-            def _side_of(n):
-                record = meta.get(n)
-                if isinstance(record, dict) and record.get("side"):
-                    return record.get("side")
-                return side_by.get(n)
-
-            power_side = _side_of(power)
-            other_side = _side_of(other)
-            if not power_side or not other_side or power_side == other_side:
-                continue
-            end = (meta.get(power) or {}).get("exited_turn")
-            if end is None:
-                end = instance.get("ended_turn")
-            if end is None:
-                continue
-            if turn - int(end) < window:
-                return True
-        return False
-
-    if _scan((getattr(world, "war_instances", {}) or {}).values()):
-        return True
-    return _scan(getattr(world, "archived_war_instances", []) or [])
-
-
-def _pre_iq6_receptive(world, power, hegemon):
-    """VERBATIM copy of the pre-IQ-6 `volte_face_receptive` (window 15)."""
-    if power == hegemon:
-        return False
-    player = getattr(world, "player_nation", "France")
-    if power == player:
-        return False
-    if world.get_power_tier(power) != "major":
-        return False
-    if power in (getattr(world, "vassals", {}) or {}):
-        return False
-    if power not in world.get_active_nations():
-        return False
-    if world.get_diplomatic_state(power, hegemon) in ("WAR", "ARMISTICE"):
-        return False
-    from backend.game_logic.settlement_reactions import get_settlement_memories
-    if get_settlement_memories(world, actor=hegemon, subject=power,
-                               memory_type=ED.PUNITIVE_MEMORY_TYPE):
-        return False
-    for entry in (getattr(world, "agendas", {}) or {}).get(power) or []:
-        if (isinstance(entry, dict) and entry.get("emergent")
-                and entry.get("author") == hegemon):
-            return False
-    if not _pre_iq6_war_with_ended_recently(world, power, hegemon, 15):
-        return False
-    exhausted = int((getattr(world, "war_exhaustion", {}) or {})
-                    .get(power, 0) or 0) >= 40
-    hegemon_bloc = set(world.get_bloc_members(hegemon))
-    soil_marked = any(
-        (lambda c: c and (world._top_overlord(c) or c) in hegemon_bloc)(
-            getattr(world.regions.get(r), "controller", None))
-        for r in ED._lost_homeland(world, power))
-    if not exhausted and not soil_marked:
-        return False
-    relation = int(world.nation_relations.get(
-        world._make_diplo_key(power, hegemon), 0) or 0)
-    return relation >= 40
-
-
-class TestTheLeversDownReproduceThePredicate:
-    def test_identity_grid(self, boot, monkeypatch):
-        """With V1, V1b and V3 down, the refactored single source answers
-        exactly as the pre-IQ-6 predicate on every staged state — including
-        a resolved pair the old read ignored."""
-        monkeypatch.setattr(ED, "THE_WINDOW_FITS_THE_COURTSHIP", False)
-        monkeypatch.setattr(ED, "THE_DEFEAT_IS_THE_SOIL", False)
-        monkeypatch.setattr(ED, "THE_SEPARATE_PEACE_ENDS_THE_WAR", False)
-        compared = 0
-        answers = set()
-        for punitive in (False, True):
-            with _quiet():
-                world = WorldState.from_dict(boot.to_dict())
-            _stage_tilsit(world)
-            if punitive:
-                ED.record_punitive_cessions(world, {
-                    "Russia": [("Lithuania", PLAYER), ("Livonia", PLAYER)]})
-            capital = world.get_nation_capital("Russia")
-            soil_region = next(r for r in world.nation_starting_regions["Russia"]
-                               if r != capital)
-            instance = world.war_instances["tilsit_war"]
-            turn = int(world.current_turn)
-            for relation, exhaustion, soil, ago, at_war, pair_meta in itertools.product(
-                    (39, 40, 45), (0, 39, 40, 80), (True, False),
-                    (0, 14, 15, 16, 20, 21), (False, True), (False, True)):
-                world.nation_relations[world._make_diplo_key("Russia", PLAYER)] = relation
-                world.war_exhaustion["Russia"] = exhaustion
-                world.regions[soil_region].controller = PLAYER if soil else "Russia"
-                instance["ended_turn"] = turn - ago
-                instance["diplo_key_meta"] = ({"France|Russia": {
-                    "pair_status": "resolved", "resolved_turn": turn}}
-                    if pair_meta else {})
-                world.diplomatic_states[world._make_diplo_key("Russia", PLAYER)] = (
-                    "WAR" if at_war else "PEACE")
-                world.invalidate_bloc_members_cache()
-                for power, hegemon in (("Russia", PLAYER), (PLAYER, "Russia"),
-                                       ("Bavaria", PLAYER)):
-                    old = _pre_iq6_receptive(world, power, hegemon)
-                    assert ED.volte_face_receptive(world, power, hegemon) == old, (
-                        punitive, relation, exhaustion, soil, ago, at_war,
-                        pair_meta, power)
-                    answers.add(old)
-                    compared += 1
-        assert compared == 2 * 3 * 4 * 2 * 6 * 2 * 2 * 3
-        assert answers == {True, False}, "the grid must reach both answers"
-
 
 # ═════════ T7 — the committed courting script, end to end (slow) ═════════
 # The assurance idiom: the real playtest driver as a subprocess, 40 turns of

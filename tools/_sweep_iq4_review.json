@@ -156,18 +156,6 @@
   "tests": "tests/test_iq4_cabinet_visible.py"
  },
  {
-  "file": "backend/game_logic/diplomatic_ledger.py",
-  "old": "        if TALLEYRAND_TAB_READS_THE_CABINET:\n            from backend.game_logic.diplomatic_dialogue import mission_status",
-  "new": "        if False:\n            from backend.game_logic.diplomatic_dialogue import mission_status",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/diplomatic_ledger.py",
-  "old": "    if TALLEYRAND_TAB_READS_THE_CABINET and active_mission is None:",
-  "new": "    if False:",
-  "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
   "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
   "old": "bbcode += \"[color=#\" + Utils.COLOR_WARNING + \"]\" + head + \"[/color]\\n\"",
   "new": "bbcode += \"[color=#\" + Utils.COLOR_GREY + \"]\" + head + \"[/color]\\n\"",

@@ -1,12 +1,5 @@
 [
   {
-    "id": "GE2-01 the clock-line lever down",
-    "file": "backend/game_logic/fall.py",
-    "old": "THE_CLOCK_HAS_ONE_LINE = True",
-    "new": "THE_CLOCK_HAS_ONE_LINE = False",
-    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_warning_arms_carry_the_line"
-  },
-  {
     "id": "GE2-02 a paused truce given a date",
     "file": "backend/game_logic/fall.py",
     "old": "        return f\"{head} · the clock stands still while the truce holds\"",
@@ -47,13 +40,6 @@
     "old": "        for _row in _fall.clock_lines(world, player):\n            lines.append(f\"  {_row['clock_line']}\")",
     "new": "        for _row in []:\n            lines.append(f\"  {_row['clock_line']}\")",
     "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_war_room_prints_every_held_arm"
-  },
-  {
-    "id": "GE2-08 the warning arms lose the line",
-    "file": "backend/game_logic/fall.py",
-    "old": "    if THE_CLOCK_HAS_ONE_LINE:\n        row[\"clock_line\"] = clock_line(world, view)\n        row[\"severity\"] = clock_severity(view)",
-    "new": "    if False:\n        row[\"clock_line\"] = clock_line(world, view)\n        row[\"severity\"] = clock_severity(view)",
-    "tests": "tests/test_ge2_the_client.py::TestTheClockLine::test_the_three_surfaces_print_the_same_words"
   },
   {
     "id": "GE2-09 the fourth register unmapped",

@@ -119,13 +119,6 @@
   "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheOfferingCourtsConsent::test_a_court_that_has_made_its_own_peace_is_dropped_and_named"
  },
  {
-  "id": "elim/a an eliminated court pairs resolve",
-  "file": "backend/game_logic/settlement_helpers.py",
-  "old": "        if ELIMINATION_RESOLVES_ITS_PAIRS:\n            active_pairs = instance.setdefault(\"active_diplo_keys\", [])",
-  "new": "        if False:\n            active_pairs = instance.setdefault(\"active_diplo_keys\", [])",
-  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheDeadCourtsWarIsOver::test_an_eliminated_courts_pairs_are_resolved tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheDeadCourtsWarIsOver::test_a_settlement_can_still_be_ratified_after_an_ally_dies"
- },
- {
   "id": "elim/b the pair is stamped resolved",
   "file": "backend/game_logic/settlement_helpers.py",
   "old": "                pair_meta[\"pair_status\"] = \"resolved\"\n                pair_meta[\"resolved_turn\"] = turn",
@@ -152,13 +145,6 @@
   "old": "SAFETY_VALVE_DIALOGUE_TYPES = (\n    \"incoming_proposal\",\n    \"incoming_ultimatum\",\n    \"counter_offer\",\n    \"counter_offer_response\",\n)",
   "new": "SAFETY_VALVE_DIALOGUE_TYPES = (\n    \"incoming_proposal\",\n    \"incoming_ultimatum\",\n)",
   "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_the_safety_valve_knows_the_counter_family"
- },
- {
-  "id": "deliver/d a lapsed counter costs a cooldown",
-  "file": "backend/game_logic/turn_manager.py",
-  "old": "                if (LAPSED_COUNTER_COSTS_A_COOLDOWN\n                        and nation\n                        and lapse[\"offer_type\"] == \"counter_offer_response\"):",
-  "new": "                if (False\n                        and nation\n                        and lapse[\"offer_type\"] == \"counter_offer_response\"):",
-  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_the_lapse_cooldown_is_wired_at_the_turn_seam"
  },
  {
   "id": "deliver/e the paradox survives the sweep",

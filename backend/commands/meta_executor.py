@@ -51,7 +51,7 @@ def collapse_turn_end_fields(world) -> Dict:
     count. Sandbox worlds only, and absent with the collapse lever down, so
     the legacy event dict stays byte-identical."""
     from backend.game_logic import collapse
-    if not collapse.THE_COLLAPSE_IS_LEGIBLE or not getattr(world, "sandbox_mode", False):
+    if not getattr(world, "sandbox_mode", False):
         return {}
     state = collapse.get_collapse_state(world)
     return {

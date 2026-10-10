@@ -91,13 +91,6 @@
   "tests": "tests/test_fa_slice10_review_round_2026_09_05.py::TestTheSeamsTheSliceDidNotPin::test_a_real_draft_still_blocks_that_route"
  },
  {
-  "id": "repair/a the lapse cooldown is written by production",
-  "file": "backend/game_logic/turn_manager.py",
-  "old": "                if (LAPSED_COUNTER_COSTS_A_COOLDOWN\n                        and nation\n                        and lapse[\"offer_type\"] == \"counter_offer_response\"):",
-  "new": "                if (False\n                        and nation\n                        and lapse[\"offer_type\"] == \"counter_offer_response\"):",
-  "tests": "tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_a_lapsed_counter_costs_the_player_a_cooldown tests/test_fa_slice10_the_offer_on_the_desk_2026_09_05.py::TestTheAnswerReachesTheDesk::test_the_lapse_cooldown_is_wired_at_the_turn_seam"
- },
- {
   "id": "repair/b the type cooldown is written",
   "file": "backend/game_logic/turn_manager.py",
   "old": "                        self.world.player_proposal_cooldowns[\n                            f\"{nation}_{_lapsed_ptype}\"] = 5",

@@ -3309,11 +3309,10 @@ class WorldState:
                 and event.get("captured_from")
                 and event.get("captured_from") == self.player_nation):
             from backend.game_logic import collapse as _collapse
-            if _collapse.THE_COLLAPSE_IS_LEGIBLE:
-                from backend.game_logic.formations import formed_display_name
-                _lost_by = self.player_nation
-                event["holdings_left"] = int(len(self.get_nation_regions(_lost_by)))
-                event["holdings_realm"] = formed_display_name(self, _lost_by)
+            from backend.game_logic.formations import formed_display_name
+            _lost_by = self.player_nation
+            event["holdings_left"] = int(len(self.get_nation_regions(_lost_by)))
+            event["holdings_realm"] = formed_display_name(self, _lost_by)
         self.event_log.append(event)
         if len(self.event_log) > self.MAX_EVENT_LOG_SIZE:
             self.event_log = self.event_log[-self.MAX_EVENT_LOG_SIZE:]
@@ -7269,8 +7268,7 @@ class WorldState:
         events: list = []
 
         from backend.game_logic.dotation import (
-            EROSION_MAX, GRACE_TURNS, PENSION_CHURN_GUARD_ACTIVE,
-            SHORTFALL_PER_POINT,
+            EROSION_MAX, GRACE_TURNS, SHORTFALL_PER_POINT,
             capture_choice_pending, get_estate_income, get_expectation,
             get_satisfaction, is_estate_respected, log_estate_lost,
             prune_respected_estates,
@@ -7362,7 +7360,7 @@ class WorldState:
                 # only has two real arms: durable estate coverage, and the
                 # lever.
                 _estate_covers = get_estate_income(marshal, self) >= expectation
-                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:
+                if _estate_covers:
                     marshal.expectation_grace_turn = -1
                     # FA-N46: no clock is frozen any more, so the stamp must
                     # not survive to be read against a later shortfall.
@@ -7407,10 +7405,7 @@ class WorldState:
             # clock and a genuinely neglected marshal still erodes on time.
             _frozen_cover = int(getattr(
                 marshal, "expectation_covered_at_freeze", -1) or -1)
-            if (PENSION_CHURN_GUARD_ACTIVE
-                    and marshal.expectation_grace_turn >= 0
-                    and _frozen_cover >= 0
-                    and expectation > _frozen_cover):
+            if (marshal.expectation_grace_turn >= 0 and _frozen_cover >= 0 and expectation > _frozen_cover):
                 marshal.expectation_grace_turn = -1
                 marshal.expectation_covered_at_freeze = -1
 

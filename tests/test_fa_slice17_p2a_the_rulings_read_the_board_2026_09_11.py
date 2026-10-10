@@ -149,18 +149,6 @@ class TestD2CoalitionRowReadsEveryPair:
         enemy_obj = self._coalition_row(w)["enemy_objective"]
         assert enemy_obj is not None and enemy_obj["by"] == "Russia"
 
-    def test_lever_down_reads_the_leader_pair_only(self, monkeypatch):
-        from backend.game_logic import war_status as WSt
-        _flip(monkeypatch, WSt, "THE_COALITION_ROW_READS_EVERY_PAIR", False)
-        w = _boot()
-        key = w._make_diplo_key("France", "Austria")
-        w.war_objectives.setdefault(key, {})["France"] = {
-            "type": "humiliation", "set_turn": w.current_turn, "concluded_turn": None}
-        row = self._coalition_row(w)
-        # the leader pair's own default (FA-D4), never the member's named purpose
-        assert row["objective"]["type"] == "defense"
-        assert row["objective"]["against"] == row["opponent"]
-
     def test_the_detail_screen_prints_the_court_it_targets(self):
         src = (GD / "war_detail_popup.gd").read_text(encoding="utf-8")
         assert 'objective.get("against", "")' in src
@@ -481,18 +469,6 @@ class TestD17ParadoxBlockNamesTheTruce:
         assert row["disabled_reason"] == "Would break an ally's war — propose an armistice, or settle jointly"
         assert row["disabled_reason_display"] == row["disabled_reason"]
 
-    def test_lever_down_reproduces_the_old_copy_and_a_green_row(self, monkeypatch):
-        from backend.game_logic import diplomatic_dialogue as DD
-        from backend.game_logic.diplomacy import get_available_diplomatic_actions, set_diplomatic_state
-        _flip(monkeypatch, DD, "THE_PARADOX_BLOCK_NAMES_THE_TRUCE", False)
-        w = self._paradox_world()
-        dlg = DD.generate_dialogue("proposal_confirm", {"target_nation": "Austria", "proposal_type": "peace"}, w)
-        assert "resolve Bavaria's war first" in (dlg.get("commitment_block_warning") or "")
-        set_diplomatic_state(w, "France", "Austria", "ARMISTICE")
-        row = next(a for a in get_available_diplomatic_actions(w, "Austria") if a.get("action") == "propose_peace")
-        assert row["available"] is True
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # FA-D18 — the truce projection counts the thaw
 # ═══════════════════════════════════════════════════════════════════════
@@ -600,11 +576,6 @@ class TestD24BerthierRotatesHisObservations:
         random.seed(3)
         BR._pick_observation(dict(self.BR), "France")
         assert random.random() == expected
-        _flip(monkeypatch, BR, "BERTHIER_ROTATES_HIS_OBSERVATIONS", False)
-        assert BR._observation_rng(dict(self.BR)) is random
-        random.seed(3)
-        BR._pick_observation(dict(self.BR), "France")
-        assert random.random() != expected
 
     def test_no_bare_module_choice_survives_inside_the_picker(self):
         src = _read("backend/game_logic/battle_report.py")
@@ -638,10 +609,3 @@ class TestD26MaterielBill:
     def test_the_client_renders_it(self):
         src = (GD / "strategic_ledger.gd").read_text(encoding="utf-8")
         assert '"materiel"' in src
-
-    def test_lever_down_has_no_bill(self, monkeypatch):
-        from backend.game_logic import ledger as LG
-        _flip(monkeypatch, LG, "THE_LEDGER_SHOWS_THE_MATERIEL_BILL", False)
-        w = _boot()
-        w.materiel_spent_this_turn = {"France": 124}
-        assert LG._build_economy(w, "France")["materiel"] == 0

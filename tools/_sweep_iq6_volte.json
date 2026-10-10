@@ -1,12 +1,5 @@
 [
  {
-  "id": "IQ6-V1 lever down (the window back to 15)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "THE_WINDOW_FITS_THE_COURTSHIP = True",
-  "new": "THE_WINDOW_FITS_THE_COURTSHIP = False",
-  "tests": "tests/test_iq6_volte_face.py"
- },
- {
   "id": "IQ6-V1 the blessed number reverted",
   "file": "backend/game_logic/emergent_designs.py",
   "old": "VOLTE_FACE_WINDOW = 20\n",
@@ -18,13 +11,6 @@
   "file": "backend/game_logic/emergent_designs.py",
   "old": "VOLTE_FACE_WINDOW_CEILING = 25",
   "new": "VOLTE_FACE_WINDOW_CEILING = 30",
-  "tests": "tests/test_iq6_volte_face.py"
- },
- {
-  "id": "IQ6-V1b lever down (the participant read only)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "THE_SEPARATE_PEACE_ENDS_THE_WAR = True",
-  "new": "THE_SEPARATE_PEACE_ENDS_THE_WAR = False",
   "tests": "tests/test_iq6_volte_face.py"
  },
  {
@@ -46,13 +32,6 @@
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "    if not skip_nation_cooldown and cooldowns.get(nation_key, 0) > 0:",
   "new": "    if cooldowns.get(nation_key, 0) > 0:",
-  "tests": "tests/test_iq6_volte_face.py"
- },
- {
-  "id": "IQ6-V3 lever down (the exhaustion arm back)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "THE_DEFEAT_IS_THE_SOIL = True",
-  "new": "THE_DEFEAT_IS_THE_SOIL = False",
   "tests": "tests/test_iq6_volte_face.py"
  },
  {
@@ -81,13 +60,6 @@
   "file": "backend/game_logic/emergent_designs.py",
   "old": "    if relation < VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
   "new": "    if relation <= VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
-  "tests": "tests/test_iq6_volte_face.py"
- },
- {
-  "id": "IQ6-V4 lever down (silent)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "VOLTE_FACE_SPEAKS_ITS_MIND = True",
-  "new": "VOLTE_FACE_SPEAKS_ITS_MIND = False",
   "tests": "tests/test_iq6_volte_face.py"
  },
  {

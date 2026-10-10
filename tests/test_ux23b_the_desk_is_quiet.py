@@ -769,15 +769,13 @@ class TestTheDispatchReReadIsNotStale:
             if prev_state is not None:
                 main_module.game_state["world"] = prev_state
 
-    def test_a_mid_turn_shortfall_still_states_its_window(self, world):
+    def test_a_mid_turn_shortfall_is_the_rails_row_not_the_briefings(self, world):
         """The grace clock is written only by the once-per-turn pass, so a
         shortfall that opens SINCE it ran had `grace_turns_left = -1` — and
         `dispatch_view.gd` renders a note only when the row is eroding or the
         countdown is >= 0. The row that exists to prompt action was printing
         without the window it is prompting about."""
-        from backend.game_logic.dotation import GRACE_TURNS, build_unmet_marshals
-
-        from backend.game_logic import dotation as _dot
+        from backend.game_logic.dotation import build_unmet_marshals
 
         ney = world.marshals["Ney"]
         ney.expectation_steps = 3                     # a victory, mid-turn
@@ -786,21 +784,9 @@ class TestTheDispatchReReadIsNotStale:
 
         # F4 "The fuse is longer" (Sept 24, 2026): the block is an ALARM —
         # a shortfall whose clock has not even started is the rail's row,
-        # not the briefing's, so it is absent here by design...
+        # not the briefing's, so it is absent here by design.
         assert not [r for r in build_unmet_marshals(world, "France")
                     if r["marshal"] == "Ney"]
-        # ...and with the lever down the pre-F4 rule stands: the honest
-        # figure is the full window — never -1, which rendered as nothing.
-        prior = _dot.THE_UNMET_BLOCK_WAITS
-        _dot.THE_UNMET_BLOCK_WAITS = False
-        try:
-            row = next(r for r in build_unmet_marshals(world, "France")
-                       if r["marshal"] == "Ney")
-        finally:
-            _dot.THE_UNMET_BLOCK_WAITS = prior
-        assert row["grace_turns_left"] == GRACE_TURNS, (
-            "his patience has not started burning yet, so the honest figure "
-            "is the full window — never -1, which renders as nothing at all")
 
     def test_the_dispatch_builder_reads_the_shared_helper(self):
         """GR1 — one implementation of the Unmet Marshals row, not two."""

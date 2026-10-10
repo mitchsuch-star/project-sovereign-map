@@ -1429,7 +1429,6 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
 # IQ-4 "The Cabinet Is Visible" flip lever: False drops the tab's new
 # mission keys (`type_display`, `net_per_turn`, `remaining_note`,
 # `remaining_kind`) and the idle `last_mission` line — master 7bbf82b8.
-TALLEYRAND_TAB_READS_THE_CABINET = True
 
 # SF7-X48 (found shooting Step 7b's frames): the Balance of Europe tab named
 # the alarm by its severity band ("[MODERATE]") where the dispatch, the desk
@@ -1571,18 +1570,17 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         # IQ-4 S3j: the Talleyrand tab reads the same derived figures as the
         # Strategic Ledger's Cabinet block — "Ongoing" becomes the net a turn
         # and what stands between the mission and its end.
-        if TALLEYRAND_TAB_READS_THE_CABINET:
-            from backend.game_logic.diplomatic_dialogue import mission_status
-            _status = mission_status(world) or {}
-            active_mission["type_display"] = str(_status.get("type_display", ""))
-            active_mission["net_per_turn"] = int(_status.get("net_per_turn", 0) or 0)
-            active_mission["remaining_note"] = str(_status.get("remaining_note", ""))
-            active_mission["remaining_kind"] = str(_status.get("remaining_kind", ""))
+        from backend.game_logic.diplomatic_dialogue import mission_status
+        _status = mission_status(world) or {}
+        active_mission["type_display"] = str(_status.get("type_display", ""))
+        active_mission["net_per_turn"] = int(_status.get("net_per_turn", 0) or 0)
+        active_mission["remaining_note"] = str(_status.get("remaining_note", ""))
+        active_mission["remaining_kind"] = str(_status.get("remaining_kind", ""))
 
     # IQ-4: no mission running, but the last one is kept as a record — say
     # how it ended (the Strategic Ledger's "Last mission" line, one source).
     last_mission = None
-    if TALLEYRAND_TAB_READS_THE_CABINET and active_mission is None:
+    if active_mission is None:
         from backend.game_logic.ledger import last_mission_record
         _last = last_mission_record(world)
         if _last:

@@ -1090,31 +1090,6 @@ class TestTheRotationBeginsWithTheCampaign:
         assert any(" — " in str(r.get("headline", "")) for r in battles), (
             "a battle line carries Berthier's observation after the dash")
 
-    def test_with_the_reset_removed_the_second_drive_diverges(self, tmp_path,
-                                                            monkeypatch):
-        """The sensitivity arm — the lever DOWN is the reset removed, and it
-        is also today's behaviour reproduced: the second drive continues the
-        first drive's count and the first differing digest line is a BATTLE
-        line (the observation), not a mechanic."""
-        from backend.game_logic import battle_report as BR
-        monkeypatch.setattr(BR, "THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN", False)
-        # The arm needs the first drive to be the fresh one, so it starts
-        # clean by hand — this is the sensitivity arm, not the completion pin.
-        BR._OBSERVATION_COUNTS.clear()
-        try:
-            first = _drive_in_process("down_first", 2, tmp_path)
-            assert BR._OBSERVATION_COUNTS, "the first drive fought and counted"
-            second = _drive_in_process("down_second", 2, tmp_path)
-        finally:
-            BR._OBSERVATION_COUNTS.clear()
-        assert first["jsonl"] != second["jsonl"]
-        diverged = next((a, b) for a, b in zip(first["jsonl"], second["jsonl"])
-                        if a != b)
-        assert all('"kind": "battle"' in line for line in diverged), diverged
-        # Same men, same butcher's bill, a different line: display only.
-        head = lambda line: json.loads(line)["headline"].split(" — ")[0]  # noqa: E731
-        assert head(diverged[0]) == head(diverged[1])
-
     def test_every_world_creation_empties_the_counter(self):
         """The three roads to a world — the bare constructor, `from_dict`
         (which is `load_game`'s road) and `from_scenario` — all pass the
@@ -1144,20 +1119,6 @@ class TestTheRotationBeginsWithTheCampaign:
         assert fresh_first != fresh_second        # FA-D24: it rotates
         WorldState.from_dict(boot.to_dict())      # the load
         assert BR._pick_observation(dict(_BATTLE), "France") == fresh_first
-        BR._OBSERVATION_COUNTS.clear()
-
-    def test_lever_down_keeps_the_process_global_counter(self, monkeypatch):
-        """False reproduces today: a world creation leaves the count alone,
-        so the loaded campaign would print the THIRD line."""
-        from backend.game_logic import battle_report as BR
-        from backend.models.world_state import WorldState
-        monkeypatch.setattr(BR, "THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN", False)
-        BR._OBSERVATION_COUNTS.clear()
-        first = BR._pick_observation(dict(_BATTLE), "France")
-        BR._pick_observation(dict(_BATTLE), "France")
-        WorldState(player_nation="France")
-        assert BR._OBSERVATION_COUNTS != {}
-        assert BR._pick_observation(dict(_BATTLE), "France") != first
         BR._OBSERVATION_COUNTS.clear()
 
     def test_the_reset_is_display_only(self):

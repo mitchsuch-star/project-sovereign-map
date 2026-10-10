@@ -1767,7 +1767,6 @@ def merge_war_instances(
 
 # FA-S10-1 flip lever: False leaves an eliminated court's pairs listed as
 # active war pairs (the pre-slice-10 behaviour).
-ELIMINATION_RESOLVES_ITS_PAIRS = True
 
 
 def mark_participant_eliminated_in_all_wars(
@@ -1832,20 +1831,19 @@ def mark_participant_eliminated_in_all_wars(
         # here: whether the WAR ends is the existing paths' business, and an
         # empty `active_diplo_keys` already reads as "no unresolved hostile
         # pairs" to every consumer.
-        if ELIMINATION_RESOLVES_ITS_PAIRS:
-            active_pairs = instance.setdefault("active_diplo_keys", [])
-            resolved_pairs = instance.setdefault("resolved_diplo_keys", [])
-            key_meta = instance.setdefault("diplo_key_meta", {})
-            for pair in list(active_pairs):
-                if nation not in _pair_nations(pair):
-                    continue
-                active_pairs.remove(pair)
-                if pair not in resolved_pairs:
-                    resolved_pairs.append(pair)
-                pair_meta = key_meta.setdefault(pair, {})
-                pair_meta["pair_status"] = "resolved"
-                pair_meta["resolved_turn"] = turn
-                pair_meta["resolve_reason"] = "participant_eliminated"
+        active_pairs = instance.setdefault("active_diplo_keys", [])
+        resolved_pairs = instance.setdefault("resolved_diplo_keys", [])
+        key_meta = instance.setdefault("diplo_key_meta", {})
+        for pair in list(active_pairs):
+            if nation not in _pair_nations(pair):
+                continue
+            active_pairs.remove(pair)
+            if pair not in resolved_pairs:
+                resolved_pairs.append(pair)
+            pair_meta = key_meta.setdefault(pair, {})
+            pair_meta["pair_status"] = "resolved"
+            pair_meta["resolved_turn"] = turn
+            pair_meta["resolve_reason"] = "participant_eliminated"
 
         for leader_key, side in (("attacker_leader", "attackers"),
                                  ("defender_leader", "defenders")):

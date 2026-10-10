@@ -69,12 +69,6 @@ class TestTheFlag:
         assert WorldState(player_nation="France", sovereign_map="europe").endings_armed is False
         assert WorldState(player_nation="France").endings_armed is False
 
-    def test_the_lever_down_disarms(self, monkeypatch):
-        w = _boot()
-        monkeypatch.setattr(game_end, "THE_CAMPAIGN_CAN_END", False)
-        assert w.endings_armed is False
-        assert game_end.record_ending(w, "defeat", game_end.CAUSE_SOIL) is None
-
     def test_sandbox_mode_is_never_written(self):
         w = _boot()
         assert w.sandbox_mode is True        # derived from sovereign_map, untouched
@@ -299,15 +293,6 @@ class TestTheChainsClock:
         _tick(w, 1)
         assert fall.ARM_CHAINS not in w.fall_clock and not w.game_over
 
-    def test_the_offer_is_armed_worlds_only(self, monkeypatch):
-        from backend.game_logic import ai_diplomacy as AD
-        w = _boot()
-        w.capture_marshal(w.marshals["Napoleon"], "Britain", context="t")
-        _tick(w, 1)
-        monkeypatch.setattr(game_end, "THE_CAMPAIGN_CAN_END", False)
-        assert AD._captor_offer_due("Britain", "France", w) is False
-
-
 # ════════════════════════════════════════════════════════════════════════
 # The third arm — "The Eagle Falls" (Sept 25, 2026)
 # ════════════════════════════════════════════════════════════════════════
@@ -350,13 +335,8 @@ class TestTheEagleFalls:
         assert rec["cause_line"] == "The Emperor is dead."
         assert w.game_over and w.victory == "defeat"
 
-    def test_the_lever_down_and_the_bare_world_keep_the_death_guard(self, monkeypatch):
+    def test_the_bare_world_keeps_the_death_guard(self, monkeypatch):
         monkeypatch.setattr(game_end, "SOVEREIGN_DEATH_CHANCE_PCT", 100)
-        monkeypatch.setattr(game_end, "THE_EMPEROR_IS_MORTAL", False)
-        w = _boot()
-        w.destroy_marshal(w.marshals["Napoleon"], cause="battle", victor="Austria")
-        assert w.marshals["Napoleon"].captured_by == "Austria"
-        monkeypatch.setattr(game_end, "THE_EMPEROR_IS_MORTAL", True)
         w2 = _boot()
         w2.campaign_end = {}                  # the rules not authored
         w2.destroy_marshal(w2.marshals["Napoleon"], cause="battle", victor="Austria")
@@ -903,16 +883,6 @@ class TestTheExileCommissions:
         best = max(w.regions[r].get_effective_income() for r in ("Franconia", "Munich"))
         assert spot in ("Franconia", "Munich")
         assert w.regions[spot].get_effective_income() == best
-
-    def test_the_lever_down_is_home_soil_only(self, monkeypatch):
-        from backend.game_logic import recruitment
-        monkeypatch.setattr(recruitment, "THE_EXILE_COMMISSIONS", False)
-        w = _boot()
-        for region in list(w.get_nation_regions("France")):
-            w.regions[region].controller = "Austria"
-        w.regions["Munich"].controller = "France"
-        w.invalidate_active_nations_cache()
-        assert recruitment.find_spawn_region(w, "France") is None
 
     def test_holding_nothing_still_refuses_and_says_why(self):
         from backend.game_logic import recruitment

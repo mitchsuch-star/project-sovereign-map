@@ -35,7 +35,6 @@ MAX_ISSUES = 20         # blessed, in-band — the archive's depth
 # is dead by construction: Le Moniteur could never report a coalition
 # forming, an ultimatum, a client changing lord or the laurels passing.
 # False = the prior collectors (the dead keys back, those stories unprinted).
-THE_MONITEUR_READS_LIVE_TYPES = True
 _DEAD_KEYS_BEFORE_FA_N52 = {
     "coalition_declared": "coalition_formed",
     "ultimatum_accepted": "incoming_ultimatum",
@@ -50,8 +49,7 @@ _DEAD_KEYS_BEFORE_FA_N52 = {
 def collector_types(types) -> set:
     """The keys one section collects: the live types, or — lever down —
     the pre-FA-N52 keys the filter could never pass."""
-    if THE_MONITEUR_READS_LIVE_TYPES:
-        return set(types)
+    return set(types)
     return {_DEAD_KEYS_BEFORE_FA_N52.get(t, t) for t in types}
 
 # Event types each section collects. The composition NEVER reads raw
@@ -163,7 +161,6 @@ REALM_WITHOUT_A_PROVINCE = "THE REALM WITHOUT A PROVINCE"
 # Headquarters and the quiet lead says whose hands. Not keyed on the
 # collapse — a France of ten provinces without Paris is the same lie.
 # False = the pre-IQ-2 masthead and quiet leads byte-for-byte.
-THE_MONITEUR_SEES_THE_CAPITAL_LOST = True
 
 # IQ-2 (Sept 14, 2026) flip lever — D3(b). The Bourse line said "the funds
 # are steady" whatever the treasury's sign — a negative treasury printed as
@@ -171,7 +168,6 @@ THE_MONITEUR_SEES_THE_CAPITAL_LOST = True
 # treasury, or a standing bankruptcy counter (the engine's own reading —
 # `calculate_turn_upkeep`'s mercy keys on `nation_bankruptcy_turns >= 1`),
 # is a deficit and the rentes fall. False = the pre-IQ-2 line byte-for-byte.
-THE_BOURSE_READS_THE_DEFICIT = True
 
 
 # WO-43 (WO slice 12): the special-edition captions RANKED BY GRAVITY.
@@ -252,8 +248,7 @@ def _special_candidates(world, turn_events: List[Dict]):
     # one edition, about the 0). Behind the collapse lever like every
     # collapse surface.
     from backend.game_logic import collapse as _collapse
-    _ceiling = (_collapse.COLLAPSE_PROVINCE_CEILING
-                if _collapse.THE_COLLAPSE_IS_LEGIBLE else None)
+    _ceiling = (_collapse.COLLAPSE_PROVINCE_CEILING)
     reduced = None  # (holdings_left, region)
 
     for event in turn_events:
@@ -682,8 +677,7 @@ def _press_lead(world, war_rows: List[Dict]) -> str:
                 f"the greatest delicacy; the situation develops.")
     # IQ-2 D3(c): the quiet leads name whose hands the capital is in rather
     # than have it "watch" from under an enemy flag.
-    _lost = (_capital_in_other_hands(world)
-             if THE_MONITEUR_SEES_THE_CAPITAL_LOST else None)
+    _lost = (_capital_in_other_hands(world))
     if _lost is not None:
         _fact = (f"{_capital_in_hands_phrase(world, *_lost)}, and the "
                  f"Government speaks of a temporary misfortune.")
@@ -709,10 +703,9 @@ def _bourse_line(world) -> str:
         blockaded = False
     # IQ-2 D3(b): a deficit is printed as one — never "steady".
     in_deficit = False
-    if THE_BOURSE_READS_THE_DEFICIT:
-        _bankrupt_turns = int((getattr(world, "nation_bankruptcy_turns", {})
-                               or {}).get(player, 0) or 0)
-        in_deficit = treasury < 0 or _bankrupt_turns >= 1
+    _bankrupt_turns = int((getattr(world, "nation_bankruptcy_turns", {})
+                           or {}).get(player, 0) or 0)
+    in_deficit = treasury < 0 or _bankrupt_turns >= 1
     if in_deficit:
         # A negative chest names its deficit; a bankruptcy counter still
         # standing over a chest back above zero says the State is in arrears.
@@ -770,7 +763,7 @@ def compose_issue(world, since_turn: int,
     # IQ-2 D3(c): an honest dateline — the paper is not published from a
     # Paris in another court's hands.
     seat = "Paris"
-    if THE_MONITEUR_SEES_THE_CAPITAL_LOST and _capital_in_other_hands(world):
+    if _capital_in_other_hands(world):
         seat = "Imperial Headquarters"
 
     def _section(rows: List[Dict], key: str) -> List[str]:

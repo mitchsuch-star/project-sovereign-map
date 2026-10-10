@@ -35,13 +35,6 @@
     "tests": "tests/test_sr5a_the_chest.py::TestTheNamedGroundReceivesTheSubstitutes"
   },
   {
-    "id": "The ledger: the why-notes never speak",
-    "file": "backend/game_logic/ledger.py",
-    "old": "    out = {\"upkeep_note\": \"\", \"charges_note\": \"\"}\n    if not THE_BILLS_SAY_WHY_THEY_MOVED:\n        return out",
-    "new": "    out = {\"upkeep_note\": \"\", \"charges_note\": \"\"}\n    if True:\n        return out",
-    "tests": "tests/test_sr5a_the_chest.py::TestWhyTheBillsMoved tests/test_iq1_iq1_5_the_exit.py::TestTheLedgerSaysWhy"
-  },
-  {
     "id": "The ledger: the smaller army is never compared",
     "file": "backend/game_logic/ledger.py",
     "old": "        if was_bill > upkeep and was_men > men:",

@@ -105,16 +105,6 @@ class TestWarRoomLeadsWithOurOwnState:
         for phrase in FORBIDDEN:
             assert phrase not in low, phrase
 
-    def test_lever_down_the_war_room_says_nothing_of_itself(self, collapsed, monkeypatch):
-        # ⚑ GE-1: the fall clocks speak too (the captive Emperor is the
-        # chains arm) — the pre-IQ-2 silence is BOTH levers down.
-        from backend.game_logic import fall
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        monkeypatch.setattr(fall, "THE_EMPIRE_CAN_FALL", False)
-        text = A._assess_situation(collapsed)["talleyrand_text"]
-        assert "Our own state" not in text
-        assert C.CAMPAIGN_CONTINUES not in text
-
     def test_a_standing_realm_hears_no_collapse_line(self):
         text = A._assess_situation(_boot())["talleyrand_text"]
         assert "Our own state" not in text
@@ -144,11 +134,6 @@ class TestTheLeagueLapsedTheWarsDidNot:
         assert "Calm" not in text
         assert "No coalition stands against us. Europe's alarm" not in text
 
-    def test_lever_down_is_the_old_calm_line(self, collapsed, monkeypatch):
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        text = A._assess_situation(self._lapsed(collapsed))["talleyrand_text"]
-        assert "No coalition stands against us. Europe's alarm reads 0 (Calm)." in text
-
     def test_no_war_under_collapse_is_no_precious_quiet(self, collapsed, monkeypatch):
         _end_all_wars(collapsed)
         text = A._assess_situation(collapsed)["talleyrand_text"]
@@ -156,8 +141,6 @@ class TestTheLeagueLapsedTheWarsDidNot:
         assert ("France wages no war now — but the quiet comes after the "
                 "collapse of the realm, not after a victory.") in text
         assert "no court is at war with us" in text
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "rare and precious quiet" in A._assess_situation(collapsed)["talleyrand_text"]
 
 
 class TestCounselUnderTheCollapse:
@@ -172,10 +155,6 @@ class TestCounselUnderTheCollapse:
         assert rec["text"].startswith(
             "mark it plainly — France holds a single province:")
         assert "the ripest court in Europe for an approach" in rec["text"]
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        down = A._build_situation_recommendation(collapsed, "France", [], None,
-                                                 "defensive")
-        assert down["text"].startswith(f"{down['target_nation']} is neither")
 
     def test_the_fallback_states_what_we_have(self, collapsed, monkeypatch):
         monkeypatch.setattr(A, "_build_situation_recommendation",
@@ -185,16 +164,11 @@ class TestCounselUnderTheCollapse:
         assert ("My counsel, Sire: Europe offers no opening today, and I will "
                 "not dress one up.") in text
         assert "corps still stand under our colours" in text.split("My counsel")[1]
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "hold our course" in A._assess_situation(collapsed)["talleyrand_text"]
 
     def test_the_overview_opens_on_our_own_state(self, collapsed, monkeypatch):
         first = A._diplomatic_overview(collapsed)["talleyrand_text"].splitlines()[0]
         assert first.startswith("An overview, Sire — and first, our own state: "
                                 "France holds a single province:")
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert A._diplomatic_overview(collapsed)["talleyrand_text"].splitlines()[0] \
-            == "An overview, Sire:"
 
     def test_the_balanced_war_arm_is_honest_under_collapse(self, collapsed, monkeypatch):
         assert int(A.get_war_score_for(collapsed, "France", "Austria")) == 0
@@ -208,8 +182,6 @@ class TestCounselUnderTheCollapse:
         assert "stands level" not in out["talleyrand_text"]
         assert "ledger" not in out["talleyrand_text"]
         assert out["context"]["recommendation"] == "Seek terms now."
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "Tilsit model" in A._recommend_action("Austria", collapsed)["talleyrand_text"]
 
     def test_no_alliance_is_immense_for_a_collapsed_france(self, collapsed, monkeypatch):
         _end_all_wars(collapsed)
@@ -219,9 +191,6 @@ class TestCounselUnderTheCollapse:
         text = A._recommend_action("Denmark", collapsed)["talleyrand_text"]
         assert "immense" not in text
         assert "mark it plainly: France holds a single province:" in text
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "strategic benefit immense" in \
-            A._recommend_action("Denmark", collapsed)["talleyrand_text"]
 
 
 class TestGeneralWarRoomFixes:
@@ -236,8 +205,6 @@ class TestGeneralWarRoomFixes:
         text = A._recommend_action("Austria", w)["talleyrand_text"]
         assert "no army in the field to win the engagement" in text
         assert "Tilsit model —" not in text
-        monkeypatch.setattr(A, "THE_TILSIT_COUNSEL_NEEDS_AN_ARMY", False)
-        assert "Tilsit model" in A._recommend_action("Austria", w)["talleyrand_text"]
 
     def test_compare_threats_reads_our_own_army_raw(self, monkeypatch):
         """(h) the fog helper invents 30,000 men for a France with no
@@ -257,10 +224,6 @@ class TestGeneralWarRoomFixes:
         monkeypatch.setattr(A, "_get_fogged_strength", _spy)
         A._compare_threats(w)
         assert "France" not in calls
-        monkeypatch.setattr(A, "THE_PLAYER_READS_HIS_OWN_STRENGTH_RAW", False)
-        calls.clear()
-        A._compare_threats(w)
-        assert "France" in calls
 
     def test_invest_counsel_quotes_what_the_executor_applies(self, monkeypatch):
         """(i) shown = applied: +4 in the grip spiral, not a hard-coded +10."""
@@ -282,11 +245,6 @@ class TestGeneralWarRoomFixes:
         res = V.invest_in_vassal(w, "Switzerland")
         assert res["success"], res
         assert w.vassals["Switzerland"]["loyalty"] == 34
-        monkeypatch.setattr(A, "THE_INVEST_COUNSEL_QUOTES_THE_EXECUTOR", False)
-        w2 = _boot()
-        w2.vassals["Switzerland"]["loyalty"] = 30
-        down = A._build_situation_recommendation(w2, "France", [], None, "defensive")
-        assert down["description"] == "1 DP + 200 gold; +10 loyalty."
 
     def test_invest_counsel_at_healthy_grip_is_byte_identical(self):
         w = _boot()
@@ -309,9 +267,6 @@ class TestGeneralWarRoomFixes:
                  "request_terms_state": {"state": "disabled"}}]
         rec = A._build_situation_recommendation(w, "France", rows, None, "defensive")
         assert rec["text"].endswith(" Their court is not yet prepared to act on it.")
-        monkeypatch.setattr(I, "INDIFFERENT_READS_AS_A_SENTENCE", False)
-        rec = A._build_situation_recommendation(w, "France", rows, None, "defensive")
-        assert rec["text"].endswith(" Their court is prepared to go as far as indifferent.")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -333,17 +288,6 @@ class TestLedgerUnderTheCollapse:
         assert boe["threat_projection"]["collapse_line"] == want
         assert boe["headline_case"] == "COOLDOWN"
         assert boe["headline_note"] == "Austria, Britain and Russia remain at war with us."
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        # IQ-3 (Sept 14, 2026) — CONSCIOUSLY FLIPPED: this arm asserts the
-        # pre-IQ-2 payload, but IQ-3's own lever now names the 60 gate on any
-        # COOLDOWN board below it (headline_note). The pre-both payload is
-        # IQ-2's lever AND IQ-3's lever down; IQ-3's arm is pinned in
-        # tests/test_iq3_the_league_is_spent.py.
-        from backend.game_logic import coalition as _coal
-        monkeypatch.setattr(_coal, "THE_LEAGUE_SPENDS_ITS_ALARM", False)
-        down = L._build_balance_of_europe(collapsed)
-        assert "collapse_line" not in down and "headline_note" not in down
-        assert "collapse_line" not in down["threat_projection"]
 
     def test_a_high_alarm_is_not_said_to_have_fallen(self, collapsed):
         line = L._build_balance_of_europe(collapsed)["collapse_line"]
@@ -364,9 +308,6 @@ class TestLedgerUnderTheCollapse:
             f"Free field army: the whole {row['standing']:,} — France holds no "
             f"frontier, so there is no reserve to keep; every court at war with "
             f"us may strike the army in the field (Austria, Britain and Russia).")
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "no armed neighbour compels a reserve" in \
-            L._build_france_exposure(fallen)["line"]
 
     def test_courts_at_war_is_the_live_war_map(self, collapsed):
         assert L.courts_at_war_with(collapsed, "France") == ["Austria", "Britain", "Russia"]
@@ -389,16 +330,12 @@ class TestTheMirror:
                 m.location = vienna
                 m.strength = 0
         assert I._perceived_target(w) is None
-        monkeypatch.setattr(I, "THE_MIRROR_COUNTS_ONLY_STANDING_CORPS", False)
-        assert I._perceived_target(w) == "Austria"  # the measured misreading
 
     def test_the_mirror_reads_a_broken_power(self, collapsed, fallen, monkeypatch):
         assert I.build_france_mirror_payload(collapsed)["read_as"] == \
             "A broken power — France holds a single province"
         assert I.build_france_mirror_payload(fallen)["read_as"] == \
             "A broken power — France holds no province of her own"
-        monkeypatch.setattr(C, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "broken" not in I.build_france_mirror_payload(collapsed)["read_as"]
 
     def test_the_bottom_rung_gets_a_sentence(self, monkeypatch):
         w = _boot()
@@ -406,9 +343,6 @@ class TestTheMirror:
                             lambda world: ("indifferent", 3, None))
         lines = I.build_france_mirror_payload(w)["lines"]
         assert lines[1] == "The courts believe he will act against no one (alarm 3)."
-        monkeypatch.setattr(I, "INDIFFERENT_READS_AS_A_SENTENCE", False)
-        lines = I.build_france_mirror_payload(w)["lines"]
-        assert lines[1] == "The courts believe he will go as far as indifferent (alarm 3)."
 
     def test_the_intent_summary_never_splices_indifferent(self, monkeypatch):
         w = _boot()
@@ -418,9 +352,6 @@ class TestTheMirror:
         monkeypatch.setattr(I, "get_nation_intent", lambda nation, world: view)
         assert I.build_intent_payload("Denmark", w)["summary"] == \
             "not yet prepared to act on it — Sweden stands in the way (weight 12)"
-        monkeypatch.setattr(I, "INDIFFERENT_READS_AS_A_SENTENCE", False)
-        assert I.build_intent_payload("Denmark", w)["summary"] == \
-            "prepared to go as far as indifferent — Sweden stands in the way (weight 12)"
 
     def test_the_eases_dispatch_reads_indifference(self, monkeypatch):
         from backend.game_logic import dispatch
@@ -443,11 +374,6 @@ class TestTheMirror:
         I.process_intent_movements(w)
         assert captured[0][0] == "intent_eases"
         assert captured[0][1]["price"] == "indifference"
-        monkeypatch.setattr(I, "INDIFFERENT_READS_AS_A_SENTENCE", False)
-        captured.clear()
-        w.nation_intent_seen = {"Denmark": "x|ask"}
-        I.process_intent_movements(w)
-        assert captured[0][1]["price"] == "indifferent"
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -534,9 +460,6 @@ class TestWarRows:
         assert multi["war_score"] < 0 and multi["settlement_tier_side"] == "theirs"
         denmark = next(r for r in rows if r["opponent"] == "Denmark")
         assert denmark["settlement_tier_side"] == WS._tier_side(int(denmark["war_score"]))
-        monkeypatch.setattr(WS, "THE_TIER_NAMES_ITS_SIDE", False)
-        for row in WS.build_active_wars(collapsed)["wars"]:
-            assert "settlement_tier_side" not in row
 
     def test_the_hint_knows_the_homeland_is_lost(self, fallen, monkeypatch):
         row = next(r for r in WS.build_active_wars(fallen)["wars"]
@@ -550,10 +473,6 @@ class TestWarRows:
             "purpose has anything left to hold.")
         # A purpose the player named is his own business either way.
         assert WS._objective_hint({"type": "conquest"}, "Austria", fallen) == ""
-        monkeypatch.setattr(WS, "THE_HINT_KNOWS_THE_HOMELAND_IS_LOST", False)
-        row = next(r for r in WS.build_active_wars(fallen)["wars"]
-                   if r.get("is_multi_participant_war"))
-        assert "'set war purpose against" in row["objective_hint"]
 
     def test_a_held_homeland_keeps_the_fa_d4_hint(self, collapsed):
         row = next(r for r in WS.build_active_wars(collapsed)["wars"]

@@ -21,13 +21,6 @@
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_peace_with_every_court_stops_the_clock"
  },
  {
-  "id": "GE1-4 the Empire can never fall (lever)",
-  "file": "backend/game_logic/fall.py",
-  "old": "THE_EMPIRE_CAN_FALL = True",
-  "new": "THE_EMPIRE_CAN_FALL = False",
-  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_falls_on_the_fifth"
- },
- {
   "id": "GE1-5 the arm fires one tick late",
   "file": "backend/game_logic/fall.py",
   "old": "        if isinstance(entry, dict) and int(entry.get(\"turns\", 0)) >= _grace(world, arm):",
@@ -40,20 +33,6 @@
   "old": "    if state is None and not no_sword:\n        return None",
   "new": "    if state is None:\n        return None",
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheSoilOrSwordClock::test_no_sword_arm_ticks_and_a_commission_stops_it"
- },
- {
-  "id": "GE1-7 the campaign never arms (lever)",
-  "file": "backend/game_logic/game_end.py",
-  "old": "THE_CAMPAIGN_CAN_END = True",
-  "new": "THE_CAMPAIGN_CAN_END = False",
-  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheFlag::test_the_1805_campaign_arms"
- },
- {
-  "id": "GE1-8 the Emperor is immortal (lever)",
-  "file": "backend/game_logic/game_end.py",
-  "old": "THE_EMPEROR_IS_MORTAL = True",
-  "new": "THE_EMPEROR_IS_MORTAL = False",
-  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheEagleFalls::test_a_death_removes_him_and_ends_the_war"
  },
  {
   "id": "GE1-9 attrition becomes a battlefield",
@@ -119,13 +98,6 @@
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestProvinceTitle::test_a_return_home_clears_the_record"
  },
  {
-  "id": "GE1-18 a signed cession is never reconciled",
-  "file": "backend/game_logic/game_end.py",
-  "old": "A_SIGNED_CESSION_IS_RECONCILED = True",
-  "new": "A_SIGNED_CESSION_IS_RECONCILED = False",
-  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestProvinceTitle::test_a_signed_province_is_reconciled_out_of_the_revanche"
- },
- {
   "id": "GE1-19 the Revanche keeps every province",
   "file": "backend/game_logic/agendas.py",
   "old": "    if regions and entry.get(\"emergent\"):",
@@ -159,13 +131,6 @@
   "old": "        if active is not None and nation not in active:\n            continue\n        if rec.get(\"trade_dominance\"):",
   "new": "        if rec.get(\"trade_dominance\"):",
   "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestGlobalElimination::test_e3_trade_dominance_dies_with_its_court"
- },
- {
-  "id": "GE1-24 WO-D10 the exile never commissions (lever)",
-  "file": "backend/game_logic/recruitment.py",
-  "old": "THE_EXILE_COMMISSIONS = True",
-  "new": "THE_EXILE_COMMISSIONS = False",
-  "tests": "tests/test_ge1_the_verdict_and_the_fall.py::TestTheExileCommissions::test_no_home_soil_commissions_on_the_richest_held_province"
  },
  {
   "id": "GE1-25 the captor never names his price (lever)",

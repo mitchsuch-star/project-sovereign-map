@@ -641,22 +641,33 @@ def main(argv=None) -> int:
         print("\n(dry run — nothing written; --apply to rewrite production + sweeps)")
         return 0
     hand = [(r.name, s) for r in reports for s in r.sites if s.verdict == "HAND"]
+    overlaps: list[str] = []
     for path, mod in modules.items():
         if not mod.edits:
             continue
+        before = mod.text
         applied, skipped = mod.apply()
         print(f"wrote {path.relative_to(ROOT)}: {applied} edits"
               + (f", {len(skipped)} skipped as overlapping (HAND)" if skipped else ""))
         for e in skipped:
-            print(f"   HAND (overlap) at offset {e.start}: {e.note}")
+            # two levers in one statement (`if not (A and B):`, an if/elif
+            # chain testing both): the second rewrite overlaps the first and
+            # is the hand's — named here AND in the closing summary, with the
+            # line it had before this run's edits moved it
+            line = before.count("\n", 0, e.start) + 1
+            print(f"   HAND (overlap) at line {line}: {e.note}")
+            overlaps.append(f"{path.relative_to(ROOT)}:{line} (pre-edit line)  "
+                            f"overlapping rewrite — {e.note}")
     for rep in reports:
         n = drop_sweep_rows(rep.name)
         if n:
             print(f"dropped {n} sweep row(s) naming {rep.name}")
-    if hand:
-        print(f"\n{len(hand)} site(s) are the hand's:")
+    if hand or overlaps:
+        print(f"\n{len(hand) + len(overlaps)} site(s) are the hand's:")
         for name, s in hand:
             print(f"  {name}: {s.file.relative_to(ROOT)}:{s.line}  {s.detail}")
+        for row in overlaps:
+            print(f"  {row}")
     print("\nTESTS were not edited — decide each listed arm (recipe step 3).")
     return 0
 

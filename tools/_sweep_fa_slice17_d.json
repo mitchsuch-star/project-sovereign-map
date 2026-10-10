@@ -42,13 +42,6 @@
   "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN29HaltedIsNotReady::test_a_halted_marshal_silences_the_ready_line"
  },
  {
-  "id": "N36/a the ledger lever defaults to the pre-fix position",
-  "file": "backend/game_logic/ledger.py",
-  "old": "THE_LEDGER_SEES_THE_HALT = True",
-  "new": "THE_LEDGER_SEES_THE_HALT = False",
-  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN36TheLedgerSeesTheHalt"
- },
- {
   "id": "N36/b the status arm is removed",
   "file": "backend/game_logic/ledger.py",
   "old": "    if _is_halted(marshal):\n        # FA-N36: the pending decision outranks the order it suspends.\n        return \"awaiting_decision\"",
@@ -68,20 +61,6 @@
   "old": "                \"path_remaining\": 0 if halted else int(len(order.path)),",
   "new": "                \"path_remaining\": int(len(order.path)),",
   "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN36TheLedgerSeesTheHalt::test_forces_and_orders_both_say_halted"
- },
- {
-  "id": "N65/a the lever defaults to the pre-fix position",
-  "file": "backend/game_logic/ledger.py",
-  "old": "THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = True",
-  "new": "THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = False",
-  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN65ThePrisonerLeavesTheOrdersTab"
- },
- {
-  "id": "N65/b the prisoner skip is removed",
-  "file": "backend/game_logic/ledger.py",
-  "old": "        if THE_ORDERS_TAB_KNOWS_ITS_PRISONERS and getattr(marshal, \"captured_by\", \"\"):\n            # FA-N65: a prisoner has no orders row — see the lever's note.\n            continue",
-  "new": "",
-  "tests": "tests/test_fa_slice17_d_the_status_tells_the_truth_2026_09_11.py::TestFAN65ThePrisonerLeavesTheOrdersTab::test_a_captured_marshal_has_no_orders_row"
  },
  {
   "id": "N58/a the lever defaults to the pre-fix position",

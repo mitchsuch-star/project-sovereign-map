@@ -21,10 +21,6 @@ at-war third-party soil — has no claim on the corridor. Zero new serialized
 fields; the term is memoised per (nation, location) in the transient
 `world._evac_direction_cache`, flushed at the `invalidate_bloc_members_cache`
 chokepoint (GR8).
-
-Several tests carry a CONTROL ARM that disables `CORRIDOR_DIRECTION_ACTIVE`
-and reproduces the exploit — without it, "the Trojan march is refused" could
-pass for reasons having nothing to do with this slice.
 """
 
 from __future__ import annotations
@@ -146,21 +142,6 @@ def _move(world, marshal_name, target, strategic=False):
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestTheTrojanMarch:
-
-    def test_control_arm_reproduces_the_exploit(self, world, monkeypatch):
-        """With the direction term disabled, the filed exploit reproduces:
-        a FRESH corps on home soil marches into enemy sovereign territory
-        under a truce. If this ever stops passing, the fixture has drifted
-        and the refusal below could be passing vacuously."""
-        monkeypatch.setattr(W, "CORRIDOR_DIRECTION_ACTIVE", False)
-        davout, ney, launchpad, target = _stage_trojan_shape(world)
-
-        result = _move(world, "Ney", target)
-        assert result.get("success"), result.get("message")
-        assert ney.location == target, (
-            "control: the direction-less grant carries the Trojan across")
-        assert world.regions[target].controller == "Russia", (
-            "he is a Trojan, not a conqueror — §3.4 pin 2 held even pre-fix")
 
     def test_the_trojan_march_is_refused(self, world):
         """The done-when's falsifiable negative: during a truce, a corps

@@ -154,14 +154,6 @@ class TestAGunCorpsDoesNotStormTheWorks:
         g.artillery = False
         assert gun_corps_assault_refusal(world, g, "Vienna") == ""
 
-    def test_lever_down_the_guns_storm(self, shipped, monkeypatch):
-        from backend.game_logic import garrison_report as GR
-        monkeypatch.setattr(GR, "GUNS_DO_NOT_STORM_WORKS", False)
-        _client, world = shipped
-        g, _vienna = _stage_guns(world)
-        assert GR.gun_corps_assault_refusal(world, g, "Vienna") == ""
-
-
 # ═══════════════════════════ AAR10-X1 ══════════════════════════════════════
 
 class TestRuleTwelveIsTheGunsRule:

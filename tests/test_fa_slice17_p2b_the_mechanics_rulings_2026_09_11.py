@@ -288,14 +288,6 @@ class TestD7TheDeskIsReadBeforeTheDraft:
         dlg, send = self._send_arm(w)
         assert send["enabled"] is False
 
-    def test_lever_down_drafts_over_the_offer(self, monkeypatch):
-        from backend.game_logic import diplomatic_dialogue as DD
-        _flip(monkeypatch, DD, "THE_DESK_IS_READ_BEFORE_THE_DRAFT", False)
-        w = self._table(offer=True)
-        dlg, send = self._send_arm(w)
-        assert send.get("enabled") is not False and "desk_block_warning" not in dlg
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # FA-D19 — a detachment feeds stability
 # ═══════════════════════════════════════════════════════════════════════

@@ -349,16 +349,6 @@ class TestTheClockLine:
         assert ledger.build_strategic_ledger(w)["fall_clock"]["arms"][0]["clock_line"] == line
         assert line in _war_room_text(w)
 
-    def test_lever_down_restores_the_ge1_payloads(self, monkeypatch):
-        w = _soil_world(1)
-        monkeypatch.setattr(fall, "THE_CLOCK_HAS_ONE_LINE", False)
-        arm = fall.warning_state(w)["fall"]["arms"][0]
-        assert "clock_line" not in arm and "severity" not in arm
-        assert fall.clock_lines(w) == []
-        assert "fall_clock" not in ledger.build_strategic_ledger(w)
-        assert "1 of 5 · " not in _war_room_text(w)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # The fourth register (GE-3's, declared now so the scene takes it)
 # ═══════════════════════════════════════════════════════════════════════════

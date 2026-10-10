@@ -302,11 +302,6 @@ class TestCounselNamesTheStuckWar:
                                               "defensive")
         assert rec["target_nation"] == "Russia"
 
-    def test_the_ordering_rule_has_a_single_flip_flag(self, world):
-        """The rule a reader might want to reverse lives in one place."""
-        from backend.game_logic import diplomatic_advisory as adv
-        assert adv.COUNSEL_RANKS_BY_ACCEPTANCE is True
-
     def test_the_age_reported_is_the_pairs_own(self, world):
         """INERT until the August 22 review: `_t16_board` gave the row
         a `duration` of 15 and the pair an age of 15, so a mutation

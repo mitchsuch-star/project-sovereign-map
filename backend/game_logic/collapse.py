@@ -38,7 +38,6 @@ from backend.game_logic.formations import formed_display_name
 
 # Flip lever (the file convention: False reproduces the pre-IQ-2 surfaces
 # byte-for-byte — every reader treats None as "no collapse").
-THE_COLLAPSE_IS_LEGIBLE = True
 
 # A realm holding this many provinces or fewer has COLLAPSED. Blessed
 # default, display-only, tunable in band. One, not a fraction of the boot
@@ -63,8 +62,6 @@ def get_collapse_state(world, nation: Optional[str] = None) -> Optional[Dict[str
     Bounded work (GR8): `get_nation_regions` is the per-turn cached map, and
     the marshal pass is the roster, not the map.
     """
-    if not THE_COLLAPSE_IS_LEGIBLE:
-        return None
     if world is None or not getattr(world, "sandbox_mode", False):
         return None
     nation = nation or getattr(world, "player_nation", None)

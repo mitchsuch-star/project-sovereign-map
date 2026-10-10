@@ -20,15 +20,12 @@ from typing import Optional, Tuple
 from backend.models.region import TERRAIN_DEFENSE_BONUS
 
 # Levers: False reproduces the pre-slice surfaces byte for byte.
-THE_SCOUT_NAMES_THE_GARRISON = True
 # AAR24-X1 (Score Mandate Chunk 4 reserve, Sept 26 2026): a gun corps
 # does not storm the works. The AI has always refused it (enemy_ai P4.25:
 # "artillery — cannot assault garrisons"); the player's `attack Vienna` /
 # `bombard Vienna` from a gun corps resolved as a melee escalade. ONE rule
 # both boards now: refused at the executor's pre-objection battery, free,
 # with the reason and the remedy. Lever False = the melee escalade.
-GUNS_DO_NOT_STORM_WORKS = True
-THE_DESK_READS_THE_GARRISON_FOG = True
 # AAR-D8 (Score Finish Step 3 / SR-7a, October 2, 2026): A SMALL GARRISON
 # SURRENDERS. The AI's garrison grind — Charles and Mack spent turns 13–16
 # assaulting Bavaria's Franconia detachment of 47 → 24 → 12 → 6 → 3 men,
@@ -215,7 +212,7 @@ def gun_corps_assault_refusal(world, marshal, target) -> str:
     otherwise. Read by the executor's pre-objection battery, so no marshal
     objects to an order the executor is about to refuse, and nothing is
     spent."""
-    if not GUNS_DO_NOT_STORM_WORKS or not getattr(marshal, "artillery", False):
+    if not getattr(marshal, "artillery", False):
         return ""
     if not target or world is None:
         return ""

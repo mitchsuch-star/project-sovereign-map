@@ -73,7 +73,6 @@ def _lever(module, name, value):
 @contextlib.contextmanager
 def _all_levers(value):
     with contextlib.ExitStack() as stack:
-        stack.enter_context(_lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", value))
         for name in GENERAL_LEVERS:
             stack.enter_context(_lever(D, name, value))
         yield
@@ -133,13 +132,6 @@ class TestTheCollapseLeads:
         assert "France holds a single province: Paris." in head["text"]
         assert _clean(_page(head))
 
-    def test_the_lever_down_board_has_no_collapse_headline(self, world):
-        _reduce(world)
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            head = D._build_headline(world, "France")
-        assert head is None or head["class"] != "empire_reduced"
-        assert "holds a single province" not in _page(head)
-
     def test_a_standing_realm_has_none(self, world):
         head = D._build_headline(world, "France")
         assert head is None or head["class"] != "empire_reduced"
@@ -154,9 +146,6 @@ class TestTheCollapseLeads:
         assert head["class"] == "empire_reduced"
         assert "France holds no province of her own." in head["text"]
         assert any("HAS FALLEN" in b for b in head["sub_beats"]), head
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            world.headline_lead_memory = {}
-            assert D._build_headline(world, "France")["class"] == "capital_lost"
 
     def test_the_soil_alarm_folds_into_the_last_province(self, world):
         _reduce(world)
@@ -167,13 +156,6 @@ class TestTheCollapseLeads:
         assert "Paris. Mack stands on it. No French corps stands in his path." in head["text"]
         assert "crossed into" not in page
         assert "recruiting sergeants" not in page
-
-    def test_lever_down_the_soil_alarm_is_back(self, world):
-        _reduce(world)
-        _put_mack_on(world, "Paris")
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            page = _page(D._build_headline(world, "France"))
-        assert "Mack has crossed into Paris" in page
 
     def test_the_escalation_counts_honestly_and_never_promises_an_end(self, world):
         _reduce(world)
@@ -197,12 +179,6 @@ class TestTheFallenProvinceLever:
     def test_silent_when_there_is_no_province_left(self, world):
         _reduce(world, keep=())
         assert D._home_captured_lever(world, "Paris", "France", {}) == ""
-
-    def test_lever_down_it_speaks_again(self, world):
-        _reduce(world, keep=())
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            assert "garrison you detach" in D._home_captured_lever(
-                world, "Paris", "France", {})
 
     def test_one_province_still_has_something_to_garrison(self, world):
         _reduce(world)
@@ -236,8 +212,6 @@ class TestBerthierCloses:
     def test_the_collapse_rung_catches_the_hand_back(self, world):
         _reduce(world)
         assert _solvent_note(world) == KEEP_PARIS
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            assert _solvent_note(world) != KEEP_PARIS
 
     def test_the_money_rungs_speak_before_the_collapse_rung(self, world):
         """IQ-2 review round: the hand-back exists to say something the
@@ -346,11 +320,6 @@ class TestTalleyrand:
             court = D.formed_display_name(world, o["target_nation"])
             assert o["message"] == f"Sire, {court} would treat with us now."
             assert "winds" not in o["message"] and "fears" not in o["message"]
-        world.proactive_suggestion_cooldowns = {}
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            report = D._build_talleyrand_report(world, "France")
-        assert any("The diplomatic winds favor us." in o["message"]
-                   for o in report), report
 
     def test_the_idle_nudge_asks_the_one_open_question(self, world):
         _reduce(world, keep=())
@@ -365,10 +334,6 @@ class TestTalleyrand:
             "Sire, no envoy of ours is abroad while Austria holds Paris. "
             "France holds no province of her own. Shall I sound out what "
             "terms the courts would grant?"]
-        _quiet_all_but(world)
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            report = D._build_talleyrand_report(world, "France")
-        assert any("Perhaps too quiet" in o["message"] for o in report)
 
     def test_an_ally_is_never_offered_a_downgrade(self, world):
         state = world.get_diplomatic_state("France", "Bavaria")
@@ -434,23 +399,15 @@ def _set_score(world, opponent, score):
 class TestWarObjectives:
     def test_one_of_many_is_not_held(self, world):
         # ⚑ Consciously flipped by row EP F1 (LV-8, Sept 23, 2026): a DEFENCE
-        # purpose over the homeland is now ONE sentence ("the homeland — 1 of
+        # purpose over the homeland is ONE sentence ("the homeland — 1 of
         # 28 provinces held") that carries its own count, so it takes no
-        # bracket. This lever still governs the BRACKET on the list shape —
-        # which is what the LV-8 lever-down arm restores, so the pin runs
-        # there; the sentence's own count is pinned beside it.
-        from backend.game_logic import war_status as WS
-        with _lever(WS, "THE_PURPOSE_IS_ONE_SENTENCE", False):
-            assert "[HELD]" in _line_vs(world, "Britain")
-            _reduce(world)
-            text = _line_vs(world, "Britain")
-            assert "[HELD]" not in text
-            n = len(world.war_objectives[world._make_diplo_key("France", "Britain")]
-                    ["France"]["target_regions"])
-            assert f"[1 of {n} held]" in text
-            with _lever(D, "WAR_PURPOSE_COUNTS_WHAT_IS_HELD", False):
-                assert "[HELD]" in _line_vs(world, "Britain")
-        assert f"the homeland — 1 of {n} provinces held" in _line_vs(world, "Britain")
+        # bracket; the sentence's own count is pinned here.
+        _reduce(world)
+        n = len(world.war_objectives[world._make_diplo_key("France", "Britain")]
+                ["France"]["target_regions"])
+        text = _line_vs(world, "Britain")
+        assert "[HELD]" not in text
+        assert f"the homeland — 1 of {n} provinces held" in text
 
     def test_a_losing_score_names_whose_terms(self, world):
         _set_score(world, "Britain", -65)
@@ -503,14 +460,6 @@ class TestTheWhitePeace:
         page = _page(D._build_headline(world, "France"))
         assert ("A white peace — the map stands as it was: France holds a "
                 "single province: Paris.") in page
-
-    def test_lever_down_the_reassurance_returns(self, world):
-        _reduce(world)
-        world.event_log.append(dict(self.PEACE, turn=world.current_turn))
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            page = _page(D._build_headline(world, "France"))
-        assert "A white peace — the map stands as it was." in page
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # A9 — the defeat-imminent warning's sandbox arm
@@ -570,11 +519,8 @@ class TestTheWarning:
         assert w["fall"]["arms"][0]["arm"] == "soil_or_sword"
         assert _clean(w["message"])
 
-    def test_silent_for_a_standing_realm_and_lever_down(self, world):
+    def test_silent_for_a_standing_realm(self, world):
         assert get_defeat_imminent_state(world) is None
-        _reduce(world)
-        with _lever(collapse, "THE_COLLAPSE_IS_LEGIBLE", False):
-            assert get_defeat_imminent_state(world) is None
 
     def test_the_legacy_arm_is_untouched(self):
         w = WorldState(player_nation="France")

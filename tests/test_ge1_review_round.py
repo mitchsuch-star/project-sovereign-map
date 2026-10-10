@@ -435,18 +435,6 @@ class TestTheEmperorIsEscortedHome:
         assert w.regions[nap.location].controller == "France"
         assert fall.get_fall_state(w) is None
 
-    def test_the_lever_down_restores_the_capture(self, monkeypatch):
-        from backend.game_logic import withdrawal
-        monkeypatch.setattr(withdrawal, "THE_EMPEROR_IS_ESCORTED_HOME", False)
-        w = _boot()
-        nap = w.marshals["Napoleon"]
-        _set(w, "France", "Prussia", "PEACE")
-        nap.location = "Berlin"
-        with contextlib.redirect_stdout(io.StringIO()):
-            withdrawal._intern(w, nap, "France")
-        assert nap.captured_by == "Prussia"
-
-
 # ════════════════════════════════════════════════════════════════════════
 # #28 / #33 — the captor's terms arrive, and say what they are
 # ════════════════════════════════════════════════════════════════════════

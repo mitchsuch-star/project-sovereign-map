@@ -63,18 +63,6 @@ class TestFAN52TheMoniteurReadsLiveTypes:
         dead = sorted(k for k in keys if k not in CAMPAIGN_LOG_TYPES)
         assert dead == [], dead
 
-    def test_the_lever_down_restores_the_dead_keys(self, monkeypatch):
-        from backend.campaign_log import CAMPAIGN_LOG_TYPES
-        from backend.game_logic import gazette as G
-        monkeypatch.setattr(G, "THE_MONITEUR_READS_LIVE_TYPES", False)
-        court = G.collector_types(G._COURT_TYPES)
-        assert "coalition_formed" in court and "coalition_declared" not in court
-        assert "incoming_ultimatum" in court and "ai_ultimatum_accepted" not in court
-        assert "vassal_created" in court and "vassal_transferred" not in court
-        army = G.collector_types(G._ARMY_TYPES)
-        assert "marshal_petition" in army and "fontainebleau_petition" not in army
-        assert "coalition_formed" not in CAMPAIGN_LOG_TYPES, "the prior key really was dead"
-
     def test_a_coalition_declaration_reaches_the_court_section(self, world, monkeypatch):
         from backend.game_logic import gazette as G
         world.log_event({"type": "coalition_declared", "members": ["Austria", "Russia"],
@@ -84,10 +72,6 @@ class TestFAN52TheMoniteurReadsLiveTypes:
             issue = G.compose_issue(world, world.current_turn)
         text = " ".join(str(v) for v in issue.values())
         assert "Coalition" in text and "Austria" in text, issue
-        monkeypatch.setattr(G, "THE_MONITEUR_READS_LIVE_TYPES", False)
-        with _quiet():
-            prior = G.compose_issue(world, world.current_turn)
-        assert "Coalition formed" not in " ".join(str(v) for v in prior.values())
 
     def test_a_vassal_changing_lord_and_a_yielded_ultimatum_reach_the_court_section(self, world):
         from backend.game_logic import gazette as G
@@ -204,17 +188,9 @@ class TestFAN53ThePromiseQuotesItsWindow:
         # is an ALARM — it names a man only within two turns of erosion, so a
         # promise that just bought seven turns of patience takes him OFF it
         # (the rail row and the petition's own confirmation quote the window,
-        # asserted above). With the lever down the rows say the same number.
+        # asserted above).
         assert not [r for r in dotation.build_unmet_marshals(world, "France")
                     if r["marshal"] in {m.name for m in marshals}]
-        prior = dotation.THE_UNMET_BLOCK_WAITS
-        dotation.THE_UNMET_BLOCK_WAITS = False
-        try:
-            rows = {r["marshal"]: r for r in dotation.build_unmet_marshals(world, "France")}
-        finally:
-            dotation.THE_UNMET_BLOCK_WAITS = prior
-        for m in marshals:
-            assert rows[m.name]["grace_turns_left"] == J.FONTAINEBLEAU_PROMISE_WINDOW, rows[m.name]
 
     def test_the_turns_actually_bought_equal_the_quoted_window(self, world):
         """Measured, not asserted from the constant: erosion is quiet for

@@ -68,15 +68,10 @@ _LEVERS = (
     (D, "COUNSEL_NAMES_THE_COURT"),
     (D, "REASSURE_ONLY_AT_ALLIANCE"),
     (D, "MISSION_AT_THE_CEILING_IS_FINISHED"),
-    (DD, "MISSION_RAIL_NOTICE"),
-    (DD, "MISSION_LOG_ENDS"),
-    (L, "MISSION_LEDGER_BLOCK"),
-    (DL, "TALLEYRAND_TAB_READS_THE_CABINET"),
     (DE, "MISSION_START_IS_NOT_A_REJECTION"),
     (DE, "MISSION_CANCEL_READS_THE_NAME"),
     (ME, "MISSION_HELP_BLOCK"),
     (CL, "THE_LOG_NAMES_THE_MISSION"),
-    (SR, "GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE"),
     # the review round's levers
     (WS, "COUNTER_OFFER_RETURN_RESTORES_HIM"),
     (D, "COURT_EXEMPTION_KEEPS_THE_THAW"),
@@ -1087,15 +1082,6 @@ class TestTheRailHasOneRowPerMission:
         assert row["details"]["target_nation"] == "Saxony"
         assert row["details"]["beat"] == "begun"
 
-    def test_lever_down_rings_nothing(self, http):
-        DD.MISSION_RAIL_NOTICE = False
-        w, client = http
-        _hesse_world(w)
-        assert _start_http(client, "improve relations with Hesse").get("success")
-        assert _send_http(client, "propose open borders with Hesse").get("success")
-        _advance(w)
-        assert _rows(w) == []
-
     def test_a_counter_offer_return_does_not_ring_a_false_starvation(self, http):
         """Probe-found: the COUNTER_OFFER branch of
         `_process_proposal_in_transit` sets Talleyrand IDLE and skips the
@@ -1365,13 +1351,10 @@ class TestTheLedgerCarriesTheCabinet:
             floats = [(p, v) for p, v in _walk_numbers(cabinet) if isinstance(v, float)]
             assert not floats, (mission_type, floats)
 
-    def test_the_orders_list_is_untouched_and_the_lever_drops_the_key(self):
+    def test_the_orders_list_is_untouched(self):
         w = _typed_world("COURT_NATION")
         on = self._ledger(w)
-        L.MISSION_LEDGER_BLOCK = False
-        off = self._ledger(w)
-        assert "cabinet" not in off
-        assert on["orders"] == off["orders"]
+        assert "cabinet" in on
         assert all("marshal" in o for o in on["orders"])
 
 
@@ -1507,15 +1490,6 @@ class TestTheLogRecordsTheEnd:
         assert "diplomatic_mission_ended" in CL.CAMPAIGN_LOG_TYPES
         assert CL.CATEGORY_MAP["diplomatic_mission_ended"] == "diplomacy"
         assert len(CL.CAMPAIGN_LOG_TYPES) == 173  # 164->165 flipped consciously: IQ-7 (Sept 16, 2026) adds `client_petition_answered` — a loyal satellite's petition (THE PROVINCE / THE RELIEF) is the web's first non-rebellion decision, and its answer — granted, refused, or left to lapse — had no persistent surface (no inert diplomacy type was retired in exchange: the six producerless ones are the FA-R5 census's, not this slice's)  # 165->166 flipped consciously: GE-1 adds `campaign_ending` (the Fall, the Verdict, a Humbled Peace each leave one chronicle line)  # 166->167 flipped consciously: GE-3 adds the congress chronicle type (summons, recognitions, the War of the Congress, the dissolution)  # 167->168 flipped consciously: VP-M1 (GE-D1, Sept 25, 2026) adds `marshal_wounded`  # 168->171 flipped consciously: RF-1 adds `law_enacted` / `law_repealed` / `law_lapsed` — a court's laws had no persistent record  # 171->172 flipped consciously: VD-C (Step 5, Oct 3, 2026) adds `vassal_contingent` — the men a loyal client gives its lord (raised / marching home / home crowned or decimated / lost / walked out) had no persistent surface  # 172->173 flipped consciously: TILSIT (SF-NAV-1-D1, Score Finish Step 7, Oct 4, 2026) adds `continental_system_membership` — a court joining or leaving France's Continental System (by the Tilsit clause, a forced alliance, a satellite's auto-join, or the exit at war) had no persistent surface
-
-    def test_lever_down_logs_no_end(self):
-        DD.MISSION_LOG_ENDS = False
-        w = _europe()
-        _stage(w, "COURT_NATION", "Prussia", turns_active=2)
-        with _quiet():
-            CommandExecutor()._diplomatic._recall_mission(None, w)
-        assert _ended(w) == []
-        assert _row(w)["details"]["beat"] == "recalled", "the rail still rings"
 
     def test_lever_down_the_started_line_is_todays(self):
         CL.THE_LOG_NAMES_THE_MISSION = False
@@ -1994,13 +1968,6 @@ class TestGratitudeReadsTheProposalCase:
         w = self._grateful()
         assert _score(w, _proposal(ptype="open_borders"))["components"][
             "settlement_gratitude_mod"] == 0
-
-    def test_lever_down_reproduces_the_lost_term(self):
-        SR.GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE = False
-        w = self._grateful()
-        assert _score(w, _proposal())["components"]["settlement_gratitude_mod"] == 0
-        assert SR.settlement_gratitude_mod(w, "France", "Prussia", "ALLIANCE") == 5
-
 
 # ════════════════════════════════════════════════════════════════════
 # Integration pins — the lead's fixes on the fleet's report
@@ -2711,15 +2678,6 @@ class TestReviewTheTalleyrandTabReadsTheCabinet:
         assert tab["last_mission"] == {"type_display": "Gathering Intel",
                                        "target_display": "Prussia",
                                        "reason_phrase": record["reason_phrase"]}
-
-    def test_lever_down_the_keys_are_absent(self):
-        DL.TALLEYRAND_TAB_READS_THE_CABINET = False
-        active = DL.build_diplomatic_ledger(_typed_world("COURT_NATION"))["talleyrand"][
-            "active_mission"]
-        for k in ("type_display", "net_per_turn", "remaining_note", "remaining_kind"):
-            assert k not in active, k
-        assert "last_mission" not in DL.build_diplomatic_ledger(self._gathered())["talleyrand"]
-
 
 class TestReviewCanDoNoMoreOnARealBoard:
     """P4 (f): the "relations can do no more" branch never fires at skill 10;

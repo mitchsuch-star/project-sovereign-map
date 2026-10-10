@@ -239,7 +239,6 @@ _GRATITUDE_HOOK_TREATY_TYPES: frozenset = frozenset(
 # uppercase call the unit pins make scored 5 — the gratitude never reached
 # a real alliance or defensive-alliance offer. The alliance family is now
 # read in either case. False = the case-sensitive gate.
-GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE = True
 _GRATITUDE_ALLIANCE_FAMILY: frozenset = frozenset({"DEFENSIVE_ALLIANCE", "ALLIANCE"})
 
 
@@ -255,8 +254,7 @@ def settlement_gratitude_mod(
     1482. Returns ``0`` otherwise. Single-component upside; spec line
     1482 says it stays outside the political-subtotal clamp.
     """
-    if (GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE
-            and str(proposal_type or "").upper() in _GRATITUDE_ALLIANCE_FAMILY):
+    if (str(proposal_type or "").upper() in _GRATITUDE_ALLIANCE_FAMILY):
         proposal_type = str(proposal_type).upper()
     if proposal_type not in _GRATITUDE_HOOK_TREATY_TYPES:
         return 0

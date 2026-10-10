@@ -191,15 +191,6 @@ class TestEnact:
                                                 admin_actions=0)
         assert R.law_refusal(world, "France", STAFF_ID, admin_actions=1) == ""
 
-    def test_lever_down_the_state_has_no_laws(self, world, client, monkeypatch):
-        monkeypatch.setattr(R, "THE_STATE_HAS_LAWS", False)
-        world.nation_gold["France"] = 30000
-        r = post(client, "enact the Staff")
-        assert r["success"] is False
-        assert "no laws" in r["message"]
-        assert world.nation_gold["France"] == 30000
-
-
 # ═══════════════════════════════ THE WORDS ════════════════════════════════════
 
 class TestTheWords:
@@ -559,12 +550,6 @@ class TestTheLapse:
         assert world.nation_gold["Austria"] == 290
         assert events == [], "only the player's own lapse reaches his report"
         assert any(e["nation"] == "Austria" for e in _events(world, "law_lapsed"))
-
-    def test_lever_down_nothing_lapses(self, world, monkeypatch):
-        self._stage(world, -100, staff(world))
-        monkeypatch.setattr(R, "THE_STATE_HAS_LAWS", False)
-        assert R.process_law_lapses(world) == []
-        assert world.nation_gold["France"] == -100
 
     def test_the_lapse_runs_before_the_rente_default_and_the_bankruptcy(
             self, world, monkeypatch):

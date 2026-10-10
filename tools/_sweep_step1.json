@@ -210,20 +210,6 @@
   "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestTheLeversQuoteTheirTurns"
  },
  {
-  "id": "RS-D1 rider: the retained capital is not a loss",
-  "file": "backend/game_logic/settlement_scoring.py",
-  "old": "    if capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST:\n        capital_lost = True\n",
-  "new": "    if capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST:\n        capital_lost = capital_lost\n",
-  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
- },
- {
-  "id": "RS-D1 rider: the kept-all bonus survives",
-  "file": "backend/game_logic/settlement_scoring.py",
-  "old": "        and not (capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST)\n",
-  "new": "        and True\n",
-  "tests": "tests/test_rs_d1_recognition_by_defeat.py::TestThePriceRider"
- },
- {
   "id": "RS-D1 rider: an ally's hand counts as ours",
   "file": "backend/game_logic/settlement_scoring.py",
   "old": "    if holder_top != str(world._top_overlord(leader) or leader):\n        return False\n",

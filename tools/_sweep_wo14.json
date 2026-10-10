@@ -1,26 +1,5 @@
 [
  {
-  "id": "WO14-1 met branch always resets the clock (the churn dodge)",
-  "file": "backend/models/world_state.py",
-  "old": "                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:\n                    marshal.expectation_grace_turn = -1",
-  "new": "                marshal.expectation_grace_turn = -1",
-  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
- },
- {
-  "id": "WO14-2 the guard lever is frozen off",
-  "file": "backend/models/world_state.py",
-  "old": "                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:\n                    marshal.expectation_grace_turn = -1",
-  "new": "                if True or _estate_covers:\n                    marshal.expectation_grace_turn = -1",
-  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
- },
- {
-  "id": "WO14-3 estate coverage no longer resets (freezes durable land)",
-  "file": "backend/models/world_state.py",
-  "old": "                if not PENSION_CHURN_GUARD_ACTIVE or _estate_covers:",
-  "new": "                if not PENSION_CHURN_GUARD_ACTIVE:",
-  "tests": "tests/test_wo_slice14_the_clock_and_the_flag.py"
- },
- {
   "id": "WO14-5 estate coverage uses satisfaction (rente slips through)",
   "file": "backend/models/world_state.py",
   "old": "                _estate_covers = get_estate_income(marshal, self) >= expectation",

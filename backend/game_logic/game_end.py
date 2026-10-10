@@ -51,13 +51,11 @@ from typing import Any, Dict, Iterable, List, Optional
 # R7: the campaign can end where the scenario authors a `campaign_end`
 # block. Down, `endings_armed` is False everywhere — no clock, no Verdict,
 # no Humbled Peace, no death roll: the sandbox byte-for-byte.
-THE_CAMPAIGN_CAN_END = True
 
 # The user's Sept 25, 2026 ask ("or if Napoleon dies"): at the ONE removal
 # seam, a sovereign whose corps is destroyed on the battlefield may DIE
 # instead of being taken. Down, the NP-4 death guard converts every removal
 # to capture, as before.
-THE_EMPEROR_IS_MORTAL = True
 
 # The chance, in percent, that a sovereign whose corps is annihilated in the
 # fighting dies with it rather than being taken. Blessed default, in-band
@@ -76,11 +74,9 @@ SOVEREIGN_DEATH_CHANCE_PCT = 15
 BATTLEFIELD_CAUSES = frozenset({"battle", "charge", "bombardment"})
 
 # The Humbled Peace (ENDGAME_PLAN §3 / GAME_END_SPEC §7.6).
-THE_HUMBLED_PEACE_IS_MARKED = True
 
 # §2.2 reconciliation: a court that SIGNED a cession has that province's
 # Revanche weight read 0 while the treaty holds. Read by agendas.py.
-A_SIGNED_CESSION_IS_RECONCILED = True
 
 # SR-1a "Status quo is a cession" (Score Mandate Chunk 1, September 26,
 # 2026; AAR-D2). A province one signatory HOLDS of the other's — the other's
@@ -101,7 +97,6 @@ A_SIGNED_CESSION_IS_RECONCILED = True
 # loser signed no cession, so its designs still covet the ground and the
 # Congress still has to be won at the table — uti possidetis titles the
 # province for the COUNT, recognition is bought separately. Flip lever.
-STATUS_QUO_IS_A_CESSION = True
 # SF7-X7 (Score Finish Step 7 slice 7, October 4, 2026): a peace says what
 # EACH side keeps under the status quo — before it is signed (the proposal's
 # forecast, read off the same `status_quo_retentions` the ratifier titles
@@ -135,7 +130,7 @@ def campaign_end_block(world) -> Dict[str, Any]:
 def endings_armed(world) -> bool:
     """True where the scenario authored the rules (R7). Europe worlds only;
     the tutorial and the bare flag world author no block."""
-    if not THE_CAMPAIGN_CAN_END or world is None:
+    if world is None:
         return False
     if not getattr(world, "sandbox_mode", False):
         return False
@@ -372,7 +367,6 @@ def screen_payload(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]
 # (verification round): that attach was deleted, not kept behind this switch,
 # so every response of a fallen campaign carries `game_over`/`ending` and
 # the Final save either way.
-THE_WAR_IS_CLOSED_AT_ONE_SEAM = True
 
 
 def close_campaign(world) -> Optional[Dict[str, Any]]:
@@ -393,7 +387,7 @@ def close_campaign(world) -> Optional[Dict[str, Any]]:
     re-seeded by a road that runs after the response seam, would otherwise
     raise a card nobody can answer on every later response and load."""
     record = terminal_ending(world)
-    if record is None or not THE_WAR_IS_CLOSED_AT_ONE_SEAM:
+    if record is None:
         return record
     if not record.get("closed"):
         record["closed"] = True
@@ -534,7 +528,7 @@ def sovereign_death_roll(world, marshal, cause: str) -> bool:
     him immortal on the suite's own seed). No module RNG is consumed (M1–M7
     and 21 test files depend on its draw order). The namespace carries the
     turn, the man and the cause, so two annihilations are two rolls."""
-    if not THE_EMPEROR_IS_MORTAL or not endings_armed(world):
+    if not endings_armed(world):
         return False
     if str(cause) not in BATTLEFIELD_CAUSES:
         return False
@@ -882,8 +876,6 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
     per direction that titled anything) and stashes them on the world for
     the ratifier that is speaking (`take_status_quo_titled`). Never raises
     (a title is display substrate)."""
-    if not STATUS_QUO_IS_A_CESSION:
-        return []
     if old_state not in ("WAR", "ARMISTICE") or new_state in ("WAR", "ARMISTICE"):
         return []
     if str(reason or "") not in SIGNED_PEACE_REASONS:
@@ -1022,7 +1014,7 @@ def status_quo_forecast(world, nation_a: str, nation_b: str,
     the provinces the package itself moves (`moved`: its cessions and
     carves) left out, as the incoming offer's letter leaves them out
     (SR-2d). Pure read; [] with either lever down."""
-    if not (STATUS_QUO_IS_A_CESSION and THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS):
+    if not (THE_PEACE_NAMES_WHAT_EACH_SIDE_KEEPS):
         return []
     if not nation_a or not nation_b or nation_a == nation_b:
         return []
@@ -1174,7 +1166,6 @@ def title_signed_cessions(world, terms: Iterable[Dict[str, Any]]) -> None:
 # joined — breaks the titles as before (the hold already dissolves on it).
 # Player titles only: the Congress is France's. False = the pre-RS-2 break
 # byte-for-byte.
-A_CONGRESS_WAR_CONTESTS_NOT_BREAKS = True
 
 
 def player_drew_the_sword(world, nation_a: str, nation_b: str, reason: str) -> bool:
@@ -1199,8 +1190,6 @@ def player_drew_the_sword(world, nation_a: str, nation_b: str, reason: str) -> b
 def congress_shelters_titles(world, nation_a: str, nation_b: str, reason: str) -> bool:
     """RS-2's shelter: the lever up, the Congress sitting, and a war the
     Emperor neither declared nor joined."""
-    if not A_CONGRESS_WAR_CONTESTS_NOT_BREAKS:
-        return False
     try:
         from backend.game_logic import congress as _congress
         if not _congress.sitting(world):
@@ -1627,8 +1616,6 @@ def reconciled_regions(world, nation: str) -> set:
     client's whole live territory, and lapsed when the client was released
     in peace). A war between the ceder and the province's holder, or the
     holder's lord, or the house that signed, PAUSES the reconciliation."""
-    if not A_SIGNED_CESSION_IS_RECONCILED:
-        return set()
     out = set()
     store = getattr(world, "province_title", None)
     if isinstance(store, dict):
@@ -1785,8 +1772,6 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
     # The wording rides the ratifier's own summary (`take_recognition_lines`
     # — a same-turn hand-off, like the status-quo stash).
     world._recognition_lines = _congress.recognition_lines(world, latched or {})
-    if not THE_HUMBLED_PEACE_IS_MARKED:
-        return None
     homeland = list((getattr(world, "nation_starting_regions", {}) or {}).get(player, []) or [])
     capital = world.get_nation_capital(player) or ""
     ceded_home = ceded & set(homeland)

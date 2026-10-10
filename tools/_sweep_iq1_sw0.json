@@ -21,27 +21,6 @@
     "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheCeilingIsTheFixedPoint::test_zero_rate_and_zero_net_are_the_unbounded_sentinel"
   },
   {
-    "id": "SW0-4 the ledger stops reading gold_spent_this_turn",
-    "file": "backend/game_logic/ledger.py",
-    "old": "        \"spent\": (int((getattr(world, \"gold_spent_this_turn\", {}) or {}).get(player, 0))\n                  if THE_CHEST_STATES_ITS_CEILING else 0),",
-    "new": "        \"spent\": 0,",
-    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestShownEqualsApplied tests/test_iq1_sw0_chest_speaks.py::TestTheLever"
-  },
-  {
-    "id": "SW0-5 the ceiling is re-derived instead of read from the applied terms",
-    "file": "backend/game_logic/ledger.py",
-    "old": "        \"ceiling\": (state_charges_ceiling(net, sum(\n            int(t.get(\"amount\", 0)) for t in state_charges_terms))\n            if THE_CHEST_STATES_ITS_CEILING else 0),",
-    "new": "        \"ceiling\": (state_charges_ceiling(net, 30)\n            if THE_CHEST_STATES_ITS_CEILING else 0),",
-    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestShownEqualsApplied tests/test_iq1_sw0_chest_speaks.py::TestTheCeilingIsTheFixedPoint::test_the_boot_world_ceiling_is_reachable_and_finite"
-  },
-  {
-    "id": "SW0-6 the lever's False arm leaks spent",
-    "file": "backend/game_logic/ledger.py",
-    "old": "        \"spent\": (int((getattr(world, \"gold_spent_this_turn\", {}) or {}).get(player, 0))\n                  if THE_CHEST_STATES_ITS_CEILING else 0),",
-    "new": "        \"spent\": int((getattr(world, \"gold_spent_this_turn\", {}) or {}).get(player, 0)),",
-    "tests": "tests/test_iq1_sw0_chest_speaks.py::TestTheLever"
-  },
-  {
     "id": "SW0-7 the client stops reading the ceiling",
     "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
     "old": "\tvar ceiling = int(econ.get(\"ceiling\", 0))",

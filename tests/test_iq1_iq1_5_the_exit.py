@@ -407,17 +407,6 @@ class TestTheLedgerSaysWhy:
         assert "men smaller" in note, note
         assert _french_army(beaten) < army_before
 
-    def test_lever_down_says_only_what_it_said_before(self, monkeypatch):
-        from backend.game_logic import ledger as LG
-        monkeypatch.setattr(LG, "THE_BILLS_SAY_WHY_THEY_MOVED", False)
-        whole = _boot(5_000)
-        _hold_at_peace(whole)
-        self._advance(whole)
-        econ = _quiet(LG._build_economy, whole, "France")
-        assert econ["upkeep_note"] == "" and econ["state_charges_delta_note"] == ""
-        assert "fuller chest" not in econ["state_charges_rate_note"]
-
-
 # ---------------------------------------------------------------------------
 # item (iii) — every gold the player is charged, named
 # ---------------------------------------------------------------------------

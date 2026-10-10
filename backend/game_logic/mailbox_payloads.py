@@ -505,19 +505,18 @@ def build_pending_envoy_popup_from_terms(
             #
             # Two different questions, two numbers. The label is recomputed
             # here, on the UN-oriented demands, and nothing else moves.
-            if INCOMING_ASSESSMENT_READS_OUR_BURDEN:
-                from backend.game_logic.diplomacy import get_harshness_label
-                from backend.game_logic.diplomatic_templates import (
-                    calculate_treaty_harshness,
-                )
-                _our_burden = calculate_treaty_harshness({
-                    "clauses": [],
-                    "demands": list(terms.get("demands") or []),
-                })
-                snapshot["harshness"] = round(_our_burden, 2)
-                snapshot["harshness_label"] = get_harshness_label(_our_burden)
-                payload["harshness"] = snapshot["harshness"]
-                payload["harshness_label"] = snapshot["harshness_label"]
+            from backend.game_logic.diplomacy import get_harshness_label
+            from backend.game_logic.diplomatic_templates import (
+                calculate_treaty_harshness,
+            )
+            _our_burden = calculate_treaty_harshness({
+                "clauses": [],
+                "demands": list(terms.get("demands") or []),
+            })
+            snapshot["harshness"] = round(_our_burden, 2)
+            snapshot["harshness_label"] = get_harshness_label(_our_burden)
+            payload["harshness"] = snapshot["harshness"]
+            payload["harshness_label"] = snapshot["harshness_label"]
         except Exception:
             payload["annotated_terms"] = []
 
@@ -526,7 +525,6 @@ def build_pending_envoy_popup_from_terms(
 
 # FA-N43 (slice 10) flip lever: False restores the pre-slice-10 reading, in
 # which the incoming popup's Assessment quoted the burden on the SENDER.
-INCOMING_ASSESSMENT_READS_OUR_BURDEN = True
 
 
 def _orient_incoming_terms_for_player(terms: Dict, player_nation: str, source_nation: str) -> Dict:

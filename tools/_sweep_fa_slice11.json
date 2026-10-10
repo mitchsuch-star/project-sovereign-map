@@ -140,13 +140,6 @@
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheShellingIsBriefed::test_le_moniteur_can_print_it"
  },
  {
-  "id": "prisoner/a the ledger knows him",
-  "file": "backend/game_logic/ledger.py",
-  "old": "    if THE_LEDGER_KNOWS_ITS_PRISONERS and getattr(marshal, \"captured_by\", \"\"):",
-  "new": "    if False:",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestThePrisonerIsOnTheSurfaces::test_the_ledger_says_he_is_held_and_not_idle"
- },
- {
   "id": "prisoner/b the row carries the captor",
   "file": "backend/game_logic/ledger.py",
   "old": "            \"captured\": bool(getattr(marshal, \"captured_by\", \"\")),\n            \"captured_by\": str(getattr(marshal, \"captured_by\", \"\") or \"\"),",
@@ -180,13 +173,6 @@
   "old": "                    if _region is not None and _region.controller == player_nation:",
   "new": "                    if _region is not None:",
   "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheEnemyPhaseReadsTheField::test_it_does_not_leak_an_assault_on_somebody_else"
- },
- {
-  "id": "card/a the folded rows are carried",
-  "file": "backend/game_logic/war_status.py",
-  "old": "        if COALITION_CARD_KEEPS_ITS_MEMBERS:\n            combined[\"coalition_member_rows\"] = [",
-  "new": "        if False:\n            combined[\"coalition_member_rows\"] = [",
-  "tests": "tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_every_member_is_visible_to_the_card tests/test_fa_slice11_the_briefing_tells_the_truth_2026_09_05.py::TestTheCoalitionCardKeepsItsMembers::test_the_coordination_and_the_weak_link_come_back"
  },
  {
   "id": "card/b the metadata reads them",

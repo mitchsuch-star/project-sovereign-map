@@ -77,13 +77,6 @@
   "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
  },
  {
-  "id": "GR-12 the Emperor is interned by a court at peace",
-  "file": "backend/game_logic/withdrawal.py",
-  "old": "THE_EMPEROR_IS_ESCORTED_HOME = True",
-  "new": "THE_EMPEROR_IS_ESCORTED_HOME = False",
-  "tests": "tests/test_ge1_review_round.py tests/test_ge1_the_verdict_and_the_fall.py"
- },
- {
   "id": "GR-13 P1 overwrites the captor's terms",
   "file": "backend/game_logic/ai_diplomacy.py",
   "old": "    if proposal is None and is_at_war and war_score < effective_p1_threshold:",

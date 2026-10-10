@@ -1,12 +1,5 @@
 [
   {
-    "id": "the state has no laws",
-    "file": "backend/game_logic/reforms.py",
-    "old": "THE_STATE_HAS_LAWS = True\n",
-    "new": "THE_STATE_HAS_LAWS = False\n",
-    "tests": "tests/test_rf0_the_laws_substrate.py::TestTheOnePredicate::test_a_law_the_court_can_afford_passes"
-  },
-  {
     "id": "the window is nine turns",
     "file": "backend/game_logic/reforms.py",
     "old": "ARREARS_WINDOW_TURNS = 10\n",

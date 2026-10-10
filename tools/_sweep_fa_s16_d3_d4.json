@@ -21,20 +21,6 @@
   "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestOneFloorTwoReaders"
  },
  {
-  "id": "D3/d the narrator binds a COPY instead of the module",
-  "file": "backend/game_logic/battle_report.py",
-  "old": "from backend.game_logic import battle_scale",
-  "new": "from backend.game_logic.battle_scale import is_a_battle, SKIRMISH_GATE_ACTIVE\nimport backend.game_logic.battle_scale as _unused_battle_scale  # noqa: F401",
-  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestOneFloorTwoReaders::test_neither_reader_binds_a_copy"
- },
- {
-  "id": "D3/e the lever stops reproducing the pre-fix narration",
-  "file": "backend/game_logic/battle_report.py",
-  "old": "    _at_scale = (not battle_scale.SKIRMISH_GATE_ACTIVE\n                 or battle_scale.is_a_battle(",
-  "new": "    _at_scale = (battle_scale.SKIRMISH_GATE_ACTIVE\n                 and battle_scale.is_a_battle(",
-  "tests": "tests/test_fa_s16_d3_the_scale_of_a_battle_2026_09_06.py::TestTheRowsOwnCase"
- },
- {
   "id": "D3/f the despite-terrain arm loses its gate",
   "file": "backend/game_logic/battle_report.py",
   "old": "    if we_lost and _at_scale and _mod_value(our_mods, \"terrain\", \"bonus\") >= 15:",

@@ -76,7 +76,6 @@ SETTLEMENT_DRAFT_DIALOGUE_TYPES = frozenset(
 
 # Flip lever: False restores the pre-slice-10 reading (an offer counts as a
 # mounted draft) at all three readers at once.
-OFFER_IS_MAIL_NEVER_A_DRAFT = True
 
 
 def settlement_draft_dialogue_types() -> frozenset:
@@ -88,8 +87,6 @@ def settlement_draft_dialogue_types() -> frozenset:
     """
     return (
         SETTLEMENT_DRAFT_DIALOGUE_TYPES
-        if OFFER_IS_MAIL_NEVER_A_DRAFT
-        else SETTLEMENT_FAMILY_DIALOGUE_TYPES
     )
 
 

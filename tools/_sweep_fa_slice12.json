@@ -1,26 +1,5 @@
 [
   {
-    "id": "FA-33 the stamp returns",
-    "file": "backend/game_logic/withdrawal.py",
-    "old": "        order_kwargs = {}\n        if not THE_TREATY_CLAIMS_NO_FIRST_STEP:",
-    "new": "        order_kwargs = {}\n        if THE_TREATY_CLAIMS_NO_FIRST_STEP or True:",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheTreatyClaimsNoFirstStep"
-  },
-  {
-    "id": "FA-33 the lever is ignored (control arm never reproduces)",
-    "file": "backend/game_logic/withdrawal.py",
-    "old": "        if not THE_TREATY_CLAIMS_NO_FIRST_STEP:\n            # FA-33's control arm",
-    "new": "        if False:\n            # FA-33's control arm",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheTreatyClaimsNoFirstStep::test_the_lever_down_reproduces_the_lost_turn"
-  },
-  {
-    "id": "FA-33 rider: the standing question stops buying grace",
-    "file": "backend/game_logic/withdrawal.py",
-    "old": "            if (A_STANDING_QUESTION_IS_NOT_LOITERING\n                    and _awaiting_the_players_word(marshal)):",
-    "new": "            if (False\n                    and _awaiting_the_players_word(marshal)):",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAStandingQuestionIsNotLoitering::test_the_mercy_is_marshal_scoped_and_the_corridor_still_closes"
-  },
-  {
     "id": "FA-33 rider: the grace covers only order-bound asks",
     "file": "backend/game_logic/withdrawal.py",
     "old": "    return pending.get(\"interrupt_type\") in (\n        ORDER_BOUND_INTERRUPT_TYPES | STANDALONE_DECISION_TYPES)",
@@ -35,25 +14,11 @@
     "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestAStandingQuestionIsNotLoitering::test_a_routed_corps_keeps_its_own_grace"
   },
   {
-    "id": "FA-N61 the top-up never runs",
-    "file": "backend/game_logic/withdrawal.py",
-    "old": "        if THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED:\n            for offer in offer_road_home(world, nation):",
-    "new": "        if False:\n            for offer in offer_road_home(world, nation):",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded"
-  },
-  {
     "id": "FA-N61 the warning is read before the offer that answers it",
     "file": "backend/game_logic/withdrawal.py",
     "old": "                events.append(_warn(world, marshal, nation, dist, surplus))",
     "new": "                events.insert(0, _warn(world, marshal, nation, dist, surplus))",
     "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_the_offer_is_reported_before_the_warning_it_answers"
-  },
-  {
-    "id": "FA-N61 the refusal is forgotten",
-    "file": "backend/game_logic/withdrawal.py",
-    "old": "        if (existing is None and THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED\n                and bool(getattr(marshal, \"road_home_offered\", False))):\n            continue",
-    "new": "        if False:\n            continue",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheRefusalIsRemembered"
   },
   {
     "id": "FA-N61 the offer is never recorded",
@@ -222,12 +187,5 @@
     "old": "    return (bool(getattr(marshal, \"retreating\", False))\n            or bool(getattr(marshal, \"broken\", False)))",
     "new": "    return bool(getattr(marshal, \"retreating\", False))",
     "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheOfferStandsWhileHeIsStranded::test_a_rout_is_not_a_refusal"
-  },
-  {
-    "id": "FA-N61 the AI mirror pin loses its second arm",
-    "file": "backend/game_logic/withdrawal.py",
-    "old": "        order_kwargs = {}\n        if not THE_TREATY_CLAIMS_NO_FIRST_STEP:",
-    "new": "        order_kwargs = {}\n        if THE_TREATY_CLAIMS_NO_FIRST_STEP:",
-    "tests": "tests/test_fa_slice12_the_road_home_2026_09_05.py::TestTheTreatyClaimsNoFirstStep::test_the_ai_mirror_is_unchanged_with_the_lever_down_too"
   }
 ]

@@ -68,7 +68,6 @@ PRICE_DISPLAY = {
 # summary, Talleyrand's design counsel and the eases dispatch ("indifferent
 # is now the length of its tether"). The bottom rung now gets a sentence of
 # its own. False = the spliced adjective, byte-for-byte.
-INDIFFERENT_READS_AS_A_SENTENCE = True
 
 
 def price_reach_phrase(price: str) -> str:
@@ -76,7 +75,7 @@ def price_reach_phrase(price: str) -> str:
     price for the "Their price:" / "Their court is …" sentences, so the
     bottom rung cannot be spliced in as an adjective at one site and fixed
     at another."""
-    if INDIFFERENT_READS_AS_A_SENTENCE and price == "indifferent":
+    if price == "indifferent":
         return "not yet prepared to act on it"
     return f"prepared to go as far as {PRICE_DISPLAY.get(price, price).lower()}"
 
@@ -700,7 +699,7 @@ def process_intent_movements(world) -> List[Dict]:
         # IQ-2: the eases template reads "{price} is now the length of its
         # tether" — the noun, not the adjective, for the bottom rung (a
         # court only EASES onto it; hardening can never land there).
-        if INDIFFERENT_READS_AS_A_SENTENCE and view.price == "indifferent":
+        if view.price == "indifferent":
             price_word = "indifference"
         vars_ = {
             "nation": nation_display,
@@ -781,7 +780,6 @@ def get_france_perceived_intent(world) -> Tuple[str, int, Optional[str]]:
 # (ai_diplomacy's sell-neutrality arm asks whether the court is France's
 # perceived target), which is why it is a flip and not a comment. False =
 # every marshal credited, byte-for-byte.
-THE_MIRROR_COUNTS_ONLY_STANDING_CORPS = True
 
 
 def _perceived_target(world) -> Optional[str]:
@@ -808,7 +806,7 @@ def _perceived_target(world) -> Optional[str]:
     for marshal in world.marshals.values():
         if getattr(marshal, "nation", None) != player:
             continue
-        if THE_MIRROR_COUNTS_ONLY_STANDING_CORPS and (
+        if (
                 getattr(marshal, "captured_by", "")
                 or int(getattr(marshal, "strength", 0) or 0) <= 0):
             continue
@@ -857,7 +855,7 @@ def build_france_mirror_payload(world) -> Optional[dict]:
     else:
         read_as = "A power among powers"
     price_display = PRICE_DISPLAY.get(price, price)
-    if INDIFFERENT_READS_AS_A_SENTENCE and price == "indifferent":
+    if price == "indifferent":
         price_line = (f"The courts believe he will act against no one "
                       f"(alarm {weight}).")
     else:

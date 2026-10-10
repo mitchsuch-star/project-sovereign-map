@@ -59,7 +59,7 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     # the realm stands.
     from backend.game_logic import collapse as _collapse
     collapse_fields = {}
-    if _collapse.THE_COLLAPSE_IS_LEGIBLE and getattr(world, "sandbox_mode", False):
+    if getattr(world, "sandbox_mode", False):
         _state = _collapse.get_collapse_state(world)
         # GE-1 R9: the tail is the clock and its exits where the rules are
         # authored (`fall.scope_sentence`); IQ-2's sentence elsewhere.
@@ -91,8 +91,7 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     # a row in `orders` (tests key those on `o["marshal"]`); absent with the
     # lever down, so the payload is byte-identical.
     cabinet_fields = {}
-    if MISSION_LEDGER_BLOCK:
-        cabinet_fields["cabinet"] = build_cabinet(world)
+    cabinet_fields["cabinet"] = build_cabinet(world)
 
     # SR-5r RF-4a: THE LAWS — the eighth book (`reforms.laws_payload`, one
     # source for the rows and their chips). Absent on a world with no deck,
@@ -128,7 +127,6 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
 # ============================================================================
 
 # Flip lever: False drops the `cabinet` key (master 7bbf82b8 payload).
-MISSION_LEDGER_BLOCK = True
 
 
 def _completed_mission_reason(mission: Dict[str, Any]) -> str:
@@ -202,19 +200,16 @@ def build_cabinet(world) -> Dict[str, Any]:
 
 # FA-32 (slice 11) flip lever: False restores the ledger's silence about a
 # prisoner (an `idle` corps standing in the captor's capital at strength 0).
-THE_LEDGER_KNOWS_ITS_PRISONERS = True
 # FA-N36 (slice 17): a marshal frozen by an unanswered interrupt is
 # `awaiting_decision` on the FORCES tab, his order summary says HALTED, and
 # the ORDERS row stops claiming progress — the same lie the dispatch was
 # fixed for on July 19. One word shared with `dispatch._derive_marshal_status`;
 # `strategic_ledger.gd` already renders it ("Awaiting decision") unchanged.
-THE_LEDGER_SEES_THE_HALT = True
 # FA-N65 (slice 17): the ORDERS tab lists no prisoner. FA-32 fixed the FORCES
 # half ("Held by Austria at Vienna"); the ORDERS half still appended him to
 # `idle_marshals` as "Ney at Vienna │ No active orders" — the client's
 # literal at strategic_ledger.gd:945, so no payload word could fix it. He is
 # on FORCES and in the dispatch's PRISONERS OF WAR block; here he is absent.
-THE_ORDERS_TAB_KNOWS_ITS_PRISONERS = True
 
 
 def _is_halted(marshal) -> bool:
@@ -223,8 +218,6 @@ def _is_halted(marshal) -> bool:
     no order (the TUT-F4a class, reachable from a pre-slice save) is not a
     halt — the dispatch reads "Awaiting orders." for it and both surfaces
     must say the same word."""
-    if not THE_LEDGER_SEES_THE_HALT:
-        return False
     from backend.commands.strategic import standalone_decision
     if standalone_decision(marshal):
         return True
@@ -234,7 +227,7 @@ def _is_halted(marshal) -> bool:
 
 def _derive_status(marshal) -> str:
     """Derive marshal status from priority chain (highest wins)."""
-    if THE_LEDGER_KNOWS_ITS_PRISONERS and getattr(marshal, "captured_by", ""):
+    if getattr(marshal, "captured_by", ""):
         # FA-32: the Strategic Ledger is the surface a player OPENS, and it
         # was the surface that lied. A captured marshal was listed on the
         # FORCES tab as an `idle` corps at `Vienna` with strength 0 and "No
@@ -449,12 +442,10 @@ def _levy_block(world, nation: str = None) -> dict:
 # price at the capital" beside a figure `_execute_recruit` refuses. The note
 # now asks the executor's own depot gate (`recruit_location_gate`) and names
 # the closed depot. Flip lever: False = the pre-IQ-2 note on every board.
-THE_MANPOWER_TAB_READS_THE_DEPOT = True
 
 # FA-D26 (slice 17, Phase 2) flip lever: the economy tab carries the Materiel
 # bill as an informational line (charged at the battle, not in Net). False =
 # no row (the prior ledger).
-THE_LEDGER_SHOWS_THE_MATERIEL_BILL = True
 
 # IQ-1 SW-0 "The Chest Speaks" flip lever: the economy tab states what the
 # turn has SPENT and where the treasury is headed under the charges now in
@@ -467,7 +458,6 @@ THE_LEDGER_SHOWS_THE_MATERIEL_BILL = True
 # September 12, 2026: a commanded France reaches 88,556g by turn 40 having
 # spent 2.5% of 199,101g gross, because the two admin actions a turn can
 # only reach ~1,308g of purchases against a boot net of 1,842g.
-THE_CHEST_STATES_ITS_CEILING = True
 
 # IQ-1 IQ1-2 "The Chest Tells the Truth" flip lever. False restores every
 # pre-slice reading: the POST-charge ceiling argument, the player-scoped
@@ -512,7 +502,6 @@ THE_CHEST_STATES_ITS_CEILING = True
 #    2,562). Only above about 60,000, where the post-charge net went
 #    non-positive, did the line vanish entirely. What was unreachable was a
 #    ceiling below the chest that is ALSO CORRECT.
-THE_CHEST_TELLS_THE_TRUTH = True
 
 # The signed components of `_build_economy`'s `net` expression, as the
 # CANONICAL map. The ledger is the source of this truth: the
@@ -597,10 +586,9 @@ def _state_charges_rate_note(relief_per_1000: int = 0) -> str:
     from backend.models.world_state import CHARGES_HOARD_FLOOR, WAR_EFFORT_DIVISOR
     note = (f"rate points — each draws 1g per {int(WAR_EFFORT_DIVISOR):,}g of the chest "
             f"above the {int(CHARGES_HOARD_FLOOR):,}g floor")
-    if THE_BILLS_SAY_WHY_THEY_MOVED:
-        # SR-5a question (c): the victor's Net decays as its chest fills —
-        # say so in the words the player reads, not only the unit.
-        note += ", so a fuller chest pays more"
+    # SR-5a question (c): the victor's Net decays as its chest fills —
+    # say so in the words the player reads, not only the unit.
+    note += ", so a fuller chest pays more"
     if THE_CHARGES_NAME_THEIR_PRICE and int(relief_per_1000) > 0:
         # EAD-2: the decision the Charges already carry, said aloud — gold
         # spent leaves the chest the Charges are drawn on.
@@ -665,7 +653,6 @@ def charges_grip_clause(world, nation: str, authority_before: int,
 # ledger now SAYS why each bill moved since the last turn it charged.
 # Display only (GR6), derived from the income phase's own transient
 # applied-results cache, zero new serialized fields. Flip lever.
-THE_BILLS_SAY_WHY_THEY_MOVED = True
 # EA-5 (the economy audit, October 5, 2026 — N2): a court that is a vassal
 # pays its tribute on its own Net (False = the shipped ledger, lord side only).
 THE_VASSAL_PAYS_ON_ITS_OWN_BOOKS = True
@@ -991,8 +978,6 @@ def why_the_bills_moved(world, nation: str, upkeep_data: dict,
     a load the cache is empty and only the standing rule is said.
     """
     out = {"upkeep_note": "", "charges_note": ""}
-    if not THE_BILLS_SAY_WHY_THEY_MOVED:
-        return out
     men = int((upkeep_data or {}).get("total_strength", 0) or 0)
     upkeep = int((upkeep_data or {}).get("total", 0) or 0)
     out["upkeep_note"] = (f"paid for the {men:,} men under arms — the fallen "
@@ -1337,26 +1322,17 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # IQ1-2 (2): answer for the nation that was ASKED about. `world.gold`
     # and `world.bankruptcy_turns` are player-scoped properties, so every
     # AI court's economy read France's chest back.
-    if THE_CHEST_TELLS_THE_TRUTH:
-        _treasury = int((getattr(world, "nation_gold", None) or {}).get(player, 0))
-        _bankruptcy = int(
-            (getattr(world, "nation_bankruptcy_turns", None) or {}).get(player, 0))
-    else:
-        _treasury = int(world.gold)
-        _bankruptcy = int(world.bankruptcy_turns)
+    _treasury = int((getattr(world, "nation_gold", None) or {}).get(player, 0))
+    _bankruptcy = int(
+        (getattr(world, "nation_bankruptcy_turns", None) or {}).get(player, 0))
 
     # IQ1-2 (1): the fixed point is defined against the gold coming IN, which
     # is the net BEFORE the charge is taken out of it — `net` above has
     # already subtracted `state_charges`. Passing the post-charge figure made
     # the "destination" move with the chest it is the destination OF.
     _ceiling_rate = sum(int(t.get("amount", 0)) for t in state_charges_terms)
-    _ceiling_gross = net + state_charges if THE_CHEST_TELLS_THE_TRUTH else net
-    if not THE_CHEST_STATES_ITS_CEILING:
-        _ceiling_value, _ceiling_state = 0, CEILING_BOUNDED
-    elif not THE_CHEST_TELLS_THE_TRUTH:
-        _ceiling_value = state_charges_ceiling(net, _ceiling_rate)
-        _ceiling_state = CEILING_BOUNDED
-    elif _ceiling_gross <= 0:
+    _ceiling_gross = net + state_charges
+    if _ceiling_gross <= 0:
         # Review round: the GROSS is asked FIRST. The first cut asked the rate
         # first, so a legacy world (rate 0 by construction) that was BLEEDING
         # money was told "nothing is drawing on the chest" — true of the
@@ -1410,15 +1386,13 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # battles have cost SO FAR (the store resets when the turn ends), so
         # a mid-turn read is "spent so far" and the applied read is the
         # whole turn's bill.
-        "materiel": (int((getattr(world, "materiel_spent_this_turn", {}) or {}).get(player, 0))
-                     if THE_LEDGER_SHOWS_THE_MATERIEL_BILL else 0),
+        "materiel": (int((getattr(world, "materiel_spent_this_turn", {}) or {}).get(player, 0))),
         # IQ-1 SW-0: what this turn has actually cost, and where the chest is
         # headed. Both informational and OUTSIDE Net — `spent` is money that
         # has already left the treasury this turn (so counting it in a
         # projection would charge it twice), and `ceiling` is a destination,
         # not a flow. The SC-33 identity is untouched by construction.
-        "spent": (int((getattr(world, "gold_spent_this_turn", {}) or {}).get(player, 0))
-                  if THE_CHEST_STATES_ITS_CEILING else 0),
+        "spent": (int((getattr(world, "gold_spent_this_turn", {}) or {}).get(player, 0))),
         "ceiling": _ceiling_value,
         "ceiling_state": _ceiling_state,
         "dotation_skim": dotation_skim,
@@ -1441,7 +1415,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # panel read. Before this the force limit reached the ledger but was
         # rendered only inside the over-limit warning — visible exactly when
         # the gate was shut, invisible the moment it opened.
-        "levy": _levy_block(world, player if THE_CHEST_TELLS_THE_TRUTH else None),
+        "levy": _levy_block(world, player),
         "net": net,
         "bankruptcy_turns": _bankruptcy,
         "construction_queue": construction_queue,
@@ -1669,7 +1643,7 @@ def _build_manpower(world, player: str) -> dict:
     # a figure `_execute_recruit` refuses ("We do not control Paris…").
     # Ask the executor's own depot gate and say the depot is closed instead.
     depot_note = ""
-    if THE_MANPOWER_TAB_READS_THE_DEPOT and capital_region is not None:
+    if capital_region is not None:
         depot_note = depot_closed_reason(
             world, capital, capital_region,
             recruit_location_gate(capital_region, player))
@@ -1785,7 +1759,7 @@ def _build_orders(world, player: str) -> list:
     for marshal in world.marshals.values():
         if marshal.nation != player:
             continue
-        if THE_ORDERS_TAB_KNOWS_ITS_PRISONERS and getattr(marshal, "captured_by", ""):
+        if getattr(marshal, "captured_by", ""):
             # FA-N65: a prisoner has no orders row — see the lever's note.
             continue
 
@@ -1823,7 +1797,7 @@ def _build_orders(world, player: str) -> list:
             # said `awaiting_decision`; the ORDERS tab said "No active orders"
             # for a man asked to fight to the last. One word on both tabs.
             from backend.commands.strategic import standalone_decision
-            pending = standalone_decision(marshal) if THE_LEDGER_SEES_THE_HALT else None
+            pending = standalone_decision(marshal)
             if pending:
                 kind = str(pending.get("interrupt_type") or "")
                 quarry = str(pending.get("enemy") or pending.get("quarry")

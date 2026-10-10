@@ -14,25 +14,11 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD1RestlessTermNamesItsProvinces::test_more_than_three_are_counted_not_listed"
   },
   {
-    "id": "D2/a lever (our objective)",
-    "file": "backend/game_logic/war_status.py",
-    "old": "        if THE_COALITION_ROW_READS_EVERY_PAIR and not (\n                france_obj and france_obj.get(\"concluded_turn\") is None):\n",
-    "new": "        if False and not (\n                france_obj and france_obj.get(\"concluded_turn\") is None):\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair"
-  },
-  {
     "id": "D2/b against",
     "file": "backend/game_logic/war_status.py",
     "old": "                \"against\": objective_against,\n",
     "new": "                \"against\": opponent,\n",
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair::test_a_purpose_set_against_a_member_renders_on_the_coalition_row"
-  },
-  {
-    "id": "D2/c enemy objective by",
-    "file": "backend/game_logic/war_status.py",
-    "old": "        if THE_COALITION_ROW_READS_EVERY_PAIR and not (\n                enemy_obj and enemy_obj.get(\"concluded_turn\") is None):\n",
-    "new": "        if False and not (\n                enemy_obj and enemy_obj.get(\"concluded_turn\") is None):\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD2CoalitionRowReadsEveryPair::test_the_enemy_objective_reads_every_pair_too"
   },
   {
     "id": "D3/a lever",
@@ -112,20 +98,6 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD16LiftCounselNamesTheMarshalate::test_the_road_names_the_cheapest_commission_the_gate_would_pass"
   },
   {
-    "id": "D17/a the block",
-    "file": "backend/game_logic/diplomatic_dialogue.py",
-    "old": "            if THE_PARADOX_BLOCK_NAMES_THE_TRUCE:\n",
-    "new": "            if False:\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD17ParadoxBlockNamesTheTruce"
-  },
-  {
-    "id": "D17/b the wizard row",
-    "file": "backend/game_logic/diplomacy.py",
-    "old": "        if THE_PARADOX_BLOCK_NAMES_THE_TRUCE and _peace_row.get(\"available\"):\n",
-    "new": "        if False and _peace_row.get(\"available\"):\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD17ParadoxBlockNamesTheTruce::test_the_wizard_row_is_greyed_with_the_reason"
-  },
-  {
     "id": "D18/a the arithmetic",
     "file": "backend/game_logic/diplomacy.py",
     "old": "    if not THE_TRUCE_PROJECTION_COUNTS_THE_THAW:\n        return int(relation_now)\n",
@@ -161,20 +133,6 @@
     "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD24BerthierRotatesHisObservations::test_consecutive_battles_between_the_same_pair_rotate_the_bank"
   },
   {
-    "id": "D24/b lever",
-    "file": "backend/game_logic/battle_report.py",
-    "old": "    if not BERTHIER_ROTATES_HIS_OBSERVATIONS:\n        return random\n",
-    "new": "    if True:\n        return random\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD24BerthierRotatesHisObservations"
-  },
-  {
-    "id": "D26 lever",
-    "file": "backend/game_logic/ledger.py",
-    "old": "                     if THE_LEDGER_SHOWS_THE_MATERIEL_BILL else 0),\n",
-    "new": "                     if False else 0),\n",
-    "tests": "tests/test_fa_slice17_p2a_the_rulings_read_the_board_2026_09_11.py::TestD26MaterielBill"
-  },
-  {
     "id": "D29a/a lever",
     "file": "backend/ai/enemy_ai.py",
     "old": "        if not P4_PRICES_THE_MUSTER:\n            return 0\n",
@@ -194,13 +152,6 @@
     "old": "        return int(combat._committed_reinforcement_strength(\n            target, joining, world, expected_at=target.location))\n",
     "new": "        return int(sum(int(m.strength) for m in joining))\n",
     "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestThePriceReadsTheMuster::test_the_muster_term_is_the_previews_own_summer"
-  },
-  {
-    "id": "D29b/a the defender pool",
-    "file": "backend/game_logic/combat.py",
-    "old": "        def_bodies = (int(defender_bodies) if (CASUALTIES_FALL_ON_THE_FIELD and defender_bodies)\n",
-    "new": "        def_bodies = (int(defender_bodies) if (False and defender_bodies)\n",
-    "tests": "tests/test_fa_slice17_p2_d29_the_stub_and_the_field_2026_09_11.py::TestCasualtiesFallOnTheField"
   },
   {
     "id": "D29b/b the executor passes bodies",

@@ -33,10 +33,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > user owes — read it first, every session.** The Score Finish residue
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
-**▶ LIVE STATE (October 9, 2026).** The three most recent landed rows:
-- **S2 (October 9, 2026) — COMPLETE.** Step 0: the pre-commit hook runs the full suite in parallel, 26:13 → 5:12 (`78d9653a`). CODE-4: the docs diet (this file 523 KB → 61 KB, STATUS 1.6 MB → 22 KB; `docs/CODE_HEALTH_PLAN.md` §CODE-4). CODE-1 batch 1: `tools/retire_lever.py`, 20 levers retired (665 → 645), the ratchet pin `tests/test_code_health_ratchet.py` (§CODE-1). NEXT = S3–S4 DD-0 the command road.
+**▶ LIVE STATE (October 10, 2026).** The three most recent landed rows:
+- **S3 head — CODE-1 batch 2 (October 10, 2026) — LANDED.** The game_logic modules under 3,000 lines: 138 levers measured, 56 October ones kept, 83 retired (645 → 562), 132 sites by the tool + 5 by hand, 75 sweep rows, 103 lever-down tests deleted + ~45 trimmed; the tool now lists overlap skips in its hand summary (`docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 2). NEXT = DD-0 S3 the instrument (`docs/PRE_DEPLOY_PLAN.md` §3.0).
+- **S2 (October 9, 2026) — COMPLETE.** Step 0: the pre-commit hook runs the full suite in parallel, 26:13 → 5:12 (`78d9653a`). CODE-4: the docs diet (this file 523 KB → 61 KB, STATUS 1.6 MB → 22 KB; `docs/CODE_HEALTH_PLAN.md` §CODE-4). CODE-1 batch 1: `tools/retire_lever.py`, 20 levers retired (665 → 645), the ratchet pin `tests/test_code_health_ratchet.py` (§CODE-1).
 - **S1a + S1b (October 9, 2026)** — the readability instrument, the derived Interface Scale, the first-run card, the theme floor, the Settings additions; whole-client census RED 1,565 → 32 (`docs/UX_UI_REVIEW_PLAN.md` §UXR-1 / §S1b).
-- **The economy audit + gate (October 5, 2026)** — the books fixed, EAD-1 … EAD-9 ruled and built (`docs/SCORE_FINISH_SPEC.md` §6.7–§6.8).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

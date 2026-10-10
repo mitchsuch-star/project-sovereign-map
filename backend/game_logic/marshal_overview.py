@@ -22,12 +22,10 @@ from backend.models.world_state import (_drill_refusal_short,
 # Empire is his estate." while he sat at strength 0 in the captor's capital —
 # measured on the played 40-turn campaigns, beside a status line that said
 # PRISONER. Flip lever: False restores the unconditional note.
-THE_CAPTIVE_EMPEROR_IS_NAMED = True
 
 # IQ-2 (found in passing, Sept 14, 2026): the prisoner status note
 # interpolated the RAW nation key ("PRISONER of KingdomOfItaly") — R7. The
 # court's display name reads through the formation chokepoint. Flip lever.
-THE_PRISONER_NOTE_NAMES_THE_COURT = True
 
 # Relationship value → display label
 _RELATIONSHIP_LABELS = {
@@ -153,7 +151,7 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
             card["sovereign_note"] = "The Empire is his estate."
             # IQ-2: the captured Emperor's card went on saying "The Empire
             # is his estate." from a cell in the captor's capital.
-            if THE_CAPTIVE_EMPEROR_IS_NAMED and getattr(marshal, "captured_by", ""):
+            if getattr(marshal, "captured_by", ""):
                 captor = formed_display_name(world, marshal.captured_by)
                 card["sovereign_note"] = (
                     f"A prisoner of {captor} — the Empire is governed from a cell.")
@@ -167,11 +165,8 @@ def build_marshal_overview(world) -> List[Dict[str, Any]]:
             # Italy" (R7, the rule the IQ-7 review round applied to every
             # vassal sentence). Switzerland and Austria take none, so only
             # a the-court board can see this.
-            _captor_shown = (formed_display_name(world, marshal.captured_by)
-                             if THE_PRISONER_NOTE_NAMES_THE_COURT
-                             else marshal.captured_by)
-            if THE_PRISONER_NOTE_TAKES_THE_ARTICLE and THE_PRISONER_NOTE_NAMES_THE_COURT:
-                _captor_shown = with_definite_article(_captor_shown)
+            _captor_shown = (formed_display_name(world, marshal.captured_by))
+            _captor_shown = with_definite_article(_captor_shown)
             card["status_note"] = (
                 f"PRISONER of {_captor_shown} since "
                 f"T{int(marshal.captured_turn)}."
@@ -261,11 +256,9 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
 
 
 # IQ-10 (Sept 19, 2026): False restores "PRISONER of Kingdom of Italy".
-THE_PRISONER_NOTE_TAKES_THE_ARTICLE = True
 
 # IQ-10 (Sept 19, 2026): False restores the pre-pass card, which advertised a
 # captive's ability as ACTIVE with its full effect text.
-CAPTIVITY_SUSPENDS_THE_ABILITY = True
 
 
 # SR-6a NPC-D1: the Presence card names today's strength. False = the
@@ -293,7 +286,7 @@ def _build_ability(marshal: Marshal, world=None) -> Dict[str, Any]:
     # (NP-4), so shown now matches applied. The card keeps naming the
     # ability — `ability_name` survives for the dormant note the client
     # draws — but it is no longer advertised as ACTIVE.
-    if CAPTIVITY_SUSPENDS_THE_ABILITY and getattr(marshal, "captured_by", ""):
+    if getattr(marshal, "captured_by", ""):
         return {
             "ability_name": ability_name,
             "ability_description": ability.get("description", ""),

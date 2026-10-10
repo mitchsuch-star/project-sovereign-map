@@ -948,7 +948,12 @@ class TestTheCurveHasOneImplementation:
         with open(os.path.join(REPO_ROOT, "backend", "commands",
                                "combat_executor.py"), encoding="utf-8") as fh:
             src = fh.read()
-        assert "expectation_for_wins(" in src
+        # The executor reads the curve through dotation's own movers
+        # (`raise_expectation` / `get_expectation`); the lever-down branch
+        # that called `expectation_for_wins` directly retired with
+        # EXPECTATION_RISES_ON_DEEDS (CODE-1 batch 2, October 10, 2026).
+        assert "raise_expectation(" in src and "get_expectation(" in src
+        assert "expectation_for_wins(" not in src
         assert "min(REP_STEP * _exp_before" not in src, (
             "the curve was re-derived by hand 6,800 lines from its home")
 

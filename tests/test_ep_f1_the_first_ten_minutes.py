@@ -463,18 +463,6 @@ class TestThePurposeIsOneSentence:
         texts = [row["text"] for row in response["morning_dispatch"]["war_objectives"]]
         assert all(HOMELAND_SENTENCE in text for text in texts), texts
 
-    def test_lever_down_restores_every_list(self, board, monkeypatch):
-        monkeypatch.setattr(WS, "THE_PURPOSE_IS_ONE_SENTENCE", False)
-        response = _new_game(board)
-        for row in response["active_wars"]["wars"]:
-            if row.get("objective"):
-                assert "target_summary" not in row["objective"]
-        with _quiet():
-            snapshot = build_war_context_snapshot(M.world, "France", "Austria", "peace")
-        assert "target_summary" not in snapshot["war_objective"]
-        for text in _defense_lines(M.world):
-            assert "Paris" in text and "[HELD]" in text
-
     def test_the_legacy_fixture_keeps_its_list(self):
         world = WorldState(player_nation="France")
         assert WS.objective_target_summary(

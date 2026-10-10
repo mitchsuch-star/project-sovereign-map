@@ -214,21 +214,6 @@ class TestWO18PensionChurn:
         assert res_b["success"] is True
         assert "after its grace expires" in res_b["message"]
 
-    def test_with_the_lever_down_the_toggle_dodges_erosion_again(self, monkeypatch, europe):
-        """The measured defect, reproduced by the flip lever."""
-        monkeypatch.setattr(DOT, "PENSION_CHURN_GUARD_ACTIVE", False)
-        world = self._world(europe)
-        m = self._owed_marshal(world)
-        m.pension = 200
-        _reconcile(world)
-        trust0 = m.trust.value
-        for step in range(1, GRACE_TURNS + 2):
-            world.current_turn += 1
-            m.pension = 0 if step % 2 == 1 else 200
-            _reconcile(world)
-        assert m.trust.value == trust0, "the pre-slice toggle should not erode"
-
-
 # ══════════════════════════════════════════════════════════════════
 # WO-19 - the sack survives a change of hands
 # ══════════════════════════════════════════════════════════════════

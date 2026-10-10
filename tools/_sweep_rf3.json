@@ -1,12 +1,5 @@
 [
   {
-    "id": "the lever is ignored",
-    "file": "backend/game_logic/reforms.py",
-    "old": "    if not (THE_STATE_HAS_LAWS and THE_AI_ENACTS):\n        return None\n    if not nation or nation == getattr(world, \"player_nation\", None):",
-    "new": "    if not THE_STATE_HAS_LAWS:\n        return None\n    if not nation or nation == getattr(world, \"player_nation\", None):",
-    "tests": "tests/test_rf3_the_ai_enacts.py::TestTheRung::test_lever_down_no_court_enacts"
-  },
-  {
     "id": "the rung serves the player",
     "file": "backend/game_logic/reforms.py",
     "old": "    if not nation or nation == getattr(world, \"player_nation\", None):\n        return None\n    rows = deck(world, nation)",

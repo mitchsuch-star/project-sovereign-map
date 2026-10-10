@@ -192,15 +192,6 @@ class TestOnlyASignedPeace:
         set_diplomatic_state(w, "France", "Prussia", "OPEN_BORDERS", "treaty_ratification")
         assert w.province_title[prussian]["kind"] == game_end.TITLE_CONQUEST
 
-    def test_the_lever_down_writes_nothing(self, vienna_road, monkeypatch):
-        monkeypatch.setattr(game_end, "STATUS_QUO_IS_A_CESSION", False)
-        w = vienna_road
-        _ratify(w, "Austria", "France")
-        for region in THE_FOUR:
-            assert w.province_title[region]["kind"] == game_end.TITLE_CONQUEST
-        assert congress.titled(w)["count"] == 35
-
-
 class TestTheClauseOutranksTheRetention:
 
     def test_a_province_the_same_treaty_cedes_back_is_not_retained(self, vienna_road):

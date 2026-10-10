@@ -87,7 +87,6 @@ ARM_TITLES = {
 
 # Flip lever (the file convention): False keeps both clocks silent — no
 # tick, no warning, no Fall — which is the pre-GE-1 sandbox byte-for-byte.
-THE_EMPIRE_CAN_FALL = True
 
 # GE-2 "the client" (ENDGAME_PLAN §4, the clock line): ONE compact line per
 # held arm — "THE EAGLE IN CHAINS — 3 of 10 · the regency falls at the end of
@@ -96,7 +95,6 @@ THE_EMPIRE_CAN_FALL = True
 # so they cannot disagree. Never a date while the clock stands still. False
 # = no `clock_line` / `severity` on the warning's arms, no `fall_clock` on
 # the ledger, no line in the war room: the GE-1 payloads byte for byte.
-THE_CLOCK_HAS_ONE_LINE = True
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -326,7 +324,7 @@ def get_fall_state(world, nation: Optional[str] = None) -> Optional[Dict[str, An
     tutorial and the legacy map never answer (R7). GR5: the predicate is
     the same for any nation; the clock is kept for the player alone."""
     from backend.game_logic import game_end
-    if not THE_EMPIRE_CAN_FALL or world is None:
+    if world is None:
         return None
     if not game_end.endings_armed(world):
         return None
@@ -371,7 +369,7 @@ def tick_fall_clocks(world) -> Optional[str]:
     Called once per end turn after `advance_turn`. An arm whose predicate
     no longer holds is dropped from `fall_clock` (its clock resets)."""
     from backend.game_logic import game_end
-    if not THE_EMPIRE_CAN_FALL or not game_end.endings_armed(world):
+    if not game_end.endings_armed(world):
         return None
     if game_end.terminal_ending(world) is not None:
         return None
@@ -629,9 +627,8 @@ def _arm_payload(world, view: Dict[str, Any]) -> Dict[str, Any]:
                                     if view["falls_at_end_of_turn"] is not None
                                     else None),
            "exits": list(view["exits"])}
-    if THE_CLOCK_HAS_ONE_LINE:
-        row["clock_line"] = clock_line(world, view)
-        row["severity"] = clock_severity(view)
+    row["clock_line"] = clock_line(world, view)
+    row["severity"] = clock_severity(view)
     return row
 
 
@@ -640,8 +637,6 @@ def clock_lines(world, nation: Optional[str] = None) -> List[Dict[str, Any]]:
     ARMS order — [] when no arm holds, the rules are not armed, or the lever
     is down. The ledger's `fall_clock` and the war room read this; the
     dispatch warning carries the same rows under `fall.arms`."""
-    if not THE_CLOCK_HAS_ONE_LINE:
-        return []
     state = get_fall_state(world, nation)
     if state is None:
         return []

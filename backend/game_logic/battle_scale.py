@@ -60,7 +60,6 @@ write that the gate covers every battle.
 # gravity verdict fires at any scale, and there is no terminal skirmish arm.
 # The war-score gate does NOT read this lever — it read 1000 before this
 # module existed and it reads 1000 after, whichever way the lever points.
-SKIRMISH_GATE_ACTIVE = True
 
 # The one number, in a home neither reader owns. ⚠ Both readers MUST resolve
 # it as a module attribute at call time (`battle_scale.MIN_BATTLE_CASUALTIES`),

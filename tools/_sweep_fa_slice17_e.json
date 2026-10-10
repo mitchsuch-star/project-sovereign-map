@@ -119,20 +119,6 @@
   "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN69N71RendererParity::test_the_census_sees_the_conditional_keys"
  },
  {
-  "id": "N32/a the lever defaults to the pre-fix position",
-  "file": "backend/game_logic/combat.py",
-  "old": "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY = True",
-  "new": "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY = False",
-  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad"
- },
- {
-  "id": "N32/b the helper loses its clamp",
-  "file": "backend/game_logic/combat.py",
-  "old": "    if ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY:\n        return min(old, floored)\n    return floored",
-  "new": "    return floored",
-  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN32ARoutNeverLeavesMoreMenThanItHad"
- },
- {
   "id": "N32/c the defender arm goes back to the bare floor",
   "file": "backend/models/world_state.py",
   "old": "                        enemy.strength = rout_survivors(enemy.strength, survival_rate)",

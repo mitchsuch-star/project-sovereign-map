@@ -37,7 +37,6 @@ from typing import Dict, List, Optional
 # False = the state has no laws: every seam reads "nothing in force", the
 # verbs refuse, the lapse loop is a no-op — the prior BASELINE_SERIES
 # reproduces byte for byte.
-THE_STATE_HAS_LAWS = True
 
 # ── §4 The closed set of effect types ────────────────────────────────────────
 EFFECT_TYPES = (
@@ -113,13 +112,11 @@ def find_law(world, nation: str, law_id: str) -> Optional[Dict]:
 
 
 def is_in_force(row) -> bool:
-    return (THE_STATE_HAS_LAWS and isinstance(row, dict)
+    return (isinstance(row, dict)
             and row.get("enacted_turn") is not None)
 
 
 def laws_in_force(world, nation: str) -> List[Dict]:
-    if not THE_STATE_HAS_LAWS:
-        return []
     return [row for row in deck(world, nation) if is_in_force(row)]
 
 
@@ -321,8 +318,6 @@ def law_refusal(world, nation: str, law_id: str,
     of its turn (the recon's trap 4), so the rung passes it. The player's is
     read off the world when omitted.
     """
-    if not THE_STATE_HAS_LAWS:
-        return "The state has no laws to enact."
     row = find_law(world, nation, law_id)
     if row is None:
         return f"That is not one of {nation}'s laws."
@@ -518,8 +513,6 @@ def queue_cure_beat(world, nation: str, kind: str) -> None:
 def repeal_refusal(world, nation: str, law_id: str,
                    admin_actions: Optional[int] = None) -> str:
     """"" when the court may repeal the law now, else the reason (R4)."""
-    if not THE_STATE_HAS_LAWS:
-        return "The state has no laws to repeal."
     row = find_law(world, nation, law_id)
     if row is None:
         return f"That is not one of {nation}'s laws."
@@ -573,8 +566,6 @@ def process_law_lapses(world) -> List[Dict]:
     clock starts), and the lapse is logged. GR5: every court, one rule.
     Returns the player's tactical events (the end-turn report)."""
     events: List[Dict] = []
-    if not THE_STATE_HAS_LAWS:
-        return events
     store = getattr(world, "reforms", None) or {}
     if not store:
         return events
@@ -846,8 +837,6 @@ def lapse_forecast(world, nation: str) -> Optional[Dict]:
     one lever (§8b) — the cheapest OTHER law in force whose repeal alone keeps
     them, with its honest availability (`repeal_refusal`). The LAWS tab, the
     end-turn banner and the morning dispatch all read this."""
-    if not THE_STATE_HAS_LAWS:
-        return None
     in_force = laws_in_force(world, nation)
     if not in_force:
         return None
@@ -1038,15 +1027,6 @@ def staff_arrival(world, nation: str) -> Optional[str]:
             return name[0].upper() + name[1:]
     return None
 
-# ════════════════════════════ the AI (RF-3) ═══════════════════════════════════
-# REFORMS_SPEC §7. Every AI great power enacts from its own authored deck, in
-# deck order, at the player's prices, through the SAME verb and executor
-# (GR5). The rung takes the first law `law_refusal` passes (with the court's
-# own admin budget) and whose purse test passes; at most one enactment every
-# AI_ENACTMENT_EVERY_TURNS; it never repeals (the lapse rule is its
-# discipline). Lever `THE_AI_ENACTS` — down, no AI court enacts: the prior
-# BASELINE_SERIES reproduces byte for byte.
-THE_AI_ENACTS = True
 AI_ENACTMENT_EVERY_TURNS = 3
 # SR-7d DC-2 (DOCTRINES_SPEC §5, REFORMS_SPEC §7 "the recommended fix"):
 # every rival's cure rides its Staff (RV-15), and measured at RF-3 only
@@ -1143,8 +1123,6 @@ def find_ai_enactment(world, nation: str, treasury: int,
     the first law in deck order that `law_refusal` (its own admin budget)
     and `ai_purse_refusal` both pass, at most one every
     AI_ENACTMENT_EVERY_TURNS. The same verb the player types (GR5)."""
-    if not (THE_STATE_HAS_LAWS and THE_AI_ENACTS):
-        return None
     if not nation or nation == getattr(world, "player_nation", None):
         return None
     rows = deck(world, nation)

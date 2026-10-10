@@ -153,20 +153,6 @@ class TestTheTreatyClaimsNoFirstStep:
         assert live.world.current_turn == 5, (
             "5 with the fix, 6 with the stamp — the measured difference")
 
-    def test_the_lever_down_reproduces_the_lost_turn(self, live, no_interrupts,
-                                                     monkeypatch):
-        """The negative control. Restore the stamp and the SKIP returns."""
-        monkeypatch.setattr(W, "THE_TREATY_CLAIMS_NO_FIRST_STEP", False)
-        davout = _peace_with_austria(live.world)
-        assert davout.strategic_order.issued_turn == live.world.current_turn
-        start = davout.location
-        body = live.end_turn()
-        assert davout.location == start, "the control arm must stand still"
-        warned = [e for e in (body.get("tactical_events") or [])
-                  if e.get("type") == "evacuation_lapsing"
-                  and e.get("marshal") == "Davout"]
-        assert warned, "and it must be warned for it"
-
     def test_the_ai_mirror_is_unchanged(self, live, no_interrupts):
         """GR5. `enemy_ai`'s P1.2 rung never read `issued_turn` at all, so
         the AI's corps always walked on the peace turn — the asymmetry ran
@@ -178,21 +164,6 @@ class TestTheTreatyClaimsNoFirstStep:
         live.end_turn()
         assert mack.location == "Lorraine", (
             "measured identical before and after the fix")
-
-    def test_the_ai_mirror_is_unchanged_with_the_lever_down_too(
-            self, live, no_interrupts, monkeypatch):
-        """The second arm of the identity, added by the slice-12 review
-        round: an identity claim guarded by a ONE-arm pin proves the AI
-        walks, not that the fix left it alone. Both arms must agree."""
-        monkeypatch.setattr(W, "THE_TREATY_CLAIMS_NO_FIRST_STEP", False)
-        mack = live.world.marshals["Mack"]
-        mack.location = "Orleanais"
-        _peace_with_austria(live.world)
-        assert mack.strategic_order.issued_turn == live.world.current_turn
-        live.end_turn()
-        assert mack.location == "Lorraine", (
-            "the AI's rung never read the stamp; both arms must agree")
-
 
 # ══════════════════════════════════════════════════════════════════════════
 # FA-33 rider — a corps frozen on the game's own question is not loitering
@@ -313,25 +284,6 @@ class TestAStandingQuestionIsNotLoitering:
         davout.pending_interrupt = {"interrupt_type": "not_a_real_type"}
         assert W._awaiting_the_players_word(davout) is False
 
-    def test_the_lever_down_removes_the_grace(self, world, monkeypatch):
-        """With the lever down the frozen corps is judged like anybody else
-        — which is the pre-slice behaviour, and interns him for the game's
-        own silence."""
-        monkeypatch.setattr(W, "A_STANDING_QUESTION_IS_NOT_LOITERING", False)
-        davout = _peace_with_austria(world)
-        davout.strategic_order = None
-        davout.road_home_offered = True
-        davout.pending_interrupt = {"interrupt_type": "cannon_fire",
-                                    "marshal": "Davout"}
-        interned = []
-        for _ in range(9):
-            world.current_turn += 1
-            with contextlib.redirect_stdout(io.StringIO()):
-                for ev in W.process_evacuation_grants(world):
-                    if ev.get("type") == "marshal_interned":
-                        interned.append(ev.get("marshal"))
-        assert "Davout" in interned
-
     def test_a_routed_corps_keeps_its_own_grace(self, world):
         """The pre-slice arm is untouched."""
         davout = world.marshals["Davout"]
@@ -378,20 +330,6 @@ class TestTheOfferStandsWhileHeIsStranded:
                 seen_road = True
                 break
         assert seen_road, "the treaty's offer stands while he is stranded"
-
-    def test_the_lever_down_reproduces_the_two_internments(
-            self, live, no_interrupts, monkeypatch):
-        """The negative control, and it is the row's own measurement."""
-        monkeypatch.setattr(W, "THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED",
-                            False)
-        _peace_with_austria(live.world)
-        for _ in range(9):
-            live.end_turn()
-        fallen = getattr(live.world, "fallen_marshals", {}) or {}
-        interned = sorted(name for name, row in fallen.items()
-                          if row.get("cause") == "interned")
-        assert interned == ["Bernadotte", "Massena"], (
-            f"the control arm must lose them: {interned}")
 
     def test_the_top_up_says_so(self, live, no_interrupts):
         """Silence is why the organic case read as an unexplained loss: the

@@ -81,8 +81,6 @@ LEVERS = [
     (DISPATCH, "SOIL_ALARM_IS_HOME_SOIL_ONLY"),
     (DISPATCH, "THE_SHELLING_IS_BRIEFED"),
     (DISPATCH, "A_LOST_SATELLITE_CAN_LEAD"),
-    (LEDGER, "THE_LEDGER_KNOWS_ITS_PRISONERS"),
-    (WS, "COALITION_CARD_KEEPS_ITS_MEMBERS"),
     (M, "THE_ASSAULT_ON_OUR_GARRISON_IS_REPORTED"),
 ]
 
@@ -509,14 +507,6 @@ class TestThePrisonerIsOnTheSurfaces:
         assert rows[0]["captured"] is True
         assert rows[0]["captured_by"] == "Austria"
 
-    def test_the_lever_down_restores_the_idle_corps(self, world):
-        self._capture(world)
-        LEDGER.THE_LEDGER_KNOWS_ITS_PRISONERS = False
-        from backend.game_logic.ledger import _build_forces
-        rows = [r for r in _build_forces(world, "France")
-                if r["name"] == "Ney"]
-        assert rows[0]["status"] != "captured"
-
     def test_the_ledger_client_renders_the_captivity(self):
         src = (ROOT / "godot-client" / "project-sovereign" / "scripts"
                / "strategic_ledger.gd").read_text(encoding="utf-8")
@@ -652,15 +642,6 @@ class TestTheCoalitionCardKeepsItsMembers:
         coalition = data["coalition"]
         assert len(coalition["coordination"]) == 3
         assert coalition["weak_link"] == "Austria"
-
-    def test_the_lever_down_reproduces_the_blindness(self, world):
-        WS.COALITION_CARD_KEEPS_ITS_MEMBERS = False
-        data = self._card(world)
-        coalition = data["coalition"]
-        assert coalition["coordination"] == []
-        assert coalition["weak_link"] is None
-        assert [r["opponent"] for r in WS._coalition_rows(data["wars"])
-                if r["in_coalition"]] == ["Britain"]
 
     def test_the_leader_is_first(self, world):
         """The metadata block is deliberately left BELOW the leader-first

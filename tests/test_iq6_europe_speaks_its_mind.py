@@ -184,14 +184,6 @@ def _drive(script, turns, name, levers=(), hooks=True):
     real_cleanup = D.cleanup_war_end
     real_post = drv.Transport.post
 
-    def _reading(world, module, attr, value):
-        prev = getattr(module, attr)
-        setattr(module, attr, value)
-        try:
-            return ED.volte_face_receptive(world, COURT, PLAYER)
-        finally:
-            setattr(module, attr, prev)
-
     def phase(nation, world):
         if nation != COURT:
             return real_phase(nation, world)
@@ -202,9 +194,6 @@ def _drive(script, turns, name, levers=(), hooks=True):
             "clauses": ED.volte_face_failing_clauses(
                 world, COURT, PLAYER, exhaustive=True),
             "rec": ED.volte_face_receptive(world, COURT, PLAYER),
-            "rec_window_down": _reading(
-                world, ED, "THE_WINDOW_FITS_THE_COURTSHIP", False),
-            "rec_soil_down": _reading(world, ED, "THE_DEFEAT_IS_THE_SOIL", False),
             "view": ED.volte_face_courtship(world, COURT, PLAYER),
             "line": ED.volte_face_counsel_line(world, COURT, PLAYER),
             "road": D.forecast_relation_to(world, COURT, FLOOR),
@@ -396,14 +385,6 @@ def plain():
     return _drive("commanded_full40.json", 23, "plain", levers=_PRE_SR1D_LEAGUE)
 
 
-@pytest.fixture(scope="module")
-def window_down():
-    """The courting script with the window lever DOWN, long enough to see
-    Austria's own ladder alliance land (t29 when landed)."""
-    return _drive("volte_court_austria.json", 29, "window_down",
-                  levers=((ED, "THE_WINDOW_FITS_THE_COURTSHIP", False),) + _PRE_SR1D_LEAGUE)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # T1 — the window fits the courtship (arithmetic from production sources)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -450,30 +431,8 @@ class TestT1TheWindowFitsTheCourtship:
 
         assert ED.volte_face_window() == 20
         assert signing - peace["turn"] < ED.volte_face_window()
-        monkeypatch.setattr(ED, "THE_WINDOW_FITS_THE_COURTSHIP", False)
-        assert ED.volte_face_window() == 15
-        assert signing - peace["turn"] >= ED.volte_face_window(), (
-            "the pre-IQ-6 window shut the door on a PERFECT courtship")
-
-    def test_the_ceiling_is_the_ladder_alliance_on_the_real_board(
-            self, window_down):
-        """With the window lever DOWN, Austria's ROUTINE ladder alliance
-        (open borders -> non-aggression -> defensive alliance -> alliance,
-        her own asks) lands and calls the ratify hook, which stays silent.
-        It lands exactly CEILING turns after the war: at a window of 25 the
-        war no longer reads as recent, at 26 it would — so a window of 26+
-        would announce an ordinary alliance as a reversal."""
-        calls = [f for f in window_down.fires if f["ceiling"] is not None]
-        assert len(calls) == 1 and calls[0]["fired"] is False, calls
-        call = calls[0]
-        war_end = window_down.peace_row()["turn"]
-        assert call["ceiling"]["end"] == war_end
-        assert call["turn"] - war_end == ED.VOLTE_FACE_WINDOW_CEILING == 25
-        assert call["ceiling"]["recent_at_ceiling"] is False
-        assert call["ceiling"]["recent_past_ceiling"] is True
-        assert (ED.VOLTE_FACE_WINDOW_BEFORE_IQ6 < ED.VOLTE_FACE_WINDOW
-                <= ED.VOLTE_FACE_WINDOW_CEILING)
-
+        assert signing - peace["turn"] >= ED.VOLTE_FACE_WINDOW_BEFORE_IQ6, (
+            "the pre-IQ-6 window of 15 shut the door on a PERFECT courtship")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # T2 — the ordinary geometry, on the real board, nothing hand-written
@@ -598,27 +557,6 @@ class TestT2Negatives:
             step = D.relation_drift_step(world, PLAYER, COURT, relation=relation)
             assert relation + step <= max(relation, 10), (relation, step)
 
-    def test_lever_down_the_real_arm_never_reverses(self, window_down, courted):
-        """The window lever DOWN, on the real board: the same courtship,
-        the same game until the courier's turn (the lever changes only what
-        the predicate reads), and never receptive — the ladder alliance it
-        signs later is ordinary."""
-        assert not any(r["rec"] for r in window_down.rows)
-        assert not window_down.volte_rows()
-        assert not any(f["fired"] for f in window_down.fires)
-        assert "volte_face" not in window_down.meta["dispatch_type_counts"]
-        assert not [e for e in window_down.world.event_log
-                    if e.get("type") == "volte_face"]
-        courier_turn = courted.first_receptive()["turn"]
-        up = [(r["turn"], r["rel"]) for r in courted.rows if r["turn"] <= courier_turn]
-        down = [(r["turn"], r["rel"]) for r in window_down.rows
-                if r["turn"] <= courier_turn]
-        assert up == down
-        # The lever-down reading taken INSIDE the courted run agrees on every
-        # turn of it: the old window never opens for this courtship.
-        assert not any(r["rec_window_down"] for r in courted.rows)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # T3 — V2, the courier skips the routine acceptance cooldown
 # ═══════════════════════════════════════════════════════════════════════════
@@ -662,19 +600,17 @@ class TestT3TheCourierSkipsTheRoutineCooldown:
 class TestT4TheDefeatIsTheSoil:
     def test_the_ordinary_door_opens_on_soil_alone(self, courted):
         """After the real settlement the exhaustion is gone every turn the
-        door stands, so the retired arm never showed this defeat — and the
-        lever makes no difference on the ordinary route."""
+        door stands, so the retired arm never showed this defeat."""
         peace = courted.peace_row()
         after = [r for r in courted.rows if r["turn"] >= peace["turn"]]
         assert all(not r["we"] for r in after), [(r["turn"], r["we"]) for r in after]
         assert all(r["soil"] for r in after)
-        assert all(r["rec_soil_down"] == r["rec"] for r in courted.rows)
 
     def test_exhaustion_without_soil_is_no_longer_a_defeat(self, courted, monkeypatch):
         """Russia after the same settlement: at peace, no province lost, her
         exhaustion popped by R49. Given an exhaustion far past the old mark
         and relations at the courted floor (staged — T4 only), she is NOT
-        receptive with the lever up and IS with it down."""
+        receptive: the mark is the map."""
         world = _copy(courted.snap["at_peace"])
         assert world.get_diplomatic_state(PLAYER, "Russia") == "PEACE"
         assert not ED._lost_homeland(world, "Russia")
@@ -687,8 +623,6 @@ class TestT4TheDefeatIsTheSoil:
         assert ED.volte_face_failing_clauses(world, "Russia", PLAYER) == [
             ED.VOLTE_CLAUSE_NO_MARK]
         assert ED.volte_face_counsel_line(world, "Russia", PLAYER) == ""
-        monkeypatch.setattr(ED, "THE_DEFEAT_IS_THE_SOIL", False)
-        assert ED.volte_face_receptive(world, "Russia", PLAYER) is True
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -696,14 +630,6 @@ class TestT4TheDefeatIsTheSoil:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestV1bTheSeparatePeace:
-    def test_the_common_route_never_needed_it(self, courted, monkeypatch):
-        """A common settlement stamps the participant's exit, so the lever
-        changes nothing on the ordinary geometry."""
-        world = courted.snap["at_peace"]
-        monkeypatch.setattr(ED, "THE_SEPARATE_PEACE_ENDS_THE_WAR", False)
-        assert ED.volte_face_failing_clauses(world, COURT, PLAYER, exhaustive=True) == [
-            ED.VOLTE_CLAUSE_NOT_COURTED]
-
     def test_a_bilateral_peace_needs_it(self, monkeypatch):
         """France's separate peace with Austria through the real bilateral
         ratify, Tyrol ceded by the treaty: Austria still fights France's
@@ -719,9 +645,6 @@ class TestV1bTheSeparatePeace:
         assert ED.volte_face_failing_clauses(world, COURT, PLAYER, exhaustive=True) == [
             ED.VOLTE_CLAUSE_NOT_COURTED]
         assert ED._latest_war_end_turn(world, COURT, PLAYER) == int(world.current_turn)
-        monkeypatch.setattr(ED, "THE_SEPARATE_PEACE_ENDS_THE_WAR", False)
-        assert ED.volte_face_failing_clauses(world, COURT, PLAYER)[0] == (
-            ED.VOLTE_CLAUSE_NOT_BEATEN)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -798,7 +721,7 @@ class TestT5ItSpeaksItsMind:
     def test_the_preview_counsel_says_it(self, plain, monkeypatch):
         """Through the real endpoint the wizard reads (`GET
         /diplomatic_preview?nation=Austria`): the recommendation carries the
-        line after its own counsel; lever down, it is the pre-IQ-6 text."""
+        line after its own counsel."""
         from fastapi.testclient import TestClient
 
         import backend.main as M
@@ -814,12 +737,6 @@ class TestT5ItSpeaksItsMind:
             up = client.get("/diplomatic_preview", params={"nation": COURT}).json()
         assert up["success"], up
         assert up["recommendation"].endswith(f" {line}"), up["recommendation"]
-        monkeypatch.setattr(ED, "VOLTE_FACE_SPEAKS_ITS_MIND", False)
-        with _quiet():
-            down = client.get("/diplomatic_preview", params={"nation": COURT}).json()
-        assert down["recommendation"] == up["recommendation"][:-len(line) - 1]
-        assert "beaten, not broken" not in down["recommendation"]
-        assert down.get("recommended_mission") == up.get("recommended_mission")
 
     def test_the_war_room_says_it(self, plain, monkeypatch):
         world = _copy(plain.snap["at_peace"])
@@ -832,13 +749,6 @@ class TestT5ItSpeaksItsMind:
         assert openings[0]["text"] == line
         assert openings[0]["turns_left"] == plain.peace_row()["view"]["turns_left"]
         assert all(isinstance(n, int) for n in _ints(openings))
-        monkeypatch.setattr(ED, "VOLTE_FACE_SPEAKS_ITS_MIND", False)
-        with _quiet():
-            down = ADV._assess_situation(_copy(plain.snap["at_peace"]))
-        assert "volte_openings" not in down["context"]
-        assert "beaten, not broken" not in down["talleyrand_text"]
-        assert ED.volte_face_counsel_line(world, COURT, PLAYER) == ""
-        assert ED.volte_face_courtship(world, COURT, PLAYER) is None
 
     def test_the_war_room_is_silent_when_the_door_has_opened(self, courted):
         with _quiet():
@@ -1053,7 +963,7 @@ class TestT6DeliveryEndToEnd:
             counts[r["type"]] = counts.get(r["type"], 0) + 1
         assert run.meta["dispatch_type_counts"] == dict(sorted(counts.items()))
 
-    @pytest.mark.parametrize("arm", ["plain", "courted", "window_down"])
+    @pytest.mark.parametrize("arm", ["plain", "courted"])
     def test_the_engine_cap_bounds_the_courts_lines(self, arm, request):
         run = request.getfixturevalue(arm)
         for turn, lines in run.blocks().items():

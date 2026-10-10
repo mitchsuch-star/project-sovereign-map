@@ -103,16 +103,6 @@ def world():
     return WorldState.from_scenario(str(SCENARIO_PATH))
 
 
-@pytest.fixture
-def lever_down():
-    """Set the module global in THIS process and restore it. The slice-9
-    idiom: never rewrite a production source file from a test."""
-    before = ledger_mod.THE_CHEST_TELLS_THE_TRUTH
-    ledger_mod.THE_CHEST_TELLS_THE_TRUTH = False
-    yield
-    ledger_mod.THE_CHEST_TELLS_THE_TRUTH = before
-
-
 # ════════════════════════════════════════════════════════════════════════
 # 1. The ceiling is a FIXED POINT — it does not move with the chest
 # ════════════════════════════════════════════════════════════════════════
@@ -137,13 +127,6 @@ class TestTheCeilingIsAFixedPoint:
             rates.add(sum(int(t.get("amount", 0))
                           for t in econ["state_charges_terms"]))
         assert len(rates) == 1, f"the rate moved across the sweep: {rates}"
-
-    def test_the_negative_control_reproduces_the_defect(self, world, lever_down):
-        """The mechanic is load-bearing: with the lever down, every one of
-        the six measured wrong readings comes back, to the gold."""
-        for chest, shipped in MEASURED_DEFECT.items():
-            world.nation_gold["France"] = chest
-            assert _build_economy(world, "France")["ceiling"] == shipped, chest
 
     def test_the_fix_is_the_pre_charge_gross(self, world):
         """Stated as arithmetic rather than as the production expression,
@@ -248,22 +231,6 @@ class TestItAnswersForTheCourtAsked:
         chests = {n: int(world.nation_gold.get(n, 0))
                   for n in ("France", "Austria", "Britain")}
         assert len(set(chests.values())) == 3, chests
-
-    def test_the_negative_control_reproduces_the_defect(self, world, lever_down):
-        assert _build_economy(world, "Austria")["treasury"] == \
-            int(world.nation_gold["France"])
-        assert _build_economy(world, "Britain")["treasury"] == \
-            int(world.nation_gold["France"])
-
-    def test_the_player_case_is_byte_identical(self, world, lever_down):
-        """The fix must not move the player's own reading by a single key."""
-        off = _build_economy(world, "France")
-        ledger_mod.THE_CHEST_TELLS_THE_TRUTH = True
-        on = _build_economy(world, "France")
-        for key in off:
-            if key in ("ceiling", "ceiling_state"):
-                continue
-            assert on[key] == off[key], f"{key} moved for the player"
 
     def test_the_levy_answers_for_that_nation_too(self, world):
         """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT. Reverting

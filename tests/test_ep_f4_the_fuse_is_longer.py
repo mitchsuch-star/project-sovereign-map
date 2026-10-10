@@ -92,13 +92,6 @@ class TestTheExpectationReadsTheDeeds:
         m.expectation_steps = 5
         assert D.get_expectation(m) == D.expectation_for_wins(5) == 200
 
-    def test_the_lever_down_reads_battles_won_again(self, monkeypatch):
-        monkeypatch.setattr(D, "EXPECTATION_RISES_ON_DEEDS", False)
-        m = Marshal(name="Ney", strength=20000, location="Paris", nation="France", personality="aggressive")
-        m.battles_won = 3
-        m.expectation_steps = 0
-        assert D.get_expectation(m) == 120
-
     def test_the_sovereign_expects_nothing_either_way(self):
         m = Marshal(name="Napoleon", strength=10000, location="Paris", nation="France", personality="sovereign")
         assert m.is_sovereign
@@ -131,13 +124,6 @@ class TestTheExpectationReadsTheDeeds:
         assert "one rise per" in D.expectation_rise_blocked(ney, world)
         world.marshals["Mack3"] = _fresh_enemy(world, "Mack3")
         _decisive_win(world, turn=10, defender="Mack3")
-        assert ney.expectation_steps == 2
-
-    def test_the_cooldown_lever_down_lets_them_stack(self, world, monkeypatch):
-        monkeypatch.setattr(D, "EXPECTATION_RISE_COOLDOWN_ACTIVE", False)
-        ney, _ = _decisive_win(world, turn=6)
-        world.marshals["Mack2"] = _fresh_enemy(world, "Mack2")
-        _decisive_win(world, turn=7, defender="Mack2")
         assert ney.expectation_steps == 2
 
     def test_the_cap_is_the_cap(self, world):
@@ -459,12 +445,6 @@ class TestTheUnmetBlockWaits:
         ney = self._owing(world, None)
         ney.captured_by = "Austria"
         assert self._row(world) is None
-
-    def test_the_lever_down_names_him_at_once(self, world, monkeypatch):
-        monkeypatch.setattr(D, "THE_UNMET_BLOCK_WAITS", False)
-        self._owing(world, None)
-        assert self._row(world)["grace_turns_left"] == D.GRACE_TURNS
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # THE SAVE, THE AI, THE PREDICATE

@@ -171,7 +171,6 @@ MISSION_DESCRIPTIONS = {
 # the top bar next to it says Talleyrand is idle. The dict is serialized, so
 # the lockout survives save/load. One predicate now answers the question
 # everywhere. False reproduces the "any dict at all locks the desk" arm.
-ONE_PREDICATE_ANSWERS_MISSION_LIVENESS = True
 
 
 def mission_is_live(world) -> bool:
@@ -183,8 +182,6 @@ def mission_is_live(world) -> bool:
     mission = getattr(world, "active_diplomatic_mission", None)
     if not mission or not isinstance(mission, dict):
         return False
-    if not ONE_PREDICATE_ANSWERS_MISSION_LIVENESS:
-        return True
     return not mission.get("completed")
 
 
@@ -199,7 +196,7 @@ def mission_effect_magnitude(world, mission_type: str, key: str) -> int:
     applied now, from one source both sides call.
     """
     base = int((MISSION_EFFECTS.get(mission_type, {}) or {}).get(key, 0) or 0)
-    if not base or not MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE:
+    if not base:
         return base
     try:
         from backend.game_logic.diplomacy import get_mission_skill_multiplier
@@ -214,7 +211,6 @@ def mission_effect_magnitude(world, mission_type: str, key: str) -> int:
 
 # MS-3 flip lever. False reproduces the un-scaled base figure on every
 # display surface.
-MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE = True
 
 
 # ═══════ IQ-4 "The Cabinet Is Visible" — ONE source for a running mission ═══════
@@ -223,8 +219,6 @@ MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE = True
 # not the help. Every surface now reads these helpers, and every figure in
 # them is the tick's own (`mission_effect_magnitude`, `relation_drift_step`).
 # Flip levers: False reproduces master 7bbf82b8 on that surface.
-MISSION_RAIL_NOTICE = True
-MISSION_LOG_ENDS = True
 
 MISSION_RECALL_LABEL = "Recall Talleyrand"
 MISSION_RECALL_DETAIL = (
@@ -564,8 +558,6 @@ def restate_mission_notice(world, beat: Optional[str] = None,
     beat raised inside the tick (blowback) is kept for that turn.
     O(1); literal-typed; no `enabled` key (the IGR-2 lesson).
     """
-    if not MISSION_RAIL_NOTICE:
-        return
     notes = getattr(world, "notifications", None)
     if notes is None:
         return
@@ -662,7 +654,7 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
         if relation_end is None:
             relation_end = (int(world.nation_relations.get(
                 world._make_diplo_key(player, target), 0) or 0) if target else 0)
-    if MISSION_LOG_ENDS and reason != "eliminated":
+    if reason != "eliminated":
         entry = {
             "type": "diplomatic_mission_ended",
             "target": target,
@@ -1163,12 +1155,10 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
 # FA-D17 (slice 17, Phase 2) flip lever: the alliance-paradox block names the
 # armistice route and the wizard's Propose Peace row carries the paradox
 # reason instead of staying green. False = the prior copy and a green row.
-THE_PARADOX_BLOCK_NAMES_THE_TRUCE = True
 # FA-D7 (slice 17, Phase 2) flip lever: the bilateral peace mount reads the
 # desk first — a settlement offer covering the target's war greys the Send
 # arm with the request-terms route's own sentence. False = the prior mount
 # (drafted, estimated and charged while the offer sat in the mailbox).
-THE_DESK_IS_READ_BEFORE_THE_DRAFT = True
 
 
 def _settlement_offer_on_the_desk(world, player: str, target: str) -> str:
@@ -1511,23 +1501,16 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         _hard = [c for c in _conflicts if c.get("severity") == "HARD_STOP"]
         if _hard:
             _ally = str(_hard[0].get("affected_entity") or "an ally")
-            if THE_PARADOX_BLOCK_NAMES_THE_TRUCE:
-                # FA-D17 (slice 17, Phase 2): the old sentence named a route
-                # France cannot execute ("resolve X's war first") and omitted
-                # the one the executor exempts — the armistice carries no
-                # contradiction, and its expiry makes the peace.
-                block_text = (
-                    f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
-                    f"Propose an armistice instead (a truce carries no contradiction, "
-                    f"and its expiry makes the peace), or settle the war jointly at the "
-                    f"settlement table."
-                )
-            else:
-                block_text = (
-                    f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
-                    f"Settle the war jointly at the settlement table, or resolve "
-                    f"{_ally}'s war first."
-                )
+            # FA-D17 (slice 17, Phase 2): the old sentence named a route
+            # France cannot execute ("resolve X's war first") and omitted
+            # the one the executor exempts — the armistice carries no
+            # contradiction, and its expiry makes the peace.
+            block_text = (
+                f"I cannot deliver this, Sire — {_hard[0].get('display', '')} "
+                f"Propose an armistice instead (a truce carries no contradiction, "
+                f"and its expiry makes the peace), or settle the war jointly at the "
+                f"settlement table."
+            )
             dialogue["commitment_block_warning"] = block_text
             dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
                 {"severity": "high", "text": block_text}
@@ -1560,7 +1543,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # the desk — and `request terms` refused for exactly that reason. The
     # mount reads the desk first (the request-terms route's own predicates)
     # and the Send arm arrives DISABLED with the same sentence.
-    if proposal_type == "peace" and THE_DESK_IS_READ_BEFORE_THE_DRAFT:
+    if proposal_type == "peace":
         _desk = _settlement_offer_on_the_desk(world, player_nation, target_nation)
         if _desk:
             dialogue["desk_block_warning"] = _desk
@@ -1921,7 +1904,6 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
 # check (the ground before the price — CN-3's rule), and a census pins that
 # a mission is offered on both roads or neither. A mission already RUNNING
 # when a war starts is kept (IQ-4's pin): the rule is read at the start.
-THE_CABINETS_RULES_ON_EVERY_ROAD = True
 
 MISSION_ROWS_BY_STATE = {
     "WAR": frozenset({"GATHER_INTEL", "UNDERMINE_ALLIANCE"}),
@@ -1958,8 +1940,6 @@ def mission_state_refusal(world, target_nation: Optional[str],
                           mission_type: Optional[str]) -> Optional[str]:
     """Why the Cabinet would not offer this mission to this court — None
     when it would. A recall is never refused here."""
-    if not THE_CABINETS_RULES_ON_EVERY_ROAD:
-        return None
     mission = str(mission_type or "").upper()
     if not target_nation or mission in ("", "CANCEL"):
         return None

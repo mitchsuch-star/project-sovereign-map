@@ -133,7 +133,6 @@ def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
 
 # FA-17 (slice 10) flip lever: False restores the free re-ask after a
 # counter-offer lapses unanswered.
-LAPSED_COUNTER_COSTS_A_COOLDOWN = True
 
 
 def _thread_petition_lapses(world, tactical_events, petition_lapses) -> list:
@@ -463,9 +462,7 @@ class TurnManager:
                 # turn, every turn, to a court that had already answered and
                 # whose answer had lapsed unanswered. The AI-side cooldowns
                 # above are the court's patience; this is ours.
-                if (LAPSED_COUNTER_COSTS_A_COOLDOWN
-                        and nation
-                        and lapse["offer_type"] == "counter_offer_response"):
+                if (nation and lapse["offer_type"] == "counter_offer_response"):
                     self.world.player_proposal_cooldowns[nation] = 3
                     _lapsed_ptype = str(lapse.get("proposal_type") or "")
                     if _lapsed_ptype:
@@ -1303,8 +1300,7 @@ class TurnManager:
             # before Bavaria's turn — was still on a roster snapshotted
             # before the loop, and got the row and the second notice E3
             # removes. The cache is invalidated by the teardown.
-            if (not marshals and _game_end.THE_CAMPAIGN_CAN_END
-                    and nation not in set(self.world.get_active_nations())):
+            if (not marshals and nation not in set(self.world.get_active_nations())):
                 continue
             if not marshals and _game_end.terminal_ending(self.world) is None:
                 # EA-7's recovery path (the economy gate): a court with no

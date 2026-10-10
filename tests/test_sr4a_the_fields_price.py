@@ -131,13 +131,6 @@ class TestTheScoutNamesTheGarrison:
         data = post(client, "Soult, scout Paris")
         assert "Our garrison: 25,000." in data["message"], data["message"]
 
-    def test_the_lever_down_is_the_old_report(self, shipped, monkeypatch):
-        monkeypatch.setattr(GR, "THE_SCOUT_NAMES_THE_GARRISON", False)
-        client, world = shipped
-        data = self._scout_vienna(client, world)
-        assert data["message"].endswith("No enemy forces detected."), data["message"]
-
-
 class TestTheScanCountsOnlyEnemiesAndBandsTheGarrison:
 
     def test_an_ally_is_not_an_enemy_and_the_garrison_is_banded(self, shipped):
@@ -149,14 +142,6 @@ class TestTheScanCountsOnlyEnemiesAndBandsTheGarrison:
         assert "Franconia (Bavaria, Plains)" in msg, msg          # Deroy is our ally
         assert "Vienna (Austria, Plains, garrison: " in msg, msg   # a band, not 25,000
         assert "Vienna (Austria, Plains, garrison 25,000" not in msg
-
-    def test_the_lever_down_counts_the_ally(self, shipped, monkeypatch):
-        monkeypatch.setattr(GR, "THE_SCOUT_NAMES_THE_GARRISON", False)
-        client, world = shipped
-        world.get_marshal("Ney").location = "Bohemia"
-        data = post(client, "Ney, scout")
-        assert "Franconia (Bavaria, Plains, 1 enemies)" in data["message"], data["message"]
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # AAR-24 — an assault gets its one-line muster
@@ -319,12 +304,3 @@ class TestTheDeskReadsTheFog:
         data = post(client, "who is at Vienna")
         assert "No army stands in Vienna" not in data["message"], data["message"]
         assert "Garrison: 25,000." in data["message"], data["message"]
-
-    def test_the_lever_down_is_the_old_desk(self, shipped, monkeypatch):
-        monkeypatch.setattr(GR, "THE_DESK_READS_THE_GARRISON_FOG", False)
-        client, world = shipped
-        from backend.models.intel import PARTIAL
-        world.get_region_intel("Vienna").refresh(visibility=PARTIAL, source="probe",
-                                                  turn=world.current_turn)
-        data = post(client, "is Vienna safe")
-        assert "garrison of 25,000" in data["message"], data["message"]

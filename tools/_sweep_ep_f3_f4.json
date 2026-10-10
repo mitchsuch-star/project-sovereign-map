@@ -1,12 +1,5 @@
 [
   {
-    "id": "EPF4-1 the deed lever down",
-    "file": "backend/game_logic/dotation.py",
-    "old": "EXPECTATION_RISES_ON_DEEDS = True",
-    "new": "EXPECTATION_RISES_ON_DEEDS = False",
-    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_the_record_no_longer_prices_the_claim"
-  },
-  {
     "id": "EPF4-2 the first-turn floor removed",
     "file": "backend/game_logic/dotation.py",
     "old": "EXPECTATION_FIRST_TURN = 6",
@@ -18,13 +11,6 @@
     "file": "backend/game_logic/dotation.py",
     "old": "EXPECTATION_RISE_COOLDOWN = 4",
     "new": "EXPECTATION_RISE_COOLDOWN = 1",
-    "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_one_rise_per_four_turns"
-  },
-  {
-    "id": "EPF4-4 the cooldown never checked",
-    "file": "backend/game_logic/dotation.py",
-    "old": "    if (EXPECTATION_RISE_COOLDOWN_ACTIVE and last >= 0\n            and turn - last < EXPECTATION_RISE_COOLDOWN):",
-    "new": "    if False:",
     "tests": "tests/test_ep_f4_the_fuse_is_longer.py::TestTheExpectationReadsTheDeeds::test_one_rise_per_four_turns"
   },
   {

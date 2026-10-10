@@ -264,18 +264,6 @@ class TestTheLedgerAndTheDispatchAgreeOnEveryShape:
         forces = next(m for m in ledger["forces"] if m.get("name", m.get("marshal")) == "Massena")
         assert forces["status"] == "awaiting_decision"
 
-    def test_the_lever_down_reproduces_the_idle_row(self, world, monkeypatch):
-        from backend.game_logic import ledger as L
-        monkeypatch.setattr(L, "THE_LEDGER_SEES_THE_HALT", False)
-        massena = world.marshals["Massena"]
-        massena.strategic_order = None
-        massena.pending_interrupt = {"marshal": "Massena", "interrupt_type": "last_stand",
-                                     "enemy": "Mack", "options": ["fight_to_the_last", "attempt_breakout"]}
-        with _quiet():
-            ledger = L.build_strategic_ledger(world)
-        row = next(o for o in ledger["orders"] if o["marshal"] == "Massena")
-        assert row["order_type"] == "No active orders" and "decision" not in row
-
     def test_the_client_renders_the_decision_row_without_a_cancel(self):
         src = _code_only(_read(CLIENT / "scripts" / "strategic_ledger.gd"))
         at = src.index("# Idle marshals") if "# Idle marshals" in src else src.index('bbcode += "  │ No active orders"')
@@ -558,30 +546,6 @@ class TestL3TheAttackerSurroundArm:
                 reached += 1
                 assert ney.strength <= 900, (seed, ney.strength)
         assert reached >= 12, f"the attacker shatter arm was reached on only {reached}/24 seeds"
-        assert C.ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY is True
-
-    def test_the_lever_down_grows_the_broken_charger_on_the_same_geometry(self, monkeypatch):
-        from backend.game_logic import combat as C
-        monkeypatch.setattr(C, "ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY", False)
-        grew = 0
-        for seed in range(1, 25):
-            with _quiet():
-                w = WorldState()
-            ney, well = w.get_marshal("Ney"), w.get_marshal("Wellington")
-            ney.recklessness = 4
-            ney.strength = 900
-            ney.morale = 5
-            well.location = "Belgium"
-            well.strength = 900
-            well.morale = 90
-            monkeypatch.setattr(WorldState, "get_safe_retreat_destination", lambda self, *a, **k: None)
-            random.seed(seed)
-            with _quiet():
-                w._process_reckless_cavalry_turn_start()
-            if ney.broken and ney.strength == 1000:
-                grew += 1
-        assert grew >= 12, f"the defect (900 men shatter into 1,000) reproduced on only {grew}/24 seeds"
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # L3-7 — the FA-N30 producer census resolves what it can and NAMES what it cannot

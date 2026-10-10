@@ -121,14 +121,6 @@ class TestThePrisonerNoteNamesTheCourt:
         note = _card(w, "Ney")["status_note"]
         assert "Kingdom of Italy" in note and "KingdomOfItaly" not in note
 
-    def test_lever_down_restores_the_raw_key(self, monkeypatch):
-        import backend.game_logic.marshal_overview as mo
-        monkeypatch.setattr(mo, "THE_PRISONER_NOTE_NAMES_THE_COURT", False)
-        w = _boot()
-        with contextlib.redirect_stdout(io.StringIO()):
-            w.capture_marshal(w.marshals["Ney"], "KingdomOfItaly")
-        assert "KingdomOfItaly" in _card(w, "Ney")["status_note"]
-
     def test_a_plain_captor_keeps_the_w6_7_wording(self):
         w = _boot()
         with contextlib.redirect_stdout(io.StringIO()):
@@ -399,46 +391,6 @@ def _defense_line(world, nation="Britain"):
     import backend.game_logic.dispatch as D
     return next(r["text"] for r in D._build_war_objective_section(world, "France")
                 if r["target_nation"] == nation and "Defense" in r["text"])
-
-
-class TestTheWarPurposeListsOnlyWhatIsHeld:
-    """PR-X1: 'the war-purpose line lists twenty provinces France no longer
-    holds' — a Defence purpose names what is HELD, or says the homeland is
-    lost; it never advertises a lost province as an objective.
-
-    ⚑ Consciously flipped by row EP F1 (LV-8, Sept 23, 2026): the homeland
-    defence purpose is now ONE sentence ("the homeland — 1 of 28 provinces
-    held" / "the homeland is lost"), which keeps PR-X1's rule by naming no
-    province at all. These pins bind the LIST arms this lever governs, which
-    the LV-8 lever-down arm restores — so they run there, and the sentence's
-    PR-X1 guarantee is pinned in `test_the_sentence_names_nothing_lost`."""
-
-    @pytest.fixture(autouse=True)
-    def _the_list_shape(self, monkeypatch):
-        from backend.game_logic import war_status as WS
-        monkeypatch.setattr(WS, "THE_PURPOSE_IS_ONE_SENTENCE", False)
-
-    def test_a_rump_names_only_what_it_holds(self):
-        text = _defense_line(_collapsed(keep=("Brittany",)))
-        named = text.split(" [", 1)[0]
-        assert named.endswith("— holding Brittany"), text
-        assert "Paris" not in named and "Normandy" not in named
-
-    def test_a_fallen_realm_says_the_homeland_is_lost(self):
-        text = _defense_line(_collapsed(keep=()))
-        # The count belongs to WAR_PURPOSE_COUNTS_WHAT_IS_HELD, which speaks
-        # only for a partial hold; at none held the bracket reads "not held".
-        assert "— the homeland is lost [not held]" in text
-        assert "Paris" not in text
-
-    def test_lever_down_restores_the_full_list(self, monkeypatch):
-        import backend.game_logic.dispatch as D
-        monkeypatch.setattr(D, "WAR_PURPOSE_LISTS_ONLY_WHAT_IS_HELD", False)
-        assert "Paris" in _defense_line(_collapsed(keep=("Brittany",))).split(" [", 1)[0]
-
-    def test_a_standing_realm_keeps_its_full_list(self):
-        text = _defense_line(_boot())
-        assert "Paris" in text and "[HELD]" in text
 
 
 class TestTheSentenceNamesNothingLost:

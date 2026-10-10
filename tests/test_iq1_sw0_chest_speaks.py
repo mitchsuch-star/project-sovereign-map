@@ -197,23 +197,6 @@ class TestTheIdentityIsUntouched:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# 4. The flip lever's False arm is byte-identical apart from the two keys
-# ════════════════════════════════════════════════════════════════════════
-
-class TestTheLever:
-    def test_false_arm_zeroes_both_and_changes_nothing_else(self, world,
-                                                            monkeypatch):
-        world.record_gold_spent("France", 3000)
-        on = _build_economy(world, "France")
-        monkeypatch.setattr(ledger_mod, "THE_CHEST_STATES_ITS_CEILING", False)
-        off = _build_economy(world, "France")
-        assert off["spent"] == 0 and off["ceiling"] == 0
-        assert on["spent"] == 3000 and on["ceiling"] > 0
-        assert {k: v for k, v in on.items() if k not in ("spent", "ceiling")} \
-            == {k: v for k, v in off.items() if k not in ("spent", "ceiling")}
-
-
-# ════════════════════════════════════════════════════════════════════════
 # 5. The client renders both (a CODE census with a sensitivity arm)
 # ════════════════════════════════════════════════════════════════════════
 

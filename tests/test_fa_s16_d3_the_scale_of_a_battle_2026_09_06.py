@@ -137,14 +137,6 @@ class TestTheRowsOwnCase:
         assert all(re.search(r"skirmish|Hardly an engagement|Scarcely an action",
                              line) for line in got), got
 
-    def test_the_lever_reproduces_the_pre_fix_sentence(self, monkeypatch):
-        """⚠ The FALSE arm must reproduce the defect VERBATIM, or the lever
-        is not a lever — it is a different bug."""
-        monkeypatch.setattr(battle_scale, "SKIRMISH_GATE_ACTIVE", False)
-        got = _lines(_battle(1, 58, def_terrain=20))
-        assert any("Even the favorable ground could not save Massena, Sire."
-                   in line for line in got), got
-
     def test_the_same_shape_at_scale_still_draws_the_verdict(self):
         """The gate must bite on SIZE, not on the terrain arm. A real battle
         lost on favourable ground keeps its verdict."""

@@ -15,7 +15,6 @@ ARMISTICE_AUTO_PEACE_RELATION = -60  # Must match diplomacy.py (G4F-17)
 # "ours" / "" at 0) off the same score the tier was computed from, and the
 # war HUD and detail popup colour and label by it. False = no key, the row
 # byte-for-byte.
-THE_TIER_NAMES_ITS_SIDE = True
 
 # IQ-2 (Sept 14, 2026) flip lever. The FA-D4 hint told a France holding no
 # province of her homeland "A defensive purpose only (hold the homeland)"
@@ -24,7 +23,6 @@ THE_TIER_NAMES_ITS_SIDE = True
 # (authority._homeland_held_fraction, the grip's own reader), not on the
 # collapse: a France holding foreign conquests but none of her own soil is
 # in the same position. False = the FA-D4 hint byte-for-byte.
-THE_HINT_KNOWS_THE_HOMELAND_IS_LOST = True
 
 # LV-8 (row EP F1, Sept 23, 2026) flip lever: a war purpose's targets are ONE
 # sentence. FA-D4 gave every boot war the declaration's defensive purpose, and
@@ -33,7 +31,6 @@ THE_HINT_KNOWS_THE_HOMELAND_IS_LOST = True
 # popup and the envoy's War Summary (FA-N71 was verified while the boot list
 # was still empty). Europe-scoped (N1): the legacy fixture keeps its list.
 # False = every surface prints the raw list, as before.
-THE_PURPOSE_IS_ONE_SENTENCE = True
 # Any other target list names at most this many provinces, then ", and N
 # more" — the cap `nation_names.nation_not_a_province_message` already uses.
 PURPOSE_TARGETS_NAMED = 8
@@ -64,7 +61,7 @@ def objective_target_summary(world, owner: str, objective) -> str:
     * "" when the lever is down, off the Europe board, or with no targets —
       each surface keeps its own fallback copy for that case.
     """
-    if not THE_PURPOSE_IS_ONE_SENTENCE or world is None:
+    if world is None:
         return ""
     if not bool(getattr(world, "sandbox_mode", False)):
         return ""
@@ -267,11 +264,10 @@ def build_active_wars(world) -> Dict[str, Any]:
         # was always the leader pair's default and a purpose the player
         # NAMED against a member never rendered again. A named purpose
         # outranks a default one; the leader still wins among equals.
-        if THE_COALITION_ROW_READS_EVERY_PAIR:
-            france_obj, objective_against = _pick_war_objective(
-                world, france, opponent, coalition_members, france_obj, side="france")
-            enemy_obj, enemy_objective_by = _pick_war_objective(
-                world, france, opponent, coalition_members, enemy_obj, side="enemy")
+        france_obj, objective_against = _pick_war_objective(
+            world, france, opponent, coalition_members, france_obj, side="france")
+        enemy_obj, enemy_objective_by = _pick_war_objective(
+            world, france, opponent, coalition_members, enemy_obj, side="enemy")
 
         objective_info = None
         if france_obj and france_obj.get("concluded_turn") is None:
@@ -390,8 +386,7 @@ def build_active_wars(world) -> Dict[str, Any]:
                 "disabled_reason_display", ""
             ) if not settlement_available else "",
         }
-        if THE_TIER_NAMES_ITS_SIDE:
-            row["settlement_tier_side"] = _tier_side(score)
+        row["settlement_tier_side"] = _tier_side(score)
         wars.append(row)
 
     wars = _collapse_shared_war_instance_rows(world, france, wars)
@@ -622,7 +617,6 @@ def _build_foreign_wars(world) -> List[Dict[str, Any]]:
 
 # FA-N75 (slice 11) flip lever: False restores the post-collapse blindness
 # (one bar, one member line, no Targets, no coordination, no weak link).
-COALITION_CARD_KEEPS_ITS_MEMBERS = True
 
 # The keys the coalition card actually reads off a member row: the bar loop
 # (opponent, war_score), the member-line loop (opponent, war_exhaustion,
@@ -650,7 +644,7 @@ def _coalition_rows(wars: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     for row in wars:
         folded = row.get("coalition_member_rows")
-        if COALITION_CARD_KEEPS_ITS_MEMBERS and isinstance(folded, list) and folded:
+        if isinstance(folded, list) and folded:
             out.extend(folded)
         else:
             out.append(row)
@@ -755,17 +749,16 @@ def _collapse_shared_war_instance_rows(
         # `in_coalition`) is already on a pair row. The metadata block below
         # and the client read these instead of re-deriving from a row that
         # no longer represents anybody in particular.
-        if COALITION_CARD_KEEPS_ITS_MEMBERS:
-            # Review round: the first cut carried WHOLE rows — 32 keys each,
-            # where the card reads six — and measured 3,578 -> 13,630 bytes
-            # of `active_wars` on every single HTTP response. Carry what the
-            # card reads. Each member keeps its OWN fogged `war_exhaustion`
-            # and `army_strength`, which is the point: the collapsed row's
-            # were the leader's.
-            combined["coalition_member_rows"] = [
-                {key: row.get(key) for key in COALITION_MEMBER_ROW_KEYS}
-                for row in _leader_first_rows(rows, enemy_leader)
-            ]
+        # Review round: the first cut carried WHOLE rows — 32 keys each,
+        # where the card reads six — and measured 3,578 -> 13,630 bytes
+        # of `active_wars` on every single HTTP response. Carry what the
+        # card reads. Each member keeps its OWN fogged `war_exhaustion`
+        # and `army_strength`, which is the point: the collapsed row's
+        # were the leader's.
+        combined["coalition_member_rows"] = [
+            {key: row.get(key) for key in COALITION_MEMBER_ROW_KEYS}
+            for row in _leader_first_rows(rows, enemy_leader)
+        ]
         combined["opponents"] = ordered_opponents
         combined["opponent"] = (
             ordered_opponents[0] if ordered_opponents else representative.get("opponent", "")
@@ -835,9 +828,8 @@ def _collapse_shared_war_instance_rows(
             side_tier, side_tier)
         # IQ-2: the side follows the WAR-level score the tier now reads —
         # `dict(representative)` would otherwise carry the leader pair's.
-        if THE_TIER_NAMES_ITS_SIDE:
-            combined["settlement_tier_side"] = _tier_side(
-                int(combined["war_score"]))
+        combined["settlement_tier_side"] = _tier_side(
+            int(combined["war_score"]))
         combined["started_turn"] = int(
             int(world.current_turn) - combined["duration"])
         # Trend on the same ±2 rule the pair rows use, over the SUM of
@@ -873,7 +865,6 @@ def _leader_first(nations: List[str], leader: str) -> List[str]:
 # FA-D2 (slice 17, Phase 2) flip lever: the coalition row's objective is
 # read across every opponent pair the score already sums. False = the
 # leader pair only (the prior row).
-THE_COALITION_ROW_READS_EVERY_PAIR = True
 
 
 def _objective_hint(objective_info, opponent: str, world=None) -> str:
@@ -892,8 +883,7 @@ def _objective_hint(objective_info, opponent: str, world=None) -> str:
     from backend.models.world_state import THE_SPINE_WAR_HAS_A_PURPOSE
     if not THE_SPINE_WAR_HAS_A_PURPOSE:
         return ""
-    if (THE_HINT_KNOWS_THE_HOMELAND_IS_LOST and world is not None
-            and (not objective_info
+    if (world is not None and (not objective_info
                  or str(objective_info.get("type") or "") == "defense")):
         from backend.models.authority import _homeland_held_fraction
         held, total = _homeland_held_fraction(

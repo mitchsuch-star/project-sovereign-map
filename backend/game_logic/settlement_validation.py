@@ -255,7 +255,6 @@ def _side_leader(war_instance: Mapping[str, Any], side: str) -> Optional[str]:
 # dropped leader (Britain, 32/50) gating an Austria-only draft that every
 # covered court carried — "Term harshness" under a "Will carry" table.
 # Flip lever: False restores the side leader on every table.
-THE_TABLE_SEATS_THE_COVERED_LEADER = True
 
 
 def accepting_leader_for_coverage(
@@ -269,8 +268,6 @@ def accepting_leader_for_coverage(
     leader first, then the joiners). Empty coverage (an eligibility read
     before the set is chosen) keeps the side leader."""
     leader = _side_leader(war_instance, accepting_side)
-    if not THE_TABLE_SEATS_THE_COVERED_LEADER:
-        return leader
     covered = {str(n) for n in (covered_enemy_participants or []) if n}
     if not covered or (leader and str(leader) in covered):
         return leader

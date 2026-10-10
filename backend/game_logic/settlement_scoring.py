@@ -503,7 +503,6 @@ TIER_LEGITIMACY_CLAMP = (-20, 15)
 # retest's turn-16 shape: Austria read 52/50 for a white peace plus 100 gold
 # while France held Vienna; the rider reads it at 32/50 and the peace is
 # signed for a real sweetener instead. False = the pre-rider scorer.
-A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST = True
 
 LEADER_LOSS_PER_REGION = -5
 LEADER_LOSS_CAPITAL = -15
@@ -892,7 +891,7 @@ def calculate_leader_own_losses(
     if home_capital is not None:
         if home_capital in ceded_regions or forced_aligned:
             capital_lost = True
-    if capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST:
+    if capital_retained_by_proposer:
         capital_lost = True
 
     if accepting_leader_regions_at_evaluation is None:
@@ -907,7 +906,7 @@ def calculate_leader_own_losses(
     cedes_any_owned_region = any(r in current_regions for r in ceded_regions)
     keeps_all = (
         has_regions_at_eval and not cedes_any_owned_region and not forced_aligned
-        and not (capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST)
+        and not (capital_retained_by_proposer)
     )
 
     if accepting_leader_mapped_holdings_at_entry is None:
@@ -946,7 +945,7 @@ def calculate_leader_own_losses(
         "ceded_regions": list(ceded_regions),
         "capital_lost": capital_lost,
         "capital_retained_by_proposer": bool(
-            capital_retained_by_proposer and A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST),
+            capital_retained_by_proposer),
         "home_capital": home_capital,
         "kept_all_with_holdings": keeps_all,
         "has_regions_at_evaluation": has_regions_at_eval,
@@ -972,7 +971,7 @@ def capital_retained_by_proposer_bloc(
     never a co-belligerent ally: Spain holding Vienna buys France no
     recognition, so it costs Austria no capital), and no term of the package
     hands it back. Pure."""
-    if not A_RETAINED_CAPITAL_IS_A_CAPITAL_LOST or not accepting_leader:
+    if not accepting_leader:
         return False
     try:
         from backend.game_logic.game_end import great_powers as _great_powers

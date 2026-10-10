@@ -80,8 +80,6 @@ class TestFAN28ADecisionOutranksTheOrderItLacks:
     def test_levers_default_on(self):
         assert D.DECISION_OUTRANKS_THE_ORDER_IT_LACKS is True
         assert D.HALTED_IS_NOT_READY is True
-        assert L.THE_LEDGER_SEES_THE_HALT is True
-        assert L.THE_ORDERS_TAB_KNOWS_ITS_PRISONERS is True
         assert D.RECOVERY_COMPLETION_REACHES_THE_BRIEFING is True
         assert D.RAW_EVENT_KEYS_NEVER_PRINT is True
         assert D.ARREARS_AGE_IS_THE_MARSHALS is True
@@ -217,16 +215,6 @@ class TestFAN36TheLedgerSeesTheHalt:
         w, ney = self._halted()
         assert D._derive_marshal_status(ney, w)[0] == L._derive_status(ney) == "awaiting_decision"
 
-    def test_the_lever_down_reproduces_moving_to(self, monkeypatch):
-        monkeypatch.setattr(L, "THE_LEDGER_SEES_THE_HALT", False)
-        w, ney = self._halted()
-        ledger = _quiet(build_strategic_ledger, w)
-        forces = next(f for f in ledger["forces"] if f["name"] == "Ney")
-        assert forces["status"] == "moving_to", "the defect: a frozen man reported as marching"
-        orders = next(o for o in ledger["orders"] if o["marshal"] == "Ney")
-        assert orders["path_remaining"] == 1
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N65 — the prisoner leaves the ORDERS tab
 # ═══════════════════════════════════════════════════════════════════════
@@ -246,15 +234,6 @@ class TestFAN65ThePrisonerLeavesTheOrdersTab:
         w = _world()
         ledger = _quiet(build_strategic_ledger, w)
         assert [o for o in ledger["orders"] if o["marshal"] == "Ney"]
-
-    def test_the_lever_down_lists_the_prisoner_as_idle(self, monkeypatch):
-        monkeypatch.setattr(L, "THE_ORDERS_TAB_KNOWS_ITS_PRISONERS", False)
-        w = _world()
-        _quiet(w.capture_marshal, w.marshals["Ney"], "Austria", "probe")
-        ledger = _quiet(build_strategic_ledger, w)
-        row = next(o for o in ledger["orders"] if o["marshal"] == "Ney")
-        assert row["order_type"] == "No active orders" and row["location"] == "Vienna"
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N58 — the recovery's completion reaches the briefing

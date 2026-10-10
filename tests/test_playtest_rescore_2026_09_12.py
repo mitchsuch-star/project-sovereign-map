@@ -312,19 +312,6 @@ class TestTheDeskIsNotLocked(unittest.TestCase):
         self.assertFalse(row["available"])
         self.assertEqual(row["disabled_reason"], "Mission already active")
 
-    def test_lever_down_reproduces_the_permanent_lockout(self):
-        from backend.game_logic import diplomatic_dialogue as DD
-        world = _mission_world({"type": "GATHER_INTEL", "target": "Austria",
-                                "turns_active": 3, "completed": True})
-        world.diplomatic_points = 10
-        original = DD.ONE_PREDICATE_ANSWERS_MISSION_LIVENESS
-        try:
-            DD.ONE_PREDICATE_ANSWERS_MISSION_LIVENESS = False
-            row = self._rows(world).get("mission_improve_relations")
-            self.assertEqual(row["disabled_reason"], "Mission already active")
-        finally:
-            DD.ONE_PREDICATE_ANSWERS_MISSION_LIVENESS = original
-
     def test_every_surface_gives_the_same_answer(self):
         """The top bar said idle while the Cabinet said busy."""
         from backend.game_logic.diplomatic_dialogue import mission_is_live
@@ -380,22 +367,6 @@ class TestTheFigureShownIsTheFigurePaid(unittest.TestCase):
         text = build_diplomatic_ledger(world)["talleyrand"]["active_mission"][
             "effect_text"]
         self.assertEqual(text, "+8 relation per turn")
-
-    def test_lever_down_reproduces_the_unscaled_constant(self):
-        from backend.game_logic import diplomatic_dialogue as DD
-        from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
-        world = _mission_world({"type": "IMPROVE_RELATIONS", "target": "Prussia",
-                                "turns_active": 1, "completed": False,
-                                "paused": False})
-        original = DD.MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE
-        try:
-            DD.MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE = False
-            text = build_diplomatic_ledger(world)["talleyrand"][
-                "active_mission"]["effect_text"]
-            self.assertEqual(text, "+5 relation per turn")
-        finally:
-            DD.MISSION_EFFECT_TEXT_IS_THE_APPLIED_FIGURE = original
-
 
 class TestTheMissionSaysWhatItIsDoing(unittest.TestCase):
 
@@ -952,16 +923,6 @@ class TestTheSettlementRailNamesItsCourts(unittest.TestCase):
         from backend.game_logic.settlement_presentation import humanize_war_label
         self.assertEqual(humanize_war_label("war_3"), "war_3")
         self.assertEqual(humanize_war_label(""), "")
-
-    def test_lever_down_reproduces_the_raw_label(self):
-        from backend.game_logic import settlement_presentation as SP
-        original = SP.WAR_LABEL_NAMES_ITS_COURTS
-        try:
-            SP.WAR_LABEL_NAMES_ITS_COURTS = False
-            self.assertIn("KingdomOfItaly",
-                          SP.humanize_war_label("France vs KingdomOfItaly"))
-        finally:
-            SP.WAR_LABEL_NAMES_ITS_COURTS = original
 
     def test_the_oneliner_uses_it(self):
         from backend.game_logic.settlement_presentation import (

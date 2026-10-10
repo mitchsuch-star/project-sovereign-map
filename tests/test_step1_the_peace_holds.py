@@ -335,15 +335,6 @@ class TestTheSettlementWritesThePairCooldown:
         assert world.armistice_cooldowns == {
             "Austria|France": 9, "France|Prussia": coalition.FRESH_PEACE_FLOOR_TURNS}
 
-    def test_the_lever_down_writes_nothing(self, monkeypatch):
-        from backend.game_logic import settlement_ratify as SR
-        monkeypatch.setattr(SR, "THE_SETTLEMENT_WRITES_THE_PAIR_COOLDOWN", False)
-        world = WorldState()
-        assert write_settlement_peace_floors(world, [
-            {"pair": "Austria|France", "current_state_before": "WAR", "final_state": "PEACE"}]) == []
-        assert world.armistice_cooldowns == {}
-
-
 # ════════════════════════════════════════════════════════════════════════
 # RS-2 — a Congress war contests, not breaks, the ceder's titles
 # ════════════════════════════════════════════════════════════════════════
@@ -455,14 +446,6 @@ class TestAWarWhileTheCongressSitsContests:
         w.armistice_cooldowns.pop(w._make_diplo_key("Austria", "France"), None)
         _declare(w, "Austria", "France")
         assert all(w.province_title[r]["kind"] == game_end.TITLE_CONQUEST for r in THE_FIVE)
-
-    def test_the_lever_down_breaks_as_before(self, ceded_vienna, monkeypatch):
-        monkeypatch.setattr(game_end, "A_CONGRESS_WAR_CONTESTS_NOT_BREAKS", False)
-        w = ceded_vienna
-        w.armistice_cooldowns.pop(w._make_diplo_key("Austria", "France"), None)
-        _declare(w, "Austria", "France")
-        assert all(w.province_title[r]["kind"] == game_end.TITLE_CONQUEST for r in THE_FIVE)
-        assert not _events(w, "contested")
 
     def test_a_signed_peace_keeps_the_titles_and_latches_the_court(self, ceded_vienna):
         w = ceded_vienna

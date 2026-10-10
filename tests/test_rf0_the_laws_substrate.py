@@ -191,14 +191,6 @@ class TestTheOnePredicate:
         assert "admin action" in R.law_refusal(
             world, "Austria", "corps_d_armee", admin_actions=0)
 
-    def test_lever_down_the_state_has_no_laws(self, world, monkeypatch):
-        monkeypatch.setattr(R, "THE_STATE_HAS_LAWS", False)
-        _staff(world, "France")["enacted_turn"] = 1
-        assert R.laws_in_force(world, "France") == []
-        assert R.staff_actions(world, "France") == 0
-        assert R.law_refusal(world, "France", "grand_quartier_general") != ""
-
-
 # ═══════════════════════ R8 "The Arrears" ═══════════════════════════════════
 
 class TestTheArrears:

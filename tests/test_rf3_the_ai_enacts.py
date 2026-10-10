@@ -113,11 +113,9 @@ class TestTheRung:
         world.current_turn += 1
         assert R.find_ai_enactment(world, "Austria", 60000, 2) is not None
 
-    def test_lever_down_no_court_enacts(self, world, carried, monkeypatch):
+    def test_a_rich_court_finds_an_enactment(self, world, carried):
         rich(world, "Austria")
         assert R.find_ai_enactment(world, "Austria", 60000, 2) is not None
-        monkeypatch.setattr(R, "THE_AI_ENACTS", False)
-        assert R.find_ai_enactment(world, "Austria", 60000, 2) is None
 
     def test_a_court_without_a_deck(self, world):
         world.nation_gold["Bavaria"] = 60000

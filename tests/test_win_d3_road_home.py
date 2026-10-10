@@ -8,12 +8,6 @@ written here as FALSIFIABLE TESTS rather than comments, which is the whole
 point of that section: a permission arm bolted onto the single movement
 chokepoint is exactly the kind of change that quietly grows into an
 open-borders treaty nobody voted for.
-
-Several tests carry a CONTROL ARM that disables `WITHDRAWAL_ACTIVE` and
-asserts the old behaviour still reproduces. Without them a test like "the
-corps is not stranded" could pass for reasons having nothing to do with this
-slice — the 1805 board is large and most marshals can get home most of the
-time.
 """
 
 from __future__ import annotations
@@ -86,22 +80,6 @@ def _make_peace(world):
 
 class TestTheMeasuredDefect:
 
-    def test_control_arm_reproduces_the_stranding(self, world, monkeypatch):
-        """With the slice disabled, the played campaign's failure recurs.
-
-        If this ever stops failing, the fixture has drifted and every
-        assertion in the class below is passing vacuously.
-        """
-        monkeypatch.setattr(W, "WITHDRAWAL_ACTIVE", False)
-        davout = _stage_measured_shape(world)
-        _make_peace(world)
-
-        assert not can_enter_territory(world, "France", "Russia")
-        assert world.evacuation_grants == {}
-        assert davout.strategic_order is None
-        home = W.get_home_zone(world, "France")
-        assert davout.location not in home, "he is cut off from his own realm"
-
     def test_the_peace_grants_the_road(self, world):
         davout = _stage_measured_shape(world)
         _make_peace(world)
@@ -149,69 +127,54 @@ class TestNeverDoPins:
     def test_it_never_permits_an_attack(self, world, monkeypatch):
         """Pin 1. Attacking requires WAR; the pair is at peace.
 
-        Asserted as an IDENTITY between two arms rather than as a particular
-        refusal string: whatever the objection machinery does with the order,
-        it must do exactly the same thing whether or not a corridor stands.
+        Asserted on the outcome (no blood drawn, no battle fought) rather
+        than on a particular refusal string: whatever the objection machinery
+        does with the order, the corridor must not let it fight.
         The first draft of this test passed vacuously — it used the wrong
         command envelope, so the executor answered "Marshal 'None' not found"
         and `not success` was true for a reason having nothing to do with the
         corridor.
         """
-        def arm(active: bool):
-            w = WorldState.from_dict(world.to_dict())
-            monkeypatch.setattr(W, "WITHDRAWAL_ACTIVE", active)
-            _stage_measured_shape(w)          # Davout stranded at Volhynia
-            kutuzov = w.marshals["Kutuzov"]
-            kutuzov.location = "Ukraine"      # adjacent to Volhynia
-            kutuzov.strength = 40000
-            _make_peace(w)
-            assert can_enter_territory(w, "France", "Russia") is active, (
-                "precondition: the arm really does what it says")
-            assert not w.is_at_war("France", "Russia")
-            CommandExecutor().execute(
-                {"command": {"action": "attack", "marshal": "Davout",
-                             "target": "Kutuzov"}},
-                {"world": w})
-            return kutuzov.strength, len(w.battles_this_turn)
-
-        with_corridor = arm(True)
-        without = arm(False)
+        w = WorldState.from_dict(world.to_dict())
+        _stage_measured_shape(w)          # Davout stranded at Volhynia
+        kutuzov = w.marshals["Kutuzov"]
+        kutuzov.location = "Ukraine"      # adjacent to Volhynia
+        kutuzov.strength = 40000
+        _make_peace(w)
+        assert can_enter_territory(w, "France", "Russia") is True, (
+            "precondition: the corridor stands")
+        assert not w.is_at_war("France", "Russia")
+        CommandExecutor().execute(
+            {"command": {"action": "attack", "marshal": "Davout",
+                         "target": "Kutuzov"}},
+            {"world": w})
+        with_corridor = (kutuzov.strength, len(w.battles_this_turn))
         assert with_corridor == (40000, 0), (
             "safe passage is not a licence to fight — no blood was allowed "
             f"to be drawn, got {with_corridor}")
-        assert with_corridor == without, (
-            "the corridor must not change attack behaviour in any direction")
 
     def test_it_never_permits_a_capture(self, world, monkeypatch):
         """Pin 2. Marching through a province must not flip it.
 
-        The control arm is what makes this real: with the corridor disabled
-        the very same march is REFUSED, so the successful march below happened
-        because of the corridor and nothing else.
+        The march below succeeds only because the corridor stands (a frontier
+        at peace is otherwise shut), and it must leave the province Russian.
         """
-        def arm(active: bool):
-            w = WorldState.from_dict(world.to_dict())
-            monkeypatch.setattr(W, "WITHDRAWAL_ACTIVE", active)
-            davout = _stage_measured_shape(w)   # stranded at Volhynia
-            target = "Ukraine"                  # Russian, and his way out
-            w.regions[target].controller = "Russia"
-            w.regions[target].garrison_strength = 0
-            for m in list(w.marshals.values()):
-                if m.location == target:
-                    m.location = "Vilna"
-            _make_peace(w)
-            assert target in w.regions["Volhynia"].adjacent_regions
-            result = CommandExecutor().execute(
-                {"command": {"action": "move", "marshal": "Davout",
-                             "target": target}},
-                {"world": w})
-            return (bool(result.get("success")), davout.location,
-                    w.regions[target].controller)
-
-        assert arm(False) == (False, "Volhynia", "Russia"), (
-            "control: without the corridor the frontier is shut")
-
-        succeeded, where, controller = arm(True)
+        w = WorldState.from_dict(world.to_dict())
+        davout = _stage_measured_shape(w)   # stranded at Volhynia
+        target = "Ukraine"                  # Russian, and his way out
+        w.regions[target].controller = "Russia"
+        w.regions[target].garrison_strength = 0
+        for m in list(w.marshals.values()):
+            if m.location == target:
+                m.location = "Vilna"
+        _make_peace(w)
+        assert target in w.regions["Volhynia"].adjacent_regions
+        result = CommandExecutor().execute(
+            {"command": {"action": "move", "marshal": "Davout",
+                         "target": target}},
+            {"world": w})
+        succeeded, where, controller = (bool(result.get("success")), davout.location,
+                                        w.regions[target].controller)
         assert succeeded and where == "Ukraine", (
             "precondition: the corridor really did carry him across")
         assert controller == "Russia", (
@@ -270,27 +233,18 @@ class TestNeverDoPins:
     def test_it_does_not_feed_the_army(self, world, monkeypatch):
         """Pin 5. The corridor is a road, not a billet.
 
-        Falsifiable by construction: the SAME over-capacity stack on the SAME
-        foreign soil is attrited identically with the corridor open and with
-        the slice disabled. If the corridor ever started counting as friendly
-        supply, these two numbers would diverge.
+        An over-capacity stack on foreign soil is attrited with the corridor
+        open. If the corridor ever started counting as friendly supply, the
+        attrition would stop biting.
         """
-        def strength_after(active: bool) -> int:
-            w = WorldState.from_dict(world.to_dict())
-            monkeypatch.setattr(W, "WITHDRAWAL_ACTIVE", active)
-            davout = _stage_measured_shape(w)
-            region = w.regions[davout.location]
-            region.controller = "Russia"          # plainly foreign soil
-            davout.strength = 90000               # far over any capacity
-            _make_peace(w)
-            w.process_supply_attrition()
-            return davout.strength
-
-        with_corridor = strength_after(True)
-        without = strength_after(False)
-        assert with_corridor < 90000, "precondition: attrition really bites"
-        assert with_corridor == without, (
-            "safe passage must not feed the army")
+        w = WorldState.from_dict(world.to_dict())
+        davout = _stage_measured_shape(w)
+        region = w.regions[davout.location]
+        region.controller = "Russia"          # plainly foreign soil
+        davout.strength = 90000               # far over any capacity
+        _make_peace(w)
+        w.process_supply_attrition()
+        assert davout.strength < 90000, "safe passage must not feed the army"
 
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -106,53 +106,12 @@ GRACE_TURNS = 4
 # has shortfall <= 0 and takes the met branch, so the frozen clock is never
 # read. Flip lever (HOST_RULE_ACTIVE idiom): False restores the pre-slice
 # "any met turn resets" byte-identically.
-PENSION_CHURN_GUARD_ACTIVE = True
 
-# ═══════ F4 "THE FUSE IS LONGER" (ENDGAME_PLAN §1 F4 / D11, Sept 24 2026) ═══════
-# The live review (BUG_FIXES LV-21 / DESIGN_REFINEMENT LV-D1) measured the
-# curve as built: after Ulm (turn 1) four marshals expected 40–80g/turn, the
-# dispatch carried an UNMET MARSHALS block from turn 2, and on turn 7 of a
-# WINNING campaign the Fontainebleau collective petition fired for 600g/turn
-# against ~3,400g/turn of income. Every mechanic did what it said; the fuse
-# was too short for a first campaign, because `battles_won` is a monotonic
-# ratchet that every participant of every tactical win banks.
-#
-# The ruling reshapes the CURVE, not the numbers. An expectation now rises
-# only on a DEED:
-#   (a) a decisive victory with the marshal as LEAD — the beaten corps
-#       broken, destroyed or its commander taken (FULL_VICTORY_OUTCOMES or
-#       the loser gone from the field), or the war score's own decisive
-#       exchange (battle_scale.is_decisive_exchange); never a reinforcer,
-#       never a stalemate, never a garrison stomp (that path never reaches
-#       the seam — the exemption the glory ladder keeps, CA8-19);
-#   (b) a rise in his glory RANK that his own accrual earned that turn
-#       (a rank that rose because a rival's glory decayed raises nothing);
-# at most once per marshal per EXPECTATION_RISE_COOLDOWN turns, and never
-# before EXPECTATION_FIRST_TURN. The count lives in
-# `Marshal.expectation_steps` (REP_STEP × steps, capped): it cannot stay on
-# `battles_won`, which the ledger and the card print as his RECORD, and a
-# record must not lie to lengthen a fuse. `battles_won` still ratchets for
-# every other reader exactly as before.
-#
-# Four levers, one per arm of the BASELINE_SERIES attribution (plan D15):
-# EXPECTATION_RISES_ON_DEEDS (the deed rule AND the first-turn floor),
-# EXPECTATION_RISE_COOLDOWN_ACTIVE, jealousy.THE_COLLECTIVE_PETITION_WAITS
-# (turn ≥ 12 and ≥ 300g unmet across the petitioners) and
-# THE_UNMET_BLOCK_WAITS (the dispatch block only within 2 turns of erosion).
-# All four down reproduces the pre-F4 game byte-for-byte: `get_expectation`
-# reads `battles_won` again and nothing writes the new fields' meaning.
-# GR5: the AI's marshals climb the same curve and its grant rung reads the
-# same predicates. Every number is in-band; the SHAPE is the ruling.
-# Re-open condition (plan F4): a 40-turn commanded campaign that never sees
-# a collective petition lowers FONTAINEBLEAU_MIN_TURN to 9.
-EXPECTATION_RISES_ON_DEEDS = True
 EXPECTATION_FIRST_TURN = 6
-EXPECTATION_RISE_COOLDOWN_ACTIVE = True
 EXPECTATION_RISE_COOLDOWN = 4
 # Outcomes in which the beaten corps is broken or destroyed outright — a
 # decisive victory by outcome, whatever the exchange.
 FULL_VICTORY_OUTCOMES = ("attacker_victory", "defender_victory")
-THE_UNMET_BLOCK_WAITS = True
 UNMET_BLOCK_WINDOW_TURNS = 2
 
 # AI grant rung (GR5): the enemy AI endows its most-shortfalling marshal
@@ -301,8 +260,7 @@ def get_expectation(marshal) -> int:
     from backend.game_logic.contingent import is_clients_general
     if is_clients_general(marshal):
         return 0
-    if EXPECTATION_RISES_ON_DEEDS:
-        return expectation_for_wins(getattr(marshal, "expectation_steps", 0))
+    return expectation_for_wins(getattr(marshal, "expectation_steps", 0))
     return expectation_for_wins(getattr(marshal, "battles_won", 0))
 
 
@@ -347,8 +305,7 @@ def expectation_rise_blocked(marshal, world, ignore_cooldown: bool = False) -> s
     if turn < EXPECTATION_FIRST_TURN:
         return f"no claim is felt before turn {EXPECTATION_FIRST_TURN}"
     last = int(getattr(marshal, "last_expectation_rise_turn", -1) or -1)
-    if (EXPECTATION_RISE_COOLDOWN_ACTIVE and not ignore_cooldown and last >= 0
-            and turn - last < EXPECTATION_RISE_COOLDOWN):
+    if (not ignore_cooldown and last >= 0 and turn - last < EXPECTATION_RISE_COOLDOWN):
         return (f"his expectation rose on turn {last} — one rise per "
                 f"{EXPECTATION_RISE_COOLDOWN} turns")
     if expectation_for_wins(getattr(marshal, "expectation_steps", 0)) >= EXPECTATION_CAP:
@@ -370,8 +327,6 @@ def raise_expectation(marshal, world, cause: str = "",
     (`expectation_rise_blocked`); the rise still stamps the turn, so the
     NEXT deed-rise waits its cooldown from here.
     """
-    if not EXPECTATION_RISES_ON_DEEDS:
-        return False
     if marshal is None or expectation_rise_blocked(
             marshal, world, ignore_cooldown=ignore_cooldown):
         return False
@@ -1225,7 +1180,7 @@ def build_unmet_marshals(world, nation: str) -> List[Dict]:
         # shortfall and counts the whole window down; the per-victory
         # "raises his expectation" line stays (it is the tell). A captured
         # man's expectations are frozen (W6-7), so he is never an alarm.
-        if THE_UNMET_BLOCK_WAITS and not eroding:
+        if not eroding:
             if grace_turns_left < 0 or grace_turns_left > UNMET_BLOCK_WINDOW_TURNS:
                 continue
         rows.append({

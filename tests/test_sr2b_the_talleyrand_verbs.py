@@ -307,11 +307,6 @@ class TestTheCabinetsRulesOnTheTypedRoad:
         w = _world_with("WAR")
         assert DD.mission_state_refusal(w, "Austria", "CANCEL") is None
 
-    def test_the_lever_down_is_the_old_road(self, monkeypatch):
-        monkeypatch.setattr(DD, "THE_CABINETS_RULES_ON_EVERY_ROAD", False)
-        w = _world_with("WAR")
-        assert DD.mission_state_refusal(w, "Austria", "IMPROVE_RELATIONS") is None
-
     def test_the_wizard_sends_the_typed_sentence(self):
         """The two roads meet at the typed executor: the wizard composes a
         plain command and `main.gd` sends it through `send_command`."""

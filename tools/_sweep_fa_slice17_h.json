@@ -1,12 +1,5 @@
 [
   {
-    "id": "N52/a the lever is down (dead keys back)",
-    "file": "backend/game_logic/gazette.py",
-    "old": "THE_MONITEUR_READS_LIVE_TYPES = True\n",
-    "new": "THE_MONITEUR_READS_LIVE_TYPES = False\n",
-    "tests": "tests/test_fa_slice17_h_the_ledger_and_the_gazette_2026_09_11.py::TestFAN52TheMoniteurReadsLiveTypes"
-  },
-  {
     "id": "N52/b a dead key returns to the court collector",
     "file": "backend/game_logic/gazette.py",
     "old": "    \"nation_eliminated\", \"ultimatum_issued\", \"ai_ultimatum_accepted\",\n",

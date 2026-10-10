@@ -9456,56 +9456,38 @@ class CombatExecutor:
             # land there regardless of which seam did the increment).
             # The note is player-only and display-only (Golden Rule 6).
             from backend.game_logic.dotation import (
-                EXPECTATION_RISES_ON_DEEDS, expectation_for_wins,
                 get_expectation, get_satisfaction, is_decisive_victory,
                 is_dotation_world, raise_expectation, restate_reward_notice,
             )
             if is_dotation_world(world):
                 _rise_winner = None
                 _rise_prev = 0
-                if EXPECTATION_RISES_ON_DEEDS:
-                    _f4_outcome = str(battle_result.get("raw_outcome")
-                                      or battle_result.get("outcome") or "")
-                    _f4_atk = int(battle_result.get(
-                        "attacker_raw_casualties",
-                        battle_result.get("attacker_casualties", 0)) or 0)
-                    _f4_def = int(battle_result.get(
-                        "defender_raw_casualties",
-                        battle_result.get("defender_casualties", 0)) or 0)
-                    _f4_lead, _f4_loser = None, None
-                    _f4_won_cas, _f4_lost_cas = 0, 0
-                    if _f4_outcome in ("attacker_victory",
-                                       "attacker_tactical_victory"):
-                        _f4_lead, _f4_loser = marshal, enemy_marshal
-                        _f4_won_cas, _f4_lost_cas = _f4_atk, _f4_def
-                    elif _f4_outcome in ("defender_victory",
-                                         "defender_tactical_victory"):
-                        _f4_lead, _f4_loser = enemy_marshal, marshal
-                        _f4_won_cas, _f4_lost_cas = _f4_def, _f4_atk
-                    if (_f4_lead is not None
-                            and is_decisive_victory(
-                                _f4_outcome, _f4_won_cas, _f4_lost_cas,
-                                loser=_f4_loser)):
-                        _rise_prev = get_expectation(_f4_lead)
-                        if raise_expectation(_f4_lead, world,
-                                             "decisive victory"):
-                            _rise_winner = _f4_lead
-                else:
-                    for _exp_winner in (marshal, enemy_marshal):
-                        if (_exp_winner is None
-                                or _exp_winner.nation != world.player_nation):
-                            continue
-                        _exp_before = _exp_wins_before.get(_exp_winner.name)
-                        if (_exp_before is None
-                                or int(getattr(_exp_winner, "battles_won", 0))
-                                <= _exp_before):
-                            continue
-                        # GR1: the curve has ONE implementation. This used
-                        # to re-derive `min(REP_STEP * n, EXPECTATION_CAP)`
-                        # by hand.
-                        _rise_prev = expectation_for_wins(_exp_before)
-                        _rise_winner = _exp_winner
-                        break
+                _f4_outcome = str(battle_result.get("raw_outcome")
+                                  or battle_result.get("outcome") or "")
+                _f4_atk = int(battle_result.get(
+                    "attacker_raw_casualties",
+                    battle_result.get("attacker_casualties", 0)) or 0)
+                _f4_def = int(battle_result.get(
+                    "defender_raw_casualties",
+                    battle_result.get("defender_casualties", 0)) or 0)
+                _f4_lead, _f4_loser = None, None
+                _f4_won_cas, _f4_lost_cas = 0, 0
+                if _f4_outcome in ("attacker_victory",
+                                   "attacker_tactical_victory"):
+                    _f4_lead, _f4_loser = marshal, enemy_marshal
+                    _f4_won_cas, _f4_lost_cas = _f4_atk, _f4_def
+                elif _f4_outcome in ("defender_victory",
+                                     "defender_tactical_victory"):
+                    _f4_lead, _f4_loser = enemy_marshal, marshal
+                    _f4_won_cas, _f4_lost_cas = _f4_def, _f4_atk
+                if (_f4_lead is not None
+                        and is_decisive_victory(
+                            _f4_outcome, _f4_won_cas, _f4_lost_cas,
+                            loser=_f4_loser)):
+                    _rise_prev = get_expectation(_f4_lead)
+                    if raise_expectation(_f4_lead, world,
+                                         "decisive victory"):
+                        _rise_winner = _f4_lead
                 if (_rise_winner is not None
                         and _rise_winner.nation == world.player_nation):
                     _exp_now = get_expectation(_rise_winner)

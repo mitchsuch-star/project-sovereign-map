@@ -21,13 +21,6 @@
     "tests": "tests/test_sr4_quick_wins.py::TestTheCaptorRaisesHisOwnGarrison::test_a_return_to_the_same_hands_is_no_capture"
   },
   {
-    "id": "AAR24-X1 lever down (the guns storm)",
-    "file": "backend/game_logic/garrison_report.py",
-    "old": "GUNS_DO_NOT_STORM_WORKS = True\n",
-    "new": "GUNS_DO_NOT_STORM_WORKS = False\n",
-    "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_the_order_is_refused_free_with_the_remedy"
-  },
-  {
     "id": "AAR24-X1 the battery never asks",
     "file": "backend/commands/executor.py",
     "old": "                if action in ('attack', 'bombard'):\n                    from backend.game_logic.garrison_report import (\n                        gun_corps_assault_refusal)",
@@ -40,13 +33,6 @@
     "old": "                and world.is_at_war(marshal.nation, other.nation)):\n            return \"\"\n    if not garrison_fights(region):",
     "new": "                and world.is_at_war(marshal.nation, other.nation)):\n            pass\n    if not garrison_fights(region):",
     "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_a_corps_in_the_field_is_still_a_battle"
-  },
-  {
-    "id": "AAR24-X1 a foot corps is refused too",
-    "file": "backend/game_logic/garrison_report.py",
-    "old": "    if not GUNS_DO_NOT_STORM_WORKS or not getattr(marshal, \"artillery\", False):",
-    "new": "    if not GUNS_DO_NOT_STORM_WORKS:",
-    "tests": "tests/test_sr4_quick_wins.py::TestAGunCorpsDoesNotStormTheWorks::test_a_foot_corps_still_storms"
   },
   {
     "id": "AAR10-X1 lever down (the cooldown's words)",

@@ -355,13 +355,6 @@ class TestWhyTheBillsMoved:
         assert 'econ.get("upkeep_note", "")' in gd
         assert 'econ.get("state_charges_delta_note", "")' in gd
 
-    def test_lever_down_is_silent(self, monkeypatch):
-        monkeypatch.setattr(LG, "THE_BILLS_SAY_WHY_THEY_MOVED", False)
-        out = why_the_bills_moved(_FakeWorld({}), "France",
-                                  {"total": 900, "total_strength": 60_000}, 50)
-        assert out == {"upkeep_note": "", "charges_note": ""}
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # IQ1-5-1 (owned by SR-5a, PB-7) — the forecast reads the tick
 # ═══════════════════════════════════════════════════════════════════════

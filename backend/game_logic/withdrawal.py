@@ -95,7 +95,6 @@ from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 # `can_enter_territory` arm can never fire, no order is issued and the tick
 # is a no-op.  Kept so the attribution of any harness movement is measured
 # rather than asserted.
-WITHDRAWAL_ACTIVE = True
 
 # WO-17 "The Corridor Has a Direction" (WEIRD_OUTCOMES_SPEC §3 slice 13).
 # False restores the direction-less grant exactly — the Trojan-corridor
@@ -103,14 +102,12 @@ WITHDRAWAL_ACTIVE = True
 # armistice, and march FRESH corps into enemy sovereign territory all truce
 # long.  Kept so the fix is falsifiable non-vacuously and so any harness
 # movement can be flip-attributed.
-CORRIDOR_DIRECTION_ACTIVE = True
 
 # FA-33 (slice 12).  False restores the stamp exactly — the treaty's order
 # carries `issued_turn = current_turn`, `process_strategic_orders` skips it as
 # "first step already executed by executor.py", and the corps loses the peace
 # turn standing still.  Measured on the shipped board, lever up vs down:
 # Davout home turn 5 with ZERO warnings, vs turn 6 warned on t2/t3/t4/t5.
-THE_TREATY_CLAIMS_NO_FIRST_STEP = True
 
 # FA-33 rider (slice 12).  False restores the pre-slice judging exactly.
 # Removing the stamp un-shields the issuance turn from `_check_interrupts`
@@ -119,7 +116,6 @@ THE_TREATY_CLAIMS_NO_FIRST_STEP = True
 # measured: interned at Vienna on turn 5 having marched nothing, against
 # Bohemia on turn 6 having marched one province.  A corps that cannot march
 # because the game is waiting on the player is not loitering.
-A_STANDING_QUESTION_IS_NOT_LOITERING = True
 
 # FA-N61 (slice 12).  False restores the one-shot issuance exactly: the road
 # is handed out only at the moment the war ends, and a corps stranded
@@ -127,7 +123,6 @@ A_STANDING_QUESTION_IS_NOT_LOITERING = True
 # him — is never handed one.  Measured on the shipped 1805 board, lever
 # down: Bernadotte and Massena stranded at t3/t4, warned 2/1/0, and BOTH
 # interned on turn 7 with `order=None` on every line in between.
-THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED = True
 
 # SF7-X46 (Score Finish Step 7b, found reading the front page): the lapse
 # warning's figure is the SLACK — turns to spare once the march home is
@@ -183,7 +178,6 @@ EVACUATION_WARNING_MARGIN = 2
 # stranded more than CORRIDOR_MINIMUM_WINDOW turns after the peace is not
 # helped at all. Measured at a delay of 4 turns the board is identical to
 # control. That is the only place the constant is falsifiable.
-CORRIDOR_MINIMUM_WINDOW_ACTIVE = True
 CORRIDOR_MINIMUM_WINDOW = 3
 
 # GE-1 review round (Sept 25, 2026): a sovereign whose safe passage lapses
@@ -192,7 +186,6 @@ CORRIDOR_MINIMUM_WINDOW = 3
 # peace was held forever: no war ran the chains clock, no peace remained to
 # free him, and the captor never offered terms (its rung needs a war).
 # False restores the NP-4 capture.
-THE_EMPEROR_IS_ESCORTED_HOME = True
 
 # The order's own record.  Rider-(d) idiom, "words become the record": an
 # evacuation march is recognised by the phrase the treaty wrote on it, which
@@ -265,8 +258,6 @@ def has_evacuation_grant(world, nation_a: str, nation_b: str,
     already reaches, so the flood fill runs once per board state, not once
     per pathfinding node.
     """
-    if not WITHDRAWAL_ACTIVE:
-        return False
     grants = getattr(world, "evacuation_grants", None)
     if not grants:
         return False
@@ -276,8 +267,7 @@ def has_evacuation_grant(world, nation_a: str, nation_b: str,
         return False
     if int(world.current_turn) > int(expiry):
         return False
-    if (CORRIDOR_DIRECTION_ACTIVE and mover_location is not None
-            and not _corridor_is_for(world, nation_a, mover_location)):
+    if (mover_location is not None and not _corridor_is_for(world, nation_a, mover_location)):
         return False
     return True
 
@@ -571,8 +561,6 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
 
     Returns a summary dict (possibly empty) for the caller to log.
     """
-    if not WITHDRAWAL_ACTIVE:
-        return {}
     if nation_a == nation_b:
         return {}
 
@@ -711,8 +699,6 @@ def _open_minimum_window(world, nation_a: str, nation_b: str) -> None:
     question nobody is asking, and writing one re-opens §3.4's "it must never
     become open borders" for no benefit.
     """
-    if not CORRIDOR_MINIMUM_WINDOW_ACTIVE:
-        return
     from backend.game_logic.diplomacy import can_enter_territory
     if (can_enter_territory(world, nation_a, nation_b, ignore_evacuation=True)
             and can_enter_territory(world, nation_b, nation_a,
@@ -742,7 +728,7 @@ def _promote_minimum_windows(world) -> None:
     turns after the door had shut.
     """
     windows = getattr(world, "corridor_windows", None)
-    if not windows or not CORRIDOR_MINIMUM_WINDOW_ACTIVE:
+    if not windows:
         return  # GR8: this runs every turn from advance_turn
     grants = _grants(world)
     current = int(world.current_turn)
@@ -908,8 +894,6 @@ def next_step_home(world, marshal) -> Optional[str]:
     Recomputed from live positions rather than read off the order's cached
     path, so a corps knocked off its route still knows the way.
     """
-    if not WITHDRAWAL_ACTIVE:
-        return None
     home = get_home_zone(world, marshal.nation)
     if not home or marshal.location in home:
         return None
@@ -991,8 +975,7 @@ def offer_road_home(world, nation: str) -> List[Dict]:
             # loop with the road in hand and a cleared flag would have his
             # next cancel silently overruled.
             marshal.road_home_offered = True
-        if (existing is None and THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED
-                and bool(getattr(marshal, "road_home_offered", False))):
+        if (existing is None and bool(getattr(marshal, "road_home_offered", False))):
             continue  # he was handed the road and let it go — §4.1 cancellable
         destination = _nearest_home_region(world, marshal, home)
         if not destination:
@@ -1003,12 +986,6 @@ def offer_road_home(world, nation: str) -> List[Dict]:
         path = world.find_path(marshal.location, destination,
                                passable_for=marshal.nation) or []
         order_kwargs = {}
-        if not THE_TREATY_CLAIMS_NO_FIRST_STEP:
-            # FA-33's control arm: the stamp whose documented premise
-            # ("first step already executed by executor.py") is false for
-            # the only StrategicOrder in the codebase built outside
-            # `strategic_executor`.
-            order_kwargs["issued_turn"] = int(world.current_turn)
         marshal.strategic_order = StrategicOrder(
             command_type="MOVE_TO",
             target=destination,
@@ -1110,8 +1087,6 @@ def process_evacuation_grants(world) -> List[Dict]:
     Returns tactical events for the dispatch/campaign log.
     """
     events: List[Dict] = []
-    if not WITHDRAWAL_ACTIVE:
-        return events
     # FA-S12-1: ABOVE the early return, deliberately. On the turn a window
     # promotes, `evacuation_grants` is empty until it does.
     _promote_minimum_windows(world)
@@ -1181,14 +1156,13 @@ def process_evacuation_grants(world) -> List[Dict]:
         # topped up (surplus 2, a late stranding with little slack). An
         # earlier draft of this comment claimed otherwise and the mutation
         # sweep caught the claim, not the code.
-        if THE_ROAD_IS_OFFERED_WHILE_HE_IS_STRANDED:
-            for offer in offer_road_home(world, nation):
-                event = _offer_event(
-                    world, offer,
-                    best_counterpart.get(nation, ""),
-                    max(0, expiry - current))
-                if event is not None:
-                    events.append(event)
+        for offer in offer_road_home(world, nation):
+            event = _offer_event(
+                world, offer,
+                best_counterpart.get(nation, ""),
+                max(0, expiry - current))
+            if event is not None:
+                events.append(event)
 
         for marshal in list(_evacuating_marshals(world, nation, home)):
             stranded_by_nation[nation] = stranded_by_nation.get(nation, 0) + 1
@@ -1203,8 +1177,7 @@ def process_evacuation_grants(world) -> List[Dict]:
                 # buys the whole corridor a turn.
                 grace_nations.add(nation)
                 continue
-            if (A_STANDING_QUESTION_IS_NOT_LOITERING
-                    and _awaiting_the_players_word(marshal)):
+            if (_awaiting_the_players_word(marshal)):
                 # MARSHAL-scoped, deliberately: he is not judged, and
                 # nobody else's clock stops. See the predicate's docstring.
                 continue
@@ -1420,8 +1393,7 @@ def _intern(world, marshal, nation: str) -> Dict:
         host = _encircling_power(world, marshal) or ""
     name = marshal.name
     location = marshal.location
-    if (THE_EMPEROR_IS_ESCORTED_HOME and getattr(marshal, "is_sovereign", False)
-            and host and not world.is_at_war(marshal.nation, host)):
+    if (getattr(marshal, "is_sovereign", False) and host and not world.is_at_war(marshal.nation, host)):
         return _escort_sovereign_home(world, marshal, host, location)
     # Aug 30, 2026 review: `destroy_marshal` returns False when it CAPTURES
     # instead of removing — the sovereign death-guard converts every removal

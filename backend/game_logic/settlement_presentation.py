@@ -383,7 +383,6 @@ def is_settlement_event_visible(
 # producer, the RENDER chokepoint humanises whatever it is handed: this is
 # the only place a war label becomes player-facing prose. False = the raw
 # label.
-WAR_LABEL_NAMES_ITS_COURTS = True
 
 _WAR_LABEL_SEPARATORS = (" vs ", " + ")
 
@@ -397,7 +396,7 @@ def humanize_war_label(label: str) -> str:
     """
     from backend.display_names import display_nation
     text = str(label or "")
-    if not text or not WAR_LABEL_NAMES_ITS_COURTS:
+    if not text:
         return text
     import re
     pattern = "(" + "|".join(re.escape(s) for s in _WAR_LABEL_SEPARATORS) + ")"

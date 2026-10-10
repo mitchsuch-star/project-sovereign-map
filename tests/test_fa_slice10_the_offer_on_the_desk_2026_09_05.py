@@ -72,12 +72,8 @@ SCENARIO = str(ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
 FIXTURE = ROOT / "tests" / "fixtures" / "playtest_saves" / "fixture_t20_ambient.json"
 
 LEVERS = [
-    (SR, "OFFER_IS_MAIL_NEVER_A_DRAFT"),
-    (SH, "ELIMINATION_RESOLVES_ITS_PAIRS"),
     (DM, "MOUNT_OVER_MAIL_ACTIVE"),
     (DM, "PARADOX_SURVIVES_THE_STALE_SWEEP"),
-    (TM, "LAPSED_COUNTER_COSTS_A_COOLDOWN"),
-    (MP, "INCOMING_ASSESSMENT_READS_OUR_BURDEN"),
     (M, "QUESTION_CARRIES_ITS_OWN_MODAL"),
 ]
 
@@ -192,8 +188,6 @@ class TestTheOfferIsMailNeverADraft:
         assert "incoming_settlement_offer" in SR.SETTLEMENT_FAMILY_DIALOGUE_TYPES
         assert "incoming_settlement_offer" not in SR.settlement_draft_dialogue_types()
         assert "settlement_confirm" in SR.settlement_draft_dialogue_types()
-        SR.OFFER_IS_MAIL_NEVER_A_DRAFT = False
-        assert "incoming_settlement_offer" in SR.settlement_draft_dialogue_types()
 
     def test_accept_with_another_wars_offer_queued_stages_the_review(
             self, fixture_board, client):
@@ -213,21 +207,6 @@ class TestTheOfferIsMailNeverADraft:
         # Only the accepted offer is consumed; the other war's letter stands.
         assert offer.get("offer_id") not in _offer_ids(world)
         assert second["offer_id"] in _offer_ids(world)
-
-    def test_the_pop_first_order_is_what_broke_it(self, fixture_board, client):
-        """The lever-off arm reproduces the pre-slice shape, so the pin above
-        is about the rule and not about some other change."""
-        SR.OFFER_IS_MAIL_NEVER_A_DRAFT = False
-        world = fixture_board
-        offer = _current_offer(world)
-        _queue_second_offer(world, "war_2")
-        result = _answer(client, "accept_settlement_offer",
-                         offer.get("dialogue_id"))
-        # Under the old reading the promoted offer is a rival draft: the
-        # accept either collides or is diverted to the scope chooser. Either
-        # way it does NOT land the ratifiable review the fix produces.
-        staged = world.dialogue_manager.peek() or {}
-        assert staged.get("dialogue_mode") != "REVIEW" or not result.get("success")
 
     def test_a_refused_accept_leaves_the_letter_standing(
             self, fixture_board, client):
@@ -660,21 +639,6 @@ class TestTheDeadCourtsWarIsOver:
         assert meta.get("pair_status") == "resolved"
         assert meta.get("resolved_turn") is not None
 
-    def test_the_war_left_a_pair_nobody_could_resolve(self, boot_board):
-        """The lever-off arm IS the defect: the pair stays listed as an active
-        war pair while its nation is on no side, so `_active_cross_side_pairs`
-        can never return it and `revalidate_staged_settlement` refuses every
-        ratification of that war forever."""
-        SH.ELIMINATION_RESOLVES_ITS_PAIRS = False
-        world = boot_board
-        war = world.war_instances["war_1"]
-        self._eliminate(world, "Bavaria")
-        listed = [k for k in (war.get("active_diplo_keys") or [])
-                  if "Bavaria" in k.split("|")]
-        assert listed, "the elimination geometry did not reproduce"
-        live = set(_active_cross_side_pairs(war, "attackers"))
-        assert all(k not in live for k in listed)
-
     def test_a_settlement_can_still_be_ratified_after_an_ally_dies(
             self, boot_board, client):
         world = boot_board
@@ -766,33 +730,12 @@ class TestTheAnswerReachesTheDesk:
         assert world.player_proposal_cooldowns.get("Russia") == 2
         assert world.player_proposal_cooldowns.get("Russia_peace") == 4
 
-    def test_the_lever_down_leaves_the_re_ask_free(self, fixture_board):
-        """The isolation arm: with the lever down the same lapse writes
-        nothing, so the pin above is about this rule and not about some other
-        cooldown the turn happens to set."""
-        from backend.commands.executor import CommandExecutor
-        TM.LAPSED_COUNTER_COSTS_A_COOLDOWN = False
-        world = fixture_board
-        world.player_proposal_cooldowns.pop("Russia", None)
-        world.player_proposal_cooldowns.pop("Russia_peace", None)
-        world.dialogue_manager.push({
-            "type": "counter_offer_response", "target_nation": "Russia",
-            "turn_created": int(world.current_turn) - 5,
-            "context": {"proposal_type": "peace"},
-        })
-        executor = CommandExecutor()
-        with _quiet():
-            TM.TurnManager(world, executor=executor).end_turn(
-                {"world": world, "executor": executor})
-        assert "Russia_peace" not in world.player_proposal_cooldowns
-
     def test_the_lapse_cooldown_is_wired_at_the_turn_seam(self):
         """The pin above builds the rule; this one proves the production loop
         carries it (a source census, the CA8-14 idiom)."""
         source = (ROOT / "backend" / "game_logic" / "turn_manager.py").read_text(
             encoding="utf-8")
         block = source.split("lapse_pending_offers()")[1].split("def ")[0]
-        assert "LAPSED_COUNTER_COSTS_A_COOLDOWN" in block
         assert "counter_offer_response" in block
         assert "player_proposal_cooldowns" in block
 
@@ -1033,15 +976,6 @@ class TestTheAssessmentReadsOurBurden:
             "type": "peace", "demands": [],
             "sweeteners": [{"type": "gold_per_turn", "value": 300}]})
         assert payload["war_context_snapshot"]["harshness_label"] == "generous"
-
-    def test_the_lever_off_arm_restores_the_inverted_reading(
-            self, fixture_board):
-        MP.INCOMING_ASSESSMENT_READS_OUR_BURDEN = False
-        payload = self._popup(fixture_board, {
-            "type": "peace", "sweeteners": [],
-            "demands": [{"type": "gold_lump", "value": 405}]})
-        assert payload["war_context_snapshot"]["harshness_label"] == "generous"
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # FA-N45 — the record stores one side's burden

@@ -268,22 +268,6 @@ class TestTheFinalSave:
         assert after == before
         assert game_end.terminal_ending(M.world)["final_save"] == str(final)
 
-    def test_the_lever_gates_the_close_only(self, client, monkeypatch):
-        """V3: THE_WAR_IS_CLOSED_AT_ONE_SEAM=False skips the close (no
-        rebuild, no clearing) — and, as its comment now says, the attach
-        rides every response either way."""
-        tc, M = client
-        monkeypatch.setattr(game_end, "SOVEREIGN_DEATH_CHANCE_PCT", 100)
-        monkeypatch.setattr(game_end, "THE_WAR_IS_CLOSED_AT_ONE_SEAM", False)
-        _napoleon_alone_at_lorraine(M.world)
-        r = _post(tc, "/command", {"command": "Napoleon, attack Mack"})
-        assert r["game_over"] is True and r["ending"]["cause"] == game_end.CAUSE_EAGLE_FALLS
-        assert not game_end.terminal_ending(M.world).get("closed")
-        import inspect
-        src = inspect.getsource(game_end)
-        assert "It does NOT restore the pre-review /command-only attach" in src
-
-
 # ════════════════════════════════════════════════════════════════════════
 # V4 / V8 — a truce on its last turn, and a truce at a count of nought
 # ════════════════════════════════════════════════════════════════════════

@@ -1,12 +1,5 @@
 [
  {
-  "id": "IQ12-1 the ceiling reverts to the post-charge net",
-  "file": "backend/game_logic/ledger.py",
-  "old": "    _ceiling_gross = net + state_charges if THE_CHEST_TELLS_THE_TRUTH else net",
-  "new": "    _ceiling_gross = net",
-  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheCeilingIsAFixedPoint"
- },
- {
   "id": "IQ12-2 the ceiling is fed a constant instead of the gross",
   "file": "backend/game_logic/ledger.py",
   "old": "        _ceiling_value = state_charges_ceiling(_ceiling_gross, _ceiling_rate)",
@@ -72,7 +65,7 @@
  {
   "id": "IQ12-11 a survivor loses its stated reason",
   "file": "backend/game_logic/coalition.py",
-  "old": "    # IQ1-2 (3): NOT in `Spent` \u2014 a per-turn obligation, not a purchase.",
+  "old": "    # IQ1-2 (3): NOT in `Spent` — a per-turn obligation, not a purchase.",
   "new": "    # a per-turn obligation, not a purchase.",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheOutflowsAreJudged"
  },
@@ -147,13 +140,6 @@
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheThreeCeilingStates"
  },
  {
-  "id": "IQ12-22 the levy reverts to answering for the player",
-  "file": "backend/game_logic/ledger.py",
-  "old": "        \"levy\": _levy_block(world, player if THE_CHEST_TELLS_THE_TRUTH else None),",
-  "new": "        \"levy\": _levy_block(world, None),",
-  "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestItAnswersForTheCourtAsked"
- },
- {
   "id": "IQ12-23 the state ladder asks the rate before the gross again",
   "file": "backend/game_logic/ledger.py",
   "old": "    elif _ceiling_gross <= 0:",
@@ -163,15 +149,15 @@
  {
   "id": "IQ12-24 the worst ceiling state goes back to the calm colour",
   "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
-  "old": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_ERROR \\\n\t\t\t+ \"]Ceiling:  none \u2014 the chest is not growing at this rate[/color]\\n\"",
-  "new": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_DIMMED \\\n\t\t\t+ \"]Ceiling:  none \u2014 the chest is not growing at this rate[/color]\\n\"",
+  "old": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_ERROR \\\n\t\t\t+ \"]Ceiling:  none — the chest is not growing at this rate[/color]\\n\"",
+  "new": "\t\tbbcode += \"  [color=#\" + Utils.COLOR_DIMMED \\\n\t\t\t+ \"]Ceiling:  none — the chest is not growing at this rate[/color]\\n\"",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
  },
  {
   "id": "IQ12-25 the unbounded copy goes back to naming the chest",
   "file": "godot-client/project-sovereign/scripts/strategic_ledger.gd",
-  "old": "+ \"]Ceiling:  none \u2014 the charges of empire do not draw at this rate[/color]\\n\"",
-  "new": "+ \"]Ceiling:  none \u2014 nothing is drawing on the chest[/color]\\n\"",
+  "old": "+ \"]Ceiling:  none — the charges of empire do not draw at this rate[/color]\\n\"",
+  "new": "+ \"]Ceiling:  none — nothing is drawing on the chest[/color]\\n\"",
   "tests": "tests/test_iq1_iq1_2_chest_tells_the_truth.py::TestTheClientRendersTheThreeStates"
  },
  {

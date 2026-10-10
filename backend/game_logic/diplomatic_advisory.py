@@ -73,19 +73,16 @@ from backend.display_names import STATE_NARRATIVE_DISPLAY as _STATE_DISPLAY
 # France with no corps standing was weighed as 30,000 men here while
 # `_get_military_advantage`, on the same screen, read her true 0. Our own
 # army is never fogged (R5 governs the enemy). False = the fogged read.
-THE_PLAYER_READS_HIS_OWN_STRENGTH_RAW = True
 # Counsel rung 3 hard-coded "1 DP + 200 gold; +10 loyalty." while
 # `invest_in_vassal` multiplies the gain by `get_authority_lever_multiplier`
 # — measured +4 in a grip spiral, the exact case in which the counsel fires
 # (a vassal drifting toward revolt). The description is now priced by
 # `diplomatic_ledger.invest_terms`, the reader the Vassals tab's chips use.
 # False = the hard-coded description.
-THE_INVEST_COUNSEL_QUOTES_THE_EXECUTOR = True
 # `_recommend_action`'s balanced-war arm counselled "the Tilsit model — win
 # one more engagement, then propose generous peace" to a France with no army
 # in the field (`war_council.get_free_strength` 0). A battle that cannot be
 # fought is not counsel. False = the Tilsit counsel on every balanced war.
-THE_TILSIT_COUNSEL_NEEDS_AN_ARMY = True
 
 
 # ═══════════════════════════════════════════════════════
@@ -202,7 +199,6 @@ def _recent_vassal_reason(world, vassal_name: str) -> str:
 # first". It is a FLAG, not a restore: the candidate list itself is now
 # per-court on both arms. Kept because the ranking rule is the one thing in
 # this rung a reader might want to reverse in one line.
-COUNSEL_RANKS_BY_ACCEPTANCE = True
 
 # The scorer's own verdict, said out loud. Keyed on `calculate_acceptance`'s
 # OWN outcome string rather than a second copy of its 50/30 thresholds —
@@ -342,7 +338,7 @@ def _settlement_candidates(world, player: str,
 
     ranked = sorted(found.values(), key=lambda f: (
         0 if f["terms_open"] else 1,
-        -f["acceptance"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,
+        -f["acceptance"],
         0 if f["row_losing"] else 1,
         abs(f["score"]),
         f["opponent"],
@@ -562,17 +558,16 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
             continue
         if int(record.get("loyalty", 100)) < 40:
             description = "1 DP + 200 gold; +10 loyalty."
-            if THE_INVEST_COUNSEL_QUOTES_THE_EXECUTOR:
-                # Shown = applied: the executor's own multiplier, through
-                # the one reader the Vassals tab shares. The blunted clause
-                # is the executor's own phrase (UI-6's pinned wording).
-                from backend.game_logic.diplomatic_ledger import invest_terms
-                terms = invest_terms(world, player)
-                description = (f"{terms['dp_cost']} DP + {terms['gold_cost']} "
-                               f"gold; +{terms['gain']} loyalty.")
-                if terms["blunted"]:
-                    description += (" The Emperor's faltering grip blunts "
-                                    "the gesture.")
+            # Shown = applied: the executor's own multiplier, through
+            # the one reader the Vassals tab shares. The blunted clause
+            # is the executor's own phrase (UI-6's pinned wording).
+            from backend.game_logic.diplomatic_ledger import invest_terms
+            terms = invest_terms(world, player)
+            description = (f"{terms['dp_cost']} DP + {terms['gold_cost']} "
+                           f"gold; +{terms['gain']} loyalty.")
+            if terms["blunted"]:
+                description += (" The Emperor's faltering grip blunts "
+                                "the gesture.")
             return {
                 "kind": "invest_vassal",
                 "target": name,
@@ -715,8 +710,7 @@ def _assess_situation(world) -> Dict:
             if _view is None:
                 continue
             lines.append(f"  Our own state: {_fall.arm_condition_sentence(world, _view)}")
-            if _fall.THE_CLOCK_HAS_ONE_LINE:
-                lines.append(f"  {_fall.clock_line(world, _view)}")
+            lines.append(f"  {_fall.clock_line(world, _view)}")
             lines.append(f"  {_fall.arm_clock_sentence(world, _view)}")
         lines.append("")
 
@@ -1400,9 +1394,7 @@ def _compare_threats(world) -> Dict:
     """Compare all nations as threats to France. Deterministic ranking."""
     threat_entries: List[Dict] = []
     player_nation = get_player_nation(world)
-    player_strength = (_get_nation_total_strength(player_nation, world)
-                       if THE_PLAYER_READS_HIS_OWN_STRENGTH_RAW
-                       else _get_fogged_strength(player_nation, world))
+    player_strength = (_get_nation_total_strength(player_nation, world))
     active = set(world.get_active_nations())  # DLF-11
     active.update(getattr(world, 'vassals', {}).keys())  # Vassals always visible
     for nation in sorted(get_known_nations(world)):
@@ -1831,8 +1823,6 @@ def _no_field_army(world, nation: str, force: bool = False) -> bool:
     `get_free_strength` (standing minus the rear reserve), never a second
     copy of the exposure calculus. `force` reads it regardless of the
     THE_TILSIT_COUNSEL_NEEDS_AN_ARMY lever (the collapse arm's wording)."""
-    if not (force or THE_TILSIT_COUNSEL_NEEDS_AN_ARMY):
-        return False
     from backend.game_logic.war_council import get_free_strength
     return get_free_strength(world, nation) <= 0
 

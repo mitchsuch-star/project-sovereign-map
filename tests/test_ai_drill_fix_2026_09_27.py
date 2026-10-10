@@ -110,14 +110,6 @@ class TestTheDrillingPenaltyIsRead:
         assert (mack.drilling, mack.drilling_locked, mack.drill_complete_turn,
                 mack.shock_bonus) == (False, False, -1, 0)
 
-    def test_the_lever_down_is_the_old_defect(self, monkeypatch):
-        monkeypatch.setattr(CB, "DRILL_PENALTY_READ_BEFORE_THE_CLEAR", False)
-        calm, _ = _battle(False)
-        caught, _ = _battle(True)
-        assert caught["defender_raw_casualties"] == calm["defender_raw_casualties"]
-        assert caught["drilling_penalty_triggered"]  # the report said it anyway
-
-
 # ═══════════════════════════ THE ONE REACH PREDICATE ═════════════════════════
 
 class TestTheReachPredicate:

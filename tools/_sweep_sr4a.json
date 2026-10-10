@@ -1,12 +1,5 @@
 [
   {
-    "id": "SR-4a scout lever down",
-    "file": "backend/game_logic/garrison_report.py",
-    "old": "THE_SCOUT_NAMES_THE_GARRISON = True\n",
-    "new": "THE_SCOUT_NAMES_THE_GARRISON = False\n",
-    "tests": "tests/test_sr4a_the_fields_price.py::TestTheScoutNamesTheGarrison::test_the_capital_garrison_is_named"
-  },
-  {
     "id": "SR-4a the capital's regrowth is unsaid",
     "file": "backend/game_logic/garrison_report.py",
     "old": "        if getattr(region, \"is_capital\", False):\n            cap = world.get_capital_garrison_target(holder)\n            kind += (",
@@ -89,13 +82,6 @@
     "old": "    gain = int(world.capital_garrison_regen(region))\n    if gain <= 0:\n        return \"\"",
     "new": "    gain = 0\n    if gain <= 0:\n        return \"\"",
     "tests": "tests/test_sr4a_the_fields_price.py::TestTheAssaultNamesItsTerms::test_the_hold_names_the_regen"
-  },
-  {
-    "id": "SR-4a desk lever down",
-    "file": "backend/game_logic/garrison_report.py",
-    "old": "THE_DESK_READS_THE_GARRISON_FOG = True\n",
-    "new": "THE_DESK_READS_THE_GARRISON_FOG = False\n",
-    "tests": "tests/test_sr4a_the_fields_price.py::TestTheDeskReadsTheFog::test_safe_at_partial_is_a_band"
   },
   {
     "id": "SR-4a the scan counts an ally",

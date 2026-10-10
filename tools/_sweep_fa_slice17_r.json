@@ -49,13 +49,6 @@
     "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestTheLedgerAndTheDispatchAgreeOnEveryShape"
   },
   {
-    "id": "L3-4/a the decision row is dropped (idle again)",
-    "file": "backend/game_logic/ledger.py",
-    "old": "            pending = standalone_decision(marshal) if THE_LEDGER_SEES_THE_HALT else None\n",
-    "new": "            pending = None\n",
-    "tests": "tests/test_fa_slice17_r_the_review_round_2026_09_11.py::TestTheLedgerAndTheDispatchAgreeOnEveryShape"
-  },
-  {
     "id": "L3-4/b the decision row grows a cancel button",
     "file": "backend/game_logic/ledger.py",
     "old": "                    \"has_order\": False,\n                    \"decision\": kind,\n",

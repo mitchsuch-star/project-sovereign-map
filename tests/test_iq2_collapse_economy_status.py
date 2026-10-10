@@ -240,11 +240,6 @@ class TestB2CommissionNamesTheSoil:
         assert refusal.startswith("No HOME soil remains")
         assert "treasury holds" not in refusal
 
-    def test_lever_down_asks_for_gold_first(self, europe, monkeypatch):
-        candidate = self._poor_and_landless(europe)
-        monkeypatch.setattr(R, "COMMISSION_ASKS_FOR_HOME_SOIL_FIRST", False)
-        assert "treasury holds" in R.check_commission(europe, "France", candidate)
-
     def test_the_executor_speaks_the_same_refusal(self, europe):
         candidate = self._poor_and_landless(europe)
         res = _execute(europe, {"action": "recruit_marshal",
@@ -286,12 +281,9 @@ class TestB3Ledger:
     def test_a_standing_realm_carries_an_empty_note(self, europe):
         assert build_strategic_ledger(europe)["collapse_note"] == ""
 
-    def test_the_legacy_and_lever_down_payloads_carry_no_key(self, europe, monkeypatch):
+    def test_the_legacy_payload_carries_no_key(self):
         legacy = _quiet(WorldState, player_nation="France")
         assert "collapse_note" not in build_strategic_ledger(legacy)
-        _collapse(europe)
-        monkeypatch.setattr(collapse, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "collapse_note" not in build_strategic_ledger(europe)
 
     def test_the_levy_block_carries_the_closed_reason(self, europe):
         _maul(europe)
@@ -312,10 +304,6 @@ class TestB3Ledger:
                 "A marshal may still levy where he stands, on our own "
                 "settled soil.")
             assert manpower[arm]["depot_closed"] is True
-        monkeypatch.setattr(L, "THE_MANPOWER_TAB_READS_THE_DEPOT", False)
-        manpower = build_strategic_ledger(europe)["manpower"]
-        assert manpower["infantry"]["cost_note"].startswith("Live price at the capital")
-        assert "depot_closed" not in manpower["infantry"]
 
     def test_a_held_capital_keeps_the_live_price_note(self, europe):
         manpower = build_strategic_ledger(europe)["manpower"]
@@ -348,9 +336,6 @@ class TestB4IntelReport:
         report = generate_intel_report(europe)
         assert "STATE OF THE EMPIRE" not in report["report_text"]
         assert "collapse_line" not in report
-        _collapse(europe)
-        monkeypatch.setattr(collapse, "THE_COLLAPSE_IS_LEGIBLE", False)
-        assert "STATE OF THE EMPIRE" not in generate_intel_report(europe)["report_text"]
 
     def _capture(self, world, name, captor="Austria"):
         m = world.marshals[name]
@@ -429,8 +414,6 @@ class TestB5TheCaptiveEmperorsCard:
         nap.captured_by, nap.captured_turn, nap.strength = "Austria", 5, 0
         assert self._card(europe)["sovereign_note"] == (
             "A prisoner of Austria — the Empire is governed from a cell.")
-        monkeypatch.setattr(MO, "THE_CAPTIVE_EMPEROR_IS_NAMED", False)
-        assert self._card(europe)["sovereign_note"] == "The Empire is his estate."
 
     def test_the_captor_is_humanized(self, europe):
         nap = europe.marshals["Napoleon"]
@@ -464,13 +447,6 @@ class TestB6EndTurnBanner:
         legacy = _quiet(WorldState, player_nation="France")
         _res, ev = _end_turn(legacy)
         assert "collapse_line" not in ev and "provinces_held" not in ev
-
-    def test_lever_down_drops_the_keys_and_the_line(self, europe, monkeypatch):
-        _collapse(europe)
-        monkeypatch.setattr(collapse, "THE_COLLAPSE_IS_LEGIBLE", False)
-        res, ev = _end_turn(europe)
-        assert "collapse_line" not in ev and "provinces_held" not in ev
-        assert "holds no province of her own" not in res["message"]
 
     def test_the_auto_advance_twin_carries_the_same_line(self, europe):
         _collapse(europe)

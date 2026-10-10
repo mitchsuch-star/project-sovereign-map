@@ -342,12 +342,11 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
     # SR-4a (AAR-4's family): a known garrison is named — "No army stands in
     # Vienna that we know of" was said over a 25,000 garrison at FULL.
     from backend.game_logic import garrison_report as _garrison_report
-    if _garrison_report.THE_DESK_READS_THE_GARRISON_FOG:
-        _form, _value = _garrison_report.garrison_view(world, region_name, player)
-        if _form == "exact":
-            lines.append(f"{'Our garrison' if own_soil else 'Garrison'}: {int(_value):,}.")
-        elif _form == "band":
-            lines.append(f"Garrison: {_value}.")
+    _form, _value = _garrison_report.garrison_view(world, region_name, player)
+    if _form == "exact":
+        lines.append(f"{'Our garrison' if own_soil else 'Garrison'}: {int(_value):,}.")
+    elif _form == "band":
+        lines.append(f"Garrison: {_value}.")
     if not lines:
         return f"No army stands in {region_name} that we know of, Sire ({holder} holds it)."
     return f"{region_name} ({holder}): " + " ".join(lines)
@@ -2053,7 +2052,7 @@ def _answer_safe(world, player: str, region_name: str) -> Optional[str]:
     # it printed the exact figure at PARTIAL, more than the map allows.
     garrison_words = f"a garrison of {garrison:,}"
     from backend.game_logic import garrison_report as _garrison_report
-    if _garrison_report.THE_DESK_READS_THE_GARRISON_FOG and garrison > 0:
+    if garrison > 0:
         _form, _value = _garrison_report.garrison_view(world, region_name, player)
         if _form == "band":
             garrison_words = f"a garrison ({_value})"

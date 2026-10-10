@@ -553,18 +553,6 @@ class TestTheOrdersInCouncil:
         assert "trade halved" in CL.format_event_oneliner(old, "France")
 
 
-# ═══════════════════════════════ THE LEVER ════════════════════════════════════
-
-class TestTheLever:
-
-    def test_lever_down_no_law_is_in_force_anywhere(self, world, monkeypatch):
-        enact(world, "Britain", "orders_in_council")
-        enact(world, "France", "anticipated_class")
-        monkeypatch.setattr(R, "THE_STATE_HAS_LAWS", False)
-        assert N.blockade_trade_loss(world)["France"] == 175
-        assert world.get_manpower_regen_rates("France")["infantry"] == 2500
-
-
 # ═══════════════════════════════ T2 / T1 MEASURED ═════════════════════════════
 
 class TestTheSinkAndTheReach:

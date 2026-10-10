@@ -179,13 +179,6 @@ class TestTheRoll:
         assert "Mack" not in world.marshals
         assert world.fallen_marshals["Mack"]["cause"] == FW.CAUSE_KILLED
 
-    def test_lever_down_rolls_nothing(self, monkeypatch):
-        monkeypatch.setattr(FW, "THE_GENERALS_ARE_MORTAL", False)
-        world, ney, mack = _board()
-        msg, calls = _roll(world, _result(False, 8000, 1500), ney, mack, draw=0)
-        assert not [c for c in calls if c.startswith("fortunes::")]
-        assert "Ney" in world.marshals
-
     def test_the_roll_never_raises(self):
         assert FW.roll(object(), None, None, None) is None
         assert FW.roll(object(), {"attacker_won": True}, object(), None) is None

@@ -231,15 +231,6 @@ class TestD2HoldingsLeftStamp:
         assert set(ev) == {"type", "region", "captured_by", "captured_from",
                            "method", "turn"}
 
-    def test_collapse_lever_down_stamps_nothing(self):
-        w = _boot()
-        _collapse(w, keep=("Brittany",))
-        ev = _loss("Normandy")
-        with _lever(C, "THE_COLLAPSE_IS_LEGIBLE", False):
-            w.log_event(ev)
-        assert "holdings_left" not in ev and "holdings_realm" not in ev
-
-
 class TestD2TheOneLiner:
 
     def test_zero_says_no_province(self):
@@ -359,16 +350,6 @@ class TestD3aCollapseLead:
             for phrase in FORBIDDEN:
                 assert phrase not in lead, (phrase, lead)
 
-    def test_levers_down_the_pre_iq2_leads_return(self):
-        w = _boot()
-        _collapse(w)
-        with _lever(C, "THE_COLLAPSE_IS_LEGIBLE", False), \
-                _lever(G, "THE_MONITEUR_SEES_THE_CAPITAL_LOST", False):
-            assert G._press_lead(w, []) == \
-                "The continent holds its breath; commerce and the salons go on."
-            assert G._press_lead(w, [_loss("Normandy")]) == \
-                "The armies of Europe are in motion; the capital watches."
-
     def test_a_standing_realm_is_untouched(self):
         w = _boot()
         assert G._press_lead(w, []) == \
@@ -393,13 +374,6 @@ class TestD3cTheCapitalLost:
         issue = G.compose_issue(w, 0)
         assert issue["masthead"] == \
             f"LE MONITEUR — Imperial Headquarters, {issue['dateline']}"
-
-    def test_lever_down_the_masthead_reads_paris(self):
-        w = _boot()
-        _paris_lost(w)
-        with _lever(G, "THE_MONITEUR_SEES_THE_CAPITAL_LOST", False):
-            issue = G.compose_issue(w, 0)
-        assert issue["masthead"].startswith("LE MONITEUR — Paris, ")
 
     def test_a_held_capital_keeps_paris(self):
         w = _boot()
@@ -436,13 +410,6 @@ class TestD3bTheBourse:
         assert "a deficit of 1,234 francs and the rentes fall." in line
         assert "steady" not in line and "-1,234" not in line
 
-    def test_lever_down_the_funds_are_steady_again(self):
-        w = _boot()
-        w.nation_gold["France"] = -1234
-        with _lever(G, "THE_BOURSE_READS_THE_DEFICIT", False):
-            line = G._bourse_line(w)
-        assert "-1,234" in line and "rentes fall" not in line
-
     def test_a_standing_bankruptcy_counter_is_a_deficit(self):
         """The engine's own reading: `nation_bankruptcy_turns >= 1` is the
         bankruptcy mercy's predicate — a chest back above zero over a
@@ -453,14 +420,11 @@ class TestD3bTheBourse:
         line = G._bourse_line(w)
         assert "500 francs, the State in deficit, and the rentes fall." in line
 
-    def test_a_solvent_treasury_is_byte_identical(self):
+    def test_a_solvent_treasury_prints_no_fall(self):
         w = _boot()
         w.nation_gold["France"] = 800
         w.nation_bankruptcy_turns["France"] = 0
-        now = G._bourse_line(w)
-        with _lever(G, "THE_BOURSE_READS_THE_DEFICIT", False):
-            assert now == G._bourse_line(w)
-        assert "rentes fall" not in now
+        assert "rentes fall" not in G._bourse_line(w)
 
     def test_the_unblockaded_deficit_line(self):
         import backend.game_logic.naval as N
@@ -524,12 +488,6 @@ class TestD3dTheRealmReducedEdition:
         assert G._special_reason(w, [_loss("Paris", holdings_left=0)]) \
             == G.REALM_WITHOUT_A_PROVINCE
 
-    def test_lever_down_the_capital_caption_returns(self):
-        w = _boot()
-        with _lever(C, "THE_COLLAPSE_IS_LEGIBLE", False):
-            assert G._special_reason(w, [_loss("Paris", holdings_left=0)]) \
-                == "THE CAPITAL HAS FALLEN"
-
     def _paper(self):
         w = _boot()
         _collapse(w, keep=("Brittany", "Normandy"))
@@ -569,15 +527,6 @@ class TestD3dTheRealmReducedEdition:
         w.current_turn = 14
         with contextlib.redirect_stdout(io.StringIO()):
             assert G.process_gazette(w) is None
-
-    def test_lever_down_no_stamp_no_edition(self):
-        w = self._paper()
-        w.current_turn = 12
-        with _lever(C, "THE_COLLAPSE_IS_LEGIBLE", False):
-            w.log_event(_loss("Normandy"))
-            w.current_turn = 13
-            with contextlib.redirect_stdout(io.StringIO()):
-                assert G.process_gazette(w) is None
 
     def test_no_caption_promises_an_ending(self):
         for reason in (G.REALM_REDUCED_TO_ONE, G.REALM_WITHOUT_A_PROVINCE):

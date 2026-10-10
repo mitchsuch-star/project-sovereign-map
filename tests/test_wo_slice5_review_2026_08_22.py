@@ -431,13 +431,6 @@ class TestTheSignablePeaceIsNoLongerBuried:
         assert ranked[0]["opponent"] == "Britain"
         assert ranked[0]["row_losing"] is True
 
-    def test_the_flip_flag_is_the_only_lever(self, world):
-        assert adv.COUNSEL_RANKS_BY_ACCEPTANCE is True
-        src = (REPO / "backend" / "game_logic"
-               / "diplomatic_advisory.py").read_text(encoding="utf-8")
-        assert src.count("COUNSEL_RANKS_BY_ACCEPTANCE") == 2
-
-
 class TestTheCounselStatesWhatTheScorerSays:
     def test_each_band_gets_its_own_clause(self, world):
         rows = _board(world, row_score=10, pair_scores={"Russia": 0})

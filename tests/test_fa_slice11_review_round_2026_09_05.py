@@ -66,7 +66,6 @@ DIALOG = (ROOT / "godot-client" / "project-sovereign" / "scripts"
 LEVERS = [
     (VASSAL, "THE_BREAK_IS_BRIEFED_TRUTHFULLY"),
     (VASSAL, "EVERY_BREAK_COMPLETES_ITSELF"),
-    (WS, "COALITION_CARD_KEEPS_ITS_MEMBERS"),
 ]
 
 
@@ -345,14 +344,6 @@ class TestTheCoalitionRowsAreNotWholeRows:
                       if r.get("coalition_member_rows"))
         assert set(folded[0]) == set(WS.COALITION_MEMBER_ROW_KEYS)
         assert len(folded[0]) == 7
-
-    def test_the_payload_cost_is_small(self, world):
-        with _quiet():
-            WS.COALITION_CARD_KEEPS_ITS_MEMBERS = False
-            base = len(json.dumps(WS.build_active_wars(world), default=str))
-            WS.COALITION_CARD_KEEPS_ITS_MEMBERS = True
-            full = len(json.dumps(WS.build_active_wars(world), default=str))
-        assert full - base < 2000, (base, full)
 
     def test_each_member_keeps_its_own_fogging(self, world):
         """The point of carrying them at all: the collapsed row's

@@ -77,20 +77,6 @@
     "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSmokePresetStampsTheWarClock"
   },
   {
-    "id": "R-12 the ranking drops the acceptance term",
-    "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "        -f[\"acceptance\"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,",
-    "new": "        0,",
-    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSignablePeaceIsNoLongerBuried::test_a_stuck_signer_outranks_a_losing_leader_who_refuses tests/test_wo_slice5_berthier_names_the_peace.py::TestCounselNamesTheStuckWar::test_the_court_that_would_sign_is_named_first"
-  },
-  {
-    "id": "R-13 the ranking prefers the court that would REFUSE",
-    "file": "backend/game_logic/diplomatic_advisory.py",
-    "old": "        -f[\"acceptance\"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,",
-    "new": "        f[\"acceptance\"] if COUNSEL_RANKS_BY_ACCEPTANCE else 0,",
-    "tests": "tests/test_wo_slice5_review_2026_08_22.py::TestTheSignablePeaceIsNoLongerBuried"
-  },
-  {
     "id": "R-14 the counsel stops stating the scorer's verdict",
     "file": "backend/game_logic/diplomatic_advisory.py",
     "old": "        prospect = _PEACE_PROSPECT_CLAUSE.get(candidate[\"outcome\"], \"\")",

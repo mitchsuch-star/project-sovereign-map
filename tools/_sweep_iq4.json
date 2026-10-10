@@ -124,11 +124,5 @@
   "old": "    if reason == \"replaced\":\n        return \"replaced by a new mission\"",
   "new": "    if False:\n        return \"replaced by a new mission\"",
   "tests": "tests/test_iq4_cabinet_visible.py"
- },
- {
-  "file": "backend/game_logic/settlement_reactions.py",
-  "old": "    if (GRATITUDE_HOOK_READS_THE_PROPOSAL_CASE\n            and str(proposal_type or \"\").upper() in _GRATITUDE_ALLIANCE_FAMILY):",
-  "new": "    if (False\n            and str(proposal_type or \"\").upper() in _GRATITUDE_ALLIANCE_FAMILY):",
-  "tests": "tests/test_iq4_cabinet_visible.py"
  }
 ]

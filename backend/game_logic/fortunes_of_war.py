@@ -37,7 +37,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-THE_GENERALS_ARE_MORTAL = True
 KILLED_PCT = 1
 WOUNDED_PCT = 8
 WOUND_TURNS = 3
@@ -93,8 +92,6 @@ def roll(world, battle_result: Dict[str, Any], attacker, defender, *,
     (`_handle_forced_retreat`). Returns the outcome record — {"outcome":
     "wounded"|"killed", "marshal", "message", ...} — or None. Never raises
     (a roll is never a reason for a battle to fail)."""
-    if not THE_GENERALS_ARE_MORTAL:
-        return None
     try:
         loser, winner, side = losing_lead(battle_result, attacker, defender)
         if loser is None:

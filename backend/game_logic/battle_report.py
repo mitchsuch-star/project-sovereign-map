@@ -705,7 +705,6 @@ def _our_side(battle_result: Dict, player_nation: str = "France") -> Dict:
 # `_pick_observation` runs inside the world-independent resolver, so the counter
 # lives here (display-only, never serialized — GR6). False = the unseeded module
 # `random`, which ALSO advanced the mechanics' RNG stream on every pick.
-BERTHIER_ROTATES_HIS_OBSERVATIONS = True
 _OBSERVATION_COUNTS: Dict[tuple, int] = {}
 
 # IQ-8 "The Harness Tells the Truth" item 8 (IQ6-X1, September 18, 2026) flip
@@ -727,7 +726,6 @@ _OBSERVATION_COUNTS: Dict[tuple, int] = {}
 # new game and a load alike; "rotates within a campaign" still holds from
 # the campaign's creation onward. False = today's process-global counter,
 # byte-for-byte.
-THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN = True
 
 # SF7-X32 (Score Finish Step 7, the frames, Oct 5 2026) flip lever: "decisive"
 # is the game's word for a RESULT — the line above Berthier's prints
@@ -745,8 +743,7 @@ def reset_observation_rotation() -> None:
     """Empty the per-pair rotation counter (the lever up); a no-op with the
     lever down. Called from `WorldState.__init__` — every campaign creation,
     new or loaded, passes through it — and nowhere else in production."""
-    if THE_ROTATION_BEGINS_WITH_THE_CAMPAIGN:
-        _OBSERVATION_COUNTS.clear()
+    _OBSERVATION_COUNTS.clear()
 
 
 class _BankRotator:
@@ -768,8 +765,6 @@ class _BankRotator:
 def _observation_rng(battle_result: Dict):
     """The picker for THIS battle: a per-pair rotator (the lever up) or the
     module `random` (the lever down). Advances the pair's counter once."""
-    if not BERTHIER_ROTATES_HIS_OBSERVATIONS:
-        return random
     import zlib
     a = battle_result.get("attacker", {}) or {}
     d = battle_result.get("defender", {}) or {}
@@ -811,9 +806,8 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # the GRAVITY verdicts only — never to an arm reporting a mechanical
     # state (a rout, a destroyed fort, guns caught in transit), which the
     # player must have at any scale.
-    _at_scale = (not battle_scale.SKIRMISH_GATE_ACTIVE
-                 or battle_scale.is_a_battle(
-                     attacker_casualties + defender_casualties))
+    _at_scale = battle_scale.is_a_battle(
+        attacker_casualties + defender_casualties)
 
     # Determine perspective: which side is ours?
     attacker_nation = battle_result.get("attacker_nation", "")

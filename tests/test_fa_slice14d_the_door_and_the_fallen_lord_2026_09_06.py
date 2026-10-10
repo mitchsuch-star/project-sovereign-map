@@ -66,19 +66,6 @@ class TestTheDoorIsLeftOpen:
         assert world.evacuation_grants == {}, (
             "the rollback still stands — a window is not a grant")
 
-    def test_the_control_arm_abandons_him(self, monkeypatch):
-        """Without the lever the tick returns at `if not grants:` forever."""
-        monkeypatch.setattr(W, "CORRIDOR_MINIMUM_WINDOW_ACTIVE", False)
-        world = _boot()
-        _everyone_home(world)
-        _quiet_peace(world)
-        assert world.corridor_windows == {}
-        world.marshals["Davout"].location = "Volhynia"
-        events = _tick(world, 5)
-        assert world.evacuation_grants == {}
-        assert events == []
-        assert world.marshals["Davout"].strategic_order is None
-
     def test_a_corps_stranded_inside_the_window_is_handed_a_road(self):
         world = _boot()
         _everyone_home(world)

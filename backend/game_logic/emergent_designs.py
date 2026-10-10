@@ -97,11 +97,10 @@ VOLTE_FACE_RELATION_FLOOR = 40
 # THE_DEFEAT_IS_THE_SOIL): the constant stays for the lever-down arm only.
 VOLTE_FACE_WE_MARK = 40
 
-# ── IQ-6 "Europe Speaks Its Mind" flip levers (September 14, 2026) ─────
-# Each False reproduces the pre-IQ-6 game on its surface byte-for-byte.
+# ── IQ-6 "Europe Speaks Its Mind" rules (September 14, 2026; the flip
+# levers that landed them were retired October 10, 2026, CODE-1 batch 2) ─
 #
 # V1 — the window fits the courtship (20, not 15).
-THE_WINDOW_FITS_THE_COURTSHIP = True
 # V3 — the defeat is the soil. The either/or "war exhaustion >= 40 OR
 # homeland soil in the hegemon's bloc's hands" read an arm the ordinary
 # route can never satisfy: R49 (`diplomacy.cleanup_war_end`) zeroes a
@@ -115,10 +114,8 @@ THE_WINDOW_FITS_THE_COURTSHIP = True
 # shape change on every AI-vs-AI peace too), which needs a user ruling on
 # §3.6's zero-new-fields contract. Re-open condition: a future row that
 # records the war's outcome on the war instance under that ruling.
-THE_DEFEAT_IS_THE_SOIL = True
 # V4 — it speaks its mind: when every clause but COURTED holds, the
 # counsel and the war room say so (display only, GR6).
-VOLTE_FACE_SPEAKS_ITS_MIND = True
 # V1b — a separate peace ends the war (found building T2, beyond the
 # contract; its own lever so the lead can take or leave it). "Its war
 # with the hegemon ended" was read off the PARTICIPANT (`exited_turn`,
@@ -131,7 +128,6 @@ VOLTE_FACE_SPEAKS_ITS_MIND = True
 # active, so Pressburg's own geometry was NEVER "recently beaten" and
 # the door never opened. The pair is asked first now (PR-1's lesson,
 # one predicate over). False = the participant/instance read only.
-THE_SEPARATE_PEACE_ENDS_THE_WAR = True
 # IQ6-D2 (SCORE_FINISH_SPEC.md §6 row 12, RULED October 3, 2026 under the
 # user's delegation; built at Step 5's SR-8c): A CLIENT'S PARTITION IS THE
 # HEGEMON'S ACT. The NOT-HUMILIATED clause reads a punitive memory — and an
@@ -172,8 +168,7 @@ VOLTE_CLAUSE_NOT_COURTED = "not_courted"
 
 def volte_face_window() -> int:
     """The window the predicate reads (V1 lever; False = the old 15)."""
-    return int(VOLTE_FACE_WINDOW if THE_WINDOW_FITS_THE_COURTSHIP
-               else VOLTE_FACE_WINDOW_BEFORE_IQ6)
+    return int(VOLTE_FACE_WINDOW)
 
 PUNITIVE_MEMORY_TYPE = "punitive_settlement"
 EMERGENT_DESIGN_TITLE = "Revanche"
@@ -453,15 +448,14 @@ def _war_end_turns(world, power: str, other: str):
             other_side = _side_of(other)
             if not power_side or not other_side or power_side == other_side:
                 continue
-            if THE_SEPARATE_PEACE_ENDS_THE_WAR:
-                pair_meta = (instance.get("diplo_key_meta") or {}).get(pair_key)
-                resolved = (pair_meta.get("resolved_turn")
-                            if isinstance(pair_meta, dict)
-                            and pair_meta.get("pair_status") == "resolved"
-                            else None)
-                if resolved is not None:
-                    yield int(resolved)
-                    continue
+            pair_meta = (instance.get("diplo_key_meta") or {}).get(pair_key)
+            resolved = (pair_meta.get("resolved_turn")
+                        if isinstance(pair_meta, dict)
+                        and pair_meta.get("pair_status") == "resolved"
+                        else None)
+            if resolved is not None:
+                yield int(resolved)
+                continue
             end = (meta.get(power) or {}).get("exited_turn")
             if end is None:
                 end = instance.get("ended_turn")
@@ -591,21 +585,12 @@ def volte_face_failing_clauses(world, power: str, hegemon: str, *,
         if _fails(VOLTE_CLAUSE_NOT_BEATEN):
             return failing
     hegemon_bloc = set(world.get_bloc_members(hegemon))
-    if THE_DEFEAT_IS_THE_SOIL:
-        # V3: the mark is the map. The exhaustion arm is retired (the
-        # constant block above says why).
-        marked = any(
-            (lambda c: c and (world._top_overlord(c) or c) in hegemon_bloc)(
-                getattr(world.regions.get(r), "controller", None))
-            for r in _lost_homeland(world, power))
-    else:
-        exhausted = int((getattr(world, "war_exhaustion", {}) or {})
-                        .get(power, 0) or 0) >= VOLTE_FACE_WE_MARK
-        soil_marked = any(
-            (lambda c: c and (world._top_overlord(c) or c) in hegemon_bloc)(
-                getattr(world.regions.get(r), "controller", None))
-            for r in _lost_homeland(world, power))
-        marked = exhausted or soil_marked
+    # V3: the mark is the map. The exhaustion arm is retired (the
+    # constant block above says why).
+    marked = any(
+        (lambda c: c and (world._top_overlord(c) or c) in hegemon_bloc)(
+            getattr(world.regions.get(r), "controller", None))
+        for r in _lost_homeland(world, power))
     if not marked:
         if _fails(VOLTE_CLAUSE_NO_MARK):
             return failing
@@ -641,8 +626,6 @@ def volte_face_courtship(world, power: str, hegemon: str) -> Optional[Dict]:
       and a mission started now ticks at the end of this turn onward:
       `end + window - 2 - current_turn`.
     """
-    if not VOLTE_FACE_SPEAKS_ITS_MIND:
-        return None
     if volte_face_failing_clauses(world, power, hegemon) != [
             VOLTE_CLAUSE_NOT_COURTED]:
         return None

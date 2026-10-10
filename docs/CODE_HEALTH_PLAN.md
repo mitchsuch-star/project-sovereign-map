@@ -147,6 +147,93 @@ the ratchet `tests/test_code_health_ratchet.py`).**
   game_logic modules under 3,000 lines; the October 2026 levers of batch 1
   (26) join the first batch after October 2026 closes.
 
+**✅ BATCH 2 LANDING RECORD — October 10, 2026 (the head of Pre-Deploy S3,
+DD-0's session).**
+
+- **The batch, as defined and as measured.** `backend/game_logic/` modules
+  under 3,000 lines hold **138** levers by the census regex; **56 landed in
+  October 2026** and keep their session (PRE_DEPLOY §5-4); **83 retired**
+  (every one dated August 16 – September 29, 2026): ledger ×9, withdrawal
+  ×7, game_end ×7, diplomatic_dialogue ×7, war_status ×5, marshal_overview
+  ×4, emergent_designs ×4, dotation ×4, diplomatic_advisory ×4, gazette ×3,
+  garrison_report ×3, combat ×3, reforms ×2, recruitment ×2, intent ×2,
+  fall ×2, battle_report ×2, and one each in turn_manager, the seven
+  settlement layers (validation / scoring / routes / reactions / ratify /
+  presentation / helpers), mailbox_payloads, fortunes_of_war,
+  diplomatic_ledger, collapse and battle_scale. Every one `True` in
+  production. 73 named in a landing record under `docs/` (archives
+  included); nine named by their tests alone (SKIRMISH_GATE_ACTIVE,
+  MISSION_RAIL_NOTICE, MISSION_LOG_ENDS, TALLEYRAND_TAB_READS_THE_CABINET,
+  THE_EMPIRE_CAN_FALL, MISSION_LEDGER_BLOCK, THE_LEDGER_SEES_THE_HALT,
+  THE_ORDERS_TAB_KNOWS_ITS_PRISONERS, INCOMING_ASSESSMENT_READS_OUR_BURDEN —
+  their slices' STATUS entries name the rows); **one named by nothing**
+  (`game_end.THE_HUMBLED_PEACE_IS_MARKED`, from GE-1's commit `975f1f13`,
+  no test and no doc) — deleted outright per recipe step 1 with this note.
+- **The sites.** 132 production sites rewritten by the tool across **36
+  modules** (55 operands removed, 31 bodies dropped, 27 bodies inlined, 14
+  ternaries folded, an elif chain stood up as `if`, an elif cut, two names
+  left imports, one import deleted; the lever read from four modules outside
+  `game_logic/` — `question_desk`, `combat_executor`, `meta_executor`,
+  `movement_executor`, `world_state` — followed the same path), **5 by
+  hand**: the two the dry run named (`battle_report._at_scale`'s `not X or
+  f()` → `f()`, exact because `False or x` IS `x`; `reforms.is_in_force`'s
+  `True and a and b` → `a and b`) and **three overlaps the dry run did NOT
+  name** — two levers in one statement (`if not (THE_STATE_HAS_LAWS and
+  THE_AI_ENACTS)`, `if A and B:` in the prisoner note, the ledger's
+  `if not CEILING … elif not TRUTH` chain): the tool applies the first
+  rewrite and skips the second as overlapping, printed only at write time.
+  **Tool fix in this slice:** the overlap skips now carry their pre-edit
+  line and are listed in the closing "the hand's" summary, so batches 3–4
+  cannot miss one (ruff's F821 caught these three; a cross-module
+  attribute read would not have been caught, hence the summary). One
+  `_scan_garrison` ternary fold left a bare `lambda` assignment (E731) —
+  made a `def`. The orphaned IQ-6 "flip levers" header comment in
+  `emergent_designs.py` re-titled as the rules it documents;
+  `VOLTE_FACE_WE_MARK` and `VOLTE_FACE_WINDOW_BEFORE_IQ6` stay (tests read
+  them as the measured marks). **75 sweep rows dropped** from 33
+  `tools/_sweep_*.json`.
+- **The test arms, decided one by one (120 flip lines in 58 files):** **99
+  whole deletions** — every `test_lever_down_*` / `test_the_lever_*` /
+  control-arm test asserting the old world, the `lever_down` fixture
+  (IQ1-2), the IQ-6 `window_down` module fixture and its two tests, the
+  `_pre_iq6_*` verbatim copy of the old predicate with its identity-grid
+  class, the arm-comparison tests (`test_a_solo_battle_is_byte_identical_in_
+  both_arms`, the FA-11 payload-cost comparison, RS-D1's `score(lever)`
+  difference, the AI-mirror both-arms twin), and the IQ-2 integration class
+  whose autouse fixture pinned the LIST shape under the lever down (its
+  PR-X1 guarantee is `TestTheSentenceNamesNothingLost`); **~45 trims** —
+  the lever-down tail cut from a test whose head pins the new rule (19 in
+  `test_iq2_collapse_war_room.py` alone, the WIN-D3 pins kept on their
+  corridor arm only, `test_one_of_many_is_not_held` re-staged on the
+  sentence); the IQ-6 "window of 15" negative controls now read the kept
+  `VOLTE_FACE_WINDOW_BEFORE_IQ6` constant instead of flipping a lever; the
+  LEVERS restore lists (FA-10, FA-11 ×2, IQ-4) and the IQ-2 `_all_levers`
+  stack shed the retired names; two classes left empty by the deletions
+  (`TestTheLever` in IQ1-SW0 and RF-2) removed with their headers. **Pins
+  the dry run cannot list** surfaced only by running: ten that read a lever
+  by attribute (`assert M.LEVER is True`), by source text, or through the
+  deleted `lever_down` fixture; and one — found by the hook's full run, in a
+  file naming no lever at all — a source census asserting the executor
+  calls `expectation_for_wins(`, which only the retired lever-down branch
+  did (the live path moves the expectation through `raise_expectation`;
+  the pin now says so and the dead import went with it). 53 test files
+  touched, −1,411 lines net.
+- **The reading:** levers **645 → 562** (558 on); functions over 500 lines
+  34 → 34; silent handlers 367 → 367; `CLAUDE.md` 61,706 B. **The ratchet**
+  lowered to `LEVERS_CAP 562`.
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical with no re-record,
+  corpus 902/902, `score_run check` against `docs/audits/score_runs/
+  2026_10_05_sfr/` identical item for item to the same check on `3277ff27`
+  (the check REWRITES the archive's `scores.json` / `checklist.json` /
+  `census_by_pillar.json` / `findings_rate.json` as it runs — restore them
+  with `git checkout` after each check, as this slice did on both sides);
+  the touched test files + the ratchet, tool, series and corpus pins green
+  under xdist; the full suite green on the hook.
+- **Next batches:** batch 3 = `diplomacy.py`, `vassal.py`, `jealousy.py`,
+  `naval.py` (the head of S5); batch 4 = `world_state.py`,
+  `combat_executor.py`, `enemy_ai.py`, `main.py`; the October 2026 levers
+  of batches 1–2 (26 + 56) join the first batch after October 2026 closes.
+
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
 **Order:** `_execute_attack` → `_process_dialogue_choice` → `_execute_one` →

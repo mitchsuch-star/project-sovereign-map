@@ -98,13 +98,6 @@
   "tests": "tests/test_ai_intent_assurance.py::TestArmAAmbientDoD::test_routine_intent_lines_fire_in_the_wild"
  },
  {
-  "id": "IQ6-V1 lever down (the window back to 15)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "THE_WINDOW_FITS_THE_COURTSHIP = True",
-  "new": "THE_WINDOW_FITS_THE_COURTSHIP = False",
-  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT2TheOrdinaryGeometry::test_the_courier_proposes_inside_the_window"
- },
- {
   "id": "IQ6-V1 the blessed number reverted",
   "file": "backend/game_logic/emergent_designs.py",
   "old": "VOLTE_FACE_WINDOW = 20\n",
@@ -124,13 +117,6 @@
   "old": "    return any(turn - end < window\n",
   "new": "    return any(turn - end <= window\n",
   "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT1TheWindowFitsTheCourtship::test_the_ceiling_is_the_ladder_alliance_on_the_real_board"
- },
- {
-  "id": "IQ6-V1b lever down (the participant read only)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "THE_SEPARATE_PEACE_ENDS_THE_WAR = True",
-  "new": "THE_SEPARATE_PEACE_ENDS_THE_WAR = False",
-  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestV1bTheSeparatePeace::test_a_bilateral_peace_needs_it"
  },
  {
   "id": "IQ6-V1b the pair's resolution turn misread",
@@ -154,13 +140,6 @@
   "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT3TheCourierSkipsTheRoutineCooldown::test_lever_down_the_same_turn_is_held"
  },
  {
-  "id": "IQ6-V3 lever down (the exhaustion arm back)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "THE_DEFEAT_IS_THE_SOIL = True",
-  "new": "THE_DEFEAT_IS_THE_SOIL = False",
-  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT4TheDefeatIsTheSoil::test_exhaustion_without_soil_is_no_longer_a_defeat"
- },
- {
   "id": "IQ6-V3 the soil-only branch reads exhaustion again",
   "file": "backend/game_logic/emergent_designs.py",
   "old": "        # V3: the mark is the map. The exhaustion arm is retired (the\n        # constant block above says why).\n        marked = any(",
@@ -180,13 +159,6 @@
   "old": "    if relation < VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
   "new": "    if relation <= VOLTE_FACE_RELATION_FLOOR:\n        _fails(VOLTE_CLAUSE_NOT_COURTED)",
   "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT4TheDefeatIsTheSoil::test_exhaustion_without_soil_is_no_longer_a_defeat"
- },
- {
-  "id": "IQ6-V4 lever down (silent)",
-  "file": "backend/game_logic/emergent_designs.py",
-  "old": "VOLTE_FACE_SPEAKS_ITS_MIND = True",
-  "new": "VOLTE_FACE_SPEAKS_ITS_MIND = False",
-  "tests": "tests/test_iq6_europe_speaks_its_mind.py::TestT5ItSpeaksItsMind::test_the_uncourted_door_is_named_every_turn_with_its_turns_left"
  },
  {
   "id": "IQ6-V4 it speaks when the court is already courted",

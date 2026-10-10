@@ -128,13 +128,6 @@ class TestTheCaptiveProjectsNothing:
         assert card["ability_name"] == "The Bravest of the Brave"   # still named
         assert "prisoner" in card.get("ability_dormant_note", "").lower()
 
-    def test_the_lever_restores_the_pre_pass_card(self, monkeypatch):
-        from backend.game_logic import marshal_overview as MO
-        monkeypatch.setattr(MO, "CAPTIVITY_SUSPENDS_THE_ABILITY", False)
-        card = self._card(captured=True)
-        assert card["ability_active"] is True and card["ability_effect"] == "+15% attack"
-
-
 class TestThePrisonerNoteTakesTheArticle:
     """IQ10-2 (R7). "PRISONER of Kingdom of Italy since T1." — measured on the
     IQ-10 prisoner board. The IQ-7 review round made every vassal sentence take
@@ -161,12 +154,6 @@ class TestThePrisonerNoteTakesTheArticle:
 
     def test_a_court_that_takes_none_is_unchanged(self):
         assert self._note("Austria") == "PRISONER of Austria since T1."
-
-    def test_the_lever_restores_the_bare_name(self, monkeypatch):
-        from backend.game_logic import marshal_overview as MO
-        monkeypatch.setattr(MO, "THE_PRISONER_NOTE_TAKES_THE_ARTICLE", False)
-        assert self._note("KingdomOfItaly") == "PRISONER of Kingdom of Italy since T1."
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # H1 — the levy renders on the soil that feeds France

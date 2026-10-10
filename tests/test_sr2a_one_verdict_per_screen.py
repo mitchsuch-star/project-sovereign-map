@@ -190,12 +190,6 @@ class TestAcceptingLeaderForCoverage:
         war = {"defender_leader": "Britain", "defenders": ["Britain"]}
         assert SV.accepting_leader_for_coverage(war, "defenders", []) == "Britain"
 
-    def test_the_lever_down_is_the_side_leader_always(self, monkeypatch):
-        monkeypatch.setattr(SV, "THE_TABLE_SEATS_THE_COVERED_LEADER", False)
-        war = {"defender_leader": "Britain", "defenders": ["Britain", "Austria"]}
-        assert SV.accepting_leader_for_coverage(war, "defenders", ["Austria"]) == "Britain"
-
-
 class TestTheCoverageDropRoute:
 
     def test_austria_alone_ratifies_when_austria_carries(self, scored):
@@ -220,17 +214,6 @@ class TestTheCoverageDropRoute:
         assert "Britain 32/50" in verdict
         assert "harshness" not in d["ratify_blocked_reason"].lower()
 
-    def test_the_lever_down_reproduces_the_aar(self, scored, monkeypatch):
-        """The measured contradiction: "Will carry" beside "cannot be
-        ratified now … Term harshness"."""
-        monkeypatch.setattr(SS, "THE_TABLE_TELLS_ONE_TRUTH", False)
-        monkeypatch.setattr(SV, "THE_TABLE_SEATS_THE_COVERED_LEADER", False)
-        w = _coalition_world()
-        d = _stage(w, ["Austria"], terms=_material("Austria"))
-        assert d["overall_acceptance"]["carries"] is True
-        assert d["can_ratify"] is False
-        assert "harshness" in d["ratify_blocked_reason"].lower()
-
     def test_ratification_seats_the_same_covered_leader(self, scored):
         w = _coalition_world()
         d = _submit(w, _stage(w, ["Austria"], terms=_material("Austria")))
@@ -241,15 +224,6 @@ class TestTheCoverageDropRoute:
         assert r.get("success") is True, r
         assert any(p.get("pair") == "Austria|France" for p in r["resolved_pairs"])
         assert all(p.get("covered_enemy") == "Austria" for p in r["resolved_pairs"])
-
-    def test_ratification_lever_down_refuses_the_same_table(self, scored, monkeypatch):
-        monkeypatch.setattr(SV, "THE_TABLE_SEATS_THE_COVERED_LEADER", False)
-        w = _coalition_world()
-        d = _submit(w, _stage(w, ["Austria"], terms=_material("Austria")))
-        with _quiet():
-            r = ratify_settlement_confirm(w, d)
-        assert r.get("success") is False
-        assert r.get("error") == "acceptance_rejected"
 
     def test_the_table_outranks_the_summary_when_they_disagree(self, monkeypatch):
         """The residual the lever exists for: the leader-level SUMMARY scorer

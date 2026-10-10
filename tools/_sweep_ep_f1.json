@@ -126,13 +126,6 @@
     "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestTheCourtsAtWar::test_the_boot_count_is_the_courts_at_war tests/test_ep_f1_the_first_ten_minutes.py::TestTheClientDriven::test_the_courts_at_war_on_both_surfaces"
   },
   {
-    "id": "EPF1-19 the one-sentence lever down",
-    "file": "backend/game_logic/war_status.py",
-    "old": "THE_PURPOSE_IS_ONE_SENTENCE = True",
-    "new": "THE_PURPOSE_IS_ONE_SENTENCE = False",
-    "tests": "tests/test_ep_f1_the_first_ten_minutes.py::TestThePurposeIsOneSentence::test_the_boot_purpose_is_one_sentence"
-  },
-  {
     "id": "EPF1-20 the cap widened",
     "file": "backend/game_logic/war_status.py",
     "old": "PURPOSE_TARGETS_NAMED = 8",

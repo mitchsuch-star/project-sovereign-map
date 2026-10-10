@@ -346,8 +346,11 @@ economy report, and the two end-turn banner snapshots;
 *"(recruit, build, repair)"* is corrected in the same slice that shrinks the
 allowlist.
 
-**Tests** `tests/test_iq1_iq1_2_chest_tells_the_truth.py` (**65** at close);
-sweep `tools/_sweep_iq1_iq1_2.json` (**40** mutations) **40 killed / 0 INERT /
+**Tests** `tests/test_iq1_iq1_2_chest_tells_the_truth.py` (**62** at close) — 65
+at the slice's own close; the three lever-down pins and the two mutations that
+flipped `THE_CHEST_TELLS_THE_TRUTH` / `THE_CHEST_STATES_ITS_CEILING` retired with
+the levers (CODE-1 batch 2, October 10, 2026);
+sweep `tools/_sweep_iq1_iq1_2.json` (**38** mutations) **40 killed / 0 INERT /
 0 BROKEN**. ⚠ These read *(44)* and *21 killed* until the synthesis round: the
 review round added 14 tests and 12 mutations and updated neither figure. The
 class of error is a number restated in prose, so

@@ -99,7 +99,6 @@ def _standing_count(world, nation: str) -> int:
 # France in exile holding a dozen rich conquests could not rebuild its
 # Marshalate at all. Symmetric (GR5: the AI's P1.75 rung reads the same
 # gate). False = home soil only, as before.
-THE_EXILE_COMMISSIONS = True
 
 
 def find_spawn_region(world, nation: str) -> Optional[str]:
@@ -119,7 +118,7 @@ def find_spawn_region(world, nation: str) -> Optional[str]:
         income = int(region.get_effective_income())
         if income > best_income:
             best, best_income = region_name, income
-    if best is None and THE_EXILE_COMMISSIONS:
+    if best is None:
         # The cached per-turn index (GR8), never a region scan; ties broken
         # by name so the choice never rides dict order (conquests often
         # yield 0 effective income).
@@ -201,7 +200,6 @@ def commission_counsel_need(world, nation: str) -> bool:
 # when the decisive refusal is that no home soil remains to raise a corps on.
 # The home-soil gate now answers first (it is the one no gold or manpower
 # can clear). Flip lever: False restores gold -> pool -> soil.
-COMMISSION_ASKS_FOR_HOME_SOIL_FIRST = True
 
 
 def _no_home_soil(name: str) -> str:
@@ -211,13 +209,12 @@ def _no_home_soil(name: str) -> str:
     # map it was looking at. Name the actual gate. (The mechanic —
     # spawn at the richest held province — is carried to the Victory &
     # Objectives Pass, DESIGN_REFINEMENT §WO-D7..D11.)
-    if THE_EXILE_COMMISSIONS:
-        # GE-1 / WO-D10: the exile road is open, so this refusal now means
-        # the court holds no province at all.
-        return (f"No HOME soil remains on which {name} could raise his "
-                f"corps — a marshal is commissioned at the capital, on a "
-                f"home province, or on the richest province we still hold, "
-                f"and we hold none.")
+    # GE-1 / WO-D10: the exile road is open, so this refusal now means
+    # the court holds no province at all.
+    return (f"No HOME soil remains on which {name} could raise his "
+            f"corps — a marshal is commissioned at the capital, on a "
+            f"home province, or on the richest province we still hold, "
+            f"and we hold none.")
     return (f"No HOME soil remains on which {name} could raise his "
             f"corps — a marshal is commissioned at the capital or on a "
             f"home province, and we hold neither.")
@@ -236,7 +233,7 @@ def check_commission(world, nation: str, candidate: Dict,
     name = candidate.get("name", "?")
     if name in world.marshals:
         return f"{marshal_title(world, name, start=True)} already serves."
-    if COMMISSION_ASKS_FOR_HOME_SOIL_FIRST and find_spawn_region(world, nation) is None:
+    if find_spawn_region(world, nation) is None:
         return _no_home_soil(name)
     cost = int(candidate.get("cost", 0))
     gold = (int(world.nation_gold.get(nation, 0)) if treasury is None
@@ -252,8 +249,6 @@ def check_commission(world, nation: str, candidate: Dict,
     if have < size:
         return (f"Raising {name}'s corps needs {size:,} men from the "
                 f"{arm} pool — only {have:,} remain.")
-    if not COMMISSION_ASKS_FOR_HOME_SOIL_FIRST and find_spawn_region(world, nation) is None:
-        return _no_home_soil(name)
     return None
 
 
