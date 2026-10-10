@@ -38,7 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 LEDGER = REPO_ROOT / "tests" / "data" / "metamorphic_known_failures.json"
 
 # The ledger's count at the landing (October 10, 2026) — lower-only.
-LEDGER_CAP = 161
+LEDGER_CAP = 30   # 161 at S3's landing; 30 after S3b's fixes (October 10, 2026)
 
 
 @pytest.fixture(scope="module")
@@ -156,4 +156,6 @@ class TestTheRatchet:
 
 class TestTheCorpusIsUntouched:
     def test_the_harness_count(self, rows):
-        assert len(rows) == 614
+        # 614 at S3's landing; S3b added 27 rows for its fixes (the corpus
+        # only grows — a row removed is a contract dropped).
+        assert len(rows) >= 641

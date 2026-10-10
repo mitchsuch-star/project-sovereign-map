@@ -293,6 +293,26 @@ def _bench(world, name: str, viewer: Optional[str]):
     return None
 
 
+_EVERYTHING_RE = re.compile(
+    r"^\s*(?:everything|everyone|everybody|anything|anyone|anybody|them\s+all|all\s+of\s+them|"
+    r"the\s+lot|all\s+of\s+it)\s*[.!]*$", re.IGNORECASE)
+
+
+def _own_marshal_at_head(tail: str, world, viewer: Optional[str]) -> Optional[str]:
+    """The marshal of OURS whose name opens the attack's object position
+    ("attack Davout"), or None. Only the head: "attack Mack with Lannes in
+    support" names Lannes further on, and that is the second man's order."""
+    text = (tail or "").strip()
+    text = re.sub(r"^(?:marshal|general|gen\.|prince)\s+", "", text, flags=re.IGNORECASE)
+    for m in (getattr(world, "marshals", None) or {}).values():
+        if getattr(m, "nation", None) != viewer:
+            continue
+        for shown in {str(m.name), humanize_entity_name(m.name)}:
+            if shown and re.match(r"^" + re.escape(shown) + r"(?![\w'’-])", text, re.IGNORECASE):
+                return m.name
+    return None
+
+
 def _ask(world, marshal, foes: list, raw: str, question: str,
          interpreted) -> Optional[Dict]:
     from backend.commands.clarification import build_proper_name_clarification
@@ -315,6 +335,36 @@ def attack_proper_name_ask(world, marshal, raw: str) -> Optional[Dict]:
     tail = attack_tail(raw)
     if tail is None:
         return None
+    # DD0-1 (October 10, 2026): an attack whose object is one of OUR OWN
+    # marshals, or "everything" / "everyone", is refused or asked — never
+    # the nearest enemy behind a disclosure.
+    own = _own_marshal_at_head(tail, world, viewer)
+    if own is not None:
+        actor = marshal.name if marshal is not None else "no marshal of ours"
+        return {
+            "success": False,
+            "message": (f"{humanize_entity_name(own)} is a marshal of "
+                        f"{humanize_entity_name(viewer or 'ours')}, Sire — "
+                        f"{humanize_entity_name(actor)} will not attack our own. "
+                        f"Nothing has been relayed."),
+            "variable_action_cost": 0,
+            "proper_name_ask": True,
+        }
+    if _EVERYTHING_RE.match(tail):
+        foes = _visible_nearest_first(world, marshal)
+        if not foes:
+            return {
+                "success": False,
+                "message": "No foe is in sight, Sire — attack whom? Nothing has been relayed.",
+                "variable_action_cost": 0,
+                "proper_name_ask": True,
+            }
+        in_sight = ", ".join(f"{humanize_entity_name(f.name)} at {humanize_entity_name(f.location)}"
+                             for f in foes[:4])
+        asked = _ask(world, marshal, foes, raw,
+                     f"Attack whom, Sire? Name the foe — in sight: {in_sight}.", None)
+        if asked is not None:
+            return asked
     name = proper_name_in(tail, world, viewer)
     if name is None:
         return None

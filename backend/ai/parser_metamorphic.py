@@ -235,8 +235,20 @@ def _second_name_role(u: str, row: Dict):
     marshal = exp.get("marshal")
     if not marshal:
         return []
-    other = "Lannes" if str(marshal).lower() != "lannes" else "Soult"
-    return [(f"{u} with {other} in support", f"{other} in support")]
+    # The second man is a marshal of the ROW's world: `generate` fills the
+    # placeholder per world (Lannes / Soult on 1805, Davout / Ney on legacy).
+    return [(f"{u} with {{OTHER}} in support", "a second man in support")]
+
+
+_SECOND_MEN = {"1805": ("Lannes", "Soult"), "legacy": ("Davout", "Ney")}
+
+
+def _fill_other(utterance: str, row: Dict, world: str) -> str:
+    if "{OTHER}" not in utterance:
+        return utterance
+    marshal = str((row.get("expected") or {}).get("marshal") or "").lower()
+    other = next(n for n in _SECOND_MEN[world] if n.lower() != marshal)
+    return utterance.replace("{OTHER}", other)
 
 
 def _lowercase(u: str, row: Dict):
@@ -300,8 +312,8 @@ def generate(rows: Iterable[Dict], families: Optional[Iterable[str]] = None) -> 
                 for world in worlds:
                     out.append(Variant(
                         id=f"{row['id']}::{fam.name}#{n}@{world}", family=fam.name,
-                        relation=fam.relation, utterance=variant, row_id=row["id"],
-                        world=world, original=row["utterance"], note=note))
+                        relation=fam.relation, utterance=_fill_other(variant, row, world),
+                        row_id=row["id"], world=world, original=row["utterance"], note=note))
     return out
 
 

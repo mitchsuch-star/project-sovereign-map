@@ -67,7 +67,7 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | ~~S1b~~ **✅ LANDED October 9, 2026** | **the Settings additions** (the adjustability review's decisions 4 + 5) | Window mode + size picker; the terminal's default footprint as a viewport fraction; Ctrl+= / − / 0; Reset layout; a CONTROLS reference; the *Body text: Garamond · Plain* option; the sizing card from Settings — and the floor's residue from the whole-client census (the log tiers, six 15s). **Landing record `UX_UI_REVIEW_PLAN.md` §S1b landing record; named set still RED 0 / P1 0.** | 0.5 | Cheap, same seams; the review's "is anything missing" answer |
 | S2 step 0 ✅ **LANDED October 9, 2026** | **the hook pays its way** | The pre-commit hook runs the full suite under pytest-xdist (`-n 8 --dist loadgroup`): serial 26:13 → **5:12** measured, the gate whole; two order-dependent pins fixed (an unseeded 30-draw dice test; an endpoint pin reading whatever world the previous module left in `backend.main`); the stall under xdist traced to child processes inheriting the worker's execnet stdin (now DEVNULL in a worker). Record: `CLAUDE.md` Workflow + Commands. | 0.3 | The user's October 9 ask ("it takes sooo long"); every S2 commit after it pays the new price. |
 | ~~S2~~ ✅ **LANDED October 9, 2026** | **CODE-4** (record `CODE_HEALTH_PLAN.md` §CODE-4) + **CODE-1 batch 1** (record §CODE-1; 20 of the batch's 46 levers retired — the 26 that landed in October keep their session; `tools/retire_lever.py` + the ratchet pin) | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
-| ~~S3~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 NEXT** (the structural fix) | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
+| ~~S3~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; **S3b the same day: the findings fixed — the ledger 161 → 30, the blind set 162 / 170 of 300, 0 executed-other-than-meant**; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 NEXT** (the structural fix) | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
 | S5–S6 | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
 | S7 | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
 | S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
@@ -241,6 +241,27 @@ blind set, 0 on the metamorphic suite's 588 flip cases (0 wanted); HOLD
 orders not re-read in S3 (12 of 20 at the last reading, ≥ 17 wanted); the 16
 open command rows untouched (S4); **the trace on every response ✓; the corpus
 614 of 614 ✓; the series byte-identical ✓.**
+
+**S3b — the findings fixed (the same day, the user's "fix the bugs").** Rules
+`SYSTEMS_REFERENCE.md` §103; pins `tests/test_dd0_s3b_the_fixes.py` (41) + 27 corpus
+rows `dd0-*` (the corpus 614 → 641); the ledger rows DD0-1 … DD0-8 FIXED, DD0-9 and
+DD0-10 HALF FIXED (their remainder S4's). The pre-parse rewrites
+(`backend/ai/dd0_rewrites.py`, first in `parse`, each on the trace): the please and
+the urgency, the dash aside, the because-tail, the self-correction, the arrival wait,
+the second man in support (→ the relay), the sent marshal, the kill and the field's
+battle idioms, the reward idiom, the invested gold, the trailing end turn; the arms
+widened (the garrison idiom above the hold, the declaration as a fact, the
+contradiction refusal, scout / fortify / drill / square / fleet / expedition / move /
+the bare cabinet, the typo pass); the telegraph's separators and the inflected order
+through an honorific and a modal; the possessive aid in the strategic layer; an attack
+on our own marshal refused by name, `attack everything` asked, in the executor; the
+judge's ten shapes (the October 3 records re-read identical, the archive's items
+identical, the committed landing records re-read on the by-hand split 6 + 3 / 6 + 3).
+**Measured on the same blind file, fresh records: keyless as meant 137 → 162 (54.0 %),
+shrugs 41 → 6, misread 0, executed-other-than-meant 0; keyed 152 → 170 (56.7 %),
+0 / 0. The metamorphic ledger 161 → 30 (dash aside 70 → 0, please 30 → 0, honorific
+→ 0; the flip families still 0).** No lever (the ratchet holds levers lower-only); the
+series' items identical to the pre-slice check.
 
 **S4 takes:** the `Reading` object (spans, never a mutated string — the answer
 to the 90 `target_overrides_tactical` rows and every "the tail became the

@@ -41,5 +41,17 @@ The judge files **19 keyless / 20 keyed** rows as dangerous. Each was read again
 ## What the instrument gave that the earlier censuses could not
 Every dangerous row above was attributed in one read of its trace — the arm that fired, the guard that blanked, the layer that overrode — where the October 3 census's rows each cost a reproduction. The nine real rows are filed with their stage; S4's `Reading` object and exit predicate are the structural answer to DD0-1 / DD0-3 (the named object is not the one acted on) and DD0-2 / DD0-4 (a verb inside the sentence outranks the sentence's verb).
 
+## Addendum — the same file on the fixed parser (S3b, the same day)
+The user's "fix the bugs": the nine rows and the classes above were fixed the same day (`SYSTEMS_REFERENCE.md` §103; pins `tests/test_dd0_s3b_the_fixes.py`), the ONE judge learned its ten shapes (DD0-8 — the October 3 records re-read identical; the score archive's items identical to the pre-slice check), and the committed landing records re-read with it land on the by-hand split exactly (keyless misread 6 + executed 3; keyed 6 + 3). The blind file, untouched, was run again as FRESH records (`docs/audits/unrehearsed/2026_10_10_third_{keyless,keyed}_s3b.json`):
+
+| arm | as meant | asked | board refusal | refused as meant | honest refusal | shrug | misread | executed when refusal meant |
+|---|---|---|---|---|---|---|---|---|
+| keyless, at landing | 137 | 24 | 22 | 20 | 37 | 41 | 8 → 6 by the judge | 11 → 3 by the judge |
+| **keyless, S3b** | **162** | 32 | 31 | 31 | 38 | **6** | **0** | **0** |
+| keyed, at landing (64 live) | 152 | 35 | 31 | 21 | 40 | 1 | 10 → 6 | 10 → 3 |
+| **keyed, S3b (25 live)** | **170** | 32 | 34 | 31 | 33 | **0** | **0** | **0** |
+
+**Keyless 137 → 162 of 300 as meant (54.0 %), keyed 152 → 170 (56.7 %); the shrugs 41 → 6; nothing the player did not mean was executed on either arm.** The six that still shrug keyless are the rhetoric the `Reading` object's verb table takes in S4 (*"gave Mack a bloody nose"*, *"It's Mack's turn. Ney, at him."*, *"hit the Austrians"* — a demonym as the foe, *"run down Mack's guns with the cavalry"* with the possessive, *"stand behind Ney, Davout, in case Mack turns on him"*, the bench question *"Promote someone to marshal — who do we have?"*). The keyed arm reads all six. The 38 honest refusals are now the board's and the engine's own rules (a march into a neutral, a contingency, a corps the odds forbid) read as the parser's by the judge's class — the next judge row. DD-0's done-when (≥ 85 % keyless) is read on a FRESH set, never this one; this file is now rehearsed by its own fixes.
+
 ## The ratchet
 `tests/test_dd0_third_blind_set.py` pins the blind file's shape, that every row of both records carries a trace ending on the reply, that the committed classes are the shipping judge's own reading, the dangerous classes at their measured counts lower-only (keyless 8 + 11, keyed 10 + 10), and the three real executions by line. The `as_meant` readings (137 / 152) are S4's baseline, printed, never pinned — DD-0's done-when is read on a FRESH set.

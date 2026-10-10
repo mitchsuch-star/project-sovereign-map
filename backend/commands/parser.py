@@ -391,13 +391,18 @@ def rewrite_inflected_order(command_text: str, game_state, sovereign: str = "") 
         heads.append(r"(?:the\s+)?emperor")
     if not heads:
         return command_text
+    # DD0-9 / the ledger's honorific row (October 10, 2026): "Marshal Ney
+    # moves to Lorraine", "Marshal Soult will relocate his corps to
+    # Nivernais", "Davout will cover …" — the honorific and the modal are
+    # read through; the inflection or the modal is dropped.
     m = re.match(
-        r"^\s*(?P<name>" + "|".join(heads) + r")\s+"
-        r"(?:(?P<y>fortif)ies|(?P<verb>" + _SOVEREIGN_ORDER_VERBS + r")(?:es|s))\b",
+        r"^\s*(?:(?:marshal|general|gen\.)\s+)?(?P<name>" + "|".join(heads) + r")\s+"
+        r"(?:(?:will|shall|is\s+to|should|must)\s+(?P<modal>" + _INFLECTED_ORDER_VERBS + r")\b"
+        r"|(?P<y>fortif)ies|(?P<verb>" + _INFLECTED_ORDER_VERBS + r")(?:es|s))\b",
         command_text, flags=re.IGNORECASE)
     if not m:
         return command_text
-    base = "fortify" if m.group("y") else m.group("verb")
+    base = "fortify" if m.group("y") else (m.group("verb") or m.group("modal"))
     return f"{m.group('name')}, {base}{command_text[m.end():]}"
 
 
@@ -510,6 +515,14 @@ def _player_marshal_names(game_state) -> list:
             if getattr(m, "nation", None) == player]
 
 
+def _game_state_dict_p(game_state, key: str) -> dict:
+    """The parser's copy of `llm_client._game_state_dict` (a real dict or {})."""
+    if not isinstance(game_state, dict):
+        return {}
+    value = game_state.get(key)
+    return value if isinstance(value, dict) else {}
+
+
 def _split_sequential_orders(command_text: str, game_state=None):
     """Split "<first order>, then <second order>" into (first, tail), or
     None when the command is not a sequential compound.
@@ -596,6 +609,11 @@ _SOVEREIGN_ORDER_VERBS = (
     r"attack|march|move|withdraw|retreat|fortify|"
     r"hold|scout|charge|bombard|defend|pursue|assault|storm|drill|"
     r"seize|garrison|reinforce|support")
+# S3b (October 10, 2026): the inflected / modal rewrite also reads these —
+# they need an object to parse ("advances ON Munich", "relocates his corps
+# TO Nivernais"), so they are not in the bare-verb constant the SF-CMD-2 pin
+# walks for every marshal.
+_INFLECTED_ORDER_VERBS = _SOVEREIGN_ORDER_VERBS + r"|relocate|advance|proceed|cover|head|go|entrench"
 _SOVEREIGN_MODALS = r"(?:(?:will|shall|must|am\s+going\s+to)\s+)?"
 
 # "(the) Emperor, attack Vienna" — today this hard-errors
@@ -1056,8 +1074,16 @@ def rewrite_telegraphic_march(command_text: str, game_state, world,
     map knows, with nothing else in the sentence."""
     if not TELEGRAPHIC_MARCH_RESOLVES or not command_text:
         return command_text
-    m = re.match(r"^\s*(?:the\s+)?(?P<who>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)\s+to\s+"
-                 r"(?P<where>[A-Za-z][\w'’ -]{2,40}?)\s*[.!]*$", command_text)
+    # DD0-9 (October 10, 2026): the telegraph's other separators — "Marshal
+    # Ney: Brabant.", "Murat — Swabia. Go.", "ney frankfurt", "Lannes:
+    # Swabia, via the shortest road" — and a trailing "go". Case-sensitive on
+    # purpose: the optional second word of `who` is a Capitalised surname
+    # ("Archduke John"), never the lowercase "to" of "Emperor to Rhineland".
+    m = re.match(r"^\s*(?:[Tt]he\s+)?(?:[Mm]arshal\s+)?(?P<who>[A-Za-z][\w'’-]*(?:\s+[A-Z][\w'’-]*)?)"
+                 r"(?:\s+to\s+|\s*[:—–-]+\s*|\s+)"
+                 r"(?P<where>[A-Za-z][\w'’ -]{2,40}?)"
+                 r"\s*(?:[.,;]\s*(?:[Gg]o|[Nn]ow|via\s+the\s+shortest\s+road|with\s+all\s+speed)\.?)?\s*[.!]*$",
+                 command_text)
     if not m:
         return command_text
     who, where = m.group("who").strip(), m.group("where").strip()
@@ -2794,6 +2820,21 @@ class CommandParser:
         import backend.ai.llm_client as _lc
         typed_text = command_text
         typo_note = None
+        # DD-0 S3b (October 10, 2026): the instrument's own rewrites — the
+        # please, the urgency, the aside, the self-correction, the arrival
+        # wait, the second man in support, the sent marshal, the field's
+        # idioms, the reward and the invest — FIRST, before even the typo
+        # repair (which keys on the verb's position after the address):
+        # rules SYSTEMS_REFERENCE.md §103.
+        from backend.ai import dd0_rewrites as _dd0
+        _dd0_rows = _dd0.apply_all(
+            command_text, _player_marshal_names(game_state),
+            list(_game_state_dict_p(game_state, "enemies")),
+            list(_game_state_dict_p(game_state, "map_data")))
+        _dd0_fired = bool(_dd0_rows)
+        for _rule, _before, _after in _dd0_rows:
+            _ptrace.note("parser", _rule, _before, _after)
+            command_text = _after
         if getattr(_lc, "VERB_TYPO_PASS_ACTIVE", False):
             repaired, typo_note = repair_leading_verb_typo(command_text, game_state)
             if repaired and repaired != command_text:
@@ -2876,7 +2917,7 @@ class CommandParser:
         # too, as NP-1's normalisation does — the executor's addressee gate
         # reads `raw_command`, and 'Pledge France' is no officer of ours.)
         _rewritten = bool(_arr or _friend or _halt_tail or _guard_changed
-                          or _emphasis_stripped)
+                          or _emphasis_stripped or _dd0_fired)
         result = self._parse_text(command_text, game_state, world)
         if _rewritten and isinstance(result, dict):
             result["raw_input"] = typed_text
@@ -3015,6 +3056,16 @@ class CommandParser:
                 _ptrace.decide("parser", "is_question", "a question is never split")
             sequel_split = (None if _asks
                             else _split_sequential_orders(command_text, game_state))
+            # DD0-5 (October 10, 2026): "what's in Tyrol? Massena, find out" —
+            # a question with an ADDRESSED order behind it is the question
+            # and a relay tail, never a question that eats the order.
+            if _asks and sequel_split is None:
+                from backend.ai.dd0_rewrites import split_question_and_order
+                _qo = split_question_and_order(command_text, _player_marshal_names(game_state))
+                if _qo is not None:
+                    effective_text, dropped_sequel = _qo
+                    _ptrace.note("parser", "split_question_and_order", command_text,
+                                 effective_text, dropped_sequel=dropped_sequel)
             if sequel_split is None and not _asks:
                 sequel_split = self._and_clause_is_a_second_order(
                     command_text, game_state)

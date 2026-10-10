@@ -34,9 +34,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 10, 2026).** The three most recent landed rows:
-- **S3 — DD-0 the instrument (October 10, 2026) — LANDED.** The parse trace on every `/command` reply (`backend/ai/parse_trace.py`; `"trace": true` / `SOVEREIGN_PARSE_TRACE=1`; the typed `why` — `SYSTEMS_REFERENCE.md` §100); the metamorphic corpus (2,100 cases, 161 in the ratchet ledger, the flip families all hold — §101); the third blind set (300 orders: keyless 137 / keyed 152 as meant; DD0-1 … DD0-10 filed — §102). No parser rule changed; the series byte-identical. **NEXT = DD-0 S4 the structural fix** (`docs/PRE_DEPLOY_PLAN.md` §3.0 "S4 takes"; the review pause is before it).
-- **S3 head — CODE-1 batch 2 (October 10, 2026) — LANDED.** 83 of the game_logic batch's 138 levers retired (645 → 562), 56 October ones kept; the tool lists its overlap skips (`docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 2).
-- **S2 (October 9, 2026) — COMPLETE.** The parallel hook, 26:13 → 5:12 (`78d9653a`); CODE-4 the docs diet (`docs/CODE_HEALTH_PLAN.md` §CODE-4); CODE-1 batch 1: `tools/retire_lever.py`, 20 levers retired, the ratchet `tests/test_code_health_ratchet.py` (§CODE-1).
+- **S3 + S3b — DD-0 the instrument, and its findings fixed (October 10, 2026) — LANDED.** The parse trace on every `/command` reply (`backend/ai/parse_trace.py`; `"trace": true`; the typed `why` — `SYSTEMS_REFERENCE.md` §100); the metamorphic corpus (§101) and the third blind set (§102); then the fixes (§103, `backend/ai/dd0_rewrites.py`): the ledger 161 → 30, the blind set keyless 137 → 162 / keyed 152 → 170 of 300, 0 executed-other-than-meant. **NEXT = DD-0 S4 the structural fix** (`docs/PRE_DEPLOY_PLAN.md` §3.0 "S4 takes").
+- **S3 head — CODE-1 batch 2 (October 10, 2026) — LANDED.** 83 of 138 game_logic levers retired (645 → 562) (`docs/CODE_HEALTH_PLAN.md` §CODE-1 BATCH 2).
+- **S2 (October 9, 2026) — COMPLETE.** The parallel hook 26:13 → 5:12; CODE-4 the docs diet; CODE-1 batch 1 + the ratchet (`docs/CODE_HEALTH_PLAN.md`).
 
 **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 

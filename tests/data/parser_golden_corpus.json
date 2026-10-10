@@ -7482,6 +7482,308 @@
       },
       "source": "SF-RR1 part (i), SFR-D11",
       "notes": "'back to <province>' — the same adverb rule as 'home to'."
+    },
+    {
+      "id": "dd0-2-go-and-wait-there-is-a-march",
+      "utterance": "Davout, go to Gelderland and wait in Gelderland",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "action": "move",
+        "target": "Gelderland",
+        "not_action": "wait"
+      },
+      "source": "DD0-2 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The WAIT arm sat above the move arm; 'go to X and wait there' held where he stood. The carryover has already turned 'there' into 'in Gelderland' when the parser sees it."
+    },
+    {
+      "id": "dd0-2-no-wait-self-correction",
+      "utterance": "Bernadotte, go to Berlin — no wait, Dresden",
+      "world": "1805",
+      "expected": {
+        "marshal": "Bernadotte",
+        "action": "move",
+        "target": "Dresden"
+      },
+      "source": "DD0-2 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The self-correction names the second place."
+    },
+    {
+      "id": "dd0-3-possessive-aid-is-support",
+      "utterance": "Murat, ride to Lannes' aid",
+      "world": "1805",
+      "expected": {
+        "marshal": "Murat",
+        "target": "Lannes",
+        "strategic_type": "SUPPORT"
+      },
+      "source": "DD0-3 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The possessive names the man; the generic SUPPORT had resolved to Bernadotte."
+    },
+    {
+      "id": "dd0-4-drop-off-battalions-is-garrison",
+      "utterance": "Bernadotte, drop off a few battalions to hold Franconia",
+      "world": "1805",
+      "expected": {
+        "marshal": "Bernadotte",
+        "action": "garrison",
+        "not_action": "hold"
+      },
+      "source": "DD0-4 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The garrison idiom, sited above the hold family."
+    },
+    {
+      "id": "dd0-6-war-with-at-the-head-declares",
+      "utterance": "War with Portugal. Inform their ambassador.",
+      "world": "1805",
+      "expected": {
+        "action": "diplomatic_declare_war",
+        "type": "diplomatic",
+        "diplo": {
+          "target_nation": "Portugal"
+        }
+      },
+      "source": "DD0-6 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The declaration phrased as a fact."
+    },
+    {
+      "id": "dd0-7-contradiction-is-refused",
+      "utterance": "Ney, attack Mack and also do not attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": false,
+        "error_contains": "unknown"
+      },
+      "source": "DD0-7 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "Refusal kind `contradiction` (asserted at the wire in the pins); the corpus can only see the hard parse failure."
+    },
+    {
+      "id": "dd0-10-dash-aside-is-not-the-province",
+      "utterance": "Ney, advance on Swabia — thank you",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "target": "Swabia"
+      },
+      "source": "DD0-10 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The metamorphic ledger's dash_aside class (70 rows)."
+    },
+    {
+      "id": "dd0-10-because-tail-is-not-the-province",
+      "utterance": "Ney, hold position because the men are ready",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "hold",
+        "strategic_type": "HOLD",
+        "target": "Rhineland"
+      },
+      "source": "DD0-10 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The reason_tail class: a reason of OURS is cut; the enemy's reasons stay CRT-1's."
+    },
+    {
+      "id": "dd0-10-second-in-support-keeps-the-attack",
+      "utterance": "Soult, attack Mack with Lannes in support",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "action": "attack",
+        "target": "Mack",
+        "dropped_sequel": "Lannes, support Soult"
+      },
+      "source": "DD0-10 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The second_name_role class (31 rows): the first man keeps his attack, the second man's order rides the relay."
+    },
+    {
+      "id": "dd0-9-honorific-inflected-order",
+      "utterance": "Marshal Ney moves to Lorraine",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "move",
+        "target": "Lorraine"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The inflected rewrite reads through the honorific and the modal."
+    },
+    {
+      "id": "dd0-9-modal-relocate",
+      "utterance": "Marshal Soult will relocate his corps to Nivernais.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "action": "move",
+        "target": "Nivernais"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-send-marshal-to",
+      "utterance": "send Soult to Orleanais",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "action": "move",
+        "target": "Orleanais"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-pull-back-to",
+      "utterance": "Pull Bernadotte back to Frankfurt",
+      "world": "1805",
+      "expected": {
+        "marshal": "Bernadotte",
+        "action": "move",
+        "target": "Frankfurt"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-telegraph-colon",
+      "utterance": "Marshal Ney: Brabant.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "move",
+        "target": "Brabant"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-telegraph-dash-go",
+      "utterance": "Murat — Swabia. Go.",
+      "world": "1805",
+      "expected": {
+        "marshal": "Murat",
+        "action": "move",
+        "target": "Swabia"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-telegraph-bare",
+      "utterance": "ney frankfurt",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "move",
+        "target": "Frankfurt"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "A roster name and a province, nothing else."
+    },
+    {
+      "id": "dd0-9-go-kill-is-attack",
+      "utterance": "ney go kill mack",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack",
+        "target": "Mack"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-eyes-on-is-scout",
+      "utterance": "Ney, I need eyes on Nassau",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "scout",
+        "target": "Nassau"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-earthworks-is-fortify",
+      "utterance": "Massena, throw up earthworks around Milan",
+      "world": "1805",
+      "expected": {
+        "marshal": "Massena",
+        "action": "fortify"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-musketry-is-drill",
+      "utterance": "Lannes, have the men practise their musketry",
+      "world": "1805",
+      "expected": {
+        "marshal": "Lannes",
+        "action": "drill"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-squares-is-form-square",
+      "utterance": "Soult, squares — Austrian cavalry coming",
+      "world": "1805",
+      "expected": {
+        "marshal": "Soult",
+        "action": "form_square"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-navy-sortie-is-posture",
+      "utterance": "the navy should sortie",
+      "world": "1805",
+      "expected": {
+        "action": "set_fleet_posture"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-give-an-estate-is-the-reward-desk",
+      "utterance": "Give Ney an estate",
+      "world": "1805",
+      "expected": {
+        "action": "status"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The W3 Reward desk ('reward Ney')."
+    },
+    {
+      "id": "dd0-9-grant-a-rente-stays-es7",
+      "utterance": "grant Ney a rente",
+      "world": "1805",
+      "expected": {
+        "action": "grant_pension"
+      },
+      "source": "DD0-9 control (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "Control: the ES-7 endow verb is NOT restated to the Reward desk."
+    },
+    {
+      "id": "dd0-9-please-cancel",
+      "utterance": "please, cancel",
+      "world": "1805",
+      "expected": {
+        "action": "cancel"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-9-bring-the-corps-back",
+      "utterance": "Davout, bring the corps back to Lorraine",
+      "world": "1805",
+      "expected": {
+        "marshal": "Davout",
+        "action": "move",
+        "target": "Lorraine"
+      },
+      "source": "DD0-9 (tests/test_dd0_s3b_the_fixes.py)"
+    },
+    {
+      "id": "dd0-1-attack-own-marshal-control",
+      "utterance": "Ney, attack Davout",
+      "world": "1805",
+      "expected": {
+        "marshal": "Ney",
+        "action": "attack"
+      },
+      "source": "DD0-1 (tests/test_dd0_s3b_the_fixes.py)",
+      "notes": "The parser reads the attack with no foe; the EXECUTOR refuses by name (asserted at the wire in the pins)."
     }
   ]
 }

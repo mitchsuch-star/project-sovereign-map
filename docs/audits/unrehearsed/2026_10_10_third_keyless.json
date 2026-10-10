@@ -632,7 +632,7 @@
     "target": "Archduke John",
     "note": "Bernadotte attacks John; 'at once' is urgency, not a target; a misread is a move or a hold."
    },
-   "class": "misread",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
@@ -4293,7 +4293,7 @@
     "target": "Mack",
     "note": "Bernadotte pursues Mack; a misread is an attack on John instead."
    },
-   "class": "misread",
+   "class": "asked",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
@@ -5903,7 +5903,7 @@
     "target": "Mack",
     "note": "Ney attacks Mack and Murat charges Mack ('his' is Mack); dropping Murat's half is a misread."
    },
-   "class": "honest_refusal",
+   "class": "board_refusal",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.95,
@@ -18829,7 +18829,7 @@
     "target": "Britain",
     "note": "Blockade Britain (London is its capital); a misread is a landing at London."
    },
-   "class": "as_meant",
+   "class": "board_refusal",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
@@ -22124,7 +22124,7 @@
     "target": "",
     "note": "Looks like an order but is a film title with no marshal or target; the game must not attack anything."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": true,
    "parse_mode": "mock",
    "parse_confidence": 0.8,
@@ -22482,7 +22482,7 @@
     "target": "Mack",
     "note": "Berthier is chief of staff, not a field commander; the game must refuse or redirect, not charge with Murat."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.8,
@@ -22548,7 +22548,7 @@
     "target": "Britain",
     "note": "A marshal cannot run the fleet; the game must refuse or redirect to the Admiralty explicitly, not silently set a fleet posture as if Lannes had done it."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
@@ -22776,7 +22776,7 @@
     "target": "France",
     "note": "We are France; the game must refuse."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 1.0,
@@ -22848,7 +22848,7 @@
     "target": "Britain",
     "note": "Self-subjugation is not an available act; the game must refuse, not vassalize Britain or propose anything."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
@@ -22917,7 +22917,7 @@
     "target": "Vienna",
     "note": "Vienna is not ours and the number is beyond the treasury; the game must refuse, not recruit in some French province."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
@@ -23058,7 +23058,7 @@
     "target": "Mack",
     "note": "Mack is an enemy; the game must refuse, not reward a French marshal."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": null,
@@ -23331,7 +23331,7 @@
     "target": "",
     "note": "Contradictory tactical orders; the game must question, not do one silently."
    },
-   "class": "executed_when_refusal_meant",
+   "class": "refused_as_meant",
    "success": false,
    "parse_mode": "mock",
    "parse_confidence": 0.9,
@@ -23460,19 +23460,17 @@
  "live_parses": 0,
  "totals": {
   "order": {
-   "as_meant": 137,
+   "as_meant": 136,
    "shrug": 41,
-   "asked": 24,
-   "board_refusal": 22,
-   "misread": 8,
-   "honest_refusal": 37,
-   "refused_as_meant": 20,
-   "executed_when_refusal_meant": 11
+   "asked": 26,
+   "board_refusal": 24,
+   "honest_refusal": 36,
+   "misread": 6,
+   "refused_as_meant": 28,
+   "executed_when_refusal_meant": 3
   }
  },
  "dangerous": [
-  "Bernadotte strikes Archduke John at Tyrol at once",
-  "bernadotte pursue mack",
   "Murat, ride to Lannes' aid",
   "Davout, go to Gelderland and wait there",
   "Bernadotte, go to Berlin — no wait, Dresden",
@@ -23481,14 +23479,6 @@
   "War with Portugal. Inform their ambassador.",
   "Ney, attack Davout",
   "Ney, attack Mack and also do not attack Mack",
-  "attack of the clones",
-  "Berthier, charge the Austrians",
-  "Lannes, blockade Britain",
-  "Declare war on France",
-  "Make France a vassal of Britain",
-  "Recruit 50,000 cavalry in Vienna",
-  "Give Mack an estate",
-  "Ney, Davout, Soult, everyone — attack everything",
-  "Soult, form square and charge at the same time"
+  "Ney, Davout, Soult, everyone — attack everything"
  ]
 }

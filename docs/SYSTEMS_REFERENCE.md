@@ -9363,3 +9363,69 @@ archive first). The three real executions are pinned by line.
 **The ratchet.** The dangerous classes at their measured counts, lower-only, on both
 records; the committed classes re-read by the shipping judge; every row's trace ends
 on the reply. The `as_meant` counts are printed, never pinned.
+
+## 103. THE INSTRUMENT'S FINDINGS FIXED — DD-0 S3b (October 10, 2026)
+
+**The rule.** The rows the three instruments filed (`BUG_FIXES.md` §DD-0 S3, DD0-1 …
+DD0-10) are fixed the same day, by the user's word ("fix the bugs"); pins
+`tests/test_dd0_s3b_the_fixes.py` (each line through the real `POST /command` on a
+fresh 1805 board, read off its trace); 27 golden-corpus rows `dd0-*` (two shapes are
+pinned at the wire only: DD0-5's question row moves under the CX1 lever's arm, and
+`invest 100 gold in Switzerland` is a vassal order the CLIENT's Cabinet door does not
+claim — the WO slice-7 census forbids a typed family-tier row the door would not
+redirect; the backend reads it for the driver and the census, the client's lists are
+UXR's); the two memos'
+addenda. No lever — the code-health ratchet holds levers lower-only, and every pin
+reads behaviour.
+
+**The pre-parse rewrites** (`backend/ai/dd0_rewrites.py`, applied FIRST in
+`CommandParser.parse`, before even the typo repair, each noted on the trace): the
+please and the urgency tail (`please, cancel`, `Ney, retire, please`, `… — at once`);
+the dash aside that names no place, no man and no order (`— thank you`, `— the
+Austrians are close` — "Murat — Swabia. Go." and "Davout — Mack — go." keep theirs);
+the because-tail of OURS (`because the men are ready`; the enemy's reasons stay
+CRT-1's); the self-correction (`go to Berlin — no wait, Dresden`); the arrival wait
+(`go to Gelderland and wait there` — the WAIT arm sits above the move arm, DD0-2);
+the second man in support (`Ney, attack Mack with Lannes in support` → `Ney, attack
+Mack, then Lannes, support Ney`: the first man keeps his order, the second's rides
+the relay); the sent marshal (`send Soult to Orleanais`, `pull Bernadotte back to
+Frankfurt` — never when a verb follows `to`: "send Murat to scout Munich" is a
+scout); the colloquial kill (`go kill Mack`; `destroy` stays CRT-11's); the field's
+battle idioms (`run down Mack`, `drive Mack out`, `gave Mack a bloody nose`, `keep on
+John's heels` → pursue, `Davout — Mack — go.`); the reward idiom (`give Ney an
+estate`, `make Massena a duke` → the W3 Reward desk; `grant Ney a rente` stays ES-7's
+endow verb); the invested gold (`invest 100 gold in Switzerland`, `put some gold into
+the Kingdom of Italy`); the trailing end turn (`That's all for now, Berthier — next
+turn.`, only when the head gives no order).
+
+**The arms widened** (`llm_client.py`): the garrison idiom ABOVE the hold family
+(`drop off a few battalions to hold Franconia`, DD0-4); the declaration as a fact
+(`War with Portugal.` at the head, DD0-6); the contradiction after the negation guard
+(the forbidden clause's words all in the residue → PARSE-NEG refusal `contradiction`,
+DD0-7, its own Berthier line in `main.py`); scout (`eyes on`, `find out`, `report
+back`, `send riders`); fortify (`earthworks`); drill (`through its paces`,
+`musketry`, `practise`); form square (`squares` with cavalry, or bare); the fleet
+(`sortie`, `feint`, `draw Nelson off`); the expedition (`Land 10,000 men`, `mount a
+landing`); move (`relocate`, `bring … back to`, `get to`); the bare cabinet (`send a
+mission to`, `alliance with the Ottomans`, `I want an alliance with`; a plural demonym
+names its court); the typo pass learns `support` / `pursue`. The parser's own: the
+telegraph's separators (`Marshal Ney: Brabant.`, `Murat — Swabia. Go.`, `ney
+frankfurt`), the inflected order through an honorific and a modal (`Marshal Soult will
+relocate his corps to Nivernais`), a question with an addressed order behind it split
+into the question and a relay tail (`what's in Tyrol? Massena, find out`, DD0-5). The
+strategic layer: the possessive names the man (`ride to Lannes' aid` → SUPPORT
+Lannes, DD0-3). The executor: an attack whose object is one of OUR marshals refuses
+by name, `attack everything` asks (`proper_name.py`, DD0-1).
+
+**The judge** (`tools/_score_probes.py`, DD0-8) learned its ten shapes; the three
+October 3 records re-read identical, the score archive's items identical to the
+pre-slice check (one PROBE item's evidence TEXT varies run to run — the dice — with
+pass and measured unchanged), and the third set's committed records `--reclassify`'d
+land exactly on the by-hand split (keyless misread 6 + executed 3; keyed 6 + 3).
+
+**The reading after the fixes** (the same blind file, fresh records
+`docs/audits/unrehearsed/2026_10_10_third_{keyless,keyed}_s3b.json`; memo addendum):
+**keyless as meant 137 → 162 of 300, shrugs 41 → 6, misread 0, executed-when-refusal-
+meant 0; keyed 152 → 170, shrugs 1 → 0, 0 / 0.** The metamorphic ledger **161 → 30** (dash
+aside 70 → 0, please 30 → 0, honorific 1 → 0, reason tail 18 → 8, second name 31 → 9,
+word order 8 → 10 on the larger corpus, typo 3; the flip families still 0).

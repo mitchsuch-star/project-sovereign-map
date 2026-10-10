@@ -298,7 +298,9 @@ def _supports_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
 
 
 _TYPO_VERBS = ("attack", "move", "march", "scout", "defend", "hold", "retreat",
-               "fortify", "recruit", "bombard")
+               "fortify", "recruit", "bombard",
+               # DD0-9 (October 10, 2026): "davout suport ney"
+               "support", "pursue")
 # Real words one slip away from a verb — never "repaired" into one. The
 # review round (R1-3) measured ten more that the first list missed.
 _TYPO_STOPLIST = frozenset({
@@ -707,6 +709,11 @@ THE_DRILL_IS_A_WORD = True
 _DRILL_WORD_RE = re.compile(
     r"\b(?:drill(?:s|ed|ing)?|train(?:s|ed|ing)?|exercis(?:e|es|ed|ing))\b")
 
+# DD-0 S3b (October 10, 2026): the idiom predicates the router's branches
+# read — defined OUTSIDE this module on purpose (see dd0_rewrites: the
+# routed-word generator harvests nouns from inline keywords).
+from backend.ai import dd0_rewrites as _idioms  # noqa: E402
+
 
 # SF7-X9 (Score Finish Step 7 slice 5b): the place a scout names, kept for
 # the executor's region matcher. Lever down: an unknown place is dropped and
@@ -824,6 +831,20 @@ def _reward_request(text: str, roster) -> Optional[str]:
         if want in {p.lower() for p in _name_match_patterns(str(name))} | {str(name).lower()}:
             return str(name)
     return None
+
+
+_NEGATION_MARKERS = frozenset({"do", "not", "never", "don't", "dont", "and", "also", "but",
+                               "no", "then", "nor", "he", "him", "his", "the", "a", "an"})
+
+
+def _blanked_words(before: str, after: str) -> set:
+    """DD0-7: the content words the negation guard blanked out of `before`
+    (same length, spaces where the clause was)."""
+    if len(before) != len(after):
+        return set()
+    removed = "".join(c if g == " " and c != " " else " " for c, g in zip(before, after))
+    return {w for w in re.findall(r"[a-z][a-z'’-]+", removed.lower())
+            if w not in _NEGATION_MARKERS and len(w) >= 3}
 
 
 def _keeps_an_eye_on_a_province(command_lower: str, game_state) -> bool:
@@ -1376,7 +1397,11 @@ _BARE_CABINET_VERB_RE = re.compile(
     r"make\s+(?:friends|peace|an?\s+(?:alliance|pact|treaty|truce|armistice)|amends)|"
     r"seek\s+(?:friendship|peace|an?\s+alliance)|sue\s+for|"
     r"form\s+an?\s+alliance|ally|befriend|approach|treat\s+with|open\s+talks|"
-    r"send\s+(?:an?\s+)?(?:envoy|ambassador|minister|emissary|word))\b",
+    r"send\s+(?:an?\s+)?(?:(?:diplomatic\s+)?mission|envoy|ambassador|minister|emissary|word)|"
+    # DD0-9 (October 10, 2026): "alliance with the Ottomans", "I want an
+    # alliance with …", "an alliance against Russia with …".
+    r"(?:an?\s+)?(?:alliance|pact|treaty|truce|armistice)\s+(?:with|against)|"
+    r"i\s+(?:want|would\s+like|wish\s+for|seek)\s+(?:an?\s+)?(?:alliance|peace|truce|treaty|pact))\b",
     re.IGNORECASE)
 # The verbs a field order also uses ("offer", "request", "ask", "repair",
 # "strengthen", "send") are the Cabinet's only beside a NOUN of state.
@@ -1389,7 +1414,10 @@ _UNAMBIGUOUS_CABINET_VERB_RE = re.compile(
     r"^\s*(?:so\s+|and\s+|then\s+|now\s+|please\s+|let(?:'s| us)\s+)?"
     r"(?:propose|negotiate|court|charm|woo|reassure|undermine|befriend|"
     r"make\s+(?:friends|peace|amends)|seek\s+(?:friendship|peace)|sue\s+for|"
-    r"form\s+an?\s+alliance|ally|treat\s+with|open\s+talks|open\s+(?:our\s+|the\s+)?borders)\b", re.IGNORECASE)
+    r"form\s+an?\s+alliance|ally|treat\s+with|open\s+talks|open\s+(?:our\s+|the\s+)?borders|"
+    r"send\s+(?:an?\s+)?(?:diplomatic\s+)?mission|"
+    r"(?:an?\s+)?(?:alliance|pact|treaty|truce|armistice)\s+(?:with|against)|"
+    r"i\s+(?:want|would\s+like|wish\s+for|seek)\s+(?:an?\s+)?(?:alliance|peace|truce|treaty|pact))\b", re.IGNORECASE)
 _ASKS_FOR_TERMS_RE = re.compile(
     r"\b(?:ask|request|demand|seek|invite)\s+(?:the\s+)?(?:[\w'’-]+\s+){0,3}"
     r"(?:for\s+|to\s+(?:name|state|give|send)\s+)(?:their\s+|its\s+|her\s+|his\s+|peace\s+)?terms\b",
@@ -1442,7 +1470,9 @@ def _names_a_known_court(command_text: str, game_state) -> bool:
         if str(nation).lower() == own:
             continue  # "Ile-de-France" names no foreign court
         for form in _name_match_patterns(str(nation)):
-            if re.search(r"\b" + re.escape(form.lower()) + r"\b", low):
+            # DD0-9 (October 10, 2026): the plural demonym — "alliance with
+            # the Ottomans", "peace with the Prussians".
+            if re.search(r"\b" + re.escape(form.lower()) + r"s?\b", low):
                 return True
     return False
 
@@ -2509,6 +2539,17 @@ class LLMClient:
                 roster_names=_all_roster)
             guarded, negation_applied = strip_negated_clauses(command_text)
             _ptrace.note("guards", "strip_negated_clauses", command_text, guarded)
+            # DD0-7 (October 10, 2026): "attack Mack and also do not attack
+            # Mack" — the forbidden clause names the SAME order the residue
+            # gives. A contradiction is a question, never the attack.
+            if negation_applied:
+                _forbidden = _blanked_words(command_text, guarded)
+                _residue = set(re.findall(r"[a-z][a-z'’-]+", guarded.lower()))
+                if len(_forbidden) >= 2 and _forbidden <= _residue:
+                    return self._refusal_result(
+                        original_text, "contradiction",
+                        "an order and its prohibition in one breath",
+                        detail={"clause": " ".join(sorted(_forbidden))})
             _verdict = strip_condition_clauses_with_handoff(
                 guarded, friendly_names=_player_roster, roster_names=_all_roster)
             _ptrace.note("guards", "strip_condition_clauses", guarded, _verdict.text,
@@ -2853,7 +2894,10 @@ class LLMClient:
             "open hostilities", "declare hostilities",
             "invade ", "launch war",
         ]
-        if any(kw in command_lower for kw in _war_keywords):
+        # DD0-6 (October 10, 2026): "War with Portugal. Inform their
+        # ambassador." — the declaration phrased as a fact, at the head.
+        if (any(kw in command_lower for kw in _war_keywords)
+                or re.match(r"^\s*war\s+(?:with|on|against)\s+[a-z]", command_lower)):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
 
@@ -3322,6 +3366,12 @@ class LLMClient:
         elif (SUPPORT_SPEAKS_PLAINLY
               and _guards_a_friendly_marshal(command_lower, player_marshals)):
             action = "move"  # Strategic parser upgrades to SUPPORT
+        # DD0-4 (October 10, 2026): "drop off a few battalions to hold
+        # Franconia" — the garrison idiom, sited ABOVE the hold family so
+        # the `hold` inside its purpose clause cannot take the line as a
+        # 2-AP standing order.
+        elif _idioms.garrison_idiom(command_lower):
+            action = "garrison"
         elif any(kw in command_lower for kw in [
             "hold at all costs", "hold your ground", "hold position",
             "hold the line", "stand fast", "stand firm",
@@ -3387,7 +3437,10 @@ class LLMClient:
         ) or (
             # SF-CMD-1 W3: "everyone converge on Swabia" — the collective march.
             re.search(r'\bconverge\s+(?:on|upon|at|toward|towards)\b', command_lower)
-        ) or re.search(r'\bmove\b', command_lower) or re.search(
+        ) or re.search(r'\bmove\b', command_lower) or _idioms.march_idiom(
+            # DD0-9 (October 10, 2026): "relocate his corps to Nivernais";
+            # "bring the corps back to Lorraine"; "get to Munich".
+            command_lower) or re.search(
             # Possessive-object forms: "take your corps to Ulm", "bring your
             # men to Vienna". Anchored on the corps noun + a destination
             # preposition so they cannot shadow the reinforce/SUPPORT family
@@ -3412,7 +3465,10 @@ class LLMClient:
               # (the IQ-9 cassette: the model reads the man's province).
               or _keeps_an_eye_on_a_province(command_lower, game_state)
               # the fresh census: "have a look at Swabia" / "take a look at".
-              or re.search(r'\b(?:have|take)\s+a\s+look\s+at\b', command_lower)):
+              or re.search(r'\b(?:have|take)\s+a\s+look\s+at\b', command_lower)
+              # DD0-9 (October 10, 2026): "I need eyes on Nassau", "Massena,
+              # find out", "send riders towards Bern and report back".
+              or _idioms.scout_idiom(command_lower)):
             action = "scout"
         # F4 fix: recruit MUST be checked before reinforce/support — the noun
         # "reinforcements" contains the substring "reinforce", so "recruit
@@ -3436,12 +3492,18 @@ class LLMClient:
         elif (_orders_the_diversion(command_lower)
               or "draw off the fleet" in command_lower
               or "draw them off" in command_lower
+              # DD0-9: "have the fleet make a feint to pull the British away",
+              # "Draw Nelson off, Villeneuve".
+              or _idioms.fleet_feint(command_lower)
               or re.search(r"\b(?:launch|begin|start|make|order|try)\s+(?:the\s+|a\s+)?(?:grand\s+)?diversion\b", command_lower)):
             action = "naval_diversion"
         elif ("expedition" in command_lower
               or re.search(r'\bembark\b', command_lower)
               or re.search(r"\bland\b\s+(?!to\b)(?:[\w']+\s+){0,2}(?:in|at|on)\b",
                            command_lower)
+              # DD0-9: "Land 10,000 men in Ireland" (the comma in the number),
+              # "Mount a landing on the English coast".
+              or _idioms.landing_order(command_lower)
               # SF-CMD-1 W8 (Oct 3, 2026): "ship Davout to London" / "transport
               # the corps to Munster" / "ferry Lannes over to Naples" / "send
               # Davout by sea to London" — the landing verb in the player's
@@ -3465,6 +3527,8 @@ class LLMClient:
         # halves agree by construction.
         elif (re.search(r'\bblockade\b', command_lower)
               or "home waters" in command_lower
+              # DD0-9: "the navy should sortie"
+              or _idioms.fleet_sortie(command_lower)
               or (re.search(r'\bfleet\b', command_lower)
                   # SF-CMD-1 W8 (Oct 3, 2026): "bring the fleet home" /
                   # "bring the fleet back to port" — the guard posture.
@@ -3526,9 +3590,14 @@ class LLMClient:
                   and _supports_a_friendly_marshal(command_lower, player_marshals))):
             action = "move"  # Strategic parser upgrades to SUPPORT
         # Tactical state actions (Phase 2.6)
-        elif "unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower:
+        elif ("unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower
+              # S3b (October 10, 2026): "abandon the entrenchments" — the
+              # works given up, not dug.
+              or _idioms.unfortify_idiom(command_lower)):
             action = "unfortify"  # Must check before fortify to avoid false positives
-        elif "fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower:
+        elif ("fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower
+              # DD0-9: "throw up earthworks around Milan"
+              or _idioms.earthworks_order(command_lower)):
             action = "fortify"
         # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train").
         # ORDERING RULE: "build " (with space) before "train" keyword in drill block.
@@ -3541,7 +3610,9 @@ class LLMClient:
         # Restrain must be checked BEFORE drill (restrain contains "train")
         elif "restrain" in command_lower:
             action = "restrain"
-        elif ((THE_DRILL_IS_A_WORD and _DRILL_WORD_RE.search(command_lower))
+        elif ((THE_DRILL_IS_A_WORD and (_DRILL_WORD_RE.search(command_lower)
+                                        # DD0-9: "through its paces", "musketry"
+                                        or _idioms.drill_idiom(command_lower)))
               or (not THE_DRILL_IS_A_WORD and ("drill" in command_lower or "train" in command_lower
                                                or "exercise" in command_lower))):
             action = "drill"
@@ -3598,7 +3669,8 @@ class LLMClient:
         elif any(kw in command_lower for kw in [
             "form square", "form a square", "square formation", "into square",
             "form up square",
-        ]):
+        ]) or _idioms.squares_order(command_lower):
+            # DD0-9: "Soult, squares — Austrian cavalry coming" / "Soult, squares"
             action = "form_square"
         elif any(kw in command_lower for kw in [
             "break square", "leave square", "exit square", "break formation",
@@ -3637,7 +3709,9 @@ class LLMClient:
             # ("invest in the Kingdom of Italy") got Berthier's shrug while the
             # article-less form executed; `cede ... to the ...` already parsed.
             + [f"invest in the {n}" for n in known_nations_lower]
-        )):
+        ) or _idioms.invest_gold(command_lower, known_nations_lower)):
+            # DD0-9 (October 10, 2026): "invest 100 gold in switzerland",
+            # "put some gold into the Kingdom of Italy".
             action = "invest_vassal"
         elif (
             # F6 (playtest): the old list required CONTIGUOUS phrases
@@ -4424,12 +4498,15 @@ class LLMClient:
         # War declaration (R10) — must come before demand/ultimatum catch.
         # WO slice 11 (§2 H-15): never for a peace overture — "end the war
         # on any terms" carries "war on " and was a DECLARATION.
-        elif not _mentions_peace_intent(command_lower) and any(
+        elif not _mentions_peace_intent(command_lower) and (
+                # DD0-6 (October 10, 2026): "War with Portugal." at the head
+                re.match(r"^\s*war\s+with\s+[a-z]", command_lower)
+                or any(
                 kw in command_lower for kw in [
                     "declare war", "go to war", "war on ", "war against ",
                     "open hostilities", "declare hostilities",
                     "invade ", "launch war",
-                ]):
+                ])):
             action = "diplomatic_declare_war"
         # Ultimatum (R21) — distinct from demand/proposal
         elif any(kw in command_lower for kw in [

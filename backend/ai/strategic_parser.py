@@ -757,6 +757,15 @@ def _extract_target_text(command_lower: str, strategic_type: str,
 
     # For SUPPORT: target is after the keyword
     if strategic_type == "SUPPORT":
+        # DD0-3 (October 10, 2026): "ride to Lannes' aid" / "go to Davout's
+        # side" — the possessive names the man; the keyword after it has no
+        # object of its own.
+        _poss = re.search(
+            r"\b(?P<name>[a-z][\w-]*)['’]s?\s+(?:aid|side|help|relief|assistance|support|rescue|defen[cs]e)\b",
+            cleaned)
+        if _poss:
+            head = _friendly_head(_poss.group("name"), friendly_forms)
+            return head or _poss.group("name")
         for keyword in STRATEGIC_KEYWORDS["SUPPORT"]:
             if keyword in cleaned:
                 after = cleaned.split(keyword, 1)[1].strip()

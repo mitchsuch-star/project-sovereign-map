@@ -4237,6 +4237,15 @@ def execute_command(request: CommandRequest):
                         f"{_addressee} is to do about it. Nothing has been "
                         f"relayed; give me his order and I shall carry it at "
                         f"once.\"")
+                elif parsed["refusal"] == "contradiction":
+                    # DD0-7 (October 10, 2026): the sentence ordered X and
+                    # forbade X — a question, never the order.
+                    _clause = str(_detail.get("clause") or "").strip()
+                    _heard = f" — '{_clause}' —" if _clause else ""
+                    refusal_msg = (
+                        f"Berthier reads the dispatch twice. \"Sire, it orders "
+                        f"the thing and forbids it in the same breath{_heard} "
+                        f"so I have relayed nothing. Which is it to be?\"")
                 elif parsed["refusal"] == "deferral":
                     # FA-7. A DIFFERENT failure from a prohibition and it must
                     # not wear the same words: the player did not forbid the

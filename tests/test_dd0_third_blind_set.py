@@ -33,10 +33,19 @@ KEYED = RECORDS / "2026_10_10_third_keyed.json"
 
 # The landing's readings (October 10, 2026). The dangerous classes are a
 # lower-only ratchet; `as_meant` is the baseline S4 is measured against.
-KEYLESS_DANGEROUS_CAP = {"misread": 8, "executed_when_refusal_meant": 11}
-KEYED_DANGEROUS_CAP = {"misread": 10, "executed_when_refusal_meant": 10}
+# The S3 landing's records (the parser BEFORE the fixes; re-read by the
+# widened judge of DD0-8 they land on the memo's by-hand split, 6 + 3).
+KEYLESS_DANGEROUS_CAP = {"misread": 6, "executed_when_refusal_meant": 3}
+KEYED_DANGEROUS_CAP = {"misread": 6, "executed_when_refusal_meant": 3}
 KEYLESS_AS_MEANT_AT_LANDING = 137
 KEYED_AS_MEANT_AT_LANDING = 152
+# S3b (the same day): the same blind file on the FIXED parser — fresh
+# records, the dangerous classes at ZERO on both arms, lower-only.
+KEYLESS_S3B = RECORDS / "2026_10_10_third_keyless_s3b.json"
+KEYED_S3B = RECORDS / "2026_10_10_third_keyed_s3b.json"
+S3B_DANGEROUS_CAP = {"misread": 0, "executed_when_refusal_meant": 0}
+S3B_AS_MEANT = {"keyless": 162, "keyed": 170}
+S3B_SHRUG_CAP = {"keyless": 6, "keyed": 0}
 
 
 def _load(p: Path) -> dict:
@@ -129,3 +138,53 @@ class TestTheRecords:
             pytest.skip("keyed record not recorded")
         d = _load(KEYED)
         assert d["llm"] == "anthropic" and d["live_parses"] > 0
+
+
+class TestTheS3bRecords:
+    """The same blind file on the fixed parser (S3b, October 10, 2026)."""
+
+    @pytest.mark.parametrize("path,arm", [(KEYLESS_S3B, "keyless"), (KEYED_S3B, "keyed")],
+                             ids=["keyless", "keyed"])
+    def test_nothing_the_player_did_not_mean_was_executed(self, path, arm):
+        d = _load(path)
+        t = d["totals"]["order"]
+        for cls, cap in S3B_DANGEROUS_CAP.items():
+            assert t.get(cls, 0) <= cap, (arm, cls, t.get(cls))
+        assert t.get("shrug", 0) <= S3B_SHRUG_CAP[arm], (arm, t.get("shrug"))
+        assert len(d["rows"]) == 300 and all(r.get("parse_trace") for r in d["rows"])
+        print(f"[dd0 s3b] {arm} as_meant {t.get('as_meant')} / 300 (at landing {S3B_AS_MEANT[arm]})")
+
+    def test_the_s3b_records_are_the_judges_own_reading(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "unrehearsed_census_for_dd0_s3b", REPO_ROOT / "tools" / "unrehearsed_census.py")
+        census = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(census)
+        for path in (KEYLESS_S3B, KEYED_S3B):
+            for r in _load(path)["rows"]:
+                assert census.classify_order(r.get("intended") or {}, r) == r["class"], r["line"]
+
+    def test_the_nine_rows_read_right_now(self):
+        """The nine the memo read as the parser's, on the fixed parser."""
+        by_line = {r["line"]: r for r in _load(KEYLESS_S3B)["rows"]}
+        for line in ("Ney, attack Davout", "Ney, Davout, Soult, everyone — attack everything",
+                     "Ney, attack Mack and also do not attack Mack"):
+            assert by_line[line]["class"] in ("refused_as_meant",), (line, by_line[line]["class"])
+        # The six misreads: the READING is right on the trace's parse row
+        # (the board may still refuse — Dresden is a neutral's, Franconia is
+        # not ours — and that refusal is the board's, not the parser's).
+        want = {
+            "Davout, go to Gelderland and wait there": {"action": "move", "target": "Gelderland"},
+            "Bernadotte, go to Berlin — no wait, Dresden": {"action": "move", "target": "Dresden"},
+            "Murat, ride to Lannes' aid": {"strategic_type": "SUPPORT", "target": "Lannes"},
+            "Bernadotte, drop off a few battalions to hold Franconia": {"action": "garrison"},
+            "what's in Tyrol? Massena, find out": {"action": "status", "dropped_sequel": "Massena, find out"},
+            "War with Portugal. Inform their ambassador.": {"action": "diplomatic_declare_war"},
+        }
+        for line, keys in want.items():
+            row = by_line[line]
+            parsed = next((r["detail"] for r in row["parse_trace"]
+                           if r["stage"] == "parse" and r["rule"] == "result"), {})
+            for k, v in keys.items():
+                assert parsed.get(k) == v, (line, k, parsed)
+            assert row["class"] not in ("misread", "executed_when_refusal_meant", "shrug"), (line, row["class"])

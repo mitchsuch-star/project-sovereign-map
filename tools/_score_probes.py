@@ -1316,7 +1316,7 @@ ACTION_WORDS = {
     "fortify": r"fortif",
     "unfortify": r"unfortif|breaks? camp|abandons? (the )?works",
     "drill": r"drill",
-    "retreat": r"retreat|falls? back|withdraw|begins march|moves? to",
+    "retreat": r"retreat|falls? back|withdraw|begins march|moves? (?:to|from)",
     "recruit": r"recruit|levy|raises|substitut",
     "substitutes": r"substitut",
     "build": r"build|construct|laid|depot|training ground|fort",
@@ -1331,7 +1331,7 @@ ACTION_WORDS = {
     "naval_posture": r"fleet|posture|blockade|guard home|sortie|Admiralty",
     "naval_land": r"transport|land|expedition|lift|descent|ashore|ports",
     "naval_diversion": r"diversion",
-    "diplomacy": r"Talleyrand|proposal|mission|envoy|guarantee|sponsor|departs|relations|court|state of Europe|"
+    "diplomacy": r"Talleyrand|proposal|mission|envoy|guarantee|sponsor|departs|relations|court|state of Europe|conduct diplomacy|"
                  r"Sire,.*(peace|alliance|terms|tribute|design)",
     "declare_war": r"declar|war",
     "break_treaty": r"break|treaty|tears? up",
@@ -1382,14 +1382,27 @@ BOARD_GATE_RX = re.compile(
     # `as_meant`), so the town refusal is matched by its own words and that
     # record re-reads unchanged.
     r"raises its levy where it stands|town regions don't support buildings|is not in danger|"
-    r"We can only arm the grievance",
+    r"We can only arm the grievance|"
+    # DD0-8 (October 10, 2026): the third blind set's board refusals this
+    # judge could not read — the Admiralty's rule, a court that cannot be
+    # vassalized, a province we do not control, a corps that is not cavalry,
+    # a marshal of our own named as the foe. Grepped against the three
+    # committed census records first (none appears) and the score archive's
+    # HOLD arm re-read identical after.
+    r"takes its orders from the Emperor|Cannot vassalize|We do not control|is not cavalry|"
+    r"will not attack our own",
     re.I,
 )
 # ASKED_RX: the game asked before acting (a clarification, an objection).
 ASKED_RX = re.compile(
     r"Which marshal|which marshal should act|Name the marshal|Whom did you intend|Did you mean|How shall I proceed|"
     r"Your orders\?|raises concerns|firmly objects|objects:|Shall I|One order at a time|"
-    r"Whose household|Where shall|Which province|Name the province",
+    r"Whose household|Where shall|Which province|Name the province|"
+    # DD0-8 (October 10, 2026): an objection's "challenges the order", the
+    # bare attack's "shall we engage", "whom shall … engage", the cabinet's
+    # "which nation", "Attack whom" and "Which is it to be".
+    r"challenges the order|shall we engage|whom shall \w+ engage|which nation|Attack whom|"
+    r"Which is it to be",
     re.I,
 )
 # REFUSED_RX: the game could not read the line and said so (spending nothing).
@@ -1397,7 +1410,10 @@ REFUSED_RX = re.compile(
     r"cannot interpret|await clear|Cannot find|not found|eludes me|cannot parse|instruction is unclear|"
     r"in the order of battle|await your instructions|could not make out a destination|contingency, not an order|"
     r"I do not find|cannot determine|cannot make sense|then no order goes out|relayed nothing|appears in no roster|"
-    r"I confess myself",
+    # DD0-8 (October 10, 2026): "Charge requires a marshal", "I need a marshal and an action".
+    r"requires a marshal|I need a marshal and an action|"
+    # S3b: the live model's own words — "I must confess myself quite bewildered"
+    r"confess myself",
     re.I,
 )
 MISREAD_RX = REFUSED_RX  # the HOLD reader's older name

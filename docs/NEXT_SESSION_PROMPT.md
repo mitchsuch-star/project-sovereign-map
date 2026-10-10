@@ -1,9 +1,11 @@
 # NEXT SESSION PROMPT — Pre-Deploy S4: DD-0 "The Command Road", the structural fix
 
 > Overwritten each time a session hands off. Current hand-off: **October 10,
-> 2026, after DD-0 S3 the instrument landed** (the parse trace + the typed
-> `why`, the metamorphic corpus, the third blind author set; landing record
-> `PRE_DEPLOY_PLAN.md` §3.0 "DD-0 S3 landing record"). S4 — the structural
+> 2026, after DD-0 S3 the instrument landed AND S3b fixed its findings the
+> same day** (the parse trace + the typed `why`, the metamorphic corpus, the
+> third blind author set; then DD0-1 … DD0-8 fixed, DD0-9 / 10 half — landing
+> record `PRE_DEPLOY_PLAN.md` §3.0 "DD-0 S3 landing record" + "S3b"; rules
+> `SYSTEMS_REFERENCE.md` §100–§103). S4 — the structural
 > fix — has NOT started, and **the user's review pause is here, before S4**
 > (it rewrites the parser's spine). Routing authority: `docs/PRE_DEPLOY_PLAN.md`
 > §2 (the order) and §3.0 (DD-0's contract + "S4 takes"); `docs/STATUS.md`
@@ -21,7 +23,7 @@
   - **The parse trace** (`backend/ai/parse_trace.py`; rules `SYSTEMS_REFERENCE.md` §100): one contextvar per `/command`, opened at `execute_command`'s door, closed by `build_base_response` on every reply road, hooked at 60-odd sites (`main.py`, `parser.py`, `llm_client.py`, `strategic_parser.py`, `executor.py`, the recruit arm, the auto scout). `"trace": true` on the request or `SOVEREIGN_PARSE_TRACE=1` puts `parse_trace` on the wire; the typed `why` prints the last line's reading. **Use it first on every row below** — `tools/metamorphic_census.py --show <id>` and the census records' `parse_trace` field already carry the diagnosis.
   - **The metamorphic corpus** (`backend/ai/parser_metamorphic.py`, `tools/metamorphic_census.py`; §101): 2,100 cases from the 128 order rows, **161 in the ledger** `tests/data/metamorphic_known_failures.json` (the flip families all hold). The harness `tests/test_dd0_metamorphic_corpus.py` is a ratchet: no failure outside the ledger, the count only falls; rewrite the ledger ONLY with `--write-ledger` after a fix.
   - **The third blind set** (`tools/playtest_scripts/unrehearsed_2026_10_10_third.json`, never edited; §102): keyless 137 / keyed 152 of 300 as meant; records `docs/audits/unrehearsed/2026_10_10_third_{keyless,keyed}.json` with a trace per row; pins `tests/test_dd0_third_blind_set.py` (the dangerous classes lower-only; the three real executions by line).
-  - **The findings:** `BUG_FIXES.md` §DD-0 S3, **DD0-1 … DD0-10**, all owned by S4 — DD0-1 (an attack on our own marshal attacks the nearest enemy), DD0-2 (a `wait` anywhere outranks the march — SFR-D9's class), DD0-3 (the possessive name unread), DD0-4 (the garrison idiom is a HOLD), DD0-5 (a question's trailing order dropped), DD0-6 (a declaration as an advisory), DD0-7 (a contradiction fights), DD0-8 (the judge's ten unknown shapes), DD0-9 (the keyless shrugs), DD0-10 (the honest refusals + the ledger's classes).
+  - **The findings, FIXED in S3b** (`SYSTEMS_REFERENCE.md` §103; pins `tests/test_dd0_s3b_the_fixes.py`; `backend/ai/dd0_rewrites.py` = the pre-parse rewrites, first in `CommandParser.parse`, each on the trace): DD0-1 … DD0-8 closed; **DD0-9 and DD0-10 HALF FIXED** — their remainder is S4's: the six keyless shrugs (the rhetoric — *"gave Mack a bloody nose"*, *"Ney, at him"*, *"hit the Austrians"* (a demonym as the foe), *"run down Mack's guns with the cavalry"*, *"stand behind Ney, Davout, in case …"*, the bench question) and the **30 ledger rows** (the comma aside `, the men are rested`, the bare verb with a trailing name `retire, Ney`, the `take <province>` / `stand your ground` heads under a second name, the typo position `someone attcak`). **Measured after S3b on the same blind file (fresh records `…_s3b.json`): keyless 162 / 300 as meant, shrugs 6, 0 misread, 0 executed-other-than-meant; keyed 170, 0 / 0.** The ≥ 85 % is still read on a FRESH set (a fourth author) — this file is now rehearsed by its own fixes.
 - **Open with the user:** UXR-4 (the eyes-on sign-off at 5120×1440); EG-D1 … EG-D3 (`docs/DESIGN_REFINEMENT.md` §The Economy Audit).
 
 **Build in this order.**
