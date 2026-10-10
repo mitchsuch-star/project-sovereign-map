@@ -9559,4 +9559,20 @@ closed (two — D25, D38 — had been closed by the relay and are pinned). The o
 left is `Ney, hit the Austrians` — the live parser's phrasing by IQ-9's gate. The ≥ 85 % done-when is read on a FRESH set by a fourth
 author, never this file. **The HOLD arm re-read on this tree: 18 of 20 orders as meant (12 at the last reading, October 5) — past the done-when's floor (≥ 17) and at the checklist item's own bar (≥ 18)**; `tools/hold_arm_reread.py` drives the committed blind HOLD script through the driver as `score_run run` does and reads the digest with the ONE reader. The two misses: `Tell Massena to fortfy at Milan in case …` (read right — Massena OBJECTS, which the reader does not count as done) and `Could Soult drill his corps today?` (a question — SFR-H4, SF-RR2's). SFR-H7's third line, `Buy substitutes to fill out Ney's ranks`, read 17 → 18 once the substitutes desk named the man (`We do not hold Swabia, Sire — Ney stands there, …`). `Have Davout head over to Lorraine and dig in there` is read as meant: the exit predicate refused by name — Davout had been mustered into Swabia by Lannes's attack on turn 1.
 The spine split (`_parse_with_mock_chain` / `_execute_one` along the trace's stages)
-and the fresh set are S4's next commits.
+is S4's next commit.
+
+**The fourth set — the done-when read, NOT met (part 2, the same day).** A fourth
+blind author (an agent that used no tool) wrote 300 orders from the boot screen's
+facts; keyless **119 of 300 as meant (39.7 %), 33 shrugs**; keyed 134 (54 live
+parses). By hand: two real executions (`… eyes only, no fighting.` FOUGHT — the
+guards read *do not / never*, not a bare *no <noun>*, DD0-11; a declaration relayed
+through the Cabinet became a charm mission, DD0-12), one wrong order on the desk
+(the epithet under a modal, DD0-13), two dropped halves behind a question (DD0-14),
+one disclosed substitution (the retreat road's safe province, said), five honest
+refusals in shapes the judge does not know. The shrugs are the march register's
+idioms (DD0-15), the attack register (DD0-16), the desks' (DD0-17). Memo
+`docs/audits/UNREHEARSED_CENSUS_2026_10_10_FOURTH.md`; pins
+`tests/test_dd0_fourth_blind_set.py` assert the done-when NOT met so that it is
+re-seated on purpose. The rule the measurement teaches: a rehearsed file (the third
+set, 177 on this tree) and a fresh author (119) are two different instruments, and
+only the fresh one reads the done-when.
