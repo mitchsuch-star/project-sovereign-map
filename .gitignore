@@ -95,3 +95,15 @@ audition/
 # The release build's stamp (PB-4) is written by tools/build_stamp.py at
 # build time and shipped inside the frozen server; never committed.
 deploy/build_stamp.json
+
+# Score-run archives (CODE-4 "the docs diet", October 9, 2026): a reading's
+# run.json, checklist, scores, digests, the AI-V summary and the handful of
+# frames its landing record names are COMMITTED; the regenerable bulk is not.
+# Every path below is rebuilt by `tools/score_run.py run` / `tools/ai_v_sweep.py`
+# / `tools/iq10_run_captures.py` from the committed run.json and seed. A frame
+# a landing record names is force-added (`git add -f`), like `assets/` today.
+docs/audits/score_runs/**/_probe_saves/
+docs/audits/score_runs/**/arms/AIV/arm*.json
+docs/audits/score_runs/**/arms/CLI/
+docs/audits/score_runs/**/attribution/
+docs/audits/score_runs/**/frames/

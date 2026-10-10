@@ -24,6 +24,7 @@ landing contract for each row is a stable, machine-readable promise.
 
 from __future__ import annotations
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import pathlib
 import re
 from typing import List
@@ -227,7 +228,7 @@ def test_dwl_dip_conference_remains_superseded_in_status():
     If a future Congress System is designed, it ships as its own spec
     with its own DWL row — never by reactivating the superseded one.
     """
-    status_text = STATUS_PATH.read_text(encoding="utf-8")
+    status_text = doc_text("STATUS.md")
     assert "DWL-DIP-CONFERENCE" in status_text, (
         "STATUS.md no longer mentions DWL-DIP-CONFERENCE. Sub-ledger D5 "
         "requires the row to remain SUPERSEDED."

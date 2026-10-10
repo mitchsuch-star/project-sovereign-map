@@ -55,6 +55,7 @@ income, stability, upkeep or turn advance), so its greenness is not evidence
 here. `BASELINE_SERIES` is the instrument.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import ast
 import json
 import pathlib
@@ -915,7 +916,7 @@ class TestTheContractIsNotStale:
         §0.5.3's lesson a third time, so it is a census now: every surviving
         mention of the retired figure must be inside a CORRECTION note, never
         stated as the criterion."""
-        status = (REPO / "docs/STATUS.md").read_text(encoding="utf-8")
+        status = doc_text("STATUS.md")
         lines = status.splitlines()
         offenders = []
         for i, line in enumerate(lines):
@@ -944,7 +945,8 @@ class TestTheContractIsNotStale:
                     "tools/playtest_scripts/commanded_spender40.json",
                     "docs/IMPROVEMENT_QUEUE_SPEC.md",
                     "docs/STATUS.md"):
-            lines = (REPO / rel).read_text(encoding="utf-8").splitlines()
+            lines = (doc_text(rel) if rel == "docs/STATUS.md"
+                     else (REPO / rel).read_text(encoding="utf-8")).splitlines()
             for i, line in enumerate(lines):
                 if "18,537" not in line:
                     continue

@@ -1,0 +1,2230 @@
+{
+ "arm_a": {
+  "byte_identical": true
+ },
+ "arm_b": {
+  "baseline_signature": {
+   "ai_war_count": 1,
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "eliminations": [
+    [
+     7,
+     "Bavaria"
+    ],
+    [
+     14,
+     "KingdomOfItaly"
+    ],
+    [
+     34,
+     "Holland"
+    ]
+   ],
+   "first_fight_turn": {
+    "Austria": 2,
+    "Bavaria": 4,
+    "Britain": 2,
+    "Hanover": 11,
+    "Prussia": 9,
+    "Russia": 2,
+    "Sardinia": 21,
+    "Sweden": 2
+   },
+   "war_turns": [
+    9,
+    17
+   ]
+  },
+  "seeds": {
+   "austerlitz": {
+    "boot_differs": true,
+    "differs_on": [
+     "courts_at_fight",
+     "eliminations",
+     "first_fight_turn",
+     "war_turns"
+    ],
+    "signature": {
+     "ai_war_count": 1,
+     "courts_at_fight": [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Hanover",
+      "Prussia",
+      "Russia",
+      "Sweden"
+     ],
+     "eliminations": [
+      [
+       4,
+       "Bavaria"
+      ],
+      [
+       13,
+       "KingdomOfItaly"
+      ]
+     ],
+     "first_fight_turn": {
+      "Austria": 2,
+      "Bavaria": 3,
+      "Britain": 2,
+      "Hanover": 11,
+      "Prussia": 9,
+      "Russia": 2,
+      "Sweden": 2
+     },
+     "war_turns": [
+      9,
+      16
+     ]
+    },
+    "signature_differs": true,
+    "weight_series_differ": true
+   },
+   "jena": {
+    "boot_differs": true,
+    "differs_on": [
+     "first_fight_turn"
+    ],
+    "signature": {
+     "ai_war_count": 1,
+     "courts_at_fight": [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Hanover",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Sweden"
+     ],
+     "eliminations": [
+      [
+       7,
+       "Bavaria"
+      ],
+      [
+       14,
+       "KingdomOfItaly"
+      ],
+      [
+       34,
+       "Holland"
+      ]
+     ],
+     "first_fight_turn": {
+      "Austria": 2,
+      "Bavaria": 4,
+      "Britain": 2,
+      "Hanover": 11,
+      "Prussia": 9,
+      "Russia": 2,
+      "Sardinia": 10,
+      "Sweden": 2
+     },
+     "war_turns": [
+      9,
+      17
+     ]
+    },
+    "signature_differs": true,
+    "weight_series_differ": true
+   },
+   "ulm": {
+    "boot_differs": true,
+    "differs_on": [
+     "eliminations",
+     "first_fight_turn",
+     "war_turns"
+    ],
+    "signature": {
+     "ai_war_count": 1,
+     "courts_at_fight": [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Hanover",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Sweden"
+     ],
+     "eliminations": [
+      [
+       4,
+       "Bavaria"
+      ],
+      [
+       13,
+       "KingdomOfItaly"
+      ]
+     ],
+     "first_fight_turn": {
+      "Austria": 2,
+      "Bavaria": 3,
+      "Britain": 2,
+      "Hanover": 11,
+      "Prussia": 9,
+      "Russia": 2,
+      "Sardinia": 10,
+      "Sweden": 2
+     },
+     "war_turns": [
+      9,
+      16
+     ]
+    },
+    "signature_differs": true,
+    "weight_series_differ": true
+   }
+  }
+ },
+ "arm_c": {
+  "00_historical_k10000": {
+   "agenda_shifts": 7,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 14,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.948,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    17
+   ]
+  },
+  "01_ulm_k17919": {
+   "agenda_shifts": 7,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 14,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 10
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.948,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    24
+   ]
+  },
+  "02_austerlitz_k25838": {
+   "agenda_shifts": 8,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 16,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.956,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    19
+   ]
+  },
+  "03_jena_k33757": {
+   "agenda_shifts": 7,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 14,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 4
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.956,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9
+   ]
+  },
+  "04_marengo_k41676": {
+   "agenda_shifts": 8,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 16,
+    "coercive_demand": 2,
+    "crisis_brewing": 4,
+    "crisis_passed": 2,
+    "design_promoted": 4,
+    "third_party_peace": 4
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "crisis_passed": 1,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.955,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    12
+   ]
+  },
+  "05_eylau_k49595": {
+   "agenda_shifts": 7,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 14,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 4
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.942,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    11
+   ]
+  },
+  "06_friedland_k57514": {
+   "agenda_shifts": 7,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 14,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.955,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    15
+   ]
+  },
+  "07_wagram_k65433": {
+   "agenda_shifts": 8,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 16,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.948,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    12
+   ]
+  },
+  "08_lodi_k73352": {
+   "agenda_shifts": 9,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 18,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sardinia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.942,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    17
+   ]
+  },
+  "09_rivoli_k81271": {
+   "agenda_shifts": 7,
+   "ai_wars": 1,
+   "beats": {
+    "agenda_shift": 14,
+    "coercive_demand": 2,
+    "crisis_brewing": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "courts_at_fight": [
+    "Austria",
+    "Bavaria",
+    "Britain",
+    "Hanover",
+    "Prussia",
+    "Russia",
+    "Sweden"
+   ],
+   "crisis_passed": 0,
+   "formations": [],
+   "promotions": 2,
+   "seam_wars": 0,
+   "soap_opera_share": 0.944,
+   "third_party_settlements": 1,
+   "volte_faces": 0,
+   "war_turns": [
+    9,
+    13
+   ]
+  }
+ },
+ "arm_scripted": {
+  "austerlitz": {
+   "beats": {
+    "agenda_shift": 24,
+    "broken_bargain": 4,
+    "coercive_demand": 2,
+    "crisis_brewing": 4,
+    "crisis_passed": 2,
+    "design_promoted": 2,
+    "third_party_peace": 6
+   },
+   "crisis_passed": [
+    {
+     "cause": "bought_off",
+     "design_id": "hanoverian_prize",
+     "last_soft_block": null,
+     "message": "Prussia stands down over Hanover \u2014 the design was bought off \u2014 compensation stands.",
+     "nation": "Prussia",
+     "target": "Hanover",
+     "turn": 4,
+     "type": "crisis_passed"
+    }
+   ],
+   "mirror_first_last": [
+    [
+     "fight",
+     67,
+     "Austria"
+    ],
+    [
+     "indifferent",
+     0,
+     "Austria"
+    ]
+   ],
+   "mirror_peak_weight": 81,
+   "proposals_to_france": 33,
+   "script_log": [
+    {
+     "message": "France sponsors Prussia's design against Hanover \u2014 100 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+     "step": "sponsor_design Prussia->Hanover 100g",
+     "success": true,
+     "turn": 0
+    },
+    {
+     "note": "staged",
+     "step": "stage Prussia|Hanover moment",
+     "turn": 1
+    },
+    {
+     "note": "war_intents[Prussia]={'coveter': 'Prussia', 'target': 'Hanover', 'design_id': 'hanoverian_prize', 'want_title': 'The Hanoverian Prize', 'opened_turn': 3, 'foregrounded': True, 'foregrounded_turn': 3, 'coerce_recorded_turn': None, 'treaty_broken_turn': None, 'opened_at_price': 'fight', 'buyoff_attemp",
+     "step": "crisis check before buy-off",
+     "turn": 2
+    },
+    {
+     "message": "Prussia's design \u2014 The Hanoverian Prize \u2014 is bought off for 1452 gold. Talleyrand: \"The want sleeps, Sire; it does not die. The bargain is a hostage we have given \u2014 renege on it and it returns the heavier.\"",
+     "step": "buy_off_design Prussia (live crisis)",
+     "success": true,
+     "turn": 2
+    },
+    {
+     "message": "France declares war on Prussia! Spain enters the war against Prussia, honoring alliance with France! Holland follows France into the war against Prussia! KingdomOfItaly follows France into the war against Prussia! Switzerland follows France into the war against Prussia!",
+     "step": "renege: France declares war on Prussia",
+     "success": true,
+     "turn": 3
+    },
+    {
+     "message": "France guarantees Hanover. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire \u2014 if it is tested and we do not march, all Europe will know what our word weighs.\"",
+     "step": "guarantee_nation Hanover",
+     "success": true,
+     "turn": 4
+    },
+    {
+     "message": "Talleyrand: \"We are at WAR with Russia, Sire \u2014 one does not bankroll the court one is fighting.\"",
+     "step": "outbid verb attempt on Russia",
+     "success": false,
+     "turn": 9
+    },
+    {
+     "message": "",
+     "step": "outbid bid staged at seam for Russia",
+     "success": true,
+     "turn": 9
+    },
+    {
+     "note": "members=['Holland', 'KingdomOfItaly', 'Switzerland']",
+     "step": "continental system closed",
+     "turn": 10
+    },
+    {
+     "note": "staged",
+     "step": "stage courted defeat (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=80 rel=45 soil=[]",
+     "step": "volte watch",
+     "turn": 11
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'agenda_pursuit', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 12
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=44 soil=[]",
+     "step": "volte watch",
+     "turn": 12
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 13
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=43 soil=[]",
+     "step": "volte watch",
+     "turn": 13
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 14
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=42 soil=[]",
+     "step": "volte watch",
+     "turn": 14
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 15
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=41 soil=[]",
+     "step": "volte watch",
+     "turn": 15
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 16
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=40 soil=[]",
+     "step": "volte watch",
+     "turn": 16
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 17
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=39 soil=[]",
+     "step": "volte watch",
+     "turn": 17
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 18
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 19
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 20
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 21
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 22
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 23
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 24
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 25
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 26
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 27
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 28
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 29
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 30
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 31
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 32
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 33
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 34
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 35
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 36
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 37
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 38
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 39
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 40
+    }
+   ],
+   "volte_faces": 0
+  },
+  "austerlitz/soil": {
+   "beats": {
+    "agenda_shift": 28,
+    "broken_bargain": 4,
+    "coercive_demand": 2,
+    "crisis_brewing": 4,
+    "crisis_passed": 2,
+    "design_promoted": 6,
+    "third_party_peace": 8,
+    "volte_face": 1
+   },
+   "crisis_passed": [
+    {
+     "cause": "bought_off",
+     "design_id": "hanoverian_prize",
+     "last_soft_block": null,
+     "message": "Prussia stands down over Hanover \u2014 the design was bought off \u2014 compensation stands.",
+     "nation": "Prussia",
+     "target": "Hanover",
+     "turn": 4,
+     "type": "crisis_passed"
+    }
+   ],
+   "mirror_first_last": [
+    [
+     "fight",
+     67,
+     "Austria"
+    ],
+    [
+     "indifferent",
+     0,
+     "Austria"
+    ]
+   ],
+   "mirror_peak_weight": 81,
+   "proposals_to_france": 23,
+   "script_log": [
+    {
+     "message": "France sponsors Prussia's design against Hanover \u2014 100 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+     "step": "sponsor_design Prussia->Hanover 100g",
+     "success": true,
+     "turn": 0
+    },
+    {
+     "note": "staged",
+     "step": "stage Prussia|Hanover moment",
+     "turn": 1
+    },
+    {
+     "note": "war_intents[Prussia]={'coveter': 'Prussia', 'target': 'Hanover', 'design_id': 'hanoverian_prize', 'want_title': 'The Hanoverian Prize', 'opened_turn': 3, 'foregrounded': True, 'foregrounded_turn': 3, 'coerce_recorded_turn': None, 'treaty_broken_turn': None, 'opened_at_price': 'fight', 'buyoff_attemp",
+     "step": "crisis check before buy-off",
+     "turn": 2
+    },
+    {
+     "message": "Prussia's design \u2014 The Hanoverian Prize \u2014 is bought off for 1452 gold. Talleyrand: \"The want sleeps, Sire; it does not die. The bargain is a hostage we have given \u2014 renege on it and it returns the heavier.\"",
+     "step": "buy_off_design Prussia (live crisis)",
+     "success": true,
+     "turn": 2
+    },
+    {
+     "message": "France declares war on Prussia! Spain enters the war against Prussia, honoring alliance with France! Holland follows France into the war against Prussia! KingdomOfItaly follows France into the war against Prussia! Switzerland follows France into the war against Prussia!",
+     "step": "renege: France declares war on Prussia",
+     "success": true,
+     "turn": 3
+    },
+    {
+     "message": "France guarantees Hanover. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire \u2014 if it is tested and we do not march, all Europe will know what our word weighs.\"",
+     "step": "guarantee_nation Hanover",
+     "success": true,
+     "turn": 4
+    },
+    {
+     "message": "Talleyrand: \"We are at WAR with Russia, Sire \u2014 one does not bankroll the court one is fighting.\"",
+     "step": "outbid verb attempt on Russia",
+     "success": false,
+     "turn": 9
+    },
+    {
+     "message": "",
+     "step": "outbid bid staged at seam for Russia",
+     "success": true,
+     "turn": 9
+    },
+    {
+     "note": "members=['Holland', 'KingdomOfItaly', 'Switzerland']",
+     "step": "continental system closed",
+     "turn": 10
+    },
+    {
+     "note": "staged",
+     "step": "stage courted defeat (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "Lithuania: Russia -> France; lost_homeland=['Lithuania']",
+     "step": "stage soil mark (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "receptive=True pending=False state=PEACE we=80 rel=45 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 11
+    },
+    {
+     "note": "{'proposal_type': 'alliance', 'decision_reason': 'volte_face', 'priority': 8, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 12
+    },
+    {
+     "message": "Warning: Accepting Alliance with Russia would conflict with our war against Britain, Austria. Russia has existing alliance obligations to Britain, Austria.",
+     "step": "accept volte-face (incoming_proposal)",
+     "success": true,
+     "turn": 12
+    },
+    {
+     "message": "You have accepted Russia's proposal. Treaty signed: Peace \u2192 Alliance with Russia.",
+     "step": "accept volte-face (conflict_alert)",
+     "success": true,
+     "turn": 12
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=None rel=44 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 12
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 13
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=None rel=43 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 13
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 14
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=None rel=42 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 14
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 15
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=41 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 15
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 16
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=40 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 16
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 17
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=39 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 17
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 18
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 19
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 20
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 21
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 22
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 23
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 24
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 25
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 26
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 27
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 28
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 29
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 30
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 31
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 32
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 33
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 34
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 35
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 36
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 37
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 38
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 39
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 40
+    }
+   ],
+   "volte_faces": 1
+  },
+  "historical": {
+   "beats": {
+    "agenda_shift": 20,
+    "broken_bargain": 4,
+    "crisis_brewing": 4,
+    "crisis_passed": 4,
+    "design_promoted": 2,
+    "third_party_peace": 6
+   },
+   "crisis_passed": [
+    {
+     "cause": "bought_off",
+     "design_id": "hanoverian_prize",
+     "last_soft_block": null,
+     "message": "Prussia stands down over Hanover \u2014 the design was bought off \u2014 compensation stands.",
+     "nation": "Prussia",
+     "target": "Hanover",
+     "turn": 4,
+     "type": "crisis_passed"
+    },
+    {
+     "cause": "satisfied",
+     "design_id": "gulf_and_straits",
+     "last_soft_block": null,
+     "message": "Russia stands down over Sweden \u2014 the design is satisfied \u2014 the want is won.",
+     "nation": "Russia",
+     "target": "Sweden",
+     "turn": 23,
+     "type": "crisis_passed"
+    }
+   ],
+   "mirror_first_last": [
+    [
+     "fight",
+     68,
+     "Austria"
+    ],
+    [
+     "indifferent",
+     0,
+     null
+    ]
+   ],
+   "mirror_peak_weight": 82,
+   "proposals_to_france": 37,
+   "script_log": [
+    {
+     "message": "France sponsors Prussia's design against Hanover \u2014 100 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+     "step": "sponsor_design Prussia->Hanover 100g",
+     "success": true,
+     "turn": 0
+    },
+    {
+     "note": "staged",
+     "step": "stage Prussia|Hanover moment",
+     "turn": 1
+    },
+    {
+     "note": "war_intents[Prussia]={'coveter': 'Prussia', 'target': 'Hanover', 'design_id': 'hanoverian_prize', 'want_title': 'The Hanoverian Prize', 'opened_turn': 3, 'foregrounded': True, 'foregrounded_turn': 3, 'coerce_recorded_turn': None, 'treaty_broken_turn': None, 'opened_at_price': 'fight', 'buyoff_attemp",
+     "step": "crisis check before buy-off",
+     "turn": 2
+    },
+    {
+     "message": "Prussia's design \u2014 The Hanoverian Prize \u2014 is bought off for 1452 gold. Talleyrand: \"The want sleeps, Sire; it does not die. The bargain is a hostage we have given \u2014 renege on it and it returns the heavier.\"",
+     "step": "buy_off_design Prussia (live crisis)",
+     "success": true,
+     "turn": 2
+    },
+    {
+     "message": "France declares war on Prussia! Spain enters the war against Prussia, honoring alliance with France! Bavaria enters the war against Prussia, honoring alliance with France! Holland follows France into the war against Prussia! KingdomOfItaly follows France into the war against Prussia! Switzerland fol",
+     "step": "renege: France declares war on Prussia",
+     "success": true,
+     "turn": 3
+    },
+    {
+     "message": "France guarantees Hanover. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire \u2014 if it is tested and we do not march, all Europe will know what our word weighs.\"",
+     "step": "guarantee_nation Hanover",
+     "success": true,
+     "turn": 4
+    },
+    {
+     "message": "Talleyrand: \"We are at WAR with Russia, Sire \u2014 one does not bankroll the court one is fighting.\"",
+     "step": "outbid verb attempt on Russia",
+     "success": false,
+     "turn": 9
+    },
+    {
+     "message": "",
+     "step": "outbid bid staged at seam for Russia",
+     "success": true,
+     "turn": 9
+    },
+    {
+     "note": "members=['Holland', 'KingdomOfItaly', 'Switzerland']",
+     "step": "continental system closed",
+     "turn": 10
+    },
+    {
+     "note": "staged",
+     "step": "stage courted defeat (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=80 rel=45 soil=[]",
+     "step": "volte watch",
+     "turn": 11
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'agenda_pursuit', 'priority': 3, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 12
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=75 rel=44 soil=[]",
+     "step": "volte watch",
+     "turn": 12
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'agenda_pursuit', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 13
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=43 soil=[]",
+     "step": "volte watch",
+     "turn": 13
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'agenda_pursuit', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 14
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=42 soil=[]",
+     "step": "volte watch",
+     "turn": 14
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 15
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=41 soil=[]",
+     "step": "volte watch",
+     "turn": 15
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 16
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=40 soil=[]",
+     "step": "volte watch",
+     "turn": 16
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 17
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=39 soil=[]",
+     "step": "volte watch",
+     "turn": 17
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 18
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 19
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 20
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 21
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 22
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 23
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 24
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 25
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 26
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 27
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 28
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 29
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 30
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 31
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 32
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 33
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 34
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 35
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 36
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 37
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 38
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 39
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 40
+    }
+   ],
+   "volte_faces": 0
+  },
+  "historical/soil": {
+   "beats": {
+    "agenda_shift": 24,
+    "broken_bargain": 4,
+    "coercive_demand": 2,
+    "crisis_brewing": 4,
+    "crisis_passed": 2,
+    "design_promoted": 4,
+    "third_party_peace": 8,
+    "volte_face": 1
+   },
+   "crisis_passed": [
+    {
+     "cause": "bought_off",
+     "design_id": "hanoverian_prize",
+     "last_soft_block": null,
+     "message": "Prussia stands down over Hanover \u2014 the design was bought off \u2014 compensation stands.",
+     "nation": "Prussia",
+     "target": "Hanover",
+     "turn": 4,
+     "type": "crisis_passed"
+    }
+   ],
+   "mirror_first_last": [
+    [
+     "fight",
+     68,
+     "Austria"
+    ],
+    [
+     "indifferent",
+     0,
+     "Austria"
+    ]
+   ],
+   "mirror_peak_weight": 82,
+   "proposals_to_france": 28,
+   "script_log": [
+    {
+     "message": "France sponsors Prussia's design against Hanover \u2014 100 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+     "step": "sponsor_design Prussia->Hanover 100g",
+     "success": true,
+     "turn": 0
+    },
+    {
+     "note": "staged",
+     "step": "stage Prussia|Hanover moment",
+     "turn": 1
+    },
+    {
+     "note": "war_intents[Prussia]={'coveter': 'Prussia', 'target': 'Hanover', 'design_id': 'hanoverian_prize', 'want_title': 'The Hanoverian Prize', 'opened_turn': 3, 'foregrounded': True, 'foregrounded_turn': 3, 'coerce_recorded_turn': None, 'treaty_broken_turn': None, 'opened_at_price': 'fight', 'buyoff_attemp",
+     "step": "crisis check before buy-off",
+     "turn": 2
+    },
+    {
+     "message": "Prussia's design \u2014 The Hanoverian Prize \u2014 is bought off for 1452 gold. Talleyrand: \"The want sleeps, Sire; it does not die. The bargain is a hostage we have given \u2014 renege on it and it returns the heavier.\"",
+     "step": "buy_off_design Prussia (live crisis)",
+     "success": true,
+     "turn": 2
+    },
+    {
+     "message": "France declares war on Prussia! Spain enters the war against Prussia, honoring alliance with France! Bavaria enters the war against Prussia, honoring alliance with France! Holland follows France into the war against Prussia! KingdomOfItaly follows France into the war against Prussia! Switzerland fol",
+     "step": "renege: France declares war on Prussia",
+     "success": true,
+     "turn": 3
+    },
+    {
+     "message": "France guarantees Hanover. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire \u2014 if it is tested and we do not march, all Europe will know what our word weighs.\"",
+     "step": "guarantee_nation Hanover",
+     "success": true,
+     "turn": 4
+    },
+    {
+     "message": "Talleyrand: \"We are at WAR with Russia, Sire \u2014 one does not bankroll the court one is fighting.\"",
+     "step": "outbid verb attempt on Russia",
+     "success": false,
+     "turn": 9
+    },
+    {
+     "message": "",
+     "step": "outbid bid staged at seam for Russia",
+     "success": true,
+     "turn": 9
+    },
+    {
+     "note": "members=['Holland', 'KingdomOfItaly', 'Switzerland']",
+     "step": "continental system closed",
+     "turn": 10
+    },
+    {
+     "note": "staged",
+     "step": "stage courted defeat (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "Lithuania: Russia -> France; lost_homeland=['Lithuania']",
+     "step": "stage soil mark (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "receptive=True pending=False state=PEACE we=80 rel=45 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 11
+    },
+    {
+     "note": "{'proposal_type': 'alliance', 'decision_reason': 'volte_face', 'priority': 8, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 12
+    },
+    {
+     "message": "Warning: Accepting Alliance with Russia would conflict with our war against Britain, Austria. Russia has existing alliance obligations to Britain, Austria.",
+     "step": "accept volte-face (incoming_proposal)",
+     "success": true,
+     "turn": 12
+    },
+    {
+     "message": "You have accepted Russia's proposal. Treaty signed: Peace \u2192 Alliance with Russia.",
+     "step": "accept volte-face (conflict_alert)",
+     "success": true,
+     "turn": 12
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=75 rel=44 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 12
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 13
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=43 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 13
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 14
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=42 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 14
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 15
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=41 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 15
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 16
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=40 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 16
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 17
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=39 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 17
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 18
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 19
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 20
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 21
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 22
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 23
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 24
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 25
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 26
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 27
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 28
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 29
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 30
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 31
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 32
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 33
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 34
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 35
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 36
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 37
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 38
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 39
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 40
+    }
+   ],
+   "volte_faces": 1
+  },
+  "ulm": {
+   "beats": {
+    "agenda_shift": 26,
+    "broken_bargain": 4,
+    "coercive_demand": 2,
+    "crisis_brewing": 4,
+    "crisis_passed": 2,
+    "design_promoted": 4,
+    "third_party_peace": 6
+   },
+   "crisis_passed": [
+    {
+     "cause": "bought_off",
+     "design_id": "hanoverian_prize",
+     "last_soft_block": null,
+     "message": "Prussia stands down over Hanover \u2014 the design was bought off \u2014 compensation stands.",
+     "nation": "Prussia",
+     "target": "Hanover",
+     "turn": 4,
+     "type": "crisis_passed"
+    }
+   ],
+   "mirror_first_last": [
+    [
+     "fight",
+     64,
+     "Austria"
+    ],
+    [
+     "indifferent",
+     0,
+     "Austria"
+    ]
+   ],
+   "mirror_peak_weight": 78,
+   "proposals_to_france": 38,
+   "script_log": [
+    {
+     "message": "France sponsors Prussia's design against Hanover \u2014 100 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+     "step": "sponsor_design Prussia->Hanover 100g",
+     "success": true,
+     "turn": 0
+    },
+    {
+     "note": "staged",
+     "step": "stage Prussia|Hanover moment",
+     "turn": 1
+    },
+    {
+     "note": "war_intents[Prussia]={'coveter': 'Prussia', 'target': 'Hanover', 'design_id': 'hanoverian_prize', 'want_title': 'The Hanoverian Prize', 'opened_turn': 3, 'foregrounded': True, 'foregrounded_turn': 3, 'coerce_recorded_turn': None, 'treaty_broken_turn': None, 'opened_at_price': 'fight', 'buyoff_attemp",
+     "step": "crisis check before buy-off",
+     "turn": 2
+    },
+    {
+     "message": "Prussia's design \u2014 The Hanoverian Prize \u2014 is bought off for 1452 gold. Talleyrand: \"The want sleeps, Sire; it does not die. The bargain is a hostage we have given \u2014 renege on it and it returns the heavier.\"",
+     "step": "buy_off_design Prussia (live crisis)",
+     "success": true,
+     "turn": 2
+    },
+    {
+     "message": "France declares war on Prussia! Spain enters the war against Prussia, honoring alliance with France! Holland follows France into the war against Prussia! KingdomOfItaly follows France into the war against Prussia! Switzerland follows France into the war against Prussia!",
+     "step": "renege: France declares war on Prussia",
+     "success": true,
+     "turn": 3
+    },
+    {
+     "message": "France guarantees Hanover. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire \u2014 if it is tested and we do not march, all Europe will know what our word weighs.\"",
+     "step": "guarantee_nation Hanover",
+     "success": true,
+     "turn": 4
+    },
+    {
+     "message": "Talleyrand: \"We are at WAR with Russia, Sire \u2014 one does not bankroll the court one is fighting.\"",
+     "step": "outbid verb attempt on Russia",
+     "success": false,
+     "turn": 9
+    },
+    {
+     "message": "",
+     "step": "outbid bid staged at seam for Russia",
+     "success": true,
+     "turn": 9
+    },
+    {
+     "note": "members=['Holland', 'KingdomOfItaly', 'Switzerland']",
+     "step": "continental system closed",
+     "turn": 10
+    },
+    {
+     "note": "staged",
+     "step": "stage courted defeat (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=80 rel=45 soil=[]",
+     "step": "volte watch",
+     "turn": 11
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'agenda_pursuit', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 12
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=44 soil=[]",
+     "step": "volte watch",
+     "turn": 12
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 5, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 13
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=43 soil=[]",
+     "step": "volte watch",
+     "turn": 13
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 14
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=42 soil=[]",
+     "step": "volte watch",
+     "turn": 14
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 15
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=41 soil=[]",
+     "step": "volte watch",
+     "turn": 15
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 16
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=40 soil=[]",
+     "step": "volte watch",
+     "turn": 16
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 17
+    },
+    {
+     "note": "receptive=False pending=False state=PEACE we=None rel=39 soil=[]",
+     "step": "volte watch",
+     "turn": 17
+    },
+    {
+     "note": "{'proposal_type': 'open_borders', 'decision_reason': 'hegemony_pressure', 'priority': 4, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 18
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 19
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 20
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 21
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 22
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 23
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 24
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 25
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 26
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 27
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 28
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 29
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 30
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 31
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 32
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 33
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 34
+    },
+    {
+     "note": "{'proposal_type': 'opportunistic', 'decision_reason': 'hegemony_pressure', 'priority': 7, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 35
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 36
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 37
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 38
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 39
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 40
+    }
+   ],
+   "volte_faces": 0
+  },
+  "ulm/soil": {
+   "beats": {
+    "agenda_shift": 30,
+    "broken_bargain": 4,
+    "coercive_demand": 2,
+    "crisis_brewing": 4,
+    "crisis_passed": 2,
+    "design_promoted": 4,
+    "third_party_peace": 8,
+    "volte_face": 1
+   },
+   "crisis_passed": [
+    {
+     "cause": "bought_off",
+     "design_id": "hanoverian_prize",
+     "last_soft_block": null,
+     "message": "Prussia stands down over Hanover \u2014 the design was bought off \u2014 compensation stands.",
+     "nation": "Prussia",
+     "target": "Hanover",
+     "turn": 4,
+     "type": "crisis_passed"
+    }
+   ],
+   "mirror_first_last": [
+    [
+     "fight",
+     64,
+     "Austria"
+    ],
+    [
+     "indifferent",
+     0,
+     "Austria"
+    ]
+   ],
+   "mirror_peak_weight": 78,
+   "proposals_to_france": 30,
+   "script_log": [
+    {
+     "message": "France sponsors Prussia's design against Hanover \u2014 100 gold per turn for 10 turns. Talleyrand: \"Their grievance now marches on our coin. Turning on them before it lapses would be reneging, Sire.\"",
+     "step": "sponsor_design Prussia->Hanover 100g",
+     "success": true,
+     "turn": 0
+    },
+    {
+     "note": "staged",
+     "step": "stage Prussia|Hanover moment",
+     "turn": 1
+    },
+    {
+     "note": "war_intents[Prussia]={'coveter': 'Prussia', 'target': 'Hanover', 'design_id': 'hanoverian_prize', 'want_title': 'The Hanoverian Prize', 'opened_turn': 3, 'foregrounded': True, 'foregrounded_turn': 3, 'coerce_recorded_turn': None, 'treaty_broken_turn': None, 'opened_at_price': 'fight', 'buyoff_attemp",
+     "step": "crisis check before buy-off",
+     "turn": 2
+    },
+    {
+     "message": "Prussia's design \u2014 The Hanoverian Prize \u2014 is bought off for 1452 gold. Talleyrand: \"The want sleeps, Sire; it does not die. The bargain is a hostage we have given \u2014 renege on it and it returns the heavier.\"",
+     "step": "buy_off_design Prussia (live crisis)",
+     "success": true,
+     "turn": 2
+    },
+    {
+     "message": "France declares war on Prussia! Spain enters the war against Prussia, honoring alliance with France! Holland follows France into the war against Prussia! KingdomOfItaly follows France into the war against Prussia! Switzerland follows France into the war against Prussia!",
+     "step": "renege: France declares war on Prussia",
+     "success": true,
+     "turn": 3
+    },
+    {
+     "message": "France guarantees Hanover. Every court that covets their soil now weighs our army in the scale (their willingness falls by 8). Talleyrand: \"A guarantee is credibility staked, Sire \u2014 if it is tested and we do not march, all Europe will know what our word weighs.\"",
+     "step": "guarantee_nation Hanover",
+     "success": true,
+     "turn": 4
+    },
+    {
+     "message": "Talleyrand: \"We are at WAR with Russia, Sire \u2014 one does not bankroll the court one is fighting.\"",
+     "step": "outbid verb attempt on Russia",
+     "success": false,
+     "turn": 9
+    },
+    {
+     "message": "",
+     "step": "outbid bid staged at seam for Russia",
+     "success": true,
+     "turn": 9
+    },
+    {
+     "note": "members=['Holland', 'KingdomOfItaly', 'Switzerland']",
+     "step": "continental system closed",
+     "turn": 10
+    },
+    {
+     "note": "staged",
+     "step": "stage courted defeat (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "Lithuania: Russia -> France; lost_homeland=['Lithuania']",
+     "step": "stage soil mark (Russia)",
+     "turn": 11
+    },
+    {
+     "note": "receptive=True pending=False state=PEACE we=80 rel=45 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 11
+    },
+    {
+     "note": "{'proposal_type': 'alliance', 'decision_reason': 'volte_face', 'priority': 8, 'recipient': 'France'}",
+     "step": "phase spy Russia",
+     "turn": 12
+    },
+    {
+     "message": "Warning: Accepting Alliance with Russia would conflict with our war against Britain, Austria. Russia has existing alliance obligations to Britain, Austria.",
+     "step": "accept volte-face (incoming_proposal)",
+     "success": true,
+     "turn": 12
+    },
+    {
+     "message": "You have accepted Russia's proposal. Treaty signed: Peace \u2192 Alliance with Russia.",
+     "step": "accept volte-face (conflict_alert)",
+     "success": true,
+     "turn": 12
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=None rel=44 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 12
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 13
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=None rel=43 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 13
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 14
+    },
+    {
+     "note": "receptive=True pending=False state=ALLIANCE we=None rel=42 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 14
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 15
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=41 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 15
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 16
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=40 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 16
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 17
+    },
+    {
+     "note": "receptive=False pending=False state=ALLIANCE we=None rel=39 soil=['Lithuania']",
+     "step": "volte watch",
+     "turn": 17
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 18
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 19
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 20
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 21
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 22
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 23
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 24
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 25
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 26
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 27
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 28
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 29
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 30
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 31
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 32
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 33
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 34
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 35
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 36
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 37
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 38
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 39
+    },
+    {
+     "note": "None",
+     "step": "phase spy Russia",
+     "turn": 40
+    }
+   ],
+   "volte_faces": 1
+  }
+ },
+ "turns": 40
+}

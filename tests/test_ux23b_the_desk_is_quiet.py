@@ -46,6 +46,7 @@ now MEASURED rather than owed: two of the eleven caps were silencing their cue
 outright.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import io
 import os
 import re
@@ -877,24 +878,19 @@ class TestTheReviewRoundsRemainingFixes:
     def test_the_owed_audition_has_a_GR9_owner_row(self):
         """It was a floating sentence while STATUS and CLAUDE.md said nothing
         but the reward curve was open."""
-        with io.open(os.path.join(REPO_ROOT, "docs", "BUG_FIXES.md"),
-                     encoding="utf-8") as fh:
-            bug = fh.read()
+        bug = doc_text("BUG_FIXES.md")
         assert "UX23-R9" in bug
         for required in ("*Owner:*", "*Landing slice:*",
                          "*Completion definition:*", "*STATUS line:*",
                          "*Behaviour test:*"):
             assert required in bug, f"GR9 needs {required}"
         for path in ("docs/STATUS.md", "CLAUDE.md"):
-            with io.open(os.path.join(REPO_ROOT, path), encoding="utf-8") as fh:
-                assert "UX23-R9" in fh.read(), path
+            assert "UX23-R9" in doc_text(path), path
 
     def test_the_record_does_not_claim_the_player_heard_nothing(self):
         """The probe measured 0.0088 RMS in the capped window, not zero. The
         slice's own follow-up table contradicted its own prose."""
-        with io.open(os.path.join(REPO_ROOT, "docs", "BUG_FIXES.md"),
-                     encoding="utf-8") as fh:
-            bug = fh.read()
+        bug = doc_text("BUG_FIXES.md")
         assert "nothing — the cap ended before the paper rustled" not in bug
         assert "0.0088 RMS" in bug
 

@@ -15,6 +15,7 @@ REPRO_L_slice16_at_head.md`, group `FA-56, FA-67, FA-61, FA-49, FA-52`.
 Landing record: the boxed SLICE 16 (part b) block in `docs/BUG_FIXES.md`.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import contextlib
 import inspect
 import io
@@ -522,7 +523,7 @@ class TestTheTaxIsStillCharged:
         closed, it names the ruling that closed it, and it points at a
         landing record, so the row cannot quietly go back to reading like an
         open question."""
-        rows = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        rows = doc_text("BUG_FIXES.md")
         line = [ln for ln in rows.split("\n")
                 if re.match(r"^(> )?\| \*\*FA-52\*\* \|", ln)]
         assert line, "FA-52's row has gone missing"
@@ -536,7 +537,7 @@ class TestTheTaxIsStillCharged:
         `SovereignTrust.modify` returns 0 — and nobody does now. A sentence
         that was wrong twice over must not survive the fix that made it
         wrong the second time."""
-        rows = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        rows = doc_text("BUG_FIXES.md")
         line = [ln for ln in rows.split("\n")
                 if re.match(r"^(> )?\| \*\*FA-52\*\* \|", ln)][0]
         assert "Napoleon pays" not in line
@@ -544,8 +545,7 @@ class TestTheTaxIsStillCharged:
     def test_the_ruling_is_filed_with_an_owner_and_a_done_when(self):
         """GR9. The mechanical half is deferred, so it needs a home, an
         owner and a completion definition — not a note in a commit."""
-        gate = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(
-            encoding="utf-8")
+        gate = doc_text("DESIGN_REFINEMENT.md")
         assert "### FA-S16-D1" in gate
         block = gate[gate.index("### FA-S16-D1"):]
         block = block[:block.index("### FA-S16-D2")]

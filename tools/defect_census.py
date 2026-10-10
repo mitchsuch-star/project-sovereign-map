@@ -51,8 +51,33 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
-LEDGERS = (("defect", DOCS / "BUG_FIXES.md"),
-           ("design", DOCS / "DESIGN_REFINEMENT.md"))
+ARCHIVE = DOCS / "archive"
+
+
+def _ledger_files(name: str) -> tuple[pathlib.Path, ...]:
+    """The live ledger first, then its quarterly archives in order.
+
+    CODE-4 "the docs diet" (October 9, 2026): sections closed before the
+    current quarter move verbatim to `docs/archive/<NAME>_<year>_Q<n>.md`.
+    Reading the archives here is what keeps every count unchanged by the
+    move; a row's state is still "closed if ANY of its rows is closed", so
+    the order only decides which occurrence names the section and line."""
+    stem = name[:-3]
+    archives = sorted(ARCHIVE.glob(f"{stem}_[0-9][0-9][0-9][0-9]_Q[1-4].md"))
+    return (DOCS / name, *archives)
+
+
+LEDGERS = tuple((ledger, path)
+                for ledger, name in (("defect", "BUG_FIXES.md"),
+                                     ("design", "DESIGN_REFINEMENT.md"))
+                for path in _ledger_files(name))
+LEDGER_NAMES = tuple(dict.fromkeys(ledger for ledger, _ in LEDGERS))
+# The session archives the docs diet made from `docs/STATUS.md` and the
+# ledgers: `closed_elsewhere` read `docs/*.md` before the move, so it reads
+# these beside them to keep the `*` marks whole.
+DIET_ARCHIVES = ("STATUS_[0-9][0-9][0-9][0-9]_Q[1-4].md",
+                 "BUG_FIXES_[0-9][0-9][0-9][0-9]_Q[1-4].md",
+                 "DESIGN_REFINEMENT_[0-9][0-9][0-9][0-9]_Q[1-4].md")
 
 CELL_SPLIT = re.compile(r"(?<!\\)\|")
 SEPARATOR = re.compile(r"^:?-{3,}:?$")
@@ -240,7 +265,10 @@ def collect() -> dict[str, dict]:
 def closed_elsewhere() -> set[str]:
     """Ids that share a line with a closing word anywhere under docs/."""
     found: set[str] = set()
-    for path in sorted(DOCS.glob("*.md")):
+    paths = list(DOCS.glob("*.md"))
+    for pattern in DIET_ARCHIVES:
+        paths.extend(ARCHIVE.glob(pattern))
+    for path in sorted(paths):
         for line in path.read_text(encoding="utf-8").split("\n"):
             if TICK not in line and not CLOSED.search(line):
                 continue
@@ -313,7 +341,7 @@ def main() -> int:
 
     print(f"{'ledger':8} {'OPEN':>6} {'partial':>8} {'closed':>7} "
           f"{'disposed':>9} {'total':>6}")
-    for ledger, _ in LEDGERS:
+    for ledger in LEDGER_NAMES:
         c = counts[ledger]
         print(f"{ledger:8} {c['OPEN']:>6} {c['partial']:>8} {c['closed']:>7} "
               f"{c['disposed']:>9} {sum(c.values()):>6}")
@@ -324,7 +352,7 @@ def main() -> int:
         entry["closing_word_elsewhere"] = entry["id"] in stale
 
     if args.open:
-        for ledger, _ in LEDGERS:
+        for ledger in LEDGER_NAMES:
             by_section: dict[str, list] = collections.defaultdict(list)
             for entry in open_rows:
                 if entry["ledger"] == ledger:

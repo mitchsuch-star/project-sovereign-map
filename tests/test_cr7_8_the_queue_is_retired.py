@@ -17,6 +17,7 @@ ruling, its two re-open conditions and the tracking line are where the
 contract says they are.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import ast
 import os
 import re
@@ -143,7 +144,7 @@ class TestTheRulingIsWritten:
         assert "cr7_8_order_completions" in section
 
     def test_the_status_carries_the_tracking_line(self):
-        status = self._read("docs/STATUS.md")
+        status = doc_text("STATUS.md")
         assert "CR-7-8" in status and "retired by contract" in status
 
     def test_parse_neg_rule_5_now_names_cr_7(self):

@@ -14,6 +14,7 @@ Every behaviour change sits behind a module-level lever whose False arm
 reproduces the prior behaviour, and each lever is pinned in both positions.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import contextlib
 import io
 import re
@@ -486,7 +487,7 @@ class TestFAN51TheGoldTermIsLinearAndUncapped:
         assert balances[8000] < -200, "no ceiling anywhere — the settlement path caps at −45"
 
     def test_fa21s_purse_floor_stands_and_the_row_is_recorded_refuted(self):
-        gate = (REPO_ROOT / "docs" / "DESIGN_REFINEMENT.md").read_text(encoding="utf-8")
+        gate = doc_text("DESIGN_REFINEMENT.md")
         row = [ln for ln in gate.split("\n") if re.match(r"^(> )?\| \*\*FA-N51\*\* \|", ln)]
         assert row, "FA-N51's row has gone missing"
         assert "REFUTED BY EVENTS" in row[0]

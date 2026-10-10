@@ -35,6 +35,7 @@ Item (iv) is not re-pinned here; it lives in
 control, and is mutation-proven there.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import contextlib
 import io
 import json
@@ -653,8 +654,7 @@ def _exit_record():
 
 def _iq_bug_rows():
     """The §Improvement Queue block of BUG_FIXES.md ONLY — see above."""
-    bugs = (pathlib.Path(__file__).resolve().parents[1]
-            / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+    bugs = doc_text("BUG_FIXES.md")
     head = "## Improvement Queue (IQ) — filed September 14, 2026"
     assert bugs.count(head) == 1
     return bugs.split(head)[1].split("\n## ")[0]

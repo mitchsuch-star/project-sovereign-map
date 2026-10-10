@@ -195,6 +195,56 @@ call. Most of it is history that `STATUS.md` and the specs already hold.
 instructions and the three "where am I" questions (what is next, what landed
 last, what the user still owes) are answered on the first screen of STATUS.
 
+**✅ LANDING RECORD — October 9, 2026 (Pre-Deploy S2, slice 1; pins
+`tests/test_code4_docs_diet.py`, helper `tests/_ledgers.py`).**
+
+| Doc | Before | After | Where it went |
+|-----|--------|-------|---------------|
+| `CLAUDE.md` | 523,156 B (2,850 lines) | **61,405 B** (426 lines) | the whole "Current Phase" (2,429 lines) → `docs/archive/CLAUDE_CURRENT_PHASE_2026.md`; the one-screen replacement names the routing authority, the three last rows, the open user decisions and the archives; the "Load-bearing operational facts" stay verbatim |
+| `docs/STATUS.md` | 1,593,361 B (14,534 lines) | **21,845 B** (90 lines) | the ▶ NEXT UP block keeps the last five entries; 71 older entries + the re-staged session log + the settlement-era sections → `STATUS_2026_Q4.md` (29 October entries), `STATUS_2026_Q3.md`, `STATUS_2026_Q2.md`, each named under `## Archives` |
+| `docs/BUG_FIXES.md` | 2,232,588 B | **274,194 B** | 63 of 85 sections (12,260 lines), every one dated before Q4 and holding no OPEN/PARTIAL row, → `BUG_FIXES_2026_Q3.md`; the 22 kept are the October sections, the undated structural ones and anything with an open row |
+| `docs/DESIGN_REFINEMENT.md` | 451,210 B | **113,531 B** | 31 of 53 sections → `DESIGN_REFINEMENT_2026_Q3.md` + `_Q2.md` (the April audit) |
+
+- **The rule that moved a section:** dated before the current quarter in its
+  heading AND no row in it reads OPEN or PARTIAL under the census's own
+  classifier. Whole sections moved verbatim, heading and prose included, so
+  the census's by-heading / by-table rules read the archived rows exactly as
+  before; undated sections stayed. OPEN and PARTIAL rows never moved.
+- **The count is unchanged by the move, proven not asserted:**
+  `tools/defect_census.py` and `tools/fa_row_tally.py` read the live ledger
+  then its `docs/archive/<STEM>_<year>_Q<n>.md` archives (`LEDGERS` is built
+  from both; `closed_elsewhere` reads the diet's archives beside `docs/*.md`).
+  Before and after on this tree: defect 86 OPEN / 1,154 closed / 37 disposed
+  = 1,277 ids; design 8 / 182 / 16 = 206; FA tally 267, 0 open — and every
+  one of the 1,483 ids carries the same state, severity, pillar, step, slice
+  and ledger (`--json` compared id by id); the 20 `*` stale marks identical.
+- **The doc pins:** 84 test files read one of the four docs; 13 pins in 11
+  files read a row or a record that moved. They read through
+  `tests._ledgers.doc_text(name)` now (the live file, then its archives), the
+  same text they read before. No pin was weakened; none was deleted.
+- **Deviation, recorded:** the plan's 60 KB cap for `CLAUDE.md` assumed the
+  unchanged sections were under that; measured, they are 59 KB (File
+  Reference, Before Modifying, patterns, troubleshooting, Commands, Document
+  Map, Environment — all kept verbatim as item 1 requires), so the dieted file
+  reads **61,405 B** with a 2.2 KB Current Phase. The ratchet pin caps it at
+  the reading and ratchets down; nothing else was cut to make the number.
+- **Item 4, the untracked bulk:** `.gitignore` now excludes the regenerable
+  per-run artefacts under `docs/audits/score_runs/` (`_probe_saves/`, the
+  per-arm `arms/AIV/arm*.json`, `arms/CLI/`, `attribution/`, `frames/`); a
+  reading's `run.json`, checklist, scores, digests and the AI-V `summary.json`
+  stay committed, and the three summaries the convention had missed
+  (`2026_10_02_step3`, `2026_10_03_sf_cl1`, `2026_10_03_sf_lb2`) are committed
+  with this slice. A frame a landing record names is force-added. The tree's
+  `git status` is clean of noise.
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical (14 passed), the corpus
+  902/902, `score_run check` against the final reading's archive with all 112
+  items identical to the same check on the pre-diet commit `78d9653a` (seven
+  probes read CMD saves the archive never held and are unmeasured on both —
+  a fact about the archive, not this slice), the code-health census unchanged
+  (34 / 665 / 368; docs, tools and tests only); full suite green on the hook. **Done-when:** a fresh session's first read is `CLAUDE.md`
+  61 KB + `STATUS.md` 22 KB ≈ 21k tokens of which the rules are ~15k, and
+  STATUS's first screen answers next / last / owed.
+
 ## CODE-5 — File splits (1 session each, after CODE-2)
 
 Only after the functions are staged; splitting a file around a 3,945-line

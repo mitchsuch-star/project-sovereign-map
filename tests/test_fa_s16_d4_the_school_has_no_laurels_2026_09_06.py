@@ -25,6 +25,7 @@ glory alone makes *Soult's* line appear where it does not fire today. Both
 guards ship, on separate levers, so the two are measurable apart.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import ast
 import importlib.util
 import inspect
@@ -537,8 +538,7 @@ class TestHarnessImmunity:
 class TestTheRulingIsRecorded:
 
     def test_the_gate_block_records_the_decision(self):
-        gate = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(
-            encoding="utf-8")
+        gate = doc_text("DESIGN_REFINEMENT.md")
         block = gate[gate.index("### FA-S16-D4"):]
         # ⚠ D1's section follows D4 in the file, so slicing to "## Source
         # Documents" swallows it and the pin passes on D1's banner.
@@ -547,7 +547,7 @@ class TestTheRulingIsRecorded:
         assert "BUG_FIXES.md" in block
 
     def test_the_row_names_the_fifth_leak_and_the_overrule(self):
-        rows = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        rows = doc_text("BUG_FIXES.md")
         line = [ln for ln in rows.split("\n")
                 if ln.lstrip("> ").startswith("| **FA-98** |")]
         assert line, "FA-98's row has gone missing"

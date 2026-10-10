@@ -15,6 +15,7 @@
   * NV-D3 privateers — STRUCK by the user's ruling ("we can strike
     privateer").
 """
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import contextlib
 import io
 import re
@@ -705,7 +706,7 @@ class TestTheRecords:
         assert re.search(r"^## 77\. ", ref, re.MULTILINE)
 
     def test_aar_d7_is_closed(self):
-        rows = (DOCS / "DESIGN_REFINEMENT.md").read_text(encoding="utf-8")
+        rows = doc_text("DESIGN_REFINEMENT.md")
         row = next(line for line in rows.splitlines()
                    if line.startswith("| **AAR-D7**")
                    or line.startswith("| ~~**AAR-D7**~~"))

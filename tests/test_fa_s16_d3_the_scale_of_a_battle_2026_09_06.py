@@ -22,6 +22,7 @@ The gate is therefore applied to the five GRAVITY verdicts only. Every arm
 that reports a mechanical STATE is deliberately untouched.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import ast
 import inspect
 import pathlib
@@ -390,15 +391,14 @@ class TestWhatTheGateDoesNotCover:
 class TestTheRulingIsRecorded:
 
     def test_the_gate_block_records_the_decision(self):
-        gate = (REPO / "docs" / "DESIGN_REFINEMENT.md").read_text(
-            encoding="utf-8")
+        gate = doc_text("DESIGN_REFINEMENT.md")
         block = gate[gate.index("### FA-S16-D3"):]
         block = block[:block.index("### FA-S16-D4")]
         assert "RULED" in block
         assert "BUG_FIXES.md" in block, "the ruling must name its landing record"
 
     def test_the_row_is_closed_and_names_what_shipped(self):
-        rows = (REPO / "docs" / "BUG_FIXES.md").read_text(encoding="utf-8")
+        rows = doc_text("BUG_FIXES.md")
         line = [ln for ln in rows.split("\n")
                 if re.match(r"^(> )?\| \*\*FA-44\*\* \|", ln)]
         assert line, "FA-44's row has gone missing"

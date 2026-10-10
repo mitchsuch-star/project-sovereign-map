@@ -40,8 +40,13 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SOURCES = (ROOT / "docs" / "BUG_FIXES.md",
-           ROOT / "docs" / "DESIGN_REFINEMENT.md")
+# CODE-4 "the docs diet" (October 9, 2026): the live ledger, then the
+# quarterly archives its closed sections moved to, so the tally is whole.
+SOURCES = tuple(
+    path for name in ("BUG_FIXES.md", "DESIGN_REFINEMENT.md")
+    for path in (ROOT / "docs" / name,
+                 *sorted((ROOT / "docs" / "archive").glob(
+                     f"{name[:-3]}_[0-9][0-9][0-9][0-9]_Q[1-4].md"))))
 
 ROW = re.compile(r"^>?\s*\|\s*\*\*(FA-[A-Z]*\d+(?:-[A-Z]?\d+)?)\*\*\s*\|")
 

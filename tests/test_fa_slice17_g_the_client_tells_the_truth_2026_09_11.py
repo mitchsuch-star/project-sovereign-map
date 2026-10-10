@@ -17,6 +17,7 @@ and the executor through `/command`; the FA-101 argument is measured, not
 quoted.
 """
 
+from tests._ledgers import doc_text  # CODE-4: the ledger plus its archives
 import contextlib
 import io
 import json
@@ -455,6 +456,7 @@ class TestFA101TheObjectionAtLoadIsAcceptedUnreachable:
         read the bug's own filing as the bug."""
         if path.name != "BUG_FIXES.md":
             return text
+        text = doc_text("BUG_FIXES.md")  # the WO-35 row is archived (CODE-4)
         at = text.index("| **WO-35** |")
         return text[at:text.index("\n", at)]
 
