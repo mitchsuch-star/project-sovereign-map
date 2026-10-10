@@ -585,11 +585,6 @@ class TestScopeBoundaries:
             "/command", json={"command": "Soult, deal with Mack"}).json()
         assert data.get("clarification_kind") == "delegation"
         assert '"deal with Mack"' in (data.get("message") or "")
-        import backend.commands.delegation as _D
-        monkeypatch.setattr(_D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
-        data = client.post(
-            "/command", json={"command": "Lannes, deal with Mack"}).json()
-        assert data.get("clarification_kind") == "delegation"
 
     def test_explicit_order_produces_no_flavor_echo(self, mock_endpoint):
         client, m = mock_endpoint

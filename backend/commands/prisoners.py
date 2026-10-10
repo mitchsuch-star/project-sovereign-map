@@ -15,14 +15,12 @@ from __future__ import annotations
 
 from typing import Dict, Optional
 
-PRISONERS_ARE_NAMED = True
-
 
 def prisoner_of(world, name: str, viewer_nation: Optional[str] = None):
     """The captured marshal `name` refers to (either register), or None.
     A viewer's OWN captured marshal is not returned — that case belongs to
     main.py's addressed-marshal guard, which speaks in the first person."""
-    if not PRISONERS_ARE_NAMED or not name or world is None:
+    if not name or world is None:
         return None
     typed = str(name).strip()
     marshal = world.get_marshal(typed)

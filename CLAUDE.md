@@ -34,7 +34,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is PAUSED behind the plan until S14.
 
 **▶ LIVE STATE (October 9, 2026).** The three most recent landed rows:
-- **S2 step 0 + CODE-4 (October 9, 2026)** — the pre-commit hook runs the full suite in parallel, 26:13 → 5:12 (`78d9653a`); the docs diet (this file 523 KB → 61 KB, STATUS 1.6 MB → 22 KB; `docs/CODE_HEALTH_PLAN.md` §CODE-4). NEXT = CODE-1 batch 1, then S3–S4 DD-0.
+- **S2 (October 9, 2026) — COMPLETE.** Step 0: the pre-commit hook runs the full suite in parallel, 26:13 → 5:12 (`78d9653a`). CODE-4: the docs diet (this file 523 KB → 61 KB, STATUS 1.6 MB → 22 KB; `docs/CODE_HEALTH_PLAN.md` §CODE-4). CODE-1 batch 1: `tools/retire_lever.py`, 20 levers retired (665 → 645), the ratchet pin `tests/test_code_health_ratchet.py` (§CODE-1). NEXT = S3–S4 DD-0 the command road.
 - **S1a + S1b (October 9, 2026)** — the readability instrument, the derived Interface Scale, the first-run card, the theme floor, the Settings additions; whole-client census RED 1,565 → 32 (`docs/UX_UI_REVIEW_PLAN.md` §UXR-1 / §S1b).
 - **The economy audit + gate (October 5, 2026)** — the books fixed, EAD-1 … EAD-9 ruled and built (`docs/SCORE_FINISH_SPEC.md` §6.7–§6.8).
 

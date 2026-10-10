@@ -173,11 +173,6 @@ class TestEndpointMockAsk:
         data = client.post(
             "/command", json={"command": "Davout, deal with the Austrians"}).json()
         assert data["message"].startswith("Davout scouts Swabia")
-        import backend.commands.delegation as _D
-        monkeypatch.setattr(_D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
-        data = client.post(
-            "/command", json={"command": "Lannes, deal with the Austrians"}).json()
-        assert data.get("clarification_kind") == "delegation"
 
     def test_no_battle_executes_from_the_flagship_phrase(self,
                                                          endpoint1805):

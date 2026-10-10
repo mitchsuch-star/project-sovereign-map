@@ -468,13 +468,14 @@ def build_parse_prompt(
 
     # ── L-1 (Score Mandate Chunk 3, SR-3c): the prompt turns around ──
     # The ONE prompt, cut at its own headers into sections that are the
-    # shipped text byte for byte; `THE_PROMPT_IS_STATIC_FIRST` chooses the
-    # order. Down = the pre-slice order (byte-identical — the IQ-9
-    # cassette re-stamp is attributed by it); up = every rule, the output
+    # shipped text byte for byte, in the static-first order (the lever that
+    # held the pre-slice order was retired October 9, 2026, CODE-1 batch 1;
+    # the IQ-9 cassette re-stamp it attributed stands in
+    # `tests/data/l1_prompt_restamp.json`): every rule, the output
     # contract and the examples FIRST, then the board (our marshals, the
     # order's addressee, the enemy, the map orientation), then the order —
     # so two prompts one battle apart share the whole static prefix.
-    _marshals_where = "below" if THE_PROMPT_IS_STATIC_FIRST else "above"
+    _marshals_where = "below"
     _S_HEAD = """# Command Parser - Napoleonic Wars
 
 """
@@ -699,9 +700,8 @@ including interpretation and strategic_score.)
     # `_format_examples`'s `part`).
     _S_EXAMPLES_STATIC = (_EXAMPLES_HEAD
                           + _format_examples(game_state, part="static")
-                          + _EXAMPLES_TAIL) if THE_PROMPT_IS_STATIC_FIRST else ""
-    _examples_board = (_format_examples(game_state, part="board")
-                       if THE_PROMPT_IS_STATIC_FIRST else "")
+                          + _EXAMPLES_TAIL)
+    _examples_board = _format_examples(game_state, part="board")
     _S_BOARD_EXAMPLES = ("## Examples on This Board\n" + _examples_board + "\n\n"
                          if _examples_board else "")
     _S_CLOSE = """Respond only with the tool call — no prose."""
@@ -714,21 +714,14 @@ including interpretation and strategic_score.)
 {geography_info}
 
 """
-    if THE_PROMPT_IS_STATIC_FIRST:
-        prompt = (_S_HEAD + _S_ACTIONS + _S_REGIONS + _S_STANCES
-                  + _S_PERSONALITY + _S_FLAVOR + _S_STRATEGIC
-                  + _S_CARDINAL_HEAD_NEW + _S_CARDINAL_TAIL + _S_DIPLOMATIC
-                  + _S_CANCEL + _S_AMBIGUITY + _S_STRATEGIC_SCORE + _S_OUTPUT
-                  + _S_EXAMPLES_STATIC
-                  + _S_MARSHALS + _S_ADDRESSED + _S_ENEMIES + _S_MAP_ORIENTATION
-                  + _S_BOARD_EXAMPLES
-                  + _S_COMMAND + _S_CLOSE)
-    else:
-        prompt = (_S_HEAD + _S_MARSHALS + _S_ENEMIES + _S_ACTIONS + _S_REGIONS
-                  + _S_STANCES + _S_PERSONALITY + _S_FLAVOR + _S_STRATEGIC
-                  + _S_CARDINAL_HEAD_OLD + _S_GEOGRAPHY_OLD + _S_CARDINAL_TAIL
-                  + _S_DIPLOMATIC + _S_CANCEL + _S_AMBIGUITY + _S_STRATEGIC_SCORE
-                  + _S_COMMAND + _S_OUTPUT + _S_EXAMPLES + _S_CLOSE)
+    prompt = (_S_HEAD + _S_ACTIONS + _S_REGIONS + _S_STANCES
+              + _S_PERSONALITY + _S_FLAVOR + _S_STRATEGIC
+              + _S_CARDINAL_HEAD_NEW + _S_CARDINAL_TAIL + _S_DIPLOMATIC
+              + _S_CANCEL + _S_AMBIGUITY + _S_STRATEGIC_SCORE + _S_OUTPUT
+              + _S_EXAMPLES_STATIC
+              + _S_MARSHALS + _S_ADDRESSED + _S_ENEMIES + _S_MAP_ORIENTATION
+              + _S_BOARD_EXAMPLES
+              + _S_COMMAND + _S_CLOSE)
 
     # Add repetition context if history exists
     if command_history and len(command_history) > 0:
@@ -1066,7 +1059,6 @@ _RECOVERY_HIDDEN_ACTIONS = frozenset({
 # only from them. False restores the pre-slice prompt BYTE FOR BYTE — which is
 # what attributes the authored IQ-9 recovery cassette's re-stamp to this block
 # alone (`tests/test_crt7_the_desk_reads_the_order.py`).
-THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL = True
 
 # L-1 (Score Mandate Chunk 3, SR-3c, September 26, 2026): THE PROMPT IS
 # STATIC FIRST. The board (our marshals, the enemy, the per-marshal compass
@@ -1077,7 +1069,6 @@ THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL = True
 # shipped sections byte for byte, re-ordered. Down: the pre-slice prompt
 # byte for byte. Prompt caching stays OFF (its rejection is recorded in
 # STATUS); this lever makes it possible, it does not turn it on.
-THE_PROMPT_IS_STATIC_FIRST = True
 
 
 def addressed_marshal(raw_input: str,
@@ -1151,12 +1142,11 @@ def build_berthier_recovery_prompt(
     # The prompt used to hand it the whole verb vocabulary and every name,
     # and it composed "conduct a diplomatic mission to Bennigsen in Hungary".
     counsel_lines: list = []
-    if THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL:
-        try:
-            from backend.ai.llm_client import _counsel_lines
-            counsel_lines = [c for c in _counsel_lines(game_state) if c]
-        except Exception:
-            counsel_lines = []
+    try:
+        from backend.ai.llm_client import _counsel_lines
+        counsel_lines = [c for c in _counsel_lines(game_state) if c]
+    except Exception:
+        counsel_lines = []
     counsel_block = "\n".join(f"- {line}" for line in counsel_lines) or "- (none this morning)"
 
     system_prompt = (
@@ -1202,15 +1192,10 @@ The Emperor said: "{raw_input}"
 {actions_list}
 
 """
-    if THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL:
-        user_prompt += f"""## Orders the board takes this morning
+    user_prompt += f"""## Orders the board takes this morning
 {counsel_block}
 
 Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing. Any order you suggest must be one of the lines under "Orders the board takes this morning", quoted exactly as written there — never invent a commander, a place, a court or a verb. If that list is empty, suggest "what can I do" instead. Matters of state (peace, alliances, envoys) are not typed: say "press F1 for the Cabinet"."""
-    else:
-        # The pre-CRT-7 tail, byte for byte: the lever down reproduces the
-        # prompt the authored IQ-9 recovery cassette was stamped against.
-        user_prompt += """Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing using valid actions and real marshal/enemy names, written with spaces exactly as they appear above."""
 
     return (system_prompt, user_prompt)
 

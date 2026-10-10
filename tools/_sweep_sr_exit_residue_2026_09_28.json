@@ -14,13 +14,6 @@
     "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheBareWordAsksForTheLaws"
   },
   {
-    "id": "R2 the named law never says",
-    "file": "backend/ai/first_contact.py",
-    "old": "                if THE_LAW_NAMED_SAYS_WHAT_IT_DOES and row is named else \"\")",
-    "new": "                if False else \"\")",
-    "tests": "tests/test_sr_exit_residue_2026_09_28.py::TestTheNamedLawSaysWhatItDoes"
-  },
-  {
     "id": "R2 an in-force named law is silent",
     "file": "backend/ai/first_contact.py",
     "old": "            if says:\n                lines.append(says)\n            continue",

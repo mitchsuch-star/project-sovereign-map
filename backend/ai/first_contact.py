@@ -34,7 +34,6 @@ import re
 from typing import Dict, List, Optional
 
 # ── the lever ────────────────────────────────────────────────────────────
-FIRST_CONTACT_DESK_ACTIVE = True
 
 # ── the three doors (quoted by the shrug, the greeting and the goal) ──────
 THREE_DOORS = ("Type 'what can I do' for the orders this board will take, "
@@ -155,8 +154,6 @@ def first_contact_route(text: str) -> Optional[Dict]:
     goal of the game (`goal`). None for everything else, including every
     line that starts with a literal-argument meta-command.
     """
-    if not FIRST_CONTACT_DESK_ACTIVE:
-        return None
     raw = str(text or "")
     lowered = raw.strip().lower()
     if not lowered or lowered.startswith(_LITERAL_META_PREFIXES) or lowered == "load":
@@ -465,16 +462,12 @@ def _congress_answer(asked: str, world) -> str:
 # said its price twice ("3,000 gold, then 150 gold a turn — the Artillery
 # Reserve costs 3,000 gold; the treasury holds 800"); the refusal's own
 # sentence keeps only what the court holds.
-THE_LAW_NAMED_SAYS_WHAT_IT_DOES = True
-A_REFUSED_LAW_STATES_ITS_PRICE_ONCE = True
 
 
 def _refusal_after_the_price(refusal: str) -> str:
     """`law_refusal`'s price sentence ("X costs N gold; the treasury holds
     M.") without the price the line has already said; any other refusal
     whole."""
-    if not A_REFUSED_LAW_STATES_ITS_PRICE_ONCE:
-        return refusal
     head, sep, holds = refusal.partition("; ")
     if not sep or " costs " not in head:
         return refusal
@@ -508,7 +501,7 @@ def _laws_answer(asked: str, world) -> str:
         name = name[0].upper() + name[1:]
         upkeep = int(row.get("upkeep", 0) or 0)
         says = (str(row.get("says") or "").strip()
-                if THE_LAW_NAMED_SAYS_WHAT_IT_DOES and row is named else "")
+                if row is named else "")
         if says and not says.endswith("."):
             says += "."
         if reforms.is_in_force(row):

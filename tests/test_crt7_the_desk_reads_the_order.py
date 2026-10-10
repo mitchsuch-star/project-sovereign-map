@@ -614,13 +614,6 @@ class TestTheCounsel:
             assert verb not in message, message
         assert "recruit infantry" in message, message   # the purse's actions remain
 
-    def test_the_action_point_lever_down_offers_the_refused_orders(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(COUNSEL, "THE_COUNSEL_READS_THE_ACTION_POINTS", False)
-        world.actions_remaining = 0
-        message = ask(client, world, "what can I do")
-        assert ", attack " in message and "end turn" not in message, message
-
     def test_with_no_administrative_action_the_purse_is_silent(self, shipped):
         _, world = shipped
         world.admin_actions_remaining = 0
@@ -650,13 +643,6 @@ class TestTheCounsel:
             if line.endswith(", drill"):
                 marshal = world.get_marshal(line[:-len(", drill")])
                 assert drill_refusal(world, marshal) == ("", ""), line
-
-    def test_the_refusal_lever_down_offers_the_drill_beside_the_enemy(self, shipped, monkeypatch):
-        _, world = shipped
-        monkeypatch.setattr(COUNSEL, "THE_COUNSEL_READS_THE_REFUSALS", False)
-        monkeypatch.setattr(COUNSEL, "THE_COUNSEL_SPREADS_THE_ORDERS", False)
-        lines = COUNSEL.military_counsel(world, "France", limit=8)
-        assert "Ney, drill" in lines, lines
 
     def test_works_are_not_offered_to_an_engaged_corps(self, shipped):
         """The sweep's second INERT: with the whole roster free, the engaged
@@ -692,13 +678,6 @@ class TestTheCounsel:
         names = {line.split(",")[0] for line in lines}
         assert len(names) >= 3, lines
         assert lines[0] == "Ney, attack Mack", lines   # the first line the doors quote
-
-    def test_the_spread_lever_down_names_one_man(self, shipped, monkeypatch):
-        _, world = shipped
-        monkeypatch.setattr(COUNSEL, "THE_COUNSEL_SPREADS_THE_ORDERS", False)
-        lines = COUNSEL.military_counsel(world, "France", limit=4)
-        names = {line.split(",")[0] for line in lines}
-        assert names == {"Ney"}, lines
 
     def test_a_marshal_who_moved_this_turn_is_not_marched_again(self, shipped):
         _, world = shipped
@@ -745,16 +724,6 @@ class TestTheCounsel:
         assert not verdict.get("allowed"), verdict
         lines = COUNSEL.military_counsel(world, "France", limit=8)
         assert not any("attack Moore" in line for line in lines), lines
-
-    def test_the_crossing_lever_down_offers_the_shut_attack(self, shipped, monkeypatch):
-        _, world = shipped
-        monkeypatch.setattr(COUNSEL, "THE_COUNSEL_READS_THE_CROSSING", False)
-        ney = world.get_marshal("Ney")
-        moore = world.get_marshal("Moore")
-        ney.location = "Normandy"
-        see(world, moore.location)
-        lines = COUNSEL.military_counsel(world, "France", limit=8)
-        assert "Ney, attack Moore" in lines, lines
 
     def test_the_levy_line_is_the_quote(self, shipped):
         _, world = shipped
@@ -858,16 +827,6 @@ class TestTheInsistArmNamesItsPrice:
         assert "Insisting costs 2 actions" in str(data.get("message")), data.get("message")
         assert int(world.actions_remaining) == 4   # nothing charged yet
 
-    def test_the_lever_down_leaves_the_payload_bare(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(TE, "THE_INSIST_ARM_NAMES_ITS_PRICE", False)
-        monkeypatch.setattr(EX, "apply_mood_variance", lambda concern: concern)
-        data = post(client, "Murat, fortify")
-        assert data.get("pending_objection") is True
-        objection = data.get("objection") or {}
-        assert "insist_ap_cost" not in objection and "insist_note" not in objection
-        assert "Insisting costs" not in str(data.get("message"))
-
     def test_the_client_renders_the_price_on_the_button(self):
         import pathlib
         src = pathlib.Path("godot-client/project-sovereign/scripts/objection_dialog.gd").read_text(encoding="utf-8")
@@ -911,27 +870,15 @@ class TestBerthierSuggestsOnlyRealOrders:
         gs = M.get_llm_game_state()
         assert M.parser.llm.sanitise_berthier_reply(self.AAR, gs) == self.AAR
 
-    # The authored IQ-9 recovery cassette was stamped against the pre-slice
-    # prompt; the hook's drift pin (`TestCassetteHygiene`) caught the counsel
-    # block and the cassette was RE-STAMPED. This pin keeps the attribution:
-    # the lever down reproduces the pre-slice fingerprint byte for byte, the
-    # lever up reproduces the re-stamped one — so the re-stamp is this block
-    # and nothing else.
-    # ⚑ Re-derived at SR-5r RF-1 (Sept 27, 2026): the recovery prompt's
-    # verb list gained "enacts" / "repeals" (the two law verbs' display
-    # names), so the lever-down arm is the pre-CRT-7 layout WITH that list —
-    # the attribution still isolates this block (the list is common to both
-    # arms). The pre-RF-1 value was 582b90ffac45f4b9…46400a34.
-    PRE_CRT7_RECOVERY_PROMPT_SHA256 = (
-        "e9ed02d0723b5b3722c01db25046ec36e33c27ab6c3b7945f79114d308187b72")
-
-    @pytest.mark.parametrize("lever", [False, True])
-    def test_the_recovery_cassette_drift_is_this_block_alone(self, monkeypatch, lever):
+    # The authored IQ-9 recovery cassette was RE-STAMPED when the counsel
+    # block landed (the hook's drift pin caught it); the lever that held the
+    # pre-slice fingerprint was retired October 9, 2026 (CODE-1 batch 1),
+    # so this pin keeps the live arm: the cassette's stamp is the prompt.
+    def test_the_recovery_cassette_drift_is_this_block_alone(self, monkeypatch):
         import backend.ai.prompt_builder as PB
         from backend.ai.parser_eval import build_llm_game_state, build_world
         from tests._parser_replay import (armed_parser, body_kind, fingerprint,
                                           load_all_cassettes, load_manifest)
-        monkeypatch.setattr(PB, "THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL", lever)
         cassettes = load_all_cassettes()
         entry = cassettes["gibberish-berthier.recovery"]
         world = build_world(entry["world"])
@@ -945,8 +892,7 @@ class TestBerthierSuggestsOnlyRealOrders:
             calls = replay.messages.calls
         body = [c for c in calls if body_kind(c) != "parse"][-1]
         live = fingerprint(body)["prompt_sha256"]
-        expected = (entry["request"]["prompt_sha256"] if lever
-                    else self.PRE_CRT7_RECOVERY_PROMPT_SHA256)
+        expected = entry["request"]["prompt_sha256"]
         assert live == expected
 
     def test_the_prompt_hands_the_model_the_counsel(self, shipped):

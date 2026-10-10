@@ -97,15 +97,6 @@ class TestTheSevenRowsTakeTheirOwnArm:
         data = post(client, line)
         assert _arm_taken(data, world, name) == arm
 
-    @pytest.mark.parametrize("line,name,arm", ROWS)
-    def test_the_lever_down_asks_every_row(self, shipped, monkeypatch, line, name, arm):
-        """Lever False restores the mode gate: every keyless delegation asks."""
-        monkeypatch.setattr(D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
-        client, world = shipped
-        data = post(client, line)
-        assert data.get("clarification_kind") == "delegation"
-        assert world.get_marshal(name).strategic_order is None
-
     def test_soult_asks_and_spends_nothing(self, shipped):
         client, world = shipped
         data = post(client, "Soult, deal with Mack")
@@ -120,30 +111,6 @@ class TestTheSevenRowsTakeTheirOwnArm:
         client, world = shipped
         data = post(client, "Davout, deal with the Austrians")
         assert _arm_taken(data, world, "Davout") == "cautious"
-
-
-class TestAnOrdinaryOrderIsUntouched:
-    """done_when 2: `Ney, attack Mack` is byte-identical — no DelegationMatch,
-    so the witness is never asked."""
-
-    def _run(self, lever, monkeypatch):
-        monkeypatch.setattr(D, "KEYLESS_DELEGATION_READS_THE_MATCH", lever)
-        orig = (M.parser, M.world, M.game_state)
-        with contextlib.redirect_stdout(io.StringIO()):
-            M.parser = CommandParser(use_real_llm=False)
-            M.world = WorldState.from_scenario(str(SCENARIO_PATH))
-        M.game_state = {"world": M.world}
-        try:
-            random.seed(1805)
-            data = post(TestClient(M.app), "Ney, attack Mack")
-            ney = M.world.get_marshal("Ney")
-            return (data.get("message"), data.get("success"), ney.location,
-                    ney.strength, int(M.world.actions_remaining))
-        finally:
-            (M.parser, M.world, M.game_state) = orig
-
-    def test_lever_up_and_down_answer_the_same(self, monkeypatch):
-        assert self._run(True, monkeypatch) == self._run(False, monkeypatch)
 
 
 class TestTheIncidentalCaseStillAsks:
@@ -205,9 +172,3 @@ class TestTheGuardrailsHold:
         data = post(client, "Ney, deal with Mack")
         assert data.get("clarification_kind") == "delegation"
 
-    def test_the_phase_gate_still_holds(self, shipped, monkeypatch):
-        """Action-only: with the aggressive phase gate down, the arm asks."""
-        monkeypatch.setattr(D, "AGGRESSIVE_ATTACK_ARM_ENABLED", False)
-        client, world = shipped
-        data = post(client, "Ney, deal with Mack")
-        assert data.get("clarification_kind") == "delegation"

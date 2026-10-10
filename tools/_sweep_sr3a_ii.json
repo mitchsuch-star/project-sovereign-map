@@ -112,32 +112,11 @@
   "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestOurOwnCapturedAndFallen"
  },
  {
-  "id": "SR-3a(ii)/CRT-7 DESK-9 the counsel ignores the military actions",
-  "file": "backend/ai/counsel.py",
-  "old": "    if THE_COUNSEL_READS_THE_ACTION_POINTS and actions_left <= 0:\n        return []",
-  "new": "    if False:\n        return []",
-  "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_at_zero_actions_the_counsel_names_end_turn"
- },
- {
   "id": "SR-3a(ii)/CRT-7 DESK-9 end turn is never named",
   "file": "backend/ai/counsel.py",
   "old": "        lines.insert(0, END_TURN_LINE)",
   "new": "        pass",
   "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_at_zero_actions_the_counsel_names_end_turn"
- },
- {
-  "id": "SR-3a(ii)/CRT-7 DESK-9 the purse ignores the administrative actions",
-  "file": "backend/ai/counsel.py",
-  "old": "    if (THE_COUNSEL_READS_THE_ACTION_POINTS\n            and nation == getattr(world, \"player_nation\", None)\n            and _admin_actions_left(world) <= 0):\n        return []",
-  "new": "    if False:\n        return []",
-  "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_with_no_administrative_action_the_purse_is_silent"
- },
- {
-  "id": "SR-3a(ii)/CRT-7 DESK-16 the drill refusal is not asked",
-  "file": "backend/ai/counsel.py",
-  "old": "        if THE_COUNSEL_READS_THE_REFUSALS and drill_refusal(world, marshal) != (\"\", \"\"):\n            continue",
-  "new": "        if False:\n            continue",
-  "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_a_drill_the_executor_refuses_is_not_offered tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_every_offered_order_is_taken_at_the_wire"
  },
  {
   "id": "SR-3a(ii)/CRT-7 DESK-16 the fortify refusal is not asked",
@@ -152,13 +131,6 @@
   "old": "                if stance == \"NEUTRAL\" and is_player and actions_left < 2:\n                    continue",
   "new": "                if False:\n                    continue",
   "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_a_fortify_from_neutral_needs_two_actions"
- },
- {
-  "id": "SR-3a(ii)/CRT-7 DESK-13 the moved corps is marched again",
-  "file": "backend/ai/counsel.py",
-  "old": "        if THE_COUNSEL_SPREADS_THE_ORDERS and getattr(marshal, \"moved_this_turn\", False):\n            continue",
-  "new": "        if False:\n            continue",
-  "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_a_marshal_who_moved_this_turn_is_not_marched_again"
  },
  {
   "id": "SR-3a(ii)/CRT-7 DESK-13 the march no longer closes on the enemy",
@@ -187,13 +159,6 @@
   "old": "        return bool(verdict.get(\"allowed\", True))\n    except Exception:\n        return False",
   "new": "        return True\n    except Exception:\n        return False",
   "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_no_attack_across_a_shut_crossing_is_offered"
- },
- {
-  "id": "SR-3a(ii)/CRT-7 DESK-2 the levy line reads the ledger again",
-  "file": "backend/ai/counsel.py",
-  "old": "    if THE_LEVY_LINE_IS_THE_QUOTE:\n        try:\n            from backend.commands.economy_executor import recruit_quote",
-  "new": "    if False:\n        try:\n            from backend.commands.economy_executor import recruit_quote",
-  "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheCounsel::test_the_levy_line_is_the_quote tests/test_cx2_berthier_answers_the_board.py::TestTheGuardsWhereTheyBite::test_the_levy_line_is_PRICED_where_the_levy_is_open"
  },
  {
   "id": "SR-3a(ii)/CRT-7 DESK-8 the router reads substrings again",
@@ -264,12 +229,5 @@
   "old": "            turns_left = int(max(0, ARMISTICE_DURATION - elapsed))\n            unit = \"turn\" if turns_left == 1 else \"turns\"",
   "new": "            turns_left = int(world.armistice_cooldowns.get(diplo_key, 1))\n            unit = \"turns\"",
   "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestTheTruceClock::test_the_attack_refusal_agrees_with_the_clock tests/test_crt7_the_desk_reads_the_order.py::TestTheTruceClock::test_one_turn_left_is_singular"
- },
- {
-  "id": "SR-3a(ii)/CRT-7 AAR-29 the recovery prompt drops the counsel section",
-  "file": "backend/ai/prompt_builder.py",
-  "old": "    if THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL:\n        user_prompt += f\"\"\"## Orders the board takes this morning",
-  "new": "    if False:\n        user_prompt += f\"\"\"## Orders the board takes this morning",
-  "tests": "tests/test_crt7_the_desk_reads_the_order.py::TestBerthierSuggestsOnlyRealOrders"
  }
 ]

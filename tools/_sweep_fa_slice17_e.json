@@ -56,13 +56,6 @@
   "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN55TheFortPercentIsScaledOnce::test_every_producer_writes_an_int_percent tests/test_final_audit_s1.py"
  },
  {
-  "id": "N64/a the lever defaults to the pre-fix position",
-  "file": "backend/commands/diplomatic_defiance.py",
-  "old": "OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION = True",
-  "new": "OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION = False",
-  "tests": "tests/test_fa_slice17_e_the_square_and_the_survivors_2026_09_11.py::TestFAN64TheOverrideOutcomeIsDelivered"
- },
- {
   "id": "N64/b the send site writes the old literal",
   "file": "backend/commands/diplomatic_executor.py",
   "old": "                record_override(world, proposal_type, \"pending\")",

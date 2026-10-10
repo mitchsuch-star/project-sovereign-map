@@ -19,7 +19,6 @@ from backend.display_names import marshal_title  # SF5-X3: the ONE style for a m
 # naval verbs REFUSE an order addressed to a marshal in the field rather
 # than discarding him — "Ney, lay down a ship" used to lay the keel and
 # forget Ney. The posture verb already carried this arm; now all three do.
-ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL = True
 
 # SF6-X1 (Score Finish Step 6, October 4, 2026 — found playing the descent
 # arm's re-stage): a CONFIRMED expedition ends the corps' standing order. The
@@ -36,8 +35,6 @@ THE_EMPEROR_COMMANDS_THE_ADMIRALTY = True
 
 
 def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
-    if not ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL:
-        return None
     if actor != getattr(world, "player_nation", "France"):
         return None  # the AI's rungs never carry a marshal
     name = command.get("marshal")

@@ -61,8 +61,7 @@ LEVERS = [
     # restored with the rest or it leaks into the next test.
     (CG, "A_QUESTION_NEVER_ORDERS"),
     (PM, "ADMIN_VERBS_NEVER_MARCH"), (PM, "A_BARE_RETREAT_IS_A_RETREAT"),
-    (PM, "ADMIRAL_IS_AN_ADDRESSEE"), (SP, "GUARDING_A_MARSHAL_IS_SUPPORT"),
-    (NE, "ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL"), (PR, "PRISONERS_ARE_NAMED"),
+    (PM, "ADMIRAL_IS_AN_ADDRESSEE"),
     (M, "DISMISSAL_IS_NOT_A_DEATH"),
 ]
 
@@ -181,10 +180,6 @@ class TestTheAdmiraltyNamesItsObject:
         assert "Ney" in r["message"] and fleet(board)["ships"] == before
         r = post(client, "Murat, order the diversion")
         assert r["success"] is False and "Admiralty" in r["message"]
-        NE.ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL = False
-        r = post(client, "Ney, lay down a ship")
-        assert r["success"] is True and fleet(board)["ships"] == before + 1, \
-            "lever off = the pre-slice discard"
 
     def test_villeneuve_may_order_the_diversion(self, board):
         """The fleet's own admiral is decoration on a naval verb, not a marshal
@@ -357,10 +352,6 @@ class TestAPrisonerIsNamed:
         assert board.marshals["Ney"].strategic_order is None
         r = post(client, "pursue Mack")
         assert r["success"] is False and "our prisoner" in r["message"]
-        PR.PRISONERS_ARE_NAMED = False
-        r = post(client, "Ney, pursue Mack")
-        assert r["success"] is True and board.marshals["Ney"].location != "Rhineland", \
-            "lever off = the pre-slice 2-AP chase of a man in our own cells"
 
     def test_the_ai_path_names_him_too(self, board):
         """GR5: the same fuzzy seam serves the enemy AI (attacker_nation set)."""
@@ -560,13 +551,6 @@ class TestSupportSpeaksPlainly:
         assert not r["success"], "lever off = the pre-slice shrug"
         r, c = parse(board, "Ney, protect Davout")
         assert c.get("action") == "hold", "lever off = the hold family claims it"
-
-    def test_guarding_lever(self, board):
-        SP.GUARDING_A_MARSHAL_IS_SUPPORT = False
-        r, c = parse(board, "Ney, protect Davout")
-        assert r.get("strategic_type") == "HOLD" and c.get("target") == "Davout", \
-            "lever off = the pre-slice HOLD 'at' a man"
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FA-D25 — the question desk
@@ -902,9 +886,6 @@ class TestTheReviewRound:
         # the AI path (GR5): the fuzzy seam lets the province through too
         found, error = M.executor._fuzzy_match_enemy("Brunswick", board, "Austria")
         assert not (error or {}).get("prisoner")
-        PR.PRISONERS_ARE_NAMED = False
-        out = post(client, "Ney, attack Brunswick")
-        assert "prisoner" not in out["message"].lower(), "the lever changes nothing for a province"
 
     # ── R2-2 (P2): a far court's captive is fogged; a seen one is named ────
     def test_a_far_courts_captive_is_fogged(self, board, client):
@@ -922,9 +903,6 @@ class TestTheReviewRound:
         capture(board, "ArchdukeJohn", "Prussia", "Swabia")
         out = post(client, "Ney, attack Archduke John")
         assert "prisoner of Prussia" in out["message"]
-        PR.PRISONERS_ARE_NAMED = False
-        out = post(client, "Ney, attack Kutuzov")
-        assert "Prussia" not in out["message"], "the lever restores the pre-slice shrug, not a leak"
 
     def test_a_fogged_tombstone_is_not_read_out(self, board, client):
         cell = _unknown_region(board)

@@ -221,8 +221,6 @@ def _marshal_not_a_province(world, marshal, target, region_error):
     is a MARSHAL's is answered as a marshal: a captive by his cell, a living
     foreigner without his position (fog)."""
     from backend.commands import prisoners as _prisoners
-    if not _prisoners.PRISONERS_ARE_NAMED:
-        return region_error
     named = world.get_marshal(str(target or "").strip())
     if named is None or _prisoners.prisoner_is_a_province(world, named):
         return region_error

@@ -111,12 +111,6 @@ class TestTheNamedLawSaysWhatItDoes:
         reply = _say("what does the Code Abroad do")
         assert "is in force" in reply["message"] and says.rstrip(".") in reply["message"]
 
-    def test_the_lever_down_prices_it_alone(self, world, monkeypatch):
-        monkeypatch.setattr(FC, "THE_LAW_NAMED_SAYS_WHAT_IT_DOES", False)
-        says = R.find_law(world, "France", "code_abroad")["says"].strip()
-        assert says.rstrip(".") not in _say("what does the Code Abroad do")["message"]
-
-
 class TestARefusedLawStatesItsPriceOnce:
 
     def test_the_price_is_said_once(self, world):
@@ -137,13 +131,6 @@ class TestARefusedLawStatesItsPriceOnce:
         world.admin_actions_remaining = 0
         text = FC._laws_answer("what laws are in force", world)
         assert "takes an admin action; none remains this turn" in text, text
-
-    def test_the_lever_down_repeats_it(self, world, monkeypatch):
-        monkeypatch.setattr(FC, "A_REFUSED_LAW_STATES_ITS_PRICE_ONCE", False)
-        world.nation_gold["France"] = 800
-        text = FC._laws_answer("what laws are in force", world)
-        assert "the Artillery Reserve costs 3,000 gold" in text
-
 
 # ═══════════════════════════ R4 — THE POINTS ══════════════════════════════════
 

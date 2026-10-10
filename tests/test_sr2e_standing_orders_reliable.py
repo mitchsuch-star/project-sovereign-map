@@ -244,14 +244,6 @@ class TestTheVerdictIsBoundToItsOrder:
         post(client, "insist")
         assert "Massena" not in world.vindication_tracker.pending
 
-    def test_the_lever_down_stores_the_name_keyed_entry(self, shipped, obedient,
-                                                        monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(VIND, "THE_VERDICT_IS_BOUND_TO_ITS_ORDER", False)
-        post(client, "Massena, fortify")
-        post(client, "insist")
-        assert world.vindication_tracker.pending["Massena"]["choice"] == "insist"
-
     def test_the_aar_chain_draws_no_verdict_on_another_battle(self, shipped, obedient):
         client, world = shipped
         post(client, "Massena, fortify")

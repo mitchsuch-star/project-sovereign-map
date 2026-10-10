@@ -518,16 +518,6 @@ class TestTheDeskFailsClosed:
             assert first_contact_route(word) is None, word
             assert first_contact_route(f"Ney, {word}") is None, word
 
-    def test_the_lever_down_restores_the_shrug(self, shipped, monkeypatch):
-        """Sensitivity arm: with the desk off, `hello` draws the old shrug
-        and `what now` the old shrug — the pins above are live."""
-        client, world = shipped
-        monkeypatch.setattr(FC, "FIRST_CONTACT_DESK_ACTIVE", False)
-        assert first_contact_route("hello") is None
-        msg = post(client, "hello")["message"]
-        assert "Berthier bows" not in msg
-        assert post(client, "what now")["success"] is False
-
     def test_every_kind_the_route_mints_is_answered(self):
         for kind in FC.FIRST_CONTACT_HELP_KINDS:
             assert answer_first_contact(kind, "x", None), kind

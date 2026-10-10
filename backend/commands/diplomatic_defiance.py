@@ -622,7 +622,6 @@ def get_objection_text(concern_level: ConcernLevel, proposal: Dict, talleyrand) 
 # FA-N64 (slice 17, Sept 11 2026): the override's outcome is written where the
 # proposal RESOLVES, not where it is sent. False leaves a "pending" entry
 # unwritten forever — the pre-slice behaviour under a different literal.
-OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION = True
 
 # The two literals the send site may write. Pre-slice saves carry "override";
 # both are tolerated by the reader (never reported, never a crash).
@@ -635,8 +634,6 @@ def resolve_pending_override(world, verdict: str) -> bool:
     else). Idempotent: an entry already carrying a verdict is left alone, so
     the failed-ratification re-stamp overrides the optimistic first stamp
     and nothing later can flip it back. Returns True when an entry moved."""
-    if not OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION:
-        return False
     history = getattr(world, 'talleyrand_override_history', None) or []
     if not history:
         return False

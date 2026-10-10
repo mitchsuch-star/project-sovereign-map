@@ -1,24 +1,10 @@
 [
   {
-    "id": "SR-3c/L-1 the lever is down",
-    "file": "backend/ai/prompt_builder.py",
-    "old": "THE_PROMPT_IS_STATIC_FIRST = True\n",
-    "new": "THE_PROMPT_IS_STATIC_FIRST = False\n",
-    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections"
-  },
-  {
     "id": "SR-3c/L-1 the board leads again",
     "file": "backend/ai/prompt_builder.py",
     "old": "        prompt = (_S_HEAD + _S_ACTIONS + _S_REGIONS + _S_STANCES\n",
     "new": "        prompt = (_S_HEAD + _S_MARSHALS + _S_ACTIONS + _S_REGIONS + _S_STANCES\n",
     "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheStaticPrefixIsShared tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections"
-  },
-  {
-    "id": "SR-3c/L-1 the personality rule points above",
-    "file": "backend/ai/prompt_builder.py",
-    "old": "    _marshals_where = \"below\" if THE_PROMPT_IS_STATIC_FIRST else \"above\"\n",
-    "new": "    _marshals_where = \"above\"\n",
-    "tests": "tests/test_l1_the_prompt_turns_around.py::TestTheOrderOfTheSections::test_the_personality_rule_points_below"
   },
   {
     "id": "SR-3c/L-1 the addressee line is dropped",

@@ -126,13 +126,6 @@
     "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn::test_the_producer_carries_the_typed_remainder"
   },
   {
-    "id": "S17-14/b the ASK quotes the resolution again",
-    "file": "backend/commands/delegation.py",
-    "old": "    quoted = match.spoken if THE_QUOTE_IS_THE_PLAYERS_OWN else match.clause",
-    "new": "    quoted = match.clause",
-    "tests": "tests/test_fa_s17_phase4b_2026_09_12.py::TestTheQuoteIsThePlayersOwn"
-  },
-  {
     "id": "S17-14/c the reading is never stated beside the quote",
     "file": "backend/commands/delegation.py",
     "old": "    _resolution = (\"\" if quoted == match.clause\n                   else f\" I read that as {who}.\")",

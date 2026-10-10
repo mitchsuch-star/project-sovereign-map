@@ -82,6 +82,71 @@ toggle, the debug gate.
 dated within two sessions; a new pin `tests/test_code_health_ratchet.py`
 caps the count and fails on growth.
 
+**✅ BATCH 1 LANDING RECORD — October 9, 2026 (Pre-Deploy S2, slice 2; the
+tool `tools/retire_lever.py`, its shape pins `tests/test_retire_lever_tool.py`,
+the ratchet `tests/test_code_health_ratchet.py`).**
+
+- **The tool.** AST-based; `--list DIR … --max-lines N` censuses a tree with
+  each lever's blame date, test / sweep / doc counts; `NAME …` is a dry run
+  that prints every production site with the rewrite it would make or HAND;
+  `--apply` writes the production rewrites, drops the sweep rows and deletes
+  the constant with its own comment block. The rewrites: `not X` flips the
+  value; a neutral `and`/`or` operand is removed (an absorbing one folds the
+  whole op only when the operands before it are pure); `if` / `elif` inline
+  the body or keep the else, dedented, an `elif` becoming the chain's `else`
+  or leaving it; a ternary keeps its branch WITH the parentheses the AST
+  span stops inside (the first cut dropped them on a multi-line branch and
+  the file no longer parsed — found by the tool's own parse check before a
+  byte was written); `getattr(mod, "X", d)` → `True`; the name leaves an
+  import. A boolean operand outside a test position is HAND (`A and True`
+  is `A` only under truthiness). Tests are never edited: the dry run lists
+  every arm with its enclosing test, the author decides each.
+- **The batch, as defined and as measured.** `backend/ai/` +
+  `backend/commands/` modules under 1,500 lines hold **46** levers by the
+  census regex, not the plan's ~100; **26 landed in October 2026** and keep
+  their session under PRE_DEPLOY §5-4; **20 retired**: counsel.py ×6
+  (`COUNSEL_IS_DERIVED_FROM_THE_BOARD`, `THE_COUNSEL_READS_THE_ACTION_POINTS`,
+  `…READS_THE_REFUSALS`, `…SPREADS_THE_ORDERS`, `…READS_THE_CROSSING`,
+  `THE_LEVY_LINE_IS_THE_QUOTE`), first_contact.py ×3, prompt_builder.py ×2
+  (`THE_PROMPT_IS_STATIC_FIRST`, `THE_RECOVERY_PROMPT_NAMES_THE_COUNSEL`),
+  strategic_parser.py (`GUARDING_A_MARSHAL_IS_SUPPORT`), delegation.py ×3
+  (`AGGRESSIVE_ATTACK_ARM_ENABLED`, `KEYLESS_DELEGATION_READS_THE_MATCH`,
+  `THE_QUOTE_IS_THE_PLAYERS_OWN`), diplomatic_defiance.py, naval_executor.py,
+  prisoners.py (`PRISONERS_ARE_NAMED`, read from four modules),
+  tactical_executor.py, vindication.py (`THE_VERDICT_IS_BOUND_TO_ITS_ORDER`,
+  read from three). Every one `True` and named in a landing record
+  (`docs/` grep; the four with no doc mention — the FA slice-7 trio and
+  the L-D witness — are named in their slices' STATUS entries). **55
+  production sites rewritten by the tool, 1 by hand** (the recovery
+  prompt's multi-line f-string body, which no dedent can touch), plus the
+  pre-quote tail of `_levy_terms` that the inlined `return` made dead
+  (deleted; its `except Exception: return None` is the one silent handler
+  the census lost). **18 sweep rows dropped** from 9 `tools/_sweep_*.json`.
+- **The test arms, decided one by one:** 13 `False` arms deleted whole with
+  their old-world assertions (CRT-7 ×5, the exit residue ×2, CX-2, first
+  contact, L-1, FA-S17-14b, FA-S17-e, SR-2e); 4 lever-off tails trimmed
+  (FA slice 7's admiralty / pursue / province / fog cases); 3 tails that
+  re-asked under the mode gate trimmed (CR-5, CR-5b, PC15-8); 2
+  parametrized pins kept on the lever-up arm alone (the IQ-9 recovery
+  cassette drift, the L-1 re-stamp); the L-D `TestAnOrdinaryOrderIsUntouched`
+  class deleted (its only pin compared the two arms); the FA slice-7 LEVERS
+  restore list and the two `is True` asserts shed the retired names.
+  1,384 tests in the 15 touched files pass.
+- **The reading:** levers **665 → 645** (641 on, 605 named by a test);
+  functions over 500 lines 34 → 34; silent handlers 368 → **367**;
+  `CLAUDE.md` 61,562 B. **The ratchet** caps all four at the reading
+  (`LEVERS_CAP 645`, `FUNCTIONS_OVER_500_CAP 34`, `SILENT_HANDLERS_CAP 367`,
+  `CLAUDE_MD_BYTES_CAP 62,000`, `STATUS 200,000`), lower-only, reading the
+  census as data (`_code_health_census.census()`), never a grep; a "cap
+  near its reading" pin keeps a cap honest; the driver's `--lever` refuses a
+  retired name by `SystemExit` (pinned on three of the twenty).
+- **Gate:** `BASELINE_SERIES` + M1–M7 byte-identical, corpus 902/902,
+  `score_run check` against the final reading's archive identical item for
+  item to the pre-slice check; full suite green on the parallel hook.
+- **Next batches** (the head of S3 … S13, one each): batch 2 = the
+  game_logic modules under 3,000 lines; the October 2026 levers of batch 1
+  (26) join the first batch after October 2026 closes.
+
 ## CODE-2 — Split the monster functions into named stages (1 session each)
 
 **Order:** `_execute_attack` → `_process_dialogue_choice` → `_execute_one` →

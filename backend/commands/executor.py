@@ -1562,8 +1562,6 @@ class CommandExecutor:
         `help`, the desk), an act of state, a reward or a standing order's
         own step (`_strategic_execution`) holds nothing aside."""
         from backend.commands import vindication as _vind
-        if not _vind.THE_VERDICT_IS_BOUND_TO_ITS_ORDER:
-            return None
         world = (game_state or {}).get("world") if isinstance(game_state, dict) else None
         tracker = getattr(world, "vindication_tracker", None)
         if tracker is None or not getattr(tracker, "pending", None):

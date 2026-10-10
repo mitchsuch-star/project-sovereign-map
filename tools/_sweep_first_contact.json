@@ -1,12 +1,5 @@
 [
   {
-    "id": "FC-1 the desk lever down",
-    "file": "backend/ai/first_contact.py",
-    "old": "FIRST_CONTACT_DESK_ACTIVE = True",
-    "new": "FIRST_CONTACT_DESK_ACTIVE = False",
-    "tests": "tests/test_first_contact_keyless.py::TestTheGreeting tests/test_first_contact_keyless.py::TestThePauseMenuIsNamed tests/test_first_contact_keyless.py::TestUndoIsHonest tests/test_first_contact_keyless.py::TestTheGoal"
-  },
-  {
     "id": "FC-2 the stuck arm deleted",
     "file": "backend/ai/first_contact.py",
     "old": "    if _STUCK_RE.match(line):\n        return {\"kind\": \"options\", \"asked\": raw}",

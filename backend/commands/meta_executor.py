@@ -819,10 +819,7 @@ class MetaExecutor:
         three surfaces can never propose an order one of them would refuse.
         """
         from backend.ai.counsel import (CABINET_LINE,
-                                        COUNSEL_IS_DERIVED_FROM_THE_BOARD,
                                         surface_pointer, what_can_i_do)
-        if not COUNSEL_IS_DERIVED_FROM_THE_BOARD:
-            return None
         world = (game_state or {}).get("world")
         if world is None:
             return None
@@ -2194,8 +2191,7 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                 # replaces it, with its own consequences — so no battle can
                 # judge the insistence.
                 from backend.commands import vindication as _vind
-                if _vind.THE_VERDICT_IS_BOUND_TO_ITS_ORDER:
-                    world.vindication_tracker.clear_pending(marshal_name)
+                world.vindication_tracker.clear_pending(marshal_name)
 
                 original_action = (objection.get("original_order") or {}).get("action", "")
                 defiant_action = get_defiant_action(marshal, original_action)

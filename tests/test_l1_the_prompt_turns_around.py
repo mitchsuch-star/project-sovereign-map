@@ -7,9 +7,9 @@ prompts for the SAME order on boards one battle apart shared 84 characters —
 the board (our marshals, the enemy, the per-marshal compass lines) sat at the
 top, so nothing above the command could be reused. Up: rules, the output
 contract and the board-independent examples FIRST, then the board, then the
-order. Lever `prompt_builder.THE_PROMPT_IS_STATIC_FIRST`; down is the
-pre-slice prompt byte for byte, which is how every IQ-9 parse cassette's
-re-stamp is attributed (`tests/data/l1_prompt_restamp.json`).
+order. The lever that held the pre-slice prompt was retired October 9, 2026
+(CODE-1 batch 1); every IQ-9 parse cassette's re-stamp stays attributed by
+the record (`tests/data/l1_prompt_restamp.json`).
 """
 import contextlib
 import io
@@ -97,14 +97,6 @@ class TestTheStaticPrefixIsShared:
         a = _prompt(world, "Ney, attack Mack")
         b = _prompt(world, "march north")
         assert _shared(a, b) >= SHARED_PREFIX_FLOOR
-
-    def test_the_lever_down_shares_almost_nothing(self, shipped, monkeypatch):
-        client, world = shipped
-        monkeypatch.setattr(PB, "THE_PROMPT_IS_STATIC_FIRST", False)
-        before = _prompt(world)
-        _one_battle(world)
-        assert _shared(before, _prompt(world)) < 1_000
-
 
 class TestTheOrderOfTheSections:
     def test_rules_then_examples_then_board_then_order(self, shipped):
@@ -210,10 +202,11 @@ class TestTheCassetteAttribution:
         entry = IQ9.FILE_CASSETTES[cid]
         rec = RESTAMP[cid]
         assert entry["request"]["prompt_sha256"] == rec["static_first_sha256"]
+        # The lever was retired October 9, 2026 (CODE-1 batch 1); the
+        # static-first arm is the only prompt now, and the re-stamp record
+        # still pins it.
         for lever, want_sha, want_chars in (
-                (False, rec["recorded_sha256"], rec["recorded_chars"]),
-                (True, rec["static_first_sha256"], rec["static_first_chars"])):
-            monkeypatch.setattr(PB, "THE_PROMPT_IS_STATIC_FIRST", lever)
+                (True, rec["static_first_sha256"], rec["static_first_chars"]),):
             world, gs = IQ9.fresh_world(entry["world"])
             parser, replay = IQ9.arm(list(IQ9.FILE_CASSETTES.values()),
                                      entry["world"], IQ9.MANIFEST)

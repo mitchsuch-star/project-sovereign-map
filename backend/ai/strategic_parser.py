@@ -496,10 +496,7 @@ def detect_strategic_command(
     # FA slice 7 (FA-D20): "protect Davout" / "guard Davout" name a MAN of
     # our own army — SUPPORT, not a HOLD "at" him. A province, an enemy or
     # a bare "guard" keep HOLD.
-    if (GUARDING_A_MARSHAL_IS_SUPPORT and strategic_type == "HOLD"
-            and target_info.get("target_type") == "marshal"
-            and not target_info.get("convert_to_pursue")
-            and _GUARD_VERB_RE.search(cleaned)):
+    if (strategic_type == "HOLD" and target_info.get("target_type") == "marshal" and not target_info.get("convert_to_pursue") and _GUARD_VERB_RE.search(cleaned)):
         strategic_type = "SUPPORT"
 
     # Step 5: Parse conditions — CR-7-4: ONE grammar (condition_grammar) reads
@@ -610,11 +607,6 @@ def _strip_marshal_prefix(command_lower: str, marshal_name: Optional[str]) -> st
     return cleaned
 
 
-# FA slice 7 (FA-D20): SUPPORT keywords that are plain English words claim a
-# sentence only when a FRIENDLY MARSHAL follows them — "cover the retreat"
-# and "I need help" stay non-strategic. GUARDING_A_MARSHAL_IS_SUPPORT is the
-# flip lever for the HOLD→SUPPORT reclassification in detect_strategic_command.
-GUARDING_A_MARSHAL_IS_SUPPORT = True
 _OBJECT_MUST_BE_A_MARSHAL = frozenset({"help", "go help", "cover", "screen", "shield"})
 _GUARD_VERB_RE = re.compile(r'(?:^|[\s,;!])(?:guard|protect|cover|screen|shield)\s+')
 

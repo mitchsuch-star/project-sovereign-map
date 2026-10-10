@@ -158,7 +158,6 @@ def fortify_refusal(world, marshal):
 # eating the action another corps needed. ONE source for what insisting
 # costs, read by the objection payload (the dialog's button and the typed
 # route's sentence). Lever False leaves the payload without the terms.
-THE_INSIST_ARM_NAMES_ITS_PRICE = True
 
 
 def insist_terms(world, marshal, action: str):
@@ -167,8 +166,6 @@ def insist_terms(world, marshal, action: str):
     order's own price. `(1, "")` for every order that costs its face value;
     `(2, "he must first go defensive")` for a fortify from NEUTRAL, which is
     exactly the executor's auto-shift and its message."""
-    if not THE_INSIST_ARM_NAMES_ITS_PRICE:
-        return (0, "")
     try:
         base = int(world.get_action_cost(action)) if world is not None else 1
     except Exception:

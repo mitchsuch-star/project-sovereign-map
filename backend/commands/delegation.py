@@ -336,7 +336,6 @@ BATTLE_ACTIONS = frozenset({"attack", "charge", "bombard"})
 # FA-S17-14 (slice 17, Phase 4) flip lever: the ASK quotes the player's own
 # clause and states the engine's reading beside it. False = the prior quote,
 # which put the resolved target inside the quotation marks.
-THE_QUOTE_IS_THE_PLAYERS_OWN = True
 
 # The aggressive -> engage arm resolves an inferred, AP-committing, undo-less
 # battle start. It rides a delegation-INFERRED strategic PURSUE order whose every
@@ -348,7 +347,6 @@ THE_QUOTE_IS_THE_PLAYERS_OWN = True
 # move-failed-at-target). An aggressive delegation now produces a tagged PURSUE
 # that engages on contact, with the one-modal confirm protecting a dug-in
 # superior force. Setting this back to False re-degrades the arm to the safe ASK.
-AGGRESSIVE_ATTACK_ARM_ENABLED = True
 
 
 def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
@@ -373,13 +371,11 @@ def classify_arm(personality: str, parse_resolved_to_action: bool) -> str:
 
 
 def route_arm(personality: str, parse_resolved: bool) -> str:
-    """The arm the router acts on, applying the phase gate: with
-    AGGRESSIVE_ATTACK_ARM_ENABLED True (Phase 4, landed July 7, 2026) an
-    aggressive delegation engages; flipping it False re-degrades the arm to
-    the safe ASK clarification."""
+    """The arm the router acts on: a RESOLVED aggressive delegation engages
+    (Phase 4, landed July 7, 2026; its phase-gate lever was retired October
+    9, 2026, CODE-1 batch 1), an unresolved one degrades to the safe ASK
+    clarification (guardrail e)."""
     arm = classify_arm(personality, parse_resolved)
-    if arm == "aggressive" and not AGGRESSIVE_ATTACK_ARM_ENABLED:
-        return "ask"
     return arm
 
 
@@ -428,7 +424,6 @@ def parse_resolved_to_action(parsed: Dict) -> bool:
 # CR-5b flavor line stays live-only (a keyless player hears the deterministic
 # floor). Lever False restores the mode gate.
 # ════════════════════════════════════════════════════════════════════════════
-KEYLESS_DELEGATION_READS_THE_MATCH = True
 
 
 def delegation_witness(parsed: Dict, match: Optional[DelegationMatch]) -> bool:
@@ -442,7 +437,7 @@ def delegation_witness(parsed: Dict, match: Optional[DelegationMatch]) -> bool:
     attack on Mack` -> attack) and keeps the ASK."""
     if parse_resolved_to_action(parsed):
         return True
-    if not KEYLESS_DELEGATION_READS_THE_MATCH or match is None:
+    if match is None:
         return False
     if parsed and parsed.get("success"):
         action = (parsed.get("command") or {}).get("action")
@@ -701,7 +696,7 @@ def _ask_question(match: DelegationMatch) -> str:
     the resolution is stated beside it rather than inside the quotation marks.
     """
     who = match.target_display
-    quoted = match.spoken if THE_QUOTE_IS_THE_PLAYERS_OWN else match.clause
+    quoted = match.spoken
     _resolution = ("" if quoted == match.clause
                    else f" I read that as {who}.")
     if match.personality == "literal":

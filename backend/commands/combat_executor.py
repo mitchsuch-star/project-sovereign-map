@@ -10312,9 +10312,7 @@ class CombatExecutor:
         # FA slice 7 review round (R2-8): a captive is named, not "has no
         # troops to fight" (NPC-19's class on the charge road).
         from backend.commands import prisoners as _prisoners
-        if (getattr(target_marshal, "captured_by", "")
-                and _prisoners.PRISONERS_ARE_NAMED
-                and not _prisoners.prisoner_is_a_province(world, target_marshal)):
+        if (getattr(target_marshal, "captured_by", "") and not _prisoners.prisoner_is_a_province(world, target_marshal)):
             return _prisoners.prisoner_refusal(world, target_marshal, marshal.nation)
         if target_marshal.strength <= 0:
             return {
@@ -11400,8 +11398,7 @@ class CombatExecutor:
         # destroyed" of a living prisoner — the exact lookup has no strength
         # gate and the destroyed arm below reads strength alone.
         from backend.commands import prisoners as _prisoners
-        if (enemy is not None and getattr(enemy, "captured_by", "")
-                and _prisoners.PRISONERS_ARE_NAMED):
+        if (enemy is not None and getattr(enemy, "captured_by", "")):
             if _prisoners.prisoner_is_a_province(world, enemy):
                 # R2-1: the captive's name is a PROVINCE — that is the order.
                 enemy = None

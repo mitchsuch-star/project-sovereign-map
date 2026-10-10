@@ -249,14 +249,6 @@ class TestTheQuoteIsThePlayersOwn:
         assert "ArchdukeCharles" not in q, q
         assert "I read that as" not in q, q            # nothing to gloss
 
-    def test_lever_down_reproduces_the_engines_own_quote(self, monkeypatch):
-        monkeypatch.setattr(DG, "THE_QUOTE_IS_THE_PLAYERS_OWN", False)
-        q = DG._ask_question(self._match())
-        assert '"deal with Mack"' in q, q
-        assert "the Austrians" not in q, q
-        assert "I read that as" not in q, q
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # FA-S17-15 — one court, one envoy per war
 # ═══════════════════════════════════════════════════════════════════════

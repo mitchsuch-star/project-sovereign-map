@@ -14,13 +14,6 @@
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_a_land_diversion_is_not_the_grand_diversion"
  },
  {
-  "id": "naval/c the admiralty refuses an addressed marshal",
-  "file": "backend/commands/naval_executor.py",
-  "old": "    if not ADMIRALTY_REFUSES_AN_ADDRESSED_MARSHAL:\n        return None",
-  "new": "    if True:\n        return None",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheAdmiraltyNamesItsObject::test_an_addressed_marshal_is_refused_not_discarded"
- },
- {
   "id": "naval/d the admiral is an addressee",
   "file": "backend/commands/parser.py",
   "old": "    return bool(admiral) and token.strip().lower() == admiral.lower()",
@@ -75,13 +68,6 @@
   "old": "            else:\n                return {\"kind\": \"error\", \"error\": _prisoners.prisoner_refusal(\n                    world, enemy, world.player_nation)}",
   "new": "            else:\n                enemy = None",
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_the_bare_attack_does_not_call_him_destroyed"
- },
- {
-  "id": "pris/c the pursue arm names him",
-  "file": "backend/commands/strategic_executor.py",
-  "old": "            if (enemy is not None and getattr(enemy, \"captured_by\", \"\")\n                    and _prisoners.PRISONERS_ARE_NAMED):\n                return _prisoners.prisoner_refusal(world, enemy, marshal.nation)",
-  "new": "            if False:\n                return _prisoners.prisoner_refusal(world, enemy, marshal.nation)",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestAPrisonerIsNamed::test_pursuing_a_prisoner_is_refused_at_no_cost"
  },
  {
   "id": "pris/d the refusal stands ahead of the province fallback",
@@ -439,20 +425,6 @@
   "old": "            return (f\"{shown} of {court} is at {marshal.location} — \"\n                    f\"{int(marshal.strength):,} men, confirmed.\")",
   "new": "            return (f\"{shown} of {court} is at {marshal.location} — \"\n                    f\"{int(marshal.strength):,} men, confirmed\" + (\", fortified.\" if getattr(marshal, \"fortified\", False) else \".\"))",
   "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheReviewRound::test_the_desk_reports_the_mans_own_band_and_no_states"
- },
- {
-  "id": "r2-8a the charge names a prisoner",
-  "file": "backend/commands/combat_executor.py",
-  "old": "        if (getattr(target_marshal, \"captured_by\", \"\")\n                and _prisoners.PRISONERS_ARE_NAMED",
-  "new": "        if (False\n                and _prisoners.PRISONERS_ARE_NAMED",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheReviewRound::test_the_charge_scout_and_move_name_a_prisoner"
- },
- {
-  "id": "r2-8b scout and move name a prisoner",
-  "file": "backend/commands/movement_executor.py",
-  "old": "    if not _prisoners.PRISONERS_ARE_NAMED:\n        return region_error",
-  "new": "    if True:\n        return region_error",
-  "tests": "tests/test_fa_slice7_the_mock_speaks_plainly_2026_09_04.py::TestTheReviewRound::test_the_charge_scout_and_move_name_a_prisoner"
  },
  {
   "id": "r3-3 who holds prefers the province",

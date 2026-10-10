@@ -44,7 +44,6 @@ from backend.ai.providers import (
     AnthropicProvider,
 )
 from backend.commands.delegation import (
-    AGGRESSIVE_ATTACK_ARM_ENABLED,
     BATTLE_ACTIONS,
     DELEGATION_VERBS,
     build_delegation_clarification,
@@ -314,14 +313,6 @@ class TestAskArmEndpoint:
         data = client.post(
             "/command", json={"command": "Soult, deal with Mack"}).json()
         assert data["clarification_kind"] == "delegation"
-        # Lever down: the old mode gate — every personality asks.
-        import backend.commands.delegation as _D
-        monkeypatch.setattr(_D, "KEYLESS_DELEGATION_READS_THE_MATCH", False)
-        for marshal in ("Lannes", "Bernadotte"):
-            data = client.post(
-                "/command",
-                json={"command": f"{marshal}, deal with Mack"}).json()
-            assert data["clarification_kind"] == "delegation", marshal
 
     def test_no_mis_route_to_diplomacy(self, endpoint1805):
         # AC-3: a marshal-addressed "deal with" (no Talleyrand) must not hit
@@ -371,7 +362,6 @@ class TestRouteArmPhaseGate:
         # (a tagged PURSUE), NOT the safe ASK. If this test is RED because the
         # flag was set back to False, the arm was intentionally re-disabled —
         # update this assertion to match.
-        assert AGGRESSIVE_ATTACK_ARM_ENABLED is True
         assert route_arm("aggressive", True) == "aggressive"
         # A mock/unresolved parse still degrades to ASK (guardrail e).
         assert route_arm("aggressive", False) == "ask"

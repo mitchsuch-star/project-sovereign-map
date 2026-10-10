@@ -104,7 +104,6 @@ class TestFAN57TheSquareAdvisorySpeaks:
     def test_levers_default_on(self):
         assert SE.SQUARE_ADVISORY_READS_THE_PRE_BREAK_STATE is True
         assert C.ROUT_SURVIVORS_NEVER_EXCEED_THE_ARMY is True
-        assert DDF.OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION is True
 
     def test_a_support_order_from_square_names_the_broken_square(self, client):
         c, w = client
@@ -297,16 +296,6 @@ class TestFAN64TheOverrideOutcomeIsDelivered:
             w.talleyrand_override_history = [{"proposal_type": "peace", "override_result": legacy,
                                               "turn": int(w.current_turn)}]
             assert DDF.get_override_dispatch_note(w) is None
-
-    def test_the_lever_down_leaves_the_verdict_unwritten(self, monkeypatch):
-        monkeypatch.setattr(DDF, "OVERRIDE_OUTCOME_IS_STAMPED_AT_RESOLUTION", False)
-        w = _world()
-        DIP = self._in_transit(w, "Prussia", "non_aggression", 80)
-        monkeypatch.setattr(DIP, "calculate_acceptance",
-                            lambda proposal, world, **k: {"outcome": "ACCEPT", "score": 80, "feedback": ""})
-        _quiet(w._process_proposal_in_transit)
-        assert w.talleyrand_override_history[-1]["override_result"] == "pending", "the defect: never rewritten"
-        assert DDF.get_override_dispatch_note(w) is None
 
     def test_both_renderers_print_the_note(self):
         for name in ("main.gd", "dispatch_view.gd"):

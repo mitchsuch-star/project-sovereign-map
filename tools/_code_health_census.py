@@ -42,7 +42,13 @@ def func_lengths(tree: ast.AST, path: Path):
 LEVER_RE = re.compile(r"^([A-Z][A-Z0-9_]{3,})\s*(?::\s*bool)?\s*=\s*(True|False)\s*(#.*)?$", re.M)
 
 
-def main() -> int:
+def census() -> dict:
+    """The reading as data (the ratchet pin reads this; `main` prints it).
+
+    Keys: `functions` [(length, ifs, name)] longest first; `levers`
+    {name: (file, value)}; `levers_named_by_a_test`; `except` Counter of
+    silent / logs / reraise; `silent_by_file` Counter; `claude_md_bytes`;
+    `status_md_bytes`."""
     funcs = []
     levers: dict[str, tuple[str, str]] = {}
     exc = Counter()
@@ -76,6 +82,22 @@ def main() -> int:
     on = sum(1 for _, (_, v) in levers.items() if v == "True")
 
     funcs.sort(reverse=True)
+    return {
+        "functions": funcs,
+        "levers": levers,
+        "levers_named_by_a_test": named,
+        "except": exc,
+        "silent_by_file": exc_by_file,
+        "claude_md_bytes": (ROOT / "CLAUDE.md").stat().st_size,
+        "status_md_bytes": (ROOT / "docs" / "STATUS.md").stat().st_size,
+    }
+
+
+def main() -> int:
+    reading = census()
+    funcs, levers, named = reading["functions"], reading["levers"], reading["levers_named_by_a_test"]
+    exc, exc_by_file = reading["except"], reading["silent_by_file"]
+    on = sum(1 for _, (_, v) in levers.items() if v == "True")
     print("== functions over 500 lines:", sum(1 for f in funcs if f[0] > 500))
     print("== functions over 300 lines:", sum(1 for f in funcs if f[0] > 300))
     for length, ifs, name in funcs[:20]:
@@ -85,6 +107,7 @@ def main() -> int:
     print("   silent, by file (top 12):")
     for f, n in exc_by_file.most_common(12):
         print(f"     {n:3d}  {f}")
+    print(f"== CLAUDE.md bytes: {reading['claude_md_bytes']}   STATUS.md bytes: {reading['status_md_bytes']}")
     return 0
 
 

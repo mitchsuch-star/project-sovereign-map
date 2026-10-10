@@ -42,7 +42,6 @@ from typing import Dict, Optional, List
 #     is dropped, never resolved.
 # Lever False restores the name-keyed tracker byte for byte.
 # ════════════════════════════════════════════════════════════════════════════
-THE_VERDICT_IS_BOUND_TO_ITS_ORDER = True
 
 # The orders a battle he leads can answer.
 BINDABLE_ACTIONS = frozenset({"attack", "charge", "pursue", "move", "march"})
@@ -127,7 +126,7 @@ class VindicationTracker:
                 is stored; any other clears the marshal's entry.
             turn: the turn the answer was given.
         """
-        if THE_VERDICT_IS_BOUND_TO_ITS_ORDER and executed_order is not _UNBOUND:
+        if executed_order is not _UNBOUND:
             if not order_can_be_judged(executed_order):
                 self.pending.pop(marshal_name, None)
                 return
@@ -151,8 +150,6 @@ class VindicationTracker:
         order of the player's runs, so that order's own battle cannot answer
         the old question. `settle_held` hands it back if the new order was
         refused, and lets it go if the order was carried out."""
-        if not THE_VERDICT_IS_BOUND_TO_ITS_ORDER:
-            return None
         return self.pending.pop(marshal_name, None)
 
     def settle_held(self, marshal_name: str, held: Optional[Dict],
@@ -198,8 +195,7 @@ class VindicationTracker:
         if marshal_name not in self.pending:
             return None
 
-        if (THE_VERDICT_IS_BOUND_TO_ITS_ORDER
-                and (defender_name is not _UNBOUND
+        if ((defender_name is not _UNBOUND
                      or battle_region is not _UNBOUND)):
             if defender_name is _UNBOUND:
                 defender_name = None

@@ -63,13 +63,6 @@
     "tests": "tests/test_sr2e_standing_orders_reliable.py::TestEveryPricingSiteNamesItsOrder::test_the_help_names_the_support_price"
   },
   {
-    "id": "SR-2e/AAR-11 lever down",
-    "file": "backend/commands/vindication.py",
-    "old": "THE_VERDICT_IS_BOUND_TO_ITS_ORDER = True\n",
-    "new": "THE_VERDICT_IS_BOUND_TO_ITS_ORDER = False\n",
-    "tests": "tests/test_sr2e_standing_orders_reliable.py::TestTheVerdictIsBoundToItsOrder"
-  },
-  {
     "id": "SR-2e/AAR-11 an unjudgeable order is stored",
     "file": "backend/commands/vindication.py",
     "old": "            if not order_can_be_judged(executed_order):\n                self.pending.pop(marshal_name, None)\n                return\n",

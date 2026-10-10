@@ -323,20 +323,6 @@ class TestTheLevers:
         finally:
             QD.QUESTION_DESK_ACTIVE = original
 
-    def test_the_counsel_lever_restores_the_hardcoded_shrug(self, ask):
-        original = C.COUNSEL_IS_DERIVED_FROM_THE_BOARD
-        try:
-            C.COUNSEL_IS_DERIVED_FROM_THE_BOARD = False
-            assert C.what_can_i_do(None, "France") == []
-            # The shrug falls back to its own first_marshal/first_enemy pair
-            # rather than breaking.
-            message = ask("xyzzy foobar").get("message") or ""
-            assert message
-            assert "declare war" not in message.lower()
-        finally:
-            C.COUNSEL_IS_DERIVED_FROM_THE_BOARD = original
-
-
 class TestTheCounselIsHonest:
 
     def test_it_never_proposes_a_march_the_executor_would_refuse(self, board):
