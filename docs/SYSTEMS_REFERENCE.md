@@ -9208,3 +9208,158 @@ P1 on every monitor); the end screen's bold is 17 like its body (it was 15); the
 theme's 16 (`FIFTEEN_TSCN` in the sweep). Still flagged and ROUTED, not fixed: the battle
 diorama's tableau labels (design sizes under a 0.35–1.0 tray scale — UXR-X5) and the
 war-detail popup's computed `max(7, font_size − 3)` bar tags (UXR-X6), both UXR-2's.
+
+## 100. THE PARSE TRACE AND THE TYPED `why` — DD-0 S3 (October 10, 2026)
+
+**The rule.** Every stage that reads or rewrites a typed line appends a row to ONE
+trace per `/command` request (`backend/ai/parse_trace.py`; routing
+`PRE_DEPLOY_PLAN.md` §3.0 instrument 1; pins `tests/test_dd0_parse_trace.py`). The
+trace is a contextvar — the `_PARSE_PROVENANCE` shape — opened at `execute_command`'s
+door and closed by `build_base_response` on whatever reply goes out, so it is on EVERY
+response road (the early refusals, the clarifications, the dialogue answers, the
+executor's) and costs nothing outside a request: a direct `parser.parse` from a test
+or the driver pays one `None` check per stage and records no row.
+
+**The rows.** `{stage, rule, span, before, after}` for a rewrite (`note` — recorded
+only when something changed; the span is the half-open index range of the change,
+derived when not given) and `{stage, rule, detail}` for a decision (`decide` — the
+arm that fired, the gate that returned, the dispatch). The first row is always
+`typed · line`, the last always `reply · done | refused | asked` (the ONE terminal
+row, appended at the close). Values are clipped at 160 characters on the wire. The
+stages, in the road's order: `main` (a clarification / interrupt / objection /
+capture / dialogue answer, the lost-marshal refusal, the request-field override),
+`carryover` (CR-4's rewrite, the focus reissue), `premise`, `parser` (the typo
+repair, every pre-rewrite and normaliser, `is_question`, `split`, `fuzzy_matching`,
+`fuzzy_error`, `validation_failed`), `guards` (negation / condition / reason /
+deferral / filler, and the PARSE-NEG `refusal` with its kind), `mock_chain · result`
+(action, marshal, target, confidence, the chain's `interpretation` — the arm that
+fired), `live · consulted | result` (the 0.7 gate's escalation), `strategic`
+(`strip_marshal_prefix`, `type`, `target_text`, `province_named_after_relative` —
+SFR-D11's seam, `guarded_text`, `detected`, `target_resolved`,
+`target_overrides_tactical`, `self_target_unbound`), `parse · result` (the parser's
+whole answer), `delegation` (the CR-5 arm and the line it composed), `executor`
+(`unbound_addressee`, `proper_name_asks`, `auto_attack`, `standing_decision_refusal`,
+`literal_marshal_asks`, `auto_assign_scout`, **`recruit_arm_substituted`** — SFR-D41's
+class, now disclosed, `command_changed` — the command as it entered the executor
+against the command as it left, so every in-place substitution is a row without a
+hook at each site, and `result`), `dispatch` (the verb and the marshal / target /
+type it was dispatched with — a strategic order is `dispatch · strategic_order`).
+
+**On the wire.** `parse_trace` rides the response when the request carries
+`"trace": true` (the driver, the census, a curl) or `SOVEREIGN_PARSE_TRACE=1` is set.
+It is display-only (GR6): nothing mechanical reads it, it enters no save (the world
+keeps the LAST trace on the transient `_last_parse_trace`, never serialized), and the
+client ignores the key. The series and M1–M7 are byte-identical with it on.
+
+**The typed `why`.** A bare `why` / `why?` / `why not` / `explain` / `explain that` /
+`what did you read` / `how did you read that` (`main._WHY_RX`) prints the last line's
+trace, one row per line (`stage · rule · before → after`), free, a question, no
+history entry, and leaves the stored trace standing (so `why` twice prints the same
+order). A `why` WITH a subject — "why is Prussia at war", "why did the bills move" —
+is the state desk's and falls through. Before any order: "give an order first".
+
+**Why it exists.** A misread used to cost a session to localise (three producers read
+the raw text in series; a fix to one shipped a hole in another). It is now a one-line
+diagnosis: the row where the reading changed. The metamorphic corpus (§101) and the
+blind census carry each failure's trace, so S4's worklist is pre-attributed by stage.
+
+## 101. THE METAMORPHIC CORPUS — DD-0 S3 (October 10, 2026)
+
+**The rule.** From the golden corpus's ORDER rows (`backend/ai/parser_metamorphic.py`;
+harness `tests/test_dd0_metamorphic_corpus.py`; CLI `tools/metamorphic_census.py`;
+memo `docs/audits/METAMORPHIC_CENSUS_2026_10_10.md`) generate variants whose reading
+is known by construction, parse each beside its original on the same board, and judge
+on the harness's own keys (marshal, action, target, type, strategic_type,
+target_stance, requested_type, diplo) — against the parse of the ORIGINAL, never
+against `expected`, so a family's failure is the parser's, not the corpus's.
+
+**The families.** Relation `same` (the reading must not move): `please` (leading,
+trailing, after the address), `honorific` (`Marshal X` ↔ `X`), `reason_tail`
+(`… because the men are ready` / `, the men are rested`), `dash_aside` (`— thank you`
+/ `- at once`), `contraction` (`do not` ↔ `don't` and fourteen more, only where
+present), `verb_typo` (one transposition in the leading verb, only a verb the repair
+pass's own `_TYPO_VERBS` knows), `word_order` (`<order>, <Name>`), `second_name_role`
+(`… with Lannes in support` on an attack / move / pursue / hold — the FIRST man's
+reading must stand), `lowercase`. Relation `refusal`: `negation` (`do not <verb>`,
+`never <verb>`) must come back as PARSE-NEG's refusal with its kind. Relation
+`question`: `modal_question` (`should <Name> <order>?`) and `hedge` (`maybe` /
+`perhaps`) must not execute the order (a question, a refusal or the help desk all
+satisfy it).
+
+**Applicability — where a family does NOT fire (the exclusions are deliberate).** An
+order row only: `expected.action` in `ORDER_ACTIONS`; never a diplomatic row, a cheat,
+a save / load, a question, a `success: false` row, a `live_only` row, a row asserting a
+`dropped_sequel` / a condition / an arrival / a warning. Never a row whose utterance
+holds a question mark, a connective (`if when unless until once then and but while
+after before`), a relative place (`home back`), a carryover word (`again same him her
+them there it`), a negation, a deferral or a dash. The negation and the modal
+question fire only on a SINGLE clause (no comma but the address's) whose first word
+after the address is one of `ORDER_VERBS` — `do not` before a filler (`hold on, Ney,
+retreat`), a first person (`I attack Mack`) or an honorific is not a negated order,
+and "do not wait, hold position" is a HOLD, not a flip. The honorific, word-order,
+second-name and modal families need the `Name, <order>` address with the row's own
+marshal.
+
+**The first reading (October 10, 2026): 2,100 cases from 128 order rows, 161 failed.**
+By family — `dash_aside` 70 / 338 (the aside becomes the province: `Swabia — Thank
+You`), `second_name_role` 31 / 45 (CRT-11's rule turns `Ney, attack Mack with Lannes
+in support` into a SUPPORT with a generic target — the first man's order is LOST, the
+instrument's one dangerous `same` class), `please` 30 / 453 (`please, cancel`, `Ney,
+retire, please`, `please, I will march …` loses the sovereign), `reason_tail` 18 / 338
+(`hold because the men are ready` → the province `Because The Men Are Ready`; the
+reason guard knows only the ENEMY's reasons), `word_order` 8 / 77 (`retire, Ney`,
+`protect Davout, Ney`), `verb_typo` 3 / 27 (`someone attcak Mack` — the repair pass
+reads the leading position only), `honorific` 1 / 83 (`Marshal Ney moves to Lorraine`
+— the inflected-order rewrite does not read through the honorific). **The flip
+families all hold: `negation` 0 / 190, `modal_question` 0 / 60, `hedge` 0 / 338** —
+nothing negated ran, no question ordered (the "0 executed-other-than-meant" half of
+DD-0's done-when, on this instrument). By the trace's last stage: `strategic ·
+target_overrides_tactical` 90 (the strategic layer's target extraction swallows the
+tail), `parser · validation_failed` 47, `mock_chain · result` 11, `strategic ·
+strip_marshal_prefix` 8, the rest 5.
+
+**The ratchet.** The 161 ids are the committed ledger
+`tests/data/metamorphic_known_failures.json` (each row: id, family, relation, the
+variant, the original, why, the trace's last stage) — S4's worklist, attributed. The
+harness pins that no failure OUTSIDE the ledger lands (a regression is red the day it
+is written) and that the count only falls (`LEDGER_CAP`); a ledger row that now passes
+is printed for pruning, never failed. Rewrite the ledger only with
+`tools/metamorphic_census.py --write-ledger`, after a fix (the count must fall) or a
+new family (recorded here). **No parser rule was changed by S3** — the instrument
+measures; S4 fixes.
+
+## 102. THE THIRD BLIND AUTHOR SET — DD-0 S3 (October 10, 2026)
+
+**The rule.** A third blind author — no repository access; only the boot screen's
+facts and the judge's family names — wrote 300 orders in varied registers with 31
+meant-to-refuse traps (`tools/playtest_scripts/unrehearsed_2026_10_10_third.json`,
+never edited after the run). `tools/unrehearsed_census.py --trace` runs each on a
+fresh 1805 board through the real `POST /command`, keyless and keyed, reads every
+reply with the ONE judge (unchanged) and stores each row's parse trace. Records
+`docs/audits/unrehearsed/2026_10_10_third_{keyless,keyed}.json`; memo
+`docs/audits/UNREHEARSED_CENSUS_2026_10_10.md`; pins `tests/test_dd0_third_blind_set.py`.
+
+**The reading.** Keyless: as meant **137** · asked 24 · board refusal 22 · refused as
+meant 20 · honest refusal 37 · shrug 41 · misread 8 · executed-when-refusal-meant 11.
+Keyed (64 live parses): as meant **152** · asked 35 · board refusal 31 · refused as
+meant 21 · honest refusal 40 · shrug 1 · misread 10 · executed-when-refusal-meant 10.
+DD-0's done-when is ≥ 85 % as meant keyless on a FRESH set; this one is S4's
+baseline (45.7 % / 50.7 %).
+
+**The dangerous classes, by hand.** Of the judge's 19 keyless rows, **nine are the
+parser's** (filed `BUG_FIXES.md` §DD-0 S3, DD0-1 … DD0-7): an attack on our own
+marshal (`Ney, attack Davout`) and `everyone — attack everything` became an attack
+on the nearest enemy behind a disclosure (DD0-1); `go to Gelderland and wait there`
+and `go to Berlin — no wait, Dresden` lost the march to the WAIT arm that sits
+above it (DD0-2); `ride to Lannes' aid` became a generic SUPPORT resolved to
+Bernadotte (DD0-3); `drop off a few battalions to hold Franconia` became a 2-AP
+standing HOLD (DD0-4); `what's in Tyrol? Massena, find out` answered the question
+and dropped the order (DD0-5); `War with Portugal. Inform their ambassador.` became
+an advisory (DD0-6); `attack Mack and also do not attack Mack` fought (DD0-7). The
+other ten are honest replies in shapes the judge's list does not know (DD0-8 — the
+judge is also the HOLD arm's reader, so widening it is re-checked against the score
+archive first). The three real executions are pinned by line.
+
+**The ratchet.** The dangerous classes at their measured counts, lower-only, on both
+records; the committed classes re-read by the shipping judge; every row's trace ends
+on the reply. The `as_meant` counts are printed, never pinned.

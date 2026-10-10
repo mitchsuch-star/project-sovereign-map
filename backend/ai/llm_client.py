@@ -26,6 +26,8 @@ import os
 import random
 import re
 import unicodedata
+
+from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
 from typing import Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
@@ -1810,6 +1812,7 @@ class LLMClient:
         """
         # Step 1: ALWAYS run fast parser first - it's our baseline and safety net
         fast_result = self._parse_with_mock(command_text, game_state)
+        _ptrace.decide("mock_chain", "result", _ptrace.mock_summary(fast_result))
 
         # Step 2: Decide if we should try LLM
         # Skip LLM if: mock mode, high confidence, no game_state, or meta command
@@ -1818,7 +1821,9 @@ class LLMClient:
 
         # Step 3: Try LLM provider (only for low-confidence parses)
         print(f"LLM fallback: '{command_text[:40]}...' (confidence={fast_result.confidence})")
+        _ptrace.decide("live", "consulted", {"confidence": fast_result.confidence})
         llm_result = self._parse_with_live_provider(command_text, game_state, fast_result)
+        _ptrace.decide("live", "result", _ptrace.mock_summary(llm_result))
 
         # Step 4: Return best result
         # _parse_with_live_provider handles validation and fallback internally
@@ -2329,6 +2334,8 @@ class LLMClient:
         Confidence stays at the honest 0.5. It is `_should_fallback_to_llm`
         that declines to escalate (see the comment there), not a fake score.
         """
+        _ptrace.decide("guards", "refusal", {"kind": reason, "why": phrase,
+                                              **({"detail": detail} if detail else {})})
         return ParseResult(
             matched=False,
             command_type="tactical",
@@ -2501,8 +2508,11 @@ class LLMClient:
                 command_text, friendly_names=_player_roster,
                 roster_names=_all_roster)
             guarded, negation_applied = strip_negated_clauses(command_text)
+            _ptrace.note("guards", "strip_negated_clauses", command_text, guarded)
             _verdict = strip_condition_clauses_with_handoff(
                 guarded, friendly_names=_player_roster, roster_names=_all_roster)
+            _ptrace.note("guards", "strip_condition_clauses", guarded, _verdict.text,
+                         refuse=_verdict.refuse, handoff=bool(_verdict.handoff))
             guarded, condition_refuses = _verdict.text, _verdict.refuse
             condition_refuses = condition_refuses or _pre_verdict.refuse
             _refusing_clause = (_verdict.refusing_clause
@@ -2531,12 +2541,16 @@ class LLMClient:
             _reason_spans = reason_clause_spans(guarded, foes=_foes)
             _reason_clause = (guarded[_reason_spans[0][0]:_reason_spans[0][1]]
                               .strip(" ,") if _reason_spans else "")
+            _b = guarded
             guarded, reason_applied = strip_reason_clauses(guarded, foes=_foes)
+            _ptrace.note("guards", "strip_reason_clauses", _b, guarded)
             # FA-7: "not YET" is not "not that". The guards above knew every
             # way to forbid an order and none to postpone one, so "Ney, delay
             # the attack" fought a real battle at 0.95 confidence — above the
             # escalation gate, so no key in any mode could have corrected it.
+            _b = guarded
             guarded, deferral_applied = strip_deferred_clauses(guarded)
+            _ptrace.note("guards", "strip_deferred_clauses", _b, guarded)
             # ⛔ TWO MARSHALS, ONE DEFERRED — REFUSE, never re-address.
             #
             # "Ney, hold your position for now, Davout attack Mack" blanked
@@ -2627,7 +2641,9 @@ class LLMClient:
             # WO-6 (slice 11): a leading filler ("no wait, …", "hold on, …")
             # is blanked for the keyword match — same-length, so the
             # position-aware rules below still index into `command_text`.
+            _b = command_lower
             command_lower = strip_leading_filler(command_lower)
+            _ptrace.note("guards", "strip_leading_filler", _b, command_lower)
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMAT ROUTING (Phase 8 Session 3): Check for Talleyrand

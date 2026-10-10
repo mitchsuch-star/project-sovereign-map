@@ -966,6 +966,7 @@ only the screen can verify.
 | `SOVEREIGN_SCENARIO` | explicit scenario path / `none` = bare flag world — the driver SETS it to `""` (the engine's no-op) before the import | `""` |
 | `SOVEREIGN_SMOKE_START` | settlement smoke presets — set to `""` by the driver | `""` |
 | `SOVEREIGN_MAP` | `legacy` = 19-region rollback — set to `europe` by the driver | `europe` |
+| `SOVEREIGN_PARSE_TRACE` | `1` puts the parse trace (`parse_trace`, DD-0 S3 — `SYSTEMS_REFERENCE.md` §100) on every `/command` reply; a request can ask for it alone with `"trace": true`, and a typed `why` prints the last line's trace without either. `tools/unrehearsed_census.py --trace` stores it per row. | unset |
 | `PYTHONHASHSEED` | `0` for byte-identity work (M1–M7/BASELINE_SERIES idiom) | `0` (the driver re-execs itself with it when unset; recorded in `meta.json`) |
 | `ANTHROPIC_API_KEY` | required by `--llm anthropic`; **without it that arm cannot run at all** and must be reported as NOT RUN rather than skipped. **The escalation path's HANDLING is gated keylessly by the replay gate** (`tests/test_iq9_keyless_parser_gate.py`, IQ-9 — the 0.7 gate's live arms, the SDK ladder, the `stop_reason` discard, validation, the CR-5 arms, the call count per request); `--llm anthropic` still owes the MODEL'S OWN ANSWERS. The suite itself pins `LLM_MODE=mock` and refuses every non-loopback connection (`tests/conftest.py` T0), so a key in `.env` can no longer make a test go live. | — |
 

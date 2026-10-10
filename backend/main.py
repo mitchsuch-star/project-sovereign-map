@@ -768,6 +768,9 @@ def build_base_response(world, success: bool = True, message: str = "",
         _msg = str(response.get("message") or "").rstrip()
         response["message"] = f"{_msg}\n\n{_line}" if _msg else _line
         response["relay_let_go"] = _let_go.get("tail")
+    # DD-0 S3: the parse trace is closed on the ONE seam every /command
+    # reply passes through (a no-op when no trace is open).
+    _close_parse_trace(world, response)
     return response
 
 
@@ -783,6 +786,45 @@ def build_base_response(world, success: bool = True, message: str = "",
 # mechanical reads these keys, they enter no save, and they carry no world
 # state, so there is nothing for the fog filter to scope.
 _PARSE_PROVENANCE = contextvars.ContextVar("parse_provenance", default=None)
+
+# DD-0 S3 (October 10, 2026): the parse trace — the same contextvar shape,
+# opened at `/command`'s door, consumed once here. `_close_parse_trace`
+# appends the reply row (the ONE terminal row every road ends on), keeps
+# the last trace on the world for the typed `why`, and puts the rows on
+# the wire only when the request asked (`trace: true`) or the environment
+# did (SOVEREIGN_PARSE_TRACE). GR6: display only.
+from backend.ai import parse_trace as _ptrace  # noqa: E402
+
+# The typed `why`: a bare ask for the last line's reading. Tight on purpose
+# — "why is Prussia at war" and "why did the bills move" carry a subject
+# and belong to the state desk.
+_WHY_RX = re.compile(
+    r"^\s*(?:why|why\?|why not\??|explain|explain that|explain yourself|"
+    r"what did you (?:read|hear|understand)|how did you read that|"
+    r"how was that read|what did that do)\s*[?.!]*\s*$", re.I)
+
+
+def _close_parse_trace(world, response: dict) -> None:
+    trace = _ptrace.close_trace()
+    if trace is None:
+        return
+    _head = str(response.get("message") or "")
+    _head = _head.strip().splitlines()[0][:120] if _head.strip() else ""
+    _asked = bool(response.get("pending_objection") or response.get("clarification")
+                  or response.get("pending_interrupt")
+                  or response.get("type") in ("clarification", "objection")
+                  or response.get("state") == "awaiting_clarification")
+    _rule = ("asked" if _asked else "refused" if not response.get("success") else "done")
+    _detail = {"message": _head}
+    if response.get("refusal"):
+        _detail["refusal"] = response.get("refusal")
+    if response.get("kind"):
+        _detail["kind"] = response.get("kind")
+    trace.rows.append({"stage": "reply", "rule": _rule, "detail": _detail})
+    if not trace.preserve_last:
+        world._last_parse_trace = {"line": trace.line, "rows": list(trace.rows)}
+    if trace.wire:
+        response["parse_trace"] = list(trace.rows)
 
 
 def _build_result_response(result: dict, world, drain_popups: bool = True) -> dict:
@@ -2897,6 +2939,9 @@ class CommandRequest(BaseModel):
     # the queue's re-open trigger ("a relayed tail re-sent as-is on more than
     # one compound in ten") can be measured off a played campaign.
     relayed: bool = False
+    # DD-0 S3: ask for the parse trace on this reply (debug / the driver /
+    # the census); the typed `why` prints it without the flag.
+    trace: bool = False
     action: str | None = None
     target_nation: str | None = None
     war_id: str | None = None
@@ -3103,6 +3148,10 @@ def execute_command(request: CommandRequest):
     # routes through this handler and hands it on; any other command
     # supersedes it.
     from backend.commands import relay as _relay
+    # DD-0 S3: one request, one trace — opened at the door, closed by
+    # `build_base_response` on whatever reply goes out.
+    _ptrace.open_trace(str(getattr(request, "command", "") or ""),
+                       wire=_ptrace.wanted(getattr(request, "trace", False)))
     _carried_relay = _relay.pop(world)
     # CR-7-9: a stash this command neither answers nor re-types is LET GO
     # with a word — the consuming routes below clear this, and
@@ -3150,6 +3199,28 @@ def execute_command(request: CommandRequest):
                 action_info={"remaining": int(world.actions_remaining)})
 
         # ════════════════════════════════════════════════════════════
+        # DD-0 S3: THE TYPED `why` — the last line's reading, printed.
+        # Free, a question, no history entry; it reads the stored trace
+        # and leaves it standing (so `why` twice prints the same order).
+        # Sits before every pending router so it is never eaten as an
+        # answer; a `why` WITH a subject is the state desk's and falls
+        # through (`_WHY_RX` is the bare forms only).
+        # ════════════════════════════════════════════════════════════
+        if _WHY_RX.match(request.command):
+            _t = _ptrace.current()
+            if _t is not None:
+                _t.preserve_last = True
+            return build_base_response(
+                world, success=True, message=_ptrace.why_text(world),
+                parse_trace_explained=True,
+                action_info={
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                })
+
+        # ════════════════════════════════════════════════════════════
         # CR-2: PENDING COMMAND CLARIFICATION — one question, one answer.
         # Typed answers ("Davout", "2", "yes", "cancel") resolve against
         # the stored options into a full deterministic reissue command;
@@ -3188,6 +3259,9 @@ def execute_command(request: CommandRequest):
             resolution = interpret_clarification_answer(
                 pending_clarification, command_text)
             world.dialogue_manager.pop()
+            _ptrace.decide("main", "clarification_answer",
+                           {"kind": resolution["kind"],
+                            "command": resolution.get("command")})
             if resolution["kind"] == "cancel":
                 return build_base_response(
                     world, success=True,
@@ -3344,6 +3418,9 @@ def execute_command(request: CommandRequest):
                 if choice:
                     print(f"[INTERRUPT ROUTE] Routing '{request.command}' -> "
                           f"{m.name} {interrupt_type} response: {choice}")
+                    _ptrace.decide("main", "interrupt_answer",
+                                   {"marshal": m.name, "interrupt": interrupt_type,
+                                    "choice": choice})
                     from backend.commands.strategic import StrategicOrderProcessor
                     strategic_exec = StrategicOrderProcessor(executor)
                     result = strategic_exec.handle_response(
@@ -3378,6 +3455,7 @@ def execute_command(request: CommandRequest):
                 and _objection_pending:
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> objection response")
+            _ptrace.decide("main", "objection_answer", _pending_answer_token)
             return _respond_to_objection_sync(_pending_answer_token,
                                               carried_relay=_carried_relay)
         # CA9-N5: the exact-token gate above rejected plain English meaning
@@ -3420,6 +3498,7 @@ def execute_command(request: CommandRequest):
                     _answer_text, _spoken[0], _player_marshal_names(world)):
                 print(f"[PENDING-QUESTION] Plain-English objection answer "
                       f"'{command_text}' -> {_spoken[0]}")
+                _ptrace.decide("main", "objection_answer_plain", _spoken[0])
                 return _respond_to_objection_sync(_spoken[0],
                                                   carried_relay=_carried_relay)
         _capture_answer = _typed_capture_answer(world, _pending_answer_token)
@@ -3430,6 +3509,8 @@ def execute_command(request: CommandRequest):
             _cap_token, _cap_region = _capture_answer
             print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                   f"-> capture choice")
+            _ptrace.decide("main", "capture_answer",
+                           {"token": _cap_token, "region": _cap_region})
             result = executor.handle_capture_choice(
                 _cap_token, game_state, region=_cap_region)
             # IGR-X7: the capture route must not eat a queued popup.
@@ -3454,6 +3535,7 @@ def execute_command(request: CommandRequest):
                                else _pending_answer_token)
                 print(f"[PENDING-QUESTION] Routing '{_pending_answer_token}' "
                       f"-> diplomatic dialogue response")
+                _ptrace.decide("main", "dialogue_answer", _dlg_choice)
                 return _respond_to_dialogue_sync(_dlg_choice)
 
         # ════════════════════════════════════════════════════════════
@@ -3478,6 +3560,8 @@ def execute_command(request: CommandRequest):
         # input would be. (Objection answers use /respond_to_objection.)
         carryover = resolve_context_references(command_text, world)
         if carryover["kind"] == "error":
+            _ptrace.decide("carryover", "unresolved_reference",
+                           str(carryover.get("message") or "")[:120])
             return build_base_response(
                 world, success=False, message=carryover["message"],
                 action_info={
@@ -3488,6 +3572,8 @@ def execute_command(request: CommandRequest):
                 })
         if carryover["kind"] == "rewrite":
             print(f"[CARRYOVER] '{command_text}' -> '{carryover['command']}'")
+            _ptrace.note("carryover", str(carryover.get("rule") or "rewrite"),
+                         command_text, carryover["command"])
             command_text = carryover["command"]
 
         # ════════════════════════════════════════════════════════════
@@ -3499,6 +3585,7 @@ def execute_command(request: CommandRequest):
         _lost_refusal = _addressed_lost_marshal_refusal(command_text, world)
         if _lost_refusal:
             print(f"[LOST-MARSHAL GUARD] refused: {command_text!r}")
+            _ptrace.decide("main", "lost_marshal_refusal", _lost_refusal[:120])
             return build_base_response(
                 world, success=False, message=_lost_refusal,
                 action_info={
@@ -3523,11 +3610,15 @@ def execute_command(request: CommandRequest):
             if A_PREMISE_IS_CHECKED_AT_ISSUANCE:
                 _enemy_names = [m.name for m in world.marshals.values()
                                 if m.nation != world.player_nation]
+                _before_premise = command_text
                 command_text, _premise = split_premise(
                     command_text, _enemy_names, list(world.regions.keys()))
                 if _premise:
+                    _ptrace.note("premise", "split_premise", _before_premise,
+                                 command_text, premise=_premise)
                     _premise_block = premise_refusal(world, _premise)
                     if _premise_block:
+                        _ptrace.decide("premise", "refused", _premise_block[:120])
                         return build_base_response(
                             world, success=False, message=_premise_block,
                             refusal="premise", free_action=True)
@@ -3548,6 +3639,7 @@ def execute_command(request: CommandRequest):
             str(parsed.get("mode") or "mock"),
             (_parsed_command or {}).get("confidence")
             if isinstance(_parsed_command, dict) else None))
+        _ptrace.decide("parse", "result", _ptrace.parse_summary(parsed))
         # ⚠ Under HTTP each request gets its own context and this is
         # discarded with it. A DIRECT in-process call to `execute_command`
         # (which the test suite and any future in-process tool make) runs in
@@ -3557,6 +3649,7 @@ def execute_command(request: CommandRequest):
         # `build_base_response` CONSUMES it, so it is spent by the response
         # it belongs to and never outlives it.
         if parsed.get("success") and isinstance(parsed.get("command"), dict):
+            _before_fields = _ptrace.command_summary(parsed["command"])
             if request.action:
                 parsed["command"]["action"] = request.action
             if request.target_nation:
@@ -3565,6 +3658,8 @@ def execute_command(request: CommandRequest):
                 parsed["command"]["war_id"] = request.war_id
             if request.region:
                 parsed["command"]["region"] = request.region
+            _ptrace.note("main", "request_fields_override", _before_fields,
+                         _ptrace.command_summary(parsed["command"]))
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # ════════════════════════════════════════════════════════════
@@ -3686,6 +3781,7 @@ def execute_command(request: CommandRequest):
                     # resolution (playtest: "deal with Kutuzov" mis-scouted
                     # Algarve); the detector's target is authoritative.
                     _reissue = f"{_deleg.marshal} scout {_deleg.scout_target}"
+                    _ptrace.note("delegation", "cautious_reissue", command_text, _reissue)
                     parsed = parser.parse(_reissue, llm_game_state, world=world)
                     command_text = _reissue
                     _cautious_note = describe_cautious_delegation(
@@ -3715,6 +3811,7 @@ def execute_command(request: CommandRequest):
                     # incidental mock resolution degrades to ASK (guardrail e).
                     _delegation_phrase = command_text
                     _reissue = f"{_deleg.marshal} pursue {_deleg.target}"
+                    _ptrace.note("delegation", "aggressive_reissue", command_text, _reissue)
                     parsed = parser.parse(_reissue, llm_game_state, world=world)
                     parsed["delegation_inferred"] = True
                     parsed["delegation_phrase"] = _delegation_phrase
@@ -3729,6 +3826,8 @@ def execute_command(request: CommandRequest):
                     print(f"[CR-5] Delegation AGGRESSIVE ({_deleg.marshal}) "
                           f"-> pursue {_deleg.target} (inferred, gated)")
                 elif _arm == "ask":
+                    _ptrace.decide("delegation", "ask",
+                                   {"marshal": _deleg.marshal, "target": _deleg.target})
                     _deleg_clar = build_delegation_clarification(
                         world, _deleg, command_text)
                     # §6.7 first-use hint — the ASK always surfaces, so latch it
@@ -4261,6 +4360,7 @@ def execute_command(request: CommandRequest):
 
             # Execute command
             result = executor.execute(parsed, game_state)
+            _ptrace.decide("executor", "result", _ptrace.result_summary(result))
 
         # ════════════════════════════════════════════════════════════
         # CR-2: parser warnings (sequential-order drop note, non-standard
@@ -4451,9 +4551,14 @@ def execute_command(request: CommandRequest):
                     world, parser, executor, parsed, command_text,
                     game_state, llm_game_state)
                 if focus_outcome is not None:
+                    _before_focus = command_text
                     parsed, command_text, result = focus_outcome
                     print(f"[FOCUS] Reissued bare order to "
                           f"{parsed.get('command', {}).get('marshal')}")
+                    _ptrace.note("carryover", "focus_reissue", _before_focus,
+                                 command_text,
+                                 marshal=parsed.get("command", {}).get("marshal"))
+                    _ptrace.decide("executor", "result", _ptrace.result_summary(result))
                     focus_handled = True
                     # CR-4 (audit): the parser-warning surfacing block ran
                     # above on the OLD (failed) result, so the reissued

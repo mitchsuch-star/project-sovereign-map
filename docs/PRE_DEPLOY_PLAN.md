@@ -67,7 +67,7 @@ three resolutions. The head of every session from S2 on takes one lever batch
 | ~~S1b~~ **✅ LANDED October 9, 2026** | **the Settings additions** (the adjustability review's decisions 4 + 5) | Window mode + size picker; the terminal's default footprint as a viewport fraction; Ctrl+= / − / 0; Reset layout; a CONTROLS reference; the *Body text: Garamond · Plain* option; the sizing card from Settings — and the floor's residue from the whole-client census (the log tiers, six 15s). **Landing record `UX_UI_REVIEW_PLAN.md` §S1b landing record; named set still RED 0 / P1 0.** | 0.5 | Cheap, same seams; the review's "is anything missing" answer |
 | S2 step 0 ✅ **LANDED October 9, 2026** | **the hook pays its way** | The pre-commit hook runs the full suite under pytest-xdist (`-n 8 --dist loadgroup`): serial 26:13 → **5:12** measured, the gate whole; two order-dependent pins fixed (an unseeded 30-draw dice test; an endpoint pin reading whatever world the previous module left in `backend.main`); the stall under xdist traced to child processes inheriting the worker's execnet stdin (now DEVNULL in a worker). Record: `CLAUDE.md` Workflow + Commands. | 0.3 | The user's October 9 ask ("it takes sooo long"); every S2 commit after it pays the new price. |
 | ~~S2~~ ✅ **LANDED October 9, 2026** | **CODE-4** (record `CODE_HEALTH_PLAN.md` §CODE-4) + **CODE-1 batch 1** (record §CODE-1; 20 of the batch's 46 levers retired — the 26 that landed in October keep their session; `tools/retire_lever.py` + the ratchet pin) | The docs diet (CLAUDE.md → rules + a one-screen state; STATUS/BUG_FIXES history to archives, the census tool reading both) + the lever-retirement tool and its first 100 levers | 1.0 | Pays back every session after it. The tool is proven on small modules before the monsters. |
-| S3–S4 (S3's head: **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
+| ~~S3~~ ✅ **S3 LANDED October 10, 2026** (the instrument — §3.0 landing record: the parse trace + the typed `why`, the metamorphic corpus 2,100 cases / 161 in the ledger, the third blind set 137 / 152 of 300; S3's head **CODE-1 batch 2** ✅ **LANDED October 10, 2026** — 83 of the game_logic batch's 138 levers retired, 56 October ones kept; levers 645 → 562; record `CODE_HEALTH_PLAN.md` §CODE-1) → **S4 NEXT** (the structural fix) | **DD-0 THE COMMAND ROAD** | The one deep dive the user asked for (§3.0): the parse trace on every response, the metamorphic corpus, a third blind author set, one `Reading` object through the pipeline (absorbs CODE-2's `_parse_with_mock_chain` + `_execute_one` splits), the "did I do what was named" predicate | 2.0 | The game's premise; the largest open pillar; where every review round found a P1 inside the fix. |
 | S5–S6 | **DD-1 THE TABLE AND THE TREATY** | The diplomacy deep dive (§3.1): one `can_sign` verdict read by every surface that shows a letter, a chip, a price or a counsel line AND by the ratifier; the treaty state-machine fuzzer over the §70/§81 invariants; the three unbuilt verbs the depth campaign reached for | 1.5 | The second-largest open pillar by weight (10 rows, 5 P2); the quarter's P1s were all "the table said yes and the treaty said no". |
 | S7 | **CODE-3** + **DD-C** | One `errors.swallow(ctx)` helper through all 368 silent handlers, narrowed where the type is obvious, a ratchet pin; **the save path raises and the player is told**; save/load fault injection over a 40-turn run | 1.0 | The silent class is the one that produced an invisible P1. |
 | S8 | **CODE-2a** | `_execute_attack` split into named stages behind one context object; pure refactor | 1.0 | The single largest function; every combat fix since July touched it. |
@@ -153,6 +153,102 @@ the pick, with the evidence.*
   defects reach the player through this same typed line, so the trace and the
   `Reading` object are its instrument too. Readability is already S1. Combat
   legibility's misses are display rows the UXR-3 review will reach.
+
+#### DD-0 S3 landing record — the instrument (October 10, 2026)
+
+**All three instruments built, no parser rule changed, the series byte-identical.**
+Rules `SYSTEMS_REFERENCE.md` §100 (the trace + `why`), §101 (the metamorphic
+corpus), §102 (the third blind set); pins `tests/test_dd0_parse_trace.py` (29),
+`tests/test_dd0_metamorphic_corpus.py` (14), `tests/test_dd0_third_blind_set.py`;
+memos `docs/audits/METAMORPHIC_CENSUS_2026_10_10.md`,
+`docs/audits/UNREHEARSED_CENSUS_2026_10_10.md`; findings `BUG_FIXES.md` §DD-0 S3
+(DD0-1 … DD0-10, all owned by S4).
+
+1. **The parse trace** (`backend/ai/parse_trace.py`). One contextvar per
+   `/command` request, opened at the door and closed by `build_base_response`
+   on every reply road, so it is on EVERY response; a no-op outside a request
+   (a direct `parser.parse` pays one `None` check per stage). Rows
+   `(stage, rule, span, before → after)` for a rewrite — recorded only when
+   something changed — and `(stage, rule, detail)` for a decision; the first
+   row is the typed line, the last the ONE terminal `reply · done | refused |
+   asked`. Hooked at 60-odd sites: `main.py`'s routers, carryover, premise,
+   the request-field override, CR-5, the focus reissue; the parser's ten
+   pre-rewrites, six normalisers, the question check, the five splits, fuzzy
+   matching, validation, the strategic text build and target override; the
+   mock chain's four guards, filler, PARSE-NEG's refusal with its kind, the
+   chain's result (its `interpretation` names the arm) and the live
+   escalation; `detect_strategic_command`'s prefix / type / target / the
+   SFR-D11 relative-place seam; the executor's gates (unbound addressee,
+   proper-name ask, auto-attack, standing decision, literal-marshal ask,
+   auto-assign scout, **the recruit arm's substitution — SFR-D41's class, now
+   disclosed**), an entry-vs-exit `command_changed` row that names every
+   in-place substitution without a hook at each site, and the dispatch. On
+   the wire under `parse_trace` when the request says `trace: true` or
+   `SOVEREIGN_PARSE_TRACE=1`; the world keeps the last trace on a transient
+   `_last_parse_trace` (never serialized). **The typed `why`** (`why`,
+   `why?`, `why not`, `explain`, `what did you read`, `how did you read
+   that`) prints it, free, no history entry, standing (`why` twice prints the
+   same order); a `why` with a subject is the state desk's.
+2. **The metamorphic corpus** (`backend/ai/parser_metamorphic.py`,
+   `tools/metamorphic_census.py`). Twelve families over the 128 order rows of
+   the 614: nine `same` (please, honorific, reason tail, dash aside,
+   contraction, leading-verb typo, address to the tail, the second name as a
+   role, lowercase), one `refusal` (negation), two `question` (modal, hedge),
+   each with an applicability predicate (§101 lists the exclusions), judged
+   against the parse of the ORIGINAL on the same board. **2,100 cases, 161
+   failed — the flip families ALL hold (negation 0 / 190, modal 0 / 60, hedge
+   0 / 338: nothing negated ran, no question ordered).** The `same` failures:
+   dash aside 70 (the aside becomes the province), second name 31 (`Ney,
+   attack Mack with Lannes in support` → a SUPPORT with a generic target —
+   the first man's order LOST), please 30, reason tail 18, word order 8, typo
+   3, honorific 1; by the trace's last stage `strategic ·
+   target_overrides_tactical` 90, `parser · validation_failed` 47. The 161
+   are the committed ledger `tests/data/metamorphic_known_failures.json`; the
+   harness pins no failure outside it and a count that only falls — S4's
+   worklist, pre-attributed by stage. (The generator's first run read 183;
+   22 were the generator's own — a negation before a filler or a first
+   person, a two-clause line, `Gen.` read as a name — and are excluded by
+   rule, recorded in the memo.)
+3. **The third blind author set** (300 orders, 31 traps, an agent with no
+   repository access; `tools/unrehearsed_census.py --trace` stores each
+   row's trace). **Keyless 137 of 300 as meant (45.7 %), keyed 152 (50.7 %,
+   64 live parses); the keyed arm closes 40 of the 41 keyless shrugs.** Of
+   the judge's 19 dangerous rows, nine are the parser's — `Ney, attack
+   Davout` and `everyone — attack everything` attacked the nearest enemy
+   behind a disclosure (DD0-1, the exit predicate's own case); `go to
+   Gelderland and wait there` / `go to Berlin — no wait, Dresden` lost the
+   march to the WAIT arm (DD0-2, SFR-D9's class); `ride to Lannes' aid` →
+   a generic SUPPORT resolved to Bernadotte (DD0-3); `drop off a few
+   battalions to hold Franconia` → a 2-AP HOLD (DD0-4); `what's in Tyrol?
+   Massena, find out` dropped the order (DD0-5); `War with Portugal` → an
+   advisory (DD0-6); the contradiction fought (DD0-7) — and ten are honest
+   replies in shapes the ONE judge does not know (DD0-8: ten regex
+   alternatives, each to be grepped against the committed records and the
+   HOLD arm's archive before it lands; the judge is unchanged in S3). The
+   shrugs (DD0-9) and the parser's honest refusals (DD0-10) are listed in the
+   memo. Each dangerous row was attributed in one read of its trace.
+
+**Gate.** `score_run check` against `docs/audits/score_runs/2026_10_05_sfr/`
+identical to the same check on `c33683cd` in a detached worktree (112 items,
+0 moved, scores equal, stdout identical; the archive restored after each);
+corpus 614 / 614 (the harness's 913 green); the October 3 census records
+re-read unchanged; the code-health ratchet untouched (no lever, no new
+`except Exception`); ruff clean; the full suite green on the hook.
+
+**Done-when, where it stands after S3:** blind orders as meant keyless 45.7 %
+(≥ 85 % wanted, on a FRESH set); executed-other-than-meant 3 by hand on the
+blind set, 0 on the metamorphic suite's 588 flip cases (0 wanted); HOLD
+orders not re-read in S3 (12 of 20 at the last reading, ≥ 17 wanted); the 16
+open command rows untouched (S4); **the trace on every response ✓; the corpus
+614 of 614 ✓; the series byte-identical ✓.**
+
+**S4 takes:** the `Reading` object (spans, never a mutated string — the answer
+to the 90 `target_overrides_tactical` rows and every "the tail became the
+province" class) with `_parse_with_mock_chain` and `_execute_one` split along
+the trace's own stage boundaries; the exit predicate *"did I act on the
+marshal, place and arm that were named?"* (DD0-1 / DD0-3 / SFR-D41's class —
+disclosed or refused, never silent); the DD0 rows; the ledger driven down;
+then a FRESH blind set for the done-when, and the HOLD arm re-read.
 
 ### DD-1 — THE TABLE AND THE TREATY: the diplomacy deep dive (S5–S6)
 

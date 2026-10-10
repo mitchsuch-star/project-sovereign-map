@@ -17,6 +17,8 @@ DESIGN NOTES:
 import re
 from typing import Dict, Optional, Tuple
 
+from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
+
 # Try to import WorldState for type hints; not strictly required at runtime
 try:
     from backend.models.world_state import WorldState
@@ -422,15 +424,18 @@ def detect_strategic_command(
     # Strip marshal name prefix (e.g. "Grouchy, march to Belgium" → "march to Belgium")
     # so keyword matching works on the order part
     cleaned = _strip_marshal_prefix(command_lower, marshal_name)
+    _ptrace.note("strategic", "strip_marshal_prefix", command_lower, cleaned)
 
     # Step 1: Detect strategic type
     friendly_forms = _friendly_forms(marshal_name, world)
     strategic_type = _detect_strategic_type(cleaned, friendly_forms)
     if strategic_type is None:
         return None
+    _ptrace.decide("strategic", "type", strategic_type)
 
     # Step 2: Extract target text from command
     target_text = _extract_target_text(cleaned, strategic_type, friendly_forms)
+    _ptrace.decide("strategic", "target_text", target_text)
     # SF-RR1 / SFR-D11: "home to <province>" names the province — read
     # whenever the target begins with a relative word ("home" after the
     # purpose cut, "home toward franche-comte" when no cut fired).
@@ -438,6 +443,7 @@ def detect_strategic_command(
             and _RELATIVE_HEAD_RE.match(target_text.strip())):
         _named = province_named_after_relative(cleaned, world)
         if _named:
+            _ptrace.note("strategic", "province_named_after_relative", target_text, _named)
             target_text = _named
     if not target_text:
         # No target found — could be "hold" (use current location) or generic

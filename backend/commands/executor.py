@@ -16,6 +16,7 @@ TODO (Future): Multi-Army Battles
 import re
 
 from typing import Dict, List, Optional, Tuple
+from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
 from backend.ai.generic_targets import is_generic_target
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.ai.nation_names import (
@@ -1484,10 +1485,20 @@ class CommandExecutor:
         result = None
         _aside_mark = len(self._orders_set_aside)
         self._execute_depth = _depth + 1
+        # DD-0 S3: the command as it entered the executor and as it left —
+        # the gates below mutate `command` in place (the bare attack's pick,
+        # the recruit arm, a focus), so the two snapshots name every
+        # substitution without a hook at each site. Outermost frame only:
+        # a strategic first step's nested call is the order's own.
+        _entered = (_ptrace.command_summary(parsed_command.get("command"))
+                    if _depth == 0 and _ptrace.active() else None)
         try:
             result = self._execute_one(parsed_command, game_state)
         finally:
             self._execute_depth = _depth
+            if _entered is not None:
+                _ptrace.note("executor", "command_changed", _entered,
+                             _ptrace.command_summary(parsed_command.get("command")))
             # SR5B-1: this frame's set-aside orders — restored when the
             # order that set them aside was refused, else let go.
             _aside = self._orders_set_aside[_aside_mark:]
@@ -2089,6 +2100,7 @@ class CommandExecutor:
                 and not command.get("_autonomous_execution")):
             _message = (f"There is no '{_unbound}' in the order of battle, "
                         f"Sire. Whom did you intend?")
+            _ptrace.decide("executor", "unbound_addressee", _unbound)
             from backend.ai.validation import META_ACTIONS
             if (self.THE_UNBOUND_NAME_SPENDS_NOTHING
                     and command.get("action") in META_ACTIONS | ADMIN_ACTIONS):
@@ -2141,6 +2153,8 @@ class CommandExecutor:
             _asked = attack_proper_name_ask(
                 world, world.get_marshal(command.get("marshal") or ""), _named_raw)
             if _asked is not None:
+                _ptrace.decide("executor", "proper_name_asks",
+                               str(_asked.get("message") or "")[:120])
                 return _asked
 
         if (command.get("type") in ("general_attack", "auto_assign_attack")
@@ -2150,6 +2164,9 @@ class CommandExecutor:
             _auto = self._combat.resolve_auto_attack(
                 command, world,
                 raw_input=parsed_command.get("raw_input", ""))
+            _ptrace.decide("executor", "auto_attack",
+                           {k: _auto.get(k) for k in ("kind", "marshal", "target")
+                            if _auto.get(k) is not None})
             if _auto["kind"] == "clarify":
                 return _auto["response"]
             elif _auto["kind"] == "named":
@@ -2189,6 +2206,8 @@ class CommandExecutor:
             exempt=(is_ai_command or is_strategic_execution
                     or bool(command.get("_autonomous_execution"))))
         if _decision_refusal is not None:
+            _ptrace.decide("executor", "standing_decision_refusal",
+                           str(_decision_refusal.get("message") or "")[:120])
             return _decision_refusal
 
         # ============================================================
@@ -3046,6 +3065,8 @@ class CommandExecutor:
                         })
                     # Note: popup adds its own "Cancel Order" button — don't duplicate
 
+                    _ptrace.decide("executor", "literal_marshal_asks",
+                                   {"marshal": cl_marshal.name, "interpreted": interpreted})
                     if strategic_type == "PURSUE":
                         cl_msg = f"You wish me to pursue {interpreted}, Sire?"
                     elif strategic_type == "SUPPORT":
@@ -3082,6 +3103,9 @@ class CommandExecutor:
         if (not is_strategic_execution and
                 parsed_command.get("is_strategic") and
                 parsed_command.get("strategic_type")):
+            _ptrace.decide("dispatch", "strategic_order", {
+                "strategic_type": parsed_command.get("strategic_type"),
+                "marshal": command.get("marshal"), "target": command.get("target")})
             strategic_result = self._strategic._execute_strategic_command(parsed_command, command, game_state)
             # SF-V4 §6.3 item 4: the reply names the dropped arrival word —
             # also when the first step answered with a contact question,
@@ -3106,6 +3130,10 @@ class CommandExecutor:
         # Continue with normal command routing
         # ============================================================
 
+        if not _skip_routing:
+            _ptrace.decide("dispatch", str(action or command.get("type") or "?"), {
+                k: command.get(k) for k in ("marshal", "target", "type", "requested_type")
+                if command.get(k) is not None})
         if _skip_routing:
             pass  # Already have result from strategic handler
         # Handle special actions first

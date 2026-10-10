@@ -1649,6 +1649,9 @@ class EconomyExecutor:
         soft_correction = ""
         if requested_type and requested_type != recruit_type:
             soft_correction = f"Berthier notes: '{marshal_title(world, recruit_marshal.name, start=True)} commands {recruit_type}, Sire.' "
+            from backend.ai import parse_trace as _ptrace
+            _ptrace.note("executor", "recruit_arm_substituted", requested_type, recruit_type,
+                         marshal=recruit_marshal.name)
 
         # --- Location validation (Phase 6.2.D) ---
         region = world.get_region(recruitment_location)

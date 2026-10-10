@@ -5,6 +5,7 @@ Converts natural language commands into validated, executable orders
 
 import re
 from typing import Dict, List, Optional
+from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
 from backend.ai.llm_client import (
     STAND_STILL_ALTERNATION,
     repair_leading_verb_typo,
@@ -2796,6 +2797,7 @@ class CommandParser:
         if getattr(_lc, "VERB_TYPO_PASS_ACTIVE", False):
             repaired, typo_note = repair_leading_verb_typo(command_text, game_state)
             if repaired and repaired != command_text:
+                _ptrace.note("parser", "repair_leading_verb_typo", command_text, repaired)
                 command_text = repaired
             else:
                 typo_note = None
@@ -2813,11 +2815,14 @@ class CommandParser:
         _emphatic = strip_emphasis(command_text)
         _emphasis_stripped = _emphatic != command_text
         if _emphasis_stripped:
+            _ptrace.note("parser", "strip_emphasis", command_text, _emphatic)
             command_text = _emphatic
         promoted = False
         if TAIL_FUSES_ONLY_ONTO_A_MARCH:
             promoted_text = promote_tactical_move_with_arrival_tail(command_text)
             if promoted_text != command_text:
+                _ptrace.note("parser", "promote_tactical_move_with_arrival_tail",
+                             command_text, promoted_text)
                 command_text = promoted_text
                 promoted = True
         # SF-CMD-1 W2 (Oct 3, 2026): the contingency phrasings the engine can
@@ -2834,26 +2839,39 @@ class CommandParser:
         _rewritten = False
         # the fresh census (Oct 3, 2026): "hit Mack" is an attack when Mack is
         # a foe the parser knows; "send Murat after Mack" is Murat's pursuit.
+        _b = command_text
         command_text, _plain = rewrite_plain_attack_forms(command_text, game_state)
+        _ptrace.note("parser", "rewrite_plain_attack_forms", _b, command_text)
+        _b = command_text
         command_text, _arr = strip_arrival_idiom(command_text)
+        _ptrace.note("parser", "strip_arrival_idiom", _b, command_text)
+        _b = command_text
         command_text, _friend = rewrite_engagement_support(
             command_text, _player_marshal_names(game_state))
+        _ptrace.note("parser", "rewrite_engagement_support", _b, command_text)
         # CRT-11 (Oct 3, 2026): a second name is a ROLE — "march in support
         # of Ney", "come to Ney's support", "follow Ney in and back him up"
         # are the engine's SUPPORT order, restated before any reader.
         from backend.ai.second_name import rewrite_support_role
+        _b = command_text
         command_text, _role = rewrite_support_role(
             command_text, _player_marshal_names(game_state))
+        _ptrace.note("parser", "rewrite_support_role", _b, command_text)
         _friend = _friend or _role
         # RS-11 (Oct 3, 2026): "take <province>" — the objective resolved to
         # a marshal and a road the march law allows (see the rule's header).
         _before_take = command_text
         command_text, _take_note = rewrite_take_objective(command_text, game_state, world)
+        _ptrace.note("parser", "rewrite_take_objective", _before_take, command_text)
         _friend = _friend or (command_text != _before_take)
+        _b = command_text
         command_text, _halt_tail = strip_halt_tail(command_text)
+        _ptrace.note("parser", "strip_halt_tail", _b, command_text, tail=_halt_tail)
         # SF-CMD-2's head (Step 7): "with the Guard" is company, not an order.
+        _b = command_text
         command_text, _guard_note, _guard_changed = rewrite_guard_company(
             command_text, game_state, world)
+        _ptrace.note("parser", "rewrite_guard_company", _b, command_text)
         # (`_plain` is NOT restored: the pledge/hit forms rewrite the record
         # too, as NP-1's normalisation does — the executor's addressee gate
         # reads `raw_command`, and 'Pledge France' is no officer of ours.)
@@ -2937,30 +2955,42 @@ class CommandParser:
             _sovereign = _find_player_sovereign(world)
             # NPC-10 (Score Finish Step 7 slice 5a): "hold talks with Prussia"
             # is diplomacy — never the HOLD order on a province "Talks".
+            _b = command_text
             command_text = rewrite_hold_talks(command_text)
+            _ptrace.note("parser", "rewrite_hold_talks", _b, command_text)
             # NP-X9: "Ney moves to Lorraine" / "the Emperor marches to Swabia"
             # — the inflected order is the order, restated in the imperative.
+            _b = command_text
             command_text = rewrite_inflected_order(command_text, game_state,
                                                    _sovereign)
+            _ptrace.note("parser", "rewrite_inflected_order", _b, command_text)
             # SF-CMD-1 W6 (Oct 3, 2026): an EPITHET is a name the game itself
             # printed — "Iron Marshal, dig in", "the Bravest of the Brave,
             # attack Mack". Rewritten to the man's roster name before every
             # downstream stage, from the scenario's own authored ability names
             # plus the two famous nicknames; a title the board does not carry
             # ("Prince of Moskowa") stays refused.
+            _b = command_text
             command_text = rewrite_epithets(command_text, game_state, world)
+            _ptrace.note("parser", "rewrite_epithets", _b, command_text)
             # SF-CMD-1 W7 (Oct 3, 2026): "Emperor to Rhineland" / "Ney to
             # Swabia" — the telegraphic march. Only a roster name (or the
             # sovereign's title) at the head and a province the map knows at
             # the end; everything else is left alone.
+            _b = command_text
             command_text = rewrite_telegraphic_march(command_text, game_state, world,
                                                      _sovereign)
+            _ptrace.note("parser", "rewrite_telegraphic_march", _b, command_text)
             if _sovereign:
+                _b = command_text
                 command_text = normalize_sovereign_address(
                     command_text, _sovereign)
+                _ptrace.note("parser", "normalize_sovereign_address", _b, command_text)
             # SF-CMD-2's head: on every board, the reflexive never reaches a
             # destination (NP-X1 — the sovereign-free arm).
+            _b = command_text
             command_text = strip_self_markers(command_text)
+            _ptrace.note("parser", "strip_self_markers", _b, command_text)
 
             # CR-2: sequential compound orders — parse the FIRST clause and
             # report the dropped tail instead of letting the second clause
@@ -2981,6 +3011,8 @@ class CommandParser:
             from backend.ai.llm_client import _question_subjects as _q_subjects
             _asks = A_QUESTION_IS_NEVER_SPLIT and _is_q(
                 command_text, _q_subjects(game_state))
+            if _asks:
+                _ptrace.decide("parser", "is_question", "a question is never split")
             sequel_split = (None if _asks
                             else _split_sequential_orders(command_text, game_state))
             if sequel_split is None and not _asks:
@@ -3025,6 +3057,9 @@ class CommandParser:
                 if _second is not None:
                     effective_text = _second["first_text"]
                     dropped_sequel = _second["order"]
+
+            _ptrace.note("parser", "split", command_text, effective_text,
+                         dropped_sequel=dropped_sequel)
 
             # Step 1: Use LLM to parse natural language
             llm_result = self.llm.parse_command(effective_text, game_state)
@@ -3104,8 +3139,15 @@ class CommandParser:
                 return diplomatic_result
 
             # Step 2: Apply fuzzy matching to correct typos
+            _pre_fuzzy = _ptrace.command_summary(llm_result)
             llm_result, fuzzy_error = self._apply_fuzzy_matching(
                 llm_result, effective_text, world=world, game_state=game_state)
+            _ptrace.note("parser", "fuzzy_matching", _pre_fuzzy,
+                         _ptrace.command_summary(llm_result))
+            if fuzzy_error:
+                _ptrace.decide("parser", "fuzzy_error",
+                               {k: fuzzy_error.get(k) for k in ("kind", "unknown_name", "error")
+                                if fuzzy_error.get(k) is not None})
 
             # CR-2: the fast parser cleared the 0.7 confidence gate, so the
             # live LLM never saw this command — and the fuzzy pass just
@@ -3165,6 +3207,9 @@ class CommandParser:
             validation_result = self._validate_command(
                 llm_result, game_state,
                 player_roster=self._get_player_marshals(world, game_state))
+            if not validation_result.get("valid"):
+                _ptrace.decide("parser", "validation_failed",
+                               str(validation_result.get("error") or "")[:120])
 
             # Step 4: Return complete result
             if validation_result.get("valid"):
@@ -3332,9 +3377,16 @@ class CommandParser:
                             "until_marshal_arrives": _handoff["until_marshal_arrives"],
                             "_clause": _handoff.get("clause", ""),
                         }
+                    _ptrace.note("strategic", "guarded_text", effective_text, strategic_text)
                     strategic = detect_strategic_command(
                         strategic_text, marshal_name, world,
                         condition_override=_condition_override)
+                    if strategic:
+                        _ptrace.decide("strategic", "detected", {
+                            k: strategic.get(k) for k in (
+                                "strategic_type", "target", "target_type", "condition",
+                                "attack_on_arrival", "arrival_target", "condition_refusal")
+                            if strategic.get(k) not in (None, False)})
                     # CR-7-4: a condition the engine READ and must REFUSE — an
                     # unmet referent ("until Godot arrives"), `for 0 turns`, a
                     # turn behind us — is answered at 0 AP with its cause,
@@ -3444,6 +3496,10 @@ class CommandParser:
                                         strategic_target,
                                         fuzzy_result.get("match") or "")):
                                 strategic_target = fuzzy_result["match"]
+                        _ptrace.note("strategic", "target_resolved",
+                                     strategic["target"], strategic_target)
+                        _ptrace.note("strategic", "target_overrides_tactical",
+                                     result["command"].get("target"), strategic_target)
                         result["command"]["target"] = strategic_target
                         result["command"]["target_type"] = strategic["target_type"]
                         # CR-2: an order can never target its own executor —
@@ -3454,6 +3510,8 @@ class CommandParser:
                         # executor rejecting a self-targeted order.
                         if (strategic["target_type"] == "marshal"
                                 and result["command"].get("marshal") == strategic_target):
+                            _ptrace.note("strategic", "self_target_unbound",
+                                         result["command"].get("marshal"), None)
                             result["command"]["marshal"] = None
 
                 # CR-2: tell the player the sequel clause was not relayed —

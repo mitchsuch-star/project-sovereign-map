@@ -1,0 +1,1455 @@
+{
+ "_note": "DD-0 S3 the metamorphic corpus — the known failures the ratchet holds (tests/test_dd0_metamorphic_corpus.py): no failure outside this list may land, and the count may only fall. Each row is S4's worklist, attributed by the parse trace's last stage. Rewrite only via tools/metamorphic_census.py --write-ledger.",
+ "count": 161,
+ "failures": [
+  {
+   "id": "ney-attack-the-prussians::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, attack the Prussians with Lannes in support",
+   "original": "Ney, attack the Prussians",
+   "why": "reading changed — target: None → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-attack-belgium::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, attack Belgium with Lannes in support",
+   "original": "Ney, attack Belgium",
+   "why": "reading changed — target: 'Belgium' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-attack-wellington::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, attack Wellington with Lannes in support",
+   "original": "Ney, attack Wellington",
+   "why": "reading changed — target: 'Wellington' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "cancel::please#0@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, cancel",
+   "original": "cancel",
+   "why": "reading changed — success: True → False; action: 'cancel' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "cancel::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, cancel",
+   "original": "cancel",
+   "why": "reading changed — success: True → False; action: 'cancel' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "cancel::please#1@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "cancel, please",
+   "original": "cancel",
+   "why": "reading changed — success: True → False; action: 'cancel' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "cancel::please#1@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "cancel, please",
+   "original": "cancel",
+   "why": "reading changed — success: True → False; action: 'cancel' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "cancel::reason_tail#1@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "cancel, the men are rested",
+   "original": "cancel",
+   "why": "reading changed — success: True → False; action: 'cancel' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "cancel::reason_tail#1@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "cancel, the men are rested",
+   "original": "cancel",
+   "why": "reading changed — success: True → False; action: 'cancel' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "push-toward-the-rhine::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "push toward the rhine — thank you",
+   "original": "push toward the rhine",
+   "why": "reading changed — target: 'Rhine' → 'Rhine — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "push-toward-the-rhine::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "push toward the rhine — thank you",
+   "original": "push toward the rhine",
+   "why": "reading changed — target: 'Rhine' → 'Rhine — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "push-toward-the-rhine::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "push toward the rhine - at once",
+   "original": "push toward the rhine",
+   "why": "reading changed — target: 'Rhine' → 'Rhine - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "push-toward-the-rhine::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "push toward the rhine - at once",
+   "original": "push toward the rhine",
+   "why": "reading changed — target: 'Rhine' → 'Rhine - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "soult-attack-mack::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Soult, attack Mack with Lannes in support",
+   "original": "Soult, attack Mack",
+   "why": "reading changed — target: 'Mack' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-wait::word_order#0@legacy",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "wait, Ney",
+   "original": "Ney, wait",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'wait' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "ney-wait::word_order#0@1805",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "wait, Ney",
+   "original": "Ney, wait",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'wait' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "ney-hold-position::reason_tail#0@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, hold position because the men are ready",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Belgium' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, hold position because the men are ready",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Rhineland' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, hold position — thank you",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Belgium' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, hold position — thank you",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Rhineland' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, hold position - at once",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Belgium' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, hold position - at once",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Rhineland' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, hold position with Lannes in support",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Belgium' → 'With Lannes In Support'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-hold-position::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, hold position with Lannes in support",
+   "original": "Ney, hold position",
+   "why": "reading changed — target: 'Rhineland' → 'With Lannes In Support'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-head-for-vienna::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, head for Vienna — thank you",
+   "original": "Ney, head for Vienna",
+   "why": "reading changed — target: 'Vienna' → 'Vienna — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-head-for-vienna::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, head for Vienna - at once",
+   "original": "Ney, head for Vienna",
+   "why": "reading changed — target: 'Vienna' → 'Vienna - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "ney-take-your-corps-to-ulm::please#1@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, take your corps to Ulm, please",
+   "original": "Ney, take your corps to Ulm",
+   "why": "reading changed — target: 'Ulm' → None",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "ney-take-your-corps-to-ulm::reason_tail#1@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, take your corps to Ulm, the men are rested",
+   "original": "Ney, take your corps to Ulm",
+   "why": "reading changed — target: 'Ulm' → None",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "ney-take-your-corps-to-ulm::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, take your corps to Ulm — thank you",
+   "original": "Ney, take your corps to Ulm",
+   "why": "reading changed — target: 'Ulm' → None",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "ney-take-your-corps-to-ulm::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, take your corps to Ulm - at once",
+   "original": "Ney, take your corps to Ulm",
+   "why": "reading changed — target: 'Ulm' → 'Ulm - At Once'",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "igr-a3-move-to-austria-names-the-nation::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, move to Austria - at once",
+   "original": "Ney, move to Austria",
+   "why": "reading changed — target: 'Austria' → 'Austria - At Once'",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "igr-a3-move-to-britain-names-the-nation::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, move to Britain - at once",
+   "original": "Ney, move to Britain",
+   "why": "reading changed — target: 'Britain' → 'Britain - At Once'",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "parseneg-go-to-region::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, go to Lorraine with Lannes in support",
+   "original": "Ney, go to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "parseneg-hold-the-pass-is-hold::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, hold the pass — thank you",
+   "original": "Ney, hold the pass",
+   "why": "reading changed — target: 'Pass' → 'Pass — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "parseneg-hold-the-pass-is-hold::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, hold the pass - at once",
+   "original": "Ney, hold the pass",
+   "why": "reading changed — target: 'Pass' → 'Pass - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "napoleon-address::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Napoleon, move to Lorraine with Lannes in support",
+   "original": "Napoleon, move to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "emperor-address::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Emperor, attack Mack",
+   "original": "Emperor, attack Mack",
+   "why": "reading changed — success: True → False; marshal: 'Napoleon' → None; action: 'attack' → None; target: 'Mack' → None; type: 'specific' → None",
+   "last_stage": "parser·fuzzy_error"
+  },
+  {
+   "id": "first-person-march::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, I will march to Lorraine",
+   "original": "I will march to Lorraine",
+   "why": "reading changed — marshal: 'Napoleon' → None",
+   "last_stage": "strategic·detected"
+  },
+  {
+   "id": "first-person-march::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "I will march to Lorraine — thank you",
+   "original": "I will march to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'Lorraine — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "first-person-march::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "I will march to Lorraine - at once",
+   "original": "I will march to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'Lorraine - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "first-person-attack::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, I attack Mack",
+   "original": "I attack Mack",
+   "why": "reading changed — marshal: 'Napoleon' → None; type: 'specific' → 'auto_assign_attack'",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "myself-suffix::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "march to Lorraine myself — thank you",
+   "original": "march to Lorraine myself",
+   "why": "reading changed — target: 'Lorraine' → 'Lorraine — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "myself-suffix::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "march to Lorraine myself - at once",
+   "original": "march to Lorraine myself",
+   "why": "reading changed — target: 'Lorraine' → 'Lorraine - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "addressed-i-want-unchanged::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, I want you to move to Lorraine with Lannes in support",
+   "original": "Ney, I want you to move to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-hold-on-ney-retreat::please#0@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, hold on, Ney, retreat",
+   "original": "hold on, Ney, retreat",
+   "why": "reading changed — action: 'retreat' → 'hold'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-hold-on-ney-retreat::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, hold on, Ney, retreat",
+   "original": "hold on, Ney, retreat",
+   "why": "reading changed — action: 'retreat' → 'hold'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-stand-by-ney-move-to-paris::please#0@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, stand by, Ney, move to Paris",
+   "original": "stand by, Ney, move to Paris",
+   "why": "reading changed — action: 'move' → 'wait'; target: 'Paris' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "wo6-stand-by-ney-move-to-paris::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, stand by, Ney, move to Paris",
+   "original": "stand by, Ney, move to Paris",
+   "why": "reading changed — action: 'move' → 'wait'; target: 'Paris' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::please#0@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, wait, hold position",
+   "original": "wait, hold position",
+   "why": "reading changed — action: 'hold' → 'wait'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, wait, hold position",
+   "original": "wait, hold position",
+   "why": "reading changed — action: 'hold' → 'wait'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::reason_tail#0@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "wait, hold position because the men are ready",
+   "original": "wait, hold position",
+   "why": "reading changed — target: 'generic' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "wait, hold position because the men are ready",
+   "original": "wait, hold position",
+   "why": "reading changed — target: 'generic' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "wait, hold position — thank you",
+   "original": "wait, hold position",
+   "why": "reading changed — target: 'generic' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "wait, hold position — thank you",
+   "original": "wait, hold position",
+   "why": "reading changed — target: 'generic' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "wait, hold position - at once",
+   "original": "wait, hold position",
+   "why": "reading changed — target: 'generic' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "wo6-wait-then-hold-position::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "wait, hold position - at once",
+   "original": "wait, hold position",
+   "why": "reading changed — target: 'generic' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-general-ney-is-ney::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "General Ney, attack Mack with Lannes in support",
+   "original": "General Ney, attack Mack",
+   "why": "reading changed — target: 'Mack' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::reason_tail#0@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold because the men are ready",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Belgium' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold because the men are ready",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Rhineland' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold — thank you",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Belgium' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold — thank you",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Rhineland' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold - at once",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Belgium' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold - at once",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Rhineland' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold with Lannes in support",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Belgium' → 'With Lannes In Support'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-gen-dot-ney-holds::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Gen. Ney, hold with Lannes in support",
+   "original": "Gen. Ney, hold",
+   "why": "reading changed — target: 'Rhineland' → 'With Lannes In Support'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-n39-marechal-ney-attacks::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Maréchal Ney, attack Mack with Lannes in support",
+   "original": "Maréchal Ney, attack Mack",
+   "why": "reading changed — target: 'Mack' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::reason_tail#0@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, stand your ground because the men are ready",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Belgium' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, stand your ground because the men are ready",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Rhineland' → 'Because The Men Are Ready'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, stand your ground — thank you",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Belgium' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, stand your ground — thank you",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Rhineland' → '— Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, stand your ground - at once",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Belgium' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, stand your ground - at once",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Rhineland' → '- At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, stand your ground with Lannes in support",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Belgium' → 'With Lannes In Support'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-stand-your-ground-is-hold::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, stand your ground with Lannes in support",
+   "original": "Ney, stand your ground",
+   "why": "reading changed — target: 'Rhineland' → 'With Lannes In Support'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-advance-on-swabia-is-a-march::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, advance on Swabia — thank you",
+   "original": "Ney, advance on Swabia",
+   "why": "reading changed — target: 'Swabia' → 'Swabia — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-advance-on-swabia-is-a-march::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, advance on Swabia - at once",
+   "original": "Ney, advance on Swabia",
+   "why": "reading changed — target: 'Swabia' → 'Swabia - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-push-on-to-swabia-is-a-march::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, push on to Swabia — thank you",
+   "original": "Ney, push on to Swabia",
+   "why": "reading changed — target: 'Swabia' → 'Swabia — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-push-on-to-swabia-is-a-march::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, push on to Swabia - at once",
+   "original": "Ney, push on to Swabia",
+   "why": "reading changed — target: 'Swabia' → 'Swabia - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-onward-to-swabia-is-a-march::please#2@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, please onward to Swabia",
+   "original": "Ney, onward to Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'move' → None; target: 'Swabia' → None; type: 'specific' → None; strategic_type: 'MOVE_TO' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-onward-to-swabia-is-a-march::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, onward to Swabia — thank you",
+   "original": "Ney, onward to Swabia",
+   "why": "reading changed — target: 'Swabia' → 'Swabia — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-onward-to-swabia-is-a-march::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, onward to Swabia - at once",
+   "original": "Ney, onward to Swabia",
+   "why": "reading changed — target: 'Swabia' → 'Swabia - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::please#1@legacy",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, retire, please",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::please#1@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, retire, please",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::reason_tail#0@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, retire because the men are ready",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, retire because the men are ready",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::reason_tail#1@legacy",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, retire, the men are rested",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::reason_tail#1@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, retire, the men are rested",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::dash_aside#0@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, retire — thank you",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, retire — thank you",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::dash_aside#1@legacy",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, retire - at once",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, retire - at once",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::word_order#0@legacy",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "retire, Ney",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-retire-is-a-retreat::word_order#0@1805",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "retire, Ney",
+   "original": "Ney, retire",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'retreat' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-attak-reads-as-attack::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Ney, attak Mack",
+   "original": "Ney, attak Mack",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Mack' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-attak-reads-as-attack::please#2@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, please attak Mack",
+   "original": "Ney, attak Mack",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Mack' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-attak-reads-as-attack::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, attak Mack with Lannes in support",
+   "original": "Ney, attak Mack",
+   "why": "reading changed — target: 'Mack' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-mvoe-reads-as-move::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Ney, mvoe to Lorraine",
+   "original": "Ney, mvoe to Lorraine",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'move' → None; target: 'Lorraine' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-mvoe-reads-as-move::please#2@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, please mvoe to Lorraine",
+   "original": "Ney, mvoe to Lorraine",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'move' → None; target: 'Lorraine' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-mvoe-reads-as-move::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, mvoe to Lorraine with Lannes in support",
+   "original": "Ney, mvoe to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa80-scuot-reads-as-scout::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Ney, scuot Swabia",
+   "original": "Ney, scuot Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'scout' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa80-scuot-reads-as-scout::please#2@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Ney, please scuot Swabia",
+   "original": "Ney, scuot Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'scout' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "fa-d20-join-davout-is-support::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, join Davout with Lannes in support",
+   "original": "Ney, join Davout",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-join-davout-is-support::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, join Davout with Lannes in support",
+   "original": "Ney, join Davout",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-aid-davout-is-support::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, aid Davout with Lannes in support",
+   "original": "Ney, aid Davout",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-aid-davout-is-support::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, aid Davout with Lannes in support",
+   "original": "Ney, aid Davout",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-help-davout-is-support::second_name_role#0@legacy",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, help Davout with Lannes in support",
+   "original": "Ney, help Davout",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-help-davout-is-support::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, help Davout with Lannes in support",
+   "original": "Ney, help Davout",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-protect-davout-is-support-not-hold::word_order#0@legacy",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "protect Davout, Ney",
+   "original": "Ney, protect Davout",
+   "why": "reading changed — marshal: 'Ney' → None",
+   "last_stage": "strategic·self_target_unbound"
+  },
+  {
+   "id": "fa-d20-protect-davout-is-support-not-hold::word_order#0@1805",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "protect Davout, Ney",
+   "original": "Ney, protect Davout",
+   "why": "reading changed — marshal: 'Ney' → None",
+   "last_stage": "strategic·self_target_unbound"
+  },
+  {
+   "id": "fa-d20-protect-rhineland-stays-hold::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, protect Rhineland — thank you",
+   "original": "Ney, protect Rhineland",
+   "why": "reading changed — target: 'Rhineland' → 'Rhineland — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "fa-d20-protect-rhineland-stays-hold::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, protect Rhineland - at once",
+   "original": "Ney, protect Rhineland",
+   "why": "reading changed — target: 'Rhineland' → 'Rhineland - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-hodl-lorraine-is-a-standing-hold::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Davout, hodl Lorraine",
+   "original": "Davout, hodl Lorraine",
+   "why": "reading changed — success: True → False; marshal: 'Davout' → None; action: 'hold' → None; target: 'Lorraine' → None; type: 'specific' → None; strategic_type: 'HOLD' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "r7-hodl-lorraine-is-a-standing-hold::please#2@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "Davout, please hodl Lorraine",
+   "original": "Davout, hodl Lorraine",
+   "why": "reading changed — success: True → False; marshal: 'Davout' → None; action: 'hold' → None; target: 'Lorraine' → None; type: 'specific' → None; strategic_type: 'HOLD' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "r7-hodl-lorraine-is-a-standing-hold::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Davout, hodl Lorraine — thank you",
+   "original": "Davout, hodl Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'Lorraine — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-hodl-lorraine-is-a-standing-hold::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Davout, hodl Lorraine - at once",
+   "original": "Davout, hodl Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'Lorraine - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-retire-towards-alsace-marches::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, retire towards Alsace — thank you",
+   "original": "Ney, retire towards Alsace",
+   "why": "reading changed — target: 'Alsace' → 'Alsace — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-retire-towards-alsace-marches::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, retire towards Alsace - at once",
+   "original": "Ney, retire towards Alsace",
+   "why": "reading changed — target: 'Alsace' → 'Alsace - At Once'",
+   "last_stage": "strategic·detected"
+  },
+  {
+   "id": "r7-join-davout-at-lorraine-supports-davout::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, join Davout at Lorraine with Lannes in support",
+   "original": "Ney, join Davout at Lorraine",
+   "why": "reading changed — target: 'Davout' → 'generic'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-protect-davouts-flank-supports-davout::word_order#0@legacy",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "protect Davout's flank, Ney",
+   "original": "Ney, protect Davout's flank",
+   "why": "reading changed — marshal: 'Ney' → 'Davout'; target: 'Davout' → \"Davout'S Flank\"; strategic_type: 'SUPPORT' → 'HOLD'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-protect-davouts-flank-supports-davout::word_order#0@1805",
+   "family": "word_order",
+   "relation": "same",
+   "utterance": "protect Davout's flank, Ney",
+   "original": "Ney, protect Davout's flank",
+   "why": "reading changed — marshal: 'Ney' → 'Davout'; target: 'Davout' → \"Davout'S Flank\"; strategic_type: 'SUPPORT' → 'HOLD'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-would-you-march-for-me-is-an-order::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Davout, would you march to Lorraine for me — thank you",
+   "original": "Davout, would you march to Lorraine for me",
+   "why": "reading changed — target: 'Lorraine For Me' → 'Lorraine For Me — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-would-you-march-for-me-is-an-order::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Davout, would you march to Lorraine for me - at once",
+   "original": "Davout, would you march to Lorraine for me",
+   "why": "reading changed — target: 'Lorraine For Me' → 'Lorraine For Me - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-push-on-towards-paris-targets-paris::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, push on towards Paris — thank you",
+   "original": "Ney, push on towards Paris",
+   "why": "reading changed — target: 'Paris' → 'Paris — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "r7-push-on-towards-paris-targets-paris::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, push on towards Paris - at once",
+   "original": "Ney, push on towards Paris",
+   "why": "reading changed — target: 'Paris' → 'Paris - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "cr7-address-comma-is-not-a-boundary::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, attack Mack with Lannes in support",
+   "original": "Ney, attack Mack",
+   "why": "reading changed — target: 'Mack' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "crt1-someone-attack-mack-control::verb_typo#0@1805",
+   "family": "verb_typo",
+   "relation": "same",
+   "utterance": "someone attcak Mack",
+   "original": "someone attack Mack",
+   "why": "reading changed — success: True → False; action: 'attack' → None; target: 'Mack' → None; type: 'auto_assign_attack' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "crt1-everyone-retreat-control::verb_typo#0@legacy",
+   "family": "verb_typo",
+   "relation": "same",
+   "utterance": "everyone reterat",
+   "original": "everyone retreat",
+   "why": "reading changed — success: True → False; action: 'retreat' → None; type: 'general_retreat' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "crt1-everyone-retreat-control::verb_typo#0@1805",
+   "family": "verb_typo",
+   "relation": "same",
+   "utterance": "everyone reterat",
+   "original": "everyone retreat",
+   "why": "reading changed — success: True → False; action: 'retreat' → None; type: 'general_retreat' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "crt2-recruit-in-swabbia-keeps-the-ground::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "recruit infantry in Swabbia — thank you",
+   "original": "recruit infantry in Swabbia",
+   "why": "reading changed — target: 'Swabbia' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-recruit-in-swabbia-keeps-the-ground::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "recruit infantry in Swabbia - at once",
+   "original": "recruit infantry in Swabbia",
+   "why": "reading changed — target: 'Swabbia' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-recruit-in-atlantis-keeps-the-ground::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "recruit infantry in Atlantis — thank you",
+   "original": "recruit infantry in Atlantis",
+   "why": "reading changed — target: 'Atlantis' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-recruit-in-atlantis-keeps-the-ground::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "recruit infantry in Atlantis - at once",
+   "original": "recruit infantry in Atlantis",
+   "why": "reading changed — target: 'Atlantis' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-repair-lorrain-keeps-the-object::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "repair Lorrain — thank you",
+   "original": "repair Lorrain",
+   "why": "reading changed — target: 'Lorrain' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-repair-lorrain-keeps-the-object::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "repair Lorrain - at once",
+   "original": "repair Lorrain",
+   "why": "reading changed — target: 'Lorrain' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-build-depot-in-brittanny::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "build supply depot in Brittanny — thank you",
+   "original": "build supply depot in Brittanny",
+   "why": "reading changed — target: 'Brittanny' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "crt2-build-depot-in-brittanny::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "build supply depot in Brittanny - at once",
+   "original": "build supply depot in Brittanny",
+   "why": "reading changed — target: 'Brittanny' → None",
+   "last_stage": "mock_chain·result"
+  },
+  {
+   "id": "rs11-take-in-reach::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Ney, take Swabia",
+   "original": "Ney, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-in-reach::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, take Swabia because the men are ready",
+   "original": "Ney, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-in-reach::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, take Swabia — thank you",
+   "original": "Ney, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-in-reach::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, take Swabia - at once",
+   "original": "Ney, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-in-reach::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, take Swabia with Lannes in support",
+   "original": "Ney, take Swabia",
+   "why": "reading changed — action: 'attack' → 'move'; target: 'Swabia' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "rs11-take-epithet::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Iron Marshal, take Swabia",
+   "original": "Iron Marshal, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Davout' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-epithet::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Iron Marshal, take Swabia because the men are ready",
+   "original": "Iron Marshal, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Davout' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-epithet::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Iron Marshal, take Swabia — thank you",
+   "original": "Iron Marshal, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Davout' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-epithet::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Iron Marshal, take Swabia - at once",
+   "original": "Iron Marshal, take Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Davout' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-the-province-of::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Ney, take the province of Swabia",
+   "original": "Ney, take the province of Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-the-province-of::reason_tail#0@1805",
+   "family": "reason_tail",
+   "relation": "same",
+   "utterance": "Ney, take the province of Swabia because the men are ready",
+   "original": "Ney, take the province of Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-the-province-of::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, take the province of Swabia — thank you",
+   "original": "Ney, take the province of Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-the-province-of::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, take the province of Swabia - at once",
+   "original": "Ney, take the province of Swabia",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'attack' → None; target: 'Swabia' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "rs11-take-the-province-of::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, take the province of Swabia with Lannes in support",
+   "original": "Ney, take the province of Swabia",
+   "why": "reading changed — action: 'attack' → 'move'; target: 'Swabia' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfv4-attack-unknown-proper-name::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, attack Zorglub with Lannes in support",
+   "original": "Ney, attack Zorglub",
+   "why": "reading changed — target: None → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfcmd2-move-with-the-guard::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney, move to Paris with the Guard with Lannes in support",
+   "original": "Ney, move to Paris with the Guard",
+   "why": "reading changed — target: 'Paris' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfcmd2-protect-the-rear::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, protect the rear — thank you",
+   "original": "Ney, protect the rear",
+   "why": "reading changed — target: 'Rhineland' → 'Rear — Thank You'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfcmd2-protect-the-rear::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, protect the rear - at once",
+   "original": "Ney, protect the rear",
+   "why": "reading changed — target: 'Rhineland' → 'Rear - At Once'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfcmd2r-ney-moves::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, Ney moves to Lorraine",
+   "original": "Ney moves to Lorraine",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'move' → None; target: 'Lorraine' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "sfcmd2r-ney-moves::honorific#0@1805",
+   "family": "honorific",
+   "relation": "same",
+   "utterance": "Marshal Ney moves to Lorraine",
+   "original": "Ney moves to Lorraine",
+   "why": "reading changed — success: True → False; marshal: 'Ney' → None; action: 'move' → None; target: 'Lorraine' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "sfcmd2r-ney-moves::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Ney moves to Lorraine with Lannes in support",
+   "original": "Ney moves to Lorraine",
+   "why": "reading changed — target: 'Lorraine' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfcmd2r-emperor-moves::please#0@1805",
+   "family": "please",
+   "relation": "same",
+   "utterance": "please, the Emperor moves to Rhineland",
+   "original": "the Emperor moves to Rhineland",
+   "why": "reading changed — success: True → False; marshal: 'Napoleon' → None; action: 'move' → None; target: 'Rhineland' → None; type: 'specific' → None",
+   "last_stage": "parser·validation_failed"
+  },
+  {
+   "id": "sfcmd2r-ride-down-a-foe::second_name_role#0@1805",
+   "family": "second_name_role",
+   "relation": "same",
+   "utterance": "Murat, ride down Mack with Lannes in support",
+   "original": "Murat, ride down Mack",
+   "why": "reading changed — target: 'Mack' → 'generic'; strategic_type: None → 'SUPPORT'",
+   "last_stage": "strategic·target_overrides_tactical"
+  },
+  {
+   "id": "sfcmd2r-scout-keeps-its-place::dash_aside#0@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, scout Alsace — thank you",
+   "original": "Ney, scout Alsace",
+   "why": "reading changed — target: 'Alsace' → None",
+   "last_stage": "strategic·strip_marshal_prefix"
+  },
+  {
+   "id": "sfcmd2r-scout-keeps-its-place::dash_aside#1@1805",
+   "family": "dash_aside",
+   "relation": "same",
+   "utterance": "Ney, scout Alsace - at once",
+   "original": "Ney, scout Alsace",
+   "why": "reading changed — target: 'Alsace' → None",
+   "last_stage": "strategic·strip_marshal_prefix"
+  }
+ ]
+}

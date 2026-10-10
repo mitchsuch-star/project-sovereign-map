@@ -113,7 +113,7 @@ def reclassify(record: dict) -> dict:
     return record
 
 
-def run(blind: dict, llm: str, limit: int | None) -> dict:
+def run(blind: dict, llm: str, limit: int | None, trace: bool = False) -> dict:
     _env(llm)
     from fastapi.testclient import TestClient
     with contextlib.redirect_stdout(io.StringIO()):
@@ -130,19 +130,24 @@ def run(blind: dict, llm: str, limit: int | None) -> dict:
 
     def post(line):
         with contextlib.redirect_stdout(io.StringIO()):
-            r = client.post("/command", json={"command": line})
+            r = client.post("/command", json={"command": line, "trace": bool(trace)})
         return r.json()
 
     for o in blind.get("orders", [])[:limit]:
         fresh()
         t0 = time.time()
         reply = post(o["line"])
-        rows.append({"kind": "order", "line": o["line"], "intended": o.get("intended"),
-                     "class": classify_order(o.get("intended") or {}, reply),
-                     "success": reply.get("success"), "parse_mode": reply.get("parse_mode"),
-                     "parse_confidence": reply.get("parse_confidence"),
-                     "message": str(reply.get("message", "") or "")[:300],
-                     "secs": round(time.time() - t0, 2)})
+        row = {"kind": "order", "line": o["line"], "intended": o.get("intended"),
+               "class": classify_order(o.get("intended") or {}, reply),
+               "success": reply.get("success"), "parse_mode": reply.get("parse_mode"),
+               "parse_confidence": reply.get("parse_confidence"),
+               "message": str(reply.get("message", "") or "")[:300],
+               "secs": round(time.time() - t0, 2)}
+        # DD-0 S3: the parse trace rides each row (`--trace`), so a misread
+        # or a shrug names the stage that read it wrong without a session.
+        if trace and reply.get("parse_trace"):
+            row["parse_trace"] = reply["parse_trace"]
+        rows.append(row)
     for q in blind.get("questions", [])[:limit]:
         fresh()
         reply = post(q["line"])
@@ -174,6 +179,8 @@ def main() -> int:
     ap.add_argument("--llm", default="mock", choices=("mock", "anthropic"))
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--reclassify", help="a stored run to re-read with the current judge (rewritten in place)")
+    ap.add_argument("--trace", action="store_true",
+                    help="DD-0 S3: store each order's parse trace on its row")
     args = ap.parse_args()
     if args.reclassify:
         path = Path(args.reclassify)
@@ -182,7 +189,7 @@ def main() -> int:
         print_record(record)
         return 0
     blind = json.loads(Path(args.blind).read_text(encoding="utf-8"))
-    record = run(blind, args.llm, args.limit)
+    record = run(blind, args.llm, args.limit, trace=args.trace)
     Path(args.out).write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8")
     print_record(record)
     return 0

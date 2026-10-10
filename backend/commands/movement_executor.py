@@ -1416,6 +1416,9 @@ class MovementExecutor:
         # Sort by distance (nearest first), then strength as tiebreaker
         candidates.sort(key=lambda x: (x[1], -x[0].strength))
         chosen_marshal = candidates[0][0]
+        from backend.ai import parse_trace as _ptrace
+        _ptrace.decide("executor", "auto_assign_scout",
+                       {"marshal": chosen_marshal.name, "target": command.get("target")})
 
         # Route to specific scout with chosen marshal
         routed_command = dict(command)
