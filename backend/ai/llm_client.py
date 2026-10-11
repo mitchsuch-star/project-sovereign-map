@@ -29,6 +29,7 @@ import unicodedata
 
 from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
 from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass as _dataclass, field as _field
 from dotenv import load_dotenv
 
 from .schemas import ParseResult
@@ -297,6 +298,9 @@ def _supports_a_friendly_marshal(command_lower: str, player_marshals) -> bool:
     return _names_a_friendly_after(_SUPPORT_VERBS_RE_SRC, command_lower, player_marshals)
 
 
+# DD0-15 (S4 part 3): the three-letter telegraph typos the OSA floor cannot
+# reach — a closed table, each a deletion of ONE order verb and no word.
+_SHORT_TYPO_TABLE = {"mve": "move", "mov": "move", "hld": "hold", "atk": "attack", "atack": "attack"}
 _TYPO_VERBS = ("attack", "move", "march", "scout", "defend", "hold", "retreat",
                "fortify", "recruit", "bombard",
                # DD0-9 (October 10, 2026): "davout suport ney"
@@ -350,6 +354,12 @@ def repair_leading_verb_typo(command_text: str, game_state: Optional[Dict]):
     for match in _VERB_POSITION_RE.finditer(text):
         token = match.group("verb")
         low = token.lower()
+        # DD0-15 (S4 part 3): "mve murat to rhineland" — the three-letter
+        # telegraph typos, a closed table under the four-letter floor.
+        if low in _SHORT_TYPO_TABLE and low not in known:
+            verb = _SHORT_TYPO_TABLE[low]
+            start, end = match.span("verb")
+            return text[:start] + verb + text[end:], f"(Berthier read '{token}' as '{verb}'.)"
         if (len(low) < 4 or low in ADDRESS_NON_NAME_WORDS or low in known
                 or low in _TYPO_VERBS or low in _TYPO_STOPLIST):
             continue
@@ -720,6 +730,7 @@ _DRILL_WORD_RE = re.compile(
 # read — defined OUTSIDE this module on purpose (see dd0_rewrites: the
 # routed-word generator harvests nouns from inline keywords).
 from backend.ai import dd0_rewrites as _idioms  # noqa: E402
+from backend.ai import reading as _slots  # noqa: E402  (S4 part 3: the slot reader — outside the harvest's reach)
 
 
 # SF7-X9 (Score Finish Step 7 slice 5b): the place a scout names, kept for
@@ -1501,7 +1512,11 @@ _TREATY_BREAK_RE = re.compile(
 
 
 def _mentions_treaty_break(command_lower: str) -> bool:
-    return bool(_TREATY_BREAK_RE.search(command_lower))
+    # DD0-17 (S4 part 3, October 10, 2026): "Repudiate the peace with
+    # Prussia" named a marshal called Repudiate.
+    return bool(_TREATY_BREAK_RE.search(command_lower)
+                or re.search(r"\brepudiate\s+(?:the\s+|our\s+)?(?:peace|treaty|alliance|pact|armistice|truce)\b",
+                             command_lower))
 
 
 # GE-3 "THE CONGRESS OF PARIS" (docs/ENDGAME_PLAN.md §2.3–§2.4): the victory
@@ -1730,6 +1745,43 @@ def _mentions_abstract_restore(command_lower: str) -> bool:
         r"(?:order|discipline|morale|calm|peace|honou?r|confidence|"
         r"the\s+line|the\s+situation)\b",
         command_lower))
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# DD-0 S4 part 3 (October 10, 2026) — THE SPINE SPLIT. `_parse_with_mock_chain`
+# was one 1,700-line, keyword-order-dependent body; it is now a chain of NAMED
+# stages along the parse trace's own seams (the cheat and the first-contact
+# doors, the sentence-shape guards, the Cabinet routes, the question desk, the
+# marshal binding, the meta-commands, the order-verb chain, the target read,
+# the finish), each a method below, reading and writing ONE `_ChainState`.
+# Every line of the old body is sliced verbatim into its stage — the split is
+# byte-identical in behaviour (the corpus, the metamorphic ledger and the
+# series pin it). The order of the stages IS the old order of the text; a
+# stage that returns a ParseResult ends the chain, as its early return did.
+# `tools/gen_routed_order_words.py` walks every `_chain_*` method for the
+# routed vocabulary, exactly as it walked the one body.
+# ════════════════════════════════════════════════════════════════════════════
+@_dataclass
+class _ChainState:
+    """The mock chain's locals, carried between its stages."""
+    command_text: str
+    game_state: Optional[Dict]
+    command_lower: str = ""
+    original_text: str = ""
+    requested_type: Optional[str] = None
+    known_nations: Dict[str, str] = _field(default_factory=dict)
+    known_nations_lower: List[str] = _field(default_factory=list)
+    player_roster: List[str] = _field(default_factory=list)
+    addressed_marshal: bool = False
+    shared_question: bool = False
+    stand_down: bool = False
+    negation_applied: bool = False
+    guarded: Optional[str] = None
+    marshal: Optional[str] = None
+    player_marshals: list = _field(default_factory=list)
+    action: str = "unknown"
+    target: Optional[str] = None
+    target_stance: Optional[str] = None
 
 
 class LLMClient:
@@ -2431,6 +2483,26 @@ class LLMClient:
         _player_roster = (list(_game_state_dict(game_state, "marshals"))
                           or ["Ney", "Davout", "Grouchy", "Drouot"])
         _addressed_marshal = _leads_with_marshal(command_lower, _player_roster)
+        st = _ChainState(command_text=command_text, game_state=game_state,
+                         command_lower=command_lower, original_text=command_text,
+                         requested_type=requested_type,
+                         known_nations=known_nations,
+                         known_nations_lower=known_nations_lower,
+                         player_roster=_player_roster,
+                         addressed_marshal=_addressed_marshal)
+        for _stage in (self._chain_cheat, self._chain_first_contact,
+                       self._chain_guards, self._chain_cabinet,
+                       self._chain_question, self._chain_bind_marshal,
+                       self._chain_meta, self._chain_read_action,
+                       self._chain_read_target, self._chain_read_slots):
+            _result = _stage(st)
+            if _result is not None:
+                return _result
+        return self._chain_finish(st)
+
+    def _chain_cheat(self, st: "_ChainState") -> Optional[ParseResult]:
+        """The cheat door: a literal-argument command, read before any routing."""
+        command_text, command_lower = st.command_text, st.command_lower
 
         # ════════════════════════════════════════════════════════════
         # CHEAT/DEBUG COMMANDS: Check FIRST before any keyword routing
@@ -2458,27 +2530,12 @@ class LLMClient:
                 cheat_type=cheat_type,
                 cheat_args=cheat_args,
             )
+        return None
 
-        # ════════════════════════════════════════════════════════════
-        # PARSE-NEG: SENTENCE-SHAPE GUARDS (backend/ai/clause_guards.py)
-        #
-        # Everything below this block selects an action by scanning for
-        # keywords, and a negated sentence carries the SAME keywords as its
-        # affirmative — so "Ney, never attack Mack" attacked at confidence
-        # 0.95, above the 0.7 LLM-fallback gate, in every mode and with or
-        # without a key. The only place a guard can work is here: before any
-        # routing reads the text.
-        #
-        # Clauses are blanked with SPACES, never spliced, so every
-        # position-aware rule further down (CR-2 executor eligibility, the
-        # "Marshal <Name>" capture, the unresolved-address demotion) keeps its
-        # indices. `original_text` stays the record of what the player typed.
-        #
-        # Runs AFTER the cheat block so a cheat argument is never blanked, and
-        # BEFORE diplomatic routing so "don't declare war on Austria" cannot
-        # declare one. Debug/save/load are literal-argument commands and are
-        # exempted for the same reason as cheat.
-        # ════════════════════════════════════════════════════════════
+    def _chain_first_contact(self, st: "_ChainState") -> Optional[ParseResult]:
+        """First contact: a greeting, the pause menu, an undo, the goal of the game."""
+        command_text = st.command_text
+
         # ════════════════════════════════════════════════════════════
         # FIRST CONTACT (September 23, 2026): a greeting, a word for the
         # pause menu, an undo, a stuck phrasing, the goal of the game.
@@ -2513,7 +2570,33 @@ class LLMClient:
                 confidence=0.9, mode="mock", key_source=self.key_source,
                 raw_command=command_text, question=_first,
             )
+        return None
 
+    def _chain_guards(self, st: "_ChainState") -> Optional[ParseResult]:
+        """PARSE-NEG: the sentence-shape guards (negation, condition, reason, deferral, filler)."""
+        command_text, command_lower, game_state = st.command_text, st.command_lower, st.game_state
+        _player_roster, guarded = st.player_roster, st.guarded
+
+        # ════════════════════════════════════════════════════════════
+        # PARSE-NEG: SENTENCE-SHAPE GUARDS (backend/ai/clause_guards.py)
+        #
+        # Everything below this block selects an action by scanning for
+        # keywords, and a negated sentence carries the SAME keywords as its
+        # affirmative — so "Ney, never attack Mack" attacked at confidence
+        # 0.95, above the 0.7 LLM-fallback gate, in every mode and with or
+        # without a key. The only place a guard can work is here: before any
+        # routing reads the text.
+        #
+        # Clauses are blanked with SPACES, never spliced, so every
+        # position-aware rule further down (CR-2 executor eligibility, the
+        # "Marshal <Name>" capture, the unresolved-address demotion) keeps its
+        # indices. `original_text` stays the record of what the player typed.
+        #
+        # Runs AFTER the cheat block so a cheat argument is never blanked, and
+        # BEFORE diplomatic routing so "don't declare war on Austria" cannot
+        # declare one. Debug/save/load are literal-argument commands and are
+        # exempted for the same reason as cheat.
+        # ════════════════════════════════════════════════════════════
         original_text = command_text
         stand_down = False
         negation_applied = False
@@ -2692,6 +2775,18 @@ class LLMClient:
             _b = command_lower
             command_lower = strip_leading_filler(command_lower)
             _ptrace.note("guards", "strip_leading_filler", _b, command_lower)
+
+        st.command_text, st.command_lower = command_text, command_lower
+        st.original_text, st.stand_down, st.negation_applied = original_text, stand_down, negation_applied
+        st.shared_question, st.guarded = _shared_question, guarded
+        return None
+
+    def _chain_cabinet(self, st: "_ChainState") -> Optional[ParseResult]:
+        """The Cabinet routes: the war purpose, the bargain, the settlement, the Congress, the laws, the desks, Talleyrand and the state verbs."""
+        command_text, command_lower, game_state = st.command_text, st.command_lower, st.game_state
+        original_text, _shared_question = st.original_text, st.shared_question
+        _addressed_marshal, _player_roster = st.addressed_marshal, st.player_roster
+        known_nations = st.known_nations
 
         # ════════════════════════════════════════════════════════════
         # DIPLOMAT ROUTING (Phase 8 Session 3): Check for Talleyrand
@@ -2904,7 +2999,9 @@ class LLMClient:
         # DD0-6 (October 10, 2026): "War with Portugal. Inform their
         # ambassador." — the declaration phrased as a fact, at the head.
         if (any(kw in command_lower for kw in _war_keywords)
-                or re.match(r"^\s*war\s+(?:with|on|against)\s+[a-z]", command_lower)):
+                or re.match(r"^\s*war\s+(?:with|on|against)\s+[a-z]", command_lower)
+                # DD0-17 (S4 part 3): the terse "declare war saxony".
+                or re.search(r"\bdeclare\s+war\b", command_lower)):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
 
@@ -2995,6 +3092,11 @@ class LLMClient:
                 and _names_a_known_court(command_text, game_state)):
             return self._parse_diplomatic_command(
                 command_text, command_lower, question=_shared_question)
+        return None
+
+    def _chain_question(self, st: "_ChainState") -> Optional[ParseResult]:
+        """PARSE-NEG: a question is not an order — the question desk."""
+        original_text, game_state = st.original_text, st.game_state
 
         # ════════════════════════════════════════════════════════════
         # PARSE-NEG: A QUESTION IS NOT AN ORDER.
@@ -3098,6 +3200,11 @@ class LLMClient:
                            "subject_type": "none", "asked": original_text}
                           if _routes_to_the_desk(original_text) else None),
             )
+        return None
+
+    def _chain_bind_marshal(self, st: "_ChainState") -> Optional[ParseResult]:
+        """The executor binding: the first eligible player marshal the line names."""
+        command_text, command_lower, game_state = st.command_text, st.command_lower, st.game_state
 
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
@@ -3188,8 +3295,12 @@ class LLMClient:
 
         # If still None, that's OK - means general order
 
-        # Extract action (ALWAYS set a value)
-        action = "unknown"  # Default
+        st.marshal, st.player_marshals = marshal, player_marshals
+        return None
+
+    def _chain_meta(self, st: "_ChainState") -> Optional[ParseResult]:
+        """The meta-commands: debug, save, load."""
+        command_text, command_lower = st.command_text, st.command_lower
 
         # (Cheat commands handled at top of function — before diplomat routing)
 
@@ -3230,6 +3341,18 @@ class LLMClient:
                 confidence=1.0,
                 key_source=self.key_source,
             )
+        return None
+
+    def _chain_read_action(self, st: "_ChainState") -> Optional[ParseResult]:
+        """The order-verb chain (keyword-ordered; the ADD NEW ACTION KEYWORDS marker is at its foot)."""
+        command_text, command_lower, game_state = st.command_text, st.command_lower, st.game_state
+        original_text, guarded = st.original_text, st.guarded
+        negation_applied, stand_down = st.negation_applied, st.stand_down
+        player_marshals, known_nations_lower = st.player_marshals, st.known_nations_lower
+        requested_type = st.requested_type
+
+        # Extract action (ALWAYS set a value)
+        action = "unknown"  # Default
 
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         # P8-2 FIX: Use exact match whitelist — "help" in command_lower matched "help Davout"
@@ -3256,6 +3379,26 @@ class LLMClient:
                 ambiguity=5,
                 strategic_score=0,
                 interpretation="The desk — an end turn behind a negation",
+                confidence=0.9,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=original_text,
+                question={"kind": "end_turn_asked", "subject": "", "subject_type": "board"},
+            )
+        # DD0-17 (S4 part 3): "Let the turn end." / "Close the day." — the
+        # end turn in other words. NOT ended here (the client's lapse-confirm
+        # gate mirrors the two-word vocabulary; the W3 rule above): the desk
+        # says what it heard and asks for the two words.
+        if _idioms.end_turn_in_other_words(command_lower):
+            return ParseResult(
+                matched=True,
+                command_type="tactical",
+                marshals=[],
+                action="status",
+                target=None,
+                ambiguity=5,
+                strategic_score=0,
+                interpretation="The desk — an end turn in other words",
                 confidence=0.9,
                 mode="mock",
                 key_source=self.key_source,
@@ -3563,7 +3706,9 @@ class LLMClient:
               # from the bench" / "bring Suchet off the bench".
               or re.search(r'\bgive\s+\w+\s+a\s+(?:command|corps)\b', command_lower)
               or re.search(r'\b(?:call|bring)\s+(?:up\s+)?\w+\s+(?:up\s+)?(?:from|off)\s+the\s+bench\b', command_lower)
-              or re.search(r'\bcall\s+up\s+[a-z]+\s*[.!]?$', command_lower)):
+              or re.search(r'\bcall\s+up\s+[a-z]+\s*[.!]?$', command_lower)
+              # DD0-17 (S4 part 3): "Give Oudinot a baton".
+              or re.search(r'\bgive\s+[a-z]+\s+(?:a|the|his)\s+baton\b', command_lower)):
             action = "recruit_marshal"
         # IQ-1 SW-1 "The Substitute Market". ORDERING RULE: above the troop
         # recruit branch, because "purchase a levy" and "hire replacements"
@@ -3718,9 +3863,13 @@ class LLMClient:
             # ("invest in the Kingdom of Italy") got Berthier's shrug while the
             # article-less form executed; `cede ... to the ...` already parsed.
             + [f"invest in the {n}" for n in known_nations_lower]
-        ) or _idioms.invest_gold(command_lower, known_nations_lower)):
+        )) or _idioms.invest_gold(command_lower, known_nations_lower):
             # DD0-9 (October 10, 2026): "invest 100 gold in switzerland",
             # "put some gold into the Kingdom of Italy".
+            # S4 part 3: the `or` used to sit INSIDE the `any(...)` call, so
+            # the non-empty keyword list short-circuited it and the idiom was
+            # never consulted (the parser's `rewrite_invest_gold` carried
+            # DD0-9 alone). "invest holland 50" reaches it now (DD0-17).
             action = "invest_vassal"
         elif (
             # F6 (playtest): the old list required CONTIGUOUS phrases
@@ -3731,6 +3880,8 @@ class LLMClient:
             "autonomy" in command_lower
             or (any(v in command_lower for v in ("make", "set", "turn"))
                 and any(lv in command_lower for lv in ("puppet", "satellite", "autonomous")))
+            # DD0-17 (S4 part 3): "Tighten the leash on Holland".
+            or re.search(r"\b(?:tighten|loosen|slacken)\s+(?:the\s+|our\s+)?(?:leash|reins|grip|hold)\b", command_lower)
         ):
             action = "change_autonomy"
         elif any(kw in command_lower for kw in (
@@ -3800,6 +3951,14 @@ class LLMClient:
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,
         # executor.py _execute_*, world_state.py _action_costs
 
+        st.action, st.requested_type = action, requested_type
+        return None
+
+    def _chain_read_target(self, st: "_ChainState") -> Optional[ParseResult]:
+        """The target read: the stance, the candidate, the court, the foe, the province, the spoken ground."""
+        command_text, command_lower, game_state = st.command_text, st.command_lower, st.game_state
+        action, known_nations = st.action, st.known_nations
+
         # Extract target (can be None)
         target = None
 
@@ -3833,6 +3992,8 @@ class LLMClient:
             _rm = re.search(
                 r'\b(?:commission|appoint|promote)\s+(?:marshal\s+)?([a-z][a-z\'-]+)',
                 command_lower)
+            if not _rm:
+                _rm = re.search(r'\bgive\s+([a-z][a-z\'-]+)\s+(?:a|the|his)\s+baton\b', command_lower)
             if not _rm:
                 _rm = re.search(r'\bmarshal\s+([a-z][a-z\'-]+)', command_lower)
             # DD-0 S4 (SFR-H6): a placeholder is the bench, never a candidate
@@ -4037,6 +4198,54 @@ class LLMClient:
             _place = scouted_place_phrase(command_lower)
             if _place:
                 target = _place
+
+        st.target, st.target_stance = target, target_stance
+        return None
+
+    def _chain_read_slots(self, st: "_ChainState") -> Optional[ParseResult]:
+        """S4 part 3 (October 10, 2026) — THE SLOT READER, the spine split's
+        second half. Only when the verb chain found NOTHING: the Reading's
+        slots (the addressee, the places, the foes, what is left) are read
+        instead of re-scanning the composed string. A man and a destination
+        in the words of a march and nothing else IS the march ("take your
+        horse to Rhineland", "Murat — rhineland — go.", "ney franconia pls",
+        "Shift Bernadotte west to Rhineland"); a man, ONE foe and a trigger
+        word in the words of an attack IS the attack ("I want Ney on Mack
+        this turn", "ney go get mack"). The vocabulary lives in
+        `backend/ai/reading.py` (DD0-15 / DD0-16); a negated or a
+        questioned line never reaches here."""
+        if st.action != "unknown" or st.negation_applied or st.shared_question:
+            return None
+        # The slot reader IS the mock speaking plainly: FA slice 7's lever
+        # down restores the pre-slice shrug here too (its sensitivity arm).
+        if not PLAIN_SPEECH_ACTIVE:
+            return None
+        game_state = st.game_state
+        friends = list(_game_state_dict(game_state, "marshals"))
+        places = list(_game_state_dict(game_state, "map_data"))
+        if not friends or not places:
+            return None
+        foes = list(_game_state_dict(game_state, "enemies"))
+        nations = list(_extract_known_nations(game_state).values())
+        s = _slots.slots_of(st.command_text, friends, foes, places, nations)
+        marshal = st.marshal or s.address
+        if not marshal:
+            return None
+        if _slots.march_by_slots(s):
+            st.action, st.target, st.marshal = "move", s.destination(), marshal
+            _ptrace.decide("mock_chain", "slots_march",
+                           {"marshal": marshal, "destination": st.target, "residue": s.residue})
+        elif _slots.attack_by_slots(s, nations):
+            st.action, st.target, st.marshal = "attack", s.foes[0], marshal
+            _ptrace.decide("mock_chain", "slots_attack",
+                           {"marshal": marshal, "foe": st.target, "residue": s.residue})
+        return None
+
+    def _chain_finish(self, st: "_ChainState") -> ParseResult:
+        """The finish: the interpretation, the confidence, the ParseResult."""
+        command_text, game_state = st.command_text, st.game_state
+        original_text, marshal, action, target = st.original_text, st.marshal, st.action, st.target
+        negation_applied, target_stance, requested_type = st.negation_applied, st.target_stance, st.requested_type
 
         # Build interpretation string
         if marshal and action != "unknown":
@@ -4477,7 +4686,15 @@ class LLMClient:
         # Determine diplomatic action type
         # CRT-3 (CX-X1): under the shared verdict a QUESTION outranks the
         # mission words — "should we court Bavaria?" is asked, not sent.
-        if mission_type and not shared_question:
+        # DD0-12 (S4 part 3, October 10, 2026): "Berthier, inform the courts:
+        # France declares war on Sweden." became a charm mission — "courts"
+        # held the COURT_NATION keyword and the mission arm outranked the
+        # declaration. A line that DECLARES war is the declaration, whatever
+        # mission word rides beside it (never a question, never a peace).
+        if (not is_question and not _mentions_peace_intent(command_lower)
+                and re.search(r"\bdeclar(?:e|es|ed|ing|ation\s+of)\s+war\b", command_lower)):
+            action = "diplomatic_declare_war"
+        elif mission_type and not shared_question:
             action = "diplomatic_mission"
         elif is_question and any(kw in command_lower for kw in FEASIBILITY_KEYWORDS):
             action = "diplomatic_feasibility"

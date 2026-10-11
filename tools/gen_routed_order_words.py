@@ -12,7 +12,8 @@ marched the whole army back for a name nobody has. The durable fix the
 review named is to stop writing the list and DERIVE it from the parser.
 
 The parser's routing table is its keyword chain — `llm_client`'s
-`_parse_with_mock_chain` and the three sub-routers it hands to. This tool
+`_parse_with_mock_chain` (since DD-0 S4 part 3 a chain of `_chain_*` stage
+methods) and the three sub-routers it hands to. This tool
 walks every branch of those functions that ASSIGNS the action (or hands
 the sentence to a sub-router), collects the keyword text in the branch's
 POSITIVE test (never under `not` / `not in` — a guard that a word must be
@@ -59,6 +60,11 @@ TARGET_PATH = REPO / "backend" / "ai" / "routed_order_words.py"
 # The router functions: the mock chain and the sub-routers it hands to.
 ROUTER_FUNCTIONS = (
     "_parse_with_mock_chain",
+    # DD-0 S4 part 3 (October 10, 2026): the mock chain's body is split into
+    # named stages along the trace's seams; the routing branches live in them.
+    "_chain_cheat", "_chain_first_contact", "_chain_guards", "_chain_cabinet",
+    "_chain_question", "_chain_bind_marshal", "_chain_meta",
+    "_chain_read_action", "_chain_read_target", "_chain_finish",
     "_parse_diplomatic_command",
     "_parse_set_war_purpose",
     "_parse_repudiate_bargain",

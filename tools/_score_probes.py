@@ -1352,6 +1352,14 @@ BOARD_GATE_RX = re.compile(
     r"no eligible province|loyalty is already full|we do not court a belligerent|at WAR with|no treaty with|"
     r"not found\. Did you mean|supply lines cannot|blocks the path|destination blocked|runs through enemy country|"
     r"No intelligence on|No marshal of artillery can reach|cannot reach|not controlled by France|We do not hold|"
+    # DD0-17 / DD0-8's rule (S4 part 3, October 10, 2026): three of the fourth
+    # set's five honest refusals the judge did not know — grepped against the
+    # committed records first; the earlier records re-read to identical
+    # classes. The other two ("No marshal of <arm> can reach", "There is no
+    # law called") were NOT added: each moves rows in the third set and the
+    # October 3 records (49 classes between them), and a judge edit never
+    # rewrites a committed reading.
+    r"No marshals? in range of|crossing from .{1,40} is barred|is already controlled by France|"
     r"still stands|No province is eligible|I am a diplomat, not a general|"
     # SF-CMD-1 (ii), the fresh census (Oct 3, 2026): the board's own refusals
     # the first judge could not read — a foreign commander, a court that is no

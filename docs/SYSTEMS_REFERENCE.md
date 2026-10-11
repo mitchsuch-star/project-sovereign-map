@@ -9576,3 +9576,90 @@ idioms (DD0-15), the attack register (DD0-16), the desks' (DD0-17). Memo
 re-seated on purpose. The rule the measurement teaches: a rehearsed file (the third
 set, 177 on this tree) and a fresh author (119) are two different instruments, and
 only the fresh one reads the done-when.
+
+**Part 3 — the spine split and the slot reader (October 10, 2026; pins
+`tests/test_dd0_s4_part3_the_slots.py`; rows DD0-11 … DD0-17 struck, DD0-18 filed).**
+- **The split, byte-identical.** `_parse_with_mock_chain` is eleven named stages
+  (`_chain_cheat`, `_chain_first_contact`, `_chain_guards`, `_chain_cabinet`,
+  `_chain_question`, `_chain_bind_marshal`, `_chain_meta`, `_chain_read_action` —
+  the verb chain, the ADD NEW ACTION marker at its foot —, `_chain_read_target`,
+  `_chain_read_slots`, `_chain_finish`) reading ONE `_ChainState`; `_execute_one`
+  is ten (`_exec_head`, `_exec_pending_gates`, `_exec_meta`, `_exec_action_economy`,
+  `_exec_name_and_place`, `_exec_objection_battery`, `_exec_bonuses_and_clarification`,
+  `_exec_dispatch`, `_exec_charge`, `_exec_finish`) reading ONE `_ExecState`. Every
+  line of each body is sliced verbatim into its stage; a stage that returns a result
+  ends the chain, as its early return did. `tools/gen_routed_order_words.py` lists
+  the `_chain_*` stages in `ROUTER_FUNCTIONS`, so the CX-R1 harvest is unchanged;
+  the CX-R1 shadow pin plants its local in `_chain_read_action`. The split surfaced
+  one dead branch: the invest idiom's `or` sat INSIDE the `any(...)` call (a
+  non-empty keyword list short-circuited it) — fixed; `invest holland 50` reads.
+- **The slot reader** (`reading.Slots`, `slots_of`, `march_by_slots`,
+  `attack_by_slots`; the vocabulary `MARCH_WORDS` / `ATTACK_WORDS` / `ATTACK_TRIGGERS`
+  lives in `reading.py`, outside the harvest's reach): ONLY when the verb chain found
+  nothing, and never on a negated or questioned line, the slots of the composed line
+  are read — the addressee, the other men of ours, the foes (by every form
+  `foe_forms` knows), the places (the destination is the first place not marked
+  `from / out of / via / by way of / through`), and the residue. A man (the chain's
+  bound marshal or the Reading's address) and a destination with a residue entirely
+  of march words IS the march (`take your horse to`, `shift your corps to`, `cross
+  into`, `get out of X and into Y`, `— rhineland — go.`, `franconia pls`, `Shift
+  Bernadotte west to`); a man, ONE foe, no place, a trigger word (`on / at / after /
+  use / get / go …`) and a residue of attack words IS the attack (`I want Ney on Mack
+  this turn`, `ney go get mack`, `Use them on John`). `make` is absent from the march
+  words on purpose (`make your way to Swabia` is the live parser's by IQ-9's gate);
+  the reader honours FA slice 7's plain-speech lever (`PLAIN_SPEECH_ACTIVE` down = the
+  pre-slice shrug); `Ney, Rhineland is lost`, `Ney, remember Rhineland`, `Ney, Mack`
+  stay shrugs. On the trace: `mock_chain · slots_march` / `slots_attack`.
+- **The Reading's new peels:** `peel_statement_after_address` ("Massena, you have
+  forty-two thousand men. Use them on John." — the statement after the address is
+  set aside, the address stays), `peel_trailing_statement` ("Soult, to Franche-Comte.
+  The roads are dry." set aside; "Ney: Frankfurt. Davout: stays." → the second
+  telegraph rides the relay as `, then Davout, hold`), the comma aside learns the
+  spaced dash ("Soult — Paris — the Emperor wants him near") and the emphatic tail
+  ("no excuses", "without fail"), the trailing vocative learns the inverted name
+  without a comma ("pursue john massena" → `Massena, pursue john`), the address learns
+  the courtesy modal ("will be so good as to").
+- **The strategic layer keeps the chain's known name** (`tactical_target_kept` on the
+  trace): a region target the map does not know is replaced by the chain's known
+  region ("march his corps to Franconia" had minted "His Corps"; the MOVE_TO
+  extractor also reads through a possessive object), and by the chain's known
+  commander with the type set to marshal ("pursue john massena" had minted the
+  region "John").
+- **The vocabulary of DD0-11 … DD0-17:** the negation markers gain the bare *no
+  <battle noun>* (`no fighting / battle / engagement / combat / contact …`);
+  `_parse_diplomatic_command` reads a DECLARATION before a mission word (`inform the
+  courts: France declares war on Sweden`); `rewrite_epithets` resolves the two
+  historical epithets as the OBJECT (never an ability's name, never at the head);
+  `split_question_and_order` derives the order a question names behind a pronoun
+  tail (`? Make it so.` → `<Name>, move to <place>`; `? Do it.` → the verb and object
+  un-inflected) and `Scout for him` only for a foe in sight; the scout idiom (`eyes
+  only`, `patrol`), the squares (a dash, `square up`), the attack idioms (`dog X's
+  heels`, `keep / stay / press after X` — never `get after`, IQ-9's), the reward
+  (`reward X estate`, `X has earned a title`), the laws (`establish <Proper Name>`,
+  `the X law is to be enacted`, `let the X be made law`), the build (`, build them`),
+  the invest (`invest holland 50`), the landing (`naval landing ireland` → `land in
+  Ireland`), `open talks with` → `negotiate with`, the end turn in other words (`Let
+  the turn end.`, `Close the day.` → the desk's `end_turn_asked`, never the turn —
+  the client's two-word gate), the baton (`Give Oudinot a baton`), `repudiate the
+  peace / treaty / alliance`, `declare war <court>`, `tighten the leash`; the short
+  typo table (`mve`, `mov`, `hld`, `atk`); the addressee gate stands down behind a
+  head-restating rewrite (`_head_restated`: the building, the merit, the law, the
+  court, the landing — never any other rewrite; 'Pledge France' stays no officer of
+  ours).
+- **The judge** learned `No marshals in range of`, `crossing from … is barred`, `is
+  already controlled by France` (the earlier records re-read to identical classes);
+  `No marshal of <arm> can reach` and `There is no law called` were WITHHELD — each
+  moves rows in the third set and the October 3 records (49 classes between them),
+  and a judge edit never rewrites a committed reading.
+- **Measured.** The fourth set as fresh runs: keyless 119 → 145 / 141 of 300 (48.3 / 47.0 %, two runs — the objection dice),
+  shrugs 33 → 5, misread 5 → 2, executed-when-refusal-meant 6 → 3 (all the judge's;
+  by hand 0); keyed 134 → 150 (18 live parses). The third set 177 → 182 / 176 (two runs, the dice); the HOLD arm
+  18 of 20 before and after the executor split; the metamorphic ledger 0; `score_run
+  check` byte-identical to `38daa024` after each half. **The fifth fresh author:
+  keyless 125 of 300 as meant (41.7 %), keyed 137; read RIGHT by hand 241 of 300
+  (80.3 %)** — the done-when NOT met a second time; one real execution (`strike camp`
+  fought) and one chooser staged against our own vassal, filed as DD0-18 (memo
+  `docs/audits/UNREHEARSED_CENSUS_2026_10_10_FIFTH.md`). The instrument's own
+  finding — on the boot board a quarter of every author's marches meet a neutral's
+  border and a quarter of the rest an objection, both the game reading right and
+  neither `as_meant` — is put to the user at part 4's head.

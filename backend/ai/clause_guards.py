@@ -107,6 +107,10 @@ _NEGATION_MARKER_SRC = (
     r"|avoid(?:s|ing)?"
     r"|no\s+(?:attack|advance|assault|charge|retreat|move|movement|march"
     r"|bombardment|pursuit|offensive)\b"
+    # DD0-11 (S4 part 3, October 10, 2026): "eyes only, no fighting" FOUGHT —
+    # the bare "no <battle noun>" is a prohibition on the battle itself.
+    r"|no\s+(?:fighting|battles?|engagements?|combat|contact|shooting|skirmish(?:ing|es)?"
+    r"|bloodshed|heroics|action)\b"
     # Aug 30, 2026 review: the two most idiomatic English prohibitives carried
     # NO marker at all, because the bare-"no" arm above demands an order-NOUN
     # straight after "no" and here the noun is "circumstances"/"account".

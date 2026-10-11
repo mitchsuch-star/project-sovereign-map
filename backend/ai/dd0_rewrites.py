@@ -90,6 +90,13 @@ def strip_dash_aside(text: str, known_names: Iterable[str]) -> str:
         return text
     if re.search(r"\b(?:no|not|never|don'?t|wait|turn|end)\b", aside, re.IGNORECASE):
         return text
+    # S4 part 3 (DD0-17): an aside that IS the order — "Lannes — squares.",
+    # "Tighten the leash on Holland — lower its autonomy" — is never cut:
+    # the field's one-word orders and the words of state stay.
+    if re.search(r"\b(?:squares?|charge|halt|stop|hold|fire|march|forward|scout|retreat|withdraw|"
+                 r"autonomy|vassal|tribute|gold|law|peace|war|treaty|alliance|mission|envoy|terms)\b",
+                 aside, re.IGNORECASE):
+        return text
     return head.rstrip(" ,;")
 
 
@@ -203,11 +210,16 @@ def rewrite_reward_idiom(text: str, friendly_names: Iterable[str]) -> str:
         r"(?:an?\s+)?(?:estate|title|duchy|dukedom|principality|county|reward)\b"
         r"|make\s+(?:marshal\s+)?(?P<n2>" + alt + r")\s+(?:a\s+|the\s+)?(?:duke|prince|count|marquis|baron|peer)\b"
         r"|reward\s+(?:marshal\s+)?(?P<n3>" + alt + r")\s+with\s+(?:an?\s+)?(?:title|estate|duchy)\b"
-        r"|reward\s+(?:marshal\s+)?(?P<n4>" + alt + r")\s+for\s+\S)",
+        r"|reward\s+(?:marshal\s+)?(?P<n4>" + alt + r")\s+for\s+\S"
+        # DD0-17 (S4 part 3): "reward soult estate"; "Ney has earned a
+        # title; give him one."
+        r"|reward\s+(?:marshal\s+)?(?P<n5>" + alt + r")\s+(?:an?\s+)?(?:title|estate|duchy|dukedom|pension|rente)\b"
+        r"|(?:marshal\s+)?(?P<n6>" + alt + r")\s+has\s+(?:well\s+)?earned\s+(?:an?\s+|his\s+)?(?:title|estate|duchy|reward|dukedom)\b)",
         text, flags=re.IGNORECASE)
     if not m:
         return text
-    typed = m.group("n1") or m.group("n2") or m.group("n3") or m.group("n4")
+    typed = (m.group("n1") or m.group("n2") or m.group("n3") or m.group("n4")
+             or m.group("n5") or m.group("n6"))
     name = next(n for n in friendly_names if str(n).lower() == typed.lower())
     return f"reward {name}"
 
@@ -253,6 +265,13 @@ def rewrite_attack_idioms(text: str, friendly_names: Iterable[str], enemy_names:
     out = _sub_foe(r"\bfall\s+(?:up)?on\s+(?P<foe>" + foes + r")(?:['’]s\s+(?:flank|flanks|rear|centre|center|left|right|line|column|wing))?\b",
                    "attack {foe}", out, enemy_names)
     out = _sub_foe(r"\b(?:keep|stay)\s+on\s+(?P<foe>" + foes + r")['’]s\s+(?:heels|tail|trail)\b", "pursue {foe}", out, enemy_names)
+    # DD0-16 / DD0-17 (S4 part 3): "dog Mack's heels", "keep after the
+    # Austrians under Mack" (the "after" read as a condition before).
+    out = _sub_foe(r"\b(?:dog|hound|harry)\s+(?P<foe>" + foes + r")['’]s\s+(?:heels|tail|trail|rear|retreat)\b", "pursue {foe}", out, enemy_names)
+    # ("get after <foe>" is the live parser's by IQ-9's cassette gate and is
+    # deliberately NOT read here; "go after" is the chain's own pursue word.)
+    out = _sub_foe(r"\b(?:keep|stay|press)\s+(?:hard\s+)?after\s+(?:the\s+\w+\s+(?:under|of|led\s+by)\s+)?(?P<foe>" + foes + r")\b",
+                   "pursue {foe}", out, enemy_names)
     out = _sub_foe(r"\b(?:chase|hunt|run|track)\s+(?P<foe>" + foes + r")\s+down"
                    r"(?:\s+wherever\s+(?:he|they|it)\s+(?:runs?|goes|flees|hides?|may\s+go|may\s+run))?\b",
                    "pursue {foe}", out, enemy_names)
@@ -281,6 +300,43 @@ def rewrite_invest_gold(text: str) -> str:
 
 _TRAILING_END_TURN_RE = re.compile(
     r"^(?P<head>.*?)[,;—–-]+\s*(?:next\s+turn|end\s+(?:the\s+)?turn|end\s+of\s+turn)\s*[.!]*$", re.IGNORECASE)
+
+
+_END_TURN_OTHER_WORDS_RX = re.compile(
+    r"(?:let\s+the\s+turn\s+end|let\s+the\s+day\s+end|close\s+the\s+day|that\s+is\s+all\s+for\s+today|"
+    r"that'?s\s+all\s+for\s+today|that\s+will\s+be\s+all\s+for\s+today|we\s+are\s+done\s+for\s+today|"
+    r"call\s+it\s+a\s+day|the\s+day\s+is\s+done|end\s+the\s+day|finish\s+the\s+turn|conclude\s+the\s+turn|"
+    r"advance\s+the\s+turn|pass\s+the\s+turn|the\s+turn\s+is\s+over|wrap\s+up\s+the\s+turn|"
+    r"let\s+the\s+turn\s+pass|move\s+(?:on\s+)?to\s+the\s+next\s+turn|on\s+to\s+the\s+next\s+turn)",
+    re.IGNORECASE)
+
+
+def end_turn_in_other_words(command_lower: str) -> bool:
+    """DD0-17 (S4 part 3): "Let the turn end.", "That is all for today,
+    Berthier. Close the day." — the whole line is end-turn phrasings in
+    other words (the two-word vocabulary is the client's gate; the chain
+    answers with the desk's ask, never the turn)."""
+    cl = re.sub(r"\b(?:berthier|sire)\b", " ", command_lower or "", flags=re.IGNORECASE)
+    parts = [re.sub(r"\s+", " ", p).strip() for p in re.split(r"[,;.!]+", cl)]
+    parts = [p for p in parts if p]
+    return bool(parts) and all(_END_TURN_OTHER_WORDS_RX.fullmatch(p) for p in parts)
+
+
+def rewrite_naval_landing(text: str) -> str:
+    """DD0-17 (S4 part 3): "naval landing ireland" / "landing at Ulster" →
+    "land in <place>" (the fuzzy scan read "landing" as a marshal's name)."""
+    m = re.match(r"^\s*(?:a\s+)?(?:naval\s+)?landing\s+(?:in|at|on)?\s*(?P<place>[A-Za-z][\w'’ -]+?)\s*[.!]*$",
+                 text or "", flags=re.IGNORECASE)
+    return f"land in {m.group('place').strip()}" if m else text
+
+
+def rewrite_open_talks(text: str) -> str:
+    """DD0-17 (S4 part 3): "Talleyrand: open talks with Russia" → the
+    Cabinet's own "negotiate with"."""
+    if not text:
+        return text
+    return re.sub(r"\bopen\s+(?:talks|negotiations|a\s+dialogue|discussions|a\s+channel)\s+with\b",
+                  "negotiate with", text, count=1, flags=re.IGNORECASE)
 
 
 def rewrite_trailing_end_turn(text: str) -> str:
@@ -317,8 +373,11 @@ def squares_order(command_lower: str) -> bool:
     cl = command_lower or ""
     if not re.search(r"\bsquares?\b", cl) or re.search(r"\b(?:break|leave|exit)\b", cl):
         return False
+    # DD0-17 (S4 part 3): "Lannes — squares.", "Bernadotte, square up — Deroy
+    # has horse" (the dash after the name, the "up", a dash tail).
     return bool("cavalry" in cl
-                or re.match(r"^\s*(?:(?:marshal\s+)?[a-z][\w'’-]*\s*[,:]\s*)?(?:form\s+)?squares?\s*[.!]*$", cl))
+                or re.match(r"^\s*(?:(?:marshal\s+)?[a-z][\w'’-]*\s*(?:[,:]|\s+[—–-]+)\s*)?(?:form\s+)?squares?(?:\s+up)?"
+                            r"\s*(?:[—–-].*)?[.!]*$", cl))
 
 
 def fleet_sortie(command_lower: str) -> bool:
@@ -335,11 +394,15 @@ def fleet_feint(command_lower: str) -> bool:
 def landing_order(command_lower: str) -> bool:
     cl = command_lower or ""
     return bool(re.search(r"\bland\b\s+(?!to\b)(?:[\w',]+\s+){0,2}(?:in|at|on)\b", cl)
-                or re.search(r"\b(?:mount|make|stage)\s+a\s+landing\b", cl))
+                or re.search(r"\b(?:mount|make|stage)\s+a\s+landing\b", cl)
+                # DD0-17 (S4 part 3): "naval landing ireland".
+                or re.search(r"\bnaval\s+landing\b|\blanding\s+(?:in|at|on)\s+\w", cl))
 
 
 def scout_idiom(command_lower: str) -> bool:
-    return bool(re.search(r"\beyes\s+on\b|\bfind\s+out\b|\breport\s+back\b|\bsend\s+riders\b",
+    # DD0-11 / DD0-17 (S4 part 3): "eyes only", "patrol toward Bern".
+    return bool(re.search(r"\beyes\s+(?:on|only)\b|\bfind\s+out\b|\breport\s+back\b|\bsend\s+riders\b"
+                          r"|\bpatrol(?:s|led|ling)?\b",
                           command_lower or ""))
 
 
@@ -363,8 +426,10 @@ def invest_gold(command_lower: str, known_nations_lower) -> bool:
     nations = [n for n in (known_nations_lower or []) if n]
     if not nations or not re.search(r"\bgold\b|\binvest\b", cl):
         return False
-    return bool(re.search(r"\b(?:invest|put|pour|sink)\b.{0,30}\b(?:in|into)\s+(?:the\s+)?(?:"
-                          + "|".join(re.escape(n) for n in nations) + r")\b", cl))
+    alt = "|".join(re.escape(n) for n in nations)
+    return bool(re.search(r"\b(?:invest|put|pour|sink)\b.{0,30}\b(?:in|into)\s+(?:the\s+)?(?:" + alt + r")\b", cl)
+                # DD0-17 (S4 part 3): the terse "invest holland 50".
+                or re.match(r"^\s*invest\s+(?:in\s+)?(?:the\s+)?(?:" + alt + r")\s+\d", cl))
 
 
 def march_idiom(command_lower: str) -> bool:
@@ -373,16 +438,94 @@ def march_idiom(command_lower: str) -> bool:
                           r"|\bget\s+(?:to|into)\b", command_lower or ""))
 
 
-def split_question_and_order(text: str, friendly_names: Iterable[str]) -> Optional[Tuple[str, str]]:
-    """"what's in Tyrol? Massena, find out" → ("what's in Tyrol?", "Massena, find out")."""
+_PRONOUN_ORDER_TAIL_RX = re.compile(
+    r"^(?:do\s+it|make\s+it\s+so|see\s+to\s+it|see\s+to\s+that|make\s+it\s+happen|get\s+it\s+done|do\s+so|"
+    r"go\s+ahead|proceed|do\s+that|make\s+it\s+happen|let\s+it\s+be\s+done)\s*[.!]*$", re.IGNORECASE)
+_SCOUT_FOR_HIM_TAIL_RX = re.compile(r"^(?:scout|look|search|send\s+riders)\s+for\s+(?:him|them|it|her)\s*[.!]*$",
+                                    re.IGNORECASE)
+_ORDER_TAIL_TIME_RX = re.compile(r"\s+(?:yet|already|still|this\s+turn|next\s+turn|today|tonight|by\s+now|now|at\s+once)\b",
+                                 re.IGNORECASE)
+
+
+def _order_from_question(q: str, alt: str) -> Optional[str]:
+    """"Can Lannes be in Rhineland this turn?" → "Lannes, move to Rhineland";
+    "Why hasn't Massena attacked Archduke John yet?" → "Massena, attack
+    Archduke John"."""
+    m = re.match(
+        r"^\s*(?:can|could|will|would|should|is|has|does|did|"
+        r"why\s+(?:hasn't|has\s+not|isn't|is\s+not|doesn't|does\s+not|didn't|did\s+not|won't|will\s+not|can't|cannot|couldn't)|"
+        r"why\s+not\s+(?:have|let))\s+(?:marshal\s+)?(?P<name>" + alt + r")\s+(?P<pred>.+?)\s*\?\s*$",
+        q.strip(), flags=re.IGNORECASE)
+    if not m:
+        return None
+    name, pred = m.group("name"), m.group("pred").strip()
+    pred = re.sub(r"^(?:be\s+able\s+to|manage\s+to|get\s+to|please|kindly)\s+", "", pred, flags=re.IGNORECASE)
+    pred = _ORDER_TAIL_TIME_RX.sub("", pred).strip(" ,")
+    be_in = re.match(r"^(?:be\s+)?(?:in|at|near|inside)\s+(?P<place>.+)$", pred, flags=re.IGNORECASE)
+    if be_in:
+        return f"{name}, move to {be_in.group('place').strip()}"
+    go_to = re.match(r"^(?:go|march|move|head|get|ride|advance|proceed)\s+(?:up\s+|over\s+|on\s+|down\s+)?"
+                     r"(?:to|into|toward|towards|for)\s+(?P<place>.+)$", pred, flags=re.IGNORECASE)
+    if go_to:
+        return f"{name}, move to {go_to.group('place').strip()}"
+    vo = re.match(r"^(?P<verb>[a-z]+)\s+(?P<obj>.+)$", pred, flags=re.IGNORECASE)
+    if not vo:
+        return None
+    verb = _base_verb(vo.group("verb").lower())
+    if not verb:
+        return None
+    return f"{name}, {verb} {vo.group('obj').strip()}"
+
+
+def _base_verb(word: str) -> Optional[str]:
+    """"attacked" → "attack", "moved" → "move", "marches" → "march" — an
+    order verb's base form, or None when no order verb is spelt there."""
+    low = word.lower()
+    candidates = [low, _uninflect(low)]
+    if low.endswith("ed"):
+        candidates += [low[:-2], low[:-1]]
+        if len(low) > 4 and low[-3] == low[-4]:
+            candidates.append(low[:-3])          # "stopped" → "stop"
+    if low.endswith("ing"):
+        candidates += [low[:-3], low[:-3] + "e"]
+    for cand in candidates:
+        if cand and _ORDER_VERB_RE.fullmatch(cand):
+            return cand
+    return None
+
+
+def split_question_and_order(text: str, friendly_names: Iterable[str],
+                             enemy_names: Iterable[str] = ()) -> Optional[Tuple[str, Optional[str]]]:
+    """"what's in Tyrol? Massena, find out" → ("what's in Tyrol?", "Massena, find out").
+
+    DD0-14 (S4 part 3, October 10, 2026): the order BEHIND a question that
+    names no marshal — "Can Lannes be in Rhineland this turn? Make it so.",
+    "Why hasn't Massena attacked Archduke John yet? Do it.", "Where is
+    Kutuzov? Scout for him." — is the order the question itself names:
+    the line IS that order (the first element), with no sequel (None)."""
     alt = _name_alt(friendly_names)
     if not text or not alt or "?" not in text:
         return None
     m = re.match(r"^(?P<q>[^?]+\?)\s+(?P<tail>(?:marshal\s+)?(?:" + alt + r")[,:]?\s+\S.*)$",
                  text, flags=re.IGNORECASE)
+    if m:
+        return m.group("q").strip(), m.group("tail").strip()
+    m = re.match(r"^(?P<q>[^?]+\?)\s+(?P<tail>\S.*)$", text, flags=re.IGNORECASE)
     if not m:
         return None
-    return m.group("q").strip(), m.group("tail").strip()
+    q, tail = m.group("q").strip(), m.group("tail").strip()
+    if _PRONOUN_ORDER_TAIL_RX.match(tail):
+        order = _order_from_question(q, alt)
+        return (order, None) if order else None
+    if _SCOUT_FOR_HIM_TAIL_RX.match(tail):
+        who = re.match(r"^\s*where(?:'s|’s|\s+is|\s+are)\s+(?P<who>.+?)\s*\?\s*$", q, flags=re.IGNORECASE)
+        # Only a foe the board can SEE: a scout is aimed at a province, so
+        # "Where is Kutuzov? Scout for him." with Kutuzov out of sight keeps
+        # the question, which the desk answers honestly (no word of him).
+        from backend.ai.reading import foe_named_in
+        if who and foe_named_in(who.group("who"), enemy_names):
+            return f"scout for {who.group('who').strip()}", None
+    return None
 
 
 # ── DD-0 S4 (October 10, 2026): the vocabulary the ledger, the six keyless
@@ -397,7 +540,25 @@ def rewrite_pass_a_law(text: str) -> str:
     conscription act" → "enact <law>" — the law router knows `enact` /
     `reenact` / `repeal` only, and "pass" fell to the proper-name ask.
     Only a line that names a law (the noun, or "law" somewhere in it)."""
-    if not text or not _LAW_NOUN_RX.search(text):
+    if not text:
+        return text
+    # DD0-17 (S4 part 3): "Establish the Grand Quartier General" (a law named
+    # by its proper name, no law noun), "Berthier, the Staff law is to be
+    # enacted this turn", "Let the Artillery Reserve be made law".
+    est = re.match(r"^\s*(?i:berthier,?\s+)?(?i:please\s+)?(?i:establish|institute|found|set\s+up|create)\s+"
+                   r"(?i:the\s+)?(?P<name>[A-Z][\w'’-]*(?:\s+(?:of|the|des|de|du|la|le)\s+)?(?:\s*[A-Z][\w'’-]*)+)\s*[.!]*$", text)
+    if est and not _ORDER_VERB_RE.search(est.group("name")):
+        return f"enact {est.group('name').strip()}"
+    passive = re.match(r"^\s*(?:berthier,?\s+|sire,?\s+)?(?:the\s+)?(?P<name>.+?)\s+(?:law\s+|act\s+|reform\s+)?"
+                       r"(?:is|are)\s+to\s+be\s+(?:enacted|passed|adopted|made\s+law|put\s+through)\b.*$",
+                       text, flags=re.IGNORECASE)
+    if passive:
+        return f"enact {passive.group('name').strip()}"
+    let = re.match(r"^\s*let\s+(?:the\s+)?(?P<name>.+?)\s+be\s+(?:made\s+law|enacted|passed|adopted)\b.*$",
+                   text, flags=re.IGNORECASE)
+    if let:
+        return f"enact {let.group('name').strip()}"
+    if not _LAW_NOUN_RX.search(text):
         return text
     m = re.match(r"^\s*(?:please\s+)?(?:pass|adopt|decree|promulgate|introduce|bring\s+in|put\s+through)\s+"
                  r"(?:the\s+|a\s+|an\s+)?(?P<name>.+?)\s*[.!]*$", text, flags=re.IGNORECASE)
@@ -577,7 +738,7 @@ def rewrite_build_idiom(text: str) -> str:
         + r"\s+(?:up\s+)?(?:built\s+|erected\s+|raised\s+)?(?:in|at)\s+" + place + r"\s*[.!]*$",
         r"^\s*I\s+(?:want|need|would\s+like)\s+(?:a|an|some|new)\s+" + _BUILDING_RX + r"\s+(?:built\s+)?(?:in|at)\s+" + place + r"\s*[.!]*$",
         r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place
-        + r"\s*,\s*(?:build\s+it|please|if\s+you\s+please|at\s+once)\s*[.!]*$",
+        + r"\s*,\s*(?:build\s+(?:it|them|one|some)|please|if\s+you\s+please|at\s+once)\s*[.!]*$",
         # the bare noun phrase ("Stables in Burgundy" — the please already cut)
         r"^\s*(?:a\s+|an\s+)?" + _BUILDING_RX + r"\s+(?:in|at)\s+" + place + r"\s*[.!]*$",
     ):
@@ -615,6 +776,8 @@ def apply_all(text: str, friendly_names: Iterable[str], enemy_names: Iterable[st
         ("rewrite_pass_a_law", lambda t: rewrite_pass_a_law(t)),
         ("rewrite_build_idiom", lambda t: rewrite_build_idiom(t)),
         ("rewrite_invest_gold", lambda t: rewrite_invest_gold(t)),
+        ("rewrite_open_talks", lambda t: rewrite_open_talks(t)),
+        ("rewrite_naval_landing", lambda t: rewrite_naval_landing(t)),
         ("rewrite_trailing_end_turn", lambda t: rewrite_trailing_end_turn(t)),
     )
     rows: List[Tuple[str, str, str]] = []

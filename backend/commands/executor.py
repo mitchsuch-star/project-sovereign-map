@@ -15,7 +15,8 @@ TODO (Future): Multi-Army Battles
 """
 import re
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass as _dataclass, field as _field  # DD-0 S4 part 3: `_ExecState`
 from backend.ai import parse_trace as _ptrace  # DD-0 S3: the parse trace (no-op outside a request)
 from backend.commands import exit_predicate as _exit_predicate  # DD-0 S4: "did I act on what was named?"
 from backend.ai.generic_targets import is_generic_target
@@ -563,6 +564,44 @@ def _display_candidates(world, from_nation: Optional[str],
 
 
 from backend.ai import clause_guards
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# DD-0 S4 part 3 (October 10, 2026) — THE SPINE SPLIT, the executor's half.
+# `_execute_one` was one 2,200-line body; it is now a chain of NAMED stages
+# along the parse trace's own seams (the head and the AI context, the
+# pending-dialogue gates, the meta-commands, the action economy, the name
+# and the place, the objection battery, the bonuses and the clarification,
+# the dispatch, the charge, the finish), each a method below, reading and
+# writing ONE `_ExecState`. Every line of the old body is sliced verbatim
+# into its stage — the split is byte-identical in behaviour (the corpus, the
+# metamorphic ledger and the series pin it). A stage that returns a dict
+# ends the chain, as its early return did.
+# ════════════════════════════════════════════════════════════════════════════
+@_dataclass
+class _ExecState:
+    """The executor's locals, carried between its stages."""
+    parsed_command: Dict
+    game_state: Dict
+    world: Any = None
+    command: Dict = _field(default_factory=dict)
+    early_command: Dict = _field(default_factory=dict)
+    action: str = ""
+    is_ai_command: bool = False
+    is_strategic_execution: bool = False
+    is_sortie: bool = False
+    action_costs_point: bool = False
+    is_player_action_check: bool = True
+    early_marshal_name: Any = None
+    is_admin_action: bool = False
+    counter_punch_waiver: bool = False
+    counter_punch_snapshot: Any = None
+    mild_message: Any = None
+    marshal_name: Any = None
+    command_type: str = "specific"
+    result: Any = None
+    action_result: Dict = _field(default_factory=dict)
+    is_player_action: bool = True
 
 
 class CommandExecutor:
@@ -1344,6 +1383,16 @@ class CommandExecutor:
         marshal-less family, exactly as FA-22 shipped it.
         """
         widened = self.THE_UNBOUND_NAME_SPENDS_NOTHING
+        # S4 part 3 (DD0-17, October 10, 2026): a pre-parse rewrite that
+        # RESTATED the head of the line as the order ("Stables in Burgundy,
+        # build them" → "build stables in Burgundy"; "Ney has earned a
+        # title; give him one." → "reward Ney") consumed the phrase before
+        # the comma — it was a building or a reason, never an addressee.
+        # The parser marks those commands; the typed line is still the
+        # record (`raw_command`), and every other rewrite keeps this gate
+        # ('Pledge France' is no officer of ours — CX-R1).
+        if command.get("_head_restated"):
+            return None
         if not widened:
             if command.get("type") not in self._MARSHAL_LESS_TYPES:
                 return None
@@ -1638,6 +1687,20 @@ class CommandExecutor:
 
     def _execute_one(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """The command body. Call `execute`, not this."""
+        st = _ExecState(parsed_command=parsed_command, game_state=game_state)
+        for _stage in (self._exec_head, self._exec_pending_gates, self._exec_meta,
+                       self._exec_action_economy, self._exec_name_and_place,
+                       self._exec_objection_battery, self._exec_bonuses_and_clarification,
+                       self._exec_dispatch, self._exec_charge):
+            _result = _stage(st)
+            if _result is not None:
+                return _result
+        return self._exec_finish(st)
+
+    def _exec_head(self, st: "_ExecState") -> Optional[Dict]:
+        """The head: the world, the generic-target collapse, the auto-advance flag, the AI-execution context."""
+        parsed_command, game_state = st.parsed_command, st.game_state
+
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -1685,6 +1748,14 @@ class CommandExecutor:
             _early_m = world.get_marshal(_early_command.get("marshal"))
             if _early_m and _early_m.nation != world.player_nation:
                 is_ai_command = True
+
+        st.world, st.action, st.early_command, st.is_ai_command = world, action, _early_command, is_ai_command
+        return None
+
+    def _exec_pending_gates(self, st: "_ExecState") -> Optional[Dict]:
+        """The pending-dialogue gates: an objection, a capture choice, a hard-stop dialogue."""
+        world, parsed_command = st.world, st.parsed_command
+        is_ai_command, _early_command = st.is_ai_command, st.early_command
 
         # ============================================================
         # DISOBEDIENCE CHECK: Is there a pending objection?
@@ -1800,6 +1871,13 @@ class CommandExecutor:
                 "diplomatic_dialogue": dialogue,
             }
 
+        st.command, st.action = command, action
+        return None
+
+    def _exec_meta(self, st: "_ExecState") -> Optional[Dict]:
+        """The meta-commands: save and load."""
+        world, game_state, parsed_command, command, action = st.world, st.game_state, st.parsed_command, st.command, st.action
+
         # ════════════════════════════════════════════════════════════
         # META-COMMANDS: save/load — no AP cost, bypass all checks
         # Handled before marshal resolution, AP checks, objection checks.
@@ -1826,6 +1904,12 @@ class CommandExecutor:
                     "show_load_dialog": True
                 }
             # Unknown meta command — fall through to normal processing
+        return None
+
+    def _exec_action_economy(self, st: "_ExecState") -> Optional[Dict]:
+        """The action economy: the strategic flags, the free actions, the counter-punch waiver, the AP gates, the occupation and fortified checks."""
+        world, parsed_command, command, action = st.world, st.parsed_command, st.command, st.action
+        is_ai_command = st.is_ai_command
 
         # ════════════════════════════════════════════════════════════
         # STRATEGIC FIELDS PROPAGATION: Copy strategic flags into command dict
@@ -2065,6 +2149,17 @@ class CommandExecutor:
                         "suggestion": f"Try: '{strat_marshal_name}, unfortify' to abandon fortified position"
                     }
 
+        st.is_strategic_execution, st.is_sortie = is_strategic_execution, is_sortie
+        st.action_costs_point, st.is_player_action_check = action_costs_point, is_player_action_check
+        st.early_marshal_name, st.is_admin_action = early_marshal_name, is_admin_action
+        st.counter_punch_waiver, st.counter_punch_snapshot = counter_punch_waiver, counter_punch_snapshot
+        return None
+
+    def _exec_name_and_place(self, st: "_ExecState") -> Optional[Dict]:
+        """The name and the place: the unbound addressee, the proper name, the bare attack's pick, the standing decision, the exit predicate's first half."""
+        world, parsed_command, command, action = st.world, st.parsed_command, st.command, st.action
+        is_ai_command, is_strategic_execution = st.is_ai_command, st.is_strategic_execution
+
         # ════════════════════════════════════════════════════════════
         # CR-6 / S5-D1: BARE-ATTACK GATING (blessed CR-6 mini-gate, July 16,
         # 2026). A player "attack" with no marshal named (general_attack /
@@ -2241,6 +2336,16 @@ class CommandExecutor:
                 _ptrace.decide("executor", "place_mismatch_refused",
                                _place_block["message"][:120])
                 return _place_block
+
+        st.action = action
+        return None
+
+    def _exec_objection_battery(self, st: "_ExecState") -> Optional[Dict]:
+        """The objection battery: the pre-validations in the order this road has always met them, then the V2a objection."""
+        world, parsed_command, game_state, command, action = st.world, st.parsed_command, st.game_state, st.command, st.action
+        is_ai_command, is_strategic_execution = st.is_ai_command, st.is_strategic_execution
+        action_costs_point, is_player_action_check = st.action_costs_point, st.is_player_action_check
+        is_admin_action, counter_punch_waiver = st.is_admin_action, st.counter_punch_waiver
 
         # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection
@@ -3020,6 +3125,14 @@ class CommandExecutor:
                                     "compromise": objection.get("compromise")
                                 }
 
+        st.mild_message, st.marshal_name, st.command_type = mild_message, marshal_name, command_type
+        return None
+
+    def _exec_bonuses_and_clarification(self, st: "_ExecState") -> Optional[Dict]:
+        """The strategic bonuses, the literal marshal's buff and his clarification."""
+        world, parsed_command, command, action = st.world, st.parsed_command, st.command, st.action
+        is_player_action_check, is_strategic_execution, marshal_name = st.is_player_action_check, st.is_strategic_execution, st.marshal_name
+
         # ============================================================
         # STRATEGIC BONUSES: Apply morale/trust/combat bonuses (Phase 5)
         # Only for player actions, only in non-mock mode
@@ -3126,6 +3239,12 @@ class CommandExecutor:
                         "action_summary": world.get_action_summary(),
                         "game_state": world.get_filtered_game_state_summary()
                     }
+        return None
+
+    def _exec_dispatch(self, st: "_ExecState") -> Optional[Dict]:
+        """The dispatch: the strategic interception, then the routing chain."""
+        world, parsed_command, game_state, command, action = st.world, st.parsed_command, st.game_state, st.command, st.action
+        is_strategic_execution, command_type = st.is_strategic_execution, st.command_type
 
         # ════════════════════════════════════════════════════════════
         # STRATEGIC COMMAND INTERCEPTION (Phase 5.2)
@@ -3357,6 +3476,15 @@ class CommandExecutor:
                 "message": f"Unknown command type: {command_type}"
             }
 
+        st.result = result
+        return None
+
+    def _exec_charge(self, st: "_ExecState") -> Optional[Dict]:
+        """The charge: the counter-punch restored or spent, the action consumed only on success."""
+        world, command, action, result = st.world, st.command, st.action, st.result
+        is_ai_command, action_costs_point = st.is_ai_command, st.action_costs_point
+        is_admin_action, counter_punch_snapshot = st.is_admin_action, st.counter_punch_snapshot
+
         # An attack that never threw the strike must not spend the
         # counter-punch. `_execute_attack` clears the flag at its head, ~3,000
         # lines and ~55 returns above its last exit, and several of those
@@ -3482,6 +3610,15 @@ class CommandExecutor:
             # Free action (counter-punch) - don't consume action point
             action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0, "should_end_turn": False}
             print("  [FREE ACTION] Counter-punch or similar - no action consumed")
+
+        st.result, st.action_result = result, action_result
+        st.is_player_action, st.marshal_name = is_player_action, marshal_name
+        return None
+
+    def _exec_finish(self, st: "_ExecState") -> Dict:
+        """The finish: the action info, the stand-down, the mild note, the disclosures, the auto end turn."""
+        world, parsed_command, game_state, command, action, result = st.world, st.parsed_command, st.game_state, st.command, st.action, st.result
+        action_result, is_player_action, marshal_name, mild_message = st.action_result, st.is_player_action, st.marshal_name, st.mild_message
 
         # Add action info to result
         result["action_info"] = {
@@ -3844,6 +3981,7 @@ class CommandExecutor:
             # and every future one inherit the rail notice for free.
 
         return result
+
 
     def _execute_specific(self, command: Dict, game_state: Dict) -> Dict:
         """Execute a specific order (marshal and action both specified)."""

@@ -52,7 +52,10 @@ from backend.display_names import humanize_entity_name
 # The honorifics an address may carry (the player's roster is French, but the
 # blind authors wrote "Prince Murat" and "the Marshal Ney").
 HONORIFIC_RX = r"(?:the\s+)?(?:marshal|general|gen\.|mar[eé]chal|prince|duke|count|baron)\s+"
-_MODAL_RX = r"(?:will|shall|is\s+to|should|must|is\s+going\s+to)\s+"
+# S4 part 3: the courtesy modal — "Marshal Soult will be so good as to bring
+# his corps up to the Rhineland" (the fourth set).
+_MODAL_RX = (r"(?:(?:will|would|shall|is\s+to)\s+be\s+so\s+(?:good|kind)\s+as\s+to|"
+             r"will|shall|is\s+to|should|must|is\s+going\s+to)\s+")
 
 # The verbs an order may carry — a tail or an aside that holds one is NOT
 # peeled (it may be a second order). Inflections are read through (\w*).
@@ -66,7 +69,7 @@ ORDER_VERB_RX = re.compile(
     r"strike|hit|relocate|redeploy|secure|seize|occupy|follow|screen|shield|back|"
     r"find|look|see|report|get|put|bring|keep|leave|stay|come|exercise|"
     r"dig|throw|press|pull|push|break|make|give|pay|open|let|have|tell|fire|fight|"
-    r"burn|cross|camp|watch|observe|probe|feint|sortie|raid|plunder|loot|sack)"
+    r"burn|cross|camp|watch|observe|probe|feint|sortie|raid|plunder|loot|sack|use)"
     r"(?:s|es|ed|ing)?\b",
     re.IGNORECASE)
 # An aside may also be a short adverbial — but only one that OPENS as one
@@ -75,7 +78,18 @@ _ADVERBIAL_OPEN_RX = re.compile(
     r"^(?:via|by|along|through|at\s+the\s+double|at\s+once|at\s+all\s+costs|now|today|tonight|"
     r"this\s+(?:turn|instant|very)|quickly|quietly|swiftly|immediately|carefully|"
     r"with\s+all\s+(?:possible\s+)?speed|in\s+haste|on\s+the\s+double|as\s+fast\s+as|"
-    r"if\s+you\s+please|whatever\s+happens|come\s+what\s+may|no\s+matter\s+what)\b",
+    r"if\s+you\s+please|whatever\s+happens|come\s+what\s+may|no\s+matter\s+what|"
+    # S4 part 3 (the fourth set): "double quick", "sharpish", "post-haste"
+    r"double[\s-]quick|quick\s+march|smartly|sharpish|without\s+delay|forthwith|post-?haste|"
+    r"and\s+(?:quickly|fast|smartly)|fast)\b",
+    re.IGNORECASE)
+# S4 part 3 (DD0-16): an EMPHATIC tail — "no excuses", "no delay", "no
+# arguments" — carries a "no" and is no prohibition; it is an aside.
+_EMPHATIC_TAIL_RX = re.compile(
+    r"^(?:no\s+(?:excuses?|delays?|arguments?|questions?|buts|dawdling|dallying|loitering|"
+    r"hesitation|nonsense|objections?|complaints?|exceptions?)|without\s+fail|and\s+no\s+mistake|"
+    r"and\s+be\s+quick\s+about\s+it|do\s+you\s+hear|you\s+hear|understood|is\s+that\s+clear|"
+    r"that\s+is\s+an\s+order|that'?s\s+an\s+order)\s*[.!]*$",
     re.IGNORECASE)
 _NEGATION_RX = re.compile(r"\b(?:no|not|never|don'?t|do\s+not|unless|if|when|once|until|then|instead)\b",
                           re.IGNORECASE)
@@ -100,6 +114,8 @@ _LEADING_ADDRESS_RX_T = (r"^\s*(?:" + HONORIFIC_RX + r")?(?P<name>{names})\b\s*"
 _AT_HIM_RX = re.compile(r"^\s*(?:go\s+)?at\s+(?:him|them|'em|’em|the\s+enemy|the\s+foe|it)\s*[.!]*$",
                         re.IGNORECASE)
 _SENTENCE_SPLIT_RX = re.compile(r"(?<=[.!])\s+(?=[A-Za-z])")
+# S4 part 3: the separators an aside may follow — a comma or a spaced dash.
+_ASIDE_SEP_RX = re.compile(r",|\s+[—–-]+\s+")
 
 # The note a peeled precaution leaves on the `warning` seam (the halt-tail
 # precedent): the order went out; the "in case" is kept without a dispatch.
@@ -127,8 +143,15 @@ class Reading:
     second_lead: Optional[str] = None      # the man the suffix's head addressed
     hint_foe: Optional[str] = None         # a foe named by a peeled sentence
     core_override: Optional[str] = None    # a rewritten core ("at him" → "attack Mack")
+    second_order: Optional[str] = None     # S4 part 3: a second telegraph ("Davout: stays.") → "Davout, hold"
     notes: List[str] = field(default_factory=list)
     rows: List[Tuple[str, str, str]] = field(default_factory=list)   # (rule, before, after)
+    # S4 part 3: the rosters the Reading was read against (the slot view
+    # derives from them; nothing mechanical reads a Reading).
+    friends: List[str] = field(default_factory=list)
+    foes_roster: List[str] = field(default_factory=list)
+    places_roster: List[str] = field(default_factory=list)
+    nations_roster: List[str] = field(default_factory=list)
 
     # ── the derived views ────────────────────────────────────────────────
     def residue(self) -> str:
@@ -174,6 +197,8 @@ class Reading:
         lead = self.address or self.second_lead
         if self.second and lead:
             composed = f"{composed}, then {self.second}, support {lead}"
+        elif self.second_order:
+            composed = f"{composed}, then {self.second_order}"
         return composed
 
     def _record(self, rule: str, before: str) -> None:
@@ -376,7 +401,15 @@ def peel_trailing_vocative(r: Reading, friends: Iterable[str]) -> None:
     text = r.residue()
     m = re.search(_TRAILING_VOCATIVE_RX_T.format(names=alt), text, flags=re.IGNORECASE)
     if not m:
-        return
+        # S4 part 3 (DD0-16): the INVERTED name with no comma — "pursue John
+        # Massena", "attack Mack Ney": an order verb, a foe, then one of ours.
+        m = re.search(r"\s+(?P<name>" + alt + r")\s*[.!]*$", text, flags=re.IGNORECASE)
+        if not m:
+            return
+        head = text[:m.start()].strip()
+        if (not head or not ORDER_VERB_RX.search(head) or _leading_address_match(head, friends)
+                or not foe_named_in(head.split()[-1], r.foes_roster)):
+            return
     head = text[:m.start()].strip()
     if not head or _leading_address_match(head, friends):
         return
@@ -431,9 +464,15 @@ def peel_comma_aside(r: Reading, known_names: Iterable[str], friends: Iterable[s
     carries no number or negation: "the men are rested", "they're green",
     "the cavalry is fresh", "via the shortest road", "now"."""
     text = r.core() if r.core_override is not None else r.residue()
-    if "," not in text or "?" in r.typed:
+    if "?" in r.typed:
         return
-    head, _, tail = text.rpartition(",")
+    # S4 part 3 (the fourth set): the LAST comma OR dash clause — "Lannes —
+    # Rhineland, double quick", "Soult — Paris — the Emperor wants him near".
+    seps = [m for m in _ASIDE_SEP_RX.finditer(text)]
+    if not seps:
+        return
+    sep = seps[-1]
+    head, tail = text[:sep.start()], text[sep.end():]
     head, tail = head.strip(), tail.strip().rstrip(" .!")
     tail = re.sub(r"^please\s+", "", tail, flags=re.IGNORECASE)
     if not head or not tail or "?" in tail:
@@ -443,21 +482,23 @@ def peel_comma_aside(r: Reading, known_names: Iterable[str], friends: Iterable[s
     if _canonical(re.sub(r"^(?:" + HONORIFIC_RX + r")", "", head, flags=re.IGNORECASE), friends):
         return
     tail_toks = set(re.findall(r"[a-z][a-z'’-]+", tail.lower()))
-    if (tail_toks & _known_tokens(known_names) or ORDER_VERB_RX.search(tail)
-            or re.search(r"\d", tail) or _NEGATION_RX.search(tail)
+    emphatic = bool(_EMPHATIC_TAIL_RX.match(tail))
+    if (tail_toks & _known_tokens(known_names) or re.search(r"\d", tail)
             or _STATE_NOUN_RX.search(tail)):
+        return
+    if not emphatic and (ORDER_VERB_RX.search(tail) or _NEGATION_RX.search(tail)):
         return
     words = tail.split()
     clause = bool(_CLAUSE_SHAPE_RX.match(tail))
     adverbial = len(words) <= 5 and bool(_ADVERBIAL_OPEN_RX.match(tail))
-    if not (clause or adverbial):
+    if not (clause or adverbial or emphatic):
         return
     before = r.text()
     if r.core_override is not None:
         r.core_override = head
         r._record("peel_comma_aside", before)
         return
-    if _peel_tail(r, text[text.rfind(","):]):
+    if _peel_tail(r, text[sep.start():]):
         r._record("peel_comma_aside", before)
 
 
@@ -485,8 +526,17 @@ def read(typed: str, friends: Iterable[str], foes: Iterable[str],
         return r
     friends = [str(n) for n in friends if n]
     foes = [str(n) for n in foes if n]
-    known = list(friends) + list(foes) + [str(p) for p in places if p] + [str(n) for n in nations if n]
+    r.friends, r.foes_roster = list(friends), list(foes)
+    r.places_roster = [str(p) for p in places if p]
+    r.nations_roster = [str(n) for n in nations if n]
+    known = list(friends) + list(foes) + list(r.places_roster) + list(r.nations_roster)
     peel_rhetoric(r, friends, foes)
+    # S4 part 3: "Massena, you have forty-two thousand men. Use them on
+    # John." — a statement after the address, then the order; and the
+    # trailing statement / the second telegraph ("Soult, to Franche-Comte.
+    # The roads are dry.", "Ney: Frankfurt. Davout: stays.").
+    peel_statement_after_address(r, friends, known)
+    peel_trailing_statement(r, friends, known)
     # the outermost tails first — the please / urgency and the dash aside
     # (S3b's predicates, applied as spans here), so a trailing vocative is
     # found at the END of what remains ("attack Davout, Ney, please")
@@ -521,3 +571,270 @@ def peel_please_and_dash_aside(r: Reading, known_names: Iterable[str]) -> None:
         if not tail.strip(" ,;.!—–-") or not _peel_tail(r, tail):
             return
         r._record("peel_please_and_dash_aside", before)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S4 part 3 (October 10, 2026) — THE SECOND HALF: the statement peels and
+# THE SLOT VIEW. The fourth blind set's march register ("take your horse to
+# Rhineland", "Murat — rhineland — go.", "ney franconia pls") bound the man
+# and the place in the chain and shrugged for want of a verb; its attack
+# register ("I want Ney on Mack this turn", "ney go get mack") bound the man
+# and the foe the same way. The readers consume the SLOTS the Reading fills
+# (the addressee, the places, the foes, the friends, what is left) instead
+# of re-scanning the composed string for a keyword: an address, a place and
+# nothing but the words of a march IS a march; a man, a foe and the words of
+# an attack IS an attack. Rules SYSTEMS_REFERENCE.md §104.
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _fold(text: str) -> str:
+    """Lower-cased, accents folded one-for-one (an index into the folded
+    string is an index into the original)."""
+    import unicodedata
+    out = []
+    for ch in str(text or ""):
+        if ord(ch) < 128:
+            out.append(ch.lower())
+            continue
+        dec = unicodedata.normalize("NFKD", ch)
+        base = next((c for c in dec if not unicodedata.combining(c)), ch)
+        out.append(base.lower() if ord(base) < 128 else ch.lower())
+    return "".join(out)
+
+
+def peel_statement_after_address(r: Reading, friends: Iterable[str], known_names: Iterable[str]) -> None:
+    """"Massena, you have forty-two thousand men. Use them on John." — the
+    address, a statement that names nothing and orders nothing, then the
+    order. The statement is set aside; the address stays."""
+    text = r.residue()
+    if "?" in text:
+        return
+    parts = _SENTENCE_SPLIT_RX.split(text)
+    if len(parts) < 2:
+        return
+    first = parts[0]
+    rest = text[len(first):].strip()
+    m = _leading_address_match(first, friends)
+    if not m or not m.group("sep") or not rest:
+        return
+    statement = first[m.end():].strip().rstrip(" .!")
+    if not statement or not _CLAUSE_SHAPE_RX.match(statement):
+        return
+    if set(re.findall(r"[a-z][a-z'’-]+", statement.lower())) & _known_tokens(known_names):
+        return
+    if _NEGATION_RX.search(statement) or ORDER_VERB_RX.search(rest) is None:
+        return
+    before = r.text()
+    start = r.typed.lower().find(statement.lower())
+    if start < 0:
+        return
+    end = start + len(statement)
+    while end < len(r.typed) and r.typed[end] in " .!":
+        end += 1
+    r.spans.append(Span("statement", start, end, r.typed[start:end]))
+    r._record("peel_statement_after_address", before)
+
+
+_SECOND_TELEGRAPH_WORDS = {
+    "stays": "hold", "stay": "hold", "stays put": "hold", "stay put": "hold",
+    "holds": "hold", "hold": "hold", "holds fast": "hold", "hold fast": "hold",
+    "remains": "hold", "remain": "hold", "stands": "hold", "stand": "hold",
+    "stands fast": "hold", "stand fast": "hold", "waits": "wait", "wait": "wait",
+    "rests": "wait", "rest": "wait", "digs in": "fortify", "dig in": "fortify",
+    "fortifies": "fortify", "fortify": "fortify", "scouts": "scout", "scout": "scout",
+}
+
+
+def peel_trailing_statement(r: Reading, friends: Iterable[str], known_names: Iterable[str]) -> None:
+    """A trailing SENTENCE behind an addressed order: "Soult, to Franche-
+    Comte. The roads are dry." (a statement that names nothing — set aside)
+    or "Ney: Frankfurt. Davout: stays." (a second telegraph — carried on
+    the relay as "Davout, hold")."""
+    text = r.residue()
+    if "?" in text:
+        return
+    parts = _SENTENCE_SPLIT_RX.split(text)
+    if len(parts) < 2:
+        return
+    last = parts[-1].strip()
+    head = text[:len(text) - len(parts[-1])].strip()
+    if not head or not last or not _leading_address_match(head, friends):
+        return
+    alt = _alt(friends)
+    m = re.match(r"^(?:" + HONORIFIC_RX + r")?(?P<name>" + alt + r")\s*[:,]?\s+(?P<words>[A-Za-z][\w'’ -]{0,30}?)\s*[.!]*$",
+                 last, flags=re.IGNORECASE) if alt else None
+    if m and _canonical(m.group("name"), friends):
+        name = _canonical(m.group("name"), friends)
+        words = m.group("words").strip()
+        low = words.lower()
+        if len(low.split()) > 3 or _NEGATION_RX.search(low):
+            return
+        before = r.text()
+        if _peel_tail(r, last):
+            r.second_order = f"{name}, {_SECOND_TELEGRAPH_WORDS.get(low, words)}"
+            r._record("peel_second_telegraph", before)
+        return
+    statement = last.rstrip(" .!")
+    if not _CLAUSE_SHAPE_RX.match(statement):
+        return
+    if (set(re.findall(r"[a-z][a-z'’-]+", statement.lower())) & _known_tokens(known_names)
+            or ORDER_VERB_RX.search(statement) or _NEGATION_RX.search(statement)
+            or _STATE_NOUN_RX.search(statement)):
+        return
+    before = r.text()
+    if _peel_tail(r, last):
+        r._record("peel_trailing_statement", before)
+
+
+# ── the slot view ────────────────────────────────────────────────────────
+
+@dataclass
+class Slots:
+    address: Optional[str]
+    friends: List[str]          # other men of ours named in the core, in order
+    foes: List[str]             # the foes named (roster keys), in order
+    places: List[str]           # the provinces named (map keys), in order
+    sources: List[str]          # the places marked as where FROM / by way of
+    residue: List[str]          # every other word, lower-cased, in order
+    core: str = ""
+    prepositioned: List[str] = field(default_factory=list)   # the places a destination preposition led into
+
+    def destination(self) -> Optional[str]:
+        for p in self.places:
+            if p not in self.sources:
+                return p
+        return None
+
+
+_SOURCE_MARK_RX = re.compile(
+    r"(?:\bfrom|\bout\s+of|\bvia|\bby\s+way\s+of|\bthrough|\bpast|\bleaving|\bclear\s+of|\baway\s+from)"
+    r"\s+(?:the\s+)?$", re.IGNORECASE)
+
+
+def _foe_form_map(roster: Iterable[str]) -> List[Tuple[str, str]]:
+    """[(form, key)] for every form a foe may be named by, longest first."""
+    names = [str(n) for n in roster if n]
+    out: List[Tuple[str, str]] = []
+    for form in foe_forms(names):
+        for n in names:
+            human = humanize_entity_name(n)
+            if form.lower() in (n.lower(), human.lower(), human.split()[-1].lower()):
+                out.append((form, n))
+                break
+    return sorted(out, key=lambda fk: len(fk[0]), reverse=True)
+
+
+def _slots_of_reading(r: Reading) -> Slots:
+    core = r.core()
+    low = _fold(core)
+    taken: List[Tuple[int, int]] = []
+    places: List[str] = []
+    sources: List[str] = []
+    prepositioned: List[str] = []
+    foes: List[str] = []
+    friends: List[str] = []
+    hits: List[Tuple[int, str, str]] = []   # (start, bucket, canonical)
+
+    def _claim(form: str, canon: str, bucket: str) -> None:
+        f = _fold(form)
+        if not f:
+            return
+        for m in re.finditer(r"(?<![\w'’-])" + re.escape(f) + r"(?![\w'’-])", low):
+            if any(m.start() < b and a < m.end() for a, b in taken):
+                continue
+            taken.append((m.start(), m.end()))
+            hits.append((m.start(), bucket, canon))
+            if bucket == "place" and _SOURCE_MARK_RX.search(low[:m.start()]):
+                sources.append(canon)
+            elif bucket == "place" and _DEST_PREP_RX.search(low[:m.start()]):
+                prepositioned.append(canon)
+
+    for p in sorted(r.places_roster, key=len, reverse=True):
+        _claim(p, p, "place")
+        human = humanize_entity_name(p)
+        if human and human.lower() != p.lower():
+            _claim(human, p, "place")
+    for form, key in _foe_form_map(r.foes_roster):
+        _claim(form, key, "foe")
+    for f in sorted(r.friends, key=len, reverse=True):
+        if r.address and f.lower() == r.address.lower():
+            continue
+        _claim(f, f, "friend")
+    for _, bucket, canon in sorted(hits, key=lambda h: h[0]):
+        {"place": places, "foe": foes, "friend": friends}[bucket].append(canon)
+    blanked = list(low)
+    for a, b in taken:
+        for i in range(a, b):
+            blanked[i] = " "
+    residue = re.findall(r"[a-z][a-z'’-]*", "".join(blanked))
+    return Slots(address=r.address, friends=friends, foes=foes, places=places,
+                 sources=sources, residue=residue, core=core, prepositioned=prepositioned)
+
+
+def slots_of(text: str, friends: Iterable[str], foes: Iterable[str],
+             places: Iterable[str], nations: Iterable[str] = ()) -> Slots:
+    """The slot view of a line: ONE reading, then the names it fills."""
+    return _slots_of_reading(read(text, friends, foes, places, nations))
+
+
+# The words a march may be given in, and nothing else: the prepositions,
+# the articles, the corps nouns, the directions, the urgencies, the march
+# verbs. A word outside this set ("is", "lost", "remember", "wait") keeps
+# the line a shrug — the slot reader only ever fills a verb the chain found
+# missing, never one it read. ("make" is absent on purpose: "make your way
+# to Swabia" is the live parser's by IQ-9's cassette gate — the authority.)
+MARCH_WORDS = frozenset("""
+to into toward towards for on at in the a an go now pls plz please then and up over down back out of
+west east north south double quick quickly once immediately speed all haste with by way via road roads
+shortest together his your our my corps men army troops division column horse cavalry infantry guns
+him them it there here i want need must should be this turn today tonight forward onward ahead home
+quickest fastest route directly straight bring take shift move march get cross send push lead ride
+head proceed carry swing wheel transfer redeploy relocate come hurry hasten advance drive press
+walk slide shove pull draw close concentrate mass assemble converge rendezvous meet continue keep
+let have off along across through from fall rest
+ok okay right yes sire emperor wants wishes would like you
+""".split())
+# (The INFLECTED forms — "moves", "marches", "rides", "heads", "goes" — are
+# absent on purpose: "Ney moves to Lorraine" is the inflected-order rewrite's
+# own road, and its lever down must shrug as it did; `Murat rides to
+# Nivernais` stays the fifth set's, DD0-18.)
+_DEST_PREP_RX = re.compile(r"\b(?:to|into|toward|towards|for|at|in|on|up|down|over)\s+(?:the\s+)?$", re.IGNORECASE)
+# The words an attack may be given in; one of the TRIGGER words must be
+# present ("Ney, Mack" alone stays a shrug; "ney go get mack" fights).
+ATTACK_WORDS = frozenset("""
+on at after keep go get use them him it want i we this turn no excuses the a an under with and now today
+hard em up down into onto upon see to off set loose sic let have forces corps men army troops
+""".split())
+ATTACK_TRIGGERS = frozenset("on onto upon at after use get go loose sic".split())
+
+
+def _demonym_ok(token: str, nations: Iterable[str]) -> bool:
+    t = token.lower()
+    for n in nations or ():
+        base = _fold(str(n))[:5]
+        if len(base) >= 5 and t.startswith(base):
+            return True
+    return False
+
+
+def march_by_slots(s: Slots) -> bool:
+    """An addressee (or a man named) and a destination, in the words of a
+    march and nothing else."""
+    if not s.destination() or s.foes:
+        return False
+    if "?" in s.core:
+        return False
+    # "take Swabia" is the take-objective's (a capture, RS-11's own lever);
+    # "take your horse TO Rhineland" is the march — the preposition decides.
+    if "take" in s.residue and s.destination() not in s.prepositioned:
+        return False
+    return all(w in MARCH_WORDS for w in s.residue)
+
+
+def attack_by_slots(s: Slots, nations: Iterable[str] = ()) -> bool:
+    """A man of ours, ONE foe, a trigger word and nothing but the words of
+    an attack."""
+    if len(s.foes) != 1 or s.places or "?" in s.core:
+        return False
+    if not (set(s.residue) & ATTACK_TRIGGERS):
+        return False
+    return all(w in ATTACK_WORDS or _demonym_ok(w, nations) for w in s.residue)

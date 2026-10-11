@@ -31,10 +31,15 @@ RECORDS = REPO_ROOT / "docs" / "audits" / "unrehearsed"
 KEYLESS = RECORDS / "2026_10_10_fourth_keyless.json"
 KEYED = RECORDS / "2026_10_10_fourth_keyed.json"
 
-KEYLESS_DANGEROUS_CAP = {"misread": 5, "executed_when_refusal_meant": 6}
-KEYED_DANGEROUS_CAP = {"misread": 4, "executed_when_refusal_meant": 7}
-KEYLESS_AS_MEANT_AT_READING = 119
-KEYED_AS_MEANT_AT_READING = 134
+# S4 part 3 (October 10, 2026): the records rewritten as fresh runs on the
+# split tree with the slot reader — keyless 119 → 145, keyed 134 → 150; the
+# dangerous caps lowered (the three executed-when-refusal-meant left are the
+# judge's — "No marshal of cavalry can reach", a disclosed retreat, "There is
+# no law called" — each read right by hand).
+KEYLESS_DANGEROUS_CAP = {"misread": 2, "executed_when_refusal_meant": 3}
+KEYED_DANGEROUS_CAP = {"misread": 2, "executed_when_refusal_meant": 3}
+KEYLESS_AS_MEANT_AT_READING = 139      # 145 / 141 across two runs (asked 45 ↔ 48 — the objection dice)
+KEYED_AS_MEANT_AT_READING = 146        # 150 measured; the same dice
 DONE_WHEN = 0.85
 
 
@@ -93,18 +98,25 @@ class TestTheRecords:
             assert t.get(cls, 0) <= cap, (cls, t.get(cls))
         assert set(d["dangerous"]) == {r["line"] for r in d["rows"] if r["class"] in caps}
 
-    def test_the_two_real_executions_are_named(self):
+    def test_the_two_real_executions_are_fixed(self):
         """The memo's by-hand split: of the judge's eleven dangerous rows,
         these two RAN something the player did not mean — a line that
         forbade the fight fought (DD0-11), and a declaration became a charm
-        mission (DD0-12). Pinned by line so the fix is read on the same
-        evidence; a fix that lands rewrites the record and lowers the caps."""
+        mission (DD0-12). S4 part 3 fixed both; the record, rewritten as a
+        fresh run, reads them as meant on the same evidence."""
         d = _load(KEYLESS)
         by_line = {r["line"]: r for r in d["rows"]}
         murat = by_line["Murat, your light horse to the Tyrol — eyes only, no fighting."]
-        assert murat["class"] == "misread" and "MUSTER" in murat["message"]
+        assert murat["class"] == "as_meant" and murat["message"].startswith("Murat scouts Tyrol")
         sweden = by_line["Berthier, inform the courts: France declares war on Sweden."]
-        assert sweden["class"] == "misread" and "court and charm" in sweden["message"]
+        assert sweden["class"] == "as_meant" and "war purpose against Sweden" in sweden["message"]
+        # the register rows of DD0-15 / DD0-16 / DD0-17, read as meant
+        for line in ("Murat, take your horse to Rhineland.", "Murat — rhineland — go.",
+                     "I want Ney on Mack this turn, no excuses.", "ney go get mack",
+                     "Soult, dog Mack's heels."):
+            assert by_line[line]["class"] == "as_meant", (line, by_line[line]["class"])
+        # the law reaches its desk (refused by the treasury — the board's own)
+        assert by_line["Establish the Grand Quartier General."]["class"] == "board_refusal"
 
     def test_the_measurement_is_recorded_and_the_done_when_is_not_met(self):
         """The ≥ 85 % is read here, honestly: 119 of 300 keyless at the first

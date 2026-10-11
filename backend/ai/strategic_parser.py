@@ -710,6 +710,13 @@ _POSITION_NOUN_RE = re.compile(
     re.IGNORECASE)
 
 
+_POSSESSIVE_OBJECT_THEN_DEST_RE = re.compile(
+    r"^(?:your|his|her|the|our|my|their)\s+(?:whole\s+|entire\s+)?"
+    r"(?:corps|men|army|troops|division|divisions|column|command|horse|cavalry|infantry|guard|guns|brigade|regiments?)"
+    r"\s+(?:up\s+|over\s+|back\s+|on\s+|off\s+|down\s+)?(?:to|into|toward|towards|for|on)\s+(?P<dest>.+)$",
+    re.IGNORECASE)
+
+
 def _extract_target_text(command_lower: str, strategic_type: str,
                          friendly_forms=()) -> Optional[str]:
     """
@@ -729,6 +736,13 @@ def _extract_target_text(command_lower: str, strategic_type: str,
         for keyword in STRATEGIC_KEYWORDS["MOVE_TO"]:
             if keyword in cleaned:
                 after = cleaned.split(keyword, 1)[1].strip()
+                # DD0-15 (S4 part 3, October 10, 2026): "march his corps to
+                # Franconia" stored a march to the province "His Corps" —
+                # the possessive object is the men, the destination follows
+                # its preposition.
+                _obj = _POSSESSIVE_OBJECT_THEN_DEST_RE.match(after)
+                if _obj:
+                    after = _obj.group("dest").strip()
                 return _clean_target_text(after) if after else None
 
     # For PURSUE: target is after the keyword

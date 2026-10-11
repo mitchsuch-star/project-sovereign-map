@@ -752,7 +752,10 @@ MARSHAL_EPITHETS = {
     "bravest of the brave": "Ney",
     "the bravest of the brave": "Ney",
 }
-_EPITHET_HEAD_RE = re.compile(r"^\s*(?P<epithet>[A-Za-z][\w'’ -]{3,40}?)\s*[,:]\s*(?=\S)")
+_EPITHET_HEAD_RE = re.compile(
+    # S4 part 3: the epithet under a modal too — "The bravest of the brave is
+    # to go at the Austrians" (the fourth set) → "Ney, go at the Austrians".
+    r"^\s*(?P<epithet>[A-Za-z][\w'’ -]{3,40}?)\s*(?:[,:]|\s+(?:will|shall|is\s+to|should|must)\s+)\s*(?=\S)")
 
 
 def _epithet_table(game_state, world) -> Dict[str, str]:
@@ -777,14 +780,22 @@ def rewrite_epithets(command_text: str, game_state, world) -> str:
     alone. Only our own marshals' names are substituted."""
     if not EPITHETS_RESOLVE or not command_text:
         return command_text
-    m = _EPITHET_HEAD_RE.match(command_text)
-    if not m:
-        return command_text
-    key = re.sub(r"\s+", " ", m.group("epithet").strip().lower())
-    name = _epithet_table(game_state, world).get(key)
-    if not name:
-        return command_text
-    return f"{name}, {command_text[m.end():]}"
+    out = command_text
+    m = _EPITHET_HEAD_RE.match(out)
+    if m:
+        key = re.sub(r"\s+", " ", m.group("epithet").strip().lower())
+        name = _epithet_table(game_state, world).get(key)
+        if name:
+            out = f"{name}, {out[m.end():]}"
+    # DD0-13 (S4 part 3, October 10, 2026): the epithet as the OBJECT —
+    # "Murat will support the Iron Marshal" → "Murat, support Davout". Only
+    # the two historical epithets (never an ability's name, which may be a
+    # common phrase), and never at the head (the address rule above).
+    for key, name in MARSHAL_EPITHETS.items():
+        if key.startswith("the "):
+            continue
+        out = re.sub(r"(?<!^)\b(?:the\s+)?" + re.escape(key) + r"\b", name, out, flags=re.IGNORECASE)
+    return out
 
 
 # SF-CMD-1 (ii), the fresh census — the plain attack forms.
@@ -1905,6 +1916,13 @@ class CommandParser:
                 return list(marshals)
         return list(self.valid_marshals)
 
+    def _names_a_known_region(self, name, world=None) -> bool:
+        """S4 part 3: whether `name` is a province the map knows (any case)."""
+        if not name:
+            return False
+        want = str(name).strip().lower()
+        return any(str(r).lower() == want for r in self._get_known_regions(world))
+
     def _get_known_regions(self, world=None) -> List[str]:
         """
         Return the current region roster for fuzzy matching (CR-0).
@@ -2833,6 +2851,15 @@ class CommandParser:
             return (first, tail)
         return None
 
+    # S4 part 3 (DD0-17): the pre-parse rewrites whose match CONSUMES the
+    # head of the line — a building, a man's merit, a law's name, a court's
+    # name, a landing's place — so the executor's addressee gate must not
+    # read that head as a name.
+    _HEAD_RESTATING_RULES = frozenset({
+        "rewrite_build_idiom", "rewrite_reward_idiom", "rewrite_pass_a_law",
+        "rewrite_invest_gold", "rewrite_naval_landing", "rewrite_trailing_end_turn",
+    })
+
     def parse(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:
         """FA slice 7 review round (R1-1): the verb-typo repair is applied
         HERE, before any reader sees the sentence — the first cut rewrote
@@ -2969,6 +2996,12 @@ class CommandParser:
             command = result.get("command")
             if isinstance(command, dict):
                 command["raw_command"] = typed_text
+                # S4 part 3 (DD0-17): a rewrite that restated the HEAD of
+                # the line as the order — the executor's addressee gate
+                # (`_unbound_addressee`) reads the typed line and must not
+                # take that head for a name nobody has.
+                if any(rule in self._HEAD_RESTATING_RULES for rule, _, _ in _dd0_rows):
+                    command["_head_restated"] = True
             if _halt_tail and result.get("success"):
                 note = HALT_TAIL_NOTE.format(tail=_halt_tail)
                 result["warning"] = (f"{result['warning']} {note}"
@@ -3110,7 +3143,8 @@ class CommandParser:
             # and a relay tail, never a question that eats the order.
             if _asks and sequel_split is None:
                 from backend.ai.dd0_rewrites import split_question_and_order
-                _qo = split_question_and_order(command_text, _player_marshal_names(game_state))
+                _qo = split_question_and_order(command_text, _player_marshal_names(game_state),
+                                               list(_game_state_dict_p(game_state, "enemies")))
                 if _qo is not None:
                     effective_text, dropped_sequel = _qo
                     _ptrace.note("parser", "split_question_and_order", command_text,
@@ -3605,6 +3639,42 @@ class CommandParser:
                                         strategic_target,
                                         fuzzy_result.get("match") or "")):
                                 strategic_target = fuzzy_result["match"]
+                            # DD0-16 (S4 part 3): "pursue john massena" — the
+                            # chain read Archduke John by his surname; the
+                            # strategic layer re-scanned "john" and found
+                            # nobody. The chain's known commander is kept.
+                            _tactical_target = result["command"].get("target")
+                            if (_tactical_target
+                                    and strategic_target not in all_marshals
+                                    and _tactical_target in all_marshals):
+                                _ptrace.note("strategic", "tactical_target_kept",
+                                             strategic_target, _tactical_target)
+                                strategic_target = _tactical_target
+                        # DD0-16 (S4 part 3, October 10, 2026): THE CHAIN'S
+                        # KNOWN COMMANDER OUTRANKS A RE-SCAN. "pursue john
+                        # massena" — the chain read Archduke John by his
+                        # surname; the strategic layer re-scanned the composed
+                        # string and minted a region "John". (The region half
+                        # — "march his corps to Franconia" minting "His Corps"
+                        # — is the MOVE_TO extractor's own fix, so a phantom
+                        # province a lever-down arm reproduces on purpose
+                        # stays reproducible.)
+                        # Only a foe the TYPED line names by a form the roster
+                        # knows (the surname "john"): a typo the fuzzy pass
+                        # corrected ("pursue Macck") keeps its did-you-mean.
+                        from backend.ai.reading import foe_named_in as _foe_named_in
+                        _tactical_target = result["command"].get("target")
+                        if (strategic.get("target_type") == "region"
+                                and _tactical_target
+                                and not self._names_a_known_region(strategic_target, world)
+                                and not self._names_a_known_region(_tactical_target, world)
+                                and _tactical_target in self._get_known_enemies(world)
+                                and _foe_named_in(effective_text, self._get_known_enemies(world))
+                                == _tactical_target):
+                            _ptrace.note("strategic", "tactical_target_kept",
+                                         strategic_target, _tactical_target)
+                            strategic_target = _tactical_target
+                            strategic["target_type"] = "marshal"
                         _ptrace.note("strategic", "target_resolved",
                                      strategic["target"], strategic_target)
                         _ptrace.note("strategic", "target_overrides_tactical",

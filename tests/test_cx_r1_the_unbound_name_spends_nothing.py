@@ -329,11 +329,13 @@ class TestTheVerbSetIsDerived:
             "            action = \"wait\"\n" + marker, 1)
         assert "zapfenstreich" in GEN.harvest(router_source=mutated), \
             "the module constant is followed when nothing shadows it"
+        # DD-0 S4 part 3: the marker lives in the `_chain_read_action`
+        # stage, so the shadowing local is planted in THAT function.
         shadowed = mutated.replace(
-            "    def _parse_with_mock_chain(self, command_text: str, "
-            "game_state: Optional[Dict] = None) -> ParseResult:\n",
-            "    def _parse_with_mock_chain(self, command_text: str, "
-            "game_state: Optional[Dict] = None) -> ParseResult:\n"
+            "    def _chain_read_action(self, st: \"_ChainState\") "
+            "-> Optional[ParseResult]:\n",
+            "    def _chain_read_action(self, st: \"_ChainState\") "
+            "-> Optional[ParseResult]:\n"
             "        _ZAPFEN_WORDS = (\"tattoo\",)\n", 1)
         assert shadowed != mutated
         assert "zapfenstreich" not in GEN.harvest(router_source=shadowed)
